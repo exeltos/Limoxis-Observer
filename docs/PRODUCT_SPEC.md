@@ -506,7 +506,7 @@ A single SQL script (runnable against any copy, even production) does everything
 ### 7.3 Record shell
 
 - `EntityRecordShell`: back button, avatar/icon, eyebrow (record code), title, subtitle, status badge(s), previous/next record, header actions, tabs (`CanonicalTabs`/`SubTabs`), single-screen fit where possible.
-- Record utility actions via `PrintExportActions`; Export always performs a real action (generic fallback: structured JSON).
+- Record utility actions via `ExportMenu` («Εξαγωγή ▾»); Export always performs a real action (generic fallback: structured JSON).
 
 ### 7.4 Dialogs and confirmations
 
@@ -623,7 +623,7 @@ Fixtures are authored as if "today" were a fixed date (`DEMO_AUTHORED_ON`). On l
 | Navigation smoke | Every navigation item resolves to a gated route for the roles that see it. |
 | React hooks smoke | Hooks rules/known crash patterns. |
 | Frontend parity | Demo and production use the same canonical screens/loaders (allowlist for exceptions). |
-| Observer UI | No visible Print/Export text, no native date/time inputs, record pages use `PrintExportActions`, Print never without Export, no legacy feature-specific form shells. |
+| Observer UI | One «Εξαγωγή» control (ExportMenu), no native date/time inputs, record pages use `ExportMenu` («Εξαγωγή ▾»), Print never without Export, no legacy feature-specific form shells. |
 | Dead CSS / dead selectors | No overridden declarations; no rules whose classes no code sets. |
 | Strict typecheck | JSDoc-typed modules (permission model first) checked with `strict` + `checkJs`. |
 | Lint, tests, build | ESLint zero warnings, Vitest, Vite build. |

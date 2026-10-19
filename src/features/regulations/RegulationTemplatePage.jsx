@@ -4,7 +4,7 @@ import { BookOpen, Library, PencilLine, Send } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { FormCard, FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
@@ -66,7 +66,7 @@ export function RegulationTemplatePage() {
   return <Page fill><EntityRecordShell className="reg-record-shell workspace-fill" avatar={<Library size={19} />} eyebrow={`${en ? 'Platform template' : 'Πρότυπο πλατφόρμας'} · ${categoryLabel(template.category, language)}`} title={template.title}
     subtitle={`v${template.version} · ${formatDay(template.publishedAt, language)}${template.changeNote ? ` · ${template.changeNote}` : ''}`}
     status={<StatusBadge tone={dirty ? 'warning' : 'success'}>{dirty ? (en ? 'Unpublished changes' : 'Μη δημοσιευμένες αλλαγές') : (en ? 'Published' : 'Δημοσιευμένο')}</StatusBadge>}
-    headerActions={<PrintExportActions showPrint={false} onExport={() => downloadRegulationWord(preview, meta)} exportLabel={en ? 'Download Word' : 'Λήψη Word'} />}
+    headerActions={<ExportMenu onWord={() => downloadRegulationWord(preview, meta)} />}
     tabs={[{ id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: PencilLine }, { id: 'preview', label: en ? 'Preview' : 'Προεπισκόπηση', icon: BookOpen }]} activeTab={tab} onTabChange={setTab}
     onBack={async () => { if (!dirty || await confirm({ title: en ? 'Leave without publishing?' : 'Έξοδος χωρίς δημοσίευση;', message: en ? 'The changes are lost.' : 'Οι αλλαγές θα χαθούν.', danger: true })) goBack() }}>
     {tab === 'edit' && <RecordTabPanel className="reg-edit-panel" title={en ? 'Template' : 'Πρότυπο'} subtitle={en ? 'Write {hospital} where the hospital’s name goes; a paragraph «Fill in:» marks what each hospital completes.' : 'Γράψτε {hospital} όπου μπαίνει το όνομα του νοσοκομείου· μια παράγραφος «Συμπληρώστε:» δείχνει τι συμπληρώνει κάθε νοσοκομείο.'}

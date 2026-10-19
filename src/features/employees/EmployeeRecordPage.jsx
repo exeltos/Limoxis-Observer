@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -431,7 +431,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
   const departmentOptions = departments.map(row => [row.name, row.nameEn || row.name])
   // The employee's details as a printed sheet (the full employee file comes
   // with the shared document layout's next exports).
-  function printEmployee() {
+  function printEmployee(pdf) {
     const en = language === 'en'
     const pick = (el, enValue) => (en ? enValue || el : el) || ''
     const ok = printReport({
@@ -463,7 +463,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         ],
       ],
       filename: `${employee.id}_${en ? 'employee' : 'ergazomenos'}`,
-    })
+    }, { pdf: pdf === true })
     if (!ok)
       notify(
         en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.',
@@ -481,7 +481,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
           <span>+ {t('newSurveillance')}</span>
         </ActionButton>
       )}
-      <PrintExportActions showExport={false} onPrint={printEmployee} />
+      <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />
     </>
   )
 

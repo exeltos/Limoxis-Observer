@@ -4,8 +4,8 @@ This file is the product-wide interaction contract for new and existing features
 
 ## Actions
 - Primary domain action: standard text button (`Button` / `.action-button`).
-- Print: icon-only printer button with tooltip + aria-label.
-- Export: icon-only download button with tooltip + aria-label.
+- Print, PDF, Excel and Word go through ONE control, `ExportMenu` («Εξαγωγή ▾», EN "Export"), the same on list pages (page header, top right), record headers (beside the status) and dialogs. It lists only the options that apply, always in the order Εκτύπωση, PDF, Excel, Word (a record's raw data file, JSON, last). With one option the button runs it directly, still labelled «Εξαγωγή». In a table row it is `compact` (an icon with the «Εξαγωγή: …» tooltip). No standalone print / download / «Λήψη» buttons or «…»-menu items: `npm run audit:observer-ui` flags them.
+- PDF of a document built on the shared layout (`core/export/reportDocument.js`) opens the same print view with a «Αποθήκευση ως PDF» hint (`printReport(doc, { pdf: true })`, or `reportExports(build, { word })` for the Print / PDF / Word set), so the file keeps real text. Screens without a built document keep their own PDF file (`exportElementAsPdf`).
 - Back / close / row utilities: icon-only controls using the same Observer control size and radius.
 - Do not create feature-specific print/export button styles.
 
@@ -32,7 +32,7 @@ This file is the product-wide interaction contract for new and existing features
 
 ## Registries and records
 - Registries use `Page`, `FilterBar`, `RecordActions`, and clickable-row affordance where rows open records.
-- Record pages use `EntityRecordShell`. Its header actions come in three kinds: edit and delete go to the «…» menu; utilities (print, download, export — `PrintExportActions` or an icon button labelled «Εκτύπωση / Λήψη / Εξαγωγή…») stay visible as icon buttons beside the status.
+- Record pages use `EntityRecordShell`. Its header actions come in three kinds: edit and delete go to the «…» menu; the record's `ExportMenu` stays visible beside the status.
 - Printed and downloaded documents use the shared layout in `core/export/reportDocument.js` (`printReport` for PDF with real text, `downloadReportWord` for .doc): hospital band, title and code, facts grid, numbered sections with real tables, signatures, and a footer with the code, printed-on date, page X / Y and the DEMO mark. No screenshot PDFs for new exports.
 - Lists inside a record use `RegistryTable` (same geometry as registries); statuses use `status-badge`, never plain text.
 - Sections inside a record tab start with `SectionHeader` (title, optional subtitle, actions on the right).

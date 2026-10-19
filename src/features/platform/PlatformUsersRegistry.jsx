@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import './platformDeletion.css'
@@ -49,7 +49,7 @@ export function PlatformUsersRegistry({ language = 'el', users = [], loading = f
   }
   const canOpen = user => Boolean(user.organization?.id)
   return <Page title={tx('Χρήστες', 'Users')} subtitle={tx('Όλοι οι χρήστες της πλατφόρμας: τι ρόλο έχουν, σε ποιον οργανισμό ή Demo ανήκουν και αν έχουν ενεργοποιήσει τον λογαριασμό τους.', 'Everyone on the platform: their role, the organization or Demo they belong to, and whether they have activated their account.')}
-    actions={<DownloadMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>}>
+    actions={<ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>}>
     <div className="platform-registry-shell workspace-column">
       <div className="platform-demo-toolbar">
         <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση χρήστη, email ή οργανισμού…', 'Search user, email or organization…')}/>

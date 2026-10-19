@@ -1,22 +1,7 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Download,
-  FileClock,
-  FileSearch,
-  FlaskConical,
-  LockKeyhole,
-  Microscope,
-  FolderOpen,
-  Pencil,
-  PhoneCall,
-  PlayCircle,
-  Printer,
-  RotateCcw,
-  ShieldAlert,
-} from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -322,19 +307,6 @@ export function LaboratorySampleRecordFunctionalView() {
         icon: RotateCcw,
         onClick: () => setDialog('correction'),
       },
-    {
-      id: 'print',
-      label: tx('print'),
-      icon: Printer,
-      separatorBefore: canManageActive || (finalized && canReopen),
-      onClick: () => window.print(),
-    },
-    {
-      id: 'export',
-      label: tx('export'),
-      icon: Download,
-      onClick: () => downloadRecordJson(sample, { filename: sample.id }),
-    },
     (canManageActive || (finalized && canReopen && !rejected)) && {
       id: 'reject',
       label: tx('reject'),
@@ -374,7 +346,7 @@ export function LaboratorySampleRecordFunctionalView() {
               t={t}
               language={language}
               fmt={fmt}
-              menu={<OverflowMenu items={sampleMenu} />}
+              menu={<><ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} /><OverflowMenu items={sampleMenu} /></>}
             />
           </div>
         )}

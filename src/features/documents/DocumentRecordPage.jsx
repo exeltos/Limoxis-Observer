@@ -3,7 +3,7 @@ import { Archive, BookOpenCheck, FileClock, Paperclip, Pencil, RotateCcw, Send, 
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { printReport } from '../../core/export/reportDocument'
 import { formatDay } from '../../core/i18n/formatDay'
 import { Button } from '../../design-system/Button'
@@ -332,7 +332,7 @@ export function DocumentRecordPage() {
   }
 
   // The document's record sheet on the shared document layout: details, controlled version, files and history.
-  function exportPdf() {
+  function exportPdf(pdf) {
     const department = record.department || departments.find((row) => row.id === record.departmentId)?.name || (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')
     const ok = printReport({
       language,
@@ -348,7 +348,7 @@ export function DocumentRecordPage() {
       ].filter(Boolean),
       signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε', en ? 'Approved by' : 'Εγκρίθηκε'],
       filename: `${record.id}_${record.title}_v${record.version || '—'}`,
-    })
+    }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
@@ -364,7 +364,7 @@ export function DocumentRecordPage() {
       <IconButton tone="edit" onClick={() => setEditing(true)} label={en ? 'Edit' : 'Επεξεργασία'}><Pencil size={16} /></IconButton>
       <ActionButton tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={removeDraft} disabled={busy}><Trash2 size={16} /></ActionButton>
     </>}
-    <PrintExportActions showPrint={false} onExport={exportPdf} exportLabel={en ? 'Download PDF' : 'Λήψη PDF'} />
+    <ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} />
   </>
 
   return <Page fill><EntityRecordShell

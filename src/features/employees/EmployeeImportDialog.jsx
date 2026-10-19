@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,Download,FileSpreadsheet,Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react'
 import { YesNoField } from '../../design-system/YesNoField'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
@@ -88,7 +88,7 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}){
   <div className="employee-import">
    <div className="employee-import-file">
     <label className="employee-import-pick"><Upload size={16}/><span>{fileName||(en?'Choose file (.xlsx or .csv)':'Επιλογή αρχείου (.xlsx ή .csv)')}</span><input type="file" accept=".xlsx,.csv" onChange={event=>void pick(event)} disabled={Boolean(running)}/></label>
-    <Button variant="secondary" onClick={downloadTemplate}><Download size={15}/>{en?' Template':' Πρότυπο'}</Button>
+    <Button variant="secondary" onClick={downloadTemplate}><FileSpreadsheet size={15}/>{en?' Excel template':' Πρότυπο Excel'}</Button>
    </div>
    {readError&&<p className="employee-import-error" role="alert"><AlertTriangle size={15}/>{readError}</p>}
    {!plan&&!readError&&<div className="employee-import-help"><FileSpreadsheet size={20}/><div><strong>{en?'Columns':'Στήλες'}</strong><span>{en?'Code, Last name, First name, Department and Professional category are required. Father name, Job position, Status, Email, Phone, Hire date and Birth date are optional. Download the template to start.':'Υποχρεωτικές: Κωδικός, Επώνυμο, Όνομα, Τμήμα, Επαγγελματική κατηγορία. Προαιρετικές: Πατρώνυμο, Θέση εργασίας, Κατάσταση, Email, Τηλέφωνο, Ημερομηνία πρόσληψης, Ημερομηνία γέννησης. Κατεβάστε το πρότυπο για να ξεκινήσετε.'}</span></div></div>}

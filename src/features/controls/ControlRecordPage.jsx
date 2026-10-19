@@ -1,9 +1,9 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { CalendarX2,ClipboardCheck,FileClock,LockKeyhole,PlayCircle,Pencil,Printer,RotateCcw,Trash2 } from 'lucide-react'
+import { CalendarX2, ClipboardCheck, FileClock, LockKeyhole, PlayCircle, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -157,7 +157,6 @@ export function ControlRecordPage(){
 
  function historyActions(h){
   return [
-   h.structuredData?.rows?.length>0?{id:'print',label:isExpiryControl(record)?(en?'Print change form':'Έντυπο αλλαγών'):(en?'Print entry':'Εκτύπωση καταχώρησης'),icon:Printer,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
    canEditHistory(h)?{id:'edit',label:en?'Edit entry':'Επεξεργασία καταχώρησης',icon:Pencil,onClick:()=>setEditExecution(h)}:null,
    canDeleteHistory(h)?{id:'delete',label:en?'Delete entry':'Διαγραφή καταχώρησης',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setDeleteExecution(h)}:null,
    canCancelHistory(h)?{id:'void',label:en?'Void entry':'Αναίρεση καταχώρησης',icon:RotateCcw,onClick:()=>setCancelExecution(h)}:null,
@@ -177,7 +176,7 @@ export function ControlRecordPage(){
   {canExecute&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
-  <PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record?.id})}/>
+  <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:()=>downloadRecordJson(record,{filename:record?.id})}]} />
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 
@@ -231,7 +230,7 @@ export function ControlRecordPage(){
     emptyTitle={historyLoaded?(en?'No executions yet':'Δεν υπάρχουν ακόμη εκτελέσεις'):(en?'Loading executions…':'Φόρτωση εκτελέσεων…')}
     emptyText={historyLoaded?(en?'Entries appear here once the control is recorded.':'Οι καταχωρήσεις εμφανίζονται εδώ μόλις καταχωρηθεί ο έλεγχος.'):undefined}
     rowProps={h=>({className:h.status==='cancelled'?'control-history-cancelled':''})}
-    renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.status==='cancelled'?<StatusBadge tone="danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</StatusBadge>:<>{structuredSummary(h,{record,language})}{h.resultText&&<small>{en?'Result details':'Αναλυτικό αποτέλεσμα'}: {h.resultText}</small>}{h.checkedPoints&&<small>{en?'Points checked':'Σημεία ελέγχου'}: {h.checkedPoints}</small>}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col"><OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
+    renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.status==='cancelled'?<StatusBadge tone="danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</StatusBadge>:<>{structuredSummary(h,{record,language})}{h.resultText&&<small>{en?'Result details':'Αναλυτικό αποτέλεσμα'}: {h.resultText}</small>}{h.checkedPoints&&<small>{en?'Points checked':'Σημεία ελέγχου'}: {h.checkedPoints}</small>}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col">{h.structuredData?.rows?.length>0&&<ExportMenu compact items={[{id:'form',kind:'print',label:isExpiryControl(record)?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:()=>printControlForm({record,department:h.department,execution:h})}]}/>}<OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
   /></RecordTabPanel>}
  </EntityRecordShell>
  {editExecution&&<ControlExecutionModal organizationId={tenant.id} record={record} department={editExecution.department||department} initialExecution={editExecution} onClose={()=>setEditExecution(null)} onSave={editExistingExecution}/>} 

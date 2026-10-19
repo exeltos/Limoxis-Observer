@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -270,14 +270,14 @@ export function QualityPage(){
 
  const download=({
   overview:null,
-  deviations:<DownloadMenu disabled={!deviations.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviations.filtered,{language}))}/>,
-  reports:<DownloadMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>,
-  actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <DownloadMenu items={[{id:'findings',label:L('Ευρήματα (.csv)','Findings (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
-  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <DownloadMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
-  risks:<DownloadMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
-  indicators:measureView==='surveys'?<DownloadMenu disabled={!visibleSurveys.length} onExcel={()=>exportRegistry(surveysExport(visibleSurveys,language))}/>:measureView==='registers'?<DownloadMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<DownloadMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
-  resources:resourceView==='equipment'?<DownloadMenu disabled={!visibleEquipment.length} onExcel={()=>exportRegistry(equipmentExport(visibleEquipment,language))}/>:<DownloadMenu disabled={!visibleSuppliers.length} onExcel={()=>exportRegistry(suppliersExport(visibleSuppliers,language))}/>,
-  review:meetingView==='meetings'?<DownloadMenu disabled={!visibleMeetings.length} onExcel={()=>exportRegistry(meetingsExport(visibleMeetings,language))}/>:<DownloadMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
+  deviations:<ExportMenu disabled={!deviations.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviations.filtered,{language}))}/>,
+  reports:<ExportMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>,
+  actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu items={[{id:'findings',label:L('Ευρήματα (.csv)','Findings (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
+  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <ExportMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
+  risks:<ExportMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
+  indicators:measureView==='surveys'?<ExportMenu disabled={!visibleSurveys.length} onExcel={()=>exportRegistry(surveysExport(visibleSurveys,language))}/>:measureView==='registers'?<ExportMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<ExportMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
+  resources:resourceView==='equipment'?<ExportMenu disabled={!visibleEquipment.length} onExcel={()=>exportRegistry(equipmentExport(visibleEquipment,language))}/>:<ExportMenu disabled={!visibleSuppliers.length} onExcel={()=>exportRegistry(suppliersExport(visibleSuppliers,language))}/>,
+  review:meetingView==='meetings'?<ExportMenu disabled={!visibleMeetings.length} onExcel={()=>exportRegistry(meetingsExport(visibleMeetings,language))}/>:<ExportMenu disabled={!visibleReviews.length} onExcel={()=>exportRegistry(reviewsExport(visibleReviews,language))}/>,
  })[tab]
 
  const meetingSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={meetingView} onChange={setMeetingView} options={MEETING_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>

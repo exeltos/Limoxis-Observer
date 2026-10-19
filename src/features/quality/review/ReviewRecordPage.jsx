@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardSignature, ListChecks, Plus, Sparkles, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
@@ -20,7 +20,7 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuth } from '../../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../../core/audit/actor'
 import { formatDay } from '../../../core/i18n/formatDay'
-import { downloadReportWord, printReport } from '../../../core/export/reportDocument'
+import { reportExports } from '../../../core/export/reportDocument'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { loadQualityRecords } from '../qualityService'
 import { loadReviews, saveReview } from './reviewService'
@@ -143,7 +143,7 @@ export function ReviewRecordPage() {
   const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>{!isNew && <Button disabled={saving || !allSigned} onClick={() => save('approved')}><CheckCircle2 size={15} />{en ? 'Approve' : 'Έγκριση'}</Button>}</div>
   return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<ClipboardSignature size={19} />} eyebrow={review.code || (en ? 'New' : 'Νέα')} title={review.title} subtitle={`${formatDay(review.reviewDate, language)} · ${en ? 'every' : 'κάθε'} ${review.frequencyDays} ${en ? 'days' : 'ημέρες'}`} status={<StatusBadge tone={review.status === 'approved' ? 'success' : 'info'}>{reviewStatusLabel(review.status, language)}</StatusBadge>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={back}
 >
-    {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={en ? '«Insert data» adds what Limoxis holds for the period; edit it freely.' : 'Το «Στοιχεία του Limoxis» προσθέτει όσα υπάρχουν για την περίοδο· τα επεξεργάζεστε ελεύθερα.'} actions={<PrintExportActions onPrint={() => { if (!printReport(minutesDocument(review))) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') }} onExport={() => downloadReportWord(minutesDocument(review))} printLabel={en ? 'Print / PDF' : 'Εκτύπωση / PDF'} exportLabel={en ? 'Download Word' : 'Λήψη Word'} />} footer={footer}>
+    {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={en ? '«Insert data» adds what Limoxis holds for the period; edit it freely.' : 'Το «Στοιχεία του Limoxis» προσθέτει όσα υπάρχουν για την περίοδο· τα επεξεργάζεστε ελεύθερα.'} actions={<ExportMenu {...reportExports(() => minutesDocument(review), { word: true, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} />} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Review' : 'Ανασκόπηση'}>
           <FormGrid columns={4}>

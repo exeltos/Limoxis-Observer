@@ -4,7 +4,7 @@ import { BarChart3, ClipboardList, Lock, MessageSquareText, Play, Plus, QrCode a
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { ObserverDialog } from '../../../design-system/ObserverDialog'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { FilterBar, FilterDate, FilterSelect } from '../../../design-system/FilterBar'
@@ -139,12 +139,12 @@ export function SurveyRecordPage() {
     subtitle={[audienceLabel(survey.audience, language), [survey.opensOn && formatDay(survey.opensOn, language), survey.closesOn && formatDay(survey.closesOn, language)].filter(Boolean).join(' – ')].filter(Boolean).join(' · ')}
     status={!isNew && <StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'} actions={<PrintExportActions onExport={exportResponses} />}>
+    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'} actions={<ExportMenu onPrint={()=>window.print()} onExcel={exportResponses} />}>
       {filterBar}
       <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} />
     </RecordTabPanel>}
     {tab === 'responses' && <RecordTabPanel title={en ? 'Responses' : 'Απαντήσεις'} subtitle={en ? 'Anonymous: no name or details are kept.' : 'Ανώνυμες: δεν κρατείται όνομα ούτε στοιχεία.'}
-      actions={<div className="row-actions"><PrintExportActions showPrint={false} onExport={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
+      actions={<div className="row-actions"><ExportMenu onExcel={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
       footer={shown.length > pageSize && <RegistryPagination language={language} page={safePage} totalPages={pages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />}>
       {filterBar}
       <RegistryTable className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}

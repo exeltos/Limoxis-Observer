@@ -65,7 +65,7 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
       lines.map((line) => [title(line.item), line.department, frequencyLabel(line.item.frequency, language), ...line.months.map((cell) => calendarCellText(cell, en))]))
   }
   // The year for every control (not the page on screen) on the shared document layout.
-  function exportPdf() {
+  function exportPdf(pdf) {
     if (failed) { notify(loadFailedText, 'danger'); return }
     const toneClass = { good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }
     const cellOf = (cell) => {
@@ -90,7 +90,7 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
       meta: [[en ? 'Year' : 'Έτος', String(year)], [en ? 'Controls' : 'Έλεγχοι', String(lines.length)]],
       sections: [{ title: en ? 'Executions per month' : 'Εκτελέσεις ανά μήνα', note: `✓ ${tx.legendDone} · ✕ ${tx.legendMissed} · ○ ${tx.legendPlanned} · ${tx.legendCount}: 9/10. ${tx.calendarNote}`, table: { columns: [en ? 'Control' : 'Έλεγχος', ...months, String(year)], rows: rowsOut, empty: tx.noCalendar } }],
       filename: `${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}`,
-    })
+    }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 

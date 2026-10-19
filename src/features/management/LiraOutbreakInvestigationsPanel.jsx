@@ -4,7 +4,7 @@ import {Button} from '../../design-system/Button'
 import {FilterBar} from '../../design-system/FilterBar'
 import {RegistryTable} from '../../design-system/RegistryTable'
 import {RecordDetailsGrid} from '../../design-system/RecordDetailsGrid'
-import {PrintExportActions} from '../../design-system/PrintExportActions'
+import {ExportMenu} from '../../design-system/ExportMenu'
 import {exportElementAsPdf} from '../../core/export/pdfReportExport'
 import {LiraOutbreakReport} from '../lira/LiraOutbreakReport'
 import {ManualDateField} from '../../design-system/ManualDateField'
@@ -63,7 +63,7 @@ export function LiraOutbreakInvestigationsPanel(){
   />
   {selected&&<ObserverDialog presentation="workspace" width="workspace" className="outbreak-workspace-dialog" eyebrow={en?'OUTBREAK INVESTIGATION':'ΔΙΕΡΕΥΝΗΣΗ ΕΞΑΡΣΗΣ'} title={selected.title} subtitle={[selected.organism,statusLabel(selected.status,en)].filter(Boolean).join(' · ')} onClose={()=>setSelected(null)} footer={<DialogActions>{selected.status==='draft'&&<Button onClick={()=>changeStatus('active')}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}{selected.status==='active'&&<Button variant="danger" onClick={()=>setClosing(true)}>{en?'Review closure':'Έλεγχος κλεισίματος'}</Button>}</DialogActions>}>
    <div className="outbreak-workspace">
-    <section className="record-section outbreak-summary"><div className="record-section-header"><div><span className="eyebrow">{en?'SCOPE':'ΕΥΡΟΣ'}</span><h3>{en?'Investigation details':'Στοιχεία διερεύνησης'}</h3></div><PrintExportActions onPrint={()=>window.print()} onExport={()=>exportElementAsPdf({element:reportRef.current,filename:'outbreak-investigation-'+selected.id,orientation:'landscape'})}/></div>
+    <section className="record-section outbreak-summary"><div className="record-section-header"><div><span className="eyebrow">{en?'SCOPE':'ΕΥΡΟΣ'}</span><h3>{en?'Investigation details':'Στοιχεία διερεύνησης'}</h3></div><ExportMenu onPrint={()=>window.print()} onPdf={()=>exportElementAsPdf({element:reportRef.current,filename:'outbreak-investigation-'+selected.id,orientation:'landscape'})} /></div>
      <RecordDetailsGrid fields={[{id:'period',label:en?'Period':'Περίοδος',value:`${fmtDay(selected.scope_from,en)} → ${fmtDay(selected.scope_to,en)}`},{id:'definition',label:caseDefinitionLabel(en),value:selected.definition_id?selected.definition_id+' · v'+selected.definition_version:'—'},{id:'status',label:en?'Status':'Κατάσταση',value:<span className={'status-badge '+statusTone(selected.status)}>{statusLabel(selected.status,en)}</span>},{id:'events',label:en?'Evidence entries':'Εγγραφές τεκμηρίωσης',value:events.length}]}/>
     </section>
     <section className="record-section outbreak-copilot"><div className="record-section-header"><div><span className="eyebrow">LIRA</span><h3><BrainCircuit size={16}/> {en?'LIRA investigation assistant':'Βοηθός διερεύνησης LIRA'}</h3><p>{copilot.summary}</p></div><span className="status-badge"><Sparkles size={13}/> {en?'Bound to this investigation':'Συνδεδεμένη με αυτή τη διερεύνηση'}</span></div>

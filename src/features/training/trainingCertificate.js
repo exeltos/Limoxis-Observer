@@ -75,8 +75,9 @@ export async function downloadCertificatePdf({
   program,
   participantName,
   en = false,
+  pdf = false,
 }) {
-  if (!printReport(certificateDocument({ certificate, program, participantName, en })))
+  if (!printReport(certificateDocument({ certificate, program, participantName, en }), { pdf }))
     throw new Error(
       en
         ? 'Allow pop-ups to print the certificate.'

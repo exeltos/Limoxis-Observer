@@ -6,7 +6,7 @@ import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { FilterSelect } from '../../design-system/FilterBar'
@@ -111,7 +111,7 @@ export function CalendarPage(){
  const selectedEvents=panelKind?dayEvents.filter(e=>e.kind===panelKind):dayEvents
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
  const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
- return <Page fill className="calendar-page" title={en?'Calendar':'Ημερολόγιο'} subtitle={en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.'} actions={<DownloadMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
+ return <Page fill className="calendar-page" title={en?'Calendar':'Ημερολόγιο'} subtitle={en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.'} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
   <div className="module-summary-strip">
    <MetricCard icon={AlertTriangle} value={overdue.length} label={en?'Overdue':'Εκπρόθεσμα'} tone={overdue.length?'warning':'neutral'} onClick={()=>setView('list')}/>
    <MetricCard icon={ClipboardCheck} value={thisWeek.length} label={en?'Next 7 days':'Επόμενες 7 ημέρες'} onClick={()=>setView('list')}/>

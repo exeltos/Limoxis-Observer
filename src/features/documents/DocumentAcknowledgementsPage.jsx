@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BookOpenCheck, Clock3, Send, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { RouteLoading } from '../../design-system/RouteLoading'
@@ -107,7 +107,7 @@ export function DocumentAcknowledgementsPage() {
       rows.map((row) => [row.documentCode, row.documentTitle, row.version, fmtDay(row.sentAt, en), row.name, row.position, row.department, row.status === 'acknowledged' ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί'), fmtDateTime(row.acknowledgedAt, en)]))
   }
   // The log on the shared document layout: by document, by person and every acknowledgement, as real tables.
-  function exportPdf() {
+  function exportPdf(pdf) {
     const rows = acknowledgementLogRows(entries, { departments, en })
     const ok = printReport({
       language, orientation: 'landscape',
@@ -123,7 +123,7 @@ export function DocumentAcknowledgementsPage() {
           rows: rows.map((row) => [`${row.documentCode} · ${row.documentTitle}`, row.version, row.name, row.position, row.department, row.status === 'acknowledged' ? { text: en ? 'Read' : 'Διαβάστηκε', className: 'rd-good' } : { text: en ? 'Pending' : 'Εκκρεμεί', className: 'rd-bad' }, fmtDateTime(row.acknowledgedAt, en)]) } },
       ],
       filename: en ? 'read-acknowledgement-log' : 'mitroo-epivevaioseon-anagnosis',
-    })
+    }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
@@ -140,7 +140,7 @@ export function DocumentAcknowledgementsPage() {
   }
 
   return <Page fill title={title} subtitle={en ? 'Who has read each published protocol and who is still pending: proof for inspections.' : 'Ποιος έχει διαβάσει κάθε δημοσιευμένο πρωτόκολλο και ποιος εκκρεμεί: απόδειξη για επιθεωρήσεις.'}
-    actions={<div className="row-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!entries.length} /></div>}>
+    actions={<div className="row-actions"><ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} onExcel={exportCsv} disabled={!entries.length} /></div>}>
     <div className="module-summary-strip">
       <MetricCard icon={Send} value={totals.distributions} label={en ? 'Distributed documents' : 'Κοινοποιημένα έγγραφα'} />
       <MetricCard icon={BookOpenCheck} value={`${totals.rate}%`} label={en ? 'Overall read rate' : 'Συνολικό ποσοστό ανάγνωσης'} tone={totals.rate >= 90 ? 'active' : totals.rate >= 60 ? 'warning' : 'danger'} />

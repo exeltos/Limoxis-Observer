@@ -5,7 +5,7 @@ import { Archive, ArchiveRestore, BookOpen, CheckCircle2, FilePenLine, History, 
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { Field } from '../../design-system/Field'
@@ -186,7 +186,7 @@ export function RegulationPage() {
     { id: 'editions', label: en ? `Editions ${data.editions.length}` : `Εκδόσεις ${data.editions.length}`, icon: History },
   ]
   const headerActions = <div className="row-actions">
-    <PrintExportActions onPrint={print} onExport={() => downloadRegulationWord(readContent, meta)} exportLabel={en ? 'Download Word' : 'Λήψη Word'} />
+    <ExportMenu onPrint={print} onPdf={print} onWord={() => downloadRegulationWord(readContent, meta)} />
     {canManage && hasApproved && <IconButton label={regulation.archived ? (en ? 'Restore from the archive' : 'Επαναφορά από το αρχείο') : (en ? 'Archive' : 'Αρχειοθέτηση')} onClick={toggleArchive}>{regulation.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}</IconButton>}
   </div>
 

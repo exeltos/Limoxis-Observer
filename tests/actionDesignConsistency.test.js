@@ -43,10 +43,10 @@ describe('shared semantic action design',()=>{
     expect(observerDialog).not.toContain("'Cancel':'Ακύρωση'")
   })
 
-  it('keeps the analytics print action in the shared analysis-actions toolbar',()=>{
+  it('keeps the analytics print and PDF actions in the one export control of the analysis toolbar',()=>{
     expect(analysis).toContain('className="analysis-actions"')
     expect(analysis).toContain("tx('Εκτύπωση','Print')")
-    expect(analysis).toContain('<Printer size={16}/>')
+    expect(analysis).toContain('<ExportMenu')
   })
 
   it('centralizes edit, destructive and success tones in one stylesheet',()=>{

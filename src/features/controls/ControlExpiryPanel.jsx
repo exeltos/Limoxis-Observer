@@ -1,7 +1,8 @@
 import { useMemo,useState } from 'react'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { PackageX,Printer } from 'lucide-react'
-import { Button } from '../../design-system/Button'
+import { PackageX } from 'lucide-react'
+
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -66,7 +67,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},
    {value:'all',label:`${en?'All':'Όλα'} (${searched.length})`},
-  ]}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<Button variant="secondary" disabled={!returnItems.length} onClick={printReturnForm}><Printer size={15}/>{en?` Return & replacement (${returnItems.length})`:` Έντυπο επιστροφής (${returnItems.length})`}</Button></div>}
+  ]}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<ExportMenu disabled={!returnItems.length} items={[{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,onClick:printReturnForm}]}/></div>}
   footer={shown.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
  >
   <RegistryTable

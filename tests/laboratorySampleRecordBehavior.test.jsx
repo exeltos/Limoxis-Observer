@@ -74,9 +74,11 @@ describe('laboratory record layout', () => {
     expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Δείγμα', 'Μικροβιολογικό αποτέλεσμα', 'Έγγραφα', 'Ιστορικό'])
   })
 
-  it('keeps sample actions, print and export in the sample card menu, not in the record header', async () => {
+  it('keeps sample actions in the sample card menu and print / export in the card «Εξαγωγή», not in the record header', async () => {
     await openSample()
-    expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Επεξεργασία αποτελέσματος', 'Εκτύπωση', 'Εξαγωγή JSON', 'Απόρριψη δείγματος'])
+    expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Επεξεργασία αποτελέσματος', 'Απόρριψη δείγματος'])
+    closeMenu()
+    expect(openMenu(within(body()).getByRole('button', { name: 'Εξαγωγή' }))).toEqual(['Εκτύπωση', 'JSON'])
     closeMenu()
     const header = document.querySelector('.entity-record-header')
     expect(within(header).queryByRole('button', { name: /Εκτύπωση|Εξαγωγή/ })).not.toBeInTheDocument()

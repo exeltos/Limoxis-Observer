@@ -1,10 +1,11 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Activity,CheckCircle2,ClipboardCheck,Database,Download,Plus,RefreshCcw,Target,TrendingUp } from 'lucide-react'
+import { Activity,CheckCircle2,ClipboardCheck,Database,Plus,RefreshCcw,Target,TrendingUp } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
@@ -54,7 +55,7 @@ export function IndicatorsPage(){
  function openIndicator(row){if(!row.definitionId)return;registry.openRecord(navigate,`/indicators/${row.definitionId}`,row.definitionId,sequenceIds,{state:{indicatorPeriod:{from,to,departmentId:effectiveDepartment||null}}})}
  const departmentLabel=effectiveDepartment?(allowedDepartments.find(d=>d.id===effectiveDepartment)?.name||effectiveDepartment):t('indicatorsRecords.wholeHospital')
  // The list as a report on the shared document layout: real text and tables, the hospital band and page numbers.
- function exportPdf(){
+ function exportPdf(pdf){
   if(loading||to<from)return
   const approvalText=r=>{const snapshot=snapshotFor(r);return !snapshot?'—':snapshot.status==='approved'?t('indicatorsRecords.approvedLabel'):t('indicatorsRecords.pendingApproval')}
   const resultText=r=>`${fmtIndicatorValue(r.value,el)}${r.calculation!=='manual'&&r.unit?` ${el?r.unit:(r.unitEn||r.unit)}`:''}`
@@ -65,10 +66,10 @@ export function IndicatorsPage(){
     [t('indicatorsRecords.onTargetStatus'),String(onTarget)],[t('indicatorsRecords.needAttentionLabel'),String(attention)]],
    sections:[{title:`${t('indicators')} (${filtered.length})`,table:{columns:[t('indicatorsRecords.tableIndicator'),t('category'),{text:t('indicatorsRecords.tableResult'),align:'right'},t('indicatorsRecords.numeratorDenominatorLabel'),t('indicatorsRecords.targetLabel'),t('indicatorsRecords.sourceVersionLabel'),t('status'),t('indicatorsRecords.approvalLabel')],
     rows:filtered.map(r=>[el?r.titleEl:(r.titleEn||r.titleEl),categoryLabel(r.category,t),{text:resultText(r),className:'rd-num'},r.calculation==='manual'?translate('copy.indicatorsCopy.manualEntry',language):(r.evidence||'—'),target(r),[r.source,r.version].filter(Boolean).join(' · '),status(r),approvalText(r)])}}],
-   filename:`${tenant?.name||'Indicators'}_${from}_${to}${effectiveDepartment?`_${departmentLabel}`:''}`})
+   filename:`${tenant?.name||'Indicators'}_${from}_${to}${effectiveDepartment?`_${departmentLabel}`:''}`}, { pdf: pdf === true })
   if(!ok)notify(t('indicatorsRecords.allowPopups'),'error')
  }
- return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={<div className="row-actions"><IconButton label={t('indicatorsRecords.exportPdfReport')} disabled={loading||to<from||!filtered.length} onClick={exportPdf}><Download size={16}/></IconButton><Button variant="secondary" onClick={calculate} disabled={loading}><RefreshCcw size={15}/>{t('recalculate')}</Button>{canManage&&<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>}</div>}>
+ return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={<div className="row-actions"><ExportMenu disabled={loading||to<from||!filtered.length} onPrint={()=>exportPdf(false)} onPdf={()=>exportPdf(true)}/><Button variant="secondary" onClick={calculate} disabled={loading}><RefreshCcw size={15}/>{t('recalculate')}</Button>{canManage&&<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>}</div>}>
   <div className="indicator-summary-strip module-summary-strip"><MetricCard icon={Activity} value={definitions.length} label={t('indicatorsRecords.activeDefinitions')} active={kpi==='all'&&category==='all'&&!query} onClick={()=>setKpi('all')}/><MetricCard icon={CheckCircle2} value={onTarget} label={t('indicatorsRecords.onTargetStatus')} tone="active" active={kpi==='onTarget'} onClick={()=>toggleKpi('onTarget')}/><MetricCard icon={Target} value={attention} label={t('indicatorsRecords.needAttentionLabel')} tone={attention?'warning':'neutral'} active={kpi==='attention'} onClick={()=>toggleKpi('attention')}/><MetricCard icon={TrendingUp} value={approvedCount} label={t('indicatorsRecords.approvedResults')} active={kpi==='approved'} onClick={()=>toggleKpi('approved')}/></div>
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">

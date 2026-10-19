@@ -53,7 +53,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
         [tx.total, '', '', totals.expected, totals.performed, totals.onTime, totals.missed, pct(totals.rate)]])
   }
   // The whole programme (every line, not the page on screen) on the shared document layout.
-  function exportPdf() {
+  function exportPdf(pdf) {
     if (failed) { notify(loadFailedText, 'danger'); return }
     const { from, to } = periodRange(period)
     const numbers = (row) => [{ text: String(row.expected), className: 'rd-num' }, { text: String(row.performed), className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[adherenceTone(row.rate)] || ''}` }]
@@ -70,7 +70,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
       sections: [{ title: en ? 'Adherence per control and department' : 'Τήρηση ανά έλεγχο και τμήμα', note: tx.adherenceNote, table: { columns: [en ? 'Control / department' : 'Έλεγχος / τμήμα', en ? 'Frequency' : 'Συχνότητα', tx.expected, tx.performed, tx.onTime, tx.missed, tx.adherenceRate], rows: tableRows, foot: [tx.total, '', ...numbers(totals)], empty: tx.noAdherence } }],
       signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε'],
       filename: en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon',
-    })
+    }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 

@@ -1,6 +1,7 @@
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { useEffect,useLayoutEffect,useMemo,useRef,useState } from 'react'
 import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'
-import { ArrowLeft,BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download,Gauge } from 'lucide-react'
+import { ArrowLeft, BarChart3, BookOpen, CheckCircle2, ClipboardList, GitCompareArrows, Lightbulb, RotateCcw, Send, ShieldAlert, Archive, Trash2, Info, Pencil, Gauge } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
@@ -142,14 +143,11 @@ export function RiskAssessmentPage(){
   assessment.status==='draft'&&{id:'delete',label:L(en,'Διαγραφή εκτίμησης','Delete assessment'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setConfirm({kind:'assessment'})},
  ].filter(Boolean):[]
  // Print, export and the status flow share one "…" menu.
- const menuItems=[
-  {id:'print',label:L(en,'Εκτύπωση αναφοράς','Print the report'),icon:Printer,onClick:print},
-  {id:'export',label:L(en,'Λήψη μητρώου (Excel)','Download the register (Excel)'),icon:Download,onClick:exportCsv},
-  ...statusItems.map((item,i)=>i===0?{...item,separatorBefore:true}:item),
- ]
+ // Print / PDF / Excel in the one export control; the status flow in «…».
+ const menuItems=statusItems
  // The next step of the approval cycle, offered on the «Στοιχεία» tab.
  const nextStep=statusItems.find(item=>item.id===(assessment.status==='draft'?'review':assessment.status==='under_review'?'approve':assessment.status==='approved'?'archive':''))||null
- const menu=<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/>
+ const menu=<div className="row-actions"><ExportMenu onPrint={print} onPdf={print} items={[{id:'register',kind:'excel',label:L(en,'Excel: μητρώο κινδύνων','Excel: risk register'),onClick:exportCsv}]}/>{menuItems.length>0&&<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/>}</div>
 
  const tabs=[
   {id:'register',label:L(en,`Μητρώο (${risks.length})`,`Register (${risks.length})`),icon:ClipboardList},

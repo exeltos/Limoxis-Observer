@@ -1,11 +1,12 @@
 import { useMemo,useState } from 'react'
-import { FileWarning,History,Plus,Printer,Save,Trash2 } from 'lucide-react'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { FileWarning, History, Plus, Save, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime } from '../../core/i18n/formatDay'
-import { ActionButton } from '../../design-system/ActionButton'
+
 import { Button } from '../../design-system/Button'
 import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
@@ -184,7 +185,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
   <div className="control-execution-page-tools">
    <div className="control-execution-page-secondary-actions">
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
-    {structured&&<ActionButton tone="neutral" label={expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Print form':'Έντυπο')} onClick={printDraft}><Printer size={15}/><span>{expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Form':'Έντυπο')}</span></ActionButton>}
+    {structured&&<ExportMenu items={[{id:'form',kind:'print',label:expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:printDraft}]}/>}
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<StatusBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</StatusBadge>}
    </div>
@@ -199,7 +200,7 @@ export function ControlExecutionModal({organizationId,record,department,onClose,
  const {en,language,actor,structured,valid,payload,printDraft}=state
  const [confirmed,setConfirmed]=useState(false)
  return <ObserverDialog width={structured?'workspace':'wide'} className="control-execution-card" eyebrow={en?'Edit entry':'Επεξεργασία καταχώρησης'} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(record.frequency,language)} · ${en?'original entry':'αρχική καταχώρηση'} ${formatDateTime(initialExecution?.at,language)}`} onClose={onClose} footer={<>
-  {structured&&<IconButton label={en?'Print form':'Εκτύπωση φόρμας'} onClick={printDraft}><Printer size={15}/></IconButton>}
+  {structured&&<ExportMenu compact items={[{id:'form',kind:'print',label:en?'Entry form':'Έντυπο καταχώρησης',onClick:printDraft}]}/>}
   <ChoiceChips className="control-exec-confirm" options={[{value:'confirmed',label:en?'I confirm the corrections are accurate':'Επιβεβαιώνω ότι οι διορθώσεις είναι σωστές'}]} selected={confirmed?['confirmed']:[]} onToggle={()=>setConfirmed(x=>!x)}/>
   <DialogActions onCancel={onClose} onSave={()=>{if(valid&&confirmed)onSave(payload())}} disabled={!confirmed||!valid} saveLabel={en?'Save changes':'Αποθήκευση αλλαγών'}/>
  </>}>

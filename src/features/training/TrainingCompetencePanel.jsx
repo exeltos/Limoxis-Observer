@@ -2,7 +2,7 @@ import { useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,CheckCircle2,Clock3,Pencil,Plus,Trash2,XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { SubTabs } from '../../design-system/SubTabs'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
@@ -58,7 +58,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
    <span><strong className="warning">{matrix.counts.expiring}</strong>{en?`expire within 60 days`:'λήγουν σε 60 ημέρες'}</span>
    <div className="training-competence-tools">
     <label><span>{en?'Department':'Τμήμα'}</span><select value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All':'Όλα'}</option>{departmentNames.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
-    <DownloadMenu items={[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]}/>
+    <ExportMenu items={[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]}/>
    </div>
   </div>
   <SubTabs activeId={view} onChange={setView} ariaLabel={en?'Competence view':'Προβολή επάρκειας'} tabs={[{id:'matrix',label:en?'Matrix':'Πίνακας'},{id:'plan',label:en?'Who needs training':'Ποιοι χρειάζονται εκπαίδευση',count:plan.length},{id:'rules',label:en?'Requirements':'Απαιτήσεις',count:matrix.requirements.length}]}/>

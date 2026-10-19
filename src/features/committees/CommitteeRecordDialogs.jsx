@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { attendanceFor } from './committeeMeetingRules'
-import { Download, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
@@ -439,8 +440,8 @@ export function MeetingDialog({
     else onSave(v, true)
   }
   // The minutes as shown (unsaved edits included), printed on the shared document layout (PDF with real text).
-  function exportPdf() {
-    if (!printReport(committeeMinutesReport({ committeeName, minutes: { ...v, approvals: meeting.approvals || [] }, en })))
+  function exportPdf(pdf) {
+    if (!printReport(committeeMinutesReport({ committeeName, minutes: { ...v, approvals: meeting.approvals || [] }, en }), { pdf: pdf === true }))
       notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'committee_minutes_pdf' })
   }
   return (
@@ -453,10 +454,7 @@ export function MeetingDialog({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={exportPdf}>
-            <Download size={14} />
-            {en ? 'Export PDF' : 'Εξαγωγή PDF'}
-          </Button>
+          <ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} />
           {canSave && !locked && (
             <Button variant="secondary" disabled={busy} onClick={() => onSave(v, false)}>
               {en ? 'Save' : 'Αποθήκευση'}

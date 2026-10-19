@@ -42,7 +42,7 @@
 - `ObserverDialog` για νέους διαλόγους.
 - `ManualDateField` και `TimeField` αντί για native date/time inputs.
 - `EntityRecordShell` για record pages.
-- κοινές actions μέσω `RecordActions` και `PrintExportActions`.
+- κοινές actions μέσω `RecordActions` και `ExportMenu` («Εξαγωγή ▾»).
 
 Παρόλα αυτά, η νέα φόρμα δείγματος του production Εργαστηρίου χρησιμοποιεί custom `modal-backdrop` / `entry-card`, δικό της κουμπί κλεισίματος και native `datetime-local`. Έτσι, ακόμη και όταν η production λειτουργία υπάρχει, παρουσιάζεται με διαφορετική γλώσσα διεπαφής από το Demo και από το documented design system.
 

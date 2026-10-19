@@ -5,7 +5,7 @@ import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Sparkline } from '../../design-system/MiniCharts'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
@@ -46,7 +46,7 @@ export function RegisterIndicators({ register, entries }) {
     actions={<div className="register-indicator-actions">
       <SearchableSelect hideLabel className="register-period-select" label={en ? 'Period' : 'Περίοδος'} value={kind} onChange={next=>next&&(setKind)(next)} options={optionsOf(PERIODS, language)}/>
       <PeriodStepper label={periodLabel(period, language)} onPrevious={() => step(-1)} onNext={() => step(1)} nextDisabled={shiftPeriod(period, PERIOD_MONTHS[kind]).from > new Date().toISOString().slice(0, 10)} />
-      <DownloadMenu disabled={!report.length} onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exporting} />
+      <ExportMenu disabled={!report.length} onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exporting} />
     </div>}>
     <div ref={reportRef} className="register-indicator-report">
       <h3 className="register-report-title">{title}</h3>

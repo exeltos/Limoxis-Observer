@@ -1,5 +1,6 @@
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, CalendarDays, CalendarRange, Download, Lock, LockOpen, Upload } from 'lucide-react'
+import { AlertTriangle, CalendarDays, CalendarRange, Lock, LockOpen, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
@@ -110,7 +111,6 @@ export function RegisterSheet({ register, entries, onSaved, onExport }) {
   const previousTotal = rows.reduce((sum, row) => sum + (contexts.get(row.key).previous || 0), 0)
   // The month's tools that are not daily work wait in «⋯».
   const menu = [
-    onExport && { id: 'export', label: en ? 'Download' : 'Λήψη', icon: Download, onClick: onExport },
     access.canRecord(register) && { id: 'import', label: en ? 'Import from file' : 'Εισαγωγή από αρχείο', icon: Upload, onClick: () => navigate(`/registers/${register.id}/import`) },
     isMonth && entry && (locked ? access.canReopen(register) : access.canRecord(register)) && { id: 'lock', label: locked ? (en ? 'Reopen month' : 'Άνοιγμα μήνα') : (en ? 'Close month' : 'Κλείσιμο μήνα'), icon: locked ? LockOpen : Lock, onClick: toggleLock, separatorBefore: true },
   ].filter(Boolean)
@@ -125,6 +125,7 @@ export function RegisterSheet({ register, entries, onSaved, onExport }) {
       {isMonth && entry && <StatusBadge tone={locked ? 'neutral' : 'info'} icon={locked ? Lock : undefined}>{locked ? (en ? 'Closed' : 'Κλειστός') : (en ? 'Open' : 'Ανοιχτός')}</StatusBadge>}
       {isMonth && canEdit && <SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}
       <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view} onChange={setView} options={[{ value: 'month', label: en ? 'Month' : 'Μήνας', icon: CalendarDays }, { value: 'year', label: en ? 'Year' : 'Έτος', icon: CalendarRange }]} />
+      {onExport && <ExportMenu onExcel={onExport} />}
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
     {isMonth ? <div ref={tableRef} className="register-sheet-body">

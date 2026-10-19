@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, FileWarning, Megaphone } from 'lucide-react'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { AlertTriangle, CheckCircle2, FileWarning, Megaphone, FileSpreadsheet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -76,7 +77,7 @@ function EarsNetExport({ samples, patients, tenant, year, tx }) {
   const byPathogen = EARS_NET_PATHOGENS.map(([code, , label]) => [label, first.filter(isolate => isolate.pathogen === code).length]).filter(([, count]) => count)
   const exportCsv = () => download(`EARS-Net_${year}_${(tenant?.code || tenant?.slug || 'organization').replace(/[^a-zA-Z0-9-]/g, '')}.csv`, toCsv(built.rows))
   return <section className="reporting-card">
-    <header><Download size={17} aria-hidden="true"/><div><h2>{tx('Αναφορά EARS-Net (ECDC / TESSy)', 'EARS-Net report (ECDC / TESSy)')}</h2><p>{tx('Διεισδυτικά στελέχη (αίμα, ΕΝΥ) των 8 παθογόνων του EARS-Net για το έτος', 'Invasive isolates (blood, CSF) of the 8 EARS-Net pathogens for')} {year}. {tx('Μετράει μόνο το πρώτο στέλεχος ανά ασθενή, παθογόνο και έτος.', 'Only the first isolate per patient, pathogen and year counts.')}</p></div></header>
+    <header><FileSpreadsheet size={17} aria-hidden="true"/><div><h2>{tx('Αναφορά EARS-Net (ECDC / TESSy)', 'EARS-Net report (ECDC / TESSy)')}</h2><p>{tx('Διεισδυτικά στελέχη (αίμα, ΕΝΥ) των 8 παθογόνων του EARS-Net για το έτος', 'Invasive isolates (blood, CSF) of the 8 EARS-Net pathogens for')} {year}. {tx('Μετράει μόνο το πρώτο στέλεχος ανά ασθενή, παθογόνο και έτος.', 'Only the first isolate per patient, pathogen and year counts.')}</p></div></header>
     <div className="reporting-stats">
       <div><span>{tx('Στελέχη', 'Isolates')}</span><strong>{all.length}</strong></div>
       <div><span>{tx('Διπλοεγγραφές που αφαιρέθηκαν', 'Duplicates removed')}</span><strong>{all.length - first.length}</strong></div>
@@ -89,7 +90,7 @@ function EarsNetExport({ samples, patients, tenant, year, tx }) {
     <div className="reporting-form">
       <label><span>{tx('Κωδικός νοσοκομείου (HospitalId)', 'Hospital code (HospitalId)')}</span><input value={hospitalId} onChange={event => setHospitalId(event.target.value)}/></label>
       <label><span>{tx('Κωδικός εργαστηρίου (LaboratoryCode)', 'Laboratory code (LaboratoryCode)')}</span><input value={laboratoryCode} onChange={event => setLaboratoryCode(event.target.value)}/></label>
-      <Button onClick={exportCsv} disabled={!built.rows.length}><Download size={15} aria-hidden="true"/>{tx('Λήψη CSV', 'Download CSV')}</Button>
+      <ExportMenu disabled={!built.rows.length} items={[{ id: 'ears', kind: 'excel', label: tx('CSV για το EARS-Net', 'CSV for EARS-Net'), onClick: exportCsv }]} />
     </div>
     <p className="reporting-hint">{tx('Ο ασθενής εμφανίζεται μόνο με ψευδώνυμο κωδικό (PatientCounter). Πριν την υποβολή ελέγξτε τις μεταβλητές με την τρέχουσα έκδοση του πρωτοκόλλου αναφοράς EARS-Net.', 'Patients appear only as a pseudonymous counter (PatientCounter). Before submitting, check the variables against the current EARS-Net reporting protocol.')}</p>
   </section>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Clock3, Send, Users } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { printReport } from '../../core/export/reportDocument'
@@ -149,7 +149,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   }
 
   // Proof of distribution for this version on the shared document layout, with a line per person.
-  function exportPdf() {
+  function exportPdf(pdf) {
     const entry = { documentCode: record.id, documentTitle: record.title, version: record.version, sentAt: distribution.createdAt, summary }
     const rows = acknowledgementLogRows([entry], { departments, en })
     const ok = printReport({
@@ -162,7 +162,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
         rows: rows.map((row, index) => [String(index + 1), row.name, row.position, row.department, row.status === 'acknowledged' ? { text: en ? 'Read' : 'Διαβάστηκε', className: 'rd-good' } : { text: en ? 'Pending' : 'Εκκρεμεί', className: 'rd-bad' }, row.acknowledgedAt ? fmtDateTime(row.acknowledgedAt, en) : '']) } }],
       signatures: [en ? 'Document owner' : 'Υπεύθυνος εγγράφου'],
       filename: `${record.id}_${en ? 'read-acknowledgements' : 'epivevaioseis-anagnosis'}`,
-    })
+    }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
@@ -173,7 +173,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
       <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
       <h3>{en ? 'Distribution & read acknowledgement' : 'Κοινοποίηση & επιβεβαίωση ανάγνωσης'}</h3>
       <p>{en ? 'Notify the relevant staff that this version is published and keep proof of who has read it.' : 'Ενημερώστε το αρμόδιο προσωπικό ότι δημοσιεύτηκε αυτή η έκδοση και κρατήστε απόδειξη για το ποιος την έχει διαβάσει.'}</p>
-    </div>{distribution && canSend && summary && <div className="record-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} /></div>}</div>
+    </div>{distribution && canSend && summary && <div className="record-actions"><ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} onExcel={exportCsv} /></div>}</div>
     {record.status !== 'published' && <div className="inline-empty">{en ? 'Distribution is available once the document is published.' : 'Η κοινοποίηση είναι διαθέσιμη μόλις δημοσιευτεί το έγγραφο.'}</div>}
     {record.status === 'published' && (loadingDistribution
       ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>

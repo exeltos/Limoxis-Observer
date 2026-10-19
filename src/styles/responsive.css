@@ -13,10 +13,6 @@
 .platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:0 0 auto!important;white-space:nowrap!important;
 }
 @media(min-width:1900px){.platform-analysis-page .analysis-tabs.entity-record-tabs>button{flex:1 1 0!important;min-width:0!important;padding:0 8px!important}}
-
-.analysis-print-option-label{display:flex;align-items:center;gap:8px;min-width:0}
-.analysis-print-option-row{display:flex;align-items:center;gap:4px}
-.analysis-print-option-row>button:first-child{flex:1 1 auto;min-width:0}
 .analysis-print-option-pdf{flex:0 0 auto!important;width:30px!important;min-width:30px!important;justify-content:center!important}
 
 /* Isolated print document: all visual rules are scoped to the frame itself. */

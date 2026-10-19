@@ -12,7 +12,13 @@ for(const file of files){
   if(file.includes(`${path.sep}features${path.sep}`)&&/>\s*(Εκτύπωση|Εξαγωγή|Print|Export)(?:\s+[^<]*)?</i.test(text))violations.push(`${rel}: visible Print/Export action detected; Observer uses icon-only utility actions`)
   if(file.includes(`${path.sep}committees${path.sep}`)&&/(committee-dialog|committee-form-grid)/.test(text))violations.push(`${rel}: legacy committee-only form shell detected; use Observer shared form language`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/<input[^>]+type=["'](?:date|time)["']/i.test(text))violations.push(`${rel}: native date/time field detected in feature UI; use ManualDateField / TimeField`)
-  if(file.includes(`${path.sep}features${path.sep}`)&&/RecordPage\.jsx$/.test(file)&&text.includes('<EntityRecordShell')&&!text.includes('PrintExportActions'))violations.push(`${rel}: record header does not use shared PrintExportActions`)
+  if(file.includes(`${path.sep}features${path.sep}`)&&/RecordPage\.jsx$/.test(file)&&text.includes('<EntityRecordShell')&&!text.includes('<ExportMenu'))violations.push(`${rel}: record page has no «Εξαγωγή» control (ExportMenu)`)
+  // One export control: print / download / «Λήψη» buttons and menu items live only in ExportMenu.
+  if(file.includes(`${path.sep}features${path.sep}`)&&file.endsWith('.jsx')){
+    const standalone=[/<(Printer|Download|FileDown)\b/,/icon\s*:\s*(Printer|Download|FileDown)\b/,/\bid\s*:\s*'(print|pdf|download|export|word|csv)'/,/<(Button|IconButton|ActionButton|button)\b[^>]*\b(label|aria-label|title)=\{[^}]{0,60}'(Λήψη|Εκτύπωση|Εξαγωγή|Download|Print|Export)\b/]
+    const hit=standalone.find(pattern=>pattern.test(text))
+    if(hit)violations.push(`${rel}: standalone print / download / export control (${hit}); use ExportMenu («Εξαγωγή ▾»)`)
+  }
   if(file.includes(`${path.sep}features${path.sep}`)&&text.includes('<RecordActions')&&text.includes('UI_ACTIONS.PRINT')&&!text.includes('UI_ACTIONS.EXPORT'))violations.push(`${rel}: registry/page has Print without the canonical Export utility action`)
 }
 // Shared form controls: a feature's lists use SearchableSelect / MultiSelect /
@@ -40,9 +46,7 @@ for(const file of files.filter(file=>file.includes(`${path.sep}features${path.se
 }
 for(const [module,count] of Object.entries(modeSwitchCount))if(count>(MODE_SWITCH_CEILINGS[module]||0))violations.push(`features/${module}: ${count} ModeSwitch with 3+ options (ceiling ${MODE_SWITCH_CEILINGS[module]||0}); use the house select (SearchableSelect / FilterSelect)`)
 const recordActions=fs.readFileSync(path.join(root,'design-system','RecordActions.jsx'),'utf8')
-if(!recordActions.includes("action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT"))violations.push('design-system/RecordActions.jsx: Print/Export are not centrally forced to compact icon actions')
-if(!recordActions.includes("export:{icon:Download"))violations.push('design-system/RecordActions.jsx: Export must use the canonical Download icon')
-const printExport=path.join(root,'design-system','PrintExportActions.jsx')
-if(!fs.existsSync(printExport))violations.push('design-system/PrintExportActions.jsx: missing shared record utility action component')
+if(!recordActions.includes('action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT')||!recordActions.includes('<ExportMenu'))violations.push('design-system/RecordActions.jsx: Print / Export must go through the one export control (ExportMenu)')
+if(!fs.existsSync(path.join(root,'design-system','ExportMenu.jsx')))violations.push('design-system/ExportMenu.jsx: missing the shared «Εξαγωγή» control')
 if(violations.length){console.error('Observer UI pattern audit failed:\n- '+violations.join('\n- '));process.exit(1)}
 console.log('Observer UI pattern audit: OK')

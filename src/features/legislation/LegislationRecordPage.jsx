@@ -12,7 +12,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -79,7 +79,7 @@ export function LegislationRecordPage() {
   ]
   const exportRequirements = () => exportRegistry({ name: `${text.code}-${en ? 'compliance' : 'symmorfosi'}`, headers: en ? ['#', 'Requirement', 'Compliance', 'Evidence', 'Note', 'Checked on'] : ['#', 'Απαίτηση', 'Συμμόρφωση', 'Τεκμήριο', 'Σημείωση', 'Έλεγχος'], rows: text.requirements.map((item, index) => { const record = draft.compliance?.[item.id] || {}; return [index + 1, item.text, complianceLabel(record.status, language), record.evidence || '', record.note || '', record.checkedOn || ''] }) })
   const headerActions = <div className="row-actions">
-    <PrintExportActions showPrint={false} onExport={exportRequirements} />
+    <ExportMenu onExcel={exportRequirements} />
   </div>
   const footer = !locked && entry.row && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={() => persist(draft)}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>
 

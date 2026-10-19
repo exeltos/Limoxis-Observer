@@ -7,7 +7,7 @@ import { ClipboardCheck, Droplets, Pencil, Recycle, ShieldCheck, Trash2 } from '
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
@@ -483,7 +483,7 @@ export function PreventionRecordPage() {
         </>
       )}
       {!creating && (
-        <PrintExportActions onExport={() => downloadRecordJson(record, { filename: record?.id })} />
+        <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() => downloadRecordJson(record, { filename: record?.id })}]} />
       )}
     </>
   )

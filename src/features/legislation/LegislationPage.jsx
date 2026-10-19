@@ -6,7 +6,7 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -77,7 +77,7 @@ export function LegislationPage() {
   ] : []
 
   const actions = <div className="row-actions">
-    {tab === 'register' && <DownloadMenu disabled={!visible.length} onExcel={() => exportRegistry(registerExport(visible, language))} />}
+    {tab === 'register' && <ExportMenu disabled={!visible.length} onExcel={() => exportRegistry(registerExport(visible, language))} />}
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 

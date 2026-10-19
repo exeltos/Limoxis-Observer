@@ -1,17 +1,8 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
-import {
-  Activity,
-  CalendarClock,
-  ChevronRight,
-  Download,
-  Microscope,
-  PlayCircle,
-  Printer,
-  RefreshCcw,
-  Trash2,
-} from 'lucide-react'
+import { Activity, CalendarClock, ChevronRight, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { DueDate } from '../../design-system/DueDate'
 import { Breadcrumbs } from '../../design-system/Breadcrumbs'
@@ -70,6 +61,24 @@ export function SurveillanceWorkspace({
       reason: '',
       suspectedSource: '',
     })
+  // The surveillance report window serves Print and PDF (save as PDF).
+  const printDetailReport = () => {
+                      if (
+                        !printSurveillanceReport(detailRecord, {
+                          language,
+                          fmtDate,
+                          fmtDateTime,
+                          t,
+                          libraries,
+                        })
+                      )
+                        notify(
+                          language === 'el'
+                            ? 'Το πρόγραμμα περιήγησης εμπόδισε το άνοιγμα της αναφοράς. Επιτρέψτε τα αναδυόμενα παράθυρα για το Limoxis Observer.'
+                            : 'The browser blocked the report window. Allow pop-ups for Limoxis Observer.',
+                          'error',
+                        )
+                    }
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
   async function saveSample(draft) {
     if (!onCreateSample) return
@@ -193,7 +202,7 @@ export function SurveillanceWorkspace({
             </div>
             <div className="episode-detail-actions">
               <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
-              <OverflowMenu
+              <ExportMenu onPrint={printDetailReport} onPdf={printDetailReport} /><OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',
                   language === 'el' ? 'el' : 'en',
@@ -210,40 +219,8 @@ export function SurveillanceWorkspace({
                         onClick: openEditEpisode,
                       }
                     : null,
-                  {
-                    id: 'print',
-                    label: translate(
-                      'copy.clinicalRecordCopy.print',
-                      language === 'el' ? 'el' : 'en',
-                    ),
-                    icon: Printer,
-                    onClick: () => window.print(),
-                  },
-                  {
-                    id: 'download',
-                    label: translate(
-                      'copy.clinicalRecordCopy.surveillanceReportPdf',
-                      language === 'el' ? 'el' : 'en',
-                    ),
-                    icon: Download,
-                    onClick: () => {
-                      if (
-                        !printSurveillanceReport(detailRecord, {
-                          language,
-                          fmtDate,
-                          fmtDateTime,
-                          t,
-                          libraries,
-                        })
-                      )
-                        notify(
-                          language === 'el'
-                            ? 'Το πρόγραμμα περιήγησης εμπόδισε το άνοιγμα της αναφοράς. Επιτρέψτε τα αναδυόμενα παράθυρα για το Limoxis Observer.'
-                            : 'The browser blocked the report window. Allow pop-ups for Limoxis Observer.',
-                          'error',
-                        )
-                    },
-                  },
+                  
+                  
                   permissions.canDelete
                     ? {
                         id: 'delete',

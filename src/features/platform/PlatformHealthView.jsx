@@ -4,7 +4,7 @@ import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { listRuntimeEvents } from '../../core/diagnostics/runtimeDiagnosticsService'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -87,7 +87,7 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}){
   return <Page
     title={tx('Ιστορικό & Ασφάλεια','Audit & Security')}
     subtitle={tx('Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων της πλατφόρμας.','Traceability of actions, access changes and operational events across the platform.')}
-    actions={<div className="row-actions"><DownloadMenu items={[{id:'events',label:tx('Excel: συμβάντα','Excel: events'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('symvanta-leitourgias','platform-events'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Κατάσταση','Status'),tx('Ενότητα','Area'),'Route',tx('Περιγραφή','Description'),tx('Αναφορά','Reference'),tx('Χρήστης','User'),tx('Έκδοση','Version')],rows:filtered.map(row=>[fmtDate(row.occurredAt),organizationMap.get(row.organizationId)?.name||row.organizationName||'',(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],localModule(row.module,language),row.route||'',row.message||'',row.diagnosticCode||'',row.actorName||'',row.appVersion||''])})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}
+    actions={<div className="row-actions"><ExportMenu items={[{id:'events',label:tx('Excel: συμβάντα','Excel: events'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('symvanta-leitourgias','platform-events'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Κατάσταση','Status'),tx('Ενότητα','Area'),'Route',tx('Περιγραφή','Description'),tx('Αναφορά','Reference'),tx('Χρήστης','User'),tx('Έκδοση','Version')],rows:filtered.map(row=>[fmtDate(row.occurredAt),organizationMap.get(row.organizationId)?.name||row.organizationName||'',(severityMeta[row.severity]||severityMeta.info)[en?'en':'el'],localModule(row.module,language),row.route||'',row.message||'',row.diagnosticCode||'',row.actorName||'',row.appVersion||''])})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}
   >
     {tabs}
     <div className="workspace-summary"><div className="module-summary-strip">

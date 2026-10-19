@@ -43,12 +43,12 @@ describe('training certificates: earned certificates can be downloaded as a PDF'
 
   it('lets a manager download a participant certificate from the results review', () => {
     expect(resultsReview).toContain("import {downloadCertificatePdf} from './trainingCertificate'")
-    expect(resultsReview).toContain('function downloadCertificateFor(row)')
+    expect(resultsReview).toContain('function downloadCertificateFor(row,pdf=false)')
     expect(resultsReview).toContain('certificateFor(row)')
   })
 
   it('lets an employee download their own certificate from the assignments list', () => {
-    expect(productionPage).toContain('async function downloadCertificate(row,program)')
+    expect(productionPage).toContain('async function downloadCertificate(row,program,pdf=false)')
     expect(productionPage).toContain("import { downloadCertificatePdf } from './trainingCertificate'")
   })
 })

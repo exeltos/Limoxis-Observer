@@ -5,7 +5,7 @@ import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import './platformLifecycle.css'
 
@@ -45,7 +45,7 @@ export function PlatformOrganizationsRegistry({
         'Μητρώο οργανισμών, χρηστών, πρόσβασης και λειτουργικής διαχείρισης.',
         'One registry for organizations, users, access and operational management.'
       )}
-      actions={<div className="row-actions"><DownloadMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!organizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
+      actions={<div className="row-actions"><ExportMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!organizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
     >
       <div className="platform-registry-shell">
         <FilterBar
