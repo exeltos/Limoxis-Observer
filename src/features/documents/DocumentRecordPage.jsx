@@ -38,6 +38,7 @@ import { demoLibrarySeed } from '../management/managementData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { ProtocolReviewPanel } from './protocolReview/ProtocolReviewPanel'
 import { useProtocolSuggestions } from './protocolReview/useProtocolSuggestions'
+import { existingSuggestedRevision } from './protocolReview/protocolReviewModel'
 
 const labels = {
   el: {
@@ -309,8 +310,12 @@ export function DocumentRecordPage() {
 
   // «Αποδοχή» of a protocol update suggestion: the same revision flow, with the
   // notes the suggestion dialog prepared as the revision reason.
-  async function startSuggestedRevision(notes) {
+  // A draft already started for this suggestion (an earlier accept whose decision
+  // failed) is linked again rather than duplicated.
+  async function startSuggestedRevision(notes, suggestion) {
     if (record.status !== 'published' || !canSupersede) return null
+    const existing = existingSuggestedRevision(rows, record, suggestion)
+    if (existing) return existing
     return run(() => createDocumentRevisionAsync(organizationId, record, actor, rows, notes))
   }
 

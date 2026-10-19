@@ -50,6 +50,7 @@ import {
 import { cancelCommitteeMeetingAsync } from './committeeMeetingLifecycleService'
 import { externalMinutesActionAsync } from './committeeExternalApprovalService'
 import { fmtDate, createTopic } from './committeeRecordFormat'
+import { rolesFromTitle } from './committeeMemberRoles'
 import {
   Head,
   Overview,
@@ -244,6 +245,8 @@ export function CommitteeRecordPage() {
       department: person?.department || '',
       profession: person?.profession || '',
       committeeTitle: draft.committeeTitle || 'Μέλος',
+      roles: draft.roles?.length ? draft.roles : rolesFromTitle(draft.committeeTitle),
+      specialty: draft.specialty || '',
       responsibilities: draft.responsibilities || '',
       voting: draft.voting !== false,
       memberType: draft.memberType || 'regular',

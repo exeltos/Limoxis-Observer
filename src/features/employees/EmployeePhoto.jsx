@@ -6,6 +6,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import {
   PHOTO_ACCEPT,
+  PHOTO_URL_REFRESH_MS,
   employeeInitials,
   employeePhotoUrls,
   removeEmployeePhoto,
@@ -15,16 +16,22 @@ import {
 import './employeePhoto.css'
 
 // Signed URLs for the photos of the given employees (one request per batch).
+// Signed URLs expire after an hour: a page left open signs them again on a timer
+// and when it comes back into view, so its photos never turn into broken images.
 export function useEmployeePhotoUrls(rows) {
   const key = useMemo(() => [...new Set((rows || []).map(row => row?.photoPath).filter(Boolean))].sort().join('|'), [rows])
   const [urls, setUrls] = useState({})
   useEffect(() => {
     if (!key) return undefined
     let active = true
-    employeePhotoUrls(key.split('|'))
+    const load = () => employeePhotoUrls(key.split('|'))
       .then(next => { if (active) setUrls(current => ({ ...current, ...next })) })
       .catch(() => {})
-    return () => { active = false }
+    void load()
+    const timer = setInterval(load, PHOTO_URL_REFRESH_MS)
+    const onVisible = () => { if (document.visibilityState === 'visible') void load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', onVisible) }
   }, [key])
   return urls
 }

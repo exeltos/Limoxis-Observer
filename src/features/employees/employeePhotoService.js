@@ -19,6 +19,8 @@ export const PHOTO_MAX_EDGE = 512
 const SIGNED_URL_SECONDS = 3600
 // Signed URLs are reused for a while, then asked for again before they expire.
 const CACHE_MS = 45 * 60 * 1000
+// A page left open asks again once the cached URL is stale, well before the signed URL expires.
+export const PHOTO_URL_REFRESH_MS = CACHE_MS + 60 * 1000
 const urlCache = new Map()
 
 const localStore = () => import('./employeeStore')

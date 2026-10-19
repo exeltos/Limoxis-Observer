@@ -275,8 +275,10 @@ const addYears = (day: string, years: number) => { const d = new Date(`${day}T00
 
 export const REVIEWED_STATUSES = ['published', 'approved']
 
-// The date from which a later change in a source makes the protocol out of date.
-export const protocolBaseline = (doc: ProtocolDoc) => dayOf(doc.effective_date) || dayOf(doc.published_at) || dayOf(doc.created_at)
+// The date from which a later change in a source makes the protocol out of date: the newest of
+// effective_date and published_at. A revision inherits its predecessor's effective_date, so its
+// own published_at must win, or an accepted change would recur on the new version.
+export const protocolBaseline = (doc: ProtocolDoc) => [dayOf(doc.effective_date), dayOf(doc.published_at)].filter(Boolean).sort().pop() || dayOf(doc.created_at)
 
 export function evaluateProtocol({ doc, sections, references = [], text = '', clinicalChanges = [], legislationChanges = [], today, reviewWindowDays = REVIEW_WINDOW_DAYS, staleYears = STALE_YEARS }: {
   doc: ProtocolDoc, sections?: Partial<Sections> | null, references?: Array<Pick<ProtocolReference, 'key' | 'kind' | 'label'>>, text?: string,

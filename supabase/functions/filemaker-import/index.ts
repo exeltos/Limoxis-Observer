@@ -331,10 +331,13 @@ async function files(admin:Admin,started:number){
 }
 
 // Puts each staged file whose record now lives in Limoxis (fm_stage_files.attach_*,
-// filled from fm_stage_links) where the app keeps attachments, as the app names them:
+// filled from fm_stage_links by public.fm_stage_files_resolve_targets() first) where
+// the app keeps attachments, as the app names them:
 // attachments/<organization>/<entity type>/<entity id>/<time>-<file name>.
 async function filesAttach(admin:Admin,started:number){
   let attached=0,failed=0
+  const {data:resolved,error:resolveError}=await admin.rpc('fm_stage_files_resolve_targets')
+  if(resolveError)throw resolveError
   while(Date.now()-started<BUDGET_MS){
     const {data:rows}=await admin.from('fm_stage_files').select('*').not('attach_entity_type','is',null).is('attachment_id',null).is('attach_error',null).is('duplicate_of',null).limit(20)
     if(!rows?.length)break
@@ -358,12 +361,14 @@ async function filesAttach(admin:Admin,started:number){
       }
     }
   }
-  return {attached,failed}
+  return {resolved:Number(resolved||0),attached,failed}
 }
 
 // People photos become the employee's photo (employees.photo_path), not an attachment:
 // the object is copied to a fixed path per FileMaker record, so a rerun overwrites it.
 // The employee row itself is updated afterwards in SQL, as a named user (audit).
+// A photo whose person is not linked to an employee is marked attach_error
+// 'no employee link' and left out from then on (clear it to try again once linked).
 const PHOTO_EXT:Record<string,string>={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}
 async function filesPhotos(admin:Admin,started:number){
   let copied=0,failed=0,unlinked=0
@@ -377,7 +382,10 @@ async function filesPhotos(admin:Admin,started:number){
       seen.add(file.record_id)
       try{
         const {data:link}=await admin.from('fm_stage_links').select('target_id').eq('base_table','People').eq('target_table','employees').eq('record_id',file.record_id).maybeSingle()
-        if(!link?.target_id){unlinked++;continue}
+        if(!link?.target_id){
+          await admin.from('fm_stage_files').update({attach_error:'no employee link'}).eq('base_table',file.base_table).eq('field',file.field).eq('record_id',file.record_id)
+          unlinked++;continue
+        }
         const {data:employee,error:employeeError}=await admin.from('employees').select('id,organization_id').eq('id',link.target_id).single()
         if(employeeError)throw employeeError
         const ext=PHOTO_EXT[String(file.mime_type)]||String(file.file_name||'').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg'

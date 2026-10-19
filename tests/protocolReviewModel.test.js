@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import {
-  addDaysKey, decisionProblem, documentsWithOpenSuggestions, effectiveStatus, familyHasOpenSuggestion, revisionNoteFor, suggestionCalendarItems,
+  addDaysKey, decisionProblem, documentsWithOpenSuggestions, effectiveStatus, existingSuggestedRevision, familyHasOpenSuggestion, revisionNoteFor, suggestionCalendarItems,
   suggestionFromRow, suggestionReasonLabel, suggestionSectionLabel, suggestionsForDocument, MAX_REVISION_NOTE,
 } from '../src/features/documents/protocolReview/protocolReviewModel'
 import { decideProtocolSuggestionAsync, loadProtocolSuggestionsAsync } from '../src/features/documents/protocolReview/protocolReviewService'
@@ -109,6 +109,22 @@ describe('protocol update suggestions: demo service', () => {
   })
 })
 
+describe('accepting a suggestion twice', () => {
+  it('reuses the draft revision started for the suggestion instead of creating another', () => {
+    const record = { id: 'DOC-1', dbId: 'd1', status: 'published' }
+    const suggestion = { id: 's1', documentId: 'd1', createdAt: '2026-10-10T02:00:00Z' }
+    const docs = [
+      { id: 'DOC-2', dbId: 'd2', status: 'draft', revisionOfDbId: 'd1', createdAt: '2026-10-01T00:00:00Z' },
+      { id: 'DOC-3', dbId: 'd3', status: 'draft', revisionOfDbId: 'd1', createdAt: '2026-10-12T09:00:00Z' },
+      { id: 'DOC-4', dbId: 'd4', status: 'draft', revisionOfDbId: 'other', createdAt: '2026-10-13T09:00:00Z' },
+      { id: 'DOC-5', dbId: 'd5', status: 'published', revisionOfDbId: 'd1', createdAt: '2026-10-14T09:00:00Z' },
+    ]
+    expect(existingSuggestedRevision(docs, record, suggestion)?.dbId).toBe('d3')
+    expect(existingSuggestedRevision(docs.slice(0, 1), record, suggestion)).toBe(null)
+    expect(existingSuggestedRevision([{ id: 'DOC-6', status: 'draft', revisionOfId: 'DOC-1', createdAt: '2026-10-11T00:00:00Z' }], { id: 'DOC-1' }, suggestion)?.id).toBe('DOC-6')
+  })
+})
+
 describe('protocol currency review: database and wiring', () => {
   const sql = fs.readFileSync(new URL('../supabase/migrations/20261121120000_protocol_currency_review.sql', import.meta.url), 'utf8')
 
@@ -131,5 +147,15 @@ describe('protocol currency review: database and wiring', () => {
     expect(fn).not.toMatch(/from\('(patients|patient_[a-z_]+|admissions|surveillance_[a-z_]+)'\)/)
     expect(fn).not.toMatch(/from\('notification_outbox'\)/)
     expect(fn).toMatch(/draftPrompt\(\{ sections: text\.sections/)
+  })
+
+  it('reads every protocol page by page and retries a failed reading a few times, never one that stopped the worker', () => {
+    const fn = fs.readFileSync(new URL('../supabase/functions/protocol-review/index.ts', import.meta.url), 'utf8')
+    const sql = fs.readFileSync(new URL('../supabase/migrations/20261121140400_protocol_text_versions_attempts.sql', import.meta.url), 'utf8')
+    expect(fn).not.toMatch(/\.limit\(2000\)/)
+    expect(fn).toMatch(/\.range\(from, from \+ DOC_PAGE - 1\)/)
+    expect(fn).toMatch(/text\.error !== 'INTERRUPTED' && Number\(text\.attempts \|\| 0\) < MAX_ATTEMPTS/)
+    expect(fn).toMatch(/const MAX_ATTEMPTS = 3/)
+    expect(sql).toMatch(/add column if not exists attempts integer not null default 0/)
   })
 })
