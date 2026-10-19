@@ -54,11 +54,18 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   // non-superseded, amr_classifications-aware finding definition used by
   // every microbiology aggregate in private.indicator_metric_snapshot —
   // rather than an independent, less strict re-implementation.
-  const {data,error}=await supabase.rpc('analysis_microbiology_findings',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})
-  if(error)throw error
+  // The findings, the departments and the hospital names are read together;
+  // one hospital reads only its own name.
   let departmentQuery=supabase.from('departments').select('id,organization_id,name').eq('is_active',true).order('name')
   if(organizationId)departmentQuery=departmentQuery.eq('organization_id',organizationId)
-  const {data:departmentRows,error:departmentError}=await departmentQuery
+  let organizationQuery=supabase.from('organizations').select('id,name')
+  if(organizationId)organizationQuery=organizationQuery.eq('id',organizationId)
+  const [{data,error},{data:departmentRows,error:departmentError},{data:organizationRows,error:organizationError}]=await Promise.all([
+    supabase.rpc('analysis_microbiology_findings',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
+    departmentQuery,
+    organizationQuery.order('name'),
+  ])
+  if(error)throw error
   if(departmentError)throw departmentError
   const departments=departmentRows||[]
   const enriched=(data||[]).map(row=>({organization_id:row.organization_id,organism:row.organism,resistance_class:row.resistance_class,is_critical:row.is_critical,departmentId:row.department_id||'',department:row.department_name||'—',source:row.source||'—',sampleType:row.sample_type||'—',eventDate:String(row.event_date||'').slice(0,10)}))
@@ -71,7 +78,6 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   const grouped=new Map()
   for(const row of enriched){const key=[row.organism?.trim()||'—',row.resistance_class||'—',row.department,row.source,row.sampleType].join('|||');const current=grouped.get(key)||{organism:row.organism?.trim()||'—',resistanceClass:row.resistance_class||'—',department:row.department,source:row.source,sampleType:row.sampleType,count:0,lastDate:''};current.count+=1;if(row.eventDate>current.lastDate)current.lastDate=row.eventDate;grouped.set(key,current)}
   const nationalRows=[...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType])
-  const {data:organizationRows,error:organizationError}=await supabase.from('organizations').select('id,name').order('name')
   if(organizationError)throw organizationError
   const names=new Map((organizationRows||[]).map(row=>[row.id,row.name]))
   const orgTotals=countBy(enriched,row=>row.organization_id)
@@ -159,7 +165,27 @@ function mergeAnalysisSnapshots(snapshots){
 // hospitals" passes the production ones, so Demo organizations never count,
 // and the comparison is by hospital (`hospitals`, named from
 // `organizationNames`). Without a list, one organization (`organizationId`).
-export async function loadAnalysisSnapshot({organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId=''}={}){
+// Snapshots read in the last minute are reused (same hospitals, range and
+// department): going back to a range, or the comparison and the dashboard
+// asking for the same one, costs no new set of analysis RPCs. A failed read is
+// not kept.
+const SNAPSHOT_TTL_MS=60000
+const snapshotCache=new Map()
+export function clearAnalysisSnapshotCache(){snapshotCache.clear()}
+export async function loadAnalysisSnapshot(options={}){
+  const {organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId=''}=options
+  const key=JSON.stringify([organizationId,Array.isArray(organizationIds)?[...organizationIds].sort():null,organizationNames,from,to,departmentId])
+  const now=Date.now()
+  for(const [cachedKey,entry] of snapshotCache)if(entry.expires<=now)snapshotCache.delete(cachedKey)
+  const cached=snapshotCache.get(key)
+  if(cached)return cached.promise
+  const promise=readAnalysisSnapshot(options)
+  snapshotCache.set(key,{promise,expires:now+SNAPSHOT_TTL_MS})
+  promise.catch(()=>{if(snapshotCache.get(key)?.promise===promise)snapshotCache.delete(key)})
+  return promise
+}
+
+async function readAnalysisSnapshot({organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId=''}={}){
   if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
   if(!Array.isArray(organizationIds))return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId})
   const scopedIds=[...new Set(organizationIds.filter(Boolean))]

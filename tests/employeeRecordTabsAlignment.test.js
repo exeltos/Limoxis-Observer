@@ -38,8 +38,9 @@ describe('employee record canonical tabs',()=>{
   })
 
   it('keeps surveillance linked to the canonical employee episodes and laboratory samples',()=>{
-    expect(tabs).toContain('loadEmployeeSurveillanceRecords')
-    expect(tabs).toContain('loadLaboratorySamples')
+    expect(tabs).toContain('loadEmployeeSurveillanceRecordsForEmployee')
+    expect(tabs).toContain('loadEmployeeSurveillanceSamples')
+    expect(tabs).not.toContain('loadLaboratorySamples(')
     expect(tabs).toContain('EmployeeSurveillanceRecordDialog')
   })
 })

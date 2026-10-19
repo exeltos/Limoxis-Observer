@@ -1,4 +1,5 @@
-import { loadClinicalCases } from '../surveillance/clinicalCloudService'
+import { supabase } from '../../core/supabase/client'
+import { assertCloud } from '../../core/supabase/cloudContext'
 import { clinicalCases } from '../surveillance/clinicalDemoData'
 
 const caseDate = row => String(row?.startedAt || row?.admissionDate || '')
@@ -30,5 +31,12 @@ export function infectionFlagsFromCases(cases = []) {
 export async function loadPatientInfectionFlags(organizationId, { isDemo = false } = {}) {
   if (isDemo) return infectionFlagsFromCases(Object.values(clinicalCases))
   if (!organizationId) return {}
-  return infectionFlagsFromCases(await loadClinicalCases(organizationId))
+  // One row per resistant patient from the database (patient_infection_flags,
+  // 20261128500000), the rules above, instead of hydrating every episode.
+  // The cloud episodes carry no isolation status, so no isolation flag here,
+  // as before.
+  assertCloud()
+  const { data, error } = await supabase.rpc('patient_infection_flags', { p_organization_id: organizationId })
+  if (error) throw error
+  return Object.fromEntries((data || []).map(row => [row.patient_id, { resistance: { classification: row.classification, organism: row.organism || '', since: row.since || null }, isolation: null }]))
 }

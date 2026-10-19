@@ -152,6 +152,18 @@ export async function loadLaboratorySamples(organizationId){
   return hydrateSamples(rows)
 }
 
+// The samples of some staff surveillance records (an employee's record), read
+// by employee_surveillance_id instead of the organization's whole list.
+export async function loadEmployeeSurveillanceSamples(organizationId,surveillanceIds=[]){
+  assertCloud()
+  if(!organizationId)return []
+  const ids=[...new Set((surveillanceIds||[]).filter(Boolean))]
+  if(!ids.length)return []
+  const {data,error}=await selectInChunks(ids,chunk=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).in('employee_surveillance_id',chunk).order('created_at',{ascending:false}).order('id',{ascending:true}),{order:[['created_at',{ascending:false}],['id',{ascending:true}]]})
+  if(error)throw error
+  return hydrateSamples(data||[])
+}
+
 // Every sample of the organization, for reports that must see the full history.
 export async function loadAllLaboratorySamples(organizationId){
   return loadLaboratorySamples(organizationId)

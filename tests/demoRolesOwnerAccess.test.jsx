@@ -60,7 +60,9 @@ describe('Demo access enforcement', () => {
   })
   it('evaluators read their Demo state through current_demo_access, never the entitlements table', () => {
     expect(authContext).not.toContain("from('platform_demo_entitlements')")
-    expect(authContext).toContain('demoAccess=await loadCurrentDemoAccess()')
+    // Read alongside the profile (not after it), used only for non-owners.
+    expect(authContext).toContain('const demoAccessRead=Promise.resolve().then(loadCurrentDemoAccess)')
+    expect(authContext).toContain('demoAccess=await demoAccessRead')
     expect(tenantService).toContain("supabase.rpc('current_demo_access')")
   })
   it('refuses to activate an invitation into a paused organization or a closed Demo', () => {

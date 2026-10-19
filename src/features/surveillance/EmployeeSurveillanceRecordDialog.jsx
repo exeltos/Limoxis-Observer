@@ -10,7 +10,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
-import { loadLaboratorySamples, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
+import { loadEmployeeSurveillanceSamples, sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import {
   cancelLaboratoryRequest,
   deleteLaboratoryRequest,
@@ -113,7 +113,7 @@ export function EmployeeSurveillanceRecordDialog({
   async function reloadSamples() {
     if (!organizationId || !record?.recordId) return
     try {
-      const rows = await loadLaboratorySamples(organizationId)
+      const rows = await loadEmployeeSurveillanceSamples(organizationId, [record.recordId])
       setResolvedSamples(
         (rows || []).filter(sample => sample.employeeSurveillanceId === record.recordId),
       )
@@ -133,7 +133,7 @@ export function EmployeeSurveillanceRecordDialog({
       return
     }
     let alive = true
-    loadLaboratorySamples(organizationId)
+    loadEmployeeSurveillanceSamples(organizationId, [record.recordId])
       .then(rows => {
         if (alive)
           setResolvedSamples(
