@@ -11,6 +11,7 @@ import {downloadCertificatePdf} from './trainingCertificate'
 import {manualReviewQuestions,scoreReview} from './trainingScoring'
 import {finalizeTrainingReviewAsync} from './trainingService'
 import './TrainingResultsReview.css'
+import {trainerFeedbackQuestionsForProgram} from './trainingFeedbackTemplate'
 
 const fmt=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
 
@@ -41,8 +42,8 @@ export function TrainingResultsReview({program,rows,state,onPersist,busy=false,e
   finally{setCertBusyId(null)}
  }
  const questions=Array.isArray(program?.assessmentQuestions)?program.assessmentQuestions:[]
- const feedbackQuestions=useMemo(()=>Array.isArray(program?.trainerFeedbackTemplate?.questions)?program.trainerFeedbackTemplate.questions:[],[program?.trainerFeedbackTemplate?.questions])
- const feedbackLabelById=useMemo(()=>new Map(feedbackQuestions.map(question=>[question.id,en?(question.labelEn||question.labelEl||question.id):(question.labelEl||question.labelEn||question.id)])),[feedbackQuestions,en])
+ // The programme's own trainer-evaluation questions, or the default ones (clarity, knowledge, …) the answers were given to.
+ const feedbackLabelById=useMemo(()=>new Map(trainerFeedbackQuestionsForProgram(program,language).map(question=>[question.id,question.label||question.id])),[program,language])
  const completed=rows.filter(x=>x.status==='completed').length
  const scored=rows.filter(x=>x.score!=null)
  const avg=scored.length?Math.round(scored.reduce((sum,row)=>sum+Number(row.score||0),0)/scored.length):0
