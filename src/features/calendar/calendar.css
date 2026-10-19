@@ -5,7 +5,7 @@
 .calendar-kind-toggle{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--lo-color-border);border-radius:999px;background:#fff;font:inherit;font-size:11.5px;font-weight:700;color:var(--lo-color-text);cursor:pointer}
 .calendar-kind-toggle.off{opacity:.45;background:#f4f6f8}
 .calendar-department{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
-.calendar-department select{height:32px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:#fff;font:inherit;color:var(--lo-color-text)}
+.calendar-department .filter-field{min-width:200px}
 .calendar-dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--calendar-color,#6b7c8c)}
 .kind-controls{--calendar-color:#1f6fa9}
 .kind-capa{--calendar-color:#b4532a}
@@ -27,8 +27,10 @@
 .calendar-day.has-overdue{border-left:3px solid #b42318}
 .calendar-day-number{font-size:12px;font-weight:800;color:var(--lo-color-text)}
 .calendar-day.today .calendar-day-number{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#1f6fa9;color:#fff}
-.calendar-chip{display:flex;align-items:center;gap:4px;min-width:0;padding:1px 5px;border-radius:5px;background:#f2f6f9;font-size:10.5px;line-height:1.5;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calendar-chip{width:100%;border:0;font:inherit;text-align:left;cursor:pointer;display:flex;align-items:center;gap:4px;min-width:0;padding:1px 5px;border-radius:5px;background:#f2f6f9;font-size:10.5px;line-height:1.5;color:var(--lo-color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .calendar-chip b{font-weight:800}
+.calendar-chip-title{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.calendar-chip:hover{filter:brightness(.96);text-decoration:underline}
 .calendar-chip.overdue{background:#fdeceb;color:#8f1d14}
 .calendar-chip.done{opacity:.55;text-decoration:line-through}
 .calendar-more{font-size:10.5px;font-weight:700;color:var(--lo-color-muted)}
@@ -40,7 +42,7 @@
 .calendar-event.done{opacity:.6}
 .calendar-event-when{flex:0 0 auto;min-width:42px;font-size:11px;font-weight:800;color:var(--lo-color-muted)}
 .calendar-event-main{display:grid;flex:1;min-width:0;gap:2px}
-.calendar-event-main strong{font-size:12px;color:var(--lo-color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calendar-event-main strong{font-size:12px;line-height:1.35;color:var(--lo-color-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
 .calendar-event-main small{font-size:10.5px;color:var(--lo-color-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .calendar-list{flex:1 1 auto;min-height:0;padding:12px 14px;overflow:auto}
 .calendar-list section{margin-bottom:14px}
@@ -55,3 +57,5 @@
 @media(max-width:780px){.calendar-workspace,.calendar-month-layout,.calendar-month,.calendar-day-panel,.calendar-list{flex:none!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important}.calendar-month{padding:0 8px 10px}.calendar-month-head h3{min-width:0;font-size:15px}}
 .calendar-day-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
 .calendar-day-panel-head h4{margin:0}
+.calendar-filter-empty{padding:14px 14px 0}
+.calendar-filter-empty .registry-empty-state{padding:22px 16px!important}

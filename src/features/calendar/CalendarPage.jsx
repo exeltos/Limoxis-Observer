@@ -9,6 +9,8 @@ import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
+import { FilterSelect } from '../../design-system/FilterBar'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
@@ -72,6 +74,8 @@ export function CalendarPage(){
  const thisWeek=events.filter(e=>e.state!=='overdue'&&e.state!=='done'&&e.date>=today&&e.date<=weekEnd)
  const monthKey=`${cursor.year}-${String(cursor.month+1).padStart(2,'0')}`
  const monthEvents=events.filter(e=>e.date.startsWith(monthKey))
+ // Modules switched off or a department chosen, and nothing left this month: say it is the filters.
+ const filtered=hidden.size>0||department!=='all'
  const upcoming=events.filter(e=>e.state!=='done'&&(e.state==='overdue'||e.date>=today)).slice(0,200)
  const monthTitle=new Intl.DateTimeFormat(locale,{month:'long',year:'numeric'}).format(new Date(cursor.year,cursor.month,1))
  const fmtDay=key=>new Intl.DateTimeFormat(locale,{weekday:'long',day:'numeric',month:'long'}).format(new Date(`${key}T12:00:00`))
@@ -80,6 +84,7 @@ export function CalendarPage(){
  function moveMonth(step){setCursor(c=>{const d=new Date(c.year,c.month+step,1);return {year:d.getFullYear(),month:d.getMonth()}})}
  function openDay(key){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key)}
  function goToday(){const d=new Date();setCursor({year:d.getFullYear(),month:d.getMonth()});setSelected(dayKey(d))}
+ function clearFilters(){setHidden(new Set());setDepartment('all')}
  function toggleKind(kind){setHidden(current=>{const next=new Set(current);if(next.has(kind))next.delete(kind);else next.add(kind);return next})}
  function exportMonth(){
   exportRegistry({name:en?`calendar-${monthKey}`:`imerologio-${monthKey}`,
@@ -95,6 +100,7 @@ export function CalendarPage(){
   canManageQuality&&{id:'audit',label:en?'New audit':'Νέα επιθεώρηση',icon:ListChecks,onClick:()=>navigate('/quality/audits/new',{state:{...from,qualitySource:{plannedDate:selected}}})},
   canManageTraining&&{id:'training',label:en?'New training':'Νέα εκπαίδευση',icon:GraduationCap,onClick:()=>navigate('/training/new',{state:{...from,calendarDate:selected}})},
  ].filter(Boolean)
+ const filtersHideAll=filtered&&(view==='month'?!monthEvents.length:!upcoming.length)
  if(!sources)return <RouteLoading/>
  const selectedEvents=byDay.get(selected)||[]
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
@@ -109,18 +115,20 @@ export function CalendarPage(){
    <ModuleTabs activeId={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} tabs={[{id:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{id:'list',label:en?'To do':'Εκκρεμότητες',icon:ListChecks}]}/>
    <div className="calendar-toolbar">
     <div className="calendar-kinds" role="group" aria-label={en?'Modules':'Ενότητες'}>{allowedKinds.map(kind=><button key={kind} type="button" className={`calendar-kind-toggle kind-${kind} ${hidden.has(kind)?'off':''}`} aria-pressed={!hidden.has(kind)} onClick={()=>toggleKind(kind)}><span className="calendar-dot"/>{calendarKindLabel(kind,language)}</button>)}</div>
-    <label className="calendar-department"><span>{en?'Department':'Τμήμα'}</span><select value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All':'Όλα'}</option>{departments.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
+    <div className="calendar-department"><FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All':'Όλα'}</option>{departments.map(d=><option key={d} value={d}>{d}</option>)}</FilterSelect></div>
    </div>
+   {filtersHideAll&&<div className="calendar-filter-empty"><RegistryEmptyState filtered title={en?'Nothing pending with the selected filters':'Δεν υπάρχουν εκκρεμότητες με τα επιλεγμένα φίλτρα'} text={en?'Turn a module back on or choose another department.':'Ενεργοποιήστε ξανά μια ενότητα ή επιλέξτε άλλο τμήμα.'} onClearFilters={clearFilters}/></div>}
    {view==='month'?<div className="calendar-month-layout">
     <div className="calendar-month">
      <div className="calendar-month-head"><IconButton label={en?'Previous month':'Προηγούμενος μήνας'} onClick={()=>moveMonth(-1)}><ChevronLeft size={18}/></IconButton><h3>{monthTitle}</h3><IconButton label={en?'Next month':'Επόμενος μήνας'} onClick={()=>moveMonth(1)}><ChevronRight size={18}/></IconButton><Button variant="secondary" onClick={goToday}>{en?'Today':'Σήμερα'}</Button></div>
      <div className="calendar-grid" role="grid" aria-label={monthTitle}>
       {WEEKDAYS[en?'en':'el'].map(d=><div key={d} className="calendar-weekday" role="columnheader">{d}</div>)}
-      {weeks.flat().map(key=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');return <button key={key} type="button" role="gridcell" className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>setSelected(key)} aria-label={`${fmtDay(key)}: ${list.length}`}>
+      {weeks.flat().map(key=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');// The day selects its agenda; an item in it opens its record.
+       return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>setSelected(key)} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
        <span className="calendar-day-number">{Number(key.slice(8))}</span>
-       {list.slice(0,MAX_CHIPS).map(e=><span key={e.id} className={`calendar-chip kind-${e.kind} ${e.state}`} title={e.title}><span className="calendar-dot"/>{e.time&&<b>{e.time}</b>}{e.title}</span>)}
+       {list.slice(0,MAX_CHIPS).map(e=><button type="button" key={e.id} className={`calendar-chip kind-${e.kind} ${e.state}`} title={e.title} onClick={event=>{event.stopPropagation();navigate(e.path)}}><span className="calendar-dot"/>{e.time&&<b>{e.time}</b>}<span className="calendar-chip-title">{e.title}</span></button>)}
        {list.length>MAX_CHIPS&&<span className="calendar-more">+{list.length-MAX_CHIPS} {en?'more':'ακόμη'}</span>}
-      </button>})}
+      </div>})}
      </div>
     </div>
     <aside className="calendar-day-panel" aria-live="polite">
@@ -130,7 +138,7 @@ export function CalendarPage(){
    </div>:<div className="calendar-list scroll-panel">
     {overdue.length>0&&<section><h4 className="calendar-list-heading danger">{en?'Overdue':'Εκπρόθεσμα'} · {overdue.length}</h4><ul className="calendar-agenda">{overdue.map(e=><EventRow key={e.id} event={e} language={language} date={fmtShort(e.date)} onOpen={()=>navigate(e.path)}/>)}</ul></section>}
     {groupByDate(upcoming.filter(e=>e.state!=='overdue')).map(([key,list])=><section key={key}><h4 className={`calendar-list-heading ${key===today?'today':''}`}>{key===today?(en?'Today':'Σήμερα'):fmtDay(key)}</h4><ul className="calendar-agenda">{list.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path)}/>)}</ul></section>)}
-    {!upcoming.length&&<div className="registry-empty-state"><strong>{en?'Nothing pending':'Δεν υπάρχουν εκκρεμότητες'}</strong></div>}
+    {!upcoming.length&&!filtersHideAll&&<div className="registry-empty-state"><strong>{en?'Nothing pending':'Δεν υπάρχουν εκκρεμότητες'}</strong></div>}
    </div>}
   </section>
  </Page>
@@ -140,7 +148,7 @@ function EventRow({event,language,date,onOpen}){
  const en=language==='en'
  return <li><button type="button" className={`calendar-event kind-${event.kind} ${event.state}`} onClick={onOpen}>
   <span className="calendar-event-when">{date||event.time||''}</span>
-  <span className="calendar-event-main"><strong>{event.title}</strong><small>{[calendarKindLabel(event.kind,language),event.detail,event.department].filter(Boolean).join(' · ')}</small></span>
+  <span className="calendar-event-main"><strong title={event.title}>{event.title}</strong><small>{[calendarKindLabel(event.kind,language),event.detail,event.department].filter(Boolean).join(' · ')}</small></span>
   {event.state==='overdue'&&<span className="status-badge danger">{en?'Overdue':'Εκπρόθεσμο'}</span>}
   {event.criticality==='high'&&<span className="status-badge danger">{en?'High':'Υψηλή'}</span>}
   <ChevronRight size={16} aria-hidden="true"/>
