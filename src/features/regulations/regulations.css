@@ -358,6 +358,7 @@
 .reg-reader.is-expanded{position:fixed;inset:0;z-index:1200;min-height:0;background:#0e1a26;overflow:hidden;animation:reg-expand .18s ease-out}
 .reg-reader.is-expanded .reg-stage-bar{justify-content:space-between}
 .reg-reader.is-expanded .reg-toc-toggle,.reg-reader.is-expanded .reg-close{position:static}
+.reg-reader.is-expanded .reg-expanded-title{flex:1 1 0;min-width:0;margin:0 16px;color:#e6eef5;font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reg-reader.is-expanded .reg-stage{padding:10px 18px 16px}
 .reg-reader.is-expanded .reg-toc{max-height:100vh}
 .reg-reader.is-expanded .reg-pager span{color:#d5dee6}

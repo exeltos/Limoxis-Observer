@@ -282,6 +282,7 @@ export function RegulationBook({ content, meta, language = 'el', initialSection 
     <div className="reg-stage" ref={stage}>
       <div className="reg-stage-bar">
         <button type="button" className="reg-toc-toggle" onClick={() => setTocOpen(value => !value)}><BookOpen size={15} />{en ? 'Contents' : 'Περιεχόμενα'}</button>
+        {expanded && <h2 className="reg-expanded-title" title={meta.title}>{[meta.code, meta.title].filter(Boolean).join(' · ')}</h2>}
         <div className="reg-pager">
           <button type="button" onClick={previous} disabled={base <= 0} aria-label={en ? 'Previous page' : 'Προηγούμενη σελίδα'}><ChevronLeft size={18} /></button>
           <span>{label}</span>
