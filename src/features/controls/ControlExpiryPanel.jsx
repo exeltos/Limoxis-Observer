@@ -1,7 +1,7 @@
 import { useMemo,useState } from 'react'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PackageX,Printer } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -61,7 +61,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
   className="control-expiry-panel workspace-fill"
   title={showControl?(en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'):(en?'Items & expiry':'Υλικά & λήξεις')}
   subtitle={single?(en?`Alert ${single.before} days before and up to ${single.after} days after expiry`:`Ειδοποίηση ${single.before} ημέρες πριν και έως ${single.after} ημέρες μετά τη λήξη`):(en?`${sources.length} expiry checks`:`${sources.length} ${sources.length===1?'έλεγχος':'έλεγχοι'} λήξεων`)}
-  actions={<div className="control-expiry-tools"><ModeSwitch className="control-expiry-filter" ariaLabel={en?'Show':'Προβολή'} value={filter} onChange={setFilter} options={[
+  actions={<div className="control-expiry-tools"><SearchableSelect hideLabel className="control-expiry-filter" label={en?'Show':'Προβολή'} value={filter} onChange={next=>next&&(setFilter)(next)} options={[
    {value:'alerting',label:`${en?'Need attention':'Χρειάζονται ενέργεια'} (${counts.expired+counts.expiring})`},
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},

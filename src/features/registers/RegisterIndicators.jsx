@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Sparkline } from '../../design-system/MiniCharts'
@@ -44,7 +44,7 @@ export function RegisterIndicators({ register, entries }) {
   }
   return <RecordTabPanel className="register-indicators" title={en ? 'Indicators' : 'Δείκτες'} subtitle={en ? 'Computed from the entries; names never leave the department.' : 'Υπολογίζονται από τις καταχωρίσεις· τα ονόματα δεν φεύγουν από το τμήμα.'}
     actions={<div className="register-indicator-actions">
-      <ModeSwitch ariaLabel={en ? 'Period' : 'Περίοδος'} value={kind} onChange={setKind} options={optionsOf(PERIODS, language)} />
+      <SearchableSelect hideLabel className="register-period-select" label={en ? 'Period' : 'Περίοδος'} value={kind} onChange={next=>next&&(setKind)(next)} options={optionsOf(PERIODS, language)}/>
       <PeriodStepper label={periodLabel(period, language)} onPrevious={() => step(-1)} onNext={() => step(1)} nextDisabled={shiftPeriod(period, PERIOD_MONTHS[kind]).from > new Date().toISOString().slice(0, 10)} />
       <DownloadMenu disabled={!report.length} onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exporting} />
     </div>}>

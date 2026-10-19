@@ -136,7 +136,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
 
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'How it is recorded':'Τρόπος καταχώρησης'}</strong><span>{en?'What the person recording fills in':'Τι συμπληρώνει όποιος καταχωρεί'}</span></header>
-     <ModeSwitch className="control-editor-modes" ariaLabel={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={changeMode} options={[
+     <SearchableSelect className="control-editor-modes" label={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={next=>next&&(changeMode)(next)} options={[
       {value:'numeric',label:en?'Measurement':'Μέτρηση',icon:Hash},
       {value:'choice',label:en?'Status':'Κατάσταση',icon:ToggleLeft},
       {value:'checklist',label:en?'Checklist':'Λίστα ελέγχου',icon:ListTodo},
@@ -180,7 +180,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <section className="control-editor-card">
      <header><strong>{en?'Criticality & deviations':'Κρισιμότητα & αποκλίσεις'}</strong><span>{en?'Priority, proof and what to do on a deviation':'Προτεραιότητα, τεκμήριο και τι γίνεται σε απόκλιση'}</span></header>
      <div className="control-editor-grid two">
-      <div className="field"><span className="lo-field-label">{en?'Criticality':'Κρισιμότητα'}</span><ModeSwitch ariaLabel={en?'Criticality':'Κρισιμότητα'} value={controlCriticality(draft)} onChange={v=>setR('criticality',v)} options={CRITICALITY_LEVELS.map(level=>({value:level,label:criticalityLabel(level,language)}))}/></div>
+      <SearchableSelect label={en?'Criticality':'Κρισιμότητα'} value={controlCriticality(draft)} onChange={v=>v&&setR('criticality',v)} options={CRITICALITY_LEVELS.map(level=>({value:level,label:criticalityLabel(level,language)}))}/>
       <YesNoField label={en?'Evidence on every entry':'Τεκμήριο σε κάθε καταχώρηση'} value={requiresEvidence(draft)} onChange={value=>setR('requiresEvidence',value)}/>
      </div>
      <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows="3" value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>

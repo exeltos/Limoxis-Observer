@@ -15,7 +15,6 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -180,7 +179,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }) {
   }
   return <>
     <div className="leg-sources-head"><p className="leg-note">{en ? 'Found by the automatic check of the sources (every 2 hours). Nothing reaches the hospitals until you publish it from the library; you get a morning e-mail when something new is found.' : 'Ό,τι βρήκε ο αυτόματος έλεγχος των πηγών (κάθε 2 ώρες). Τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε από τη βιβλιοθήκη· όταν βρεθεί κάτι νέο, σας έρχεται email το πρωί.'}</p>
-      <ModeSwitch ariaLabel={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus} options={[{ value: 'pending', label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'linked', label: en ? 'Added' : 'Καταχωρίστηκαν' }, { value: 'dismissed', label: en ? 'Dismissed' : 'Απορρίφθηκαν' }, { value: 'all', label: en ? 'All' : 'Όλα' }]} /></div>
+      <SearchableSelect hideLabel className="leg-status-filter" label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={next=>next&&(setStatus)(next)} options={[{ value: 'pending', label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'linked', label: en ? 'Added' : 'Καταχωρίστηκαν' }, { value: 'dismissed', label: en ? 'Dismissed' : 'Απορρίφθηκαν' }, { value: 'all', label: en ? 'All' : 'Όλα' }]}/></div>
     <div className="scroll-table">
       <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!candidates.loading && !rows.length}
         columns={[{ key: 'found', label: en ? 'Found' : 'Βρέθηκε' }, { key: 'item', label: en ? 'Item' : 'Εύρημα' }, { key: 'keywords', label: en ? 'Matched' : 'Λέξεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'actions', label: '' }]}

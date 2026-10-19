@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLocation, useParams } from 'react-router-dom'
 import { Archive, ArchiveRestore, BookOpen, CheckCircle2, FilePenLine, History, ListChecks, PenLine, RefreshCcw, Sparkles } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -199,11 +200,11 @@ export function RegulationPage() {
     </RecordTabPanel>}
     {tab === 'edit' && canManage && <RecordTabPanel className="reg-edit-panel" title={draft ? (hasApproved ? (en ? `Draft of edition ${regulation.edition + 1}` : `Προσχέδιο έκδοσης ${regulation.edition + 1}`) : (en ? 'Draft of the first edition' : 'Προσχέδιο πρώτης έκδοσης')) : (en ? 'Revision' : 'Αναθεώρηση')}
       subtitle={draft ? (problems.length ? `${en ? 'Before approval:' : 'Πριν από την έγκριση:'} ${problems.join(' · ')}` : signed.length < SIGNING_ROLES.length ? (en ? `Ready to sign · ${signed.length} of ${SIGNING_ROLES.length} signatures` : `Έτοιμο για υπογραφές · ${signed.length} από ${SIGNING_ROLES.length}`) : (en ? 'Signed and ready for approval.' : 'Υπογεγραμμένο και έτοιμο για έγκριση.')) : (en ? 'The edition in force is never edited: a revision starts from it and is approved as the next edition.' : 'Η έκδοση σε ισχύ δεν αλλάζει ποτέ: η αναθεώρηση ξεκινά από αυτήν και εγκρίνεται ως η επόμενη έκδοση.')}
-      actions={draft && <ModeSwitch ariaLabel={en ? 'How to work on the draft' : 'Τρόπος εργασίας'} value={mode} onChange={setEditMode} options={[
+      actions={draft && <SearchableSelect hideLabel className="reg-mode-select" label={en ? 'How to work on the draft' : 'Τρόπος εργασίας'} value={mode} onChange={next=>next&&(setEditMode)(next)} options={[
         { value: 'fill', icon: ListChecks, label: `${en ? 'Fill in' : 'Συμπλήρωση'}${toFill ? ` · ${toFill}` : ''}` },
         { value: 'write', icon: FilePenLine, label: en ? 'Free editing' : 'Ελεύθερη επεξεργασία' },
         { value: 'sign', icon: PenLine, label: `${en ? 'Signatures' : 'Υπογραφές'} · ${signed.length}/${SIGNING_ROLES.length}` },
-      ]} />}
+      ]}/>}
       footer={draft && <div className="inline-edit-footer">
         {hasApproved && <Button variant="secondary" onClick={discard}>{en ? 'Leave the revision' : 'Εγκατάλειψη αναθεώρησης'}</Button>}
         <SaveButton variant="secondary" loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save the draft' : 'Αποθήκευση προσχεδίου'}</SaveButton>

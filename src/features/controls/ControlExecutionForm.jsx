@@ -11,7 +11,6 @@ import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { Field } from '../../design-system/Field'
 import { IconButton } from '../../design-system/IconButton'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -112,7 +111,7 @@ function ResultField({state}){
  const label=(en&&response.label==='Αποτέλεσμα'?'Result':response.label)||(en?'Result':'Αποτέλεσμα')
  if(mode==='choice'){
   const options=choiceOptions(response,answers)
-  return <div className="field control-exec-result"><span className="lo-field-label">{label} *</span><ModeSwitch className="control-exec-choice" ariaLabel={label} value={value} onChange={setValue} options={options.map(option=>({value:option.value,label:answerLabel(option.value,language,answers)}))}/>{isFindingAnswer(response,value,answers)&&<small className="control-exec-alert">{en?'This answer is a finding.':'Η απάντηση αυτή είναι εύρημα.'}</small>}</div>
+  return <div className="field control-exec-result"><SearchableSelect className="control-exec-choice" label={`${label} *`} value={value} onChange={next=>next&&setValue(next)} options={options.map(option=>({value:option.value,label:answerLabel(option.value,language,answers)}))}/>{isFindingAnswer(response,value,answers)&&<small className="control-exec-alert">{en?'This answer is a finding.':'Η απάντηση αυτή είναι εύρημα.'}</small>}</div>
  }
  if(mode==='numeric')return <div className="control-exec-result control-exec-numeric">
   <Field label={`${label}${response.unit?` (${response.unit})`:''} *`}><input autoFocus inputMode="decimal" type="number" step="any" value={value} onChange={e=>setValue(e.target.value)} placeholder={en?'Enter value':'Καταχωρήστε τιμή'} className={outOfRange?'is-out-of-range':''}/></Field>

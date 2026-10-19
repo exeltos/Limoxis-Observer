@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ClipboardList, Plus, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { RegistersPanel, useRegisterList } from './RegistersPanel'
@@ -26,7 +26,7 @@ export function RegistersPage() {
   const [filters, setFilters] = useState({ query: '', department: 'all', status: 'all', quick: null })
   const equipment = useResources(view === 'equipment')
   const [equipmentFilters, setEquipmentFilters] = useState(NO_EQUIPMENT_FILTERS)
-  const viewSwitch = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view} onChange={setView} options={[{ value: 'registers', icon: ClipboardList, label: en ? 'Registers' : 'Μητρώα' }, { value: 'meetings', icon: Users, label: en ? 'Meetings' : 'Συναντήσεις' }, { value: 'equipment', icon: Stethoscope, label: en ? 'Equipment' : 'Εξοπλισμός' }]} />
+  const viewSwitch = <SearchableSelect hideLabel className="registers-view-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next=>next&&(setView)(next)} options={[{ value: 'registers', icon: ClipboardList, label: en ? 'Registers' : 'Μητρώα' }, { value: 'meetings', icon: Users, label: en ? 'Meetings' : 'Συναντήσεις' }, { value: 'equipment', icon: Stethoscope, label: en ? 'Equipment' : 'Εξοπλισμός' }]}/>
   const action = view === 'equipment' ? null : view === 'meetings'
     ? <ActionButton tone="primary" label={en ? 'New meeting' : 'Νέα συνάντηση'} onClick={() => goTo('/meetings/new')}><Plus size={18} /><span>{en ? 'New meeting' : 'Νέα συνάντηση'}</span></ActionButton>
     : access.canDefine && <ActionButton tone="primary" label={en ? 'New register' : 'Νέο μητρώο'} onClick={() => navigate('/registers/new')}><Plus size={18} /><span>{en ? 'New register' : 'Νέο μητρώο'}</span></ActionButton>
