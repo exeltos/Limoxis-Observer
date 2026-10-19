@@ -185,7 +185,7 @@ export function RegulationPage() {
     { id: 'editions', label: en ? `Editions ${data.editions.length}` : `Εκδόσεις ${data.editions.length}`, icon: History },
   ]
   const headerActions = <div className="row-actions">
-    <PrintExportActions onPrint={print} onExport={() => downloadRegulationWord(readContent, meta)} />
+    <PrintExportActions onPrint={print} onExport={() => downloadRegulationWord(readContent, meta)} exportLabel={en ? 'Download Word' : 'Λήψη Word'} />
     {canManage && hasApproved && <IconButton label={regulation.archived ? (en ? 'Restore from the archive' : 'Επαναφορά από το αρχείο') : (en ? 'Archive' : 'Αρχειοθέτηση')} onClick={toggleArchive}>{regulation.archived ? <ArchiveRestore size={16} /> : <Archive size={16} />}</IconButton>}
   </div>
 

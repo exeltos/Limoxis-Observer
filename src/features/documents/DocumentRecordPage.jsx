@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, BookOpenCheck, Download, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
+import { Archive, BookOpenCheck, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { downloadRecordJson } from '../../core/export/recordExport'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -357,8 +356,7 @@ export function DocumentRecordPage() {
       <IconButton tone="edit" onClick={() => setEditing(true)} label={en ? 'Edit' : 'Επεξεργασία'}><Pencil size={16} /></IconButton>
       <ActionButton tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={removeDraft} disabled={busy}><Trash2 size={16} /></ActionButton>
     </>}
-    <IconButton onClick={exportPdf} disabled={exportingPdf} label={en ? 'Export PDF' : 'Εξαγωγή PDF'}><Download size={16} /></IconButton>
-    <PrintExportActions onExport={() => downloadRecordJson(record, { filename: record?.id })} />
+    <PrintExportActions showPrint={false} onExport={exportPdf} exportLabel={en ? 'Download PDF' : 'Λήψη PDF'} />
   </>
 
   return <Page fill><EntityRecordShell

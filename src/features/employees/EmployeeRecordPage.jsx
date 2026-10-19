@@ -17,7 +17,7 @@ import {
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { downloadRecordJson } from '../../core/export/recordExport'
+import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -428,6 +428,35 @@ export function EmployeeRecordPage({ selfMode = false }) {
     }
   }
   const departmentOptions = departments.map(row => [row.name, row.nameEn || row.name])
+  // The employee's details as a printed sheet (the full employee file comes
+  // with the shared document layout's next exports).
+  function printEmployee() {
+    const en = language === 'en'
+    const pick = (el, enValue) => (en ? enValue || el : el) || ''
+    const ok = printReport({
+      language,
+      kind: en ? 'Employee details' : 'Στοιχεία εργαζομένου',
+      code: employee.id,
+      title: name,
+      subtitle: [pick(employee.profession, employee.professionEn), pick(employee.department, employee.departmentEn)].filter(Boolean).join(' · '),
+      meta: [
+        [en ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου', employee.id],
+        [en ? 'Status' : 'Κατάσταση', t(employee.employmentStatus)],
+        [t('firstName'), pick(employee.firstName, employee.firstNameEn)],
+        [t('lastName'), pick(employee.lastName, employee.lastNameEn)],
+        [t('fatherName'), pick(employee.fatherName, employee.fatherNameEn)],
+        [t('department'), pick(employee.department, employee.departmentEn)],
+        [t('professionalCategory'), pick(employee.profession, employee.professionEn)],
+        [en ? 'Job position' : 'Θέση εργασίας', pick(employee.position, employee.positionEn)],
+        [t('employeesRecords.hireDate'), employee.hireDate ? fmt(employee.hireDate) : ''],
+        [t('employeesRecords.email'), employee.email],
+        [t('phone'), employee.phone],
+        [en ? 'User account' : 'Λογαριασμός χρήστη', employee.accountLinked ? (en ? 'Linked' : 'Συνδεδεμένος') : (en ? 'None' : 'Κανένας')],
+      ],
+      filename: `${employee.id}_${en ? 'employee' : 'ergazomenos'}`,
+    })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
   const headerActions = (
     <>
       {!selfReadOnly && canOccupational && (
@@ -439,9 +468,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
           <span>+ {t('newSurveillance')}</span>
         </ActionButton>
       )}
-      <PrintExportActions
-        onExport={() => downloadRecordJson(employee, { filename: employee?.id })}
-      />
+      <PrintExportActions showExport={false} onPrint={printEmployee} />
     </>
   )
 

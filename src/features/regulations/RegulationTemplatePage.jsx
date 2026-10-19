@@ -66,10 +66,11 @@ export function RegulationTemplatePage() {
   return <Page fill><EntityRecordShell className="reg-record-shell workspace-fill" avatar={<Library size={19} />} eyebrow={`${en ? 'Platform template' : 'Πρότυπο πλατφόρμας'} · ${categoryLabel(template.category, language)}`} title={template.title}
     subtitle={`v${template.version} · ${formatDay(template.publishedAt, language)}${template.changeNote ? ` · ${template.changeNote}` : ''}`}
     status={<StatusBadge tone={dirty ? 'warning' : 'success'}>{dirty ? (en ? 'Unpublished changes' : 'Μη δημοσιευμένες αλλαγές') : (en ? 'Published' : 'Δημοσιευμένο')}</StatusBadge>}
-    headerActions={<div className="row-actions"><PrintExportActions showPrint={false} onExport={() => downloadRegulationWord(preview, meta)} /><Button disabled={!dirty} onClick={() => setPublishing({ changeNote: '' })}><Send size={15} />{en ? `Publish v${template.version + 1}` : `Δημοσίευση v${template.version + 1}`}</Button></div>}
+    headerActions={<PrintExportActions showPrint={false} onExport={() => downloadRegulationWord(preview, meta)} exportLabel={en ? 'Download Word' : 'Λήψη Word'} />}
     tabs={[{ id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: PencilLine }, { id: 'preview', label: en ? 'Preview' : 'Προεπισκόπηση', icon: BookOpen }]} activeTab={tab} onTabChange={setTab}
     onBack={async () => { if (!dirty || await confirm({ title: en ? 'Leave without publishing?' : 'Έξοδος χωρίς δημοσίευση;', message: en ? 'The changes are lost.' : 'Οι αλλαγές θα χαθούν.', danger: true })) goBack() }}>
-    {tab === 'edit' && <RecordTabPanel className="reg-edit-panel" title={en ? 'Template' : 'Πρότυπο'} subtitle={en ? 'Write {hospital} where the hospital’s name goes; a paragraph «Fill in:» marks what each hospital completes.' : 'Γράψτε {hospital} όπου μπαίνει το όνομα του νοσοκομείου· μια παράγραφος «Συμπληρώστε:» δείχνει τι συμπληρώνει κάθε νοσοκομείο.'}>
+    {tab === 'edit' && <RecordTabPanel className="reg-edit-panel" title={en ? 'Template' : 'Πρότυπο'} subtitle={en ? 'Write {hospital} where the hospital’s name goes; a paragraph «Fill in:» marks what each hospital completes.' : 'Γράψτε {hospital} όπου μπαίνει το όνομα του νοσοκομείου· μια παράγραφος «Συμπληρώστε:» δείχνει τι συμπληρώνει κάθε νοσοκομείο.'}
+      actions={<Button disabled={!dirty} onClick={() => setPublishing({ changeNote: '' })}><Send size={15} />{en ? `Publish v${template.version + 1}` : `Δημοσίευση v${template.version + 1}`}</Button>}>
       <FormCard wide title={en ? 'About the template' : 'Στοιχεία προτύπου'}>
         <FormGrid columns={2}>
           <Field label={en ? 'Title' : 'Τίτλος'}><input value={template.title} onChange={event => set({ title: event.target.value })} /></Field>
