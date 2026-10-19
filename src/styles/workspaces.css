@@ -140,7 +140,7 @@
 .prevention-record-shell .waste-page-editor .waste-date-field input,.prevention-record-shell .waste-page-editor .waste-department-field select{width:100%!important}
 
 .prevention-record-shell.record-single-pane-screen{height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important}
-.prevention-record-shell.record-single-pane-screen>.entity-record-body{height:100%!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important;padding-bottom:18px!important}
+.prevention-record-shell.record-single-pane-screen>.entity-record-body{height:100%!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable!important;padding-bottom:18px!important}
 .prevention-record-shell .antiseptic-page-editor,.prevention-record-shell .waste-page-editor,.prevention-record-shell .bundle-page-editor,.prevention-record-shell .who-page-editor{min-height:max-content!important;overflow:visible!important}
 .prevention-record-shell .antiseptic-entry-workspace,.prevention-record-shell .antiseptic-entry-main,.prevention-record-shell .antiseptic-entry-rail{min-height:0!important;overflow:visible!important}
 .prevention-record-shell .antiseptic-entry-rail{align-self:start!important}
