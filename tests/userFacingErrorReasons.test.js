@@ -22,6 +22,10 @@ describe('save errors explain the reason', () => {
     expect(el(new Error('Authentication required'))).toContain('δεν αναγνωρίστηκε συνδεδεμένος χρήστης')
     expect(el(new Error('value too long for type character varying(20)'))).toContain('περισσότερους χαρακτήρες')
   })
+  it('says the password was wrong when the deletion password check fails', () => {
+    expect(userFacingError(new Error('Η επαναταυτοποίηση απέτυχε. Ελέγξτε τον κωδικό πρόσβασης.'), { language: 'el', context: 'delete' })).toBe('Λάθος κωδικός. Δώστε τον κωδικό με τον οποίο συνδέεστε στο Limoxis.')
+    expect(userFacingError(new Error('Πολλές αποτυχημένες προσπάθειες. Δοκιμάστε ξανά σε 15 λεπτά.'), { language: 'el', context: 'delete' })).toBe('Πολλές προσπάθειες με λάθος κωδικό. Δοκιμάστε ξανά σε 15 λεπτά.')
+  })
   it('keeps the generic message when the reason is unknown', () => {
     expect(el(new Error('something odd'))).toBe('Δεν ήταν δυνατή η αποθήκευση των στοιχείων. Δοκιμάστε ξανά.')
   })
