@@ -1,4 +1,4 @@
-import { selectInChunks } from '../../core/data/inChunks'
+import { groupByColumn, selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { AMR_CATEGORY_SELECT, amrCalculationSnapshot } from '../laboratory/amrCalculation'
@@ -432,11 +432,30 @@ function mapClinicalCase({
   }
 }
 
+// Rows of `table` whose `column` is one of `ids`, newest first by `orderColumn`.
+// Many ids are read as the organization's whole list (see selectInChunks).
+function relatedRows(organizationId, table, select, column, ids, orderColumn, orderOptions) {
+  const ordered = query => query.order(orderColumn, orderOptions).order('id', { ascending: true })
+  return selectInChunks(ids, chunk => ordered(supabase.from(table).select(select).in(column, chunk)), {
+    order: [[orderColumn, orderOptions]],
+    column,
+    whole: organizationId
+      ? () => ordered(supabase.from(table).select(select).eq('organization_id', organizationId))
+      : undefined,
+  })
+}
+
+const NEWEST = { ascending: false }
+const NEWEST_NULLS_LAST = { ascending: false, nullsFirst: false }
+
 async function hydrateCases(caseRows) {
   if (!caseRows?.length) return []
+  const organizationId = caseRows[0].organization_id
   const caseIds = caseRows.map(row => row.id)
   const patientIds = [...new Set(caseRows.map(row => row.patient_id))]
   const departmentIds = [...new Set(caseRows.map(row => row.department_id).filter(Boolean))]
+  const related = (table, select, ids, orderColumn, orderOptions, column = 'surveillance_case_id') =>
+    relatedRows(organizationId, table, select, column, ids, orderColumn, orderOptions)
   const [
     patientsResult,
     departmentsResult,
@@ -450,105 +469,17 @@ async function hydrateCases(caseRows) {
     outcomesResult,
     devicesResult,
   ] = await Promise.all([
-    selectInChunks(patientIds, ids =>
-      supabase
-        .from('patients')
-        .select('id,patient_code,first_name,last_name,date_of_birth,admission_date,status')
-        .in('id', ids),
-    ),
-    selectInChunks(departmentIds, ids =>
-      supabase.from('departments').select('id,name').in('id', ids),
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('surveillance_events')
-          .select('*')
-          .in('surveillance_case_id', ids)
-          .order('created_at', { ascending: false }),
-      { order: [['created_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('clinical_assessments')
-          .select(ASSESSMENT_SELECT)
-          .in('surveillance_case_id', ids)
-          .order('assessed_at', { ascending: false }),
-      { order: [['assessed_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('hai_classifications')
-          .select(HAI_SELECT)
-          .in('surveillance_case_id', ids)
-          .order('classified_at', { ascending: false }),
-      { order: [['classified_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('laboratory_samples')
-          .select('*')
-          .in('surveillance_case_id', ids)
-          .order('requested_at', { ascending: false, nullsFirst: false }),
-      { order: [['requested_at', { ascending: false, nullsFirst: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('antimicrobial_therapies')
-          .select('*')
-          .in('surveillance_case_id', ids)
-          .order('started_at', { ascending: false }),
-      { order: [['started_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('isolation_episodes')
-          .select(ISOLATION_SELECT)
-          .in('surveillance_case_id', ids)
-          .order('started_at', { ascending: false }),
-      { order: [['started_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('surveillance_reassessments')
-          .select('*')
-          .in('surveillance_case_id', ids)
-          .order('reassessed_at', { ascending: false }),
-      { order: [['reassessed_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('surveillance_outcomes')
-          .select('*')
-          .in('surveillance_case_id', ids)
-          .order('occurred_at', { ascending: false }),
-      { order: [['occurred_at', { ascending: false }]] },
-    ),
-    selectInChunks(
-      caseIds,
-      ids =>
-        supabase
-          .from('surveillance_devices')
-          .select('*')
-          .in('surveillance_case_id', ids)
-          .order('inserted_at', { ascending: false, nullsFirst: false }),
-      { order: [['inserted_at', { ascending: false, nullsFirst: false }]] },
-    ),
+    related('patients', 'id,patient_code,first_name,last_name,date_of_birth,admission_date,status', patientIds, 'created_at', NEWEST, 'id'),
+    related('departments', 'id,name', departmentIds, 'name', { ascending: true }, 'id'),
+    related('surveillance_events', '*', caseIds, 'created_at', NEWEST),
+    related('clinical_assessments', ASSESSMENT_SELECT, caseIds, 'assessed_at', NEWEST),
+    related('hai_classifications', HAI_SELECT, caseIds, 'classified_at', NEWEST),
+    related('laboratory_samples', '*', caseIds, 'requested_at', NEWEST_NULLS_LAST),
+    related('antimicrobial_therapies', '*', caseIds, 'started_at', NEWEST),
+    related('isolation_episodes', ISOLATION_SELECT, caseIds, 'started_at', NEWEST),
+    related('surveillance_reassessments', '*', caseIds, 'reassessed_at', NEWEST),
+    related('surveillance_outcomes', '*', caseIds, 'occurred_at', NEWEST),
+    related('surveillance_devices', '*', caseIds, 'inserted_at', NEWEST_NULLS_LAST),
   ])
   const baseResults = [
     patientsResult,
@@ -565,121 +496,106 @@ async function hydrateCases(caseRows) {
   ]
   for (const result of baseResults) if (result.error) throw result.error
 
-  const sampleIds = (samplesResult.data || []).map(row => row.id)
-  let relatedLab = { results: [], amrRows: [], astRows: [], communications: [] }
-  if (sampleIds.length) {
-    const microbiologyResult = await selectInChunks(
-      sampleIds,
-      ids =>
-        supabase
-          .from('microbiology_results')
-          .select('*')
-          .in('sample_id', ids)
-          .order('resulted_at', { ascending: false }),
-      { order: [['resulted_at', { ascending: false }]] },
-    )
-    if (microbiologyResult.error) throw microbiologyResult.error
-    const resultIds = (microbiologyResult.data || []).map(row => row.id)
-    relatedLab.results = microbiologyResult.data || []
-    if (resultIds.length) {
-      const [amrResult, astResult, communicationResult] = await Promise.all([
-        selectInChunks(
-          resultIds,
-          ids =>
-            supabase
-              .from('amr_classifications')
-              .select(AMR_SELECT)
-              .in('microbiology_result_id', ids)
-              .order('classified_at', { ascending: false, nullsFirst: false }),
-          { order: [['classified_at', { ascending: false, nullsFirst: false }]] },
-        ),
-        selectInChunks(
-          resultIds,
-          ids =>
-            supabase
-              .from('antimicrobial_susceptibility_results')
-              .select('*')
-              .in('microbiology_result_id', ids)
-              .order('created_at', { ascending: false }),
-          { order: [['created_at', { ascending: false }]] },
-        ),
-        selectInChunks(
-          resultIds,
-          ids =>
-            supabase
-              .from('critical_result_communications')
-              .select('*')
-              .in('microbiology_result_id', ids)
-              .order('communicated_at', { ascending: false }),
-          { order: [['communicated_at', { ascending: false }]] },
-        ),
-      ])
-      for (const result of [amrResult, astResult, communicationResult])
-        if (result.error) throw result.error
-      relatedLab = {
-        ...relatedLab,
-        amrRows: amrResult.data || [],
-        astRows: astResult.data || [],
-        communications: communicationResult.data || [],
-      }
-    }
-  }
+  const samples = samplesResult.data || []
+  const therapies = therapiesResult.data || []
+  const [labResults, administrationsResult] = await Promise.all([
+    loadRelatedLab(related, samples.map(row => row.id)),
+    therapies.length
+      ? related('antimicrobial_therapy_administrations', '*', therapies.map(row => row.id), 'administered_at', NEWEST, 'therapy_id')
+      : { data: [], error: null },
+  ])
+  if (administrationsResult.error) throw administrationsResult.error
 
-  const therapyIds = (therapiesResult.data || []).map(row => row.id)
-  let therapyAdministrations = []
-  if (therapyIds.length) {
-    const administrationsResult = await selectInChunks(
-      therapyIds,
-      ids =>
-        supabase
-          .from('antimicrobial_therapy_administrations')
-          .select('*')
-          .in('therapy_id', ids)
-          .order('administered_at', { ascending: false }),
-      { order: [['administered_at', { ascending: false }]] },
-    )
-    if (administrationsResult.error) throw administrationsResult.error
-    therapyAdministrations = administrationsResult.data || []
+  // Each case gets only its own rows, so mapping stays linear in the data.
+  const bySampleResult = {
+    amrRows: groupByColumn(labResults.amrRows, 'microbiology_result_id'),
+    astRows: groupByColumn(labResults.astRows, 'microbiology_result_id'),
+    communications: groupByColumn(labResults.communications, 'microbiology_result_id'),
   }
+  const resultsBySample = groupByColumn(labResults.results, 'sample_id')
+  const administrationsByTherapy = groupByColumn(administrationsResult.data, 'therapy_id')
+  const patients = new Map((patientsResult.data || []).map(row => [row.id, row]))
+  const departments = new Map((departmentsResult.data || []).map(row => [row.id, row]))
+  const byCase = rows => groupByColumn(rows, 'surveillance_case_id')
+  const grouped = {
+    events: byCase(eventsResult.data),
+    assessments: byCase(assessmentsResult.data),
+    hai: byCase(haiResult.data),
+    samples: byCase(samples),
+    therapies: byCase(therapies),
+    isolations: byCase(isolationsResult.data),
+    reassessments: byCase(reassessmentsResult.data),
+    outcomes: byCase(outcomesResult.data),
+    devices: byCase(devicesResult.data),
+  }
+  const forCase = (key, caseId) => grouped[key].get(caseId) || []
+  const pick = (groups, ids) => ids.flatMap(id => groups.get(id) || [])
 
-  return caseRows.map(caseRow =>
-    mapClinicalCase({
+  return caseRows.map(caseRow => {
+    const caseSamples = forCase('samples', caseRow.id)
+    const caseResults = pick(resultsBySample, caseSamples.map(row => row.id))
+    const resultIds = caseResults.map(row => row.id)
+    const caseTherapies = forCase('therapies', caseRow.id)
+    return mapClinicalCase({
       caseRow,
-      patient: (patientsResult.data || []).find(row => row.id === caseRow.patient_id),
-      department: (departmentsResult.data || []).find(row => row.id === caseRow.department_id),
-      events: (eventsResult.data || []).filter(row => row.surveillance_case_id === caseRow.id),
-      assessments: assessmentsResult.data || [],
-      hai: haiResult.data || [],
-      samples: samplesResult.data || [],
-      relatedLab,
-      therapies: therapiesResult.data || [],
-      therapyAdministrations,
-      isolations: isolationsResult.data || [],
-      reassessments: reassessmentsResult.data || [],
-      outcomes: outcomesResult.data || [],
-      devices: devicesResult.data || [],
-    }),
-  )
+      patient: patients.get(caseRow.patient_id),
+      department: departments.get(caseRow.department_id),
+      events: forCase('events', caseRow.id),
+      assessments: forCase('assessments', caseRow.id),
+      hai: forCase('hai', caseRow.id),
+      samples: caseSamples,
+      relatedLab: {
+        results: caseResults,
+        amrRows: pick(bySampleResult.amrRows, resultIds),
+        astRows: pick(bySampleResult.astRows, resultIds),
+        communications: pick(bySampleResult.communications, resultIds),
+      },
+      therapies: caseTherapies,
+      therapyAdministrations: pick(administrationsByTherapy, caseTherapies.map(row => row.id)),
+      isolations: forCase('isolations', caseRow.id),
+      reassessments: forCase('reassessments', caseRow.id),
+      outcomes: forCase('outcomes', caseRow.id),
+      devices: forCase('devices', caseRow.id),
+    })
+  })
 }
 
-// Every case of the organization, page by page (a single response is capped,
-// and each page's related rows are fetched by its case ids).
-export async function loadClinicalCases(organizationId, { pageSize = 500 } = {}) {
+async function loadRelatedLab(related, sampleIds) {
+  const empty = { results: [], amrRows: [], astRows: [], communications: [] }
+  if (!sampleIds.length) return empty
+  const microbiologyResult = await related('microbiology_results', '*', sampleIds, 'resulted_at', NEWEST, 'sample_id')
+  if (microbiologyResult.error) throw microbiologyResult.error
+  const results = microbiologyResult.data || []
+  const resultIds = results.map(row => row.id)
+  if (!resultIds.length) return { ...empty, results }
+  const [amrResult, astResult, communicationResult] = await Promise.all([
+    related('amr_classifications', AMR_SELECT, resultIds, 'classified_at', NEWEST_NULLS_LAST, 'microbiology_result_id'),
+    related('antimicrobial_susceptibility_results', '*', resultIds, 'created_at', NEWEST, 'microbiology_result_id'),
+    related('critical_result_communications', '*', resultIds, 'communicated_at', NEWEST, 'microbiology_result_id'),
+  ])
+  for (const result of [amrResult, astResult, communicationResult]) if (result.error) throw result.error
+  return {
+    results,
+    amrRows: amrResult.data || [],
+    astRows: astResult.data || [],
+    communications: communicationResult.data || [],
+  }
+}
+
+// Every case of the organization, read page by page (a single response is
+// capped), then hydrated once so the related lists are read once too.
+export async function loadClinicalCases(organizationId) {
   assertCloud()
   if (!organizationId) return []
-  const all = []
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
+  const rows = await selectAllPages(() =>
+    supabase
       .from('surveillance_cases')
       .select('*')
       .eq('organization_id', organizationId)
       .order('started_at', { ascending: false })
-      .order('id', { ascending: true })
-      .range(from, from + pageSize - 1)
-    if (error) throw error
-    all.push(...(await hydrateCases(data || [])))
-    if (!data || data.length < pageSize) return all
-  }
+      .order('id', { ascending: true }),
+  )
+  return hydrateCases(rows)
 }
 
 export async function loadClinicalCase(organizationId, caseRecordId) {
