@@ -34,6 +34,11 @@ import { SupplierTemplatesPage } from './SupplierTemplatesPage'
 import '../quality.css'
 import './resources.css'
 
+// The record shell keeps only the export control and the edit / delete actions of the
+// header (these go to «…»); a primary domain action marked `utility` stays visible
+// beside the status, as a standard text button.
+const HeaderAction = ({ children }) => children
+
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const byNewest = field => (a, b) => String(b[field] || '').localeCompare(String(a[field] || ''))
 
@@ -127,8 +132,8 @@ function SupplierRecord({ supplierId }) {
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   const headerActions = !isNew && <div className="row-actions">
     <ExportMenu {...(latest ? reportExports(sheet, { onBlocked: blocked }) : {})} onExcel={exportFile} />
-    {access.canManage && <Button variant="secondary" onClick={() => { setTab('evaluations'); setEditing({ field: 'evaluations', item: startEvaluation() }) }}><Star size={15} />{en ? 'Evaluate' : 'Αξιολόγηση'}</Button>}
-    {access.canManage && <Button variant="secondary" onClick={() => { setTab('nonconformities'); setEditing({ field: 'nonconformities', item: newNonconformity() }) }}><AlertTriangle size={15} />{en ? 'Nonconformity' : 'Μη συμμόρφωση'}</Button>}
+    {access.canManage && <HeaderAction utility><Button variant="secondary" onClick={() => { setTab('evaluations'); setEditing({ field: 'evaluations', item: startEvaluation() }) }}><Star size={15} />{en ? 'Evaluate' : 'Αξιολόγηση'}</Button></HeaderAction>}
+    {access.canManage && <HeaderAction utility><Button variant="secondary" onClick={() => { setTab('nonconformities'); setEditing({ field: 'nonconformities', item: newNonconformity() }) }}><AlertTriangle size={15} />{en ? 'Nonconformity' : 'Μη συμμόρφωση'}</Button></HeaderAction>}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete supplier' : 'Διαγραφή προμηθευτή'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
   const add = (field, item) => !locked && <Button onClick={() => setEditing({ field, item: typeof item === 'function' ? item() : item })}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>
