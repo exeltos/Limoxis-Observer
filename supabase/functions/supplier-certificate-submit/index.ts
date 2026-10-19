@@ -2,11 +2,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serveWithCors } from '../_shared/cors.ts'
 
 // Public endpoint of the e-mailed supplier link (no account, verify_jwt = false):
-// the supplier uploads the renewed certificate. The random single-use token is
-// checked by its SHA-256 (as quality_supplier_certificate_access does), the file is
-// stored with the service role under the supplier (attachments bucket, entity
-// quality_supplier, category certification) and the submission is written on the
-// request, which becomes «submitted» once. Quality reviews it in the app.
+// the supplier uploads the renewal of one certificate of its request (item_id). The
+// random token is checked by its SHA-256 (as quality_supplier_certificate_access
+// does) on a request still «sent» and not expired; the item must belong to that
+// request and still be awaited. The file is stored with the service role under the
+// supplier (attachments bucket, entity quality_supplier, category certification) and
+// the submission is written on the item, which becomes «submitted» once. The same
+// link serves the other certificates until it expires. Quality reviews each in the app.
 const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Access-Control-Allow-Methods':'POST, OPTIONS','Cache-Control':'no-store'}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
 const fail=(code:string,status=400)=>reply({ok:false,code},status)
@@ -42,12 +44,18 @@ serveWithCors(async(req)=>{
   const token=text(form.get('token'),200)
   if(!/^SCR-[0-9a-f]{64}$/.test(token))return fail('SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE',404)
   const admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}})
+  const itemId=text(form.get('item_id'),64)
+  if(!/^[0-9a-f-]{36}$/i.test(itemId))return fail('SUPPLIER_CERTIFICATE_ITEM_NOT_AVAILABLE',404)
   const hash=await sha256(token)
   const {data:request,error:loadError}=await admin.from('quality_supplier_certificate_requests').select('id,organization_id,supplier_id,status,token_expires_at').eq('token_hash',hash).maybeSingle()
   if(loadError)return fail('SUPPLIER_CERTIFICATE_UNAVAILABLE',500)
   if(!request)return fail('SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE',404)
-  if(request.status!=='sent')return fail(request.status==='submitted'?'SUPPLIER_CERTIFICATE_ALREADY_SUBMITTED':'SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE',409)
+  if(request.status!=='sent')return fail('SUPPLIER_CERTIFICATE_ACCESS_NOT_AVAILABLE',409)
   if(!request.token_expires_at||new Date(request.token_expires_at).getTime()<Date.now())return fail('SUPPLIER_CERTIFICATE_ACCESS_EXPIRED',410)
+  const {data:item,error:itemError}=await admin.from('quality_supplier_certificate_request_items').select('id,status').eq('id',itemId).eq('request_id',request.id).maybeSingle()
+  if(itemError)return fail('SUPPLIER_CERTIFICATE_UNAVAILABLE',500)
+  if(!item)return fail('SUPPLIER_CERTIFICATE_ITEM_NOT_AVAILABLE',404)
+  if(item.status!=='pending')return fail(item.status==='submitted'?'SUPPLIER_CERTIFICATE_ALREADY_SUBMITTED':'SUPPLIER_CERTIFICATE_ITEM_NOT_AVAILABLE',409)
 
   const certificateType=text(form.get('certificate_type'))
   const certificateNumber=text(form.get('certificate_number'))
@@ -73,15 +81,16 @@ serveWithCors(async(req)=>{
   const storagePath=`${request.organization_id}/quality_supplier/${request.supplier_id}/${Date.now()}-${fileName}`
   const {error:uploadError}=await admin.storage.from('attachments').upload(storagePath,bytes,{contentType:mime,upsert:false})
   if(uploadError){console.error('supplier certificate upload failed',uploadError.message);return fail('SUPPLIER_CERTIFICATE_UPLOAD_FAILED',500)}
-  const {data:attachment,error:attachmentError}=await admin.from('attachments').insert({organization_id:request.organization_id,entity_type:'quality_supplier',entity_id:String(request.supplier_id),file_name:fileName,storage_path:storagePath,mime_type:mime,size_bytes:bytes.length,uploaded_by:null,metadata:{category:'certification',description:[certificateType,certificateNumber].filter(Boolean).join(' · '),source:'supplier_link',request_id:request.id}}).select('id').single()
+  const {data:attachment,error:attachmentError}=await admin.from('attachments').insert({organization_id:request.organization_id,entity_type:'quality_supplier',entity_id:String(request.supplier_id),file_name:fileName,storage_path:storagePath,mime_type:mime,size_bytes:bytes.length,uploaded_by:null,metadata:{category:'certification',description:[certificateType,certificateNumber].filter(Boolean).join(' · '),source:'supplier_link',request_id:request.id,request_item_id:item.id}}).select('id').single()
   if(attachmentError||!attachment){await admin.storage.from('attachments').remove([storagePath]).catch(()=>{});return fail('SUPPLIER_CERTIFICATE_UPLOAD_FAILED',500)}
 
-  // Single use: only a request still «sent» with this token takes the submission.
-  const {data:saved,error:saveError}=await admin.from('quality_supplier_certificate_requests').update({status:'submitted',submitted_at:new Date().toISOString(),certificate_type:certificateType,certificate_number:certificateNumber,issuer:issuer||null,issued_on:issuedOn||null,expires_on:expiresOn,note:note||null,attachment_id:attachment.id,updated_at:new Date().toISOString()}).eq('id',request.id).eq('token_hash',hash).eq('status','sent').select('id').maybeSingle()
+  // Once per certificate: only an item still awaited, of a request still «sent» with this token, takes the submission.
+  const {data:current}=await admin.from('quality_supplier_certificate_requests').select('id').eq('id',request.id).eq('token_hash',hash).eq('status','sent').maybeSingle()
+  const {data:saved,error:saveError}=current?await admin.from('quality_supplier_certificate_request_items').update({status:'submitted',submitted_at:new Date().toISOString(),certificate_type:certificateType,certificate_number:certificateNumber,issuer:issuer||null,issued_on:issuedOn||null,expires_on:expiresOn,note:note||null,attachment_id:attachment.id,updated_at:new Date().toISOString()}).eq('id',item.id).eq('request_id',request.id).eq('status','pending').select('id').maybeSingle():{data:null,error:null}
   if(saveError||!saved){
     await admin.from('attachments').delete().eq('id',attachment.id)
     await admin.storage.from('attachments').remove([storagePath]).catch(()=>{})
     return fail(saveError?'SUPPLIER_CERTIFICATE_UNAVAILABLE':'SUPPLIER_CERTIFICATE_ALREADY_SUBMITTED',saveError?500:409)
   }
-  return reply({ok:true,status:'submitted'})
+  return reply({ok:true,status:'submitted',itemId:item.id})
 })

@@ -24,8 +24,10 @@ export function useResourceAccess() {
   const addOns = membership?.capabilities ?? [], custom = membership?.customCapabilities ?? []
   const canManage = owner || can(role, CAPABILITIES.MANAGE_QUALITY, addOns, custom)
   const canViewAll = canManage || can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom)
+  // E-mailing suppliers: the Platform Owner or a member with the add-on supplier_renewal_sender.
+  const canSend = owner || can(role, CAPABILITIES.SEND_SUPPLIER_RENEWALS, addOns, custom)
   const own = [...(membership?.departmentIds || []), membership?.previewDepartment].filter(Boolean)
-  return { canManage, canViewAll, ownDepartments: own }
+  return { canManage, canViewAll, canSend, owner, ownDepartments: own }
 }
 
 // The suppliers, the equipment with each device's state and the events, with

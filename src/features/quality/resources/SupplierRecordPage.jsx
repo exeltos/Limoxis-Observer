@@ -32,7 +32,7 @@ import { applyTemplate, everyCriterionScored, evaluationFromTemplate, formatPerc
 import { supplierEvaluationDocument } from './supplierEvaluationReport'
 import { SupplierTemplatesPage } from './SupplierTemplatesPage'
 import { RenewalSendDialog, SupplierRenewalsPage, canRequestRenewal, useCertificateRequests } from './SupplierRenewalsPage'
-import { renewalQueue, requestStatusLabel, requestStatusTone } from './supplierRenewalModel'
+import { itemStatusLabel, itemStatusTone, renewalQueue } from './supplierRenewalModel'
 import '../quality.css'
 import './resources.css'
 
@@ -194,7 +194,7 @@ function SupplierRecord({ supplierId }) {
           <td>{documentKindLabel(item.kind, language)}</td>
           <td>{item.number || '—'}</td>
           <td>{item.issuer || '—'}</td>
-          <td className="nowrap-cell">{formatDay(item.expiresOn, language) || '—'} <StatusBadge tone={certificationStateTone(state)}>{certificationStateLabel(state, language)}</StatusBadge>{renewalRows.get(item.id)?.request && <small><StatusBadge tone={requestStatusTone(renewalRows.get(item.id).request.status)}>{en ? 'Renewal' : 'Ανανέωση'}: {requestStatusLabel(renewalRows.get(item.id).request.status, language)}</StatusBadge></small>}</td>
+          <td className="nowrap-cell">{formatDay(item.expiresOn, language) || '—'} <StatusBadge tone={certificationStateTone(state)}>{certificationStateLabel(state, language)}</StatusBadge>{renewalRows.get(item.id)?.item && <small><StatusBadge tone={itemStatusTone(renewalRows.get(item.id).item.status)}>{en ? 'Renewal' : 'Ανανέωση'}: {itemStatusLabel(renewalRows.get(item.id).item.status, language)}</StatusBadge></small>}</td>
           <td><div className="row-actions">{!locked && canRequestRenewal(renewalRows.get(item.id)) && <IconButton size="sm" label={en ? 'Ask the supplier for the renewal' : 'Αίτημα ανανέωσης στον προμηθευτή'} onClick={() => setRenewing([renewalRows.get(item.id)])}><Send size={14} /></IconButton>}{!locked && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ field: 'certifications', item: structuredClone(item) })}><Pencil size={14} /></IconButton>}{!locked && <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => dropItem('certifications', item)}><Trash2 size={14} /></IconButton>}</div></td>
         </> }} />
     </RecordTabPanel>}
@@ -258,7 +258,7 @@ function SupplierRecord({ supplierId }) {
         </FormCard>
       </div>
     </RecordTabPanel>}
-    {renewing && <RenewalSendDialog rows={renewing} canManage={access.canManage} onClose={() => setRenewing(null)} onDone={async () => { setRenewing(null); await renewals.reload() }} />}
+    {renewing && <RenewalSendDialog rows={renewing} canSend={access.canSend} onClose={() => setRenewing(null)} onDone={async () => { setRenewing(null); await renewals.reload() }} />}
     {editing && <ItemDialog editing={editing} setEditing={setEditing} language={language} saving={saving} templates={templates} category={supplierCategoryOf(draft.category)} onSave={async () => { if (await saveItem(editing.field, editing.item)) setEditing(null) }} />}
   </EntityRecordShell></Page>
 }
