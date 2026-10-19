@@ -20,9 +20,9 @@ const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().
 const must = ({ data, error }) => { if (error) throw error; return data }
 
 // --- Columns ----------------------------------------------------------------------------
-// camelCase field → [column, kind]; kind: t text, n number, b boolean, d date / time / timestamp, u uuid.
+// camelCase field → [column, kind]; kind: t text, n number, b boolean, d date / time / timestamp, u uuid, j json.
 const COLUMNS = {
-  kitchen_settings: { expiryWarningDays: ['expiry_warning_days', 'n'], haccpReviewMonths: ['haccp_review_months', 'n'], haccpLastReviewOn: ['haccp_last_review_on', 'd'], haccpDocumentId: ['haccp_document_id', 'u'], haccpTeam: ['haccp_team', 't'], notes: ['notes', 't'] },
+  kitchen_settings: { expiryWarningDays: ['expiry_warning_days', 'n'], haccpReviewMonths: ['haccp_review_months', 'n'], haccpLastReviewOn: ['haccp_last_review_on', 'd'], haccpDocumentId: ['haccp_document_id', 'u'], haccpTeam: ['haccp_team', 't'], recallDrillMonths: ['recall_drill_months', 'n'], notes: ['notes', 't'] },
   kitchen_limits: { limitKey: ['limit_key', 't'], label: ['label', 't'], minValue: ['min_value', 'n'], maxValue: ['max_value', 'n'], withinMinutes: ['within_minutes', 'n'], unit: ['unit', 't'], active: ['active', 'b'], notes: ['notes', 't'] },
   kitchen_haccp_steps: { position: ['position', 'n'], stepKey: ['step_key', 't'], name: ['name', 't'], hazardBiological: ['hazard_biological', 'b'], hazardChemical: ['hazard_chemical', 'b'], hazardPhysical: ['hazard_physical', 'b'], hazardAllergen: ['hazard_allergen', 'b'], hazards: ['hazards', 't'], isCcp: ['is_ccp', 'b'], controlMeasure: ['control_measure', 't'], limitKey: ['limit_key', 't'], monitoring: ['monitoring', 't'], frequency: ['frequency', 't'], correctiveAction: ['corrective_action', 't'], verification: ['verification', 't'], records: ['records', 't'], responsible: ['responsible', 't'], active: ['active', 'b'] },
   kitchen_products: { name: ['name', 't'], category: ['category', 't'], storage: ['storage', 't'], unit: ['unit', 't'], supplierId: ['supplier_id', 'u'], supplierCode: ['supplier_code', 't'], lowStockQuantity: ['low_stock_quantity', 'n'], active: ['active', 'b'], notes: ['notes', 't'], source: ['source', 't'] },
@@ -41,6 +41,9 @@ const COLUMNS = {
   kitchen_pureeing: { productionId: ['production_id', 'u'], pureedOn: ['pureed_on', 'd'], method: ['method', 't'], productName: ['product_name', 't'], visualCheck: ['visual_check', 'b'], bladeCheck: ['blade_check', 'b'], correctiveAction: ['corrective_action', 't'], notes: ['notes', 't'], recordedByEmployeeId: ['recorded_by_employee_id', 'u'], recordedByName: ['recorded_by_name', 't'], source: ['source', 't'] },
   kitchen_defrosting: { productionId: ['production_id', 'u'], receiptItemId: ['receipt_item_id', 'u'], productId: ['product_id', 'u'], productName: ['product_name', 't'], quantity: ['quantity', 'n'], unit: ['unit', 't'], method: ['method', 't'], startedAt: ['started_at', 'd'], startTemp: ['start_temp', 'n'], startText: ['start_text', 't'], endedAt: ['ended_at', 'd'], endTemp: ['end_temp', 'n'], endText: ['end_text', 't'], temperatureUnparsed: ['temperature_unparsed', 'b'],
     correctiveAction: ['corrective_action', 't'], notes: ['notes', 't'], recordedByEmployeeId: ['recorded_by_employee_id', 'u'], recordedByName: ['recorded_by_name', 't'], source: ['source', 't'] },
+  kitchen_recall_drills: { code: ['code', 't'], drillDate: ['drill_date', 'd'], startedAt: ['started_at', 'd'], finishedAt: ['finished_at', 'd'], scenario: ['scenario', 't'], triggerText: ['trigger_text', 't'], receiptItemId: ['receipt_item_id', 'u'], productId: ['product_id', 'u'], productName: ['product_name', 't'], dishName: ['dish_name', 't'], targetMinutes: ['target_minutes', 'n'], elapsedMinutes: ['elapsed_minutes', 'n'],
+    receivedQuantity: ['received_quantity', 'n'], usedQuantity: ['used_quantity', 'n'], stockQuantity: ['stock_quantity', 'n'], writtenOffQuantity: ['written_off_quantity', 'n'], quantityUnit: ['quantity_unit', 't'], accountedPercent: ['accounted_percent', 'n'], batchesCount: ['batches_count', 'n'], affectedDays: ['affected_days', 'n'], affectedMeals: ['affected_meals', 'n'], affectedPortions: ['affected_portions', 'n'],
+    tracedWithinTarget: ['traced_within_target', 'b'], traceSnapshot: ['trace_snapshot', 'j'], notified: ['notified', 't'], actions: ['actions', 't'], result: ['result', 't'], lessons: ['lessons', 't'], conductedByEmployeeId: ['conducted_by_employee_id', 'u'], conductedByName: ['conducted_by_name', 't'], status: ['status', 't'], notes: ['notes', 't'] },
 }
 // Read-only columns the database fills (statuses, sign-off, codes).
 const READ_ONLY = {
@@ -54,6 +57,7 @@ const READ_ONLY = {
 
 const toValue = (kind, value) => {
   if (kind === 'b') return value === '' || value == null ? null : Boolean(value)
+  if (kind === 'j') return value && typeof value === 'object' ? value : null
   if (value === '' || value == null) return null
   if (kind === 'n') { const n = Number(String(value).replace(',', '.')); return Number.isFinite(n) ? n : null }
   if (kind === 'u') return isUuid(value) ? value : null
@@ -69,7 +73,7 @@ export function fromRow(table, row) {
   const entry = { id: row.id, createdAt: row.created_at, updatedAt: row.updated_at }
   for (const [field, [column, kind]] of Object.entries(COLUMNS[table])) {
     const value = row[column]
-    entry[field] = kind === 'b' ? (value == null ? null : Boolean(value)) : value == null ? '' : kind === 'd' && /time$/.test(column) && typeof value === 'string' && /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value
+    entry[field] = kind === 'j' ? value ?? null : kind === 'b' ? (value == null ? null : Boolean(value)) : value == null ? '' : kind === 'd' && /time$/.test(column) && typeof value === 'string' && /^\d{2}:\d{2}/.test(value) ? value.slice(0, 5) : value
   }
   for (const [field, column] of Object.entries(READ_ONLY[table] || {})) entry[field] = row[column] ?? null
   return entry
@@ -89,7 +93,7 @@ const byOrg = (table, organizationId, order = 'created_at') => selectAll(() => s
 
 function local() {
   const saved = loadSnapshot(LOCAL_KEY, null)
-  if (saved && Array.isArray(saved.receipts)) return saved
+  if (saved && Array.isArray(saved.receipts)) return Array.isArray(saved.recallDrills) ? saved : { ...saved, recallDrills: isEmptyPreview() ? [] : kitchenDemoState().recallDrills }
   const seed = kitchenDemoState()
   // Empty-hospital preview: the kitchen's settings, limits and HACCP steps, no records.
   const state = isEmptyPreview() ? Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, Array.isArray(value) && !['limits', 'steps'].includes(key) ? [] : value])) : seed
@@ -108,19 +112,20 @@ export class KitchenRuleError extends Error { constructor(code) { super(code); t
 // Everything the kitchen screens need, in one go, with each entry's in / out of limits.
 export async function loadKitchen(organizationId) {
   if (isLocal()) return withStatuses(local())
-  if (!organizationId) return withStatuses({ settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [] })
-  const [settings, limits, steps, products, menus, receipts, items, writeoffs, productions, meals, usage, thermal, pureeing, defrosting, suppliers] = await Promise.all([
+  if (!organizationId) return withStatuses({ settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] })
+  const [settings, limits, steps, products, menus, receipts, items, writeoffs, productions, meals, usage, thermal, pureeing, defrosting, suppliers, recallDrills] = await Promise.all([
     supabase.from('kitchen_settings').select('*').eq('organization_id', organizationId).maybeSingle().then(must),
     byOrg('kitchen_limits', organizationId, 'limit_key'), byOrg('kitchen_haccp_steps', organizationId, 'position'), byOrg('kitchen_products', organizationId, 'name'), byOrg('kitchen_menus', organizationId, 'weekday'),
     byOrg('kitchen_receipts', organizationId, 'received_on'), byOrg('kitchen_receipt_items', organizationId, 'position'), byOrg('kitchen_stock_writeoffs', organizationId, 'written_off_on'),
     byOrg('kitchen_productions', organizationId, 'production_date'), byOrg('kitchen_production_meals', organizationId, 'position'), byOrg('kitchen_material_usage', organizationId, 'used_on'),
     byOrg('kitchen_thermal_processes', organizationId, 'process_date'), byOrg('kitchen_pureeing', organizationId, 'pureed_on'), byOrg('kitchen_defrosting', organizationId, 'started_at'),
     selectAll(() => supabase.from('quality_suppliers').select('id,name,category,status').eq('organization_id', organizationId).order('name').order('id')).catch(() => []),
+    byOrg('kitchen_recall_drills', organizationId, 'drill_date').catch(() => []),
   ])
   const itemsBy = group(items.map(row => ({ ...fromRow('kitchen_receipt_items', row), receiptId: row.receipt_id })), 'receiptId')
   const mealsBy = group(meals.map(row => ({ ...fromRow('kitchen_production_meals', row), productionId: row.production_id })), 'productionId')
   return {
-    settings: settings ? fromRow('kitchen_settings', settings) : { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', notes: '' },
+    settings: settings ? fromRow('kitchen_settings', settings) : { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', recallDrillMonths: 12, notes: '' },
     limits: resolveLimits(limits.map(row => fromRow('kitchen_limits', row))),
     steps: steps.map(row => fromRow('kitchen_haccp_steps', row)),
     products: products.map(row => fromRow('kitchen_products', row)),
@@ -133,6 +138,7 @@ export async function loadKitchen(organizationId) {
     pureeing: pureeing.map(row => fromRow('kitchen_pureeing', row)),
     defrosting: defrosting.map(row => fromRow('kitchen_defrosting', row)),
     suppliers: suppliers.map(row => ({ id: row.id, name: row.name, category: row.category, status: row.status })),
+    recallDrills: recallDrills.map(row => ({ ...fromRow('kitchen_recall_drills', row), stockCounts: row.trace_snapshot?.stockCounts || {} })),
   }
 }
 const group = (rows, key) => { const map = new Map(); for (const row of rows) { const list = map.get(row[key]) || []; list.push(row); map.set(row[key], list) } return map }
@@ -181,7 +187,7 @@ export async function removeEntry(organizationId, table, id) {
   }
   must(await supabase.from(table).delete().eq('id', id).eq('organization_id', organizationId))
 }
-const LOCAL_FIELD = { kitchen_receipts: 'receipts', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs' }
+const LOCAL_FIELD = { kitchen_receipts: 'receipts', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs', kitchen_recall_drills: 'recallDrills' }
 
 const locked = (state, productionId) => Boolean(productionId && state.productions.find(item => item.id === productionId)?.verifiedAt)
 
@@ -258,6 +264,21 @@ export async function saveWriteoff(organizationId, writeoff) {
     return
   }
   await writeRow('kitchen_stock_writeoffs', organizationId, writeoff)
+}
+
+// A recall drill (Άσκηση ανάκλησης). Returns the saved drill (with its code).
+export async function saveRecallDrill(organizationId, drill) {
+  if (isLocal()) {
+    const state = local()
+    const list = state.recallDrills || []
+    const code = drill.code || `ANK-${String(Math.max(0, ...list.map(item => Number(String(item.code).replace(/\D/g, '')) || 0)) + 1).padStart(4, '0')}`
+    const next = { ...drill, id: drill.id || localId('krd'), code, updatedAt: new Date().toISOString() }
+    state.recallDrills = upsertIn(list, next)
+    saveLocal(state)
+    return next
+  }
+  const saved = await writeRow('kitchen_recall_drills', organizationId, { ...drill, code: drill.code || '' }, drill.code ? {} : { code: '' })
+  return { ...fromRow('kitchen_recall_drills', saved), stockCounts: saved.trace_snapshot?.stockCounts || {} }
 }
 
 // Catalogue, menus, HACCP steps: one row each.

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, Blend, CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, Route, ShieldCheck, Snowflake, Thermometer, Truck } from 'lucide-react'
+import { AlertTriangle, Blend, CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, Route, ShieldCheck, Siren, Snowflake, Thermometer, Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -14,8 +14,10 @@ import { DefrostPanel, HaccpPanel, OverviewPanel, PlanPanel, PureeingPanel, Rece
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
 import { addDays, categoryLabel, newReceipt, overview, productionForDay, stockRows, todayKey } from './kitchenModel'
 import { dailyHaccpDocument, exportKitchenList, receiptsLogDocument } from './kitchenReports'
+import { RecallDialog, RecallPanel } from './KitchenRecall'
+import { drillSubject, recallSummary } from './kitchenRecallModel'
 
-const TABS = ['overview', 'plan', 'receipts', 'stock', 'thermal', 'defrost', 'pureeing', 'usage', 'verification', 'haccp']
+const TABS = ['overview', 'plan', 'receipts', 'stock', 'thermal', 'defrost', 'pureeing', 'usage', 'verification', 'recall', 'haccp']
 const initialFilters = () => ({
   receipts: { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' },
   stock: { query: '', show: 'in', storage: 'all', category: 'all', view: 'stock' },
@@ -25,6 +27,7 @@ const initialFilters = () => ({
   usage: { query: '', link: 'all', from: '', to: '' },
   plan: { query: '', when: 'all', from: '', to: '', view: 'days' },
   verification: { query: '', range: '30' },
+  recall: { query: '', result: 'all', scenario: 'all' },
 })
 
 // Κουζίνα (HACCP): the production day is the hub, the receipt the stock entry point.
@@ -42,6 +45,7 @@ export function KitchenPage() {
   const filtersFor = key => [filters[key], updater => setAllFilters(current => ({ ...current, [key]: typeof updater === 'function' ? updater(current[key]) : updater }))]
   const [dialog, setDialog] = useState(null)
   const [trace, setTrace] = useState(null)
+  const [recall, setRecall] = useState(null)
   const { sign, reopenRow } = useSignOff(organizationId, reload)
   const today = todayKey()
   const stock = useMemo(() => (state ? stockRows(state, today) : []), [state, today])
@@ -66,6 +70,7 @@ export function KitchenPage() {
     pureeing: { onExcel: () => exportKitchenList('pureeing', state.pureeing, language) },
     usage: { onExcel: () => exportKitchenList('usage', state.usage.map(row => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) })), language) },
     plan: todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {},
+    recall: { onExcel: () => exportKitchenList('recall', (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), language) },
     verification: {}, haccp: {},
   }
   const exportProps = exportsFor[tab] || {}
@@ -85,9 +90,10 @@ export function KitchenPage() {
     { value: 'pureeing', label: en ? 'Pureeing' : 'Πολτοποιήσεις', icon: Blend },
     { value: 'usage', label: en ? 'Materials in use' : 'Υλικά σε χρήση', icon: Route },
     { value: 'verification', label: en ? 'Verification' : 'Επαλήθευση', icon: ShieldCheck, count: summary.toVerify },
+    { value: 'recall', label: en ? 'Recall drills' : 'Ανάκληση', icon: Siren, count: recallSummary(state, today).overdue ? 1 : 0 },
     { value: 'haccp', label: en ? 'HACCP plan' : 'Σχέδιο HACCP', icon: ClipboardList },
   ]
-  const props = { state, access, reload, organizationId, onDialog: setDialog, onOpenDay: openDay, onTrace: setTrace, stock }
+  const props = { state, access, reload, organizationId, onDialog: setDialog, onOpenDay: openDay, onTrace: setTrace, onRecall: setRecall, stock }
   return <Page fill className="registry-fill-page kitchen-page" title={en ? 'Kitchen' : 'Κουζίνα'} subtitle={en ? 'HACCP food safety: receipts and stock, the production day, critical limits, verification and traceability.' : 'Ασφάλεια τροφίμων HACCP: παραλαβές και απόθεμα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση και ιχνηλασιμότητα.'} actions={actions}>
     <div className="workspace-summary"><div className="module-summary-strip">
       <MetricCard icon={Truck} value={summary.receipts.length} label={en ? 'Receipts today' : 'Παραλαβές σήμερα'} onClick={() => setTab('receipts')} />
@@ -108,10 +114,12 @@ export function KitchenPage() {
       {tab === 'pureeing' && <PureeingPanel {...props} {...pair(filtersFor('pureeing'))} />}
       {tab === 'usage' && <UsagePanel {...props} {...pair(filtersFor('usage'))} />}
       {tab === 'verification' && <VerificationPanel {...props} {...pair(filtersFor('verification'))} onSign={sign} />}
+      {tab === 'recall' && <RecallPanel {...props} {...pair(filtersFor('recall'))} />}
       {tab === 'haccp' && <HaccpPanel {...props} />}
     </section>
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={dishes} organizationId={organizationId} reload={reload} onOpenDay={openDay} />
     {trace && <TraceDialog state={state} receiptItemId={trace} onClose={() => setTrace(null)} />}
+    {recall && <RecallDialog key={recall.id || 'new'} state={state} organizationId={organizationId} access={access} initial={recall} onClose={() => setRecall(null)} onSaved={reload} />}
   </Page>
 }
 

@@ -3,6 +3,7 @@
 import { exportRegistry } from '../../core/export/registryExports'
 import { limitFor, limitText, statusLabel } from './kitchenLimits'
 import { RECEIPT_CHECK_FIELDS, checkLabel, dayRecords, defrostMethodLabel, dietLabel, fmtQty, fmtTemp, mealLabel, pureeMethodLabel, receiptResultLabel, storageLabel, unitLabel, weekdayLabel, weekdayOf, writeoffReasonLabel } from './kitchenModel'
+import { BALANCE_TOLERANCE, drillSubject, elapsedMinutes, fmtDuration, recallResultLabel, recallScenarioLabel, withinTarget } from './kitchenRecallModel'
 
 const day = value => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
 const stamp = (value, language) => { if (!value) return '—'; const d = new Date(value); return Number.isNaN(d.getTime()) ? '—' : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(d) }
@@ -98,6 +99,45 @@ export function traceabilityDocument(trace, { language = 'el' } = {}) {
   }
 }
 
+// The report of a recall drill (Άσκηση ανάκλησης): scenario, time against the target,
+// the batches with their supplier, where they went (day, dish, meal, portions), the
+// write-offs, the mass balance, whom it notified, what was done, the result and lessons.
+export function recallDrillDocument(drill, trace, { language = 'el' } = {}) {
+  const en = language === 'en'
+  const L = (el, enText) => (en ? enText : el)
+  const minutes = drill.elapsedMinutes !== '' && drill.elapsedMinutes != null && drill.status === 'completed' ? Number(drill.elapsedMinutes) : elapsedMinutes(drill.startedAt, drill.finishedAt)
+  const target = Number(drill.targetMinutes) || 240
+  const inTime = withinTarget(minutes, target)
+  const qty = (value, unit) => `${fmtQty(value, language)}${unit && unit !== 'mixed' ? ` ${unitLabel(unit, language)}` : ''}`
+  return {
+    language, kind: L('Άσκηση ανάκλησης', 'Mock recall drill'), title: drillSubject(drill, null, language), code: drill.code || '',
+    meta: [[L('Ημερομηνία', 'Date'), day(drill.drillDate)], [L('Σενάριο', 'Scenario'), recallScenarioLabel(drill.scenario, language)], [L('Έναρξη', 'Started'), stamp(drill.startedAt, language)], [L('Τέλος', 'Finished'), drill.finishedAt ? stamp(drill.finishedAt, language) : '—'],
+      [L('Χρόνος ιχνηλάτησης', 'Time to trace'), `${fmtDuration(minutes, language)} / ${L('στόχος', 'target')} ${fmtDuration(target, language)}${inTime === false ? ` · ${L('εκτός στόχου', 'over target')}` : ''}`],
+      [L('Ισοζύγιο μάζας', 'Mass balance'), trace.percent == null ? '—' : `${String(trace.percent).replace('.', en ? '.' : ',')} %${trace.balanced ? '' : ` · ${L('δεν ισοσκελίζεται', 'not balanced')}`}`],
+      [L('Αποτέλεσμα', 'Result'), drill.result ? recallResultLabel(drill.result, language) : L('Σε εξέλιξη', 'In progress')], [L('Διενήργησε', 'Conducted by'), drill.conductedByName || '—']],
+    sections: [
+      { title: L('Αφορμή', 'Trigger'), text: drill.triggerText || '—' },
+      { title: L('Παρτίδες και προμηθευτής', 'Batches and supplier'), table: { columns: [L('Προϊόν', 'Product'), L('Παρτίδα', 'Batch'), L('Προμηθευτής', 'Supplier'), L('Παραλαβή', 'Receipt'), L('Λήξη', 'Expiry'), { text: L('Παραλήφθηκε', 'Received'), align: 'right' }, { text: L('Χρησιμοποιήθηκε', 'Used'), align: 'right' }, { text: L('Σε απόθεμα', 'In stock'), align: 'right' }, { text: L('Απόσυρση', 'Written off'), align: 'right' }, { text: '%', align: 'right' }],
+        rows: trace.batches.map(row => [row.productName, row.batchCode || '—', row.supplierName || '—', `${row.receiptCode || '—'} · ${day(row.receivedOn)}`, day(row.expiryOn), { text: qty(row.received, row.unit), align: 'right' }, { text: qty(row.used, row.unit), align: 'right' }, { text: `${qty(row.inStock, row.unit)}${row.counted ? ` (${L('καταμέτρηση', 'counted')})` : ''}`, align: 'right' }, { text: qty(row.writtenOff, row.unit), align: 'right' }, { text: row.percent == null ? '—' : String(row.percent), align: 'right', className: row.percent != null && Math.abs(row.percent - 100) > BALANCE_TOLERANCE ? 'rd-bad' : '' }]),
+        empty: L('Δεν βρέθηκε παρτίδα.', 'No batch found.') } },
+      { title: L('Ισοζύγιο μάζας', 'Mass balance'), facts: [[L('Παραλήφθηκε', 'Received'), qty(trace.received, trace.unit)], [L('Χρησιμοποιήθηκε', 'Used'), qty(trace.used, trace.unit)], [L('Σε απόθεμα', 'In stock'), qty(trace.inStock, trace.unit)], [L('Απόσυρση / απόρριψη', 'Written off'), qty(trace.writtenOff, trace.unit)], [L('Βρέθηκε', 'Accounted for'), trace.percent == null ? '—' : `${trace.percent} % (± ${BALANCE_TOLERANCE} %)`]] },
+      { title: L('Πού χρησιμοποιήθηκε (εμπρός)', 'Where it went (forward)'), table: { columns: [L('Ημέρα', 'Day'), L('Παρτίδα', 'Batch'), L('Πιάτο', 'Dish'), { text: L('Ποσότητα', 'Quantity'), align: 'right' }, L('Γεύματα', 'Meals'), { text: L('Μερίδες', 'Portions'), align: 'right' }],
+        rows: trace.uses.map(row => [day(row.usedOn), `${row.productName}${row.batchCode ? ` · ${row.batchCode}` : ''}`, row.dishName || '—', { text: qty(row.quantity, row.unit), align: 'right' }, (row.meals || []).map(meal => `${mealLabel(meal.meal, language)} · ${dietLabel(meal.diet, language)}`).join(', ') || '—', { text: String((row.meals || []).reduce((n, meal) => n + (Number(meal.portions) || 0), 0) || '—'), align: 'right' }]),
+        empty: L('Δεν χρησιμοποιήθηκε.', 'Not used.') } },
+      { title: L('Επηρεαζόμενα', 'Affected'), facts: [[L('Ημέρες παραγωγής', 'Production days'), String(trace.affectedDays)], [L('Γεύματα', 'Meals'), String(trace.affectedMeals)], [L('Μερίδες', 'Portions'), String(trace.affectedPortions)], ...(trace.untraced ? [[L('Καταναλώσεις χωρίς παρτίδα', 'Uses without a batch'), String(trace.untraced)]] : [])] },
+      { title: L('Από πού προήλθε (πίσω)', 'Where it came from (backward)'), table: { columns: [L('Ημέρα', 'Day'), L('Πιάτο', 'Dish'), L('Πρώτη ύλη', 'Raw material'), L('Παρτίδα', 'Batch'), L('Προμηθευτής', 'Supplier'), { text: L('Ποσότητα', 'Quantity'), align: 'right' }],
+        rows: (trace.backward || []).map(row => [day(row.usedOn), row.dishName || '—', row.productName, row.batchCode || '—', row.traced ? `${row.supplierName || '—'} · ${row.receiptCode}` : { text: L('Χωρίς παραλαβή', 'No receipt'), className: 'rd-bad' }, { text: qty(row.quantity, row.unit), align: 'right' }]),
+        empty: L('Καμία άλλη πρώτη ύλη.', 'No other raw material.') } },
+      { title: L('Αποσύρσεις / απορρίψεις', 'Write-offs'), table: { columns: [L('Ημέρα', 'Day'), L('Προϊόν', 'Product'), { text: L('Ποσότητα', 'Quantity'), align: 'right' }, L('Αιτία', 'Reason'), L('Σημειώσεις', 'Notes')], rows: trace.writeoffs.map(row => [day(row.writtenOffOn), row.productName, { text: fmtQty(row.quantity, language), align: 'right' }, writeoffReasonLabel(row.reason, language), row.notes || '—']), empty: L('Καμία.', 'None.') } },
+      { title: L('Ενημερώθηκαν', 'Notified'), text: drill.notified || '—' },
+      { title: L('Ενέργειες', 'Actions'), text: drill.actions || '—' },
+      { title: L('Συμπεράσματα και βελτιώσεις', 'Lessons learned'), text: drill.lessons || '—' },
+    ],
+    signatures: [{ role: L('Διενήργησε', 'Conducted by'), name: drill.conductedByName || '' }, L('Υπεύθυνος Ποιότητας', 'Quality manager')],
+    filename: `${en ? 'recall-drill' : 'askisi-anaklisis'}_${drill.code || drill.drillDate || ''}`,
+  }
+}
+
 // --- Excel ----------------------------------------------------------------------------------
 const yes = (value, en) => (value == null ? '' : value ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι'))
 export function exportKitchenList(kind, rows, language = 'el') {
@@ -116,6 +156,8 @@ export function exportKitchenList(kind, rows, language = 'el') {
       row: r => [r.pureedOn, r.productName, pureeMethodLabel(r.method, language), yes(r.visualCheck, en), yes(r.bladeCheck, en), statusLabel(r.limitStatus, language), r.correctiveAction, r.recordedByName] },
     usage: { name: L('ylika-se-xrisi', 'materials-used'), headers: [L('Ημέρα', 'Day'), L('Προϊόν', 'Product'), L('Παρτίδα', 'Batch'), L('Παραλαβή', 'Receipt'), L('Προμηθευτής', 'Supplier'), L('Ποσότητα', 'Quantity'), L('Μονάδα', 'Unit'), L('Πιάτο', 'Dish'), L('Από', 'By')],
       row: r => [r.usedOn, r.productName, r.lotLabel, r.batch?.receiptCode || '', r.batch?.supplierName || '', r.quantity, unitLabel(r.unit, language), r.dishName, r.recordedByName] },
+    recall: { name: L('askiseis-anaklisis', 'recall-drills'), headers: [L('Κωδικός', 'Code'), L('Ημερομηνία', 'Date'), L('Σενάριο', 'Scenario'), L('Αντικείμενο', 'Subject'), L('Αφορμή', 'Trigger'), L('Λεπτά', 'Minutes'), L('Στόχος (λεπτά)', 'Target (min)'), L('Ισοζύγιο %', 'Balance %'), L('Ημέρες', 'Days'), L('Γεύματα', 'Meals'), L('Μερίδες', 'Portions'), L('Αποτέλεσμα', 'Result'), L('Κατάσταση', 'Status'), L('Διενήργησε', 'Conducted by')],
+      row: r => [r.code, r.drillDate, recallScenarioLabel(r.scenario, language), r.subject, r.triggerText, r.elapsedMinutes, r.targetMinutes, r.accountedPercent, r.affectedDays, r.affectedMeals, r.affectedPortions, r.result ? recallResultLabel(r.result, language) : '', r.status === 'completed' ? L('Ολοκληρώθηκε', 'Completed') : L('Σε εξέλιξη', 'In progress'), r.conductedByName] },
     products: { name: L('proionta', 'products'), headers: [L('Προϊόν', 'Product'), L('Κατηγορία', 'Category'), L('Αποθήκευση', 'Storage'), L('Μονάδα', 'Unit'), L('Προμηθευτής', 'Supplier'), L('Κωδικός προμηθευτή', 'Supplier code'), L('Όριο αποθέματος', 'Low stock at'), L('Ενεργό', 'Active')],
       row: r => [r.name, r.categoryLabel, storageLabel(r.storage, language), unitLabel(r.unit, language), r.supplierName, r.supplierCode, r.lowStockQuantity, yes(r.active !== false, en)] },
   }
