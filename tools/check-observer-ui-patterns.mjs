@@ -13,6 +13,8 @@ for(const file of files){
   if(file.includes(`${path.sep}committees${path.sep}`)&&/(committee-dialog|committee-form-grid)/.test(text))violations.push(`${rel}: legacy committee-only form shell detected; use Observer shared form language`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/<input[^>]+type=["'](?:date|time)["']/i.test(text))violations.push(`${rel}: native date/time field detected in feature UI; use ManualDateField / TimeField`)
   if(file.includes(`${path.sep}features${path.sep}`)&&/RecordPage\.jsx$/.test(file)&&text.includes('<EntityRecordShell')&&!text.includes('<ExportMenu'))violations.push(`${rel}: record page has no «Εξαγωγή» control (ExportMenu)`)
+  // A record's export sits in the header utility area (headerActions), never in a card's «…» menu slot.
+  if(text.includes('<EntityRecordShell')&&/menu=\{<>[^\n]*?<ExportMenu/.test(text))violations.push(`${rel}: «Εξαγωγή» inside a card menu; put it in the record header (headerActions)`)
   // One export control: print / download / «Λήψη» buttons and menu items live only in ExportMenu.
   if(file.includes(`${path.sep}features${path.sep}`)&&file.endsWith('.jsx')){
     const standalone=[/<(Printer|Download|FileDown)\b/,/icon\s*:\s*(Printer|Download|FileDown)\b/,/\bid\s*:\s*'(print|pdf|download|export|word|csv)'/,/<(Button|IconButton|ActionButton|button)\b[^>]*\b(label|aria-label|title)=\{[^}]{0,60}'(Λήψη|Εκτύπωση|Εξαγωγή|Download|Print|Export)\b/]

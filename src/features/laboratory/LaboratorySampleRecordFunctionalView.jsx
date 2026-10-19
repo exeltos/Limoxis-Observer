@@ -335,6 +335,7 @@ export function LaboratorySampleRecordFunctionalView() {
         tabs={tabs}
         activeTab={tab}
         onTabChange={setTab}
+        headerActions={<ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} />}
         onBack={goBack}
         backLabel={inSurveillance ? t('clinicalRecords.backToSurveillance') : t('backToLaboratory')}
       >
@@ -346,7 +347,7 @@ export function LaboratorySampleRecordFunctionalView() {
               t={t}
               language={language}
               fmt={fmt}
-              menu={<><ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} /><OverflowMenu items={sampleMenu} /></>}
+              menu={<OverflowMenu items={sampleMenu} />}
             />
           </div>
         )}

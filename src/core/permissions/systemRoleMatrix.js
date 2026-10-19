@@ -26,6 +26,10 @@ export const PREVIEWABLE_ROLES = Object.freeze([
   ROLES.COMMITTEE_SECRETARIAT, ROLES.HR_OFFICE, ROLES.PHARMACY, ROLES.OCCUPATIONAL_PHYSICIAN,
   ROLES.DOCTOR_REVIEWER, ROLES.QUALITY_MANAGER,
 ])
+// Raw record data (the «JSON» export) is for administrators only: Platform
+// Owner and the organization's Hospital Admin (and the demo, which acts as one).
+/** @param {string|null|undefined} role */
+export const canExportRawData = (role) => role === ROLES.PLATFORM_OWNER || role === ROLES.HOSPITAL_ADMIN || role === ROLES.DEMO
 /** @param {string|null|undefined} role */
 export const isPreviewableRole = (role) => /** @type {readonly unknown[]} */(PREVIEWABLE_ROLES).includes(role)
 

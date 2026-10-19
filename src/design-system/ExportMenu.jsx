@@ -3,6 +3,9 @@ import { Button } from './Button'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
+import { createContext, useContext } from 'react'
+import * as tenantModule from '../core/tenant/TenantContext'
+import { canExportRawData } from '../core/permissions/systemRoleMatrix'
 
 const ICONS = { print: Printer, pdf: FileText, excel: FileSpreadsheet, word: FileType }
 const ORDER = ['print', 'pdf', 'excel', 'word', 'data']
@@ -12,8 +15,20 @@ const ORDER = ['print', 'pdf', 'excel', 'word', 'data']
 // Print, PDF, Excel, Word (then any further `items`, each with a `kind`).
 // With a single option the button runs it directly, still labelled «Εξαγωγή».
 // items: [{ id, kind: 'print' | 'pdf' | 'excel' | 'word' | 'data', label, onClick, disabled }]
-// ('data' is the record's raw data file, listed last.)
+// ('data' is the record's raw data file, listed last, and shown only to
+// Platform Owner and Hospital Admin: everyone else never sees it.)
 // compact: inside a table row, the same control as an icon button (tooltip «Εξαγωγή: …»).
+// Outside the tenant provider (previews, isolated tests, a mocked tenant module)
+// there is no role, so no raw data.
+const NO_TENANT = createContext(null)
+function tenantContext() {
+  try {
+    return tenantModule.TenantContext || NO_TENANT
+  } catch {
+    return NO_TENANT
+  }
+}
+
 export function ExportMenu({
   onPrint,
   onPdf,
@@ -27,6 +42,7 @@ export function ExportMenu({
   compact = false,
 }) {
   const context = useOptionalLanguage()
+  const rawData = canExportRawData(useContext(tenantContext())?.role)
   const en = (language || context?.language) === 'en'
   const label = en ? 'Export' : 'Εξαγωγή'
   const names = {
@@ -42,7 +58,7 @@ export function ExportMenu({
     onExcel && { id: 'excel', kind: 'excel', onClick: onExcel },
     onWord && { id: 'word', kind: 'word', onClick: onWord },
   ].filter(Boolean)
-  const all = [...base, ...items.filter(Boolean)]
+  const all = [...base, ...items.filter(item => item && (item.kind !== 'data' || rawData))]
     .map((item, index) => ({ ...item, index, kind: item.kind || 'excel' }))
     .sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind) || a.index - b.index)
     .map(item => ({
