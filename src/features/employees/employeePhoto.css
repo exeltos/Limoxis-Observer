@@ -1,18 +1,23 @@
 /* Employee photo: avatar in the registry, the record header and the photo window. */
-.employee-avatar{display:inline-grid;place-items:center;flex:0 0 auto;overflow:hidden;background:#e7f2f7;color:#1e627b;font-weight:800;letter-spacing:.02em;line-height:1}
-.employee-avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.employee-avatar{position:relative;display:inline-grid;place-items:center;flex:0 0 auto;overflow:hidden;background:#e7f2f7;color:#1e627b;font-weight:800;letter-spacing:.02em;line-height:1}
+/* Staff photos are head-and-shoulders portraits with the face in the upper
+   third: a square or round frame keeps the upper centre, not the middle.
+   The photo is pinned to the avatar box so its own height never sizes the box. */
+.employee-avatar img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;object-position:50% 25%}
 .employee-avatar-sm{width:30px;height:30px;border-radius:50%;font-size:11px}
-.employee-avatar-lg{width:100%;height:100%;border-radius:inherit;font-size:inherit}
+.employee-avatar-lg{position:absolute;inset:0;width:auto;height:auto;border-radius:inherit;font-size:inherit}
 .employee-avatar-xl{width:132px;height:132px;border-radius:24px;font-size:38px}
 
-/* The header box keeps its size; a photo fills it edge to edge. */
-.entity-record-avatar:has(.employee-avatar){padding:0;overflow:visible}
+/* Record header: a round avatar, centred on the code / name / subtitle block
+   and kept inside the card. The avatar and its photo are pinned to the box
+   (absolute), so a portrait's own height never stretches it past the card. */
+.entity-record-avatar:has(.employee-avatar){position:relative;width:48px!important;height:48px!important;min-width:48px!important;padding:0;border-radius:50%!important;overflow:visible;align-self:center}
 .entity-record-avatar:has(.employee-avatar.has-photo){background:transparent}
-.employee-photo-trigger{position:relative;display:block;width:100%;height:100%;padding:0;border:0;border-radius:inherit;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.employee-photo-trigger{position:absolute;inset:0;display:block;width:auto;height:auto;padding:0;border:0;border-radius:inherit;background:transparent;color:inherit;font:inherit;cursor:pointer}
 .employee-photo-trigger .employee-avatar{border-radius:inherit}
 .employee-photo-trigger:hover .employee-avatar,.employee-photo-trigger:focus-visible .employee-avatar{box-shadow:0 0 0 2px var(--lo-color-primary,#1d5d88)}
 .employee-photo-trigger:focus-visible{outline:none}
-.employee-photo-trigger-badge{position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:var(--lo-color-primary,#1d5d88);color:#fff}
+.employee-photo-trigger-badge{position:absolute;right:0;bottom:0;width:17px;height:17px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:var(--lo-color-primary,#1d5d88);color:#fff}
 
 .employee-photo-dialog-body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:6px 0 4px;text-align:center}
 .employee-photo-dialog-body p{max-width:340px;margin:0;color:var(--muted);font-size:12px;line-height:1.55}

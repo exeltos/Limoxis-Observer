@@ -79,8 +79,9 @@
   border-radius:0!important;
 }
 
-/* Secondary employee tabs must consume the full record-body height. */
-.entity-record-shell.record-secondary-tab-active .entity-record-body{
+/* Secondary tabs that hold an embedded registry consume the full record-body
+   height (the registry scrolls inside); other tabs keep the body's own scroll. */
+.entity-record-shell.record-secondary-tab-active .entity-record-body:has(>.record-secondary-registry){
   min-height:0!important;
   height:100%!important;
   overflow:hidden!important;

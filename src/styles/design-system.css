@@ -16,9 +16,9 @@
   overflow:hidden;
 }
 
+/* No overscroll containment: once a table reaches its end the wheel moves the page. */
 .scroll-table{
   min-height:0;
-  overscroll-behavior:contain;
 }
 
 /* Keep advanced filters behind one compact button. */
@@ -125,12 +125,14 @@
   font-weight:700;
 }
 
-/* Prevent the nested scrollbars that appeared in later rebuilds. */
+/* Prevent the nested scrollbars that appeared in later rebuilds. `clip`, not
+   `hidden`: hidden on one axis turns the other into a scroll box, which boxed
+   every record section into its own small vertical scroller. */
 .record-section,
 .inline-action-form,
 .embedded-workflow-panel{
   max-width:100%;
-  overflow-x:hidden;
+  overflow-x:clip;
 }
 
 /* Control confirmation: one compact line, checkbox directly before the confirmation text. */

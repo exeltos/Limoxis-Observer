@@ -160,29 +160,37 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
  if(code)definitionsQuery=definitionsQuery.eq('code',code)
  let draftsQuery=supabase.from('control_drafts').select('*').eq('organization_id',organizationId).order('saved_at',{ascending:false})
  if(code)draftsQuery=draftsQuery.eq('control_id',code)
- const [definitionsResult,draftsResult,summaryResult,progressResult]=await Promise.all([
+ const assignmentsSelect='*,department:departments(id,name)'
+ // The whole programme reads every assignment, so that read starts with the
+ // others; one control (code) needs its definition's id first.
+ const allAssignments=code?null:supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId)
+ const findingsRead=findingsSince?readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('has_finding',true).gte('performed_at',new Date(findingsSince).toISOString())):Promise.resolve([])
+ findingsRead.catch(()=>{}) // handled with the other reads below
+ const [definitionsResult,draftsResult,summaryResult,progressResult,allAssignmentsResult]=await Promise.all([
   definitionsQuery,
   draftsQuery,
   summary?supabase.rpc('control_assignment_summary',{p_organization_id:organizationId,p_today_from:startOfToday().toISOString()}):Promise.resolve({data:[],error:null}),
   summary||code?supabase.rpc('control_period_progress',{p_organization_id:organizationId}):Promise.resolve({data:[],error:null}),
+  allAssignments||Promise.resolve({data:null,error:null}),
  ])
- for(const result of [definitionsResult,draftsResult,summaryResult,progressResult])if(result.error)throw result.error
+ for(const result of [definitionsResult,draftsResult,summaryResult,progressResult,allAssignmentsResult])if(result.error)throw result.error
  const definitions=definitionsResult.data||[]
  if(!definitions.length)return []
- let assignmentsQuery=supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId)
- if(code)assignmentsQuery=assignmentsQuery.in('control_id',definitions.map(row=>row.id))
- const {data:assignments,error:assignmentsError}=await assignmentsQuery
- if(assignmentsError)throw assignmentsError
- const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
- const reads=[]
+ const reads=[findingsRead]
+ // Expiry controls bring the entries that carry their item lists (has_item_list,
+ // a stored flag the database indexes; see 20261123100100).
  const expiryIds=definitions.filter(isExpiryDefinition).map(row=>row.id)
- if(expiryIds.length)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).in('control_id',expiryIds).not('response_data->structuredData->rows','is',null)))
- if(findingsSince)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('has_finding',true).gte('performed_at',new Date(findingsSince).toISOString())))
+ if(expiryIds.length)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).in('control_id',expiryIds).eq('has_item_list',true)))
+ let assignments=allAssignmentsResult.data
  if(code){
+  const {data,error}=await supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId).in('control_id',definitions.map(row=>row.id))
+  if(error)throw error
+  assignments=data
   for(const assignment of (assignments||[]).filter(a=>a.status!=='paused')){
    reads.push(supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('assignment_id',assignment.id).order('performed_at',{ascending:false}).limit(RECENT_PER_ASSIGNMENT).then(({data,error})=>{if(error)throw error;return data||[]}))
   }
  }
+ const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
  const executions=[...new Map((await Promise.all(reads)).flat().map(row=>[row.id,row])).values()]
  const progress=new Map((progressResult.data||[]).map(row=>[row.assignment_id,{start:row.period_start,end:row.period_end,required:Number(row.required)||1,done:Number(row.done)||0,extra:Number(row.extra)||0}]))
  return definitions.map(row=>mapDefinition(row,assignments||[],executions,draftsResult.data||[],summaries,progress))
