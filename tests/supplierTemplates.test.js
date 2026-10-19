@@ -153,3 +153,12 @@ describe('Suppliers on templates', () => {
     expect(sql).not.toMatch(/\bdrop\s+(table|column|constraint)\b/i)
   })
 })
+
+describe('Supplier record header', () => {
+  it('keeps «Αξιολόγηση» and «Μη συμμόρφωση» visible: the shell keeps a `utility` action beside the status', () => {
+    const page = fs.readFileSync('src/features/quality/resources/SupplierRecordPage.jsx', 'utf8')
+    const shell = fs.readFileSync('src/design-system/EntityRecordShell.jsx', 'utf8')
+    expect(shell).toContain('action.props.utility')
+    expect(page.match(/<HeaderAction utility><Button/g)).toHaveLength(2)
+  })
+})
