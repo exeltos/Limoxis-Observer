@@ -1,3 +1,4 @@
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { programmeAudits, programmeCapas, programmeFindings } from './audits/auditDemoData'
 export const qualityIncidents=[
@@ -134,3 +135,8 @@ for(const record of qualityIncidents){
  if(record.sentinel&&!record.rcaDueDate){const due=new Date(`${record.date}T12:00:00Z`);due.setUTCDate(due.getUTCDate()+45);record.rcaDueDate=due.toISOString().slice(0,10)}
 }
 
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(qualityIncidents)
+emptyInPreview(qualityFindings)
+emptyInPreview(qualityCapas)
+emptyInPreview(qualityAudits)

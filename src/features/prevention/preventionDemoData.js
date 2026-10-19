@@ -1,3 +1,4 @@
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import {
   DEMO_HISTORY_MONTHS,
@@ -885,3 +886,8 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([handHygieneRows, wasteRows, antisepticRows, bundleRows])
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(handHygieneRows)
+emptyInPreview(wasteRows)
+emptyInPreview(antisepticRows)
+emptyInPreview(bundleRows)

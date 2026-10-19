@@ -1,3 +1,4 @@
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, dayInMonth } from '../../core/data/demoSeed'
 export const employeeRows = [
@@ -194,3 +195,12 @@ export function demoEmployeeDocuments(employee,trainingCertificates=[],en=false)
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([employeeRows,occupationalVisits,employeeVaccinations,employeeTraining,employeeEvaluations,employeeCertificates,employeeExposureIncidents,employeeHistoryDemo])
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(employeeRows)
+emptyInPreview(occupationalVisits)
+emptyInPreview(employeeVaccinations)
+emptyInPreview(employeeTraining)
+emptyInPreview(employeeEvaluations)
+emptyInPreview(employeeCertificates)
+emptyInPreview(employeeExposureIncidents)
+emptyInPreview(employeeHistoryDemo)

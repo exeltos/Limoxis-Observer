@@ -1,4 +1,5 @@
 // Demo dates are written relative to now, so they never need the Demo clock.
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { seededRandom } from '../../core/data/demoSeed'
 import { nextDueAfterExecution,periodBounds } from './controlDueRules'
 const iso=offsetHours=>{
@@ -279,3 +280,8 @@ for(const assignment of controlAssignmentRows){
  assignment.last_completed_at=last
  assignment.next_due_at=nextDueAfterExecution(definition.frequency_config,new Date(last),entries.filter(at=>new Date(at)>=start&&new Date(at)<end).length)
 }
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(controlDefinitionRows)
+emptyInPreview(controlAssignmentRows)
+emptyInPreview(controlExecutionRows)
+emptyInPreview(controlDraftRows)

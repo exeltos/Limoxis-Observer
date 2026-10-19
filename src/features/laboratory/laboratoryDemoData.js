@@ -1,3 +1,4 @@
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pad2, pick, seededRandom } from '../../core/data/demoSeed'
 import { SAMPLE_SITES, WARD_EN, astFor, historyCases } from '../surveillance/demoInfectionHistory'
@@ -104,3 +105,5 @@ export { sampleSourceCatalog } from './laboratoryReferenceData'
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([laboratorySamples])
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(laboratorySamples)

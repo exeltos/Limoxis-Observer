@@ -1,5 +1,6 @@
 // Two suggestions on the demo protocols (documentStore seed), so the screens
 // can be seen: one with a drafted paragraph, one without.
+import { emptyInPreview } from '../../../core/preview/emptyPreview'
 export const DEMO_PROTOCOL_SUGGESTIONS=[
  {
   id:'PSUG-DEMO-1',organization_id:null,document_id:'DOC-008',reason:'source_changed',source_kind:'clinical_source',source_ref:'clinical:who-pph',
@@ -18,3 +19,5 @@ export const DEMO_PROTOCOL_SUGGESTIONS=[
   status:'open',created_at:'2026-10-17T03:13:00.000Z',
  },
 ]
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(DEMO_PROTOCOL_SUGGESTIONS)

@@ -1,6 +1,7 @@
 import { supabase } from '../supabase/client'
 import { hasSupabaseConfig } from '../config/env'
 import { dataPartitionKey,environmentFallback,isDemoDataEnvironment } from './dataEnvironment'
+import { isEmptyPreview } from '../preview/emptyPreview'
 const backend=(import.meta.env.VITE_DATA_BACKEND||'local').trim().toLowerCase()
 const memory=new Map()
 
@@ -68,6 +69,19 @@ const TABLES=Object.freeze({
   kitchen_local_state:{storageKey:'limoxis.kitchen.v1',kind:'document',cloud:false},
 })
 
+// The hospital's own records (not the product's libraries, templates or the
+// hospital structure): the empty-hospital preview (?helpEmpty=1) starts them empty.
+const SAMPLE_RECORD_TABLES=new Set(['employee_health_visits','employee_vaccine_records','employee_training_summary','employee_evaluations','employee_certificates','occupational_exposure_incidents','training_local_state','management_prevalence_survey','pharmacy_antibiotic_dispensing','documents','protocol_update_suggestions','employees','employee_position_acknowledgements','indicator_local_snapshots','committees','announcements','prevention_hand_hygiene','prevention_waste','prevention_antiseptic','prevention_bundles','control_local_definitions','control_local_assignments','control_local_executions','control_local_drafts','quality_local_incidents','quality_local_findings','quality_local_capas','quality_local_audits','quality_local_risk_assessments','quality_local_reviews','quality_local_department_meetings','quality_local_surveys','quality_local_survey_responses','quality_local_suppliers','quality_local_equipment','quality_local_equipment_events','quality_local_objectives','quality_department_registers','quality_department_register_entries','quality_department_register_identities'])
+function emptyRecords(value){
+  if(Array.isArray(value))return []
+  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,Array.isArray(item)?[]:item]))
+  return value
+}
+function demoFallback(table,cfg,fallback){
+  if(!isEmptyPreview()||!SAMPLE_RECORD_TABLES.has(table))return clone(fallback)
+  return cfg.kind==='rows'?[]:emptyRecords(clone(fallback))
+}
+
 export class DataAccessError extends Error{
   constructor(message,{table,operation,cause,code}={}){
     super(message); this.name='DataAccessError'; this.table=table; this.operation=operation; this.cause=cause; this.code=code||cause?.code||null
@@ -98,7 +112,7 @@ function readLocal(table,fallback){
   try{
     // Demo is ephemeral by design: refresh restores the canonical seed.
     // Mutations remain available only in the in-memory repository cache.
-    if(isDemoDataEnvironment())return clone(fallback)
+    if(isDemoDataEnvironment())return demoFallback(table,cfg,fallback)
     const scopedKey=localKey(cfg)
     const keys=[scopedKey,...(isDemoDataEnvironment()?[cfg.storageKey,...(cfg.legacyKeys||[])]:[])]
     const raw=keys.map(k=>localStorage.getItem(k)).find(Boolean)

@@ -34,7 +34,8 @@
     "audit:dead-selectors": "node tools/check-dead-selectors.mjs",
     "manual:pdf": "node tools/build-manual-pdf.mjs",
     "typecheck:strict": "tsc -p tsconfig.strict.json",
-    "manual:screens": "node tools/capture-manual-screens.mjs"
+    "manual:screens": "node tools/capture-manual-screens.mjs",
+    "screens:matrix": "node tools/capture-screen-matrix.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

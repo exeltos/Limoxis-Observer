@@ -1,4 +1,5 @@
 import { demoOffsetDays, shiftDemoMonth } from '../../core/data/demoClock'
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { DEMO_WARDS, demoMonthlyPatientDays, lastDayOfMonth, pad2 } from '../../core/data/demoSeed'
 const SYS=(source,version='current')=>({system:true,locked:true,source,version})
 const LOCAL=()=>({system:false,locked:false,source:'Hospital',version:'local'})
@@ -329,7 +330,7 @@ export const demoPatientDayPeriods = (() => {
     // Wards without an IPC unit of their own (obstetrics, paediatrics, dialysis…) add to the total.
     rows.push({ id: `pd-${month}-H`, from: `${month}-01`, to, scope: 'hospital', departmentEl: '', departmentEn: '', value: Math.round(hospital * 1.38), source: 'manual' })
   }
-  return rows
+  return emptyInPreview(rows)
 })()
 export const externalSources=[
   {id:'eody',label:'ΕΟΔΥ — Επιτήρηση λοιμωδών νοσημάτων',authority:'ΕΟΔΥ',version:'Εθνική επιτήρηση και υποχρεωτική δήλωση',versionEn:'National surveillance and mandatory notification',status:'approved',scope:'Δηλούμενα νοσήματα, επιδημιολογική επιτήρηση και εθνικές οδηγίες',scopeEn:'Notifiable diseases, epidemiological surveillance and national guidance'},
