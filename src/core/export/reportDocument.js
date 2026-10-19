@@ -140,6 +140,8 @@ body{font-family:Arial,'Helvetica Neue',sans-serif;color:#17324a;font-size:10.5p
 .rd-org span{display:block;color:#5d7083;font-size:9pt}
 .rd-doc{text-align:right;white-space:nowrap;color:#5d7083;font-size:9pt}
 .rd-doc b{display:block;color:#17324a;font-size:11pt}
+.rd-pdf-hint{margin:0;padding:8px 14px;background:#17324a;color:#fff;font-size:10pt;text-align:center}
+@media print{.rd-pdf-hint{display:none}}
 .rd-demo{margin:0 0 10px;padding:4px 8px;border:1px solid #c2410c;color:#9a3412;background:#fff7ed;font-size:8.5pt;font-weight:700;letter-spacing:.02em}
 .rd-kind{margin:2px 0 0;font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5d7083}
 h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
@@ -218,7 +220,7 @@ function pageCss(doc, branding, printedOn, en) {
 
 export function buildReportHtml(
   doc = {},
-  { branding = getReportBranding(), word = false, now = new Date() } = {},
+  { branding = getReportBranding(), word = false, now = new Date(), pdf = false } = {},
 ) {
   const en = doc.language === 'en'
   const printedOn = formatDateTime(now.toISOString(), doc.language || 'el')
@@ -229,6 +231,8 @@ export function buildReportHtml(
       ? ''
       : `<table class="rd-band" cellspacing="0" cellpadding="0"><tr>${branding?.logo ? `<td class="rd-logo"><img src="${escapeHtml(branding.logo)}" alt=""></td>` : ''}<td class="rd-org"><strong>${escapeHtml(branding?.name || '')}</strong>${branding?.reportHeader ? `<span>${escapeHtml(branding.reportHeader)}</span>` : ''}</td><td class="rd-doc">${doc.kind ? escapeHtml(doc.kind) : ''}${doc.code ? `<b>${escapeHtml(doc.code)}</b>` : ''}</td></tr></table>`
   const demo = branding?.demo ? `<p class="rd-demo">${escapeHtml(demoMark)}</p>` : ''
+  // «PDF» opens the same print view with a line (screen only) on saving it as a PDF file.
+  const pdfHint = pdf && !word ? `<p class="rd-pdf-hint">${en ? 'To save a PDF file, choose «Save as PDF» as the printer.' : 'Για αρχείο PDF, επιλέξτε «Αποθήκευση ως PDF» στον εκτυπωτή.'}</p>` : ''
   let main
   if (doc.body != null) main = `${doc.body}${signaturesHtml(doc.signatures || [], en)}`
   else {
@@ -256,7 +260,7 @@ export function buildReportHtml(
   const head = `<meta charset="utf-8"><title>${escapeHtml(reportFileName(doc, branding))}</title><style>${REPORT_CSS}:root{--rd-width:${width}}${word ? wordPage : pageCss(doc, branding, printedOn, en)}</style>`
   const html = word
     ? `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="${en ? 'en' : 'el'}"><head>${head}</head><body><div class="Section1">${band}${demo}${main}${wordFooter}</div></body></html>`
-    : `<!doctype html><html lang="${en ? 'en' : 'el'}"><head>${head}</head><body><div class="rd-page ${doc.orientation === 'landscape' ? 'rd-landscape' : ''}">${band}${demo}${main}</div></body></html>`
+    : `<!doctype html><html lang="${en ? 'en' : 'el'}"><head>${head}</head><body>${pdfHint}<div class="rd-page ${doc.orientation === 'landscape' ? 'rd-landscape' : ''}">${band}${demo}${main}</div></body></html>`
   return html
 }
 
@@ -281,6 +285,17 @@ export function printReport(doc, options = {}) {
   if (win.document.readyState === 'complete') setTimeout(go, 300)
   else win.addEventListener('load', () => setTimeout(go, 200), { once: true })
   return true
+}
+
+// The export options of a document for ExportMenu: Print and PDF (the same
+// print view, with the «Save as PDF» hint), and Word when asked.
+// build: () => doc (called on click, so the document is current);
+// onBlocked: called when the browser blocked the window.
+export function reportExports(build, { word = false, onBlocked } = {}) {
+  const open = pdf => () => {
+    if (!printReport(build(), { pdf })) onBlocked?.()
+  }
+  return { onPrint: open(false), onPdf: open(true), ...(word ? { onWord: () => downloadReportWord(build()) } : {}) }
 }
 
 // The same document as a .doc file (HTML that Word opens).

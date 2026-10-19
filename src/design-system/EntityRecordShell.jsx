@@ -8,11 +8,10 @@ import { readSessionJson,writeSessionValue } from '../core/storage/browserStorag
 import { BackButton } from './BackButton'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
-import { PrintExportActions } from './PrintExportActions'
+import { ExportMenu } from './ExportMenu'
 
 // Header actions come in three kinds: edit and delete go to the record's «…»
-// menu; utilities (print, download, export) stay visible as icon buttons next
-// to the status.
+// menu; the export control (ExportMenu «Εξαγωγή ▾») stays visible next to the status.
 function flattenActions(node,result=[],utilities=[]){
   Children.forEach(node,child=>{
     if(!isValidElement(child))return
@@ -27,7 +26,7 @@ function flattenActions(node,result=[],utilities=[]){
 const UTILITY_PREFIXES=['print','εκτύπ','export','εξαγωγ','download','λήψη','word','pdf']
 function isUtilityAction(action){
   if(!isValidElement(action))return false
-  if(action.type===PrintExportActions||action.props.utility)return true
+  if(action.type===ExportMenu||action.props.utility)return true
   if(typeof action.type==='string')return false
   const semantic=String(action.props.label||action.props['aria-label']||action.props.title||'').toLowerCase().trim()
   return UTILITY_PREFIXES.some(prefix=>semantic.startsWith(prefix))
