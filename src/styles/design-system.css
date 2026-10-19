@@ -1228,3 +1228,5 @@ td>.lo-meter{margin-top:5px}
 .canonical-metric-card-text .canonical-metric-copy{min-width:0!important}
 .canonical-metric-card.canonical-metric-card-text .canonical-metric-copy>strong{font-size:13px!important;line-height:1.3!important;font-weight:700!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-width:100%}
 .field-label-note{font-weight:500;color:var(--lo-color-muted,#6b7c8c);text-transform:none;letter-spacing:0}
+/* A record tab's save bar sits inside the card, with normal padding, clear of the floating assistant button. */
+.record-tab-panel>.inline-edit-footer{flex:0 0 auto;margin:0!important;padding:12px 76px 14px 16px!important;border-top:1px solid var(--lo-color-border,#e2e8ee)!important;background:var(--lo-color-surface,#fff);position:sticky;bottom:0;z-index:2}
