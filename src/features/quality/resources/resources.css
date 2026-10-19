@@ -48,5 +48,18 @@
 .supplier-renewal-send{display:grid;gap:10px}
 .supplier-renewal-send-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:12px;align-items:end;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px}
 .supplier-renewal-send-row small{display:block;color:var(--lo-color-muted)}
+.supplier-renewal-certs{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.supplier-renewal-certs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px}
+.supplier-renewal-locked{display:inline-flex;cursor:not-allowed}
+.supplier-renewal-locked>*{pointer-events:none}
+.supplier-renewal-locked-note{display:flex;align-items:center;gap:8px;margin:0;padding:10px 16px;border-bottom:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:13px}
 .supplier-renewal-note{margin:0;white-space:pre-wrap}
+.supplier-certificate-progress{margin:6px 0 0;color:var(--lo-color-muted)}
+.supplier-certificate-item.is-done{opacity:.85}
+.supplier-certificate-item.is-done h2 svg{color:var(--lo-color-success,#1f7a4d)}
+.supplier-certificate-state{margin-left:auto;font-size:12px;font-weight:600;color:var(--lo-color-success,#1f7a4d)}
+.supplier-certificate-demo{border-color:var(--lo-color-warning,#b7791f)}
 @media (max-width:640px){.supplier-renewal-send-row{grid-template-columns:1fr}}
+.supplier-renewal-sender{display:grid;gap:8px}
+.supplier-renewal-sender p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}
+.supplier-renewal-sender strong{display:inline-flex;align-items:center;gap:6px}

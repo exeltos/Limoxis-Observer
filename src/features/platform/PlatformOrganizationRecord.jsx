@@ -38,6 +38,7 @@ import {
 import { HospitalDiagnosticsPanel } from './HospitalDiagnosticsPanel'
 import { OrganizationOffboardingPanel } from './OrganizationOffboardingPanel'
 import { OperatingProfileSection } from './OperatingProfileSection'
+import { SupplierRenewalSenderField } from '../quality/resources/SupplierRenewalSenderField'
 import { InvitationLinkDialog } from './InvitationLinkDialog'
 import { OrganizationIdentitySection } from './OrganizationIdentitySection'
 import { loadEmployeesAsync } from '../employees/employeeService'
@@ -929,6 +930,13 @@ export function PlatformOrganizationRecord({
               </Button>
             </div>
           </section>
+          <SupplierRenewalSenderField
+            className="platform-user-record-section"
+            organizationId={organization.id}
+            membershipId={selectedUser.id}
+            userId={selectedUser.userId}
+            disabled={working}
+          />
           <section className="platform-user-record-section platform-user-record-security">
             <div className="platform-user-record-section-heading">
               <div>

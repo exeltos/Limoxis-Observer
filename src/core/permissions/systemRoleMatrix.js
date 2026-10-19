@@ -41,7 +41,7 @@ export const MANAGEMENT_CAPABILITIES = Object.freeze([
   CAPABILITIES.MANAGE_ANNOUNCEMENTS, CAPABILITIES.MANAGE_INDICATORS, CAPABILITIES.MANAGE_PLATFORM,
 ])
 
-export const ADD_ON_CAPABILITIES = Object.freeze({ HAND_HYGIENE_OBSERVER:'hand_hygiene_observer', WASTE_MANAGEMENT:'waste_management', COMMITTEE_MEMBER:'committee_member', LIRA_ACCESS:'lira_access', LAB_ACCESS:'lab_access', QUALITY_ACCESS:'quality_access' })
+export const ADD_ON_CAPABILITIES = Object.freeze({ HAND_HYGIENE_OBSERVER:'hand_hygiene_observer', WASTE_MANAGEMENT:'waste_management', COMMITTEE_MEMBER:'committee_member', LIRA_ACCESS:'lira_access', LAB_ACCESS:'lab_access', QUALITY_ACCESS:'quality_access', SUPPLIER_RENEWAL_SENDER:'supplier_renewal_sender' })
 
 // The departments record isolation for their own patients (RLS: organization_member_scopes, 20261129400000).
 const commonEmployee=[CAPABILITIES.VIEW_DASHBOARD,CAPABILITIES.VIEW_MY_DEPARTMENT,CAPABILITIES.VIEW_MY_PROFILE,CAPABILITIES.REPORT_INCIDENT,CAPABILITIES.VIEW_CONTROLS,CAPABILITIES.VIEW_TRAINING,CAPABILITIES.VIEW_DOCUMENTS]
@@ -58,6 +58,8 @@ const hospitalAdminExcluded=new Set([
   CAPABILITIES.MANAGE_PLATFORM,
   CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,
   CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
+  // Only the Platform Owner and the members it designates e-mail suppliers.
+  CAPABILITIES.SEND_SUPPLIER_RENEWALS,
 ])
 const hospitalAdminCapabilities=allCapabilities.filter(cap=>!/** @type {Set<string>} */(hospitalAdminExcluded).has(cap))
 const demoCapabilities=allCapabilities.filter(cap=>!/** @type {string[]} */([CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM]).includes(cap))
@@ -97,6 +99,7 @@ export const addonCapabilityMap=Object.freeze({
   [ADD_ON_CAPABILITIES.LIRA_ACCESS]:[CAPABILITIES.VIEW_LIRA],
   [ADD_ON_CAPABILITIES.LAB_ACCESS]:[CAPABILITIES.VIEW_LAB],
   [ADD_ON_CAPABILITIES.QUALITY_ACCESS]:[CAPABILITIES.VIEW_QUALITY],
+  [ADD_ON_CAPABILITIES.SUPPLIER_RENEWAL_SENDER]:[CAPABILITIES.SEND_SUPPLIER_RENEWALS],
 })
 
 /** @type {Set<string>} */

@@ -90,7 +90,7 @@ describe('system-only capabilities never leak into custom roles or add-ons', () 
   })
 
   it('grants hospital_admin every non-platform, non-occupational-health capability at organization scope', () => {
-    const hospitalAdminReserved = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH]
+    const hospitalAdminReserved = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, CAPABILITIES.SEND_SUPPLIER_RENEWALS]
     for (const capability of allCapabilityIds) {
       if (hospitalAdminReserved.includes(capability)) {
         expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(false)

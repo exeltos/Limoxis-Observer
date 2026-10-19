@@ -444,17 +444,27 @@
       "category": "public-token",
       "anon": true,
       "authenticated": true,
-      "reason": "Shows the expired certificate to a supplier from the e-mailed renewal link; only the SHA-256 of the random single-use token is stored (14 days)."
+      "reason": "Shows a supplier the certificates of its renewal request (each with its state) from the e-mailed link; only the SHA-256 of the random token is stored (14 days, extended by reminders)."
     },
     "quality_supplier_certificate_request_action": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Approve, resend, cancel, accept (replaces the certificate, keeps the previous values) or reject a supplier certificate renewal request; Platform Owner or Quality managers of the organisation (Hospital Admin, Quality Manager, manage_quality)."
+      "reason": "Approve, resend (new link), remind (same link, 14 more days) or cancel a supplier's certificate renewal request (one e-mail per supplier); sending only by the Platform Owner or a member with the add-on supplier_renewal_sender; cancel also by Quality managers."
+    },
+    "quality_supplier_certificate_request_item_action": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Accept (replaces the certificate, keeps the previous values), reject or cancel one certificate of a supplier renewal request; Platform Owner or Quality managers (manage_quality); asking again on the same link (a reminder e-mail) only by the Platform Owner or a supplier_renewal_sender."
     },
     "quality_supplier_certificate_requests_create": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Creates renewal requests for expired supplier certificates: approved and e-mailed by Quality managers (Platform Owner, Hospital Admin, Quality Manager, manage_quality), or only proposed by a Quality reader."
+      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+    },
+    "set_member_supplier_renewal_sender": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Grants or removes a member's add-on supplier_renewal_sender (may e-mail suppliers for their expired certificates); Platform Owner only."
     }
   }
 }
