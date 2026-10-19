@@ -11,13 +11,15 @@ import { OverflowMenu } from './OverflowMenu'
 import { ExportMenu } from './ExportMenu'
 
 // Header actions come in three kinds: edit and delete go to the record's «…»
-// menu; the export control (ExportMenu «Εξαγωγή ▾») stays visible next to the status.
+// menu; the record's own commands (e.g. «Καταγραφή ελέγχου») and the export
+// control (ExportMenu «Εξαγωγή ▾», always last) stay visible next to the status.
 function flattenActions(node,result=[],utilities=[]){
   Children.forEach(node,child=>{
     if(!isValidElement(child))return
     if(child.type===Fragment){flattenActions(child.props.children,result,utilities);return}
     if(isUtilityAction(child)){utilities.push(child);return}
     if(recordActionKind(child)){result.push(child);return}
+    if(child.props?.onClick){utilities.push(child);return}
     if(child.props?.children)flattenActions(child.props.children,result,utilities)
   })
   return result
@@ -129,6 +131,7 @@ export function EntityRecordShell({
 
   const utilityActions=[]
   const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions,[],utilityActions)
+  utilityActions.sort((a,b)=>(a.type===ExportMenu)-(b.type===ExportMenu))
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
