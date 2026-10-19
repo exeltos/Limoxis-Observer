@@ -1,5 +1,6 @@
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import './documentForm.css'
 
 export const DOCUMENT_TYPES={
  el:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},
@@ -11,16 +12,20 @@ export const documentDraftIsValid=value=>Boolean(value?.title?.trim()&&value?.ve
 
 export function DocumentForm({value,onChange,language='el',departments=[],ownerName='',showOwner=true,showAttachmentHint=false,autoFocus=false,readOnly=false,allowVersionEdit=false}){
  const en=language==='en',v=value||createEmptyDocumentDraft(),set=(key,next)=>onChange?.({...v,[key]:next}),types=DOCUMENT_TYPES[language]||DOCUMENT_TYPES.el
- return <div className="entry-grid">
-  <label className="field entry-span-2"><span>{en?'Title *':'Τίτλος *'}</span><input autoFocus={autoFocus} value={v.title||''} disabled={readOnly} onChange={e=>set('title',e.target.value)}/></label>
+ // One grid of three equal columns, labels above 40px controls, rows of the same height:
+ // title · type / version · department / owner · effective · review / description.
+ const hints=[!readOnly&&!allowVersionEdit&&(en?'The version is controlled by the document lifecycle.':'Η έκδοση ελέγχεται από τον κύκλο ζωής του εγγράφου.'),showOwner&&!readOnly&&(en?'The owner is recorded automatically from the signed-in user.':'Ο υπεύθυνος καταγράφεται αυτόματα από τον συνδεδεμένο χρήστη.')].filter(Boolean)
+ return <div className="document-form-grid">
+  <label className="field document-span-2"><span className="lo-field-label">{en?'Title *':'Τίτλος *'}</span><input autoFocus={autoFocus} value={v.title||''} disabled={readOnly} onChange={e=>set('title',e.target.value)}/></label>
   <SearchableSelect className="field" label={en?'Type':'Τύπος'} value={v.type||'policy'} disabled={readOnly} onChange={x=>set('type',x||'policy')} options={Object.entries(types).map(([key,label])=>({value:key,label}))}/>
-  <label className="field"><span>{en?'Version *':'Έκδοση *'}</span><input value={v.version||''} disabled={readOnly||!allowVersionEdit} onChange={e=>set('version',e.target.value)} placeholder="1.0"/>{!readOnly&&!allowVersionEdit&&<small>{en?'Version is controlled by the document lifecycle.':'Η έκδοση ελέγχεται από τον κύκλο ζωής του εγγράφου.'}</small>}</label>
-  <SearchableSelect className="field" label={en?'Department / scope':'Τμήμα / πεδίο εφαρμογής'} value={v.departmentId||departments.find(d=>d.name===v.department)?.id||''} disabled={readOnly} onChange={x=>{const id=x||null;onChange?.({...v,departmentId:id,department:departments.find(d=>d.id===id)?.name||''})}} options={[{value:'',label:en?'Whole hospital / not specified':'Όλο το νοσοκομείο / χωρίς συγκεκριμένο τμήμα'},...departments.map(row=>({value:row.id,label:row.name}))]}/>
-  {showOwner&&<label className="field document-owner-field"><span>{en?'Owner':'Υπεύθυνος'}</span><div className="document-owner-value">{ownerName||'—'}</div><small>{en?'Recorded automatically from the signed-in user.':'Καταγράφεται αυτόματα από τον συνδεδεμένο χρήστη.'}</small></label>}
-  <ManualDateField className="field" label={en?'Effective date':'Ημερομηνία ισχύος'} value={v.effectiveDate||''} onChange={x=>!readOnly&&set('effectiveDate',x)} optional disabled={readOnly}/>
-  <ManualDateField className="field" label={en?'Review date':'Ημερομηνία επανεξέτασης'} value={v.reviewDate||''} onChange={x=>!readOnly&&set('reviewDate',x)} optional disabled={readOnly}/>
-  <label className="field entry-span-2"><span>{en?'Description':'Περιγραφή'}</span><textarea rows="3" value={v.description||''} disabled={readOnly} onChange={e=>set('description',e.target.value)}/></label>
-  {v.effectiveDate&&v.reviewDate&&v.reviewDate<v.effectiveDate&&<div className="source-truth-note entry-span-2">{en?'Review date cannot be before the effective date.':'Η ημερομηνία επανεξέτασης δεν μπορεί να προηγείται της ημερομηνίας ισχύος.'}</div>}
-  {showAttachmentHint&&<div className="source-truth-note entry-span-2">{en?'Save the document first. Attachments are then uploaded to the saved record from the Files tab.':'Αποθηκεύστε πρώτα το έγγραφο. Τα συνημμένα ανεβαίνουν στη συνέχεια στην πραγματική εγγραφή από την καρτέλα «Αρχεία».'}</div>}
+  <label className="field"><span className="lo-field-label">{en?'Version *':'Έκδοση *'}</span><input value={v.version||''} disabled={readOnly||!allowVersionEdit} onChange={e=>set('version',e.target.value)} placeholder="1.0"/></label>
+  <SearchableSelect className="field document-span-2" label={en?'Department / scope':'Τμήμα / πεδίο εφαρμογής'} value={v.departmentId||departments.find(d=>d.name===v.department)?.id||''} disabled={readOnly} onChange={x=>{const id=x||null;onChange?.({...v,departmentId:id,department:departments.find(d=>d.id===id)?.name||''})}} options={[{value:'',label:en?'Whole hospital / not specified':'Όλο το νοσοκομείο / χωρίς συγκεκριμένο τμήμα'},...departments.map(row=>({value:row.id,label:row.name}))]}/>
+  {showOwner&&<label className="field"><span className="lo-field-label">{en?'Owner':'Υπεύθυνος'}</span><input value={ownerName||'—'} disabled readOnly/></label>}
+  <ManualDateField className="field" label={en?'Effective date':'Ημερομηνία ισχύος'} value={v.effectiveDate||''} onChange={x=>!readOnly&&set('effectiveDate',x)} disabled={readOnly}/>
+  <ManualDateField className="field" label={en?'Review date':'Ημερομηνία επανεξέτασης'} value={v.reviewDate||''} onChange={x=>!readOnly&&set('reviewDate',x)} disabled={readOnly}/>
+  <label className="field document-span-3"><span className="lo-field-label">{en?'Description':'Περιγραφή'}</span><textarea rows="3" value={v.description||''} disabled={readOnly} onChange={e=>set('description',e.target.value)}/></label>
+  {hints.length>0&&<p className="field-hint document-span-3">{hints.join(' ')}</p>}
+  {v.effectiveDate&&v.reviewDate&&v.reviewDate<v.effectiveDate&&<div className="source-truth-note document-span-3">{en?'Review date cannot be before the effective date.':'Η ημερομηνία επανεξέτασης δεν μπορεί να προηγείται της ημερομηνίας ισχύος.'}</div>}
+  {showAttachmentHint&&<div className="source-truth-note document-span-3">{en?'Save the document first. Attachments are then uploaded to the saved record from the Files tab.':'Αποθηκεύστε πρώτα το έγγραφο. Τα συνημμένα ανεβαίνουν στη συνέχεια στην πραγματική εγγραφή από την καρτέλα «Αρχεία».'}</div>}
  </div>
 }
