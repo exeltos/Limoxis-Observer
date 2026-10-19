@@ -204,7 +204,11 @@ export function buildReportHtml(
   const en = doc.language === 'en'
   const printedOn = formatDateTime(now.toISOString(), doc.language || 'el')
   const demoMark = en ? DEMO_REPORT_MARK_EN : DEMO_REPORT_MARK_EL
-  const band = `<table class="rd-band" cellspacing="0" cellpadding="0"><tr>${branding?.logo ? `<td class="rd-logo"><img src="${escapeHtml(branding.logo)}" alt=""></td>` : ''}<td class="rd-org"><strong>${escapeHtml(branding?.name || '')}</strong>${branding?.reportHeader ? `<span>${escapeHtml(branding.reportHeader)}</span>` : ''}</td><td class="rd-doc">${doc.kind ? escapeHtml(doc.kind) : ''}${doc.code ? `<b>${escapeHtml(doc.code)}</b>` : ''}</td></tr></table>`
+  // A layout of its own (a certificate) may carry the hospital identity itself: band: false.
+  const band =
+    doc.band === false
+      ? ''
+      : `<table class="rd-band" cellspacing="0" cellpadding="0"><tr>${branding?.logo ? `<td class="rd-logo"><img src="${escapeHtml(branding.logo)}" alt=""></td>` : ''}<td class="rd-org"><strong>${escapeHtml(branding?.name || '')}</strong>${branding?.reportHeader ? `<span>${escapeHtml(branding.reportHeader)}</span>` : ''}</td><td class="rd-doc">${doc.kind ? escapeHtml(doc.kind) : ''}${doc.code ? `<b>${escapeHtml(doc.code)}</b>` : ''}</td></tr></table>`
   const demo = branding?.demo ? `<p class="rd-demo">${escapeHtml(demoMark)}</p>` : ''
   let main
   if (doc.body != null) main = doc.body

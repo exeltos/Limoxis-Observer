@@ -1,36 +1,85 @@
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { getReportBranding } from '../../core/organization/branding'
 
-const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])
-const fmt=(v,en)=>{if(!v)return '—';const d=new Date(`${String(v).slice(0,10)}T12:00:00`);return Number.isNaN(d.getTime())?'—':d.toLocaleDateString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'})}
-
-function buildCertificateElement({certificate,program,participantName,en,branding}){
-  const hospital=branding?.name||'Limoxis Observer'
-  const logo=branding?.logo?`<img src="${escapeHtml(branding.logo)}" alt="" style="display:block;max-height:64px;max-width:220px;margin:0 auto 14px"/>`:''
-  const el=document.createElement('div')
-  el.style.cssText='position:fixed;left:-10000px;top:0;width:1000px;padding:70px 60px;background:#fff;font-family:Georgia,"Times New Roman",serif;color:#1c2b3a;border:14px solid #174b7a;box-sizing:border-box;text-align:center'
-  el.innerHTML=`
-    ${logo}<div style="font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#5d7891;margin-bottom:22px">${escapeHtml(hospital)}</div>
-    <div style="font-size:30px;font-weight:700;margin-bottom:12px">${en?'Certificate of Completion':'Πιστοποιητικό Ολοκλήρωσης'}</div>
-    <div style="font-size:14px;color:#5d7891;margin-bottom:36px">${en?'This certifies that':'Πιστοποιείται ότι'}</div>
-    <div style="font-size:26px;font-weight:700;margin-bottom:36px">${escapeHtml(participantName||'—')}</div>
-    <div style="font-size:14px;color:#5d7891;margin-bottom:10px">${en?'has successfully completed the training program':'ολοκλήρωσε επιτυχώς το πρόγραμμα εκπαίδευσης'}</div>
-    <div style="font-size:20px;font-weight:700;margin-bottom:40px">${escapeHtml(program?.title||'—')}</div>
-    <div style="display:flex;justify-content:center;gap:60px;font-size:12.5px;color:#33495f">
-      <div><div style="color:#8794a3;margin-bottom:4px">${en?'Issued':'Ημερομηνία έκδοσης'}</div><strong>${fmt(certificate?.issuedDate,en)}</strong></div>
-      <div><div style="color:#8794a3;margin-bottom:4px">${en?'Valid until':'Ισχύς έως'}</div><strong>${certificate?.validUntil?fmt(certificate.validUntil,en):(en?'No expiry':'Χωρίς λήξη')}</strong></div>
-      <div><div style="color:#8794a3;margin-bottom:4px">${en?'Issuer':'Εκδότης'}</div><strong>${escapeHtml(certificate?.issuer||hospital)}</strong></div>
-    </div>
-  `
-  document.body.appendChild(el)
-  return el
+const fmt = (v, en) => {
+  if (!v) return '—'
+  const d = new Date(`${String(v).slice(0, 10)}T12:00:00`)
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleDateString(en ? 'en-GB' : 'el-GR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
 }
 
-export async function downloadCertificatePdf({certificate,program,participantName,en=false}){
-  const el=buildCertificateElement({certificate,program,participantName,en,branding:getReportBranding()})
-  try{
-    await exportElementAsPdf({element:el,filename:`${certificate?.id||'certificate'}_${participantName||''}`,orientation:'landscape',header:false})
-  }finally{
-    el.remove()
+// The certificate as a landscape page on the shared document layout: the
+// hospital's logo and name, the participant, the programme, its hours and
+// dates, two signatures and the certificate number (also in the page footer).
+export function certificateDocument({
+  certificate,
+  program,
+  participantName,
+  en = false,
+  branding = getReportBranding(),
+}) {
+  const hospital = branding?.name || 'Limoxis Observer'
+  const number = certificate?.id || '—'
+  const facts = [
+    [
+      en ? 'Training date' : 'Ημερομηνία εκπαίδευσης',
+      fmt(certificate?.completedDate || program?.startDate || certificate?.issuedDate, en),
+    ],
+    program?.durationHours
+      ? [en ? 'Duration' : 'Διάρκεια', `${program.durationHours} ${en ? 'hours' : 'ώρες'}`]
+      : null,
+    program?.trainer ? [en ? 'Trainer' : 'Εκπαιδευτής', program.trainer] : null,
+    [en ? 'Issued' : 'Ημερομηνία έκδοσης', fmt(certificate?.issuedDate, en)],
+    [
+      en ? 'Valid until' : 'Ισχύς έως',
+      certificate?.validUntil ? fmt(certificate.validUntil, en) : en ? 'No expiry' : 'Χωρίς λήξη',
+    ],
+  ].filter(Boolean)
+  const signature = role =>
+    `<td><strong>${escapeHtml(role)}</strong><span>${en ? 'Name' : 'Ονοματεπώνυμο'}:</span><span>${en ? 'Signature' : 'Υπογραφή'}:</span></td>`
+  const body = `<div class="rd-certificate">
+    ${branding?.logo ? `<div class="rd-cert-logo"><img src="${escapeHtml(branding.logo)}" alt=""></div>` : ''}
+    <p class="rd-cert-org">${escapeHtml(hospital)}</p>
+    ${branding?.reportHeader ? `<p class="rd-cert-sub">${escapeHtml(branding.reportHeader)}</p>` : ''}
+    <h1>${en ? 'Certificate of completion' : 'Βεβαίωση παρακολούθησης'}</h1>
+    <p class="rd-cert-lead">${en ? 'This certifies that' : 'Βεβαιώνεται ότι ο/η'}</p>
+    <p class="rd-cert-name">${escapeHtml(participantName || '—')}</p>
+    <p class="rd-cert-lead">${en ? 'has successfully completed the training programme' : 'ολοκλήρωσε με επιτυχία το πρόγραμμα εκπαίδευσης'}</p>
+    <p class="rd-cert-programme">${escapeHtml(program?.title || '—')}</p>
+    <table class="rd-cert-facts">${facts.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td><strong>${escapeHtml(value)}</strong></td></tr>`).join('')}</table>
+    <table class="rd-signatures"><tr>${signature(en ? 'Trainer' : 'Ο/Η εκπαιδευτής/τρια')}${signature(certificate?.issuer || (en ? 'For the hospital' : 'Για το νοσοκομείο'))}</tr></table>
+    <p class="rd-cert-number">${en ? 'Certificate no.' : 'Αρ. βεβαίωσης'} <strong>${escapeHtml(number)}</strong></p>
+  </div>`
+  return {
+    language: en ? 'en' : 'el',
+    orientation: 'landscape',
+    band: false,
+    kind: en ? 'Training certificate' : 'Βεβαίωση εκπαίδευσης',
+    code: number,
+    title: program?.title || '',
+    footer: `${en ? 'Certificate no.' : 'Αρ. βεβαίωσης'} ${number} · ${participantName || ''}`,
+    body,
+    filename: `${number}_${participantName || ''}`,
   }
+}
+
+// Opens the certificate for printing / «Save as PDF» (real text). Throws when
+// the browser blocked the window, so the caller can say so.
+export async function downloadCertificatePdf({
+  certificate,
+  program,
+  participantName,
+  en = false,
+}) {
+  if (!printReport(certificateDocument({ certificate, program, participantName, en })))
+    throw new Error(
+      en
+        ? 'Allow pop-ups to print the certificate.'
+        : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση της βεβαίωσης.',
+    )
 }

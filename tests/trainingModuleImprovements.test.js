@@ -35,9 +35,10 @@ describe('training programs list: sortable columns', () => {
 })
 
 describe('training certificates: earned certificates can be downloaded as a PDF', () => {
-  it('renders a printable certificate element and exports it through the shared PDF utility', () => {
+  it('prints the certificate on the shared document layout, with its number', () => {
     expect(certificate).toContain('export async function downloadCertificatePdf')
-    expect(certificate).toContain("import { exportElementAsPdf } from '../../core/export/pdfReportExport'")
+    expect(certificate).toContain("import { escapeHtml, printReport } from '../../core/export/reportDocument'")
+    expect(certificate).toContain('Αρ. βεβαίωσης')
   })
 
   it('lets a manager download a participant certificate from the results review', () => {
