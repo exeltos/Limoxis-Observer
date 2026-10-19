@@ -14,6 +14,18 @@ describe('login page and public legal pages', () => {
     expect(login).toContain('to="/terms"')
     expect(login).toContain('mailto:${notice.supportEmail}')
   })
+  it('keeps username-or-email sign-in, recovery, caps lock and an announced error', () => {
+    expect(login).toContain("'Σύνδεση με username ή email'")
+    expect(login).toContain('autoComplete="username"')
+    expect(login).toContain("getModifierState?.('CapsLock')")
+    expect(login).toContain('to="/forgot-access"')
+    expect(login).toContain('id="login-error" className="login-error" role="alert"')
+    expect(login).toContain('disabled={submitting||!hasSupabaseConfig}')
+    const css = fs.readFileSync('src/styles/features.css', 'utf8')
+    const loginCss = css.slice(css.indexOf('.auth-layout.login-layout{'), css.indexOf('.training-material-list{'))
+    expect(loginCss).toContain('@media (prefers-reduced-motion:reduce)')
+    expect(loginCss).not.toContain('!important')
+  })
   it('routes the legal pages publicly', () => {
     expect(app).toContain('<Route path="/privacy" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="privacy"/></Suspense>}/>')
     expect(app).toContain('<Route path="/terms" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="terms"/></Suspense>}/>')
