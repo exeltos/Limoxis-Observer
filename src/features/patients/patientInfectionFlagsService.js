@@ -31,12 +31,14 @@ export function infectionFlagsFromCases(cases = []) {
 export async function loadPatientInfectionFlags(organizationId, { isDemo = false } = {}) {
   if (isDemo) return infectionFlagsFromCases(Object.values(clinicalCases))
   if (!organizationId) return {}
-  // One row per resistant patient from the database (patient_infection_flags,
+  // One row per resistant or isolated patient from the database (patient_infection_flags,
   // 20261128500000), the rules above, instead of hydrating every episode.
-  // The cloud episodes carry no isolation status, so no isolation flag here,
-  // as before.
+  // Active isolation from the same read (20261129200000).
   assertCloud()
   const { data, error } = await supabase.rpc('patient_infection_flags', { p_organization_id: organizationId })
   if (error) throw error
-  return Object.fromEntries((data || []).map(row => [row.patient_id, { resistance: { classification: row.classification, organism: row.organism || '', since: row.since || null }, isolation: null }]))
+  return Object.fromEntries((data || []).map(row => [row.patient_id, {
+    resistance: row.classification ? { classification: row.classification, organism: row.organism || '', since: row.since || null } : null,
+    isolation: row.isolated ? { since: row.isolation_since || null, precautions: row.isolation_precautions || [] } : null,
+  }]))
 }

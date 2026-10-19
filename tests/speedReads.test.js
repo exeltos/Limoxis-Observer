@@ -21,6 +21,15 @@ describe('database reads', () => {
     expect(flagsFix).toContain('distinct on (s.surveillance_case_id)')
   })
 
+  it('returns the active isolation (status active, not ended) with the resistance', () => {
+    const sql = read('supabase/migrations/20261129200000_patient_infection_flags_isolation.sql')
+    expect(sql).toContain("i.status = 'active' and i.ended_at is null")
+    expect(sql).toContain('full join isolated i on i.patient_id = r.patient_id')
+    expect(sql).toContain('security invoker')
+    expect(sql).toContain('revoke all on function public.patient_infection_flags(uuid) from public, anon;')
+    expect(sql).toContain('revoke all on function public.patient_infection_flags_superseded(uuid) from public, anon, authenticated;')
+  })
+
   it('evaluates auth.uid() once per statement in recycle_bin_insert', () => {
     expect(migration).toContain('alter policy recycle_bin_insert on public.recycle_bin')
     expect(migration).toContain('deleted_by = (select auth.uid())')
@@ -126,6 +135,19 @@ describe('cloud loaders (mocked client)', () => {
     const { loadPatientInfectionFlags } = await import('../src/features/patients/patientInfectionFlagsService')
     expect(await loadPatientInfectionFlags('org-1')).toEqual({ p1: { resistance: { classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }, isolation: null } })
     expect(calls).toEqual([{ table: 'rpc:patient_infection_flags', args: { p_organization_id: 'org-1' } }])
+  })
+
+  it('patient flags carry the active isolation from the same read', async () => {
+    const calls = []
+    vi.doMock('../src/core/supabase/client', () => client(calls, { 'rpc:patient_infection_flags': [
+      { patient_id: 'p1', classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00', isolated: true, isolation_since: '2026-08-02T00:00:00+00:00', isolation_precautions: ['contactPrecautions'] },
+      { patient_id: 'p2', classification: null, organism: null, since: null, isolated: true, isolation_since: '2026-09-01T00:00:00+00:00', isolation_precautions: [] },
+    ] }))
+    const { loadPatientInfectionFlags } = await import('../src/features/patients/patientInfectionFlagsService')
+    expect(await loadPatientInfectionFlags('org-1')).toEqual({
+      p1: { resistance: { classification: 'MDR', organism: 'K. pneumoniae', since: '2026-08-01T00:00:00+00:00' }, isolation: { since: '2026-08-02T00:00:00+00:00', precautions: ['contactPrecautions'] } },
+      p2: { resistance: null, isolation: { since: '2026-09-01T00:00:00+00:00', precautions: [] } },
+    })
   })
 
   it('birthdays read only active employees with a birth date, in a few columns', async () => {

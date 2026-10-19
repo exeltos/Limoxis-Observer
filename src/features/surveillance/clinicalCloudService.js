@@ -150,6 +150,10 @@ function mapSample(row, related = {}) {
   }
 }
 
+// An isolation is active while its status is 'active' and it has not ended
+// (as patient_infection_flags and analysis_domain_metrics count it).
+const isolationActive = row => row?.status === 'active' && !row.ended_at
+
 function mapIsolation(row) {
   if (!row) return null
   return {
@@ -161,7 +165,7 @@ function mapIsolation(row) {
     reviewDue: row.review_due_at,
     endedAt: row.ended_at,
     endReason: row.end_reason || '',
-    status: row.status,
+    status: row.status === 'active' && !isolationActive(row) ? 'ended' : row.status,
     createdBy: row.created_by,
     endedBy: row.ended_by,
   }
@@ -369,7 +373,7 @@ function mapClinicalCase({
   const caseOutcomes = outcomes.filter(row => row.surveillance_case_id === caseRow.id)
   const caseDevices = devices.filter(row => row.surveillance_case_id === caseRow.id)
   const isolationRecord =
-    caseIsolations.find(row => row.status === 'active') || latest(caseIsolations)
+    caseIsolations.find(isolationActive) || latest(caseIsolations)
   const isolationDecision = isolationRecord
     ? {
         required: true,

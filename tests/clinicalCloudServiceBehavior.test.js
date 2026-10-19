@@ -119,4 +119,22 @@ describe('antimicrobial therapy', () => {
     const administrations = queries.find(q => q.table === 'antimicrobial_therapy_administrations')
     expect(filter(administrations, 'therapy_id')).toEqual(['th-1', 'th-2'])
   })
+
+  it('shows the active isolation, and an isolation with an end date as ended', async () => {
+    respond = query => {
+      const rows = {
+        surveillance_cases: [{ id: 'case-1', patient_id: 'pat-1', status: 'active', started_at: '2026-10-01T00:00:00Z' }, { id: 'case-2', patient_id: 'pat-2', status: 'active', started_at: '2026-10-02T00:00:00Z' }],
+        isolation_episodes: [
+          { id: 'iso-0', surveillance_case_id: 'case-1', status: 'ended', started_at: '2026-09-01T00:00:00Z', ended_at: '2026-09-05T00:00:00Z' },
+          { id: 'iso-1', surveillance_case_id: 'case-1', status: 'active', started_at: '2026-10-01T00:00:00Z', ended_at: null, precaution_rows: [{ position: 1, precaution: 'contactPrecautions' }] },
+          { id: 'iso-2', surveillance_case_id: 'case-2', status: 'active', started_at: '2026-10-02T00:00:00Z', ended_at: '2026-10-03T00:00:00Z' },
+        ],
+      }[query.table] || []
+      return { data: rows, error: null }
+    }
+    const loaded = await service.loadClinicalCases('org-1')
+    const byId = Object.fromEntries(loaded.map(row => [row.id, row]))
+    expect(byId['case-1'].isolation).toMatchObject({ id: 'iso-1', status: 'active', precautions: ['contactPrecautions'] })
+    expect(byId['case-2'].isolation).toMatchObject({ id: 'iso-2', status: 'ended' })
+  })
 })
