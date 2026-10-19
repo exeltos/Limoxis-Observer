@@ -122,18 +122,3 @@
 .committee-approval-panel .data-table{min-width:0!important;width:100%;table-layout:auto}
 
 /* The minutes as a document, off screen until "Export PDF" captures it. */
-.committee-minutes-document{position:fixed;left:-10000px;top:0;width:760px;padding:28px 34px;background:#fff;color:#17324a;font:12.5px/1.55 Arial,sans-serif}
-.committee-minutes-document .committee-minutes-eyebrow{margin:0;color:#687b8d;font-size:11px;font-weight:700}
-.committee-minutes-document h1{margin:2px 0 0;font-size:20px}
-.committee-minutes-document h2{margin:2px 0 0;font-size:15px;font-weight:600;color:#33495e}
-.committee-minutes-document h3{margin:18px 0 6px;padding-bottom:4px;border-bottom:1px solid #cbd8e3;font-size:13.5px}
-.committee-minutes-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin:12px 0 0}
-.committee-minutes-meta dt{color:#687b8d;font-size:10.5px;font-weight:700}
-.committee-minutes-meta dd{margin:1px 0 0}
-.committee-minutes-document table{width:100%;border-collapse:collapse}
-.committee-minutes-document th,.committee-minutes-document td{padding:5px 6px;border-bottom:1px solid #e3eaf0;text-align:left;vertical-align:top}
-.committee-minutes-document th{background:#f5f8fa;color:#607487;font-size:10.5px;font-weight:700}
-.committee-minutes-topics{margin:0;padding-left:18px}
-.committee-minutes-topics li{margin-bottom:8px}
-.committee-minutes-topics p,.committee-minutes-notes{margin:2px 0 0;white-space:pre-wrap}
-@media print{.committee-minutes-document{display:none}}
