@@ -79,7 +79,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    emptyText={empty.text}
    renderRow={item=><>
     <td><strong>{item.row.item}</strong><small>{[formLabel(item.row.form,language),item.row.note,rowFindingText(item.row,language)].filter(Boolean).join(' · ')}</small></td>
-    {showControl&&<td>{onOpenControl?<button type="button" className="control-expiry-control-link" onClick={()=>onOpenControl(item.record)}>{language==='el'?item.record.title:item.record.titleEn||item.record.title}</button>:item.record.title}</td>}
+    {showControl&&<td className="control-expiry-control-cell">{onOpenControl?<button type="button" className="control-expiry-control-link" title={language==='el'?item.record.title:item.record.titleEn||item.record.title} onClick={()=>onOpenControl(item.record)}>{language==='el'?item.record.title:item.record.titleEn||item.record.title}</button>:item.record.title}</td>}
     <td>{item.department}</td>
     <td>{item.row.quantity||'—'}</td>
     <td>{item.row.lot||'—'}</td>
