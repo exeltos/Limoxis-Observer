@@ -7,6 +7,7 @@ import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { chooseOption, selectOptions } from './selectHelpers'
 
 vi.mock('../src/core/auth/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'owner-1' }, profile: { id: 'owner-1', isPlatformOwner: true, fullName: 'Platform Owner', isDemo: false }, isAuthenticated: true, isDemoSession: false, loading: false }),
@@ -116,7 +117,7 @@ describe('laboratory record dialogs', () => {
     }
   })
 
-  it('lays out the organism, AMR classification and notes as full-width rows, with read-back as a yes/no switch', async () => {
+  it('lays out the organism, AMR classification and notes as full-width rows, with read-back as a checkbox', async () => {
     await openSample()
     openTab('Μικροβιολογικό αποτέλεσμα')
     const [resultMenu, isolateMenu, communicationMenu] = within(body()).getAllByRole('button', { name: 'Περισσότερες ενέργειες' })
@@ -124,15 +125,14 @@ describe('laboratory record dialogs', () => {
     expect(screen.getByRole('dialog').querySelector('.lab-dialog-span')).not.toBeNull()
     fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: /Κλείσιμο|Ακύρωση/ })[0])
     fireEvent.click(isolateMenu); fireEvent.click(screen.getByRole('menuitem', { name: 'Ταξινόμηση AMR' }))
-    expect(within(screen.getByRole('dialog')).getByText(/Κατηγορία/, { selector: '.lab-dialog-span > .lo-field-label' })).toBeInTheDocument()
-    expect(within(screen.getByRole('dialog')).getAllByRole('radio').map(radio => radio.textContent)).toEqual(['MDR – Πολυανθεκτικό', 'XDR – Εκτεταμένα ανθεκτικό', 'PDR – Παν-ανθεκτικό'])
+    expect(within(screen.getByRole('dialog')).getByText(/Κατηγορία/, { selector: '.lab-dialog-span .lo-field-label' })).toBeInTheDocument()
+    expect(selectOptions(screen.getByRole('dialog'), /Κατηγορία/).map(option => option.textContent)).toEqual(['MDR – Πολυανθεκτικό', 'XDR – Εκτεταμένα ανθεκτικό', 'PDR – Παν-ανθεκτικό'])
     fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: /Κλείσιμο|Ακύρωση/ })[0])
     fireEvent.click(communicationMenu); fireEvent.click(screen.getByRole('menuitem', { name: 'Καταγραφή επικοινωνίας' }))
     const communication = screen.getByRole('dialog')
     expect(within(communication).getByText('Σημειώσεις', { selector: '.lab-dialog-span .lo-field-label' })).toBeInTheDocument()
-    const readBack = within(communication).getByRole('radiogroup', { name: /read-back|επανάληψη/i })
-    expect(within(readBack).getAllByRole('radio').map(radio => radio.textContent)).toEqual(['Όχι', 'Ναι'])
-    expect(communication.querySelector('input[type="checkbox"]')).toBeNull()
+    // A yes / no flag is the house checkbox.
+    expect(within(communication).getByRole('checkbox', { name: /read-back|επανάληψη/i })).toBeInTheDocument()
   })
 
   it('requires an organism before a positive result can be saved', async () => {
@@ -141,7 +141,7 @@ describe('laboratory record dialogs', () => {
     fireEvent.click(screen.getAllByRole('menuitem').find(item => /αποτελέσματος/.test(item.textContent)))
     const dialog = await screen.findByRole('dialog')
     expect(dialog.querySelector('select')).toBeNull()
-    fireEvent.click(within(within(dialog).getByRole('radiogroup', { name: /Αποτέλεσμα/ })).getByRole('radio', { name: 'Θετικό' }))
+    chooseOption(dialog, /Αποτέλεσμα/, 'Θετικό')
     const save = within(dialog).getAllByRole('button').filter(button => /Αποθήκευση|Επικύρωση/.test(button.textContent)).at(-1)
     expect(save).toBeDisabled()
     // Organisms come from the Microorganisms library through the shared multi-select.
@@ -169,7 +169,7 @@ describe('AMR classification badge', () => {
     fireEvent.click(within(isolate()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Ταξινόμηση AMR' }))
     const dialog = await screen.findByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('radio', { name: /^MDR/ }))
+    chooseOption(dialog, /Κατηγορία/, /^MDR/)
     fireEvent.click(within(dialog).getAllByRole('button').filter(button => /Αποθήκευση/.test(button.textContent)).at(-1))
     await waitFor(() => expect(isolate().querySelector('.status-badge')).toHaveTextContent('MDR'))
     expect(steps).toEqual(['microbiology_mdro/amr'])

@@ -8,6 +8,7 @@ import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { chooseOption, selectInput } from './selectHelpers'
 import { sourcePath } from '../src/features/quality/qualityDeviations'
 
 let profile
@@ -160,9 +161,9 @@ describe('risk assessment screens', () => {
     expect(within(first).getByText('Αποτελεσματικό')).toBeInTheDocument()
     expect(table().getByText('Μερικώς αποτελεσματικό')).toBeInTheDocument()
     fireEvent.click(table().getByText('Ε001'))
-    expect(await screen.findByRole('radio', { name: 'Μερικώς αποτελεσματικό' })).toBeDisabled()
+    expect(await waitFor(() => selectInput(document.body, /^Αξιολόγηση/))).toBeDisabled()
     await startEditing()
-    fireEvent.click(screen.getByRole('radio', { name: 'Μερικώς αποτελεσματικό' }))
+    chooseOption(document.body, /^Αξιολόγηση/, 'Μερικώς αποτελεσματικό')
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση ευκαιρίας/ }))
     await screen.findByRole('tab', { name: 'Ευκαιρίες' })
     const row = table().getByText('Ε001').closest('tr')

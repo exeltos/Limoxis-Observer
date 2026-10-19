@@ -1185,15 +1185,10 @@ td>.lo-meter{margin-top:5px}
 .control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
 .control-create-shell :is(.control-policy-block,.control-guidance-block) textarea:is(textarea,#lo-control-form){min-height:64px!important;height:64px}
 /* A yes/no switch in a form row is as tall as the other controls. */
-.yes-no-field .lo-mode-switch:is(div,#lo-form-row){min-height:40px}
-.yes-no-field .lo-mode-switch>button:is(button,#lo-form-row){min-height:40px!important;height:40px}
 /* Yes/no fields line up with the selects and inputs next to them. */
-.entry-grid>.yes-no-field:is(div,#lo-form-row){display:flex;flex-direction:column;gap:0;align-self:end}
-.entry-grid>.yes-no-field>.lo-field-label:is(span,#lo-form-row){margin-bottom:6px}
 /* A searchable or multi-value select inside a form row lines up with the inputs. */
 .entry-grid>.searchable-select:is(div,#lo-form-row){gap:0;align-self:end}
 .entry-grid>.searchable-select>label .lo-field-label:is(span,#lo-form-row){display:block;margin-bottom:6px}
-.entry-grid>.yes-no-field>.lo-mode-switch:is(div,#lo-form-row){margin:0!important}
 .multi-select .multi-select-search>input:is(input,#lo-form-row){border:0!important;box-shadow:none!important;outline:0!important;min-height:34px;height:34px;background:transparent!important}
 /* Control record: details sheet on top, the departments table fills the rest and scrolls inside. */
 .control-record-shell .control-record-view:is(div,#lo-record-sheet){flex:1;min-height:0}

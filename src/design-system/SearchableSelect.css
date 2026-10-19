@@ -112,3 +112,4 @@
   background: var(--lo-color-surface-muted, #f4f7f9);
   color: var(--lo-color-muted, #617386);
 }
+.control-expiry-filter,.leg-status-filter,.registers-view-select,.reg-mode-select,.register-period-select{min-width:220px}

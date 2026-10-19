@@ -24,6 +24,21 @@ for(const [module,ceiling] of Object.entries(RAW_CONTROL_CEILINGS)){
   const found={select:count(/<select\b/g),checkbox:count(/type=["']checkbox["']/g),datalist:count(/<datalist\b/g)}
   for(const [kind,max] of Object.entries(ceiling))if(found[kind]>max)violations.push(`features/${module}: ${found[kind]} raw <${kind}> (ceiling ${max}); use the shared design-system field instead`)
 }
+// A choice of three or more values is one house select (SearchableSelect /
+// FilterSelect), never a row of buttons: a ModeSwitch with 3+ written options
+// in a feature is flagged (a few older ones are held to a ceiling).
+const MODE_SWITCH_CEILINGS={prevention:1}
+const modeSwitchCount={}
+for(const file of files.filter(file=>file.includes(`${path.sep}features${path.sep}`)&&file.endsWith('.jsx'))){
+  const text=fs.readFileSync(file,'utf8')
+  const re=/<ModeSwitch\b/g;let m
+  while((m=re.exec(text))){
+    let depth=0,j=m.index
+    for(;j<text.length;j++){const c=text[j];if(c==='{')depth++;else if(c==='}')depth--;else if(c==='>'&&depth===0)break}
+    if((text.slice(m.index,j).match(/\{\s*value\s*:/g)||[]).length>=3){const module=path.relative(path.join(root,'features'),file).split(path.sep)[0];modeSwitchCount[module]=(modeSwitchCount[module]||0)+1}
+  }
+}
+for(const [module,count] of Object.entries(modeSwitchCount))if(count>(MODE_SWITCH_CEILINGS[module]||0))violations.push(`features/${module}: ${count} ModeSwitch with 3+ options (ceiling ${MODE_SWITCH_CEILINGS[module]||0}); use the house select (SearchableSelect / FilterSelect)`)
 const recordActions=fs.readFileSync(path.join(root,'design-system','RecordActions.jsx'),'utf8')
 if(!recordActions.includes("action===UI_ACTIONS.PRINT||action===UI_ACTIONS.EXPORT"))violations.push('design-system/RecordActions.jsx: Print/Export are not centrally forced to compact icon actions')
 if(!recordActions.includes("export:{icon:Download"))violations.push('design-system/RecordActions.jsx: Export must use the canonical Download icon')
