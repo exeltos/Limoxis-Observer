@@ -1,8 +1,10 @@
+import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { binCloudRows,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { computeTurnaroundHours } from './model/laboratoryModel'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { ENVIRONMENTAL_TYPES } from '../surveillance/environmentalSurveillanceData'
+import { AMR_CATEGORY_SELECT, amrCalculationColumns, amrCalculationSnapshot, amrCategoryRows } from './amrCalculation'
 
 const iso=value=>value?new Date(value).toISOString():null
 const environmentalTypes=['water','surface','environment','environmental','room','air','νερό','επιφάνεια','επιφανεια']
@@ -22,7 +24,7 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
     amendedFrom:row.amended_from||null,
     organism:row.organism,
     resistance:classification?.classification||row.resistance_class||null,
-    amr:(amr||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,organism:item.organism||'',classification:item.classification,definitionSource:item.definition_source,definitionVersion:item.definition_version,status:item.status,rationale:item.rationale||'',classifiedAt:item.classified_at,calculationSnapshot:item.calculation_snapshot||{}})),
+    amr:(amr||[]).filter(item=>item.microbiology_result_id===row.id).map(item=>({id:item.id,organism:item.organism||'',classification:item.classification,definitionSource:item.definition_source,definitionVersion:item.definition_version,status:item.status,rationale:item.rationale||'',classifiedAt:item.classified_at,calculationSnapshot:amrCalculationSnapshot(item)})),
     susceptibilitySummary:row.susceptibility_summary||'',
     critical:Boolean(row.is_critical),
     cfuCount:row.cfu_count,
@@ -102,17 +104,17 @@ async function hydrateSamples(rows){
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
   const sampleIds=rows.map(row=>row.id)
   const [patientsResult,departmentsResult,microResult]=await Promise.all([
-    patientIds.length?supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',patientIds):Promise.resolve({data:[],error:null}),
-    departmentIds.length?supabase.from('departments').select('id,name').in('id',departmentIds):Promise.resolve({data:[],error:null}),
-    supabase.from('microbiology_results').select('*').in('sample_id',sampleIds).order('resulted_at',{ascending:false}),
+    selectInChunks(patientIds,ids=>supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',ids)),
+    selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids)),
+    selectInChunks(sampleIds,ids=>supabase.from('microbiology_results').select('*').in('sample_id',ids).order('resulted_at',{ascending:false}),{order:[['resulted_at',{ascending:false}]]}),
   ])
   for(const result of [patientsResult,departmentsResult,microResult])if(result.error)throw result.error
   const microRows=microResult.data||[]
   const microIds=microRows.map(row=>row.id)
   const [astResult,commResult,amrResult]=microIds.length?await Promise.all([
-    supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',microIds),
-    supabase.from('critical_result_communications').select('*').in('microbiology_result_id',microIds).order('communicated_at',{ascending:false}),
-    supabase.from('amr_classifications').select('*').in('microbiology_result_id',microIds).order('created_at',{ascending:false}),
+    selectInChunks(microIds,ids=>supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',ids)),
+    selectInChunks(microIds,ids=>supabase.from('critical_result_communications').select('*').in('microbiology_result_id',ids).order('communicated_at',{ascending:false}),{order:[['communicated_at',{ascending:false}]]}),
+    selectInChunks(microIds,ids=>supabase.from('amr_classifications').select(`*,${AMR_CATEGORY_SELECT}`).in('microbiology_result_id',ids).order('created_at',{ascending:false}),{order:[['created_at',{ascending:false}]]}),
   ]):[{data:[],error:null},{data:[],error:null},{data:[],error:null}]
   for(const result of [astResult,commResult,amrResult])if(result.error)throw result.error
   return rows.map(row=>mapSample(
@@ -126,9 +128,8 @@ async function hydrateSamples(rows){
 export async function loadLaboratorySamples(organizationId){
   assertCloud()
   if(!organizationId)return []
-  const {data,error}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false})
-  if(error)throw error
-  return hydrateSamples(data||[])
+  const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}))
+  return hydrateSamples(rows)
 }
 
 // Every sample of the organization, page by page (PostgREST caps a single
@@ -193,7 +194,15 @@ export async function deleteLaboratorySample(organizationId,sampleRecordId){
   if(microError)throw microError
   const microIds=(micro||[]).map(row=>row.id)
   const {data:sample}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).eq('id',sampleRecordId).maybeSingle()
-  const childParts=microIds.length?['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications'].map(table=>({table,match:{microbiology_result_id:microIds}})):[]
+  const {data:amrRows,error:amrError}=microIds.length?await supabase.from('amr_classifications').select('id').eq('organization_id',organizationId).in('microbiology_result_id',microIds):{data:[],error:null}
+  if(amrError)throw amrError
+  const amrIds=(amrRows||[]).map(row=>row.id)
+  // Deletion order, children first: an AMR classification's categories before it.
+  const childParts=microIds.length?[
+    ...['antimicrobial_susceptibility_results','critical_result_communications'].map(table=>({table,match:{microbiology_result_id:microIds}})),
+    ...(amrIds.length?[{table:'amr_classification_categories',match:{amr_classification_id:amrIds}}]:[]),
+    {table:'amr_classifications',match:{microbiology_result_id:microIds}},
+  ]:[]
   await binCloudRows(organizationId,{module:'clinical',kind:'laboratory_samples',...describeDeleted('Δείγμα εργαστηρίου',{...(sample||{}),code:sample?.sample_code||sample?.code}),parts:[...childParts,{table:'microbiology_results',match:{sample_id:sampleRecordId}},{table:'laboratory_samples',match:{id:sampleRecordId}}]})
   if(microIds.length){
     for(const table of ['antimicrobial_susceptibility_results','critical_result_communications','amr_classifications']){const {error}=await supabase.from(table).delete().eq('organization_id',organizationId).in('microbiology_result_id',microIds);if(error)throw error}
@@ -260,9 +269,14 @@ export async function saveAmrClassification(organizationId,microbiologyResultId,
   const actorId=await currentUserId()
   const now=new Date().toISOString()
   const classification=draft.classification||null
-  const payload={organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism:draft.organism||null,classification,definition_source:draft.definitionSource||'Magiorakos et al.',definition_version:draft.definitionVersion||'2012',calculation_snapshot:draft.calculationSnapshot||{},status:draft.status||'confirmed',rationale:draft.rationale||null,classified_by:actorId,classified_at:now}
+  const payload={organization_id:organizationId,microbiology_result_id:microbiologyResultId,organism:draft.organism||null,classification,definition_source:draft.definitionSource||'Magiorakos et al.',definition_version:draft.definitionVersion||'2012',...amrCalculationColumns(draft.calculationSnapshot),status:draft.status||'confirmed',rationale:draft.rationale||null,classified_by:actorId,classified_at:now}
   const {data,error}=await supabase.from('amr_classifications').insert(payload).select('*').single()
   if(error)throw error
+  const categoryRows=amrCategoryRows(draft.calculationSnapshot).map(row=>({...row,organization_id:organizationId,amr_classification_id:data.id,created_by:actorId}))
+  if(categoryRows.length){
+    const {error:categoryError}=await supabase.from('amr_classification_categories').insert(categoryRows)
+    if(categoryError)throw categoryError
+  }
   return data
 }
 

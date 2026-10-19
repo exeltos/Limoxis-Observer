@@ -1,8 +1,9 @@
+import { selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 
 export async function loadSurveillanceAdmissionLinks(organizationId,caseIds=[]){
   if(!supabase||!organizationId||!caseIds.length)return new Map()
-  const {data,error}=await supabase.from('surveillance_cases').select('id,admission_id').eq('organization_id',organizationId).in('id',caseIds)
+  const {data,error}=await selectInChunks(caseIds,ids=>supabase.from('surveillance_cases').select('id,admission_id').eq('organization_id',organizationId).in('id',ids))
   if(error)throw error
   return new Map((data||[]).map(row=>[row.id,row.admission_id||null]))
 }

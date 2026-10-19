@@ -48,7 +48,9 @@ function infrequentSchedule({ frequency, nextDueAt, paused }, yearEnd, now) {
   return { missed, planned: stepDates(frequency, resume > now ? resume : now, yearEnd) }
 }
 
-export function assignmentCalendar({ frequency = {}, history = [], startedAt = null, nextDueAt = null, paused = false }, year, now = new Date()) {
+// monthCounts: twelve { done, late, marks } from the database
+// (control_calendar_months); without it the history is counted.
+export function assignmentCalendar({ frequency = {}, history = [], startedAt = null, nextDueAt = null, paused = false, monthCounts = null }, year, now = new Date()) {
   const frequent = isFrequentControl(frequency)
   const started = startedAt ? new Date(startedAt) : null
   const yearEnd = new Date(year + 1, 0, 1)
@@ -59,9 +61,12 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
     const { from, to } = monthRange(year, month)
     const when = to <= now ? 'past' : from > now ? 'future' : 'current'
     const inMonth = (date) => new Date(date) >= from && new Date(date) < to
-    const executions = done.filter((row) => inMonth(row.at))
-    const late = executions.filter((row) => isLate(row, frequency)).length
-    const cell = { month, when, done: executions.length, late, marks: executions.map((row) => ({ day: new Date(row.at).getDate(), late: isLate(row, frequency) })).sort((a, b) => a.day - b.day) }
+    const counted = monthCounts ? monthCounts[month] || { done: 0, late: 0, marks: [] } : null
+    const executions = counted ? [] : done.filter((row) => inMonth(row.at))
+    const doneCount = counted ? counted.done : executions.length
+    const late = counted ? counted.late : executions.filter((row) => isLate(row, frequency)).length
+    const marks = counted ? [...counted.marks] : executions.map((row) => ({ day: new Date(row.at).getDate(), late: isLate(row, frequency) }))
+    const cell = { month, when, done: doneCount, late, marks: marks.sort((a, b) => a.day - b.day) }
 
     if (frequent) {
       const activeFrom = new Date(Math.max(from.getTime(), started ? started.getTime() : -Infinity))
@@ -69,18 +74,20 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
       const expected = when === 'future' ? 0 : expectedOccurrences(frequency, activeFrom, pastEnd)
       const plannedFrom = new Date(Math.max(activeFrom.getTime(), now.getTime()))
       const planned = paused || when === 'past' ? 0 : expectedOccurrences(frequency, plannedFrom, to)
-      const rate = expected ? Math.round((Math.min(executions.length, expected) / expected) * 100) : null
+      const rate = expected ? Math.round((Math.min(doneCount, expected) / expected) * 100) : null
       return { ...cell, frequent: true, expected, planned, rate, inactive: Boolean(started && started >= to) }
     }
 
     const missed = schedule.missed.filter(inMonth).map((date) => date.getDate())
     const planned = schedule.planned.filter(inMonth).map((date) => date.getDate())
-    return { ...cell, frequent: false, missed, planned, inactive: Boolean(started && started >= to) && !executions.length }
+    return { ...cell, frequent: false, missed, planned, inactive: Boolean(started && started >= to) && !doneCount }
   })
 }
 
 // Rows of the calendar for the visible controls (same input as the adherence view).
-export function programmeCalendar(rows, year, now = new Date()) {
+// monthsByAssignment: Map(assignment id → twelve month counts) from the
+// database; null counts each assignment's loaded history (the demo).
+export function programmeCalendar(rows, year, now = new Date(), monthsByAssignment = null) {
   const lines = []
   for (const { item, departments } of rows || []) {
     for (const department of departments) {
@@ -92,6 +99,7 @@ export function programmeCalendar(rows, year, now = new Date()) {
         startedAt: assignment.createdAt || item.createdAt,
         nextDueAt: assignment.nextDueAt,
         paused: assignment.status === 'paused',
+        monthCounts: monthsByAssignment ? monthsByAssignment.get(assignment.dbId) || [] : null,
       }, year, now)
       lines.push({ item, department, months })
     }

@@ -204,6 +204,11 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
               <tr key={m.id} className={m.active === false ? 'committee-member-inactive' : ''}>
                 <td>
                   <strong>{m.name}</strong>
+                  {m.external && (
+                    <span className="status-badge temporary">
+                      {en ? 'Outside staff' : 'Εκτός προσωπικού'}
+                    </span>
+                  )}
                   <small>{[m.profession, m.department].filter(Boolean).join(' · ') || '—'}</small>
                 </td>
                 <td>{m.committeeTitle || '—'}</td>

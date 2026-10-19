@@ -22,7 +22,7 @@ function useChecklistTemplates(organizationId) {
   const [templates, setTemplates] = useState([])
   useEffect(() => {
     let active = true
-    loadControlProgramme(organizationId).then(controls => { if (active) setTemplates(checklistTemplates(controls)) }).catch(() => { if (active) setTemplates([]) })
+    loadControlProgramme(organizationId, { summary: false }).then(controls => { if (active) setTemplates(checklistTemplates(controls)) }).catch(() => { if (active) setTemplates([]) })
     return () => { active = false }
   }, [organizationId])
   return templates

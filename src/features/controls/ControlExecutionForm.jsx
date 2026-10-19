@@ -48,6 +48,8 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const savedDraft=isEditing?null:assignment?.draft||null
  const [value,setValue]=useState(()=>{const v=initialExecution?.value??savedDraft?.value??'';return mode==='choice'?canonicalAnswer(v):v})
  const [notes,setNotes]=useState(initialExecution?.notes||savedDraft?.notes||'')
+ const [resultText,setResultText]=useState(initialExecution?.resultText||savedDraft?.resultText||'')
+ const [checkedPoints,setCheckedPoints]=useState(initialExecution?.checkedPoints||savedDraft?.checkedPoints||'')
  const [rows,setRows]=useState(()=>{
   // A saved entry keeps its own rows, even none: only a new entry starts from the list.
   if(Array.isArray(initialExecution?.structuredData?.rows))return initialExecution.structuredData.rows
@@ -82,7 +84,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  async function persistDraft(){
   if(draftSaving)return null
   setDraftSaving(true)
-  try{const draft=await saveControlDraft(organizationId,record,department,{value,notes,rows});setDraftSaved(true);onDraftSaved?.(draft);notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success');return draft}
+  try{const draft=await saveControlDraft(organizationId,record,department,{value,notes,resultText,checkedPoints,rows});setDraftSaved(true);onDraftSaved?.(draft);notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success');return draft}
   catch{notify(en?'The draft could not be saved.':'Δεν ήταν δυνατή η προσωρινή αποθήκευση.','error');return null}
   finally{setDraftSaving(false)}
  }
@@ -90,10 +92,10 @@ function useControlExecution({organizationId,record,department,initialExecution,
  function payload(){
   const cleanRows=mode==='checklist'?rows:mode==='list'?rows.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim())).map(r=>expiryControl&&!r.finding?{...r,finding:impliedFinding(r,expiryWindow(record))}:r):null
   const storedValue=mode==='checklist'?checklistSummary(rows):value
-  return {value:storedValue,notes,structuredData:structured?{template,rows:cleanRows}:null,hasFinding,actor,evidenceFiles:evidence}
+  return {value:storedValue,resultText,checkedPoints,notes,structuredData:structured?{template,rows:cleanRows}:null,hasFinding,actor,evidenceFiles:evidence}
  }
- const printDraft=()=>printControlForm({record,department,execution:{at:initialExecution?.at||new Date().toISOString(),value,notes,structuredData:structured?{template,rows}:null,by:actor.name},actorName:actor.name})
- return {en,language,actor,assignment,response,mode,answers,libraries,expiryControl,structured,isEditing,value,setValue,notes,setNotes,rows,setRows,setRow,addRow,removeRow,evidence,setEvidence,evidenceRequired,outOfRange,hasFinding,valid,history,draftSaved,draftSaving,persistDraft,payload,printDraft}
+ const printDraft=()=>printControlForm({record,department,execution:{at:initialExecution?.at||new Date().toISOString(),value,resultText,checkedPoints,notes,structuredData:structured?{template,rows}:null,by:actor.name},actorName:actor.name})
+ return {en,language,actor,assignment,response,mode,answers,libraries,expiryControl,structured,isEditing,value,setValue,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,rows,setRows,setRow,addRow,removeRow,evidence,setEvidence,evidenceRequired,outOfRange,hasFinding,valid,history,draftSaved,draftSaving,persistDraft,payload,printDraft}
 }
 
 function LastEntry({state,record}){
@@ -143,9 +145,10 @@ function FindingsList({state}){
 }
 
 function ExecutionFields({state,record,department}){
- const {en,language,mode,expiryControl,rows,setRow,addRow,removeRow,setRows,libraries,history,notes,setNotes,hasFinding,isEditing,evidence,setEvidence,evidenceRequired}=state
+ const {en,language,mode,expiryControl,rows,setRow,addRow,removeRow,setRows,libraries,history,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,hasFinding,isEditing,evidence,setEvidence,evidenceRequired}=state
+ const guidance=[[en?'Goal':'Στόχος',record.goal],[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description],[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes]].filter(([,text])=>text)
  return <>
-  {record.description&&<div className="control-exec-instructions"><span className="lo-field-label">{en?'Instructions':'Οδηγίες'}</span><p>{record.description}</p></div>}
+  {guidance.map(([label,text])=><div key={label} className="control-exec-instructions"><span className="lo-field-label">{label}</span><p>{text}</p></div>)}
   <LastEntry state={state} record={record}/>
   {expiryControl
    ?<ControlExpiryEntry record={record} rows={rows} setRow={setRow} addRow={addRow} removeRow={removeRow} keepFirstRow={()=>setRows(current=>current.slice(0,1))} libraries={libraries} history={history} department={department} language={language}/>
@@ -153,6 +156,8 @@ function ExecutionFields({state,record,department}){
    :mode==='list'?<FindingsList state={state}/>
    :<ResultField state={state}/>}
   <div className="control-exec-bottom">
+   <Field label={en?'Result details':'Αναλυτικό αποτέλεσμα'}><textarea value={resultText} onChange={e=>setResultText(e.target.value)} rows="2" placeholder={en?'Optional, the result in words…':'Προαιρετικό, το αποτέλεσμα αναλυτικά…'}/></Field>
+   <Field label={en?'Points checked':'Σημεία ελέγχου'}><textarea value={checkedPoints} onChange={e=>setCheckedPoints(e.target.value)} rows="2" placeholder={en?'Optional, which points were checked…':'Προαιρετικό, ποια σημεία ελέγχθηκαν…'}/></Field>
    <Field label={en?'Notes':'Σημειώσεις'}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="2" placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
    {!isEditing&&<ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>}
   </div>

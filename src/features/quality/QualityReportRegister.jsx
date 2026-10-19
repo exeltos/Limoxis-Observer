@@ -58,7 +58,7 @@ export function useDeviationQueue(organizationId,enabled=true){
   let active=true
   setLoading(true)
   const safe=promise=>promise.catch(()=>[])
-  Promise.all([safe(loadControlProgramme(organizationId)),safe(loadBundleAssessments(organizationId)),safe(loadTrainingStateAsync(organizationId).then(state=>state?.programs||[])),safe(loadQualityRecords('capas',organizationId))])
+  Promise.all([safe(loadControlProgramme(organizationId,{summary:false,findingsSince:Date.now()-365*24*60*60*1000})),safe(loadBundleAssessments(organizationId)),safe(loadTrainingStateAsync(organizationId).then(state=>state?.programs||[])),safe(loadQualityRecords('capas',organizationId))])
    .then(([controls,bundles,trainings,capas])=>{if(active)setSources({controls,bundles,trainings,capas})})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}

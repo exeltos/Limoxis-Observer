@@ -20,8 +20,11 @@ function mapExecution(row){
  const response=row.response_data||{}
  return {
   id:row.id,
+  assignmentId:row.assignment_id||null,
   at:row.performed_at,
   value:row.value_text||'',
+  resultText:row.result_text||'',
+  checkedPoints:row.checked_points||'',
   notes:row.notes||'',
   structuredData:response.structuredData||null,
   evidence:Array.isArray(response.evidence)?response.evidence:[],
@@ -43,7 +46,24 @@ function mapExecution(row){
  }
 }
 
-function mapDefinition(row,assignments=[],executions=[],drafts=[]){
+const startOfToday=()=>{const d=new Date();d.setHours(0,0,0,0);return d}
+
+// What the registry shows of an assignment's executions without reading them:
+// how many there are, how many today, findings and the latest one. In the cloud
+// the database counts them (control_assignment_summary); the demo counts its
+// local rows the same way.
+export function summarizeHistory(history=[],todayFrom=startOfToday()){
+ const valid=history.filter(h=>h.status!=='cancelled')
+ return {
+  executions:valid.length,
+  today:valid.filter(h=>h.at&&new Date(h.at)>=todayFrom).length,
+  findings:valid.filter(h=>h.hasFinding).length,
+  lastPerformedAt:valid.map(h=>h.at).filter(Boolean).sort().pop()||null,
+ }
+}
+const EMPTY_SUMMARY={executions:0,today:0,findings:0,lastPerformedAt:null}
+
+function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null){
  const {config:responseConfig,meta}=cleanResponseConfig(row.response_config)
  const frequency=row.frequency_config||{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}
  const activeAssignments=assignments.filter(a=>a.control_id===row.id&&a.status!=='paused')
@@ -60,7 +80,10 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[]){
    lastCompletedAt:assignment.last_completed_at,
    nextDueAt:assignment.next_due_at,
    status:assignment.status,
+   // Only the executions this view asked for (recent ones, the expiry lists,
+   // findings); counts come from summary.
    history,
+   summary:summaries?(summaries.get(assignment.id)||EMPTY_SUMMARY):summarizeHistory(history),
    draft:draft?{...draft.payload,id:draft.id,savedAt:draft.saved_at,recordKey:draft.record_key}:null,
    hasDraft:Boolean(draft),
   }
@@ -73,6 +96,9 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[]){
   titleEn:meta.titleEn||row.title,
   category:row.category,
   description:row.description||'',
+  goal:row.goal||'',
+  acceptanceCriteria:row.acceptance_criteria||'',
+  guideNotes:row.guide_notes||'',
   owner:meta.ownerLabel||'',
   ownerId:row.owner_id||null,
   ownerPerson:meta.ownerPerson||null,
@@ -95,28 +121,115 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[]){
  }
 }
 
-export async function loadControlProgramme(organizationId){
+const ROW_PAGE=1000
+// A filtered read of executions, page by page, so it never stops at the API's
+// row cap. Callers always narrow it (an assignment, a period, findings, the
+// expiry lists); nothing reads an organisation's whole history.
+async function readExecutionPages(build){
+ const rows=[]
+ for(let from=0;;from+=ROW_PAGE){
+  const {data,error}=await build().order('performed_at',{ascending:false}).order('id',{ascending:false}).range(from,from+ROW_PAGE-1)
+  if(error)throw error
+  rows.push(...(data||[]))
+  if(!data||data.length<ROW_PAGE)return rows
+ }
+}
+const RECENT_PER_ASSIGNMENT=50
+const isExpiryDefinition=row=>row?.response_config?.mode==='list'&&row?.response_config?.template==='medication_expiry'
+
+// The programme: definitions, assignments, drafts and per-assignment counts.
+// Options: code (one control, with its recent executions for the entry form),
+// findingsSince (executions with a finding since that date, for the CAPA queue),
+// summary:false (definitions only). Expiry controls always bring the entries
+// that carry their item lists.
+export async function loadControlProgramme(organizationId,{code=null,findingsSince=null,summary=true}={}){
  if(isDemoDataEnvironment()){
-  const definitions=loadControlDefinitionsLocal()
+  const definitions=loadControlDefinitionsLocal().filter(row=>!code||row.code===code)
   const assignments=loadControlAssignmentsLocal()
   const executions=loadControlExecutionsLocal()
   const drafts=loadControlDraftsLocal()
   return definitions.map(row=>mapDefinition(row,assignments,executions,drafts))
  }
  assertCloud(organizationId)
- const [definitionsResult,assignmentsResult,executionsResult,draftsResult]=await Promise.all([
-  supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false}),
-  supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId),
-  supabase.from('control_executions').select('*').eq('organization_id',organizationId).order('performed_at',{ascending:false}),
-  supabase.from('control_drafts').select('*').eq('organization_id',organizationId).order('saved_at',{ascending:false}),
+ let definitionsQuery=supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false})
+ if(code)definitionsQuery=definitionsQuery.eq('code',code)
+ let draftsQuery=supabase.from('control_drafts').select('*').eq('organization_id',organizationId).order('saved_at',{ascending:false})
+ if(code)draftsQuery=draftsQuery.eq('control_id',code)
+ const [definitionsResult,draftsResult,summaryResult]=await Promise.all([
+  definitionsQuery,
+  draftsQuery,
+  summary?supabase.rpc('control_assignment_summary',{p_organization_id:organizationId,p_today_from:startOfToday().toISOString()}):Promise.resolve({data:[],error:null}),
  ])
- for(const result of [definitionsResult,assignmentsResult,executionsResult,draftsResult])if(result.error)throw result.error
- return (definitionsResult.data||[]).map(row=>mapDefinition(row,assignmentsResult.data||[],executionsResult.data||[],draftsResult.data||[]))
+ for(const result of [definitionsResult,draftsResult,summaryResult])if(result.error)throw result.error
+ const definitions=definitionsResult.data||[]
+ if(!definitions.length)return []
+ let assignmentsQuery=supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId)
+ if(code)assignmentsQuery=assignmentsQuery.in('control_id',definitions.map(row=>row.id))
+ const {data:assignments,error:assignmentsError}=await assignmentsQuery
+ if(assignmentsError)throw assignmentsError
+ const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
+ const reads=[]
+ const expiryIds=definitions.filter(isExpiryDefinition).map(row=>row.id)
+ if(expiryIds.length)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).in('control_id',expiryIds).not('response_data->structuredData->rows','is',null)))
+ if(findingsSince)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('has_finding',true).gte('performed_at',new Date(findingsSince).toISOString())))
+ if(code){
+  for(const assignment of (assignments||[]).filter(a=>a.status!=='paused')){
+   reads.push(supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('assignment_id',assignment.id).order('performed_at',{ascending:false}).limit(RECENT_PER_ASSIGNMENT).then(({data,error})=>{if(error)throw error;return data||[]}))
+  }
+ }
+ const executions=[...new Map((await Promise.all(reads)).flat().map(row=>[row.id,row])).values()]
+ return definitions.map(row=>mapDefinition(row,assignments||[],executions,draftsResult.data||[],summaries))
 }
 
 export async function loadControlByCode(organizationId,code){
- const rows=await loadControlProgramme(organizationId)
+ const rows=await loadControlProgramme(organizationId,{code})
  return rows.find(row=>row.id===code)||null
+}
+
+// One page of a control's executions (its departments' assignments), latest
+// first, with the total, optionally within [from, to).
+export async function loadControlHistoryPage(organizationId,assignmentIds=[],{page=1,pageSize=15,from=null,to=null}={}){
+ const ids=[...new Set(assignmentIds.filter(Boolean))]
+ if(!ids.length)return {rows:[],total:0}
+ const start=(Math.max(1,page)-1)*pageSize
+ if(isDemoDataEnvironment()){
+  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>new Date(b.at)-new Date(a.at))
+  return {rows:rows.slice(start,start+pageSize),total:rows.length}
+ }
+ assertCloud(organizationId)
+ let query=supabase.from('control_executions').select('*',{count:'exact'}).eq('organization_id',organizationId).in('assignment_id',ids)
+ if(from)query=query.gte('performed_at',new Date(from).toISOString())
+ if(to)query=query.lt('performed_at',new Date(to).toISOString())
+ const {data,error,count}=await query.order('performed_at',{ascending:false}).order('id',{ascending:false}).range(start,start+pageSize-1)
+ if(error)throw error
+ return {rows:(data||[]).map(mapExecution),total:count??(data||[]).length}
+}
+
+// Executions done and on time per assignment in a period, counted by the
+// database (control_adherence_counts). The demo returns null: its local
+// history is complete, so controlAdherence counts it directly.
+export async function loadControlAdherenceCounts(organizationId,{from,to}){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.rpc('control_adherence_counts',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
+ if(error)throw error
+ return new Map((data||[]).map(row=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
+}
+
+// Per assignment, the twelve months of a year: done, late, and the days for
+// infrequent controls (control_calendar_months, in the viewer's time zone).
+export async function loadControlCalendarMonths(organizationId,year){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'
+ const {data,error}=await supabase.rpc('control_calendar_months',{p_organization_id:organizationId,p_year:year,p_time_zone:timeZone})
+ if(error)throw error
+ const byAssignment=new Map()
+ for(const row of data||[]){
+  if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,Array.from({length:12},()=>({done:0,late:0,marks:[]})))
+  byAssignment.get(row.assignment_id)[row.month]={done:Number(row.done)||0,late:Number(row.late)||0,marks:Array.isArray(row.marks)?row.marks:[]}
+ }
+ return byAssignment
 }
 
 async function resolveDepartments(organizationId,names=[]){
@@ -133,6 +246,9 @@ function controlCode(){
  const tail=Math.floor(Math.random()*900+100)
  return `CTRL-${stamp}-${tail}`
 }
+
+// The control's texts, each in its own column.
+const definitionTexts=draft=>({goal:draft.goal?.trim()||null,acceptance_criteria:draft.acceptanceCriteria?.trim()||null,guide_notes:draft.guideNotes?.trim()||null})
 
 function responsePayload(draft,meta={}){
  return {
@@ -168,6 +284,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
     title:draft.title.trim(),
     category:draft.category.trim(),
     description:draft.description||null,
+    ...definitionTexts(draft),
     response_config:responsePayload(draft,{actorName,createdByScope,createdForDepartment}),
     frequency_config:{...(draft.frequency||{}),times:(draft.frequency?.times||[]).filter(Boolean)},
     status:draft.status||'active',
@@ -182,6 +299,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
     title:draft.title.trim(),
     category:draft.category.trim(),
     description:draft.description||null,
+    ...definitionTexts(draft),
     owner_id:null,
     response_config:responsePayload(draft,{actorName,createdByScope,createdForDepartment}),
     frequency_config:{...(draft.frequency||{}),times:(draft.frequency?.times||[]).filter(Boolean)},
@@ -216,6 +334,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   title:draft.title.trim(),
   category:draft.category.trim(),
   description:draft.description||null,
+  ...definitionTexts(draft),
   owner_id:draft.ownerPerson?.userId||null,
   response_config:responsePayload(draft,{actorName,createdByScope,createdForDepartment}),
   frequency_config:{...(draft.frequency||{}),times:(draft.frequency?.times||[]).filter(Boolean)},
@@ -288,7 +407,7 @@ export async function completeControlExecution(organizationId,record,department,
   const userId=payload.actor?.id||''
   const now=new Date()
   const responseData={structuredData:payload.structuredData||null,evidence:(payload.evidenceFiles||[]).map(evidenceSummary),actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
-  const execution={id:demoId('ctrl-exec'),assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}
+  const execution={id:demoId('ctrl-exec'),assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,result_text:payload.resultText?.trim()||null,checked_points:payload.checkedPoints?.trim()||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}
   const executions=loadControlExecutionsLocal()
   executions.unshift(execution)
   saveControlExecutionsLocal(executions)
@@ -309,13 +428,20 @@ export async function completeControlExecution(organizationId,record,department,
  const executionId=crypto.randomUUID()
  const evidence=await uploadExecutionEvidence(organizationId,executionId,payload.evidenceFiles)
  const responseData={structuredData:payload.structuredData||null,evidence:evidence.map(({attachmentId:_attachmentId,...item})=>item),actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
- const {data,error}=await supabase.from('control_executions').insert({id:executionId,assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
+ const {data,error}=await supabase.from('control_executions').insert({id:executionId,assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,result_text:payload.resultText?.trim()||null,checked_points:payload.checkedPoints?.trim()||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
  if(error){await removeExecutionEvidence(evidence);throw error}
  const {error:updateError}=await supabase.from('control_assignments').update({last_completed_at:now.toISOString(),next_due_at:calculateNextDue(record.frequency||{},now),status:'scheduled'}).eq('organization_id',organizationId).eq('id',assignment.dbId)
  if(updateError)throw updateError
  await removeControlDraft(organizationId,record,department)
  return mapExecution(data)
 }
+
+// A correction sets the result text and points checked only when it carries them
+// (removing an expiry item, for one, does not), so they are never wiped by accident.
+const executionTexts=payload=>({
+ ...('resultText' in payload?{result_text:payload.resultText?.trim()||null}:{}),
+ ...('checkedPoints' in payload?{checked_points:payload.checkedPoints?.trim()||null}:{}),
+})
 
 export async function updateControlExecution(organizationId,record,department,execution,payload={}){
  const assignment=record.assignments?.[department]
@@ -331,6 +457,7 @@ export async function updateControlExecution(organizationId,record,department,ex
    editReason:(payload.reason||'Correction after completion').trim(),
   }
   current.value_text=payload.value||null
+  Object.assign(current,executionTexts(payload))
   current.notes=payload.notes||null
   current.has_finding=Boolean(payload.hasFinding)
   saveControlExecutionsLocal(executions)
@@ -347,6 +474,7 @@ export async function updateControlExecution(organizationId,record,department,ex
  }
  const updatePayload={
   value_text:payload.value||null,
+  ...executionTexts(payload),
   response_data:responseData,
   notes:payload.notes||null,
   has_finding:Boolean(payload.hasFinding),

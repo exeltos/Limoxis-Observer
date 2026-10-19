@@ -23,7 +23,7 @@ import { useAuth } from '../../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../../core/audit/actor'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { useDepartments } from '../../management/useLibraries'
+import { libraryOptions, useDepartments, useLibraries } from '../../management/useLibraries'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { indicatorReport, periodOf, textOf } from '../../registers/registerEngine'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from '../../registers/registerText'
@@ -91,6 +91,9 @@ export function MeetingRecordPage() {
   const { goBack } = useContextualNavigation('/quality')
   const list = useMeetings()
   const { departments, loading: departmentsLoading } = useDepartments()
+  // Topics from the hospital's library (Management > Libraries > Committee and meeting topics).
+  const { libraries } = useLibraries()
+  const topicOptions = useMemo(() => libraryOptions(libraries.committeeTopics || [], language).map(option => ({ ...option, description: [option.description, (libraries.committeeTopics || []).find(item => item.value === option.value)?.meta?.category].filter(Boolean).join(' · ') || undefined })), [libraries.committeeTopics, language])
   const [meeting, setMeeting] = useState(null)
   const [tab, setTab] = useState('minutes')
   const [saving, setSaving] = useState(false)
@@ -162,6 +165,7 @@ export function MeetingRecordPage() {
               : <ChoiceField label={en ? 'Kind' : 'Είδος'} value={meeting.kind} options={MEETING_KINDS.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => set({ kind: value })} />}
           </FormGrid>
           <Field label={en ? 'Agenda' : 'Θέματα'}><textarea rows={3} value={meeting.agenda} disabled={locked} onChange={event => set({ agenda: event.target.value })} /></Field>
+          {!locked && topicOptions.length > 0 && <SearchableSelect label={en ? 'Add a topic from the library' : 'Προσθήκη θέματος από τη βιβλιοθήκη'} value="" options={topicOptions} onChange={value => { const item = (libraries.committeeTopics || []).find(entry => entry.value === value); if (item) set({ agenda: [String(meeting.agenda || '').trimEnd(), en ? item.en : item.el].filter(Boolean).join('\n') }) }} placeholder={en ? 'Choose a topic' : 'Επιλέξτε θέμα'} />}
         </FormCard>
         <FormCard wide icon={Gauge} title={en ? `Indicators · ${monthLabel(meeting.periodMonth, 'en')}` : `Δείκτες · ${monthLabel(meeting.periodMonth, 'el')}`} hint={indicators && !indicators.length ? (en ? 'The department has no register with indicators.' : 'Το τμήμα δεν έχει μητρώο με δείκτες.') : undefined}>
           {indicators === null ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div> : indicators.length > 0 && <>

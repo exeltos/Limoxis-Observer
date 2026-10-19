@@ -13,14 +13,14 @@ import {
   createClinicalCase,
   endAntimicrobialTherapy,
   endIsolation,
-  loadClinicalCases,
+  loadClinicalCase,
   loadClinicalCasesForPatient,
+  markIsolationNotRequired,
   recordTherapyAdministration,
   removeSurveillanceDevice,
   reopenClinicalCase,
   requestLaboratorySample,
   saveClinicalAssessment,
-  saveClinicalEvent,
   saveHaiClassification,
   setTherapyApproval,
   startIsolation,
@@ -63,8 +63,8 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
   async function loadCase(caseId){
     if(isDemo)return clone(getClinicalCase(caseId))
     if(!organizationId||!caseId)return null
-    const rows=await withAdmissionLinks(await loadClinicalCases(organizationId))
-    return rows.find(row=>String(row.id)===String(caseId))||null
+    const row=await loadClinicalCase(organizationId,caseId)
+    return row?(await withAdmissionLinks([row]))[0]:null
   }
   async function createCase(patient,draft){
     if(!isDemo){
@@ -103,7 +103,7 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     target.samples.unshift(sample);touch(target,actor,'samples',sample.id);return clone(sample)
   }
   async function setIsolationNotRequired(record){
-    if(!isDemo){await saveClinicalEvent(organizationId,record.recordId,'isolation_not_required',{required:false,detail:'no'});return null}
+    if(!isDemo){await markIsolationNotRequired(organizationId,record.recordId);return null}
     const target=demoRecord(clinicalCases[record.id]);target.isolation=null;target.isolationDecision={required:false,at:now(),by:actor?.name||'Demo user'}
     return touch(target,actor,'isolationNotRequired','no')
   }

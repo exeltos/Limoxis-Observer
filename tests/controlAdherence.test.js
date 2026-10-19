@@ -51,4 +51,9 @@ describe('control programme adherence', () => {
     expect(range.from.getDate()).toBe(1)
     expect(Math.round((now - periodRange('90d', now).from) / day)).toBe(90)
   })
+  it('uses the counts from the database instead of the loaded history', () => {
+    const rows = [{ item: { id: 'A', title: 'A', frequency: { kind: 'weekly', interval: 1 }, assignments: { ICU: { dbId: 'asg-1', history: [] } } }, departments: ['ICU'] }]
+    const { totals } = programmeAdherence(rows, { from: ago(28), to: now, now }, new Map([['asg-1', { performed: 3, onTime: 2 }]]))
+    expect(totals).toMatchObject({ expected: 4, performed: 3, onTime: 2, missed: 1, rate: 75 })
+  })
 })

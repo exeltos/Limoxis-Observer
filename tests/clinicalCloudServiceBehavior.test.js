@@ -15,6 +15,7 @@ function builder(table) {
     eq(column, value) { query.filters.push(['eq', column, value]); return chain },
     in(column, values) { query.filters.push(['in', column, values]); return chain },
     order() { return chain },
+    range() { return chain },
     maybeSingle() { query.single = true; return chain },
     single() { query.single = true; return chain },
     then(resolve, reject) { return Promise.resolve(respond(query)).then(resolve, reject) },
@@ -41,13 +42,14 @@ beforeEach(() => {
 })
 
 describe('creating a surveillance case', () => {
-  it('opens an active case and its surveillance-start event, both by the signed-in user', async () => {
-    await service.createClinicalCase('org-1', 'pat-1', { departmentId: 'dep-1', startedAt: '2026-10-01', reason: 'Πυρετός' })
+  it('opens an active case with what the start records, and its surveillance-start event, both by the signed-in user', async () => {
+    await service.createClinicalCase('org-1', 'pat-1', { departmentId: 'dep-1', startedAt: '2026-10-01', reason: 'Πυρετός', reviewDue: '2026-10-04', suspectedSource: 'urinary' })
     const [caseInsert] = writes('surveillance_cases', 'insert')
-    expect(caseInsert.payload).toMatchObject({ organization_id: 'org-1', patient_id: 'pat-1', department_id: 'dep-1', status: 'active', created_by: 'actor-1' })
+    expect(caseInsert.payload).toMatchObject({ organization_id: 'org-1', patient_id: 'pat-1', department_id: 'dep-1', status: 'active', created_by: 'actor-1',
+      reason: 'Πυρετός', reason_en: 'Πυρετός', review_due_on: '2026-10-04', suspected_source: 'urinary', room: null })
     const [event] = writes('surveillance_events', 'insert')
-    expect(event.payload).toMatchObject({ surveillance_case_id: 'surveillance_cases-new', event_type: 'surveillance_start', created_by: 'actor-1' })
-    expect(event.payload.payload).toMatchObject({ reason: 'Πυρετός', reasonEn: 'Πυρετός' })
+    expect(event.payload).toMatchObject({ surveillance_case_id: 'surveillance_cases-new', event_type: 'surveillance_start', detail: 'created', created_by: 'actor-1' })
+    expect(event.payload).not.toHaveProperty('payload')
   })
 
   it('accepts only an active department of the same organization', async () => {
