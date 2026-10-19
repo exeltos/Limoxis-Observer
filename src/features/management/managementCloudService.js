@@ -12,7 +12,7 @@ const isUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const toLibraryTuple=row=>[
   row.name_el,
   row.name_en||row.name_el,
-  {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.metadata?.jobDescription?{jobDescription:row.metadata.jobDescription}:{})},
+  {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.category?{category:row.category}:{}),...(row.metadata?.jobDescription?{jobDescription:row.metadata.jobDescription}:{})},
 ]
 
 // departments.department_type drives neonatal/paediatric logic (clinical scale
@@ -25,7 +25,7 @@ export async function loadManagementLibraries(organizationId){
   assertCloud(organizationId)
   const [{data:departments,error:departmentError},{data:items,error:itemError}]=await Promise.all([
     supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).eq('is_active',true).order('name'),
-    supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name_el'),
+    supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,category,metadata,source_authority,source_version,is_active').eq('organization_id',organizationId).eq('is_active',true).order('name_el'),
   ])
   if(departmentError) throw departmentError
   if(itemError) throw itemError

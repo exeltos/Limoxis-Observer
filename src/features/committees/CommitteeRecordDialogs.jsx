@@ -16,6 +16,7 @@ import { Head } from './CommitteeRecordSections'
 import { CommitteeMinutesDocument } from './CommitteeMinutesDocument'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useLibraries } from '../management/useLibraries'
 
 // Dialogs opened from the committee record page (CommitteeRecordPage.jsx).
 export function CommitteeDetailsDialog({ record, busy, onClose, onSave, en }) {
@@ -408,6 +409,9 @@ export function MeetingDialog({
   const [exporting, setExporting] = useState(false)
   const documentRef = useRef(null)
   const { notifyError } = useFeedback()
+  // Topic suggestions from the hospital's library (Management > Libraries).
+  const { libraries } = useLibraries()
+  const topicLibrary = libraries.committeeTopics || []
   const [v, setV] = useState(() =>
     meeting
       ? {
@@ -422,7 +426,7 @@ export function MeetingDialog({
   const attendance = (id, status) =>
     setV(s => ({
       ...s,
-      attendanceRecords: s.attendanceRecords.map(x => (x.memberId === id ? { ...x, status } : x)),
+      attendanceRecords: s.attendanceRecords.map(x => ((x.id || x.memberId) === id ? { ...x, status } : x)),
     }))
   const topic = (id, k, x) =>
     setV(s => ({ ...s, topics: s.topics.map(t => (t.id === id ? { ...t, [k]: x } : t)) }))
@@ -510,13 +514,13 @@ export function MeetingDialog({
             </thead>
             <tbody>
               {v.attendanceRecords.map(x => (
-                <tr key={x.memberId}>
+                <tr key={x.id || x.memberId}>
                   <td>{x.name}</td>
                   <td>
                     <select
                       disabled={!canSave || locked}
                       value={x.status}
-                      onChange={e => attendance(x.memberId, e.target.value)}
+                      onChange={e => attendance(x.id || x.memberId, e.target.value)}
                     >
                       <option value="not_recorded">—</option>
                       <option value="present">{en ? 'Present' : 'Παρόν'}</option>
@@ -567,6 +571,7 @@ export function MeetingDialog({
                 <span>{en ? 'Subject' : 'Θέμα'}</span>
                 <input
                   disabled={!canSave || locked}
+                  list={topicLibrary.length ? 'committee-topic-library' : undefined}
                   value={t.subject || ''}
                   onChange={e => topic(t.id, 'subject', e.target.value)}
                 />
@@ -583,6 +588,13 @@ export function MeetingDialog({
             </div>
           </div>
         ))}
+        {topicLibrary.length > 0 && (
+          <datalist id="committee-topic-library">
+            {topicLibrary.map(item => (
+              <option key={item.meta?.id || item.value} value={en ? item.en : item.el} label={item.meta?.category || undefined} />
+            ))}
+          </datalist>
+        )}
         {!v.topics.length && (
           <div className="inline-empty committee-topics-empty">
             {en

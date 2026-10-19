@@ -37,7 +37,7 @@ export function CommitteeMinutesDocument({ committeeName = '', minutes, en, docu
       {attendance.length ? (
         <table>
           <thead><tr><th>{L('Μέλος', 'Member')}</th><th>{L('Κατάσταση', 'Status')}</th></tr></thead>
-          <tbody>{attendance.map(x => <tr key={x.memberId}><td>{x.name}</td><td>{pick(ATTENDANCE, x.status || 'not_recorded')}</td></tr>)}</tbody>
+          <tbody>{attendance.map(x => <tr key={x.id || x.memberId}><td>{x.name}</td><td>{pick(ATTENDANCE, x.status || 'not_recorded')}</td></tr>)}</tbody>
         </table>
       ) : <p>—</p>}
       <h3>{L('Θέματα & συμπεράσματα', 'Agenda & conclusions')}</h3>

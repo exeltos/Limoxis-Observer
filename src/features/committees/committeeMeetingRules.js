@@ -10,11 +10,14 @@ export function quorumRequired(rule, votingCount) {
   return Math.floor(votingCount / 2) + 1
 }
 
-// One attendance row per member, keeping rows already recorded for a member.
-// Members are voting unless marked otherwise.
+// One attendance row per member, keeping rows already recorded for a member,
+// then the recorded attendees who are not members (for example minutes imported
+// from an earlier system, where only the names were kept). Members are voting
+// unless marked otherwise.
 export function attendanceFor(members, existing = []) {
-  const recorded = new Map(existing.map(row => [row.memberId, row]))
-  return members.map(member => recorded.get(member.id) || {
+  const recorded = new Map(existing.filter(row => row.memberId).map(row => [row.memberId, row]))
+  const guests = existing.filter(row => !row.memberId && row.name)
+  return [...members.map(member => recorded.get(member.id) || {
     id: `ATT-${member.id}`,
     memberId: member.id,
     memberDbId: member.dbId || null,
@@ -22,7 +25,7 @@ export function attendanceFor(members, existing = []) {
     name: member.name,
     voting: member.voting !== false,
     status: 'not_recorded',
-  })
+  }), ...guests]
 }
 
 // Quorum of a meeting from its attendance: `quorum` is null when the rule is

@@ -63,4 +63,10 @@ describe('attendanceFor', () => {
     const rows = attendanceFor(members, [kept, { memberId: 'GONE', status: 'present' }])
     expect(rows).toEqual([kept, { id: 'ATT-M2', memberId: 'M2', memberDbId: null, employeeDbId: null, name: 'B', voting: false, status: 'not_recorded' }])
   })
+
+  it('keeps recorded attendees who are not members after the members', () => {
+    const guest = { id: 'FM-ATT-1', memberId: null, name: 'C', status: 'present', voting: true }
+    const rows = attendanceFor([{ id: 'M1', name: 'A' }], [guest, { id: 'X', memberId: null, name: '', status: 'present' }])
+    expect(rows.map(row => row.id)).toEqual(['ATT-M1', 'FM-ATT-1'])
+  })
 })
