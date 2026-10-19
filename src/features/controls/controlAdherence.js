@@ -2,7 +2,11 @@
 // period, how many were recorded, how many met their due time, and how many
 // were missed. A schedule restarts from each completion (next due = completion
 // + interval), so "expected" is the nominal count for the period from the
-// frequency, not a replay of the due dates.
+// frequency, not a replay of the due dates. Which entries count and which were
+// on time follow the due rules (controlDueRules.executionMarks): the first N
+// entries of a day by their slot deadline; otherwise by the deadline the
+// previous entry set. Extra entries never count.
+import { executionMarks } from './controlDueRules'
 
 const HOUR = 3600000, DAY = 24 * HOUR
 
@@ -19,26 +23,16 @@ export function slotLength(frequency = {}) {
   return DAY * interval
 }
 
-// Late tolerance: a daily slot may run a couple of hours late, longer cycles a day.
-export function graceFor(frequency = {}) {
-  return frequency.kind === 'daily' ? 2 * HOUR : DAY
-}
-
 export function expectedOccurrences(frequency, from, to) {
   const span = new Date(to) - new Date(from)
   if (!(span > 0)) return 0
   return Math.floor(span / slotLength(frequency))
 }
 
-// Done and on-time executions of one assignment's history within [start, end].
+// Counted and on-time executions of one assignment's history within [start, end].
 export function countAdherence(history, frequency, start, end) {
-  const done = history.filter((row) => row.status !== 'cancelled' && !row.cancelledAt && row.at && new Date(row.at) >= start && new Date(row.at) <= end)
-  const grace = graceFor(frequency)
-  const onTime = done.filter((row) => {
-    const due = row.previousNextDueAt || row.responseData?.previousNextDueAt
-    return !due || new Date(row.at) - new Date(due) <= grace
-  })
-  return { performed: done.length, onTime: onTime.length }
+  const marks = executionMarks(history, frequency).filter((mark) => mark.counted && new Date(mark.at) >= start && new Date(mark.at) <= end)
+  return { performed: marks.length, onTime: marks.filter((mark) => mark.onTime).length }
 }
 
 // One assignment (control × department) over [from, to]. `counts`

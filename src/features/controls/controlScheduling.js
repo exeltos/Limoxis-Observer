@@ -1,3 +1,5 @@
+import { dueState,nextDeadlineAfter,periodBounds,periodProgress } from './controlDueRules'
+
 export function frequencyLabel(f={},language='el'){
  const en=language==='en'
  if(f.kind==='daily')return Number(f.timesPerDay||1)>1?(en?`${f.timesPerDay} times / day`:`${f.timesPerDay} φορές / ημέρα`):(en?'Daily':'Καθημερινά')
@@ -13,41 +15,40 @@ export function getAssignment(item,department){
  return assignments[department]??Object.values(assignments)[0]??null
 }
 
+// Overdue, due soon or scheduled, from the assignment's next_due_at (set by
+// the database with the rules in controlDueRules.js, deadlines included).
 export function assignmentStatus(item,department,now=new Date()){
  const assignment=getAssignment(item,department)
+ // An inactive control (a FileMaker one no longer carried out) is not due anywhere.
+ if(item?.status==='inactive')return 'paused'
  if(!assignment?.nextDueAt)return assignment?.status==='paused'?'paused':'scheduled'
- const diff=new Date(assignment.nextDueAt)-now
- if(diff<=0)return 'overdue'
- if(diff<=24*60*60*1000)return 'dueSoon'
- return 'scheduled'
+ return dueState(assignment.nextDueAt,item?.frequency,now)
 }
 
+// Something to record now: the current period still needs an entry (its
+// deadline falls within the period) or the control is overdue.
 export function isControlDue(item,department,now=new Date()){
  const assignment=getAssignment(item,department)
- return Boolean(assignment?.nextDueAt)&&new Date(assignment.nextDueAt)<=now
+ if(!assignment?.nextDueAt||item?.status==='inactive')return false
+ if(assignmentProgress(item,department,now)?.complete)return false
+ return new Date(assignment.nextDueAt)<periodBounds(item?.frequency||{},now).end
 }
 
-function nextDailySlot(f,from){
- const times=(f.times||['09:00']).filter(Boolean).slice().sort()
- const safeTimes=times.length?times:['09:00']
- const y=from.getFullYear(),m=String(from.getMonth()+1).padStart(2,'0'),d=String(from.getDate()).padStart(2,'0'),day=`${y}-${m}-${d}`
- for(const time of safeTimes){
-  const candidate=new Date(`${day}T${time}:00`)
-  if(candidate>from)return candidate.toISOString()
- }
- const tomorrow=new Date(from)
- tomorrow.setDate(tomorrow.getDate()+1)
- const yy=tomorrow.getFullYear(),mm=String(tomorrow.getMonth()+1).padStart(2,'0'),dd=String(tomorrow.getDate()).padStart(2,'0')
- return new Date(`${yy}-${mm}-${dd}T${safeTimes[0]}:00`).toISOString()
+// The current period's progress for one department: { required, done, extra,
+// complete }. The database counts it for the list (control_period_progress);
+// otherwise, and once the period has moved on, the loaded history is counted.
+export function assignmentProgress(item,department,now=new Date()){
+ const assignment=getAssignment(item,department)
+ if(!assignment)return null
+ const frequency=item?.frequency||{}
+ const counted=assignment.progress
+ const {start,unit}=periodBounds(frequency,now)
+ if(counted&&new Date(counted.start).getTime()===start.getTime())return {...counted,unit,complete:counted.done>=counted.required}
+ return periodProgress(frequency,assignment.history||[],now)
 }
 
+// A step of the schedule: the next deadline after `fromDate`.
 export function calculateNextDue(itemOrFrequency,fromDate=new Date()){
  const f=itemOrFrequency?.frequency||itemOrFrequency||{}
- if(f.kind==='daily')return nextDailySlot(f,fromDate)
- const d=new Date(fromDate)
- if(f.kind==='weekly')d.setDate(d.getDate()+7*(Number(f.interval)||1))
- else if(f.kind==='monthly')d.setMonth(d.getMonth()+(Number(f.interval)||1))
- else if(f.kind==='yearly')d.setFullYear(d.getFullYear()+(Number(f.interval)||1))
- else d.setDate(d.getDate()+(Number(f.interval)||1))
- return d.toISOString()
+ return nextDeadlineAfter(f,fromDate)
 }
