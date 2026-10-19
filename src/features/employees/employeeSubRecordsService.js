@@ -166,7 +166,7 @@ export async function loadVaccinationsAsync(organizationId, employeeDbId, employ
     .select('id,employee_id,vaccine_label_snapshot,dose,vaccination_date,lot_number,valid_until,status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
-    .order('vaccination_date', { ascending: false })
+    .order('vaccination_date', { ascending: false, nullsFirst: false })
   if (error) throw error
   return (data || []).map(vaccinationFromRow)
 }

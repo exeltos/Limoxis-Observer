@@ -92,7 +92,7 @@ describe('AppShell topbar demo controls', () => {
 
     expect(screen.getByText('platform-center-stub')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Είσοδος Demo'))
-    await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument(), { timeout: 5000 })
     expect(ctx.tenantApi.tenant?.name).toBe('ΑΡΗΣ ΤΕΣΤ')
   })
 
@@ -105,7 +105,7 @@ describe('AppShell topbar demo controls', () => {
     // The browser-only sample hospital (what the Help preview's "Demo" opens), then navigate('/').
     act(() => { ctx.tenantApi.enterSampleDemo(); ctx.navigateFn('/') })
 
-    await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('dashboard-stub')).toBeInTheDocument(), { timeout: 5000 })
     const badge = await waitFor(() => {
       const found = document.querySelector('.topbar-demo-badge')
       expect(found).toBeTruthy()

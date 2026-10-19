@@ -36,7 +36,7 @@ export async function loadAllVaccinationsAsync(organizationId){
     .from('employee_vaccinations')
     .select(COLUMNS)
     .eq('organization_id',organizationId)
-    .order('vaccination_date',{ascending:false})
+    .order('vaccination_date',{ascending:false,nullsFirst:false})
   if(error)throw error
   return (data||[]).map(fromRow)
 }

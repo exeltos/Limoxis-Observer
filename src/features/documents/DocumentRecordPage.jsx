@@ -72,6 +72,8 @@ const toDraft = (record) => ({
   effectiveDate: record?.effectiveDate || '',
   reviewDate: record?.reviewDate || '',
   description: record?.description || '',
+  protocolKind: record?.protocolKind || '',
+  clinicalArea: record?.clinicalArea || '',
 })
 
 function formatHistoryAction(item, en, statusLabels) {

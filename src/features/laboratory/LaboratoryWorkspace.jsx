@@ -37,7 +37,7 @@ export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo } = useTenant()
-  const { rows: repositoryRows, createSample: createRepositorySample } = useLaboratoryRegistry()
+  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, createSample: createRepositorySample } = useLaboratoryRegistry()
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
   const registry = useRegistryMemory('laboratory')
@@ -131,7 +131,7 @@ export function LaboratoryWorkspace() {
       </FilterBar>
       <RegistryTable wrapperRef={registry.scrollRef} className="lab-table" columns={[
         {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource')},{key:'result',label:t('result')},{key:'status',label:t('status')}
-      ]} rows={pagedRows} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples'} emptyText={filtered ? (language === 'el' ? 'Δεν βρέθηκαν εγγραφές με τα επιλεγμένα φίλτρα.' : 'No records match the selected filters.') : (language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Use “Create” to register the first sample.')} renderRow={sample => <>
+      ]} rows={pagedRows} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={samplesLoading ? (language === 'el' ? 'Φόρτωση δειγμάτων…' : 'Loading samples…') : samplesError ? (language === 'el' ? 'Τα δείγματα δεν φορτώθηκαν' : 'Samples could not be loaded') : (language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples')} emptyText={samplesLoading ? '' : samplesError ? (language === 'el' ? 'Ανανεώστε τη σελίδα ή δοκιμάστε ξανά σε λίγο.' : 'Refresh the page or try again shortly.') : filtered ? (language === 'el' ? 'Δεν βρέθηκαν εγγραφές με τα επιλεγμένα φίλτρα.' : 'No records match the selected filters.') : (language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Use “Create” to register the first sample.')} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
