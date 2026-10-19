@@ -225,7 +225,7 @@
 .training-assessment-toolbar{align-items:flex-start!important;gap:18px!important;padding-top:2px!important}
 .training-assessment-heading{display:grid!important;gap:4px!important;min-width:0!important}
 .training-assessment-heading .eyebrow{display:block!important;margin:0!important;line-height:1.2!important}
-.training-assessment-heading h3{margin:0!important;font-size:21px!important;line-height:1.2!important;color:var(--lo-color-text)!important;font-weight:800!important}
+.training-assessment-heading h3{margin:0!important;font-size:18px!important;line-height:1.2!important;color:var(--lo-color-text)!important;font-weight:800!important}
 .training-assessment-registry .open-record-cell{width:56px!important;text-align:right!important}
 .training-question-dialog .entry-grid{align-items:end!important}
 .training-question-dialog .training-required-toggle{

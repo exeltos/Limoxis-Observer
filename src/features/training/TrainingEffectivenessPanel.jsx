@@ -52,7 +52,7 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
   <div className="training-effectiveness-levels">
    <MetricCard icon={Smile} value={levels.satisfaction==null?'—':`${levels.satisfaction}/5`} label={en?`1 · Satisfaction (${levels.feedbackCount} answers)`:`1 · Ικανοποίηση (${levels.feedbackCount} απαντήσεις)`}/>
    <MetricCard icon={BookOpenCheck} value={levels.passRate==null?'—':`${levels.passRate}%`} label={en?`2 · Knowledge: passed${levels.averageScore==null?'':` · avg ${levels.averageScore}%`}`:`2 · Γνώσεις: επιτυχία${levels.averageScore==null?'':` · μ.ο. ${levels.averageScore}%`}`}/>
-   <MetricCard icon={Target} value={practice} label={en?'3 · Practice (evaluation)':'3 · Εφαρμογή στην πράξη'} tone={status==='effective'?'active':notMet||status==='overdue'?'danger':'neutral'}/>
+   <MetricCard textValue icon={Target} value={practice} label={en?'3 · Practice (evaluation)':'3 · Εφαρμογή στην πράξη'} tone={status==='effective'?'active':notMet||status==='overdue'?'danger':'neutral'}/>
   </div>
 
   <div className="entry-grid">
