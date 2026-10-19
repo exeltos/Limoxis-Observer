@@ -115,7 +115,8 @@ function readLocal(table,fallback){
   try{
     // Demo is ephemeral by design: refresh restores the canonical seed.
     // Mutations remain available only in the in-memory repository cache.
-    if(isDemoDataEnvironment())return demoFallback(table,cfg,fallback)
+    // The empty-hospital preview runs outside the Demo environment too (help frame): its records still start empty.
+    if(isDemoDataEnvironment()||(isEmptyPreview()&&SAMPLE_RECORD_TABLES.has(table)))return demoFallback(table,cfg,fallback)
     const scopedKey=localKey(cfg)
     const keys=[scopedKey,...(isDemoDataEnvironment()?[cfg.storageKey,...(cfg.legacyKeys||[])]:[])]
     const raw=keys.map(k=>localStorage.getItem(k)).find(Boolean)

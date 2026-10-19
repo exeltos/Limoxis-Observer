@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, ShieldCheck, Snowflake, Thermometer, Trash2, Undo2 } from 'lucide-react'
+import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, ShieldCheck, Snowflake, Thermometer, Trash2, Truck, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -19,7 +19,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { KitchenList, LimitBadge, matches, useKitchenActor } from './KitchenShared'
 import { limitText } from './kitchenLimits'
-import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, dayOf, defrostMethodLabel, fmtQty, fmtTemp, haccpReviewDue, pureeMethodLabel, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu, newProduction, newThermal, newDefrost, newPureeing } from './kitchenModel'
+import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, dayOf, newReceipt, defrostMethodLabel, fmtQty, fmtTemp, haccpReviewDue, pureeMethodLabel, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu, newProduction, newThermal, newDefrost, newPureeing } from './kitchenModel'
 import { kitchenErrorMessage, removeEntry, reopen, saveSettings, signOff } from './kitchenService'
 import { traceabilityDocument } from './kitchenReports'
 import { RecallOverviewCard } from './KitchenRecall'
@@ -99,7 +99,7 @@ export function StockNotes({ row, language }) {
 
 // --- Receipts -------------------------------------------------------------------------------
 
-export function ReceiptsPanel({ state, filters, setFilters }) {
+export function ReceiptsPanel({ state, access, onDialog, filters, setFilters }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -119,6 +119,7 @@ export function ReceiptsPanel({ state, filters, setFilters }) {
     </>}
     columns={[{ key: 'code', label: en ? 'Receipt' : 'Παραλαβή' }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'items', label: en ? 'Products' : 'Προϊόντα' }, { key: 'checks', label: en ? 'Checks' : 'Έλεγχοι' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }]}
     empty={!rows.length} emptyTitle={en ? 'No receipts' : 'Δεν υπάρχουν παραλαβές'} emptyText={en ? 'Every delivery is recorded here with its checks and products.' : 'Κάθε παράδοση καταγράφεται εδώ με τους ελέγχους και τα προϊόντα της.'}
+    emptyIcon={Truck} emptyAction={access?.canRecord && onDialog ? { label: en ? 'New receipt' : 'Νέα παραλαβή', icon: Plus, onClick: () => onDialog({ type: 'receipt', initial: newReceipt() }) } : null}
     rowProps={row => ({ className: 'registry-row-clickable', onClick: () => navigate(`/kitchen/receipts/${row.id}`) })}
     renderRow={row => { const bad = RECEIPT_CHECK_FIELDS.filter(item => row[item.field] === 'noncompliant'); return <>
       <td className="nowrap-cell"><strong>{row.code}</strong><small>{fmtDay(row.receivedOn)}{row.receivedTime ? ` · ${row.receivedTime}` : ''}</small></td>

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowRightLeft, LogOut, UsersRound } from 'lucide-react'
+import { Activity, ArrowRightLeft, LogOut, Plus, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
-import { CAPABILITIES } from '../../core/permissions/roles'
+import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -29,7 +29,7 @@ export function PatientsPage(){
   const {t,language}=useLanguage()
   const {notify}=useFeedback()
   const navigate=useNavigate()
-  const {canAccessRecord,tenant,isDemo}=useTenant()
+  const {canAccessRecord,tenant,isDemo,role,membership}=useTenant()
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
@@ -64,6 +64,7 @@ export function PatientsPage(){
   const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   const fmt=value=>formatDay(value,language)
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
+  const canCreate=can(role,CAPABILITIES.CREATE_PATIENT,membership?.capabilities??[],membership?.customCapabilities??[])
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)navigate('/patients/new')
   }
@@ -96,8 +97,12 @@ export function PatientsPage(){
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={statusTone(patient.status)}>{t(patient.status)}</StatusBadge></td></>}
-        emptyTitle={scopedPatients.length?t('svEmptyFiltered'):t('patientRegistryEmptyTitle')}
-        emptyText={scopedPatients.length?t('svEmptyFilteredHint'):t('patientRegistryEmptyDescription')}
+        emptyTitle={t('patientRegistryEmptyTitle')}
+        emptyText={t('patientRegistryEmptyDescription')}
+        emptyFiltered={scopedPatients.length>0}
+        onClearFilters={()=>{setQuery('');setDepartment('all');setStatus('all')}}
+        emptyIcon={UsersRound}
+        emptyAction={canCreate?{label:t('create'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
       />
       {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>

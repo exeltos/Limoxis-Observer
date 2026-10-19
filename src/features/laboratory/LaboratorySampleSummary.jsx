@@ -55,8 +55,9 @@ export function LaboratoryWorkflow({ steps, language, closedNote }) {
   return <section className="lab-record-card lab-workflow-card">
     <SectionHeader title={en ? 'Sample progress' : 'Πρόοδος δείγματος'} actions={<span className="lab-workflow-count">{done}/{applicable.length}</span>}/>
     <ol className="lab-workflow-steps">
-      {steps.map((step, index) => <li key={step.id} className={`lab-workflow-step is-${step.state}`}>
-        <span className="lab-workflow-marker">{step.state === 'done' ? <Check size={14}/> : step.state === 'na' ? <Minus size={14}/> : index + 1}</span>
+      {/* steps that do not apply carry no number, so the numbers run 1…N like the counter */}
+      {steps.map(step => <li key={step.id} className={`lab-workflow-step is-${step.state}`}>
+        <span className="lab-workflow-marker">{step.state === 'done' ? <Check size={14}/> : step.state === 'na' ? <Minus size={14}/> : applicable.indexOf(step) + 1}</span>
         <div><strong>{step.label}</strong><small>{step.meta || (step.state === 'na' ? (en ? 'Not required' : 'Δεν απαιτείται') : step.state === 'done' ? (en ? 'Completed' : 'Ολοκληρώθηκε') : (en ? 'Pending' : 'Εκκρεμεί'))}</small></div>
       </li>)}
     </ol>

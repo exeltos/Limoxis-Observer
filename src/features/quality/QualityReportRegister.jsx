@@ -17,6 +17,7 @@ import { REGISTER_SOURCES,filterRegister,registerCounts,registerRows } from './q
 import { INCIDENT_STAGES } from './qualityRecordRules'
 import { daysUntil } from './QualityGlance'
 import { REPORT_KINDS,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
+import { roleTitleText } from '../../core/i18n/roleTitles'
 
 // Two lists of the Quality Center: the reports people send, each at its stage
 // of the flow (report → assessment → CAPA → effectiveness → closed), and the
@@ -156,7 +157,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
      <td><StageTrack stage={row.stage} language={language}/></td>
-     <td>{row.owner||'—'}</td>
+     <td>{roleTitleText(row.owner,language)||'—'}</td>
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}

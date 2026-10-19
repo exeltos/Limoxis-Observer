@@ -1,3 +1,5 @@
+import { useTabStrip } from './useTabStrip'
+
 export function ModuleTabs({
   tabs=[],
   activeId,
@@ -5,7 +7,8 @@ export function ModuleTabs({
   className='',
   ariaLabel,
 }){
-  return <nav className={`tabs canonical-module-tabs ${className}`.trim()} role="tablist" aria-label={ariaLabel}>
+  const stripRef=useTabStrip(activeId)
+  return <nav ref={stripRef} className={`tabs canonical-module-tabs ${className}`.trim()} role="tablist" aria-label={ariaLabel}>
     {tabs.map(tab=>{
       const Icon=tab.icon
       const active=tab.id===activeId
