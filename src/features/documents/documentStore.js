@@ -16,7 +16,7 @@ const seed=[
     history:[{at:'2026-08-10T10:30:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'}]
   },
   {
-    id:'DOC-003',title:'Πρωτόκολλο Απομόνωσης Πολυανθεκτικών Παθογόνων',type:'protocol',department:'Όλο το νοσοκομείο',
+    id:'DOC-003',title:'Πρωτόκολλο Απομόνωσης Πολυανθεκτικών Παθογόνων',type:'protocol',protocolKind:'medical',clinicalArea:'Λοιμώξεις',department:'Όλο το νοσοκομείο',
     audience:'all',status:'review',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
     effectiveDate:'',reviewDate:'',description:'Κριτήρια και μέτρα προφύλαξης για ασθενείς με MDR/XDR παθογόνα.',
     attachments:[],createdAt:'2026-08-20T08:15:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-08-28T11:00:00.000Z',updatedBy:'Διαχειριστής Demo',
@@ -71,6 +71,17 @@ const seed=[
     history:[
       {at:'2024-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-007 · 1.0'},
       {at:'2026-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:published->archived',reason:'Αντικαταστάθηκε από νεότερες οδηγίες ΕΟΔΥ'}
+    ]
+  },
+  {
+    id:'DOC-008',title:'Πρόληψη και αντιμετώπιση αιμορραγίας μετά τον τοκετό',type:'protocol',protocolKind:'medical',clinicalArea:'Μαιευτική',department:'Μαιευτική',
+    audience:'department',status:'published',version:'1.0',owner:'Διευθυντής Μαιευτικής Κλινικής',
+    effectiveDate:'2026-02-01',reviewDate:'2028-02-01',description:'Ιατρικό πρωτόκολλο: εκτίμηση κινδύνου, ενεργητική διαχείριση τρίτου σταδίου και κλιμάκωση θεραπείας.',
+    attachments:[],publishedAt:'2026-02-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-02-01T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-02-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-008 · 1.0'}
     ]
   }
 ]

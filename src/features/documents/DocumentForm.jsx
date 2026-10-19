@@ -1,11 +1,12 @@
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { PROTOCOL_KINDS } from './protocolFields'
 
 export const DOCUMENT_TYPES={
  el:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},
  en:{policy:'Policy',procedure:'Procedure',instruction:'Instruction',form:'Form',protocol:'Protocol',other:'Other'},
 }
 
-export const createEmptyDocumentDraft=()=>({title:'',type:'policy',version:'0.1',departmentId:null,audience:'all',effectiveDate:'',reviewDate:'',description:''})
+export const createEmptyDocumentDraft=()=>({title:'',type:'policy',version:'0.1',departmentId:null,audience:'all',effectiveDate:'',reviewDate:'',description:'',protocolKind:'',clinicalArea:''})
 export const documentDraftIsValid=value=>Boolean(value?.title?.trim()&&value?.version?.trim()&&(!value?.effectiveDate||!value?.reviewDate||value.reviewDate>=value.effectiveDate))
 
 export function DocumentForm({value,onChange,language='el',departments=[],ownerName='',showOwner=true,showAttachmentHint=false,autoFocus=false,readOnly=false,allowVersionEdit=false}){
@@ -14,6 +15,8 @@ export function DocumentForm({value,onChange,language='el',departments=[],ownerN
   <label className="field entry-span-2"><span>{en?'Title *':'Τίτλος *'}</span><input autoFocus={autoFocus} value={v.title||''} disabled={readOnly} onChange={e=>set('title',e.target.value)}/></label>
   <label className="field"><span>{en?'Type':'Τύπος'}</span><select value={v.type||'policy'} disabled={readOnly} onChange={e=>set('type',e.target.value)}>{Object.entries(types).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
   <label className="field"><span>{en?'Version *':'Έκδοση *'}</span><input value={v.version||''} disabled={readOnly||!allowVersionEdit} onChange={e=>set('version',e.target.value)} placeholder="1.0"/>{!readOnly&&!allowVersionEdit&&<small>{en?'Version is controlled by the document lifecycle.':'Η έκδοση ελέγχεται από τον κύκλο ζωής του εγγράφου.'}</small>}</label>
+  {v.type==='protocol'&&<label className="field"><span>{en?'Protocol kind':'Είδος πρωτοκόλλου'}</span><select value={v.protocolKind||''} disabled={readOnly} onChange={e=>set('protocolKind',e.target.value)}><option value="">{en?'Not specified':'Χωρίς είδος'}</option>{Object.entries(PROTOCOL_KINDS[language]||PROTOCOL_KINDS.el).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>}
+  {v.type==='protocol'&&<label className="field"><span>{en?'Clinical area':'Κλινικό πεδίο'}</span><input value={v.clinicalArea||''} disabled={readOnly} maxLength={120} onChange={e=>set('clinicalArea',e.target.value)} placeholder={en?'e.g. Obstetrics':'π.χ. Μαιευτική'}/></label>}
   <label className="field"><span>{en?'Department / scope':'Τμήμα / πεδίο εφαρμογής'}</span><select value={v.departmentId||departments.find(d=>d.name===v.department)?.id||''} disabled={readOnly} onChange={e=>{const id=e.target.value||null;onChange?.({...v,departmentId:id,department:departments.find(d=>d.id===id)?.name||''})}}><option value="">{en?'Whole hospital / not specified':'Όλο το νοσοκομείο / χωρίς συγκεκριμένο τμήμα'}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
   {showOwner&&<label className="field document-owner-field"><span>{en?'Owner':'Υπεύθυνος'}</span><div className="document-owner-value">{ownerName||'—'}</div><small>{en?'Recorded automatically from the signed-in user.':'Καταγράφεται αυτόματα από τον συνδεδεμένο χρήστη.'}</small></label>}
   <ManualDateField className="field" label={en?'Effective date':'Ημερομηνία ισχύος'} value={v.effectiveDate||''} onChange={x=>!readOnly&&set('effectiveDate',x)} optional disabled={readOnly}/>
