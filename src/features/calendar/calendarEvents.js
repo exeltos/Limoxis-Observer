@@ -3,6 +3,7 @@
 // detail, department, path, state }. state is 'overdue', 'due' or 'planned'.
 import { calculateNextDue } from '../controls/controlScheduling'
 import { suggestionCalendarItems } from '../documents/protocolReview/protocolReviewModel'
+import { standardShort } from '../quality/audits/auditStandards'
 
 export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees','suppliers']
 
@@ -86,7 +87,8 @@ function capaEvents(capas,range,today,list,en){
 function auditEvents(audits,range,today,list,en){
  for(const audit of audits){
   if(audit.lifecycleStatus==='voided'||['completed','cancelled'].includes(audit.status))continue
-  push(list,{id:`audit:${audit.id}`,kind:'audits',date:toDay(audit.plannedDate),title:en?audit.titleEn||audit.title:audit.title,detail:audit.leadAuditor||'',department:'',path:`/quality/audits/${audit.id}`,state:stateOf(toDay(audit.plannedDate),today)},range)
+  // A planned audit of the programme: its standard and lead auditor, its department.
+  push(list,{id:`audit:${audit.id}`,kind:'audits',date:toDay(audit.plannedDate),title:en?audit.titleEn||audit.title:audit.title,detail:[audit.standard&&standardShort(audit.standard),audit.leadAuditor,audit.plannedMonthOnly&&(en?'day to be fixed':'η ημέρα θα οριστεί')].filter(Boolean).join(' · '),department:audit.department||'',path:`/quality/audits/${audit.id}`,state:stateOf(toDay(audit.plannedDate),today)},range)
  }
 }
 

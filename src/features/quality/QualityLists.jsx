@@ -1,19 +1,21 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,Plus,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
+import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,Grid3X3,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,Plus,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { SubTabs } from '../../design-system/SubTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Meter,meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
 import { readRegistryViewState,writeRegistryViewState } from '../../core/navigation/useRegistryMemory'
-import { AUDIT_TYPES,CAPA_TYPES,qualityCode,qualityStatusTone,vocabularyLabel } from './qualityVocabulary'
+import { CAPA_TYPES,qualityCode,qualityStatusTone,vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
 import { subActionProgress } from './qualityDeviations'
 import { AuditProgramme } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
+import { AuditCoverage,AuditDashboard } from './audits/AuditViews'
+import { AUDIT_KINDS,AUDIT_STANDARDS,standardShort } from './audits/auditStandards'
 
 // The two record lists of the Quality Center that are not the reports register:
 // the corrective actions (with the findings still waiting for one), and the audits.
@@ -159,6 +161,7 @@ export function filterAudits(rows,filters,en){
  return rows.filter(row=>matches(row,filters.query))
   .filter(row=>filters.status==='all'||row.status===filters.status)
   .filter(row=>filters.type==='all'||(row.auditType||'internal')===filters.type)
+  .filter(row=>!filters.standard||filters.standard==='all'||(row.standard||'other')===filters.standard)
   .filter(row=>filters.department==='all'||departmentOf(row,en)===filters.department)
   .filter(row=>!filters.quick||AUDIT_QUICK[filters.quick]?.(row)!==false)
 }
@@ -170,33 +173,46 @@ export function auditCounts(rows){
  return {...Object.fromEntries(Object.entries(AUDIT_QUICK).map(([id,test])=>[id,rows.filter(test).length])),compliance:done.length?Math.round(done.reduce((sum,score)=>sum+score.rate,0)/done.length):null}
 }
 
-// The audits as a list or as the year's programme; the switch sits in the filter row.
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null}){
+// The audits as the year's programme (departments × months), a list, the
+// clause coverage of a standard and the dashboard; the filters apply to all four.
+const AUDIT_VIEWS=[
+ {id:'programme',icon:CalendarDays,label:['Πρόγραμμα','Programme']},
+ {id:'list',icon:ListChecks,label:['Λίστα','List']},
+ {id:'coverage',icon:Grid3X3,label:['Κάλυψη άρθρων','Clause coverage']},
+ {id:'dashboard',icon:BarChart3,label:['Πίνακας','Dashboard']},
+]
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[]}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
  const paging=usePaging(filtered,JSON.stringify(filters))
  const statuses=[...new Set(rows.map(row=>row.status).filter(Boolean))]
  const departments=[...new Set(rows.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
- const advanced=['status','type','department'].filter(key=>filters[key]!=='all').length
- const mode=<ModeSwitch ariaLabel={en?'View':'Προβολή'} value={filters.mode} onChange={value=>set('mode',value)} options={[{value:'list',label:en?'List':'Λίστα',icon:ListChecks},{value:'programme',label:en?'Year programme':'Πρόγραμμα έτους',icon:CalendarDays}]}/>
+ const advanced=['status','type','department','standard'].filter(key=>filters[key]&&filters[key]!=='all').length
+ const mode=AUDIT_VIEWS.some(item=>item.id===filters.mode)?filters.mode:'programme'
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()} end={mode}>
+  <SubTabs className="audit-view-tabs" ariaLabel={en?'View':'Προβολή'} activeId={mode} onChange={value=>set('mode',value)} tabs={AUDIT_VIEWS.map(item=>({id:item.id,icon:item.icon,label:item.label[en?1:0]}))}/>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}>
+   <FilterSelect label={en?'Standard':'Πρότυπο'} value={filters.standard||'all'} onChange={value=>set('standard',value)}><option value="all">{t('all')}</option>{AUDIT_STANDARDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
-   <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_TYPES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
-  {filters.mode==='programme'?<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan}/>:<>
+  {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan}/>}
+  {mode==='coverage'&&<AuditCoverage audits={filtered} language={language}/>}
+  {mode==='dashboard'&&<AuditDashboard audits={filtered} findings={findings} language={language}/>}
+  {mode==='list'&&<>
    <div className="scroll-table" ref={registry.scrollRef}>
     <RegistryTable bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={()=>clear()}
-     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}]}
-     emptyTitle={en?'No audits':'Δεν υπάρχουν επιθεωρήσεις'} emptyText={en?'Plan the year’s audits; each «No» on the checklist becomes a finding.':'Προγραμματίστε τις επιθεωρήσεις του έτους· κάθε «Όχι» στη λίστα ελέγχου γίνεται εύρημα.'}
+     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'standard',label:en?'Standard':'Πρότυπο'},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}]}
+     emptyTitle={en?'No audits':'Δεν υπάρχουν επιθεωρήσεις'} emptyText={en?'Plan the year’s audits on a questionnaire; each «Partial» or «Nonconformity» becomes a finding.':'Προγραμματίστε τις επιθεωρήσεις του έτους με ερωτηματολόγιο· κάθε «Μερική» ή «Μη συμμόρφωση» γίνεται εύρημα.'}
      rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,filtered)})}
      renderRow={row=>{const score=auditCompliance(row);return <>
       <td><strong>{qualityCode(row,language)}</strong></td>
       <td>{titleOf(row,en)}{departmentOf(row,en)&&<small>{departmentOf(row,en)}</small>}</td>
-      <td>{vocabularyLabel(AUDIT_TYPES,row.auditType||'internal',language)}</td>
-      <td className={`nowrap-cell${AUDIT_QUICK.overdue(row)?' quality-overdue':''}`}>{formatDay(row.plannedDate,language)||'—'}{AUDIT_QUICK.overdue(row)&&<small>{en?'Overdue':'Εκπρόθεσμη'}</small>}</td>
+      <td className="nowrap-cell">{row.standard?standardShort(row.standard):'—'}{row.clausesScope?.length>0&&<small>{row.clausesScope.join(', ')}</small>}</td>
+      <td>{vocabularyLabel(AUDIT_KINDS,row.auditType||'internal',language)}</td>
+      <td className={`nowrap-cell${AUDIT_QUICK.overdue(row)?' quality-overdue':''}`}>{row.plannedMonthOnly?new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short',year:'numeric'}).format(new Date(`${String(row.plannedDate).slice(0,7)}-15T12:00:00Z`)):formatDay(row.plannedDate,language)||'—'}{AUDIT_QUICK.overdue(row)&&<small>{en?'Overdue':'Εκπρόθεσμη'}</small>}</td>
       <td className="quality-compliance-cell">{score.rate==null?'—':<><strong>{score.rate}%</strong><Meter value={score.rate} tone={meterTone(score.rate)} label={`${en?'Compliance':'Συμμόρφωση'} ${score.rate}%`}/></>}{row.openFindings>0&&<small className="quality-overdue-text">{en?`${row.openFindings} open ${row.openFindings===1?'finding':'findings'}`:`${row.openFindings} ${row.openFindings===1?'ανοιχτό εύρημα':'ανοιχτά ευρήματα'}`}</small>}</td>
       <td>{row.leadAuditor||'—'}</td>
       <td><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge></td>

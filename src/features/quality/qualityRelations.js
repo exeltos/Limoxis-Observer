@@ -105,14 +105,22 @@ export function progressRow(entry = {}) {
 
 // --- Audit checklist ---------------------------------------------------------------------------
 
-export const CHECKLIST_SELECT = 'checklist:quality_audit_checklist_items(*,finding:quality_findings(code))'
-export const CHECKLIST_FIELDS = ['position', 'item', 'item_en', 'required', 'answer', 'note', 'finding_id']
+export const CHECKLIST_SELECT = 'checklist:quality_audit_checklist_items(*,finding:quality_findings!quality_audit_checklist_items_finding_id_organization_id_fkey(code))'
+export const CHECKLIST_FIELDS = ['position', 'item', 'item_en', 'required', 'answer', 'result', 'note', 'finding_id', 'template_question_id', 'chapter_ref', 'chapter_title', 'clause_ref', 'guidance', 'evidence_required', 'evidence', 'weight', 'critical', 'finding_class', 'ad_hoc']
+const ANSWERS = ['yes', 'partial', 'no', 'na']
+const CLASSES = ['major', 'minor', 'observation', 'opportunity']
 
-// A checklist row as ChecklistAnswers shows it; a «No» that became a finding names its code.
+// A checklist row as the audit shows it; an answer that became a finding names its code.
 export function checklistFromRows(rows) {
   return [...(rows || [])].sort(byPosition).map(row => {
     const findingId = single(row.finding)?.code || ''
-    return { id: row.id, item: row.item || '', itemEn: row.item_en || row.item || '', required: row.required !== false, answer: row.answer || '', note: row.note || '', ...(findingId ? { findingId } : {}) }
+    return {
+      id: row.id, item: row.item || '', itemEn: row.item_en || row.item || '', required: row.required !== false, answer: row.result || row.answer || '', note: row.note || '',
+      templateQuestionId: row.template_question_id || null, chapterRef: row.chapter_ref || '', chapterTitle: row.chapter_title || '', clauseRef: row.clause_ref || '',
+      guidance: row.guidance || '', evidenceRequired: row.evidence_required || '', evidence: row.evidence || '', weight: Number(row.weight) || 1, critical: Boolean(row.critical),
+      findingClass: row.finding_class || '', adHoc: Boolean(row.ad_hoc),
+      ...(findingId ? { findingId } : {}),
+    }
   })
 }
 
@@ -120,7 +128,24 @@ export function checklistFromRows(rows) {
 export function checklistRows(checklist = [], findingIds = new Map()) {
   return checklist.filter(row => String(row?.item || '').trim()).map((row, index) => ({
     id: rowId(row.id), position: index + 1, item: String(row.item).trim(), item_en: text(row.itemEn) && text(row.itemEn) !== String(row.item).trim() ? text(row.itemEn) : null,
-    required: row.required !== false, answer: ['yes', 'no', 'na'].includes(row.answer) ? row.answer : null, note: text(row.note),
+    // result holds the four values; answer keeps yes / no / na for the earlier readers.
+    required: row.required !== false, answer: ['yes', 'no', 'na'].includes(row.answer) ? row.answer : null, result: ANSWERS.includes(row.answer) ? row.answer : null, note: text(row.note),
     finding_id: row.findingId ? findingIds.get(row.findingId) || null : null,
+    template_question_id: isUuid(row.templateQuestionId) ? row.templateQuestionId : null,
+    chapter_ref: text(row.chapterRef), chapter_title: text(row.chapterTitle), clause_ref: text(row.clauseRef),
+    guidance: text(row.guidance), evidence_required: text(row.evidenceRequired), evidence: text(row.evidence),
+    weight: Number(row.weight) > 0 ? Number(row.weight) : 1, critical: Boolean(row.critical),
+    finding_class: CLASSES.includes(row.findingClass) ? row.findingClass : null, ad_hoc: Boolean(row.adHoc),
+  }))
+}
+
+// --- Audit team ----------------------------------------------------------------------------------
+
+export const TEAM_FIELDS = ['position', 'role', 'employee_id', 'full_name', 'is_external', 'affiliation']
+export const teamFromRows = rows => [...(rows || [])].sort(byPosition).map(row => ({ id: row.id, role: row.role || 'member', employeeId: row.employee_id || null, name: row.full_name || '', external: Boolean(row.is_external), affiliation: row.affiliation || '', departmentId: single(row.employee)?.department_id || null, department: single(row.employee)?.department_name || '' }))
+export function teamRows(team = []) {
+  return team.filter(member => String(member?.name || '').trim()).map((member, index) => ({
+    id: rowId(member.id), position: index + 1, role: ['lead', 'member', 'expert', 'observer'].includes(member.role) ? member.role : 'member',
+    employee_id: !member.external && isUuid(member.employeeId) ? member.employeeId : null, full_name: String(member.name).trim(), is_external: Boolean(member.external), affiliation: text(member.affiliation),
   }))
 }

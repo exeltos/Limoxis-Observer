@@ -66,7 +66,7 @@ const RESOURCE_OPTIONS=[
  {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
-const AUDIT_DEFAULTS={query:'',status:'all',type:'all',department:'all',mode:'programme',quick:null}
+const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',mode:'programme',quick:null}
 const STALE_DAYS=45
 // A review's decisions still open, and those past their due date.
 const openDecisions=review=>(review.actions||[]).filter(action=>action.status==='open')
@@ -287,6 +287,7 @@ export function QualityPage(){
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και το εύρημα ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and the finding to the corrective action, the objectives and the management review.')}
   actions={<div className="row-actions">
    {download}
+   {tab==='audits'&&<ActionButton label={L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires')} tone="neutral" onClick={()=>{remember();goTo('/quality/audit-questionnaires')}}><ListChecks size={17}/><span>{L('Ερωτηματολόγια','Questionnaires')}</span></ActionButton>}
    {tab==='reports'&&canReportIncident&&<ActionButton label={L('Οι αναφορές συμβάντων μου','My incident reports')} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{L('Οι αναφορές μου','My reports')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
@@ -307,7 +308,7 @@ export function QualityPage(){
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>}
    {tab==='audits'&&<AuditsList rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}
-    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null}/>}
+    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} findings={records.data.findings}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>

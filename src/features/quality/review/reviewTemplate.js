@@ -2,6 +2,8 @@
 // the hospital's minutes form. Each section can take a summary of what
 // Limoxis already holds for the period (reports, corrective actions, audits,
 // objectives), so the minutes start from the facts instead of a blank page.
+import { auditReviewSummary } from '../audits/auditModel'
+import { standardShort } from '../audits/auditStandards'
 
 export const REVIEW_SECTIONS = [
   { key: 'previous_actions', title: 'Ανασκόπηση Ενεργειών Προηγούμενων Συνεδριάσεων', titleEn: 'Actions from previous reviews', source: 'previousActions' },
@@ -88,6 +90,10 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
   }
   if (source === 'audits') {
     lines.push(en ? `${audits.length} audits in the period, ${count(audits, row => row.status === 'completed')} completed.` : `${audits.length} επιθεωρήσεις στην περίοδο, ${count(audits, row => row.status === 'completed')} ολοκληρωμένες.`)
+    // The audit programme's results: compliance per standard and the findings by class.
+    const summary = auditReviewSummary(data.audits || [], data.findings || [], day => inPeriod(day, period))
+    for (const entry of summary.standards) lines.push(en ? `${standardShort(entry.standard)}: ${entry.audits} audits (${entry.completed} completed), average compliance ${entry.rate == null ? '—' : `${entry.rate}%`}.` : `${standardShort(entry.standard)}: ${entry.audits} επιθεωρήσεις (${entry.completed} ολοκληρωμένες), μέση συμμόρφωση ${entry.rate == null ? '—' : `${entry.rate}%`}.`)
+    if (summary.total) lines.push(en ? `Audit findings: ${summary.findings.major} major, ${summary.findings.minor} minor, ${summary.findings.observation} observations, ${summary.findings.opportunity} opportunities for improvement; ${summary.open} still open.` : `Ευρήματα επιθεωρήσεων: ${summary.findings.major} μείζονα, ${summary.findings.minor} ελάσσονα, ${summary.findings.observation} παρατηρήσεις, ${summary.findings.opportunity} ευκαιρίες βελτίωσης· ${summary.open} παραμένουν ανοιχτά.`)
   }
   if (source === 'objectives' || source === 'registers') {
     if (!objectives.length) lines.push(en ? 'No quality objectives are recorded yet.' : 'Δεν έχουν καταχωριστεί ακόμη στόχοι ποιότητας.')
