@@ -1,3 +1,4 @@
+import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { patientDemoData, demoAdmissionsForPatient } from './patientDemoData'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
@@ -31,11 +32,8 @@ function mapRow(row, departmentLabel){
 export async function loadPatients(organizationId, {isDemo=false,includeArchived=false}={}){
   if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
   // Reports need archived patients too: their past isolates still count.
-  let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId)
-  if(!includeArchived)query=query.is('archived_at',null)
-  const {data,error}=await query.order('admission_date',{ascending:false})
-  if(error) throw error
-  return (data??[]).map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
+  const data=await selectAllPages(()=>{let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId);if(!includeArchived)query=query.is('archived_at',null);return query.order('admission_date',{ascending:false}).order('id',{ascending:true})})
+  return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
 }
 
 async function resolveDepartment(organizationId, departmentId){
@@ -135,7 +133,7 @@ export async function loadAdmissions(patientOrRecordId, {isDemo=false}={}){
   const rows=data??[]
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
   if(!departmentIds.length) return rows.map(row=>mapAdmission(row,''))
-  const {data:departments,error:departmentError}=await supabase.from('departments').select('id,name,department_type').in('id',departmentIds)
+  const {data:departments,error:departmentError}=await selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name,department_type').in('id',ids))
   if(departmentError) throw departmentError
   const departmentById=new Map((departments??[]).map(department=>[department.id,department]))
   return rows.map(row=>mapAdmission(row,departmentById.get(row.department_id)?.name||'',departmentById.get(row.department_id)?.department_type))

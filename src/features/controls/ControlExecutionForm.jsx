@@ -94,7 +94,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
   const storedValue=mode==='checklist'?checklistSummary(rows):value
   return {value:storedValue,resultText,checkedPoints,notes,structuredData:structured?{template,rows:cleanRows}:null,hasFinding,actor,evidenceFiles:evidence}
  }
- const printDraft=()=>printControlForm({record,department,execution:{at:initialExecution?.at||new Date().toISOString(),value,notes,structuredData:structured?{template,rows}:null,by:actor.name},actorName:actor.name})
+ const printDraft=()=>printControlForm({record,department,execution:{at:initialExecution?.at||new Date().toISOString(),value,resultText,checkedPoints,notes,structuredData:structured?{template,rows}:null,by:actor.name},actorName:actor.name})
  return {en,language,actor,assignment,response,mode,answers,libraries,expiryControl,structured,isEditing,value,setValue,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,rows,setRows,setRow,addRow,removeRow,evidence,setEvidence,evidenceRequired,outOfRange,hasFinding,valid,history,draftSaved,draftSaving,persistDraft,payload,printDraft}
 }
 

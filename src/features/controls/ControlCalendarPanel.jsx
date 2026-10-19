@@ -33,17 +33,18 @@ export function calendarCellText(cell, en) {
 
 // The year's month counts per assignment, counted in the database (null in the demo).
 function useCalendarMonths(organizationId, year, refreshKey) {
-  const [state, setState] = useState({ key: '', months: null })
+  const [state, setState] = useState({ key: '', months: null, failed: false })
   const key = `${organizationId || ''}|${year}`
   useEffect(() => {
     if (!organizationId) return undefined
     let active = true
     loadControlCalendarMonths(organizationId, year)
-      .then((months) => { if (active) setState({ key, months }) })
-      .catch(() => { if (active) setState({ key, months: new Map() }) })
+      .then((months) => { if (active) setState({ key, months, failed: false }) })
+      // A failed read is not a year with nothing done: the calendar says it could not load.
+      .catch(() => { if (active) setState({ key, months: null, failed: true }) })
     return () => { active = false }
   }, [organizationId, year, key, refreshKey])
-  return state.key === key ? state.months : null
+  return state.key === key ? state : { months: null, failed: false }
 }
 
 export function useControlCalendarReport(rows, tx, language, organizationId, refreshKey) {
@@ -52,25 +53,28 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [exporting, setExporting] = useState(false)
   const reportRef = useRef(null)
-  const monthsByAssignment = useCalendarMonths(organizationId, year, refreshKey)
-  const lines = useMemo(() => programmeCalendar(rows, year, new Date(), monthsByAssignment), [rows, year, monthsByAssignment])
+  const { months: monthsByAssignment, failed } = useCalendarMonths(organizationId, year, refreshKey)
+  const lines = useMemo(() => (failed ? [] : programmeCalendar(rows, year, new Date(), monthsByAssignment)), [rows, year, monthsByAssignment, failed])
+  const loadFailedText = en ? 'The calendar could not be loaded. Try again.' : 'Δεν ήταν δυνατή η φόρτωση του ημερολογίου. Δοκιμάστε ξανά.'
   const months = MONTHS[en ? 'en' : 'el']
   const title = (item) => (en ? item.titleEn || item.title : item.title)
 
   function exportCsv() {
+    if (failed) { notify(loadFailedText, 'danger'); return }
     downloadCsv(`${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}.csv`,
       [en ? 'Control' : 'Έλεγχος', en ? 'Department' : 'Τμήμα', en ? 'Frequency' : 'Συχνότητα', ...months],
       lines.map((line) => [title(line.item), line.department, frequencyLabel(line.item.frequency, language), ...line.months.map((cell) => calendarCellText(cell, en))]))
   }
   async function exportPdf() {
     if (exporting || !reportRef.current) return
+    if (failed) { notify(loadFailedText, 'danger'); return }
     setExporting(true)
     try { await exportElementAsPdf({ element: reportRef.current, filename: `${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}`, orientation: 'landscape' }) }
     catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
     finally { setExporting(false) }
   }
 
-  return { year, setYear, lines, months, reportRef, exporting, exportCsv, exportPdf, tx }
+  return { year, setYear, lines, months, reportRef, exporting, exportCsv, exportPdf, tx, failed, loadFailedText }
 }
 
 function FrequentCell({ cell }) {
@@ -101,7 +105,7 @@ function YearSummary({ summary, tx }) {
 
 export function ControlCalendarPanel({ report, language, onOpen }) {
   const en = language === 'en'
-  const { year, lines, months, reportRef, tx } = report
+  const { year, lines, months, reportRef, tx, failed, loadFailedText } = report
   const now = new Date()
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const groups = useMemo(() => groupCalendarLines(lines), [lines])
@@ -143,8 +147,8 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
       columns={[{ key: 'name', label: en ? 'Control' : 'Έλεγχος', className: 'control-calendar-name' }, ...months.map((label, month) => ({ key: label, label, className: isCurrent(month) ? 'current' : undefined })), { key: 'total', label: year, className: 'control-calendar-total' }]}
       rows={shownGroups.flatMap((group) => group.lines.length === 1 ? [{ key: group.item.id, line: group.lines[0], member: false }] : [{ key: `${group.item.id}-group`, group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, line, member: true }))])}
       rowKey={(entry) => entry.key}
-      emptyTitle={lines.length ? undefined : tx.noCalendar}
-      emptyText={en ? 'Change the year or the search.' : 'Αλλάξτε το έτος ή την αναζήτηση.'}
+      emptyTitle={failed ? loadFailedText : lines.length ? undefined : tx.noCalendar}
+      emptyText={failed ? undefined : en ? 'Change the year or the search.' : 'Αλλάξτε το έτος ή την αναζήτηση.'}
       renderRow={(entry) => entry.group
         ? <tr className="control-calendar-group" onClick={() => onOpen?.(entry.group.item)}>
             <td colSpan={14} className="control-calendar-group-title"><strong>{title(entry.group.item)}</strong><small>{frequencyLabel(entry.group.item.frequency, language)} · {en ? `${entry.group.lines.length} departments` : `${entry.group.lines.length} τμήματα`}</small></td>

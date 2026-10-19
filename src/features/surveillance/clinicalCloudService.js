@@ -1,3 +1,4 @@
+import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
@@ -435,58 +436,55 @@ async function hydrateCases(caseRows) {
     outcomesResult,
     devicesResult,
   ] = await Promise.all([
-    supabase
-      .from('patients')
-      .select('id,patient_code,first_name,last_name,date_of_birth,admission_date,status')
-      .in('id', patientIds),
-    departmentIds.length
-      ? supabase.from('departments').select('id,name').in('id', departmentIds)
-      : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from('surveillance_events')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('clinical_assessments')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('assessed_at', { ascending: false }),
-    supabase
-      .from('hai_classifications')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('classified_at', { ascending: false }),
-    supabase
-      .from('laboratory_samples')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('requested_at', { ascending: false, nullsFirst: false }),
-    supabase
-      .from('antimicrobial_therapies')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('started_at', { ascending: false }),
-    supabase
-      .from('isolation_episodes')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('started_at', { ascending: false }),
-    supabase
-      .from('surveillance_reassessments')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('reassessed_at', { ascending: false }),
-    supabase
-      .from('surveillance_outcomes')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('occurred_at', { ascending: false }),
-    supabase
-      .from('surveillance_devices')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('inserted_at', { ascending: false, nullsFirst: false }),
+    selectInChunks(patientIds, ids =>
+      supabase.from('patients').select('id,patient_code,first_name,last_name,date_of_birth,admission_date,status').in('id', ids),
+    ),
+    selectInChunks(departmentIds, ids => supabase.from('departments').select('id,name').in('id', ids)),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('surveillance_events').select('*').in('surveillance_case_id', ids).order('created_at', { ascending: false }),
+      { order: [['created_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('clinical_assessments').select('*').in('surveillance_case_id', ids).order('assessed_at', { ascending: false }),
+      { order: [['assessed_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('hai_classifications').select('*').in('surveillance_case_id', ids).order('classified_at', { ascending: false }),
+      { order: [['classified_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('laboratory_samples').select('*').in('surveillance_case_id', ids).order('requested_at', { ascending: false, nullsFirst: false }),
+      { order: [['requested_at', { ascending: false, nullsFirst: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('antimicrobial_therapies').select('*').in('surveillance_case_id', ids).order('started_at', { ascending: false }),
+      { order: [['started_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('isolation_episodes').select('*').in('surveillance_case_id', ids).order('started_at', { ascending: false }),
+      { order: [['started_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('surveillance_reassessments').select('*').in('surveillance_case_id', ids).order('reassessed_at', { ascending: false }),
+      { order: [['reassessed_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('surveillance_outcomes').select('*').in('surveillance_case_id', ids).order('occurred_at', { ascending: false }),
+      { order: [['occurred_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids => supabase.from('surveillance_devices').select('*').in('surveillance_case_id', ids).order('inserted_at', { ascending: false, nullsFirst: false }),
+      { order: [['inserted_at', { ascending: false, nullsFirst: false }]] },
+    ),
   ])
   const baseResults = [
     patientsResult,
@@ -506,31 +504,31 @@ async function hydrateCases(caseRows) {
   const sampleIds = (samplesResult.data || []).map(row => row.id)
   let relatedLab = { results: [], amrRows: [], astRows: [], communications: [] }
   if (sampleIds.length) {
-    const microbiologyResult = await supabase
-      .from('microbiology_results')
-      .select('*')
-      .in('sample_id', sampleIds)
-      .order('resulted_at', { ascending: false })
+    const microbiologyResult = await selectInChunks(
+      sampleIds,
+      ids => supabase.from('microbiology_results').select('*').in('sample_id', ids).order('resulted_at', { ascending: false }),
+      { order: [['resulted_at', { ascending: false }]] },
+    )
     if (microbiologyResult.error) throw microbiologyResult.error
     const resultIds = (microbiologyResult.data || []).map(row => row.id)
     relatedLab.results = microbiologyResult.data || []
     if (resultIds.length) {
       const [amrResult, astResult, communicationResult] = await Promise.all([
-        supabase
-          .from('amr_classifications')
-          .select('*')
-          .in('microbiology_result_id', resultIds)
-          .order('classified_at', { ascending: false, nullsFirst: false }),
-        supabase
-          .from('antimicrobial_susceptibility_results')
-          .select('*')
-          .in('microbiology_result_id', resultIds)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('critical_result_communications')
-          .select('*')
-          .in('microbiology_result_id', resultIds)
-          .order('communicated_at', { ascending: false }),
+        selectInChunks(
+          resultIds,
+          ids => supabase.from('amr_classifications').select('*').in('microbiology_result_id', ids).order('classified_at', { ascending: false, nullsFirst: false }),
+          { order: [['classified_at', { ascending: false, nullsFirst: false }]] },
+        ),
+        selectInChunks(
+          resultIds,
+          ids => supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id', ids).order('created_at', { ascending: false }),
+          { order: [['created_at', { ascending: false }]] },
+        ),
+        selectInChunks(
+          resultIds,
+          ids => supabase.from('critical_result_communications').select('*').in('microbiology_result_id', ids).order('communicated_at', { ascending: false }),
+          { order: [['communicated_at', { ascending: false }]] },
+        ),
       ])
       for (const result of [amrResult, astResult, communicationResult])
         if (result.error) throw result.error
@@ -546,11 +544,12 @@ async function hydrateCases(caseRows) {
   const therapyIds = (therapiesResult.data || []).map(row => row.id)
   let therapyAdministrations = []
   if (therapyIds.length) {
-    const administrationsResult = await supabase
-      .from('antimicrobial_therapy_administrations')
-      .select('*')
-      .in('therapy_id', therapyIds)
-      .order('administered_at', { ascending: false })
+    const administrationsResult = await selectInChunks(
+      therapyIds,
+      ids =>
+        supabase.from('antimicrobial_therapy_administrations').select('*').in('therapy_id', ids).order('administered_at', { ascending: false }),
+      { order: [['administered_at', { ascending: false }]] },
+    )
     if (administrationsResult.error) throw administrationsResult.error
     therapyAdministrations = administrationsResult.data || []
   }
@@ -578,13 +577,15 @@ async function hydrateCases(caseRows) {
 export async function loadClinicalCases(organizationId) {
   assertCloud()
   if (!organizationId) return []
-  const { data, error } = await supabase
-    .from('surveillance_cases')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .order('started_at', { ascending: false })
-  if (error) throw error
-  return hydrateCases(data || [])
+  const rows = await selectAllPages(() =>
+    supabase
+      .from('surveillance_cases')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: true }),
+  )
+  return hydrateCases(rows)
 }
 
 export async function loadClinicalCasesForPatient(organizationId, patientRecordId) {

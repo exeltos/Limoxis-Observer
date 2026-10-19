@@ -1,3 +1,4 @@
+import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { binCloudRows,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { computeTurnaroundHours } from './model/laboratoryModel'
@@ -102,17 +103,17 @@ async function hydrateSamples(rows){
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
   const sampleIds=rows.map(row=>row.id)
   const [patientsResult,departmentsResult,microResult]=await Promise.all([
-    patientIds.length?supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',patientIds):Promise.resolve({data:[],error:null}),
-    departmentIds.length?supabase.from('departments').select('id,name').in('id',departmentIds):Promise.resolve({data:[],error:null}),
-    supabase.from('microbiology_results').select('*').in('sample_id',sampleIds).order('resulted_at',{ascending:false}),
+    selectInChunks(patientIds,ids=>supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',ids)),
+    selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids)),
+    selectInChunks(sampleIds,ids=>supabase.from('microbiology_results').select('*').in('sample_id',ids).order('resulted_at',{ascending:false}),{order:[['resulted_at',{ascending:false}]]}),
   ])
   for(const result of [patientsResult,departmentsResult,microResult])if(result.error)throw result.error
   const microRows=microResult.data||[]
   const microIds=microRows.map(row=>row.id)
   const [astResult,commResult,amrResult]=microIds.length?await Promise.all([
-    supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',microIds),
-    supabase.from('critical_result_communications').select('*').in('microbiology_result_id',microIds).order('communicated_at',{ascending:false}),
-    supabase.from('amr_classifications').select('*').in('microbiology_result_id',microIds).order('created_at',{ascending:false}),
+    selectInChunks(microIds,ids=>supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',ids)),
+    selectInChunks(microIds,ids=>supabase.from('critical_result_communications').select('*').in('microbiology_result_id',ids).order('communicated_at',{ascending:false}),{order:[['communicated_at',{ascending:false}]]}),
+    selectInChunks(microIds,ids=>supabase.from('amr_classifications').select('*').in('microbiology_result_id',ids).order('created_at',{ascending:false}),{order:[['created_at',{ascending:false}]]}),
   ]):[{data:[],error:null},{data:[],error:null},{data:[],error:null}]
   for(const result of [astResult,commResult,amrResult])if(result.error)throw result.error
   return rows.map(row=>mapSample(
@@ -126,9 +127,8 @@ async function hydrateSamples(rows){
 export async function loadLaboratorySamples(organizationId){
   assertCloud()
   if(!organizationId)return []
-  const {data,error}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false})
-  if(error)throw error
-  return hydrateSamples(data||[])
+  const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}))
+  return hydrateSamples(rows)
 }
 
 // Every sample of the organization, page by page (PostgREST caps a single
