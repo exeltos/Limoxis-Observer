@@ -111,7 +111,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading, on
       <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
     </FilterBar>
     <RegistryTable className="register-table" rows={paged} columns={[{ key: 'who', label: withIdentity ? (en ? 'Case' : 'Περιστατικό') : '#' }, ...columns.map(field => ({ key: field.key, label: textOf(field, language) }))]}
-      rowProps={entry => ({ onClick: () => open(entry), tabIndex: 0, onKeyDown: event => { if (event.key === 'Enter') open(entry) } })}
+      rowProps={entry => ({ className: 'registry-row-clickable', onClick: () => open(entry), tabIndex: 0, onKeyDown: event => { if (event.key === 'Enter') open(entry) } })}
       renderRow={entry => {
         const values = computeValues(register.fields, entry.values)
         return <>

@@ -22,7 +22,16 @@ export const COMPUTED_KINDS = [
   { value: 'days', label: ['Ημέρες μεταξύ δύο ημερομηνιών', 'Days between two dates'] },
   { value: 'ageYears', label: ['Ηλικία (έτη)', 'Age (years)'] },
   { value: 'ageDays', label: ['Ηλικία (ημέρες)', 'Age (days)'] },
+  { value: 'apacheII', label: ['Θνητότητα APACHE II (από score και μετεγχειρητικό)', 'APACHE II mortality (from score and post-operative)'] },
 ]
+
+// Predicted mortality (%) by APACHE II score band (0–4, 5–9 … 35+), for
+// non-operative and post-operative admissions (Knaus 1985).
+const APACHE_MORTALITY = { medical: [4, 8, 15, 25, 40, 55, 75, 85], postop: [1, 3, 7, 12, 30, 35, 73, 88] }
+export function apacheMortality(score, postop) {
+  if (score === null || score === undefined || score === '' || typeof postop !== 'boolean' || !Number.isFinite(Number(score))) return null
+  return APACHE_MORTALITY[postop ? 'postop' : 'medical'][Math.min(7, Math.max(0, Math.floor(Number(score) / 5)))]
+}
 
 export const AGGREGATIONS = [
   { value: 'count', label: ['Πλήθος', 'Count'] },
@@ -81,6 +90,7 @@ export function computeValues(fields = [], values = {}) {
     let value = null
     if (field.computed === 'days') value = daysBetween(from, to)
     if (field.computed === 'ageDays') value = daysBetween(from, to)
+    if (field.computed === 'apacheII') value = apacheMortality(from, to)
     if (field.computed === 'ageYears') {
       const days = daysBetween(from, to)
       value = days == null ? null : Math.floor(days / 365.25)
@@ -97,15 +107,18 @@ export function fieldVisible(field, values = {}) {
   return field.showWhen.value === undefined ? !isBlank(value) && value !== false : Array.isArray(value) ? value.includes(field.showWhen.value) : value === field.showWhen.value
 }
 
+// A field required only from a date on (data the register did not keep in its early years).
+export const isRequired = (field, entryDate) => Boolean(field.required) && !(field.requiredFrom && entryDate && String(entryDate).slice(0, 10) < field.requiredFrom)
+
 // Errors stop the save; warnings ask the user to check (an unusual value).
-export function validateEntry(fields = [], values = {}, language = 'el') {
+export function validateEntry(fields = [], values = {}, language = 'el', entryDate = '') {
   const en = language === 'en'
   const errors = {}, warnings = {}
   const full = computeValues(fields, values)
   for (const field of fields) {
     if (field.type === 'computed' || !fieldVisible(field, full)) continue
     const value = full[field.key]
-    if (field.required && isBlank(value)) { errors[field.key] = en ? 'Required' : 'Υποχρεωτικό'; continue }
+    if (isRequired(field, entryDate) && isBlank(value)) { errors[field.key] = en ? 'Required' : 'Υποχρεωτικό'; continue }
     if (isBlank(value)) continue
     if (field.type === 'number' || field.type === 'gestation') {
       const number = Number(value)

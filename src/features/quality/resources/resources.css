@@ -1,0 +1,38 @@
+/* Quality resources: equipment and suppliers. */
+.resource-notes{display:flex;flex-wrap:wrap;gap:4px}
+.resource-notes-wide{margin-bottom:12px}
+.resource-status{display:inline-flex;flex-wrap:wrap;gap:6px}
+.resource-alert{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:14px;padding:10px 12px;border:1px solid var(--lo-status-danger-border);border-radius:10px;background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
+.resource-alert>svg{flex:none;margin-top:2px}
+.resource-alert>span:first-of-type{flex:1 1 auto}
+.resource-alert-actions{display:flex;flex-wrap:wrap;gap:8px;flex:0 1 auto;max-width:100%}
+.resource-programme{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.resource-programme-card{display:grid;gap:10px;align-content:start;padding:14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.resource-programme-card.is-overdue{border-color:var(--lo-status-danger-border)}
+.resource-programme-card.is-dueSoon{border-color:var(--lo-status-warning-border)}
+.resource-programme-card.is-none{background:var(--lo-color-surface-muted)}
+.resource-programme-card header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.resource-programme-card p{margin:0;color:var(--lo-color-muted);font-size:13px}
+.resource-programme-card dl{display:grid;gap:6px;margin:0}
+.resource-programme-card dl div{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.resource-programme-card dt{color:var(--lo-color-muted)}
+.resource-programme-card dd{margin:0;font-weight:700;text-align:right}
+.resource-programme-card dd small{display:block;font-weight:600;color:var(--lo-color-muted)}
+.resource-programme-card.is-overdue dd small{color:var(--lo-status-danger-fg)}
+.resource-programme-card>button{justify-self:start}
+.resource-facts{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:16px;font-size:13px;color:var(--lo-color-muted)}
+.resource-facts strong{color:var(--lo-color-text)}
+.resource-description-cell{max-width:420px;white-space:normal}
+.resource-score-cell{text-align:center}
+.resource-event-form,.resource-evaluation{display:grid;gap:14px}
+.resource-event-note{margin:0;font-size:13px;color:var(--lo-status-danger-fg)}
+.resource-criterion .lo-mode-switch{flex-wrap:wrap}
+.resource-evaluation-score{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--lo-color-surface-muted)}
+.resource-evaluation-score strong{font-size:20px}
+@media (max-width:640px){.resource-programme{grid-template-columns:1fr}.resource-description-cell{max-width:none}}
+.resource-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.resource-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.resource-record-shell .record-tab-panel-body{flex:1 1 auto}
+.resource-record-shell .record-tab-panel-body>:is(.resource-pad,.resource-notes-wide){padding:14px 20px}
+.resource-record-shell .record-tab-panel-body>.resource-notes-wide{margin:0;padding-bottom:0}
+.resource-criteria{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:14px 24px}

@@ -18,7 +18,7 @@ declare
   p_a1 uuid := gen_random_uuid(); p_a2 uuid := gen_random_uuid(); p_b1 uuid := gen_random_uuid();
   checks jsonb := '[]'::jsonb; failed jsonb := '[]'::jsonb;
   u record; t text; n bigint; foreign_rows bigint; wrong_dept bigint;
-  tables text[] := array['patients','surveillance_cases','laboratory_samples','quality_incidents','departments'];
+  tables text[] := array['patients','surveillance_cases','laboratory_samples','quality_incidents','quality_incident_falls','departments'];
 begin
   insert into public.organizations(id,name,code,is_demo) values (org_a,'RLS test A','RLS-A-'||left(org_a::text,8),false),(org_b,'RLS test B','RLS-B-'||left(org_b::text,8),false);
   insert into auth.users(id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
@@ -40,6 +40,9 @@ begin
     (org_a,p_a1,dep_a1,'RLS-SA1','blood',u_admin_a,now(),now()),(org_a,p_a2,dep_a2,'RLS-SA2','blood',u_admin_a,now(),now());
   insert into public.quality_incidents(organization_id,code,title,department_id,occurred_at,severity) values
     (org_a,'RLS-QA1','RLS A1',dep_a1,now(),'low'),(org_a,'RLS-QA2','RLS A2',dep_a2,now(),'low');
+  -- An incident's details (20261116100000) are read as the incident is.
+  insert into public.quality_incident_falls(incident_id,organization_id,fall_type)
+  select id,organization_id,'fall' from public.quality_incidents where organization_id = org_a and code in ('RLS-QA1','RLS-QA2');
   perform set_config('request.jwt.claims', json_build_object('sub',u_admin_b,'role','authenticated')::text, true);
   perform set_config('request.jwt.claim.sub', u_admin_b::text, true);
   insert into public.departments(id,organization_id,name) values (dep_b1,org_b,'B1');
@@ -47,6 +50,8 @@ begin
   insert into public.surveillance_cases(organization_id,patient_id,department_id,created_by) values (org_b,p_b1,dep_b1,u_admin_b);
   insert into public.laboratory_samples(organization_id,patient_id,department_id,sample_code,sample_type,created_by,requested_at,collected_at) values (org_b,p_b1,dep_b1,'RLS-SB1','blood',u_admin_b,now(),now());
   insert into public.quality_incidents(organization_id,code,title,department_id,occurred_at,severity) values (org_b,'RLS-QB1','RLS B1',dep_b1,now(),'low');
+  insert into public.quality_incident_falls(incident_id,organization_id,fall_type)
+  select id,organization_id,'fall' from public.quality_incidents where organization_id = org_b and code = 'RLS-QB1';
 
   for u in select * from (values
       ('hospital_admin A',u_admin_a,org_a,false),('infection_control_lead A',u_ipc_a,org_a,false),
@@ -60,7 +65,7 @@ begin
       -- Only the test organizations are counted, so real data never affects the result.
       execute format('select count(*) filter (where organization_id in ($1,$2) and organization_id is distinct from $3),
                              count(*) filter (where organization_id = $3 and %s)
-                      from public.%I', case when t='departments' then 'id <> $4' else 'department_id <> $4' end, t)
+                      from public.%I', case when t='departments' then 'id <> $4' when t='quality_incident_falls' then 'exists (select 1 from public.quality_incidents p where p.id = incident_id and p.department_id <> $4)' else 'department_id <> $4' end, t)
         into foreign_rows, wrong_dept using org_a, org_b, u.org, dep_a1;
       checks := checks || jsonb_build_object('user',u.label,'table',t,'other_hospital_rows',foreign_rows,'other_department_rows',case when u.dept_only then wrong_dept end);
       if foreign_rows > 0 or (u.dept_only and t <> 'departments' and wrong_dept > 0) then

@@ -107,6 +107,20 @@ qualityAudits.push(
  {id:'AUD-2611-005',title:'Επιθεώρηση ψυκτικής αλυσίδας φαρμάκων',titleEn:'Medication cold-chain audit',department:'ΜΕΘ',departmentEn:'ICU',auditType:'internal',plannedDate:'2026-11-12',completedDate:null,status:'planned',leadAuditor:'Φαρμακείο',scope:'Ψυγεία φαρμάκων και καταγραφές θερμοκρασίας.',scopeEn:'Medication fridges and temperature logs.',findingIds:[],attachments:[],history:[],checklist:[],checklistSource:''},
  {id:'AUD-2612-006',title:'Εξωτερική επιθεώρηση ISO 9001 (επιτήρηση)',titleEn:'External ISO 9001 surveillance audit',department:'',departmentEn:'',auditType:'external',plannedDate:'2026-12-03',completedDate:null,status:'planned',leadAuditor:'Φορέας πιστοποίησης',scope:'Ετήσια επιτήρηση του συστήματος διαχείρισης ποιότητας.',scopeEn:'Yearly surveillance of the quality management system.',findingIds:[],attachments:[],history:[],checklist:[],checklistSource:''},
 )
+// Event types and their details (20261116100000_quality_relational.sql): a
+// patient's fall with a fracture and a staff needlestick; progress notes on
+// two corrective actions under way.
+const fallDetail=detail=>({fallType:'',floorCondition:'',bedRails:'',location:'',examinedByDoctor:null,doctorInstructions:'',injuryCategory:'injury',injurySubcategory:'fall',injuredPersonType:'patient',injuredEmployeeId:'',injuryDescription:'',...detail})
+const EVENT_DETAILS={
+ 'INC-251008-003':{eventType:'injury_fall_exposure',fall:fallDetail({fallType:'slip',floorCondition:'wet',bedRails:'not_applicable',location:'Μπάνιο θαλάμου',examinedByDoctor:true,doctorInstructions:'Ακτινογραφία καρπού, ακινητοποίηση με νάρθηκα, ορθοπαιδική εκτίμηση.',injuryDescription:'Κάταγμα κερκίδας αριστερού χεριού.'})},
+ 'INC-260304-012':{eventType:'injury_fall_exposure',fall:fallDetail({location:'Αίθουσα διαλογής',examinedByDoctor:true,doctorInstructions:'Ορολογικός έλεγχος πηγής και εργαζόμενου, προφύλαξη μετά από έκθεση.',injurySubcategory:'sharp_object',injuredPersonType:'employee',injuryDescription:'Νυγμός στον δείκτη του δεξιού χεριού.'}),sharp:{tool:'disposable_needle',toolState:'used',bodySite:'hands',bodySiteOther:'',firstUser:'',contactDuration:'Στιγμιαία',exposedBodyPart:'Δέρμα δακτύλου',substance:'Αίμα'}},
+}
+for(const record of qualityIncidents)Object.assign(record,{eventType:'',fall:null,sharp:null,blueCode:null,obstetric:null},EVENT_DETAILS[record.id]||{})
+const CAPA_PROGRESS={
+ 'CAPA-2606-008':[{id:'pr-2606-008-2',date:'2026-07-08',note:'Η λίστα ελέγχου εφαρμόζεται στις πρωινές επισκέψεις· εκκρεμεί η εκπαίδευση της νυχτερινής βάρδιας.',author:'Προϊστάμενος Χειρουργικής',createdAt:'2026-07-08T13:00:00+03:00'},{id:'pr-2606-008-1',date:'2026-06-26',note:'Εγκρίθηκε το πρωτόκολλο αφαίρεσης από νοσηλευτή.',author:'Υπεύθυνος Ποιότητας',createdAt:'2026-06-26T10:00:00+03:00'}],
+ 'CAPA-2608-010':[{id:'pr-2608-010-1',date:'2026-08-28',note:'Ξεκίνησε η καθημερινή αξιολόγηση VIP score σε όλους τους θαλάμους.',author:'Υπεύθυνος Ποιότητας',createdAt:'2026-08-28T12:00:00+03:00'}],
+}
+for(const capa of qualityCapas)capa.progress=CAPA_PROGRESS[capa.id]||[]
 shiftDemoDatesInPlace([qualityIncidents,qualityFindings,qualityCapas,qualityAudits])
 
 for(const record of qualityIncidents){

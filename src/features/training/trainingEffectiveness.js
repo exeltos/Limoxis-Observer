@@ -32,7 +32,21 @@ function addMonths(day,months){
 }
 
 export function defaultEffectiveness(program){
- return {plannedDate:addMonths(program?.dueDate,EFFECTIVENESS_DELAY_MONTHS),method:'observation',criterion:'',result:'',evaluatedAt:'',evaluatedBy:'',notes:''}
+ return {plannedDate:addMonths(program?.dueDate,EFFECTIVENESS_DELAY_MONTHS),method:'observation',criterion:'',result:'',evaluatedAt:'',evaluatedBy:'',notes:'',comment:''}
+}
+
+// The result is one of EFFECTIVENESS_RESULTS (the database checks the same
+// list); anything else is not a result.
+export const effectivenessResultValue=value=>EFFECTIVENESS_RESULTS.some(([key])=>key===value)?value:''
+
+// The evaluation as the programme shows it: result · evaluator · date, then
+// the comment ('' while not evaluated).
+export function effectivenessSummary(program,{en=false}={}){
+ const value=program?.effectiveness
+ const result=optionLabel(EFFECTIVENESS_RESULTS,value?.result,en)
+ if(!result)return ''
+ const head=[result,value.evaluatedBy,value.evaluatedAt].filter(Boolean).join(' · ')
+ return value.comment?`${head} — ${value.comment}`:head
 }
 
 // 'effective' | 'partial' | 'not_effective' once recorded; before that

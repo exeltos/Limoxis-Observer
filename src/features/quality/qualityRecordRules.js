@@ -73,7 +73,8 @@ export function incidentFlow(record, capas = []) {
   const closed = record?.status === 'closed'
   const assessed = closed || record?.status === 'underReview'
   const hasCapa = linked.length > 0
-  const effective = linked.some(capa => capa.effectivenessStatus === 'effective')
+  // Effective only when every linked CAPA is: one still open keeps the incident from closing.
+  const effective = hasCapa && linked.every(capa => capa.effectivenessStatus === 'effective')
   const state = [
     ['reported', 'done'],
     ['assessment', assessed ? 'done' : 'current'],
@@ -87,4 +88,23 @@ export function incidentFlow(record, capas = []) {
     if (status === 'current') { if (seen) return { id, status: 'todo' }; seen = true }
     return { id, status }
   })
+}
+
+// Where an open incident waits, read from its flow: to be assessed, under
+// investigation (assessed, no CAPA yet), a CAPA in progress, its effectiveness
+// to be checked (every CAPA done or in verification), ready to close, closed.
+export const INCIDENT_STAGES = ['toAssess', 'investigating', 'action', 'effectiveness', 'toClose', 'closed']
+
+// A voided report keeps its workflow status but stands outside the flow.
+export function incidentStage(record, capas = []) {
+  if (record?.lifecycleStatus === 'voided') return 'voided'
+  if (record?.status === 'closed') return 'closed'
+  const current = incidentFlow(record, capas).find(step => step.status === 'current')?.id
+  if (current === 'assessment') return 'toAssess'
+  if (current === 'capa') return 'investigating'
+  if (current === 'effectiveness') {
+    const linked = capas.filter(capa => capa.lifecycleStatus !== 'voided')
+    return linked.every(capa => ['verification', 'closed'].includes(capa.status)) ? 'effectiveness' : 'action'
+  }
+  return 'toClose'
 }

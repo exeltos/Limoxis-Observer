@@ -28,12 +28,14 @@ import { createQualityRecord } from './qualityService'
 import { withHarm, withIncidentClass } from './qualityRecordRules'
 import { IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, categoryKind, harmLevel, incidentCategoryLabel, incidentCategoryOptions, isSentinelHarm, rcaDueDate, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
+import { IncidentEventFields, IncidentEventTypeField } from './IncidentEventDetails'
+import { detailBlocks, incidentDetailFacts } from './incidentDetails'
 import './quality.css'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
 export function emptyIncidentReport() {
-  return { title: '', titleEn: '', departmentId: '', department: '', departmentEn: '', status: 'reported', severity: 'medium', incidentClass: 'nearMiss', reachedPatient: false, harmOccurred: false, category: '', impact: 'none', date: today(), eventTime: '', description: '', descriptionEn: '', immediateActions: '', immediateActionsEn: '', owners: [], owner: '', ownerId: null, anonymous: false, reportKind: 'clinical', sentinel: false, rcaDueDate: '' }
+  return { title: '', titleEn: '', departmentId: '', department: '', departmentEn: '', status: 'reported', severity: 'medium', incidentClass: 'nearMiss', reachedPatient: false, harmOccurred: false, category: '', impact: 'none', date: today(), eventTime: '', description: '', descriptionEn: '', immediateActions: '', immediateActionsEn: '', owners: [], owner: '', ownerId: null, anonymous: false, reportKind: 'clinical', sentinel: false, rcaDueDate: '', eventType: '', fall: null, sharp: null, blueCode: null, obstetric: null }
 }
 
 // What a control entry with a finding, or another module, hands to the form.
@@ -108,7 +110,7 @@ export function IncidentReportPage() {
       // An anonymous report keeps no trace of the reporter, not even in its history.
       const actor = draft.anonymous ? { id: null, name: en ? 'Anonymous report' : 'Ανώνυμη αναφορά' } : auditActorFromAuth({ profile, user })
       const sentinel = harmful && isSentinelHarm(draft.impact)
-      const created = await createQualityRecord('incidents', tenant?.id, { ...draft, sentinel, rcaDueDate: sentinel ? rcaDueDate(draft.date) : '', category: draft.category || (isSuggestion ? 'other' : ''), title: draft.title || draft.titleEn, titleEn: draft.titleEn || draft.title, description: draft.description || draft.descriptionEn, descriptionEn: draft.descriptionEn || draft.description, immediateActions: draft.immediateActions || draft.immediateActionsEn, reportedByLabel: draft.anonymous ? '' : actor.name, history: [auditEvent('recordCreated', { actor })] }, profile?.id || user?.id)
+      const created = await createQualityRecord('incidents', tenant?.id, { ...draft, eventType: classified ? draft.eventType : '', sentinel, rcaDueDate: sentinel ? rcaDueDate(draft.date) : '', category: draft.category || (isSuggestion ? 'other' : ''), title: draft.title || draft.titleEn, titleEn: draft.titleEn || draft.title, description: draft.description || draft.descriptionEn, descriptionEn: draft.descriptionEn || draft.description, immediateActions: draft.immediateActions || draft.immediateActionsEn, reportedByLabel: draft.anonymous ? '' : actor.name, history: [auditEvent('recordCreated', { actor })] }, profile?.id || user?.id)
       notify(en ? 'The report was sent.' : 'Η αναφορά στάλθηκε.', 'success')
       const code = created?.id || created?.code
       // Quality staff go on to the record; everyone else gets a receipt.
@@ -150,6 +152,7 @@ export function IncidentReportPage() {
             <small className="quality-report-hint">{INCIDENT_CLASSES.find(item => item.value === draft.incidentClass)?.hint[en ? 1 : 0]}</small>
           </>}
           <SearchableSelect label={`${en ? 'Category' : 'Κατηγορία'}${isSuggestion ? '' : ' *'}`} value={draft.category} options={incidentCategoryOptions(categories, language, draft.reportKind === 'suggestion' ? null : draft.reportKind)} onChange={value => set('category', value)} placeholder={isSuggestion ? (en ? 'Optional' : 'Προαιρετικό') : en ? 'Choose a category' : 'Επιλέξτε κατηγορία'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel={en ? 'Clear' : 'Καθαρισμός'} />
+          {classified && <IncidentEventTypeField value={draft.eventType} onChange={value => set('eventType', value)} language={language} />}
         </FormCard>
         <FormCard title={en ? 'Where and when' : 'Πού και πότε'} icon={ClipboardList}>
           <QualityDepartmentField required value={departmentRef(draft)} onChange={patch} />
@@ -167,6 +170,9 @@ export function IncidentReportPage() {
           {harmful && <ChoiceField label={en ? 'Harm to the patient (WHO)' : 'Βλάβη στον ασθενή (WHO)'} value={harmLevel(draft.impact)} options={vocabularyOptions(IMPACTS.filter(item => item.value !== 'none'), language)} onChange={value => setDraft(current => withHarm(current, value))} />}
           {harmful && isSentinelHarm(draft.impact) && <div className="governance-banner warning quality-sentinel-banner"><AlertTriangle size={16} /><span>{en ? `Sentinel event: Quality will open a root cause analysis, due by ${formatDay(rcaDueDate(draft.date), language)}.` : `Σοβαρό ανεπιθύμητο συμβάν (sentinel): η Ποιότητα θα ανοίξει ανάλυση ριζικής αιτίας, με προθεσμία ${formatDay(rcaDueDate(draft.date), language)}.`}</span></div>}
         </FormCard>
+        {classified && detailBlocks(draft).length > 0 && <FormCard title={en ? 'Event details' : 'Στοιχεία συμβάντος'} icon={ClipboardList} wide hint={en ? 'What this type of event records; fill in what you know.' : 'Όσα καταγράφει αυτό το είδος συμβάντος· συμπληρώστε όσα γνωρίζετε.'}>
+          <IncidentEventFields record={draft} onChange={setDraft} language={language} />
+        </FormCard>}
       </>}
       {step === 2 && <>
         <FormCard title={en ? 'Your report' : 'Η αναφορά σας'} icon={Send} wide={!canManage}>
@@ -178,6 +184,7 @@ export function IncidentReportPage() {
             { label: en ? 'Department' : 'Τμήμα', value: en ? draft.departmentEn || draft.department : draft.department },
             { label: en ? 'Date' : 'Ημερομηνία', value: [formatDay(draft.date, language), draft.eventTime].filter(Boolean).join(' ') },
             harmful && { label: en ? 'Harm' : 'Βλάβη', value: vocabularyLabel(IMPACTS, draft.impact, language) },
+            ...(classified ? incidentDetailFacts(draft, language, employeeRows).map(([label, value]) => ({ label, value })) : []),
             { label: en ? 'Reported' : 'Αναφορά', value: draft.anonymous ? (en ? 'Anonymously' : 'Ανώνυμα') : (en ? 'With my name' : 'Με το όνομά μου') },
           ]} />
           <p className="quality-report-description">{draft[descriptionKey]}</p>

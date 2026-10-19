@@ -39,6 +39,8 @@ describe('lifecycle reminders', () => {
     expect(sql).toContain('select private.platform_lifecycle_reminders(); select private.platform_dispatch_scheduled_tasks();')
     const fn = read('supabase/functions/platform-scheduled-tasks/index.ts')
     expect(fn).toContain("admin.rpc('platform_scheduler_secret_valid'")
-    expect(fn).toContain("eq('notification_type','platform_lifecycle_reminder')")
+    // The same job also sends the legislation e-mails; the reminders stay among what it sends.
+    expect(fn).toMatch(/const MAILED=\[[^\]]*'platform_lifecycle_reminder'/)
+    expect(fn).toContain(".in('notification_type',MAILED)")
   })
 })

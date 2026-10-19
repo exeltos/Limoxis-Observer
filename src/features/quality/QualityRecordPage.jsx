@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertOctagon, AlertTriangle, CheckSquare2, Download, Scale, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2, GitBranch } from 'lucide-react'
+import { AlertOctagon, AlertTriangle, CheckSquare2, Download, Scale, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2, GitBranch, TrendingUp } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -33,13 +33,15 @@ import { openCorrection, voidRecord as applyGovernedVoid } from '../../core/audi
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { QualityCapaSteps } from './QualityCapaSteps'
-import { IncidentFlowBar } from './IncidentFlowBar'
+import { IncidentFlowPanel } from './IncidentFlowBar'
 import { QualityGlance } from './QualityGlance'
 import { AuditChecklistTab } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
 import { QualityCapaRootCause } from './QualityCapaRootCause'
+import { QualityCapaProgress } from './QualityCapaProgress'
+import { IncidentEventFields, IncidentEventSummary, IncidentEventTypeField } from './IncidentEventDetails'
 import { analysisProgress } from './rootCauseAnalysis'
-import { sourcePath,subActionProgress } from './qualityDeviations'
+import { capaSourceFor,sourcePath,subActionProgress } from './qualityDeviations'
 import { incidentFlow,isFinalizedQualityRecord,openStepsBlockingCapa,recordOwners,statusOptions,withHarm,withIncidentClass } from './qualityRecordRules'
 import './quality.css'
 
@@ -50,7 +52,7 @@ const RECORD_KIND={incidents:['Συμβάν','Incident'],findings:['Εύρημα
 export function QualityRecordPage(){
   const {recordType,recordId}=useParams()
   const recordNavigation=useRecordSequenceNavigation({registry:`quality.${recordType}`,currentId:recordId,pathForId:id=>`/quality/${recordType}/${id}`})
-  const {restored,goBack}=useContextualNavigation('/quality')
+  const {restored,goBack,goTo}=useContextualNavigation('/quality')
   const {t,language,locale}=useLanguage()
   const {role,membership,tenant,canAccessRecord,actualRole,isRolePreview}=useTenant()
   const {notify}=useFeedback()
@@ -60,6 +62,9 @@ export function QualityRecordPage(){
   const [record,setRecord]=useState(null)
   const [loading,setLoading]=useState(true)
   const [tab,setTab]=useState(()=>restored?.tab||'details')
+  // A tab opened by the flow's next step can open straight in edit mode.
+  const [autoEdit,setAutoEdit]=useState(false)
+  const openTab=(id,edit=false)=>{setAutoEdit(edit);setTab(id)}
   // «Download» is the record as a PDF document (QualityRecordDocument, off screen).
   const documentRef=useRef(null)
   const [exporting,setExporting]=useState(false)
@@ -95,7 +100,7 @@ export function QualityRecordPage(){
   const incident=recordType==='incidents'
   const audit=recordType==='audits'
   const auditScore=audit?auditCompliance(record):null
-  const tabs=[{id:'details',label:t('details'),icon:Icon},...(audit?[{id:'checklist',label:`${language==='en'?'Checklist':'Λίστα ελέγχου'}${record.checklist?.length?` ${auditScore.rate!=null?`${auditScore.rate}%`:`0/${record.checklist.length}`}`:''}`,icon:ListChecks}]:[]),...(incident?[{id:'assessment',label:language==='en'?`Assessment${record.sentinel?' ⚠':''}`:`Αξιολόγηση${record.sentinel?' ⚠':''}`,icon:Scale,sheet:true}]:[]),...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks},{id:'rootCause',label:language==='en'?`Root causes${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`:`Αιτίες${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`,icon:GitBranch}]:[]),{id:'links',label:incident?(language==='en'?`Corrective actions${linkedCapas.length?` ${linkedCapas.length}`:''}`:`Διορθωτικές ενέργειες${linkedCapas.length?` ${linkedCapas.length}`:''}`):t('qualityRecords.linkedRecords'),icon:incident?CheckSquare2:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
+  const tabs=[{id:'details',label:t('details'),icon:Icon},...(audit?[{id:'checklist',label:`${language==='en'?'Checklist':'Λίστα ελέγχου'}${record.checklist?.length?` ${auditScore.rate!=null?`${auditScore.rate}%`:`0/${record.checklist.length}`}`:''}`,icon:ListChecks}]:[]),...(incident?[{id:'assessment',label:language==='en'?`Assessment${record.sentinel?' ⚠':''}`:`Αξιολόγηση${record.sentinel?' ⚠':''}`,icon:Scale,sheet:true}]:[]),...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks},{id:'rootCause',label:language==='en'?`Root causes${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`:`Αιτίες${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`,icon:GitBranch},{id:'progress',label:language==='en'?`Progress${record.progress?.length?` ${record.progress.length}`:''}`:`Πρόοδος${record.progress?.length?` ${record.progress.length}`:''}`,icon:TrendingUp}]:[]),{id:'links',label:incident?(language==='en'?`Corrective actions${linkedCapas.length?` ${linkedCapas.length}`:''}`:`Διορθωτικές ενέργειες${linkedCapas.length?` ${linkedCapas.length}`:''}`):t('qualityRecords.linkedRecords'),icon:incident?CheckSquare2:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
@@ -105,11 +110,16 @@ export function QualityRecordPage(){
     status={<StatusBadge tone={qualityStatusTone(record.status)}>{t(record.status)}</StatusBadge>}
     recordNavigation={recordNavigation}
     headerActions={canPrint&&<PrintExportActions showPrint={false} onExport={downloadPdf}/>}
-    tabs={tabs} activeTab={tab} onTabChange={setTab}>
-      {incident&&<IncidentFlowBar steps={incidentFlow(record,linkedCapas)} language={language} onSelect={setTab}/>}
-      {(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} linked={linked} onDownloadPdf={canPrint?downloadPdf:null} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>}
+    tabs={tabs} activeTab={tab} onTabChange={id=>openTab(id)}>
+      {incident&&(tab==='details'||tab==='assessment')?<div className="quality-record-layout">
+        <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} onDownloadPdf={canPrint?downloadPdf:null} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>
+        <IncidentFlowPanel steps={incidentFlow(record,linkedCapas)} record={record} capas={linkedCapas} language={language} t={t} activeTab={tab} canAct={canManage&&!finalized}
+          onSelect={id=>openTab(id)} onOpenCapa={capa=>goTo(`/quality/capas/${capa.id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:tab})}
+          onStep={next=>{if(next.id==='assess'||next.id==='close')openTab('assessment',true);else if(next.id==='capa')goTo('/quality/capas/new',{returnTo:`/quality/incidents/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor('incidents',record,language)}});else if(next.capa)goTo(`/quality/capas/${next.capa.id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:'details'})}}/>
+      </div>:(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} linked={linked} onDownloadPdf={canPrint?downloadPdf:null} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>}
       {tab==='rootCause'&&recordType==='capas'&&<QualityCapaRootCause record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='steps'&&recordType==='capas'&&<QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
+      {tab==='progress'&&recordType==='capas'&&<QualityCapaProgress record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language}/>}
       {tab==='checklist'&&audit&&<AuditChecklistTab record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} actor={actor} notify={notify} userId={profile?.id||user?.id}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language} organizationId={organizationId} canManage={canManage} finalized={finalized}/>}
       {tab==='documents'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}
@@ -119,10 +129,10 @@ export function QualityRecordPage(){
   </Page>
 }
 
-function QualityDetails({view='details',recordType,record,linked=[],onDownloadPdf=null,setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}){
+function QualityDetails({autoEdit=false,view='details',recordType,record,linked=[],onDownloadPdf=null,setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}){
   const en=language==='en'
   const assessment=view==='assessment'
-  const [editing,setEditing]=useState(false)
+  const [editing,setEditing]=useState(()=>autoEdit&&canManage&&!finalized)
   const [draft,setDraft]=useState({...record})
   const [governedAction,setGovernedAction]=useState(null)
   const [correctionReason,setCorrectionReason]=useState('')
@@ -194,7 +204,7 @@ function QualityDetails({view='details',recordType,record,linked=[],onDownloadPd
         <EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>
         <EditChoice editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={severityOptions(t)}/>
         {draft.incidentClass==='harmful'?<EditChoice editing={editing} label={en?'Harm to the patient (WHO)':'Βλάβη στον ασθενή (WHO)'} value={harmLevel(draft.impact)} onChange={v=>setDraft(x=>withHarm(x,v))} options={vocabularyOptions(IMPACTS.filter(item=>item.value!=='none'),language)}/>:<Detail label={en?'Harm to the patient (WHO)':'Βλάβη στον ασθενή (WHO)'} value={vocabularyLabel(IMPACTS,'none',language)}/>}
-        {editing?<div className="detail-item editable"><YesNoField label={en?'Sentinel event':'Σοβαρό ανεπιθύμητο (sentinel)'} value={draft.sentinel?'yes':'no'} onChange={v=>setDraft(x=>({...x,sentinel:v==='yes',rcaDueDate:v==='yes'?(x.rcaDueDate||rcaDueDate(x.date)):''}))}/></div>:<Detail label={en?'Sentinel event':'Σοβαρό ανεπιθύμητο (sentinel)'} value={draft.sentinel?(en?'Yes':'Ναι'):(en?'No':'Όχι')}/>}
+        {editing?<div className="detail-item editable"><YesNoField label={en?'Sentinel event':'Σοβαρό ανεπιθύμητο (sentinel)'} value={Boolean(draft.sentinel)} onChange={v=>setDraft(x=>({...x,sentinel:v,rcaDueDate:v?(x.rcaDueDate||rcaDueDate(x.date)):''}))}/></div>:<Detail label={en?'Sentinel event':'Σοβαρό ανεπιθύμητο (sentinel)'} value={draft.sentinel?(en?'Yes':'Ναι'):(en?'No':'Όχι')}/>}
         {draft.sentinel&&<EditDate editing={editing} label={en?'Root cause analysis due':'Προθεσμία ανάλυσης ριζικής αιτίας'} value={draft.rcaDueDate} onChange={v=>set('rcaDueDate',v)} language={language}/>}
       </>:<>
       {/* Code, title and status are in the record's header; the form edits them. */}
@@ -230,6 +240,11 @@ function QualityDetails({view='details',recordType,record,linked=[],onDownloadPd
         <EditDate editing={editing} label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)} language={language}/>
       </>}
     </div>
+    {!assessment&&recordType==='incidents'&&['clinical','nonClinical'].includes(reportKindOf(draft))&&(editing||draft.eventType)&&<div className="quality-event-section">
+      <div className="quality-subsection-heading"><div><strong>{en?'Event details':'Στοιχεία συμβάντος'}</strong></div></div>
+      {editing?<div className="detail-grid quality-detail-grid employee-inline-edit"><div className="detail-item editable"><IncidentEventTypeField value={draft.eventType} onChange={v=>set('eventType',v)} language={language}/></div></div>:null}
+      {editing?<IncidentEventFields record={draft} onChange={setDraft} language={language}/>:<IncidentEventSummary record={draft} language={language}/>}
+    </div>}
     {!assessment&&<div className={recordType==='incidents'?'quality-incident-narrative':'quality-record-narrative'}><div className="quality-description"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span>{editing?<textarea rows={3} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>{recordType==='incidents'&&<div className="quality-description quality-readonly-text"><span>{en?'Immediate actions taken':'Άμεσες ενέργειες που πραγματοποιήθηκαν'}</span>{editing?<textarea rows={2} value={language==='el'?(draft.immediateActions||''):(draft.immediateActionsEn||'')} onChange={e=>set(language==='el'?'immediateActions':'immediateActionsEn',e.target.value)}/>:<p>{language==='el'?(record.immediateActions||'—'):(record.immediateActionsEn||record.immediateActions||'—')}</p>}</div>}</div>}{assessment&&<div className="quality-investigation-card">{draft.sentinel&&<div className="governance-banner warning quality-sentinel-banner"><AlertOctagon size={17}/><span>{en?`Sentinel event: a root cause analysis is required${draft.rcaDueDate?` by ${formatDay(draft.rcaDueDate,language)}`:''}. Open it as a CAPA in «Corrective actions» (5 Whys and Ishikawa are in the CAPA's «Root causes» tab).`:`Σοβαρό ανεπιθύμητο (sentinel): απαιτείται ανάλυση ριζικής αιτίας${draft.rcaDueDate?` έως ${formatDay(draft.rcaDueDate,language)}`:''}. Ανοίξτε την ως διορθωτική ενέργεια στην καρτέλα «Διορθωτικές ενέργειες» (5 Γιατί και Ishikawa στην καρτέλα «Αιτίες» της).`}</span></div>}<div className="quality-subsection-heading"><div><strong>{en?'Investigation & root cause':'Διερεύνηση & βασική αιτία'}</strong><span>{en?'Document the analysis before closing the incident.':'Καταγραφή της ανάλυσης πριν από την ολοκλήρωση του συμβάντος.'}</span></div></div><div className="quality-investigation-grid"><div className="quality-description quality-readonly-text"><span>{en?'Root cause':'Βασική αιτία (Root Cause)'}</span>{editing?<textarea rows={2} value={language==='el'?(draft.rootCause||''):(draft.rootCauseEn||'')} onChange={e=>set(language==='el'?'rootCause':'rootCauseEn',e.target.value)}/>:<p>{language==='el'?(record.rootCause||'—'):(record.rootCauseEn||record.rootCause||'—')}</p>}</div><div className="quality-description quality-readonly-text"><span>{en?'Contributing factors':'Συνεισφέροντες παράγοντες'}</span>{editing?<textarea rows={2} value={language==='el'?(draft.contributingFactors||''):(draft.contributingFactorsEn||'')} onChange={e=>set(language==='el'?'contributingFactors':'contributingFactorsEn',e.target.value)}/>:<p>{language==='el'?(record.contributingFactors||'—'):(record.contributingFactorsEn||record.contributingFactors||'—')}</p>}</div></div></div>}
     {editing&&<div className="inline-edit-footer"><Button variant="secondary" disabled={saving} onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><SaveButton loading={saving} onClick={save}>{t('save')}</SaveButton></div>}
     <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):(en?'Void record':'Ακύρωση εγγραφής')} description={governedAction==='correct'?(en?'The original record remains in history. Enter the reason for the correction.':'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.'):(en?'The record will not be physically deleted. It will be marked as voided and retained in the audit trail.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο audit trail.')} confirmLabel={governedAction==='correct'?(en?'Start correction':'Έναρξη διόρθωσης'):(en?'Void record':'Ακύρωση εγγραφής')} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
@@ -272,7 +287,7 @@ function QualityLinks({recordType,record,t,language,organizationId,canManage=fal
   const en=language==='en'
   // From an incident or a finding Quality opens its CAPA here; a sentinel one is a root cause analysis.
   const canCreateCapa=canManage&&!finalized&&(recordType==='incidents'||recordType==='findings')
-  const createCapa=()=>goTo('/quality/capas/new',{...navigationOptions,state:{qualitySource:{source:recordType==='incidents'?'incident':'finding',sourceId:record.id,departmentId:record.departmentId,department:record.department,departmentEn:record.departmentEn,priority:record.sentinel?'critical':record.severity,dueDate:record.sentinel?record.rcaDueDate:undefined,title:record.sentinel?(en?`Root cause analysis: ${record.displayId||record.id}`:`Ανάλυση ριζικής αιτίας: ${record.displayId||record.id}`):(en?'CAPA for ':'Διορθωτική ενέργεια για ')+(record.displayId||record.id)}}})
+  const createCapa=()=>goTo('/quality/capas/new',{...navigationOptions,state:{qualitySource:capaSourceFor(recordType,record,language)}})
   return <div className="record-section"><div className="record-section-header"><h3>{recordType==='incidents'?(en?'Corrective actions & links':'Διορθωτικές ενέργειες & συνδέσεις'):t('qualityRecords.linkedRecords')}</h3>{canCreateCapa&&<Button variant="primary" onClick={createCapa}><CheckSquare2 size={15}/>{record.sentinel?(en?' Open root cause analysis':' Άνοιγμα ανάλυσης ριζικής αιτίας'):(en?' New CAPA':' Νέα διορθωτική ενέργεια')}</Button>}</div><div className="quality-link-list">
     {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
     {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/${x.kind}/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t(x.kind==='findings'?'qualityRecords.finding':'qualityRecords.capa')}</span><span className="quality-link-main"><strong>{qualityCode(x,language)}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}

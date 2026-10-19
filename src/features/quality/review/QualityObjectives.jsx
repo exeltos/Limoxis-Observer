@@ -30,11 +30,9 @@ export function useObjectives(organizationId) {
     try {
       const [rows, allRegisters] = await Promise.all([loadObjectives(organizationId), loadRegisters(organizationId).catch(() => [])])
       setRegisters(allRegisters)
-      const entriesBy = new Map()
-      for (const id of [...new Set(rows.map(row => row.registerId).filter(Boolean))]) {
-        const register = allRegisters.find(item => item.id === id)
-        if (register) entriesBy.set(id, await loadEntries(organizationId, id, { register }).catch(() => []))
-      }
+      // The registers the objectives read, together.
+      const linked = [...new Set(rows.map(row => row.registerId).filter(Boolean))].map(id => allRegisters.find(item => item.id === id)).filter(Boolean)
+      const entriesBy = new Map(await Promise.all(linked.map(async register => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])])))
       setObjectives(rows.map(objective => {
         const register = allRegisters.find(item => item.id === objective.registerId)
         const indicator = register?.indicators.find(item => item.id === objective.indicatorKey)

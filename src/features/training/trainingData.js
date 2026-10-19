@@ -148,8 +148,8 @@ function normalize(state){
 }
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([trainingDemoState])
-export function loadTrainingState(){return normalize(loadSnapshot('training_records',structuredClone(trainingDemoState)))}
-export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_records',normalized);return normalized}
+export function loadTrainingState(){return normalize(loadSnapshot('training_local_state',structuredClone(trainingDemoState)))}
+export function saveTrainingState(state){const normalized=normalize(state);saveSnapshot('training_local_state',normalized);return normalized}
 export function findTrainingAccess(state,token){
  const normalized=normalize(state);const key=String(token||'').trim();if(!key)return null
  const assignment=normalized.assignments.find(x=>x.id===key||x.accessToken===key)

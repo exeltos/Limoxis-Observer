@@ -60,9 +60,12 @@ describe('repository.load() only requests generic multi-purpose columns for the 
     expect(selectColumns.environmental_standards).toBe('record_key,payload')
   })
 
-  it('still requests the full generic column set for the training kind', async () => {
-    const { load, selectColumns } = await setup({ training_records: { data: [], error: null } })
-    await load('training_records', { fallback: { programs: [], assignments: [], certificates: [], emailOutbox: [], history: [] }, organizationId: 'org-1' })
-    expect(selectColumns.training_records).toBe('record_key,record_type,department_id,employee_user_id,payload')
+  // Training moved to the training_* tables (20261115100000); the
+  // repository only keeps the Demo snapshot, never a cloud table.
+  it('keeps the Demo training snapshot local even with the cloud backend', async () => {
+    const fallback = { programs: [], assignments: [], certificates: [], emailOutbox: [], history: [] }
+    const { load, selectColumns } = await setup({})
+    expect(await load('training_local_state', { fallback, organizationId: 'org-1' })).toEqual(fallback)
+    expect(selectColumns).toEqual({})
   })
 })

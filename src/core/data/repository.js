@@ -11,7 +11,9 @@ const TABLES=Object.freeze({
   employee_evaluations:{storageKey:'limoxis.employeeEvaluations.v1',kind:'rows',cloud:false},
   employee_certificates:{storageKey:'limoxis.employeeCertificates.v1',kind:'rows',cloud:false},
   occupational_exposure_incidents:{storageKey:'limoxis.occupationalExposureIncidents.v1',kind:'rows',cloud:false},
-  training_records:{storageKey:'limoxis.training.v3',legacyKeys:['limoxis.training.v2'],kind:'training'},
+  // Demo Training state (programmes, assignments, …). Production training
+  // lives in the training_* tables (src/features/training/trainingService.js).
+  training_local_state:{storageKey:'limoxis.training.v3',legacyKeys:['limoxis.training.v2'],kind:'document',cloud:false},
   environmental_standards:{storageKey:'limoxis.environmentalStandards.v1',kind:'rows'},
   organization_settings:{storageKey:'limoxis.organizationSettings.v1',kind:'document',cloud:false},
   bundle_library:{storageKey:'limoxis.bundleLibrary.v1',kind:'rows',cloud:false},
@@ -42,6 +44,18 @@ const TABLES=Object.freeze({
   quality_local_audits:{storageKey:'limoxis.qualityLocalAudits.v1',kind:'rows',cloud:false},
   quality_local_risk_assessments:{storageKey:'limoxis.qualityLocalRiskAssessments.v1',kind:'rows',cloud:false},
   quality_local_reviews:{storageKey:'limoxis.qualityLocalReviews.v1',kind:'rows',cloud:false},
+  quality_local_department_meetings:{storageKey:'limoxis.qualityLocalDepartmentMeetings.v1',kind:'rows',cloud:false},
+  quality_local_surveys:{storageKey:'limoxis.qualityLocalSurveys.v1',kind:'rows',cloud:false},
+  quality_local_survey_responses:{storageKey:'limoxis.qualityLocalSurveyResponses.v1',kind:'rows',cloud:false},
+  quality_local_suppliers:{storageKey:'limoxis.qualityLocalSuppliers.v1',kind:'rows',cloud:false},
+  quality_local_equipment:{storageKey:'limoxis.qualityLocalEquipment.v1',kind:'rows',cloud:false},
+  quality_local_equipment_events:{storageKey:'limoxis.qualityLocalEquipmentEvents.v1',kind:'rows',cloud:false},
+  legislation_local_library:{storageKey:'limoxis.legislationLocalLibrary.v1',kind:'rows',cloud:false},
+  legislation_local_versions:{storageKey:'limoxis.legislationLocalVersions.v1',kind:'rows',cloud:false},
+  legislation_local_rows:{storageKey:'limoxis.legislationLocalRows.v1',kind:'rows',cloud:false},
+  legislation_local_candidates:{storageKey:'limoxis.legislationLocalCandidates.v1',kind:'rows',cloud:false},
+  legislation_local_sources:{storageKey:'limoxis.legislationLocalSources.v1',kind:'rows',cloud:false},
+  regulations_local:{storageKey:'limoxis.regulationsLocal.v1',kind:'rows',cloud:false},
   quality_local_objectives:{storageKey:'limoxis.qualityLocalObjectives.v1',kind:'rows',cloud:false},
   quality_department_registers:{storageKey:'limoxis.qualityDepartmentRegisters.v1',kind:'rows',cloud:false},
   quality_department_register_entries:{storageKey:'limoxis.qualityDepartmentRegisterEntries.v1',kind:'rows',cloud:false},
@@ -68,23 +82,6 @@ function memoryKey(table){return `${dataPartitionKey()}:${table}`}
 function localKey(cfg){return `${dataPartitionKey()}:${cfg.storageKey}`}
 
 function toRecords(cfg,rows,organizationId){
-  if(cfg.kind==='training'){
-    const typed=(type,list=[])=>list.map((row,index)=>({
-      organization_id:organizationId,
-      record_key:`${type}:${row.id??row.recordKey??index}`,
-      record_type:type,
-      department_id:row.departmentId??null,
-      employee_user_id:row.employeeUserId??null,
-      payload:row,
-    }))
-    return [
-      ...typed('program',rows?.programs),
-      ...typed('assignment',rows?.assignments),
-      ...typed('certificate',rows?.certificates),
-      ...typed('email_outbox',rows?.emailOutbox),
-      ...typed('history',rows?.history),
-    ]
-  }
   return (rows||[]).map((row,index)=>({organization_id:organizationId,record_key:String(row.id??row.recordKey??index),payload:row}))
 }
 function recordSetFingerprint(records){
@@ -170,24 +167,9 @@ export async function load(table,{fallback=null,organizationId=null}={}){
       emit({table,operation:'load',status:'success'}); return clone(value)
     }
     if(!organizationId)throw new DataAccessError('Organization is required for cloud data.',{table,operation:'load'})
-    const cfg=config(table)
-    const columns=cfg.kind==='training'?'record_key,record_type,department_id,employee_user_id,payload':'record_key,payload'
-    const {data,error}=await supabase.from(table).select(columns).eq('organization_id',organizationId).order('record_key')
+    const {data,error}=await supabase.from(table).select('record_key,payload').eq('organization_id',organizationId).order('record_key')
     if(error)throw error
-    let value
-    if(cfg.kind==='training'){
-      value={programs:[],assignments:[],certificates:[],emailOutbox:[],history:[]}
-      for(const row of data??[]){
-        if(row.record_type==='program')value.programs.push(row.payload)
-        else if(row.record_type==='assignment')value.assignments.push(row.payload)
-        else if(row.record_type==='certificate')value.certificates.push(row.payload)
-        else if(row.record_type==='email_outbox')value.emailOutbox.push(row.payload)
-        else if(row.record_type==='history')value.history.push(row.payload)
-      }
-      if(!(data??[]).length)value=clone(fallback)
-    }else{
-      value=(data??[]).map(row=>row.payload)
-    }
+    const value=(data??[]).map(row=>row.payload)
     memory.set(memoryKey(table),clone(value))
     emit({table,operation:'load',status:'success'}); return clone(value)
   }catch(cause){

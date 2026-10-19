@@ -7,6 +7,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { YesNoField } from '../../design-system/YesNoField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -95,7 +96,7 @@ export function RegisterBuilder({ register, canEdit, entryCount, onSaved }) {
             <ul className="register-builder-list">{fields.map(field => {
               const index = draft.fields.indexOf(field)
               return <li key={field.key}>
-                <span><strong>{textOf(field, language)}</strong><small>{[optionLabel(FIELD_TYPES, field.type, language), en ? field.unitEn || field.unit : field.unit, field.required && (en ? 'required' : 'υποχρεωτικό'), field.options?.length && `${field.options.length} ${en ? 'values' : 'τιμές'}`, field.provisional && (en ? 'list to complete' : 'λίστα προς συμπλήρωση')].filter(Boolean).join(' · ')}</small><code>{field.key}</code></span>
+                <span><strong>{textOf(field, language)}</strong><small>{[optionLabel(FIELD_TYPES, field.type, language), en ? field.unitEn || field.unit : field.unit, field.required && (field.requiredFrom ? (en ? `required from ${field.requiredFrom.split('-').reverse().join('/')}` : `υποχρεωτικό από ${field.requiredFrom.split('-').reverse().join('/')}`) : (en ? 'required' : 'υποχρεωτικό')), field.options?.length && `${field.options.length} ${en ? 'values' : 'τιμές'}`, field.provisional && (en ? 'list to complete' : 'λίστα προς συμπλήρωση')].filter(Boolean).join(' · ')}</small><code>{field.key}</code></span>
                 {canEdit && <span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => patch({ fields: move(draft.fields, index, -1) })}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Down' : 'Κάτω'} onClick={() => patch({ fields: move(draft.fields, index, 1) })}><ArrowDown size={14} /></IconButton><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ kind: 'field', field: { ...field, breakdown: (draft.settings?.breakdowns || []).includes(field.key) }, previousKey: field.key })}><Pencil size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove (data kept)' : 'Αφαίρεση (τα δεδομένα μένουν)'} onClick={() => patch({ fields: draft.fields.filter(item => item !== field) })}><Archive size={14} /></IconButton></span>}
               </li>
             })}</ul>
@@ -141,6 +142,8 @@ function FieldDialog({ field: initial, register, sections, locked, onCancel, onS
   const set = next => setField(current => ({ ...current, ...next }))
   const others = register.fields.filter(item => item.key !== initial.key)
   const dates = others.filter(item => item.type === 'date')
+  const numbers = others.filter(item => item.type === 'number')
+  const yesNos = others.filter(item => item.type === 'yesNo')
   const isList = ['choice', 'multiChoice'].includes(field.type)
   const valid = Boolean(field.label.trim()) && (field.type !== 'computed' || (field.computed && field.from && field.to)) && (!isList || (field.options || []).length > 0 || field.provisional)
   function finish() {
@@ -161,6 +164,7 @@ function FieldDialog({ field: initial, register, sections, locked, onCancel, onS
         </FormGrid>
         <FormGrid columns={3}>
           <YesNoField label={en ? 'Required' : 'Υποχρεωτικό'} value={Boolean(field.required)} onChange={value => set({ required: value })} />
+          {field.required && <ManualDateField label={en ? 'Required from' : 'Υποχρεωτικό από'} optional value={field.requiredFrom || ''} onChange={value => set({ requiredFrom: value || undefined })} />}
           <YesNoField label={en ? 'Column in the list' : 'Στήλη στη λίστα'} value={Boolean(field.list)} onChange={value => set({ list: value })} />
           {isList && <YesNoField label={en ? 'Split in reports' : 'Ανάλυση στις αναφορές'} value={Boolean(field.breakdown)} onChange={value => set({ breakdown: value })} />}
         </FormGrid>
@@ -173,8 +177,13 @@ function FieldDialog({ field: initial, register, sections, locked, onCancel, onS
       {field.type === 'computed' && <FormCard wide title={en ? 'Computed by the database' : 'Υπολογίζεται από τη βάση'}>
         <SearchableSelect label={en ? 'What' : 'Τι'} value={field.computed || ''} options={optionsOf(COMPUTED_KINDS, language)} onChange={value => set({ computed: value })} {...selectText(en)} />
         <FormGrid columns={2}>
+          {field.computed === 'apacheII' ? <>
+            <SearchableSelect label={en ? 'APACHE II score' : 'APACHE II score'} value={field.from || ''} options={numbers.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ from: value })} {...selectText(en)} />
+            <SearchableSelect label={en ? 'Post-operative (yes/no)' : 'Μετεγχειρητικός (ναι/όχι)'} value={field.to || ''} options={yesNos.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ to: value })} {...selectText(en)} />
+          </> : <>
           <SearchableSelect label={en ? 'From date' : 'Από ημερομηνία'} value={field.from || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ from: value })} {...selectText(en)} />
           <SearchableSelect label={en ? 'To date' : 'Έως ημερομηνία'} value={field.to || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ to: value })} {...selectText(en)} />
+          </>}
         </FormGrid>
       </FormCard>}
       {field.type === 'date' && <FormCard wide title={en ? 'Rule' : 'Κανόνας'}><SearchableSelect label={en ? 'Not before' : 'Όχι πριν από'} value={field.notBefore || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ notBefore: value || '' })} {...selectText(en)} /></FormCard>}

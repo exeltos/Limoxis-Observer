@@ -1,0 +1,177 @@
+/* Satisfaction surveys: the questionnaire to answer (phone, tablet, paper entry),
+   the results, the QR posters and the questionnaire editor. */
+
+/* The questionnaire to answer: questions one under the other, answers as
+   rows with a mark, large enough for a finger. */
+.survey-form{display:grid;gap:0}
+.survey-section{display:grid;gap:0}
+.survey-section>h2{margin:18px 0 2px;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-primary)}
+.survey-section:first-child>h2{margin-top:0}
+.survey-question{display:grid;gap:12px;margin:0;padding:20px 0;border:0;border-top:1px solid var(--lo-color-border);min-width:0}
+.survey-section:first-child>.survey-question:first-of-type,.survey-form>.survey-question:first-child{border-top:0;padding-top:4px}
+.survey-question>legend{float:left;width:100%;padding:0;font-size:16px;font-weight:700;line-height:1.45;color:var(--lo-color-text)}
+.survey-required{margin-left:4px;color:var(--lo-status-danger-fg)}
+.survey-question.is-missing{padding-left:14px;box-shadow:inset 3px 0 0 var(--lo-status-danger-fg)}
+.survey-question textarea{width:100%;min-height:96px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;font:inherit;font-size:15px;line-height:1.5;background:var(--lo-color-surface);color:var(--lo-color-text);resize:vertical}
+.survey-question textarea:focus{outline:none;border-color:var(--lo-color-primary);box-shadow:0 0 0 3px var(--lo-color-primary-soft)}
+.survey-choices{display:grid;gap:8px}
+.survey-choices-pair{grid-template-columns:repeat(2,minmax(0,1fr))}
+.survey-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.survey-scale-nps{grid-template-columns:repeat(11,minmax(0,1fr));gap:6px}
+.survey-scale>button,.survey-choices>button{display:flex;align-items:center;gap:12px;min-height:50px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:15px;font-weight:500;line-height:1.3;text-align:left;cursor:pointer;transition:background .12s,border-color .12s,box-shadow .12s}
+.survey-scale>button:hover,.survey-choices>button:hover{border-color:var(--lo-color-primary)}
+.survey-scale>button.active,.survey-choices>button.active{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft);box-shadow:inset 0 0 0 1px var(--lo-color-primary);font-weight:650}
+.survey-scale>button:focus-visible,.survey-choices>button:focus-visible{outline:3px solid var(--lo-color-primary-soft);outline-offset:1px}
+.survey-mark{flex:0 0 auto;width:20px;height:20px;border:2px solid var(--lo-color-border-strong,#a9b7c4);border-radius:50%;background:var(--lo-color-surface);transition:border-color .12s,box-shadow .12s}
+.survey-choices.is-multiple .survey-mark{border-radius:6px}
+button.active>.survey-mark{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 4px var(--lo-color-surface);background:var(--lo-color-primary)}
+.survey-choices.is-multiple button.active>.survey-mark{box-shadow:none}
+/* On a wide screen a five-word scale reads left to right, worst to best. */
+.survey-scale:not(.survey-scale-nps)>button{flex-direction:column;justify-content:flex-start;gap:8px;min-height:84px;padding:14px 6px 12px;text-align:center;font-size:13.5px}
+.survey-scale-nps>button{justify-content:center;min-height:46px;padding:6px;font-weight:650}
+.survey-scale-nps .survey-mark{display:none}
+.survey-scale-ends{display:flex;justify-content:space-between;margin:0;font-size:12px;color:var(--lo-color-muted)}
+.survey-missing{margin:0;color:var(--lo-status-danger-fg);font-size:13px;font-weight:600}
+/* On a phone it reads top to bottom, best first. */
+@media(max-width:640px){
+  .survey-scale:not(.survey-scale-nps){grid-template-columns:1fr;gap:8px}
+  .survey-scale:not(.survey-scale-nps)>button{flex-direction:row;justify-content:flex-start;gap:12px;min-height:50px;padding:10px 14px;text-align:left;font-size:15px}
+  .survey-scale:not(.survey-scale-nps)>button.is-5{order:1}.survey-scale:not(.survey-scale-nps)>button.is-4{order:2}.survey-scale:not(.survey-scale-nps)>button.is-3{order:3}.survey-scale:not(.survey-scale-nps)>button.is-2{order:4}.survey-scale:not(.survey-scale-nps)>button.is-1{order:5}
+  .survey-scale-nps{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* The public page of the link: the hospital on a coloured band, the sheet
+   in the middle, one section at a time. */
+body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface-muted,#f3f6f9)}
+.survey-page{min-height:100vh;background:linear-gradient(var(--lo-color-primary) 0 168px,transparent 168px)}
+.survey-page-shell{display:grid;gap:14px;width:min(680px,100%);margin:0 auto;padding:18px 16px 40px}
+.survey-page-top{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:36px;color:#fff}
+.survey-page-brand{font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.92}
+.survey-language{flex:0 0 auto;padding:7px 14px;border:1px solid rgba(255,255,255,.45);border-radius:999px;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:#fff;cursor:pointer}
+.survey-language:hover{background:rgba(255,255,255,.12)}
+.survey-sheet{display:grid;gap:22px;padding:28px 28px 24px;border-radius:18px;background:var(--lo-color-surface);box-shadow:0 10px 30px rgba(15,34,51,.10),0 1px 3px rgba(15,34,51,.06)}
+.survey-sheet-head{display:grid;gap:8px}
+.survey-sheet-head h1{margin:0;font-size:24px;line-height:1.25;color:var(--lo-color-text)}
+.survey-sheet-head p{margin:4px 0 0;font-size:15px;line-height:1.55;color:var(--lo-color-muted)}
+.survey-department{justify-self:start;padding:6px 14px;border-radius:999px;background:var(--lo-color-primary-soft);color:var(--lo-color-primary);font-size:14px;font-weight:800}
+.survey-progress{display:grid;gap:8px;padding-bottom:4px}
+.survey-progress>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.survey-progress strong{font-size:17px;color:var(--lo-color-text)}
+.survey-progress small{flex:0 0 auto;font-size:12.5px;font-weight:600;color:var(--lo-color-muted)}
+.survey-progress>span{display:block;height:6px;border-radius:999px;background:var(--lo-color-surface-muted,#e8edf2);overflow:hidden}
+.survey-progress>span>i{display:block;height:100%;border-radius:inherit;background:var(--lo-color-primary);transition:width .25s}
+.survey-sheet-actions{display:flex;justify-content:space-between;gap:10px;padding-top:18px;border-top:1px solid var(--lo-color-border)}
+/* The app squeezes every button to 34px; on the public form they are for a finger. */
+.survey-sheet .survey-sheet-actions .button{height:50px!important;min-height:50px!important;padding:0 26px!important;font-size:15px!important;border-radius:12px!important}
+.survey-sheet-status{justify-items:center;padding:48px 28px;text-align:center}
+.survey-sheet-status>svg{color:var(--lo-color-primary)}
+.survey-sheet-status h1{margin:0;font-size:22px;color:var(--lo-color-text)}
+.survey-sheet-status p{margin:0;max-width:420px;font-size:15px;line-height:1.55;color:var(--lo-color-muted)}
+.survey-page-foot{display:flex;align-items:center;justify-content:center;gap:6px;margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+@media(max-width:640px){
+  .survey-page{background:linear-gradient(var(--lo-color-primary) 0 132px,transparent 132px)}
+  .survey-page-shell{padding:12px 10px 28px}
+  .survey-sheet{gap:18px;padding:22px 18px 18px;border-radius:16px}
+  .survey-sheet-head h1{font-size:21px}
+  .survey-sheet-actions{position:sticky;bottom:0;margin:0 -18px -18px;padding:12px 18px calc(12px + env(safe-area-inset-bottom));border-radius:0 0 16px 16px;background:var(--lo-color-surface)}
+  .survey-sheet .survey-sheet-actions .button{flex:1;justify-content:center}
+  .survey-sheet-actions>span:empty{display:none}
+}
+
+/* Results */
+.survey-results{display:grid;gap:14px}
+.survey-results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.survey-results-grid>.survey-below-panel{grid-column:1 / -1}
+@media(max-width:1000px){.survey-results-grid{grid-template-columns:1fr}}
+.survey-below{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.survey-below{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+.survey-below>li{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px auto;align-items:center;gap:10px;font-size:12.5px}
+.survey-below>li>span strong,.survey-result-label strong{display:block;color:var(--lo-color-text);font-size:12.5px;line-height:1.35}
+.survey-below>li>span small,.survey-result-label small{display:block;color:var(--lo-color-muted);font-size:11px}
+.survey-below>li>button{display:inline-flex;align-items:center;gap:4px}
+.survey-table{width:100%;font-size:12.5px}
+/* Inside a record tab every table is given a registry's width; these sit in half-width panels. */
+.record-tab-panel .data-table.survey-table{min-width:0!important}
+.survey-meter-cell{display:inline-flex;align-items:center;gap:8px;min-width:120px;font-weight:700;font-size:12px}
+.survey-meter-cell .lo-meter{flex:1 1 70px}
+.survey-trend{display:flex;justify-content:center;padding:4px 0}
+.survey-section-results{display:grid;gap:10px}
+.survey-question-results{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.survey-question-results>li{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(140px,1fr) 90px;align-items:center;gap:14px;padding:8px 0;border-top:1px solid var(--lo-color-border)}
+.survey-question-results>li:first-child{border-top:0}
+.survey-question-results>li.survey-result-text{display:block}
+.survey-result-text>small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11px}
+.survey-distribution{display:flex;align-items:flex-end;gap:3px;height:34px}
+.survey-distribution>i{flex:1;min-height:2px;border-radius:3px 3px 0 0;background:var(--lo-color-primary)}
+.survey-distribution>i.is-1,.survey-distribution>i.is-2{background:var(--lo-status-danger-fg)}
+.survey-distribution>i.is-3{background:var(--lo-status-warning-fg)}
+.survey-nps{display:grid;gap:2px}
+.survey-nps strong{font-size:18px;color:var(--lo-color-text)}
+.survey-nps small{font-size:11px;color:var(--lo-color-muted)}
+.survey-option-bars{grid-column:2 / span 2}
+.survey-comments{display:grid;gap:6px;margin:8px 0 0;padding:0;list-style:none;max-height:320px;overflow:auto}
+.survey-comments>li{padding:8px 10px;border-radius:8px;background:var(--lo-color-surface-muted)}
+.survey-comments p{margin:0;font-size:13px;line-height:1.45;color:var(--lo-color-text)}
+.survey-comments small{display:block;margin-top:2px;font-size:11px;color:var(--lo-color-muted)}
+.survey-comment-cell{max-width:360px;white-space:normal;color:var(--lo-color-muted)}
+.survey-entry-head{margin-bottom:12px}
+@media(max-width:760px){.survey-question-results>li{grid-template-columns:1fr}.survey-option-bars{grid-column:auto}.survey-below>li{grid-template-columns:minmax(0,1fr) 70px 40px}}
+
+/* Collection: the survey's QR code, then optional posters per department */
+.survey-collect{display:grid;gap:16px}
+.survey-collect-closed{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid var(--lo-color-warning-border,#f0d9a8);border-radius:12px;background:var(--lo-color-warning-soft,#fff8e8)}
+.survey-collect-closed>div{display:grid;gap:3px}
+.survey-collect-closed strong{font-size:14px;color:var(--lo-color-text)}
+.survey-collect-closed span{font-size:12.5px;color:var(--lo-color-muted)}
+.survey-collect-main{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;padding:20px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.survey-collect-code{padding:10px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff}
+.survey-collect-code.is-off{opacity:.35}
+.survey-collect-how{display:grid;gap:12px;min-width:0}
+.survey-collect-how h3,.survey-collect-departments h3{margin:0;font-size:15px;color:var(--lo-color-text)}
+.survey-collect-how ol{display:grid;gap:6px;margin:0;padding-left:20px;font-size:13px;color:var(--lo-color-text)}
+.survey-collect-empty{padding:14px 16px;border:1px dashed var(--lo-color-border-strong);border-radius:12px}
+.survey-collect-how>small,.survey-collect-note{margin:0;font-size:12px;color:var(--lo-color-muted)}
+.survey-collect-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.survey-collect-departments{display:grid;gap:12px;padding:18px 20px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.survey-collect-departments>header{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px}
+.survey-collect-departments>header p{margin:4px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
+.survey-collect-departments>ul{display:grid;margin:0;padding:0;list-style:none;border-top:1px solid var(--lo-color-border)}
+.survey-collect-departments>ul>li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--lo-color-border)}
+.survey-collect-departments>ul>li strong{font-size:13.5px;color:var(--lo-color-text)}
+.survey-collect-departments>ul>li button{display:inline-flex;align-items:center;gap:4px}
+.survey-print-stage{position:fixed;left:-10000px;top:0;width:900px}
+.survey-posters{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.survey-poster{display:grid;justify-items:center;gap:14px;padding:28px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:#fff;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.survey-poster>header{display:grid;gap:6px}
+.survey-poster>header span{font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-primary)}
+.survey-poster>header strong{font-size:20px;color:var(--lo-color-text);line-height:1.3}
+.survey-poster>p{margin:0;font-size:14px;color:var(--lo-color-text)}
+.survey-qr{display:block}
+.survey-poster:only-child{grid-column:1/-1;padding:48px 16px}
+@media print{.survey-poster{min-height:46vh}.survey-poster:only-child{min-height:90vh;align-content:center}}
+@media (max-width:640px){.survey-collect-main{grid-template-columns:1fr;justify-items:center}}
+
+/* Questionnaire editor: sections and questions as in a register's definition. */
+.survey-editor-section{padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface-muted)}
+.survey-editor-section+.survey-editor-section{margin-top:10px}
+.survey-editor-section-name{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px;flex:1;min-width:0}
+.survey-editor-section-name>input{min-height:36px;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:8px;font:inherit;font-size:13px;background:var(--lo-color-surface)}
+.survey-editor-section-name>input:first-child{font-weight:700}
+.survey-editor-list li{justify-content:flex-start}
+.survey-editor-number{display:inline-grid;place-items:center;flex:0 0 26px;height:26px;border-radius:999px;background:var(--lo-color-surface-muted);font-size:11.5px;font-weight:800;color:var(--lo-color-text)}
+.survey-editor-text{display:flex;flex:1;flex-direction:column;gap:2px;min-width:0}
+.survey-editor-text strong{font-size:13px;line-height:1.35;color:var(--lo-color-text)}
+.survey-editor-list .register-builder-tools{margin-left:auto}
+.survey-editor-empty{margin:0;padding:6px 2px;font-size:12.5px;color:var(--lo-color-muted)}
+.survey-editor-footer{display:flex;margin-top:12px}
+.survey-question-dialog{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.survey-question-preview{position:sticky;top:0;display:grid;gap:10px;padding:14px;border:1px dashed var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-muted)}
+.survey-question-preview>.eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.survey-question-preview .survey-scale{grid-template-columns:1fr}
+.survey-question-preview .survey-choices{grid-template-columns:1fr}
+@media(max-width:900px){.survey-question-dialog{grid-template-columns:1fr}.survey-question-preview{position:static}}
+
+/* The record's first tab sits in a block body: its panel grows with the results and the body scrolls. */
+.survey-record-shell .record-tab-panel-body{flex:1 1 auto}
+.survey-record-shell .record-tab-panel-body>.filter-system{padding:12px 20px 4px}
+.survey-record-shell .record-tab-panel-body>:is(.survey-results,.survey-collect,.risk-empty-note){padding:12px 20px 20px}

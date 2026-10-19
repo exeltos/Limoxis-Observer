@@ -218,6 +218,11 @@
       "authenticated": true,
       "reason": "Lets a member of a Demo organization switch their own role (and department scope) so the database shows exactly what that role sees; refuses any organization that is not a Demo and any role outside the previewable system roles."
     },
+    "department_register_fast_reads": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Points a department register's read policies at the once-per-query checks (private.register_can_read / register_can_read_identity); same caller check as department_register_sync: Platform Owner, Hospital Admin, Quality Manager or manage_quality."
+    },
     "department_register_sync": {
       "category": "rpc",
       "authenticated": true,
@@ -326,6 +331,26 @@
       "authenticated": true,
       "reason": "Writes a runtime event for an organisation the caller is an active member of."
     },
+    "regulation_approve": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Approves a regulation's draft as its next edition; checks private.can_manage_regulations for the regulation's organisation and requires both signatures (administrator, infection control lead) for the draft's current revision."
+    },
+    "legislation_check_now": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Starts the automatic check of the legislation sources now; Platform Owner only (auth.uid() and current_user_is_platform_owner). Calls the scheduled-tasks Edge Function with the Vault secret."
+    },
+    "legislation_publish": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Publishes a legislation text as a new version for every hospital and queues the e-mails to their administrators and quality managers; Platform Owner only (auth.uid() and current_user_is_platform_owner)."
+    },
+    "regulation_sign": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Signs a regulation's draft in a role; checks private.can_sign_regulation (Hospital Admin as administrator, IPC Lead as infection_lead, or Platform Owner). The signatures table has no write grant."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
@@ -351,11 +376,28 @@
       "authenticated": true,
       "reason": "Submits minutes for approval; requires finalize_committee_minutes on the committee; members without an account get an e-mail link or a paper signature."
     },
+    "survey_public": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Shows a satisfaction survey's questions and departments to a respondent without an account, from the survey's public link (QR poster); nothing about other responses."
+    },
+    "survey_submit": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Records one anonymous response through the survey's public link: open surveys only, answers checked against the questions, departments the survey covers, at most 60 a minute."
+    },
     "training_email_access": {
       "category": "public-token",
       "anon": true,
       "authenticated": true,
       "reason": "Opens a training from the e-mailed link; the one-time random access token identifies the assignment; answers are stripped."
+    },
+    "training_finalize_review": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "A manager with manage_training finishes a pending manual assessment review: awards the free-text points, recomputes the score, completes the assignment and issues the certificate (columns the learner-owned trigger keeps from API writes)."
     },
     "training_submit_evaluation": {
       "category": "public-token",

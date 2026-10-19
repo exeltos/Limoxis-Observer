@@ -4,6 +4,7 @@ import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCID
 import { recordOwners } from './qualityRecordRules'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
 import { glanceItems } from './QualityGlance'
+import { incidentDetailFacts } from './incidentDetails'
 
 const KIND = { incidents: ['Συμβάν', 'Incident'], findings: ['Εύρημα', 'Finding'], capas: ['Διορθωτική ενέργεια', 'Corrective action'], audits: ['Επιθεώρηση', 'Audit'] }
 const ANSWER = { yes: ['Ναι', 'Yes'], no: ['Όχι', 'No'], na: ['Δ/Ε', 'N/A'] }
@@ -35,6 +36,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       [L('Αναφέρθηκε από', 'Reported by'), record.anonymous ? L('Ανώνυμη αναφορά', 'Anonymous report') : record.reportedBy],
       [L('Υπεύθυνος', 'Responsible'), owners],
       record.sentinel && [L('Συμβάν-φρουρός: ανάλυση έως', 'Sentinel: analysis due'), day(record.rcaDueDate)],
+      ...(reachesPatient ? incidentDetailFacts(record, language) : []),
     ],
     findings: [
       [t('severity'), t(record.severity)],
@@ -65,6 +67,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
     recordType === 'incidents' && [L('Συνεισφέροντες παράγοντες', 'Contributing factors'), text(record.contributingFactors, record.contributingFactorsEn)],
   ].filter(item => item && String(item[1] || '').trim())
   const steps = recordType === 'capas' ? record.subActions || [] : []
+  const progress = recordType === 'capas' ? record.progress || [] : []
   const analysis = recordType === 'capas' && record.rootCauseAnalysis ? normalizeAnalysis(record.rootCauseAnalysis) : null
   const checklist = recordType === 'audits' ? record.checklist || [] : []
   // The whole audit trail, as in the History tab.
@@ -89,6 +92,10 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       <h3>{L('Βήματα', 'Steps')}</h3>
       <table><thead><tr><th>{L('Βήμα', 'Step')}</th><th>{L('Υπεύθυνος', 'Owner')}</th><th>{L('Προθεσμία', 'Due')}</th><th>{L('Ολοκλήρωση', 'Done')}</th></tr></thead>
         <tbody>{steps.map((step, index) => <tr key={step.id || index}><td>{step.title}</td><td>{step.owner || '—'}</td><td>{day(step.dueDate)}</td><td>{step.done ? `✓ ${formatDay(step.doneAt, language) || ''}` : '—'}</td></tr>)}</tbody></table>
+    </>}
+    {progress.length > 0 && <>
+      <h3>{L('Πρόοδος', 'Progress')}</h3>
+      <table><tbody>{progress.map((entry, index) => <tr key={entry.id || index}><td>{day(entry.date)}</td><td>{entry.note}</td><td>{entry.author || '—'}</td></tr>)}</tbody></table>
     </>}
     {analysis && (analysis.problem || analysis.rootCause || analysis.whys.some(Boolean) || ISHIKAWA_CATEGORIES.some(([key]) => analysis.causes[key].length)) && <>
       <h3>{L('Ανάλυση αιτιών', 'Root cause analysis')}</h3>

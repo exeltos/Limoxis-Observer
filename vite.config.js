@@ -1,8 +1,13 @@
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Agent worktrees (.claude/worktrees) carry their own copy of tests/.
+  test: {
+    exclude: [...configDefaults.exclude, '.claude/**'],
+  },
   server: {
     watch: {
       usePolling: true,

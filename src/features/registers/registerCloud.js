@@ -7,8 +7,8 @@
 
 const TYPE_TO_DB = { yesNo: 'yes_no', multiChoice: 'multi_choice' }
 const TYPE_FROM_DB = { yes_no: 'yesNo', multi_choice: 'multiChoice' }
-const COMPUTED_TO_DB = { ageDays: 'age_days', ageYears: 'age_years' }
-const COMPUTED_FROM_DB = { age_days: 'ageDays', age_years: 'ageYears' }
+const COMPUTED_TO_DB = { ageDays: 'age_days', ageYears: 'age_years', apacheII: 'apache_ii' }
+const COMPUTED_FROM_DB = { age_days: 'ageDays', age_years: 'ageYears', apache_ii: 'apacheII' }
 const blank = value => value === undefined || value === null || value === ''
 const num = value => (blank(value) ? null : Number(value))
 const orNull = value => (blank(value) ? null : value)
@@ -59,6 +59,7 @@ function fieldFromRow(row, options) {
   add('unit', row.unit_el); add('unitEn', row.unit_en)
   add('min', num(row.min_value)); add('max', num(row.max_value)); add('usualMin', num(row.usual_min)); add('usualMax', num(row.usual_max))
   if (row.required) field.required = true
+  add('requiredFrom', row.required_from)
   if (row.in_list) field.list = true
   if (row.provisional) field.provisional = true
   add('help', row.help_el); add('helpEn', row.help_en)
@@ -121,6 +122,7 @@ export function definitionRows(register, organizationId, registerId) {
     usual_min: num(field.usualMin),
     usual_max: num(field.usualMax),
     required: Boolean(field.required),
+    required_from: field.required ? orNull(field.requiredFrom) : null,
     in_list: Boolean(field.list),
     in_breakdown: breakdowns.has(field.key),
     provisional: Boolean(field.provisional),

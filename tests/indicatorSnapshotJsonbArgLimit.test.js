@@ -16,9 +16,12 @@ const definingMigrations = fs.readdirSync(migrationsDir)
   .sort()
 const latestMigrationFile = definingMigrations.at(-1)
 const migrationFull = fs.readFileSync(path.join(migrationsDir, latestMigrationFile), 'utf8')
-// Strip comment lines so sample calls mentioned in header comments
-// (e.g. "jsonb_build_object(...)") aren't picked up as real SQL.
-const migration = migrationFull.split('\n').filter(line => !line.trim().startsWith('--')).join('\n')
+// Only the function's own statement: a migration that re-creates it may hold
+// other SQL too (20261115100000 moves training to its own tables). Strip
+// comment lines so sample calls mentioned in comments aren't picked up.
+const definitionStart = migrationFull.indexOf('create or replace function private.indicator_metric_snapshot')
+const definition = migrationFull.slice(definitionStart, migrationFull.indexOf('$function$;', definitionStart) + '$function$;'.length)
+const migration = definition.split('\n').filter(line => !line.trim().startsWith('--')).join('\n')
 
 // Split a jsonb_build_object(...) call body on its top-level commas (there are
 // no nested parentheses in these calls — every argument is a scalar literal
