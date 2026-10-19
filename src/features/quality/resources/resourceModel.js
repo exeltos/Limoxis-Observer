@@ -260,7 +260,7 @@ export function certificationState(certification, today = todayIso()) {
 export const CERTIFICATION_STATES = [
   { value: 'valid', label: ['Σε ισχύ', 'Valid'], tone: 'success' },
   { value: 'expiring', label: ['Λήγει σε 60 ημέρες', 'Expires within 60 days'], tone: 'warning' },
-  { value: 'expired', label: ['Έληξε', 'Expired'], tone: 'danger' },
+  { value: 'expired', label: ['Έληξε, χωρίς ανανέωση', 'Expired, not renewed'], tone: 'danger' },
   { value: 'none', label: ['Χωρίς λήξη', 'No expiry'], tone: 'neutral' },
 ]
 export const certificationStateLabel = (value, language) => pick(CERTIFICATION_STATES, value, language)

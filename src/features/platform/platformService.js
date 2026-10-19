@@ -115,7 +115,7 @@ function withCrosstabs(domains,crosstabs){
 }
 
 async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,addonDomains,crosstabResult]=await withTimeout(Promise.all([
+  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,addonDomains,crosstabResult,qualityFoodResult]=await withTimeout(Promise.all([
     supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
     loadAmrSusceptibility({organizationId,from,to,departmentId}),
@@ -126,10 +126,12 @@ async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',depar
     loadAddonDomains({organizationId,from,to}),
     // Cross-tabulations (20261030120000_analysis_crosstab_metrics.sql); before that migration the matrices stay hidden.
     Promise.resolve(supabase.rpc('analysis_crosstab_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
+    // Quality & food safety (20261126100000_analysis_quality_food_metrics.sql); before that migration the section stays empty.
+    Promise.resolve(supabase.rpc('analysis_quality_food_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
   ]))
   if(summaryResult.error)throw summaryResult.error
   if(addonDomains.lira)addonDomains.lira.clusters=Array.isArray(clusters)?clusters.length:0
-  const domains=(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...addonDomains}
+  const domains=(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...(qualityFoodResult?.error?{}:(qualityFoodResult?.data||{})),...addonDomains}
   return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:withCrosstabs(domains,crosstabResult?.error?null:crosstabResult?.data)}
 }
 

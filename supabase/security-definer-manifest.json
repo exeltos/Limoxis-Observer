@@ -6,6 +6,11 @@
       "authenticated": true,
       "reason": "Analytics cross-tabulations (department × HAI type, agent × organism, …); same access as analysis_domain_metrics: Platform Owner or Hospital Admin / IPC Lead of the organisation."
     },
+    "analysis_quality_food_metrics": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Analytics «Quality & food safety» aggregates (audits, suppliers, kitchen HACCP, satisfaction surveys, risks), counts only; Platform Owner or Hospital Admin / IPC Lead / Quality Manager of the organisation."
+    },
     "analysis_domain_metrics": {
       "category": "rpc",
       "authenticated": true,

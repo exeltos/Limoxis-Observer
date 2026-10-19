@@ -319,13 +319,24 @@ export function questionResult(question, responses = []) {
   return result
 }
 
+// The answers to the 1–5 questions and how many of them were 4 or 5 (satisfied):
+// the satisfaction score is satisfied over answered. Kept as two counts so
+// surveys, departments and hospitals add up (analysis_quality_food_metrics
+// counts the same way on the server).
+export function satisfactionCounts(survey, responses = [], results = null) {
+  const ratings = (results || (survey?.questions || []).filter(question => question.type === 'rating').map(question => questionResult(question, responses))).filter(result => result.question.type === 'rating')
+  return {
+    answered: ratings.reduce((sum, result) => sum + result.count, 0),
+    satisfied: ratings.reduce((sum, result) => sum + (result.distribution?.[3] || 0) + (result.distribution?.[4] || 0), 0),
+  }
+}
+
 // The survey's headline figures: responses, the share of satisfied answers over
 // every 1–5 question, the recommendation score, and the questions below target.
 export function surveySummary(survey, responses = []) {
   const results = (survey.questions || []).map(question => questionResult(question, responses))
   const ratings = results.filter(result => result.question.type === 'rating')
-  const answered = ratings.reduce((sum, result) => sum + result.count, 0)
-  const satisfiedAnswers = ratings.reduce((sum, result) => sum + (result.distribution?.[3] || 0) + (result.distribution?.[4] || 0), 0)
+  const { answered, satisfied: satisfiedAnswers } = satisfactionCounts(survey, responses, results)
   const recommend = results.find(result => result.question.type === 'nps')
   const target = Number(survey.satisfiedTarget) || 80
   return {

@@ -79,6 +79,8 @@ function local() {
   saveLocal(state)
   return state
 }
+// The demo surveys and responses as they are in this browser (the Analysis demo reads them).
+export const loadSurveysLocal = () => local()
 function saveLocal(state) {
   saveSnapshot(SURVEYS_KEY, state.surveys)
   saveSnapshot(RESPONSES_KEY, state.responses)
