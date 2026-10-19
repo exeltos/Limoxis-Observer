@@ -1,5 +1,5 @@
 // The other FileMaker registers (ICU, Obstetrics, Delivery room, Cath lab,
-// Chemotherapy, Emergency department) and the new Paediatrics register, with
+// Chemotherapy, Emergency department, Physiotherapy) and the new Paediatrics register, with
 // the corrections of docs/quality/DEPARTMENT_REGISTERS_FILEMAKER.md. Lists
 // follow the values found in the FileMaker exports; `aliases` are the
 // FileMaker column names and `match` the beginnings of the FileMaker values,
@@ -160,7 +160,7 @@ const CATH_LAB = {
     count('devices', 'Βηματοδότες', 'Pacemakers', { filters: [{ field: 'procedures', op: 'eq', value: 'pacemaker' }] }),
     average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
     share('to_surgery', '% προς καρδιοχειρουργείο', '% referred to cardiac surgery', [{ field: 'to_surgery', op: 'yes' }]),
-    share('complications', '% με επιπλοκή', '% with complication', [{ field: 'complication', op: 'yes' }], { direction: 'lower' }),
+    share('complications', '% με επιπλοκή', '% with complication', [{ field: 'complication', op: 'yes' }], { denominatorFilters: [{ field: 'complication', op: 'filled' }], direction: 'lower', note: 'Μόνο όσες πράξεις έχουν καταγραφή επιπλοκής (ναι/όχι).', noteEn: 'Only procedures with the complication recorded (yes/no).' }),
   ],
 }
 
@@ -193,6 +193,43 @@ const CHEMOTHERAPY = {
     count('new_patients', 'Νέοι ασθενείς', 'New patients', { filters: [{ field: 'start_date', op: 'filled' }], dateField: 'start_date' }),
     count('ended', 'Λήξεις θεραπείας', 'Treatments ended', { filters: [{ field: 'end_date', op: 'filled' }], dateField: 'end_date' }),
     average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
+    count('active_patients', 'Ενεργοί ασθενείς', 'Active patients', { filters: [{ field: 'end_date', op: 'empty' }], note: 'Ασθενείς χωρίς λήξη θεραπείας, στην περίοδο που καταγράφηκαν.', noteEn: 'Patients without a treatment end, in the period they were recorded.' }),
+  ],
+}
+
+// FileMaker «ΦΥΣΙΚΟΘΕΡΑΠΕΙΕΣ»: one row per patient referred to physiotherapy.
+// The ward codes 3Α / 3Β are the Surgical and Medical wards (the FileMaker
+// fractions), the diagnosis abbreviations become a list (ΟΑΓ = total knee,
+// ΟΑΙ = total hip arthroplasty, # = fracture), «ΑΜΦΩ» its own yes/no.
+const PHYSIOTHERAPY = {
+  key: 'physiotherapy',
+  kind: 'case',
+  name: 'Μητρώο φυσικοθεραπειών',
+  nameEn: 'Physiotherapy register',
+  description: 'Μία καρτέλα ανά παραπομπή ασθενούς για φυσικοθεραπεία: τμήμα νοσηλείας, διάγνωση ή επέμβαση, φυσικοθεραπευτής, θεράπων ιατρός.',
+  descriptionEn: 'One card per patient referred for physiotherapy: ward, diagnosis or operation, physiotherapist, attending physician.',
+  identity: { caseNumber: true, patientName: true, caseNumberAliases: ['ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'], patientNameAliases: ['ΕΠΩΝΥΜΟ', 'ΟΝΟΜΑ'] },
+  entryDateField: 'date',
+  sections: [{ key: 'main', label: 'Παραπομπή', labelEn: 'Referral' }],
+  breakdowns: ['ward', 'diagnosis', 'physiotherapist'],
+  fields: [
+    { key: 'date', section: 'main', type: 'date', required: true, label: 'Ημερομηνία', labelEn: 'Date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ'] },
+    { key: 'ward', section: 'main', type: 'choice', required: true, list: true, label: 'Τμήμα νοσηλείας', labelEn: 'Ward', aliases: ['TMHMA', 'ΤΜΗΜΑ'], options: [o('surgical', 'Χειρουργική (3Α)', 'Surgical ward (3A)', ['3Α', '3A']), o('medical', 'Παθολογική (3Β)', 'Medical ward (3B)', ['3Β', '3B']), o('cardiac_surgery', 'Καρδιοχειρουργική', 'Cardiac surgery', ['ΚΡΧ']), o('icu', 'ΜΕΘ', 'ICU', ['ΜΕΘ']), o('other', 'Άλλο', 'Other')] },
+    { key: 'diagnosis', section: 'main', type: 'multiChoice', list: true, label: 'Διάγνωση / επέμβαση', labelEn: 'Diagnosis / operation', aliases: ['ΔΙΑΓΝΩΣΗ'], options: [o('knee_arthroplasty', 'Ολική αρθροπλαστική γόνατος', 'Total knee arthroplasty', ['ΟΑΓ']), o('hip_arthroplasty', 'Ολική αρθροπλαστική ισχίου', 'Total hip arthroplasty', ['ΟΑΙ', 'ΟΑ Ι']), o('hip_hemiarthroplasty', 'Ημιολική αρθροπλαστική ισχίου', 'Hip hemiarthroplasty', ['ΗΜΙΟΛΙΚΗ']), o('hip_fracture', 'Κάταγμα ισχίου', 'Hip fracture', ['#ΙΣΧΙΟΥ', '# ΙΣΧΙΟΥ']), o('other_fracture', 'Άλλο κάταγμα', 'Other fracture', ['#']), o('spine', 'Επέμβαση σπονδυλικής στήλης', 'Spine surgery', ['ΣΠΟΝΔΥΛΟΔΕΣΙΑ', 'ΔΙΣΚΕΚΤΟΜΗ']), o('cabg', 'Αορτοστεφανιαία παράκαμψη', 'Coronary artery bypass', ['ΑΟΡΤΟΣΤΕΦΑΝΙΑΙΑ']), o('abdominal', 'Επέμβαση κοιλίας', 'Abdominal surgery', ['ΛΑΠ', 'ΚΟΛΕΚΤΟΜΗ', 'ΕΝΤΕΡΕΚΤΟΜΗ', 'WHIPPLE', 'ΜΙΚΡΗ ΕΠΕΜΒ']), o('other', 'Άλλη', 'Other')] },
+    yes('bilateral', 'Αμφοτερόπλευρη', 'Bilateral', { section: 'main', help: 'Το «ΑΜΦΩ» του FileMaker.', helpEn: 'FileMaker «ΑΜΦΩ».' }),
+    { key: 'diagnosis_detail', section: 'main', type: 'text', label: 'Διάγνωση (λεπτομέρειες)', labelEn: 'Diagnosis (details)', help: 'Η ακριβής επέμβαση ή το κάταγμα, όταν η λίστα δεν το λέει.', helpEn: 'The exact operation or fracture, when the list does not say it.' },
+    { key: 'physiotherapist', section: 'main', type: 'choice', list: true, provisional: true, label: 'Φυσικοθεραπευτής', labelEn: 'Physiotherapist', aliases: ['ΦΥΣΙΚΟΘΕΡΑΠΕΥΤΗΣ'], options: [], help: 'Οι φυσικοθεραπευτές προστίθενται κατά την εισαγωγή ή στον ορισμό του μητρώου.', helpEn: 'Physiotherapists are added on import or in the register definition.' },
+    { key: 'physician', section: 'main', type: 'choice', provisional: true, label: 'Θεράπων ιατρός', labelEn: 'Attending physician', aliases: ['ΘΕΡΑΠΩΝ ΙΑΤΡΟΣ', 'ΘΕΡΑΠΩΝ'], options: [], help: 'Οι ιατροί προστίθενται κατά την εισαγωγή ή στον ορισμό του μητρώου.', helpEn: 'Physicians are added on import or in the register definition.' },
+    { key: 'notes', section: 'main', type: 'text', label: 'Παρατηρήσεις', labelEn: 'Notes', aliases: ['ΠΑΡΑΤΗΡΗΣΕΙΣ'] },
+  ],
+  indicators: [
+    count('referrals', 'Παραπομπές για φυσικοθεραπεία', 'Physiotherapy referrals'),
+    share('surgical_share', '% από τη Χειρουργική', '% from the Surgical ward', [{ field: 'ward', op: 'eq', value: 'surgical' }], { denominatorFilters: [{ field: 'ward', op: 'filled' }] }),
+    share('medical_share', '% από την Παθολογική', '% from the Medical ward', [{ field: 'ward', op: 'eq', value: 'medical' }], { denominatorFilters: [{ field: 'ward', op: 'filled' }] }),
+    share('icu_share', '% από τη ΜΕΘ', '% from the ICU', [{ field: 'ward', op: 'eq', value: 'icu' }], { denominatorFilters: [{ field: 'ward', op: 'filled' }] }),
+    share('knee_share', '% αρθροπλαστικών γόνατος', '% knee arthroplasties', [{ field: 'diagnosis', op: 'eq', value: 'knee_arthroplasty' }], { denominatorFilters: [{ field: 'diagnosis', op: 'filled' }] }),
+    share('hip_share', '% αρθροπλαστικών ισχίου', '% hip arthroplasties', [{ field: 'diagnosis', op: 'eq', value: 'hip_arthroplasty' }], { denominatorFilters: [{ field: 'diagnosis', op: 'filled' }] }),
+    count('hip_fractures', 'Κατάγματα ισχίου', 'Hip fractures', { filters: [{ field: 'diagnosis', op: 'eq', value: 'hip_fracture' }] }),
   ],
 }
 
@@ -276,4 +313,4 @@ const PAEDIATRICS = {
   ],
 }
 
-export const HOSPITAL_TEMPLATES = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY]
+export const HOSPITAL_TEMPLATES = [PAEDIATRICS, ICU, OBSTETRICS, DELIVERY_ROOM, CATH_LAB, CHEMOTHERAPY, EMERGENCY, PHYSIOTHERAPY]

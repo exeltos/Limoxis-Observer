@@ -196,6 +196,8 @@ describe('database shape', () => {
   it('keeps the field keys usable as column names', () => {
     for (const template of REGISTER_TEMPLATES) {
       for (const field of template.fields || []) expect(field.key).toMatch(/^[a-z][a-z0-9_]{0,40}$/)
+      // Columns every data table has already (department_register_fields.key check).
+      for (const field of template.fields || []) expect(['id', 'organization_id', 'department_id', 'register_id', 'entry_date', 'period_start', 'status', 'locked', 'definition_version', 'created_by', 'created_at', 'updated_by', 'updated_at']).not.toContain(field.key)
       for (const field of template.fields || []) for (const option of field.options || []) expect(option.value).toMatch(/^[a-z0-9][a-z0-9_]{0,40}$/)
       for (const row of [...(template.sheet?.rows || []), ...(template.sheet?.measures || [])]) expect(row.key).toMatch(/^[a-z][a-z0-9_]{0,30}$/)
     }

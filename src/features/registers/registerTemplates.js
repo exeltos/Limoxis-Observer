@@ -160,9 +160,10 @@ export const REGISTER_TEMPLATES = [
     description: 'Κενό μητρώο: προσθέτετε τα πεδία και τους δείκτες που χρειάζεται το τμήμα.',
     descriptionEn: 'An empty register: add the fields and indicators the department needs.',
     identity: { caseNumber: true, patientName: true },
-    entryDateField: 'entry_date',
+    // «entry_date» is a column every data table has already, so the date field is «date».
+    entryDateField: 'date',
     sections: [{ key: 'main', label: 'Στοιχεία', labelEn: 'Details' }],
-    fields: [{ key: 'entry_date', section: 'main', type: 'date', label: 'Ημερομηνία', labelEn: 'Date', required: true }],
+    fields: [{ key: 'date', section: 'main', type: 'date', label: 'Ημερομηνία', labelEn: 'Date', required: true }],
     indicators: [{ id: 'count', title: 'Πλήθος περιστατικών', titleEn: 'Number of cases', aggregation: 'count', filters: [], direction: 'context' }],
   },
   {
