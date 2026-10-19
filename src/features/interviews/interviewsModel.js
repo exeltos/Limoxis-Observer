@@ -13,7 +13,9 @@ export const EMPLOYMENT_TYPES = { full_time: ['Πλήρης απασχόληση
 export const GENDERS = { male: ['Άνδρας', 'Male'], female: ['Γυναίκα', 'Female'], other: ['Άλλο', 'Other'] }
 export const MILITARY = { done: ['Εκπληρωμένη', 'Completed'], exempt: ['Απαλλαγή', 'Exempt'], not_done: ['Εκκρεμεί', 'Not completed'], not_applicable: ['Δεν αφορά', 'Not applicable'] }
 export const MARITAL = { single: ['Άγαμος/η', 'Single'], married: ['Έγγαμος/η', 'Married'], divorced: ['Διαζευγμένος/η', 'Divorced'], widowed: ['Χήρος/α', 'Widowed'], other: ['Άλλο', 'Other'] }
-export const LEVELS = { fluent: ['Άριστα', 'Fluent'], good: ['Καλά', 'Good'], fair: ['Μέτρια', 'Fair'], basic: ['Βασικά', 'Basic'] }
+// A language is rated in three skills, each on the same scale (FileMaker: ΕΥΧ = ευχερώς, ΜΕΤΡ = μετρίως).
+export const LANGUAGE_SKILLS = Object.freeze([['speaking', 'Ομιλία', 'Speaking'], ['reading', 'Ανάγνωση', 'Reading'], ['writing', 'Γραφή', 'Writing']])
+export const LEVELS = { fluent: ['Άριστα (ευχερώς)', 'Excellent (fluent)'], very_good: ['Πολύ καλά', 'Very good'], good: ['Καλά', 'Good'], fair: ['Μέτρια', 'Fair'], basic: ['Βασικά', 'Basic'] }
 export const LANGUAGES = { el: ['Ελληνικά', 'Greek'], en: ['Αγγλικά', 'English'], fr: ['Γαλλικά', 'French'], de: ['Γερμανικά', 'German'], it: ['Ιταλικά', 'Italian'], es: ['Ισπανικά', 'Spanish'], sq: ['Αλβανικά', 'Albanian'], ru: ['Ρωσικά', 'Russian'], bg: ['Βουλγαρικά', 'Bulgarian'], ro: ['Ρουμανικά', 'Romanian'], ar: ['Αραβικά', 'Arabic'] }
 export const INTERVIEW_STATUSES = { scheduled: ['Προγραμματισμένη', 'Scheduled'], completed: ['Ολοκληρώθηκε', 'Completed'], cancelled: ['Ακυρώθηκε', 'Cancelled'] }
 export const OUTCOMES = { recommend: ['Προτείνεται', 'Recommended'], reserve: ['Επιφύλαξη / λίστα αναμονής', 'Reserve list'], not_recommend: ['Δεν προτείνεται', 'Not recommended'] }
@@ -40,6 +42,12 @@ export const militaryLabel = (value, language = 'el') => pick(MILITARY, value, l
 export const maritalLabel = (value, language = 'el') => pick(MARITAL, value, language)
 export const levelLabel = (value, language = 'el') => pick(LEVELS, value, language)
 export const languageLabel = (value, language = 'el') => pick(LANGUAGES, value, language)
+export const certificateLabel = (row, language = 'el') => (row?.certificate ? [language === 'en' ? 'Certificate' : 'Πιστοποιητικό', row.certificateName].filter(Boolean).join(': ') : row?.certificate === false ? (language === 'en' ? 'No certificate' : 'Χωρίς πιστοποιητικό') : '')
+// «Αγγλικά — Ομιλία: Άριστα (ευχερώς) · Ανάγνωση: Καλά · Γραφή: Καλά · Πιστοποιητικό: B2»
+export function languageSkillsText(row, language = 'el') {
+  const skills = LANGUAGE_SKILLS.filter(([key]) => row?.[key]).map(([key, el, en]) => `${language === 'en' ? en : el}: ${levelLabel(row[key], language)}`)
+  return `${languageLabel(row?.language, language)} — ${[...skills, certificateLabel(row, language)].filter(Boolean).join(' · ') || '—'}`
+}
 export const interviewStatusLabel = (value, language = 'el') => pick(INTERVIEW_STATUSES, value, language)
 export const outcomeLabel = (value, language = 'el') => pick(OUTCOMES, value, language)
 export const decisionLabel = (value, language = 'el') => pick(DECISIONS, value, language)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Briefcase, CalendarPlus, ClipboardCheck, Gavel, GraduationCap, Info, MessagesSquare, Pencil, Trash2, UserPlus, UserSearch, Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -19,9 +19,10 @@ import { reportExports } from '../../core/export/reportDocument'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { CandidateStatusBadge, useInterviews, useInterviewsAccess } from './InterviewsShared'
 import { CandidateDialog, DecisionDialog, EducationDialog, EmployersDialog, EvaluationDialog, HireDialog, ScheduleDialog } from './InterviewsDialogs'
-import { CRITERIA, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtRating, fmtStamp, genderLabel, interviewStatusLabel, interviewerRoleLabel, languageLabel, latestEvaluation, levelLabel, maritalLabel, militaryLabel, newInterview, outcomeLabel, outcomeTone, positionsOf, ratingTone, sortedInterviews, yesNo } from './interviewsModel'
+import { CRITERIA, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtRating, fmtStamp, certificateLabel, genderLabel, interviewStatusLabel, interviewerRoleLabel, languageLabel, latestEvaluation, levelLabel, maritalLabel, militaryLabel, newInterview, outcomeLabel, outcomeTone, positionsOf, ratingTone, sortedInterviews, yesNo } from './interviewsModel'
 import { evaluationDocument } from './interviewsReports'
-import { interviewsErrorMessage, removeCandidate, removeInterview } from './interviewsService'
+import { CONSENTS } from './applicationModel'
+import { interviewsErrorMessage, loadCandidateSignature, removeCandidate, removeInterview } from './interviewsService'
 
 // An application («ΑΙΤΗΣΗ ΕΡΓΑΣΙΑΣ»): the details, education and languages, previous
 // employers, the interviews with their evaluation, and the decision / hiring.
@@ -77,12 +78,12 @@ export function InterviewRecordPage() {
   const age = ageOn(candidate.birthDate)
   return <Page fill><EntityRecordShell className="interviews-record-shell workspace-fill" avatar={<UserSearch size={19} />} eyebrow={candidate.code} title={candidate.fullName}
     subtitle={[candidate.requestedPosition, employmentLabel(candidate.employmentType, language), `${en ? 'Applied' : 'Αίτηση'} ${fmtDay(candidate.appliedOn)}`].filter(Boolean).join(' · ')}
-    status={<span className="interviews-badges"><CandidateStatusBadge status={candidate.status} language={language} />{evaluation && <StatusBadge tone={ratingTone(evaluation.overallRating)}>{fmtRating(evaluation.overallRating, language)}</StatusBadge>}{!candidate.consentGiven && <StatusBadge tone="danger">{en ? 'No consent' : 'Χωρίς συναίνεση'}</StatusBadge>}</span>}
+    status={<span className="interviews-badges"><CandidateStatusBadge status={candidate.status} language={language} />{evaluation && <StatusBadge tone={ratingTone(evaluation.overallRating)}>{fmtRating(evaluation.overallRating, language)}</StatusBadge>}{candidate.source === 'tablet' && <StatusBadge tone="info">{en ? 'From tablet' : 'Από tablet'}</StatusBadge>}{!candidate.consentGiven && <StatusBadge tone="danger">{en ? 'No consent' : 'Χωρίς συναίνεση'}</StatusBadge>}</span>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} subtitle={en ? 'Personal data: seen only by HR and the Hospital Admin.' : 'Προσωπικά δεδομένα: τα βλέπει μόνο το Γραφείο Προσωπικού και ο Διαχειριστής.'}>
       <div className="record-view-stack">
         <RecordDetailsGrid fields={[
-          { label: en ? 'Position applied for' : 'Αιτούμενη θέση', value: candidate.requestedPosition }, { label: en ? 'Employment type' : 'Είδος απασχόλησης', value: employmentLabel(candidate.employmentType, language) }, { label: en ? 'Application date' : 'Ημερομηνία αίτησης', value: fmtDay(candidate.appliedOn), meta: candidate.source === 'filemaker' ? 'FileMaker' : '' },
+          { label: en ? 'Position applied for' : 'Αιτούμενη θέση', value: candidate.requestedPosition }, { label: en ? 'Employment type' : 'Είδος απασχόλησης', value: employmentLabel(candidate.employmentType, language) }, { label: en ? 'Application date' : 'Ημερομηνία αίτησης', value: fmtDay(candidate.appliedOn), meta: candidate.source === 'filemaker' ? 'FileMaker' : candidate.source === 'tablet' ? (en ? 'From tablet' : 'Από tablet') : '' },
           { label: en ? 'Gender' : 'Φύλο', value: genderLabel(candidate.gender, language) }, { label: en ? 'Birth date' : 'Ημερομηνία γέννησης', value: fmtDay(candidate.birthDate), meta: age != null ? `${age} ${en ? 'years' : 'ετών'}` : '' }, { label: en ? 'Place of birth' : 'Τόπος γέννησης', value: candidate.birthPlace },
           { label: en ? "Father's / mother's name" : 'Όνομα πατρός / μητρός', value: [candidate.fatherName, candidate.motherName].filter(Boolean).join(' / ') }, { label: en ? 'Nationality / citizenship' : 'Εθνικότητα / υπηκοότητα', value: [candidate.nationality, candidate.citizenship].filter(Boolean).join(' / ') }, { label: en ? 'Marital status' : 'Οικογενειακή κατάσταση', value: [maritalLabel(candidate.maritalStatus, language), candidate.children !== '' && candidate.children != null ? `${candidate.children} ${en ? 'children' : 'παιδιά'}` : ''].filter(Boolean).join(' · ') },
           { label: en ? 'Military service' : 'Στρατιωτική θητεία', value: militaryLabel(candidate.militaryService, language) }, { label: en ? 'Work permit' : 'Άδεια εργασίας', value: yesNo(candidate.workPermit, language) }, { label: en ? 'Licence to practise' : 'Άδεια άσκησης επαγγέλματος', value: yesNo(candidate.practiceLicence, language) },
@@ -93,6 +94,7 @@ export function InterviewRecordPage() {
         <SectionHeader title={en ? 'About the application' : 'Για την αίτηση'} />
         <RecordDetailsGrid fields={[{ label: en ? 'Why us' : 'Γιατί εμάς', value: candidate.whyUs, className: 'interviews-span-3' }, { label: en ? 'Reason for applying' : 'Λόγος αίτησης', value: candidate.applicationReason, className: 'interviews-span-3' }, { label: en ? 'Activities / interests' : 'Δραστηριότητες', value: candidate.activities, className: 'interviews-span-3' }, { label: en ? 'Notes (HR)' : 'Σημειώσεις (HR)', value: candidate.notes, className: 'interviews-span-3' },
           { label: en ? 'Consent (GDPR)' : 'Συναίνεση (GDPR)', value: candidate.consentGiven ? (en ? 'Given' : 'Δόθηκε') : (en ? 'Not given' : 'Δεν δόθηκε'), meta: [candidate.consentText, fmtStamp(candidate.consentAt, language)].filter(Boolean).join(' · ') }]} />
+        {(candidate.source === 'tablet' || candidate.consentVersion) && <CandidateConsents candidate={candidate} organizationId={organizationId} en={en} language={language} />}
       </div>
     </RecordTabPanel>}
     {tab === 'education' && <RecordTabPanel title={en ? 'Education & languages' : 'Εκπαίδευση & γλώσσες'} actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'education' })}><Pencil size={15} />{en ? 'Edit' : 'Επεξεργασία'}</Button>}>
@@ -101,7 +103,7 @@ export function InterviewRecordPage() {
         <RegistryTable rows={candidate.education.map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Πτυχίο' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
           emptyTitle={en ? 'No degrees recorded' : 'Δεν καταγράφηκαν πτυχία'} renderRow={row => <><td>{row.level || '—'}</td><td><strong>{row.school || '—'}</strong></td><td>{row.title || '—'}{row.completed === false && <small>{en ? 'In progress' : 'Σε εξέλιξη'}</small>}</td><td className="nowrap-cell">{row.year || '—'}</td></>} />
         <RegistryTable rows={candidate.languages} rowKey={row => row.id || row.language} columns={[{ key: 'language', label: en ? 'Language' : 'Γλώσσα' }, { key: 'speaking', label: en ? 'Speaking' : 'Ομιλία' }, { key: 'reading', label: en ? 'Reading' : 'Ανάγνωση' }, { key: 'writing', label: en ? 'Writing' : 'Γραφή' }, { key: 'certificate', label: en ? 'Certificate' : 'Πιστοποιητικό' }]}
-          emptyTitle={en ? 'No languages recorded' : 'Δεν καταγράφηκαν γλώσσες'} renderRow={row => <><td><strong>{languageLabel(row.language, language)}</strong></td><td>{levelLabel(row.speaking, language) || '—'}</td><td>{levelLabel(row.reading, language) || '—'}</td><td>{levelLabel(row.writing, language) || '—'}</td><td>{yesNo(row.certificate, language)}{row.certificateName && <small>{row.certificateName}</small>}</td></>} />
+          emptyTitle={en ? 'No languages recorded' : 'Δεν καταγράφηκαν γλώσσες'} renderRow={row => <><td><strong>{languageLabel(row.language, language)}</strong></td><td>{levelLabel(row.speaking, language) || '—'}</td><td>{levelLabel(row.reading, language) || '—'}</td><td>{levelLabel(row.writing, language) || '—'}</td><td>{certificateLabel(row, language) || '—'}</td></>} />
       </div>
     </RecordTabPanel>}
     {tab === 'employers' && <RecordTabPanel title={en ? 'Previous employers' : 'Προϋπηρεσία'} actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'employers' })}><Pencil size={15} />{en ? 'Edit' : 'Επεξεργασία'}</Button>}>
@@ -147,4 +149,26 @@ export function InterviewRecordPage() {
     {dialog?.type === 'decide' && <DecisionDialog {...common} />}
     {dialog?.type === 'hire' && <HireDialog {...common} employees={employees} />}
   </EntityRecordShell></Page>
+}
+
+// The consents given on the tablet, each with the text the candidate read, and the
+// signature under them (loaded only here, not with the list).
+function CandidateConsents({ candidate, organizationId, en, language }) {
+  const [signature, setSignature] = useState('')
+  useEffect(() => {
+    let live = true
+    loadCandidateSignature(organizationId, candidate).then(image => { if (live) setSignature(image) }).catch(() => {})
+    return () => { live = false }
+  }, [organizationId, candidate])
+  const given = { gdpr: candidate.consentGiven, future: candidate.consentFuture, references: candidate.consentReferences, truth: candidate.declarationTruth }
+  const texts = candidate.consentTexts || {}
+  return <>
+    <SectionHeader title={en ? 'Consents and signature' : 'Συναινέσεις και υπογραφή'} subtitle={[candidate.consentVersion && `${en ? 'Text version' : 'Έκδοση κειμένων'} ${candidate.consentVersion}`, fmtStamp(candidate.signedAt || candidate.consentAt, language)].filter(Boolean).join(' · ')} />
+    <ul className="interviews-consents">{CONSENTS.map(consent => <li key={consent.key}>
+      <StatusBadge tone={given[consent.key] ? 'success' : consent.required ? 'danger' : 'neutral'}>{given[consent.key] ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι')}</StatusBadge>
+      <div><strong>{consent.title[en ? 1 : 0]}</strong><small>{texts[consent.key] || consent.text[en ? 'en' : 'el']}</small></div>
+    </li>)}</ul>
+    {signature ? <figure className="interviews-signature"><img src={signature} alt={en ? 'Signature of the candidate' : 'Υπογραφή υποψηφίου'} /><figcaption>{candidate.fullName} · {fmtStamp(candidate.signedAt || candidate.consentAt, language)}</figcaption></figure>
+      : <p className="interviews-muted">{en ? 'No signature on file.' : 'Δεν υπάρχει υπογραφή.'}</p>}
+  </>
 }
