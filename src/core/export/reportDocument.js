@@ -161,8 +161,8 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-table tr{break-inside:avoid}
 .rd-table td small{display:block;color:#5d7083}
 .rd-table .rd-num{text-align:right;white-space:nowrap}
-.rd-table .rd-sub td{background:#fafcfd}
-.rd-table .rd-sub td:first-child{padding-left:16px}
+.rd-table .rd-sub-cell{padding-left:18px;color:#4c6378}
+.rd-table .rd-cal{text-align:center;white-space:nowrap;font-size:8pt}
 .rd-table .rd-bad{color:#b42318;font-weight:700}
 .rd-table .rd-good{color:#067647;font-weight:700}
 .rd-table .rd-warn{color:#b54708;font-weight:700}
