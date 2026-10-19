@@ -9,7 +9,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8')
 const functionsDir = path.join(root, 'supabase/functions')
 const functionNames = fs.readdirSync(functionsDir).filter(name => !name.startsWith('_') && fs.existsSync(path.join(functionsDir, name, 'index.ts')))
 // Called only by the scheduler with a service key, never from a browser.
-const serverOnly = new Set(['platform-scheduled-tasks', 'filemaker-import'])
+const serverOnly = new Set(['platform-scheduled-tasks', 'filemaker-import', 'protocol-review'])
 
 function sourceFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
