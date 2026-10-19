@@ -114,7 +114,7 @@ function documentEvents(families,range,today,list,en){
   const live=family.activePublished
   if(!live?.reviewDate)continue
   const day=toDay(live.reviewDate)
-  push(list,{id:`doc:${live.id}`,kind:'documents',date:day,title:live.title,detail:`${en?'Review due':'Αναθεώρηση'} · ${family.root?.id||live.id} v${live.version||''}`,department:live.department||'',path:`/documents/${live.id}`,state:stateOf(day,today)},range)
+  push(list,{id:`doc:${live.id}`,kind:'documents',date:day,title:live.title,detail:`${live.type==='licence'?(en?'Expires':'Λήξη'):(en?'Review due':'Αναθεώρηση')} · ${family.root?.id||live.id} v${live.version||''}`,department:live.department||'',path:`/documents/${live.id}`,state:stateOf(day,today)},range)
  }
 }
 
