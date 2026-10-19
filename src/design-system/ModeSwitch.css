@@ -6,3 +6,5 @@
 .lo-mode-switch>button:hover{background:#f4f8fb!important}
 .lo-mode-switch>button.active{background:#eaf4f9!important;border-color:#a9c9db!important;color:#1e627f!important}
 .environmental-type-grid+.lo-mode-switch{margin-top:4px}
+.lo-mode-switch button:disabled{cursor:default}
+.lo-mode-switch button:disabled:not(.active){opacity:.6}
