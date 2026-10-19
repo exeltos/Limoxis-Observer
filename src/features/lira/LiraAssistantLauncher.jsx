@@ -48,7 +48,9 @@ export function evidenceSummary(provenance,en){
 
 export function LiraAssistantLauncher(){
  const {language}=useLanguage();const en=language==='en';const {tenant,isDemo,role,membership}=useTenant();const [open,setOpen]=useState(false);const [expanded,setExpanded]=useState(false);const [question,setQuestion]=useState('');const [messages,setMessages]=useState([]);const [data,setData]=useState(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [conversationContext,setConversationContext]=useState({plan:null,timeWindow:null})
- const allowed=useMemo(()=>Boolean(tenant?.id)&&can(role,CAPABILITIES.VIEW_LIRA,membership?.capabilities??[],membership?.customCapabilities??[]),[tenant?.id,role,membership?.capabilities,membership?.customCapabilities])
+ // Never on the candidate's tablet form (/apply), even when HR opened it signed in.
+ const publicPage=typeof window!=='undefined'&&/^\/apply(\/|$)/.test(window.location.pathname)
+ const allowed=useMemo(()=>!publicPage&&Boolean(tenant?.id)&&can(role,CAPABILITIES.VIEW_LIRA,membership?.capabilities??[],membership?.customCapabilities??[]),[publicPage,tenant?.id,role,membership?.capabilities,membership?.customCapabilities])
  useEffect(()=>{if(!open||data||!allowed)return;let cancelled=false;setLoading(true);setError('');// Clear the loading flag in the same update as the data: setData re-runs
  // this effect, whose cleanup would otherwise cancel a later finally() and
  // leave the panel stuck on "Preparing LIRA…".

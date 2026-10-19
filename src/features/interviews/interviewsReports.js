@@ -1,7 +1,7 @@
 // Interview documents on the shared report layout (core/export/reportDocument.js) and the
 // Excel file of the list. Pure: each returns a document description or the rows.
 import { exportRegistry } from '../../core/export/registryExports'
-import { CRITERIA, SCORES, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtRating, fmtStamp, interviewStatusLabel, interviewerRoleLabel, languageLabel, latestEvaluation, levelLabel, nextInterview, outcomeLabel, overallRating, statusLabel, yesNo } from './interviewsModel'
+import { CRITERIA, SCORES, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtRating, fmtStamp, interviewStatusLabel, interviewerRoleLabel, languageSkillsText, latestEvaluation, nextInterview, outcomeLabel, overallRating, statusLabel, yesNo } from './interviewsModel'
 
 const scoreText = (value, en) => { const found = SCORES.find(([score]) => score === Number(value)); return found ? `${found[0]} · ${found[en ? 2 : 1]}` : '—' }
 
@@ -27,7 +27,7 @@ export function evaluationDocument(candidate, interview, { language = 'el' } = {
       { title: L('Υποψήφιος', 'Candidate'), facts: [
         [L('Ονοματεπώνυμο', 'Full name'), candidate.fullName], [L('Ηλικία', 'Age'), ageOn(candidate.birthDate) ?? '—'], [L('Τηλέφωνο', 'Phone'), candidate.phoneMobile || candidate.phoneLandline || '—'], [L('Email', 'Email'), candidate.email || '—'],
         [L('Εκπαίδευση', 'Education'), [candidate.educationLevel, ...(candidate.education || []).map(row => [row.level, row.school, row.year].filter(Boolean).join(' · '))].filter(Boolean).join('\n') || '—'],
-        [L('Γλώσσες', 'Languages'), (candidate.languages || []).map(row => `${languageLabel(row.language, language)} (${[levelLabel(row.speaking, language), row.certificate ? (row.certificateName || L('πιστοποιητικό', 'certificate')) : ''].filter(Boolean).join(', ') || '—'})`).join(' · ') || '—'],
+        [L('Γλώσσες (ομιλία · ανάγνωση · γραφή)', 'Languages (speaking · reading · writing)'), (candidate.languages || []).map(row => languageSkillsText(row, language)).join('\n') || '—'],
         [L('Προϋπηρεσία', 'Experience'), (candidate.employers || []).map(row => `${row.employer}${row.jobTitle ? ` (${row.jobTitle})` : ''}`).join(' · ') || '—']] },
       { title: L('Επιτροπή συνέντευξης', 'Interview panel'), table: { columns: [L('Ονοματεπώνυμο', 'Name'), L('Ρόλος', 'Role')], rows: panel.map(item => [item.name, interviewerRoleLabel(item.role, language)]), empty: L('Χωρίς αξιολογητές.', 'No evaluators.') } },
       { title: L('Βαθμολογία ανά κριτήριο (1–5)', 'Score per criterion (1–5)'), table: { columns: [L('Κριτήριο', 'Criterion'), { text: L('Βαθμός', 'Score'), align: 'right' }],

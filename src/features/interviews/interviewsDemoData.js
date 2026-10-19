@@ -1,5 +1,6 @@
 // The demo applications: one at every step of the pipeline, with languages, previous
 // employers, a scheduled interview and evaluated ones, dates set from today. Names are made up.
+import { CONSENTS, CONSENT_VERSION, DEMO_SIGNATURE } from './applicationModel'
 const day = offset => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const at = (offset, time) => new Date(`${day(offset)}T${time}:00`).toISOString()
 const HR = 'Ελένη Γεωργίου', HEAD_NURSE = 'Μαρία Παπαδοπούλου', DIRECTOR = 'Νίκος Αλεξίου'
@@ -18,7 +19,9 @@ export function interviewsDemoState() {
   return {
     candidates: [
       candidate('demo-cand-1', 'ΥΠ-0001', -2, { fullName: 'Κωνσταντίνου Δήμητρα', gender: 'female', birthDate: '1996-04-12', area: 'Λάρισα', phoneMobile: '6900000101', email: 'd.konstantinou@example.org', requestedPosition: 'ΤΕ Νοσηλευτική', maritalStatus: 'single', educationLevel: 'Λύκειο', education: [{ level: 'ΤΕΙ', school: 'Νοσηλευτική ΤΕΙ Λάρισας', year: '2019', completed: true }], practiceLicence: true, itSkills: 'Office, ηλεκτρονικός φάκελος ασθενούς', whyUs: 'Κοντά στο σπίτι και καλή φήμη της κλινικής.',
-        languages: [{ id: 'demo-lang-1', language: 'en', reading: 'good', writing: 'good', speaking: 'fair', certificate: true, certificateName: 'B2' }] }),
+        languages: [{ id: 'demo-lang-1', language: 'en', reading: 'good', writing: 'good', speaking: 'fair', certificate: true, certificateName: 'B2' }],
+        source: 'tablet', consentText: 'Υπογράφηκε στο tablet, έκδοση ' + CONSENT_VERSION, consentFuture: true, consentReferences: false, declarationTruth: true, consentVersion: CONSENT_VERSION, signedAt: at(-2, '10:00'), signature: DEMO_SIGNATURE,
+        consentTexts: { language: 'el', ...Object.fromEntries(CONSENTS.map(consent => [consent.key, consent.text.el])) } }),
       candidate('demo-cand-2', 'ΥΠ-0002', -6, { fullName: 'Ιωάννου Πέτρος', gender: 'male', birthDate: '1990-09-03', area: 'Τρίκαλα', phoneMobile: '6900000102', email: 'p.ioannou@example.org', requestedPosition: 'Τραυματιοφορέας', militaryService: 'done', maritalStatus: 'married', children: 2, status: 'screening', educationLevel: 'Λύκειο',
         employers: [{ id: 'demo-emp-1', employer: 'Ιδιωτική κλινική (παράδειγμα)', fromOn: '2016-02-01', toOn: '2024-12-31', jobTitle: 'Τραυματιοφορέας', salary: 900, leavingReason: 'Μετακόμιση' }] }),
       candidate('demo-cand-3', 'ΥΠ-0003', -9, { fullName: 'Μιχαηλίδου Άννα', gender: 'female', birthDate: '1993-01-25', area: 'Λάρισα', phoneMobile: '6900000103', email: 'a.michailidou@example.org', requestedPosition: 'ΤΕ Νοσηλευτική', status: 'interview_scheduled', educationLevel: 'Λύκειο', practiceLicence: true,

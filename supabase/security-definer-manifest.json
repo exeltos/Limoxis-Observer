@@ -269,6 +269,28 @@
       "authenticated": true,
       "reason": "Answers only whether the caller may access the given organisation or department; used by RLS policies, which run with the caller's privileges and so need EXECUTE."
     },
+    "hr_application_link_cancel": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Closes an unused tablet application link; requires manage_interviews in the link's organization."
+    },
+    "hr_application_link_create": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Creates a single-use tablet application link (random 12-character code, only its SHA-256 stored, 24 hours, bound to the organization and position); requires manage_interviews, at most 60 an hour per organization."
+    },
+    "hr_application_public": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Shows the candidate on the tablet only the hospital's name and logo, the position and the consent texts of a valid, unused, unexpired link (hashed code); no application data."
+    },
+    "hr_application_submit": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Records one job application through a valid single-use link (hashed code): spends the link, sanitises and limits the payload, requires the processing consent, the declaration and a signature, at most 10 a minute per hospital; returns only ok."
+    },
     "is_org_admin": {
       "category": "rls-helper",
       "authenticated": true,

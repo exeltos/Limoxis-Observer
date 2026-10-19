@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Ban, CalendarClock, FilePlus2, Handshake, Inbox, MessagesSquare, Plus, Search, UserCheck, UserX } from 'lucide-react'
+import { Ban, CalendarClock, FilePlus2, Handshake, Inbox, MessagesSquare, Plus, Search, Tablet, UserCheck, UserX } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -13,6 +13,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { CandidateStatusBadge, useInterviews, useInterviewsAccess } from './InterviewsShared'
 import { CandidateDialog } from './InterviewsDialogs'
+import { ApplicationLinkDialog } from './ApplicationLinkDialog'
 import { employmentLabel, filterCandidates, fmtDay, fmtRating, fmtStamp, latestEvaluation, newCandidate, nextInterview, pipelineCounts, positionsOf, ratingTone, statusLabel, statusOptions, upcomingInterviews } from './interviewsModel'
 import { exportCandidates } from './interviewsReports'
 
@@ -33,6 +34,7 @@ export function InterviewsPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const [dialog, setDialog] = useState(null)
+  const [tablet, setTablet] = useState(false)
   const candidates = useMemo(() => state?.candidates || [], [state])
   const counts = useMemo(() => pipelineCounts(candidates), [candidates])
   const positions = useMemo(() => positionsOf(candidates), [candidates])
@@ -47,6 +49,7 @@ export function InterviewsPage() {
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
   const actions = <div className="row-actions">
     <ExportMenu onExcel={() => exportCandidates(rows, language)} />
+    {access.canManage && <Button variant="secondary" onClick={() => setTablet(true)}><Tablet size={15} />{en ? 'Application from a tablet' : 'Αίτηση από tablet'}</Button>}
     {access.canManage && <Button onClick={() => setDialog(newCandidate())}><FilePlus2 size={15} />{en ? 'New application' : 'Νέα αίτηση'}</Button>}
   </div>
   return <Page fill className="registry-fill-page interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'} subtitle={en ? 'Candidate applications, interviews with their evaluation, the decision and the hiring.' : 'Αιτήσεις υποψηφίων, συνεντεύξεις με την αξιολόγησή τους, απόφαση και πρόσληψη.'} actions={actions}>
@@ -72,7 +75,7 @@ export function InterviewsPage() {
           emptyText={candidates.length ? '' : (en ? 'Enter the first application; the FileMaker ones are brought over by the migration.' : 'Καταχωρίστε την πρώτη αίτηση· όσες υπήρχαν στο FileMaker μεταφέρονται με τη μετάπτωση.')}
           emptyAction={access.canManage && !candidates.length ? { label: en ? 'New application' : 'Νέα αίτηση', icon: Plus, onClick: () => setDialog(newCandidate()) } : null}
           renderRow={item => { const next = nextInterview(item), last = latestEvaluation(item); return <>
-            <td className="nowrap-cell"><strong>{item.code}</strong>{item.source === 'filemaker' && <small>FileMaker</small>}</td>
+            <td className="nowrap-cell"><strong>{item.code}</strong>{item.source === 'filemaker' && <small>FileMaker</small>}{item.source === 'tablet' && <small><StatusBadge tone="info">{en ? 'From tablet' : 'Από tablet'}</StatusBadge></small>}</td>
             <td><strong>{item.fullName}</strong><small>{[item.phoneMobile || item.phoneLandline, item.email].filter(Boolean).join(' · ')}</small></td>
             <td>{item.requestedPosition || '—'}{item.employmentType && <small>{employmentLabel(item.employmentType, language)}</small>}</td>
             <td className="nowrap-cell">{fmtDay(item.appliedOn)}</td>
@@ -82,6 +85,7 @@ export function InterviewsPage() {
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
     </section>
+    {tablet && <ApplicationLinkDialog organizationId={organizationId} positions={positions} onClose={() => { setTablet(false); void reload() }} />}
     {dialog && <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />}
   </Page>
 }

@@ -17,3 +17,26 @@
 .interviews-row-end{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
 .interviews-row-end input{max-width:220px}
 @media (max-width:720px){.interviews-row-inline{grid-template-columns:1fr}.interviews-span-2{grid-column:1/-1}}
+.interviews-consents{display:grid;gap:10px;margin:4px 0 12px;padding:0;list-style:none}
+.interviews-consents li{display:grid;grid-template-columns:56px minmax(0,1fr);gap:12px;align-items:start;padding:10px 12px;border:1px solid var(--color-border,#e2e8f0);border-radius:10px}
+.interviews-consents strong{display:block;font-size:13px}
+.interviews-consents small{display:block;margin-top:3px;color:var(--color-text-secondary,#64748b);font-size:12px;line-height:1.5}
+.interviews-signature{display:inline-grid;align-self:flex-start;gap:6px;margin:0 0 8px;padding:10px 14px;border:1px solid var(--color-border,#e2e8f0);border-radius:10px;background:#fff}
+.interviews-signature img{max-width:320px;max-height:110px;border-bottom:1px solid #cbd5e1}
+.interviews-signature figcaption{color:var(--color-text-secondary,#64748b);font-size:12px}
+.interviews-apply-start{display:grid;gap:16px}
+.interviews-apply-steps{display:grid;gap:6px;margin:0;padding-left:20px;color:var(--color-text-secondary,#475569);font-size:13px;line-height:1.5}
+.interviews-apply-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.interviews-apply-ready{display:grid;grid-template-columns:auto minmax(0,1fr);gap:28px;align-items:center}
+.interviews-apply-qr{width:300px;height:300px;padding:10px;border:1px solid var(--color-border,#e2e8f0);border-radius:14px;background:#fff}
+.interviews-apply-info{display:grid;gap:10px;align-content:center;min-width:0}
+.interviews-apply-position{justify-self:start;padding:4px 12px;border-radius:999px;background:var(--lo-color-primary-soft,#edf5fa);color:var(--lo-color-primary,#256b9b);font-size:13px;font-weight:800}
+.interviews-apply-label{color:var(--color-text-secondary,#64748b);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.interviews-apply-code{font-size:34px;font-weight:800;letter-spacing:.12em;line-height:1.1;font-variant-numeric:tabular-nums}
+.interviews-apply-url{color:var(--color-text-secondary,#64748b);font-size:12.5px;overflow-wrap:anywhere}
+.interviews-apply-info>small{color:var(--color-text-secondary,#64748b);font-size:12px}
+@media (max-width:720px){.interviews-apply-ready{grid-template-columns:1fr;justify-items:center}.interviews-apply-qr{width:240px;height:240px}}
+/* The record's tab panel fills the body (as the kitchen record does), else its content collapses to 0. */
+.interviews-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.interviews-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.interviews-record-shell .record-tab-panel-body{flex:1 1 auto}

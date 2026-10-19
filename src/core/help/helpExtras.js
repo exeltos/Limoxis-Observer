@@ -75,7 +75,7 @@ export const helpExtras={
   related:['/quality','/controls','/documents']
  },
  '/interviews':{
-  checks:{el:['Πάρτε τη συναίνεση του υποψηφίου πριν καταχωρίσετε την αίτηση.','Βαθμολογήστε κάθε κριτήριο αμέσως μετά τη συνέντευξη.','Γράψτε αιτιολογία σε κάθε απόρριψη.','Μην καταχωρείτε στοιχεία υγείας στην αίτηση.'],en:['Get the candidate\'s consent before entering the application.','Score every criterion right after the interview.','Write a reason for every rejection.','Do not enter health details in the application.']},
+  checks:{el:['Πάρτε τη συναίνεση του υποψηφίου πριν καταχωρίσετε την αίτηση.','Βαθμολογήστε κάθε κριτήριο αμέσως μετά τη συνέντευξη.','Γράψτε αιτιολογία σε κάθε απόρριψη.','Μην καταχωρείτε στοιχεία υγείας στην αίτηση.','Για αίτηση από tablet δημιουργήστε νέο σύνδεσμο για κάθε υποψήφιο και πάρτε πίσω το tablet όταν καθαρίσει η οθόνη.'],en:['Get the candidate\'s consent before entering the application.','Score every criterion right after the interview.','Write a reason for every rejection.','Do not enter health details in the application.','For a tablet application create a new link for each candidate and take the tablet back once the screen has cleared.']},
   tip:{el:'Οι αιτήσεις είναι προσωπικά δεδομένα: κρατήστε μόνο όσα χρειάζεται η επιλογή και διαγράψτε όσες δεν χρειάζονται πια.',en:'Applications are personal data: keep only what the selection needs and delete those no longer needed.'},
   related:['/employees','/training']
  },

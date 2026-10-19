@@ -22,13 +22,14 @@ const COLUMNS = {
     requestedPosition: ['requested_position', 't'], employmentType: ['employment_type', 't'], militaryService: ['military_service', 't'], workPermit: ['work_permit', 'b'], practiceLicence: ['practice_licence', 'b'], smoker: ['smoker', 'b'], maritalStatus: ['marital_status', 't'], children: ['children', 'n'],
     educationLevel: ['education_level', 't'], education: ['education', 'j'], itSkills: ['it_skills', 't'], activities: ['activities', 't'], whyUs: ['why_us', 't'], applicationReason: ['application_reason', 't'], appliedOn: ['applied_on', 'd'],
     consentGiven: ['consent_given', 'b'], consentAt: ['consent_at', 'd'], consentText: ['consent_text', 't'], status: ['status', 't'], decision: ['decision', 't'], decisionOn: ['decision_on', 'd'], decisionByName: ['decision_by_name', 't'], decisionNotes: ['decision_notes', 't'],
-    employeeId: ['employee_id', 'u'], source: ['source', 't'], notes: ['notes', 't'] },
+    employeeId: ['employee_id', 'u'], source: ['source', 't'], notes: ['notes', 't'],
+    consentFuture: ['consent_future', 'b'], consentReferences: ['consent_references', 'b'], declarationTruth: ['declaration_truth', 'b'], consentVersion: ['consent_version', 't'], consentTexts: ['consent_texts', 'j'], signedAt: ['signed_at', 'd'] },
   hr_candidate_languages: { position: ['position', 'n'], language: ['language', 't'], reading: ['reading', 't'], writing: ['writing', 't'], speaking: ['speaking', 't'], certificate: ['certificate', 'b'], certificateName: ['certificate_name', 't'] },
   hr_candidate_employers: { position: ['position', 'n'], employer: ['employer', 't'], fromOn: ['from_on', 'd'], toOn: ['to_on', 'd'], jobTitle: ['job_title', 't'], salary: ['salary', 'n'], leavingReason: ['leaving_reason', 't'] },
   hr_interviews: { scheduledAt: ['scheduled_at', 'd'], location: ['location', 't'], status: ['status', 't'], interviewers: ['interviewers', 'j'], scores: ['scores', 'j'], overallRating: ['overall_rating', 'n'], outcome: ['outcome', 't'], recommendation: ['recommendation', 't'],
     strengths: ['strengths', 't'], weaknesses: ['weaknesses', 't'], salaryExpectation: ['salary_expectation', 'n'], offeredSalary: ['offered_salary', 'n'], benefits: ['benefits', 't'], availableFrom: ['available_from', 'd'], evaluatedAt: ['evaluated_at', 'd'], evaluatedByName: ['evaluated_by_name', 't'], notes: ['notes', 't'], source: ['source', 't'] },
 }
-const JSON_DEFAULTS = { education: [], interviewers: [], scores: {} }
+const JSON_DEFAULTS = { education: [], interviewers: [], scores: {}, consentTexts: {} }
 
 const toValue = (kind, value, field) => {
   if (kind === 'j') return value == null || value === '' ? JSON_DEFAULTS[field] : value
@@ -161,6 +162,25 @@ export async function markHired(organizationId, candidate, employee) {
   must(await supabase.from('hr_candidates').update(toRow('hr_candidates', change)).eq('id', candidate.id).eq('organization_id', organizationId))
 }
 
+// The signature under the consents of a tablet application (kept apart from the list).
+export async function loadCandidateSignature(organizationId, candidate) {
+  if (isLocal()) return candidate?.signature || ''
+  if (!organizationId || !isUuid(candidate?.id)) return ''
+  const row = must(await supabase.from('hr_candidate_signatures').select('image, signed_at').eq('organization_id', organizationId).eq('candidate_id', candidate.id).maybeSingle())
+  return row?.image || ''
+}
+
+// «Αίτηση από tablet»: a single-use link for one candidate (24 hours). The code comes back
+// once; the database keeps only its SHA-256. The demo gets the sample form («demo»).
+export async function createApplicationLink(organizationId, position = '') {
+  if (isLocal()) return { id: '', token: 'demo', position: String(position || '').trim(), expiresAt: new Date(Date.now() + 864e5).toISOString() }
+  return must(await supabase.rpc('hr_application_link_create', { p_organization_id: organizationId, p_position: String(position || '').trim() || null }))
+}
+export async function cancelApplicationLink(linkId) {
+  if (isLocal() || !isUuid(linkId)) return
+  must(await supabase.rpc('hr_application_link_cancel', { p_link_id: linkId }))
+}
+
 export async function removeCandidate(organizationId, candidateId) {
   if (isLocal()) { const state = local(); state.candidates = state.candidates.filter(item => item.id !== candidateId); saveLocal(state); return }
   must(await supabase.from('hr_candidates').delete().eq('id', candidateId).eq('organization_id', organizationId))
@@ -174,6 +194,7 @@ export function interviewsErrorMessage(error, language = 'el') {
   const en = language === 'en'
   const text = `${error?.code || ''} ${error?.message || ''}`
   if (text.includes('HR_EMPLOYEE_OTHER_ORGANIZATION')) return en ? 'The employee belongs to another organization.' : 'Ο εργαζόμενος ανήκει σε άλλο οργανισμό.'
+  if (text.includes('HR_APPLICATION_LINKS_BUSY')) return en ? 'Too many tablet links in the last hour; try again later.' : 'Δημιουργήθηκαν πολλοί σύνδεσμοι tablet την τελευταία ώρα· δοκιμάστε αργότερα.'
   if (text.includes('DUPLICATE_EMPLOYEE_CODE')) return en ? 'An employee with this code already exists.' : 'Υπάρχει ήδη εργαζόμενος με αυτόν τον κωδικό.'
   if (text.includes('42501') || /row-level security/i.test(text)) return en ? 'You do not have permission for this action.' : 'Δεν έχετε δικαίωμα για αυτή την ενέργεια.'
   return en ? 'The change could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.'
