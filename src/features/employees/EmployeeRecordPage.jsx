@@ -848,9 +848,9 @@ function Details({
       >
         <InlineDetail
           editing={editing}
-          label={language === 'en' ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου'}
-          value={record.id}
-          onChange={value => set('id', value)}
+          label={t('lastName')}
+          value={record.lastName}
+          onChange={value => set('lastName', value)}
         />
         <InlineDetail
           editing={editing}
@@ -860,15 +860,26 @@ function Details({
         />
         <InlineDetail
           editing={editing}
-          label={t('lastName')}
-          value={record.lastName}
-          onChange={value => set('lastName', value)}
-        />
-        <InlineDetail
-          editing={editing}
           label={t('fatherName')}
           value={language === 'el' ? record.fatherName : record.fatherNameEn}
           onChange={value => set(language === 'el' ? 'fatherName' : 'fatherNameEn', value)}
+        />
+        <InlineDetail
+          editing={editing}
+          label={language === 'en' ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου'}
+          value={record.id}
+          onChange={value => set('id', value)}
+        />
+        <div className="detail-item detail-field">
+          <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
+          <strong>{t(employee.employmentStatus)}</strong>
+        </div>
+        <InlineDateDetail
+          editing={editing}
+          label={t('employeesRecords.hireDate')}
+          value={record.hireDate}
+          display={fmt(record.hireDate)}
+          onChange={value => set('hireDate', value)}
         />
         <InlineSelect
           editing={editing}
@@ -902,13 +913,6 @@ function Details({
               positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
             }))
           }
-        />
-        <InlineDateDetail
-          editing={editing}
-          label={t('employeesRecords.hireDate')}
-          value={record.hireDate}
-          display={fmt(record.hireDate)}
-          onChange={value => set('hireDate', value)}
         />
         <InlineDetail
           editing={editing}

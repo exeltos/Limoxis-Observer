@@ -3846,3 +3846,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .admission-picker-count{min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;border-radius:8px;background:#e6eef5;color:#24476a;font-size:10px;font-style:normal;font-weight:750}
 /* Training question: the correct option is ticked with the house checkbox. */
 .training-question-option-row .training-correct-check{min-height:40px}
+/* New employee: rows of three (surname · name · father’s name / code · status · hire date / department · category · position / email · phone). */
+.employee-create-form .employee-create-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start}
+@media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}

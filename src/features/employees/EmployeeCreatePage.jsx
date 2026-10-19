@@ -71,12 +71,13 @@ export function EmployeeCreatePage(){
  if(!canCreate)return <Navigate to="/employees" replace/>
  return <Page fill><EntityRecordShell className="employee-create-shell workspace-fill" avatar={<UserPlus size={19}/>} eyebrow={en?'Staff':'Προσωπικό'} title={en?'New employee':'Νέος εργαζόμενος'} subtitle={en?'Create employee record':'Δημιουργία καρτέλας προσωπικού'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/employees')}>
   <div className="record-section employee-create-form">
-   <div className="entry-grid">
-    <label><span>{en?'Employee / folder code *':'Κωδικός εργαζομένου / φακέλου *'}</span><input autoFocus value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)} placeholder={en?'e.g. 123':'π.χ. 123'} aria-invalid={duplicateCode||undefined}/>{duplicateCode&&<small className="field-error">{en?'This code already belongs to another employee record.':'Ο κωδικός αυτός ανήκει ήδη σε άλλη καρτέλα εργαζομένου.'}</small>}</label>
-    <ChoiceField label={en?'Status':'Κατάσταση'} value={v.employmentStatus} onChange={x=>set('employmentStatus',x)} options={[{value:'active',label:en?'Active':'Ενεργός'},{value:'inactive',label:en?'Inactive':'Ανενεργός'}]}/>
+   {/* Rows of three: surname · name · father’s name / code · status · hire date / department · category · position / email · phone. */}
+   <div className="entry-grid employee-create-grid">
+    <label><span>{en?'Last name *':'Επώνυμο *'}</span><input autoFocus value={v.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
     <label><span>{en?'First name *':'Όνομα *'}</span><input value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
-    <label><span>{en?'Last name *':'Επώνυμο *'}</span><input value={v.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
     <label><span>{en?'Father’s name':'Πατρώνυμο'}</span><input value={v.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
+    <label><span>{en?'Employee / folder code *':'Κωδικός εργαζομένου / φακέλου *'}</span><input value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)} placeholder={en?'e.g. 123':'π.χ. 123'} aria-invalid={duplicateCode||undefined}/>{duplicateCode&&<small className="field-error">{en?'This code already belongs to another employee record.':'Ο κωδικός αυτός ανήκει ήδη σε άλλη καρτέλα εργαζομένου.'}</small>}</label>
+    <ChoiceField label={en?'Status':'Κατάσταση'} value={v.employmentStatus} onChange={x=>set('employmentStatus',x)} options={[{value:'active',label:en?'Active':'Ενεργός'},{value:'inactive',label:en?'Inactive':'Ανενεργός'}]}/>
     <ManualDateField label={en?'Hire date':'Ημερομηνία πρόσληψης'} value={v.hireDate} onChange={x=>set('hireDate',x)} optional/>
     <SearchableSelect label={en?'Department *':'Τμήμα *'} value={v.department} onChange={x=>set('department',x||'')} placeholder={en?'Select department…':'Επιλέξτε τμήμα…'} options={departments.map(row=>({value:row.id,label:row.name}))}/>
     <SearchableSelect label={en?'Professional category *':'Επαγγελματική κατηγορία *'} value={v.profession} onChange={x=>set('profession',x||'')} placeholder={en?'Select category…':'Επιλέξτε κατηγορία…'} options={professionalCategories.map(row=>({value:row?.[2]?.id||row?.[0],label:en?(row?.[1]||row?.[0]):row?.[0]}))}/>
