@@ -17,6 +17,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Button } from '../../design-system/Button'
 import { can } from '../../core/permissions/roles'
 import { EmployeeImportDialog } from './EmployeeImportDialog'
+import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
 
 export function EmployeesPage(){
   const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership}=useTenant()
@@ -30,6 +31,7 @@ export function EmployeesPage(){
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
   const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,status,language,canAccessRecord])
   useEffect(()=>setPage(1),[query,department,status,pageSize])
+  const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>
   if(error)return <div className="data-access-state error" role="alert"><span>{t('employeesLoadFailed')}</span><button type="button" onClick={reload}>{t('retry')}</button></div>
   const displayName=x=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
@@ -59,7 +61,7 @@ export function EmployeesPage(){
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
         {!rows.length&&(scopedEmployees.length
           ?<RegistryEmptyState filtered onClearFilters={clearFilters}/>
           :<RegistryEmptyState icon={Users} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} action={canImport?{label:t('create'),icon:Plus,onClick:()=>action(UI_ACTIONS.CREATE)}:null}/>)}

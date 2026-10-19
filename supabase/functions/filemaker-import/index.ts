@@ -8,7 +8,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 //   pull    read the next pages, smallest tables first, for about two minutes;
 //   files   read the container (file) fields listed in fm_stage_file_sources into
 //           the private bucket filemaker-staging and fm_stage_files;
-//   files_attach  copy staged files whose record is in Limoxis into attachments.
+//   files_attach  copy staged files whose record is in Limoxis into attachments;
+//   files_photos  copy the staged People photos of employees linked in fm_stage_links
+//           to <org>/employee_photo/<employee>/fm-<record>.<ext> in attachments and
+//           mark them in fm_stage_files; employees.photo_path is set afterwards.
 // The FileMaker account is read-only and its password lives only in the
 // function's secrets (FM_HOST, FM_DATABASE, FM_USER, FM_PASSWORD).
 
@@ -358,6 +361,43 @@ async function filesAttach(admin:Admin,started:number){
   return {attached,failed}
 }
 
+// People photos become the employee's photo (employees.photo_path), not an attachment:
+// the object is copied to a fixed path per FileMaker record, so a rerun overwrites it.
+// The employee row itself is updated afterwards in SQL, as a named user (audit).
+const PHOTO_EXT:Record<string,string>={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}
+async function filesPhotos(admin:Admin,started:number){
+  let copied=0,failed=0,unlinked=0
+  const seen=new Set<string>()
+  while(Date.now()-started<BUDGET_MS){
+    const {data:rows}=await admin.from('fm_stage_files').select('base_table,field,record_id,storage_path,mime_type,file_name').eq('base_table','People').eq('field','People_Photo').is('attached_at',null).is('attach_error',null).is('duplicate_of',null).limit(20)
+    const pending=(rows||[]).filter((row:{record_id:string})=>!seen.has(row.record_id))
+    if(!pending.length)break
+    for(const file of pending){
+      if(Date.now()-started>=BUDGET_MS)break
+      seen.add(file.record_id)
+      try{
+        const {data:link}=await admin.from('fm_stage_links').select('target_id').eq('base_table','People').eq('target_table','employees').eq('record_id',file.record_id).maybeSingle()
+        if(!link?.target_id){unlinked++;continue}
+        const {data:employee,error:employeeError}=await admin.from('employees').select('id,organization_id').eq('id',link.target_id).single()
+        if(employeeError)throw employeeError
+        const ext=PHOTO_EXT[String(file.mime_type)]||String(file.file_name||'').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg'
+        const target=`${employee.organization_id}/employee_photo/${employee.id}/fm-${String(file.record_id).replace(/[^\w.-]+/g,'_')}.${ext}`
+        const {data:blob,error:readError}=await admin.storage.from(STAGING_BUCKET).download(file.storage_path)
+        if(readError)throw readError
+        const {error:uploadError}=await admin.storage.from('attachments').upload(target,blob,{contentType:file.mime_type||undefined,upsert:true,metadata:{source:'filemaker',fm_table:file.base_table,fm_field:file.field,fm_record_id:file.record_id}})
+        if(uploadError)throw uploadError
+        const {error:markError}=await admin.from('fm_stage_files').update({organization_id:employee.organization_id,attached_at:new Date().toISOString()}).eq('base_table',file.base_table).eq('field',file.field).eq('record_id',file.record_id)
+        if(markError)throw markError
+        copied++
+      }catch(error){
+        await admin.from('fm_stage_files').update({attach_error:String((error as Error)?.message||error).slice(0,300)}).eq('base_table',file.base_table).eq('field',file.field).eq('record_id',file.record_id)
+        failed++
+      }
+    }
+  }
+  return {copied,failed,unlinked}
+}
+
 async function pull(admin:Admin,started:number){
   const {data:settings}=await admin.from('fm_stage_settings').select('page_size,rowid').eq('id',true).single()
   const size=Number(settings?.page_size||500)
@@ -411,7 +451,7 @@ Deno.serve(async(req)=>{
   if(!claimed?.length)return reply({ok:true,task,skipped:'busy'})
   let result:Record<string,unknown>={task}
   try{
-    result={...result,...(task==='probe'?await probe(admin):task==='rowid'?await rowidCheck(admin):task==='filesprobe'?await filesProbe():task==='files'?await files(admin,started):task==='files_attach'?await filesAttach(admin,started):await pull(admin,started))}
+    result={...result,...(task==='probe'?await probe(admin):task==='rowid'?await rowidCheck(admin):task==='filesprobe'?await filesProbe():task==='files'?await files(admin,started):task==='files_attach'?await filesAttach(admin,started):task==='files_photos'?await filesPhotos(admin,started):await pull(admin,started))}
   }catch(error){
     result={...result,error:String((error as Error)?.message||error).slice(0,300)}
   }
