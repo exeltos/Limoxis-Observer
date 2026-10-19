@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Archive, BookOpenCheck, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { printReport } from '../../core/export/reportDocument'
+import { formatDay } from '../../core/i18n/formatDay'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
 import { IconButton } from '../../design-system/IconButton'
@@ -120,8 +121,6 @@ export function DocumentRecordPage() {
   const [busy, setBusy] = useState(false)
   const [departments, setDepartments] = useState([])
   const [ownerName, setOwnerName] = useState('')
-  const [exportingPdf, setExportingPdf] = useState(false)
-  const reportRef = useRef(null)
 
   const record = useMemo(() => rows.find((x) => x.id === documentId) || null, [rows, documentId])
   const family = useMemo(() => getDocumentFamily(rows, record), [rows, record])
@@ -332,16 +331,25 @@ export function DocumentRecordPage() {
     setEditing(false)
   }
 
-  async function exportPdf() {
-    if (exportingPdf || !reportRef.current) return
-    setExportingPdf(true)
-    try {
-      await exportElementAsPdf({ element: reportRef.current, filename: `${record.id}_${record.title}_v${record.version || '—'}`, orientation: 'portrait' })
-    } catch (error) {
-      notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger')
-    } finally {
-      setExportingPdf(false)
-    }
+  // The document's record sheet on the shared document layout: details, controlled version, files and history.
+  function exportPdf() {
+    const department = record.department || departments.find((row) => row.id === record.departmentId)?.name || (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')
+    const ok = printReport({
+      language,
+      kind: typeLabels[record.type] || record.type,
+      code: `${record.id} · v${record.version || '—'}`,
+      title: record.title,
+      meta: [[en ? 'Code' : 'Κωδικός', record.id], [en ? 'Version' : 'Έκδοση', record.version], [en ? 'Type' : 'Τύπος', typeLabels[record.type] || record.type], [en ? 'Status' : 'Κατάσταση', statusLabels[record.status] || record.status], [en ? 'Department / scope' : 'Τμήμα / πεδίο εφαρμογής', department], [en ? 'Document owner' : 'Υπεύθυνος εγγράφου', ownerName], [en ? 'Effective date' : 'Ημερομηνία ισχύος', formatDay(record.effectiveDate, language)], [en ? 'Review date' : 'Ημερομηνία επανεξέτασης', formatDay(record.reviewDate, language)]],
+      sections: [
+        record.description && { title: en ? 'Description' : 'Περιγραφή', text: record.description },
+        { title: en ? 'Controlled version' : 'Ελεγχόμενη έκδοση', facts: [[en ? 'Version state' : 'Κατάσταση έκδοσης', versionState], [en ? 'Revision reason' : 'Λόγος αναθεώρησης', record.revisionReason], [en ? 'Approved' : 'Έγκριση', record.approvedAt ? `${formatDateTime(record.approvedAt, en)} · ${approvalEvent?.actor || '—'}` : ''], [en ? 'Published' : 'Δημοσίευση', record.publishedAt ? `${formatDateTime(record.publishedAt, en)} · ${publishEvent?.actor || '—'}` : '']] },
+        { title: en ? 'Files & attachments' : 'Αρχεία & συνημμένα', list: (record.attachments || []).map((file) => file.name || file.fileName || file.id), note: (record.attachments || []).length ? '' : (en ? 'No attachments.' : 'Χωρίς συνημμένα.') },
+        { title: en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής', table: { columns: [en ? 'Version' : 'Έκδοση', en ? 'Action' : 'Ενέργεια', en ? 'When' : 'Πότε', en ? 'By' : 'Από'], rows: family.flatMap((version) => (version.history || []).map((item) => [`v${version.version || '—'} · ${statusLabels[version.status] || version.status}`, formatHistoryAction(item, en, statusLabels), formatDateTime(item.at, en), item.actor || '—'])) } },
+      ].filter(Boolean),
+      signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε', en ? 'Approved by' : 'Εγκρίθηκε'],
+      filename: `${record.id}_${record.title}_v${record.version || '—'}`,
+    })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
   const tabs = [
@@ -372,7 +380,7 @@ export function DocumentRecordPage() {
     activeTab={tab}
     onTabChange={setTab}
   >
-    {tab === 'overview' && <div className="document-record-workspace" ref={reportRef}>
+    {tab === 'overview' && <div className="document-record-workspace">
       <section className="record-section">
         <div className="record-section-header"><div>
           <span className="eyebrow">{en ? 'Document' : 'Έγγραφο'}</span>
@@ -426,7 +434,7 @@ export function DocumentRecordPage() {
       </section>}
     </div>}
 
-    {tab === 'files' && <section className="record-section" ref={reportRef}>
+    {tab === 'files' && <section className="record-section">
       <div className="record-section-header"><div>
         <span className="eyebrow">{en ? 'Documents' : 'Έγγραφα'}</span>
         <h3>{en ? 'Files & attachments' : 'Αρχεία & συνημμένα'}</h3>
@@ -437,9 +445,9 @@ export function DocumentRecordPage() {
       <AttachmentField disabled={!canManage || record.status !== 'draft'} value={record.attachments || []} onChange={attachments} organizationId={organizationId} entityType="controlled_document" entityId={record.dbId || record.id} />
     </section>}
 
-    {tab === 'distribution' && <div ref={reportRef}><DocumentDistributionPanel record={record} organizationId={organizationId} isDemo={isDemo} departments={departments} canManage={canManage} canPublish={canPublish} en={en} /></div>}
+    {tab === 'distribution' && <div><DocumentDistributionPanel record={record} organizationId={organizationId} isDemo={isDemo} departments={departments} canManage={canManage} canPublish={canPublish} en={en} /></div>}
 
-    {tab === 'history' && <section className="record-section" ref={reportRef}>
+    {tab === 'history' && <section className="record-section">
       <div className="record-section-header"><div>
         <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
         <h3>{en ? 'Version & lifecycle history' : 'Ιστορικό εκδόσεων & κύκλου ζωής'}</h3>

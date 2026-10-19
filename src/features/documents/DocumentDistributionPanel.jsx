@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check, Clock3, Send, Users } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { MultiSelect } from '../../design-system/MultiSelect'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { roleLabel, SYSTEM_ROLE_KEYS } from '../../core/permissions/roleLabels'
@@ -38,8 +39,6 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
   const [sending, setSending] = useState(false)
   const [audienceMode, setAudienceMode] = useState(record.departmentId ? 'department' : 'all')
   const [selected, setSelected] = useState(record.departmentId ? [record.departmentId] : [])
-  const [exportingPdf, setExportingPdf] = useState(false)
-  const panelRef = useRef(null)
 
   useEffect(() => {
     setAudienceMode(record.departmentId ? 'department' : 'all')
@@ -149,22 +148,32 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
       rows.map((row) => [row.documentCode, row.documentTitle, row.version, fmtDateTime(row.sentAt, en), row.name, row.position, row.department, row.status === 'acknowledged' ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί'), row.acknowledgedAt ? fmtDateTime(row.acknowledgedAt, en) : '']))
   }
 
-  async function exportPdf() {
-    if (exportingPdf || !panelRef.current) return
-    setExportingPdf(true)
-    try { await exportElementAsPdf({ element: panelRef.current, filename: `${record.id}_${en ? 'read-acknowledgements' : 'epivevaioseis-anagnosis'}`, orientation: 'portrait' }) }
-    catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
-    finally { setExportingPdf(false) }
+  // Proof of distribution for this version on the shared document layout, with a line per person.
+  function exportPdf() {
+    const entry = { documentCode: record.id, documentTitle: record.title, version: record.version, sentAt: distribution.createdAt, summary }
+    const rows = acknowledgementLogRows([entry], { departments, en })
+    const ok = printReport({
+      language: en ? 'en' : 'el',
+      kind: en ? 'Distribution & read acknowledgement' : 'Κοινοποίηση & επιβεβαίωση ανάγνωσης',
+      code: `${record.id}${record.version ? ` · v${record.version}` : ''}`,
+      title: record.title,
+      meta: [[en ? 'Sent' : 'Απεστάλη', fmtDateTime(distribution.createdAt, en)], [en ? 'Audience' : 'Κοινό', audienceLabel(distribution)], [en ? 'Read' : 'Διάβασαν', `${summary.acknowledged.length} / ${summary.total}`], [en ? 'Read rate' : 'Ποσοστό ανάγνωσης', `${summary.rate}%`]],
+      sections: [{ title: en ? 'Recipients' : 'Παραλήπτες', table: { columns: [en ? 'No.' : 'Α/Α', en ? 'Person' : 'Άτομο', en ? 'Position' : 'Θέση', en ? 'Department' : 'Τμήμα', en ? 'Status' : 'Κατάσταση', en ? 'Read on' : 'Διαβάστηκε'],
+        rows: rows.map((row, index) => [String(index + 1), row.name, row.position, row.department, row.status === 'acknowledged' ? { text: en ? 'Read' : 'Διαβάστηκε', className: 'rd-good' } : { text: en ? 'Pending' : 'Εκκρεμεί', className: 'rd-bad' }, row.acknowledgedAt ? fmtDateTime(row.acknowledgedAt, en) : '']) } }],
+      signatures: [en ? 'Document owner' : 'Υπεύθυνος εγγράφου'],
+      filename: `${record.id}_${en ? 'read-acknowledgements' : 'epivevaioseis-anagnosis'}`,
+    })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
   const personName = (member) => (en ? member.nameEn : '') || member.name || '—'
 
-  return <section className="record-section document-ack-panel" ref={panelRef}>
+  return <section className="record-section document-ack-panel">
     <div className="record-section-header"><div>
       <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
       <h3>{en ? 'Distribution & read acknowledgement' : 'Κοινοποίηση & επιβεβαίωση ανάγνωσης'}</h3>
       <p>{en ? 'Notify the relevant staff that this version is published and keep proof of who has read it.' : 'Ενημερώστε το αρμόδιο προσωπικό ότι δημοσιεύτηκε αυτή η έκδοση και κρατήστε απόδειξη για το ποιος την έχει διαβάσει.'}</p>
-    </div>{distribution && canSend && summary && <div className="record-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exportingPdf} /></div>}</div>
+    </div>{distribution && canSend && summary && <div className="record-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} /></div>}</div>
     {record.status !== 'published' && <div className="inline-empty">{en ? 'Distribution is available once the document is published.' : 'Η κοινοποίηση είναι διαθέσιμη μόλις δημοσιευτεί το έγγραφο.'}</div>}
     {record.status === 'published' && (loadingDistribution
       ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
@@ -206,12 +215,12 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
         : canSend
           ? <div className="document-distribution-composer">
               <div className="document-distribution-audience">
-                <label className="field"><span>{en ? 'Send to' : 'Αποστολή σε'}</span><select value={audienceMode} onChange={(e) => changeMode(e.target.value)}>
-                  <option value="all">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>
-                  <option value="department">{en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα'}</option>
-                  <option value="profession" disabled={!professionOptions.length}>{en ? 'Professional category (e.g. nurses)' : 'Επαγγελματική κατηγορία (π.χ. νοσηλευτές)'}</option>
-                  <option value="role">{en ? 'User role' : 'Ρόλος χρήστη'}</option>
-                </select></label>
+                <SearchableSelect className="field" label={en ? 'Send to' : 'Αποστολή σε'} value={audienceMode} onChange={(value) => changeMode(value || 'all')} options={[
+                  { value: 'all', label: en ? 'Whole hospital' : 'Όλο το νοσοκομείο' },
+                  { value: 'department', label: en ? 'Specific department(s)' : 'Συγκεκριμένα τμήματα' },
+                  ...(professionOptions.length ? [{ value: 'profession', label: en ? 'Professional category (e.g. nurses)' : 'Επαγγελματική κατηγορία (π.χ. νοσηλευτές)' }] : []),
+                  { value: 'role', label: en ? 'User role' : 'Ρόλος χρήστη' },
+                ]} />
                 {audienceMode !== 'all' && <MultiSelect
                   label={audienceMode === 'department' ? (en ? 'Departments' : 'Τμήματα') : audienceMode === 'role' ? (en ? 'Roles' : 'Ρόλοι') : (en ? 'Professional categories' : 'Επαγγελματικές κατηγορίες')}
                   options={options.map((option) => ({ value: option.id, label: option.label }))}

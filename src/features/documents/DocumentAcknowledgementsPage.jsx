@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BookOpenCheck, Clock3, Send, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -12,7 +12,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { downloadCsv } from '../../core/export/csvExport'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { printReport } from '../../core/export/reportDocument'
 import { loadDepartments } from '../management/departmentsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { useDocumentsData } from './useDocumentsData'
@@ -51,8 +51,6 @@ export function DocumentAcknowledgementsPage() {
   const [view, setView] = useState('documents')
   const [log, setLog] = useState(null)
   const [departments, setDepartments] = useState([])
-  const [exporting, setExporting] = useState(false)
-  const reportRef = useRef(null)
 
   useEffect(() => {
     if (isDemo || !organizationId) return undefined
@@ -108,12 +106,25 @@ export function DocumentAcknowledgementsPage() {
       en ? ['Document', 'Title', 'Version', 'Sent', 'Person', 'Position', 'Department', 'Status', 'Read on'] : ['Έγγραφο', 'Τίτλος', 'Έκδοση', 'Απεστάλη', 'Άτομο', 'Θέση', 'Τμήμα', 'Κατάσταση', 'Διαβάστηκε'],
       rows.map((row) => [row.documentCode, row.documentTitle, row.version, fmtDay(row.sentAt, en), row.name, row.position, row.department, row.status === 'acknowledged' ? (en ? 'Read' : 'Διαβάστηκε') : (en ? 'Pending' : 'Εκκρεμεί'), fmtDateTime(row.acknowledgedAt, en)]))
   }
-  async function exportPdf() {
-    if (exporting || !reportRef.current) return
-    setExporting(true)
-    try { await exportElementAsPdf({ element: reportRef.current, filename: en ? 'read-acknowledgement-log' : 'mitroo-epivevaioseon-anagnosis', orientation: 'landscape' }) }
-    catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
-    finally { setExporting(false) }
+  // The log on the shared document layout: by document, by person and every acknowledgement, as real tables.
+  function exportPdf() {
+    const rows = acknowledgementLogRows(entries, { departments, en })
+    const ok = printReport({
+      language, orientation: 'landscape',
+      kind: en ? 'Documents' : 'Έγγραφα',
+      title: en ? 'Read acknowledgement log' : 'Μητρώο επιβεβαιώσεων ανάγνωσης',
+      meta: [[en ? 'Distributed documents' : 'Κοινοποιημένα έγγραφα', String(totals.distributions)], [en ? 'Overall read rate' : 'Συνολικό ποσοστό ανάγνωσης', `${totals.rate}%`], [en ? 'Pending acknowledgements' : 'Εκκρεμείς επιβεβαιώσεις', String(totals.pending)], [en ? 'Read by everyone' : 'Διαβάστηκαν από όλους', String(totals.complete)]],
+      sections: [
+        { title: en ? 'By document' : 'Ανά έγγραφο', table: { columns: [en ? 'Code' : 'Κωδικός', en ? 'Document' : 'Έγγραφο', en ? 'Version' : 'Έκδοση', en ? 'Sent' : 'Απεστάλη', en ? 'Read' : 'Διάβασαν', en ? 'Pending' : 'Εκκρεμούν', en ? 'Rate' : 'Ποσοστό'],
+          rows: entries.map((entry) => [entry.documentCode, entry.documentTitle, entry.version ? `v${entry.version}` : '—', fmtDay(entry.sentAt, en), `${entry.summary.acknowledged.length} / ${entry.summary.total}`, String(entry.summary.pending.length), { text: `${entry.summary.rate}%`, className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[tone(entry.summary.rate)]}` }]) } },
+        { title: en ? 'By person' : 'Ανά άτομο', table: { columns: [en ? 'Person' : 'Άτομο', en ? 'Position' : 'Θέση', en ? 'Department' : 'Τμήμα', en ? 'Read' : 'Διάβασε', en ? 'Still to read' : 'Εκκρεμούν'],
+          rows: people.map(({ member, read, pending }) => [personName(member), memberPosition(member, en), memberDepartment(member, departments, en) || '—', `${read.length} / ${read.length + pending.length}`, pending.length ? { text: pending.map((entry) => entry.documentCode).join(', '), className: 'rd-bad' } : { text: en ? 'Up to date' : 'Ενημερωμένος', className: 'rd-good' }]) } },
+        { title: en ? 'Every acknowledgement' : 'Αναλυτικά', table: { columns: [en ? 'Document' : 'Έγγραφο', en ? 'Version' : 'Έκδοση', en ? 'Person' : 'Άτομο', en ? 'Position' : 'Θέση', en ? 'Department' : 'Τμήμα', en ? 'Status' : 'Κατάσταση', en ? 'Read on' : 'Διαβάστηκε'],
+          rows: rows.map((row) => [`${row.documentCode} · ${row.documentTitle}`, row.version, row.name, row.position, row.department, row.status === 'acknowledged' ? { text: en ? 'Read' : 'Διαβάστηκε', className: 'rd-good' } : { text: en ? 'Pending' : 'Εκκρεμεί', className: 'rd-bad' }, fmtDateTime(row.acknowledgedAt, en)]) } },
+      ],
+      filename: en ? 'read-acknowledgement-log' : 'mitroo-epivevaioseon-anagnosis',
+    })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
   if (loadingDocuments) return <RouteLoading />
@@ -129,14 +140,14 @@ export function DocumentAcknowledgementsPage() {
   }
 
   return <Page fill title={title} subtitle={en ? 'Who has read each published protocol and who is still pending: proof for inspections.' : 'Ποιος έχει διαβάσει κάθε δημοσιευμένο πρωτόκολλο και ποιος εκκρεμεί: απόδειξη για επιθεωρήσεις.'}
-    actions={<div className="row-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!entries.length} pdfBusy={exporting} /></div>}>
+    actions={<div className="row-actions"><DownloadMenu onExcel={exportCsv} onPdf={exportPdf} disabled={!entries.length} /></div>}>
     <div className="module-summary-strip">
       <MetricCard icon={Send} value={totals.distributions} label={en ? 'Distributed documents' : 'Κοινοποιημένα έγγραφα'} />
       <MetricCard icon={BookOpenCheck} value={`${totals.rate}%`} label={en ? 'Overall read rate' : 'Συνολικό ποσοστό ανάγνωσης'} tone={totals.rate >= 90 ? 'active' : totals.rate >= 60 ? 'warning' : 'danger'} />
       <MetricCard icon={Clock3} value={totals.pending} label={en ? 'Pending acknowledgements' : 'Εκκρεμείς επιβεβαιώσεις'} tone={totals.pending ? 'warning' : 'neutral'} onClick={() => setView('people')} active={view === 'people'} />
       <MetricCard icon={Users} value={totals.complete} label={en ? 'Read by everyone' : 'Διαβάστηκαν από όλους'} />
     </div>
-    <section className="surface registry-workspace workspace-column workspace-fill" ref={reportRef}>
+    <section className="surface registry-workspace workspace-column workspace-fill">
       <ModuleTabs activeId={view} onChange={setView} ariaLabel={title} tabs={[{ id: 'documents', label: en ? 'By document' : 'Ανά έγγραφο', icon: BookOpenCheck }, { id: 'people', label: en ? 'By person' : 'Ανά άτομο', icon: Users }]} />
       {log && !log.complete && <div className="document-ack-note" style={{ padding: '10px 14px' }}>{en ? 'Pending lists need the latest database update; until then only confirmations are counted.' : 'Οι εκκρεμότητες χρειάζονται την τελευταία ενημέρωση της βάσης· μέχρι τότε μετρώνται μόνο οι επιβεβαιώσεις.'}</div>}
       <div className="scroll-table">

@@ -1,4 +1,5 @@
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 
 export const DOCUMENT_TYPES={
  el:{policy:'Πολιτική',procedure:'Διαδικασία',instruction:'Οδηγία',form:'Έντυπο',protocol:'Πρωτόκολλο',other:'Άλλο'},
@@ -12,9 +13,9 @@ export function DocumentForm({value,onChange,language='el',departments=[],ownerN
  const en=language==='en',v=value||createEmptyDocumentDraft(),set=(key,next)=>onChange?.({...v,[key]:next}),types=DOCUMENT_TYPES[language]||DOCUMENT_TYPES.el
  return <div className="entry-grid">
   <label className="field entry-span-2"><span>{en?'Title *':'Τίτλος *'}</span><input autoFocus={autoFocus} value={v.title||''} disabled={readOnly} onChange={e=>set('title',e.target.value)}/></label>
-  <label className="field"><span>{en?'Type':'Τύπος'}</span><select value={v.type||'policy'} disabled={readOnly} onChange={e=>set('type',e.target.value)}>{Object.entries(types).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+  <SearchableSelect className="field" label={en?'Type':'Τύπος'} value={v.type||'policy'} disabled={readOnly} onChange={x=>set('type',x||'policy')} options={Object.entries(types).map(([key,label])=>({value:key,label}))}/>
   <label className="field"><span>{en?'Version *':'Έκδοση *'}</span><input value={v.version||''} disabled={readOnly||!allowVersionEdit} onChange={e=>set('version',e.target.value)} placeholder="1.0"/>{!readOnly&&!allowVersionEdit&&<small>{en?'Version is controlled by the document lifecycle.':'Η έκδοση ελέγχεται από τον κύκλο ζωής του εγγράφου.'}</small>}</label>
-  <label className="field"><span>{en?'Department / scope':'Τμήμα / πεδίο εφαρμογής'}</span><select value={v.departmentId||departments.find(d=>d.name===v.department)?.id||''} disabled={readOnly} onChange={e=>{const id=e.target.value||null;onChange?.({...v,departmentId:id,department:departments.find(d=>d.id===id)?.name||''})}}><option value="">{en?'Whole hospital / not specified':'Όλο το νοσοκομείο / χωρίς συγκεκριμένο τμήμα'}</option>{departments.map(row=><option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
+  <SearchableSelect className="field" label={en?'Department / scope':'Τμήμα / πεδίο εφαρμογής'} value={v.departmentId||departments.find(d=>d.name===v.department)?.id||''} disabled={readOnly} onChange={x=>{const id=x||null;onChange?.({...v,departmentId:id,department:departments.find(d=>d.id===id)?.name||''})}} options={[{value:'',label:en?'Whole hospital / not specified':'Όλο το νοσοκομείο / χωρίς συγκεκριμένο τμήμα'},...departments.map(row=>({value:row.id,label:row.name}))]}/>
   {showOwner&&<label className="field document-owner-field"><span>{en?'Owner':'Υπεύθυνος'}</span><div className="document-owner-value">{ownerName||'—'}</div><small>{en?'Recorded automatically from the signed-in user.':'Καταγράφεται αυτόματα από τον συνδεδεμένο χρήστη.'}</small></label>}
   <ManualDateField className="field" label={en?'Effective date':'Ημερομηνία ισχύος'} value={v.effectiveDate||''} onChange={x=>!readOnly&&set('effectiveDate',x)} optional disabled={readOnly}/>
   <ManualDateField className="field" label={en?'Review date':'Ημερομηνία επανεξέτασης'} value={v.reviewDate||''} onChange={x=>!readOnly&&set('reviewDate',x)} optional disabled={readOnly}/>
