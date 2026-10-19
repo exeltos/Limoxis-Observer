@@ -13,7 +13,7 @@ describe('training completion and review behavior',()=>{
  it('lets the author explicitly choose whether a free-text answer blocks completion',()=>{
   const editor=read('src/features/training/TrainingAssessmentEditor.jsx')
   expect(editor).toContain("Απαιτεί χειροκίνητο έλεγχο πριν από την ολοκλήρωση")
-  expect(editor).toContain('manualReview:e.target.checked')
+  expect(editor).toContain('setQuestion(q=>({...q,manualReview}))')
   expect(editor).toContain('δεν εμποδίζει την αυτόματη ολοκλήρωση')
  })
 

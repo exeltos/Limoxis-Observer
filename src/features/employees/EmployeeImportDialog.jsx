@@ -1,5 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,CheckCircle2,Download,FileSpreadsheet,Upload } from 'lucide-react'
+import { YesNoField } from '../../design-system/YesNoField'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { downloadCsv } from '../../core/export/csvExport'
@@ -99,7 +100,7 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}){
      <span className="update"><strong>{plan.counts.update}</strong>{en?'updates':'ενημερώσεις'}</span>
      {plan.counts.skip>0&&<span><strong>{plan.counts.skip}</strong>{en?'already exist':'υπάρχουν ήδη'}</span>}
      <span className="error"><strong>{plan.counts.error}</strong>{en?'with errors (not imported)':'με σφάλματα (δεν εισάγονται)'}</span>
-     <div className="employee-import-update"><input id="employee-import-update" type="checkbox" checked={updateExisting} onChange={event=>setUpdateExisting(event.target.checked)} disabled={Boolean(running||result)}/><label htmlFor="employee-import-update">{en?'Update existing employees (empty cells keep the current value)':'Ενημέρωση υπαρχόντων εργαζομένων (τα κενά κελιά κρατούν την τρέχουσα τιμή)'}</label></div>
+     <YesNoField className="employee-import-update" label={en?'Update existing employees (empty cells keep the current value)':'Ενημέρωση υπαρχόντων εργαζομένων (τα κενά κελιά κρατούν την τρέχουσα τιμή)'} value={updateExisting} onChange={next=>!(running||result)&&setUpdateExisting(next)}/>
     </div>
     {!(result&&!result.failed.length)&&<div className="scroll-table employee-import-table"><table className="data-table sticky-table">
      <thead><tr><th>{en?'Row':'Γραμμή'}</th><th>{en?'Code':'Κωδικός'}</th><th>{en?'Name':'Ονοματεπώνυμο'}</th><th>{en?'Department · Position':'Τμήμα · Θέση'}</th><th>{en?'Result':'Αποτέλεσμα'}</th></tr></thead>

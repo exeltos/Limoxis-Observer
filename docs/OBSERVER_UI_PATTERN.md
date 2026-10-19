@@ -26,13 +26,14 @@ This file is the product-wide interaction contract for new and existing features
 ## Lists, libraries and smart fields
 - Option lists come from the central libraries (Management > Libraries) through `useLibraries()` / `useDepartments()` (`features/management/useLibraries.js`), never from arrays written into a screen. Records store the library's Greek name or a code, never the label the screen happened to show.
 - One pick from a list: `SearchableSelect` (type to filter). `recentValues` puts the usual choices first (earlier entries, the chosen departments' staff); `allowCustom` keeps a typed value the library does not have yet. Several picks: `MultiSelect`. Registry filters: `FilterSelect`.
-- Two or three exclusive answers (Yes / No / N/A, criticality, a status answer): `ModeSwitch` or `YesNoField`, as large touch targets. Toggles that can be on together: `ChoiceChips`. No raw `<select>`, checkbox or `<datalist>` in feature screens; `npm run audit:observer-ui` holds each module's count to a ceiling that only goes down (Controls, Surveillance, Patients, Laboratory, Prevention and Quality: zero).
+- Two or three exclusive answers (Yes / No / N/A, criticality, a status answer): `ModeSwitch` or `YesNoField`, as large touch targets. Toggles that can be on together: `ChoiceChips`. No raw `<select>`, checkbox or `<datalist>` in feature screens; `npm run audit:observer-ui` holds each module's count to a ceiling that only goes down (Controls, Surveillance, Patients, Laboratory, Prevention, Quality, Registers, Documents, Indicators, Employees and Calendar: zero; Training and Committees still have a few and only go down).
 - Status labels use `StatusBadge` (`success`, `info`, `warning`, `danger`, `neutral`). Dates with time use `formatDateTime`, calendar days `formatDay` (`core/i18n/formatDay.js`).
 - Screens are checked at laptop (1366×768) and tablet (1024×768, 820×1180) sizes: cards fall to one column, tables scroll inside their own frame, and the save bar stays in view.
 
 ## Registries and records
 - Registries use `Page`, `FilterBar`, `RecordActions`, and clickable-row affordance where rows open records.
-- Record pages use `EntityRecordShell`.
+- Record pages use `EntityRecordShell`. Its header actions come in three kinds: edit and delete go to the «…» menu; utilities (print, download, export — `PrintExportActions` or an icon button labelled «Εκτύπωση / Λήψη / Εξαγωγή…») stay visible as icon buttons beside the status.
+- Printed and downloaded documents use the shared layout in `core/export/reportDocument.js` (`printReport` for PDF with real text, `downloadReportWord` for .doc): hospital band, title and code, facts grid, numbered sections with real tables, signatures, and a footer with the code, printed-on date, page X / Y and the DEMO mark. No screenshot PDFs for new exports.
 - Lists inside a record use `RegistryTable` (same geometry as registries); statuses use `status-badge`, never plain text.
 - Sections inside a record tab start with `SectionHeader` (title, optional subtitle, actions on the right).
 - A record tab with a list (assessments, surveillance & samples, history) is a `RecordTabPanel`: it fills the record body (no card inside the card), one header row, content that scrolls inside, pagination kept at the bottom — the same look as the registry lists.
@@ -41,7 +42,7 @@ This file is the product-wide interaction contract for new and existing features
 - In forms every control (text, select, date, time) is 40px high and fields in a row line up; yes/no answers use `YesNoField`, months `MonthField`.
 - Field titles, editable or read-only, use the `lo-field-label` style (Field, ManualDateField, TimeField, SearchableSelect, RecordDetailsGrid apply it).
 - Multi-choice fields use `ChoiceChips`, not checkboxes in pills.
-- An empty registry shows the RegistryTable empty state under the column headings and hides pagination.
+- An empty registry shows the RegistryTable empty state under the column headings and hides pagination (`RegistryPagination` renders nothing without rows). Two different empty states (`RegistryEmptyState`): «nothing matches the search / filters» with «Clear filters», and «nothing created yet» with an icon, a line on what the list holds and the create action.
 - A nested view inside a record (e.g. an episode inside a tab) shows its path with `Breadcrumbs` instead of a second Back button.
 - Status badges, table geometry and row actions must use existing Observer primitives before new CSS is introduced.
 

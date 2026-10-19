@@ -24,6 +24,7 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -1006,20 +1007,24 @@ function EmployeeAccountDialog({ employee, language, saving, onClose, onCreate }
           <span>{language === 'en' ? 'Job title' : 'Ιδιότητα'}</span>
           <input value={jobTitle} onChange={event => setJobTitle(event.target.value)} />
         </label>
-        <label>
-          <span>{language === 'en' ? 'Account role' : 'Ρόλος λογαριασμού'}</span>
-          <select value={role} onChange={event => setRole(event.target.value)}>
-            <option value="staff_user">{language === 'en' ? 'Staff user' : 'Εργαζόμενος'}</option>
-            <option value="department_user">
-              {language === 'en' ? 'Department user' : 'Χρήστης τμήματος'}
-            </option>
-            <option value="department_manager">
-              {language === 'en' ? 'Department manager' : 'Προϊστάμενος τμήματος'}
-            </option>
-            <option value="link_nurse">Link Nurse</option>
-            <option value="laboratory">{language === 'en' ? 'Laboratory' : 'Εργαστήριο'}</option>
-          </select>
-        </label>
+        <SearchableSelect
+          label={language === 'en' ? 'Account role' : 'Ρόλος λογαριασμού'}
+          value={role}
+          onChange={next => setRole(next || 'staff_user')}
+          options={[
+            { value: 'staff_user', label: language === 'en' ? 'Staff user' : 'Εργαζόμενος' },
+            {
+              value: 'department_user',
+              label: language === 'en' ? 'Department user' : 'Χρήστης τμήματος',
+            },
+            {
+              value: 'department_manager',
+              label: language === 'en' ? 'Department manager' : 'Προϊστάμενος τμήματος',
+            },
+            { value: 'link_nurse', label: 'Link Nurse' },
+            { value: 'laboratory', label: language === 'en' ? 'Laboratory' : 'Εργαστήριο' },
+          ]}
+        />
       </div>
     </ObserverDialog>
   )
@@ -1053,18 +1058,20 @@ function InlineSelect({ editing, label, value, display, options = [], language, 
     <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
       <span>{label}</span>
       {editing ? (
-        <select value={value || ''} onChange={event => onChange(event.target.value)}>
-          {value && !hasCurrent && <option value={value}>{display || value}</option>}
-          {rows.map((row, index) => {
-            const el = row?.[0] ?? row?.name ?? String(row || ''),
-              en = row?.[1] ?? row?.nameEn ?? el
-            return (
-              <option key={`${el}-${index}`} value={el}>
-                {language === 'el' ? el : en}
-              </option>
-            )
-          })}
-        </select>
+        <SearchableSelect
+          hideLabel
+          label={label}
+          value={value || ''}
+          onChange={next => onChange(next || '')}
+          options={[
+            ...(value && !hasCurrent ? [{ value, label: display || value }] : []),
+            ...rows.map(row => {
+              const el = row?.[0] ?? row?.name ?? String(row || ''),
+                en = row?.[1] ?? row?.nameEn ?? el
+              return { value: el, label: language === 'el' ? el : en }
+            }),
+          ]}
+        />
       ) : (
         <strong>{display || '—'}</strong>
       )}

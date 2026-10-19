@@ -3,6 +3,7 @@ import { attendanceFor } from './committeeMeetingRules'
 import { Download, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
@@ -504,16 +505,18 @@ export function MeetingDialog({
                 <tr key={x.id || x.memberId}>
                   <td>{x.name}</td>
                   <td>
-                    <select
+                    {/* Present / absent / excused as one tap; none chosen means not recorded yet. */}
+                    <ModeSwitch
+                      ariaLabel={`${en ? 'Attendance' : 'Παρουσία'}: ${x.name}`}
                       disabled={!canSave || locked}
                       value={x.status}
-                      onChange={e => attendance(x.id || x.memberId, e.target.value)}
-                    >
-                      <option value="not_recorded">—</option>
-                      <option value="present">{en ? 'Present' : 'Παρόν'}</option>
-                      <option value="absent">{en ? 'Absent' : 'Απόν'}</option>
-                      <option value="excused">{en ? 'Excused' : 'Δικαιολογημένο'}</option>
-                    </select>
+                      onChange={status => attendance(x.id || x.memberId, status)}
+                      options={[
+                        { value: 'present', label: en ? 'Present' : 'Παρών/ούσα' },
+                        { value: 'absent', label: en ? 'Absent' : 'Απών/ούσα' },
+                        { value: 'excused', label: en ? 'Excused' : 'Δικαιολογημένη' },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
