@@ -58,7 +58,8 @@
 }
 .committee-topic-fields{
   display:grid;
-  grid-template-columns:minmax(220px,.85fr) minmax(320px,1.65fr);
+  /* The topic first, its decision / conclusion below it, both full width. */
+  grid-template-columns:minmax(0,1fr);
   gap:8px 10px;
   align-items:start;
 }

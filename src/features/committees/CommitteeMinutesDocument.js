@@ -56,15 +56,13 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }) {
       {
         title: L('Θέματα & συμπεράσματα', 'Agenda & conclusions'),
         table: {
-          columns: [
-            L('Α/Α', 'No.'),
-            L('Θέμα', 'Topic'),
-            L('Απόφαση / συμπέρασμα', 'Decision / conclusion'),
-          ],
+          // Each topic, with its decision / conclusion below it (not side by side).
+          columns: [L('Α/Α', 'No.'), L('Θέμα · απόφαση / συμπέρασμα', 'Topic · decision / conclusion')],
           rows: topics.map((t, i) => [
             String(i + 1),
-            { html: `<strong>${escape(t.subject || '—')}</strong>` },
-            t.decision || '—',
+            {
+              html: `<strong>${escape(t.subject || '—')}</strong><span class="rd-topic-decision">${escape(t.decision || '—').replace(/\n/g, '<br>')}</span>`,
+            },
           ]),
         },
       },

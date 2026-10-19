@@ -9,7 +9,8 @@ describe('committee workspace refinement',()=>{
 
   it('uses a compact meeting layout without horizontal attendance scrolling',()=>{
     expect(css).toContain('overflow:hidden!important')
-    expect(css).toContain('grid-template-columns:minmax(220px,.85fr) minmax(320px,1.65fr)')
+    // Each topic: the topic, then its decision / conclusion below it, full width.
+    expect(css).toContain('grid-template-columns:minmax(0,1fr)')
   })
 
   it('uses the shared FilterBar search styling for decisions',()=>{
