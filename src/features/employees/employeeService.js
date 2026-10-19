@@ -4,6 +4,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
+import { invalidateEmployeesCache } from './employeesCache'
 // The demo store (and its seed data) loads only in the demo workspace.
 const localStore = () => import('./employeeStore')
 
@@ -93,6 +94,23 @@ export async function loadEmployeesAsync(organizationId) {
   return (data || []).map(fromRow)
 }
 
+// The birthday greeting needs names and birth dates of active employees only,
+// not the register (the bell used to read the whole employees table for it).
+const BIRTHDAY_COLUMNS = 'id,employee_code,first_name,first_name_en,last_name,last_name_en,employment_status,birth_date'
+export async function loadBirthdayEmployeesAsync(organizationId) {
+  if(isDemoDataEnvironment())return (await localStore()).loadEmployees().filter(row=>row.employmentStatus==='active'&&row.birthDate)
+  if(isOwnerPreview())return []
+  productionContext(organizationId,'employees.birthdays')
+  const { data, error } = await supabase
+    .from('employees')
+    .select(BIRTHDAY_COLUMNS)
+    .eq('organization_id', organizationId)
+    .eq('employment_status', 'active')
+    .not('birth_date', 'is', null)
+  if (error) throw error
+  return (data || []).map(fromRow)
+}
+
 export async function createEmployeeAsync(organizationId, v) {
   if(isDemoDataEnvironment()){
     const code=String(v.id||v.employeeCode||'').trim()
@@ -113,6 +131,7 @@ export async function createEmployeeAsync(organizationId, v) {
     if (error.code === '23505') throw new Error('DUPLICATE_EMPLOYEE_CODE')
     throw error
   }
+  invalidateEmployeesCache(organizationId)
   return fromRow(data)
 }
 
@@ -142,6 +161,7 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v, previ
       .eq('id',employeeDbId),loadedVersion)
       .select(`${EMPLOYEE_COLUMNS},organization_id`)
       .single(),{table:'employees',updatedAt:loadedVersion})
+    invalidateEmployeesCache(organizationId)
     return fromRow(data)
   }catch(error){
     if(error?.code==='23505')throw new Error('DUPLICATE_EMPLOYEE_CODE')
@@ -156,7 +176,8 @@ export async function createEmployeeAccountAsync(organizationId,employee,{role='
   if(employee.userId)throw new Error('EMPLOYEE_ACCOUNT_ALREADY_LINKED')
   const accountEmail=String(email||employee.email||'').trim()
   if(!accountEmail)throw new Error('EMPLOYEE_EMAIL_REQUIRED')
-  return invokeAuthenticatedFunction('create-organization-user',{
+  // The new account is linked to the employee row (user_id).
+  const result=await invokeAuthenticatedFunction('create-organization-user',{
     organizationId,
     fullName:`${employee.firstName||''} ${employee.lastName||''}`.trim(),
     role,
@@ -165,6 +186,8 @@ export async function createEmployeeAccountAsync(organizationId,employee,{role='
     jobTitle:jobTitle??employee.profession??'',
     employeeDbId:employee.dbId,
   })
+  invalidateEmployeesCache(organizationId)
+  return result
 }
 
 export async function deleteEmployeeAsync(organizationId, employeeDbId, employeeId) {
@@ -180,6 +203,7 @@ export async function deleteEmployeeAsync(organizationId, employeeDbId, employee
   const {data:deleted}=await supabase.from('employees').select('*').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle()
   await binCloudRows(organizationId,{module:'administration',kind:'employees',...describeDeleted('Εργαζόμενος',{name:[deleted?.last_name,deleted?.first_name].filter(Boolean).join(' ')}),parts:[{table:'employees',match:{id:employeeDbId}}]})
   const {error}=await supabase.from('employees').delete().eq('organization_id',organizationId).eq('id',employeeDbId)
+  invalidateEmployeesCache(organizationId)
   if(error)throw error
   return true
 }

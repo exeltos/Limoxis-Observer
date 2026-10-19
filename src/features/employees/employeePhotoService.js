@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { invalidateEmployeesCache } from './employeesCache'
 
 // The employee photo lives in the private `attachments` bucket under
 // <organization>/employee_photo/<employee uuid>/<file>, and employees.photo_path
@@ -153,6 +154,7 @@ async function setPhotoPath(organizationId, employee, photoPath) {
     .select('photo_path,updated_at')
     .single()
   if (error) throw error
+  invalidateEmployeesCache(organizationId)
   return { ...employee, photoPath: data?.photo_path || null, updatedAt: data?.updated_at || employee.updatedAt }
 }
 

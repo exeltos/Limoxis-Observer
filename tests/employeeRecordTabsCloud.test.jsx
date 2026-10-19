@@ -9,8 +9,8 @@ import { MemoryRouter } from 'react-router-dom'
 
 const feedback = { notify: vi.fn(), notifyError: vi.fn(), confirm: vi.fn(async () => true) }
 const loadAttachments = vi.fn(async () => [])
-const loadEmployeeSurveillanceRecords = vi.fn()
-const loadLaboratorySamples = vi.fn()
+const loadEmployeeSurveillanceRecordsForEmployee = vi.fn()
+const loadEmployeeSurveillanceSamples = vi.fn()
 const loadEvaluationsAsync = vi.fn()
 const updateEmployeeEvaluationWorkflowAsync = vi.fn()
 
@@ -25,8 +25,8 @@ vi.mock('../src/core/attachments/attachmentService', () => ({
   deleteAttachment: vi.fn(),
   getAttachmentUrl: vi.fn(),
 }))
-vi.mock('../src/features/surveillance/employeeSurveillanceCloudService', async original => ({ ...(await original()), loadEmployeeSurveillanceRecords: (...args) => loadEmployeeSurveillanceRecords(...args) }))
-vi.mock('../src/features/laboratory/laboratoryCloudService', async original => ({ ...(await original()), loadLaboratorySamples: (...args) => loadLaboratorySamples(...args) }))
+vi.mock('../src/features/surveillance/employeeSurveillanceCloudService', async original => ({ ...(await original()), loadEmployeeSurveillanceRecordsForEmployee: (...args) => loadEmployeeSurveillanceRecordsForEmployee(...args) }))
+vi.mock('../src/features/laboratory/laboratoryCloudService', async original => ({ ...(await original()), loadEmployeeSurveillanceSamples: (...args) => loadEmployeeSurveillanceSamples(...args) }))
 vi.mock('../src/features/employees/employeeSubRecordsService', async original => ({
   ...(await original()),
   loadEvaluationsAsync: (...args) => loadEvaluationsAsync(...args),
@@ -54,11 +54,11 @@ describe('employee documents (cloud)', () => {
 
 describe('employee surveillance (cloud)', () => {
   it('shows each episode with only the laboratory samples linked to it', async () => {
-    loadEmployeeSurveillanceRecords.mockResolvedValue([
+    loadEmployeeSurveillanceRecordsForEmployee.mockResolvedValue([
       { id: 'ESUR-260901', recordId: 'db-sv-1', employeeDbId: 'db-emp-1', startedAt: '2026-09-01', status: 'active' },
       { id: 'ESUR-260902', recordId: 'db-sv-9', employeeDbId: 'db-other', startedAt: '2026-09-02', status: 'active' },
     ])
-    loadLaboratorySamples.mockResolvedValue([
+    loadEmployeeSurveillanceSamples.mockResolvedValue([
       { id: 'LAB-LINKED-1', employeeSurveillanceId: 'db-sv-1', type: 'nasalSwab', collectedAt: '2026-09-01T08:00:00' },
       { id: 'LAB-OTHER-1', employeeSurveillanceId: 'db-sv-2', type: 'nasalSwab', collectedAt: '2026-09-01T08:00:00' },
     ])
@@ -69,6 +69,9 @@ describe('employee surveillance (cloud)', () => {
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText(/LAB-LINKED-1/)).toBeInTheDocument()
     expect(within(dialog).queryByText(/LAB-OTHER-1/)).not.toBeInTheDocument()
+    // Read for this employee only, not the hospital's whole staff and laboratory lists.
+    expect(loadEmployeeSurveillanceRecordsForEmployee).toHaveBeenCalledWith('org-1', 'db-emp-1')
+    expect(loadEmployeeSurveillanceSamples).toHaveBeenCalledWith('org-1', ['db-sv-1'])
   })
 })
 

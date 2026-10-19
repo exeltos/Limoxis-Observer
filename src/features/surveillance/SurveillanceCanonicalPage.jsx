@@ -100,7 +100,9 @@ export function SurveillanceCanonicalPage() {
     [resample, setResample] = useState(null)
   const [openEmployee, setOpenEmployee] = useState(null)
   const registry = useRegistryMemory(`surveillance-${mode}`),
-    laboratoryRegistry = useLaboratoryRegistry()
+    // Only the demo reads its samples through the registry; in production the
+    // environmental rows come from the one laboratory read in load() below.
+    laboratoryRegistry = useLaboratoryRegistry({ enabled: isDemo })
   const clinical = useMemo(
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
     [isDemo, tenant?.id, actor],
@@ -136,6 +138,15 @@ export function SurveillanceCanonicalPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
+      // The patients and the episode, staff and laboratory reads start together.
+      const rest =
+        !isDemo && tenant?.id
+          ? Promise.allSettled([
+              loadClinicalCases(tenant.id),
+              loadEmployeeSurveillanceRecords(tenant.id),
+              loadLaboratorySamples(tenant.id),
+            ])
+          : null
       const roster = await loadPatients(tenant?.id, { isDemo })
       setPatients(roster)
       if (isDemo) {
@@ -143,11 +154,7 @@ export function SurveillanceCanonicalPage() {
         setEmployeeRows(employeeSurveillanceRecords.map(x => ({ ...x })))
         setEnvironmentRows(laboratoryRegistry.rows.filter(isEnvironmental))
       } else if (tenant?.id) {
-        const results = await Promise.allSettled([
-          loadClinicalCases(tenant.id),
-          loadEmployeeSurveillanceRecords(tenant.id),
-          loadLaboratorySamples(tenant.id),
-        ])
+        const results = await rest
         setCases(results[0].status === 'fulfilled' ? results[0].value : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
         setEnvironmentRows(

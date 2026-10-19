@@ -186,14 +186,45 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
   const {data,error}=await supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId).in('control_id',definitions.map(row=>row.id))
   if(error)throw error
   assignments=data
-  for(const assignment of (assignments||[]).filter(a=>a.status!=='paused')){
-   reads.push(supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('assignment_id',assignment.id).order('performed_at',{ascending:false}).limit(RECENT_PER_ASSIGNMENT).then(({data,error})=>{if(error)throw error;return data||[]}))
-  }
+  // The recent entries of every department in one request (control_recent_executions, 20261128500000), not one per assignment.
+  const activeIds=(assignments||[]).filter(a=>a.status!=='paused').map(a=>a.id)
+  if(activeIds.length)reads.push(supabase.rpc('control_recent_executions',{p_organization_id:organizationId,p_assignment_ids:activeIds,p_limit:RECENT_PER_ASSIGNMENT}).then(({data,error})=>{if(error)throw error;return data||[]}))
  }
  const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
  const executions=[...new Map((await Promise.all(reads)).flat().map(row=>[row.id,row])).values()]
  const progress=new Map((progressResult.data||[]).map(row=>[row.assignment_id,{start:row.period_start,end:row.period_end,required:Number(row.required)||1,done:Number(row.done)||0,extra:Number(row.extra)||0}]))
  return definitions.map(row=>mapDefinition(row,assignments||[],executions,draftsResult.data||[],summaries,progress))
+}
+
+// What the bell needs for the expiry alerts: only the expiry controls, their
+// assignments and the entries that carry an item list (no drafts, no counts,
+// no other control). The demo reads its local programme.
+const EXPIRY_EXECUTION_COLUMNS='id,assignment_id,control_id,performed_at,status,response_data'
+export async function loadExpiryProgramme(organizationId){
+ if(isDemoDataEnvironment())return (await loadControlProgramme(organizationId,{summary:false})).filter(row=>row.responseConfig?.mode==='list'&&row.responseConfig?.template==='medication_expiry')
+ assertCloud(organizationId)
+ const {data:rows,error}=await supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').eq('response_config->>template','medication_expiry').order('created_at',{ascending:false})
+ if(error)throw error
+ const definitions=(rows||[]).filter(isExpiryDefinition)
+ if(!definitions.length)return []
+ const ids=definitions.map(row=>row.id)
+ const [assignmentsResult,executions]=await Promise.all([
+  supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId).in('control_id',ids),
+  readExecutionPages(()=>supabase.from('control_executions').select(EXPIRY_EXECUTION_COLUMNS).eq('organization_id',organizationId).in('control_id',ids).eq('has_item_list',true)),
+ ])
+ if(assignmentsResult.error)throw assignmentsResult.error
+ return definitions.map(row=>mapDefinition(row,assignmentsResult.data||[],executions,[]))
+}
+
+// The categories the programme already uses (the new-control form's suggestions).
+export async function loadControlCategories(organizationId){
+ const rows=isDemoDataEnvironment()?loadControlDefinitionsLocal():await (async()=>{
+  assertCloud(organizationId)
+  const {data,error}=await supabase.from('control_definitions').select('category').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false})
+  if(error)throw error
+  return data||[]
+ })()
+ return [...new Set(rows.map(row=>row.category).filter(Boolean))]
 }
 
 export async function loadControlByCode(organizationId,code){

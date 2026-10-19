@@ -30,7 +30,7 @@ import { progressText } from './controlProgress'
 import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
 import { removeExpiryItem } from './controlExpiryRemoval'
-import { loadControlProgramme,saveControlDefinition } from './controlCloudService'
+import { loadControlCategories,loadControlProgramme,saveControlDefinition } from './controlCloudService'
 import { CRITICALITY_LEVELS,compareControlPriority,controlCriticality,criticalityLabel } from './controlCriticality'
 import './controlEvidence.css'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -169,7 +169,7 @@ export function ControlCreatePage(){
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const isDepartmentManager=role===ROLES.DEPARTMENT_MANAGER
  const createdByScope=isDepartmentManager?'department':role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
- useEffect(()=>{if(!tenant?.id)return;let active=true;loadControlProgramme(tenant.id,{summary:false}).then(rows=>{if(active)setCategories([...new Set(rows.map(row=>row.category).filter(Boolean))])}).catch(()=>{});return()=>{active=false}},[tenant?.id])
+ useEffect(()=>{if(!tenant?.id)return;let active=true;loadControlCategories(tenant.id).then(rows=>{if(active)setCategories(rows)}).catch(()=>{});return()=>{active=false}},[tenant?.id])
  async function saveNew(draft){
   try{
    const scopedDraft=isDepartmentManager?{...draft,departments:[ownDepartment],createdByScope:'department',createdForDepartment:ownDepartment}:{...draft,createdByScope}

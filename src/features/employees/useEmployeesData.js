@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadEmployeesAsync } from './employeeService'
+import { cloudEnabled, loadEmployeesAsync } from './employeeService'
+import { cachedEmployees } from './employeesCache'
+import { isOwnerPreview } from '../../core/preview/ownerPreview'
 
 export function useEmployeesData() {
   const { tenant } = useTenant()
@@ -9,10 +11,13 @@ export function useEmployeesData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const reload = useCallback(async () => {
+  // The first read may come from the shared list (employeesCache.js); reload() reads again.
+  const read = useCallback(async ({ fresh = true } = {}) => {
     setLoading(true); setError(null)
     try {
-      const next = await loadEmployeesAsync(organizationId)
+      const next = cloudEnabled() && organizationId && !isOwnerPreview()
+        ? await cachedEmployees(organizationId, () => loadEmployeesAsync(organizationId), { fresh })
+        : await loadEmployeesAsync(organizationId)
       setData(next)
       return next
     } catch (err) {
@@ -22,8 +27,9 @@ export function useEmployeesData() {
       setLoading(false)
     }
   }, [organizationId])
+  const reload = useCallback(() => read({ fresh: true }), [read])
 
-  useEffect(() => { void reload().catch(() => {}) }, [reload])
+  useEffect(() => { void read({ fresh: false }).catch(() => {}) }, [read])
 
   return { data, setData, loading, error, reload }
 }

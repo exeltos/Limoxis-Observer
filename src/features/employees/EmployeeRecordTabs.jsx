@@ -12,8 +12,8 @@ import {
   updateEmployeeSurveillanceRecord,
 } from '../surveillance/employeeSurveillanceData'
 import { EmployeeSurveillanceRecordDialog } from '../surveillance/EmployeeSurveillanceRecordDialog'
-import { loadEmployeeSurveillanceRecords } from '../surveillance/employeeSurveillanceCloudService'
-import { loadLaboratorySamples } from '../laboratory/laboratoryCloudService'
+import { loadEmployeeSurveillanceRecordsForEmployee } from '../surveillance/employeeSurveillanceCloudService'
+import { loadEmployeeSurveillanceSamples } from '../laboratory/laboratoryCloudService'
 import { laboratorySamples as demoLaboratorySamples } from '../laboratory/laboratoryDemoData'
 import {
   SectionTitle,
@@ -94,13 +94,15 @@ export function EmployeeSurveillanceTab({
     let active = true
     setLoading(true)
     setLoadError(null)
-    Promise.all([
-      loadEmployeeSurveillanceRecords(organizationId),
-      loadLaboratorySamples(organizationId),
-    ])
+    // Only this employee's episodes, then only the samples linked to them.
+    loadEmployeeSurveillanceRecordsForEmployee(organizationId, employee.dbId)
+      .then(async rows => {
+        const records = rows.filter(row => row.employeeDbId === employee.dbId)
+        return [records, await loadEmployeeSurveillanceSamples(organizationId, records.map(row => row.recordId))]
+      })
       .then(([records, samples]) => {
         if (!active) return
-        setCloudRecords(records.filter(row => row.employeeDbId === employee.dbId))
+        setCloudRecords(records)
         setCloudSamples(samples)
       })
       .catch(error => {

@@ -37,12 +37,12 @@ function builder(table) {
 vi.mock('../src/core/supabase/client', () => ({
   supabase: {
     from: table => builder(table),
-    rpc: name => { calls.push({ table: `rpc:${name}`, filters: [] }); return Promise.resolve({ data: [], error: null }) },
+    rpc: (name, args) => { calls.push({ table: `rpc:${name}`, filters: [], args }); return Promise.resolve({ data: [], error: null }) },
   },
 }))
 vi.mock('../src/core/supabase/cloudContext', () => ({ assertCloud: () => {}, currentUserId: async () => 'user-1' }))
 
-const { loadControlProgramme } = await import('../src/features/controls/controlCloudService')
+const { loadControlCategories, loadControlProgramme, loadExpiryProgramme } = await import('../src/features/controls/controlCloudService')
 
 describe('controls programme requests', () => {
   beforeEach(() => { calls.length = 0 })
@@ -75,5 +75,28 @@ describe('controls programme requests', () => {
     expect(assignments).toHaveLength(1)
     expect(assignments[0].filters).toEqual(expect.arrayContaining([['in', 'control_id', ['def-1', 'def-2']]]))
     expect(calls.some(c => c.table === 'rpc:control_assignment_summary')).toBe(true)
+    // The recent entries of every department in one request, not one per assignment.
+    const recent = calls.filter(c => c.table === 'rpc:control_recent_executions')
+    expect(recent).toHaveLength(1)
+    expect(recent[0].args).toEqual({ p_organization_id: 'org-1', p_assignment_ids: ['asg-1', 'asg-2'], p_limit: 50 })
+    expect(calls.filter(c => c.table === 'control_executions')).toHaveLength(1)
+  })
+
+  it('reads for the bell only the expiry controls, their assignments and item lists', async () => {
+    definitionsGate = Promise.resolve()
+    const programme = await loadExpiryProgramme('org-1')
+    expect(programme.map(row => row.id)).toEqual(['CTRL-1'])
+    expect(calls.map(c => c.table).sort()).toEqual(['control_assignments', 'control_definitions', 'control_executions'])
+    expect(calls.find(c => c.table === 'control_definitions').filters).toEqual(expect.arrayContaining([['eq', 'response_config->>template', 'medication_expiry']]))
+    expect(calls.find(c => c.table === 'control_assignments').filters).toEqual(expect.arrayContaining([['in', 'control_id', ['def-1']]]))
+    const executions = calls.find(c => c.table === 'control_executions').filters
+    expect(executions).toEqual(expect.arrayContaining([['select', 'id,assignment_id,control_id,performed_at,status,response_data'], ['in', 'control_id', ['def-1']], ['eq', 'has_item_list', true]]))
+  })
+
+  it('reads the category suggestions as one column', async () => {
+    definitionsGate = Promise.resolve()
+    expect(await loadControlCategories('org-1')).toEqual(['Φάρμακα', 'Καθαριότητα'])
+    expect(calls).toHaveLength(1)
+    expect(calls[0].filters[0]).toEqual(['select', 'category'])
   })
 })

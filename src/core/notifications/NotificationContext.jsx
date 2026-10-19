@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useTenant } from '../tenant/TenantContext'
-import { useEmployeesData } from '../../features/employees/useEmployeesData'
+import { loadBirthdayEmployeesAsync } from '../../features/employees/employeeService'
 import { useLanguage } from '../i18n/LanguageContext'
 import { loadSnapshot, saveSnapshot } from '../data/repository'
 import { processNotificationOutboxAsync } from './notificationEmailService'
@@ -25,6 +25,15 @@ const controlServiceModule=()=>import('../../features/controls/controlCloudServi
 // Legislation loads only for the Platform Owner and the hospital's quality people.
 const legislationModule=()=>Promise.all([import('../../features/legislation/legislationService'),import('../../features/legislation/legislationModel')])
 const LEGISLATION_ROLES=['hospital_admin','quality_manager']
+
+// The bell's reads are not what the screen opened for: they start once the
+// browser is idle after the first paint (or shortly after, without
+// requestIdleCallback), so the page's own data goes first.
+export function whenIdle(task){
+ if(typeof window==='undefined')return()=>{}
+ if(typeof window.requestIdleCallback==='function'){const id=window.requestIdleCallback(task,{timeout:2000});return()=>window.cancelIdleCallback?.(id)}
+ const id=window.setTimeout(task,200);return()=>window.clearTimeout(id)
+}
 
 const NotificationContext=createContext(null)
 const CLUSTER_ALERT_ROLES=['hospital_admin','infection_control_lead','infection_control_member','laboratory','doctor_reviewer']
@@ -54,7 +63,7 @@ const hospitalRole=role==='platform_owner'?'hospital_admin':role;try{const metri
  // Medicines and supplies that expire soon or have expired, one item per
  // control and department the user can see (Controls › expiry checks).
  const [expiryProgramme,setExpiryProgramme]=useState([])
- const reloadExpiryAlerts=useCallback(async()=>{if(!tenant?.id||!role||role==='platform_owner'&&!isDemo){setExpiryProgramme([]);return}try{setExpiryProgramme(await (await controlServiceModule()).loadControlProgramme(tenant.id,{summary:false}))}catch{setExpiryProgramme([])}},[tenant?.id,role,isDemo])
+ const reloadExpiryAlerts=useCallback(async()=>{if(!tenant?.id||!role||role==='platform_owner'&&!isDemo){setExpiryProgramme([]);return}try{setExpiryProgramme(await (await controlServiceModule()).loadExpiryProgramme(tenant.id))}catch{setExpiryProgramme([])}},[tenant?.id,role,isDemo])
  const reloadClusterAlerts=useCallback(async()=>{if(!CLUSTER_ALERT_ROLES.includes(role)){setClusterAlerts([]);return}if(isDemo){try{setClusterAlerts(await collectDemoOrganismClusters())}catch{setClusterAlerts([])}return}if(!tenant?.id){setClusterAlerts([]);return}try{setClusterAlerts(await loadActiveClustersAsync(tenant.id))}catch{setClusterAlerts([])}},[isDemo,tenant?.id,role])
  // Legislation: what the automatic check found (Platform Owner), new texts and updates to review (the hospital).
  const [legislationItems,setLegislationItems]=useState([])
@@ -62,15 +71,18 @@ const hospitalRole=role==='platform_owner'?'hospital_admin':role;try{const metri
   if(profile?.isPlatformOwner&&!isDemo){const count=await service.pendingCandidateCount();if(count)items.push({id:`legislation-review:${count}`,type:'legislation',title:en?'Legislation to review':'Νομοθεσία προς έλεγχο',message:en?`${count} items found by the automatic check`:`${count} ευρήματα από τον αυτόματο έλεγχο`,to:'/legislation?tab=review'})}
   if((tenant?.id||isDemo)&&(LEGISLATION_ROLES.includes(role)||(isDemo&&role==='demo'))){const data=await service.loadRegister(tenant?.id);const entries=model.buildRegister(data.versions,data.rows).filter(entry=>entry.state==='new'||entry.state==='update');if(entries.length)items.push({id:`legislation-register:${entries.map(entry=>`${entry.text.id}.${entry.text.version}`).join(',')}`,type:'legislation',title:en?'Legislation updates':'Ενημερώσεις νομοθεσίας',message:entries.map(entry=>entry.text.title).slice(0,3).join(' · '),to:entries.length===1?`/legislation/${entries[0].text.id}`:'/legislation'})}
   setLegislationItems(items)}catch{setLegislationItems([])}},[profile?.isPlatformOwner,isDemo,tenant?.id,role,language])
- useEffect(()=>{void reloadLegislation();const id=window.setInterval(()=>void reloadLegislation(),30*60000);return()=>window.clearInterval(id)},[reloadLegislation])
+ useEffect(()=>{const cancel=whenIdle(()=>void reloadLegislation());const id=window.setInterval(()=>void reloadLegislation(),30*60000);return()=>{cancel();window.clearInterval(id)}},[reloadLegislation])
  // Counts and pending items: on entry and every DATA_REFRESH_MS while the page is in view (not on the one-minute clock).
  const dataTick=useDataRefreshTick()
- useEffect(()=>{void reloadCommitteeMemberships();void reloadCommitteeMinutesApprovals();void reloadLiveOperational();void reloadClusterAlerts();void reloadExpiryAlerts()},[reloadCommitteeMemberships,reloadCommitteeMinutesApprovals,reloadLiveOperational,reloadClusterAlerts,reloadExpiryAlerts,dataTick])
- // The e-mail outbox keeps its one-minute cadence.
- useEffect(()=>{if(!isDemo&&tenant?.id)void processNotificationOutboxAsync(tenant.id).catch(()=>{})},[isDemo,tenant?.id,clock])
+ useEffect(()=>whenIdle(()=>{void reloadCommitteeMemberships();void reloadCommitteeMinutesApprovals();void reloadLiveOperational();void reloadClusterAlerts();void reloadExpiryAlerts()}),[reloadCommitteeMemberships,reloadCommitteeMinutesApprovals,reloadLiveOperational,reloadClusterAlerts,reloadExpiryAlerts,dataTick])
+ // The e-mail outbox follows the same tick: every DATA_REFRESH_MS while the page
+ // is in view, not every minute in every open tab (each run is an edge function call).
+ useEffect(()=>{if(isDemo||!tenant?.id)return;return whenIdle(()=>void processNotificationOutboxAsync(tenant.id).catch(()=>{}))},[isDemo,tenant?.id,dataTick])
  const audience=useMemo(()=>({role,membership,user,profile}),[role,membership,user,profile])
  const visibleAnnouncements=useMemo(()=>announcements.filter(a=>(!isDemo||applies(a,audience))&&withinWindow(a,clock)).map(a=>{const localized=isDemo?demoAnnouncementText[language]?.[a.id]:null;return {...a,...(localized||{}),acknowledged:announcementAcknowledgements.has(a.id)}}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))),[announcements,isDemo,audience,clock,language,announcementAcknowledgements])
- const {data:employeeRows}=useEmployeesData()
+ // Birthdays: only the active employees with a birth date, and only these columns (not the employee register).
+ const [employeeRows,setEmployeeRows]=useState([])
+ useEffect(()=>{let alive=true;const cancel=whenIdle(()=>{Promise.resolve().then(()=>loadBirthdayEmployeesAsync(tenant?.id)).then(rows=>{if(alive)setEmployeeRows(rows)}).catch(()=>{if(alive)setEmployeeRows([])})});return()=>{alive=false;cancel()}},[tenant?.id])
  const birthday=useMemo(()=>{const today=new Date(clock),md=`${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;return employeeRows.filter(e=>e.employmentStatus==='active'&&String(e.birthDate||'').slice(5)===md)},[clock,employeeRows])
  const operational=liveOperational
  // What evaluators just did in their Demos (sign-up, evaluation) also pops up

@@ -77,6 +77,13 @@ export async function loadEmployeeSurveillanceRecords(organizationId){
   return hydrateRecords(await selectAllPages(()=>supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false}).order('id',{ascending:true})))
 }
 
+// One employee's surveillance records (the employee record's tab).
+export async function loadEmployeeSurveillanceRecordsForEmployee(organizationId,employeeDbId){
+  assertCloud()
+  if(!organizationId||!employeeDbId)return []
+  return hydrateRecords(await selectAllPages(()=>supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).eq('employee_id',employeeDbId).order('started_at',{ascending:false}).order('id',{ascending:true})))
+}
+
 async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
   assertCloud()
   if(!organizationId)return []

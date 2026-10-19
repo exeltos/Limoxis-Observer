@@ -29,18 +29,20 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (user) => {
     if (!supabase || !user) return null
+    // A Demo evaluator works in their real Demo organization (isDemo is only the
+    // browser-only sample login). Their Demo's dates and state come from
+    // current_demo_access, for the Demo bar and the "Demo ended" screen. It is
+    // read alongside the profile, not after it (sign-in waits on both).
+    const demoAccessRead=Promise.resolve().then(loadCurrentDemoAccess).catch(()=>[])
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner, is_demo, demo_entitlement_id')
       .eq('id', user.id)
       .maybeSingle()
     if (error) throw error
-    // A Demo evaluator works in their real Demo organization (isDemo is only the
-    // browser-only sample login). Their Demo's dates and state come from
-    // current_demo_access, for the Demo bar and the "Demo ended" screen.
     let demoAccess=[]
     if(data&&!data.is_platform_owner){
-      demoAccess=await loadCurrentDemoAccess().catch(()=>[])
+      demoAccess=await demoAccessRead
     }
     return data
       ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: false, demoEntitlementId:data.demo_entitlement_id||null, demoAccess }

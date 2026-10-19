@@ -4,9 +4,11 @@ import { useLaboratoryRepository } from './useLaboratoryRepository'
 
 const initialState = { rows: [], loading: true, error: null, readiness: READINESS.READY, missingConfiguration: [] }
 
-export function useLaboratoryRegistry() {
+// enabled:false skips the read (a screen that loads the samples itself and
+// only needs the repository's actions).
+export function useLaboratoryRegistry({ enabled = true } = {}) {
   const repository = useLaboratoryRepository()
-  const [state, setState] = useState(initialState)
+  const [state, setState] = useState(enabled ? initialState : { ...initialState, loading: false })
 
   const reload = useCallback(async () => {
     setState(current => ({ ...current, loading: true, error: null }))
@@ -26,7 +28,7 @@ export function useLaboratoryRegistry() {
     }
   }, [repository])
 
-  useEffect(() => { void reload() }, [reload])
+  useEffect(() => { if (enabled) void reload() }, [reload, enabled])
 
   const createSample = useCallback(async input => {
     const created = await repository.create(input)
