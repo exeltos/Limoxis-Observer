@@ -172,6 +172,24 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-signatures td{vertical-align:top;border-top:1px solid #17324a;padding-top:6px;font-size:9.5pt;width:33%}
 .rd-signatures strong,.rd-signatures span{display:block;margin-bottom:12px}
 .rd-word-footer{margin-top:18px;padding-top:6px;border-top:1px solid #cbd8e3;color:#5d7083;font-size:8pt}
+/* A record already laid out as HTML (body: '<div class="rd-html">…</div>') */
+.rd-html h1{margin:2px 0 4px;font-size:17pt;line-height:1.25}
+.rd-html h3{margin:12px 0 6px;padding-bottom:3px;border-bottom:1px solid #cbd8e3;font-size:12pt;break-after:avoid}
+.rd-html p{margin:0 0 5px}
+.rd-html ol,.rd-html ul{margin:0 0 6px;padding-left:20px}
+.rd-html dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 18px;margin:6px 0}
+.rd-html dl dt{color:#5d7083;font-size:8.5pt;font-weight:700}
+.rd-html dl dd{margin:1px 0 0;font-weight:600}
+.rd-html dl[class*=figures]{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;border:1px solid #cfdbe5}
+.rd-html dl[class*=figures]>div{padding:6px 8px;border-right:1px solid #e3eaf0}
+.rd-html dl[class*=figures] dd{font-size:12pt}
+.rd-html dl[class*=figures] dd small{display:block;font-size:8pt;font-weight:400;color:#5d7083}
+.rd-html table{width:100%;border-collapse:collapse;font-size:9pt;margin:4px 0}
+.rd-html th,.rd-html td{border:1px solid #c9d4de;padding:3px 5px;text-align:left;vertical-align:top}
+.rd-html th{background:#eef3f7;font-weight:700}
+.rd-html tr{break-inside:avoid}
+.rd-html [class*=eyebrow]{margin:0;font-size:9pt;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5d7083}
+.rd-html [class*=voided]{padding:5px 8px;border:1px solid #f2c4c0;background:#fdeceb;color:#b42318;font-weight:700}
 /* Certificate */
 .rd-certificate{text-align:center;padding:10mm 14mm 0;border:3px double #1e4e79;min-height:150mm}
 .rd-certificate .rd-cert-logo img{max-height:60px;max-width:220px}

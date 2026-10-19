@@ -7,7 +7,7 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { printReport } from '../../core/export/reportDocument'
 import { QualityRecordDocument } from './QualityRecordDocument'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -67,13 +67,13 @@ export function QualityRecordPage(){
   const openTab=(id,edit=false)=>{setAutoEdit(edit);setTab(id)}
   // «Download» is the record as a PDF document (QualityRecordDocument, off screen).
   const documentRef=useRef(null)
-  const [exporting,setExporting]=useState(false)
-  async function downloadPdf(){
-    if(exporting)return
-    setExporting(true)
-    try{await exportElementAsPdf({element:documentRef.current,filename:record.displayId||record.id,orientation:'portrait'})}
-    catch(error){console.error(error);notify(language==='en'?'The PDF could not be created.':'Δεν ήταν δυνατή η δημιουργία του PDF.','error')}
-    finally{setExporting(false)}
+  // Printed on the shared document layout (hospital band, page X / Y, DEMO mark): real text, not a picture.
+  function downloadPdf(){
+    if(!documentRef.current)return
+    const en=language==='en'
+    const ok=printReport({language,kind:{incidents:en?'Incident':'Συμβάν',findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
+     body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε'],filename:record.displayId||record.id})
+    if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
   }
   const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
   // The Platform Owner has full access here, as on the other Quality pages.

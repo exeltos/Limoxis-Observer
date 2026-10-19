@@ -11,7 +11,8 @@ const ANSWER = { yes: ['Ναι', 'Yes'], no: ['Όχι', 'No'], na: ['Δ/Ε', 'N/
 
 // A Quality record as a document, for «Download» (PDF): what it is, where it
 // stands, its details and texts, what follows it and its history. Rendered off
-// screen and captured by exportElementAsPdf, which adds the hospital header.
+// screen; its HTML is printed on the shared document layout (reportDocument),
+// which adds the hospital band, the signatures and the page footer.
 export function QualityRecordDocument({ recordType, record, linked = [], language, t: translate, documentRef }) {
   // Missing values (no priority, an event without a name) read as «—», never as an error.
   const t = value => (value ? translate(value) : '—')
@@ -113,6 +114,5 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       <h3>{L('Ιστορικό', 'History')}</h3>
       <table><tbody>{history.map((event, index) => <tr key={`${event.at}-${index}`}><td>{formatDateTime(event.at, language)}</td><td>{t(event.action)}</td><td>{event.actor || '—'}</td></tr>)}</tbody></table>
     </>}
-    <p className="quality-document-printed">{L('Εκτύπωση', 'Printed')} {formatDateTime(new Date().toISOString(), language)}</p>
   </div>
 }
