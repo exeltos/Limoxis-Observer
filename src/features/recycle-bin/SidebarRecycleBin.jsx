@@ -14,6 +14,6 @@ export function SidebarRecycleBin({organizationId,role,actorName,label,onOpen}){
   const count=entries.length,active=location.pathname==='/recycle-bin'
   return <button type="button" className={`sidebar-bin${active?' active':''}`} aria-current={active?'page':undefined} aria-label={count?`${label} · ${count}`:label} title={label} onClick={()=>{onOpen?.();navigate('/recycle-bin')}}>
     <span className="sidebar-bin-icon"><RecycleBinIcon full={count>0} size={32}/>{count>0&&<em>{count}</em>}</span>
-    <span>{label}</span>
+    <span className="sidebar-bin-label">{label}</span>
   </button>
 }

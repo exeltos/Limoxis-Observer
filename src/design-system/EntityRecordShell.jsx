@@ -3,6 +3,7 @@ import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
+import { useTabStrip } from './useTabStrip'
 import { registryStorageKey } from '../core/navigation/useRegistryMemory'
 import { readSessionJson,writeSessionValue } from '../core/storage/browserStorage'
 import { BackButton } from './BackButton'
@@ -96,6 +97,7 @@ export function EntityRecordShell({
   const navigate=useNavigate();const location=useLocation()
   const handleBack=onBack||goBack
   const hasTabs=Array.isArray(tabs)&&tabs.length>0
+  const tabStripRef=useTabStrip(activeTab)
   const primaryTabId=hasTabs?tabs[0]?.id:null
   // A tab marked `sheet` (e.g. a record's Assessment) reads as a details sheet, like the first tab.
   const primaryTabActive=!primaryTabId||!activeTab||activeTab===primaryTabId||Boolean(tabs.find(tab=>tab.id===activeTab)?.sheet)
@@ -158,7 +160,7 @@ export function EntityRecordShell({
         {ownerHeaderActions}
       </div>
     </header>
-    {hasTabs&&<nav className="entity-record-tabs surface" role="tablist">
+    {hasTabs&&<nav ref={tabStripRef} className="entity-record-tabs surface" role="tablist">
       {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange?.(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
     </nav>}
     <section className="entity-record-body surface" style={secondaryBodyStyle}>

@@ -3075,8 +3075,12 @@ button{letter-spacing:0}
 .brand strong{font-size:13px!important;font-weight:650!important;color:#fff!important}
 .brand span{font-size:10.5px!important;color:rgba(255,255,255,.62)!important}
 .sidebar nav{padding:8px 8px!important;gap:2px!important}
+/* Side menu (not the phone bar): the list takes the free height and scrolls above the bin and the footer. */
+@media (min-width:641px){.sidebar nav{flex:1 1 auto;border-bottom:1px solid rgba(255,255,255,.08)}}
 .nav-item{min-height:31px!important;padding:6px 12px!important;border-radius:7px!important;color:rgba(240,246,252,.73)!important;font-size:13px!important;font-weight:500!important;gap:10px!important;border:0!important;background:transparent!important}
 .nav-item svg{opacity:.82}
+/* One line per menu entry; a long label ends in an ellipsis and stays whole in the tooltip. */
+.sidebar .nav-item>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-item:hover{background:rgba(255,255,255,.075)!important;color:#fff!important}
 .nav-item.active,.nav-item.active-group{background:rgba(255,255,255,.12)!important;color:#fff!important;box-shadow:inset 2px 0 0 #6fb2dd!important}
 .nav-item.active svg{opacity:1}
@@ -3085,6 +3089,9 @@ button{letter-spacing:0}
 .sidebar-nav-management{margin-top:5px!important;padding-top:5px!important;border-top:1px solid rgba(255,255,255,.08)!important}
 .sidebar-footer{padding:8px 14px 8px!important;border-top:1px solid rgba(255,255,255,.08)!important;color:rgba(255,255,255,.64)!important}
 .sidebar-meta,.app-version-stamp{font-size:10px!important;opacity:.72}
+/* Menu footer: the list scrolls above it; meta and version share one line so the whole menu fits 900px. */
+.sidebar-footer{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sidebar-footer .app-version-stamp{margin-top:0}
 .main-column{min-width:0!important;background:var(--lo-color-bg)!important}
 .topbar{min-height:var(--lo-topbar-height)!important;height:var(--lo-topbar-height)!important;padding:0 18px!important;background:rgba(255,255,255,.97)!important;border-bottom:1px solid var(--lo-color-border)!important;box-shadow:none!important}
 .topbar-actions{gap:7px!important}

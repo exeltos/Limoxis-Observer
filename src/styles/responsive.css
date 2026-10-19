@@ -327,11 +327,16 @@ html:not(#lo-unified-tabs) body nav.canonical-tabs>button.canonical-tab>b.canoni
   html body :is(.registry-workspace,.patient-registry-shell,.platform-registry-shell,.lab-registry-shell,.controls-surface,.production-surveillance-workspace) .data-table tbody td{padding-top:5px!important;padding-bottom:5px!important}
 }
 
-/* Tablets: the four summary cards stay on one row and table cells are
+/* Tablets: summary cards fill their rows evenly (five or six cards share one
+   row; six on a portrait tablet make two rows of three) and table cells are
    narrower, so registries fit the width without sideways scrolling. */
 @media (min-width:781px) and (max-width:1100px){
+  html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip,.analysis-kpis){grid-template-columns:repeat(auto-fit,minmax(128px,1fr))!important}
   html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.patient-summary-strip):has(>:nth-child(4):last-child){grid-template-columns:repeat(4,minmax(0,1fr))!important}
   html body :is(.registry-workspace,.patient-registry-shell,.platform-registry-shell,.lab-registry-shell,.controls-surface,.production-surveillance-workspace) .data-table :is(th,td){padding-left:9px!important;padding-right:9px!important}
+}
+@media (min-width:781px) and (max-width:900px){
+  html:not(#lo-phone) body :is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip,.analysis-kpis):has(>:nth-child(6):last-child){grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 
 /* ==== tablet-rail ==== */
@@ -400,7 +405,7 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.main-column{margin-left:64px!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .brand{justify-content:center!important;padding:7px 0!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .brand>div{display:none!important}
-  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar nav{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;overflow:visible!important;gap:2px!important;padding:8px 0!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar nav{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;overflow-x:hidden!important;overflow-y:auto!important;min-height:0!important;gap:2px!important;padding:8px 0!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .sidebar-nav-management{display:block!important;margin:0!important;padding:0!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .nav-item{width:auto!important;justify-content:center!important;gap:0!important;padding:6px 0!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .nav-item>span,html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar .nav-group-chevron{display:none!important}
@@ -413,7 +418,7 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .sidebar-toggle{margin:0 0 8px auto}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .brand{justify-content:flex-start!important;padding:7px 14px!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .brand>div{display:block!important}
-  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open nav{display:flex!important;flex-direction:column!important;overflow:visible!important;gap:2px!important;padding:8px!important}
+  html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open nav{display:flex!important;flex-direction:column!important;overflow-x:hidden!important;overflow-y:auto!important;min-height:0!important;gap:2px!important;padding:8px!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-item{justify-content:flex-start!important;gap:10px!important;padding:6px 12px!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-item>span{display:block!important}
   html:not(#lo-tablet) body .app-shell:not(.platform-owner-shell)>.sidebar.sidebar-open .nav-group-chevron{display:block!important;margin-left:auto}
@@ -462,6 +467,12 @@ html:not(#lo-return) body .surveillance-registry-row.registry-row-returned{backg
   html:not(#lo-phone-cards) body .content table.data-table:not(.training-competence-matrix):not(.control-structured-table)>tbody>tr>td{background:transparent!important;box-shadow:none!important}
 }
 
+/* Tablets and narrow windows: the LIRA button is smaller and fully in view,
+   and the page ends with room for it, so it never hides table rows or buttons. */
+@media (min-width:641px) and (max-width:1100px){
+  html:not(#lo-tablet-lira) body .lira-assistant-fab{right:14px;bottom:14px;width:48px;height:48px;border-radius:16px;transform:none}
+  html:not(#lo-tablet-lira) body .content{padding-bottom:72px!important}
+}
 /* Phones: the LIRA button is smaller and sits in the corner, and the page ends
    with room for it, so the last rows and buttons are never covered. */
 @media (max-width:640px){
@@ -500,12 +511,17 @@ html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 v
   html:not(#lo-phone-preview) body .preview-banner>button{flex:none!important;white-space:nowrap!important;padding:6px!important;font-size:0!important;line-height:0!important}
   html:not(#lo-phone-preview) body .preview-banner>button svg{width:16px!important;height:16px!important}
 }
-/* Phone: a tab bar stays one line and scrolls sideways instead of wrapping into
-   two or three rows (Analysis keeps its own wrapped layout). */
-@media (max-width:640px){
+/* Tablets and phones: a tab bar stays one line and scrolls sideways instead of
+   wrapping into two or three rows (Analysis keeps its own wrapped layout). The
+   active tab is scrolled into view and an edge that hides more tabs fades
+   (useTabStrip sets tab-strip-more-start / tab-strip-more-end). */
+@media (max-width:1100px){
   html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs){flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs)::-webkit-scrollbar{display:none}
   html:not(#lo-unified-tabs):not(#lo-phone-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs:not(.analysis-tabs)>button){flex:0 0 auto!important;white-space:nowrap!important}
+  html:not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs).tab-strip-more-end{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
+  html:not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs).tab-strip-more-start{-webkit-mask-image:linear-gradient(90deg,transparent,#000 36px);mask-image:linear-gradient(90deg,transparent,#000 36px)}
+  html:not(#lo-phone-tabs) body :is(nav.canonical-module-tabs,nav.canonical-tabs,.entity-record-tabs):not(.analysis-tabs).tab-strip-more-start.tab-strip-more-end{-webkit-mask-image:linear-gradient(90deg,transparent,#000 36px,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,transparent,#000 36px,#000 calc(100% - 36px),transparent)}
 }
 /* Analysis lines up with every other page: title and subtitle at the usual
    height, and the section tabs within the page margins instead of edge to edge. */

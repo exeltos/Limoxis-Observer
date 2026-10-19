@@ -372,6 +372,10 @@ export function EnvironmentalRegistry({
         rowKey={row => row.code || row.id}
         emptyTitle={empty?.title}
         emptyText={empty?.text}
+        emptyFiltered={Boolean(empty?.filtered)}
+        onClearFilters={empty?.onClear}
+        emptyIcon={empty?.icon}
+        emptyAction={empty?.action}
         rowProps={row => ({
           'data-record-id': String(row.code || row.id),
           className: `registry-row-clickable${highlightId && highlightId === String(row.code || row.id) ? ' registry-row-returned' : ''}`,

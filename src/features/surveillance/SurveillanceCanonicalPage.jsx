@@ -1,6 +1,6 @@
 import { DueDate } from '../../design-system/DueDate'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, Clock3, Microscope, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Clock3, Microscope, Plus, Users } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -301,7 +301,16 @@ export function SurveillanceCanonicalPage() {
     resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
   })
   const empty = recorded.length
-    ? { title: t('svEmptyFiltered'), text: t('svEmptyFilteredHint') }
+    ? {
+        title: t('svEmptyFiltered'),
+        text: t('svEmptyFilteredHint'),
+        filtered: true,
+        onClear: () => {
+          setQuery('')
+          setDepartment('all')
+          setStatus('all')
+        },
+      }
     : {
         title: t(
           {
@@ -311,6 +320,8 @@ export function SurveillanceCanonicalPage() {
           }[mode],
         ),
         text: canCreate ? t('svEmptyHint') : '',
+        icon: { patients: Activity, employees: Users, environmental: Microscope }[mode],
+        action: canCreate ? { label: t('create'), icon: Plus, onClick: () => setCreation('chooser') } : null,
       }
   const tabItems = [
     { value: 'patients', label: t('patients'), icon: Activity },
@@ -722,6 +733,10 @@ function PatientRows({ rows, empty, registry, t, language, fmt, onOpen }) {
         rows={rows}
         emptyTitle={empty?.title}
         emptyText={empty?.text}
+        emptyFiltered={Boolean(empty?.filtered)}
+        onClearFilters={empty?.onClear}
+        emptyIcon={empty?.icon}
+        emptyAction={empty?.action}
         rowKey={x => x.id}
         rowProps={x => {
           const rp = registry.rowProps(String(x.id), () => onOpen(x))
@@ -789,6 +804,10 @@ function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
         rows={rows}
         emptyTitle={empty?.title}
         emptyText={empty?.text}
+        emptyFiltered={Boolean(empty?.filtered)}
+        onClearFilters={empty?.onClear}
+        emptyIcon={empty?.icon}
+        emptyAction={empty?.action}
         rowKey={rowId}
         rowProps={x => {
           const rp = registry.rowProps(rowId(x), () => onOpen(x))

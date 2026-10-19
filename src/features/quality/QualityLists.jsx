@@ -16,6 +16,7 @@ import { AuditProgramme } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
 import { AuditCoverage,AuditDashboard } from './audits/AuditViews'
 import { AUDIT_KINDS,AUDIT_STANDARDS,standardShort } from './audits/auditStandards'
+import { roleTitleText } from '../../core/i18n/roleTitles'
 
 // The two record lists of the Quality Center that are not the reports register:
 // the corrective actions (with the findings still waiting for one), and the audits.
@@ -132,7 +133,7 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen,onCrea
      <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{(SOURCE_KINDS[row.sourceKind]||SOURCE_KINDS.manual)[en?1:0]}</span>{row.sourceCode&&<small>{row.sourceCode}</small>}{(en?row.sourceTitleEn:row.sourceTitle)&&<small>{en?row.sourceTitleEn:row.sourceTitle}</small>}</td>
      <td>{departmentOf(row,en)||'—'}</td>
      <td className={`nowrap-cell${overdue?' quality-overdue':''}`}>{finding?<>{formatDay(row.date,language)||'—'}<small>{en?'Found':'Εντοπίστηκε'}</small></>:<>{formatDay(row.dueDate,language)||'—'}{dueText(row,en)&&<small>{dueText(row,en)}</small>}</>}</td>
-     <td>{recordOwners(row).join(', ')||'—'}</td>
+     <td>{recordOwners(row).map(name=>roleTitleText(name,language)).join(', ')||'—'}</td>
      <td>{finding&&isOpenRecord(row)?<div className="row-actions quality-register-actions">
       <StatusBadge tone="warning">{en?'Without CAPA':'Χωρίς ενέργεια'}</StatusBadge>
       {onCreateCapa&&<ActionButton tone="primary" label={en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'} onClick={event=>{event.stopPropagation();onCreateCapa(row)}}><Plus size={15}/><span>{en?'CAPA':'Ενέργεια'}</span></ActionButton>}
@@ -214,7 +215,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
       <td>{vocabularyLabel(AUDIT_KINDS,row.auditType||'internal',language)}</td>
       <td className={`nowrap-cell${AUDIT_QUICK.overdue(row)?' quality-overdue':''}`}>{row.plannedMonthOnly?new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'short',year:'numeric'}).format(new Date(`${String(row.plannedDate).slice(0,7)}-15T12:00:00Z`)):formatDay(row.plannedDate,language)||'—'}{AUDIT_QUICK.overdue(row)&&<small>{en?'Overdue':'Εκπρόθεσμη'}</small>}</td>
       <td className="quality-compliance-cell">{score.rate==null?'—':<><strong>{score.rate}%</strong><Meter value={score.rate} tone={meterTone(score.rate)} label={`${en?'Compliance':'Συμμόρφωση'} ${score.rate}%`}/></>}{row.openFindings>0&&<small className="quality-overdue-text">{en?`${row.openFindings} open ${row.openFindings===1?'finding':'findings'}`:`${row.openFindings} ${row.openFindings===1?'ανοιχτό εύρημα':'ανοιχτά ευρήματα'}`}</small>}</td>
-      <td>{row.leadAuditor||'—'}</td>
+      <td>{roleTitleText(row.leadAuditor,language)||'—'}</td>
       <td><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge></td>
      </>}}/>
    </div>

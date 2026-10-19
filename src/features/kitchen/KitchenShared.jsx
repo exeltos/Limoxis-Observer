@@ -59,7 +59,7 @@ export function LiveLimit({ status, limits, limitKey, language, text = '' }) {
 }
 
 // A kitchen list: search, filters, the table and pagination, as the registries.
-export function KitchenList({ rows, query, onQueryChange, placeholder, filters = null, activeFilters = 0, onClear, columns, renderRow, rowProps, empty, emptyTitle, emptyText, emptyAction, end = null, className = '' }) {
+export function KitchenList({ rows, query, onQueryChange, placeholder, filters = null, activeFilters = 0, onClear, columns, renderRow, rowProps, empty, emptyTitle, emptyText, emptyIcon, emptyAction, end = null, className = '' }) {
   const { language } = useLanguage()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
@@ -69,7 +69,7 @@ export function KitchenList({ rows, query, onQueryChange, placeholder, filters =
     <FilterBar query={query} onQueryChange={onQueryChange} placeholder={placeholder} activeAdvancedCount={activeFilters} onClear={onClear} end={end}>{filters}</FilterBar>
     <div className="scroll-table">
       <RegistryTable bare className={`kitchen-table ${className}`.trim()} rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id || row.receiptItemId} columns={columns} renderRow={renderRow} rowProps={rowProps}
-        empty={empty} emptyFiltered={empty && (Boolean(query) || activeFilters > 0)} onClearFilters={onClear} emptyTitle={emptyTitle} emptyText={emptyText} emptyAction={emptyAction} />
+        empty={empty} emptyFiltered={empty && (Boolean(query) || activeFilters > 0)} onClearFilters={onClear} emptyTitle={emptyTitle} emptyText={emptyText} emptyIcon={emptyIcon} emptyAction={emptyAction} />
     </div>
     {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
   </>

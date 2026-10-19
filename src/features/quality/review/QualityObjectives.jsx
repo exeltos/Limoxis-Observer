@@ -16,6 +16,7 @@ import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
 import { loadObjectives, loadReviews, saveObjective } from './reviewService'
 import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
+import { roleTitleText } from '../../../core/i18n/roleTitles'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -97,7 +98,7 @@ export function ObjectivesTable({ rows, loading, onOpen }) {
       <td>{objective.title}</td>
       <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
       <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small><Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
-      <td>{objective.ownerLabel || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
+      <td>{roleTitleText(objective.ownerLabel, language) || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
       <td><StatusBadge tone={objectiveStateTone(objective.current.status)}>{objectiveStateLabel(objective.current.status, en)}</StatusBadge></td>
     </>}
     emptyTitle={!loading && !rows.length ? (en ? 'No quality objectives' : 'Δεν υπάρχουν στόχοι ποιότητας') : ''} emptyText={en ? 'Set the year’s objectives on the department indicators.' : 'Ορίστε τους στόχους του έτους πάνω στους δείκτες των τμημάτων.'} />
