@@ -2,7 +2,7 @@
    with the shared header, ⋯ menu in the header, one guided workflow. */
 
 .laboratory-record-shell.workspace-fill{height:100%;min-height:0;overflow:hidden}
-.laboratory-record-shell.workspace-fill>.entity-record-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:16px 20px;background:var(--lo-color-surface,#fff)}
+.laboratory-record-shell.workspace-fill>.entity-record-body{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-gutter:stable;padding:16px 20px;background:var(--lo-color-surface,#fff)}
 
 .laboratory-record-shell .lab-record-stack{display:flex;flex-direction:column;gap:16px}
 /* Sections sit straight on the record body (as in the patient summary): the

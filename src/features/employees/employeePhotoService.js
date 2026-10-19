@@ -52,24 +52,42 @@ export function fitWithin(width, height, maxEdge = PHOTO_MAX_EDGE) {
   return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) }
 }
 
-// Resized in the browser through a canvas; where that is not available (an old
-// browser, a test), the original file is kept as it is.
+// Where a portrait sits in its frame: staff photos are head-and-shoulders with
+// the face in the upper third, so the square keeps the horizontal centre and a
+// quarter of the spare height above it (the avatars' object-position 50% 25%).
+export const PHOTO_FOCUS_Y = 0.25
+
+// The square of the source image kept on upload: centred across, and for a
+// portrait PHOTO_FOCUS_Y of the spare height from the top.
+export function squareCrop(width, height, focusY = PHOTO_FOCUS_Y) {
+  const w = Math.max(1, Math.round(Number(width) || 1)), h = Math.max(1, Math.round(Number(height) || 1))
+  const side = Math.min(w, h)
+  return { x: Math.round((w - side) / 2), y: Math.round((h - side) * focusY), size: side }
+}
+
+// Cut to a square around the face and resized in the browser through a canvas;
+// where that is not available (an old browser, a test), the original file is
+// kept as it is.
 export async function preparePhoto(file, { maxEdge = PHOTO_MAX_EDGE } = {}) {
   const fallback = { blob: file, type: file.type, ext: extensionOf(file.type) }
   if (typeof document === 'undefined' || typeof createImageBitmap !== 'function') return fallback
   try {
     const bitmap = await createImageBitmap(file)
-    const size = fitWithin(bitmap.width, bitmap.height, maxEdge)
+    const crop = squareCrop(bitmap.width, bitmap.height)
+    const size = fitWithin(crop.size, crop.size, maxEdge)
     const canvas = document.createElement('canvas')
     canvas.width = size.width
     canvas.height = size.height
     const context = canvas.getContext('2d')
     if (!context) return fallback
-    context.drawImage(bitmap, 0, 0, size.width, size.height)
-    bitmap.close?.()
+    context.drawImage(bitmap, crop.x, crop.y, crop.size, crop.size, 0, 0, size.width, size.height)
     const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
     const blob = await new Promise(resolve => canvas.toBlob(resolve, type, 0.86))
-    if (!blob || blob.size >= file.size) return fallback
+    if (!blob) return fallback
+    // An already square, small photo is kept as it came when re-encoding does not shrink it.
+    const cropped = crop.size < bitmap.width || crop.size < bitmap.height
+    bitmap.close?.()
+    if (!cropped && blob.size >= file.size) return fallback
     return { blob, type, ext: extensionOf(type) }
   } catch {
     return fallback
