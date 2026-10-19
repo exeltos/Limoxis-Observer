@@ -153,9 +153,12 @@ describe('clinical domain capability split', () => {
     expect(can(ROLES.PHARMACY, CAPABILITIES.MANAGE_LAB_SAMPLES)).toBe(false)
   })
 
-  it('keeps isolation and reassessment with infection-control roles', () => {
+  it('keeps reassessment with infection-control roles and lets the departments record isolation', () => {
     expect(can(ROLES.INFECTION_CONTROL_LEAD, CAPABILITIES.MANAGE_ISOLATION)).toBe(true)
     expect(can(ROLES.INFECTION_CONTROL_MEMBER, CAPABILITIES.REASSESS_SURVEILLANCE)).toBe(true)
-    expect(can(ROLES.DEPARTMENT_MANAGER, CAPABILITIES.MANAGE_ISOLATION)).toBe(false)
+    expect(can(ROLES.DEPARTMENT_MANAGER, CAPABILITIES.MANAGE_ISOLATION)).toBe(true)
+    expect(can(ROLES.LINK_NURSE, CAPABILITIES.MANAGE_ISOLATION)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_MANAGER, CAPABILITIES.REASSESS_SURVEILLANCE)).toBe(false)
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.MANAGE_ISOLATION)).toBe(false)
   })
 })
