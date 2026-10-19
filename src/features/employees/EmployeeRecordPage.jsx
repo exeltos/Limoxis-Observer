@@ -870,9 +870,13 @@ function Details({
           value={record.id}
           onChange={value => set('id', value)}
         />
-        <div className="detail-item detail-field">
+        <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
           <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
-          <strong>{t(employee.employmentStatus)}</strong>
+          {editing ? (
+            <input value={t(employee.employmentStatus)} disabled readOnly />
+          ) : (
+            <strong>{t(employee.employmentStatus)}</strong>
+          )}
         </div>
         <InlineDateDetail
           editing={editing}
