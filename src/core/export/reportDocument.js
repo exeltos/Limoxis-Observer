@@ -229,7 +229,7 @@ export function buildReportHtml(
       : `<table class="rd-band" cellspacing="0" cellpadding="0"><tr>${branding?.logo ? `<td class="rd-logo"><img src="${escapeHtml(branding.logo)}" alt=""></td>` : ''}<td class="rd-org"><strong>${escapeHtml(branding?.name || '')}</strong>${branding?.reportHeader ? `<span>${escapeHtml(branding.reportHeader)}</span>` : ''}</td><td class="rd-doc">${doc.kind ? escapeHtml(doc.kind) : ''}${doc.code ? `<b>${escapeHtml(doc.code)}</b>` : ''}</td></tr></table>`
   const demo = branding?.demo ? `<p class="rd-demo">${escapeHtml(demoMark)}</p>` : ''
   let main
-  if (doc.body != null) main = doc.body
+  if (doc.body != null) main = `${doc.body}${signaturesHtml(doc.signatures || [], en)}`
   else {
     let n = 0
     const sections = (doc.sections || [])
