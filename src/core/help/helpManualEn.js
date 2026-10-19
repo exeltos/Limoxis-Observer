@@ -81,6 +81,13 @@ export const helpManualEn={
   ['Verification','The kitchen manager or the quality office signs off each day and each defrosting; the record is locked until reopened with a reason. The Verification tab shows the days waiting.'],
   ['Traceability and records','From a batch you see where it was used (day, dish) and back. Export: the daily HACCP sheet, the receipts log, batch traceability and the lists in Excel.']
  ],steps:['Record the receipt with its checks and products.','Open today\'s production and record raw materials and temperatures.','Review what is out of limits and its corrective action.','Sign off the day (kitchen or quality manager).']},
+ '/interviews':{title:'Interviews',summary:'Candidate applications, interviews scored per criterion, the decision and the hiring.',audience:'HR office and Hospital Admin; nobody else sees the applications',chapters:[
+  ['Application','The job application holds the position applied for, personal details, contact, education, languages and previous employers. Without the candidate\'s consent to the processing of personal data the application is not saved.'],
+  ['Pipeline','Each application goes through New application, Screening, Interview scheduled, Interviewed, Offer and ends Hired, Rejected or Withdrawn. The counters at the top show how many are at each step and filter the list.'],
+  ['Interview and evaluation','Scheduling sets the day, time and panel (evaluators and the HR office). The evaluation scores six criteria from 1 to 5; the overall rating is their mean. The evaluation sheet is printed or saved as PDF from Export.'],
+  ['Decision and hiring','The decision is Hire, Reserve list or Reject (with a reason). «Hire» creates the employee from the application or links an employee of the registry.'],
+  ['FileMaker','The FileMaker applications (HR Data) were brought over with their languages, previous employers and evaluators; health details were not.']
+ ],steps:['Enter the application with the candidate\'s consent.','Schedule the interview with the panel.','Record the evaluation with a score per criterion.','Record the decision and, to hire, create or link the employee.']},
  '/pharmacy':{title:'Pharmacy',summary:'Antimicrobial stewardship, approvals and consumption monitoring.',audience:'Pharmacy, clinical reviewers and Infection Control where authorized',chapters:[
   ['Restricted antimicrobials','Requests and approvals follow a controlled workflow.'],
   ['Consumption','DDD and other measures support stewardship monitoring and indicators.'],

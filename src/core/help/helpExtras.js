@@ -74,6 +74,11 @@ export const helpExtras={
   tip:{el:'Το HACCP στηρίζεται στις καταγραφές: μια μέτρηση που δεν γράφτηκε δεν έγινε. Γράψτε την την ώρα που γίνεται, όχι στο τέλος της ημέρας.',en:'HACCP rests on records: a measurement that was not written down was not made. Record it when it happens, not at the end of the day.'},
   related:['/quality','/controls','/documents']
  },
+ '/interviews':{
+  checks:{el:['Πάρτε τη συναίνεση του υποψηφίου πριν καταχωρίσετε την αίτηση.','Βαθμολογήστε κάθε κριτήριο αμέσως μετά τη συνέντευξη.','Γράψτε αιτιολογία σε κάθε απόρριψη.','Μην καταχωρείτε στοιχεία υγείας στην αίτηση.'],en:['Get the candidate\'s consent before entering the application.','Score every criterion right after the interview.','Write a reason for every rejection.','Do not enter health details in the application.']},
+  tip:{el:'Οι αιτήσεις είναι προσωπικά δεδομένα: κρατήστε μόνο όσα χρειάζεται η επιλογή και διαγράψτε όσες δεν χρειάζονται πια.',en:'Applications are personal data: keep only what the selection needs and delete those no longer needed.'},
+  related:['/employees','/training']
+ },
  '/pharmacy':{
   checks:{el:['Ελέγξτε ένδειξη και απαιτούμενη έγκριση.','Επιβεβαιώστε ότι η αγωγή συνδέεται με το σωστό επεισόδιο.','Αποφύγετε διπλή καταχώρηση θεραπείας.'],en:['Review indication and required approval.','Confirm therapy is linked to the correct episode.','Avoid duplicate therapy recording.']},
   tip:{el:'Η ορθολογική χρήση αντιμικροβιακών σημαίνει ελεγχόμενη χρήση με τεκμηρίωση, όχι απλώς καταγραφή κατανάλωσης.',en:'Stewardship means controlled, documented use—not only consumption recording.'},

@@ -66,6 +66,8 @@ const TABLES=Object.freeze({
   recycle_bin_local:{storageKey:'limoxis.recycleBin.v1',kind:'rows',cloud:false},
   // Demo kitchen (HACCP). Production kitchen lives in the kitchen_* tables (src/features/kitchen/kitchenService.js).
   kitchen_local_state:{storageKey:'limoxis.kitchen.v1',kind:'document',cloud:false},
+  // Demo candidate interviews (HR). Production lives in the hr_* tables (src/features/interviews/interviewsService.js).
+  interviews_local_state:{storageKey:'limoxis.interviews.v1',kind:'document',cloud:false},
 })
 
 export class DataAccessError extends Error{
