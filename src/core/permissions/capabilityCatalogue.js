@@ -9,16 +9,17 @@ export const CAPABILITIES = Object.freeze({
   CREATE_RECORDS: 'create_records', EDIT_RECORDS: 'edit_records', DELETE_RECORDS: 'delete_records', COMPLETE_RECORDS: 'complete_records', APPROVE_RECORDS: 'approve_records', ATTACH_FILES: 'attach_files', PRINT_RECORDS: 'print_records', EXPORT_RECORDS: 'export_records', ASSIGN_RECORDS: 'assign_records',
   CREATE_PATIENT: 'create_patient', EDIT_PATIENT: 'edit_patient', DELETE_PATIENT: 'delete_patient', CREATE_SURVEILLANCE: 'create_surveillance', EDIT_SURVEILLANCE: 'edit_surveillance', DELETE_SURVEILLANCE: 'delete_surveillance', RECORD_HAND_HYGIENE: 'record_hand_hygiene', RECORD_WASTE: 'record_waste', RECORD_ANTISEPTIC: 'record_antiseptic', RECORD_PREVENTION_BUNDLE: 'record_prevention_bundle', RECORD_PHARMACY_CONSUMPTION: 'record_pharmacy', MANAGE_HOSPITAL_STRUCTURE: 'manage_hospital_structure', RECORD_PREVALENCE_SURVEY: 'record_prevalence_survey',
   VIEW_KITCHEN: 'view_kitchen', RECORD_KITCHEN: 'record_kitchen', MANAGE_KITCHEN: 'manage_kitchen',
+  VIEW_EXECUTIVE_DASHBOARD: 'view_executive_dashboard', VIEW_INTERVIEWS: 'view_interviews', MANAGE_INTERVIEWS: 'manage_interviews',
 })
 
 import { CUSTOM_ROLE_CLASSES,DATA_SCOPES,SENSITIVITY } from './scopeTypes.js'
 import { capabilityLabels } from './capabilityLabels.js'
 
 const SYSTEM_ONLY=new Set(['manage_platform','view_platform','manage_users','manage_roles','manage_organization'])
-const SENSITIVE=new Set(['view_occupational_health','manage_occupational_health','review_clinical','record_clinical_assessment'])
+const SENSITIVE=new Set(['view_occupational_health','manage_occupational_health','review_clinical','record_clinical_assessment','view_interviews','manage_interviews'])
 const GOVERNANCE_ACTIONS=new Set(['validate_lab_results','reopen_lab_record','reopen_surveillance','close_surveillance','approve_records','delete_records','complete_records','approve_document','publish_document','supersede_document','archive_document','delete_document_draft','void_control_execution','archive_control_definition','delete_control_draft','create_committee','finalize_committee_minutes','archive_committee'])
 /** @param {string} id */
-const domainFor=id=>id.includes('kitchen')?'kitchen':id.includes('occupational')?'occupational_health':id.includes('lab')||id.includes('resistance')||id.includes('critical')?'laboratory':id.includes('surveillance')||id.includes('patient')||id.includes('clinical')||id.includes('isolation')?'clinical':id.includes('quality')?'quality':id.includes('committee')?'committees':id.includes('document')?'documents':id.includes('control')?'controls':id.includes('training')?'training':id.includes('staff')?'workforce':id.includes('platform')?'platform':id.includes('organization')||id.includes('users')||id.includes('roles')?'administration':'general'
+const domainFor=id=>id.includes('kitchen')?'kitchen':id.includes('occupational')?'occupational_health':id.includes('lab')||id.includes('resistance')||id.includes('critical')?'laboratory':id.includes('surveillance')||id.includes('patient')||id.includes('clinical')||id.includes('isolation')?'clinical':id.includes('quality')?'quality':id.includes('committee')?'committees':id.includes('document')?'documents':id.includes('control')?'controls':id.includes('training')?'training':id.includes('staff')||id.includes('interview')?'workforce':id.includes('executive')?'general':id.includes('platform')?'platform':id.includes('organization')||id.includes('users')||id.includes('roles')?'administration':'general'
 /** @param {string} id */
 const actionFor=id=>id.split('_')[0]
 /** @param {string} id */

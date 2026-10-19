@@ -10,7 +10,7 @@ import { CAPABILITIES as C } from '../permissions/capabilityCatalogue.js'
 // 'laboratory' is the former first preset: still accepted for organizations saved before
 // the laboratory became an unlockable module, and read as patients + laboratory + EODY/EARS-Net.
 export const OPERATING_PROFILES = Object.freeze(['basic', 'surveillance', 'full'])
-const LEGACY_PROFILE_MODULES = Object.freeze({ laboratory: ['patients', 'laboratory', 'national'] })
+const LEGACY_PROFILE_MODULES = Object.freeze({ laboratory: ['patients', 'laboratory', 'national', 'analysis'] })
 const CUSTOM_PROFILE = 'custom'
 export const ADDONS = Object.freeze(['occupational_health', 'pharmacy', 'prevalence_survey', 'lira'])
 const DEFAULT_PROFILE = 'full'
@@ -40,6 +40,11 @@ export const MODULES = Object.freeze({
   quality: { el: 'Ποιότητα (συμβάντα, διορθωτικές ενέργειες)', en: 'Quality (incidents, CAPA)', from: 'full', analysis: true },
   training: { el: 'Εκπαίδευση', en: 'Training', from: 'full', analysis: true },
   governance: { el: 'Επιτροπές & Έγγραφα', en: 'Committees & Documents', from: 'full', analysis: true },
+  kitchen: { el: 'Κουζίνα (HACCP) & άσκηση ανάκλησης', en: 'Kitchen (HACCP) & recall drill', from: 'full', analysis: false },
+  suppliers: { el: 'Προμηθευτές & πιστοποιητικά', en: 'Suppliers & certificates', from: 'full', analysis: false },
+  interviews: { el: 'Συνεντεύξεις υποψηφίων (HR)', en: 'Candidate interviews (HR)', from: 'full', analysis: false },
+  analysis: { el: 'Ανάλυση', en: 'Analysis', from: 'surveillance', analysis: false },
+  executive: { el: 'Πίνακας Διοίκησης (Διευθυντής)', en: 'Executive dashboard (Director)', from: 'full', analysis: false },
 })
 // Always on for every organization; the Platform Owner switches the rest one by one.
 export const CORE_MODULES = Object.freeze(['patients'])
@@ -51,7 +56,7 @@ export function profileModules(profile) {
 }
 
 // Capabilities that belong to each switchable module. Everything not listed here
-// (patients, employees registry, analytics, management) is always on.
+// (patients, employees registry, management) is always on.
 const MODULE_CAPABILITIES = Object.freeze({
   laboratory: [C.VIEW_LAB, C.MANAGE_LAB_SAMPLES, C.VALIDATE_LAB_RESULTS, C.REOPEN_LAB_RECORD],
   national: [], // ΕΟΔΥ & EARS-Net reports live in Analysis; gated there
@@ -68,6 +73,11 @@ const MODULE_CAPABILITIES = Object.freeze({
   ],
   quality: [C.VIEW_QUALITY, C.MANAGE_QUALITY, C.REPORT_INCIDENT],
   training: [C.VIEW_TRAINING, C.MANAGE_TRAINING],
+  kitchen: [C.VIEW_KITCHEN, C.RECORD_KITCHEN, C.MANAGE_KITCHEN],
+  suppliers: [], // the Suppliers tab and record of Quality; gated there
+  interviews: [C.VIEW_INTERVIEWS, C.MANAGE_INTERVIEWS],
+  analysis: [C.VIEW_ANALYSIS],
+  executive: [C.VIEW_EXECUTIVE_DASHBOARD],
   governance: [
     C.VIEW_COMMITTEES, C.MANAGE_COMMITTEES, C.CREATE_COMMITTEE, C.MANAGE_COMMITTEE_MEMBERS, C.CREATE_COMMITTEE_MEETING,
     C.EDIT_COMMITTEE_MINUTES, C.FINALIZE_COMMITTEE_MINUTES, C.MANAGE_COMMITTEE_DECISIONS, C.MANAGE_COMMITTEE_DOCUMENTS, C.ARCHIVE_COMMITTEE,
@@ -88,6 +98,7 @@ export const MODULE_DEPENDENCIES = Object.freeze({
   surveillance: ['laboratory'],
   indicators: ['surveillance'],
   national: ['laboratory'],
+  executive: ['analysis'],
 })
 // [module, [missing modules]] for every enabled module whose prerequisite is locked.
 export function missingDependencies(modules) {

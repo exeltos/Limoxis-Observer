@@ -29,7 +29,17 @@ export function loadDashboardMetrics(organizationId,{departmentIds=null}={}){
   return promise
 }
 
+// One call (dashboard_metrics, 20261127100000) returns every count; the
+// separate counts below are kept for a database without it yet.
 async function readDashboardMetrics(organizationId,departmentIds){
+  if(typeof supabase.rpc==='function'){
+    const {data,error}=await supabase.rpc('dashboard_metrics',{p_organization_id:organizationId,p_department_ids:departmentIds?.length?departmentIds:null})
+    if(!error&&data&&typeof data==='object')return Object.fromEntries(Object.entries(data).map(([key,value])=>[key,Number(value||0)]))
+  }
+  return readDashboardCounts(organizationId,departmentIds)
+}
+
+async function readDashboardCounts(organizationId,departmentIds){
   const now=new Date().toISOString(),today=new Date().toISOString().slice(0,10),monthAgo=addDays(-30),soon=addDays(30)
   const q=(table)=>supabase.from(table).select('id',{count:'exact',head:true}).eq('organization_id',organizationId)
   const departmental=departmentIds?.length?(table)=>q(table).in('department_id',departmentIds):q

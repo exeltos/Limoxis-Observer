@@ -1,5 +1,5 @@
 export const SYSTEM_ROLE_KEYS=Object.freeze([
-  'hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','link_nurse','staff_user',
+  'hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','hospital_director','link_nurse','staff_user',
 ])
 
 const labels=Object.freeze({
@@ -16,6 +16,7 @@ const labels=Object.freeze({
   occupational_physician:{el:'Ιατρός Εργασίας',en:'Occupational Physician'},
   doctor_reviewer:{el:'Ιατρός Αξιολογητής',en:'Doctor Reviewer'},
   quality_manager:{el:'Υπεύθυνος Ποιότητας',en:'Quality Manager'},
+  hospital_director:{el:'Διευθυντής Νοσοκομείου',en:'Hospital Director'},
   link_nurse:{el:'Link Nurse',en:'Link Nurse'},
   staff_user:{el:'Εργαζόμενος',en:'Staff User'},
   demo:{el:'Demo',en:'Demo'},

@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookMarked, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Award, BarChart3, Beaker, BookMarked, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, HeartPulse, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 
 const preventionAccessCapabilities=[
@@ -24,6 +24,7 @@ const kitchenCapabilities=[CAPABILITIES.VIEW_KITCHEN,CAPABILITIES.RECORD_KITCHEN
 // and ordering are resolved separately per role so each workspace reflects the
 // user's actual operational priorities without duplicating feature code.
 export const navigation=[
+  {to:'/executive',key:'executiveDashboard',icon:Gauge,capability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   {to:'/',key:'dashboard',icon:LayoutDashboard,capability:CAPABILITIES.VIEW_DASHBOARD,excludeRoles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   {to:'/my-department',key:'myDepartment',icon:Home,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   {to:'/surveillance',key:'surveillance',icon:Activity,capability:CAPABILITIES.VIEW_SURVEILLANCE},
@@ -37,6 +38,7 @@ export const navigation=[
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
   {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
+  {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS},
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS},
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS},
   {to:'/training',key:'training',icon:GraduationCap,capability:CAPABILITIES.VIEW_TRAINING},
@@ -63,12 +65,12 @@ const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
 const roleMenuPolicy=Object.freeze({
   [ROLES.PLATFORM_OWNER]:policy(
     ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','calendar'],
-    ['platformAnalyticsNav','indicators','training','committees','documents','regulations','kitchen'],
+    ['executiveDashboard','platformAnalyticsNav','indicators','training','committees','documents','regulations','kitchen','interviews'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.HOSPITAL_ADMIN]:policy(
-    ['dashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','calendar'],
-    ['indicators','training','committees','documents','regulations','kitchen','pharmacy','occupationalHealth'],
+    ['dashboard','executiveDashboard','surveillance','patients','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','calendar'],
+    ['indicators','training','committees','documents','regulations','kitchen','interviews','pharmacy','occupationalHealth'],
     [],
   ),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
@@ -102,7 +104,7 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.HR_OFFICE]:policy(
-    ['dashboard','employees','training','calendar'],
+    ['dashboard','employees','interviews','training','calendar'],
     ['documents','regulations'],
     ['management','pharmacy','occupationalHealth'],
   ),
@@ -124,6 +126,11 @@ const roleMenuPolicy=Object.freeze({
   [ROLES.DOCTOR_REVIEWER]:policy(
     ['dashboard','patients','surveillance','laboratory','indicators','calendar'],
     [],
+    ['management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.HOSPITAL_DIRECTOR]:policy(
+    ['executiveDashboard','platformAnalyticsNav','indicators','calendar'],
+    ['dashboard','documents','regulations'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.COMMITTEE_SECRETARIAT]:policy(

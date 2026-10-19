@@ -34,6 +34,8 @@ export const ROLE_GUIDE=Object.freeze({
     does:l('Κλινική αξιολόγηση και επανεκτίμηση περιστατικών επιτήρησης, αντιμικροβιακή θεραπεία και έκβαση.','Clinical assessment and reassessment of surveillance cases, antimicrobial therapy and outcome.')},
   quality_manager:{who:l('Ο Υπεύθυνος Ποιότητας.','The quality manager.'),
     does:l('Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, έλεγχοι και δείκτες.','Incidents, findings, corrective actions (CAPA), audits, inspections and indicators.')},
+  hospital_director:{who:l('Ο Διευθυντής / Διοικητής του νοσοκομείου.','The hospital director.'),
+    does:l('Βλέπει την πλήρη εικόνα του νοσοκομείου στον Πίνακα Διοίκησης, με φίλτρα, σύγκριση και εξαγωγή αναφοράς. Δεν καταχωρεί.','Sees the whole hospital in the Executive dashboard, with filters, comparison and a report to export. Records nothing.')},
 })
 
 const roleLabelKey=role=>`${role.replace(/_([a-z])/g,(_,c)=>c.toUpperCase())}Role`

@@ -82,6 +82,7 @@ const ROLES = [
   'occupational_physician',
   'doctor_reviewer',
   'quality_manager',
+  'hospital_director',
   'link_nurse',
   'staff_user',
 ]

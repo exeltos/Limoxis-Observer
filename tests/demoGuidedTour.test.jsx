@@ -159,7 +159,7 @@ describe('who is who', () => {
     const { HelpRolesView } = await import('../src/core/help/HelpRolesView')
     render(<LanguageProvider><HelpRolesView/></LanguageProvider>)
     const rows = screen.getAllByRole('row').slice(1)
-    expect(rows).toHaveLength(13)
+    expect(rows).toHaveLength(14)
     const hr = rows.find(row => within(row).queryByText('Γραφείο Προσωπικού'))
     expect(hr).toHaveTextContent('Μητρώο εργαζομένων')
     expect(hr).toHaveTextContent('Σενάρια Demo: Καρτέλα εργαζομένου · Αξιολόγηση απόδοσης')
