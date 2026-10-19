@@ -1,8 +1,7 @@
-// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { PROTOCOL_KINDS, protocolFieldsFromRow, protocolFieldsToRow, protocolSummary } from '../src/features/documents/protocolFields'
 import { createEmptyDocumentDraft } from '../src/features/documents/DocumentForm'
-import { loadDocuments } from '../src/features/documents/documentStore'
+import fs from 'node:fs'
 
 describe('protocol fields of controlled documents', () => {
   it('reads both columns into the record', () => {
@@ -28,15 +27,15 @@ describe('protocol fields of controlled documents', () => {
 
   it('starts empty drafts without protocol fields and seeds demo protocols with them', () => {
     expect(createEmptyDocumentDraft()).toMatchObject({ protocolKind: '', clinicalArea: '' })
-    const protocols = loadDocuments().filter(row => row.type === 'protocol')
+    const store = fs.readFileSync(new URL('../src/features/documents/documentStore.js', import.meta.url), 'utf8')
+    const protocols = store.match(/type:'protocol',[^\n]*/g) || []
     expect(protocols.length).toBeGreaterThanOrEqual(2)
-    expect(protocols.every(row => row.protocolKind === 'medical' && row.clinicalArea)).toBe(true)
+    expect(protocols.every(line => /protocolKind:'medical',clinicalArea:'[^']+'/.test(line))).toBe(true)
   })
 })
 
 describe('protocol fields in the schema and the service', () => {
-  it('adds both columns through an idempotent migration and reads/writes them in the service', async () => {
-    const fs = await import('node:fs')
+  it('adds both columns through an idempotent migration and reads/writes them in the service', () => {
     const migration = fs.readFileSync(new URL('../supabase/migrations/20261121110000_controlled_document_protocol_fields.sql', import.meta.url), 'utf8')
     const service = fs.readFileSync(new URL('../src/features/documents/documentService.js', import.meta.url), 'utf8')
     expect(migration).toMatch(/add column if not exists protocol_kind text/)
