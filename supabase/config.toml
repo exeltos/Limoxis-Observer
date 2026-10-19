@@ -20,3 +20,7 @@ verify_jwt = true
 
 [functions.platform-export-organization]
 verify_jwt = true
+
+# Scheduler-secret endpoint (pg_net, no user JWT): checks platform_scheduler_secret_valid itself.
+[functions.filemaker-staging-purge]
+verify_jwt = false
