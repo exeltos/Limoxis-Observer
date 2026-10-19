@@ -1,3 +1,5 @@
+import { applyTemplate, presetTemplates } from './supplierTemplates'
+
 // The demo's suppliers and equipment: dates are set from today, so the figures
 // always show something overdue, something due soon and a device out of service.
 // Names are made up.
@@ -6,7 +8,16 @@ const day = (offset, from = new Date().toISOString().slice(0, 10)) => { const da
 
 const scores = (quality, delivery, specs, documents, support, price) => ({ quality, delivery, specs, documents, support, price })
 
+// An evaluation on one of the demo's templates, a score per criterion in order.
+function onTemplate(templates, key, id, offset, values, extra = {}) {
+  const template = templates.find(item => item.id === `tpl-demo-${key}`)
+  const evaluation = { ...applyTemplate({ id, evaluatedOn: day(offset), evaluator: 'Υπεύθυνος Ποιότητας', notes: '', source: 'app' }, template), ...extra }
+  evaluation.criteria = evaluation.criteria.map((item, index) => ({ ...item, score: values[index] ?? '' }))
+  return evaluation
+}
+
 export function demoResources() {
+  const templates = presetTemplates('tpl-demo')
   const suppliers = [
     { id: 'sup-demo-1', code: 'SUP-001', name: 'Ιατροτεχνική Θεσσαλίας Α.Ε.', category: 'medical_devices', criticality: 'high', status: 'active', taxId: '099999001', contactName: 'Τμήμα εξυπηρέτησης', phone: '2410 000001', email: 'service@example.com', address: 'Λάρισα', website: '', products: 'Απινιδωτές, monitors, αντλίες έγχυσης· τεχνική υποστήριξη', contractEndsOn: day(240), notes: '',
       certifications: [{ id: 'c1', type: 'ISO 13485', number: 'MD-4471', issuer: 'Φορέας πιστοποίησης', expiresOn: day(420) }, { id: 'c2', type: 'ISO 9001', number: 'QM-1180', issuer: 'Φορέας πιστοποίησης', expiresOn: day(35) }],
@@ -18,19 +29,29 @@ export function demoResources() {
       nonconformities: [{ id: 'n1', date: day(-60), description: 'Παρτίδα γαντιών νιτριλίου με σχισίματα κατά τη χρήση (ΜΕΘ).', severity: 'major', status: 'open', capaCode: '', closedOn: '' }, { id: 'n2', date: day(-150), description: 'Παράδοση 9 ημέρες εκτός χρόνου.', severity: 'minor', status: 'closed', capaCode: '', closedOn: day(-120) }] },
     { id: 'sup-demo-3', code: 'SUP-003', name: 'Βιοϊατρική Συντήρηση Ο.Ε.', category: 'maintenance', criticality: 'high', status: 'active', taxId: '099999003', contactName: 'Τεχνικός υπεύθυνος', phone: '2410 000003', email: 'tech@example.com', address: 'Λάρισα', website: '', products: 'Προληπτική συντήρηση, διακριβώσεις, ηλεκτρολογικοί έλεγχοι ασφάλειας', contractEndsOn: day(150), notes: '',
       certifications: [{ id: 'c5', type: 'ISO 9001', number: 'QM-3301', issuer: 'Φορέας πιστοποίησης', expiresOn: day(510) }],
-      evaluations: [{ id: 'e3', evaluatedOn: day(-90), evaluator: 'Υπεύθυνος Ποιότητας', scores: scores(4, 4, 4, 5, 4, 4), notes: '' }],
+      evaluations: [onTemplate(templates, 'services', 'e3', -90, [4, 4, 4, 5, 4, 4])],
+      contacts: [{ id: 'ct3', fullName: 'Τεχνικός υπεύθυνος', jobTitle: 'Βάρδια βλαβών', phone: '2410 000013', email: 'service@example.com', notes: '' }],
       nonconformities: [] },
     { id: 'sup-demo-4', code: 'SUP-004', name: 'Εργαστηριακά Αντιδραστήρια Α.Ε.', category: 'laboratory', criticality: 'medium', status: 'active', taxId: '099999004', contactName: '', phone: '', email: '', address: 'Αθήνα', website: '', products: 'Αντιδραστήρια μικροβιολογικού, καλλιεργητικά υλικά', contractEndsOn: '', notes: '',
-      certifications: [{ id: 'c6', type: 'ISO 13485', number: 'MD-8812', issuer: 'Φορέας πιστοποίησης', expiresOn: day(300) }],
-      evaluations: [{ id: 'e4', evaluatedOn: day(-200), evaluator: 'Υπεύθυνος Εργαστηρίου', scores: scores(3, 3, 4, 3, 3, 3), notes: 'Αλλαγή συσκευασίας χωρίς ενημέρωση.' }],
+      certifications: [{ id: 'c6', type: 'ISO 13485', number: 'MD-8812', issuer: 'Φορέας πιστοποίησης', expiresOn: day(300) }, { id: 'c6b', type: 'CE-IVD', number: 'IVD-2201', issuer: 'Κοινοποιημένος οργανισμός', expiresOn: day(500) }],
+      evaluations: [onTemplate(templates, 'laboratory', 'e4', -200, [3, 4, 3, 2, 4, 3, 3], { evaluator: 'Υπεύθυνος Εργαστηρίου', notes: 'Παράδοση με θερμοκρασία εκτός ορίων· αλλαγή συσκευασίας χωρίς ενημέρωση.' })],
       nonconformities: [{ id: 'n3', date: day(-30), description: 'Παράδοση με θερμοκρασία μεταφοράς εκτός ορίων.', severity: 'minor', status: 'open', capaCode: '', closedOn: '' }] },
     { id: 'sup-demo-5', code: 'SUP-005', name: 'Καθαριότητα & Υγιεινή Ι.Κ.Ε.', category: 'cleaning', criticality: 'medium', status: 'active', taxId: '099999005', contactName: '', phone: '', email: '', address: 'Λάρισα', website: '', products: 'Συνεργείο καθαριότητας, απολυμαντικά επιφανειών', contractEndsOn: day(-10), notes: '',
-      certifications: [], evaluations: [], nonconformities: [] },
+      certifications: [], evaluations: [], nonconformities: [], contacts: [] },
     { id: 'sup-demo-6', code: 'SUP-006', name: 'Διαχείριση Αποβλήτων Υγειονομικών Μονάδων', category: 'waste', criticality: 'high', status: 'active', taxId: '099999006', contactName: '', phone: '', email: '', address: 'Θεσσαλονίκη', website: '', products: 'Συλλογή και μεταφορά ΕΑΑΜ', contractEndsOn: day(600), notes: '',
       certifications: [{ id: 'c7', type: 'ISO 14001', number: 'EM-5550', issuer: 'Φορέας πιστοποίησης', expiresOn: day(700) }],
       evaluations: [{ id: 'e6', evaluatedOn: day(-150), evaluator: 'Υπεύθυνος Ποιότητας', scores: scores(3, 2, 3, 3, 2, 3), notes: 'Παραλείψεις στα συνοδευτικά έντυπα.' }],
       nonconformities: [] },
-  ]
+    { id: 'sup-demo-7', code: 'SUP-007', name: 'Γαλακτοκομικά Κάμπου Α.Ε.', category: 'kitchen', criticality: 'high', status: 'active', taxId: '099999007', contactName: 'Πωλήσεις', phone: '2410 000007', email: 'orders-food@example.com', address: 'Λάρισα', city: 'Λάρισα', country: 'Ελλάδα', website: '', products: 'Γάλα, γιαούρτι, τυριά· καθημερινή διανομή με ψυγείο', contractEndsOn: day(200), notes: '',
+      certifications: [{ id: 'c8', type: 'ISO 22000 / HACCP', number: 'FS-7781', issuer: 'Φορέας πιστοποίησης', expiresOn: day(25) }],
+      evaluations: [onTemplate(templates, 'kitchen', 'e7', -350, [5, 4, 4, 4, 4, 5, 4, 3])],
+      contacts: [{ id: 'ct7', fullName: 'Υπεύθυνος διανομής', jobTitle: 'Διανομή Λάρισας', phone: '2410 000017', email: 'orders-food@example.com', notes: '' }],
+      nonconformities: [] },
+    { id: 'sup-demo-8', code: 'SUP-008', name: 'Οπωροπωλείο Θεσσαλίας Ο.Ε.', category: 'kitchen', criticality: 'medium', status: 'active', taxId: '099999008', contactName: '', phone: '', email: '', address: 'Λάρισα', city: 'Λάρισα', country: 'Ελλάδα', website: '', products: 'Φρούτα και λαχανικά', contractEndsOn: '', notes: '',
+      certifications: [],
+      evaluations: [onTemplate(templates, 'kitchen', 'e8', -40, [3, 3, 2, 3, 3, 4, 3, 4], { notes: 'Λαχανικά χωρίς επισήμανση προέλευσης σε δύο παραδόσεις.' })],
+      nonconformities: [] },
+  ].map(item => ({ city: '', country: '', legalName: '', approvalStatus: '', evaluationMonths: '', contacts: [], ...item }))
 
   const device = (id, code, name, equipmentType, departmentId, extra = {}) => ({ id, code, name, equipmentType, departmentId, location: '', manufacturer: '', model: '', serialNumber: '', inventoryNumber: '', supplierId: 'sup-demo-1', criticality: 'medium', status: 'in_service', installedOn: day(-1400), warrantyEndsOn: '', maintenanceMonths: 12, calibrationMonths: '', safetyMonths: 12, notes: '', ...extra })
   const equipment = [
@@ -63,5 +84,5 @@ export function demoResources() {
     event('ev-23', 'eq-demo-10', 'maintenance', -175, 'pass', { performedBy: 'Τεχνική υπηρεσία' }),
     event('ev-24', 'eq-demo-11', 'maintenance', -20, 'pass', { performedBy: 'Προϊσταμένη τμήματος', description: 'Μηνιαίος έλεγχος περιεχομένου και λήξεων.' }),
   ]
-  return { suppliers, equipment, events }
+  return { suppliers, equipment, events, templates }
 }

@@ -12,6 +12,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 //   files_photos  copy the staged People photos of employees linked in fm_stage_links
 //           to <org>/employee_photo/<employee>/fm-<record>.<ext> in attachments and
 //           mark them in fm_stage_files; employees.photo_path is set afterwards.
+//   repetitions  for one table, the repetitions 1..count of given repeating fields
+//           (OData returns only the first one): how $metadata declares them, which
+//           $select form the server accepts, and, with store, every record's
+//           repetitions kept in fm_stage_records.data.repetitions.
 // The FileMaker account is read-only and its password lives only in the
 // function's secrets (FM_HOST, FM_DATABASE, FM_USER, FM_PASSWORD).
 
@@ -27,11 +31,11 @@ function source(){
   return {base:`https://${host}/fmi/odata/v4/${encodeURIComponent(database)}`,auth:'Basic '+btoa(unescape(encodeURIComponent(`${user}:${password}`)))}
 }
 
-async function odata(path:string){
+async function odata(path:string,extra:Record<string,string>={}){
   const {base,auth}=source()
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000)
   try{
-    const response=await fetch(`${base}${path}`,{signal:controller.signal,headers:{authorization:auth,accept:'application/json'}})
+    const response=await fetch(`${base}${path}`,{signal:controller.signal,headers:{...extra,authorization:auth,accept:'application/json'}})
     const text=await response.text()
     if(!response.ok)throw new Error(`HTTP ${response.status}: ${text.slice(0,200)}`)
     return text
@@ -406,6 +410,93 @@ async function filesPhotos(admin:Admin,started:number){
   return {copied,failed,unlinked}
 }
 
+// Repeating fields. FileMaker's OData answers a plain field with its first repetition;
+// the others are asked for by number. The forms tried, in order, are reported with the
+// keys they returned (values cut to 80 characters), so a failed form names its error.
+// raw: further $select items (or, starting with «&», whole query parts) to try as they
+// are (already URL-encoded, «{n}» = 2);
+// prefer: a Prefer header sent with every try; template: with store, the raw $select of
+// one repetition per field, «{n}» standing for its number.
+type RepetitionsParams={table?:string,fields?:string[],count?:number,store?:boolean,raw?:string[],prefer?:string,template?:Record<string,string>}
+// A repetition's brackets reach the server as they are (encoded, they are a syntax error).
+const encodeSelect=(item:string)=>encodeURIComponent(item).replace(/%5B/g,'[').replace(/%5D/g,']')
+const REPETITION_FORMS:Record<string,(field:string,n:number)=>string>={
+  quoted_index:(field,n)=>`${quoted(field)}[${n}]`,
+  inner_index:(field,n)=>`"${field.replace(/"/g,'""')}[${n}]"`,
+  bare_index:(field,n)=>`${field}[${n}]`,
+}
+async function repetitions(admin:Admin,started:number,params:RepetitionsParams){
+  const table=String(params.table||''),fields=(params.fields||[]).map(String).filter(Boolean),count=Math.min(Math.max(Number(params.count)||10,2),40)
+  if(!table||!fields.length)throw new Error('REPETITIONS_NEEDS_TABLE_AND_FIELDS')
+  const {data:staged,error:stagedError}=await admin.from('fm_stage_tables').select('base_table,occurrence').eq('base_table',table).single()
+  if(stagedError)throw stagedError
+  const out:Record<string,unknown>={table,fields,count}
+  // How $metadata declares the fields: the text around each field's declaration
+  // (XML or JSON, whichever the server answers), cut to 400 characters.
+  try{
+    const meta=await odata('/$metadata')
+    out.metadataKind=meta.trimStart().startsWith('<')?'xml':'json'
+    out.metadata=Object.fromEntries(fields.map(field=>{
+      const at=[`Name="${field}"`,`"${field}":`].map(needle=>meta.indexOf(needle)).find(index=>index>=0)
+      return [field,at==null?null:meta.slice(Math.max(0,at-60),at+340)]
+    }))
+  }catch(error){out.metadata=String((error as Error)?.message||error).slice(0,200)}
+  // Which form of $select the server accepts. The field itself first: $metadata declares
+  // a repeating field as a Collection, which may come back whole as an array.
+  const tries:Record<string,unknown>={}
+  let form:string|null=null
+  const extra:Record<string,string>=params.prefer?{prefer:String(params.prefer)}:{}
+  const cut=(row:Record<string,unknown>)=>Object.fromEntries(Object.entries(row).filter(([key])=>!key.startsWith('@')).map(([key,value])=>[key,typeof value==='string'?value.slice(0,80):Array.isArray(value)?value.map(item=>typeof item==='string'?item.slice(0,80):item):value]))
+  try{
+    const row=JSON.parse(await odata(`${entity(staged.occurrence)}?$top=1&$select=${['ROWID',...fields.map(quoted)].map(encodeSelect).join(',')}`,extra)).value?.[0]||{}
+    tries.plain=cut(row)
+    if(fields.some(field=>Array.isArray(row[field])))form='plain'
+    // One field of one record by its path, the way OData reads a collection property.
+    if(row.ROWID!=null){
+      try{tries.property=JSON.parse(await odata(`${entity(staged.occurrence)}(${row.ROWID})/${encodeURIComponent(fields[0])}`))}catch(error){tries.property=String((error as Error)?.message||error).slice(0,200)}
+    }
+  }catch(error){tries.plain=String((error as Error)?.message||error).slice(0,200)}
+  for(const [name,make] of Object.entries(REPETITION_FORMS)){
+    try{
+      const select=['ROWID',...fields.map(field=>make(field,2))].map(encodeSelect).join(',')
+      const row=JSON.parse(await odata(`${entity(staged.occurrence)}?$top=1&$select=${select}`,extra)).value?.[0]||{}
+      tries[name]=cut(row)
+      if(!form&&Object.keys(row).some(key=>key!=='ROWID'&&!key.startsWith('@')))form=name
+    }catch(error){tries[name]=String((error as Error)?.message||error).slice(0,200)}
+  }
+  for(const [index,raw] of (params.raw||[]).entries()){
+    // A raw value starting with «&» is the rest of the query; any other is a $select item.
+    const query=String(raw).replace(/\{n\}/g,'2')
+    try{tries[`raw_${index}`]=cut(JSON.parse(await odata(`${entity(staged.occurrence)}?$top=1${query.startsWith('&')?query:`&$select=ROWID,${query}`}`,extra)).value?.[0]||{})}
+    catch(error){tries[`raw_${index}`]=String((error as Error)?.message||error).slice(0,200)}
+  }
+  out.tries=tries;out.form=form
+  if(params.template)form='template'
+  if(!params.store||!form)return {repetitions:out}
+  // Every record's repetitions 1..count, kept with the staged record.
+  const make=form==='plain'||form==='template'?null:REPETITION_FORMS[form]
+  const select=form==='template'
+    ?['ROWID',...fields.flatMap(field=>Array.from({length:count},(_,i)=>String(params.template?.[field]||'').replace(/\{n\}/g,String(i+1))))].join(',')
+    :['ROWID',...fields.flatMap(field=>make?Array.from({length:count},(_,i)=>make(field,i+1)):[quoted(field)])].map(encodeSelect).join(',')
+  let stored=0,missing=0
+  for(let skip=0;Date.now()-started<BUDGET_MS;skip+=100){
+    const rows=(JSON.parse(await odata(`${entity(staged.occurrence)}?$top=100&$skip=${skip}&$select=${select}`,extra)).value||[]) as Record<string,unknown>[]
+    for(const row of rows){
+      const keys=Object.keys(row).filter(key=>!key.startsWith('@')&&key!=='ROWID')
+      // The server names a repetition «Field[n]» (or returns them in the order asked).
+      const values=Object.fromEntries(fields.map((field,f)=>[field,Array.from({length:count},(_,i)=>{if(form==='template')return row[keys[f*count+i]]??null;if(!make){const all=row[field];return Array.isArray(all)?all[i]??null:i===0?all??null:null}const named=row[`${field}[${i+1}]`];return named!==undefined?named:row[keys[f*count+i]]??null})]))
+      const {data:record}=await admin.from('fm_stage_records').select('data').eq('base_table',table).eq('record_id',String(row.ROWID)).maybeSingle()
+      if(!record){missing++;continue}
+      const {error}=await admin.from('fm_stage_records').update({data:{...record.data,repetitions:{...(record.data?.repetitions||{}),...values}}}).eq('base_table',table).eq('record_id',String(row.ROWID))
+      if(error)throw error
+      stored++
+    }
+    if(rows.length<100)break
+  }
+  out.stored=stored;out.missing=missing
+  return {repetitions:out}
+}
+
 async function pull(admin:Admin,started:number){
   const {data:settings}=await admin.from('fm_stage_settings').select('page_size,rowid').eq('id',true).single()
   const size=Number(settings?.page_size||500)
@@ -451,7 +542,8 @@ Deno.serve(async(req)=>{
   const {data:valid,error:secretError}=await admin.rpc('platform_scheduler_secret_valid',{p_secret:req.headers.get('x-limoxis-scheduler')||''})
   if(secretError||valid!==true)return reply({error:'Unauthorized'},401)
 
-  const {task='pull'}=await req.json().catch(()=>({}))
+  const body=await req.json().catch(()=>({}))
+  const {task='pull'}=body
   const started=Date.now()
   // One reading at a time: a minute's call while the last one still runs returns at once.
   const until=new Date(started+BUDGET_MS+20000).toISOString()
@@ -459,7 +551,7 @@ Deno.serve(async(req)=>{
   if(!claimed?.length)return reply({ok:true,task,skipped:'busy'})
   let result:Record<string,unknown>={task}
   try{
-    result={...result,...(task==='probe'?await probe(admin):task==='rowid'?await rowidCheck(admin):task==='filesprobe'?await filesProbe():task==='files'?await files(admin,started):task==='files_attach'?await filesAttach(admin,started):task==='files_photos'?await filesPhotos(admin,started):await pull(admin,started))}
+    result={...result,...(task==='probe'?await probe(admin):task==='rowid'?await rowidCheck(admin):task==='filesprobe'?await filesProbe():task==='files'?await files(admin,started):task==='files_attach'?await filesAttach(admin,started):task==='files_photos'?await filesPhotos(admin,started):task==='repetitions'?await repetitions(admin,started,body):await pull(admin,started))}
   }catch(error){
     result={...result,error:String((error as Error)?.message||error).slice(0,300)}
   }

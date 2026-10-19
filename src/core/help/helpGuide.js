@@ -327,7 +327,7 @@ export const guideContent = {
     ['link_nurse', l('Συνδετικός κρίκος του τμήματος με την ομάδα ελέγχου λοιμώξεων.', 'The department’s link to the infection control team.')],
     ['laboratory', l('Καταχωρεί δείγματα, αποτελέσματα και AST και επικοινωνεί τα κρίσιμα αποτελέσματα.', 'Enters samples, results and AST and communicates critical results.')],
     ['doctor_reviewer', l('Αξιολογεί κλινικά τα επεισόδια επιτήρησης.', 'Clinically reviews surveillance episodes.')],
-    ['quality_manager', l('Διαχειρίζεται συμβάντα, επιθεωρήσεις, ευρήματα και διορθωτικές ενέργειες.', 'Manages incidents, audits, findings and CAPA.')],
+    ['quality_manager', l('Διαχειρίζεται συμβάντα, επιθεωρήσεις, ευρήματα και διορθωτικές ενέργειες, και την κουζίνα (HACCP): όρια, σχέδιο HACCP και επαλήθευση.', 'Manages incidents, audits, findings and CAPA, and the kitchen (HACCP): limits, HACCP plan and verification.')],
     ['committee_secretariat', l('Οργανώνει συνεδριάσεις, πρακτικά και αποφάσεις επιτροπών.', 'Organizes committee meetings, minutes and decisions.')],
     ['pharmacy', l('Παρακολουθεί κατανάλωση και εγκρίσεις αντιμικροβιακών.', 'Tracks antimicrobial consumption and approvals.')],
     ['occupational_physician', l('Διαχειρίζεται επισκέψεις και εμβολιασμούς εργαζομένων. Έχει πρόσβαση στα ιατρικά στοιχεία.', 'Manages employee visits and vaccinations. Has access to the medical data.')],

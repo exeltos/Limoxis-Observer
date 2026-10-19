@@ -1,0 +1,38 @@
+/* Κουζίνα (HACCP): only what the shared Observer primitives do not cover. */
+.kitchen-live-check{display:flex;align-items:center;gap:8px;min-height:40px;font-size:13px;color:var(--color-text-secondary,#475569)}
+.kitchen-live-slot{display:flex;align-items:flex-end;min-height:62px}
+.kitchen-span-2{grid-column:span 2}
+.kitchen-span-3{grid-column:1/-1}
+.kitchen-muted{color:var(--color-text-secondary,#64748b);font-size:13px}
+.kitchen-dialog-result{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.kitchen-dialog-result small{color:var(--color-danger,#b42318);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kitchen-item-list{display:flex;flex-direction:column;gap:10px;margin:4px 0 12px}
+.kitchen-item-row{border:1px solid var(--color-border,#e2e8f0);border-radius:10px;padding:10px 12px}
+.kitchen-item-row.is-rejected{border-color:var(--color-danger-border,#f3c4bf);background:var(--color-danger-surface,#fff7f6)}
+.kitchen-item-accept{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.kitchen-batch-note{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.kitchen-notes{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
+.kitchen-signoff{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}
+.kitchen-signoff small{font-size:12px;color:var(--color-text-secondary,#64748b)}
+.kitchen-measure.is-out{color:var(--color-danger,#b42318);font-weight:600}
+.kitchen-unparsed{font-style:italic;color:var(--color-warning-text,#92400e)}
+.kitchen-action-text{display:block;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kitchen-text-cell{max-width:360px}
+.kitchen-menu-text{margin:0;white-space:pre-wrap;font:inherit;font-size:13px;line-height:1.5}
+.kitchen-menu-text.is-compact{max-height:6.2em;overflow:hidden}
+.kitchen-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px;overflow:auto}
+.kitchen-haccp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:14px;overflow:auto}
+.kitchen-card{border:1px solid var(--color-border,#e2e8f0);border-radius:12px;padding:12px 14px;min-width:0;background:var(--color-surface,#fff)}
+.kitchen-card-wide{grid-column:1/-1}
+.kitchen-card .kitchen-menu-text{margin:4px 0 10px}
+.kitchen-pad{padding:12px 16px}
+.kitchen-day-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.kitchen-day-menu>div{border:1px solid var(--color-border,#e2e8f0);border-radius:10px;padding:10px 12px}
+.kitchen-group-row td{background:var(--color-surface-muted,#f1f5f9)}
+.kitchen-group-row td small{margin-left:8px;display:inline}
+@media (max-width:1100px){.kitchen-overview,.kitchen-haccp,.kitchen-day-menu{grid-template-columns:1fr}}
+.registry-workspace :is(.kitchen-overview,.kitchen-haccp) .data-table.kitchen-table{min-width:0!important}
+.kitchen-overview .scroll-table,.kitchen-haccp .scroll-table{overflow-x:auto}
+.kitchen-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.kitchen-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.kitchen-record-shell .record-tab-panel-body{flex:1 1 auto}

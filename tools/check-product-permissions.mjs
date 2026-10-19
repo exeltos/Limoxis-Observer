@@ -33,5 +33,12 @@ assert.equal(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY)
 assert.equal(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH),false)
 assert.equal(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.MANAGE_PHARMACY),true)
 assert.equal(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.MANAGE_PLATFORM),false)
+// Kitchen (HACCP): Hospital Admin and Quality Manager manage; the IPC Lead reads; others none.
+assert.equal(can(ROLES.HOSPITAL_ADMIN,CAPABILITIES.MANAGE_KITCHEN),true)
+assert.equal(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_KITCHEN),true)
+assert.equal(can(ROLES.QUALITY_MANAGER,CAPABILITIES.RECORD_KITCHEN),true)
+assert.equal(can(ROLES.INFECTION_CONTROL_LEAD,CAPABILITIES.VIEW_KITCHEN),true)
+assert.equal(can(ROLES.INFECTION_CONTROL_LEAD,CAPABILITIES.RECORD_KITCHEN),false)
+assert.equal(can(ROLES.DEPARTMENT_USER,CAPABILITIES.VIEW_KITCHEN),false)
 
-console.log('Product permission checks passed: 30 assertions.')
+console.log('Product permission checks passed: 36 assertions.')

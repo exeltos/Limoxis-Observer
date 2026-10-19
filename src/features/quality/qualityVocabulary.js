@@ -64,10 +64,8 @@ export const CAPA_TYPES = [
   { value: 'objective_achievement', label: ['Επίτευξη στόχου', 'Objective achievement'] },
 ]
 
-export const AUDIT_TYPES = [
-  { value: 'internal', label: ['Εσωτερική', 'Internal'] },
-  { value: 'external', label: ['Εξωτερική', 'External'] },
-]
+// Internal, external, certification and supplier audits (audits/auditStandards.js).
+export { AUDIT_KINDS as AUDIT_TYPES } from './audits/auditStandards'
 
 export const EFFECTIVENESS = [
   { value: 'pending', label: ['Εκκρεμεί', 'Pending'] },

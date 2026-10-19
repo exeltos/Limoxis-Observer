@@ -3,12 +3,13 @@
 // detail, department, path, state }. state is 'overdue', 'due' or 'planned'.
 import { calculateNextDue } from '../controls/controlScheduling'
 import { suggestionCalendarItems } from '../documents/protocolReview/protocolReviewModel'
+import { standardShort } from '../quality/audits/auditStandards'
 
-export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees']
+export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees','suppliers','kitchen']
 
 const KIND_LABELS={
- el:{controls:'Έλεγχοι',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές'},
- en:{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees'},
+ el:{controls:'Έλεγχοι',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές',suppliers:'Προμηθευτές',kitchen:'Κουζίνα'},
+ en:{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees',suppliers:'Suppliers',kitchen:'Kitchen'},
 }
 export const calendarKindLabel=(kind,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
 
@@ -86,7 +87,8 @@ function capaEvents(capas,range,today,list,en){
 function auditEvents(audits,range,today,list,en){
  for(const audit of audits){
   if(audit.lifecycleStatus==='voided'||['completed','cancelled'].includes(audit.status))continue
-  push(list,{id:`audit:${audit.id}`,kind:'audits',date:toDay(audit.plannedDate),title:en?audit.titleEn||audit.title:audit.title,detail:audit.leadAuditor||'',department:'',path:`/quality/audits/${audit.id}`,state:stateOf(toDay(audit.plannedDate),today)},range)
+  // A planned audit of the programme: its standard and lead auditor, its department.
+  push(list,{id:`audit:${audit.id}`,kind:'audits',date:toDay(audit.plannedDate),title:en?audit.titleEn||audit.title:audit.title,detail:[audit.standard&&standardShort(audit.standard),audit.leadAuditor,audit.plannedMonthOnly&&(en?'day to be fixed':'η ημέρα θα οριστεί')].filter(Boolean).join(' · '),department:audit.department||'',path:`/quality/audits/${audit.id}`,state:stateOf(toDay(audit.plannedDate),today)},range)
  }
 }
 
@@ -136,7 +138,17 @@ function committeeEvents(committees,range,today,list,en){
  }
 }
 
-export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],protocolSuggestions=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
+// A supplier's next evaluation (its latest evaluation plus the frequency): «Αξιολόγηση προμηθευτή».
+// suppliers: [{ id, code, name, nextEvaluation, evaluationDue }] as supplierStatus gives them.
+function supplierEvents(suppliers,range,today,list,en){
+ for(const supplier of suppliers){
+  if(supplier.status==='inactive')continue
+  const day=toDay(supplier.nextEvaluation)
+  push(list,{id:`sup-eval:${supplier.id}`,kind:'suppliers',date:day,title:supplier.name,detail:`${en?'Supplier evaluation':'Αξιολόγηση προμηθευτή'}${supplier.code?` · ${supplier.code}`:''}`,department:'',path:`/quality/suppliers/${supplier.id}`,state:stateOf(day,today)},range)
+ }
+}
+
+export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],protocolSuggestions=[],suppliers=[],kitchen=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
  const en=language==='en'
  const range=from&&to?{from,to}:null
  const list=[]
@@ -148,6 +160,9 @@ export function buildCalendarEvents({controls=[],capas=[],audits=[],training=nul
  // Open protocol update suggestions are pending items of the documents.
  for(const event of suggestionCalendarItems(protocolSuggestions,documentFamilies.flatMap(family=>family.versions||[]),{today,language,ownerId}))push(list,event,range)
  committeeEvents(committees,range,today,list,en)
+ supplierEvents(suppliers,range,today,list,en)
+ // The kitchen's items are built by its model (kitchenModel.kitchenCalendarItems).
+ for(const event of kitchen)push(list,event,range)
  const seen=new Set()
  return list.filter(event=>{if(seen.has(event.id))return false;seen.add(event.id);return true}).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99')||a.title.localeCompare(b.title))
 }

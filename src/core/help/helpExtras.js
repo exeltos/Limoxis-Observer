@@ -69,6 +69,11 @@ export const helpExtras={
   tip:{el:'Η πρόσβαση HR και η κλινική πρόσβαση Ιατρού Εργασίας πρέπει να παραμένουν διακριτές.',en:'HR access and Occupational Health clinical access should remain clearly separated.'},
   related:['/occupational-health','/training','/my-profile']
  },
+ '/kitchen':{
+  checks:{el:['Μετρήστε τη θερμοκρασία κάθε ψυχόμενου και κατεψυγμένου προϊόντος στην παραλαβή.','Πάρτε πρώτα την παλαιότερη παρτίδα (FIFO) και ποτέ παρτίδα που έληξε.','Γράψτε διορθωτική ενέργεια για κάθε μέτρηση εκτός ορίων.','Επαληθεύστε την ημέρα πριν κλείσει η βάρδια.'],en:['Measure the temperature of every chilled and frozen product at receipt.','Use the oldest batch first (FIFO) and never an expired one.','Record a corrective action for every measurement out of limits.','Sign off the day before the shift ends.']},
+  tip:{el:'Το HACCP στηρίζεται στις καταγραφές: μια μέτρηση που δεν γράφτηκε δεν έγινε. Γράψτε την την ώρα που γίνεται, όχι στο τέλος της ημέρας.',en:'HACCP rests on records: a measurement that was not written down was not made. Record it when it happens, not at the end of the day.'},
+  related:['/quality','/controls','/documents']
+ },
  '/pharmacy':{
   checks:{el:['Ελέγξτε ένδειξη και απαιτούμενη έγκριση.','Επιβεβαιώστε ότι η αγωγή συνδέεται με το σωστό επεισόδιο.','Αποφύγετε διπλή καταχώρηση θεραπείας.'],en:['Review indication and required approval.','Confirm therapy is linked to the correct episode.','Avoid duplicate therapy recording.']},
   tip:{el:'Η ορθολογική χρήση αντιμικροβιακών σημαίνει ελεγχόμενη χρήση με τεκμηρίωση, όχι απλώς καταγραφή κατανάλωσης.',en:'Stewardship means controlled, documented use—not only consumption recording.'},

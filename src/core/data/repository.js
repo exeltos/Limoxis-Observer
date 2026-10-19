@@ -43,12 +43,14 @@ const TABLES=Object.freeze({
   quality_local_findings:{storageKey:'limoxis.qualityLocalFindings.v1',kind:'rows',cloud:false},
   quality_local_capas:{storageKey:'limoxis.qualityLocalCapas.v1',kind:'rows',cloud:false},
   quality_local_audits:{storageKey:'limoxis.qualityLocalAudits.v1',kind:'rows',cloud:false},
+  quality_local_audit_templates:{storageKey:'limoxis.qualityLocalAuditTemplates.v1',kind:'rows',cloud:false},
   quality_local_risk_assessments:{storageKey:'limoxis.qualityLocalRiskAssessments.v1',kind:'rows',cloud:false},
   quality_local_reviews:{storageKey:'limoxis.qualityLocalReviews.v1',kind:'rows',cloud:false},
   quality_local_department_meetings:{storageKey:'limoxis.qualityLocalDepartmentMeetings.v1',kind:'rows',cloud:false},
   quality_local_surveys:{storageKey:'limoxis.qualityLocalSurveys.v1',kind:'rows',cloud:false},
   quality_local_survey_responses:{storageKey:'limoxis.qualityLocalSurveyResponses.v1',kind:'rows',cloud:false},
   quality_local_suppliers:{storageKey:'limoxis.qualityLocalSuppliers.v1',kind:'rows',cloud:false},
+  quality_local_supplier_templates:{storageKey:'limoxis.qualityLocalSupplierTemplates.v1',kind:'rows',cloud:false},
   quality_local_equipment:{storageKey:'limoxis.qualityLocalEquipment.v1',kind:'rows',cloud:false},
   quality_local_equipment_events:{storageKey:'limoxis.qualityLocalEquipmentEvents.v1',kind:'rows',cloud:false},
   legislation_local_library:{storageKey:'limoxis.legislationLocalLibrary.v1',kind:'rows',cloud:false},
@@ -62,6 +64,8 @@ const TABLES=Object.freeze({
   quality_department_register_entries:{storageKey:'limoxis.qualityDepartmentRegisterEntries.v1',kind:'rows',cloud:false},
   quality_department_register_identities:{storageKey:'limoxis.qualityDepartmentRegisterIdentities.v1',kind:'document',cloud:false},
   recycle_bin_local:{storageKey:'limoxis.recycleBin.v1',kind:'rows',cloud:false},
+  // Demo kitchen (HACCP). Production kitchen lives in the kitchen_* tables (src/features/kitchen/kitchenService.js).
+  kitchen_local_state:{storageKey:'limoxis.kitchen.v1',kind:'document',cloud:false},
 })
 
 export class DataAccessError extends Error{

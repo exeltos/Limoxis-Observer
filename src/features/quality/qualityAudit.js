@@ -1,4 +1,4 @@
-import { checklistScore } from '../../core/checklist/checklistScore'
+import { complianceOf } from './audits/auditModel'
 import { checklistRows } from '../controls/controlStructured'
 
 // An audit (ISO 9001 §9.2, JCI QPS): a planned date, a scope, and a checklist
@@ -19,10 +19,12 @@ export function auditChecklistFromText(text = '') {
   return String(text).split('\n').map(line => line.replace(/^\s*(\d+[.)]|[-•])\s*/, '').trim()).filter(Boolean).map((item, index) => ({ id: `item-${index + 1}`, item, itemEn: item, required: true, answer: '', note: '' }))
 }
 
-export const auditCompliance = record => checklistScore(record?.checklist || [])
+// Weighted compliance over the applicable answers (audits/auditModel.js):
+// a «partial» counts half; «not applicable» is left out.
+export const auditCompliance = complianceOf
 
-// The «No» answers that have no finding yet.
-export const pendingFindings = (rows = []) => rows.filter(row => row.answer === 'no' && !row.findingId)
+// The «No» and «Partial» answers that have no finding yet.
+export const pendingFindings = (rows = []) => rows.filter(row => (row.answer === 'no' || row.answer === 'partial') && !row.findingId)
 
 // What each new finding of an audit is created with.
 export function findingDraftFromRow(audit, row, language = 'el') {

@@ -21,16 +21,20 @@ import { loadTrainingStateAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
 import { loadCommitteesAsync } from '../committees/committeeService'
 import { loadProtocolSuggestionsAsync } from '../documents/protocolReview/protocolReviewService'
+import { loadSupplierSchedule } from '../quality/resources/resourceService'
+import { withSupplierStatus } from '../quality/resources/resourceModel'
+import { loadKitchen } from '../kitchen/kitchenService'
+import { kitchenCalendarItems } from '../kitchen/kitchenModel'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CALENDAR_KINDS,buildCalendarEvents,calendarKindLabel,dayKey,monthGrid } from './calendarEvents'
 import './calendar.css'
 
-const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES}
+const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES,suppliers:CAPABILITIES.VIEW_QUALITY,kitchen:CAPABILITIES.VIEW_KITCHEN}
 const WEEKDAYS={el:['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
 // A day cell shows one line per module: its dot, the count and the name (singular / plural).
-const KIND_COUNT={controls:['έλεγχος','έλεγχοι','control','controls'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items']}
+const KIND_COUNT={controls:['έλεγχος','έλεγχοι','control','controls'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items'],suppliers:['αξιολόγηση προμηθευτή','αξιολογήσεις προμηθευτών','supplier evaluation','supplier evaluations'],kitchen:['εκκρεμότητα κουζίνας','εκκρεμότητες κουζίνας','kitchen item','kitchen items']}
 // Short module names for narrow day cells (the full name stays in the tooltip).
-const KIND_SHORT=[{controls:'Έλεγχοι',capa:'CAPA',audits:'Επιθ.',training:'Εκπαίδ.',documents:'Έγγρ.',committees:'Επιτρ.'},{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Docs',committees:'Comm.'}]
+const KIND_SHORT=[{controls:'Έλεγχοι',capa:'CAPA',audits:'Επιθ.',training:'Εκπαίδ.',documents:'Έγγρ.',committees:'Επιτρ.',suppliers:'Προμ.',kitchen:'Κουζ.'},{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Docs',committees:'Comm.',suppliers:'Suppl.',kitchen:'Kitchen'}]
 const countLabel=(kind,n,en)=>{const forms=KIND_COUNT[kind]||['','','','' ];const word=en?(n===1?forms[2]:forms[3]):(n===1?forms[0]:forms[1]);return word.charAt(0).toLocaleUpperCase(en?'en':'el')+word.slice(1)}
 const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο':'α'}`
 
@@ -67,11 +71,13 @@ export function CalendarPage(){
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
    safe('documents',()=>loadProtocolSuggestionsAsync(organizationId),[]),
-  ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions])=>{
-   if(active)setSources({controls,capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions})
+   safe('suppliers',()=>loadSupplierSchedule(organizationId).then(({suppliers,templates})=>withSupplierStatus(suppliers,[],undefined,templates)),[]),
+   safe('kitchen',()=>loadKitchen(organizationId).then(state=>kitchenCalendarItems(state,{language})),[]),
+  ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions,suppliers,kitchen])=>{
+   if(active)setSources({controls,capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
   })
   return()=>{active=false}
- },[tenant?.id,allowedKinds])
+ },[tenant?.id,allowedKinds,language])
 
  const weeks=useMemo(()=>monthGrid(cursor.year,cursor.month),[cursor])
  const today=dayKey(new Date())

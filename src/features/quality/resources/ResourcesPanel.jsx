@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ListChecks } from 'lucide-react'
+import { Button } from '../../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -10,6 +13,7 @@ import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { useDepartments } from '../../management/useLibraries'
 import { loadResources } from './resourceService'
+import { formatPercent } from './supplierTemplates'
 import { APPROVALS, CRITICALITY, DUE_STATES, EQUIPMENT_STATES, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentStateLabel, equipmentStateTone, eventKindLabel, filterEquipment, filterSuppliers, supplierCategoryLabel, withEquipmentStatus, withSupplierStatus } from './resourceModel'
 import './resources.css'
 
@@ -32,12 +36,12 @@ export function useResources(enabled = true) {
   const { language } = useLanguage()
   const { departments } = useDepartments()
   const access = useResourceAccess()
-  const [data, setData] = useState({ suppliers: [], equipment: [], events: [] })
+  const [data, setData] = useState({ suppliers: [], equipment: [], events: [], templates: [] })
   const [loading, setLoading] = useState(enabled)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return Promise.resolve() }
     setLoading(true)
-    return loadResources(tenant?.id).then(setData).catch(error => { console.error(error); setData({ suppliers: [], equipment: [], events: [] }) }).finally(() => setLoading(false))
+    return loadResources(tenant?.id).then(setData).catch(error => { console.error(error); setData({ suppliers: [], equipment: [], events: [], templates: [] }) }).finally(() => setLoading(false))
   }, [tenant?.id, enabled])
   useEffect(() => { void reload() }, [reload])
   const scoped = !access.canViewAll && isDemoDataEnvironment()
@@ -49,7 +53,7 @@ export function useResources(enabled = true) {
     const suppliers = access.canViewAll ? data.suppliers : []
     const supplierNames = new Map(data.suppliers.map(item => [item.id, item.name]))
     const devices = withEquipmentStatus(equipment, data.events).map(item => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
-    return { equipment: devices, suppliers: withSupplierStatus(suppliers, equipment), events: data.events }
+    return { equipment: devices, suppliers: withSupplierStatus(suppliers, equipment, undefined, data.templates || []), events: data.events, templates: data.templates || [] }
   }, [data, departments, scoped, ownKey, access.canViewAll])
   return { ...rows, loading, reload, departments, language }
 }
@@ -95,6 +99,10 @@ export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = n
 export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
+  const navigate = useNavigate()
+  const access = useResourceAccess()
+  // The evaluation templates by supplier category: Quality manages them.
+  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/templates')}><ListChecks size={15} />{en ? 'Evaluation templates' : 'Πρότυπα αξιολόγησης'}</Button>}{filterEnd}</>
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
@@ -103,7 +111,7 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const advanced = ['category', 'approval', 'criticality'].filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
   return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search supplier, tax ID, products…' : 'Αναζήτηση προμηθευτή, ΑΦΜ, προϊόντων…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))} end={filterEnd}>
+    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search supplier, tax ID, products…' : 'Αναζήτηση προμηθευτή, ΑΦΜ, προϊόντων…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))} end={end}>
       <FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{t('all')}</option>{SUPPLIER_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Approval' : 'Έγκριση'} value={filters.approval} onChange={value => set('approval', value)}><option value="all">{t('all')}</option>{APPROVALS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -117,7 +125,7 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
         renderRow={row => { const notes = supplierNotes(row, language); return <>
           <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
           <td>{row.name}<small>{supplierCategoryLabel(row.category, language)}</small></td>
-          <td className="nowrap-cell">{row.latestEvaluation ? `${formatDay(row.latestEvaluation.evaluatedOn, language)} · ${row.score}%` : '—'}{row.evaluationDue && <small className="quality-overdue-text">{en ? 'Evaluation due' : 'Οφείλεται αξιολόγηση'}</small>}</td>
+          <td className="nowrap-cell">{row.latestEvaluation ? `${formatDay(row.latestEvaluation.evaluatedOn, language)} · ${formatPercent(row.score, language)}` : '—'}{row.evaluationDue ? <small className="quality-overdue-text">{en ? 'Evaluation due' : 'Οφείλεται αξιολόγηση'}{row.nextEvaluation ? ` · ${formatDay(row.nextEvaluation, language)}` : ''}</small> : row.nextEvaluation && <small>{en ? 'Next' : 'Επόμενη'} {formatDay(row.nextEvaluation, language)}</small>}</td>
           <td>{notes.length ? <span className="resource-notes">{notes.map(note => <StatusBadge key={note.key} tone={note.tone}>{note.label}</StatusBadge>)}</span> : '—'}</td>
           <td><StatusBadge tone={approvalTone(row.approval)}>{approvalLabel(row.approval, language)}</StatusBadge></td>
         </> }} />

@@ -21,9 +21,9 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
-import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { CAPA_TYPES, EFFECTIVENESS, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { YesNoField } from '../../design-system/YesNoField'
-import { QualityDepartmentField, QualityOwnerField, QualityPersonField, departmentRef } from './QualityFields'
+import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -35,7 +35,11 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { QualityCapaSteps } from './QualityCapaSteps'
 import { IncidentFlowPanel } from './IncidentFlowBar'
 import { QualityGlance } from './QualityGlance'
-import { AuditChecklistTab } from './QualityAuditParts'
+import { AuditRunTab } from './audits/AuditRunTab'
+import { AuditPlanPanel } from './audits/AuditPlanPanel'
+import { auditAnswersExport, auditReportDocument } from './audits/auditReport'
+import { FINDING_CLASSES, standardLabel } from './audits/auditStandards'
+import { exportRegistry } from '../../core/export/registryExports'
 import { auditCompliance } from './qualityAudit'
 import { QualityCapaRootCause } from './QualityCapaRootCause'
 import { QualityCapaProgress } from './QualityCapaProgress'
@@ -75,6 +79,9 @@ export function QualityRecordPage(){
      body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε'],filename:record.displayId||record.id}, { pdf: pdf === true })
     if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
   }
+  function printAudit(pdf){
+    if(!printReport(auditReportDocument(record,linked,{language}),{pdf}))notify(language==='en'?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
+  }
   const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
   // The Platform Owner has full access here, as on the other Quality pages.
   const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER
@@ -100,7 +107,7 @@ export function QualityRecordPage(){
   const incident=recordType==='incidents'
   const audit=recordType==='audits'
   const auditScore=audit?auditCompliance(record):null
-  const tabs=[{id:'details',label:t('details'),icon:Icon},...(audit?[{id:'checklist',label:`${language==='en'?'Checklist':'Λίστα ελέγχου'}${record.checklist?.length?` ${auditScore.rate!=null?`${auditScore.rate}%`:`0/${record.checklist.length}`}`:''}`,icon:ListChecks}]:[]),...(incident?[{id:'assessment',label:language==='en'?`Assessment${record.sentinel?' ⚠':''}`:`Αξιολόγηση${record.sentinel?' ⚠':''}`,icon:Scale,sheet:true}]:[]),...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks},{id:'rootCause',label:language==='en'?`Root causes${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`:`Αιτίες${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`,icon:GitBranch},{id:'progress',label:language==='en'?`Progress${record.progress?.length?` ${record.progress.length}`:''}`:`Πρόοδος${record.progress?.length?` ${record.progress.length}`:''}`,icon:TrendingUp}]:[]),{id:'links',label:incident?(language==='en'?`Corrective actions${linkedCapas.length?` ${linkedCapas.length}`:''}`:`Διορθωτικές ενέργειες${linkedCapas.length?` ${linkedCapas.length}`:''}`):t('qualityRecords.linkedRecords'),icon:incident?CheckSquare2:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
+  const tabs=[{id:'details',label:t('details'),icon:Icon},...(audit?[{id:'checklist',label:`${language==='en'?'Questionnaire':'Ερωτηματολόγιο'}${record.checklist?.length?` ${auditScore.rate!=null?`${auditScore.rate}%`:`0/${record.checklist.length}`}`:''}`,icon:ListChecks}]:[]),...(incident?[{id:'assessment',label:language==='en'?`Assessment${record.sentinel?' ⚠':''}`:`Αξιολόγηση${record.sentinel?' ⚠':''}`,icon:Scale,sheet:true}]:[]),...(recordType==='capas'?[{id:'steps',label:language==='en'?`Steps${steps.total?` ${steps.done}/${steps.total}`:''}`:`Βήματα${steps.total?` ${steps.done}/${steps.total}`:''}`,icon:ListChecks},{id:'rootCause',label:language==='en'?`Root causes${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`:`Αιτίες${analysisProgress(record.rootCauseAnalysis).concluded?' ✓':''}`,icon:GitBranch},{id:'progress',label:language==='en'?`Progress${record.progress?.length?` ${record.progress.length}`:''}`:`Πρόοδος${record.progress?.length?` ${record.progress.length}`:''}`,icon:TrendingUp}]:[]),{id:'links',label:incident?(language==='en'?`Corrective actions${linkedCapas.length?` ${linkedCapas.length}`:''}`:`Διορθωτικές ενέργειες${linkedCapas.length?` ${linkedCapas.length}`:''}`):t('qualityRecords.linkedRecords'),icon:incident?CheckSquare2:Link2},{id:'documents',label:t('documents'),icon:Paperclip},{id:'history',label:t('history'),icon:FileClock}]
   return <Page fill><EntityRecordShell
     className="quality-record-shell workspace-fill"
     avatar={<Icon size={19}/>}
@@ -109,7 +116,10 @@ export function QualityRecordPage(){
     subtitle={[RECORD_KIND[recordType]?.[language==='en'?1:0],language==='en'?record.departmentEn||record.department:record.department].filter(Boolean).join(' · ')||undefined}
     status={<StatusBadge tone={qualityStatusTone(record.status)}>{t(record.status)}</StatusBadge>}
     recordNavigation={recordNavigation}
-    headerActions={canPrint&&<ExportMenu onPrint={()=>downloadPdf(false)} onPdf={()=>downloadPdf(true)} />}
+    headerActions={canPrint&&(audit
+      // The audit report on the shared layout, and its answers as Excel.
+      ?<ExportMenu onPrint={()=>printAudit(false)} onPdf={()=>printAudit(true)} onExcel={record.checklist?.length?()=>exportRegistry(auditAnswersExport(record,language)):undefined}/>
+      :<ExportMenu onPrint={()=>downloadPdf(false)} onPdf={()=>downloadPdf(true)} />)}
     tabs={tabs} activeTab={tab} onTabChange={id=>openTab(id)}>
       {incident&&(tab==='details'||tab==='assessment')?<div className="quality-record-layout">
         <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>
@@ -120,7 +130,8 @@ export function QualityRecordPage(){
       {tab==='rootCause'&&recordType==='capas'&&<QualityCapaRootCause record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='steps'&&recordType==='capas'&&<QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='progress'&&recordType==='capas'&&<QualityCapaProgress record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language}/>}
-      {tab==='checklist'&&audit&&<AuditChecklistTab record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} actor={actor} notify={notify} userId={profile?.id||user?.id}/>}
+      {tab==='details'&&audit&&<div className="record-section"><AuditPlanPanel record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} notify={notify} actor={actor}/></div>}
+      {tab==='checklist'&&audit&&<AuditRunTab record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} actor={actor} notify={notify} userId={profile?.id||user?.id}/>}
       {tab==='links'&&<QualityLinks recordType={recordType} record={record} t={t} language={language} organizationId={organizationId} canManage={canManage} finalized={finalized}/>}
       {tab==='documents'&&<QualityDocuments recordType={recordType} record={record} setRecord={setRecord} t={t} finalized={finalized} canAttach={canAttach} canManage={canManage} organizationId={organizationId}/>}
       {tab==='history'&&<QualityHistory record={record} t={t} language={language}/>}
@@ -224,6 +235,16 @@ function QualityDetails({autoEdit=false,view='details',recordType,record,linked=
         {editing&&<EditChoice editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={severityOptions(t)}/>}
         <EditOwners editing={editing} draft={draft} patch={patch} en={en} label={t('owner')}/>
         <Detail label={t('date')} value={formatDay(draft.date,language)}/>
+        {(draft.source==='audit'||draft.findingClass)&&<>
+          <EditChoice editing={editing} label={en?'Audit finding class':'Κατάταξη ευρήματος'} value={draft.findingClass||''} onChange={v=>set('findingClass',v)} options={vocabularyOptions(FINDING_CLASSES,language)}/>
+          {draft.clauseRef&&<Detail label={en?'Standard / clause':'Πρότυπο / άρθρο'} value={[standardLabel(draft.standard,language),draft.clauseRef].filter(Boolean).join(' · ')}/>}
+          <EditDate editing={editing} label={t('dueDate')} value={draft.dueDate} onChange={v=>set('dueDate',v)} language={language}/>
+          <EditChoice editing={editing} label={en?'Effectiveness verified':'Επαλήθευση αποτελεσματικότητας'} value={draft.verificationStatus||'pending'} onChange={v=>set('verificationStatus',v)} options={[{value:'pending',label:en?'Pending':'Εκκρεμεί'},{value:'effective',label:en?'Effective':'Αποτελεσματική'},{value:'not_effective',label:en?'Not effective':'Μη αποτελεσματική'}]}/>
+          {(editing||draft.verifiedOn)&&<EditDate editing={editing} label={en?'Verified on':'Επαληθεύτηκε στις'} value={draft.verifiedOn} onChange={v=>set('verifiedOn',v)} language={language}/>}
+          {(editing||draft.verifiedBy)&&<EditText editing={editing} label={en?'Verified by':'Επαλήθευσε'} value={draft.verifiedBy} onChange={v=>set('verifiedBy',v)}/>}
+          {(editing||draft.verificationNote)&&<EditText editing={editing} label={en?'Verification evidence':'Τεκμήρια επαλήθευσης'} value={draft.verificationNote} onChange={v=>set('verificationNote',v)}/>}
+          <EditText editing={editing} label={en?'Follow-up audit (code)':'Επαναληπτική επιθεώρηση (κωδικός)'} value={draft.followUpAuditId} onChange={v=>set('followUpAuditId',v.trim())}/>
+        </>}
       </>}
       {!assessment&&recordType==='capas'&&<>
         <EditChoice editing={editing} label={t('actionType')} value={draft.actionType} onChange={v=>set('actionType',v)} options={vocabularyOptions(CAPA_TYPES,language)}/>
@@ -233,11 +254,8 @@ function QualityDetails({autoEdit=false,view='details',recordType,record,linked=
         {editing&&<EditDate editing={editing} label={t('qualityRecords.effectivenessDue')} value={draft.effectivenessDue} onChange={v=>set('effectivenessDue',v)} language={language}/>}
         {editing&&<EditChoice editing={editing} label={t('qualityRecords.effectiveness')} value={draft.effectivenessStatus} onChange={v=>set('effectivenessStatus',v)} options={vocabularyOptions(EFFECTIVENESS,language)}/>}
       </>}
-      {!assessment&&recordType==='audits'&&<>
-        <EditChoice editing={editing} label={t('auditType')} value={draft.auditType} onChange={v=>set('auditType',v)} options={vocabularyOptions(AUDIT_TYPES,language)}/>
-        {editing?<div className="detail-item editable"><QualityPersonField label={t('leadAuditor')} name={draft.leadAuditor||''} department={draft.department} onChange={({name,userId})=>patch({leadAuditor:name,leadAuditorId:userId})}/></div>:<Detail label={t('leadAuditor')} value={draft.leadAuditor}/>}
-        <EditDate editing={editing} label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)} language={language}/>
-      </>}
+      {/* An audit's kind, date, standard and team are its planning (AuditPlanPanel, below). */}
+      {!assessment&&recordType==='audits'&&!editing&&<Detail label={t('leadAuditor')} value={draft.leadAuditor}/>}
     </div>
     {!assessment&&recordType==='incidents'&&['clinical','nonClinical'].includes(reportKindOf(draft))&&(editing||draft.eventType)&&<div className="quality-event-section">
       <div className="quality-subsection-heading"><div><strong>{en?'Event details':'Στοιχεία συμβάντος'}</strong></div></div>

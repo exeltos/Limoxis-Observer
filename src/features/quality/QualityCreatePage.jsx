@@ -22,6 +22,9 @@ import { AUDIT_TYPES,CAPA_TYPES,FINDING_SOURCES,severityOptions,vocabularyOption
 import { QualityDepartmentField,QualityOwnerField,QualityPersonField,departmentRef } from './QualityFields'
 import { IncidentReportPage } from './IncidentReportPage'
 import { AuditChecklistSource } from './QualityAuditParts'
+import { AuditPlanFields } from './audits/AuditPlanFields'
+import { useAuditTemplates,useAuditorCompetence } from './audits/useAuditTemplates'
+import { independenceBlocks } from './audits/auditModel'
 import './quality.css'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
@@ -47,18 +50,28 @@ function prefillFrom(source){
 function QualityRecordCreate({recordType}){
   const location=useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const {user,profile}=useAuth();const {role,membership,tenant,actualRole,isRolePreview}=useTenant();const c=config[recordType];const Icon=c.icon
   const [saving,setSaving]=useState(false)
-  const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',...prefillFrom(location.state?.qualitySource)}))
+  const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',standard:'',templateId:null,clausesScope:[],team:[],riskLevel:'medium',frequencyMonths:12,plannedMonthOnly:false,...prefillFrom(location.state?.qualitySource)}))
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const patch=next=>setDraft(x=>({...x,...next}))
   const titleKey=en?'titleEn':'title';const textKey=recordType==='audits'?(en?'scopeEn':'scope'):(en?'descriptionEn':'description')
-  const valid=Boolean(draft[titleKey].trim())
+  // An audit takes its questionnaire from the library; the lead auditor may not audit their own department.
+  const {templates}=useAuditTemplates(recordType==='audits'?tenant?.id:false)
+  const competence=useAuditorCompetence(recordType==='audits'?tenant?.id:false)
+  const blocked=recordType==='audits'&&independenceBlocks(draft.team||[],{id:draft.departmentId,name:draft.department})
+  const valid=Boolean(draft[titleKey].trim())&&!blocked
   async function save(){if(!canManage||!valid||saving)return;setSaving(true);try{const actor=auditActorFromAuth({profile,user});await createQualityRecord(recordType,tenant?.id,{...draft,title:draft.title||draft.titleEn,titleEn:draft.titleEn||draft.title,reportedByLabel:actor.name,history:[auditEvent('recordCreated',{actor})]},user?.id);if(recordType==='capas')signalDemoScenario('incident_capa');if(recordType==='audits')signalDemoStep('quality_audit','create');notify(t('recordCreated'),'success')
   goBack()}catch(error){console.error(error);notify(en?'The quality record could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της εγγραφής ποιότητας.','error')}finally{setSaving(false)}}
   if(!canManage)return <Navigate to="/quality" replace/>
   const sourceText={emptyLabel:en?'No match':'Δεν βρέθηκε',clearLabel:en?'Clear':'Καθαρισμός'}
   const steps=draft.subActions?.length>0&&recordType==='capas'&&<FormCard wide icon={ListChecks} title={String(draft.sourceId||'').startsWith('TRAINING:')?(en?'Suggested steps':'Προτεινόμενα βήματα'):en?'Steps from the control’s actions on deviation':'Βήματα από τις ενέργειες σε απόκλιση του ελέγχου'} hint={en?'Assign owners and due dates in the Steps tab after saving.':'Υπεύθυνους και προθεσμίες ορίζετε στην καρτέλα «Βήματα» μετά την αποθήκευση.'}><ol className="quality-prefill-steps">{draft.subActions.map(step=><li key={step.id}>{step.title}</li>)}</ol></FormCard>
   return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={t('quality')} title={t(c.title)} subtitle={t('qualityRecords.newQualityRecord')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
-    <div className="record-section quality-create-form"><div className="lo-form-cards">
+    <div className="record-section quality-create-form">{recordType==='audits'?<div className="lo-form-cards audit-plan-form">
+      <AuditPlanFields draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language}/>
+      <FormCard wide title={t('qualityRecords.auditScope')}>
+        <Field label={t('qualityRecords.auditScope')}><textarea rows={3} value={draft[textKey]} onChange={e=>set(textKey,e.target.value)}/></Field>
+      </FormCard>
+      {!draft.templateId&&<AuditChecklistSource draft={draft} setDraft={setDraft} organizationId={tenant?.id} language={language}/>}
+    </div>:<div className="lo-form-cards">
       <FormCard title={en?'Record':'Εγγραφή'} icon={Icon}>
         <Field label={`${t('title')} *`}><input value={draft[titleKey]} onChange={e=>set(titleKey,e.target.value)}/></Field>
         <QualityDepartmentField value={departmentRef(draft)} onChange={patch}/>
@@ -75,7 +88,6 @@ function QualityRecordCreate({recordType}){
         <Field label={t(recordType==='audits'?'qualityRecords.auditScope':'description')}><textarea rows={3} value={draft[textKey]} onChange={e=>set(textKey,e.target.value)}/></Field>
       </FormCard>
       {steps}
-      {recordType==='audits'&&<AuditChecklistSource draft={draft} setDraft={setDraft} organizationId={tenant?.id} language={language}/>}
-    </div><div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div></div>
+    </div>}<div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div></div>
   </EntityRecordShell></Page>
 }

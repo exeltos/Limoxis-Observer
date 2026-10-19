@@ -66,7 +66,7 @@ const RESOURCE_OPTIONS=[
  {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
-const AUDIT_DEFAULTS={query:'',status:'all',type:'all',department:'all',mode:'programme',quick:null}
+const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',mode:'programme',quick:null}
 const STALE_DAYS=45
 // A review's decisions still open, and those past their due date.
 const openDecisions=review=>(review.actions||[]).filter(action=>action.status==='open')
@@ -213,7 +213,7 @@ export function QualityPage(){
   suppliers:(()=>{const count=supplierCounts(resources.suppliers);const dash=value=>resources.loading?'—':value;const quick=key=>setSupplierFilters(current=>({...current,quick:current.quick===key?null:key}));return [
    {key:'all',icon:Truck,value:dash(count.total),label:L('Ενεργοί προμηθευτές','Active suppliers'),active:!supplierFilters.quick,go:()=>setSupplierFilters(current=>({...current,quick:null}))},
    {key:'approved',icon:CheckCircle2,value:dash(count.approved),label:L('Εγκεκριμένοι','Approved'),active:supplierFilters.quick==='approved',go:()=>quick('approved')},
-   {key:'attention',icon:AlertTriangle,value:dash(count.attention),label:L('Υπό παρακολούθηση / μη αποδεκτοί','Under monitoring / not accepted'),tone:count.attention?'warning':'neutral',active:supplierFilters.quick==='attention',go:()=>quick('attention')},
+   {key:'attention',icon:AlertTriangle,value:dash(count.attention),label:L('Υπό όρους / απορρίπτονται','Conditional / rejected'),tone:count.attention?'warning':'neutral',active:supplierFilters.quick==='attention',go:()=>quick('attention')},
    {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:count.evaluationDue?'warning':'neutral',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
    {key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά που λήγουν','Certificates expiring'),tone:count.certificates?'warning':'neutral',active:supplierFilters.quick==='certificates',go:()=>quick('certificates')},
    {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Ανοιχτές μη συμμορφώσεις','Open nonconformities'),tone:count.nonconformities?'danger':'neutral',active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
@@ -287,6 +287,7 @@ export function QualityPage(){
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και το εύρημα ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and the finding to the corrective action, the objectives and the management review.')}
   actions={<div className="row-actions">
    {download}
+   {tab==='audits'&&<ActionButton label={L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires')} tone="neutral" onClick={()=>{remember();goTo('/quality/audit-questionnaires')}}><ListChecks size={17}/><span>{L('Ερωτηματολόγια','Questionnaires')}</span></ActionButton>}
    {tab==='reports'&&canReportIncident&&<ActionButton label={L('Οι αναφορές συμβάντων μου','My incident reports')} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{L('Οι αναφορές μου','My reports')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
@@ -307,7 +308,7 @@ export function QualityPage(){
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>}
    {tab==='audits'&&<AuditsList rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}
-    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null}/>}
+    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} findings={records.data.findings}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
