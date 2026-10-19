@@ -148,4 +148,14 @@ describe('protocol currency review: database and wiring', () => {
     expect(fn).not.toMatch(/from\('notification_outbox'\)/)
     expect(fn).toMatch(/draftPrompt\(\{ sections: text\.sections/)
   })
+
+  it('reads every protocol page by page and retries a failed reading a few times, never one that stopped the worker', () => {
+    const fn = fs.readFileSync(new URL('../supabase/functions/protocol-review/index.ts', import.meta.url), 'utf8')
+    const sql = fs.readFileSync(new URL('../supabase/migrations/20261121140400_protocol_text_versions_attempts.sql', import.meta.url), 'utf8')
+    expect(fn).not.toMatch(/\.limit\(2000\)/)
+    expect(fn).toMatch(/\.range\(from, from \+ DOC_PAGE - 1\)/)
+    expect(fn).toMatch(/text\.error !== 'INTERRUPTED' && Number\(text\.attempts \|\| 0\) < MAX_ATTEMPTS/)
+    expect(fn).toMatch(/const MAX_ATTEMPTS = 3/)
+    expect(sql).toMatch(/add column if not exists attempts integer not null default 0/)
+  })
 })

@@ -8,7 +8,8 @@ import {
 
 // Έλεγχος επικαιρότητας πρωτοκόλλων. Called by pg_cron (private.protocol_review_dispatch)
 // with the scheduler secret from Vault, never by a browser. Tasks:
-//   extract  read the text of protocols not read yet (one row per document version);
+//   extract  read the text of protocols not read yet (one row per document version),
+//            and again a failed reading, a few times (protocol_text_versions.attempts);
 //   compare  review date, age and cited sources → suggestions (and optional drafts);
 //   nightly  extract in small batches (each in its own invocation), then compare.
 // Nothing in controlled_documents changes. No e-mail, no notification_outbox.
@@ -22,6 +23,11 @@ const BUCKET = 'attachments'
 const MAX_BODY_CHARS = 400000
 const MAX_FILE_BYTES = 25 * 1024 * 1024
 const STUCK_MINUTES = 15
+// A failed reading (download or parsing error) is tried again on a later run, up to
+// MAX_ATTEMPTS in all; one that stopped the worker (INTERRUPTED) only on request.
+const MAX_ATTEMPTS = 3
+const RETRY_AFTER_MINUTES = 60
+const DOC_PAGE = 1000
 const CURRENT = ['published', 'approved']
 const env = (name: string, fallback: number) => { const v = Number(Deno.env.get(name)); return Number.isFinite(v) && v > 0 ? v : fallback }
 const MAX_DRAFTS_PER_NIGHT = env('PROTOCOL_REVIEW_MAX_DRAFTS', 5)
@@ -85,42 +91,55 @@ async function extractionQueue(admin: Admin, organizationId: string | null, retr
   let stuck = admin.from('protocol_text_versions').update({ status: 'failed', error: 'INTERRUPTED' }).eq('status', 'processing').lt('started_at', stuckBefore)
   if (organizationId) stuck = stuck.eq('organization_id', organizationId)
   await stuck
-  let q = admin.from('controlled_documents').select('id,organization_id,version').eq('document_type', 'protocol').in('status', [...CURRENT, 'draft', 'review']).order('updated_at', { ascending: false }).limit(2000)
-  if (organizationId) q = q.eq('organization_id', organizationId)
-  const { data: docs, error } = await q
-  if (error) throw error
-  const ids = (docs || []).map((d: Admin) => d.id)
+  // Every protocol, page by page (no fixed window that would leave older ones unread).
+  const docs: Admin[] = []
+  for (let from = 0; ; from += DOC_PAGE) {
+    let q = admin.from('controlled_documents').select('id,organization_id,version').eq('document_type', 'protocol').in('status', [...CURRENT, 'draft', 'review']).order('updated_at', { ascending: false }).order('id').range(from, from + DOC_PAGE - 1)
+    if (organizationId) q = q.eq('organization_id', organizationId)
+    const { data, error } = await q
+    if (error) throw error
+    docs.push(...(data || []))
+    if ((data || []).length < DOC_PAGE) break
+  }
+  const retryBefore = new Date(Date.now() - RETRY_AFTER_MINUTES * 60000).toISOString()
+  const ids = docs.map((d: Admin) => d.id)
   const texts = new Map<string, Admin>(), files = new Map<string, Admin[]>()
   for (let i = 0; i < ids.length; i += 200) {
     const chunk = ids.slice(i, i + 200)
     const [{ data: t }, { data: a }] = await Promise.all([
-      admin.from('protocol_text_versions').select('id,document_id,status,error,attachment_ids').in('document_id', chunk),
+      admin.from('protocol_text_versions').select('id,document_id,status,error,attachment_ids,attempts,extracted_at').in('document_id', chunk),
       admin.from('attachments').select('id,entity_id,file_name,storage_path,mime_type,size_bytes,created_at').eq('entity_type', 'controlled_document').is('deleted_at', null).in('entity_id', chunk),
     ])
     for (const row of t || []) texts.set(row.document_id, row)
     for (const row of a || []) { const list = files.get(row.entity_id) || []; list.push(row); files.set(row.entity_id, list) }
   }
   const queue: Array<{ doc: Admin, text: Admin | null, files: Admin[] }> = []
-  for (const doc of docs || []) {
+  for (const doc of docs) {
     const list = (files.get(doc.id) || []).sort((x: Admin, y: Admin) => String(x.created_at).localeCompare(String(y.created_at)))
     const text = texts.get(doc.id) || null
     if (text?.status === 'processing') continue
-    // A file that stopped the worker is not tried again every night, only on request.
-    if (text?.status === 'failed' && text.error === 'INTERRUPTED' && !retryFailed) continue
     const current = list.map((f: Admin) => f.id)
-    if (text && sameIds(text.attachment_ids || [], current) && !(retryFailed && text.status === 'failed')) continue
+    const same = Boolean(text) && sameIds(text.attachment_ids || [], current)
+    if (same && text.status === 'failed') {
+      // A file that stopped the worker is not tried again every night, only on request;
+      // any other failure is retried on a later run, a few times.
+      const retry = retryFailed || (text.error !== 'INTERRUPTED' && Number(text.attempts || 0) < MAX_ATTEMPTS && String(text.extracted_at || '') < retryBefore)
+      if (!retry) continue
+    } else if (same) continue
     queue.push({ doc, text, files: list })
   }
   return queue
 }
 
-async function claim(admin: Admin, item: { doc: Admin, text: Admin | null }) {
+async function claim(admin: Admin, item: { doc: Admin, text: Admin | null, files: Admin[] }) {
   const now = new Date().toISOString()
   if (!item.text) {
-    const { data } = await admin.from('protocol_text_versions').upsert({ organization_id: item.doc.organization_id, document_id: item.doc.id, document_version: item.doc.version, status: 'processing', started_at: now }, { onConflict: 'document_id', ignoreDuplicates: true }).select('id')
+    const { data } = await admin.from('protocol_text_versions').upsert({ organization_id: item.doc.organization_id, document_id: item.doc.id, document_version: item.doc.version, status: 'processing', started_at: now, attempts: 1 }, { onConflict: 'document_id', ignoreDuplicates: true }).select('id')
     return data?.[0]?.id || null
   }
-  const { data } = await admin.from('protocol_text_versions').update({ status: 'processing', started_at: now, error: null, document_version: item.doc.version }).eq('id', item.text.id).neq('status', 'processing').select('id')
+  // New attachments start the count of readings again.
+  const attempts = sameIds(item.text.attachment_ids || [], item.files.map(f => f.id)) ? Number(item.text.attempts || 0) + 1 : 1
+  const { data } = await admin.from('protocol_text_versions').update({ status: 'processing', started_at: now, error: null, document_version: item.doc.version, attempts }).eq('id', item.text.id).neq('status', 'processing').select('id')
   return data?.[0]?.id || null
 }
 
