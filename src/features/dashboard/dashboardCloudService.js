@@ -11,9 +11,25 @@ const startOfToday=()=>`${new Date().toISOString().slice(0,10)}T00:00:00.000Z`
 const endOfToday=()=>`${new Date().toISOString().slice(0,10)}T23:59:59.999Z`
 const addDays=(days)=>{const d=new Date();d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
 
+// The home page and the bell ask for the same counts when the home page
+// opens: one read serves both for a short while.
+const SHARE_MS=30*1000
+const shared=new Map()
+export function forgetDashboardMetrics(){shared.clear()}
+
 // `departmentIds` narrows the department-level counts to a department role's own departments.
-export async function loadDashboardMetrics(organizationId,{departmentIds=null}={}){
-  if(!hasSupabaseConfig||!supabase||!organizationId)return {}
+export function loadDashboardMetrics(organizationId,{departmentIds=null}={}){
+  if(!hasSupabaseConfig||!supabase||!organizationId)return Promise.resolve({})
+  const key=`${organizationId}|${departmentIds?.length?[...departmentIds].sort().join(','):'*'}`
+  const now=Date.now(),hit=shared.get(key)
+  if(hit&&now-hit.at<SHARE_MS)return hit.promise
+  const promise=readDashboardMetrics(organizationId,departmentIds)
+  shared.set(key,{at:now,promise})
+  promise.catch(()=>{if(shared.get(key)?.promise===promise)shared.delete(key)})
+  return promise
+}
+
+async function readDashboardMetrics(organizationId,departmentIds){
   const now=new Date().toISOString(),today=new Date().toISOString().slice(0,10),monthAgo=addDays(-30),soon=addDays(30)
   const q=(table)=>supabase.from(table).select('id',{count:'exact',head:true}).eq('organization_id',organizationId)
   const departmental=departmentIds?.length?(table)=>q(table).in('department_id',departmentIds):q
