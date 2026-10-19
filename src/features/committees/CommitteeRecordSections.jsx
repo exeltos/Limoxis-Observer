@@ -401,7 +401,26 @@ export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }) {
           </thead>
           <tbody>
             {rows.map(x => (
-              <tr key={x.id}>
+              // A decision row opens the decision (for those who manage decisions).
+              <tr
+                key={x.id}
+                className={canManage ? 'clickable-row' : undefined}
+                tabIndex={canManage ? 0 : undefined}
+                onClick={canManage ? () => onEdit(x) : undefined}
+                onKeyDown={
+                  canManage
+                    ? event => {
+                        if (
+                          event.target === event.currentTarget &&
+                          (event.key === 'Enter' || event.key === ' ')
+                        ) {
+                          event.preventDefault()
+                          onEdit(x)
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <td>
                   <strong>{x.title}</strong>
                   <small>{x.action || '—'}</small>
@@ -414,7 +433,10 @@ export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }) {
                   </span>
                 </td>
                 {canManage && (
-                  <td>
+                  <td
+                    onClick={event => event.stopPropagation()}
+                    onKeyDown={event => event.stopPropagation()}
+                  >
                     <OverflowMenu
                       label={en ? 'Decision actions' : 'Ενέργειες απόφασης'}
                       items={[

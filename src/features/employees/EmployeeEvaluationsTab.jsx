@@ -187,7 +187,9 @@ export function EmployeeEvaluationsTab({
                   {paging.paged.map(row => (
                     <tr key={row.id} tabIndex={0} onClick={() => setSelected(row)}>
                       <td>
-                        <strong title={en ? row.titleEn : row.titleEl}>{en ? row.titleEn : row.titleEl}</strong>
+                        <strong title={en ? row.titleEn : row.titleEl}>
+                          {en ? row.titleEn : row.titleEl}
+                        </strong>
                       </td>
                       <td>{row.period || '—'}</td>
                       <td>

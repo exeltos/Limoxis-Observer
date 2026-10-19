@@ -438,7 +438,12 @@ export function EmployeeRecordPage({ selfMode = false }) {
       kind: en ? 'Employee details' : 'Στοιχεία εργαζομένου',
       code: employee.id,
       title: name,
-      subtitle: [pick(employee.profession, employee.professionEn), pick(employee.department, employee.departmentEn)].filter(Boolean).join(' · '),
+      subtitle: [
+        pick(employee.profession, employee.professionEn),
+        pick(employee.department, employee.departmentEn),
+      ]
+        .filter(Boolean)
+        .join(' · '),
       meta: [
         [en ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου', employee.id],
         [en ? 'Status' : 'Κατάσταση', t(employee.employmentStatus)],
@@ -451,11 +456,18 @@ export function EmployeeRecordPage({ selfMode = false }) {
         [t('employeesRecords.hireDate'), employee.hireDate ? fmt(employee.hireDate) : ''],
         [t('employeesRecords.email'), employee.email],
         [t('phone'), employee.phone],
-        [en ? 'User account' : 'Λογαριασμός χρήστη', employee.accountLinked ? (en ? 'Linked' : 'Συνδεδεμένος') : (en ? 'None' : 'Κανένας')],
+        [
+          en ? 'User account' : 'Λογαριασμός χρήστη',
+          employee.accountLinked ? (en ? 'Linked' : 'Συνδεδεμένος') : en ? 'None' : 'Κανένας',
+        ],
       ],
       filename: `${employee.id}_${en ? 'employee' : 'ergazomenos'}`,
     })
-    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+    if (!ok)
+      notify(
+        en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.',
+        'error',
+      )
   }
   const headerActions = (
     <>

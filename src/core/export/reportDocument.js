@@ -22,33 +22,60 @@
 //   footer: 'text'                       // left footer text (defaults to code · title)
 // }
 // Table cells are text, or { text | html, className, colSpan, align }.
-import { DEMO_REPORT_MARK_EL, DEMO_REPORT_MARK_EN, getReportBranding } from '../organization/branding'
+import {
+  DEMO_REPORT_MARK_EL,
+  DEMO_REPORT_MARK_EN,
+  getReportBranding,
+} from '../organization/branding'
 import { formatDateTime } from '../i18n/formatDay'
 
-export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+export const escapeHtml = value =>
+  String(value ?? '').replace(
+    /[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  )
 // A CSS string for the page margin boxes. «<» is escaped too, so no text can close the <style>.
-const cssString = value => `"${String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/</g, '\\3c ').replace(/[\r\n]+/g, ' ')}"`
+const cssString = value =>
+  `"${String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/</g, '\\3c ')
+    .replace(/[\r\n]+/g, ' ')}"`
 const text = (value, fallback = '—') => {
   const v = value == null ? '' : String(value)
   return v.trim() ? escapeHtml(v).replace(/\n/g, '<br>') : fallback
 }
 
 export function reportFileName(doc, branding = getReportBranding()) {
-  const base = String(doc?.filename || [doc?.code, doc?.title].filter(Boolean).join('_') || 'report').trim().replace(/[^\p{L}\p{N}._-]+/gu, '_').replace(/^_+|_+$/g, '') || 'report'
+  const base =
+    String(doc?.filename || [doc?.code, doc?.title].filter(Boolean).join('_') || 'report')
+      .trim()
+      .replace(/[^\p{L}\p{N}._-]+/gu, '_')
+      .replace(/^_+|_+$/g, '') || 'report'
   return branding?.demo && !base.startsWith('DEMO_') ? `DEMO_${base}` : base
 }
 
 function cell(value, tag = 'td') {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
-    const attrs = [value.className && `class="${escapeHtml(value.className)}"`, value.colSpan > 1 && `colspan="${Number(value.colSpan)}"`, value.align && `style="text-align:${value.align === 'right' ? 'right' : value.align === 'center' ? 'center' : 'left'}"`].filter(Boolean).join(' ')
+    const attrs = [
+      value.className && `class="${escapeHtml(value.className)}"`,
+      value.colSpan > 1 && `colspan="${Number(value.colSpan)}"`,
+      value.align &&
+        `style="text-align:${value.align === 'right' ? 'right' : value.align === 'center' ? 'center' : 'left'}"`,
+    ]
+      .filter(Boolean)
+      .join(' ')
     return `<${tag}${attrs ? ` ${attrs}` : ''}>${value.html != null ? value.html : text(value.text, '')}</${tag}>`
   }
   return `<${tag}>${text(value, '')}</${tag}>`
 }
 
 export function reportTableHtml({ columns = [], rows = [], foot = null, empty } = {}, en = false) {
-  if (!rows.length) return `<p class="rd-empty">${escapeHtml(empty || (en ? 'No entries.' : 'Δεν υπάρχουν εγγραφές.'))}</p>`
-  const head = columns.length ? `<thead><tr>${columns.map(column => cell(typeof column === 'object' ? column : { text: column }, 'th')).join('')}</tr></thead>` : ''
+  if (!rows.length)
+    return `<p class="rd-empty">${escapeHtml(empty || (en ? 'No entries.' : 'Δεν υπάρχουν εγγραφές.'))}</p>`
+  const head = columns.length
+    ? `<thead><tr>${columns.map(column => cell(typeof column === 'object' ? column : { text: column }, 'th')).join('')}</tr></thead>`
+    : ''
   const body = rows.map(row => `<tr>${row.map(value => cell(value)).join('')}</tr>`).join('')
   const footer = foot ? `<tfoot><tr>${foot.map(value => cell(value)).join('')}</tr></tfoot>` : ''
   return `<table class="rd-table" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
@@ -74,14 +101,28 @@ function signaturesHtml(signatures = [], en) {
 
 function sectionHtml(section, number, en) {
   const parts = []
-  if (section.text) parts.push(String(section.text).split(/\n{2,}/).map(p => `<p>${text(p, '')}</p>`).join(''))
+  if (section.text)
+    parts.push(
+      String(section.text)
+        .split(/\n{2,}/)
+        .map(p => `<p>${text(p, '')}</p>`)
+        .join(''),
+    )
   if (section.facts) parts.push(factsHtml(section.facts, section.factColumns || 2))
-  if (section.list?.length) parts.push(`<ul>${section.list.map(item => `<li>${text(item, '')}</li>`).join('')}</ul>`)
+  if (section.list?.length)
+    parts.push(`<ul>${section.list.map(item => `<li>${text(item, '')}</li>`).join('')}</ul>`)
   if (section.table) parts.push(reportTableHtml(section.table, en))
-  if (section.tables) section.tables.forEach(table => parts.push(`${table.title ? `<h3>${escapeHtml(table.title)}</h3>` : ''}${reportTableHtml(table, en)}`))
+  if (section.tables)
+    section.tables.forEach(table =>
+      parts.push(
+        `${table.title ? `<h3>${escapeHtml(table.title)}</h3>` : ''}${reportTableHtml(table, en)}`,
+      ),
+    )
   if (section.html) parts.push(section.html)
   if (section.note) parts.push(`<p class="rd-note">${text(section.note, '')}</p>`)
-  const title = section.title ? `<h2>${number ? `${number}. ` : ''}${escapeHtml(section.title)}</h2>` : ''
+  const title = section.title
+    ? `<h2>${number ? `${number}. ` : ''}${escapeHtml(section.title)}</h2>`
+    : ''
   return `<section class="rd-section${section.keepTogether ? ' rd-keep' : ''}">${title}${parts.join('')}</section>`
 }
 
@@ -156,7 +197,10 @@ function pageCss(doc, branding, printedOn, en) {
   return `@page{size:${size};margin:12mm 11mm 14mm;@top-right{content:${cssString(top)};font:7.5pt Arial,sans-serif;color:#8296a8}@bottom-left{content:${cssString(left)};font:7.5pt Arial,sans-serif;color:#5d7083}@bottom-center{content:${cssString(center)};font:7.5pt Arial,sans-serif;color:${branding?.demo ? '#9a3412' : '#5d7083'}}@bottom-right{content:${cssString(en ? 'Page ' : 'Σελίδα ')} counter(page) " / " counter(pages);font:7.5pt Arial,sans-serif;color:#5d7083}}@page:first{@top-right{content:none}}`
 }
 
-export function buildReportHtml(doc = {}, { branding = getReportBranding(), word = false, now = new Date() } = {}) {
+export function buildReportHtml(
+  doc = {},
+  { branding = getReportBranding(), word = false, now = new Date() } = {},
+) {
   const en = doc.language === 'en'
   const printedOn = formatDateTime(now.toISOString(), doc.language || 'el')
   const demoMark = en ? DEMO_REPORT_MARK_EN : DEMO_REPORT_MARK_EL
@@ -166,13 +210,25 @@ export function buildReportHtml(doc = {}, { branding = getReportBranding(), word
   if (doc.body != null) main = doc.body
   else {
     let n = 0
-    const sections = (doc.sections || []).filter(Boolean).map(section => sectionHtml(section, section.title && doc.numbered !== false ? ++n : 0, en)).join('')
+    const sections = (doc.sections || [])
+      .filter(Boolean)
+      .map(section => sectionHtml(section, section.title && doc.numbered !== false ? ++n : 0, en))
+      .join('')
     main = `<h1 class="rd-title">${escapeHtml(doc.title || '')}</h1>${doc.subtitle ? `<p class="rd-subtitle">${escapeHtml(doc.subtitle)}</p>` : ''}${factsHtml(doc.meta || [], doc.metaColumns || 2)}${sections}${signaturesHtml(doc.signatures || [], en)}`
   }
-  const footerText = [doc.footer || [doc.code, doc.title].filter(Boolean).join(' · '), `${en ? 'Printed' : 'Εκτύπωση'} ${printedOn}`, branding?.demo ? demoMark : ''].filter(Boolean).map(escapeHtml).join(' · ')
+  const footerText = [
+    doc.footer || [doc.code, doc.title].filter(Boolean).join(' · '),
+    `${en ? 'Printed' : 'Εκτύπωση'} ${printedOn}`,
+    branding?.demo ? demoMark : '',
+  ]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join(' · ')
   // Word ignores the page margin boxes: the footer line closes the document instead.
   const wordFooter = word ? `<p class="rd-word-footer">${footerText}</p>` : ''
-  const wordPage = word ? `@page Section1{size:${doc.orientation === 'landscape' ? '841.9pt 595.3pt;mso-page-orientation:landscape' : '595.3pt 841.9pt'};margin:42pt 36pt 42pt 36pt}div.Section1{page:Section1}` : ''
+  const wordPage = word
+    ? `@page Section1{size:${doc.orientation === 'landscape' ? '841.9pt 595.3pt;mso-page-orientation:landscape' : '595.3pt 841.9pt'};margin:42pt 36pt 42pt 36pt}div.Section1{page:Section1}`
+    : ''
   const width = doc.orientation === 'landscape' ? '297mm' : '210mm'
   const head = `<meta charset="utf-8"><title>${escapeHtml(reportFileName(doc, branding))}</title><style>${REPORT_CSS}:root{--rd-width:${width}}${word ? wordPage : pageCss(doc, branding, printedOn, en)}</style>`
   const html = word
@@ -192,7 +248,13 @@ export function printReport(doc, options = {}) {
   win.document.close()
   win.focus()
   // Images (the logo) load before the print dialog takes its snapshot.
-  const go = () => { try { win.print() } catch { /* the window was closed */ } }
+  const go = () => {
+    try {
+      win.print()
+    } catch {
+      /* the window was closed */
+    }
+  }
   if (win.document.readyState === 'complete') setTimeout(go, 300)
   else win.addEventListener('load', () => setTimeout(go, 200), { once: true })
   return true
