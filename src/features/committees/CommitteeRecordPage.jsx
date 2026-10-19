@@ -239,6 +239,8 @@ export function CommitteeRecordPage() {
       employeeId: person?.id || '',
       employeeDbId: person?.dbId || null,
       name: person?.name || manualName,
+      // A name typed by hand matches no employee: the member is outside the staff.
+      external: !person,
       department: person?.department || '',
       profession: person?.profession || '',
       committeeTitle: draft.committeeTitle || 'Μέλος',

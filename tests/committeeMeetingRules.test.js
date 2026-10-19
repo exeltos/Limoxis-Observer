@@ -70,3 +70,12 @@ describe('attendanceFor', () => {
     expect(rows.map(row => row.id)).toEqual(['ATT-M1', 'FM-ATT-1'])
   })
 })
+
+describe('committee member outside staff', () => {
+  it('maps is_external to the «Εκτός προσωπικού» flag', async () => {
+    const { fromMemberRow } = await import('../src/features/committees/committeeService')
+    const base = { id: 'm1', member_name: 'X', title: 'Μέλος', has_vote: true, member_type: 'regular', approval_status: 'not_required' }
+    expect(fromMemberRow({ ...base, is_external: true }).external).toBe(true)
+    expect(fromMemberRow(base).external).toBe(false)
+  })
+})
