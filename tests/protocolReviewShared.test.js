@@ -129,6 +129,14 @@ describe('comparison', () => {
     expect(f.affected_sections).toEqual(['instructions', 'references'])
   })
 
+  it('measures source changes from the newest of effective and published dates (a revision keeps the old effective date)', () => {
+    const source = { id: 's1', source_key: 'news2', name: 'NEWS2' }
+    const clinicalChanges = [{ source, historyId: 'h1', checkedAt: '2026-03-02T08:00:00Z' }]
+    const revision = { ...doc, effective_date: '2025-01-01', published_at: '2026-04-01T10:00:00Z' }
+    expect(evaluateProtocol({ doc: revision, sections, references, text: SAMPLE, today, clinicalChanges }).filter(f => f.reason === 'source_changed')).toEqual([])
+    expect(evaluateProtocol({ doc: { ...revision, published_at: '2025-02-01T10:00:00Z' }, sections, references, text: SAMPLE, today, clinicalChanges }).filter(f => f.reason === 'source_changed')).toHaveLength(1)
+  })
+
   it('flags cited legislation that was updated, by law number', () => {
     const change = { text: { id: 't1', code: 'LEG-005', reference: 'Ν. 3850/2010' }, keys: ['law:3850/2010'], triggerKey: 'legislation:t1:v2', changedAt: '2026-06-01T00:00:00Z', summary: 'Η νομοθεσία ενημερώθηκε.', excerpt: 'Νέα απαίτηση' }
     const findings = evaluateProtocol({ doc, sections, references, text: SAMPLE, today, legislationChanges: [change, { ...change, text: { id: 't2' }, keys: ['law:1/1999'], triggerKey: 'x:t2' }] }).filter(f => f.reason === 'source_changed')
