@@ -17,6 +17,8 @@ const demo=()=>isDemoDataEnvironment()||!supabase
 function assertReady(organizationId){if(!organizationId)throw new Error('Organization is required.')}
 const localAll=()=>{const rows=loadSnapshot(LOCAL,null);return Array.isArray(rows)?rows:riskDemoAssessments()}
 const localSave=rows=>saveSnapshot(LOCAL,rows)
+// The demo risk assessments as they are in this browser (the Analysis demo reads them).
+export const loadRiskAssessmentsLocal=()=>localAll()
 const uid=()=>globalThis.crypto?.randomUUID?.()||`local-${Date.now()}-${Math.random().toString(36).slice(2,9)}`
 const stamp=()=>new Date().toISOString()
 const nullable=value=>value===''||value===undefined?null:value

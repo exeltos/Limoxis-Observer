@@ -30,6 +30,8 @@ function local() {
   saveLocal(state)
   return state
 }
+// The demo suppliers and equipment as they are in this browser (the Analysis demo reads them).
+export const loadResourcesLocal = () => local()
 function saveLocal(state) {
   for (const [field, key] of Object.entries(KEYS)) saveSnapshot(key, state[field])
 }

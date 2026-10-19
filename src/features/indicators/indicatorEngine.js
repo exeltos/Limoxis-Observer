@@ -10,6 +10,8 @@ import { loadTrainingState } from '../training/trainingData'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 import { collectDeviceDaySources, collectNeonatalDeviceDaySourcesByBand, BIRTH_WEIGHT_BANDS,countNeonatalCentralLineCasesMissingBirthWeight} from '../surveillance/deviceDayIndicators'
 import { calculateHaiRate } from '../lira/liraHaiMetrics'
+import { collectDemoQualityFood } from '../analysis/analysisDomains'
+import { qualityFoodIndicatorMetrics } from '../analysis/analysisQualityFood'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
@@ -124,5 +126,7 @@ export function collectIndicatorMetrics(){
   ventilator_days:vap.deviceDays,
   ...neonatalClabsiByBand,
   neonatal_central_line_cases_missing_birth_weight:countNeonatalCentralLineCasesMissingBirthWeight(),
+  // Quality & food safety: audits, kitchen, suppliers, patient satisfaction, risks (same rules as the Analysis section).
+  ...qualityFoodIndicatorMetrics(collectDemoQualityFood()),
  }
 }
