@@ -16,7 +16,7 @@ const seed=[
     history:[{at:'2026-08-10T10:30:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'}]
   },
   {
-    id:'DOC-003',title:'Πρωτόκολλο Απομόνωσης Πολυανθεκτικών Παθογόνων',type:'protocol',department:'Όλο το νοσοκομείο',
+    id:'DOC-003',title:'Πρωτόκολλο Απομόνωσης Πολυανθεκτικών Παθογόνων',type:'protocol',protocolKind:'medical',clinicalArea:'Λοιμώξεις',department:'Όλο το νοσοκομείο',
     audience:'all',status:'review',version:'1.0',owner:'Επιτροπή Νοσοκομειακών Λοιμώξεων',
     effectiveDate:'',reviewDate:'',description:'Κριτήρια και μέτρα προφύλαξης για ασθενείς με MDR/XDR παθογόνα.',
     attachments:[],createdAt:'2026-08-20T08:15:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-08-28T11:00:00.000Z',updatedBy:'Διαχειριστής Demo',
@@ -71,6 +71,73 @@ const seed=[
     history:[
       {at:'2024-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-007 · 1.0'},
       {at:'2026-05-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:published->archived',reason:'Αντικαταστάθηκε από νεότερες οδηγίες ΕΟΔΥ'}
+    ]
+  },
+  {
+    id:'DOC-008',title:'Πρόληψη και αντιμετώπιση αιμορραγίας μετά τον τοκετό',type:'protocol',protocolKind:'medical',clinicalArea:'Μαιευτική',department:'Μαιευτική',
+    audience:'department',status:'published',version:'1.0',owner:'Διευθυντής Μαιευτικής Κλινικής',
+    effectiveDate:'2026-02-01',reviewDate:'2028-02-01',description:'Ιατρικό πρωτόκολλο: εκτίμηση κινδύνου, ενεργητική διαχείριση τρίτου σταδίου και κλιμάκωση θεραπείας.',
+    attachments:[],publishedAt:'2026-02-01T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-20T09:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-02-01T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-20T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-02-01T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-008 · 1.0'}
+    ]
+  }
+,
+  {
+    id:'DOC-009',title:'Καθημερινός έλεγχος απινιδωτή και τροχήλατου ΚΑΡΠΑ',type:'form',department:'ΜΕΘ',
+    audience:'department',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2026-03-02',reviewDate:'',description:'Έντυπο ημερήσιου ελέγχου εξοπλισμού ανάνηψης.',
+    attachments:[],publishedAt:'2026-03-02T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-03-02T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-03-02T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-03-02T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-03-02T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-009 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-010',title:'Λίστα ελέγχου ασφαλούς χειρουργικής',type:'form',department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2026-01-12',reviewDate:'2027-01-12',description:'Έντυπο τριών φάσεων (πριν την αναισθησία, πριν την τομή, πριν την έξοδο).',
+    attachments:[],publishedAt:'2026-01-12T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2026-01-12T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2026-01-12T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2026-01-12T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2026-01-12T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-010 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-011',title:'Άδεια λειτουργίας',type:'licence',renewalMonths:48,requiredBy:['legislation','iso9001'],department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2023-07-19',reviewDate:'2027-07-19',description:'Άδεια λειτουργίας ιδιωτικής κλινικής.',
+    attachments:[],publishedAt:'2023-07-19T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2023-07-19T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2023-07-19T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2023-07-19T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2023-07-19T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-011 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-012',title:'Πιστοποιητικό πυρασφάλειας',type:'licence',renewalMonths:60,requiredBy:['legislation'],department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2021-11-05',reviewDate:'2026-11-05',description:'Πιστοποιητικό ενεργητικής πυροπροστασίας της πυροσβεστικής υπηρεσίας.',
+    attachments:[],publishedAt:'2021-11-05T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2021-11-05T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2021-11-05T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2021-11-05T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2021-11-05T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-012 · 1.0'}
+    ]
+  },
+  {
+    id:'DOC-013',title:'Πιστοποιητικό ανελκυστήρων',type:'licence',renewalMonths:12,requiredBy:['legislation','iso9001'],department:'Όλο το νοσοκομείο',
+    audience:'all',status:'published',version:'1.0',owner:'Γραφείο Ποιότητας',
+    effectiveDate:'2025-09-30',reviewDate:'2026-09-30',description:'Ετήσια επιθεώρηση ανελκυστήρων από φορέα ελέγχου.',
+    attachments:[],publishedAt:'2025-09-30T09:00:00.000Z',publishedBy:'Διαχειριστής Demo',
+    createdAt:'2025-09-30T08:00:00.000Z',createdBy:'Διαχειριστής Demo',updatedAt:'2025-09-30T09:00:00.000Z',updatedBy:'Διαχειριστής Demo',
+    history:[
+      {at:'2025-09-30T08:00:00.000Z',actor:'Διαχειριστής Demo',action:'Δημιουργία εγγράφου',reason:'Αρχική έκδοση'},
+      {at:'2025-09-30T09:00:00.000Z',actor:'Διαχειριστής Demo',action:'status:approved->published',reason:'DOC-013 · 1.0'}
     ]
   }
 ]

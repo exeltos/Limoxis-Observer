@@ -1,5 +1,6 @@
 // Demo dates are written relative to now, so they never need the Demo clock.
 import { seededRandom } from '../../core/data/demoSeed'
+import { nextDueAfterExecution,periodBounds } from './controlDueRules'
 const iso=offsetHours=>{
  const d=new Date()
  d.setTime(d.getTime()+offsetHours*60*60*1000)
@@ -63,7 +64,10 @@ const AUDIT_ITEMS=[
  ['Ενημερωμένο φύλλο καθαριότητας θαλάμου','Room cleaning log up to date'],
 ]
 const definition4={...definition2,created_at:iso(-24*58),id:'ctrl-def-audit',code:'CTRL-DEMO-0004',title:'Εβδομαδιαία επιθεώρηση θαλάμων',category:'Επιθεώρηση με λίστα ελέγχου',description:'Επιθεώρηση θαλάμων με τη λίστα ελέγχου υγιεινής και καθαριότητας. Σε κάθε «Όχι» σημειώστε τι βρέθηκε.',response_config:{mode:'checklist',label:'Λίστα ελέγχου',criticality:'medium',checklist:AUDIT_ITEMS.map(([el,en],index)=>({id:`audit-${index+1}`,el,en,required:true})),deviationActions:'Άμεση διόρθωση όπου είναι δυνατό και ενημέρωση της Προϊσταμένης τμήματος.',__meta:{titleEn:'Weekly ward audit',ownerLabel:'Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)',ownerPerson:{employeeId:'demo-nel',name:'Παπαδοπούλου Ελένη',nameEn:'Eleni Papadopoulou',userId:null},location:'Θάλαμος',createdByScope:'infection_control'}},frequency_config:{kind:'weekly',interval:1,timesPerDay:1,times:['10:00']}}
-export const controlDefinitionRows=[definition1,definition2,definition3,definition4]
+// Four times a day: the ICU has done today's four, the internal ward three, so
+// the list shows «4/4 σήμερα» / «3/4 σήμερα» and the entry screen the guard.
+const definition5={...definition1,id:'ctrl-def-hand-rub',code:'CTRL-DEMO-0005',title:'Έλεγχος διαθεσιμότητας αλκοολούχου αντισηπτικού',category:'Υγιεινή χεριών',description:'Έλεγχος ότι κάθε σημείο φροντίδας έχει αντισηπτικό σε επάρκεια, σε κάθε βάρδια.',response_config:{mode:'choice',options:['Συμμορφώνεται','Μη συμμόρφωση'],label:'Κατάσταση',criticality:'medium',__meta:{titleEn:'Alcohol hand rub availability check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},frequency_config:{kind:'daily',timesPerDay:4,times:['07:00','11:00','15:00','19:00'],interval:1},created_at:iso(-24*41)}
+export const controlDefinitionRows=[definition1,definition2,definition3,definition4,definition5]
 
 const assignment1={
  id:'ctrl-asg-fridge-icu',
@@ -246,5 +250,32 @@ for(const [assignment,department,actorName,lastDay] of [[assignment6,'ΜΕΘ','�
  }
 }
 
+// The four-a-day control: 30 days of four entries, and today's entries spread
+// between the start of the day and now.
+{
+ const dayStart=periodBounds(definition5.frequency_config,new Date()).start.getTime()
+ const todayAt=(i,count)=>new Date(dayStart+((Date.now()-dayStart)*(i+1))/(count+1)).toISOString()
+ for(const [id,department,actorName,todayCount] of [['ctrl-asg-hand-rub-icu','ΜΕΘ','Ελένη Παπαδοπούλου',4],['ctrl-asg-hand-rub-internal','Παθολογική','Νίκος Δημητρίου',3]]){
+  const entries=[]
+  for(let day=40;day>=1;day-=1)for(const hour of [7,11,15,19])entries.push(new Date(dayStart-day*86_400_000+(hour-1)*3_600_000+15*60_000).toISOString())
+  for(let i=0;i<todayCount;i+=1)entries.push(todayAt(i,todayCount))
+  entries.forEach((at,index)=>controlExecutionRows.push({id:`ctrl-exec-${id}-${index}`,assignment_id:id,control_id:definition5.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:'Συμμορφώνεται',response_data:{structuredData:null,actorName,actorEmail:''},notes:'',has_finding:false,performed_at:at,performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''}))
+  const last=entries[entries.length-1]
+  controlAssignmentRows.push({id,control_id:definition5.id,organization_id:'demo-hospital',department_id:department,department:departmentRow(department),status:'scheduled',last_completed_at:last,next_due_at:nextDueAfterExecution(definition5.frequency_config,new Date(last),todayCount)})
+ }
+}
+
 export const controlDraftRows=[{id:'ctrl-draft-expiry-1',assignment_id:assignment4.id,control_id:definition3.id,organization_id:'demo-hospital',department_id:'Παθολογική',status:'draft',value_text:'Κοντόληκτο',response_data:{structuredData:{rows:[{item:'Adrenaline 1mg/ml',quantity:'6',lot:'AD2291',expiry:'2026-10-15',finding:'Κοντόληκτο',findingOther:''}]},actorName:'Demo User'},notes:'Σε εξέλιξη ο έλεγχος ραφιού.',has_finding:true,performed_at:null}]
 
+
+// Every demo assignment's last entry and next due date follow from its entries
+// with the due rules (controlDueRules), as the database trigger keeps them.
+for(const assignment of controlAssignmentRows){
+ const definition=controlDefinitionRows.find(row=>row.id===assignment.control_id)
+ const entries=controlExecutionRows.filter(row=>row.assignment_id===assignment.id&&row.status!=='cancelled'&&!row.is_extra&&row.performed_at).map(row=>row.performed_at).sort()
+ if(!definition||!entries.length)continue
+ const last=entries[entries.length-1]
+ const {start,end}=periodBounds(definition.frequency_config,new Date(last))
+ assignment.last_completed_at=last
+ assignment.next_due_at=nextDueAfterExecution(definition.frequency_config,new Date(last),entries.filter(at=>new Date(at)>=start&&new Date(at)<end).length)
+}

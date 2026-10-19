@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   CalendarDays,
   CheckCircle2,
@@ -22,6 +23,8 @@ import {
   frequencyLabel,
   quorumLabel,
 } from './committeeRecordFormat'
+import { CheckboxField } from '../../design-system/CheckboxField'
+import { memberBadgeRoles, memberRoleLabel, sortMembersByRole } from './committeeMemberRoles'
 
 // Tab sections of the committee record page (CommitteeRecordPage.jsx).
 export function Head({ title, subtitle, action }) {
@@ -165,6 +168,11 @@ export function Overview({ record, members, en }) {
 }
 
 export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
+  // Former members stay on record (attendance history points at them) but are
+  // hidden from the list unless asked for.
+  const [showFormer, setShowFormer] = useState(false)
+  const formerCount = rows.filter(m => m.active === false).length
+  const visible = sortMembersByRole(showFormer ? rows : rows.filter(m => m.active !== false))
   return (
     <section className="record-section">
       <Head
@@ -187,12 +195,21 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
           )
         }
       />
+      {formerCount > 0 && (
+        <CheckboxField
+          className="committee-former-toggle"
+          label={en ? `Show former members (${formerCount})` : `Εμφάνιση πρώην μελών (${formerCount})`}
+          checked={showFormer}
+          onChange={setShowFormer}
+        />
+      )}
       <div className="scroll-table">
         <table className="data-table">
           <thead>
             <tr>
               <th>{en ? 'Member' : 'Μέλος'}</th>
               <th>{en ? 'Role' : 'Ιδιότητα'}</th>
+              <th>{en ? 'Specialty' : 'Ειδικότητα'}</th>
               <th>{en ? 'Responsibilities' : 'Αρμοδιότητες'}</th>
               <th>{en ? 'Vote' : 'Ψήφος'}</th>
               <th>{en ? 'Period' : 'Περίοδος'}</th>
@@ -200,7 +217,7 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(m => (
+            {visible.map(m => (
               <tr key={m.id} className={m.active === false ? 'committee-member-inactive' : ''}>
                 <td>
                   <strong>{m.name}</strong>
@@ -209,10 +226,23 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
                       {en ? 'Outside staff' : 'Εκτός προσωπικού'}
                     </span>
                   )}
+                  {m.active === false && (
+                    <span className="status-badge">{en ? 'Former member' : 'Πρώην μέλος'}</span>
+                  )}
                   <small>{[m.profession, m.department].filter(Boolean).join(' · ') || '—'}</small>
                 </td>
-                <td>{m.committeeTitle || '—'}</td>
-                <td>{m.responsibilities || '—'}</td>
+                <td>
+                  <span className="committee-member-roles">
+                    {memberBadgeRoles(m).map(role => (
+                      <span key={role} className="status-badge active committee-role-badge">
+                        {memberRoleLabel(role, en)}
+                      </span>
+                    ))}
+                  </span>
+                  <small>{m.committeeTitle || '—'}</small>
+                </td>
+                <td className="committee-member-text">{m.specialty || '—'}</td>
+                <td className="committee-member-text">{m.responsibilities || '—'}</td>
                 <td>{m.voting ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}</td>
                 <td>
                   {fmtDate(m.startedAt)} →{' '}
@@ -247,7 +277,7 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
             ))}
           </tbody>
         </table>
-        {!rows.length && (
+        {!visible.length && (
           <div className="inline-empty">
             {en
               ? 'No members yet. Add the committee composition from here.'
@@ -401,7 +431,26 @@ export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }) {
           </thead>
           <tbody>
             {rows.map(x => (
-              <tr key={x.id}>
+              // A decision row opens the decision (for those who manage decisions).
+              <tr
+                key={x.id}
+                className={canManage ? 'clickable-row' : undefined}
+                tabIndex={canManage ? 0 : undefined}
+                onClick={canManage ? () => onEdit(x) : undefined}
+                onKeyDown={
+                  canManage
+                    ? event => {
+                        if (
+                          event.target === event.currentTarget &&
+                          (event.key === 'Enter' || event.key === ' ')
+                        ) {
+                          event.preventDefault()
+                          onEdit(x)
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <td>
                   <strong>{x.title}</strong>
                   <small>{x.action || '—'}</small>
@@ -414,7 +463,10 @@ export function Decisions({ rows, canManage, onAdd, onEdit, onStatus, en }) {
                   </span>
                 </td>
                 {canManage && (
-                  <td>
+                  <td
+                    onClick={event => event.stopPropagation()}
+                    onKeyDown={event => event.stopPropagation()}
+                  >
                     <OverflowMenu
                       label={en ? 'Decision actions' : 'Ενέργειες απόφασης'}
                       items={[

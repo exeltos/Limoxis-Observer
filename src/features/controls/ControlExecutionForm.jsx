@@ -1,17 +1,17 @@
 import { useMemo,useState } from 'react'
-import { FileWarning,History,Plus,Printer,Save,Trash2 } from 'lucide-react'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { CheckCircle2, FileWarning, History, Plus, Save, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { formatDateTime } from '../../core/i18n/formatDay'
-import { ActionButton } from '../../design-system/ActionButton'
+
 import { Button } from '../../design-system/Button'
 import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { Field } from '../../design-system/Field'
 import { IconButton } from '../../design-system/IconButton'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -19,7 +19,8 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { useLibraries } from '../management/useLibraries'
-import { getAssignment,frequencyLabel } from './controlScheduling'
+import { assignmentProgress,getAssignment,frequencyLabel } from './controlScheduling'
+import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlActorFromAuth } from './controlActor'
 import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
@@ -112,7 +113,7 @@ function ResultField({state}){
  const label=(en&&response.label==='Αποτέλεσμα'?'Result':response.label)||(en?'Result':'Αποτέλεσμα')
  if(mode==='choice'){
   const options=choiceOptions(response,answers)
-  return <div className="field control-exec-result"><span className="lo-field-label">{label} *</span><ModeSwitch className="control-exec-choice" ariaLabel={label} value={value} onChange={setValue} options={options.map(option=>({value:option.value,label:answerLabel(option.value,language,answers)}))}/>{isFindingAnswer(response,value,answers)&&<small className="control-exec-alert">{en?'This answer is a finding.':'Η απάντηση αυτή είναι εύρημα.'}</small>}</div>
+  return <div className="field control-exec-result"><SearchableSelect className="control-exec-choice" label={`${label} *`} value={value} onChange={next=>next&&setValue(next)} options={options.map(option=>({value:option.value,label:answerLabel(option.value,language,answers)}))}/>{isFindingAnswer(response,value,answers)&&<small className="control-exec-alert">{en?'This answer is a finding.':'Η απάντηση αυτή είναι εύρημα.'}</small>}</div>
  }
  if(mode==='numeric')return <div className="control-exec-result control-exec-numeric">
   <Field label={`${label}${response.unit?` (${response.unit})`:''} *`}><input autoFocus inputMode="decimal" type="number" step="any" value={value} onChange={e=>setValue(e.target.value)} placeholder={en?'Enter value':'Καταχωρήστε τιμή'} className={outOfRange?'is-out-of-range':''}/></Field>
@@ -165,12 +166,29 @@ function ExecutionFields({state,record,department}){
  </>
 }
 
+// An extra entry («Έκτακτη καταχώρηση») once the period's required entries
+// are done: only with its reason, recorded as such and not counted.
+export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}){
+ const en=language==='en'
+ const [reason,setReason]=useState('')
+ return <ObserverDialog width="compact" className="control-extra-card" eyebrow={en?'Extra entry':'Έκτακτη καταχώρηση'} title={en?'Record an extra entry':'Καταχώρηση πέρα από τις απαιτούμενες'} subtitle={progressCompleteMessage(progress,language)} onClose={onClose} footer={<DialogActions onSave={()=>{if(reason.trim())onConfirm(reason.trim())}} disabled={!reason.trim()} saveLabel={en?'Continue':'Συνέχεια'}/>}>
+  <div className="governance-banner warning"><FileWarning size={17}/><span>{en?'An extra entry is kept with its reason and shown as extra. It does not count towards the required entries or the adherence.':'Η έκτακτη καταχώρηση φυλάσσεται με την αιτιολογία της και εμφανίζεται ως έκτακτη. Δεν μετρά στις απαιτούμενες καταχωρήσεις ούτε στην τήρηση.'}</span></div>
+  <label className="field"><span>{en?'Reason *':'Αιτιολογία *'}</span><textarea autoFocus rows="3" value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'e.g. repeat measurement after a deviation':'π.χ. επαναληπτική μέτρηση μετά από απόκλιση'}/></label>
+ </ObserverDialog>
+}
+
 export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved}){
  const state=useControlExecution({organizationId,record,department,onDraftSaved})
  const {en,language,actor,assignment,structured,expiryControl,hasFinding,valid,draftSaved,draftSaving,persistDraft,payload,printDraft,value,notes,rows}=state
  const navigate=useNavigate()
  const [saving,setSaving]=useState(false)
- async function submit(){if(!valid||saving)return;setSaving(true);try{await onSave?.(payload())}finally{setSaving(false)}}
+ // The over-entry guard: with the period's entries complete only an extra
+ // entry, with its reason, can be saved (the database refuses the rest too).
+ const progress=assignmentProgress(record,department)
+ const [extraReason,setExtraReason]=useState('')
+ const [askExtra,setAskExtra]=useState(false)
+ const blocked=Boolean(progress?.complete)&&!extraReason
+ async function submit(){if(!valid||saving||blocked)return;setSaving(true);try{await onSave?.(extraReason?{...payload(),extra:{reason:extraReason}}:payload())}finally{setSaving(false)}}
  async function report(){
   const draft=await persistDraft();if(!draft)return
   navigate('/quality/report',{state:{controlSource:{controlId:record.id,controlTitle:record.title,department,scheduledAt:assignment?.nextDueAt,value,notes,hasFinding,rows},limoxisFrom:{path:`/controls/${record.id}?department=${encodeURIComponent(department)}&execute=1`,label:record.title}}})
@@ -178,18 +196,21 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
  return <div className="control-execution-page-editor">
   <dl className="control-exec-meta">
-   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(record.frequency,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
+   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(record.frequency,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
   </dl>
+  {progress?.complete&&!extraReason&&<div className="governance-banner control-period-complete" role="status"><CheckCircle2 size={17}/><span><strong>{progressCompleteMessage(progress,language)}</strong> {en?'A further entry is possible only as an extra entry, with its reason.':'Νέα καταχώρηση γίνεται μόνο ως έκτακτη, με αιτιολογία.'}</span><Button variant="secondary" onClick={()=>setAskExtra(true)}>{en?'Extra entry':'Έκτακτη καταχώρηση'}</Button></div>}
+  {extraReason&&<div className="governance-banner warning control-period-extra" role="status"><FileWarning size={17}/><span><strong>{en?'Extra entry':'Έκτακτη καταχώρηση'}</strong> · {extraReason}</span><Button variant="quiet" onClick={()=>setExtraReason('')}>{en?'Cancel':'Ακύρωση'}</Button></div>}
+  {askExtra&&<ControlExtraEntryDialog language={language} progress={progress} onClose={()=>setAskExtra(false)} onConfirm={reason=>{setExtraReason(reason);setAskExtra(false)}}/>}
   <div className="control-exec-main"><ExecutionFields state={state} record={record} department={department}/></div>
   {hasFinding&&!expiryControl&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
   <div className="control-execution-page-tools">
    <div className="control-execution-page-secondary-actions">
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
-    {structured&&<ActionButton tone="neutral" label={expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Print form':'Έντυπο')} onClick={printDraft}><Printer size={15}/><span>{expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Form':'Έντυπο')}</span></ActionButton>}
+    {structured&&<ExportMenu items={[{id:'form',kind:'print',label:expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:printDraft}]}/>}
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<StatusBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</StatusBadge>}
    </div>
-   <SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton>
+   <SaveButton disabled={!valid||saving||blocked} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):extraReason?(en?'Save extra entry':'Αποθήκευση έκτακτης'):(en?'Save entry':'Αποθήκευση')}</SaveButton>
   </div>
  </div>
 }
@@ -200,7 +221,7 @@ export function ControlExecutionModal({organizationId,record,department,onClose,
  const {en,language,actor,structured,valid,payload,printDraft}=state
  const [confirmed,setConfirmed]=useState(false)
  return <ObserverDialog width={structured?'workspace':'wide'} className="control-execution-card" eyebrow={en?'Edit entry':'Επεξεργασία καταχώρησης'} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(record.frequency,language)} · ${en?'original entry':'αρχική καταχώρηση'} ${formatDateTime(initialExecution?.at,language)}`} onClose={onClose} footer={<>
-  {structured&&<IconButton label={en?'Print form':'Εκτύπωση φόρμας'} onClick={printDraft}><Printer size={15}/></IconButton>}
+  {structured&&<ExportMenu compact items={[{id:'form',kind:'print',label:en?'Entry form':'Έντυπο καταχώρησης',onClick:printDraft}]}/>}
   <ChoiceChips className="control-exec-confirm" options={[{value:'confirmed',label:en?'I confirm the corrections are accurate':'Επιβεβαιώνω ότι οι διορθώσεις είναι σωστές'}]} selected={confirmed?['confirmed']:[]} onToggle={()=>setConfirmed(x=>!x)}/>
   <DialogActions onCancel={onClose} onSave={()=>{if(valid&&confirmed)onSave(payload())}} disabled={!confirmed||!valid} saveLabel={en?'Save changes':'Αποθήκευση αλλαγών'}/>
  </>}>

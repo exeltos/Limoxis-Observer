@@ -9,7 +9,7 @@ import { FileClock, FolderOpen, ListTree, UserRound, Stethoscope } from 'lucide-
 import { useLocation, useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { EmptyState } from '../../design-system/EmptyState'
@@ -485,8 +485,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         headerActions={
           selectedAdmission || !patientMode ? (
             <>
-            <PrintExportActions
-              onExport={() =>
+            <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() =>
                 downloadRecordJson(
                   {
                     patient,
@@ -496,9 +495,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                     admissions,
                   },
                   { filename: record?.id || code },
-                )
-              }
-            />
+                )}]} />
             </>
           ) : null
         }

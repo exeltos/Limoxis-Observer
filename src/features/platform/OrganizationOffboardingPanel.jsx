@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AlertTriangle, Archive, CalendarClock, Download, Info, Undo2 } from 'lucide-react'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { AlertTriangle, Archive, CalendarClock, Info, Undo2 } from 'lucide-react'
 import { supabase } from '../../core/supabase/client'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -55,7 +56,7 @@ export function OrganizationOffboardingPanel({organization,language='el',onChang
       <Button variant="secondary" loading={working==='export'} disabled={Boolean(working)} onClick={createExport}><Archive size={15}/>{tx('Δημιουργία αντιγράφου','Create export')}</Button>
       {!state.deletion&&<Button variant="danger" className="button-destructive" disabled={Boolean(working)||state.loading} onClick={()=>setScheduleOpen(true)}><CalendarClock size={15}/>{tx('Προγραμματισμός διαγραφής','Schedule deletion')}</Button>}
     </div>
-    {state.exports.length>0&&<div className="offboarding-exports">{state.exports.map(item=><div className="offboarding-export" key={item.id}><Archive size={15}/><div><strong>{fmtDateTime(item.created_at,en)}</strong><small> · {item.tables_count} {tx('πίνακες','tables')} · {item.rows_count} {tx('εγγραφές','rows')} · {item.files_count} {tx('αρχεία','files')} · {fmtSize(item.file_size)}</small></div><span className="offboarding-spacer"/><Button variant="secondary" loading={working===item.id} disabled={Boolean(working)} onClick={()=>download(item)}><Download size={14}/>{tx('Λήψη','Download')}</Button></div>)}</div>}
+    {state.exports.length>0&&<div className="offboarding-exports">{state.exports.map(item=><div className="offboarding-export" key={item.id}><Archive size={15}/><div><strong>{fmtDateTime(item.created_at,en)}</strong><small> · {item.tables_count} {tx('πίνακες','tables')} · {item.rows_count} {tx('εγγραφές','rows')} · {item.files_count} {tx('αρχεία','files')} · {fmtSize(item.file_size)}</small></div><span className="offboarding-spacer"/><ExportMenu disabled={Boolean(working)} items={[{id:'archive',kind:'data',label:tx('Αρχείο εξαγωγής (.zip)','Export archive (.zip)'),onClick:()=>download(item)}]}/></div>)}</div>}
     {scheduleOpen&&<ScheduleDeletionDialog language={language} organization={organization} graceDays={state.graceDays} recentExport={recentExport} working={working==='schedule'} onSchedule={schedule} onClose={()=>setScheduleOpen(false)}/>}
   </section>
 }
@@ -69,7 +70,7 @@ function ScheduleDeletionDialog({language,organization,graceDays,recentExport,wo
   const ready=reason.trim()&&(recentExport||waived.trim())&&confirmed&&!working
   return <ObserverDialog width="standard" className="schedule-deletion-dialog" eyebrow={tx('Κρίσιμη ενέργεια · Πραγματικός οργανισμός','Critical action · Real organization')} title={tx(`Προγραμματισμός διαγραφής: ${organization?.name||''}`,`Schedule deletion: ${organization?.name||''}`)}
     subtitle={tx(`Ο οργανισμός κλείνει τώρα και διαγράφεται οριστικά μετά από ${graceDays} ημέρες (${fmtDate(date,false)}). Μέχρι τότε η διαγραφή ακυρώνεται.`,`The organization closes now and is permanently deleted after ${graceDays} days (${fmtDate(date,true)}). Until then it can be cancelled.`)}
-    onClose={()=>!working&&onClose?.()} footer={<><Button variant="secondary" disabled={working} onClick={onClose}>{tx('Ακύρωση','Cancel')}</Button><Button variant="danger" className="button-destructive" loading={working} disabled={!ready} onClick={()=>onSchedule?.({reason:reason.trim(),exportWaivedReason:recentExport?'':waived.trim()})}><CalendarClock size={15}/>{tx('Προγραμματισμός διαγραφής','Schedule deletion')}</Button></>}>
+    onClose={()=>!working&&onClose?.()} footer={<><Button variant="danger" className="button-destructive" loading={working} disabled={!ready} onClick={()=>onSchedule?.({reason:reason.trim(),exportWaivedReason:recentExport?'':waived.trim()})}><CalendarClock size={15}/>{tx('Προγραμματισμός διαγραφής','Schedule deletion')}</Button></>}>
     {recentExport
       ?<div className="lifecycle-note"><Archive size={16}/><span>{tx(`Υπάρχει αντίγραφο της ${fmtDateTime(recentExport.created_at,false)}. Ο πελάτης μπορεί να το παραλάβει πριν τη διαγραφή.`,`An export from ${fmtDateTime(recentExport.created_at,true)} exists. The customer can receive it before the deletion.`)}</span></div>
       :<div className="lifecycle-warning"><AlertTriangle size={16}/><div><strong>{tx(`Δεν υπάρχει αντίγραφο των τελευταίων ${RECENT_EXPORT_DAYS} ημερών`,`No export from the last ${RECENT_EXPORT_DAYS} days`)}</strong><span>{tx('Δημιουργήστε πρώτα αντίγραφο ή γράψτε γιατί δεν χρειάζεται. Η αιτιολογία καταγράφεται στο ιστορικό.','Create an export first, or say why it is not needed. The reason is kept in the audit log.')}</span></div></div>}

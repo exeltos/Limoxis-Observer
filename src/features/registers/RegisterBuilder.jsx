@@ -153,7 +153,7 @@ function FieldDialog({ field: initial, register, sections, locked, onCancel, onS
     onSave(clean)
   }
   const number = (label, name) => <Field label={label}><input inputMode="decimal" value={field[name] ?? ''} onChange={event => set({ [name]: event.target.value === '' ? '' : Number(event.target.value.replace(',', '.')) })} /></Field>
-  return <ObserverDialog title={initial.key ? (en ? 'Edit field' : 'Επεξεργασία πεδίου') : (en ? 'New field' : 'Νέο πεδίο')} subtitle={locked ? (en ? `Column ${field.key}: its type stays as recorded.` : `Στήλη ${field.key}: ο τύπος της μένει όπως καταγράφηκε.`) : ''} onClose={onCancel} width="wide" footer={<DialogActions onCancel={onCancel} onSave={finish} disabled={!valid} saveLabel={en ? 'Done' : 'Εντάξει'} showCancel />}>
+  return <ObserverDialog title={initial.key ? (en ? 'Edit field' : 'Επεξεργασία πεδίου') : (en ? 'New field' : 'Νέο πεδίο')} subtitle={locked ? (en ? `Column ${field.key}: its type stays as recorded.` : `Στήλη ${field.key}: ο τύπος της μένει όπως καταγράφηκε.`) : ''} onClose={onCancel} width="wide" footer={<DialogActions onCancel={onCancel} onSave={finish} disabled={!valid} saveLabel={en ? 'Done' : 'Εντάξει'} />}>
     <div className="lo-form-cards">
       <FormCard wide title={en ? 'Field' : 'Πεδίο'}>
         <FormGrid columns={2}>
@@ -238,7 +238,7 @@ function IndicatorDialog({ indicator: initial, register, onCancel, onSave }) {
     const clean = Object.fromEntries(Object.entries({ ...indicator, id, titleEn: indicator.titleEn || indicator.title, unit: indicator.aggregation === 'percent' ? '%' : indicator.unit }).filter(([, value]) => value !== '' && value !== undefined && value !== null))
     onSave(clean)
   }
-  return <ObserverDialog title={initial.id ? (en ? 'Edit indicator' : 'Επεξεργασία δείκτη') : (en ? 'New indicator' : 'Νέος δείκτης')} onClose={onCancel} width="wide" footer={<DialogActions onCancel={onCancel} onSave={finish} disabled={!valid} saveLabel={en ? 'Done' : 'Εντάξει'} showCancel />}>
+  return <ObserverDialog title={initial.id ? (en ? 'Edit indicator' : 'Επεξεργασία δείκτη') : (en ? 'New indicator' : 'Νέος δείκτης')} onClose={onCancel} width="wide" footer={<DialogActions onCancel={onCancel} onSave={finish} disabled={!valid} saveLabel={en ? 'Done' : 'Εντάξει'} />}>
     <div className="lo-form-cards">
       <FormCard wide title={en ? 'Indicator' : 'Δείκτης'}>
         <FormGrid columns={2}>

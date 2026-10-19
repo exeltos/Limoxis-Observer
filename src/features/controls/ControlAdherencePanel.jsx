@@ -4,12 +4,15 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterSelect } from '../../design-system/FilterBar'
 import { downloadCsv } from '../../core/export/csvExport'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { escapeHtml, printReport } from '../../core/export/reportDocument'
+import { formatDay } from '../../core/i18n/formatDay'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
 import { ADHERENCE_PERIODS, adherenceTone, groupAdherenceLines, periodRange, programmeAdherence } from './controlAdherence'
 import { loadControlAdherenceCounts } from './controlCloudService'
 import './controlAdherence.css'
+
+const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 // Done and on-time counts per assignment for a period, counted in the database.
 // null until loaded, and in the demo (whose history is complete and counted locally).
@@ -35,7 +38,6 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
   const en = language === 'en'
   const { notify } = useFeedback()
   const [period, setPeriod] = useState('30d')
-  const [exporting, setExporting] = useState(false)
   const reportRef = useRef(null)
   const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey)
   const { lines, totals } = useMemo(() => (failed ? programmeAdherence([], periodRange(period), new Map()) : programmeAdherence(rows, periodRange(period), counts)), [rows, period, counts, failed])
@@ -50,16 +52,29 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
       [...lines.map((line) => [title(line.item), line.department, frequencyLabel(line.item.frequency, language), line.expected, line.performed, line.onTime, line.missed, pct(line.rate)]),
         [tx.total, '', '', totals.expected, totals.performed, totals.onTime, totals.missed, pct(totals.rate)]])
   }
-  async function exportPdf() {
-    if (exporting || !reportRef.current) return
+  // The whole programme (every line, not the page on screen) on the shared document layout.
+  function exportPdf(pdf) {
     if (failed) { notify(loadFailedText, 'danger'); return }
-    setExporting(true)
-    try { await exportElementAsPdf({ element: reportRef.current, filename: en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon', orientation: 'landscape' }) }
-    catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
-    finally { setExporting(false) }
+    const { from, to } = periodRange(period)
+    const numbers = (row) => [{ text: String(row.expected), className: 'rd-num' }, { text: String(row.performed), className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[adherenceTone(row.rate)] || ''}` }]
+    const tableRows = groupAdherenceLines(lines).flatMap((group) => group.lines.length === 1
+      ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${group.item.category || ''}`)}</small>` }, frequencyLabel(group.item.frequency, language), ...numbers(group.lines[0])]]
+      : [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.item.category || ''} · ${en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}`)}</small>` }, frequencyLabel(group.item.frequency, language), ...numbers(group.totals)],
+         ...group.lines.map((line) => [{ text: line.department, className: 'rd-sub-cell' }, '', ...numbers(line)])])
+    const ok = printReport({
+      language, orientation: 'landscape',
+      kind: en ? 'Controls' : 'Έλεγχοι',
+      code: tx[`p${period}`],
+      title: en ? 'Control programme adherence' : 'Τήρηση προγράμματος ελέγχων',
+      meta: [[tx.period, `${tx[`p${period}`]} (${formatDay(dayKey(from), language)} – ${formatDay(dayKey(to), language)})`], [tx.adherence, pct(totals.rate)], [tx.performed, `${totals.performed} / ${totals.expected}`], [tx.onTime, pct(totals.onTimeRate)], [tx.missed, String(totals.missed)], [en ? 'Controls' : 'Έλεγχοι', String(lines.length)]],
+      sections: [{ title: en ? 'Adherence per control and department' : 'Τήρηση ανά έλεγχο και τμήμα', note: tx.adherenceNote, table: { columns: [en ? 'Control / department' : 'Έλεγχος / τμήμα', en ? 'Frequency' : 'Συχνότητα', tx.expected, tx.performed, tx.onTime, tx.missed, tx.adherenceRate], rows: tableRows, foot: [tx.total, '', ...numbers(totals)], empty: tx.noAdherence } }],
+      signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε'],
+      filename: en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon',
+    }, { pdf: pdf === true })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
-  return { period, setPeriod, lines, totals, reportRef, exporting, exportCsv, exportPdf, failed, loadFailedText }
+  return { period, setPeriod, lines, totals, reportRef, exporting: false, exportCsv, exportPdf, failed, loadFailedText }
 }
 
 // One look for a rate: a bar with the figure beside it.

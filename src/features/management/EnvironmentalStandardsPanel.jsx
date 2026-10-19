@@ -69,7 +69,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
         <label className="field"><span>{t('environmentalStandards.acceptableLimit')}</span><div className="field-with-suffix"><input disabled={readOnlySystem} type="number" min="0" step="any" value={draft.limitCfu} onChange={e=>setDraft({...draft,limitCfu:e.target.value})} placeholder={t('environmentalStandards.enterProtocolLimit')}/><span>{draft.unit}</span></div><small>{t('environmentalStandards.acceptableLimitHelp')}</small></label>
         <div className="field environmental-active-field"><label className="environmental-active-toggle"><input disabled={readOnlySystem} type="checkbox" checked={draft.active} onChange={e=>setDraft({...draft,active:e.target.checked})}/><span>{t('active')}</span></label></div>
       </div>
-      <footer><Button variant="secondary" onClick={()=>setDraft(null)}>{readOnlySystem?(language==='en'?'Close':'Κλείσιμο'):t('cancel')}</Button>{!readOnlySystem&&<Button disabled={saving} onClick={save}>{saving?(language==='en'?'Saving…':'Αποθήκευση…'):t('save')}</Button>}</footer>
+      {!readOnlySystem&&<footer><Button disabled={saving} onClick={save}>{saving?(language==='en'?'Saving…':'Αποθήκευση…'):t('save')}</Button></footer>}
     </div></div>}
   </section>
 }

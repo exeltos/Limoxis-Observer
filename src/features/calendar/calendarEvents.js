@@ -2,6 +2,7 @@
 // one list of calendar events: { id, date (YYYY-MM-DD), time, kind, title,
 // detail, department, path, state }. state is 'overdue', 'due' or 'planned'.
 import { calculateNextDue } from '../controls/controlScheduling'
+import { suggestionCalendarItems } from '../documents/protocolReview/protocolReviewModel'
 
 export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees']
 
@@ -114,7 +115,7 @@ function documentEvents(families,range,today,list,en){
   const live=family.activePublished
   if(!live?.reviewDate)continue
   const day=toDay(live.reviewDate)
-  push(list,{id:`doc:${live.id}`,kind:'documents',date:day,title:live.title,detail:`${en?'Review due':'Αναθεώρηση'} · ${family.root?.id||live.id} v${live.version||''}`,department:live.department||'',path:`/documents/${live.id}`,state:stateOf(day,today)},range)
+  push(list,{id:`doc:${live.id}`,kind:'documents',date:day,title:live.title,detail:`${live.type==='licence'?(en?'Expires':'Λήξη'):(en?'Review due':'Αναθεώρηση')} · ${family.root?.id||live.id} v${live.version||''}`,department:live.department||'',path:`/documents/${live.id}`,state:stateOf(day,today)},range)
  }
 }
 
@@ -135,7 +136,7 @@ function committeeEvents(committees,range,today,list,en){
  }
 }
 
-export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[]}={},{from,to,today=dayKey(new Date()),language='el'}={}){
+export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],protocolSuggestions=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
  const en=language==='en'
  const range=from&&to?{from,to}:null
  const list=[]
@@ -144,6 +145,8 @@ export function buildCalendarEvents({controls=[],capas=[],audits=[],training=nul
  auditEvents(audits,range,today,list,en)
  trainingEvents(training,range,today,list,en)
  documentEvents(documentFamilies,range,today,list,en)
+ // Open protocol update suggestions are pending items of the documents.
+ for(const event of suggestionCalendarItems(protocolSuggestions,documentFamilies.flatMap(family=>family.versions||[]),{today,language,ownerId}))push(list,event,range)
  committeeEvents(committees,range,today,list,en)
  const seen=new Set()
  return list.filter(event=>{if(seen.has(event.id))return false;seen.add(event.id);return true}).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99')||a.title.localeCompare(b.title))

@@ -91,8 +91,10 @@ describe('employee record tabs', () => {
     await openEmployee()
     fireEvent.click(await screen.findByRole('button', { name: 'Ενέργειες εργαζομένου' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Επεξεργασία εργαζομένου' }))
-    const department = within(body()).getByText('Τμήμα').closest('.detail-field').querySelector('select')
-    expect(within(department).getAllByRole('option').map(option => option.textContent)).toEqual(expect.arrayContaining(['ΜΕΘ', 'Παθολογική', 'Νεογνολογική / ΜΕΝΝ']))
+    const department = within(body()).getByText('Τμήμα').closest('.detail-field').querySelector('input[role="combobox"]')
+    fireEvent.focus(department)
+    const options = await screen.findAllByRole('option')
+    expect(options.map(option => option.textContent)).toEqual(expect.arrayContaining(['ΜΕΘ', 'Παθολογική', 'Νεογνολογική / ΜΕΝΝ']))
   })
 })
 

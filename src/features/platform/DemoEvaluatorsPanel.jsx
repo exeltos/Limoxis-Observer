@@ -114,7 +114,7 @@ function AddEvaluatorDialog({language,working=false,takenEmails=[],onAdd,onClose
   const taken=Boolean(email)&&takenEmails.includes(email)
   const ready=draft.fullName.trim()&&EMAIL.test(email)&&!taken&&!working
   const departmentRole=DEMO_DEPARTMENT_ROLES.has(draft.role)
-  return <ObserverDialog width="standard" eyebrow="Demo" title={tx('Προσθήκη χρήστη αξιολόγησης','Add evaluator')} onClose={()=>!working&&onClose?.()} footer={<><Button variant="secondary" disabled={working} onClick={onClose}>{tx('Ακύρωση','Cancel')}</Button><Button loading={working} disabled={!ready} onClick={()=>onAdd?.({fullName:draft.fullName.trim(),email,role:draft.role,departmentCode:departmentRole?draft.departmentCode:null,access:draft.access})}><UserPlus size={15}/>{tx('Προσθήκη','Add')}</Button></>}>
+  return <ObserverDialog width="standard" eyebrow="Demo" title={tx('Προσθήκη χρήστη αξιολόγησης','Add evaluator')} onClose={()=>!working&&onClose?.()} footer={<><Button loading={working} disabled={!ready} onClick={()=>onAdd?.({fullName:draft.fullName.trim(),email,role:draft.role,departmentCode:departmentRole?draft.departmentCode:null,access:draft.access})}><UserPlus size={15}/>{tx('Προσθήκη','Add')}</Button></>}>
     <div className="lifecycle-form demo-evaluator-form">
       <label className="field"><span>{tx('Ονοματεπώνυμο','Full name')} *</span><input autoFocus value={draft.fullName} onChange={e=>set('fullName',e.target.value)}/></label>
       <label className="field"><span>Email *</span><input type="email" value={draft.email} onChange={e=>set('email',e.target.value)}/>{taken&&<small className="field-error">{tx('Υπάρχει ήδη χρήστης με αυτό το email.','A user with this email already exists.')}</small>}</label>

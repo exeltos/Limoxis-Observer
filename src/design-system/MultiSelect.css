@@ -93,3 +93,24 @@
   gap: 12px;
   white-space: nowrap;
 }
+
+.multi-select .multi-select-button > .multi-select-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.multi-select .multi-select-tag {
+  flex: none;
+  height: 22px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--lo-status-info-bg, #e8f1f8);
+  color: var(--lo-color-primary, #1f6f9f);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}

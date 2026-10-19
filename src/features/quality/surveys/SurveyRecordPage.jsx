@@ -4,7 +4,7 @@ import { BarChart3, ClipboardList, Lock, MessageSquareText, Play, Plus, QrCode a
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { ObserverDialog } from '../../../design-system/ObserverDialog'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { FilterBar, FilterDate, FilterSelect } from '../../../design-system/FilterBar'
@@ -139,12 +139,12 @@ export function SurveyRecordPage() {
     subtitle={[audienceLabel(survey.audience, language), [survey.opensOn && formatDay(survey.opensOn, language), survey.closesOn && formatDay(survey.closesOn, language)].filter(Boolean).join(' – ')].filter(Boolean).join(' · ')}
     status={!isNew && <StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'} actions={<PrintExportActions onExport={exportResponses} />}>
+    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'} actions={<ExportMenu onPrint={()=>window.print()} onExcel={exportResponses} />}>
       {filterBar}
       <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} />
     </RecordTabPanel>}
     {tab === 'responses' && <RecordTabPanel title={en ? 'Responses' : 'Απαντήσεις'} subtitle={en ? 'Anonymous: no name or details are kept.' : 'Ανώνυμες: δεν κρατείται όνομα ούτε στοιχεία.'}
-      actions={<div className="row-actions"><PrintExportActions showPrint={false} onExport={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
+      actions={<div className="row-actions"><ExportMenu onExcel={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
       footer={shown.length > pageSize && <RegistryPagination language={language} page={safePage} totalPages={pages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />}>
       {filterBar}
       <RegistryTable className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}
@@ -160,7 +160,7 @@ export function SurveyRecordPage() {
         </>} />
     </RecordTabPanel>}
     {tab === 'questionnaire' && <RecordTabPanel title={en ? 'Questionnaire' : 'Ερωτηματολόγιο'} subtitle={problems.length && !locked ? `${en ? 'To open it needs:' : 'Για να ανοίξει χρειάζεται:'} ${problems.join(' · ')}` : ''}
-      footer={!locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
+      footer={!locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>
@@ -189,7 +189,7 @@ function ResponseEntry({ survey, entry, setEntry, departments, language, onSaved
     } catch (error) { console.error(error); notify(en ? 'The response could not be recorded.' : 'Δεν ήταν δυνατή η καταχώριση.', 'error') } finally { setSaving(false) }
   }
   return <ObserverDialog width="wide" title={en ? 'Enter a response' : 'Καταχώριση απάντησης'} subtitle={textOf(survey, language)} onClose={() => setEntry(null)}
-    footer={<><Button variant="secondary" onClick={() => setEntry(null)}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Record and next' : 'Καταχώριση και επόμενη'}</SaveButton></>}>
+    footer={<><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Record and next' : 'Καταχώριση και επόμενη'}</SaveButton></>}>
     <div className="survey-entry-head">
       <ChoiceField label={en ? 'How it came in' : 'Πώς ήρθε'} value={entry.channel} options={RESPONSE_CHANNELS.filter(item => item.value !== 'link').map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => set({ channel: value })} />
     </div>

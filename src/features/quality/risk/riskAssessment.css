@@ -290,12 +290,9 @@
 .risk-stage-level{display:flex;justify-content:flex-end;padding-bottom:7px}
 /* Shared choices (section, FMEA, yield, effectiveness) in a fieldset that locks them with the page. */
 .risk-fieldset{min-width:0;margin:0;padding:0;border:0}
-.risk-fieldset .yes-no-field{display:flex;flex-direction:column;gap:5px;margin:0}
 .risk-fieldset .lo-mode-switch{align-self:flex-start}
 .risk-fieldset:disabled .lo-mode-switch button{cursor:default}
 .risk-fieldset:disabled .lo-mode-switch button:not(.active){opacity:.7}
-.risk-editor .risk-fmea .yes-no-field{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 12px}
-.risk-editor .risk-fmea .yes-no-field>.lo-field-label{grid-column:1/-1}
 .risk-fmea .field-hint{font-size:11px;font-weight:400;color:var(--lo-color-muted)}
 @media(max-width:900px){.risk-editor-grid-description{grid-template-columns:1fr 1fr}.risk-span-2,.risk-span-3,.risk-span-4{grid-column:auto}.risk-editor .risk-stage{grid-template-columns:1fr 1fr}}
 /* Measures as numbered lists. */

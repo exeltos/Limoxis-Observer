@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -50,6 +50,7 @@ import {
 import { cancelCommitteeMeetingAsync } from './committeeMeetingLifecycleService'
 import { externalMinutesActionAsync } from './committeeExternalApprovalService'
 import { fmtDate, createTopic } from './committeeRecordFormat'
+import { rolesFromTitle } from './committeeMemberRoles'
 import {
   Head,
   Overview,
@@ -244,6 +245,8 @@ export function CommitteeRecordPage() {
       department: person?.department || '',
       profession: person?.profession || '',
       committeeTitle: draft.committeeTitle || 'Μέλος',
+      roles: draft.roles?.length ? draft.roles : rolesFromTitle(draft.committeeTitle),
+      specialty: draft.specialty || '',
       responsibilities: draft.responsibilities || '',
       voting: draft.voting !== false,
       memberType: draft.memberType || 'regular',
@@ -634,7 +637,7 @@ export function CommitteeRecordPage() {
           )}
         </div>
       )}
-      <PrintExportActions onExport={() => downloadRecordJson(record, { filename: record?.id })} />
+      <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() => downloadRecordJson(record, { filename: record?.id })}]} />
     </>
   )
 

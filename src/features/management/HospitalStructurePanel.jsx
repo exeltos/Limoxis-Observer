@@ -90,7 +90,7 @@ function StructureDialog({ en, draft, setDraft, onClose, onSave }) {
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (
-    <ObserverDialog width="standard" title={en ? 'New structural entry' : 'Νέα δομική καταχώρηση'} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={onSave} disabled={!draft.effectiveDate} />}>
+    <ObserverDialog width="standard" title={en ? 'New structural entry' : 'Νέα δομική καταχώρηση'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={onSave} disabled={!draft.effectiveDate} />}>
       <div className="entry-grid">
         <ManualDateField label={en ? 'Effective date' : 'Ημερομηνία ισχύος'} value={draft.effectiveDate} onChange={value => setDraft(d => ({ ...d, effectiveDate: value }))} />
         {field('totalBeds', en ? 'Total beds' : 'Σύνολο κλινών')}

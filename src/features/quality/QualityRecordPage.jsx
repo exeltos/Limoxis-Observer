@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { AlertOctagon, AlertTriangle, CheckSquare2, Download, Scale, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2, GitBranch, TrendingUp } from 'lucide-react'
+import { AlertOctagon, AlertTriangle, CheckSquare2, Scale, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2, GitBranch, TrendingUp } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { printReport } from '../../core/export/reportDocument'
 import { QualityRecordDocument } from './QualityRecordDocument'
 import { AttachmentField } from '../../design-system/AttachmentField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -67,13 +67,13 @@ export function QualityRecordPage(){
   const openTab=(id,edit=false)=>{setAutoEdit(edit);setTab(id)}
   // «Download» is the record as a PDF document (QualityRecordDocument, off screen).
   const documentRef=useRef(null)
-  const [exporting,setExporting]=useState(false)
-  async function downloadPdf(){
-    if(exporting)return
-    setExporting(true)
-    try{await exportElementAsPdf({element:documentRef.current,filename:record.displayId||record.id,orientation:'portrait'})}
-    catch(error){console.error(error);notify(language==='en'?'The PDF could not be created.':'Δεν ήταν δυνατή η δημιουργία του PDF.','error')}
-    finally{setExporting(false)}
+  // Printed on the shared document layout (hospital band, page X / Y, DEMO mark): real text, not a picture.
+  function downloadPdf(pdf){
+    if(!documentRef.current)return
+    const en=language==='en'
+    const ok=printReport({language,kind:{incidents:en?'Incident':'Συμβάν',findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
+     body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε'],filename:record.displayId||record.id}, { pdf: pdf === true })
+    if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
   }
   const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
   // The Platform Owner has full access here, as on the other Quality pages.
@@ -109,14 +109,14 @@ export function QualityRecordPage(){
     subtitle={[RECORD_KIND[recordType]?.[language==='en'?1:0],language==='en'?record.departmentEn||record.department:record.department].filter(Boolean).join(' · ')||undefined}
     status={<StatusBadge tone={qualityStatusTone(record.status)}>{t(record.status)}</StatusBadge>}
     recordNavigation={recordNavigation}
-    headerActions={canPrint&&<PrintExportActions showPrint={false} onExport={downloadPdf}/>}
+    headerActions={canPrint&&<ExportMenu onPrint={()=>downloadPdf(false)} onPdf={()=>downloadPdf(true)} />}
     tabs={tabs} activeTab={tab} onTabChange={id=>openTab(id)}>
       {incident&&(tab==='details'||tab==='assessment')?<div className="quality-record-layout">
-        <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} onDownloadPdf={canPrint?downloadPdf:null} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>
+        <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>
         <IncidentFlowPanel steps={incidentFlow(record,linkedCapas)} record={record} capas={linkedCapas} language={language} t={t} activeTab={tab} canAct={canManage&&!finalized}
           onSelect={id=>openTab(id)} onOpenCapa={capa=>goTo(`/quality/capas/${capa.id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:tab})}
           onStep={next=>{if(next.id==='assess'||next.id==='close')openTab('assessment',true);else if(next.id==='capa')goTo('/quality/capas/new',{returnTo:`/quality/incidents/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor('incidents',record,language)}});else if(next.capa)goTo(`/quality/capas/${next.capa.id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:'details'})}}/>
-      </div>:(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} linked={linked} onDownloadPdf={canPrint?downloadPdf:null} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>}
+      </div>:(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>}
       {tab==='rootCause'&&recordType==='capas'&&<QualityCapaRootCause record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='steps'&&recordType==='capas'&&<QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>}
       {tab==='progress'&&recordType==='capas'&&<QualityCapaProgress record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language}/>}
@@ -129,7 +129,7 @@ export function QualityRecordPage(){
   </Page>
 }
 
-function QualityDetails({autoEdit=false,view='details',recordType,record,linked=[],onDownloadPdf=null,setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}){
+function QualityDetails({autoEdit=false,view='details',recordType,record,linked=[],setRecord,t,language,canManage,notify,actor,finalized,onDeleted,organizationId}){
   const en=language==='en'
   const assessment=view==='assessment'
   const [editing,setEditing]=useState(()=>autoEdit&&canManage&&!finalized)
@@ -192,8 +192,7 @@ function QualityDetails({autoEdit=false,view='details',recordType,record,linked=
   }
   // «⋯»: the record as a PDF for anyone who may print; editing and voiding for Quality.
   const actionItems=editing?[]:[
-    onDownloadPdf&&{id:'pdf',label:en?'Download PDF':'Λήψη PDF',icon:Download,onClick:onDownloadPdf},
-    canManage&&{id:'edit',label:finalized?(en?'Correct record':'Διόρθωση εγγραφής'):t('edit'),icon:finalized?RotateCcw:Pencil,onClick:beginEdit,separatorBefore:Boolean(onDownloadPdf)},
+    canManage&&{id:'edit',label:finalized?(en?'Correct record':'Διόρθωση εγγραφής'):t('edit'),icon:finalized?RotateCcw:Pencil,onClick:beginEdit},
     canManage&&{id:'void',label:en?'Void record':'Ακύρωση εγγραφής',icon:Trash2,tone:'danger',separatorBefore:true,onClick:requestVoid},
   ].filter(Boolean)
   return <div className={`record-section quality-record-details ${editing?'is-editing':'is-viewing'}`}>

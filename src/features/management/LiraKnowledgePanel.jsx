@@ -41,7 +41,7 @@ export function LiraKnowledgePanel(){
    emptyTitle={rows.length?(en?'No sources match the filters.':'Δεν βρέθηκαν πηγές με αυτά τα φίλτρα.'):(en?'No knowledge sources yet.':'Δεν υπάρχουν ακόμη πηγές γνώσης.')}
   />}
   {selected&&<ObserverDialog onClose={()=>setSelected(null)} eyebrow={en?'KNOWLEDGE SOURCE':'ΠΗΓΗ ΓΝΩΣΗΣ'} title={selected.title||''} subtitle={[selected.authority,selected.source_version].filter(Boolean).join(' · ')} width="wide" className="lira-knowledge-dialog" footer={<DialogActions>
-    <Button variant="secondary" onClick={()=>setSelected(null)}>{en?'Close':'Κλείσιμο'}</Button>
+    
     {selected.status==='review'&&<><Button variant="secondary" onClick={()=>setEdit({...selected})}><Pencil size={15}/>{en?'Edit details':'Επεξεργασία'}</Button><Button onClick={approve}><CheckCircle2 size={15}/>{en?'Approve':'Έγκριση'}</Button></>}
     {selected.status==='approved'&&<Button variant="danger" onClick={retire}><RotateCcw size={15}/>{en?'Retire':'Απόσυρση'}</Button>}
    </DialogActions>}>
@@ -58,7 +58,7 @@ export function LiraKnowledgePanel(){
     <div className="lira-knowledge-chunk-list">{chunks.map(x=><article key={x.id} className="lira-knowledge-chunk"><strong>{x.heading||`#${x.chunk_index+1}`}</strong><p>{x.content}</p>{x.citation_label&&<small>{x.citation_label}{x.page_start!=null?` · p. ${x.page_start}${x.page_end&&x.page_end!==x.page_start?`–${x.page_end}`:''}`:''}</small>}</article>)}</div>
    </section>
   </ObserverDialog>}
-  {edit&&<ObserverDialog onClose={()=>setEdit(null)} title={en?'Edit source under review':'Επεξεργασία πηγής υπό έλεγχο'} width="standard" footer={<DialogActions showCancel onCancel={()=>setEdit(null)} onSave={saveEdit}/>}>
+  {edit&&<ObserverDialog onClose={()=>setEdit(null)} title={en?'Edit source under review':'Επεξεργασία πηγής υπό έλεγχο'} width="standard" footer={<DialogActions onCancel={()=>setEdit(null)} onSave={saveEdit}/>}>
    <div className="entry-grid"><label><span>{en?'Title':'Τίτλος'}</span><input value={edit.title} onChange={e=>setEdit({...edit,title:e.target.value})}/></label><label><span>{en?'Version':'Έκδοση'}</span><input value={edit.source_version||''} onChange={e=>setEdit({...edit,source_version:e.target.value})}/></label><label className="entry-span-2"><span>{en?'Source URL':'URL πηγής'}</span><input value={edit.source_url||''} onChange={e=>setEdit({...edit,source_url:e.target.value})}/></label><label className="entry-span-2"><span>{en?'Review notes':'Σημειώσεις ελέγχου'}</span><textarea rows={3} value={edit.review_notes||''} onChange={e=>setEdit({...edit,review_notes:e.target.value})}/></label></div>
   </ObserverDialog>}
  </section>

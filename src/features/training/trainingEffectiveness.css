@@ -1,5 +1,7 @@
 /* Training effectiveness: three levels, the evaluation in practice, and its CAPA. */
 .training-effectiveness-levels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+/* The house metric size of the list KPI cards, never bigger. */
+.training-effectiveness-levels .canonical-metric-card:not(.canonical-metric-card-text) .canonical-metric-copy>strong{font-size:18px!important;line-height:1.05!important;font-weight:660!important;letter-spacing:0!important}
 .training-effectiveness-state{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:#eef3f7;color:var(--lo-color-text)}
 .training-effectiveness-state.planned{background:#e6f0fa;color:#1f5a94}
 .training-effectiveness-state.effective{background:#e7f5ec;color:#1d6b3a}

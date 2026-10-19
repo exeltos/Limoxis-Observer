@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { attendanceFor } from './committeeMeetingRules'
-import { Download, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
@@ -12,9 +14,16 @@ import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
 import { membersWithoutAccount } from './committeeExternalApprovalService'
 import { ExternalApproversDialog } from './ExternalApproversDialog'
 import { fmtDate, statusLabel, createTopic, COMMITTEE_ROLE_OPTIONS } from './committeeRecordFormat'
+import {
+  BADGE_ROLES,
+  memberRoleLabel,
+  normalizeMemberRoles,
+  rolesFromTitle,
+} from './committeeMemberRoles'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { Head } from './CommitteeRecordSections'
-import { CommitteeMinutesDocument } from './CommitteeMinutesDocument'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { committeeMinutesReport } from './CommitteeMinutesDocument'
+import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLibraries } from '../management/useLibraries'
 
@@ -174,12 +183,19 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
         ...initial,
         memberName: initial.name || '',
         manualName: initial.employeeId ? '' : initial.name || '',
+        specialty: initial.specialty || '',
+        roles:
+          Array.isArray(initial.roles) && initial.roles.length
+            ? normalizeMemberRoles(initial.roles)
+            : rolesFromTitle(initial.committeeTitle),
       }
     : {
         employeeId: '',
         manualName: '',
         memberName: '',
         committeeTitle: 'Μέλος',
+        roles: ['member'],
+        specialty: '',
         responsibilities: '',
         memberType: 'regular',
         voting: true,
@@ -211,7 +227,7 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
       if (presetRole) set('committeeTitle', '')
       return
     }
-    set('committeeTitle', value)
+    setV(s => ({ ...s, committeeTitle: value, roles: rolesFromTitle(value) }))
   }
   return (
     <ObserverDialog
@@ -294,6 +310,22 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
             <option value="observer">{en ? 'Observer' : 'Παρατηρητής'}</option>
             <option value="advisor">{en ? 'Advisor' : 'Σύμβουλος'}</option>
           </select>
+        </label>
+        <MultiSelect
+          className="field entry-span-2 committee-member-roles-field"
+          tags
+          search={false}
+          label={en ? 'Roles in the committee' : 'Ρόλοι στην επιτροπή'}
+          options={BADGE_ROLES.map(role => ({ value: role, label: memberRoleLabel(role, en) }))}
+          selected={(v.roles || []).filter(role => role !== 'member')}
+          onChange={next =>
+            setV(s => ({ ...s, roles: normalizeMemberRoles(BADGE_ROLES.filter(role => next.includes(role))) }))
+          }
+          placeholder={memberRoleLabel('member', en)}
+        />
+        <label className="entry-span-2">
+          <span>{en ? 'Specialty / job title' : 'Ειδικότητα / θέση εργασίας'}</span>
+          <input value={v.specialty || ''} onChange={e => set('specialty', e.target.value)} />
         </label>
         <label className="entry-span-2">
           <span>{en ? 'Responsibilities' : 'Αρμοδιότητες'}</span>
@@ -406,8 +438,6 @@ export function MeetingDialog({
   en,
 }) {
   const [externalApprovers, setExternalApprovers] = useState(null)
-  const [exporting, setExporting] = useState(false)
-  const documentRef = useRef(null)
   const { notifyError } = useFeedback()
   // Topic suggestions from the hospital's library (Management > Libraries).
   const { libraries } = useLibraries()
@@ -426,7 +456,9 @@ export function MeetingDialog({
   const attendance = (id, status) =>
     setV(s => ({
       ...s,
-      attendanceRecords: s.attendanceRecords.map(x => ((x.id || x.memberId) === id ? { ...x, status } : x)),
+      attendanceRecords: s.attendanceRecords.map(x =>
+        (x.id || x.memberId) === id ? { ...x, status } : x,
+      ),
     }))
   const topic = (id, k, x) =>
     setV(s => ({ ...s, topics: s.topics.map(t => (t.id === id ? { ...t, [k]: x } : t)) }))
@@ -439,20 +471,10 @@ export function MeetingDialog({
     if (missing.length) setExternalApprovers(missing)
     else onSave(v, true)
   }
-  // The minutes as shown (unsaved edits included), as a PDF document.
-  async function exportPdf() {
-    setExporting(true)
-    try {
-      await exportElementAsPdf({
-        element: documentRef.current,
-        filename: [en ? 'Minutes' : 'Πρακτικά', committeeName, v.minutesNo, String(v.date || '').slice(0, 10)].filter(Boolean).join('_'),
-        orientation: 'portrait',
-      })
-    } catch (error) {
-      notifyError(error, 'export', { operation: 'committee_minutes_pdf' })
-    } finally {
-      setExporting(false)
-    }
+  // The minutes as shown (unsaved edits included), printed on the shared document layout (PDF with real text).
+  function exportPdf(pdf) {
+    if (!printReport(committeeMinutesReport({ committeeName, minutes: { ...v, approvals: meeting.approvals || [] }, en }), { pdf: pdf === true }))
+      notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'committee_minutes_pdf' })
   }
   return (
     <ObserverDialog
@@ -464,10 +486,7 @@ export function MeetingDialog({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" disabled={exporting} loading={exporting} onClick={() => void exportPdf()}>
-            <Download size={14} />
-            {en ? 'Export PDF' : 'Εξαγωγή PDF'}
-          </Button>
+          <ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} />
           {canSave && !locked && (
             <Button variant="secondary" disabled={busy} onClick={() => onSave(v, false)}>
               {en ? 'Save' : 'Αποθήκευση'}
@@ -481,7 +500,6 @@ export function MeetingDialog({
         </>
       }
     >
-      <CommitteeMinutesDocument committeeName={committeeName} minutes={{ ...v, approvals: meeting.approvals || [] }} en={en} documentRef={documentRef} />
       <div className="observer-form-section committee-meeting-meta">
         <div className="entry-grid compact">
           <label>
@@ -517,16 +535,19 @@ export function MeetingDialog({
                 <tr key={x.id || x.memberId}>
                   <td>{x.name}</td>
                   <td>
-                    <select
+                    <SearchableSelect
+                      hideLabel
+                      label={`${en ? 'Attendance' : 'Παρουσία'}: ${x.name}`}
                       disabled={!canSave || locked}
-                      value={x.status}
-                      onChange={e => attendance(x.id || x.memberId, e.target.value)}
-                    >
-                      <option value="not_recorded">—</option>
-                      <option value="present">{en ? 'Present' : 'Παρόν'}</option>
-                      <option value="absent">{en ? 'Absent' : 'Απόν'}</option>
-                      <option value="excused">{en ? 'Excused' : 'Δικαιολογημένο'}</option>
-                    </select>
+                      value={x.status || 'not_recorded'}
+                      onChange={status => status && attendance(x.id || x.memberId, status)}
+                      options={[
+                        { value: 'not_recorded', label: en ? 'Not recorded' : 'Δεν καταγράφηκε' },
+                        { value: 'present', label: en ? 'Present' : 'Παρών/ούσα' },
+                        { value: 'absent', label: en ? 'Absent' : 'Απών/ούσα' },
+                        { value: 'excused', label: en ? 'Excused' : 'Δικαιολογημένη απουσία' },
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
@@ -591,7 +612,11 @@ export function MeetingDialog({
         {topicLibrary.length > 0 && (
           <datalist id="committee-topic-library">
             {topicLibrary.map(item => (
-              <option key={item.meta?.id || item.value} value={en ? item.en : item.el} label={item.meta?.category || undefined} />
+              <option
+                key={item.meta?.id || item.value}
+                value={en ? item.en : item.el}
+                label={item.meta?.category || undefined}
+              />
             ))}
           </datalist>
         )}

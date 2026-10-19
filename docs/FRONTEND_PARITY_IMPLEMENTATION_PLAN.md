@@ -129,7 +129,7 @@ src/features/<feature>/
 | --- | --- |
 | Page header και actions | `Page`, `RecordActions` |
 | Registry | `RegistryTable`, `RegistryPagination`, `FilterBar` |
-| Record | `EntityRecordShell`, `PrintExportActions` |
+| Record | `EntityRecordShell`, `ExportMenu` («Εξαγωγή ▾») |
 | Dialog | `ObserverDialog`, `ConfirmDialog`, `GovernedReasonDialog` |
 | Forms | `Field`, `ManualDateField`, `TimeField`, `SaveButton` |
 | Feedback | `FeedbackContext`, κοινό error mapping |

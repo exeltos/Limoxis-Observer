@@ -16,14 +16,15 @@ import {
 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { downloadRecordJson } from '../../core/export/recordExport'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -54,6 +55,7 @@ import {
   EmployeeHistoryTab,
 } from './EmployeeRecordTabs'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { EmployeeHeaderPhoto } from './EmployeePhoto'
 
 export function EmployeeRecordPage({ selfMode = false }) {
   const { employeeId } = useParams()
@@ -63,6 +65,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
     loading: employeesLoading,
     error: employeesError,
     reload: reloadEmployees,
+    setData: setEmployeeRows,
   } = useEmployeesData()
   const { goBack, restored } = useContextualNavigation('/employees')
   const { t, language, locale } = useLanguage()
@@ -428,6 +431,47 @@ export function EmployeeRecordPage({ selfMode = false }) {
     }
   }
   const departmentOptions = departments.map(row => [row.name, row.nameEn || row.name])
+  // The employee's details as a printed sheet (the full employee file comes
+  // with the shared document layout's next exports).
+  function printEmployee(pdf) {
+    const en = language === 'en'
+    const pick = (el, enValue) => (en ? enValue || el : el) || ''
+    const ok = printReport({
+      language,
+      kind: en ? 'Employee details' : 'Στοιχεία εργαζομένου',
+      code: employee.id,
+      title: name,
+      subtitle: [
+        pick(employee.profession, employee.professionEn),
+        pick(employee.department, employee.departmentEn),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      meta: [
+        [en ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου', employee.id],
+        [en ? 'Status' : 'Κατάσταση', t(employee.employmentStatus)],
+        [t('firstName'), pick(employee.firstName, employee.firstNameEn)],
+        [t('lastName'), pick(employee.lastName, employee.lastNameEn)],
+        [t('fatherName'), pick(employee.fatherName, employee.fatherNameEn)],
+        [t('department'), pick(employee.department, employee.departmentEn)],
+        [t('professionalCategory'), pick(employee.profession, employee.professionEn)],
+        [en ? 'Job position' : 'Θέση εργασίας', pick(employee.position, employee.positionEn)],
+        [t('employeesRecords.hireDate'), employee.hireDate ? fmt(employee.hireDate) : ''],
+        [t('employeesRecords.email'), employee.email],
+        [t('phone'), employee.phone],
+        [
+          en ? 'User account' : 'Λογαριασμός χρήστη',
+          employee.accountLinked ? (en ? 'Linked' : 'Συνδεδεμένος') : en ? 'None' : 'Κανένας',
+        ],
+      ],
+      filename: `${employee.id}_${en ? 'employee' : 'ergazomenos'}`,
+    }, { pdf: pdf === true })
+    if (!ok)
+      notify(
+        en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.',
+        'error',
+      )
+  }
   const headerActions = (
     <>
       {!selfReadOnly && canOccupational && (
@@ -439,9 +483,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
           <span>+ {t('newSurveillance')}</span>
         </ActionButton>
       )}
-      <PrintExportActions
-        onExport={() => downloadRecordJson(employee, { filename: employee?.id })}
-      />
+      <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />
     </>
   )
 
@@ -449,7 +491,16 @@ export function EmployeeRecordPage({ selfMode = false }) {
     <Page fill title={name} subtitle={t('employeesRecords.employeeFullRecordSubtitle')}>
       <EntityRecordShell
         className={`employee-record-shell workspace-fill${selfReadOnly ? ' employee-self-readonly' : ''}`}
-        avatar={`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`}
+        avatar={
+          <EmployeeHeaderPhoto
+            employee={employee}
+            organizationId={tenant?.id}
+            canEdit={canAdmin}
+            onChange={next =>
+              setEmployeeRows(rows => rows.map(row => (row.id === next.id ? { ...row, ...next } : row)))
+            }
+          />
+        }
         eyebrow={employee.id}
         title={name}
         subtitle={`${language === 'el' ? employee.profession : employee.professionEn || employee.profession} · ${language === 'el' ? employee.department : employee.departmentEn || employee.department}`}
@@ -808,9 +859,9 @@ function Details({
       >
         <InlineDetail
           editing={editing}
-          label={language === 'en' ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου'}
-          value={record.id}
-          onChange={value => set('id', value)}
+          label={t('lastName')}
+          value={record.lastName}
+          onChange={value => set('lastName', value)}
         />
         <InlineDetail
           editing={editing}
@@ -820,15 +871,30 @@ function Details({
         />
         <InlineDetail
           editing={editing}
-          label={t('lastName')}
-          value={record.lastName}
-          onChange={value => set('lastName', value)}
-        />
-        <InlineDetail
-          editing={editing}
           label={t('fatherName')}
           value={language === 'el' ? record.fatherName : record.fatherNameEn}
           onChange={value => set(language === 'el' ? 'fatherName' : 'fatherNameEn', value)}
+        />
+        <InlineDetail
+          editing={editing}
+          label={language === 'en' ? 'Employee / folder code' : 'Κωδικός εργαζομένου / φακέλου'}
+          value={record.id}
+          onChange={value => set('id', value)}
+        />
+        <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
+          <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
+          {editing ? (
+            <input value={t(employee.employmentStatus)} disabled readOnly />
+          ) : (
+            <strong>{t(employee.employmentStatus)}</strong>
+          )}
+        </div>
+        <InlineDateDetail
+          editing={editing}
+          label={t('employeesRecords.hireDate')}
+          value={record.hireDate}
+          display={fmt(record.hireDate)}
+          onChange={value => set('hireDate', value)}
         />
         <InlineSelect
           editing={editing}
@@ -862,13 +928,6 @@ function Details({
               positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
             }))
           }
-        />
-        <InlineDateDetail
-          editing={editing}
-          label={t('employeesRecords.hireDate')}
-          value={record.hireDate}
-          display={fmt(record.hireDate)}
-          onChange={value => set('hireDate', value)}
         />
         <InlineDetail
           editing={editing}
@@ -967,20 +1026,24 @@ function EmployeeAccountDialog({ employee, language, saving, onClose, onCreate }
           <span>{language === 'en' ? 'Job title' : 'Ιδιότητα'}</span>
           <input value={jobTitle} onChange={event => setJobTitle(event.target.value)} />
         </label>
-        <label>
-          <span>{language === 'en' ? 'Account role' : 'Ρόλος λογαριασμού'}</span>
-          <select value={role} onChange={event => setRole(event.target.value)}>
-            <option value="staff_user">{language === 'en' ? 'Staff user' : 'Εργαζόμενος'}</option>
-            <option value="department_user">
-              {language === 'en' ? 'Department user' : 'Χρήστης τμήματος'}
-            </option>
-            <option value="department_manager">
-              {language === 'en' ? 'Department manager' : 'Προϊστάμενος τμήματος'}
-            </option>
-            <option value="link_nurse">Link Nurse</option>
-            <option value="laboratory">{language === 'en' ? 'Laboratory' : 'Εργαστήριο'}</option>
-          </select>
-        </label>
+        <SearchableSelect
+          label={language === 'en' ? 'Account role' : 'Ρόλος λογαριασμού'}
+          value={role}
+          onChange={next => setRole(next || 'staff_user')}
+          options={[
+            { value: 'staff_user', label: language === 'en' ? 'Staff user' : 'Εργαζόμενος' },
+            {
+              value: 'department_user',
+              label: language === 'en' ? 'Department user' : 'Χρήστης τμήματος',
+            },
+            {
+              value: 'department_manager',
+              label: language === 'en' ? 'Department manager' : 'Προϊστάμενος τμήματος',
+            },
+            { value: 'link_nurse', label: 'Link Nurse' },
+            { value: 'laboratory', label: language === 'en' ? 'Laboratory' : 'Εργαστήριο' },
+          ]}
+        />
       </div>
     </ObserverDialog>
   )
@@ -1014,18 +1077,20 @@ function InlineSelect({ editing, label, value, display, options = [], language, 
     <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
       <span>{label}</span>
       {editing ? (
-        <select value={value || ''} onChange={event => onChange(event.target.value)}>
-          {value && !hasCurrent && <option value={value}>{display || value}</option>}
-          {rows.map((row, index) => {
-            const el = row?.[0] ?? row?.name ?? String(row || ''),
-              en = row?.[1] ?? row?.nameEn ?? el
-            return (
-              <option key={`${el}-${index}`} value={el}>
-                {language === 'el' ? el : en}
-              </option>
-            )
-          })}
-        </select>
+        <SearchableSelect
+          hideLabel
+          label={label}
+          value={value || ''}
+          onChange={next => onChange(next || '')}
+          options={[
+            ...(value && !hasCurrent ? [{ value, label: display || value }] : []),
+            ...rows.map(row => {
+              const el = row?.[0] ?? row?.name ?? String(row || ''),
+                en = row?.[1] ?? row?.nameEn ?? el
+              return { value: el, label: language === 'el' ? el : en }
+            }),
+          ]}
+        />
       ) : (
         <strong>{display || '—'}</strong>
       )}

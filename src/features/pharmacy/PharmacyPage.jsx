@@ -101,7 +101,7 @@ function DispensingDialog({ en, support, onClose, onSave }) {
   const disabled = !draft.period || !draft.antibioticItemId || !draft.quantityGrams
   return (
     <ObserverDialog width="standard" title={en ? 'New dispensing period' : 'Νέα περίοδος χορήγησης'} subtitle={en ? 'Monthly antibiotic quantity for the consumption indicator (DDD).' : 'Μηνιαία ποσότητα αντιβιοτικού για τον δείκτη κατανάλωσης (DDD).'} onClose={onClose}
-      footer={<DialogActions onCancel={onClose} onSave={() => onSave(draft)} disabled={disabled} showCancel />}>
+      footer={<DialogActions onCancel={onClose} onSave={() => onSave(draft)} disabled={disabled} />}>
         <div className="entry-grid">
           <label><span>{en ? 'Month' : 'Μήνας'}</span><input type="month" value={draft.period} onChange={e => setDraft(d => ({ ...d, period: e.target.value }))} /></label>
           <label><span>{en ? 'Department' : 'Τμήμα'}</span><select value={draft.departmentEl} onChange={e => chooseDepartment(e.target.value)}><option value="">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>{support.departments.map(x => <option key={x.id} value={x.el}>{en ? x.en : x.el}</option>)}</select></label>

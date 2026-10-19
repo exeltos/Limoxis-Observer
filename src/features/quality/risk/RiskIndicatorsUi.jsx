@@ -77,7 +77,7 @@ export function LinkIndicatorsDialog({risks,values,en,saving,onClose,onSave}){
  const toggle=id=>setPicked(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})
  const count=picked.size
  return <ObserverDialog width="wide" title={L(en,'Αντιστοίχιση δεικτών','Link indicators')} onClose={onClose}
-  footer={<DialogActions onCancel={onClose} showCancel disabled={!count||saving} onSave={()=>onSave(proposals.map(p=>({risk:p.risk,keys:p.keys.filter(k=>picked.has(`${p.risk.lineageKey}|${k}`))})).filter(p=>p.keys.length))} saveLabel={L(en,`Σύνδεση ${count} δεικτών`,`Link ${count} indicators`)}/>}>
+  footer={<DialogActions onCancel={onClose} disabled={!count||saving} onSave={()=>onSave(proposals.map(p=>({risk:p.risk,keys:p.keys.filter(k=>picked.has(`${p.risk.lineageKey}|${k}`))})).filter(p=>p.keys.length))} saveLabel={L(en,`Σύνδεση ${count} δεικτών`,`Link ${count} indicators`)}/>}>
   <p className="risk-hint">{L(en,'Προτάσεις από τη διατύπωση κάθε κινδύνου και το πεδίο «δείκτης» του αρχείου. Ξετσεκάρετε ό,τι δεν ταιριάζει· οι υπάρχοντες δείκτες μένουν.','Proposals from each risk’s wording and the file’s “indicator” field. Untick what does not fit; indicators already linked stay.')}</p>
   {proposals.length?<RegistryTable wrapperClassName="scroll-table risk-link-table" rows={proposals} rowKey={({risk})=>risk.lineageKey}
    columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'proposed',label:L(en,'Προτεινόμενοι δείκτες','Proposed indicators')}]}

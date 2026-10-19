@@ -16,6 +16,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditMatrix, checklistTemplates, findingDraftFromRow, pendingFindings } from './qualityAudit'
 import { createQualityRecord, saveQualityRecord } from './qualityService'
+import { qualityCode } from './qualityVocabulary'
 
 // The controls that are checklists, offered as audit checklists.
 function useChecklistTemplates(organizationId) {
@@ -122,8 +123,6 @@ export function AuditChecklistTab({ record, setRecord, organizationId, canManage
 
 const STATE_LABELS = { done: ['Ολοκληρώθηκε', 'Completed'], running: ['Σε εξέλιξη', 'In progress'], late: ['Εκπρόθεσμη', 'Overdue'], planned: ['Προγραμματισμένη', 'Planned'], cancelled: ['Ακυρώθηκε', 'Cancelled'] }
 const STATE_ORDER = ['done', 'running', 'late', 'planned', 'cancelled']
-// On the programme's chip, the subject: «Επιθεώρηση δέσμης SSI» reads «δέσμης SSI».
-const chipText = title => String(title || '').replace(/^(εξωτερική\s+|εσωτερική\s+)?(επιθεώρηση|audit)\s+/i, '').replace(/^\p{Ll}/u, letter => letter.toLocaleUpperCase('el')) || title
 
 // The year's programme (ISO 9001 §9.2): departments down, months across. Each
 // audit is a chip coloured by where it stands (done with its compliance, late,
@@ -168,8 +167,9 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null })
         <th scope="row"><span>{row.key ? (en ? row.nameEn : row.name) : (en ? 'Whole organization' : 'Όλος ο οργανισμός')}</span><small>{row.covered ? (en ? `${row.count} ${row.count === 1 ? 'audit' : 'audits'}` : `${row.count} ${row.count === 1 ? 'επιθεώρηση' : 'επιθεωρήσεις'}`) : (en ? 'No audit this year' : 'Καμία φέτος')}</small></th>
         {row.months.map((cell, month) => <td key={month} className={month === currentMonth ? 'is-now' : ''}>
          {cell.map(({ audit, state }) => { const score = auditCompliance(audit); const title = en ? audit.titleEn || audit.title : audit.title
-          return <button type="button" key={audit.id} className={`quality-programme-chip is-${state}`} onClick={() => onOpen?.(audit)} title={`${title} · ${formatDay(audit.plannedDate, language)} · ${STATE_LABELS[state][en ? 1 : 0]}${score.rate != null ? ` · ${score.rate}%` : ''}`}>
-           <strong>{state === 'done' && score.rate != null ? `${score.rate}%` : String(audit.plannedDate || '').slice(8, 10).replace(/^0/, '')}</strong><span>{chipText(title)}</span>
+          return <button type="button" key={audit.id} className={`quality-programme-chip is-${state}`} onClick={() => onOpen?.(audit)} title={`${qualityCode(audit, language)} · ${title} · ${formatDay(audit.plannedDate, language)} · ${STATE_LABELS[state][en ? 1 : 0]}${score.rate != null ? ` · ${score.rate}%` : ''}`} aria-label={`${qualityCode(audit, language)} · ${title}`}>
+           {/* A narrow cell holds the day (or the compliance) and the code; the title is in the tooltip. */}
+           <strong>{state === 'done' && score.rate != null ? `${score.rate}%` : String(audit.plannedDate || '').slice(8, 10).replace(/^0/, '')}</strong><span className="quality-programme-code">{qualityCode(audit, language)}</span>
           </button> })}
          {!cell.length && onPlan && row.key && <button type="button" className="quality-programme-add" onClick={() => plan(row, month)} aria-label={en ? `Plan an audit: ${row.nameEn}, ${monthName(month, 'long')}` : `Προγραμματισμός επιθεώρησης: ${row.name}, ${monthName(month, 'long')}`}><Plus size={13} aria-hidden="true" /></button>}
         </td>)}

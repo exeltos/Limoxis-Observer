@@ -16,9 +16,9 @@
   overflow:hidden;
 }
 
+/* No overscroll containment: once a table reaches its end the wheel moves the page. */
 .scroll-table{
   min-height:0;
-  overscroll-behavior:contain;
 }
 
 /* Keep advanced filters behind one compact button. */
@@ -125,12 +125,14 @@
   font-weight:700;
 }
 
-/* Prevent the nested scrollbars that appeared in later rebuilds. */
+/* Prevent the nested scrollbars that appeared in later rebuilds. `clip`, not
+   `hidden`: hidden on one axis turns the other into a scroll box, which boxed
+   every record section into its own small vertical scroller. */
 .record-section,
 .inline-action-form,
 .embedded-workflow-panel{
   max-width:100%;
-  overflow-x:hidden;
+  overflow-x:clip;
 }
 
 /* Control confirmation: one compact line, checkbox directly before the confirmation text. */
@@ -591,26 +593,12 @@
 .platform-analysis-page .analysis-tabs button.active{
   border-color:color-mix(in srgb,var(--lo-color-primary) 18%,var(--lo-color-border));box-shadow:0 1px 2px rgba(15,23,42,.04);
 }
-.analysis-print-menu{position:relative}
 .analysis-print-trigger{
   display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 11px;
   border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);
   color:var(--lo-color-text);font:inherit;font-size:10px;font-weight:750;cursor:pointer;
 }
 .analysis-print-trigger:hover{background:var(--lo-shell-control-hover);border-color:color-mix(in srgb,var(--lo-color-primary) 20%,var(--lo-color-border))}
-.analysis-print-popover{
-  position:absolute;z-index:40;top:calc(100% + 7px);right:0;width:330px;max-height:min(70vh,520px);
-  overflow:hidden;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);
-  box-shadow:0 14px 36px rgba(15,23,42,.14);
-}
-.analysis-print-popover-head{display:grid;gap:3px;padding:11px 12px;border-bottom:1px solid var(--lo-color-border);background:color-mix(in srgb,var(--lo-color-primary) 4%,var(--lo-color-surface))}
-.analysis-print-popover-head strong{font-size:10.75px}.analysis-print-popover-head span{font-size:9px;line-height:1.4;color:var(--lo-color-muted)}
-.analysis-print-options{max-height:410px;overflow:auto;padding:5px}
-.analysis-print-options button{
-  width:100%;min-height:34px;padding:0 8px;display:flex;align-items:center;justify-content:space-between;gap:10px;
-  border:0;border-radius:6px;background:transparent;color:var(--lo-color-text);font:inherit;font-size:9.75px;text-align:left;cursor:pointer;
-}
-.analysis-print-options button:hover{background:var(--lo-shell-control-hover);color:var(--lo-color-primary)}
 
 @media print{
   .analysis-header .analysis-actions,.analysis-sticky{display:none!important}
@@ -1185,15 +1173,10 @@ td>.lo-meter{margin-top:5px}
 .control-create-shell .control-time-grid .time-field>.lo-field-label:is(span,#lo-control-form){display:none!important}
 .control-create-shell :is(.control-policy-block,.control-guidance-block) textarea:is(textarea,#lo-control-form){min-height:64px!important;height:64px}
 /* A yes/no switch in a form row is as tall as the other controls. */
-.yes-no-field .lo-mode-switch:is(div,#lo-form-row){min-height:40px}
-.yes-no-field .lo-mode-switch>button:is(button,#lo-form-row){min-height:40px!important;height:40px}
 /* Yes/no fields line up with the selects and inputs next to them. */
-.entry-grid>.yes-no-field:is(div,#lo-form-row){display:flex;flex-direction:column;gap:0;align-self:end}
-.entry-grid>.yes-no-field>.lo-field-label:is(span,#lo-form-row){margin-bottom:6px}
 /* A searchable or multi-value select inside a form row lines up with the inputs. */
 .entry-grid>.searchable-select:is(div,#lo-form-row){gap:0;align-self:end}
 .entry-grid>.searchable-select>label .lo-field-label:is(span,#lo-form-row){display:block;margin-bottom:6px}
-.entry-grid>.yes-no-field>.lo-mode-switch:is(div,#lo-form-row){margin:0!important}
 .multi-select .multi-select-search>input:is(input,#lo-form-row){border:0!important;box-shadow:none!important;outline:0!important;min-height:34px;height:34px;background:transparent!important}
 /* Control record: details sheet on top, the departments table fills the rest and scrolls inside. */
 .control-record-shell .control-record-view:is(div,#lo-record-sheet){flex:1;min-height:0}
@@ -1229,3 +1212,9 @@ td>.lo-meter{margin-top:5px}
  .control-expiry-panel .record-tab-panel-header .lo-section-header-copy>p{display:none}
  .control-expiry-panel .record-tab-panel-header h3{white-space:nowrap}
 }
+/* A metric whose value is words (status · date): one smaller line, ellipsised, full text on hover. */
+.canonical-metric-card-text .canonical-metric-copy{min-width:0!important}
+.canonical-metric-card.canonical-metric-card-text .canonical-metric-copy>strong{font-size:13px!important;line-height:1.3!important;font-weight:700!important;letter-spacing:0!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;display:block!important;max-width:100%}
+.field-label-note{font-weight:500;color:var(--lo-color-muted,#6b7c8c);text-transform:none;letter-spacing:0}
+/* A record tab's save bar sits inside the card, with normal padding, clear of the floating assistant button. */
+.record-tab-panel>.inline-edit-footer{flex:0 0 auto;margin:0!important;padding:12px 76px 14px 16px!important;border-top:1px solid var(--lo-color-border,#e2e8ee)!important;background:var(--lo-color-surface,#fff);position:sticky;bottom:0;z-index:2}

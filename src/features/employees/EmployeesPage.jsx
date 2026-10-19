@@ -1,11 +1,12 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Building2,Upload,UserCheck,Users,UserX } from 'lucide-react'
+import { Building2,Plus,Upload,UserCheck,Users,UserX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RecordActions } from '../../design-system/RecordActions'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -16,6 +17,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Button } from '../../design-system/Button'
 import { can } from '../../core/permissions/roles'
 import { EmployeeImportDialog } from './EmployeeImportDialog'
+import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
 
 export function EmployeesPage(){
   const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership}=useTenant()
@@ -29,6 +31,7 @@ export function EmployeesPage(){
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
   const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,status,language,canAccessRecord])
   useEffect(()=>setPage(1),[query,department,status,pageSize])
+  const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>
   if(error)return <div className="data-access-state error" role="alert"><span>{t('employeesLoadFailed')}</span><button type="button" onClick={reload}>{t('retry')}</button></div>
   const displayName=x=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
@@ -41,6 +44,7 @@ export function EmployeesPage(){
   }
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
+  function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
     <div className="workspace-summary employee-registry-summary">
@@ -52,13 +56,15 @@ export function EmployeesPage(){
       </div>
     </div>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={clearFilters}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
-        {!rows.length&&<div className="registry-empty-state"><strong>{t('employeesEmptyTitle')}</strong><span>{t('employeesEmptyDescription')}</span></div>}
+        <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        {!rows.length&&(scopedEmployees.length
+          ?<RegistryEmptyState filtered onClearFilters={clearFilters}/>
+          :<RegistryEmptyState icon={Users} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} action={canImport?{label:t('create'),icon:Plus,onClick:()=>action(UI_ACTIONS.CREATE)}:null}/>)}
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </section>

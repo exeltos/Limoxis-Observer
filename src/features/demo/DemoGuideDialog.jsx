@@ -18,7 +18,7 @@ export function DemoGuideDialog({language,scenarios=DEMO_SCENARIOS,progress={},r
   const allSix=total===DEMO_SCENARIOS.length
   return <ObserverDialog width="wide" className="demo-guide-dialog" eyebrow={tx('Demo αξιολόγησης','Evaluation Demo')} title={tx('Εκπαίδευση εφαρμογής','Application training')}
     subtitle={allSix?tx('Έξι σύντομα σενάρια με τα σημεία που ξεχωρίζουν στην καθημερινή δουλειά της Ομάδας Ελέγχου Λοιμώξεων. Ξεκινήστε από όποιο θέλετε· η εφαρμογή καταλαβαίνει μόνη της πότε το ολοκληρώσατε.','Six short scenarios with what stands out in an Infection Control team\'s daily work. Start with any of them; the application notices by itself when you complete one.'):tx(`${total===1?'Ένα σύντομο σενάριο':`${total} σύντομα σενάρια`} με την καθημερινή δουλειά του ρόλου σας. Η εφαρμογή καταλαβαίνει μόνη της πότε ολοκληρώσατε το καθένα.`,`${total===1?'One short scenario':`${total} short scenarios`} with your role's daily work. The application notices by itself when you complete each one.`)}
-    onClose={onClose} footer={<Button variant="secondary" onClick={onClose}>{tx('Κλείσιμο','Close')}</Button>}>
+    onClose={onClose}>
     <div className="demo-guide-progress" aria-label={tx('Πρόοδος','Progress')}>
       <strong>{tx(`${done} από ${total} ολοκληρωμένα`,`${done} of ${total} done`)}</strong>
       <span className="demo-guide-progress-track"><span style={{width:`${Math.round(done/total*100)}%`}}/></span>

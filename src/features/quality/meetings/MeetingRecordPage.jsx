@@ -4,7 +4,7 @@ import { CheckCircle2, CheckSquare2, ClipboardList, Gauge, ListChecks, Plus, Rot
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
 import { ManualDateField } from '../../../design-system/ManualDateField'
@@ -142,13 +142,13 @@ export function MeetingRecordPage() {
     { id: 'people', label: en ? `Participants ${meeting.participants.length}` : `Συμμετέχοντες ${meeting.participants.length}`, icon: Users },
   ]
   const footer = <div className="inline-edit-footer">
-    <Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button>
+    
     {!locked && <SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}
     {!locked && !isNew && <Button disabled={saving || !String(meeting.minutes).trim()} title={!String(meeting.minutes).trim() ? (en ? 'Write the minutes first' : 'Γράψτε πρώτα το πρακτικό') : undefined} onClick={() => save('final')}><CheckCircle2 size={15} />{en ? 'Finalize' : 'Οριστικοποίηση'}</Button>}
     {list.access.canReopen(meeting) && <Button variant="secondary" disabled={saving} onClick={() => save('draft')}><RotateCcw size={15} />{en ? 'Back to draft' : 'Επαναφορά σε πρόχειρο'}</Button>}
   </div>
 
-  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={[formatDay(meeting.meetingDate, language), meeting.periodMonth && `${en ? 'indicators of' : 'δείκτες'} ${monthLabel(meeting.periodMonth, language)}`].filter(Boolean).join(' · ')} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={!isNew && <PrintExportActions showPrint={false} onExport={() => downloadMinutes(meeting, tenant?.name)} />} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
+  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={[formatDay(meeting.meetingDate, language), meeting.periodMonth && `${en ? 'indicators of' : 'δείκτες'} ${monthLabel(meeting.periodMonth, language)}`].filter(Boolean).join(' · ')} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={meeting.status === 'final' ? (en ? `Final · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'en')}` : `Οριστικό · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'el')}`) : (en ? 'The month’s indicators come from the department’s registers.' : 'Οι δείκτες του μήνα έρχονται από τα μητρώα του τμήματος.')} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Meeting' : 'Συνάντηση'}>

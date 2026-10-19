@@ -191,7 +191,7 @@
 .training-materials-panel[hidden]{display:none!important}
 .training-assessment-editor{display:flex;flex-direction:column;gap:16px}.training-assessment-editor>.record-section-header{align-items:flex-start}.training-assessment-metrics{margin:0}.training-question-list{display:flex;flex-direction:column;gap:0;border:1px solid var(--border-subtle,#dce6ee);border-radius:10px;overflow:hidden;background:var(--surface,#fff)}.training-question-card{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;border:0;border-bottom:1px solid var(--border-subtle,#e3eaf0);border-radius:0;padding:9px 11px;background:var(--surface,#fff)}.training-question-card:last-child{border-bottom:0}.training-question-card:hover{background:var(--surface-subtle,#fafcfd)}
 .training-question-index{display:grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--primary-soft,#edf5fb);color:var(--primary,#174b7a);font-weight:800;font-size:12px}.training-question-main{display:flex;flex-direction:column;gap:5px;min-width:0}.training-question-heading{display:flex;justify-content:space-between;align-items:center;gap:14px}.training-question-heading>div:first-child{display:flex;flex-direction:row;align-items:baseline;gap:9px;min-width:0;flex-wrap:wrap}.training-question-heading strong{font-size:13.5px;line-height:1.35}.training-question-heading span{font-size:11.5px;color:var(--text-secondary,#718293)}.training-question-options-summary{display:flex;flex-wrap:wrap;gap:5px}.training-question-options-summary span{font-size:11.5px;padding:2px 7px;border-radius:999px;background:var(--surface-subtle,#f5f8fa);border:1px solid var(--border-subtle,#dce6ee);color:var(--text-secondary,#637587)}.training-question-options-summary span.correct{background:var(--success-soft,#eef8f2);border-color:var(--success-border,#c8e7d2);color:var(--success,#277a47);font-weight:700}
-.training-assessment-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;min-height:250px;border:1px dashed var(--border,#cddae5);border-radius:12px;background:var(--surface-subtle,#fafcfd);padding:28px}.training-assessment-empty svg{color:var(--primary,#174b7a)}.training-assessment-empty strong{font-size:15px}.training-assessment-empty span{font-size:13px;color:var(--text-secondary,#718293)}.training-question-dialog{display:flex;flex-direction:column;gap:18px}.training-question-options-editor{display:flex;flex-direction:column;gap:8px}.training-question-options-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.training-question-option-row{display:grid;grid-template-columns:24px minmax(0,1fr) 36px;align-items:center;gap:9px}.training-question-option-row>input[type=text],.training-question-option-row>input:not([type]){width:100%}.training-true-false{display:flex;align-items:center;gap:16px;padding:12px;border:1px solid var(--border-subtle,#dbe5ee);border-radius:10px}.training-true-false>span{font-weight:700;margin-right:auto}.training-true-false label{display:flex;align-items:center;gap:6px;font-size:13px}
+.training-assessment-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;min-height:250px;border:1px dashed var(--border,#cddae5);border-radius:12px;background:var(--surface-subtle,#fafcfd);padding:28px}.training-assessment-empty svg{color:var(--primary,#174b7a)}.training-assessment-empty strong{font-size:15px}.training-assessment-empty span{font-size:13px;color:var(--text-secondary,#718293)}.training-question-dialog{display:flex;flex-direction:column;gap:18px}.training-question-options-editor{display:flex;flex-direction:column;gap:8px}.training-question-options-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.training-question-option-row{display:grid;grid-template-columns:auto minmax(0,1fr) 36px;align-items:center;gap:9px}.training-question-option-row>input[type=text],.training-question-option-row>input:not([type]){width:100%}.training-true-false{display:block;padding:0;border:0!important;border:1px solid var(--border-subtle,#dbe5ee);border-radius:10px}.training-true-false>span{font-weight:700;margin-right:auto}.training-true-false label{display:flex;align-items:center;gap:6px;font-size:13px}
 .training-confirmation-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}.training-confirmation-summary>div{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--border-subtle,#dbe5ee);border-radius:10px;background:var(--surface-subtle,#f8fafc)}.training-confirmation-summary svg{color:var(--primary,#174b7a);flex:none;margin-top:1px}.training-confirmation-summary span{display:flex;flex-direction:column;gap:2px}.training-confirmation-summary strong{font-size:13px}.training-confirmation-summary small{font-size:12px;color:var(--text-secondary,#718293);line-height:1.4}.training-feedback-template-panel>.section-toolbar h2{font-size:24px}.training-feedback-template-panel>.section-toolbar p{font-size:14px}.training-feedback-template-panel>.record-section .entry-grid input{font-size:15px;min-height:48px}.training-feedback-table-wrap{max-height:430px}.training-feedback-table th:first-child,.training-feedback-table td:first-child{text-align:center}.training-feedback-table th{font-size:12.5px}
 @media(max-width:760px){.training-participant-observer-dialog{width:96vw!important;height:94vh}.training-participant-mode,.training-participant-filters,.training-confirmation-summary{grid-template-columns:1fr}.training-participant-dialog{min-height:0}.training-participant-basket-summary,.training-question-heading{align-items:flex-start;flex-direction:column}.training-question-card{grid-template-columns:32px 1fr}.training-participant-table,.training-feedback-table{min-width:760px}}
 
@@ -225,7 +225,7 @@
 .training-assessment-toolbar{align-items:flex-start!important;gap:18px!important;padding-top:2px!important}
 .training-assessment-heading{display:grid!important;gap:4px!important;min-width:0!important}
 .training-assessment-heading .eyebrow{display:block!important;margin:0!important;line-height:1.2!important}
-.training-assessment-heading h3{margin:0!important;font-size:21px!important;line-height:1.2!important;color:var(--lo-color-text)!important;font-weight:800!important}
+.training-assessment-heading h3{margin:0!important;font-size:18px!important;line-height:1.2!important;color:var(--lo-color-text)!important;font-weight:800!important}
 .training-assessment-registry .open-record-cell{width:56px!important;text-align:right!important}
 .training-question-dialog .entry-grid{align-items:end!important}
 .training-question-dialog .training-required-toggle{
@@ -1104,6 +1104,29 @@
 .committee-check-option:has(input:disabled){
   opacity:.55;
   cursor:not-allowed;
+}
+
+/* Committee members list: role badges, roster texts and the former-members toggle. */
+.committee-former-toggle{
+  width:max-content;
+  min-height:38px;
+  margin:0 0 10px;
+}
+.committee-member-roles{
+  display:flex;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-bottom:4px;
+}
+.committee-role-badge{
+  white-space:nowrap;
+}
+.committee-member-text{
+  min-width:180px;
+  max-width:340px;
+  white-space:pre-line;
+  font-size:12px;
+  line-height:1.45;
 }
 
 @media (max-width:980px){
@@ -2489,7 +2512,6 @@
 
 .management-user-preserve-note{display:flex;align-items:flex-start;gap:9px;margin-top:14px;padding:10px 12px;border-radius:9px;background:#f6f8fa;color:#64778a;font-size:10.5px;line-height:1.45}
 .management-user-preserve-note svg{flex:0 0 auto;margin-top:1px;color:#53728d}
-.management-user-dialog-actions{display:flex;align-items:center;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e8edf2}
 
 .management-self-account{display:inline-flex;align-items:center;gap:5px;color:#697c8e;font-size:11px;font-weight:700}
 
@@ -2776,7 +2798,7 @@
 @media(max-width:640px){.prevention-record-shell .antiseptic-detail-context,.prevention-record-shell .antiseptic-detail-kpis,.prevention-record-shell .antiseptic-detail-trace>div{grid-template-columns:1fr}.prevention-record-shell .antiseptic-detail-product{grid-column:auto}.prevention-record-shell .antiseptic-detail-context>div,.prevention-record-shell .antiseptic-detail-kpis>div,.prevention-record-shell .antiseptic-detail-trace section{border-right:0;border-bottom:1px solid #edf1f4}.observer-dialog.antiseptic-entry-card .observer-dialog-body{padding:12px!important}.antiseptic-entry-card .entry-grid{grid-template-columns:1fr!important}.antiseptic-entry-card .entry-span-2{grid-column:1!important}.antiseptic-entry-card .antiseptic-form-section{padding:15px!important}.prevention-record-shell .antiseptic-page-editor>.prevention-editor-page-actions{justify-content:flex-end!important;flex-wrap:wrap!important}}
 
 /* WHO saved record — fixed summary, full-width list, list rows are the only scroll area. */
-.prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card{height:100%!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important;scrollbar-gutter:stable!important}
+.prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card{height:100%!important;min-height:0!important;overflow:auto!important;scrollbar-gutter:stable!important}
 .prevention-record-shell .prevention-record-card:has(.who-record-compact){display:flex!important;flex-direction:column!important}
 
 /* WHO is the only Prevention saved record with its own list scroller. */
@@ -2841,7 +2863,6 @@
   flex:1 1 auto;
   min-height:0;
   overflow:auto;
-  overscroll-behavior:contain;
   scrollbar-gutter:stable;
 }
 .quality-record-shell .record-section{
@@ -3845,3 +3866,8 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .entity-record-shell>.entity-record-header:has(.entity-record-context):is(.surface,#lo-record-header){padding-top:6px!important;padding-bottom:6px!important}
 .entity-record-context .admission-picker .lo-overflow-text-trigger:is(.button,#lo-admission-picker){height:22px!important;min-height:22px!important;padding:0 7px!important;gap:5px!important;border-radius:6px!important;font-size:11px!important;font-weight:650!important;line-height:1!important;color:#31526c!important}
 .admission-picker-count{min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;border-radius:8px;background:#e6eef5;color:#24476a;font-size:10px;font-style:normal;font-weight:750}
+/* Training question: the correct option is ticked with the house checkbox. */
+.training-question-option-row .training-correct-check{min-height:40px}
+/* New employee: rows of three (surname · name · father’s name / code · status · hire date / department · category · position / email · phone). */
+.employee-create-form .employee-create-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start}
+@media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}

@@ -92,5 +92,5 @@ export function recordActions({en,canEdit,editing,isNew,onEdit,onDelete}){
 }
 
 export function DeleteConfirm({en,title,text,onClose,onConfirm}){
- return <ObserverDialog width="compact" title={title} onClose={onClose} footer={<DialogActions onCancel={onClose} showCancel onSave={onConfirm} saveLabel={L(en,'Διαγραφή','Delete')}/>}><p>{text}</p></ObserverDialog>
+ return <ObserverDialog width="compact" title={title} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={onConfirm} saveLabel={L(en,'Διαγραφή','Delete')}/>}><p>{text}</p></ObserverDialog>
 }

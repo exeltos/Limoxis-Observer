@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadSnapshot } from '../../core/data/repository'
 import { PERFORMANCE_EVALUATION_QUESTIONNAIRE } from '../management/QuestionnairesPanel'
-import { Download, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { downloadCertificatePdf } from '../training/trainingCertificate'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
@@ -187,7 +188,9 @@ export function EmployeeEvaluationsTab({
                   {paging.paged.map(row => (
                     <tr key={row.id} tabIndex={0} onClick={() => setSelected(row)}>
                       <td>
-                        <strong>{en ? row.titleEn : row.titleEl}</strong>
+                        <strong title={en ? row.titleEn : row.titleEl}>
+                          {en ? row.titleEn : row.titleEl}
+                        </strong>
                       </td>
                       <td>{row.period || '—'}</td>
                       <td>
@@ -228,9 +231,6 @@ export function EmployeeEvaluationsTab({
           onClose={() => setCreating(false)}
           footer={
             <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => setCreating(false)} disabled={saving}>
-                {en ? 'Cancel' : 'Ακύρωση'}
-              </Button>
               <Button onClick={create} disabled={saving || !draft.period}>
                 {en ? 'Save' : 'Αποθήκευση'}
               </Button>
@@ -380,8 +380,8 @@ export function EmployeeEvaluationsTab({
                         : 'Διαθέσιμο μετά την επιτυχή ολοκλήρωση.'}
                     </small>
                   </div>
-                  <Button
-                    onClick={() =>
+                  <ExportMenu
+                    onPrint={() =>
                       downloadCertificatePdf({
                         certificate: selected.certificate,
                         program: selected.program,
@@ -391,10 +391,18 @@ export function EmployeeEvaluationsTab({
                         en,
                       })
                     }
-                  >
-                    <Download size={14} />
-                    {en ? 'Print certificate' : 'Εκτύπωση πιστοποιητικού'}
-                  </Button>
+                    onPdf={() =>
+                      downloadCertificatePdf({
+                        certificate: selected.certificate,
+                        program: selected.program,
+                        participantName:
+                          [employee.firstName, employee.lastName].filter(Boolean).join(' ') ||
+                          employee.id,
+                        en,
+                        pdf: true,
+                      })
+                    }
+                  />
                 </div>
               )}
             </div>
@@ -513,9 +521,6 @@ export function EmployeeEvaluationsTab({
           onClose={() => setAckOpen(false)}
           footer={
             <div className="dialog-actions">
-              <Button variant="secondary" onClick={() => setAckOpen(false)}>
-                {en ? 'Cancel' : 'Ακύρωση'}
-              </Button>
               <Button
                 disabled={saving || !acknowledgementComplete(ackAgreement, ackComment)}
                 onClick={async () => {

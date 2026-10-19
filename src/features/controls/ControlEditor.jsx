@@ -132,11 +132,12 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
        :<Field label={`${en?'Every':'Κάθε'} (${intervalUnit}) *`}><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></Field>}
      </div>
      {draft.frequency.kind==='daily'&&<div className="control-editor-times"><span className="lo-field-label"><CalendarClock size={13}/> {en?'Execution times':'Ώρες εκτέλεσης'}</span><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
+     {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Tolerance (minutes)':'Ανοχή (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={en?'Until the next time':'Έως την επόμενη ώρα'} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'Each time is due by the next execution time (the last by 23:59). A tolerance makes it due earlier: time + tolerance.':'Κάθε ώρα εκτέλεσης είναι εμπρόθεσμη έως την επόμενη (η τελευταία έως τις 23:59). Με ανοχή, έως την ώρα + ανοχή.'}</small></div>}
     </section>
 
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'How it is recorded':'Τρόπος καταχώρησης'}</strong><span>{en?'What the person recording fills in':'Τι συμπληρώνει όποιος καταχωρεί'}</span></header>
-     <ModeSwitch className="control-editor-modes" ariaLabel={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={changeMode} options={[
+     <SearchableSelect className="control-editor-modes" label={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={next=>next&&(changeMode)(next)} options={[
       {value:'numeric',label:en?'Measurement':'Μέτρηση',icon:Hash},
       {value:'choice',label:en?'Status':'Κατάσταση',icon:ToggleLeft},
       {value:'checklist',label:en?'Checklist':'Λίστα ελέγχου',icon:ListTodo},
@@ -180,7 +181,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <section className="control-editor-card">
      <header><strong>{en?'Criticality & deviations':'Κρισιμότητα & αποκλίσεις'}</strong><span>{en?'Priority, proof and what to do on a deviation':'Προτεραιότητα, τεκμήριο και τι γίνεται σε απόκλιση'}</span></header>
      <div className="control-editor-grid two">
-      <div className="field"><span className="lo-field-label">{en?'Criticality':'Κρισιμότητα'}</span><ModeSwitch ariaLabel={en?'Criticality':'Κρισιμότητα'} value={controlCriticality(draft)} onChange={v=>setR('criticality',v)} options={CRITICALITY_LEVELS.map(level=>({value:level,label:criticalityLabel(level,language)}))}/></div>
+      <SearchableSelect label={en?'Criticality':'Κρισιμότητα'} value={controlCriticality(draft)} onChange={v=>v&&setR('criticality',v)} options={CRITICALITY_LEVELS.map(level=>({value:level,label:criticalityLabel(level,language)}))}/>
       <YesNoField label={en?'Evidence on every entry':'Τεκμήριο σε κάθε καταχώρηση'} value={requiresEvidence(draft)} onChange={value=>setR('requiresEvidence',value)}/>
      </div>
      <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows="3" value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>

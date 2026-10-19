@@ -1,12 +1,25 @@
-import { ModeSwitch } from './ModeSwitch'
+import { SearchableSelect } from './SearchableSelect'
 
-// Two or three exclusive answers under a field title (priority, sex, yes /
-// no / unknown, S / I / R): the shared mode switch, never a select or radios.
-export function ChoiceField({ label, value, options = [], onChange, className = '' }) {
+// A field with a choice of values (priority, status, type…): one house select,
+// never a row of buttons. A yes / no flag is a CheckboxField instead.
+export function ChoiceField({
+  label,
+  value,
+  options = [],
+  onChange,
+  disabled = false,
+  className = '',
+  placeholder = '',
+}) {
   return (
-    <div className={`field yes-no-field ${className}`.trim()}>
-      <span className="lo-field-label">{label}</span>
-      <ModeSwitch ariaLabel={label} value={value} onChange={onChange} options={options} />
-    </div>
+    <SearchableSelect
+      className={className}
+      label={label}
+      value={value ?? ''}
+      disabled={disabled}
+      placeholder={placeholder}
+      options={options.map(option => ({ value: option.value, label: option.label }))}
+      onChange={next => next != null && onChange?.(next)}
+    />
   )
 }

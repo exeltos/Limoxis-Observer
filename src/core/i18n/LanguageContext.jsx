@@ -80,6 +80,12 @@ export function LanguageProvider({ children }) {
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
+// For shared components that may render outside the provider (tests, isolated
+// prints): the language when there is one, otherwise null.
+export function useOptionalLanguage() {
+  return useContext(LanguageContext)
+}
+
 export function useLanguage() {
   const context = useContext(LanguageContext)
   if (!context) throw new Error('useLanguage must be used inside LanguageProvider')

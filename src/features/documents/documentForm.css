@@ -1,0 +1,15 @@
+/* Document details: three equal columns, every label above a 40px control, rows aligned. */
+.document-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 16px;align-items:start}
+.document-form-grid>.field,.document-form-grid>.searchable-select,.document-form-grid>.manual-date-field{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+.document-form-grid .lo-field-label{min-height:16px;line-height:16px;margin:0}
+.document-form-grid :where(input,.searchable-select-control,.manual-date-control){min-height:40px}
+.document-form-grid .document-span-2{grid-column:span 2}
+.document-form-grid .document-span-3{grid-column:1/-1}
+.document-form-grid>.field-hint{margin:-4px 0 0;color:#80909c;font-size:10.5px}
+@media(max-width:900px){.document-form-grid{grid-template-columns:1fr}.document-form-grid .document-span-2{grid-column:auto}}
+.document-form-grid .searchable-select>label{display:block;margin:0!important;padding:0;line-height:16px}
+.document-form-grid :where(input:not([type=checkbox]),.searchable-select-control>input){height:40px!important;min-height:40px!important;box-sizing:border-box}
+.document-form-grid .manual-date-control{height:40px;min-height:40px}
+.document-form-grid .manual-date-control>input{height:100%!important}
+.document-form-grid .multi-select .multi-select-button:disabled{background:#fff;color:inherit}
+.document-form-grid .multi-select .multi-select-button{font-size:13px!important;line-height:1.3}

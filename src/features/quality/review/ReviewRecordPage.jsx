@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardSignature, ListChecks, Plus, Sparkles, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
@@ -20,6 +20,7 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuth } from '../../../core/auth/AuthContext'
 import { auditActorFromAuth } from '../../../core/audit/actor'
 import { formatDay } from '../../../core/i18n/formatDay'
+import { reportExports } from '../../../core/export/reportDocument'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { loadQualityRecords } from '../qualityService'
 import { loadReviews, saveReview } from './reviewService'
@@ -27,28 +28,32 @@ import { REVIEW_SECTIONS, addDays, newReviewFrom, reviewStatusLabel, sectionFact
 import { ObjectiveBars, useObjectives } from './QualityObjectives'
 import '../quality.css'
 
-const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
-
-// The minutes as a Word document laid out like the hospital's form.
-function downloadMinutes(review, organizationName) {
-  const date = formatDay(review.reviewDate, 'el')
-  const sections = review.sections.map((section, index) => `<h2>${index + 1}. ${escapeHtml(section.title)}</h2>${String(section.body || '').split(/\n+/).filter(Boolean).map(line => `<p>${escapeHtml(line)}</p>`).join('')}`).join('')
-  const actions = review.actions.length ? `<h2>Αποφάσεις και ενέργειες</h2><table border="1" cellpadding="4" cellspacing="0"><tr><th>Α/Α</th><th>Ενέργεια</th><th>Υπεύθυνος</th><th>Προθεσμία</th></tr>${review.actions.map((action, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(action.title)}</td><td>${escapeHtml(action.ownerLabel)}</td><td>${formatDay(action.dueDate, 'el')}</td></tr>`).join('')}</table>` : ''
+// The minutes on the shared document layout (hospital band, DEMO mark in a
+// Demo, signatures): as Word, laid out like the hospital's form, or printed.
+function minutesDocument(review) {
   const present = review.participants.filter(person => person.attended !== false)
   const absent = review.participants.filter(person => person.attended === false)
-  const html = `<html><head><meta charset="utf-8"><title>${escapeHtml(review.title)}</title><style>body{font-family:Calibri,Arial;font-size:11pt}h1{font-size:16pt}h2{font-size:12pt;margin-top:14pt}table{border-collapse:collapse;width:100%}</style></head><body>
-<h1>${escapeHtml(review.title)}</h1><p><b>Πρακτικό Επιτροπής Ποιότητας</b> · ${escapeHtml(organizationName || '')}</p>
-<p>Ημερομηνία ${date} &nbsp;|&nbsp; Συχνότητα συνεδρίασης: κάθε ${review.frequencyDays} ημέρες &nbsp;|&nbsp; Περίοδος ${formatDay(review.periodFrom, 'el')} – ${formatDay(review.periodTo, 'el')}</p>
-<p><b>Συμμετέχοντες</b> ${present.map(person => escapeHtml(person.name)).join(', ')}.</p>${review.summary ? `<p>${escapeHtml(review.summary)}</p>` : ''}
-${sections}${actions}
-<h2>Υπογραφές συμμετεχόντων</h2><table border="1" cellpadding="4" cellspacing="0"><tr><th>ΑΑ</th><th>Ονοματεπώνυμο</th><th>Υπογραφή</th></tr>${present.map((person, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(person.name)}</td><td>${person.signedAt ? `Υπεγράφη ${formatDay(person.signedAt, 'el')}` : ''}</td></tr>`).join('')}</table>
-<p>Απόντες ${absent.length ? absent.map(person => escapeHtml(person.name)).join(', ') : '________________'}</p></body></html>`
-  const url = URL.createObjectURL(new Blob(['﻿', html], { type: 'application/msword' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `${review.code || 'Anaskopisi'}_${review.reviewDate}.doc`
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  return {
+    language: 'el',
+    kind: 'Πρακτικό Επιτροπής Ποιότητας',
+    code: review.code,
+    title: review.title,
+    meta: [
+      ['Ημερομηνία', formatDay(review.reviewDate, 'el')],
+      ['Περίοδος', `${formatDay(review.periodFrom, 'el')} – ${formatDay(review.periodTo, 'el')}`],
+      ['Συχνότητα συνεδρίασης', `κάθε ${review.frequencyDays} ημέρες`],
+      ['Κατάσταση', reviewStatusLabel(review.status, 'el')],
+      ['Συμμετέχοντες', present.map(person => person.name).join(', ')],
+      ['Απόντες', absent.length ? absent.map(person => person.name).join(', ') : '—'],
+    ],
+    sections: [
+      review.summary && { title: 'Σύνοψη', text: review.summary },
+      ...review.sections.map(section => ({ title: section.title, text: String(section.body || '').trim() || '—' })),
+      review.actions.length && { title: 'Αποφάσεις και ενέργειες', table: { columns: ['Α/Α', 'Ενέργεια', 'Υπεύθυνος', 'Προθεσμία'], rows: review.actions.map((action, index) => [String(index + 1), action.title, action.ownerLabel || '—', formatDay(action.dueDate, 'el')]) } },
+      { title: 'Υπογραφές συμμετεχόντων', keepTogether: true, table: { columns: ['Α/Α', 'Ονοματεπώνυμο', 'Υπογραφή'], rows: present.map((person, index) => [String(index + 1), person.name, person.signedAt ? `Υπεγράφη ${formatDay(person.signedAt, 'el')}` : '']) } },
+    ].filter(Boolean),
+    filename: `${review.code || 'Anaskopisi'}_${review.reviewDate}`,
+  }
 }
 
 // The text of a section: as tall as what is written (no scrolling inside the
@@ -135,10 +140,10 @@ export function ReviewRecordPage() {
     { id: 'actions', label: en ? `Decisions ${review.actions.length}` : `Αποφάσεις ${review.actions.length}`, icon: ListChecks },
     { id: 'people', label: en ? `Participants ${review.participants.length}` : `Συμμετέχοντες ${review.participants.length}`, icon: Users },
   ]
-  const footer = !locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={back}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>{!isNew && <Button disabled={saving || !allSigned} onClick={() => save('approved')}><CheckCircle2 size={15} />{en ? 'Approve' : 'Έγκριση'}</Button>}</div>
+  const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>{!isNew && <Button disabled={saving || !allSigned} onClick={() => save('approved')}><CheckCircle2 size={15} />{en ? 'Approve' : 'Έγκριση'}</Button>}</div>
   return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<ClipboardSignature size={19} />} eyebrow={review.code || (en ? 'New' : 'Νέα')} title={review.title} subtitle={`${formatDay(review.reviewDate, language)} · ${en ? 'every' : 'κάθε'} ${review.frequencyDays} ${en ? 'days' : 'ημέρες'}`} status={<StatusBadge tone={review.status === 'approved' ? 'success' : 'info'}>{reviewStatusLabel(review.status, language)}</StatusBadge>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={back}
 >
-    {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={en ? '«Insert data» adds what Limoxis holds for the period; edit it freely.' : 'Το «Στοιχεία του Limoxis» προσθέτει όσα υπάρχουν για την περίοδο· τα επεξεργάζεστε ελεύθερα.'} actions={<PrintExportActions showPrint={false} onExport={() => downloadMinutes(review, tenant?.name)} />} footer={footer}>
+    {tab === 'minutes' && <RecordTabPanel className="review-minutes" title={en ? 'Minutes' : 'Πρακτικό'} subtitle={en ? '«Insert data» adds what Limoxis holds for the period; edit it freely.' : 'Το «Στοιχεία του Limoxis» προσθέτει όσα υπάρχουν για την περίοδο· τα επεξεργάζεστε ελεύθερα.'} actions={<ExportMenu {...reportExports(() => minutesDocument(review), { word: true, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} />} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Review' : 'Ανασκόπηση'}>
           <FormGrid columns={4}>

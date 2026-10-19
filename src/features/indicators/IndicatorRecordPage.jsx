@@ -3,8 +3,8 @@ import { BookOpen,Gauge,Pencil,Target,Trash2 } from 'lucide-react'
 import { useLocation,useNavigate,useParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
-import { downloadRecordJson } from '../../core/export/recordExport'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { RouteLoading } from '../../design-system/RouteLoading'
@@ -15,7 +15,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
-import { IndicatorDefinitionForm,indicatorDefinitionIsValid } from './IndicatorDefinitionForm'
+import { IndicatorDefinitionForm,indicatorDefinitionIsValid,indicatorMetricLabel } from './IndicatorDefinitionForm'
 import { deleteIndicatorDefinition,loadIndicatorDefinition,saveIndicatorDefinition } from './indicatorDefinitionService'
 import { loadCommitteeObjectivesForIndicator } from './indicatorCommitteeService'
 import { IndicatorResultPanel } from './IndicatorResultPanel'
@@ -41,7 +41,21 @@ export function IndicatorRecordPage(){
  async function save(){if(!canManage||!editing||!valid||busy)return;setBusy(true);try{const saved=await saveIndicatorDefinition(tenant.id,draft);setRecord(saved);setDraft(saved);setEditing(false);notify(el?'Ο δείκτης ενημερώθηκε.':'Indicator updated.','success')}catch(err){notify(err?.message||(el?'Δεν ήταν δυνατή η αποθήκευση.':'Could not save indicator.'),'danger')}finally{setBusy(false)}}
  async function remove(){if(!canManage||record.system||busy)return;const ok=await confirm({title:el?'Διαγραφή δείκτη':'Delete indicator',message:el?'Ο δείκτης θα διαγραφεί οριστικά. Τα ήδη αποθηκευμένα αποτελέσματα θα παραμείνουν στο ιστορικό χωρίς σύνδεση με τον ορισμό. Θέλετε να συνεχίσετε;':'The indicator definition will be permanently deleted. Existing saved results will remain in history without the definition link. Continue?',confirmLabel:el?'Διαγραφή':'Delete',danger:true});if(!ok)return;setBusy(true);try{await deleteIndicatorDefinition(tenant.id,record);notify(el?'Ο δείκτης διαγράφηκε.':'Indicator deleted.','success');navigate('/indicators',{replace:true})}catch(err){notify(err?.message||(el?'Δεν ήταν δυνατή η διαγραφή.':'Could not delete indicator.'),'danger');setBusy(false)}}
  function cancel(){setDraft(record);setEditing(false)}
- return <Page fill><EntityRecordShell className="indicator-record-shell workspace-fill" avatar={<Gauge size={19}/>} eyebrow={el?'ΔΕΙΚΤΗΣ':'INDICATOR'} title={el?record.titleEl:(record.titleEn||record.titleEl||record.key)} subtitle={[record.source,`${el?'Έκδοση':'Version'} ${record.version}`].filter(Boolean).join(' · ')} status={<span className={`status-badge ${record.status==='active'?'active':record.status==='draft'?'temporary':''}`}>{statusLabel(record.status,el)}</span>} recordNavigation={recordNavigation} onBack={()=>navigate('/indicators')} headerActions={<>{canManage&&!editing&&<><button type="button" className="lo-icon-button lo-icon-button-edit lo-icon-button-sm" onClick={()=>{setTab('definition');setEditing(true)}} title={el?'Επεξεργασία':'Edit'} aria-label={el?'Επεξεργασία':'Edit'}><Pencil size={16}/></button>{!record.system&&<button type="button" className="lo-icon-button lo-icon-button-danger lo-icon-button-sm" onClick={remove} disabled={busy} title={el?'Διαγραφή':'Delete'} aria-label={el?'Διαγραφή':'Delete'}><Trash2 size={16}/></button>}</>}<PrintExportActions onExport={()=>downloadRecordJson(record,{filename:record?.key})}/></>} tabs={[{id:'result',label:el?'Αποτέλεσμα':'Result',icon:Gauge},{id:'definition',label:el?'Ορισμός':'Definition',icon:BookOpen},{id:'governance',label:el?'Στόχοι επιτροπών':'Committee objectives',icon:Target}]} activeTab={tab} onTabChange={next=>{if(editing&&next!=='definition')return;setTab(next)}}>
+ // The definition as a printed sheet (the indicator report with charts comes with the next exports).
+ function printDefinition(pdf){
+  const category={surveillance:['Επιτήρηση','Surveillance'],prevention:['Πρόληψη','Prevention'],laboratory:['Εργαστήριο','Laboratory'],workforce:['Προσωπικό','Workforce'],quality:['Ποιότητα','Quality']}[record.category]
+  const direction={context:['Πληροφοριακός','Context only'],higher:['Υψηλότερα είναι καλύτερα','Higher is better'],lower:['Χαμηλότερα είναι καλύτερα','Lower is better']}[record.direction||'context']
+  const pick=pair=>pair?pair[el?0:1]:''
+  const ok=printReport({language,kind:el?'Ορισμός δείκτη':'Indicator definition',code:record.key,title:el?record.titleEl:(record.titleEn||record.titleEl),subtitle:[record.sourceAuthority||record.source,`${el?'Έκδοση':'Version'} ${record.version}`].filter(Boolean).join(' · '),
+   meta:[[el?'Κωδικός δείκτη':'Indicator key',record.key],[el?'Κατάσταση':'Status',statusLabel(record.status,el)],[el?'Κατηγορία':'Category',pick(category)||record.category],[el?'Τύπος υπολογισμού':'Calculation type',record.calculationType==='manual'?(el?'Χειροκίνητος':'Manual'):(el?'Αυτόματος από δεδομένα':'Automatic from data')],
+    [el?'Αριθμητής':'Numerator',record.numeratorMetric?indicatorMetricLabel(record.numeratorMetric,language):record.numeratorDefinition?.description],[el?'Παρονομαστής':'Denominator',record.denominatorMetric?indicatorMetricLabel(record.denominatorMetric,language):record.denominatorDefinition?.description],
+    [el?'Πολλαπλασιαστής':'Multiplier',record.multiplier],[el?'Μονάδα':'Unit',record.unit],[el?'Στόχος':'Target',record.targetValue],[el?'Κατεύθυνση στόχου':'Target direction',pick(direction)],
+    [el?'Ισχύει από':'Effective from',record.effectiveFrom?fmtDate(record.effectiveFrom):''],[el?'Ισχύει έως':'Effective to',record.effectiveTo?fmtDate(record.effectiveTo):'']],
+   sections:committeeObjectives.length?[{title:el?'Στόχοι επιτροπών':'Committee objectives',table:{columns:[el?'Επιτροπή':'Committee',el?'Στόχος':'Objective',el?'Baseline → στόχος':'Baseline → target',el?'Υπεύθυνος':'Owner',el?'Προθεσμία':'Due',el?'Κατάσταση':'Status'],rows:committeeObjectives.map(o=>[o.committee?.name||'—',o.title||'—',`${o.baseline||'—'} → ${o.target||'—'}`,o.owner_label||'—',fmtDate(o.due_date),workflowStatusLabel(o.status,el)])}}]:[],
+   filename:`${record.key}_${el?'orismos':'definition'}`}, { pdf: pdf === true })
+  if(!ok)notify(el?'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.':'Allow pop-ups to print.','error')
+ }
+ return <Page fill><EntityRecordShell className="indicator-record-shell workspace-fill" avatar={<Gauge size={19}/>} eyebrow={el?'ΔΕΙΚΤΗΣ':'INDICATOR'} title={el?record.titleEl:(record.titleEn||record.titleEl||record.key)} subtitle={[record.source,`${el?'Έκδοση':'Version'} ${record.version}`].filter(Boolean).join(' · ')} status={<span className={`status-badge ${record.status==='active'?'active':record.status==='draft'?'temporary':''}`}>{statusLabel(record.status,el)}</span>} recordNavigation={recordNavigation} onBack={()=>navigate('/indicators')} headerActions={<>{canManage&&!editing&&<><button type="button" className="lo-icon-button lo-icon-button-edit lo-icon-button-sm" onClick={()=>{setTab('definition');setEditing(true)}} title={el?'Επεξεργασία':'Edit'} aria-label={el?'Επεξεργασία':'Edit'}><Pencil size={16}/></button>{!record.system&&<button type="button" className="lo-icon-button lo-icon-button-danger lo-icon-button-sm" onClick={remove} disabled={busy} title={el?'Διαγραφή':'Delete'} aria-label={el?'Διαγραφή':'Delete'}><Trash2 size={16}/></button>}</>}<ExportMenu onPrint={()=>printDefinition(false)} onPdf={()=>printDefinition(true)} /></>} tabs={[{id:'result',label:el?'Αποτέλεσμα':'Result',icon:Gauge},{id:'definition',label:el?'Ορισμός':'Definition',icon:BookOpen},{id:'governance',label:el?'Στόχοι επιτροπών':'Committee objectives',icon:Target}]} activeTab={tab} onTabChange={next=>{if(editing&&next!=='definition')return;setTab(next)}}>
   <div className="workspace-column workspace-fill">
    {tab==='result'&&<IndicatorResultPanel organizationId={tenant?.id} record={record} period={location.state?.indicatorPeriod} language={language}/>}
    {tab==='definition'&&<section className="record-section indicator-record-form">

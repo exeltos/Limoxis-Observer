@@ -17,7 +17,7 @@ export function DemoApplicationDialog({language,organizationName='',defaultName=
   </ObserverDialog>
   return <ObserverDialog width="standard" className="demo-application-dialog" eyebrow={organizationName} title={tx('Θέλω την εφαρμογή','I want the application')}
     subtitle={tx('Αφήστε μας τα στοιχεία σας και θα επικοινωνήσουμε μαζί σας για την ενεργοποίηση στο νοσοκομείο σας.','Leave your details and we will contact you about setting it up for your hospital.')}
-    onClose={()=>!working&&onClose?.()} footer={<><Button variant="secondary" disabled={working} onClick={onClose}>{tx('Ακύρωση','Cancel')}</Button><Button loading={working} disabled={!ready} onClick={()=>onSubmit?.({contactName:name.trim(),contactPhone:phone.trim(),message:message.trim()})}><Send size={15}/>{tx('Αποστολή αιτήματος','Send request')}</Button></>}>
+    onClose={()=>!working&&onClose?.()} footer={<><Button loading={working} disabled={!ready} onClick={()=>onSubmit?.({contactName:name.trim(),contactPhone:phone.trim(),message:message.trim()})}><Send size={15}/>{tx('Αποστολή αιτήματος','Send request')}</Button></>}>
     <div className="form-grid demo-application-form">
       <label className="field"><span>{tx('Ονοματεπώνυμο','Full name')}</span><input value={name} maxLength={200} onChange={e=>setName(e.target.value)} disabled={working} autoComplete="name"/></label>
       <label className="field"><span>{tx('Τηλέφωνο','Phone')}</span><input value={phone} maxLength={60} onChange={e=>setPhone(e.target.value)} disabled={working} autoComplete="tel" inputMode="tel"/></label>

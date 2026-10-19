@@ -14,7 +14,7 @@ describe('calendar events', () => {
     const daily = events.filter((e) => e.title === 'Fridge')
     expect(daily).toHaveLength(1)
     expect(daily[0]).toMatchObject({ date: '2026-10-07', state: 'overdue', department: 'ΜΕΘ' })
-    expect(events.filter((e) => e.title === 'Surfaces').map((e) => e.date)).toEqual(['2026-10-10', '2026-10-17', '2026-10-24', '2026-10-31', '2026-11-07'])
+    expect(events.filter((e) => e.title === 'Surfaces').map((e) => e.date)).toEqual(['2026-10-10', '2026-10-18', '2026-10-25', '2026-11-01', '2026-11-08'])
   })
 
   it('collects CAPA deadlines, open steps and effectiveness reviews, skipping closed and done ones', () => {

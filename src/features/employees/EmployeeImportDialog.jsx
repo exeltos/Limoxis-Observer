@@ -1,5 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CheckCircle2,Download,FileSpreadsheet,Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, Upload } from 'lucide-react'
+import { YesNoField } from '../../design-system/YesNoField'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { Button } from '../../design-system/Button'
 import { downloadCsv } from '../../core/export/csvExport'
@@ -80,14 +81,14 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}){
  }
 
  const footer=result
-  ?<DialogActions onSave={close} saveLabel={en?'Close':'Κλείσιμο'}/>
-  :<DialogActions showCancel onCancel={close} onSave={()=>void run()} disabled={!toSave.length||Boolean(running)} saveLabel={running?(en?`Saving ${running.done}/${running.total}…`:`Αποθήκευση ${running.done}/${running.total}…`):(en?`Import ${toSave.length}`:`Εισαγωγή ${toSave.length}`)}/>
+  ?null
+  :<DialogActions onSave={()=>void run()} disabled={!toSave.length||Boolean(running)} saveLabel={running?(en?`Saving ${running.done}/${running.total}…`:`Αποθήκευση ${running.done}/${running.total}…`):(en?`Import ${toSave.length}`:`Εισαγωγή ${toSave.length}`)}/>
 
  return <ObserverDialog width="wide" eyebrow={en?'Staff':'Προσωπικό'} title={en?'Import staff from Excel':'Εισαγωγή προσωπικού από Excel'} subtitle={en?'One row per employee. Departments, categories and positions must exist in Management.':'Μία γραμμή ανά εργαζόμενο. Τμήματα, κατηγορίες και θέσεις πρέπει να υπάρχουν στο Κέντρο Διαχείρισης.'} onClose={running?undefined:close} footer={footer}>
   <div className="employee-import">
    <div className="employee-import-file">
     <label className="employee-import-pick"><Upload size={16}/><span>{fileName||(en?'Choose file (.xlsx or .csv)':'Επιλογή αρχείου (.xlsx ή .csv)')}</span><input type="file" accept=".xlsx,.csv" onChange={event=>void pick(event)} disabled={Boolean(running)}/></label>
-    <Button variant="secondary" onClick={downloadTemplate}><Download size={15}/>{en?' Template':' Πρότυπο'}</Button>
+    <Button variant="secondary" onClick={downloadTemplate}><FileSpreadsheet size={15}/>{en?' Excel template':' Πρότυπο Excel'}</Button>
    </div>
    {readError&&<p className="employee-import-error" role="alert"><AlertTriangle size={15}/>{readError}</p>}
    {!plan&&!readError&&<div className="employee-import-help"><FileSpreadsheet size={20}/><div><strong>{en?'Columns':'Στήλες'}</strong><span>{en?'Code, Last name, First name, Department and Professional category are required. Father name, Job position, Status, Email, Phone, Hire date and Birth date are optional. Download the template to start.':'Υποχρεωτικές: Κωδικός, Επώνυμο, Όνομα, Τμήμα, Επαγγελματική κατηγορία. Προαιρετικές: Πατρώνυμο, Θέση εργασίας, Κατάσταση, Email, Τηλέφωνο, Ημερομηνία πρόσληψης, Ημερομηνία γέννησης. Κατεβάστε το πρότυπο για να ξεκινήσετε.'}</span></div></div>}
@@ -99,7 +100,7 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}){
      <span className="update"><strong>{plan.counts.update}</strong>{en?'updates':'ενημερώσεις'}</span>
      {plan.counts.skip>0&&<span><strong>{plan.counts.skip}</strong>{en?'already exist':'υπάρχουν ήδη'}</span>}
      <span className="error"><strong>{plan.counts.error}</strong>{en?'with errors (not imported)':'με σφάλματα (δεν εισάγονται)'}</span>
-     <div className="employee-import-update"><input id="employee-import-update" type="checkbox" checked={updateExisting} onChange={event=>setUpdateExisting(event.target.checked)} disabled={Boolean(running||result)}/><label htmlFor="employee-import-update">{en?'Update existing employees (empty cells keep the current value)':'Ενημέρωση υπαρχόντων εργαζομένων (τα κενά κελιά κρατούν την τρέχουσα τιμή)'}</label></div>
+     <YesNoField className="employee-import-update" label={en?'Update existing employees (empty cells keep the current value)':'Ενημέρωση υπαρχόντων εργαζομένων (τα κενά κελιά κρατούν την τρέχουσα τιμή)'} value={updateExisting} onChange={next=>!(running||result)&&setUpdateExisting(next)}/>
     </div>
     {!(result&&!result.failed.length)&&<div className="scroll-table employee-import-table"><table className="data-table sticky-table">
      <thead><tr><th>{en?'Row':'Γραμμή'}</th><th>{en?'Code':'Κωδικός'}</th><th>{en?'Name':'Ονοματεπώνυμο'}</th><th>{en?'Department · Position':'Τμήμα · Θέση'}</th><th>{en?'Result':'Αποτέλεσμα'}</th></tr></thead>

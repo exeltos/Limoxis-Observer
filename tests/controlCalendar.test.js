@@ -28,24 +28,28 @@ describe('annual control calendar', () => {
     expect(calendarTone(months[11])).toBe('planned')
   })
 
-  it('plans a monthly control on its due day and marks done, late and missed months', () => {
-    const history = [
-      { at: at(5, 15), previousNextDueAt: at(5, 15) },
-      { at: at(6, 20), previousNextDueAt: at(6, 15) }, // five days late
-    ]
-    const months = assignmentCalendar({ frequency: { kind: 'monthly', interval: 1 }, history, startedAt: at(0, 1), nextDueAt: at(7, 20) }, 2026, now)
+  it('plans a monthly control by the end of each month and marks done, late and missed months', () => {
+    // Done 15 June (on time: nothing before) and 20 August: June's entry made it
+    // due by the end of July, so August's is late. Due again by 30 September.
+    const history = [{ at: at(5, 15) }, { at: at(7, 20) }]
+    const months = assignmentCalendar({ frequency: { kind: 'monthly', interval: 1 }, history, startedAt: at(0, 1), nextDueAt: '2026-09-30T20:59:59.000Z' }, 2026, now)
     expect(months[5].marks).toEqual([{ day: 15, late: false }])
-    expect(months[6].marks).toEqual([{ day: 20, late: true }])
-    expect(calendarTone(months[6])).toBe('fair')
-    // Due 20 August and never done: missed in August and September, then planned again.
-    expect(months[7].missed).toEqual([20])
-    expect(months[8].missed).toEqual([20])
+    expect(months[7].marks).toEqual([{ day: 20, late: true }])
+    expect(calendarTone(months[7])).toBe('fair')
+    // Due 30 September and not done: missed in September, then planned at each month's end.
+    expect(months[8].missed).toEqual([30])
     expect(calendarTone(months[8])).toBe('low')
-    expect(months[9].planned).toEqual([20])
-    expect(months[10].planned).toEqual([20])
-    expect(months[11].planned).toEqual([20])
-    expect(calendarCellText(months[6], false)).toBe('Έγινε 20 (με καθυστέρηση)')
-    expect(calendarCellText(months[8], true)).toBe('Missed 20')
+    expect(months[9].planned).toEqual([31])
+    expect(months[10].planned).toEqual([30])
+    expect(months[11].planned).toEqual([31])
+    expect(calendarCellText(months[7], false)).toBe('Έγινε 20 (με καθυστέρηση)')
+    expect(calendarCellText(months[8], true)).toBe('Missed 30')
+  })
+
+  it('leaves extra entries and entries beyond a day\'s slots out of the month', () => {
+    const history = [{ at: at(8, 1, 8) }, { at: at(8, 1, 9) }, { at: at(8, 1, 10), isExtra: true }, { at: at(8, 2, 8) }]
+    const months = assignmentCalendar({ frequency: { kind: 'daily', times: ['09:00'] }, history, startedAt: at(7, 31, 0) }, 2026, now)
+    expect(months[8].done).toBe(2)
   })
 
   it('shows a yearly control once, and nothing ahead for a paused assignment', () => {

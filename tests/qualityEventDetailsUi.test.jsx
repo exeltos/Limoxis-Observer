@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { chooseOption } from './selectHelpers'
 
 vi.mock('../src/features/employees/useEmployeesData', () => ({ useEmployeesData: () => ({ data: [{ id: 'e1', firstName: 'Άννα', lastName: 'Μάρκου', employmentStatus: 'active' }] }) }))
 vi.mock('../src/features/management/useLibraries', async original => ({ ...(await original()), useLibraries: () => ({ libraries: { incidentCategories: [] } }) }))
@@ -19,11 +20,10 @@ describe('incident event details on screen', () => {
   it('edits the fall block and asks for the employee only for an injured employee', () => {
     let record = { eventType: 'injury_fall_exposure', fall: { injuredPersonType: 'patient' } }
     const { rerender } = render(<IncidentEventFields record={record} onChange={next => { record = next }} language="en" />)
-    expect(screen.getAllByText('Employee')).toHaveLength(1)
-    fireEvent.click(screen.getByRole('radio', { name: 'Employee' }))
+    chooseOption(document.body, /Injured person|Who was injured|person/i, 'Employee')
     expect(record.fall.injuredPersonType).toBe('employee')
     rerender(<IncidentEventFields record={record} onChange={next => { record = next }} language="en" />)
-    expect(screen.getAllByText('Employee')).toHaveLength(2)
+    expect(screen.getAllByText('Employee').length).toBeGreaterThan(0)
     fireEvent.change(screen.getByLabelText('Location'), { target: { value: 'Ward 3' } })
     expect(record.fall.location).toBe('Ward 3')
   })

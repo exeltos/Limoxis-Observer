@@ -4,7 +4,8 @@
 // (monthly, yearly, every 4+ weeks) are shown as dated events: done, done
 // late, missed, or planned.
 import { calculateNextDue } from './controlScheduling'
-import { expectedOccurrences, graceFor } from './controlAdherence'
+import { expectedOccurrences } from './controlAdherence'
+import { executionMarks } from './controlDueRules'
 
 const MAX_STEPS = 400
 
@@ -18,11 +19,6 @@ export function monthRange(year, month) {
   return { from: new Date(year, month, 1), to: new Date(year, month + 1, 1) }
 }
 
-const valid = (row) => row.status !== 'cancelled' && !row.cancelledAt && row.at
-const isLate = (row, frequency) => {
-  const due = row.previousNextDueAt || row.responseData?.previousNextDueAt
-  return Boolean(due) && new Date(row.at) - new Date(due) > graceFor(frequency)
-}
 
 // Due dates from `start` onwards, stepped by the frequency, while before `until`.
 function stepDates(frequency, start, until) {
@@ -54,7 +50,8 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
   const frequent = isFrequentControl(frequency)
   const started = startedAt ? new Date(startedAt) : null
   const yearEnd = new Date(year + 1, 0, 1)
-  const done = history.filter(valid)
+  // The counted entries (extra ones and those beyond a day's slots left out), late or not.
+  const done = executionMarks(history, frequency).filter((mark) => mark.counted)
   const schedule = frequent ? null : infrequentSchedule({ frequency, nextDueAt, paused }, yearEnd, now)
 
   return Array.from({ length: 12 }, (_, month) => {
@@ -64,8 +61,8 @@ export function assignmentCalendar({ frequency = {}, history = [], startedAt = n
     const counted = monthCounts ? monthCounts[month] || { done: 0, late: 0, marks: [] } : null
     const executions = counted ? [] : done.filter((row) => inMonth(row.at))
     const doneCount = counted ? counted.done : executions.length
-    const late = counted ? counted.late : executions.filter((row) => isLate(row, frequency)).length
-    const marks = counted ? [...counted.marks] : executions.map((row) => ({ day: new Date(row.at).getDate(), late: isLate(row, frequency) }))
+    const late = counted ? counted.late : executions.filter((mark) => !mark.onTime).length
+    const marks = counted ? [...counted.marks] : executions.map((mark) => ({ day: new Date(mark.at).getDate(), late: !mark.onTime }))
     const cell = { month, when, done: doneCount, late, marks: marks.sort((a, b) => a.day - b.day) }
 
     if (frequent) {

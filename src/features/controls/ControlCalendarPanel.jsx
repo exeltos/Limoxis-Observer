@@ -3,7 +3,7 @@ import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
-import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
 import { calendarTone, calendarYearSummary, groupCalendarLines, programmeCalendar } from './controlCalendar'
@@ -51,7 +51,6 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
   const en = language === 'en'
   const { notify } = useFeedback()
   const [year, setYear] = useState(() => new Date().getFullYear())
-  const [exporting, setExporting] = useState(false)
   const reportRef = useRef(null)
   const { months: monthsByAssignment, failed } = useCalendarMonths(organizationId, year, refreshKey)
   const lines = useMemo(() => (failed ? [] : programmeCalendar(rows, year, new Date(), monthsByAssignment)), [rows, year, monthsByAssignment, failed])
@@ -65,16 +64,37 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
       [en ? 'Control' : 'Έλεγχος', en ? 'Department' : 'Τμήμα', en ? 'Frequency' : 'Συχνότητα', ...months],
       lines.map((line) => [title(line.item), line.department, frequencyLabel(line.item.frequency, language), ...line.months.map((cell) => calendarCellText(cell, en))]))
   }
-  async function exportPdf() {
-    if (exporting || !reportRef.current) return
+  // The year for every control (not the page on screen) on the shared document layout.
+  function exportPdf(pdf) {
     if (failed) { notify(loadFailedText, 'danger'); return }
-    setExporting(true)
-    try { await exportElementAsPdf({ element: reportRef.current, filename: `${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}`, orientation: 'landscape' }) }
-    catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
-    finally { setExporting(false) }
+    const toneClass = { good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }
+    const cellOf = (cell) => {
+      if (cell.inactive) return { text: '' }
+      const className = `rd-cal ${toneClass[calendarTone(cell)] || ''}`
+      if (cell.frequent) {
+        if (cell.when === 'future' || (!cell.expected && !cell.done)) return { text: cell.planned ? `○ ${cell.planned}` : '', className }
+        return { text: `${cell.done}/${cell.expected}`, className }
+      }
+      return { text: [...cell.marks.map((mark) => `✓${mark.day}`), ...cell.missed.map((day) => `✕${day}`), ...cell.planned.map((day) => `○${day}`)].join(' '), className }
+    }
+    const yearCell = (line) => { const summary = calendarYearSummary(line.months); return { text: summary.rate == null ? (summary.planned ? `○ ${summary.planned}` : '—') : `${summary.rate}% (${summary.done}/${summary.expected})`, className: `rd-num ${summary.rate == null ? '' : summary.rate >= 90 ? 'rd-good' : summary.rate >= 75 ? 'rd-warn' : 'rd-bad'}` } }
+    const rowsOut = groupCalendarLines(lines).flatMap((group) => group.lines.length === 1
+      ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${frequencyLabel(group.item.frequency, language)}`)}</small>` }, ...group.lines[0].months.map(cellOf), yearCell(group.lines[0])]]
+      : [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${frequencyLabel(group.item.frequency, language)} · ${en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}`)}</small>`, colSpan: 14 }],
+         ...group.lines.map((line) => [{ text: line.department, className: 'rd-sub-cell' }, ...line.months.map(cellOf), yearCell(line)])])
+    const ok = printReport({
+      language, orientation: 'landscape',
+      kind: en ? 'Controls' : 'Έλεγχοι',
+      code: String(year),
+      title: en ? `Control calendar ${year}` : `Ημερολόγιο ελέγχων ${year}`,
+      meta: [[en ? 'Year' : 'Έτος', String(year)], [en ? 'Controls' : 'Έλεγχοι', String(lines.length)]],
+      sections: [{ title: en ? 'Executions per month' : 'Εκτελέσεις ανά μήνα', note: `✓ ${tx.legendDone} · ✕ ${tx.legendMissed} · ○ ${tx.legendPlanned} · ${tx.legendCount}: 9/10. ${tx.calendarNote}`, table: { columns: [en ? 'Control' : 'Έλεγχος', ...months, String(year)], rows: rowsOut, empty: tx.noCalendar } }],
+      filename: `${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}`,
+    }, { pdf: pdf === true })
+    if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
-  return { year, setYear, lines, months, reportRef, exporting, exportCsv, exportPdf, tx, failed, loadFailedText }
+  return { year, setYear, lines, months, reportRef, exporting: false, exportCsv, exportPdf, tx, failed, loadFailedText }
 }
 
 function FrequentCell({ cell }) {

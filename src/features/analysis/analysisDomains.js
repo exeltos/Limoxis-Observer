@@ -177,7 +177,7 @@ const LABELS = {
   transferred: ['Μεταφορά', 'Transferred'], deceased: ['Θάνατος', 'Deceased'], discharged: ['Έξοδος', 'Discharged'], recovered: ['Ίαση', 'Recovered'],
   bloodstreamInfection: ['Λοίμωξη αιματικής ροής', 'Bloodstream infection'], urinaryTractInfection: ['Λοίμωξη ουροποιητικού', 'Urinary tract infection'], pneumonia: ['Πνευμονία', 'Pneumonia'], surgicalSiteInfection: ['Λοίμωξη χειρουργικού πεδίου', 'Surgical site infection'],
   periodic: ['Περιοδική', 'Periodic'], followUp: ['Επανέλεγχος', 'Follow-up'], preEmployment: ['Προπρόσληψης', 'Pre-employment'], exposure: ['Μετά από έκθεση', 'Post-exposure'],
-  policy: ['Πολιτική', 'Policy'], instruction: ['Οδηγία', 'Instruction'], procedure: ['Διαδικασία', 'Procedure'], protocol: ['Πρωτόκολλο', 'Protocol'], form: ['Έντυπο', 'Form'],
+  policy: ['Πολιτική', 'Policy'], instruction: ['Οδηγία', 'Instruction'], procedure: ['Διαδικασία', 'Procedure'], protocol: ['Πρωτόκολλο', 'Protocol'], form: ['Έντυπο', 'Form'], licence: ['Άδεια / Πιστοποιητικό', 'Licence / certificate'],
   active: ['Ενεργή', 'Active'],
   needlestick: ['Τρύπημα από βελόνα', 'Needlestick'], mucocutaneous: ['Έκθεση βλεννογόνου', 'Mucocutaneous'], non_intact_skin: ['Μη ακέραιο δέρμα', 'Non-intact skin'], sharps_object: ['Αιχμηρό αντικείμενο', 'Sharps object'], other: ['Άλλο', 'Other'],
   ventilatorAssociatedPneumonia: ['Πνευμονία σχετιζόμενη με αναπνευστήρα (VAP)', 'Ventilator-associated pneumonia (VAP)'], vaccinationReview: ['Έλεγχος εμβολιασμών', 'Vaccination review'],

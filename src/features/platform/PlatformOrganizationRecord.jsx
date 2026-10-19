@@ -42,7 +42,7 @@ import { InvitationLinkDialog } from './InvitationLinkDialog'
 import { OrganizationIdentitySection } from './OrganizationIdentitySection'
 import { loadEmployeesAsync } from '../employees/employeeService'
 import { MetricCard } from '../../design-system/MetricCard'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 
 const GREEK_REGIONS = [
@@ -1263,7 +1263,7 @@ export function PlatformOrganizationRecord({
                 </span>
               </div>
               <div className="row-actions">
-                <DownloadMenu
+                <ExportMenu
                   items={[
                     {
                       id: 'users',
@@ -1427,7 +1427,6 @@ export function PlatformOrganizationRecord({
           width="compact"
           footer={
             <DialogActions
-              showCancel
               onCancel={() => setCreateUserOpen(false)}
               onSave={createOrganizationMember}
               saveLabel={

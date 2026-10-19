@@ -116,7 +116,7 @@ function SurveyDialog({ en, draft, setDraft, departments, language, onClose, onS
     <label><span>{label}</span><input type="number" min="0" value={draft[key]} onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))} /></label>
   )
   return (
-    <ObserverDialog width="standard" title={en ? 'New prevalence survey' : 'Νέα επισκόπηση επιπολασμού'} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={onSave} disabled={!draft.surveyDate} />}>
+    <ObserverDialog width="standard" title={en ? 'New prevalence survey' : 'Νέα επισκόπηση επιπολασμού'} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={onSave} disabled={!draft.surveyDate} />}>
         <div className="entry-grid">
           <ManualDateField label={en ? 'Survey date' : 'Ημερομηνία επισκόπησης'} value={draft.surveyDate} onChange={value => setDraft(d => ({ ...d, surveyDate: value }))} />
           <label><span>{en ? 'Scope / department' : 'Εύρος / Τμήμα'}</span><select value={draft.departmentId} onChange={e => setDraft(d => ({ ...d, departmentId: e.target.value }))}><option value="">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>{departments.map(item => <option key={item.id} value={item.id}>{language === 'el' ? item.name : (item.nameEn || item.name)}</option>)}</select></label>

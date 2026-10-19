@@ -9,7 +9,7 @@ import { Field } from '../../../design-system/Field'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
@@ -105,7 +105,7 @@ export function SupplierRecordPage() {
       ...certifications.map(item => [en ? 'Certificate' : 'Πιστοποιητικό', item.expiresOn, [item.type, item.number, item.issuer].filter(Boolean).join(' · '), '', certificationStateLabel(certificationState(item), language)])],
   })
   const headerActions = !isNew && <div className="row-actions">
-    <PrintExportActions showPrint={false} onExport={exportFile} />
+    <ExportMenu onExcel={exportFile} />
     {access.canManage && <Button variant="secondary" onClick={() => { setTab('evaluations'); setEditing({ field: 'evaluations', item: newEvaluation() }) }}><Star size={15} />{en ? 'Evaluate' : 'Αξιολόγηση'}</Button>}
     {access.canManage && <Button variant="secondary" onClick={() => { setTab('nonconformities'); setEditing({ field: 'nonconformities', item: newNonconformity() }) }}><AlertTriangle size={15} />{en ? 'Nonconformity' : 'Μη συμμόρφωση'}</Button>}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete supplier' : 'Διαγραφή προμηθευτή'} onClick={remove}><Trash2 size={16} /></IconButton>}
@@ -169,7 +169,7 @@ export function SupplierRecordPage() {
           <td><StatusBadge tone={equipmentStateTone(item.state)}>{equipmentStateLabel(item.state, language)}</StatusBadge></td>
         </>} />
     </RecordTabPanel>}
-    {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} footer={!locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={() => persist()}>{isNew ? (en ? 'Register supplier' : 'Καταχώριση προμηθευτή') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
+    {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} footer={!locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={() => persist()}>{isNew ? (en ? 'Register supplier' : 'Καταχώριση προμηθευτή') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Supplier' : 'Προμηθευτής'}>
           <FormGrid columns={3}>

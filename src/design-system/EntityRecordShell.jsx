@@ -8,15 +8,28 @@ import { readSessionJson,writeSessionValue } from '../core/storage/browserStorag
 import { BackButton } from './BackButton'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
+import { ExportMenu } from './ExportMenu'
 
-function flattenActions(node,result=[]){
+// Header actions come in three kinds: edit and delete go to the record's «…»
+// menu; the export control (ExportMenu «Εξαγωγή ▾») stays visible next to the status.
+function flattenActions(node,result=[],utilities=[]){
   Children.forEach(node,child=>{
     if(!isValidElement(child))return
-    if(child.type===Fragment){flattenActions(child.props.children,result);return}
+    if(child.type===Fragment){flattenActions(child.props.children,result,utilities);return}
+    if(isUtilityAction(child)){utilities.push(child);return}
     if(recordActionKind(child)){result.push(child);return}
-    if(child.props?.children)flattenActions(child.props.children,result)
+    if(child.props?.children)flattenActions(child.props.children,result,utilities)
   })
   return result
+}
+
+const UTILITY_PREFIXES=['print','εκτύπ','export','εξαγωγ','download','λήψη','word','pdf']
+function isUtilityAction(action){
+  if(!isValidElement(action))return false
+  if(action.type===ExportMenu||action.props.utility)return true
+  if(typeof action.type==='string')return false
+  const semantic=String(action.props.label||action.props['aria-label']||action.props.title||'').toLowerCase().trim()
+  return UTILITY_PREFIXES.some(prefix=>semantic.startsWith(prefix))
 }
 
 function recordActionKind(action){
@@ -114,7 +127,8 @@ export function EntityRecordShell({
   }:null
   const effectiveRecordNavigation=recordNavigation||fallbackNavigation
 
-  const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions)
+  const utilityActions=[]
+  const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions,[],utilityActions)
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
@@ -132,6 +146,7 @@ export function EntityRecordShell({
       </div>
       <div className="entity-record-header-actions">
         {status}
+        {utilityActions.length>0&&<div className="record-utility-actions entity-record-utilities">{utilityActions.map((action,index)=><Fragment key={action.key||index}>{action}</Fragment>)}</div>}
         {effectiveRecordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
           <IconButton size="sm" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></IconButton>
           {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}

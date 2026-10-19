@@ -1,7 +1,7 @@
 // What the user may do on one control record, which department the record opens
 // on, and the record's overall status across the user's departments.
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
-import { assignmentStatus, getAssignment, isControlDue } from './controlScheduling'
+import { assignmentProgress, assignmentStatus, getAssignment, isControlDue } from './controlScheduling'
 
 // The department the record opens on: the one asked for in the link, else the
 // user's own, else the first one the user can see. Only visible ones qualify.
@@ -42,9 +42,11 @@ export function controlRecordPermissions({ role, membership, record, actorId, al
 
   // A department's control can be executed when it is assigned there and is due,
   // or when a draft execution is waiting; control managers may execute any time.
+  // Once the period's entries are complete the entry screen opens to say so and
+  // to offer an extra entry, with its reason.
   const canExecuteDepartment = department => {
     const assignment = getAssignment(record, department)
-    return Boolean(assignment) && hasExecuteCapability && (Boolean(assignment.hasDraft) || canManageControls || isControlDue(record, department))
+    return Boolean(assignment) && hasExecuteCapability && (Boolean(assignment.hasDraft) || canManageControls || isControlDue(record, department) || Boolean(assignmentProgress(record, department)?.complete))
   }
 
   // Only completed executions can be voided or corrected. A correction is open

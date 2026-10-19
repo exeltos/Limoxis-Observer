@@ -1,5 +1,5 @@
 import { supabase } from '../../core/supabase/client'
-import { calculateNextDue } from './controlScheduling'
+import { firstDue,nextDueAfterExecution,periodBounds,periodProgress } from './controlDueRules'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { deleteAttachment,uploadAttachment } from '../../core/attachments/attachmentService'
 import { evidenceSummary } from './controlCriticality'
@@ -41,6 +41,9 @@ function mapExecution(row){
   cancelledBy:response.cancelledByName||row.cancelled_by||'',
   cancelledById:row.cancelled_by||null,
   cancellationReason:row.cancellation_reason||'',
+  // An extra entry («Έκτακτη καταχώρηση»): recorded with its reason, never counted.
+  isExtra:Boolean(row.is_extra),
+  extraReason:row.extra_reason||'',
   previousLastCompletedAt:response.previousLastCompletedAt||null,
   previousNextDueAt:response.previousNextDueAt||null,
  }
@@ -63,7 +66,7 @@ export function summarizeHistory(history=[],todayFrom=startOfToday()){
 }
 const EMPTY_SUMMARY={executions:0,today:0,findings:0,lastPerformedAt:null}
 
-function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null){
+function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null,progress=null){
  const {config:responseConfig,meta}=cleanResponseConfig(row.response_config)
  const frequency=row.frequency_config||{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}
  const activeAssignments=assignments.filter(a=>a.control_id===row.id&&a.status!=='paused')
@@ -84,6 +87,8 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null
    // findings); counts come from summary.
    history,
    summary:summaries?(summaries.get(assignment.id)||EMPTY_SUMMARY):summarizeHistory(history),
+   // The current period counted by the database (control_period_progress).
+   progress:progress?.get(assignment.id)||null,
    draft:draft?{...draft.payload,id:draft.id,savedAt:draft.saved_at,recordKey:draft.record_key}:null,
    hasDraft:Boolean(draft),
   }
@@ -155,30 +160,40 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
  if(code)definitionsQuery=definitionsQuery.eq('code',code)
  let draftsQuery=supabase.from('control_drafts').select('*').eq('organization_id',organizationId).order('saved_at',{ascending:false})
  if(code)draftsQuery=draftsQuery.eq('control_id',code)
- const [definitionsResult,draftsResult,summaryResult]=await Promise.all([
+ const assignmentsSelect='*,department:departments(id,name)'
+ // The whole programme reads every assignment, so that read starts with the
+ // others; one control (code) needs its definition's id first.
+ const allAssignments=code?null:supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId)
+ const findingsRead=findingsSince?readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('has_finding',true).gte('performed_at',new Date(findingsSince).toISOString())):Promise.resolve([])
+ findingsRead.catch(()=>{}) // handled with the other reads below
+ const [definitionsResult,draftsResult,summaryResult,progressResult,allAssignmentsResult]=await Promise.all([
   definitionsQuery,
   draftsQuery,
   summary?supabase.rpc('control_assignment_summary',{p_organization_id:organizationId,p_today_from:startOfToday().toISOString()}):Promise.resolve({data:[],error:null}),
+  summary||code?supabase.rpc('control_period_progress',{p_organization_id:organizationId}):Promise.resolve({data:[],error:null}),
+  allAssignments||Promise.resolve({data:null,error:null}),
  ])
- for(const result of [definitionsResult,draftsResult,summaryResult])if(result.error)throw result.error
+ for(const result of [definitionsResult,draftsResult,summaryResult,progressResult,allAssignmentsResult])if(result.error)throw result.error
  const definitions=definitionsResult.data||[]
  if(!definitions.length)return []
- let assignmentsQuery=supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId)
- if(code)assignmentsQuery=assignmentsQuery.in('control_id',definitions.map(row=>row.id))
- const {data:assignments,error:assignmentsError}=await assignmentsQuery
- if(assignmentsError)throw assignmentsError
- const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
- const reads=[]
+ const reads=[findingsRead]
+ // Expiry controls bring the entries that carry their item lists (has_item_list,
+ // a stored flag the database indexes; see 20261123100100).
  const expiryIds=definitions.filter(isExpiryDefinition).map(row=>row.id)
- if(expiryIds.length)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).in('control_id',expiryIds).not('response_data->structuredData->rows','is',null)))
- if(findingsSince)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('has_finding',true).gte('performed_at',new Date(findingsSince).toISOString())))
+ if(expiryIds.length)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).in('control_id',expiryIds).eq('has_item_list',true)))
+ let assignments=allAssignmentsResult.data
  if(code){
+  const {data,error}=await supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId).in('control_id',definitions.map(row=>row.id))
+  if(error)throw error
+  assignments=data
   for(const assignment of (assignments||[]).filter(a=>a.status!=='paused')){
    reads.push(supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('assignment_id',assignment.id).order('performed_at',{ascending:false}).limit(RECENT_PER_ASSIGNMENT).then(({data,error})=>{if(error)throw error;return data||[]}))
   }
  }
+ const summaries=summary?new Map((summaryResult.data||[]).map(row=>[row.assignment_id,{executions:Number(row.executions)||0,today:Number(row.today)||0,findings:Number(row.findings)||0,lastPerformedAt:row.last_performed_at||null}])):null
  const executions=[...new Map((await Promise.all(reads)).flat().map(row=>[row.id,row])).values()]
- return definitions.map(row=>mapDefinition(row,assignments||[],executions,draftsResult.data||[],summaries))
+ const progress=new Map((progressResult.data||[]).map(row=>[row.assignment_id,{start:row.period_start,end:row.period_end,required:Number(row.required)||1,done:Number(row.done)||0,extra:Number(row.extra)||0}]))
+ return definitions.map(row=>mapDefinition(row,assignments||[],executions,draftsResult.data||[],summaries,progress))
 }
 
 export async function loadControlByCode(organizationId,code){
@@ -315,7 +330,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   for(const assignment of assignments.filter(a=>a.control_id===definition.id)){
    if(!wantedNames.has(assignment.department?.name)&&assignment.status!=='paused')assignment.status='paused'
   }
-  const nextDue=calculateNextDue(draft.frequency||{},now)
+  const nextDue=firstDue(draft.frequency||{},now)
   for(const department of departments){
    const existingAssignment=assignments.find(a=>a.control_id===definition.id&&a.department_id===department.id)
    if(existingAssignment)existingAssignment.status='scheduled'
@@ -361,7 +376,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
    if(error)throw error
   }
  }
- const nextDue=calculateNextDue(draft.frequency||{},new Date())
+ const nextDue=firstDue(draft.frequency||{},new Date())
  for(const department of departments){
   const previous=(existing||[]).find(x=>x.department_id===department.id)
   const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,assignee_id:draft.assignees?.[department.name]?.userId||null,status:'scheduled',next_due_at:previous?.next_due_at||nextDue,last_completed_at:previous?.last_completed_at||null}
@@ -400,25 +415,51 @@ async function removeExecutionEvidence(items=[]){
  for(const item of items)await deleteAttachment(item.attachmentId).catch(()=>{})
 }
 
+// The over-entry guard: an entry beyond what the period requires is refused
+// unless it is an extra entry with its reason. The database enforces the same
+// (control_executions_period_guard); this check gives the message first.
+export class ControlPeriodCompleteError extends Error{
+ constructor(progress){super('control_period_complete');this.name='ControlPeriodCompleteError';this.code='control_period_complete';this.progress=progress}
+}
+const extraFields=payload=>{
+ if(!payload.extra)return {is_extra:false,extra_reason:null}
+ const reason=String(payload.extra.reason||'').trim()
+ if(!reason)throw new Error('control_extra_reason_required')
+ return {is_extra:true,extra_reason:reason}
+}
+const isPeriodCompleteError=error=>/control_period_complete/.test(String(error?.message||''))
+
+// Demo: next_due_at from the assignment's entries, as the database trigger does.
+function refreshDemoAssignment(assignmentId,frequency){
+ const assignments=loadControlAssignmentsLocal()
+ const stored=assignments.find(x=>x.id===assignmentId)
+ if(!stored)return
+ const history=loadControlExecutionsLocal().filter(x=>x.assignment_id===assignmentId).map(mapExecution).filter(h=>h.status!=='cancelled'&&!h.isExtra&&h.at).sort((a,b)=>new Date(b.at)-new Date(a.at))
+ const last=history[0]
+ if(last){
+  const {start,end}=periodBounds(frequency,new Date(last.at))
+  const done=history.filter(h=>new Date(h.at)>=start&&new Date(h.at)<end).length
+  stored.last_completed_at=last.at
+  stored.next_due_at=nextDueAfterExecution(frequency,new Date(last.at),done)
+ }
+ saveControlAssignmentsLocal(assignments)
+}
+
 export async function completeControlExecution(organizationId,record,department,payload={}){
  const assignment=record.assignments?.[department]
  if(!assignment?.dbId||!assignment?.departmentId)throw new Error('Control assignment is required.')
+ const extra=extraFields(payload)
  if(isDemoDataEnvironment()){
+  const progress=periodProgress(record.frequency||{},loadControlExecutionsLocal().filter(x=>x.assignment_id===assignment.dbId).map(mapExecution))
+  if(progress.complete&&!extra.is_extra)throw new ControlPeriodCompleteError(progress)
   const userId=payload.actor?.id||''
   const now=new Date()
   const responseData={structuredData:payload.structuredData||null,evidence:(payload.evidenceFiles||[]).map(evidenceSummary),actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
-  const execution={id:demoId('ctrl-exec'),assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,result_text:payload.resultText?.trim()||null,checked_points:payload.checkedPoints?.trim()||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}
+  const execution={id:demoId('ctrl-exec'),assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,result_text:payload.resultText?.trim()||null,checked_points:payload.checkedPoints?.trim()||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId,...extra}
   const executions=loadControlExecutionsLocal()
   executions.unshift(execution)
   saveControlExecutionsLocal(executions)
-  const assignments=loadControlAssignmentsLocal()
-  const stored=assignments.find(x=>x.id===assignment.dbId)
-  if(stored){
-   stored.last_completed_at=now.toISOString()
-   stored.next_due_at=calculateNextDue(record.frequency||{},now)
-   stored.status='scheduled'
-  }
-  saveControlAssignmentsLocal(assignments)
+  refreshDemoAssignment(assignment.dbId,record.frequency||{})
   await removeControlDraft(organizationId,record,department)
   return mapExecution(execution)
  }
@@ -428,10 +469,10 @@ export async function completeControlExecution(organizationId,record,department,
  const executionId=crypto.randomUUID()
  const evidence=await uploadExecutionEvidence(organizationId,executionId,payload.evidenceFiles)
  const responseData={structuredData:payload.structuredData||null,evidence:evidence.map(({attachmentId:_attachmentId,...item})=>item),actorName:payload.actor?.name||'',actorEmail:payload.actor?.email||'',previousLastCompletedAt:assignment.lastCompletedAt||null,previousNextDueAt:assignment.nextDueAt||null}
- const {data,error}=await supabase.from('control_executions').insert({id:executionId,assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,result_text:payload.resultText?.trim()||null,checked_points:payload.checkedPoints?.trim()||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId}).select('*').single()
- if(error){await removeExecutionEvidence(evidence);throw error}
- const {error:updateError}=await supabase.from('control_assignments').update({last_completed_at:now.toISOString(),next_due_at:calculateNextDue(record.frequency||{},now),status:'scheduled'}).eq('organization_id',organizationId).eq('id',assignment.dbId)
- if(updateError)throw updateError
+ const {data,error}=await supabase.from('control_executions').insert({id:executionId,assignment_id:assignment.dbId,control_id:record.dbId,organization_id:organizationId,department_id:assignment.departmentId,status:'completed',value_text:payload.value||null,result_text:payload.resultText?.trim()||null,checked_points:payload.checkedPoints?.trim()||null,response_data:responseData,notes:payload.notes||null,has_finding:Boolean(payload.hasFinding),performed_at:now.toISOString(),performed_by:userId,...extra}).select('*').single()
+ if(error){await removeExecutionEvidence(evidence);if(isPeriodCompleteError(error))throw new ControlPeriodCompleteError(null);throw error}
+ // last_completed_at and next_due_at are set by the database
+ // (control_executions_refresh_due), for every role that may record.
  await removeControlDraft(organizationId,record,department)
  return mapExecution(data)
 }
@@ -498,15 +539,13 @@ export async function voidControlExecution(organizationId,record,department,exec
   current.response_data={...(current.response_data||{}),cancelledByName:actor?.name||''}
   saveControlExecutionsLocal(executions)
   const assignment=record.assignments?.[department]
-  if(assignment?.dbId&&execution.previousNextDueAt){
+  if(assignment?.dbId){
    const assignments=loadControlAssignmentsLocal()
    const stored=assignments.find(x=>x.id===assignment.dbId)
-   if(stored){
-    stored.last_completed_at=execution.previousLastCompletedAt||null
-    stored.next_due_at=execution.previousNextDueAt
-    stored.status='scheduled'
-   }
+   const remaining=executions.some(x=>x.assignment_id===assignment.dbId&&x.status!=='cancelled'&&!x.is_extra)
+   if(stored&&!remaining&&execution.previousNextDueAt){stored.last_completed_at=execution.previousLastCompletedAt||null;stored.next_due_at=execution.previousNextDueAt}
    saveControlAssignmentsLocal(assignments)
+   if(remaining)refreshDemoAssignment(assignment.dbId,record.frequency||{})
   }
   return mapExecution(current)
  }
@@ -516,11 +555,7 @@ export async function voidControlExecution(organizationId,record,department,exec
  const cancelledAt=new Date().toISOString()
  const {data,error}=await supabase.from('control_executions').update({status:'cancelled',cancelled_at:cancelledAt,cancelled_by:userId,cancellation_reason:reason.trim(),response_data:responseData}).eq('organization_id',organizationId).eq('id',execution.id).select('*').single()
  if(error)throw error
- const assignment=record.assignments?.[department]
- if(assignment?.dbId&&execution.previousNextDueAt){
-  const {error:assignmentError}=await supabase.from('control_assignments').update({last_completed_at:execution.previousLastCompletedAt||null,next_due_at:execution.previousNextDueAt,status:'scheduled'}).eq('organization_id',organizationId).eq('id',assignment.dbId)
-  if(assignmentError)throw assignmentError
- }
+ // The database works next_due_at out again from the entries left.
  return mapExecution(data)
 }
 

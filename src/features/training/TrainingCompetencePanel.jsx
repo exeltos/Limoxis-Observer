@@ -2,7 +2,7 @@ import { useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,CheckCircle2,Clock3,Pencil,Plus,Trash2,XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { SubTabs } from '../../design-system/SubTabs'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
@@ -58,7 +58,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
    <span><strong className="warning">{matrix.counts.expiring}</strong>{en?`expire within 60 days`:'λήγουν σε 60 ημέρες'}</span>
    <div className="training-competence-tools">
     <label><span>{en?'Department':'Τμήμα'}</span><select value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All':'Όλα'}</option>{departmentNames.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
-    <DownloadMenu items={[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]}/>
+    <ExportMenu items={[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]}/>
    </div>
   </div>
   <SubTabs activeId={view} onChange={setView} ariaLabel={en?'Competence view':'Προβολή επάρκειας'} tabs={[{id:'matrix',label:en?'Matrix':'Πίνακας'},{id:'plan',label:en?'Who needs training':'Ποιοι χρειάζονται εκπαίδευση',count:plan.length},{id:'rules',label:en?'Requirements':'Απαιτήσεις',count:matrix.requirements.length}]}/>
@@ -93,7 +93,7 @@ function RequirementDialog({value,programs,professions,positions=[],departments,
  const set=(k,v)=>setDraft(d=>({...d,[k]:v}))
  const toggle=(k,item)=>setDraft(d=>({...d,[k]:(d[k]||[]).includes(item)?d[k].filter(x=>x!==item):[...(d[k]||[]),item]}))
  const valid=draft.title.trim()&&draft.programIds.length>0
- return <ObserverDialog width="wide" eyebrow={en?'Required training':'Απαιτούμενη εκπαίδευση'} title={value.title||(en?'New requirement':'Νέα απαίτηση')} onClose={onClose} footer={<DialogActions showCancel onCancel={onClose} onSave={()=>onSave({...draft,title:draft.title.trim()})} disabled={!valid||busy} saveLabel={en?'Save':'Αποθήκευση'}/>}>
+ return <ObserverDialog width="wide" eyebrow={en?'Required training':'Απαιτούμενη εκπαίδευση'} title={value.title||(en?'New requirement':'Νέα απαίτηση')} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave({...draft,title:draft.title.trim()})} disabled={!valid||busy} saveLabel={en?'Save':'Αποθήκευση'}/>}>
   <div className="training-requirement-form">
    <label className="span-2"><span>{en?'Title *':'Τίτλος *'}</span><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Hand hygiene (annual)':'π.χ. Υγιεινή χεριών (ετήσια)'}/></label>
    <label><span>{en?'Renewal (months, 0 = once)':'Ανανέωση (μήνες, 0 = μία φορά)'}</span><input type="number" min="0" value={draft.renewalMonths} onChange={e=>set('renewalMonths',Math.max(0,Number(e.target.value)||0))}/></label>

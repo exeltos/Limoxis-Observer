@@ -6,7 +6,7 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
-import { DownloadMenu } from '../../design-system/DownloadMenu'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -15,7 +15,6 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -78,7 +77,7 @@ export function LegislationPage() {
   ] : []
 
   const actions = <div className="row-actions">
-    {tab === 'register' && <DownloadMenu disabled={!visible.length} onExcel={() => exportRegistry(registerExport(visible, language))} />}
+    {tab === 'register' && <ExportMenu disabled={!visible.length} onExcel={() => exportRegistry(registerExport(visible, language))} />}
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 
@@ -180,7 +179,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }) {
   }
   return <>
     <div className="leg-sources-head"><p className="leg-note">{en ? 'Found by the automatic check of the sources (every 2 hours). Nothing reaches the hospitals until you publish it from the library; you get a morning e-mail when something new is found.' : 'Ό,τι βρήκε ο αυτόματος έλεγχος των πηγών (κάθε 2 ώρες). Τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε από τη βιβλιοθήκη· όταν βρεθεί κάτι νέο, σας έρχεται email το πρωί.'}</p>
-      <ModeSwitch ariaLabel={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus} options={[{ value: 'pending', label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'linked', label: en ? 'Added' : 'Καταχωρίστηκαν' }, { value: 'dismissed', label: en ? 'Dismissed' : 'Απορρίφθηκαν' }, { value: 'all', label: en ? 'All' : 'Όλα' }]} /></div>
+      <SearchableSelect hideLabel className="leg-status-filter" label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={next=>next&&(setStatus)(next)} options={[{ value: 'pending', label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'linked', label: en ? 'Added' : 'Καταχωρίστηκαν' }, { value: 'dismissed', label: en ? 'Dismissed' : 'Απορρίφθηκαν' }, { value: 'all', label: en ? 'All' : 'Όλα' }]}/></div>
     <div className="scroll-table">
       <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!candidates.loading && !rows.length}
         columns={[{ key: 'found', label: en ? 'Found' : 'Βρέθηκε' }, { key: 'item', label: en ? 'Item' : 'Εύρημα' }, { key: 'keywords', label: en ? 'Matched' : 'Λέξεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'actions', label: '' }]}

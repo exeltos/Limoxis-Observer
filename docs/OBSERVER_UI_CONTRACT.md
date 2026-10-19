@@ -6,7 +6,7 @@ This document is the cross-application UI contract for the new Limoxis Observer.
 - Print and Export are compact icon-only actions everywhere.
 - Print uses the Printer icon.
 - Export uses the Download icon.
-- Record headers use `PrintExportActions`.
+- Record headers use `ExportMenu` («Εξαγωγή ▾»).
 - Registry/page toolbars use `RecordActions`; Print/Export are centrally forced to icon-only mode.
 - Tooltips and aria-labels remain available even when visible text is removed.
 
@@ -23,13 +23,13 @@ This document is the cross-application UI contract for the new Limoxis Observer.
 
 ## Record pages
 - `EntityRecordShell` is the canonical record shell.
-- Record utility actions use `PrintExportActions`.
+- Record utility actions use `ExportMenu` («Εξαγωγή ▾»).
 - Export must perform a real action; the generic fallback is a structured JSON record export.
 
 ## Guardrails
 `npm run audit:observer-ui` fails if:
 - visible Print/Export text actions are reintroduced,
 - a feature renders a native date/time input,
-- a record page bypasses `PrintExportActions`,
+- a record page bypasses `ExportMenu` («Εξαγωγή ▾»),
 - a page has Print without Export in `RecordActions`,
 - committee-specific legacy form shells are reintroduced.

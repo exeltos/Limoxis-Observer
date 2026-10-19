@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import qrcode from 'qrcode-generator'
-import { Copy, ExternalLink, Play, Printer, Smartphone, Tablet } from 'lucide-react'
+import { Copy, ExternalLink, Play, Smartphone, Tablet } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { printElement } from '../../../design-system/printElement'
@@ -70,7 +71,7 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
         <h3>{en ? `QR code · ${nameOf(single)}` : `Κωδικός QR · ${nameOf(single)}`}</h3>
         {steps}
         <div className="survey-collect-buttons">
-          <Button onClick={() => setPrinting([posterOf(single)])}><Printer size={15} />{en ? 'Print the poster' : 'Εκτύπωση αφίσας'}</Button>
+          <ExportMenu items={[{ id: 'poster', kind: 'print', label: en ? 'Print the poster' : 'Εκτύπωση αφίσας', onClick: () => setPrinting([posterOf(single)]) }]} />
           <Button variant="secondary" onClick={() => copy(surveyLink(survey, { departmentId: posterOf(single).id }))}><Copy size={15} />{en ? 'Copy the link' : 'Αντιγραφή συνδέσμου'}</Button>
           <Button variant="secondary" onClick={() => window.open(surveyLink(survey, { departmentId: posterOf(single).id }), '_blank', 'noopener')}><Smartphone size={15} />{en ? 'Try it' : 'Δοκιμή'}</Button>
           <Button variant="secondary" onClick={() => window.open(surveyLink(survey, { departmentId: posterOf(single).id, kiosk: true }), '_blank', 'noopener')} title={en ? 'For a tablet at the ward: the form starts again after each answer.' : 'Για tablet στο τμήμα: η φόρμα ξαναρχίζει μετά από κάθε απάντηση.'}><Tablet size={15} />{en ? 'Tablet mode' : 'Λειτουργία tablet'}</Button>
@@ -79,13 +80,13 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
     </section>}
     {covered.length > 1 && <section className="survey-collect-departments">
       <header><div><h3>{en ? `One QR code per department (${covered.length})` : `Ένας κωδικός QR ανά τμήμα (${covered.length})`}</h3><p>{en ? 'Each department has its own poster and form: the answer is recorded for that department.' : 'Κάθε τμήμα έχει τη δική του αφίσα και φόρμα: η απάντηση καταγράφεται σε αυτό.'}</p></div>
-        <Button onClick={() => setPrinting(covered.map(posterOf))}><Printer size={15} />{en ? 'Print all' : 'Εκτύπωση όλων'}</Button>
+        <ExportMenu items={[{ id: 'posters', kind: 'print', label: en ? 'Print every poster' : 'Εκτύπωση όλων των αφισών', onClick: () => setPrinting(covered.map(posterOf)) }]} />
       </header>
       <div className="survey-collect-how">{steps}</div>
       <ul>{covered.map(item => { const { id } = posterOf(item); const link = surveyLink(survey, { departmentId: id }); return <li key={id}>
         <strong>{nameOf(item)}</strong>
         <span className="row-actions">
-          <button type="button" className="quality-panel-all" onClick={() => setPrinting([posterOf(item)])}><Printer size={13} /> {en ? 'Poster' : 'Αφίσα'}</button>
+          <ExportMenu compact items={[{ id: 'poster', kind: 'print', label: en ? 'Poster' : 'Αφίσα', onClick: () => setPrinting([posterOf(item)]) }]} />
           <button type="button" className="quality-panel-all" onClick={() => copy(link)}><Copy size={13} /> {en ? 'Link' : 'Σύνδεσμος'}</button>
           <button type="button" className="quality-panel-all" onClick={() => window.open(link, '_blank', 'noopener')}><ExternalLink size={13} /> {en ? 'Try' : 'Δοκιμή'}</button>
           <button type="button" className="quality-panel-all" onClick={() => window.open(surveyLink(survey, { departmentId: id, kiosk: true }), '_blank', 'noopener')}><Tablet size={13} /> Tablet</button>

@@ -1,8 +1,9 @@
 // Presentational pieces of the Analysis page: filters, KPI strip, charts,
 // the microbiology line list and cluster alerts.
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { useState } from 'react'
-import { Download,ShieldAlert } from 'lucide-react'
-import { IconButton } from '../../design-system/IconButton'
+import { ShieldAlert } from 'lucide-react'
+
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
 import { BarList,ChartCard,DonutChart,MatrixTable,Scoreboard,TrendChart,numericRows } from './AnalysisCharts'
@@ -49,7 +50,7 @@ export function exportNationalRowsCsv(rows,tx,filename){
   downloadCsv(`${filename}.csv`,headers,csvRows)
   signalDemoScenario('analysis_export')
 }
-export function ExportCsvButton({rows,tx,filename}){return <IconButton size="sm" disabled={!rows?.length} label={tx('Λήψη CSV','Download CSV')} onClick={()=>exportNationalRowsCsv(rows,tx,filename)}><Download size={14}/></IconButton>}
+export function ExportCsvButton({rows,tx,filename}){return <ExportMenu compact disabled={!rows?.length} onExcel={()=>exportNationalRowsCsv(rows,tx,filename)}/>}
 // Outbreak/cluster early-warning signal (platform review roadmap, P2):
 // same organism, same department, within a rolling window — reuses the
 // analysis-signal-card/analysis-signal-grid styling the load-error card

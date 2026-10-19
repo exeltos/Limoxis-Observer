@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { BarChart3, CalendarRange, ClipboardList, History, Lock, Plus, Settings2, Upload } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { PrintExportActions } from '../../design-system/PrintExportActions'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -105,7 +105,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading, on
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const open = entry => navigate(`/registers/${register.id}/entries/${entry.id}`)
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
-    actions={<div className="row-actions">{onExport && <PrintExportActions showPrint={false} onExport={onExport} />}{canRecord && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>}{canRecord && <ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton>}</div>}
+    actions={<div className="row-actions">{onExport && <ExportMenu onExcel={onExport} />}{canRecord && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>}{canRecord && <ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton>}</div>}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={year !== 'all' ? 1 : 0} onClear={() => { setQuery(''); setYear('all') }}>
       <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>

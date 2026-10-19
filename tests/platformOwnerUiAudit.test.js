@@ -90,8 +90,8 @@ describe('Platform Owner UI audit',()=>{
 
   it('does not add a duplicate cancel button to shared dialog actions by default',()=>{
     const source=read('src/design-system/ObserverDialog.jsx')
-    expect(source).toContain('showCancel=false')
-    expect(source).toContain('showCancel&&onCancel')
+    expect(source).not.toContain('showCancel&&onCancel')
+    expect(source).not.toContain("'Cancel':'Ακύρωση'")
   })
 
   it('mirrors the Indicator private-schema usage fix without granting anon execution',()=>{

@@ -1,6 +1,7 @@
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { useEffect,useLayoutEffect,useMemo,useRef,useState } from 'react'
 import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'
-import { ArrowLeft,BarChart3,BookOpen,CheckCircle2,ClipboardList,GitCompareArrows,Lightbulb,RotateCcw,Send,ShieldAlert,Archive,Trash2,Info,Pencil,Printer,Download,Gauge } from 'lucide-react'
+import { ArrowLeft, BarChart3, BookOpen, CheckCircle2, ClipboardList, GitCompareArrows, Lightbulb, RotateCcw, Send, ShieldAlert, Archive, Trash2, Info, Pencil, Gauge } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
@@ -142,14 +143,11 @@ export function RiskAssessmentPage(){
   assessment.status==='draft'&&{id:'delete',label:L(en,'Διαγραφή εκτίμησης','Delete assessment'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setConfirm({kind:'assessment'})},
  ].filter(Boolean):[]
  // Print, export and the status flow share one "…" menu.
- const menuItems=[
-  {id:'print',label:L(en,'Εκτύπωση αναφοράς','Print the report'),icon:Printer,onClick:print},
-  {id:'export',label:L(en,'Λήψη μητρώου (Excel)','Download the register (Excel)'),icon:Download,onClick:exportCsv},
-  ...statusItems.map((item,i)=>i===0?{...item,separatorBefore:true}:item),
- ]
+ // Print / PDF / Excel in the one export control; the status flow in «…».
+ const menuItems=statusItems
  // The next step of the approval cycle, offered on the «Στοιχεία» tab.
  const nextStep=statusItems.find(item=>item.id===(assessment.status==='draft'?'review':assessment.status==='under_review'?'approve':assessment.status==='approved'?'archive':''))||null
- const menu=<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/>
+ const menu=<div className="row-actions"><ExportMenu onPrint={print} onPdf={print} items={[{id:'register',kind:'excel',label:L(en,'Excel: μητρώο κινδύνων','Excel: risk register'),onClick:exportCsv}]}/>{menuItems.length>0&&<OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/>}</div>
 
  const tabs=[
   {id:'register',label:L(en,`Μητρώο (${risks.length})`,`Register (${risks.length})`),icon:ClipboardList},
@@ -189,7 +187,7 @@ export function RiskAssessmentPage(){
   {creatingNext&&<AssessmentDetailsDialog en={en} assessments={[{...assessment,risks}]} initial={{title:assessment.title,formCode:assessment.formCode,periodKind:assessment.periodKind,assessorLabel:assessment.assessorLabel,scopeNote:assessment.scopeNote,periodLabel:suggestPeriodLabel(assessment.periodKind,new Date().toISOString().slice(0,10),en)}} onClose={()=>setCreatingNext(false)} onSave={createNext}/>}
   {detailsOpen&&<AssessmentDetailsDialog initial={assessment} en={en} onClose={()=>setDetailsOpen(false)} onSave={async draft=>{if(await persistAssessment(draft,'riskAssessmentUpdated'))setDetailsOpen(false)}}/>}
   {approving&&<ApproveDialog en={en} onClose={()=>setApproving(false)} onSave={async ({by,on})=>{if(await persistAssessment({status:'approved',approvedByLabel:by,approvedOn:on},'riskAssessmentApproved'))setApproving(false)}}/>}
-  {confirm&&<ObserverDialog width="compact" title={L(en,'Διαγραφή εκτίμησης','Delete assessment')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} showCancel onSave={async()=>{setConfirm(null);await removeAssessment()}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
+  {confirm&&<ObserverDialog width="compact" title={L(en,'Διαγραφή εκτίμησης','Delete assessment')} onClose={()=>setConfirm(null)} footer={<DialogActions onCancel={()=>setConfirm(null)} onSave={async()=>{setConfirm(null);await removeAssessment()}} saveLabel={L(en,'Διαγραφή','Delete')}/>}>
    <p>{L(en,`Θα διαγραφεί η εκτίμηση ${assessment.periodLabel} με ${risks.length} κινδύνους.`,`The ${assessment.periodLabel} assessment with ${risks.length} risks will be deleted.`)}</p>
   </ObserverDialog>}
  </EntityRecordShell></Page>
@@ -198,7 +196,7 @@ export function RiskAssessmentPage(){
 function ApproveDialog({en,onClose,onSave}){
  const [by,setBy]=useState('')
  const [on,setOn]=useState(new Date().toISOString().slice(0,10))
- return <ObserverDialog width="compact" title={L(en,'Έγκριση εκτίμησης','Approve assessment')} subtitle={L(en,'Μετά την έγκριση η εκτίμηση κλειδώνει.','After approval the assessment is locked.')} onClose={onClose} footer={<DialogActions onCancel={onClose} showCancel onSave={()=>onSave({by,on})} disabled={!by.trim()||!on} saveLabel={L(en,'Έγκριση','Approve')}/>}>
+ return <ObserverDialog width="compact" title={L(en,'Έγκριση εκτίμησης','Approve assessment')} subtitle={L(en,'Μετά την έγκριση η εκτίμηση κλειδώνει.','After approval the assessment is locked.')} onClose={onClose} footer={<DialogActions onCancel={onClose} onSave={()=>onSave({by,on})} disabled={!by.trim()||!on} saveLabel={L(en,'Έγκριση','Approve')}/>}>
   <div className="risk-editor-grid risk-editor-grid-single"><label className="risk-field"><span>{L(en,'Εγκρίθηκε από','Approved by')}</span><input value={by} onChange={e=>setBy(e.target.value)} placeholder={L(en,'π.χ. Επιτροπή Ποιότητας','e.g. Quality Committee')}/></label><ManualDateField label={L(en,'Ημερομηνία έγκρισης','Approval date')} value={on} onChange={setOn}/></div>
  </ObserverDialog>
 }

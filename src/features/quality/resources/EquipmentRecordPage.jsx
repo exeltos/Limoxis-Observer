@@ -15,7 +15,7 @@ import { SaveButton } from '../../../design-system/SaveButton'
 import { IconButton } from '../../../design-system/IconButton'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { RegistryTable } from '../../../design-system/RegistryTable'
-import { PrintExportActions } from '../../../design-system/PrintExportActions'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
@@ -99,7 +99,7 @@ export function EquipmentRecordPage() {
     {access.canManage && row.state === 'out_of_service' && <Button variant="secondary" onClick={() => openCapa(row.downEvent)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete device' : 'Διαγραφή εξοπλισμού'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
-  const footer = !locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Register device' : 'Καταχώριση εξοπλισμού') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>
+  const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Register device' : 'Καταχώριση εξοπλισμού') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>
   const exportHistory = () => exportRegistry({ name: `${row.code}-${en ? 'history' : 'istoriko'}`, headers: en ? ['Date', 'Event', 'Result', 'By', 'Description', 'Certificate'] : ['Ημερομηνία', 'Συμβάν', 'Αποτέλεσμα', 'Από', 'Περιγραφή', 'Πιστοποιητικό'], rows: events.map(item => [item.happenedOn, eventKindLabel(item.kind, language), eventResultLabel(item, language), item.performedBy, item.description, item.certificate]) })
 
   return <Page fill><EntityRecordShell className="quality-record-shell resource-record-shell workspace-fill" avatar={<Stethoscope size={19} />} eyebrow={row?.code || (en ? 'New device' : 'Νέος εξοπλισμός')} title={draft.name || (en ? 'New device' : 'Νέος εξοπλισμός')}
@@ -127,7 +127,7 @@ export function EquipmentRecordPage() {
       </div>
       </div>
     </RecordTabPanel>}
-    {tab === 'history' && row && <RecordTabPanel title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Every check, failure and repair of the device.' : 'Κάθε έλεγχος, βλάβη και επισκευή του εξοπλισμού.'} actions={<div className="row-actions"><PrintExportActions showPrint={false} onExport={exportHistory} />{canRecord && row.state !== 'retired' && <Button onClick={() => setEvent(newEvent('maintenance'))}><Plus size={15} />{en ? 'Event' : 'Συμβάν'}</Button>}</div>}>
+    {tab === 'history' && row && <RecordTabPanel title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Every check, failure and repair of the device.' : 'Κάθε έλεγχος, βλάβη και επισκευή του εξοπλισμού.'} actions={<div className="row-actions"><ExportMenu onExcel={exportHistory} />{canRecord && row.state !== 'retired' && <Button onClick={() => setEvent(newEvent('maintenance'))}><Plus size={15} />{en ? 'Event' : 'Συμβάν'}</Button>}</div>}>
       <RegistryTable className="quality-table" rows={events} rowKey={item => item.id}
         columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'kind', label: en ? 'Event' : 'Συμβάν' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'by', label: en ? 'By' : 'Από' }, { key: 'description', label: en ? 'Description' : 'Περιγραφή' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No events yet' : 'Δεν υπάρχουν συμβάντα'} emptyText={en ? 'Record maintenance, calibrations, safety tests and failures here.' : 'Καταγράψτε εδώ συντηρήσεις, διακριβώσεις, ελέγχους ασφάλειας και βλάβες.'}
