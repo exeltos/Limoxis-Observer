@@ -14,17 +14,18 @@ import './controlAdherence.css'
 // Done and on-time counts per assignment for a period, counted in the database.
 // null until loaded, and in the demo (whose history is complete and counted locally).
 export function useAdherenceCounts(organizationId, period, refreshKey) {
-  const [state, setState] = useState({ key: '', counts: null })
+  const [state, setState] = useState({ key: '', counts: null, failed: false })
   const key = `${organizationId || ''}|${period}`
   useEffect(() => {
     if (!organizationId) return undefined
     let active = true
     loadControlAdherenceCounts(organizationId, periodRange(period))
-      .then((counts) => { if (active) setState({ key, counts }) })
-      .catch(() => { if (active) setState({ key, counts: new Map() }) })
+      .then((counts) => { if (active) setState({ key, counts, failed: false }) })
+      // A failed read is not a period with nothing done: the report says it could not load.
+      .catch(() => { if (active) setState({ key, counts: null, failed: true }) })
     return () => { active = false }
   }, [organizationId, period, key, refreshKey])
-  return state.key === key ? state.counts : null
+  return state.key === key ? state : { counts: null, failed: false }
 }
 
 // Programme adherence: due vs done vs on time per control and department.
@@ -36,12 +37,14 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
   const [period, setPeriod] = useState('30d')
   const [exporting, setExporting] = useState(false)
   const reportRef = useRef(null)
-  const counts = useAdherenceCounts(organizationId, period, refreshKey)
-  const { lines, totals } = useMemo(() => programmeAdherence(rows, periodRange(period), counts), [rows, period, counts])
+  const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey)
+  const { lines, totals } = useMemo(() => (failed ? programmeAdherence([], periodRange(period), new Map()) : programmeAdherence(rows, periodRange(period), counts)), [rows, period, counts, failed])
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)
 
+  const loadFailedText = en ? 'The adherence could not be loaded. Try again.' : 'Δεν ήταν δυνατή η φόρτωση της τήρησης. Δοκιμάστε ξανά.'
   function exportCsv() {
+    if (failed) { notify(loadFailedText, 'danger'); return }
     downloadCsv(`${en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon'}-${period}.csv`,
       [en ? 'Control' : 'Έλεγχος', en ? 'Department' : 'Τμήμα', en ? 'Frequency' : 'Συχνότητα', tx.expected, tx.performed, tx.onTime, tx.missed, tx.adherenceRate],
       [...lines.map((line) => [title(line.item), line.department, frequencyLabel(line.item.frequency, language), line.expected, line.performed, line.onTime, line.missed, pct(line.rate)]),
@@ -49,13 +52,14 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
   }
   async function exportPdf() {
     if (exporting || !reportRef.current) return
+    if (failed) { notify(loadFailedText, 'danger'); return }
     setExporting(true)
     try { await exportElementAsPdf({ element: reportRef.current, filename: en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon', orientation: 'landscape' }) }
     catch (error) { notify(error?.message || (en ? 'Could not export the PDF.' : 'Δεν ήταν δυνατή η εξαγωγή του PDF.'), 'danger') }
     finally { setExporting(false) }
   }
 
-  return { period, setPeriod, lines, totals, reportRef, exporting, exportCsv, exportPdf }
+  return { period, setPeriod, lines, totals, reportRef, exporting, exportCsv, exportPdf, failed, loadFailedText }
 }
 
 // One look for a rate: a bar with the figure beside it.
@@ -69,7 +73,7 @@ function RateMeter({ rate }) {
 
 export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const en = language === 'en'
-  const { period, setPeriod, lines, totals, reportRef } = report
+  const { period, setPeriod, lines, totals, reportRef, failed, loadFailedText } = report
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
@@ -103,8 +107,8 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
       columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα' }, { key: 'frequency', label: en ? 'Frequency' : 'Συχνότητα' }, { key: 'expected', label: tx.expected }, { key: 'performed', label: tx.performed }, { key: 'onTime', label: tx.onTime }, { key: 'missed', label: tx.missed }, { key: 'rate', label: tx.adherenceRate }]}
       rows={shown.flatMap((group) => group.lines.length === 1 ? [{ key: group.item.id, kind: 'single', group }] : [{ key: `${group.item.id}-group`, kind: 'group', group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, kind: 'member', line }))])}
       rowKey={(entry) => entry.key}
-      emptyTitle={lines.length ? undefined : tx.noAdherence}
-      emptyText={en ? 'Change the period or the search.' : 'Αλλάξτε την περίοδο ή την αναζήτηση.'}
+      emptyTitle={failed ? loadFailedText : lines.length ? undefined : tx.noAdherence}
+      emptyText={failed ? undefined : en ? 'Change the period or the search.' : 'Αλλάξτε την περίοδο ή την αναζήτηση.'}
       renderRow={(entry) => entry.kind === 'single'
         ? <tr className="control-adherence-single" onClick={() => onOpen?.(entry.group.item)}>
             <td><strong>{title(entry.group.item)}</strong><small>{entry.group.lines[0].department} · {entry.group.item.category}</small></td>

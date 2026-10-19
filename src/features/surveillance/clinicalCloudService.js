@@ -1,18 +1,35 @@
+import { selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { AMR_CATEGORY_SELECT, amrCalculationSnapshot } from '../laboratory/amrCalculation'
 
 const iso = value => (value ? new Date(value).toISOString() : null)
 const dateOnly = value => (value ? String(value).slice(0, 10) : null)
 const latest = (rows = []) => rows[0] || null
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const byPosition = (a, b) => (a.position || 0) - (b.position || 0)
+const textList = list =>
+  (Array.isArray(list) ? list : []).map(item => String(item ?? '').trim()).filter(Boolean)
 
-function eventPayload(events, type) {
-  const row = (events || []).find(item => item.event_type === type)
-  return row?.payload || null
-}
+// The lists of a record are rows of their own, embedded in the record's query.
+const ASSESSMENT_SELECT =
+  '*,findings:clinical_assessment_findings(kind,position,label,value_text,value_numeric,value_boolean)'
+const HAI_SELECT = '*,criteria:hai_classification_criteria(position,criterion_id)'
+const ISOLATION_SELECT = '*,precaution_rows:isolation_episode_precautions(position,precaution)'
+const AMR_SELECT = `*,${AMR_CATEGORY_SELECT}`
 
-function eventRow(events, type) {
-  return (events || []).find(item => item.event_type === type) || null
+// A finding as the assessment lists it: its wording, and the value when one
+// was recorded (a fever reading, a date or detail). A risk factor answered
+// «no» is not listed.
+function findingText(row) {
+  const value = row.value_text ?? (row.value_numeric != null ? String(row.value_numeric) : null)
+  return value ? `${row.label}: ${value}` : row.label
 }
+const findingsOf = (row, kinds) =>
+  [...(row.findings || [])]
+    .filter(item => kinds.includes(item.kind) && item.value_boolean !== false)
+    .sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || byPosition(a, b))
+    .map(findingText)
 
 function mapAssessment(row) {
   if (!row) return null
@@ -21,8 +38,8 @@ function mapAssessment(row) {
     date: dateOnly(row.assessed_at),
     assessmentType: row.assessment_type,
     classification: row.classification,
-    signsSymptoms: row.signs_symptoms || [],
-    riskFactors: row.risk_factors || [],
+    signsSymptoms: findingsOf(row, ['sign', 'lab_sign']),
+    riskFactors: findingsOf(row, ['risk_factor']),
     summary: row.summary || '',
     notes: row.summary || '',
     byId: row.created_by,
@@ -38,7 +55,7 @@ function mapHai(row) {
     definitionSet: row.definition_set,
     definitionVersion: row.definition_version,
     criteriaMet: row.criteria_met,
-    criteriaEvidence: row.criteria_evidence || [],
+    criteriaEvidence: [...(row.criteria || [])].sort(byPosition).map(item => item.criterion_id),
     rationale: row.rationale || '',
     classifiedAt: row.classified_at,
     classifiedBy: row.classified_by,
@@ -53,7 +70,7 @@ function mapAmr(row) {
     status: row.status,
     definitionSource: row.definition_source,
     definitionVersion: row.definition_version,
-    calculationSnapshot: row.calculation_snapshot || {},
+    calculationSnapshot: amrCalculationSnapshot(row),
     rationale: row.rationale || '',
     classifiedAt: row.classified_at,
     classifiedBy: row.classified_by,
@@ -137,7 +154,7 @@ function mapIsolation(row) {
   if (!row) return null
   return {
     id: row.id,
-    precautions: row.precautions || [],
+    precautions: [...(row.precaution_rows || [])].sort(byPosition).map(item => item.precaution),
     room: row.room || '',
     reason: row.reason || '',
     startedAt: row.started_at,
@@ -272,7 +289,7 @@ function clinicalTimeline({
       at: row.occurred_at || row.created_at,
       type: row.event_type,
       actorId: row.created_by,
-      detail: row.payload?.detail || row.event_status,
+      detail: row.detail || row.event_status,
     })),
     ...assessments.map(row => ({
       at: row.assessed_at,
@@ -343,7 +360,6 @@ function mapClinicalCase({
   outcomes = [],
   devices = [],
 }) {
-  const start = eventPayload(events, 'surveillance_start') || {}
   const caseAssessments = assessments.filter(row => row.surveillance_case_id === caseRow.id)
   const caseHai = hai.filter(row => row.surveillance_case_id === caseRow.id)
   const caseSamples = samples.filter(row => row.surveillance_case_id === caseRow.id)
@@ -354,18 +370,17 @@ function mapClinicalCase({
   const caseDevices = devices.filter(row => row.surveillance_case_id === caseRow.id)
   const isolationRecord =
     caseIsolations.find(row => row.status === 'active') || latest(caseIsolations)
-  const noIsolationEvent = eventRow(events, 'isolation_not_required')
   const isolationDecision = isolationRecord
     ? {
         required: true,
         decidedAt: isolationRecord.started_at || isolationRecord.created_at || null,
         by: isolationRecord.created_by || null,
       }
-    : noIsolationEvent
+    : caseRow.isolation_required === false
       ? {
           required: false,
-          decidedAt: noIsolationEvent.occurred_at || noIsolationEvent.created_at || null,
-          by: noIsolationEvent.created_by || null,
+          decidedAt: caseRow.isolation_decided_at || null,
+          by: caseRow.isolation_decided_by || null,
         }
       : null
   return {
@@ -381,11 +396,11 @@ function mapClinicalCase({
     departmentEn: department?.name || '',
     admissionDate: patient?.admission_date || null,
     startedAt: caseRow.started_at,
-    reviewDue: start.reviewDue || null,
-    room: start.room || '',
-    reason: start.reason || '',
-    reasonEn: start.reasonEn || start.reason || '',
-    suspectedSource: start.suspectedSource || '',
+    reviewDue: caseRow.review_due_on || null,
+    room: caseRow.room || '',
+    reason: caseRow.reason || '',
+    reasonEn: caseRow.reason_en || caseRow.reason || '',
+    suspectedSource: caseRow.suspected_source || '',
     status: caseRow.status,
     completedAt: caseRow.closed_at,
     closeReason: caseRow.close_reason,
@@ -435,58 +450,105 @@ async function hydrateCases(caseRows) {
     outcomesResult,
     devicesResult,
   ] = await Promise.all([
-    supabase
-      .from('patients')
-      .select('id,patient_code,first_name,last_name,date_of_birth,admission_date,status')
-      .in('id', patientIds),
-    departmentIds.length
-      ? supabase.from('departments').select('id,name').in('id', departmentIds)
-      : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from('surveillance_events')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('created_at', { ascending: false }),
-    supabase
-      .from('clinical_assessments')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('assessed_at', { ascending: false }),
-    supabase
-      .from('hai_classifications')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('classified_at', { ascending: false }),
-    supabase
-      .from('laboratory_samples')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('requested_at', { ascending: false, nullsFirst: false }),
-    supabase
-      .from('antimicrobial_therapies')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('started_at', { ascending: false }),
-    supabase
-      .from('isolation_episodes')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('started_at', { ascending: false }),
-    supabase
-      .from('surveillance_reassessments')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('reassessed_at', { ascending: false }),
-    supabase
-      .from('surveillance_outcomes')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('occurred_at', { ascending: false }),
-    supabase
-      .from('surveillance_devices')
-      .select('*')
-      .in('surveillance_case_id', caseIds)
-      .order('inserted_at', { ascending: false, nullsFirst: false }),
+    selectInChunks(patientIds, ids =>
+      supabase
+        .from('patients')
+        .select('id,patient_code,first_name,last_name,date_of_birth,admission_date,status')
+        .in('id', ids),
+    ),
+    selectInChunks(departmentIds, ids =>
+      supabase.from('departments').select('id,name').in('id', ids),
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('surveillance_events')
+          .select('*')
+          .in('surveillance_case_id', ids)
+          .order('created_at', { ascending: false }),
+      { order: [['created_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('clinical_assessments')
+          .select(ASSESSMENT_SELECT)
+          .in('surveillance_case_id', ids)
+          .order('assessed_at', { ascending: false }),
+      { order: [['assessed_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('hai_classifications')
+          .select(HAI_SELECT)
+          .in('surveillance_case_id', ids)
+          .order('classified_at', { ascending: false }),
+      { order: [['classified_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('laboratory_samples')
+          .select('*')
+          .in('surveillance_case_id', ids)
+          .order('requested_at', { ascending: false, nullsFirst: false }),
+      { order: [['requested_at', { ascending: false, nullsFirst: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('antimicrobial_therapies')
+          .select('*')
+          .in('surveillance_case_id', ids)
+          .order('started_at', { ascending: false }),
+      { order: [['started_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('isolation_episodes')
+          .select(ISOLATION_SELECT)
+          .in('surveillance_case_id', ids)
+          .order('started_at', { ascending: false }),
+      { order: [['started_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('surveillance_reassessments')
+          .select('*')
+          .in('surveillance_case_id', ids)
+          .order('reassessed_at', { ascending: false }),
+      { order: [['reassessed_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('surveillance_outcomes')
+          .select('*')
+          .in('surveillance_case_id', ids)
+          .order('occurred_at', { ascending: false }),
+      { order: [['occurred_at', { ascending: false }]] },
+    ),
+    selectInChunks(
+      caseIds,
+      ids =>
+        supabase
+          .from('surveillance_devices')
+          .select('*')
+          .in('surveillance_case_id', ids)
+          .order('inserted_at', { ascending: false, nullsFirst: false }),
+      { order: [['inserted_at', { ascending: false, nullsFirst: false }]] },
+    ),
   ])
   const baseResults = [
     patientsResult,
@@ -506,31 +568,51 @@ async function hydrateCases(caseRows) {
   const sampleIds = (samplesResult.data || []).map(row => row.id)
   let relatedLab = { results: [], amrRows: [], astRows: [], communications: [] }
   if (sampleIds.length) {
-    const microbiologyResult = await supabase
-      .from('microbiology_results')
-      .select('*')
-      .in('sample_id', sampleIds)
-      .order('resulted_at', { ascending: false })
+    const microbiologyResult = await selectInChunks(
+      sampleIds,
+      ids =>
+        supabase
+          .from('microbiology_results')
+          .select('*')
+          .in('sample_id', ids)
+          .order('resulted_at', { ascending: false }),
+      { order: [['resulted_at', { ascending: false }]] },
+    )
     if (microbiologyResult.error) throw microbiologyResult.error
     const resultIds = (microbiologyResult.data || []).map(row => row.id)
     relatedLab.results = microbiologyResult.data || []
     if (resultIds.length) {
       const [amrResult, astResult, communicationResult] = await Promise.all([
-        supabase
-          .from('amr_classifications')
-          .select('*')
-          .in('microbiology_result_id', resultIds)
-          .order('classified_at', { ascending: false, nullsFirst: false }),
-        supabase
-          .from('antimicrobial_susceptibility_results')
-          .select('*')
-          .in('microbiology_result_id', resultIds)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('critical_result_communications')
-          .select('*')
-          .in('microbiology_result_id', resultIds)
-          .order('communicated_at', { ascending: false }),
+        selectInChunks(
+          resultIds,
+          ids =>
+            supabase
+              .from('amr_classifications')
+              .select(AMR_SELECT)
+              .in('microbiology_result_id', ids)
+              .order('classified_at', { ascending: false, nullsFirst: false }),
+          { order: [['classified_at', { ascending: false, nullsFirst: false }]] },
+        ),
+        selectInChunks(
+          resultIds,
+          ids =>
+            supabase
+              .from('antimicrobial_susceptibility_results')
+              .select('*')
+              .in('microbiology_result_id', ids)
+              .order('created_at', { ascending: false }),
+          { order: [['created_at', { ascending: false }]] },
+        ),
+        selectInChunks(
+          resultIds,
+          ids =>
+            supabase
+              .from('critical_result_communications')
+              .select('*')
+              .in('microbiology_result_id', ids)
+              .order('communicated_at', { ascending: false }),
+          { order: [['communicated_at', { ascending: false }]] },
+        ),
       ])
       for (const result of [amrResult, astResult, communicationResult])
         if (result.error) throw result.error
@@ -546,11 +628,16 @@ async function hydrateCases(caseRows) {
   const therapyIds = (therapiesResult.data || []).map(row => row.id)
   let therapyAdministrations = []
   if (therapyIds.length) {
-    const administrationsResult = await supabase
-      .from('antimicrobial_therapy_administrations')
-      .select('*')
-      .in('therapy_id', therapyIds)
-      .order('administered_at', { ascending: false })
+    const administrationsResult = await selectInChunks(
+      therapyIds,
+      ids =>
+        supabase
+          .from('antimicrobial_therapy_administrations')
+          .select('*')
+          .in('therapy_id', ids)
+          .order('administered_at', { ascending: false }),
+      { order: [['administered_at', { ascending: false }]] },
+    )
     if (administrationsResult.error) throw administrationsResult.error
     therapyAdministrations = administrationsResult.data || []
   }
@@ -575,16 +662,37 @@ async function hydrateCases(caseRows) {
   )
 }
 
-export async function loadClinicalCases(organizationId) {
+// Every case of the organization, page by page (a single response is capped,
+// and each page's related rows are fetched by its case ids).
+export async function loadClinicalCases(organizationId, { pageSize = 500 } = {}) {
   assertCloud()
   if (!organizationId) return []
+  const all = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('surveillance_cases')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + pageSize - 1)
+    if (error) throw error
+    all.push(...(await hydrateCases(data || [])))
+    if (!data || data.length < pageSize) return all
+  }
+}
+
+export async function loadClinicalCase(organizationId, caseRecordId) {
+  assertCloud()
+  if (!organizationId || !UUID.test(String(caseRecordId || ''))) return null
   const { data, error } = await supabase
     .from('surveillance_cases')
     .select('*')
     .eq('organization_id', organizationId)
-    .order('started_at', { ascending: false })
+    .eq('id', caseRecordId)
+    .maybeSingle()
   if (error) throw error
-  return hydrateCases(data || [])
+  return data ? (await hydrateCases([data]))[0] : null
 }
 
 export async function loadClinicalCasesForPatient(organizationId, patientRecordId) {
@@ -623,38 +731,41 @@ export async function createClinicalCase(organizationId, patientRecordId, draft)
       department_id: department?.id || null,
       status: 'active',
       started_at: iso(draft.startedAt || new Date()),
+      ...startColumns({
+        reviewDue: draft.reviewDue,
+        room: draft.room,
+        reason: draft.reason || draft.reasonEn,
+        reasonEn: draft.reasonEn || draft.reason,
+        suspectedSource: draft.suspectedSource,
+      }),
       created_by: actorId,
     })
     .select('*')
     .single()
   if (error) throw error
-  const { error: eventError } = await supabase
-    .from('surveillance_events')
-    .insert({
-      organization_id: organizationId,
-      surveillance_case_id: caseRow.id,
-      event_type: 'surveillance_start',
-      event_status: 'completed',
-      occurred_at: iso(draft.startedAt || new Date()),
-      payload: {
-        reviewDue: draft.reviewDue || null,
-        room: draft.room || '',
-        reason: draft.reason || draft.reasonEn || '',
-        reasonEn: draft.reasonEn || draft.reason || '',
-        suspectedSource: draft.suspectedSource || '',
-        detail: 'created',
-      },
-      created_by: actorId,
-    })
-  if (eventError) throw eventError
+  await saveClinicalEvent(organizationId, caseRow.id, 'surveillance_start', 'created', {
+    occurredAt: draft.startedAt || new Date(),
+  })
   return (await hydrateCases([caseRow]))[0]
 }
 
+// What a surveillance start records (or its later edit), as case columns.
+function startColumns({ reviewDue, room, reason, reasonEn, suspectedSource }) {
+  return {
+    review_due_on: dateOnly(reviewDue),
+    room: room || null,
+    reason: reason || null,
+    reason_en: reasonEn || null,
+    suspected_source: suspectedSource || null,
+  }
+}
+
+// One timeline event of a case and its short detail.
 export async function saveClinicalEvent(
   organizationId,
   caseId,
   eventType,
-  payload,
+  detail,
   { status = 'completed', occurredAt = null } = {},
 ) {
   assertCloud()
@@ -667,13 +778,42 @@ export async function saveClinicalEvent(
       event_type: eventType,
       event_status: status,
       occurred_at: iso(occurredAt || new Date()),
-      payload: payload || {},
+      detail: detail || null,
       created_by: actorId,
     })
     .select('*')
     .single()
   if (error) throw error
   return data
+}
+
+// The team decided the patient needs no isolation: the decision on the case,
+// and the event on its timeline.
+export async function markIsolationNotRequired(organizationId, caseId) {
+  assertCloud()
+  const actorId = await currentUserId()
+  const decidedAt = iso(new Date())
+  const { error } = await supabase
+    .from('surveillance_cases')
+    .update({
+      isolation_required: false,
+      isolation_decided_at: decidedAt,
+      isolation_decided_by: actorId,
+    })
+    .eq('organization_id', organizationId)
+    .eq('id', caseId)
+  if (error) throw error
+  return saveClinicalEvent(organizationId, caseId, 'isolation_not_required', 'no', {
+    occurredAt: decidedAt,
+  })
+}
+
+// Rows of a list in their order, for a parent record.
+async function insertListRows(table, rows) {
+  if (!rows.length) return []
+  const { data, error } = await supabase.from(table).insert(rows).select('*')
+  if (error) throw error
+  return data || []
 }
 
 export async function saveClinicalAssessment(organizationId, record, draft) {
@@ -688,8 +828,6 @@ export async function saveClinicalAssessment(organizationId, record, draft) {
       department_id: record.departmentId || null,
       assessment_type: draft.assessmentType || 'suspected',
       classification: draft.classification || 'undetermined',
-      signs_symptoms: draft.signsSymptoms || [],
-      risk_factors: draft.riskFactors || [],
       summary: draft.summary || draft.notes || null,
       assessed_at: iso(draft.date || new Date()),
       created_by: actorId,
@@ -697,7 +835,19 @@ export async function saveClinicalAssessment(organizationId, record, draft) {
     .select('*')
     .single()
   if (error) throw error
-  return mapAssessment(data)
+  const findingRow = kind => (label, index) => ({
+    organization_id: organizationId,
+    assessment_id: data.id,
+    kind,
+    position: index + 1,
+    label,
+    created_by: actorId,
+  })
+  const findings = await insertListRows('clinical_assessment_findings', [
+    ...textList(draft.signsSymptoms).map(findingRow('sign')),
+    ...textList(draft.riskFactors).map(findingRow('risk_factor')),
+  ])
+  return mapAssessment({ ...data, findings })
 }
 
 export async function saveHaiClassification(organizationId, record, draft) {
@@ -714,7 +864,6 @@ export async function saveHaiClassification(organizationId, record, draft) {
       definition_set: draft.definitionSet || 'local',
       definition_version: draft.definitionVersion || null,
       criteria_met: draft.criteriaMet ?? null,
-      criteria_evidence: draft.criteriaEvidence || [],
       rationale: draft.rationale || null,
       classified_at: iso(draft.classifiedAt || new Date()),
       classified_by: actorId,
@@ -722,7 +871,17 @@ export async function saveHaiClassification(organizationId, record, draft) {
     .select('*')
     .single()
   if (error) throw error
-  return mapHai(data)
+  const criteria = await insertListRows(
+    'hai_classification_criteria',
+    textList(draft.criteriaEvidence).map((criterionId, index) => ({
+      organization_id: organizationId,
+      hai_classification_id: data.id,
+      position: index + 1,
+      criterion_id: criterionId,
+      created_by: actorId,
+    })),
+  )
+  return mapHai({ ...data, criteria })
 }
 
 function sampleCode() {
@@ -768,7 +927,6 @@ export async function startIsolation(organizationId, record, draft) {
       patient_id: record.patientRecordId,
       surveillance_case_id: record.recordId,
       department_id: record.departmentId || null,
-      precautions: draft.precautions || [],
       room: draft.room || null,
       reason: draft.reason,
       started_at: iso(draft.startedAt || new Date()),
@@ -779,7 +937,17 @@ export async function startIsolation(organizationId, record, draft) {
     .select('*')
     .single()
   if (error) throw error
-  return mapIsolation(data)
+  const precautionRows = await insertListRows(
+    'isolation_episode_precautions',
+    textList(draft.precautions).map((precaution, index) => ({
+      organization_id: organizationId,
+      isolation_episode_id: data.id,
+      position: index + 1,
+      precaution,
+      created_by: actorId,
+    })),
+  )
+  return mapIsolation({ ...data, precaution_rows: precautionRows })
 }
 
 export async function endIsolation(organizationId, isolationId, draft = {}) {
@@ -797,7 +965,7 @@ export async function endIsolation(organizationId, isolationId, draft = {}) {
     })
     .eq('organization_id', organizationId)
     .eq('id', isolationId)
-    .select('*')
+    .select(ISOLATION_SELECT)
     .single()
   if (error) throw error
   return mapIsolation(data)
@@ -998,39 +1166,28 @@ export async function completeClinicalCase(organizationId, caseRecordId, patient
 
 export async function updateClinicalCaseBasics(organizationId, record, draft) {
   assertCloud()
-  const actorId = await currentUserId()
   const startedAt = iso(draft.startedAt || record.startedAt || new Date())
   const { data: caseRow, error } = await supabase
     .from('surveillance_cases')
     .update({
       started_at: startedAt,
       department_id: draft.departmentId || record.departmentId || null,
+      ...startColumns({
+        reviewDue: draft.reviewDue ?? record.reviewDue ?? null,
+        room: draft.room ?? record.room ?? '',
+        reason: draft.reason ?? record.reason ?? '',
+        reasonEn: draft.reasonEn ?? draft.reason ?? record.reasonEn ?? record.reason ?? '',
+        suspectedSource: draft.suspectedSource ?? record.suspectedSource ?? '',
+      }),
     })
     .eq('organization_id', organizationId)
     .eq('id', record.recordId)
     .select('*')
     .single()
   if (error) throw error
-  const payload = {
-    reviewDue: draft.reviewDue ?? record.reviewDue ?? null,
-    room: draft.room ?? record.room ?? '',
-    reason: draft.reason ?? record.reason ?? '',
-    reasonEn: draft.reasonEn ?? draft.reason ?? record.reasonEn ?? record.reason ?? '',
-    suspectedSource: draft.suspectedSource ?? record.suspectedSource ?? '',
-    detail: 'updated',
-  }
-  const { error: eventError } = await supabase
-    .from('surveillance_events')
-    .insert({
-      organization_id: organizationId,
-      surveillance_case_id: record.recordId,
-      event_type: 'surveillance_start',
-      event_status: 'completed',
-      occurred_at: startedAt,
-      payload,
-      created_by: actorId,
-    })
-  if (eventError) throw eventError
+  await saveClinicalEvent(organizationId, record.recordId, 'surveillance_start', 'updated', {
+    occurredAt: startedAt,
+  })
   return (await hydrateCases([caseRow]))[0]
 }
 

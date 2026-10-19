@@ -1,3 +1,4 @@
+import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 
@@ -58,10 +59,10 @@ function mapBatch(row,department,records){
 async function hydrateRecords(rows){
   if(!rows?.length)return []
   const employeeIds=[...new Set(rows.map(row=>row.employee_id))]
-  const {data:employees,error}=await supabase.from('employees').select('id,employee_code,first_name,first_name_en,last_name,last_name_en,department_id,department_name,department_name_en').in('id',employeeIds)
+  const {data:employees,error}=await selectInChunks(employeeIds,ids=>supabase.from('employees').select('id,employee_code,first_name,first_name_en,last_name,last_name_en,department_id,department_name,department_name_en').in('id',ids))
   if(error)throw error
   const departmentIds=[...new Set((employees||[]).map(row=>row.department_id).filter(Boolean))]
-  const departmentResult=departmentIds.length?await supabase.from('departments').select('id,name').in('id',departmentIds):{data:[],error:null}
+  const departmentResult=await selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids))
   if(departmentResult.error)throw departmentResult.error
   return rows.map(row=>{
     const employee=(employees||[]).find(item=>item.id===row.employee_id)
@@ -73,9 +74,7 @@ async function hydrateRecords(rows){
 export async function loadEmployeeSurveillanceRecords(organizationId){
   assertCloud()
   if(!organizationId)return []
-  const {data,error}=await supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false})
-  if(error)throw error
-  return hydrateRecords(data||[])
+  return hydrateRecords(await selectAllPages(()=>supabase.from('employee_surveillance_records').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false}).order('id',{ascending:true})))
 }
 
 async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
@@ -84,7 +83,7 @@ async function loadEmployeeSurveillanceBatches(organizationId,records=[]){
   const {data,error}=await supabase.from('employee_surveillance_batches').select('*').eq('organization_id',organizationId).order('started_at',{ascending:false})
   if(error)throw error
   const departmentIds=[...new Set((data||[]).map(row=>row.department_id).filter(Boolean))]
-  const departments=departmentIds.length?await supabase.from('departments').select('id,name').in('id',departmentIds):{data:[],error:null}
+  const departments=await selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids))
   if(departments.error)throw departments.error
   return (data||[]).map(row=>mapBatch(row,(departments.data||[]).find(item=>item.id===row.department_id),records))
 }

@@ -70,7 +70,11 @@ vi.mock('../src/core/supabase/client', () => ({
       return {
         select: () => ({
           eq: (_col, organizationId) => ({
-            is: () => ({ order: () => Promise.resolve({ data: patientsFor(organizationId).filter(row=>!row.archived_at), error: null }) }),
+            is: () => {
+              const rows=() => patientsFor(organizationId).filter(row=>!row.archived_at)
+              const ordered={ order: () => ordered, range: (from,to) => Promise.resolve({ data: rows().slice(from,to+1), error: null }) }
+              return ordered
+            },
           }),
         }),
         insert: payload => ({

@@ -108,8 +108,9 @@ export function ControlsPage(){
  const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.summary?.today||0),0),0)
  const adherenceReport=useControlAdherenceReport(rows,tx,language,tenant?.id,programme)
  const calendarReport=useControlCalendarReport(rows,tx,language,tenant?.id,programme)
- const monthCounts=useAdherenceCounts(tenant?.id,'30d',programme)
- const monthAdherence=useMemo(()=>programmeAdherence(scopedControls,periodRange('30d'),monthCounts).totals,[scopedControls,monthCounts])
+ const {counts:monthCounts,failed:monthCountsFailed}=useAdherenceCounts(tenant?.id,'30d',programme)
+ // A failed count shows no rate rather than a false 0%.
+ const monthAdherence=useMemo(()=>monthCountsFailed?programmeAdherence([],periodRange('30d'),new Map()).totals:programmeAdherence(scopedControls,periodRange('30d'),monthCounts).totals,[scopedControls,monthCounts,monthCountsFailed])
 
  function quickExecute(item,deps,e){
   e?.stopPropagation()

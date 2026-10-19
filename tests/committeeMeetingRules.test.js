@@ -69,6 +69,13 @@ describe('attendanceFor', () => {
     const rows = attendanceFor([{ id: 'M1', name: 'A' }], [guest, { id: 'X', memberId: null, name: '', status: 'present' }])
     expect(rows.map(row => row.id)).toEqual(['ATT-M1', 'FM-ATT-1'])
   })
+
+  it('never lets an attendee who is not a member count towards quorum', () => {
+    const guest = { id: 'FM-ATT-1', memberId: null, name: 'C', status: 'present', voting: true }
+    const rows = attendanceFor([{ id: 'M1', name: 'A' }, { id: 'M2', name: 'B' }, { id: 'M3', name: 'D' }], [{ id: 'ATT-M1', memberId: 'M1', status: 'present', voting: true }, guest])
+    expect(rows.find(row => row.id === 'FM-ATT-1').voting).toBe(false)
+    expect(meetingQuorum(rows, 'simple_majority')).toMatchObject({ votingMembers: 3, presentVoting: 1, quorum: false })
+  })
 })
 
 describe('committee member outside staff', () => {

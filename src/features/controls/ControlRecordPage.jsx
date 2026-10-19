@@ -47,7 +47,7 @@ export function ControlRecordPage(){
  const [tab,setTab]=useState(()=>searchParams.get('tab')||'')
  // Moving to another control (‹ ›) opens it on its details again.
  const [tabFor,setTabFor]=useState(controlId)
- if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'')}
+
  const [cancelExecution,setCancelExecution]=useState(null)
  const [deleteExecution,setDeleteExecution]=useState(null)
  const [editExecution,setEditExecution]=useState(null)
@@ -55,6 +55,8 @@ export function ControlRecordPage(){
  const [loading,setLoading]=useState(true)
  const [historyPage,setHistoryPage]=useState(1)
  const [historyPageSize,setHistoryPageSize]=useState(15)
+ // Moving to another control starts on its own tab and on the first page of its history.
+ if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'');setHistoryPage(1)}
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const executing=searchParams.get('execute')==='1'
  const editing=searchParams.get('edit')==='1'
