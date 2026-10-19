@@ -25,7 +25,10 @@ import './calendar.css'
 
 const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES}
 const WEEKDAYS={el:['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
-const MAX_CHIPS=3
+// A day cell shows one line per module: its dot, the count and the name (singular / plural).
+const KIND_COUNT={controls:['έλεγχος','έλεγχοι','control','controls'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items']}
+const countLabel=(kind,n,en)=>{const forms=KIND_COUNT[kind]||['','','','' ];const word=en?(n===1?forms[2]:forms[3]):(n===1?forms[0]:forms[1]);return word.charAt(0).toLocaleUpperCase(en?'en':'el')+word.slice(1)}
+const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο':'α'}`
 
 // One calendar of what has to be done across the hospital: control due dates,
 // CAPA and step deadlines, effectiveness reviews, planned audits, training
@@ -43,6 +46,8 @@ export function CalendarPage(){
  const [view,setView]=useState('month')
  const [hidden,setHidden]=useState(()=>new Set())
  const [department,setDepartment]=useState('all')
+ // A module line in a day cell narrows that day's panel to the module.
+ const [panelKind,setPanelKind]=useState(null)
 
  useEffect(()=>{
   let active=true
@@ -82,8 +87,8 @@ export function CalendarPage(){
  const fmtShort=key=>new Intl.DateTimeFormat(locale,{day:'numeric',month:'short'}).format(new Date(`${key}T12:00:00`))
 
  function moveMonth(step){setCursor(c=>{const d=new Date(c.year,c.month+step,1);return {year:d.getFullYear(),month:d.getMonth()}})}
- function openDay(key){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key)}
- function goToday(){const d=new Date();setCursor({year:d.getFullYear(),month:d.getMonth()});setSelected(dayKey(d))}
+ function openDay(key){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key);setPanelKind(null)}
+ function goToday(){const d=new Date();setCursor({year:d.getFullYear(),month:d.getMonth()});setSelected(dayKey(d));setPanelKind(null)}
  function clearFilters(){setHidden(new Set());setDepartment('all')}
  function toggleKind(kind){setHidden(current=>{const next=new Set(current);if(next.has(kind))next.delete(kind);else next.add(kind);return next})}
  function exportMonth(){
@@ -102,9 +107,10 @@ export function CalendarPage(){
  ].filter(Boolean)
  const filtersHideAll=filtered&&(view==='month'?!monthEvents.length:!upcoming.length)
  if(!sources)return <RouteLoading/>
- const selectedEvents=byDay.get(selected)||[]
+ const dayEvents=byDay.get(selected)||[]
+ const selectedEvents=panelKind?dayEvents.filter(e=>e.kind===panelKind):dayEvents
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
- const nextDay=selectedEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
+ const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
  return <Page fill className="calendar-page" title={en?'Calendar':'Ημερολόγιο'} subtitle={en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.'} actions={<DownloadMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
   <div className="module-summary-strip">
    <MetricCard icon={AlertTriangle} value={overdue.length} label={en?'Overdue':'Εκπρόθεσμα'} tone={overdue.length?'warning':'neutral'} onClick={()=>setView('list')}/>
@@ -124,15 +130,15 @@ export function CalendarPage(){
      <div className="calendar-grid" role="grid" aria-label={monthTitle}>
       {WEEKDAYS[en?'en':'el'].map(d=><div key={d} className="calendar-weekday" role="columnheader">{d}</div>)}
       {weeks.flat().map(key=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');// The day selects its agenda; an item in it opens its record.
-       return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>setSelected(key)} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
+       return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>{setSelected(key);setPanelKind(null)}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key);setPanelKind(null)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
        <span className="calendar-day-number">{Number(key.slice(8))}</span>
-       {list.slice(0,MAX_CHIPS).map(e=><button type="button" key={e.id} className={`calendar-chip kind-${e.kind} ${e.state}`} title={e.title} onClick={event=>{event.stopPropagation();navigate(e.path)}}><span className="calendar-dot"/>{e.time&&<b>{e.time}</b>}<span className="calendar-chip-title">{e.title}</span></button>)}
-       {list.length>MAX_CHIPS&&<span className="calendar-more">+{list.length-MAX_CHIPS} {en?'more':'ακόμη'}</span>}
+       {CALENDAR_KINDS.map(kind=>{const items=list.filter(e=>e.kind===kind);if(!items.length)return null;const late=items.filter(e=>e.state==='overdue').length;const name=countLabel(kind,items.length,en);const full=`${items.length} ${name}${late?` · ${overdueLabel(late,en)}`:''}`
+        return <button type="button" key={kind} className={`calendar-kind-line kind-${kind}${late?' overdue':''}${key===selected&&panelKind===kind?' active':''}`} title={full} aria-label={full} onClick={event=>{event.stopPropagation();setSelected(key);setPanelKind(kind)}}><span className="calendar-dot"/><b>{items.length}</b><span className="calendar-kind-name">{name}</span>{late>0&&<small className="calendar-kind-late">{overdueLabel(late,en)}</small>}</button>})}
       </div>})}
      </div>
     </div>
     <aside className="calendar-day-panel" aria-live="polite">
-     <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{addItems.length>0&&<OverflowMenu label={en?'Add':'Προσθήκη'} trigger={<><Plus size={15} aria-hidden="true"/>{en?'Add':'Προσθήκη'}</>} items={addItems}/>}</div>
+     <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{panelKind&&<button type="button" className="calendar-panel-filter" onClick={()=>setPanelKind(null)} title={en?'Show every module':'Όλες οι ενότητες'}><span className={`calendar-dot kind-${panelKind}`}/>{calendarKindLabel(panelKind,language)} ×</button>}{addItems.length>0&&<OverflowMenu label={en?'Add':'Προσθήκη'} trigger={<><Plus size={15} aria-hidden="true"/>{en?'Add':'Προσθήκη'}</>} items={addItems}/>}</div>
      {selectedEvents.length?<ul className="calendar-agenda">{selectedEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path)}/>)}</ul>:<div className="inline-empty">{en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.'}{nextDay&&<button type="button" className="calendar-next-day" onClick={()=>openDay(nextDay)}>{en?'Next':'Επόμενο'}: <strong>{fmtShort(nextDay)}</strong> · {byDay.get(nextDay)[0].title}<ChevronRight size={14} aria-hidden="true"/></button>}</div>}
     </aside>
    </div>:<div className="calendar-list scroll-panel">
