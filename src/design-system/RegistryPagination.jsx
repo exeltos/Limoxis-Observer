@@ -2,6 +2,8 @@ const PAGE_SIZE_OPTIONS=[15,25,50]
 
 export function RegistryPagination({language='el',page,totalPages,totalItems,pageSize,onPageChange,onPageSizeChange}){
   const en=language==='en'
+  // No rows, no pager: the empty state says what to do instead.
+  if(!totalItems)return null
   const start=totalItems?((page-1)*pageSize)+1:0
   const end=Math.min(page*pageSize,totalItems)
   return <div className="registry-pagination" data-registry-pagination="canonical">

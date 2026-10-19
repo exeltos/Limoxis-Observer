@@ -1,3 +1,5 @@
+import { RegistryEmptyState } from './RegistryEmptyState'
+
 export function RegistryTable({
   columns=[],
   rows=[],
@@ -11,6 +13,12 @@ export function RegistryTable({
   empty=false,
   emptyTitle,
   emptyText,
+  // A filtered-out list (search / filters) offers «Clear filters»; an empty
+  // registry shows emptyIcon and emptyAction ({label, onClick, icon}).
+  emptyFiltered=false,
+  onClearFilters,
+  emptyIcon,
+  emptyAction,
   bare=false,
 }){
   const tableClass=`data-table sticky-table ${className}`.trim()
@@ -31,7 +39,10 @@ export function RegistryTable({
   // emptyTitle - otherwise a caller managing its own empty-state UI
   // (a sibling registry-empty-state, a different tab's placeholder, etc.)
   // would end up with an extra, textless box whenever rows is empty.
-  const emptyState=Boolean(emptyTitle)&&(!hasRows||empty)&&<div className="inline-empty" role="status"><strong>{emptyTitle}</strong>{emptyText&&<span>{emptyText}</span>}</div>
+  const richEmpty=emptyFiltered||Boolean(emptyAction)||Boolean(emptyIcon)
+  const emptyState=(Boolean(emptyTitle)||richEmpty)&&(!hasRows||empty)&&(richEmpty
+    ?<RegistryEmptyState filtered={emptyFiltered} onClearFilters={onClearFilters} title={emptyTitle} text={emptyText} icon={emptyIcon} action={emptyAction}/>
+    :<div className="inline-empty" role="status"><strong>{emptyTitle}</strong>{emptyText&&<span>{emptyText}</span>}</div>)
   // bare: caller already owns the scroll wrapper (e.g. one shared wrapper
   // around several conditionally-rendered tables) - render just the table.
   if(bare)return <>{table}{emptyState}</>
