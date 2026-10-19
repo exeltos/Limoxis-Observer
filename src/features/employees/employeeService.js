@@ -12,7 +12,7 @@ const localStore = () => import('./employeeStore')
 // both a proper uuid primary key AND a separate `employee_code` text column with
 // its own per-organization uniqueness constraint — map frontend `id` to
 // `employee_code`, not to the uuid, so every existing consumer keeps working.
-const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,position_name,position_name_en,employment_status,email,phone,hire_date,birth_date,created_at,updated_at'
+const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,position_name,position_name_en,employment_status,email,phone,hire_date,birth_date,photo_path,created_at,updated_at'
 
 function productionContext(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -46,6 +46,7 @@ function fromRow(row) {
     phone: row.phone || '',
     hireDate: row.hire_date || '',
     birthDate: row.birth_date || '',
+    photoPath: row.photo_path || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }

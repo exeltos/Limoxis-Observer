@@ -54,6 +54,7 @@ import {
   EmployeeHistoryTab,
 } from './EmployeeRecordTabs'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { EmployeeHeaderPhoto } from './EmployeePhoto'
 
 export function EmployeeRecordPage({ selfMode = false }) {
   const { employeeId } = useParams()
@@ -63,6 +64,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
     loading: employeesLoading,
     error: employeesError,
     reload: reloadEmployees,
+    setData: setEmployeeRows,
   } = useEmployeesData()
   const { goBack, restored } = useContextualNavigation('/employees')
   const { t, language, locale } = useLanguage()
@@ -449,7 +451,16 @@ export function EmployeeRecordPage({ selfMode = false }) {
     <Page fill title={name} subtitle={t('employeesRecords.employeeFullRecordSubtitle')}>
       <EntityRecordShell
         className={`employee-record-shell workspace-fill${selfReadOnly ? ' employee-self-readonly' : ''}`}
-        avatar={`${employee.firstName?.[0] || ''}${employee.lastName?.[0] || ''}`}
+        avatar={
+          <EmployeeHeaderPhoto
+            employee={employee}
+            organizationId={tenant?.id}
+            canEdit={canAdmin}
+            onChange={next =>
+              setEmployeeRows(rows => rows.map(row => (row.id === next.id ? { ...row, ...next } : row)))
+            }
+          />
+        }
         eyebrow={employee.id}
         title={name}
         subtitle={`${language === 'el' ? employee.profession : employee.professionEn || employee.profession} · ${language === 'el' ? employee.department : employee.departmentEn || employee.department}`}
