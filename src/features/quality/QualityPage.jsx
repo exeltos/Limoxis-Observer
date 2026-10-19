@@ -93,7 +93,9 @@ export function QualityPage(){
  const {t,language,locale}=useLanguage()
  const en=language==='en'
  const L=(el,enText)=>en?enText:el
- const {role,membership,tenant,actualRole,isRolePreview}=useTenant()
+ const {role,membership,tenant,actualRole,isRolePreview,moduleEnabled}=useTenant()
+ // «Suppliers & certificates» is a module the Platform Owner enables per hospital.
+ const suppliersOn=moduleEnabled('suppliers')
  const navigate=useNavigate()
  const {goTo}=useContextualNavigation('/quality')
  // Entering Quality always starts on the overview; the last tab is restored only
@@ -104,6 +106,7 @@ export function QualityPage(){
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'registers')
  const [meetingView,setMeetingView]=useState(initial.tab==='review'&&initial.view||'meetings')
  const [resourceView,setResourceView]=useState(initial.tab==='resources'&&initial.view||'equipment')
+ useEffect(()=>{if(!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
  const [equipmentFilters,setEquipmentFilters]=useState(NO_EQUIPMENT_FILTERS)
  const [supplierFilters,setSupplierFilters]=useState(NO_SUPPLIER_FILTERS)
  const [meetingFilters,setMeetingFilters]=useState({query:'',department:'all',status:'all',quick:null})
@@ -264,7 +267,7 @@ export function QualityPage(){
   audits:canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')}]:[],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
   indicators:canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');setEditingObjective(newObjective())}},{id:'survey',label:L('Έρευνα ικανοποίησης','Satisfaction survey'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[],
-  resources:canManage?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}},{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}}]:[],
+  resources:canManage?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}},...(suppliersOn?[{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}}]:[])]:[],
   review:[{id:'meeting',label:L('Συνάντηση τμήματος','Department meeting'),icon:Users,onClick:()=>{setMeetingView('meetings');writeSessionValue(RETURN_KEY,'review:meetings');goTo('/meetings/new')}},...(canManage?[{id:'review',label:L('Ανασκόπηση Διοίκησης','Management review'),icon:ClipboardSignature,onClick:()=>{setMeetingView('reviews');writeSessionValue(RETURN_KEY,'review:reviews');navigate('/quality/reviews/new')}}]:[])],
  })[tab]
 
@@ -281,7 +284,7 @@ export function QualityPage(){
  })[tab]
 
  const meetingSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={meetingView} onChange={setMeetingView} options={MEETING_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
- const resourceSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={resourceView} onChange={setResourceView} options={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
+ const resourceSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={resourceView} onChange={setResourceView} options={RESOURCE_OPTIONS.filter(option=>suppliersOn||option.value!=='suppliers').map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
  const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
 
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και το εύρημα ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and the finding to the corrective action, the objectives and the management review.')}
@@ -319,7 +322,7 @@ export function QualityPage(){
    </>}
    {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} filters={surveyFilters} setFilters={setSurveyFilters} filterEnd={measureSwitch} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');goTo(`/quality/surveys/${survey.id}`)}}/>}
    {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');goTo(`/quality/equipment/${row.id}`)}}/>}
-   {tab==='resources'&&resourceView==='suppliers'&&<SuppliersList list={resources} filters={supplierFilters} setFilters={setSupplierFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo(`/quality/suppliers/${row.id}`)}}/>}
+   {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&<SuppliersList list={resources} filters={supplierFilters} setFilters={setSupplierFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo(`/quality/suppliers/${row.id}`)}}/>}
    {tab==='review'&&meetingView==='meetings'&&<MeetingsList list={meetings} filters={meetingFilters} setFilters={setMeetingFilters} filterEnd={meetingSwitch} onOpen={meeting=>{writeSessionValue(RETURN_KEY,'review:meetings');goTo(`/meetings/${meeting.id}`)}}/>}
    {tab==='review'&&meetingView==='reviews'&&<>
     <FilterBar query={reviewQuery} onQueryChange={setReviewQuery} placeholder={L('Αναζήτηση ανασκόπησης','Search review')} onClear={()=>{setReviewQuery('');setReviewQuick(null)}} end={meetingSwitch}/>

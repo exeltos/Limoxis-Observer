@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ListChecks } from 'lucide-react'
+import { FileClock, ListChecks } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
@@ -101,8 +101,10 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
   const en = language === 'en'
   const navigate = useNavigate()
   const access = useResourceAccess()
-  // The evaluation templates by supplier category: Quality manages them.
-  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/templates')}><ListChecks size={15} />{en ? 'Evaluation templates' : 'Πρότυπα αξιολόγησης'}</Button>}{filterEnd}</>
+  // The evaluation templates by supplier category and the expired certificates to
+  // renew by e-mail: Quality manages them.
+  const expired = list.suppliers.filter(item => item.status !== 'inactive' && item.expiredCertificates > 0).length
+  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/renewals')}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/templates')}><ListChecks size={15} />{en ? 'Evaluation templates' : 'Πρότυπα αξιολόγησης'}</Button>}{filterEnd}</>
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
