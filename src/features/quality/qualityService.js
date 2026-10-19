@@ -12,13 +12,12 @@ import { CHECKLIST_FIELDS, CHECKLIST_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, tea
 // written after it; the demo keeps the whole record in the browser.
 
 const TEAM_SELECT='team:quality_audit_team_members(*,employee:employees(department_id,department_name))'
-const single=value=>(Array.isArray(value)?value[0]||null:value||null)
 
 const sectionConfig={
   incidents:{table:'quality_incidents',date:'occurred_at',select:`*,department:departments(name),${INCIDENT_DETAIL_SELECT}`},
-  findings:{table:'quality_findings',date:'identified_at',select:'*,department:departments(name),follow_up_audit:quality_audits!quality_findings_follow_up_audit_fkey(code)'},
+  findings:{table:'quality_findings',date:'identified_at',select:'*,department:departments(name)'},
   capas:{table:'quality_capa_actions',date:'due_date',select:`*,department:departments(name),sub_actions:quality_capa_sub_actions(*),${ROOT_CAUSE_SELECT},progress:quality_capa_progress(*)`},
-  audits:{table:'quality_audits',date:'planned_date',select:`*,department:departments(name),${CHECKLIST_SELECT},${TEAM_SELECT},follow_up:quality_audits!quality_audits_follow_up_of_fkey(code)`},
+  audits:{table:'quality_audits',date:'planned_date',select:`*,department:departments(name),${CHECKLIST_SELECT},${TEAM_SELECT}`},
 }
 
 function assertReady(organizationId){
@@ -122,7 +121,7 @@ export function mapRow(section,row){
     verifiedOn:row.verified_on||'',
     verifiedBy:row.verified_by_label||'',
     verificationNote:row.verification_note||'',
-    followUpAuditId:single(row.follow_up_audit)?.code||'',
+    followUpAuditId:row.follow_up_audit_code||'',
   }
   if(section==='capas') return {
     ...common,
@@ -163,10 +162,21 @@ export function mapRow(section,row){
     closingMeeting:{date:row.closing_meeting_on||'',attendees:row.closing_attendees||''},
     auditeeRepresentative:row.auditee_representative||'',
     conclusion:row.conclusion||'',
-    followUpOf:single(row.follow_up)?.code||'',
+    followUpOf:row.follow_up_code||'',
     origin:row.source||'app',
     team:teamFromRows(row.team),
   }
+}
+
+// The audit a record follows up is stored by id; the screens show its code.
+async function withFollowUpCodes(section,organizationId,rows){
+  const column=section==='audits'?'follow_up_of':section==='findings'?'follow_up_audit_id':null
+  const ids=column?[...new Set(rows.map(row=>row[column]).filter(Boolean))]:[]
+  if(!ids.length)return rows
+  const audits=must(await supabase.from('quality_audits').select('id,code').eq('organization_id',organizationId).in('id',ids))||[]
+  const codes=new Map(audits.map(item=>[item.id,item.code]))
+  const key=section==='audits'?'follow_up_code':'follow_up_audit_code'
+  return rows.map(row=>(row[column]?{...row,[key]:codes.get(row[column])||''}:row))
 }
 
 export async function loadQualityRecords(section,organizationId){
@@ -180,7 +190,7 @@ export async function loadQualityRecords(section,organizationId){
     .eq('organization_id',organizationId)
     .order(config.date,{ascending:false,nullsFirst:false})
   if(error) throw error
-  return (data||[]).map(row=>mapRow(section,row))
+  return (await withFollowUpCodes(section,organizationId,data||[])).map(row=>mapRow(section,row))
 }
 
 export async function loadQualityRecord(section,organizationId,code){
@@ -196,12 +206,13 @@ export async function loadQualityRecord(section,organizationId,code){
     .maybeSingle()
   if(error) throw error
   if(!data) return null
-  return mapRow(section,data)
+  return mapRow(section,(await withFollowUpCodes(section,organizationId,[data]))[0])
 }
 
 async function reloadById(section,organizationId,id){
   const config=sectionConfig[section]
-  return mapRow(section,must(await supabase.from(config.table).select(config.select).eq('organization_id',organizationId).eq('id',id).single()))
+  const row=must(await supabase.from(config.table).select(config.select).eq('organization_id',organizationId).eq('id',id).single())
+  return mapRow(section,(await withFollowUpCodes(section,organizationId,[row]))[0])
 }
 
 // --- The details in tables of their own ------------------------------------------------------

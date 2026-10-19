@@ -11,7 +11,8 @@ const LOCAL_KEY = 'quality_local_audit_templates'
 const must = ({ data, error }) => { if (error) throw error; return data }
 const text = value => { const kept = String(value ?? '').trim(); return kept || null }
 const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
-const SELECT = '*,questions:quality_audit_template_questions(*)'
+// The questions by their template (the composite key to the template's hospital is a second link).
+const SELECT = '*,questions:quality_audit_template_questions!quality_audit_template_questions_template_id_fkey(*)'
 export const QUESTION_FIELDS = ['position', 'chapter_ref', 'chapter_title', 'clause_ref', 'question', 'guidance', 'evidence', 'weight', 'critical', 'areas']
 
 export const templateFromRow = row => ({
