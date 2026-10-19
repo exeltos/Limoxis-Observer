@@ -336,6 +336,11 @@
       "authenticated": true,
       "reason": "Approves a regulation's draft as its next edition; checks private.can_manage_regulations for the regulation's organisation and requires both signatures (administrator, infection control lead) for the draft's current revision."
     },
+    "protocol_suggestion_decide": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Accepts (with the revision started for it), rejects (reason required) or postpones a protocol update suggestion; auth.uid() with manage_documents or supersede_document in the suggestion's organisation (current_user_has_governance_capability). Writes only the suggestion; the audit trigger records the decision."
+    },
     "legislation_check_now": {
       "category": "rpc",
       "authenticated": true,
