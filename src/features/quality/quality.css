@@ -140,9 +140,9 @@
 .quality-panel-all{align-self:flex-start;padding:0;border:0;background:none;color:var(--lo-color-primary);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
 .quality-panel-all:hover{text-decoration:underline}
 .quality-attention-list button{align-items:center}
-.quality-chip{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 58px;min-height:34px;padding:2px 4px;border-radius:8px;background:var(--lo-color-surface-muted);color:var(--lo-color-text);line-height:1.1}
+.quality-chip{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 74px;text-align:center;min-height:34px;padding:2px 4px;border-radius:8px;background:var(--lo-color-surface-muted);color:var(--lo-color-text);line-height:1.1}
 .quality-chip>strong{font-size:13px}
-.quality-chip>small{font-size:9.5px;font-weight:600;white-space:nowrap}
+.quality-chip>small{font-size:9.5px;font-weight:600;white-space:normal;line-height:1.15}
 .quality-chip.is-danger{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
 .quality-chip.is-warning{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
 .quality-breakdowns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -220,7 +220,7 @@
 .quality-programme-grid td.is-now{background:var(--lo-color-primary-soft)}
 .quality-programme-chip{display:grid;gap:1px;width:100%;margin-bottom:3px;padding:3px 5px;border:1px solid transparent;border-radius:6px;font:inherit;font-size:10.5px;text-align:left;cursor:pointer;overflow:hidden}
 .quality-programme-chip>strong{flex:0 0 auto;font-size:11px}
-.quality-programme-chip>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;hyphens:auto;overflow-wrap:break-word}
+.quality-programme-chip>span{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.2;font-size:9.5px;font-weight:600}
 .quality-programme-chip:hover{border-color:currentColor}
 .quality-programme-chip.is-done,.quality-programme-dot.is-done{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
 .quality-programme-chip.is-late,.quality-programme-dot.is-late{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
