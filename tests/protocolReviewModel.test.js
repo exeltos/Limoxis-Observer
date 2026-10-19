@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import {
-  addDaysKey, decisionProblem, documentsWithOpenSuggestions, effectiveStatus, familyHasOpenSuggestion, revisionNoteFor, suggestionCalendarItems,
+  addDaysKey, decisionProblem, documentsWithOpenSuggestions, effectiveStatus, existingSuggestedRevision, familyHasOpenSuggestion, revisionNoteFor, suggestionCalendarItems,
   suggestionFromRow, suggestionReasonLabel, suggestionSectionLabel, suggestionsForDocument, MAX_REVISION_NOTE,
 } from '../src/features/documents/protocolReview/protocolReviewModel'
 import { decideProtocolSuggestionAsync, loadProtocolSuggestionsAsync } from '../src/features/documents/protocolReview/protocolReviewService'
@@ -106,6 +106,22 @@ describe('protocol update suggestions: demo service', () => {
     const [first] = await loadProtocolSuggestionsAsync(null)
     const accepted = await decideProtocolSuggestionAsync(null, first, { decision: 'accepted', revisionDocumentId: 'DOC-009' })
     expect(accepted).toMatchObject({ status: 'accepted', revisionDocumentId: 'DOC-009' })
+  })
+})
+
+describe('accepting a suggestion twice', () => {
+  it('reuses the draft revision started for the suggestion instead of creating another', () => {
+    const record = { id: 'DOC-1', dbId: 'd1', status: 'published' }
+    const suggestion = { id: 's1', documentId: 'd1', createdAt: '2026-10-10T02:00:00Z' }
+    const docs = [
+      { id: 'DOC-2', dbId: 'd2', status: 'draft', revisionOfDbId: 'd1', createdAt: '2026-10-01T00:00:00Z' },
+      { id: 'DOC-3', dbId: 'd3', status: 'draft', revisionOfDbId: 'd1', createdAt: '2026-10-12T09:00:00Z' },
+      { id: 'DOC-4', dbId: 'd4', status: 'draft', revisionOfDbId: 'other', createdAt: '2026-10-13T09:00:00Z' },
+      { id: 'DOC-5', dbId: 'd5', status: 'published', revisionOfDbId: 'd1', createdAt: '2026-10-14T09:00:00Z' },
+    ]
+    expect(existingSuggestedRevision(docs, record, suggestion)?.dbId).toBe('d3')
+    expect(existingSuggestedRevision(docs.slice(0, 1), record, suggestion)).toBe(null)
+    expect(existingSuggestedRevision([{ id: 'DOC-6', status: 'draft', revisionOfId: 'DOC-1', createdAt: '2026-10-11T00:00:00Z' }], { id: 'DOC-1' }, suggestion)?.id).toBe('DOC-6')
   })
 })
 

@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useMemo,useRef,useState } from 'react'
 import { Check,Clock,ExternalLink,RefreshCcwDot,X } from 'lucide-react'
 import { SectionHeader } from '../../../design-system/SectionHeader'
 import { StatusBadge } from '../../../design-system/StatusBadge'
@@ -18,6 +18,8 @@ export function ProtocolReviewPanel({record,suggestions,organizationId,actor,can
  const {notify}=useFeedback()
  const [dialog,setDialog]=useState(null)
  const [busy,setBusy]=useState(false)
+ // The revision made for a suggestion whose decision then failed: a retry links it, never a second draft.
+ const started=useRef(new Map())
  const {open,snoozed}=useMemo(()=>suggestionsForDocument(suggestions,record),[suggestions,record])
  if(record?.type!=='protocol'||(!open.length&&!snoozed.length))return null
 
@@ -27,10 +29,12 @@ export function ProtocolReviewPanel({record,suggestions,organizationId,actor,can
   setBusy(true)
   try{
    if(decision==='accepted'){
-    const revision=await onStartRevision?.(notes)
+    const revision=started.current.get(suggestion.id)||await onStartRevision?.(notes,suggestion)
     if(!revision)return
+    started.current.set(suggestion.id,revision)
     await decideProtocolSuggestionAsync(organizationId,suggestion,{decision,revisionDocumentId:revision.dbId||null},actor)
     notify(en?'Suggestion accepted: a new draft revision was created.':'Η πρόταση έγινε δεκτή: δημιουργήθηκε νέα πρόχειρη αναθεώρηση.','success')
+    started.current.delete(suggestion.id)
     setDialog(null)
     await onChanged?.(revision)
     return

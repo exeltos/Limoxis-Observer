@@ -61,6 +61,18 @@ export function suggestionsForDocument(list,record,today=todayKey()){
 }
 
 // Document keys (dbId or demo id) with at least one open suggestion.
+// A draft revision of this protocol already started for the suggestion (created
+// after it was found): accepting again links that draft instead of making
+// another, so a failed decision never leaves duplicate drafts behind.
+export function existingSuggestedRevision(documents,record,suggestion){
+ const ids=new Set([record?.dbId,record?.id].filter(Boolean))
+ if(!ids.size||!suggestion)return null
+ const since=String(suggestion.createdAt||'')
+ return (documents||[])
+  .filter(doc=>doc?.status==='draft'&&(ids.has(doc.revisionOfDbId)||ids.has(doc.revisionOfId))&&String(doc.createdAt||'')>=since)
+  .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0]||null
+}
+
 export function documentsWithOpenSuggestions(list,today=todayKey()){
  return new Set((list||[]).filter(s=>isOpenSuggestion(s,today)).map(s=>s.documentId))
 }
