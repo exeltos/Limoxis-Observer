@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -7,6 +7,7 @@ import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
 import { calendarTone, calendarYearSummary, groupCalendarLines, programmeCalendar } from './controlCalendar'
+import { loadControlCalendarMonths } from './controlCloudService'
 import './controlCalendar.css'
 
 const MONTHS = {
@@ -30,13 +31,29 @@ export function calendarCellText(cell, en) {
   return parts.join(' · ')
 }
 
-export function useControlCalendarReport(rows, tx, language) {
+// The year's month counts per assignment, counted in the database (null in the demo).
+function useCalendarMonths(organizationId, year, refreshKey) {
+  const [state, setState] = useState({ key: '', months: null })
+  const key = `${organizationId || ''}|${year}`
+  useEffect(() => {
+    if (!organizationId) return undefined
+    let active = true
+    loadControlCalendarMonths(organizationId, year)
+      .then((months) => { if (active) setState({ key, months }) })
+      .catch(() => { if (active) setState({ key, months: new Map() }) })
+    return () => { active = false }
+  }, [organizationId, year, key, refreshKey])
+  return state.key === key ? state.months : null
+}
+
+export function useControlCalendarReport(rows, tx, language, organizationId, refreshKey) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [exporting, setExporting] = useState(false)
   const reportRef = useRef(null)
-  const lines = useMemo(() => programmeCalendar(rows, year), [rows, year])
+  const monthsByAssignment = useCalendarMonths(organizationId, year, refreshKey)
+  const lines = useMemo(() => programmeCalendar(rows, year, new Date(), monthsByAssignment), [rows, year, monthsByAssignment])
   const months = MONTHS[en ? 'en' : 'el']
   const title = (item) => (en ? item.titleEn || item.title : item.title)
 

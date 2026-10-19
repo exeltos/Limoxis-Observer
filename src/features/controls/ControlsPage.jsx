@@ -21,7 +21,7 @@ import { controlActorFromAuth } from './controlActor'
 import { MetricCard } from '../../design-system/MetricCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { ControlAdherencePanel,useControlAdherenceReport } from './ControlAdherencePanel'
+import { ControlAdherencePanel,useAdherenceCounts,useControlAdherenceReport } from './ControlAdherencePanel'
 import { periodRange,programmeAdherence } from './controlAdherence'
 import { ControlCalendarPanel,useControlCalendarReport } from './ControlCalendarPanel'
 import { assignmentStatus,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
@@ -48,8 +48,9 @@ function controlState(item,departments){
 function earliestNext(item,departments){
  return departments.map(dep=>getAssignment(item,dep)?.nextDueAt).filter(Boolean).sort((a,b)=>new Date(a)-new Date(b))[0]||null
 }
+// Counted in the database (control_assignment_summary): the list never reads the executions.
 function executionCount(item,departments){
- return departments.reduce((n,dep)=>n+(getAssignment(item,dep)?.history?.length||0),0)
+ return departments.reduce((n,dep)=>n+(getAssignment(item,dep)?.summary?.executions||0),0)
 }
 function hasDraft(item,departments){
  return departments.some(dep=>Boolean(getAssignment(item,dep)?.hasDraft))
@@ -104,11 +105,11 @@ export function ControlsPage(){
  const fmt=v=>formatDateTime(v,language)
  const overdue=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length
  const dueSoon=scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
- const todayKey=new Date().toISOString().slice(0,10)
- const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.history||[]).filter(h=>h.at?.slice(0,10)===todayKey).length,0),0)
- const adherenceReport=useControlAdherenceReport(rows,tx,language)
- const calendarReport=useControlCalendarReport(rows,tx,language)
- const monthAdherence=useMemo(()=>programmeAdherence(scopedControls,periodRange('30d')).totals,[scopedControls])
+ const today=scopedControls.reduce((total,{item,departments:deps})=>total+deps.reduce((n,dep)=>n+(getAssignment(item,dep)?.summary?.today||0),0),0)
+ const adherenceReport=useControlAdherenceReport(rows,tx,language,tenant?.id,programme)
+ const calendarReport=useControlCalendarReport(rows,tx,language,tenant?.id,programme)
+ const monthCounts=useAdherenceCounts(tenant?.id,'30d',programme)
+ const monthAdherence=useMemo(()=>programmeAdherence(scopedControls,periodRange('30d'),monthCounts).totals,[scopedControls,monthCounts])
 
  function quickExecute(item,deps,e){
   e?.stopPropagation()
@@ -160,7 +161,7 @@ export function ControlCreatePage(){
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const isDepartmentManager=role===ROLES.DEPARTMENT_MANAGER
  const createdByScope=isDepartmentManager?'department':role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
- useEffect(()=>{if(!tenant?.id)return;let active=true;loadControlProgramme(tenant.id).then(rows=>{if(active)setCategories([...new Set(rows.map(row=>row.category).filter(Boolean))])}).catch(()=>{});return()=>{active=false}},[tenant?.id])
+ useEffect(()=>{if(!tenant?.id)return;let active=true;loadControlProgramme(tenant.id,{summary:false}).then(rows=>{if(active)setCategories([...new Set(rows.map(row=>row.category).filter(Boolean))])}).catch(()=>{});return()=>{active=false}},[tenant?.id])
  async function saveNew(draft){
   try{
    const scopedDraft=isDepartmentManager?{...draft,departments:[ownDepartment],createdByScope:'department',createdForDepartment:ownDepartment}:{...draft,createdByScope}

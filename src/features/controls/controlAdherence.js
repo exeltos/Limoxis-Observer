@@ -30,38 +30,48 @@ export function expectedOccurrences(frequency, from, to) {
   return Math.floor(span / slotLength(frequency))
 }
 
-// One assignment (control × department) over [from, to].
-export function assignmentAdherence({ frequency, history = [], startedAt = null }, { from, to, now = new Date() }) {
-  const start = new Date(Math.max(new Date(from).getTime(), startedAt ? new Date(startedAt).getTime() : -Infinity))
-  const end = new Date(Math.min(new Date(to).getTime(), new Date(now).getTime()))
-  const expected = expectedOccurrences(frequency, start, end)
+// Done and on-time executions of one assignment's history within [start, end].
+export function countAdherence(history, frequency, start, end) {
   const done = history.filter((row) => row.status !== 'cancelled' && !row.cancelledAt && row.at && new Date(row.at) >= start && new Date(row.at) <= end)
   const grace = graceFor(frequency)
   const onTime = done.filter((row) => {
     const due = row.previousNextDueAt || row.responseData?.previousNextDueAt
     return !due || new Date(row.at) - new Date(due) <= grace
   })
-  const performed = done.length
+  return { performed: done.length, onTime: onTime.length }
+}
+
+// One assignment (control × department) over [from, to]. `counts`
+// ({ performed, onTime }) comes from the database (control_adherence_counts,
+// which applies the same start, end and grace); without it the history is counted.
+export function assignmentAdherence({ frequency, history = [], startedAt = null, counts = null }, { from, to, now = new Date() }) {
+  const start = new Date(Math.max(new Date(from).getTime(), startedAt ? new Date(startedAt).getTime() : -Infinity))
+  const end = new Date(Math.min(new Date(to).getTime(), new Date(now).getTime()))
+  const expected = expectedOccurrences(frequency, start, end)
+  const { performed, onTime } = counts || countAdherence(history, frequency, start, end)
   const counted = Math.min(performed, expected)
   return {
     expected,
     performed,
-    onTime: onTime.length,
-    late: performed - onTime.length,
+    onTime,
+    late: performed - onTime,
     missed: Math.max(0, expected - performed),
     rate: expected ? Math.round((counted / expected) * 100) : null,
-    onTimeRate: performed ? Math.round((onTime.length / performed) * 100) : null,
+    onTimeRate: performed ? Math.round((onTime / performed) * 100) : null,
   }
 }
 
 // Rows for the programme: one per control and department, plus totals.
-export function programmeAdherence(rows, period) {
+// countsByAssignment: Map(assignment id → { performed, onTime }) from the
+// database; null counts each assignment's loaded history (the demo).
+export function programmeAdherence(rows, period, countsByAssignment = null) {
   const lines = []
   for (const { item, departments } of rows || []) {
     for (const department of departments) {
       const assignment = item.assignments?.[department]
       if (!assignment) continue
-      const result = assignmentAdherence({ frequency: item.frequency, history: assignment.history || [], startedAt: assignment.createdAt || item.createdAt }, period)
+      const counts = countsByAssignment ? countsByAssignment.get(assignment.dbId) || { performed: 0, onTime: 0 } : null
+      const result = assignmentAdherence({ frequency: item.frequency, history: assignment.history || [], startedAt: assignment.createdAt || item.createdAt, counts }, period)
       if (!result.expected && !result.performed) continue
       lines.push({ item, department, ...result })
     }

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -8,18 +8,36 @@ import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
 import { ADHERENCE_PERIODS, adherenceTone, groupAdherenceLines, periodRange, programmeAdherence } from './controlAdherence'
+import { loadControlAdherenceCounts } from './controlCloudService'
 import './controlAdherence.css'
+
+// Done and on-time counts per assignment for a period, counted in the database.
+// null until loaded, and in the demo (whose history is complete and counted locally).
+export function useAdherenceCounts(organizationId, period, refreshKey) {
+  const [state, setState] = useState({ key: '', counts: null })
+  const key = `${organizationId || ''}|${period}`
+  useEffect(() => {
+    if (!organizationId) return undefined
+    let active = true
+    loadControlAdherenceCounts(organizationId, periodRange(period))
+      .then((counts) => { if (active) setState({ key, counts }) })
+      .catch(() => { if (active) setState({ key, counts: new Map() }) })
+    return () => { active = false }
+  }, [organizationId, period, key, refreshKey])
+  return state.key === key ? state.counts : null
+}
 
 // Programme adherence: due vs done vs on time per control and department.
 // The page owns the report (period + downloads) so its Download button sits
 // in the page header like every other list.
-export function useControlAdherenceReport(rows, tx, language) {
+export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [period, setPeriod] = useState('30d')
   const [exporting, setExporting] = useState(false)
   const reportRef = useRef(null)
-  const { lines, totals } = useMemo(() => programmeAdherence(rows, periodRange(period)), [rows, period])
+  const counts = useAdherenceCounts(organizationId, period, refreshKey)
+  const { lines, totals } = useMemo(() => programmeAdherence(rows, periodRange(period), counts), [rows, period, counts])
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)
 

@@ -47,8 +47,9 @@ export function controlsExport(rows,{en,frequencyLabel=()=>'' ,stateLabel=value=
  for(const {item,departments} of rows){
   for(const department of departments){
    const assignment=item.assignments?.[department]||{}
-   const history=(assignment.history||[]).filter(h=>h.status!=='cancelled')
-   lines.push([item.id,item.title,item.category,department,frequencyLabel(item.frequency),criticalityLabel(criticality(item)),item.owner,history.length,history.filter(h=>h.hasFinding).length,day(assignment.lastCompletedAt,en),day(assignment.nextDueAt,en),stateLabel(assignment)])
+   // Counted in the database (control_assignment_summary, voided entries left out).
+   const summary=assignment.summary||{}
+   lines.push([item.id,item.title,item.category,department,frequencyLabel(item.frequency),criticalityLabel(criticality(item)),item.owner,summary.executions||0,summary.findings||0,day(assignment.lastCompletedAt,en),day(assignment.nextDueAt,en),stateLabel(assignment)])
   }
  }
  return {

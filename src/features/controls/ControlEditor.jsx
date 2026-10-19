@@ -53,7 +53,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const {libraries,departments:departmentRows,loading:departmentsLoading,error:departmentsError}=useLibraries()
  const {data:employees}=useEmployeesData()
  const bundleTemplates=useBundleTemplates()
- const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
+ const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [newAnswer,setNewAnswer]=useState('')
  const lib=key=>libraries[key]||[]
@@ -65,7 +65,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const times=Array.from({length:count},(_,i)=>draft.frequency.times?.[i]||`${String(Math.min(23,8+i*4)).padStart(2,'0')}:00`)
  const checklist=response.checklist||[]
  const options=choiceOptions(response,lib('controlAnswers'))
- const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&(draft.owner.trim()||draft.ownerPerson)&&(draft.frequency.kind!=='daily'||times.every(Boolean))&&(mode!=='checklist'||checklist.some(item=>String(item.el||'').trim()))&&(mode!=='choice'||options.length>=2)
+ // A new control needs a responsible position or person. Controls brought in
+ // without one (the FileMaker import) can still be edited and saved as they are.
+ const ownerRequired=!initial?.dbId||Boolean(initial?.owner?.trim()||initial?.ownerPerson)
+ const hasOwner=Boolean(draft.owner?.trim()||draft.ownerPerson)
+ const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&(hasOwner||!ownerRequired)&&(draft.frequency.kind!=='daily'||times.every(Boolean))&&(mode!=='checklist'||checklist.some(item=>String(item.el||'').trim()))&&(mode!=='choice'||options.length>=2)
 
  // Control types: the library first, then types already in use that it lacks.
  const typeOptions=useMemo(()=>{
@@ -112,7 +116,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
       <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} value={draft.owner||''} options={libraryOptions(lib('positions'),language)} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
       <SearchableSelect label={en?'Responsible person':'Υπεύθυνο πρόσωπο'} value={draft.ownerPerson?.employeeId||''} options={people.options} recentValues={people.near} recentLabel={en?'In the chosen departments':'Στα επιλεγμένα τμήματα'} onChange={id=>set('ownerPerson',personFromEmployee(employeeById(id)))} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/>
      </div>
-     {!(draft.owner?.trim()||draft.ownerPerson)&&<small className="control-editor-hint">{en?'Choose a position or a person.':'Επιλέξτε θέση ή πρόσωπο.'}</small>}
+     {!hasOwner&&<small className="control-editor-hint">{ownerRequired?(en?'Choose a position or a person.':'Επιλέξτε θέση ή πρόσωπο.'):(en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.')}</small>}
      {draft.departments.length>1&&<div className="control-editor-assignees">
       <span className="lo-field-label">{en?'Person per department (optional)':'Υπεύθυνος ανά τμήμα (προαιρετικό)'}</span>
       {draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);return <div key={dep} className="control-editor-assignee"><strong>{dep}</strong><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={draft.assignees?.[dep]?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>set('assignees',{...(draft.assignees||{}),[dep]:personFromEmployee(employeeById(id))})} placeholder={en?'Same as above':'Όπως παραπάνω'} {...selectText}/></div>})}
@@ -183,8 +187,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     </section>
 
     <section className="control-editor-card">
-     <header><strong><FileText size={14}/> {en?'Instructions':'Οδηγίες'}</strong><span>{en?'Shown during execution':'Εμφανίζονται κατά την εκτέλεση'}</span></header>
-     <Field label={en?'Instructions':'Οδηγίες'}><textarea rows="5" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></Field>
+     <header><strong><FileText size={14}/> {en?'Goal & instructions':'Στόχος & οδηγίες'}</strong><span>{en?'Shown during execution':'Εμφανίζονται κατά την εκτέλεση'}</span></header>
+     <Field label={en?'Goal':'Στόχος'}><textarea rows="3" value={draft.goal||''} onChange={e=>set('goal',e.target.value)} placeholder={en?'What the control is for…':'Τι εξασφαλίζει ο έλεγχος…'}/></Field>
+     <Field label={en?'Acceptance criteria':'Κριτήρια αποδοχής'}><textarea rows="3" value={draft.acceptanceCriteria||''} onChange={e=>set('acceptanceCriteria',e.target.value)} placeholder={en?'When the result is acceptable…':'Πότε το αποτέλεσμα είναι αποδεκτό…'}/></Field>
+     <Field label={en?'Instructions':'Οδηγίες'}><textarea rows="4" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></Field>
+     <Field label={en?'Guidance notes':'Σημειώσεις καθοδήγησης'}><textarea rows="3" value={draft.guideNotes||''} onChange={e=>set('guideNotes',e.target.value)} placeholder={en?'Optional notes for whoever records…':'Προαιρετικές σημειώσεις για όποιον καταχωρεί…'}/></Field>
     </section>
 
     <div className="inline-edit-footer control-editor-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>

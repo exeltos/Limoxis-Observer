@@ -77,4 +77,13 @@ describe('calendar year summary and grouping', () => {
     const groups = groupCalendarLines([{ item: a, department: 'ΜΕΘ' }, { item: a, department: 'Χειρουργική' }, { item: b, department: 'ΜΕΘ' }])
     expect(groups.map((g) => [g.item.id, g.lines.length])).toEqual([['a', 2], ['b', 1]])
   })
+  it('takes the month counts from the database when it has them', () => {
+    const monthCounts = Array.from({ length: 12 }, () => ({ done: 0, late: 0, marks: [] }))
+    monthCounts[8] = { done: 3, late: 1, marks: [] }
+    const months = assignmentCalendar({ frequency: { kind: 'daily', times: ['09:00'] }, history: [], startedAt: at(7, 31, 0), monthCounts }, 2026, now)
+    expect(months[8]).toMatchObject({ done: 3, late: 1, expected: 30, rate: 10 })
+    monthCounts[8] = { done: 1, late: 0, marks: [{ day: 12, late: false }] }
+    const monthly = assignmentCalendar({ frequency: { kind: 'monthly', interval: 1 }, history: [], startedAt: at(0, 1, 0), monthCounts }, 2026, now)
+    expect(monthly[8]).toMatchObject({ done: 1, marks: [{ day: 12, late: false }] })
+  })
 })
