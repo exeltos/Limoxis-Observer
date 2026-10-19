@@ -14,6 +14,13 @@ import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
 import { membersWithoutAccount } from './committeeExternalApprovalService'
 import { ExternalApproversDialog } from './ExternalApproversDialog'
 import { fmtDate, statusLabel, createTopic, COMMITTEE_ROLE_OPTIONS } from './committeeRecordFormat'
+import {
+  BADGE_ROLES,
+  memberRoleLabel,
+  normalizeMemberRoles,
+  rolesFromTitle,
+} from './committeeMemberRoles'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { Head } from './CommitteeRecordSections'
 import { committeeMinutesReport } from './CommitteeMinutesDocument'
 import { printReport } from '../../core/export/reportDocument'
@@ -176,12 +183,19 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
         ...initial,
         memberName: initial.name || '',
         manualName: initial.employeeId ? '' : initial.name || '',
+        specialty: initial.specialty || '',
+        roles:
+          Array.isArray(initial.roles) && initial.roles.length
+            ? normalizeMemberRoles(initial.roles)
+            : rolesFromTitle(initial.committeeTitle),
       }
     : {
         employeeId: '',
         manualName: '',
         memberName: '',
         committeeTitle: 'Μέλος',
+        roles: ['member'],
+        specialty: '',
         responsibilities: '',
         memberType: 'regular',
         voting: true,
@@ -213,7 +227,7 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
       if (presetRole) set('committeeTitle', '')
       return
     }
-    set('committeeTitle', value)
+    setV(s => ({ ...s, committeeTitle: value, roles: rolesFromTitle(value) }))
   }
   return (
     <ObserverDialog
@@ -296,6 +310,22 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
             <option value="observer">{en ? 'Observer' : 'Παρατηρητής'}</option>
             <option value="advisor">{en ? 'Advisor' : 'Σύμβουλος'}</option>
           </select>
+        </label>
+        <MultiSelect
+          className="field entry-span-2 committee-member-roles-field"
+          tags
+          search={false}
+          label={en ? 'Roles in the committee' : 'Ρόλοι στην επιτροπή'}
+          options={BADGE_ROLES.map(role => ({ value: role, label: memberRoleLabel(role, en) }))}
+          selected={(v.roles || []).filter(role => role !== 'member')}
+          onChange={next =>
+            setV(s => ({ ...s, roles: normalizeMemberRoles(BADGE_ROLES.filter(role => next.includes(role))) }))
+          }
+          placeholder={memberRoleLabel('member', en)}
+        />
+        <label className="entry-span-2">
+          <span>{en ? 'Specialty / job title' : 'Ειδικότητα / θέση εργασίας'}</span>
+          <input value={v.specialty || ''} onChange={e => set('specialty', e.target.value)} />
         </label>
         <label className="entry-span-2">
           <span>{en ? 'Responsibilities' : 'Αρμοδιότητες'}</span>
@@ -426,7 +456,9 @@ export function MeetingDialog({
   const attendance = (id, status) =>
     setV(s => ({
       ...s,
-      attendanceRecords: s.attendanceRecords.map(x => ((x.id || x.memberId) === id ? { ...x, status } : x)),
+      attendanceRecords: s.attendanceRecords.map(x =>
+        (x.id || x.memberId) === id ? { ...x, status } : x,
+      ),
     }))
   const topic = (id, k, x) =>
     setV(s => ({ ...s, topics: s.topics.map(t => (t.id === id ? { ...t, [k]: x } : t)) }))
@@ -580,7 +612,11 @@ export function MeetingDialog({
         {topicLibrary.length > 0 && (
           <datalist id="committee-topic-library">
             {topicLibrary.map(item => (
-              <option key={item.meta?.id || item.value} value={en ? item.en : item.el} label={item.meta?.category || undefined} />
+              <option
+                key={item.meta?.id || item.value}
+                value={en ? item.en : item.el}
+                label={item.meta?.category || undefined}
+              />
             ))}
           </datalist>
         )}
