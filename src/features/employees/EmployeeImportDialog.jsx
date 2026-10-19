@@ -80,8 +80,8 @@ export function EmployeeImportDialog({existing=[],language,onClose,onImported}){
  }
 
  const footer=result
-  ?<DialogActions onSave={close} saveLabel={en?'Close':'Κλείσιμο'}/>
-  :<DialogActions showCancel onCancel={close} onSave={()=>void run()} disabled={!toSave.length||Boolean(running)} saveLabel={running?(en?`Saving ${running.done}/${running.total}…`:`Αποθήκευση ${running.done}/${running.total}…`):(en?`Import ${toSave.length}`:`Εισαγωγή ${toSave.length}`)}/>
+  ?null
+  :<DialogActions onSave={()=>void run()} disabled={!toSave.length||Boolean(running)} saveLabel={running?(en?`Saving ${running.done}/${running.total}…`:`Αποθήκευση ${running.done}/${running.total}…`):(en?`Import ${toSave.length}`:`Εισαγωγή ${toSave.length}`)}/>
 
  return <ObserverDialog width="wide" eyebrow={en?'Staff':'Προσωπικό'} title={en?'Import staff from Excel':'Εισαγωγή προσωπικού από Excel'} subtitle={en?'One row per employee. Departments, categories and positions must exist in Management.':'Μία γραμμή ανά εργαζόμενο. Τμήματα, κατηγορίες και θέσεις πρέπει να υπάρχουν στο Κέντρο Διαχείρισης.'} onClose={running?undefined:close} footer={footer}>
   <div className="employee-import">

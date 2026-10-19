@@ -84,7 +84,7 @@ export function AssessmentDetailsDialog({initial,en,assessments=[],onClose,onSav
  const carryFrom=assessments.find(a=>a.id===carryId)||null
  const field=(key,label,props={},wide=false)=><label className={`risk-field${wide===true?' risk-field-wide':wide?` ${wide}`:''}`}><span>{label}</span><input value={draft[key]||''} onChange={e=>set(key,e.target.value)} {...props}/></label>
  return <ObserverDialog width="standard" title={isNew?L(en,'Νέα εκτίμηση κινδύνου','New risk assessment'):L(en,'Στοιχεία εκτίμησης','Assessment details')} onClose={onClose}
-  footer={<DialogActions onCancel={onClose} showCancel onSave={()=>onSave(draft,isNew&&!children?carryFrom:null)} disabled={!String(draft.title).trim()||!String(draft.periodLabel).trim()||!draft.assessedOn} saveLabel={saveLabel||(isNew?L(en,'Δημιουργία','Create'):undefined)}/>}>
+  footer={<DialogActions onCancel={onClose} onSave={()=>onSave(draft,isNew&&!children?carryFrom:null)} disabled={!String(draft.title).trim()||!String(draft.periodLabel).trim()||!draft.assessedOn} saveLabel={saveLabel||(isNew?L(en,'Δημιουργία','Create'):undefined)}/>}>
   {intro}
   <div className="risk-editor-grid risk-assessment-form">
    {/* Three even rows, one-line labels: title and form; type, period and date; next review and assessor. */}

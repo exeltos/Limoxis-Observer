@@ -156,7 +156,7 @@ export function ObjectiveDialog({ objective: initial, registers, onClose, onSave
       onSaved()
     } catch (error) { console.error(error); notify(en ? 'The objective could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.', 'error') } finally { setSaving(false) }
   }
-  return <ObserverDialog title={initial.id ? (en ? 'Quality objective' : 'Στόχος ποιότητας') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')} subtitle={en ? 'ISO 9001 §6.2: measurable, with an owner and a date.' : 'ISO 9001 §6.2: μετρήσιμος, με υπεύθυνο και προθεσμία.'} onClose={onClose} width="wide" footer={<DialogActions onCancel={onClose} onSave={save} disabled={!valid || saving} saveLabel={en ? 'Save' : 'Αποθήκευση'} showCancel />}>
+  return <ObserverDialog title={initial.id ? (en ? 'Quality objective' : 'Στόχος ποιότητας') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')} subtitle={en ? 'ISO 9001 §6.2: measurable, with an owner and a date.' : 'ISO 9001 §6.2: μετρήσιμος, με υπεύθυνο και προθεσμία.'} onClose={onClose} width="wide" footer={<DialogActions onCancel={onClose} onSave={save} disabled={!valid || saving} saveLabel={en ? 'Save' : 'Αποθήκευση'} />}>
     <div className="lo-form-cards"><FormCard wide>
       <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
       <FormGrid columns={2}>

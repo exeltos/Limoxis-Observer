@@ -21,7 +21,7 @@ export function InvitationLinkDialog({ link, name, onClose }) {
       width="standard"
       title={en ? 'Invitation link' : 'Σύνδεσμος πρόσκλησης'}
       onClose={onClose}
-      footer={<DialogActions onCancel={onClose} showCancel cancelLabel={en ? 'Close' : 'Κλείσιμο'} onSave={copy} saveLabel={en ? 'Copy' : 'Αντιγραφή'} />}
+      footer={<DialogActions onCancel={onClose} cancelLabel={en ? 'Close' : 'Κλείσιμο'} onSave={copy} saveLabel={en ? 'Copy' : 'Αντιγραφή'} />}
     >
       <p className="platform-invitation-link-note">
         {en

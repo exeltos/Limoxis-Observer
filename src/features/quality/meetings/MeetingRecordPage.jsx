@@ -142,7 +142,7 @@ export function MeetingRecordPage() {
     { id: 'people', label: en ? `Participants ${meeting.participants.length}` : `Συμμετέχοντες ${meeting.participants.length}`, icon: Users },
   ]
   const footer = <div className="inline-edit-footer">
-    <Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button>
+    
     {!locked && <SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}
     {!locked && !isNew && <Button disabled={saving || !String(meeting.minutes).trim()} title={!String(meeting.minutes).trim() ? (en ? 'Write the minutes first' : 'Γράψτε πρώτα το πρακτικό') : undefined} onClick={() => save('final')}><CheckCircle2 size={15} />{en ? 'Finalize' : 'Οριστικοποίηση'}</Button>}
     {list.access.canReopen(meeting) && <Button variant="secondary" disabled={saving} onClick={() => save('draft')}><RotateCcw size={15} />{en ? 'Back to draft' : 'Επαναφορά σε πρόχειρο'}</Button>}

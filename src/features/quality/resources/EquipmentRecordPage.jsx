@@ -99,7 +99,7 @@ export function EquipmentRecordPage() {
     {access.canManage && row.state === 'out_of_service' && <Button variant="secondary" onClick={() => openCapa(row.downEvent)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete device' : 'Διαγραφή εξοπλισμού'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
-  const footer = !locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Register device' : 'Καταχώριση εξοπλισμού') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>
+  const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Register device' : 'Καταχώριση εξοπλισμού') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>
   const exportHistory = () => exportRegistry({ name: `${row.code}-${en ? 'history' : 'istoriko'}`, headers: en ? ['Date', 'Event', 'Result', 'By', 'Description', 'Certificate'] : ['Ημερομηνία', 'Συμβάν', 'Αποτέλεσμα', 'Από', 'Περιγραφή', 'Πιστοποιητικό'], rows: events.map(item => [item.happenedOn, eventKindLabel(item.kind, language), eventResultLabel(item, language), item.performedBy, item.description, item.certificate]) })
 
   return <Page fill><EntityRecordShell className="quality-record-shell resource-record-shell workspace-fill" avatar={<Stethoscope size={19} />} eyebrow={row?.code || (en ? 'New device' : 'Νέος εξοπλισμός')} title={draft.name || (en ? 'New device' : 'Νέος εξοπλισμός')}

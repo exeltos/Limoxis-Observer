@@ -1,6 +1,5 @@
 import { useEffect,useRef } from 'react'
 import { ArrowLeft,X } from 'lucide-react'
-import { Button } from './Button'
 import { IconButton } from './IconButton'
 import { SaveButton } from './SaveButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
@@ -63,11 +62,13 @@ export function ObserverDialog({
   </div>
 }
 
-export function DialogActions({onCancel,onSave,saveLabel,disabled=false,children,cancelLabel,showCancel=false}){
+// A dialog closes one way: the header × (or Back in a workspace). The footer
+// carries only what does something; `onCancel` / `showCancel` are accepted for
+// older callers and render nothing.
+export function DialogActions({onSave,saveLabel,disabled=false,children}){
   const {language}=useLanguage();const en=language==='en';const resolvedSaveLabel=saveLabel||(en?'Save':'Αποθήκευση')
   return <>
     {children}
-    {showCancel&&onCancel&&<Button variant="secondary" onClick={onCancel}>{cancelLabel||(en?'Cancel':'Ακύρωση')}</Button>}
     {onSave&&<SaveButton disabled={disabled} onClick={onSave}>{resolvedSaveLabel}</SaveButton>}
   </>
 }

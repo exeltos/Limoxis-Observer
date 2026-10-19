@@ -160,7 +160,7 @@ export function SurveyRecordPage() {
         </>} />
     </RecordTabPanel>}
     {tab === 'questionnaire' && <RecordTabPanel title={en ? 'Questionnaire' : 'Ερωτηματολόγιο'} subtitle={problems.length && !locked ? `${en ? 'To open it needs:' : 'Για να ανοίξει χρειάζεται:'} ${problems.join(' · ')}` : ''}
-      footer={!locked && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
+      footer={!locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>
@@ -189,7 +189,7 @@ function ResponseEntry({ survey, entry, setEntry, departments, language, onSaved
     } catch (error) { console.error(error); notify(en ? 'The response could not be recorded.' : 'Δεν ήταν δυνατή η καταχώριση.', 'error') } finally { setSaving(false) }
   }
   return <ObserverDialog width="wide" title={en ? 'Enter a response' : 'Καταχώριση απάντησης'} subtitle={textOf(survey, language)} onClose={() => setEntry(null)}
-    footer={<><Button variant="secondary" onClick={() => setEntry(null)}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Record and next' : 'Καταχώριση και επόμενη'}</SaveButton></>}>
+    footer={<><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Record and next' : 'Καταχώριση και επόμενη'}</SaveButton></>}>
     <div className="survey-entry-head">
       <ChoiceField label={en ? 'How it came in' : 'Πώς ήρθε'} value={entry.channel} options={RESPONSE_CHANNELS.filter(item => item.value !== 'link').map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => set({ channel: value })} />
     </div>

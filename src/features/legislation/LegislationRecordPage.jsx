@@ -81,7 +81,7 @@ export function LegislationRecordPage() {
   const headerActions = <div className="row-actions">
     <PrintExportActions showPrint={false} onExport={exportRequirements} />
   </div>
-  const footer = !locked && entry.row && <div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{en ? 'Close' : 'Κλείσιμο'}</Button><SaveButton loading={saving} disabled={saving} onClick={() => persist(draft)}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>
+  const footer = !locked && entry.row && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={() => persist(draft)}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>
 
   return <Page fill><EntityRecordShell className="quality-record-shell leg-record-shell workspace-fill" avatar={<Scale size={19} />} eyebrow={`${text.code} · v${text.version}`} title={text.title}
     subtitle={[kindLabel(text.kind, language), text.reference, text.issuer].filter(Boolean).join(' · ')}

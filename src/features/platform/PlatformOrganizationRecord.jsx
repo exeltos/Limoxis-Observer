@@ -1427,7 +1427,6 @@ export function PlatformOrganizationRecord({
           width="compact"
           footer={
             <DialogActions
-              showCancel
               onCancel={() => setCreateUserOpen(false)}
               onSave={createOrganizationMember}
               saveLabel={

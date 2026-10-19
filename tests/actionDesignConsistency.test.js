@@ -39,8 +39,8 @@ describe('shared semantic action design',()=>{
   })
 
   it('does not automatically duplicate the dialog close action with Cancel',()=>{
-    expect(observerDialog).toContain('showCancel=false')
-    expect(observerDialog).toContain('showCancel&&onCancel')
+    expect(observerDialog).not.toContain('showCancel&&onCancel')
+    expect(observerDialog).not.toContain("'Cancel':'Ακύρωση'")
   })
 
   it('keeps the analytics print action in the shared analysis-actions toolbar',()=>{
