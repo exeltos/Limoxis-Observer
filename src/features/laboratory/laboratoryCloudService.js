@@ -1,4 +1,4 @@
-import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
+import { groupByColumn, selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { binCloudRows,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
 import { computeTurnaroundHours } from './model/laboratoryModel'
@@ -98,30 +98,50 @@ function mapSample(row,patient,department,microbiology=[]){
   }
 }
 
+// Rows of `table` whose `column` is one of `ids`; many ids are read as the
+// organization's whole list (see selectInChunks).
+function relatedRows(organizationId,table,select,column,ids,orderColumn,orderOptions){
+  const ordered=query=>orderColumn?query.order(orderColumn,orderOptions).order('id',{ascending:true}):query.order('id',{ascending:true})
+  return selectInChunks(ids,chunk=>ordered(supabase.from(table).select(select).in(column,chunk)),{
+    order:orderColumn?[[orderColumn,orderOptions]]:undefined,
+    column,
+    whole:organizationId?()=>ordered(supabase.from(table).select(select).eq('organization_id',organizationId)):undefined,
+  })
+}
+
 async function hydrateSamples(rows){
   if(!rows?.length)return []
+  const organizationId=rows[0].organization_id
   const patientIds=[...new Set(rows.map(row=>row.patient_id).filter(Boolean))]
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
   const sampleIds=rows.map(row=>row.id)
+  const related=(table,select,column,ids,orderColumn,orderOptions)=>relatedRows(organizationId,table,select,column,ids,orderColumn,orderOptions)
   const [patientsResult,departmentsResult,microResult]=await Promise.all([
-    selectInChunks(patientIds,ids=>supabase.from('patients').select('id,patient_code,first_name,last_name').in('id',ids)),
-    selectInChunks(departmentIds,ids=>supabase.from('departments').select('id,name').in('id',ids)),
-    selectInChunks(sampleIds,ids=>supabase.from('microbiology_results').select('*').in('sample_id',ids).order('resulted_at',{ascending:false}),{order:[['resulted_at',{ascending:false}]]}),
+    related('patients','id,patient_code,first_name,last_name','id',patientIds),
+    related('departments','id,name','id',departmentIds),
+    related('microbiology_results','*','sample_id',sampleIds,'resulted_at',{ascending:false}),
   ])
   for(const result of [patientsResult,departmentsResult,microResult])if(result.error)throw result.error
   const microRows=microResult.data||[]
   const microIds=microRows.map(row=>row.id)
   const [astResult,commResult,amrResult]=microIds.length?await Promise.all([
-    selectInChunks(microIds,ids=>supabase.from('antimicrobial_susceptibility_results').select('*').in('microbiology_result_id',ids)),
-    selectInChunks(microIds,ids=>supabase.from('critical_result_communications').select('*').in('microbiology_result_id',ids).order('communicated_at',{ascending:false}),{order:[['communicated_at',{ascending:false}]]}),
-    selectInChunks(microIds,ids=>supabase.from('amr_classifications').select(`*,${AMR_CATEGORY_SELECT}`).in('microbiology_result_id',ids).order('created_at',{ascending:false}),{order:[['created_at',{ascending:false}]]}),
+    related('antimicrobial_susceptibility_results','*','microbiology_result_id',microIds),
+    related('critical_result_communications','*','microbiology_result_id',microIds,'communicated_at',{ascending:false}),
+    related('amr_classifications',`*,${AMR_CATEGORY_SELECT}`,'microbiology_result_id',microIds,'created_at',{ascending:false}),
   ]):[{data:[],error:null},{data:[],error:null},{data:[],error:null}]
   for(const result of [astResult,commResult,amrResult])if(result.error)throw result.error
+  // Each sample and result gets only its own rows, so mapping stays linear.
+  const patients=new Map((patientsResult.data||[]).map(item=>[item.id,item]))
+  const departments=new Map((departmentsResult.data||[]).map(item=>[item.id,item]))
+  const microBySample=groupByColumn(microRows,'sample_id')
+  const astByResult=groupByColumn(astResult.data,'microbiology_result_id')
+  const commByResult=groupByColumn(commResult.data,'microbiology_result_id')
+  const amrByResult=groupByColumn(amrResult.data,'microbiology_result_id')
   return rows.map(row=>mapSample(
     row,
-    (patientsResult.data||[]).find(item=>item.id===row.patient_id),
-    (departmentsResult.data||[]).find(item=>item.id===row.department_id),
-    (microRows||[]).filter(item=>item.sample_id===row.id).map(item=>mapMicrobiology(item,astResult.data,commResult.data,amrResult.data)),
+    patients.get(row.patient_id),
+    departments.get(row.department_id),
+    (microBySample.get(row.id)||[]).map(item=>mapMicrobiology(item,astByResult.get(item.id)||[],commByResult.get(item.id)||[],amrByResult.get(item.id)||[])),
   ))
 }
 
@@ -132,18 +152,9 @@ export async function loadLaboratorySamples(organizationId){
   return hydrateSamples(rows)
 }
 
-// Every sample of the organization, page by page (PostgREST caps a single
-// response), for reports that must see the full history.
-export async function loadAllLaboratorySamples(organizationId,{pageSize=500}={}){
-  assertCloud()
-  if(!organizationId)return []
-  const all=[]
-  for(let from=0;;from+=pageSize){
-    const {data,error}=await supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}).range(from,from+pageSize-1)
-    if(error)throw error
-    all.push(...await hydrateSamples(data||[]))
-    if(!data||data.length<pageSize)return all
-  }
+// Every sample of the organization, for reports that must see the full history.
+export async function loadAllLaboratorySamples(organizationId){
+  return loadLaboratorySamples(organizationId)
 }
 
 export async function loadLaboratorySample(organizationId,sampleCode){

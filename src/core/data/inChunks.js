@@ -33,6 +33,18 @@ export async function selectAllPages(build, { pageSize = PAGE_SIZE } = {}) {
   }
 }
 
+// Rows grouped by the value of `column`, so a lookup per record stays cheap.
+export function groupByColumn(rows, column) {
+  const groups = new Map()
+  for (const row of rows || []) {
+    const key = row?.[column]
+    const group = groups.get(key)
+    if (group) group.push(row)
+    else groups.set(key, [row])
+  }
+  return groups
+}
+
 // Postgres order semantics: nulls come last ascending, first descending,
 // unless nullsFirst says otherwise.
 export function byColumn(column, { ascending = true, nullsFirst = !ascending } = {}) {
@@ -46,12 +58,27 @@ export function byColumn(column, { ascending = true, nullsFirst = !ascending } =
   }
 }
 
+// Past this many chunks, a read that offers `whole` reads the whole list instead.
+export const WHOLE_LIST_CHUNKS = 3
+
 // build(chunk) returns a fresh query already filtered with .in(column, chunk).
 // The chunks run a few at a time; the rows are concatenated and, when `order`
 // is given, sorted again across chunks. Never throws: returns { data, error }
 // so it can stand in for a single Supabase query.
-export async function selectInChunks(values, build, { size = IN_CHUNK_SIZE, pageSize = PAGE_SIZE, order } = {}) {
+// With many ids, `whole` (a fresh query for the organization-wide list, in the
+// same order) and `column` read every row in a few pages and keep the rows
+// whose `column` is one of the values: the same rows, in far fewer requests.
+export async function selectInChunks(values, build, { size = IN_CHUNK_SIZE, pageSize = PAGE_SIZE, order, whole, column } = {}) {
   const chunks = chunkValues(values, size)
+  if (whole && column && chunks.length > WHOLE_LIST_CHUNKS) {
+    try {
+      const wanted = new Set(chunks.flat())
+      const rows = await selectAllPages(whole, { pageSize })
+      return { data: rows.filter(row => wanted.has(row?.[column])), error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
   const parts = new Array(chunks.length)
   try {
     let next = 0

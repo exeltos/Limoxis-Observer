@@ -90,3 +90,32 @@ describe('reads filtered on many ids', () => {
     expect([...rows].sort(byColumn('at', { ascending: false, nullsFirst: false })).map(row => row.at)).toEqual([2, 1, null])
   })
 })
+
+describe('selectInChunks whole-list read', () => {
+  it('reads many ids as one paged organization list and keeps only the wanted rows', async () => {
+    const ids = Array.from({ length: 700 }, (_, index) => `id-${index}`)
+    const all = [...ids, 'other-1', 'other-2'].map(id => ({ case_id: id }))
+    let chunkCalls = 0
+    let wholeCalls = 0
+    const page = rows => ({ range: (from, to) => Promise.resolve({ data: rows.slice(from, to + 1), error: null }) })
+    const result = await selectInChunks(ids, () => { chunkCalls += 1; return page([]) }, {
+      column: 'case_id',
+      whole: () => { wholeCalls += 1; return page(all) },
+    })
+    expect(result.error).toBeNull()
+    expect(chunkCalls).toBe(0)
+    expect(wholeCalls).toBe(1)
+    expect(result.data).toHaveLength(700)
+    expect(result.data.some(row => row.case_id.startsWith('other'))).toBe(false)
+  })
+
+  it('keeps the chunked read for a few ids', async () => {
+    let wholeCalls = 0
+    const result = await selectInChunks(['a', 'b'], chunk => Promise.resolve({ data: chunk.map(id => ({ id })), error: null }), {
+      column: 'id',
+      whole: () => { wholeCalls += 1; return Promise.resolve({ data: [], error: null }) },
+    })
+    expect(wholeCalls).toBe(0)
+    expect(result.data.map(row => row.id)).toEqual(['a', 'b'])
+  })
+})

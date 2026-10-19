@@ -10,7 +10,7 @@ const repository=fs.readFileSync('src/features/surveillance/clinicalRepository.j
 describe('clinical cloud service',()=>{
   it('loads surveillance cases from Supabase and hydrates canonical clinical domains',()=>{
     for(const table of ['surveillance_cases','surveillance_events','clinical_assessments','hai_classifications','laboratory_samples','microbiology_results','amr_classifications','antimicrobial_susceptibility_results','critical_result_communications','antimicrobial_therapies','isolation_episodes','surveillance_reassessments','surveillance_outcomes','surveillance_devices']){
-      expect(service).toContain(`from('${table}')`)
+      expect(service).toContain(`'${table}'`)
     }
   })
 
