@@ -36,6 +36,8 @@
 .viz-tooltip strong{font-size:14px;color:#1d3a52}
 
 @media(max-width:900px){.analysis-report .analysis-chart-grid{grid-template-columns:1fr!important}.viz-donut{grid-template-columns:1fr;justify-items:center}}
+/* Phones: a bar label wraps to two lines instead of being cut off. */
+@media(max-width:600px){.viz-bar-row{grid-template-columns:minmax(0,46%) minmax(0,1fr) 44px}.viz-bar-label{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25}}
 @media print{.viz-tooltip{display:none}}
 
 /* Mini bar chart inside LIRA answers */

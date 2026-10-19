@@ -13,6 +13,12 @@ import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 import { buildLiraMetrics, buildPpsMetrics } from './analysisAddonMetrics'
 import { liraDemoInvestigations } from '../lira/liraDemoInvestigations'
+import { buildQualityFoodMetrics, qualityFoodSection } from './analysisQualityFood'
+import { loadKitchenLocal } from '../kitchen/kitchenService'
+import { withStatuses } from '../kitchen/kitchenModel'
+import { loadResourcesLocal } from '../quality/resources/resourceService'
+import { loadSurveysLocal } from '../quality/surveys/surveyService'
+import { loadRiskAssessmentsLocal } from '../quality/risk/riskService'
 
 const day = value => String(value || '').slice(0, 10)
 const month = value => String(value || '').slice(0, 7)
@@ -154,6 +160,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       }
     })(),
     pps: buildPpsMetrics(loadPrevalenceSurveyLocal(), range),
+    qualityFood: collectDemoQualityFood(range, today),
     lira: buildLiraMetrics(liraDemoInvestigations, range, clusters),
     antimicrobial: {
       total: therapies.length,
@@ -165,6 +172,20 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       byAgentOrganism: cases.filter(item => item.organism).flatMap(item => (item.therapy || []).map(row => [row.antimicrobial || '—', item.organism, 1])),
     },
   }
+}
+
+// The demo stores of audits, suppliers, kitchen, surveys and risks, as this browser keeps them.
+export function collectDemoQualityFood(range = {}, today = new Date().toISOString().slice(0, 10)) {
+  const surveyState = loadSurveysLocal()
+  return buildQualityFoodMetrics({
+    audits: loadQualityLocal('audits'),
+    findings: loadQualityLocal('findings'),
+    suppliers: loadResourcesLocal().suppliers || [],
+    kitchen: withStatuses(loadKitchenLocal()),
+    surveys: surveyState.surveys || [],
+    responses: surveyState.responses || [],
+    assessments: loadRiskAssessmentsLocal(),
+  }, range, today)
 }
 
 export { mergeDomainMetrics } from './analysisDomainMerge'
@@ -393,6 +414,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'donut', title: tx('Κατάσταση', 'Status'), subtitle: tx('Πρόχειρες, ενεργές, κλειστές.', 'Draft, active, closed.'), rows: named(l.byStatus), center: tx('διερευνήσεις', 'investigations') },
       ],
     } }
+    case 'qualityfood': return qualityFoodSection(d.qualityFood || {}, tx)
     default: return null
   }
 }

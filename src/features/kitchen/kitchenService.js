@@ -94,6 +94,8 @@ function local() {
   return state
 }
 const saveLocal = state => saveSnapshot(LOCAL_KEY, state)
+// The demo kitchen as it is in this browser (the Analysis demo reads it).
+export const loadKitchenLocal = () => local()
 const upsertIn = (list, entry) => (list.some(item => item.id === entry.id) ? list.map(item => (item.id === entry.id ? entry : item)) : [...list, entry])
 
 export class KitchenRuleError extends Error { constructor(code) { super(code); this.code = code } }
