@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity, ArrowRight, Award, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
+import { Activity, ArrowRight, Award, Gauge, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -134,6 +134,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
     {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,to]=TILES[key]||[];const open=to&&menuPaths.has(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</div>}
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
+    {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Πίνακας Διοίκησης','Executive dashboard')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
     <div className="dashboard-workspace-v2">
       <Card className="dashboard-card" id="dashboard-tasks" tabIndex={-1}>
         <CardHeader icon={ListChecks} title={workspace.actionTitle??tr('Εργασίες προτεραιότητας','Priority work')} subtitle={tr('Ό,τι χρειάζεται ενέργεια από εσάς.','What needs your action.')}/>

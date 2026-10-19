@@ -194,3 +194,20 @@ async function readAnalysisSnapshot({organizationId='',organizationIds=null,orga
   const snapshots=await withTimeout(Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:''}))))
   return {...mergeAnalysisSnapshots(snapshots),hospitals:hospitalRows(snapshots,scopedIds,organizationNames)}
 }
+
+// The Executive dashboard's parts, each a promise of its own so every card
+// shows as soon as its data arrives: the same RPCs and loaders as
+// loadSingleAnalysisSnapshot, without the summary counts, cross-tabs and
+// add-on tables it does not show. A failed part rejects alone.
+export function loadAnalysisSections({organizationId='',from='',to='',departmentId=''}={}){
+  if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
+  const args={p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}
+  const rpc=name=>withTimeout(Promise.resolve(supabase.rpc(name,args)).then(({data,error})=>{if(error)throw error;return data||{}}))
+  return {
+    domains:rpc('analysis_domain_metrics'),
+    people:rpc('analysis_people_metrics'),
+    qualityFood:rpc('analysis_quality_food_metrics'),
+    microbiology:withTimeout(loadMicrobiologyAnalytics({organizationId,from,to,departmentId})),
+    clusters:organizationId?loadActiveClustersAsync(organizationId).catch(()=>[]):Promise.resolve([]),
+  }
+}
