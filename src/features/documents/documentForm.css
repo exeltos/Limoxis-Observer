@@ -11,3 +11,5 @@
 .document-form-grid :where(input:not([type=checkbox]),.searchable-select-control>input){height:40px!important;min-height:40px!important;box-sizing:border-box}
 .document-form-grid .manual-date-control{height:40px;min-height:40px}
 .document-form-grid .manual-date-control>input{height:100%!important}
+.document-form-grid .multi-select .multi-select-button:disabled{background:#fff;color:inherit}
+.document-form-grid .multi-select .multi-select-button{font-size:13px!important;line-height:1.3}
