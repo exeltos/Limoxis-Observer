@@ -7,3 +7,7 @@
 .document-form-grid .document-span-3{grid-column:1/-1}
 .document-form-grid>.field-hint{margin:-4px 0 0;color:#80909c;font-size:10.5px}
 @media(max-width:900px){.document-form-grid{grid-template-columns:1fr}.document-form-grid .document-span-2{grid-column:auto}}
+.document-form-grid .searchable-select>label{display:block;margin:0!important;padding:0;line-height:16px}
+.document-form-grid :where(input:not([type=checkbox]),.searchable-select-control>input){height:40px!important;min-height:40px!important;box-sizing:border-box}
+.document-form-grid .manual-date-control{height:40px;min-height:40px}
+.document-form-grid .manual-date-control>input{height:100%!important}

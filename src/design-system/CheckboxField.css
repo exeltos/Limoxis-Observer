@@ -1,10 +1,13 @@
-.lo-checkbox-field{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;column-gap:10px;min-height:40px;padding:0;cursor:pointer;color:var(--lo-color-text,#17324a);font-size:13px;font-weight:600}
-.lo-checkbox-field>input{appearance:none;-webkit-appearance:none;width:20px;height:20px;margin:0;border:1.5px solid #9fb3c6;border-radius:5px;background:#fff;display:grid;place-items:center;cursor:pointer;transition:background .12s,border-color .12s}
-.lo-checkbox-field>input:checked{background:var(--accent,#1f6fa9);border-color:var(--accent,#1f6fa9)}
-.lo-checkbox-field>input:checked::after{content:'';width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
-.lo-checkbox-field>input:focus-visible{outline:2px solid rgba(31,111,169,.35);outline-offset:2px}
-.lo-checkbox-field>input:disabled{background:#f1f4f7;border-color:#cdd8e2;cursor:default}
-.lo-checkbox-field>input:disabled:checked{background:#8fa6ba;border-color:#8fa6ba}
+/* The house checkbox: one 20px box and its label on a 40px line. The doubled
+   class outranks the generic form-label rules (labels stacked above controls). */
+.lo-checkbox-field.lo-checkbox-field{display:grid!important;grid-template-columns:20px minmax(0,1fr);align-items:center;justify-items:start;gap:0 10px!important;min-height:40px;margin:0;padding:0;cursor:pointer;color:var(--lo-color-text,#17324a);font-size:13px;font-weight:600;text-align:left}
+.lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]{appearance:none!important;-webkit-appearance:none!important;width:20px!important;min-width:20px!important;max-width:20px!important;height:20px!important;min-height:20px!important;max-height:20px!important;flex:0 0 20px!important;margin:0!important;padding:0!important;border:1.5px solid #9fb3c6!important;border-radius:5px!important;accent-color:auto;background:#fff!important;display:grid;place-items:center;cursor:pointer;box-shadow:none!important;transition:background .12s,border-color .12s}
+.lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]:checked{background:var(--accent,#1f6fa9)!important;border-color:var(--accent,#1f6fa9)!important}
+.lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]:checked::after{content:'';width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
+.lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]:focus-visible{outline:2px solid rgba(31,111,169,.35);outline-offset:2px}
+.lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]:disabled{background:#f1f4f7!important;border-color:#cdd8e2!important;cursor:default}
+.lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]:disabled:checked{background:#8fa6ba!important;border-color:#8fa6ba!important}
+.lo-checkbox-field.lo-checkbox-field>.lo-checkbox-label{margin:0;font-size:13px!important;line-height:1.35;font-weight:600;letter-spacing:0;text-transform:none;color:inherit}
 .lo-checkbox-field.is-disabled{cursor:default;color:#5d7083}
-.lo-checkbox-field>.field-hint{grid-column:2;margin-top:-6px}
-.entry-grid>.lo-checkbox-field,.form-grid>.lo-checkbox-field{align-self:end}
+.lo-checkbox-field.lo-checkbox-field>.field-hint{grid-column:2;margin-top:-6px}
+.entry-grid>.lo-checkbox-field.lo-checkbox-field,.form-grid>.lo-checkbox-field.lo-checkbox-field{align-self:end!important}
