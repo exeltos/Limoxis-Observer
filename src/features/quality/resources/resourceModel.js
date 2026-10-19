@@ -4,6 +4,8 @@
 // worked out from the records themselves: a device's next due dates follow from
 // its last events, a supplier's approval from its latest evaluation.
 
+import { evaluationMonths, evaluationResult, evaluationTotal } from './supplierTemplates'
+
 const pick = (list, value, language) => list.find(item => item.value === value)?.label[language === 'en' ? 1 : 0] || value || ''
 const toneOf = (list, value) => list.find(item => item.value === value)?.tone || 'neutral'
 export const todayIso = () => new Date().toISOString().slice(0, 10)
@@ -178,26 +180,31 @@ export function eventProblems(event, language = 'el') {
 // --- Suppliers ------------------------------------------------------------------------
 
 export const SUPPLIER_CATEGORIES = [
+  { value: 'products', label: ['Προϊόντα (γενικές προμήθειες)', 'Products (general supplies)'] },
   { value: 'medical_devices', label: ['Ιατροτεχνολογικά προϊόντα', 'Medical devices'] },
-  { value: 'consumables', label: ['Υγειονομικό υλικό / αναλώσιμα', 'Medical consumables'] },
+  { value: 'consumables', label: ['Υγειονομικό υλικό / αναλώσιμα χειρουργείου', 'Medical and surgical consumables'] },
   { value: 'pharmaceuticals', label: ['Φάρμακα', 'Pharmaceuticals'] },
-  { value: 'laboratory', label: ['Εργαστηριακά αντιδραστήρια', 'Laboratory reagents'] },
+  { value: 'laboratory', label: ['Εργαστήριο (αντιδραστήρια, αναλώσιμα)', 'Laboratory (reagents, consumables)'] },
+  { value: 'kitchen', label: ['Κουζίνα / τρόφιμα', 'Kitchen / food'] },
+  { value: 'services', label: ['Υπηρεσίες / υπεργολάβοι', 'Services / subcontractors'] },
   { value: 'maintenance', label: ['Συντήρηση / τεχνική υποστήριξη', 'Maintenance / technical support'] },
   { value: 'cleaning', label: ['Καθαριότητα', 'Cleaning'] },
-  { value: 'catering', label: ['Σίτιση', 'Catering'] },
   { value: 'laundry', label: ['Ιματισμός / πλυντήρια', 'Linen / laundry'] },
   { value: 'waste', label: ['Διαχείριση αποβλήτων', 'Waste management'] },
   { value: 'it', label: ['Πληροφορική', 'Information technology'] },
-  { value: 'services', label: ['Άλλες υπηρεσίες', 'Other services'] },
+  { value: 'certification_body', label: ['Φορέας πιστοποίησης / επιθεώρησης', 'Certification / inspection body'] },
 ]
-export const supplierCategoryLabel = (value, language) => pick(SUPPLIER_CATEGORIES, value, language)
+// The earlier «Σίτιση» category is the kitchen.
+const CATEGORY_ALIASES = { catering: 'kitchen' }
+export const supplierCategoryOf = value => CATEGORY_ALIASES[value] || value
+export const supplierCategoryLabel = (value, language) => pick(SUPPLIER_CATEGORIES, supplierCategoryOf(value), language)
 
 export const SUPPLIER_STATUSES = [
   { value: 'active', label: ['Ενεργός', 'Active'] },
   { value: 'inactive', label: ['Ανενεργός', 'Inactive'] },
 ]
 
-// The six criteria of the yearly evaluation, each scored 1–5.
+// The six fixed criteria of the earlier evaluations (before the templates), each scored 1–5.
 export const CRITERIA = [
   { key: 'quality', label: ['Ποιότητα προϊόντων / υπηρεσιών', 'Quality of products / services'] },
   { key: 'delivery', label: ['Συνέπεια στους χρόνους παράδοσης', 'On-time delivery'] },
@@ -218,8 +225,8 @@ export const CONDITIONAL_AT = 60
 
 export const APPROVALS = [
   { value: 'approved', label: ['Εγκεκριμένος', 'Approved'], tone: 'success' },
-  { value: 'conditional', label: ['Υπό παρακολούθηση', 'Under monitoring'], tone: 'warning' },
-  { value: 'rejected', label: ['Μη αποδεκτός', 'Not accepted'], tone: 'danger' },
+  { value: 'conditional', label: ['Υπό όρους', 'Conditional'], tone: 'warning' },
+  { value: 'rejected', label: ['Απορρίπτεται', 'Rejected'], tone: 'danger' },
   { value: 'unevaluated', label: ['Χωρίς αξιολόγηση', 'Not evaluated'], tone: 'neutral' },
 ]
 export const approvalLabel = (value, language) => pick(APPROVALS, value, language)
@@ -243,7 +250,7 @@ export const NONCONFORMITY_SEVERITIES = [
 export const severityLabel = (value, language) => pick(NONCONFORMITY_SEVERITIES, value, language)
 export const severityTone = value => toneOf(NONCONFORMITY_SEVERITIES, value)
 
-export const CERTIFICATION_TYPES = ['ISO 9001', 'ISO 13485', 'ISO 14001', 'ISO 45001', 'ISO 22000 / HACCP', 'CE', 'Άδεια ΕΟΦ', 'Άλλο']
+export const CERTIFICATION_TYPES = ['ISO 9001', 'ISO 13485', 'ISO 14001', 'ISO 45001', 'ISO 22000 / HACCP', 'ISO 15189 / ISO 17025', 'CE', 'CE-IVD', 'Βεβαίωση ΔΥ8δ/1348/04', 'Άδεια ΕΟΦ', 'Άδεια λειτουργίας', 'Σύμβαση', 'Δήλωση συμμόρφωσης', 'Τεχνικές προδιαγραφές', 'Άλλο']
 
 export function certificationState(certification, today = todayIso()) {
   if (!certification?.expiresOn) return 'none'
@@ -261,19 +268,29 @@ export const certificationStateTone = value => toneOf(CERTIFICATION_STATES, valu
 
 const latestOf = (items = [], field) => [...items].sort((a, b) => String(b[field] || '').localeCompare(String(a[field] || '')))[0] || null
 
-// A supplier as the lists show it: its approval from the latest evaluation,
-// whether the yearly evaluation is due, its certificates and open nonconformities.
-export function supplierStatus(supplier, today = todayIso()) {
-  const latest = latestOf(supplier.evaluations, 'evaluatedOn')
-  const score = latest ? evaluationScore(latest.scores, latest.weights) : null
-  const approval = approvalFor(score)
-  const evaluationDue = supplier.status !== 'inactive' && (!latest || addMonths(latest.evaluatedOn, 12) < today)
+// A supplier as the lists show it: its approval from the latest scored evaluation
+// (else the decision recorded on the supplier), when the next evaluation is due
+// (the latest one plus the frequency of the supplier or of its template), its
+// certificates and open nonconformities.
+const legacyScore = evaluation => evaluationScore(evaluation.scores, evaluation.weights)
+export const evaluationPercent = evaluation => evaluationTotal(evaluation, legacyScore)
+export const evaluationApproval = evaluation => evaluationResult(evaluation, legacyScore)
+
+export function supplierStatus(supplier, today = todayIso(), templates = []) {
+  const evaluations = supplier.evaluations || []
+  const latest = latestOf(evaluations, 'evaluatedOn')
+  const scored = latestOf(evaluations.filter(item => evaluationPercent(item) != null), 'evaluatedOn')
+  const score = scored ? evaluationPercent(scored) : null
+  const approval = scored ? evaluationApproval(scored) : supplier.approvalStatus || 'unevaluated'
+  const months = evaluationMonths(supplier, latest, templates)
+  const nextEvaluation = latest ? addMonths(latest.evaluatedOn, months) : ''
+  const evaluationDue = supplier.status !== 'inactive' && (!latest || nextEvaluation < today)
   const certificates = (supplier.certifications || []).map(item => ({ ...item, state: certificationState(item, today) }))
   const open = (supplier.nonconformities || []).filter(item => item.status !== 'closed')
   const contractDays = supplier.contractEndsOn ? daysBetween(today, supplier.contractEndsOn) : null
   return {
-    approval, score, latestEvaluation: latest, evaluationDue,
-    nextEvaluation: latest ? addMonths(latest.evaluatedOn, 12) : '',
+    approval, score, latestEvaluation: latest, scoredEvaluation: scored, evaluationDue, evaluationMonths: months,
+    nextEvaluation,
     expiredCertificates: certificates.filter(item => item.state === 'expired').length,
     expiringCertificates: certificates.filter(item => item.state === 'expiring').length,
     openNonconformities: open.length,
@@ -282,7 +299,7 @@ export function supplierStatus(supplier, today = todayIso()) {
   }
 }
 
-export const withSupplierStatus = (suppliers = [], equipment = [], today = todayIso()) => suppliers.map(item => ({ ...item, ...supplierStatus(item, today), equipmentCount: equipment.filter(device => device.supplierId === item.id).length }))
+export const withSupplierStatus = (suppliers = [], equipment = [], today = todayIso(), templates = []) => suppliers.map(item => ({ ...item, ...supplierStatus(item, today, templates), equipmentCount: equipment.filter(device => device.supplierId === item.id).length }))
 
 export function supplierCounts(rows = []) {
   const live = rows.filter(row => row.status !== 'inactive')
@@ -301,8 +318,8 @@ export function filterSuppliers(rows = [], filters = NO_SUPPLIER_FILTERS) {
   const q = String(filters.query || '').trim().toLocaleLowerCase('el')
   const quick = filters.quick
   return rows
-    .filter(row => !q || [row.code, row.name, row.taxId, row.products, row.contactName].some(value => String(value || '').toLocaleLowerCase('el').includes(q)))
-    .filter(row => filters.category === 'all' || row.category === filters.category)
+    .filter(row => !q || [row.code, row.name, row.legalName, row.taxId, row.products, row.contactName, row.city].some(value => String(value || '').toLocaleLowerCase('el').includes(q)))
+    .filter(row => filters.category === 'all' || supplierCategoryOf(row.category) === filters.category)
     .filter(row => filters.approval === 'all' || row.approval === filters.approval)
     .filter(row => filters.criticality === 'all' || row.criticality === filters.criticality)
     .filter(row => filters.status === 'all' || row.status === filters.status)
@@ -312,18 +329,30 @@ export function filterSuppliers(rows = [], filters = NO_SUPPLIER_FILTERS) {
 const supplierRank = row => (row.approval === 'rejected' || row.majorOpen ? 0 : row.approval === 'conditional' || row.openNonconformities || row.expiredCertificates ? 1 : row.evaluationDue ? 2 : 3)
 
 export function newSupplier() {
-  return { id: '', code: '', name: '', category: 'consumables', criticality: 'medium', status: 'active', taxId: '', contactName: '', phone: '', email: '', address: '', website: '', products: '', contractEndsOn: '', notes: '', certifications: [], evaluations: [], nonconformities: [] }
+  return { id: '', code: '', name: '', legalName: '', category: 'products', criticality: 'medium', status: 'active', taxId: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', website: '', products: '', contractEndsOn: '', approvalStatus: '', evaluationMonths: '', notes: '', certifications: [], evaluations: [], nonconformities: [], contacts: [] }
 }
 export function supplierProblems(supplier, language = 'el') {
   const en = language === 'en'
   const problems = []
   if (String(supplier.name || '').trim().length < 2) problems.push(en ? 'a name' : 'επωνυμία')
   if (supplier.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplier.email)) problems.push(en ? 'a valid email' : 'έγκυρο email')
+  const months = supplier.evaluationMonths
+  if (months !== '' && months != null && !(Number.isInteger(Number(months)) && Number(months) >= 1 && Number(months) <= 60)) problems.push(en ? 'an evaluation frequency of 1–60 months' : 'συχνότητα αξιολόγησης 1–60 μήνες')
   return problems
 }
 const itemId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
 export const newEvaluation = (today = todayIso()) => ({ id: itemId('ev'), evaluatedOn: today, evaluator: '', scores: Object.fromEntries(CRITERIA.map(item => [item.key, ''])), notes: '' })
-export const newCertification = () => ({ id: itemId('cert'), type: 'ISO 9001', number: '', issuer: '', expiresOn: '' })
+export const newCertification = () => ({ id: itemId('cert'), type: 'ISO 9001', title: '', kind: 'certificate', number: '', issuer: '', expiresOn: '' })
+export const newContact = () => ({ id: itemId('contact'), fullName: '', jobTitle: '', phone: '', email: '', notes: '' })
+export const DOCUMENT_KINDS = [
+  { value: 'certificate', label: ['Πιστοποιητικό', 'Certificate'] },
+  { value: 'licence', label: ['Άδεια / βεβαίωση', 'Licence / attestation'] },
+  { value: 'contract', label: ['Σύμβαση', 'Contract'] },
+  { value: 'declaration', label: ['Δήλωση συμμόρφωσης', 'Declaration of conformity'] },
+  { value: 'specification', label: ['Τεχνικές προδιαγραφές', 'Specifications'] },
+  { value: 'other', label: ['Άλλο έγγραφο', 'Other document'] },
+]
+export const documentKindLabel = (value, language) => pick(DOCUMENT_KINDS, value || 'certificate', language)
 export const newNonconformity = (today = todayIso()) => ({ id: itemId('nc'), date: today, description: '', severity: 'minor', status: 'open', capaCode: '', closedOn: '' })
 
 // --- Corrective actions ------------------------------------------------------------------
@@ -362,7 +391,7 @@ export function suppliersExport(rows = [], language = 'el') {
   const en = language === 'en'
   return {
     name: en ? 'suppliers' : 'promitheftes',
-    headers: en ? ['Code', 'Supplier', 'Category', 'Tax ID', 'Criticality', 'Latest evaluation', 'Score %', 'Approval', 'Next evaluation', 'Open nonconformities', 'Expired certificates', 'Contract ends', 'Status'] : ['Κωδικός', 'Προμηθευτής', 'Κατηγορία', 'ΑΦΜ', 'Κρισιμότητα', 'Τελευταία αξιολόγηση', 'Βαθμολογία %', 'Έγκριση', 'Επόμενη αξιολόγηση', 'Ανοιχτές μη συμμορφώσεις', 'Ληγμένα πιστοποιητικά', 'Λήξη σύμβασης', 'Κατάσταση'],
-    rows: rows.map(row => [row.code, row.name, supplierCategoryLabel(row.category, language), row.taxId || '', criticalityLabel(row.criticality, language), row.latestEvaluation?.evaluatedOn || '', row.score ?? '', approvalLabel(row.approval, language), row.nextEvaluation || '', row.openNonconformities, row.expiredCertificates, row.contractEndsOn || '', pick(SUPPLIER_STATUSES, row.status, language)]),
+    headers: en ? ['Code', 'Supplier', 'Category', 'Tax ID', 'City', 'Criticality', 'Latest evaluation', 'Score %', 'Approval', 'Next evaluation', 'Open nonconformities', 'Expired certificates', 'Contract ends', 'Status'] : ['Κωδικός', 'Προμηθευτής', 'Κατηγορία', 'ΑΦΜ', 'Πόλη', 'Κρισιμότητα', 'Τελευταία αξιολόγηση', 'Βαθμολογία %', 'Έγκριση', 'Επόμενη αξιολόγηση', 'Ανοιχτές μη συμμορφώσεις', 'Ληγμένα πιστοποιητικά', 'Λήξη σύμβασης', 'Κατάσταση'],
+    rows: rows.map(row => [row.code, row.name, supplierCategoryLabel(row.category, language), row.taxId || '', row.city || '', criticalityLabel(row.criticality, language), row.latestEvaluation?.evaluatedOn || '', row.score ?? '', approvalLabel(row.approval, language), row.nextEvaluation || '', row.openNonconformities, row.expiredCertificates, row.contractEndsOn || '', pick(SUPPLIER_STATUSES, row.status, language)]),
   }
 }

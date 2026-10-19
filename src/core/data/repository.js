@@ -49,6 +49,7 @@ const TABLES=Object.freeze({
   quality_local_surveys:{storageKey:'limoxis.qualityLocalSurveys.v1',kind:'rows',cloud:false},
   quality_local_survey_responses:{storageKey:'limoxis.qualityLocalSurveyResponses.v1',kind:'rows',cloud:false},
   quality_local_suppliers:{storageKey:'limoxis.qualityLocalSuppliers.v1',kind:'rows',cloud:false},
+  quality_local_supplier_templates:{storageKey:'limoxis.qualityLocalSupplierTemplates.v1',kind:'rows',cloud:false},
   quality_local_equipment:{storageKey:'limoxis.qualityLocalEquipment.v1',kind:'rows',cloud:false},
   quality_local_equipment_events:{storageKey:'limoxis.qualityLocalEquipmentEvents.v1',kind:'rows',cloud:false},
   legislation_local_library:{storageKey:'limoxis.legislationLocalLibrary.v1',kind:'rows',cloud:false},

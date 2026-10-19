@@ -4,11 +4,11 @@
 import { calculateNextDue } from '../controls/controlScheduling'
 import { suggestionCalendarItems } from '../documents/protocolReview/protocolReviewModel'
 
-export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees']
+export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees','suppliers']
 
 const KIND_LABELS={
- el:{controls:'Έλεγχοι',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές'},
- en:{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees'},
+ el:{controls:'Έλεγχοι',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές',suppliers:'Προμηθευτές'},
+ en:{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees',suppliers:'Suppliers'},
 }
 export const calendarKindLabel=(kind,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
 
@@ -136,7 +136,17 @@ function committeeEvents(committees,range,today,list,en){
  }
 }
 
-export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],protocolSuggestions=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
+// A supplier's next evaluation (its latest evaluation plus the frequency): «Αξιολόγηση προμηθευτή».
+// suppliers: [{ id, code, name, nextEvaluation, evaluationDue }] as supplierStatus gives them.
+function supplierEvents(suppliers,range,today,list,en){
+ for(const supplier of suppliers){
+  if(supplier.status==='inactive')continue
+  const day=toDay(supplier.nextEvaluation)
+  push(list,{id:`sup-eval:${supplier.id}`,kind:'suppliers',date:day,title:supplier.name,detail:`${en?'Supplier evaluation':'Αξιολόγηση προμηθευτή'}${supplier.code?` · ${supplier.code}`:''}`,department:'',path:`/quality/suppliers/${supplier.id}`,state:stateOf(day,today)},range)
+ }
+}
+
+export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],protocolSuggestions=[],suppliers=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
  const en=language==='en'
  const range=from&&to?{from,to}:null
  const list=[]
@@ -148,6 +158,7 @@ export function buildCalendarEvents({controls=[],capas=[],audits=[],training=nul
  // Open protocol update suggestions are pending items of the documents.
  for(const event of suggestionCalendarItems(protocolSuggestions,documentFamilies.flatMap(family=>family.versions||[]),{today,language,ownerId}))push(list,event,range)
  committeeEvents(committees,range,today,list,en)
+ supplierEvents(suppliers,range,today,list,en)
  const seen=new Set()
  return list.filter(event=>{if(seen.has(event.id))return false;seen.add(event.id);return true}).sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99')||a.title.localeCompare(b.title))
 }

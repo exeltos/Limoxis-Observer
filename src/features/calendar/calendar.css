@@ -14,6 +14,7 @@
 .kind-training{--calendar-color:#2f8a57}
 .kind-documents{--calendar-color:#a07a12}
 .kind-committees{--calendar-color:#3d6f7a}
+.kind-suppliers{--calendar-color:#8a5a2b}
 .calendar-month-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;flex:1 1 auto;min-height:0}
 .calendar-month{display:flex;flex-direction:column;min-height:0;padding:0 14px 14px;overflow:auto}
 .calendar-month-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;height:52px;flex:0 0 auto;background:#fff}
