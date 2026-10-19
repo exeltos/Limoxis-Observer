@@ -191,19 +191,19 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-html [class*=eyebrow]{margin:0;font-size:9pt;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5d7083}
 .rd-html [class*=voided]{padding:5px 8px;border:1px solid #f2c4c0;background:#fdeceb;color:#b42318;font-weight:700}
 /* Certificate */
-.rd-certificate{text-align:center;padding:10mm 14mm 0;border:3px double #1e4e79;min-height:150mm}
+.rd-certificate{text-align:center;padding:7mm 14mm 5mm;border:3px double #1e4e79;break-inside:avoid}
 .rd-certificate .rd-cert-logo img{max-height:60px;max-width:220px}
 .rd-certificate .rd-cert-org{font-size:13pt;font-weight:700;margin:6px 0 0}
 .rd-certificate .rd-cert-sub{color:#5d7083;font-size:9.5pt;margin:2px 0 0}
-.rd-certificate h1{font-size:26pt;letter-spacing:.08em;text-transform:uppercase;margin:14mm 0 4mm;color:#1e4e79}
+.rd-certificate h1{font-size:26pt;letter-spacing:.08em;text-transform:uppercase;margin:7mm 0 3mm;color:#1e4e79}
 .rd-certificate .rd-cert-lead{font-size:11pt;margin:0}
 .rd-certificate .rd-cert-name{font-size:22pt;font-weight:700;margin:4mm 0;border-bottom:1px solid #9fb3c6;display:inline-block;padding:0 12mm 2mm}
 .rd-certificate .rd-cert-programme{font-size:15pt;font-weight:700;margin:2mm 0}
-.rd-certificate .rd-cert-facts{margin:6mm auto 0;border-collapse:collapse;font-size:10pt}
+.rd-certificate .rd-cert-facts{margin:4mm auto 0;border-collapse:collapse;font-size:10pt}
 .rd-certificate .rd-cert-facts td{padding:2px 10px;text-align:left}
 .rd-certificate .rd-cert-facts td:first-child{color:#5d7083;text-align:right}
-.rd-certificate .rd-signatures{margin:14mm 0 0;border-spacing:30px 0}
-.rd-certificate .rd-cert-number{margin-top:8mm;font-size:9pt;color:#5d7083}
+.rd-certificate .rd-signatures{margin:9mm 0 0;border-spacing:30px 0}
+.rd-certificate .rd-cert-number{margin:4mm 0 0;font-size:9pt;color:#5d7083}
 `
 
 function pageCss(doc, branding, printedOn, en) {

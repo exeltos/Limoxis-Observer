@@ -109,7 +109,7 @@ export function QualityRecordPage(){
     subtitle={[RECORD_KIND[recordType]?.[language==='en'?1:0],language==='en'?record.departmentEn||record.department:record.department].filter(Boolean).join(' · ')||undefined}
     status={<StatusBadge tone={qualityStatusTone(record.status)}>{t(record.status)}</StatusBadge>}
     recordNavigation={recordNavigation}
-    headerActions={canPrint&&<PrintExportActions showPrint={false} onExport={downloadPdf}/>}
+    headerActions={canPrint&&<PrintExportActions showPrint={false} onExport={downloadPdf} exportLabel={language==='en'?'Download PDF':'Λήψη PDF'}/>}
     tabs={tabs} activeTab={tab} onTabChange={id=>openTab(id)}>
       {incident&&(tab==='details'||tab==='assessment')?<div className="quality-record-layout">
         <QualityDetails key={`${tab}:${autoEdit}`} autoEdit={autoEdit} view={tab} recordType={recordType} record={record} linked={linked} onDownloadPdf={canPrint?downloadPdf:null} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId}/>

@@ -5,7 +5,8 @@
 .calendar-kind-toggle{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px solid var(--lo-color-border);border-radius:999px;background:#fff;font:inherit;font-size:11.5px;font-weight:700;color:var(--lo-color-text);cursor:pointer}
 .calendar-kind-toggle.off{opacity:.45;background:#f4f6f8}
 .calendar-department{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
-.calendar-department .filter-field{min-width:200px}
+.calendar-department .filter-field{display:flex;flex-direction:row;align-items:center;gap:8px;min-width:200px}
+.calendar-department .filter-field select{min-width:180px}
 .calendar-dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--calendar-color,#6b7c8c)}
 .kind-controls{--calendar-color:#1f6fa9}
 .kind-capa{--calendar-color:#b4532a}
