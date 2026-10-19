@@ -36,6 +36,8 @@ import { DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentFo
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { RouteLoading } from '../../design-system/RouteLoading'
+import { ProtocolReviewPanel } from './protocolReview/ProtocolReviewPanel'
+import { useProtocolSuggestions } from './protocolReview/useProtocolSuggestions'
 
 const labels = {
   el: {
@@ -116,6 +118,7 @@ export function DocumentRecordPage() {
   const statusLabels = labels[language].statuses
 
   const { data: rows, loading, error, reload } = useDocumentsData()
+  const protocolSuggestions = useProtocolSuggestions(tenant?.id || null)
   const [searchParams] = useSearchParams()
   const [tab, setTab] = useState(() => searchParams.get('tab') || 'overview')
   const [editing, setEditing] = useState(false)
@@ -304,6 +307,13 @@ export function DocumentRecordPage() {
     if (next) navigate(`/documents/${next.id}`)
   }
 
+  // «Αποδοχή» of a protocol update suggestion: the same revision flow, with the
+  // notes the suggestion dialog prepared as the revision reason.
+  async function startSuggestedRevision(notes) {
+    if (record.status !== 'published' || !canSupersede) return null
+    return run(() => createDocumentRevisionAsync(organizationId, record, actor, rows, notes))
+  }
+
   async function removeDraft() {
     if (record.status !== 'draft' || !canManage) return
     const ok = await confirm({
@@ -377,6 +387,7 @@ export function DocumentRecordPage() {
     onTabChange={setTab}
   >
     {tab === 'overview' && <div className="document-record-workspace" ref={reportRef}>
+      {!editing && <ProtocolReviewPanel record={record} suggestions={protocolSuggestions.data} organizationId={organizationId} actor={actor} canDecide={canManage || canSupersede} canRevise={record.status === 'published' && canSupersede} language={language} onStartRevision={startSuggestedRevision} onChanged={async (revision) => { await protocolSuggestions.reload(); if (revision) navigate(`/documents/${revision.id}`) }} />}
       <section className="record-section">
         <div className="record-section-header"><div>
           <span className="eyebrow">{en ? 'Document' : 'Έγγραφο'}</span>

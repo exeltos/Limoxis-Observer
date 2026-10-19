@@ -18,6 +18,8 @@ import { loadQualityRecords } from '../quality/qualityService'
 import { loadTrainingStateAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
 import { loadCommitteesAsync } from '../committees/committeeService'
+import { loadProtocolSuggestionsAsync } from '../documents/protocolReview/protocolReviewService'
+import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CALENDAR_KINDS,buildCalendarEvents,calendarKindLabel,dayKey,monthGrid } from './calendarEvents'
 import './calendar.css'
 
@@ -31,7 +33,8 @@ const MAX_CHIPS=3
 // and decisions. Each source is loaded only when the user may see it.
 export function CalendarPage(){
  const {language,locale}=useLanguage();const en=language==='en'
- const {tenant,role,membership,canAccessRecord}=useTenant()
+ const {tenant,role,membership,canAccessRecord,isDemo}=useTenant()
+ const userId=useAuditActor()?.id||null
  const navigate=useNavigate()
  const allowedKey=CALENDAR_KINDS.filter(kind=>can(role,KIND_CAPABILITY[kind],membership?.capabilities??[],membership?.customCapabilities??[])).join(',')
  const allowedKinds=useMemo(()=>allowedKey?allowedKey.split(','):[],[allowedKey])
@@ -54,8 +57,9 @@ export function CalendarPage(){
    safe('training',()=>loadTrainingStateAsync(organizationId),null),
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
-  ]).then(([controls,capas,audits,training,documents,committees])=>{
-   if(active)setSources({controls,capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees})
+   safe('documents',()=>loadProtocolSuggestionsAsync(organizationId),[]),
+  ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions])=>{
+   if(active)setSources({controls,capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions})
   })
   return()=>{active=false}
  },[tenant?.id,allowedKinds])
@@ -63,7 +67,7 @@ export function CalendarPage(){
  const weeks=useMemo(()=>monthGrid(cursor.year,cursor.month),[cursor])
  const today=dayKey(new Date())
  const range=useMemo(()=>{const from=weeks[0][0],last=weeks[weeks.length-1][6];const horizon=dayKey(new Date(Date.now()+60*24*60*60*1000));return {from:from<today?from:today,to:last>horizon?last:horizon}},[weeks,today])
- const allEvents=useMemo(()=>sources?buildCalendarEvents(sources,{...range,today,language}):[],[sources,range,today,language])
+ const allEvents=useMemo(()=>sources?buildCalendarEvents(sources,{...range,today,language,ownerId:isDemo?undefined:userId}):[],[sources,range,today,language,isDemo,userId])
  const departments=useMemo(()=>[...new Set(allEvents.map(e=>e.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[allEvents,language])
  const events=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&!hidden.has(e.kind)&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,hidden,department,canAccessRecord])
  const byDay=useMemo(()=>{const map=new Map();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return map},[events])
