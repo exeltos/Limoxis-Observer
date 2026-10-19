@@ -170,7 +170,7 @@ export function evaluationSheetRows(evaluation, language = 'el') {
   return (evaluation?.criteria || []).map((item, index) => {
     const score = number(item.score)
     const recorded = score >= 0 && score <= scale && item.score !== '' && item.score != null
-    return [String(index + 1), item.label, String(item.weight).replace('.', ','), recorded ? `${score} / ${scale}` : en ? 'not recorded' : 'δεν καταγράφηκε', recorded ? `${round1((score / scale) * Number(item.weight) * 100) / 100}`.replace('.', ',') : '—']
+    return [String(index + 1), item.label, String(item.weight).replace('.', en ? '.' : ','), recorded ? `${score} / ${scale}` : en ? 'not recorded' : 'δεν καταγράφηκε', recorded ? String(Math.round((score / scale) * Number(item.weight) * 1000) / 1000).replace('.', en ? '.' : ',') : '—']
   })
 }
 

@@ -23,7 +23,6 @@
 .resource-facts{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:16px;font-size:13px;color:var(--lo-color-muted)}
 .resource-facts strong{color:var(--lo-color-text)}
 .resource-description-cell{max-width:420px;white-space:normal}
-.resource-score-cell{text-align:center}
 .resource-event-form,.resource-evaluation{display:grid;gap:14px}
 .resource-event-note{margin:0;font-size:13px;color:var(--lo-status-danger-fg)}
 .resource-criterion .lo-mode-switch{flex-wrap:wrap}

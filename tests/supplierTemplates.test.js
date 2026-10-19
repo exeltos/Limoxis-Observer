@@ -128,6 +128,7 @@ describe('Suppliers on templates', () => {
     const doc = supplierEvaluationDocument(kitchen, kitchen.latestEvaluation, { nextEvaluation: kitchen.nextEvaluation, months: kitchen.evaluationMonths })
     expect(doc.kind).toBe('Φύλλο αξιολόγησης προμηθευτή')
     expect(doc.sections[0].table.rows).toHaveLength(8)
+    expect(evaluationSheetRows({ scoreScale: 5, criteria: [{ label: 'Θ', weight: 0.14, score: 4 }] })[0][4]).toBe('0,112')
     expect(doc.meta.find(([label]) => label === 'Αποτέλεσμα')[1]).toMatch(/%/)
     expect(doc.signatures).toEqual(['Αξιολογητής', 'Υπεύθυνος Ποιότητας'])
   })

@@ -68,7 +68,7 @@ export function supplierEvaluationDocument(supplier, evaluation, { language = 'e
         title: L('Πιστοποιητικά και μη συμμορφώσεις', 'Certificates and nonconformities'),
         facts: [
           [L('Πιστοποιητικά / έγγραφα', 'Certificates / documents'), String(certificates.length)],
-          [L('Σε ισχύ', 'Valid'), String(certificates.filter(item => certificationState(item) === 'valid').length)],
+          [L('Σε ισχύ', 'Valid'), String(certificates.filter(item => ['valid', 'expiring', 'none'].includes(certificationState(item))).length)],
           [L('Ληγμένα', 'Expired'), String(certificates.filter(item => certificationState(item) === 'expired').length)],
           [L('Ανοιχτές μη συμμορφώσεις', 'Open nonconformities'), String(open.length)],
         ],
