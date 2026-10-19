@@ -1,0 +1,190 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import {
+  dueState, executionMarks, firstDue, nextDeadlineAfter, nextDueAfterExecution, periodBounds, periodProgress, requiredPerPeriod, slotStarts, zonedInstant, zonedParts,
+} from '../src/features/controls/controlDueRules'
+import { assignmentProgress, assignmentStatus, isControlDue } from '../src/features/controls/controlScheduling'
+import { filterControlRows, scopeControlRows } from '../src/features/controls/controlFilters'
+import { programmeAdherence } from '../src/features/controls/controlAdherence'
+import { programmeCalendar } from '../src/features/controls/controlCalendar'
+import { progressCompleteMessage, progressText } from '../src/features/controls/controlProgress'
+import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
+
+const iso = (value) => new Date(value).toISOString()
+const daily1 = { kind: 'daily', timesPerDay: 1, times: ['09:00'] }
+const daily2 = { kind: 'daily', timesPerDay: 2, times: ['08:00', '16:00'] }
+const daily4 = { kind: 'daily', timesPerDay: 4, times: ['07:00', '11:00', '15:00', '19:00'] }
+
+describe('time zone helpers (Europe/Athens)', () => {
+  it('reads and builds wall-clock times on both sides of the October change', () => {
+    expect(zonedParts('2026-10-24T21:00:00Z')).toMatchObject({ year: 2026, month: 10, day: 25, hour: 0 })
+    expect(iso(zonedInstant(2026, 10, 25, 0))).toBe('2026-10-24T21:00:00.000Z') // EEST, UTC+3
+    expect(iso(zonedInstant(2026, 10, 26, 0))).toBe('2026-10-25T22:00:00.000Z') // EET, UTC+2
+    expect(iso(zonedInstant(2026, 3, 29, 0))).toBe('2026-03-28T22:00:00.000Z')
+    expect(iso(zonedInstant(2026, 3, 30, 0))).toBe('2026-03-29T21:00:00.000Z')
+  })
+  it('gives the day of a 25-hour and a 23-hour day', () => {
+    const autumn = periodBounds(daily1, new Date('2026-10-25T12:00:00Z'))
+    expect((autumn.end - autumn.start) / 3600000).toBe(25)
+    const spring = periodBounds(daily1, new Date('2026-03-29T12:00:00Z'))
+    expect((spring.end - spring.start) / 3600000).toBe(23)
+  })
+})
+
+describe('due rules per frequency', () => {
+  it('daily: an entry just before 09:00 makes it due by the end of the next day, not at 09:00', () => {
+    // The old rule set next_due_at to "the next time after now", 09:00 the same
+    // morning, and the control was overdue a few minutes after it was done.
+    const at = new Date('2026-10-19T05:55:00Z') // 08:55 Athens
+    expect(nextDueAfterExecution(daily1, at, 1)).toBe('2026-10-20T20:59:59.000Z')
+    // Nothing yet today: due by 23:59:59 today.
+    expect(nextDueAfterExecution(daily1, at, 0)).toBe('2026-10-19T20:59:59.000Z')
+  })
+  it('N times a day: slot i by the next slot, the last by the end of the day', () => {
+    const morning = new Date('2026-10-19T04:30:00Z') // 07:30 Athens
+    expect(slotStarts(daily2)).toEqual([480, 960])
+    expect(requiredPerPeriod(daily2)).toBe(2)
+    expect(nextDueAfterExecution(daily2, morning, 0)).toBe('2026-10-19T13:00:00.000Z') // 16:00
+    expect(nextDueAfterExecution(daily2, morning, 1)).toBe('2026-10-19T20:59:59.000Z') // 23:59:59
+    expect(nextDueAfterExecution(daily2, morning, 2)).toBe('2026-10-20T13:00:00.000Z') // tomorrow 16:00
+  })
+  it('a tolerance shortens a slot to its time plus the tolerance', () => {
+    const f = { kind: 'daily', times: ['07:00', '15:00', '23:00'], toleranceMinutes: 90 }
+    const at = new Date('2026-10-19T05:00:00Z')
+    expect(nextDueAfterExecution(f, at, 0)).toBe('2026-10-19T05:30:00.000Z') // 08:30
+    expect(nextDueAfterExecution(f, at, 2)).toBe('2026-10-19T20:59:59.000Z') // 23:00 + 90' capped at the day's end
+  })
+  it('times per day without times split the day evenly', () => {
+    expect(slotStarts({ kind: 'daily', timesPerDay: 4, times: [] })).toEqual([0, 360, 720, 1080])
+  })
+  it('an entry after midnight UTC but before midnight Athens belongs to the Athens day', () => {
+    const lateEvening = new Date('2026-10-19T20:30:00Z') // 23:30 Athens, 19 October
+    const afterMidnight = new Date('2026-10-19T21:30:00Z') // 00:30 Athens, 20 October
+    expect(periodBounds(daily1, lateEvening).start.toISOString()).toBe('2026-10-18T21:00:00.000Z')
+    expect(periodBounds(daily1, afterMidnight).start.toISOString()).toBe('2026-10-19T21:00:00.000Z')
+  })
+  it('across the October change: due by 23:59:59 local in winter time', () => {
+    expect(nextDueAfterExecution(daily1, new Date('2026-10-25T00:30:00Z'), 1)).toBe('2026-10-26T21:59:59.000Z')
+    expect(nextDueAfterExecution(daily4, new Date('2026-10-25T00:30:00Z'), 0)).toBe('2026-10-25T09:00:00.000Z') // 11:00 EET
+  })
+  it('weekly: by Sunday of the next week; every two weeks, the week after', () => {
+    const saturday = new Date('2026-10-24T08:00:00Z')
+    expect(nextDueAfterExecution({ kind: 'weekly', interval: 1 }, saturday)).toBe('2026-11-01T21:59:59.000Z')
+    expect(nextDueAfterExecution({ kind: 'weekly', interval: 2 }, saturday)).toBe('2026-11-08T21:59:59.000Z')
+    expect(periodBounds({ kind: 'weekly' }, saturday).start.toISOString()).toBe('2026-10-18T21:00:00.000Z') // Monday 19th
+  })
+  it('monthly and yearly: by the end of the N-th month or year (31 January included)', () => {
+    expect(nextDueAfterExecution({ kind: 'monthly', interval: 1 }, new Date('2026-01-31T10:00:00Z'))).toBe('2026-02-28T21:59:59.000Z')
+    expect(nextDueAfterExecution({ kind: 'monthly', interval: 6 }, new Date('2026-03-28T22:10:00Z'))).toBe('2026-09-30T20:59:59.000Z')
+    expect(nextDueAfterExecution({ kind: 'yearly', interval: 1 }, new Date('2026-12-31T22:30:00Z'))).toBe('2028-12-31T21:59:59.000Z') // 1 Jan 2027 Athens
+  })
+  it('every N days: by the end of the N-th day', () => {
+    expect(nextDueAfterExecution({ kind: 'custom', interval: 15 }, new Date('2026-10-19T05:55:00Z'))).toBe('2026-11-03T21:59:59.000Z')
+  })
+  it('steps a schedule from deadline to deadline and starts a new one in the current period', () => {
+    expect(nextDeadlineAfter(daily2, new Date('2026-10-19T13:00:00Z'))).toBe('2026-10-19T20:59:59.000Z')
+    expect(nextDeadlineAfter({ kind: 'monthly', interval: 1 }, new Date('2026-10-31T21:59:59Z'))).toBe('2026-11-30T21:59:59.000Z')
+    expect(firstDue({ kind: 'monthly', interval: 1 }, new Date('2026-10-19T10:00:00Z'))).toBe('2026-10-31T21:59:59.000Z')
+  })
+  it('overdue once the deadline has passed, due soon within two hours for daily controls', () => {
+    const now = new Date('2026-10-19T19:30:00Z')
+    expect(dueState('2026-10-19T20:59:59Z', daily1, now)).toBe('dueSoon')
+    expect(dueState('2026-10-19T19:00:00Z', daily1, now)).toBe('overdue')
+    expect(dueState('2026-10-20T20:59:59Z', daily1, now)).toBe('scheduled')
+  })
+})
+
+describe('period progress and marks', () => {
+  const now = new Date('2026-10-19T13:00:00Z') // 16:00 Athens
+  const history = [
+    { at: '2026-10-19T04:10:00Z' }, { at: '2026-10-19T08:00:00Z' }, { at: '2026-10-19T12:00:00Z' },
+    { at: '2026-10-19T12:30:00Z', isExtra: true },
+    { at: '2026-10-19T12:40:00Z', status: 'cancelled' },
+    { at: '2026-10-18T20:30:00Z' }, // 23:30 yesterday
+  ]
+  it('counts the regular entries of the current period, extra and voided ones apart', () => {
+    expect(periodProgress(daily4, history, now)).toMatchObject({ unit: 'day', required: 4, done: 3, extra: 1, complete: false })
+    expect(progressText(periodProgress(daily4, history, now))).toBe('3/4 σήμερα')
+    expect(periodProgress(daily4, [...history, { at: '2026-10-19T12:50:00Z' }], now).complete).toBe(true)
+  })
+  it('words the complete message', () => {
+    expect(progressCompleteMessage({ unit: 'day', done: 4, required: 4 })).toBe('Οι απαιτούμενες καταχωρήσεις για σήμερα (4/4) έχουν ολοκληρωθεί.')
+    expect(progressCompleteMessage({ unit: 'week', done: 1, required: 1 }, 'en')).toBe('The required entries for this week (1/1) are complete.')
+  })
+  it('marks only the first N entries of a day as counted', () => {
+    const marks = executionMarks([{ at: '2026-10-19T05:00:00Z' }, { at: '2026-10-19T06:00:00Z' }, { at: '2026-10-19T07:00:00Z' }], daily2)
+    expect(marks.map((m) => m.counted)).toEqual([true, true, false])
+  })
+  it('uses the database count for the current period and the history once the period moved on', () => {
+    const record = { frequency: daily4, assignments: { ΜΕΘ: { nextDueAt: '2026-10-19T16:00:00Z', progress: { start: '2026-10-18T21:00:00.000Z', required: 4, done: 4, extra: 0 }, history: [] } } }
+    expect(assignmentProgress(record, 'ΜΕΘ', now)).toMatchObject({ done: 4, complete: true, unit: 'day' })
+    expect(isControlDue(record, 'ΜΕΘ', now)).toBe(false)
+    expect(assignmentProgress(record, 'ΜΕΘ', new Date('2026-10-20T06:00:00Z'))).toMatchObject({ done: 0, complete: false })
+  })
+  it('is due when the period still needs an entry, not when the next deadline is in a later period', () => {
+    const record = (nextDueAt) => ({ frequency: { kind: 'monthly', interval: 1 }, assignments: { ΜΕΘ: { nextDueAt, history: [] } } })
+    expect(isControlDue(record('2026-10-31T21:59:59Z'), 'ΜΕΘ', now)).toBe(true)
+    expect(isControlDue(record('2026-11-30T21:59:59Z'), 'ΜΕΘ', now)).toBe(false)
+    expect(assignmentStatus({ ...record('2026-10-01T00:00:00Z'), status: 'inactive' }, 'ΜΕΘ', now)).toBe('paused')
+  })
+})
+
+describe('filters keep only the selected department everywhere', () => {
+  const now = new Date('2026-10-08T12:00:00Z')
+  const item = (id, extra = {}) => ({
+    id, title: id, category: 'Θερμοκρασίες', frequency: { kind: 'weekly', interval: 1 }, responseConfig: { criticality: 'high' }, ...extra,
+    assignments: {
+      ΜΕΘ: { dbId: `${id}-icu`, nextDueAt: '2026-10-01T00:00:00Z', history: [{ at: '2026-10-05T10:00:00Z' }] },
+      ΤΕΠ: { dbId: `${id}-ed`, nextDueAt: '2026-10-30T00:00:00Z', history: [{ at: '2026-10-06T10:00:00Z' }, { at: '2026-09-29T10:00:00Z' }] },
+    },
+  })
+  const rows = [{ item: item('A'), departments: ['ΜΕΘ', 'ΤΕΠ'] }, { item: item('B', { responseConfig: { criticality: 'low' } }), departments: ['ΤΕΠ'] }]
+
+  it('narrows each row to the department, and the status to its departments', () => {
+    expect(scopeControlRows(rows, { department: 'ΜΕΘ' }).map((r) => [r.item.id, r.departments])).toEqual([['A', ['ΜΕΘ']]])
+    expect(filterControlRows(rows, { status: 'overdue', now }).map((r) => [r.item.id, r.departments])).toEqual([['A', ['ΜΕΘ']]])
+    expect(filterControlRows(rows, { criticality: 'low' }).map((r) => r.item.id)).toEqual(['B'])
+    expect(filterControlRows(rows, { frequency: 'daily' })).toEqual([])
+  })
+  it('the adherence and the calendar count the selected department only', () => {
+    const icu = scopeControlRows(rows, { department: 'ΜΕΘ' })
+    const { lines, totals } = programmeAdherence(icu, { from: new Date('2026-09-10T12:00:00Z'), to: now, now })
+    expect(lines.map((l) => l.department)).toEqual(['ΜΕΘ'])
+    expect(totals.performed).toBe(1)
+    expect(programmeCalendar(icu, 2026, now).map((l) => l.department)).toEqual(['ΜΕΘ'])
+  })
+})
+
+describe('over-entry guard', () => {
+  beforeEach(() => { configureDataEnvironment({ mode: 'demo', demoAccountId: 'guard-test' }); globalThis.localStorage?.clear?.() })
+  afterEach(() => configureDataEnvironment({ mode: 'production' }))
+
+  it('refuses a fifth entry of a four-a-day control and keeps an extra one with its reason', async () => {
+    const { loadControlByCode, completeControlExecution } = await import('../src/features/controls/controlCloudService')
+    const record = await loadControlByCode('demo-hospital', 'CTRL-DEMO-0005')
+    const progress = assignmentProgress(record, 'ΜΕΘ')
+    expect(progress).toMatchObject({ required: 4, done: 4, complete: true })
+    await expect(completeControlExecution('demo-hospital', record, 'ΜΕΘ', { value: 'Συμμορφώνεται' })).rejects.toMatchObject({ code: 'control_period_complete' })
+    await expect(completeControlExecution('demo-hospital', record, 'ΜΕΘ', { value: 'Συμμορφώνεται', extra: { reason: '  ' } })).rejects.toThrow('control_extra_reason_required')
+    const saved = await completeControlExecution('demo-hospital', record, 'ΜΕΘ', { value: 'Συμμορφώνεται', extra: { reason: 'Επαναληπτικός έλεγχος μετά από απόκλιση' } })
+    expect(saved).toMatchObject({ isExtra: true, extraReason: 'Επαναληπτικός έλεγχος μετά από απόκλιση' })
+    const after = await loadControlByCode('demo-hospital', 'CTRL-DEMO-0005')
+    expect(assignmentProgress(after, 'ΜΕΘ')).toMatchObject({ done: 4, extra: 1 })
+    // The internal ward has three of four: the fourth is a regular entry.
+    expect(assignmentProgress(after, 'Παθολογική')).toMatchObject({ done: 3, complete: false })
+    await completeControlExecution('demo-hospital', after, 'Παθολογική', { value: 'Συμμορφώνεται' })
+    const done = await loadControlByCode('demo-hospital', 'CTRL-DEMO-0005')
+    expect(assignmentProgress(done, 'Παθολογική')).toMatchObject({ done: 4, complete: true })
+    // Next due: tomorrow's first slot (by 11:00 Athens).
+    expect(zonedParts(done.assignments.Παθολογική.nextDueAt)).toMatchObject({ hour: 11, minute: 0 })
+  })
+
+  it('is enforced by the database too, for new entries of the current period only', () => {
+    const sql = readFileSync(new URL('../supabase/migrations/20261121140000_control_due_rules.sql', import.meta.url), 'utf8')
+    expect(sql).toContain('create or replace trigger control_executions_period_guard before insert on public.control_executions')
+    expect(sql).toContain("raise exception 'control_period_complete'")
+    expect(sql).toContain("raise exception 'control_extra_reason_required'")
+    expect(sql).toContain('now() >= v_start and now() < v_end')
+    expect(sql).not.toMatch(/create temp(orary)? table/i)
+  })
+})

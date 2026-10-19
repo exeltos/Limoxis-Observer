@@ -29,7 +29,8 @@ import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
-import { assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
+import { assignmentProgress,assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
+import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
@@ -137,7 +138,11 @@ export function ControlRecordPage(){
    setHistoryPage(1)
    notify(en?'Control recorded.':'Ο έλεγχος καταχωρήθηκε.','success')
    navigate(recordUrl,{replace:true})
-  }catch(error){notifyError(error,'save',{operation:'control_execution_create'});throw error}
+  }catch(error){
+   // Someone else completed the period meanwhile: say so and show the new count.
+   if(error?.code==='control_period_complete'){await reload();notify(progressCompleteMessage(error.progress||assignmentProgress(record,department),language),'warning');return}
+   notifyError(error,'save',{operation:'control_execution_create'});throw error
+  }
  }
  async function editExistingExecution(payload){
   const dep=editExecution?.department||department
@@ -212,7 +217,7 @@ export function ControlRecordPage(){
      emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
      renderRow={({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr className={`control-ov-department ${state}`}>
       <td><strong>{dep}</strong>{personLabel(record.assignees?.[dep],language)&&<small>{personLabel(record.assignees[dep],language)}</small>}</td>
-      <td><div className="control-status-stack">{draft&&<StatusBadge tone="info">{en?'Draft':'Προσωρινή'}</StatusBadge>}<StatusBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</StatusBadge></div></td>
+      <td><div className="control-status-stack">{draft&&<StatusBadge tone="info">{en?'Draft':'Προσωρινή'}</StatusBadge>}<StatusBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</StatusBadge><small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>
       <td className="control-ov-action-col">{allowed&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
@@ -230,7 +235,7 @@ export function ControlRecordPage(){
     emptyTitle={historyLoaded?(en?'No executions yet':'Δεν υπάρχουν ακόμη εκτελέσεις'):(en?'Loading executions…':'Φόρτωση εκτελέσεων…')}
     emptyText={historyLoaded?(en?'Entries appear here once the control is recorded.':'Οι καταχωρήσεις εμφανίζονται εδώ μόλις καταχωρηθεί ο έλεγχος.'):undefined}
     rowProps={h=>({className:h.status==='cancelled'?'control-history-cancelled':''})}
-    renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.status==='cancelled'?<StatusBadge tone="danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</StatusBadge>:<>{structuredSummary(h,{record,language})}{h.resultText&&<small>{en?'Result details':'Αναλυτικό αποτέλεσμα'}: {h.resultText}</small>}{h.checkedPoints&&<small>{en?'Points checked':'Σημεία ελέγχου'}: {h.checkedPoints}</small>}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col">{h.structuredData?.rows?.length>0&&<ExportMenu compact items={[{id:'form',kind:'print',label:isExpiryControl(record)?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:()=>printControlForm({record,department:h.department,execution:h})}]}/>}<OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
+    renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.isExtra&&h.status!=='cancelled'&&<><StatusBadge tone="warning">{en?'Extra entry':'Έκτακτη'}</StatusBadge><small>{h.extraReason}</small></>}{h.status==='cancelled'?<StatusBadge tone="danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</StatusBadge>:<>{structuredSummary(h,{record,language})}{h.resultText&&<small>{en?'Result details':'Αναλυτικό αποτέλεσμα'}: {h.resultText}</small>}{h.checkedPoints&&<small>{en?'Points checked':'Σημεία ελέγχου'}: {h.checkedPoints}</small>}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col">{h.structuredData?.rows?.length>0&&<ExportMenu compact items={[{id:'form',kind:'print',label:isExpiryControl(record)?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:()=>printControlForm({record,department:h.department,execution:h})}]}/>}<OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
   /></RecordTabPanel>}
  </EntityRecordShell>
  {editExecution&&<ControlExecutionModal organizationId={tenant.id} record={record} department={editExecution.department||department} initialExecution={editExecution} onClose={()=>setEditExecution(null)} onSave={editExistingExecution}/>} 

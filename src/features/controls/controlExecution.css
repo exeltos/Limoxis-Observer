@@ -311,3 +311,14 @@
     margin-top: 0;
   }
 }
+/* The over-entry guard: the period's required entries are done. */
+.control-period-complete,
+.control-period-extra {
+  align-items: center;
+  margin: 0;
+}
+.control-period-complete > span,
+.control-period-extra > span {
+  flex: 1;
+  min-width: 0;
+}

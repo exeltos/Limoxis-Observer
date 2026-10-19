@@ -1,6 +1,6 @@
 import { useMemo,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { FileWarning, History, Plus, Save, Trash2 } from 'lucide-react'
+import { CheckCircle2, FileWarning, History, Plus, Save, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -19,7 +19,8 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { useLibraries } from '../management/useLibraries'
-import { getAssignment,frequencyLabel } from './controlScheduling'
+import { assignmentProgress,getAssignment,frequencyLabel } from './controlScheduling'
+import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlActorFromAuth } from './controlActor'
 import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
@@ -165,12 +166,29 @@ function ExecutionFields({state,record,department}){
  </>
 }
 
+// An extra entry («Έκτακτη καταχώρηση») once the period's required entries
+// are done: only with its reason, recorded as such and not counted.
+export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}){
+ const en=language==='en'
+ const [reason,setReason]=useState('')
+ return <ObserverDialog width="compact" className="control-extra-card" eyebrow={en?'Extra entry':'Έκτακτη καταχώρηση'} title={en?'Record an extra entry':'Καταχώρηση πέρα από τις απαιτούμενες'} subtitle={progressCompleteMessage(progress,language)} onClose={onClose} footer={<DialogActions onSave={()=>{if(reason.trim())onConfirm(reason.trim())}} disabled={!reason.trim()} saveLabel={en?'Continue':'Συνέχεια'}/>}>
+  <div className="governance-banner warning"><FileWarning size={17}/><span>{en?'An extra entry is kept with its reason and shown as extra. It does not count towards the required entries or the adherence.':'Η έκτακτη καταχώρηση φυλάσσεται με την αιτιολογία της και εμφανίζεται ως έκτακτη. Δεν μετρά στις απαιτούμενες καταχωρήσεις ούτε στην τήρηση.'}</span></div>
+  <label className="field"><span>{en?'Reason *':'Αιτιολογία *'}</span><textarea autoFocus rows="3" value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'e.g. repeat measurement after a deviation':'π.χ. επαναληπτική μέτρηση μετά από απόκλιση'}/></label>
+ </ObserverDialog>
+}
+
 export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved}){
  const state=useControlExecution({organizationId,record,department,onDraftSaved})
  const {en,language,actor,assignment,structured,expiryControl,hasFinding,valid,draftSaved,draftSaving,persistDraft,payload,printDraft,value,notes,rows}=state
  const navigate=useNavigate()
  const [saving,setSaving]=useState(false)
- async function submit(){if(!valid||saving)return;setSaving(true);try{await onSave?.(payload())}finally{setSaving(false)}}
+ // The over-entry guard: with the period's entries complete only an extra
+ // entry, with its reason, can be saved (the database refuses the rest too).
+ const progress=assignmentProgress(record,department)
+ const [extraReason,setExtraReason]=useState('')
+ const [askExtra,setAskExtra]=useState(false)
+ const blocked=Boolean(progress?.complete)&&!extraReason
+ async function submit(){if(!valid||saving||blocked)return;setSaving(true);try{await onSave?.(extraReason?{...payload(),extra:{reason:extraReason}}:payload())}finally{setSaving(false)}}
  async function report(){
   const draft=await persistDraft();if(!draft)return
   navigate('/quality/report',{state:{controlSource:{controlId:record.id,controlTitle:record.title,department,scheduledAt:assignment?.nextDueAt,value,notes,hasFinding,rows},limoxisFrom:{path:`/controls/${record.id}?department=${encodeURIComponent(department)}&execute=1`,label:record.title}}})
@@ -178,8 +196,11 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
  return <div className="control-execution-page-editor">
   <dl className="control-exec-meta">
-   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(record.frequency,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
+   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(record.frequency,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
   </dl>
+  {progress?.complete&&!extraReason&&<div className="governance-banner control-period-complete" role="status"><CheckCircle2 size={17}/><span><strong>{progressCompleteMessage(progress,language)}</strong> {en?'A further entry is possible only as an extra entry, with its reason.':'Νέα καταχώρηση γίνεται μόνο ως έκτακτη, με αιτιολογία.'}</span><Button variant="secondary" onClick={()=>setAskExtra(true)}>{en?'Extra entry':'Έκτακτη καταχώρηση'}</Button></div>}
+  {extraReason&&<div className="governance-banner warning control-period-extra" role="status"><FileWarning size={17}/><span><strong>{en?'Extra entry':'Έκτακτη καταχώρηση'}</strong> · {extraReason}</span><Button variant="quiet" onClick={()=>setExtraReason('')}>{en?'Cancel':'Ακύρωση'}</Button></div>}
+  {askExtra&&<ControlExtraEntryDialog language={language} progress={progress} onClose={()=>setAskExtra(false)} onConfirm={reason=>{setExtraReason(reason);setAskExtra(false)}}/>}
   <div className="control-exec-main"><ExecutionFields state={state} record={record} department={department}/></div>
   {hasFinding&&!expiryControl&&<div className="governance-banner warning control-finding-banner"><FileWarning size={17}/><span>{en?'This entry contains a finding or an out-of-range value. You can create a related incident report.':'Η καταχώρηση περιλαμβάνει εύρημα ή τιμή εκτός ορίων. Μπορείτε να δημιουργήσετε σχετική αναφορά.'}</span></div>}
   <div className="control-execution-page-tools">
@@ -189,7 +210,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
     {draftSaved&&<StatusBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</StatusBadge>}
    </div>
-   <SaveButton disabled={!valid||saving} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):(en?'Save entry':'Αποθήκευση')}</SaveButton>
+   <SaveButton disabled={!valid||saving||blocked} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):extraReason?(en?'Save extra entry':'Αποθήκευση έκτακτης'):(en?'Save entry':'Αποθήκευση')}</SaveButton>
   </div>
  </div>
 }

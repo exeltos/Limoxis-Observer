@@ -76,3 +76,5 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
  .control-expiry-panel .record-tab-panel-header .lo-section-header-actions:is(div,#lo-control-form){flex:1 1 100%!important;min-width:0!important;max-width:100%!important}
 }
 .control-expiry-control-cell{max-width:220px;min-width:140px}
+/* «3/4 σήμερα»: the current period's entries, beside a control's status. */
+.control-progress-text{font-size:11px;color:var(--lo-color-muted);white-space:nowrap}
