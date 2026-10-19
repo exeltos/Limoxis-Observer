@@ -1,6 +1,7 @@
 // The Demo hospital's outbreak investigations, as the Analysis "LIRA & AI" tab
 // counts them (production reads lira_outbreak_investigations). Written in the
 // Demo's authored frame and shifted to today like the other Demo fixtures.
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 
 const rows = [
@@ -17,3 +18,5 @@ const rows = [
 export const liraDemoInvestigations = shiftDemoDatesInPlace(
   rows.map(([id, organism, status, created_at, closed_at]) => ({ id, organism, status, created_at, closed_at })),
 )
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(liraDemoInvestigations)

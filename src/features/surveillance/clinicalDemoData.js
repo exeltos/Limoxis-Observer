@@ -1,3 +1,4 @@
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { surveillanceDemoData } from './surveillanceDemoData'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { addDays } from '../../core/data/demoSeed'
@@ -1171,3 +1172,5 @@ export function deleteClinicalSurveillance(
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([clinicalCases])
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(clinicalCases)

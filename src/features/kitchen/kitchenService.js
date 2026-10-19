@@ -7,6 +7,7 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { kitchenDemoState } from './kitchenDemoData'
 import { batchProblem, combine, stockRows, withStatuses } from './kitchenModel'
@@ -89,7 +90,9 @@ const byOrg = (table, organizationId, order = 'created_at') => selectAll(() => s
 function local() {
   const saved = loadSnapshot(LOCAL_KEY, null)
   if (saved && Array.isArray(saved.receipts)) return saved
-  const state = kitchenDemoState()
+  const seed = kitchenDemoState()
+  // Empty-hospital preview: the kitchen's settings, limits and HACCP steps, no records.
+  const state = isEmptyPreview() ? Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, Array.isArray(value) && !['limits', 'steps'].includes(key) ? [] : value])) : seed
   saveSnapshot(LOCAL_KEY, state)
   return state
 }

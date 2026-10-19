@@ -1,3 +1,4 @@
+import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { historyCases } from '../surveillance/demoInfectionHistory'
 export const patientDemoData = [
@@ -37,3 +38,5 @@ export function demoAdmissionsForPatient(patient){
 
 // Dates follow today (src/core/data/demoClock.js).
 shiftDemoDatesInPlace([patientDemoData])
+// Empty-hospital preview (?helpEmpty=1): no sample records.
+emptyInPreview(patientDemoData)
