@@ -4,22 +4,37 @@
     "analysis_crosstab_metrics": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Analytics cross-tabulations (department × HAI type, agent × organism, …); same access as analysis_domain_metrics: Platform Owner or Hospital Admin / IPC Lead of the organisation."
+      "reason": "Analytics cross-tabulations (department × HAI type, agent × organism, …); same access as analysis_domain_metrics: Platform Owner or Hospital Admin / IPC Lead / Hospital Director of the organisation."
     },
     "analysis_quality_food_metrics": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Analytics «Quality & food safety» aggregates (audits, suppliers, kitchen HACCP, satisfaction surveys, risks), counts only; Platform Owner or Hospital Admin / IPC Lead / Quality Manager of the organisation."
+      "reason": "Analytics «Quality & food safety» aggregates (audits, suppliers, kitchen HACCP, satisfaction surveys, risks), counts only; Platform Owner or Hospital Admin / IPC Lead / Quality Manager / Hospital Director of the organisation."
+    },
+    "analysis_microbiology_findings": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Analytics positive-culture findings (organism, resistance class, department, sample type; no patient identity); rows only for Platform Owner or the organisation's Hospital Admin / IPC Lead / IPC Member / Laboratory / Doctor Reviewer / Hospital Director."
+    },
+    "analysis_amr_susceptibility": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Analytics AMR first-isolate counts per reference pathogen; rows only for Platform Owner or the organisation's Hospital Admin / IPC Lead / IPC Member / Laboratory / Doctor Reviewer / Hospital Director."
+    },
+    "executive_governance_status": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Executive dashboard: counts of open / overdue committee decisions; null unless the caller has view_executive_dashboard in the organisation."
     },
     "analysis_domain_metrics": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Analytics aggregates; Platform Owner or Hospital Admin / IPC Lead of the organisation."
+      "reason": "Analytics aggregates; Platform Owner or Hospital Admin / IPC Lead / Hospital Director of the organisation."
     },
     "analysis_people_metrics": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Staff analytics; Platform Owner or Hospital Admin / IPC Lead; health data gated by view_occupational_health."
+      "reason": "Staff analytics; Platform Owner or Hospital Admin / IPC Lead / Hospital Director; health data gated by view_occupational_health."
     },
     "answer_committee_membership": {
       "category": "rpc",
@@ -307,7 +322,7 @@
     "platform_report_summary": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Report counts; Platform Owner or Hospital Admin / IPC Lead of the organisation."
+      "reason": "Report counts; Platform Owner or Hospital Admin / IPC Lead / Hospital Director of the organisation."
     },
     "platform_reset_demo_organization": {
       "category": "rpc",

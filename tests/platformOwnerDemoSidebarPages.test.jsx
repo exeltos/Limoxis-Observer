@@ -35,6 +35,7 @@ const pages = [
   ['Quality', () => import('../src/features/quality/QualityPage').then(m => m.QualityPage)],
   ['Employees', () => import('../src/features/employees/EmployeesPage').then(m => m.EmployeesPage)],
   ['Analysis', () => import('../src/features/analysis/AnalysisPage').then(m => m.AnalysisPage)],
+  ['Executive', () => import('../src/features/executive/ExecutiveDashboardPage').then(m => m.ExecutiveDashboardPage)],
   ['Indicators', () => import('../src/features/indicators/IndicatorsPage').then(m => m.IndicatorsPage)],
   ['Training', () => import('../src/features/training/TrainingPageRoute').then(m => m.TrainingPageRoute)],
   ['Committees', () => import('../src/features/committees/CommitteesPage').then(m => m.CommitteesPage)],

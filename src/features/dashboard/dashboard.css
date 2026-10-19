@@ -31,3 +31,5 @@
 .first-steps-list li em{font-size:11px;font-style:normal;font-weight:700;color:#1d6b3a}
 .first-steps-list li button{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:0;border-radius:8px;background:var(--lo-color-primary,#1f5f93);color:#fff;font-size:12px;font-weight:700;cursor:pointer}
 .first-steps-guide{margin:10px 0 0;font-size:11px;color:var(--lo-color-muted)}
+.dashboard-executive-link{margin-bottom:14px}
+.dashboard-executive-link .lo-card-header{margin:0!important;padding:0!important;border-bottom:0!important;align-items:center!important}
