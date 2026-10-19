@@ -7,6 +7,7 @@ import fs from 'node:fs'
 vi.mock('../src/core/supabase/client', () => ({ supabase: null }))
 
 import {
+  effectiveMemberRoles,
   memberBadgeRoles,
   normalizeMemberRoles,
   officerName,
@@ -87,10 +88,18 @@ describe('committee member roles', () => {
     expect(
       fromMemberRow({ id: 'm2', member_name: 'X', title: 'Μέλος', ended_at: '2025-01-01' }),
     ).toMatchObject({
-      roles: ['member'],
+      roles: [],
       specialty: '',
       active: false,
     })
+  })
+
+  it('keeps an empty stored role list empty, so the title still decides', () => {
+    const member = fromMemberRow({ id: 'm3', member_name: 'Y', title: 'Πρόεδρος', member_roles: [], ended_at: null })
+    expect(member.roles).toEqual([])
+    expect(effectiveMemberRoles(member)).toEqual(['chair'])
+    expect(memberBadgeRoles(member)).toEqual(['chair'])
+    expect(fromMemberRow({ id: 'm4', member_name: 'Z', title: 'Πρόεδρος', member_roles: ['secretary'] }).roles).toEqual(['secretary'])
   })
 
   it('saves the roles chosen in the dialog, or the ones the title implies', () => {

@@ -31,6 +31,13 @@ export function normalizeMemberRoles(value) {
   return roles.length ? roles : ['member']
 }
 
+// Roles as stored, for mapping a database row: an empty (or unknown-only) list
+// stays empty, so effectiveMemberRoles still falls back to the title.
+export function storedMemberRoles(value) {
+  const list = Array.isArray(value) ? value : []
+  return MEMBER_ROLES.filter(role => list.includes(role))
+}
+
 const fold = value =>
   String(value || '')
     .normalize('NFD')
