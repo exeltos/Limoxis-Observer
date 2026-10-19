@@ -29,6 +29,8 @@ const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIE
 const WEEKDAYS={el:['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
 // A day cell shows one line per module: its dot, the count and the name (singular / plural).
 const KIND_COUNT={controls:['έλεγχος','έλεγχοι','control','controls'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items']}
+// Short module names for narrow day cells (the full name stays in the tooltip).
+const KIND_SHORT=[{controls:'Έλεγχοι',capa:'CAPA',audits:'Επιθ.',training:'Εκπαίδ.',documents:'Έγγρ.',committees:'Επιτρ.'},{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Docs',committees:'Comm.'}]
 const countLabel=(kind,n,en)=>{const forms=KIND_COUNT[kind]||['','','','' ];const word=en?(n===1?forms[2]:forms[3]):(n===1?forms[0]:forms[1]);return word.charAt(0).toLocaleUpperCase(en?'en':'el')+word.slice(1)}
 const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο':'α'}`
 
@@ -137,7 +139,7 @@ export function CalendarPage(){
        return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>{setSelected(key);setPanelKind(null)}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key);setPanelKind(null)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
        <span className="calendar-day-number">{Number(key.slice(8))}</span>
        {CALENDAR_KINDS.map(kind=>{const items=list.filter(e=>e.kind===kind);if(!items.length)return null;const late=items.filter(e=>e.state==='overdue').length;const name=countLabel(kind,items.length,en);const full=`${items.length} ${name}${late?` · ${overdueLabel(late,en)}`:''}`
-        return <button type="button" key={kind} className={`calendar-kind-line kind-${kind}${late?' overdue':''}${key===selected&&panelKind===kind?' active':''}`} title={full} aria-label={full} onClick={event=>{event.stopPropagation();setSelected(key);setPanelKind(kind)}}><span className="calendar-dot"/><b>{items.length}</b><span className="calendar-kind-name">{name}</span>{late>0&&<small className="calendar-kind-late">{overdueLabel(late,en)}</small>}</button>})}
+        return <button type="button" key={kind} className={`calendar-kind-line kind-${kind}${late?' overdue':''}${key===selected&&panelKind===kind?' active':''}`} title={full} aria-label={full} onClick={event=>{event.stopPropagation();setSelected(key);setPanelKind(kind)}}><span className="calendar-dot"/><b>{items.length}</b><span className="calendar-kind-name full">{name}</span><span className="calendar-kind-name short" aria-hidden="true">{KIND_SHORT[en?1:0][kind]||name}</span>{late>0&&<small className="calendar-kind-late">{overdueLabel(late,en)}</small>}</button>})}
       </div>})}
      </div>
     </div>

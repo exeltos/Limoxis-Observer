@@ -28,17 +28,20 @@ export function ProtocolSuggestionDialog({suggestion,initialDecision='accepted',
  const [reason,setReason]=useState('')
  const [snoozeUntil,setSnoozeUntil]=useState(()=>addDaysKey(today,30))
  const problem=useMemo(()=>decisionProblem({decision,reason,snoozeUntil,notes,today,canRevise}),[decision,reason,snoozeUntil,notes,today,canRevise])
- const problemText=problem?(PROBLEM_TEXT[en?'en':'el'][problem]||''):''
+ // A missing required value is said only after a submit attempt or once its
+ // field was left empty, never on open; a blocked revision is said at once.
+ const [shown,setShown]=useState(false),reveal=()=>setShown(true)
+ const problemText=problem&&(shown||problem==='revision_unavailable')?(PROBLEM_TEXT[en?'en':'el'][problem]||''):''
  function toggleDraft(next){setIncludeDraft(next);setNotes(revisionNoteFor(suggestion,{language,includeDraft:next}))}
  const submitLabel=decision==='accepted'?(en?'Accept and start revision':'Αποδοχή και νέα αναθεώρηση'):decision==='rejected'?(en?'Reject suggestion':'Απόρριψη πρότασης'):(en?'Postpone':'Αναβολή')
- const submit=()=>{if(!problem&&!busy)onSubmit?.({decision,notes:notes.trim(),reason:reason.trim(),snoozeUntil})}
+ const submit=()=>{if(busy)return;if(problem){reveal();return}onSubmit?.({decision,notes:notes.trim(),reason:reason.trim(),snoozeUntil})}
  return <ObserverDialog
   className="protocol-suggestion-dialog"
   eyebrow={en?'Update suggestion':'Πρόταση ανανέωσης'}
   title={(TITLES[en?'en':'el'])[decision]||TITLES.el.accepted}
   subtitle={en?'Nothing changes in the protocol until a revision is published.':'Το πρωτόκολλο δεν αλλάζει μέχρι να δημοσιευτεί αναθεώρηση.'}
   onClose={onClose}
-  footer={<SaveButton loading={busy} disabled={Boolean(problem)||busy} onClick={submit}>{submitLabel}</SaveButton>}
+  footer={<SaveButton loading={busy} disabled={busy||problem==='revision_unavailable'} onClick={submit}>{submitLabel}</SaveButton>}
  >
   <div className="protocol-suggestion-dialog-body">
    <div className="protocol-suggestion-summary">
@@ -48,15 +51,15 @@ export function ProtocolSuggestionDialog({suggestion,initialDecision='accepted',
    {decision==='accepted'&&<>
     {suggestion?.draftText&&<CheckboxField label={en?'Include the proposed wording in the notes':'Να μπει η προτεινόμενη διατύπωση στις σημειώσεις'} checked={includeDraft} onChange={toggleDraft}/>}
     <label className="field"><span className="lo-field-label">{en?'Revision notes *':'Σημειώσεις αναθεώρησης *'}</span>
-     <textarea rows={6} maxLength={MAX_REVISION_NOTE} value={notes} onChange={e=>setNotes(e.target.value)}/>
+     <textarea rows={6} maxLength={MAX_REVISION_NOTE} value={notes} onChange={e=>setNotes(e.target.value)} onBlur={()=>!notes.trim()&&reveal()} aria-invalid={Boolean(problemText&&problem==='notes_required')}/>
     </label>
     <small className="field-hint">{en?'A new draft version is created through the usual revision flow; the published version stays in force until the revision is published.':'Δημιουργείται νέα πρόχειρη έκδοση με την κανονική ροή αναθεώρησης· η δημοσιευμένη έκδοση ισχύει μέχρι να δημοσιευτεί η αναθεώρηση.'}</small>
    </>}
    {decision==='rejected'&&<label className="field"><span className="lo-field-label">{en?'Rejection reason *':'Λόγος απόρριψης *'}</span>
-    <textarea rows={4} maxLength={1000} value={reason} onChange={e=>setReason(e.target.value)} placeholder={en?'Why the protocol stays as it is…':'Γιατί το πρωτόκολλο μένει ως έχει…'}/>
+    <textarea rows={4} maxLength={1000} value={reason} onChange={e=>setReason(e.target.value)} onBlur={()=>!reason.trim()&&reveal()} aria-invalid={Boolean(problemText&&problem==='reason_required')} placeholder={en?'Why the protocol stays as it is…':'Γιατί το πρωτόκολλο μένει ως έχει…'}/>
    </label>}
-   {decision==='snoozed'&&<ManualDateField label={en?'Show again on':'Να εμφανιστεί ξανά στις'} value={snoozeUntil} onChange={setSnoozeUntil}/>}
-   {problemText&&<small className="field-error" role="status">{problemText}</small>}
+   {decision==='snoozed'&&<ManualDateField label={en?'Show again on':'Να εμφανιστεί ξανά στις'} value={snoozeUntil} onChange={next=>{setSnoozeUntil(next);reveal()}}/>}
+   {problemText&&<small className="field-error" role="alert">{problemText}</small>}
   </div>
  </ObserverDialog>
 }

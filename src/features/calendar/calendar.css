@@ -62,5 +62,8 @@
 .calendar-kind-line.overdue{background:#fdeceb;color:#8f1d14}
 .calendar-kind-line:hover{filter:brightness(.96)}
 .calendar-kind-line.active{box-shadow:inset 0 0 0 1.5px var(--calendar-color,#1f6fa9)}
-@container (max-width:110px){.calendar-kind-name,.calendar-kind-late{display:none}}
+/* Wide cells: full name. Desktop cells (about 1180-1500px screens): short name, no overdue word (the red line stays). Very narrow: dot and count. */
+.calendar-kind-name.short{display:none}
+@container (max-width:150px){.calendar-kind-name.full,.calendar-kind-late{display:none}.calendar-kind-name.short{display:inline}}
+@container (max-width:72px){.calendar-kind-name.short{display:none}}
 .calendar-panel-filter{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border:1px solid var(--lo-color-border);border-radius:999px;background:#fff;font:inherit;font-size:11px;font-weight:700;color:var(--lo-color-text);cursor:pointer}

@@ -2,7 +2,7 @@
 // The suggestion dialog opens in the decision chosen on the panel: no mode
 // switch, a matching title and primary button, a house checkbox for the wording.
 import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
 import { ProtocolSuggestionDialog } from '../src/features/documents/protocolReview/ProtocolSuggestionDialog'
@@ -25,6 +25,16 @@ describe('protocol suggestion dialog', () => {
     expect(screen.getByRole('dialog', { name: 'Απόρριψη πρότασης ανανέωσης' })).toBeInTheDocument()
     expect(screen.getByText('Λόγος απόρριψης *')).toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).toBeNull()
-    expect(screen.getByRole('button', { name: /Απόρριψη πρότασης/ })).toBeDisabled()
+    expect(screen.queryByText('Ο λόγος απόρριψης είναι υποχρεωτικός.')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /Απόρριψη πρότασης/ }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Ο λόγος απόρριψης είναι υποχρεωτικός.')
+  })
+  it('says a reason is missing once the field is left empty', () => {
+    show('rejected')
+    const field = screen.getByRole('textbox')
+    fireEvent.blur(field)
+    expect(screen.getByRole('alert')).toHaveTextContent('υποχρεωτικός')
+    fireEvent.change(field, { target: { value: 'Demo reason' } })
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })
