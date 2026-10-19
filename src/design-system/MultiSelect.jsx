@@ -13,6 +13,8 @@ const normalize = value =>
 // control and says what is chosen; the open list has a search box and
 // "select all / clear all" for the options the search shows. Rows toggle on click
 // and carry a tick, not a checkbox. The list scrolls inside itself.
+// tags: the closed field shows each chosen value as a compact tag instead of a
+// comma list / count. search={false} drops the search box for short lists.
 // options: [{ value, label }]
 export function MultiSelect({
   label,
@@ -27,6 +29,8 @@ export function MultiSelect({
   countLabel = count => String(count),
   disabled = false,
   className = '',
+  tags = false,
+  search = true,
 }) {
   const baseId = useId().replace(/:/g, '')
   const buttonId = `${baseId}-button`,
@@ -138,7 +142,17 @@ export function MultiSelect({
             setOpen(value => !value)
           }}
         >
-          <span>{summary}</span>
+          {tags && chosenLabels.length ? (
+            <span className="multi-select-tags">
+              {chosenLabels.map(text => (
+                <span key={text} className="multi-select-tag">
+                  {text}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span>{summary}</span>
+          )}
         </button>
         <ChevronDown className="searchable-select-chevron" size={15} aria-hidden="true" />
       </div>
@@ -147,17 +161,19 @@ export function MultiSelect({
           className="searchable-select-list multi-select-panel"
           style={{ position: 'fixed', zIndex: 1200, margin: 0, ...place }}
         >
-          <div className="multi-select-search">
-            <Search size={14} aria-hidden="true" />
-            <input
-              type="text"
-              autoFocus
-              value={query}
-              placeholder={searchPlaceholder}
-              aria-label={searchPlaceholder || label}
-              onChange={event => setQuery(event.target.value)}
-            />
-          </div>
+          {search && (
+            <div className="multi-select-search">
+              <Search size={14} aria-hidden="true" />
+              <input
+                type="text"
+                autoFocus
+                value={query}
+                placeholder={searchPlaceholder}
+                aria-label={searchPlaceholder || label}
+                onChange={event => setQuery(event.target.value)}
+              />
+            </div>
+          )}
           {(selectAllLabel || clearAllLabel) && (
             <div className="multi-select-bulk">
               {selectAllLabel && (
