@@ -29,6 +29,8 @@ const priorityLabel=(p,en)=>({low:en?'Low':'Χαμηλή',medium:en?'Medium':'Μ
 const actionTypeLabel=(t,en)=>({corrective:en?'Corrective':'Διορθωτική',preventive:en?'Preventive':'Προληπτική'}[t]||t)
 const classificationLabel=(c,en)=>({suspected:en?'Suspected':'Πιθανό',probable:en?'Probable':'Πιθανολογούμενο',confirmed:en?'Confirmed':'Επιβεβαιωμένο',excluded:en?'Excluded':'Αποκλεισμένο'}[c]||c)
 const fmtDay=(value,en)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
+// Count and dates describe the same densest window: «13 cases in 14 days (25/5 → 7/6/2025)».
+export function clusterWindowText(c,en){const loc=en?'en-GB':'el-GR',d=v=>new Date(`${String(v).slice(0,10)}T12:00:00`),first=c.firstDate&&d(c.firstDate),last=c.lastDate&&d(c.lastDate);const range=first&&last?` (${first.getFullYear()===last.getFullYear()?new Intl.DateTimeFormat(loc,{day:'numeric',month:'numeric'}).format(first):fmtDay(c.firstDate,en)} → ${fmtDay(c.lastDate,en)})`:'';return en?`${c.count} cases in ${c.windowDays} days${range}`:`${c.count} περιστατικά σε ${c.windowDays} ημέρες${range}`}
 const statusTone=s=>s==='active'?'active':s==='closed'?'neutral':'temporary'
 // Who may start an investigation: the same roles the database policy lets insert one.
 const INVESTIGATION_ROLES=[ROLES.PLATFORM_OWNER,ROLES.DEMO,ROLES.HOSPITAL_ADMIN,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER]
@@ -69,19 +71,20 @@ export function LiraOutbreakInvestigationsPanel(){
   function startFromCluster(cluster){setForm(investigationFormFromCluster(cluster));setCreating(true)}
   function closeCreate(){setCreating(false);setForm(EMPTY_FORM)}
   const newButton=canCreate?<Button disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={startNew}><Plus size={16}/>{en?'New investigation':'Νέα διερεύνηση'}</Button>:null
+  const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
   return <section className="outbreak-investigations">
-   {visibleClusters.length>0&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
+   {(hasRows||hasClusters)
+    ?<>
+   {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={newButton}/>:newButton&&<div className="outbreak-toolbar">{newButton}</div>}
+   {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
     <h3>{en?'Possible clusters':'Πιθανές συρροές'}</h3>
     <ul>{visibleClusters.slice(0,5).map(c=><li key={clusterAlertId(c)}>
-     <div><strong>{c.organism}</strong><span>{c.department} · {c.count} {en?'cases within':'περιστατικά σε'} {c.windowDays} {en?'days':'ημέρες'}{c.resistanceLabels?.length?` · ${c.resistanceLabels.join(', ')}`:''} · {fmtDay(c.firstDate,en)} → {fmtDay(c.lastDate,en)}</span></div>
-     {canCreate&&<Button variant="secondary" disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={()=>startFromCluster(c)}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}
+     <div><strong>{c.organism}</strong><span>{c.department} · {clusterWindowText(c,en)}{c.resistanceLabels?.length?` · ${c.resistanceLabels.join(', ')}`:''}</span></div>
+     {canCreate&&<Button variant="secondary" className="outbreak-start" disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={()=>startFromCluster(c)}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}
     </li>)}</ul>
    </section>}
-   {rows.length===0
-    ?<RegistryEmptyState icon={Radar} title={en?'No outbreak investigations.':'Δεν υπάρχουν διερευνήσεις εξάρσεων.'} text={en?'Start an investigation when two or more patients have the same organism in the same department.':'Ξεκινήστε διερεύνηση όταν δύο ή περισσότεροι ασθενείς έχουν τον ίδιο μικροοργανισμό στο ίδιο τμήμα.'} action={newButton?{label:en?'New investigation':'Νέα διερεύνηση',icon:Plus,onClick:startNew}:null}/>
-    :<>
-   <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={newButton}/>
-   <RegistryTable
+   {hasRows&&<h3 className="outbreak-section-title">{en?'Investigations':'Διερευνήσεις'}</h3>}
+   {hasRows&&<RegistryTable
     wrapperClassName="table-wrap scroll-table"
     columns={[{key:'title',label:en?'Investigation':'Διερεύνηση'},{key:'organism',label:en?'Organism':'Μικροοργανισμός'},{key:'period',label:en?'Period':'Περίοδος'},{key:'definition',label:caseDefinitionLabel(en)},{key:'status',label:en?'Status':'Κατάσταση'}]}
     rows={filtered}
@@ -90,8 +93,9 @@ export function LiraOutbreakInvestigationsPanel(){
     renderRow={x=><><td><strong>{x.title}</strong></td><td>{x.organism||'—'}</td><td>{x.scope_from||'—'} → {x.scope_to||'—'}</td><td>{x.definition_id?x.definition_id+' · '+x.definition_version:'—'}</td><td><StatusBadge tone={statusTone(x.status)}>{statusLabel(x.status,en)}</StatusBadge></td></>}
     emptyFiltered
     onClearFilters={()=>setQuery('')}
-   />
-    </>}
+   />}
+    </>
+    :<RegistryEmptyState icon={Radar} title={en?'No outbreak investigations.':'Δεν υπάρχουν διερευνήσεις εξάρσεων.'} text={en?'Start an investigation when two or more patients have the same organism in the same department.':'Ξεκινήστε διερεύνηση όταν δύο ή περισσότεροι ασθενείς έχουν τον ίδιο μικροοργανισμό στο ίδιο τμήμα.'} action={newButton?{label:en?'New investigation':'Νέα διερεύνηση',icon:Plus,onClick:startNew}:null}/>}
   {selected&&<ObserverDialog presentation="workspace" width="workspace" className="outbreak-workspace-dialog" eyebrow={en?'OUTBREAK INVESTIGATION':'ΔΙΕΡΕΥΝΗΣΗ ΕΞΑΡΣΗΣ'} title={selected.title} subtitle={[selected.organism,statusLabel(selected.status,en)].filter(Boolean).join(' · ')} onClose={()=>setSelected(null)} footer={<DialogActions>{selected.status==='draft'&&<Button onClick={()=>changeStatus('active')}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}{selected.status==='active'&&<Button variant="danger" onClick={()=>setClosing(true)}>{en?'Review closure':'Έλεγχος κλεισίματος'}</Button>}</DialogActions>}>
    <div className="outbreak-workspace">
     <section className="record-section outbreak-summary"><div className="record-section-header"><div><span className="eyebrow">{en?'SCOPE':'ΕΥΡΟΣ'}</span><h3>{en?'Investigation details':'Στοιχεία διερεύνησης'}</h3></div><ExportMenu onPrint={()=>window.print()} onPdf={()=>exportElementAsPdf({element:reportRef.current,filename:'outbreak-investigation-'+selected.id,orientation:'landscape'})} /></div>

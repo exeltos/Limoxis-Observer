@@ -19,7 +19,7 @@ const { LanguageProvider } = await import('../src/core/i18n/LanguageContext')
 const { FeedbackProvider } = await import('../src/core/feedback/FeedbackContext')
 const { TenantProvider, useTenant } = await import('../src/core/tenant/TenantContext')
 const { NotificationProvider } = await import('../src/core/notifications/NotificationContext')
-const { LiraOutbreakInvestigationsPanel, investigationFormFromCluster } = await import('../src/features/management/LiraOutbreakInvestigationsPanel')
+const { LiraOutbreakInvestigationsPanel, investigationFormFromCluster, clusterWindowText } = await import('../src/features/management/LiraOutbreakInvestigationsPanel')
 const { workflowProgress, sampleSummarySections, sampleSummaryFields, LaboratoryWorkflow } = await import('../src/features/laboratory/LaboratorySampleSummary')
 const { inPeriod, PERIOD_DAYS } = await import('../src/features/surveillance/surveillanceOptions')
 
@@ -49,15 +49,13 @@ async function openOutbreaks() {
 }
 
 describe('Outbreak investigations tab', () => {
-  it('says what to do when there are none, with one primary button, and lists the detected clusters', async () => {
+  it('shows candidates and investigations in one view, with one New button and no empty card while clusters exist', async () => {
     await openOutbreaks()
-    expect(await screen.findByText('Δεν υπάρχουν διερευνήσεις εξάρσεων.')).toBeInTheDocument()
-    expect(screen.getByText('Ξεκινήστε διερεύνηση όταν δύο ή περισσότεροι ασθενείς έχουν τον ίδιο μικροοργανισμό στο ίδιο τμήμα.')).toBeInTheDocument()
+    expect(await screen.findByText('Πιθανές συρροές')).toBeInTheDocument()
+    expect(screen.queryByText('Δεν υπάρχουν διερευνήσεις εξάρσεων.')).not.toBeInTheDocument()
     const newButtons = screen.getAllByRole('button', { name: /Νέα διερεύνηση/ })
     expect(newButtons).toHaveLength(1)
     expect(newButtons[0]).not.toBeDisabled()
-    // The clusters the app already detected are offered above the (empty) list.
-    expect(await screen.findByText('Πιθανές συρροές')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Έναρξη διερεύνησης' }).length).toBeGreaterThan(0)
   })
 
@@ -74,6 +72,12 @@ describe('Outbreak investigations tab', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Αποθήκευση' }))
     await waitFor(() => expect(screen.queryByText('Δεν υπάρχουν διερευνήσεις εξάρσεων.')).not.toBeInTheDocument(), { timeout: 5000 })
     expect(screen.getAllByText(new RegExp(organism)).length).toBeGreaterThan(0)
+  })
+
+  it('words the cluster as count, window and the dates of that same window', () => {
+    const c = { count: 13, windowDays: 14, firstDate: '2025-05-25', lastDate: '2025-06-07' }
+    expect(clusterWindowText(c, false)).toMatch(/^13 περιστατικά σε 14 ημέρες \(25\/5 → 7\/6\/2025\)$/)
+    expect(clusterWindowText(c, true)).toContain('13 cases in 14 days')
   })
 
   it('builds the cluster pre-fill from the cluster fields only', () => {

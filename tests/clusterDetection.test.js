@@ -15,6 +15,14 @@ describe('detectOrganismClusters', () => {
     expect(clusters[0].resistanceLabels).toEqual(['MDR'])
   })
 
+  it('reports count and dates from the same densest window when the group spans months', () => {
+    const dates = ['2025-05-25', '2025-05-27', '2025-05-30', '2025-06-02', '2025-06-07', '2025-08-10', '2025-09-15', '2025-11-02']
+    const records = dates.map(date => ({ organism: 'Staphylococcus epidermidis', department: 'Αιμοκάθαρση', date }))
+    const [cluster] = detectOrganismClusters(records, { windowDays: 14, threshold: 3 })
+    expect(cluster).toMatchObject({ count: 5, firstDate: '2025-05-25', lastDate: '2025-06-07' })
+    expect(cluster.lastEventDate).toBe('2025-11-02')
+  })
+
   it('does not flag cases of the same organism spread across different departments', () => {
     const records = [
       { organism: 'Pseudomonas aeruginosa', department: 'ΜΕΘ', date: '2026-08-01' },
