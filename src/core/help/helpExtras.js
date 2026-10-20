@@ -64,6 +64,11 @@ export const helpExtras={
   tip:{el:'Η διαχείριση εγγράφων πρέπει να διαχωρίζει πρόχειρο, δημοσιευμένο και αρχειοθετημένο περιεχόμενο.',en:'Document control should clearly separate draft, published and archived content.'},
   related:['/quality','/meetings','/training']
  },
+ '/library':{
+  checks:{el:['Ανοίξτε πάντα την πηγή του φορέα για το πλήρες και τρέχον κείμενο.','Ελέγξτε το έτος: μια νεότερη οδηγία μπορεί να αντικαθιστά την παλαιότερη.','Ό,τι προσθέτετε για το νοσοκομείο το βλέπει μόνο το νοσοκομείο σας.'],en:['Always open the publisher page for the full, current text.','Check the year: a newer guideline may replace an older one.','Whatever you add for the hospital is seen only by your hospital.']},
+  tip:{el:'Η Βιβλιοθήκη δείχνει τίτλο, πηγή και σύνδεσμο, όχι το κείμενο: η πηγή μένει η αυθεντική εκδοχή.',en:'The Library shows the title, source and link, not the text: the source stays the authoritative version.'},
+  related:['/documents','/training','/surveillance']
+ },
  '/employees':{
   checks:{el:['Ελέγξτε ότι τμήμα και ιδιότητα προέρχονται από τις κεντρικές βιβλιοθήκες.','Μην καταχωρείτε ιατρικές σημειώσεις σε διοικητικά πεδία.'],en:['Ensure department and position come from central libraries.','Do not store medical notes in administrative fields.']},
   tip:{el:'Η πρόσβαση HR και η κλινική πρόσβαση Ιατρού Εργασίας πρέπει να παραμένουν διακριτές.',en:'HR access and Occupational Health clinical access should remain clearly separated.'},

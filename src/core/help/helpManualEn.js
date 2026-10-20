@@ -69,6 +69,13 @@ export const helpManualEn={
   ['Management','Creating, publishing and archiving require the relevant permissions.'],
   ['History','Published content should not be silently overwritten. Significant changes retain revision history.']
  ],steps:['Search for the document.','Open the current version.','Use only the actions available to your role.'],preview:'documents'},
+ '/library':{title:'Library',summary:'Trusted sources for infection prevention, quality and nursing: links, guidelines, one-page clinical guides and news from the organisations.',audience:'Every user, every role',chapters:[
+  ['Links','Organisations by group: Greek bodies, International organisations, Nursing associations & education, Archive. «Suggested» means the platform proposes it and it is not yet confirmed; the Archive keeps organisations that closed or merged, with a note.'],
+  ['Guidelines','Search and filters by organisation, topic and year. A row opens the details and the link to the publisher page; Limoxis does not republish the text.'],
+  ['Clinical guides','One-page guides (image, PDF or link) with their source and date, e.g. a sepsis infographic.'],
+  ['News','Title, source, date and link from the feeds and pages of the organisations, checked automatically. The «Automatic updates» panel shows which source is not answering.'],
+  ['Hospital additions','The Hospital Admin and the Quality Manager add, with «Add for the hospital», links, guidelines, clinical guides and announcements that only their hospital sees. The platform content is kept by the Platform Owner in «Library management».']
+ ],steps:['Pick a tab.','Search or filter.','Open the source in a new tab.','If you manage the hospital, add your own with «Add for the hospital».'],preview:'library'},
  '/employees':{title:'Employees',summary:'Administrative staff registry with strict separation of sensitive health information.',audience:'HR, Hospital Admin and authorized roles',chapters:[
   ['Registry','Search and manage administrative employee information.'],
   ['Department & position','Central libraries are used so values remain consistent across the application.'],
@@ -108,11 +115,11 @@ export const helpManualEn={
   ['LIRA Briefing','Summarizes relevant pending work and patterns within the permitted scope.'],
   ['Limits','LIRA does not bypass permissions and does not autonomously change clinical or administrative records.']
  ],steps:['Ask a specific operational question.','Review the information and source context.','Open the underlying record before taking a critical action.'],preview:'lira'},
- '/management':{title:'Management Center',summary:'Organization, users, roles, libraries and governed configuration.',audience:'Hospital Admin and explicitly authorized administrators',chapters:[
+ '/management':{title:'Management Center',summary:'Organization, users, roles, reference lists and governed configuration.',audience:'Hospital Admin and explicitly authorized administrators',chapters:[
   ['Organization & users','Manage hospital identity, user accounts and activation.'],
   ['Roles & permissions','Permissions define View/Create/Edit/Complete/Approve/Delete/Export/Assign/Manage and must align with backend enforcement.'],
-  ['Libraries','Departments, organisms, antimicrobials and other shared values are managed centrally.'],
+  ['Lists & settings','Departments, organisms, antimicrobials and other shared values are managed centrally.'],
   ['Core content','Hospital changes to core definitions use controlled override/hide patterns where required instead of destroying baseline content.'],
-  ['First hospital start','Set up in this order: Libraries › Departments, then Users & Roles, then Patient-days (if you have Indicators or Surveillance). The modules you see depend on the package the Platform Owner has set; anything locked is hidden from everyone. All the steps are in the Getting started guide.']
+  ['First hospital start','Set up in this order: Lists & settings › Departments, then Users & Roles, then Patient-days (if you have Indicators or Surveillance). The modules you see depend on the package the Platform Owner has set; anything locked is hidden from everyone. All the steps are in the Getting started guide.']
  ],steps:['Choose the management area.','Find the relevant record.','Review scope and impact before changing it.','Save and verify feedback/audit outcome.'],preview:'management'}
 }

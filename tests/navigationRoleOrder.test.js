@@ -14,7 +14,7 @@ describe('sidebar order per role', () => {
       'overview:dashboard', 'overview:executiveDashboard', 'overview:calendar',
       'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
       'operations:controls', 'operations:kitchen',
-      'quality:quality', 'quality:meetings', 'quality:documents',
+      'quality:quality', 'quality:meetings', 'quality:documents', 'quality:library',
       'staff:employees', 'staff:training', 'staff:interviews',
       'management:management',
     ])
@@ -30,8 +30,8 @@ describe('sidebar order per role', () => {
     expect(owner).toContain('staff:occupationalHealth')
   })
 
-  it('keeps the Director on «Indicators» (the executive dashboard), documents and the calendar, without Home', () => {
-    expect(order(ROLES.HOSPITAL_DIRECTOR)).toEqual(['executiveDashboard', 'documents', 'calendar'])
+  it('keeps the Director on «Indicators» (the executive dashboard), documents, the Library and the calendar, without Home', () => {
+    expect(order(ROLES.HOSPITAL_DIRECTOR)).toEqual(['executiveDashboard', 'documents', 'library', 'calendar'])
   })
 
   it('calls the dashboard «Home» and the executive dashboard «Indicators»; the indicators list stays only for roles without it', () => {
@@ -49,7 +49,7 @@ describe('sidebar order per role', () => {
       expect(staff.every(item => item.group === 'staff'), role).toBe(true)
       expect(sidebarLayout(role, items).filter(block => block.kind === 'group' && block.id === 'staff'), role).toHaveLength(1)
     }
-    expect(order(ROLES.HR_OFFICE)).toEqual(['dashboard', 'staff:employees', 'staff:interviews', 'staff:training', 'calendar', 'more:documents'])
+    expect(order(ROLES.HR_OFFICE)).toEqual(['dashboard', 'staff:employees', 'staff:interviews', 'staff:training', 'calendar', 'more:documents', 'more:library'])
   })
 
   it('shows «More» once at most', () => {
@@ -74,6 +74,16 @@ describe('sidebar order per role', () => {
     for (const role of Object.values(ROLES)) {
       const keys = navigationFor({ role }).map(item => item.key)
       for (const gone of ['patients', 'regulations', 'committees', 'reportIncident']) expect(keys, role).not.toContain(gone)
+    }
+  })
+})
+
+describe('«Βιβλιοθήκη» (Library) in the menu', () => {
+  it('is open to every role, staff users included, next to the documents', () => {
+    for (const role of Object.values(ROLES)) expect(navigationFor({ role }).map(item => item.key), role).toContain('library')
+    for (const role of Object.values(ROLES)) {
+      const keys = navigationFor({ role }).map(item => item.key)
+      if (keys.includes('documents')) expect(keys.indexOf('library'), role).toBe(keys.indexOf('documents') + 1)
     }
   })
 })

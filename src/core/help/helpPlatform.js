@@ -40,7 +40,7 @@ export const platformHelp={
   '/platform#management':{title:'Κεντρική Διαχείριση',summary:'Κοινές βιβλιοθήκες, δείκτες, δέσμες μέτρων και πηγές για όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
    ['Κοινό περιεχόμενο','Οι αλλαγές εδώ εφαρμόζονται σε όλα τα νοσοκομεία που χρησιμοποιούν το αντίστοιχο κεντρικό στοιχείο.'],
    ['Ενημερώσεις πηγών','Με «Έλεγχος & ενημέρωση πλατφόρμας» ελέγχονται οι κλινικές πηγές. Κάθε αλλαγή εμφανίζεται για έλεγχο: «Ελέγχθηκε» την κλείνει, «Αναβολή» την επαναφέρει σε 7 ημέρες.']
-  ],steps:['Επιλέξτε καρτέλα (π.χ. Βιβλιοθήκες).','Κάντε την αλλαγή.','Ελέγξτε τις εκκρεμείς ενημερώσεις πηγών.']},
+  ],steps:['Επιλέξτε καρτέλα (π.χ. Λίστες & ρυθμίσεις).','Κάντε την αλλαγή.','Ελέγξτε τις εκκρεμείς ενημερώσεις πηγών.']},
   '/platform/audit':{title:'Ιστορικό & Ασφάλεια',summary:'Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων.',audience:audienceEl,chapters:[
    ['Ενέργειες & πρόσβαση','Κάθε σημαντική διοικητική ενέργεια καταγράφεται με χρήστη, χρόνο και οργανισμό. Το ιστορικό είναι μόνο για ανάγνωση· τα φίλτρα δείχνουν αλλαγές ρόλων, προσκλήσεις και διαγραφές.'],
    ['Συμβάντα & σφάλματα','Η δεύτερη καρτέλα δείχνει αποτυχίες, αποκλεισμούς και προειδοποιήσεις όλων των πραγματικών οργανισμών, χωρίς κλινικό περιεχόμενο.']
@@ -74,7 +74,7 @@ export const platformHelp={
   '/platform#management':{title:'Central Management',summary:'Shared libraries, indicators, bundles and sources for every hospital.',audience:audienceEn,chapters:[
    ['Shared content','Changes here apply to every hospital using the corresponding central item.'],
    ['Source updates','"Check & update platform" checks the clinical sources. Each change is listed for review: "Reviewed" closes it, "Postpone" brings it back in 7 days.']
-  ],steps:['Choose a tab (e.g. Libraries).','Make the change.','Review pending source updates.']},
+  ],steps:['Choose a tab (e.g. Lists & settings).','Make the change.','Review pending source updates.']},
   '/platform/audit':{title:'Audit & Security',summary:'Traceability of actions, access changes and operational events.',audience:audienceEn,chapters:[
    ['Actions & access','Every significant administrative action is recorded with user, time and organization. The history is read-only; the filters show role changes, invitations and deletions.'],
    ['Events & errors','The second tab shows failures, blocks and warnings across production organizations, without clinical content.']

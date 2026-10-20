@@ -60,6 +60,10 @@ const TABLES=Object.freeze({
   legislation_local_rows:{storageKey:'limoxis.legislationLocalRows.v1',kind:'rows',cloud:false},
   legislation_local_candidates:{storageKey:'limoxis.legislationLocalCandidates.v1',kind:'rows',cloud:false},
   legislation_local_sources:{storageKey:'limoxis.legislationLocalSources.v1',kind:'rows',cloud:false},
+  // Demo «Βιβλιοθήκη». Production lives in library_items / library_news / library_sources (src/features/library/libraryService.js).
+  library_local_items:{storageKey:'limoxis.libraryLocalItems.v1',kind:'rows',cloud:false},
+  library_local_news:{storageKey:'limoxis.libraryLocalNews.v1',kind:'rows',cloud:false},
+  library_local_sources:{storageKey:'limoxis.libraryLocalSources.v1',kind:'rows',cloud:false},
   regulations_local:{storageKey:'limoxis.regulationsLocal.v1',kind:'rows',cloud:false},
   quality_local_objectives:{storageKey:'limoxis.qualityLocalObjectives.v1',kind:'rows',cloud:false},
   quality_department_registers:{storageKey:'limoxis.qualityDepartmentRegisters.v1',kind:'rows',cloud:false},
