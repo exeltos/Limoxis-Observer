@@ -143,9 +143,9 @@ describe('incident report button and indicators', () => {
 
   it('sends old /indicators links of the leadership to the Management tab (or the dashboard) and keeps the list for the others', () => {
     const route = read('src/features/indicators/IndicatorsRoute.jsx')
-    expect(route).toContain("'/management?tab=indicatorDefinitions' : '/executive'")
+    expect(route).toContain("'/management?tab=indicators' : '/executive'")
     const management = read('src/features/management/ManagementPage.jsx')
-    expect(management).toContain("{id:'indicatorDefinitions',label:t('sidebarNav.indicatorDefinitions')")
+    expect(management).toContain("{id:'indicators',label:t('sidebarNav.indicatorDefinitions')")
     expect(management).toContain('<PageEmbedProvider><IndicatorsPage/></PageEmbedProvider>')
     expect(read('src/app/App.jsx')).toContain('<Route path="indicators" element={gateAny([CAPABILITIES.VIEW_INDICATORS,CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD],<IndicatorsRoute/>)}/>')
   })

@@ -161,3 +161,5 @@
 .identity-preview-band strong{font-size:14px;color:#173650}
 .identity-preview-band small{font-size:12px;color:#5d7891}
 @media(max-width:800px){.identity-settings{grid-template-columns:1fr}}
+/* «Ορισμοί δεικτών»: the hospital indicator list under the definitions, one tab. */
+.management-indicator-list{margin-top:18px;padding-top:14px;border-top:1px solid var(--lo-color-border,#e2e8ef)}

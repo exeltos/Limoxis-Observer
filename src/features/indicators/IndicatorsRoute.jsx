@@ -9,6 +9,6 @@ import { IndicatorsPage } from './IndicatorsPage'
 export function IndicatorsRoute() {
   const { role, membership } = useTenant()
   const addOns = membership?.capabilities ?? [], custom = membership?.customCapabilities ?? []
-  if (can(role, CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD, addOns, custom)) return <Navigate to={can(role, CAPABILITIES.MANAGE_INDICATORS, addOns, custom) ? '/management?tab=indicatorDefinitions' : '/executive'} replace />
+  if (can(role, CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD, addOns, custom)) return <Navigate to={can(role, CAPABILITIES.MANAGE_INDICATORS, addOns, custom) ? '/management?tab=indicators' : '/executive'} replace />
   return <IndicatorsPage />
 }

@@ -35,7 +35,7 @@ export const navigation=[
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
-  // No «Incident reports» entry: the report form and «My reports» open from the top bar (route /quality/my-reports stays).
+  // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
   {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
