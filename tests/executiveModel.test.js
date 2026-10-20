@@ -15,7 +15,7 @@ describe('executive dashboard periods', () => {
     expect(periodRange({ period: '12m' }, today)).toEqual({ from: '2025-11-01', to: '2026-10-19' })
     expect(periodRange({ period: 'year' }, today)).toEqual({ from: '2026-01-01', to: '2026-10-19' })
     expect(periodRange({ period: 'custom', from: '2026-03-10', to: '2026-02-01' }, today)).toEqual({ from: '2026-02-01', to: '2026-03-10' })
-    expect(periodRange({ period: 'nonsense' }, today)).toEqual({ from: '2026-08-01', to: '2026-10-19' })
+    expect(periodRange({ period: 'nonsense' }, today)).toEqual({ from: '2026-01-01', to: '2026-10-19' })
   })
   it('compares with the same calendar span before, or the same number of days for custom dates', () => {
     expect(previousRange({ from: '2026-10-01', to: '2026-10-19' }, 'month')).toEqual({ from: '2026-09-01', to: '2026-09-19' })
@@ -25,7 +25,9 @@ describe('executive dashboard periods', () => {
     expect(shiftMonths('2026-03-31', 1)).toBe('2026-02-28')
   })
   it('keeps the filters in the URL query, defaults left out', () => {
-    expect(filtersToQuery({ period: '3m', department: '', compare: true })).toBe('')
+    expect(filtersToQuery({ period: 'year', department: '', compare: true })).toBe('')
+    expect(filtersToQuery({ period: '3m', department: '', compare: true })).toBe('?period=3m')
+    expect(parseFilters('', { period: 'custom', from: '2026-04-01', to: '2026-06-30' })).toEqual({ period: 'custom', from: '2026-04-01', to: '2026-06-30', department: '', compare: true })
     const query = filtersToQuery({ period: 'custom', from: '2026-01-01', to: '2026-02-01', department: 'd1', compare: false })
     expect(parseFilters(query)).toEqual({ period: 'custom', from: '2026-01-01', to: '2026-02-01', department: 'd1', compare: false })
     expect(parseFilters('?period=year&from=2026-01-01')).toEqual({ period: 'year', from: '', to: '', department: '', compare: true })

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { readLocalValue, writeLocalValue } from '../storage/browserStorage'
 import { productStringsEl, stringsEl } from './stringsEl.js'
+import { roleLabelForKey } from '../permissions/roleLabels.js'
 
 const LanguageContext = createContext(null)
 
@@ -14,6 +15,9 @@ export const productStrings = { el: productStringsEl }
 // cross-domain key collisions this dictionary has repeatedly run into as flat
 // generic words (e.g. 'room', 'source', 'scope') get reused by unrelated features.
 function lookupTranslation(key, language) {
+  // Role names have one source for every screen: roleLabels.js.
+  const roleName = roleLabelForKey(key, language)
+  if (roleName) return roleName
   const path = key.split('.')
   const read = (dict) => path.reduce((acc, part) => acc?.[part], dict)
   return read(productStrings[language]) ?? read(strings[language]) ?? read(productStrings.el) ?? read(strings.el) ?? key

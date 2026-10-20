@@ -33,7 +33,7 @@ export const platformHelp={
    ['Νέο Demo','Ορίζετε υποψήφιο οργανισμό, υπεύθυνο επικοινωνίας, email πρόσκλησης και διάρκεια. Η προεπιλεγμένη διάρκεια ορίζεται στις Ρυθμίσεις Πλατφόρμας.'],
    ['Μετατροπή','Όταν ο υποψήφιος γίνει πελάτης, το Demo μετατρέπεται σε πραγματικό οργανισμό από την καρτέλα του.']
   ],steps:['Δημιουργήστε το Demo.','Παρακολουθήστε τη λήξη του.','Μετατρέψτε ή διαγράψτε το όταν ολοκληρωθεί.']},
-  '/platform#reports':{title:'Ανάλυση Πλατφόρμας',summary:'Συγκεντρωτικοί δείκτες σε επίπεδο πλατφόρμας.',audience:audienceEl,chapters:[
+  '/platform#reports':{title:'Αναφορές πλατφόρμας',summary:'Συγκεντρωτικοί δείκτες σε επίπεδο πλατφόρμας.',audience:audienceEl,chapters:[
    ['Συγκεντρωτικά δεδομένα','Η ανάλυση δείχνει μόνο συγκεντρωτικούς αριθμούς ανά οργανισμό και περίοδο, χωρίς ατομικά κλινικά στοιχεία.'],
    ['Φίλτρα','Επιλέξτε οργανισμό, περίοδο και ενότητα για να συγκρίνετε δραστηριότητα και τάσεις.']
   ],steps:['Επιλέξτε περίοδο και οργανισμούς.','Ελέγξτε τα γραφήματα.','Εκτυπώστε ή εξαγάγετε την αναφορά.']},
@@ -67,7 +67,7 @@ export const platformHelp={
    ['New demo','Set the prospect, contact person, invitation email and duration. The default duration is set in Platform Settings.'],
    ['Conversion','When the prospect becomes a customer, convert the demo into a real organization from its record.']
   ],steps:['Create the demo.','Track its expiry.','Convert or delete it when done.']},
-  '/platform#reports':{title:'Platform Analysis',summary:'Aggregated indicators at platform level.',audience:audienceEn,chapters:[
+  '/platform#reports':{title:'Platform reports',summary:'Aggregated indicators at platform level.',audience:audienceEn,chapters:[
    ['Aggregated data','Analysis shows only aggregated counts per organization and period, never individual clinical records.'],
    ['Filters','Choose organization, period and module to compare activity and trends.']
   ],steps:['Choose period and organizations.','Review the charts.','Print or export the report.']},

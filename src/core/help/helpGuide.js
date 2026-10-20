@@ -317,10 +317,10 @@ export const guideContent = {
     },
     executive: {
       what: l('Μία οθόνη για τον Διευθυντή: όλοι οι κρίσιμοι δείκτες του νοσοκομείου με φίλτρα περιόδου και τμήματος, τάσεις, σύγκριση και αναφορά σε PDF.', 'One screen for the Director: every key measure of the hospital with period and department filters, trends, comparison and a PDF report.'),
-      users: l('Διευθυντής Νοσοκομείου, Διαχειριστής Νοσοκομείου.', 'Hospital Director, Hospital Admin.'),
+      users: l('Διοικητής / Γενικός Διευθυντής, Διαχειριστής Νοσοκομείου.', 'Hospital Director (CEO), Hospital Admin.'),
       needs: ['analysis'],
       analysis: l('Διαβάζει τα ίδια μεγέθη με την Ανάλυση, συνοπτικά.', 'Reads the same measures as Analysis, in summary.'),
-      start: l('Δώστε σε έναν χρήστη τον ρόλο «Διευθυντής Νοσοκομείου».', 'Give a user the “Hospital Director” role.'),
+      start: l('Δώστε σε έναν χρήστη τον ρόλο «Διοικητής / Γενικός Διευθυντής».', 'Give a user the “Hospital Director (CEO)” role.'),
     },
     occupational_health: {
       what: l('Επισκέψεις Ιατρού Εργασίας, εμβολιασμοί και επανέλεγχοι εργαζομένων. Τα ιατρικά στοιχεία μένουν χωριστά από το HR.', 'Occupational physician visits, vaccinations and employee follow-ups. Medical data stays separate from HR.'),

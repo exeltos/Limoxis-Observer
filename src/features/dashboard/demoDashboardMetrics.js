@@ -13,6 +13,9 @@ import { employeeRows } from '../employees/employeeDemoData'
 import { demoPatientDayPeriods } from '../management/managementData'
 import { pendingActionsOf } from './dashboardTasks'
 import { isCommunicated } from '../surveillance/recordAttention'
+import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
+import { interviewsDemoState } from '../interviews/interviewsDemoData'
+import { OPEN_STATUSES as OPEN_CANDIDATE_STATUSES } from '../interviews/interviewsModel'
 
 const CLOSED = ['completed', 'closed', 'cancelled']
 const isOpen = status => !CLOSED.includes(status)
@@ -91,6 +94,22 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     antimicrobialTherapies: s.antimicrobial?.total,
     administrations: s.antimicrobial?.administrations,
   }
+  // The administrator's home: suppliers, kitchen (last 30 days) and interviews.
+  const monthAgo = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10)
+  const food = collectDemoDomainMetrics({ from: monthAgo, to: today }, false, 0).qualityFood || {}
+  const candidates = interviewsDemoState().candidates || []
+  const nowIso = now.toISOString()
+  Object.assign(metrics, {
+    expiredCertificates: food.certificatesExpired ?? 0,
+    expiringCertificates: food.certificatesExpiring ?? 0,
+    supplierRenewalsToApprove: 0,
+    supplierRenewalsToReview: 0,
+    kitchenOutOfLimits30d: (food.receiptsOut ?? 0) + (food.thermalOut ?? 0),
+    kitchenUnverifiedDays: Math.max(0, (food.productionDays ?? 0) - (food.productionDaysVerified ?? 0)),
+    openCandidates: candidates.filter(row => OPEN_CANDIDATE_STATUSES.includes(row.status)).length,
+    newCandidates: candidates.filter(row => row.status === 'new').length,
+    upcomingInterviews: candidates.flatMap(row => row.interviews || []).filter(row => row.status === 'scheduled' && row.scheduledAt >= nowIso).length,
+  })
   metrics.pendingActions = pendingActionsOf(metrics)
   return { metrics, snapshot }
 }

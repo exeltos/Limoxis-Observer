@@ -28,7 +28,7 @@ describe('route authorization alignment',()=>{
   expect(committeeRoute).toContain('loadCommitteeApprovalDeepLinkAsync')
  })
  it('exposes active membership state used by the tenant-aware HomeRoute',()=>{
-  expect(app).toContain('const {activeMembershipId,isDemo,loading}=useTenant()')
+  expect(app).toContain('const {activeMembershipId,isDemo,loading,role}=useTenant()')
   expect(tenantContext).toContain('activeMembershipId,')
  })
  it('guards organization analysis with its dedicated capability',()=>{

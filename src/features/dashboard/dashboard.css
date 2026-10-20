@@ -33,3 +33,17 @@
 .first-steps-guide{margin:10px 0 0;font-size:11px;color:var(--lo-color-muted)}
 .dashboard-executive-link{margin-bottom:14px}
 .dashboard-executive-link .lo-card-header{margin:0!important;padding:0!important;border-bottom:0!important;align-items:center!important}
+.dashboard-card .task-row .task-count.urgent{background:#fde8e8;color:#a32121}
+/* The administrator's home: one status line per module */
+.dashboard-modules{margin-bottom:14px}
+.dashboard-module-rows{display:grid;gap:6px}
+.dashboard-module-row{display:grid;grid-template-columns:10px 150px minmax(0,1fr) 16px;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid #eef2f5;border-radius:9px;background:#fff;color:#34485e;font:inherit;text-align:left;cursor:pointer}
+.dashboard-module-row:hover{background:#f7fafc}
+.dashboard-module-row>strong{font-size:13px;color:#1d3a52}
+.dashboard-module-dot{width:9px;height:9px;border-radius:50%;background:#1baf7a}
+.dashboard-module-row.tone-warning .dashboard-module-dot{background:#eda100}
+.dashboard-module-row.tone-danger .dashboard-module-dot{background:#e34948}
+.dashboard-module-figures{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:#5f6e7c}
+.dashboard-module-figures b{color:#1d3a52}
+.dashboard-module-figures .tone-warning b{color:#8a5a00}
+.dashboard-module-figures .tone-danger b{color:#a32121}

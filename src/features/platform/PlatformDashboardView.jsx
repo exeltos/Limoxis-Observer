@@ -1,7 +1,9 @@
-import { ArrowRight, Building2, CalendarClock, FlaskConical, PauseCircle, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Activity, ArrowRight, Building2, CalendarClock, FlaskConical, PauseCircle, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { MetricCard } from '../../design-system/MetricCard'
 import { BarList, DonutChart } from '../analysis/AnalysisCharts'
+import { loadHospitalHealth } from './platformHealthService'
 import './platformDashboard.css'
 
 const DAY=86400000
@@ -25,6 +27,18 @@ function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate})
   </section>
 }
 
+const sinceText=(value,tx)=>{if(!value)return tx('Καμία καταγραφή','No activity recorded');const minutes=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/60000));if(minutes<60)return tx(`πριν ${minutes} λεπτά`,`${minutes} min ago`);const hours=Math.round(minutes/60);if(hours<48)return tx(`πριν ${hours} ώρες`,`${hours} h ago`);return tx(`πριν ${Math.round(hours/24)} ημέρες`,`${Math.round(hours/24)} days ago`)}
+// One line per hospital: when it last recorded anything (saves, imports) and its errors of the last 24 hours.
+function HospitalHealth({tx,organizations,onNavigate}){
+  const [health,setHealth]=useState(null)
+  useEffect(()=>{let active=true;loadHospitalHealth().then(data=>{if(active)setHealth(data)}).catch(()=>{if(active)setHealth({})});return()=>{active=false}},[])
+  const hospitals=(organizations||[]).filter(o=>!o.is_demo&&o.status!=='archived')
+  if(!hospitals.length)return null
+  return <section className="platform-dashboard-panel platform-hospital-health"><header><div><h3>{tx('Υγεία νοσοκομείων','Hospital health')}</h3><p>{tx('Τελευταία καταγραφή (αποθηκεύσεις, εισαγωγές) και σφάλματα του τελευταίου 24ώρου, από το ιστορικό της πλατφόρμας.','Last recorded activity (saves, imports) and errors of the last 24 hours, from the platform logs.')}</p></div></header>
+    <div className="platform-health-list">{hospitals.map(o=>{const item=health?.[o.id]||{};const errors=item.errors24h||0;return <button type="button" key={o.id} className={`platform-health-row tone-${health==null?'neutral':errors?'danger':item.lastActivityAt?'good':'neutral'}`} onClick={()=>onNavigate(`/platform#organizations?organization=${o.id}&tab=details`)}><span className="platform-health-dot" aria-hidden="true"/><strong>{o.name}</strong><small><Activity size={13} aria-hidden="true"/>{health==null?'…':sinceText(item.lastActivityAt,tx)}</small><em>{health==null?'—':errors?tx(`${errors} σφάλματα / 24ώρο`,`${errors} errors / 24 h`):tx('Χωρίς σφάλματα / 24ώρο','No errors / 24 h')}</em><ArrowRight size={15} aria-hidden="true"/></button>})}</div>
+  </section>
+}
+
 export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate}) {
   const inactive=Math.max(0,organizations.length-activeOrganizations)
   // The overview: the four counts (each opening its registry), what needs action, then the charts.
@@ -39,6 +53,7 @@ export function PlatformDashboardView({tx,organizations,activeOrganizations,acti
       </div>
 
       <ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
+      <HospitalHealth tx={tx} organizations={organizations} onNavigate={onNavigate}/>
 
       <div className="platform-dashboard-charts">
         <section className="platform-dashboard-panel"><header><div><h3>{tx('Κατάσταση οργανισμών','Organization status')}</h3><p>{tx('Ενεργοί, σε παύση και προσβάσεις demo.','Active, suspended and demo access.')}</p></div></header><div className="platform-dashboard-chart-body"><DonutChart en={tx('el','en')==='en'} centerLabel={tx('σύνολο','total')} rows={[[tx('Ενεργοί','Active'),activeOrganizations],[tx('Ανενεργοί / σε παύση','Inactive / suspended'),inactive],['Demo',loadingStats?0:activeDemos.length]]}/></div></section>

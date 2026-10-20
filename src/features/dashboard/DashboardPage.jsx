@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Activity, ArrowRight, Award, Gauge, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
+import { Activity, ArrowRight, Award, Gauge, Gavel, LayoutGrid, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -18,6 +18,7 @@ import { DonutChart, TrendChart } from '../analysis/AnalysisCharts'
 import { loadAnalysisSnapshot } from '../platform/platformService'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
+import { decisionItems, moduleStatusRows } from './adminHomeModel'
 
 function hospitalAdminWorkspace(english){
   return english?{
@@ -82,7 +83,9 @@ const TILES={
   severeOpenIncidents:[TriangleAlert,'/quality'],overdueCapa:[Clock,'/quality'],
 }
 
-const CHART_ROLES=new Set([ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER,ROLES.LABORATORY,ROLES.QUALITY_MANAGER])
+// The clinical charts belong to the clinical homes; the administrator's home shows
+// what needs a decision and a status line per module instead.
+const CHART_ROLES=new Set([ROLES.INFECTION_CONTROL_LEAD,ROLES.INFECTION_CONTROL_MEMBER,ROLES.LABORATORY,ROLES.QUALITY_MANAGER])
 
 function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Επιτήρηση','Surveillance'),s.surveillance],[tr('Εργαστήριο','Laboratory'),s.laboratory],[tr('Πρόληψη','Prevention'),s.prevention],[tr('Έλεγχοι','Controls'),s.controls],[tr('Ποιότητα','Quality'),s.quality],[tr('Εκπαίδευση','Training'),s.training]].filter(([,value])=>Number(value)>0)}
 
@@ -122,6 +125,10 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   const kpis=roleRows.length?roleRows:workspace.kpis.map(([label])=>[label,'—'])
   const tasks=nctx.operational
+  const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
+  const canOpen=to=>menuPaths.has(to)
+  const decisions=adminHome?decisionItems(values,{moduleEnabled,canOpen,language}):[]
+  const moduleRows=adminHome?moduleStatusRows(values,{moduleEnabled,canOpen,language}):[]
   // Tiles without a screen of their own lead to the card listing what they count.
   const showCard=id=>()=>{const card=document.getElementById(id);card?.scrollIntoView({behavior:'smooth',block:'start'});card?.focus({preventScroll:true})}
   const cardOf={pendingActions:'dashboard-tasks',unread:'dashboard-announcements'}
@@ -137,15 +144,21 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
     {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Πίνακας Διοίκησης','Executive dashboard')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
     <div className="dashboard-workspace-v2">
-      <Card className="dashboard-card" id="dashboard-tasks" tabIndex={-1}>
+      {adminHome?<Card className="dashboard-card dashboard-decisions" id="dashboard-tasks" tabIndex={-1}>
+        <CardHeader icon={Gavel} title={tr('Χρειάζεται απόφαση','Needs a decision')} subtitle={tr('Εγκρίσεις σε αναμονή, ληγμένα και εκπρόθεσμα — τα σοβαρότερα πρώτα.','Pending approvals, expired and overdue items — the most serious first.')}/>
+        {decisions.length?<div className="task-list">{decisions.map(item=><button className="task-row" key={item.key} onClick={()=>navigate(item.to)}><span className={`priority ${item.urgent?'high':'medium'}`}/><span className="task-copy"><strong>{item.title}</strong></span><b className={`task-count${item.urgent?' urgent':''}`}>{item.count}</b><ArrowRight size={17}/></button>)}</div>:<div className="inline-empty">{tr('Τίποτα δεν περιμένει απόφασή σας αυτή τη στιγμή.','Nothing is waiting for your decision right now.')}</div>}
+      </Card>:<Card className="dashboard-card" id="dashboard-tasks" tabIndex={-1}>
         <CardHeader icon={ListChecks} title={workspace.actionTitle??tr('Εργασίες προτεραιότητας','Priority work')} subtitle={tr('Ό,τι χρειάζεται ενέργεια από εσάς.','What needs your action.')}/>
         {tasks.length?<div className="task-list">{tasks.map((task,index)=><button className="task-row" key={task.id} disabled={!task.to} onClick={()=>{if(!task.to)return;nctx.markRead(task.id);navigate(task.to)}}><span className={`priority ${index===0?'high':'medium'}`}/><span className="task-copy"><strong>{task.title}</strong>{task.count!=null&&<small>{task.count} {tr('σε εκκρεμότητα','pending')}</small>}</span>{task.count!=null&&<b className="task-count">{task.count}</b>}{task.to&&<ArrowRight size={17}/>}</button>)}</div>:<div className="inline-empty">{tr('Δεν υπάρχει κάτι σε εκκρεμότητα αυτή τη στιγμή.','Nothing is pending right now.')}</div>}
-      </Card>
+      </Card>}
       <Card className="dashboard-card" id="dashboard-announcements" tabIndex={-1}>
         <CardHeader icon={Megaphone} title={tr('Ενημερώσεις & ανακοινώσεις','Updates & announcements')} subtitle={nctx.unreadCount?`${nctx.unreadCount} ${tr('μη αναγνωσμένες ειδοποιήσεις','unread notifications')}`:tr('Όλα διαβασμένα','All caught up')} actions={nctx.unreadCount>0&&<button type="button" className="text-button" onClick={nctx.markAllRead}><Bell size={14}/>{tr('Σήμανση όλων','Mark all read')}</button>}/>
         {announcements.length?<div className="dashboard-announcements">{announcements.map(a=><button key={a.id} onClick={()=>nctx.markRead(a.id)}><span className={`announcement-icon ${a.priority}`}><Megaphone size={15}/></span><span><strong>{a.title}</strong><small>{a.message}</small><em>{roleTitleText(a.createdBy,language)}</em></span>{!nctx.notificationItems.find(x=>x.id===a.id)?.read&&<i/>}</button>)}</div>:<div className="inline-empty">{tr('Οι νέες ενημερώσεις του οργανισμού θα εμφανίζονται εδώ.','New organization updates will appear here.')}</div>}
       </Card>
     </div>
+    {moduleRows.length>0&&<Card className="dashboard-card dashboard-modules"><CardHeader icon={LayoutGrid} title={tr('Κατάσταση ενοτήτων','Module status')} subtitle={tr('Μία γραμμή ανά ενότητα του νοσοκομείου· πατήστε για να την ανοίξετε.','One line per module of the hospital; click to open it.')}/>
+      <div className="dashboard-module-rows">{moduleRows.map(row=><button type="button" key={row.module} className={`dashboard-module-row tone-${row.status}`} onClick={()=>navigate(row.to)}><span className="dashboard-module-dot" aria-hidden="true"/><strong>{row.title}</strong><span className="dashboard-module-figures">{row.values.map(item=><span key={item.key} className={item.tone?`tone-${item.tone}`:''}><b>{item.value==null?'—':item.value}</b> {item.label}</span>)}</span><ArrowRight size={15}/></button>)}</div>
+    </Card>}
     {hasCharts&&<div className="dashboard-charts">
       <Card className="dashboard-card dashboard-chart-wide"><CardHeader icon={Activity} title={tr('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')} subtitle={tr('Τελευταίοι 12 μήνες · περάστε το ποντίκι για τιμές.','Last 12 months · hover for values.')}/><TrendChart points={monthly} en={english} label={tr('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')}/></Card>
       <Card className="dashboard-card"><CardHeader icon={PieChart} title={donut.title} subtitle={donut.subtitle}/><DonutChart rows={donut.rows} en={english} centerLabel={donut.center}/></Card>

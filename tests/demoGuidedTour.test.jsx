@@ -160,7 +160,7 @@ describe('who is who', () => {
     render(<LanguageProvider><HelpRolesView/></LanguageProvider>)
     const rows = screen.getAllByRole('row').slice(1)
     expect(rows).toHaveLength(14)
-    const hr = rows.find(row => within(row).queryByText('Γραφείο Προσωπικού'))
+    const hr = rows.find(row => within(row).queryByText('Γραφείο Προσωπικού (HR)'))
     expect(hr).toHaveTextContent('Μητρώο εργαζομένων')
     expect(hr).toHaveTextContent('Σενάρια Demo: Καρτέλα εργαζομένου · Αξιολόγηση απόδοσης')
     // What it sees is its real menu.
