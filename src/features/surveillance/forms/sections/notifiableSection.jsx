@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Megaphone } from 'lucide-react'
+import { Megaphone, Plus } from 'lucide-react'
+import { Button } from '../../../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../../../design-system/ObserverDialog'
 import { Field } from '../../../../design-system/Field'
 import { ManualDateField } from '../../../../design-system/ManualDateField'
@@ -9,7 +10,9 @@ import { useFeedback } from '../../../../core/feedback/FeedbackContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { notifiableFindings } from '../../../reporting/notifiableFindings'
-import { loadRecordNotificationReports, saveNotificationReport, updateNotificationReport } from '../../../reporting/notificationReportsService'
+import { loadRecordNotificationReports, saveNotificationReport, updateNotificationReport, createClinicalNotificationReport } from '../../../reporting/notificationReportsService'
+import { deadlineStatusText, deadlineWords, eodyEntry, eodyEntryByName } from '../../../reporting/eodyCatalogue'
+import { NotifiablePicker } from './notifiablePicker'
 import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { PrefilledList } from '../PrefilledList'
@@ -36,11 +39,13 @@ export function notifiableRows(ctx, reports = []) {
     sample: finding.sample.sampleCode || finding.sample.id,
     organism: finding.organism,
     date: finding.date,
+    start: finding.date,
+    entry: finding.entry,
     status: finding.report?.status || 'pending',
   }))
   for (const report of reports)
     if (!seen.has(report.findingKey) && report.patientRecordId)
-      rows.push({ key: report.id || report.findingKey, finding: null, report, title: report.disease || ctx.t('episodeForms.notifiable.title'), sample: '', organism: '', date: String(report.createdAt || '').slice(0, 10), status: report.status || 'pending' })
+      rows.push({ key: report.id || report.findingKey, finding: null, report, title: report.disease || ctx.t('episodeForms.notifiable.title'), sample: '', organism: '', date: String(report.createdAt || '').slice(0, 10), start: report.createdAt, entry: eodyEntry(report.diseaseCode) || eodyEntryByName(report.disease), status: report.status || 'pending' })
   return rows
 }
 
@@ -105,33 +110,58 @@ function NotifiableDialog({ ctx, row, onClose, onSaved }) {
 }
 
 function NotifiableSection({ ctx, section, reload }) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const { fmtDate } = ctx
+  const { notify } = useFeedback()
   const [openRow, setOpenRow] = useState(null)
+  const [picking, setPicking] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const base = episodeContext(ctx)
+  async function createReport(entry) {
+    setCreating(true)
+    try {
+      await createClinicalNotificationReport(ctx.organizationId, { patientRecordId: base.patientRecordId || (ctx.isDemo ? ctx.patient?.id : ''), departmentId: base.departmentId, entry }, { isDemo: ctx.isDemo })
+      notify(t('episodeForms.notifiable.saved'), 'success')
+      setPicking(false)
+      reload()
+    } catch (error) {
+      notify(error?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
+    } finally {
+      setCreating(false)
+    }
+  }
   const rows = useMemo(() => notifiableRows(ctx, section.value || []), [ctx, section.value])
   const pending = rows.filter(row => row.status === 'pending').length
   const summary = rows.length ? (pending ? `${pending} ${t('episodeForms.status.pending').toLowerCase()}` : t('episodeForms.status.done').toLowerCase()) : t('episodeForms.notifiable.none')
   return (
-    <FormSection id="notifiable" title={t('episodeForms.notifiable.title')} icon={Megaphone} defaultOpen={rows.length > 0} summary={summary} needsAttention={pending > 0}>
+    <FormSection id="notifiable" title={t('episodeForms.notifiable.title')} icon={Megaphone} defaultOpen={rows.length > 0} summary={summary} needsAttention={pending > 0}
+      actions={
+        <Button variant="secondary" onClick={() => setPicking(true)}>
+          <Plus size={14} aria-hidden="true" />
+          {t('episodeForms.notifiable.new')}
+        </Button>
+      }
+    >
       {rows.length === 0 ? (
         <FormEmpty>{t('episodeForms.notifiable.empty')}</FormEmpty>
       ) : (
         <FormRows label={t('episodeForms.notifiable.title')}>
           {rows.map(row => {
             const done = row.status !== 'pending'
+            const waiting = row.status === 'pending' && row.entry ? deadlineStatusText(row.entry.deadline, row.start, { language }) : { overdue: false, text: '' }
             const statusDetail =
               row.status === 'notified'
                 ? [t('episodeForms.notifiable.notified'), row.report?.notifiedAt && fmtDate(row.report.notifiedAt), row.report?.reference].filter(Boolean).join(' · ')
                 : row.status === 'not_required'
                   ? t('episodeForms.notifiable.notRequired')
-                  : t('episodeForms.notifiable.notSubmitted')
+                  : [t('episodeForms.notifiable.notSubmitted'), waiting.text].filter(Boolean).join(' · ')
             return (
               <FormRow
                 key={row.key}
                 title={row.title}
                 badge={row.status === 'pending' ? { label: t('episodeForms.notifiable.signal'), tone: 'danger' } : null}
-                detail={[row.sample && `${t('episodeForms.notifiable.sample')} ${row.sample}`, row.organism].filter(Boolean).join(' · ')}
-                status={done ? FORM_STATUS.DONE : FORM_STATUS.PENDING}
+                detail={[row.entry ? deadlineWords(row.entry.deadline, language) : row.finding?.rule.nationalPlan ? t('episodeForms.notifiable.nationalPlan') : '', row.sample && `${t('episodeForms.notifiable.sample')} ${row.sample}`, row.organism].filter(Boolean).join(' · ')}
+                status={done ? FORM_STATUS.DONE : waiting.overdue ? FORM_STATUS.OVERDUE : FORM_STATUS.PENDING}
                 statusDetail={statusDetail}
                 date={row.date ? fmtDate(row.date) : ''}
                 dateLabel={row.date ? t('episodeForms.notifiable.findingDate') : ''}
@@ -141,6 +171,7 @@ function NotifiableSection({ ctx, section, reload }) {
           })}
         </FormRows>
       )}
+      {picking && <NotifiablePicker busy={creating} onPick={createReport} onClose={() => setPicking(false)} />}
       {openRow && (
         <NotifiableDialog
           ctx={ctx}
@@ -179,6 +210,7 @@ export const notifiableSection = {
       list: rows.map(row =>
         [
           row.title,
+          row.entry && deadlineWords(row.entry.deadline, ctx.language),
           row.date && ctx.fmtDate(row.date),
           row.status === 'notified' ? ctx.t('episodeForms.notifiable.notified') : row.status === 'not_required' ? ctx.t('episodeForms.notifiable.notRequired') : ctx.t('episodeForms.status.pending'),
           row.report?.reference,

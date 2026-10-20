@@ -10,6 +10,7 @@ import { loadPatients } from '../patients/patientsService'
 import { runDataQualityChecks, SEVERITY_ORDER } from './dataQuality'
 import { buildEarsNetRows, earsNetIsolates, EARS_NET_PATHOGENS, firstIsolates, toCsv } from './earsNet'
 import { notifiableFindings, notificationStatus } from './notifiableFindings'
+import { deadlineStatusText, deadlineWords } from './eodyCatalogue'
 import { loadNotificationReports, saveNotificationReport } from './notificationReportsService'
 import './ReportingPanel.css'
 
@@ -39,16 +40,24 @@ function QualityChecks({ checks, tx }) {
   </section>
 }
 
+// The deadline of a finding in words, and how much of it is left while it is still pending.
+function findingDeadline(finding, tx, en) {
+  if (!finding.entry) return { label: finding.rule.nationalPlan ? tx('Εθνικό σχέδιο', 'National plan') : tx('Εκτός καταλόγου ΕΟΔΥ', 'Not in the EODY catalogue'), text: '', overdue: false }
+  const status = notificationStatus(finding) === 'pending' ? deadlineStatusText(finding.entry.deadline, finding.date, { language: en ? 'en' : 'el' }) : { text: '', overdue: false }
+  return { label: deadlineWords(finding.entry.deadline, en ? 'en' : 'el'), ...status }
+}
+
 function NotificationRow({ finding, tx, en, onSave, readOnly }) {
   const [draft, setDraft] = useState({ status: notificationStatus(finding), reference: finding.report?.reference || '', notifiedAt: finding.report?.notifiedAt || '' })
   const [saving, setSaving] = useState(false)
   const dirty = draft.status !== notificationStatus(finding) || draft.reference !== (finding.report?.reference || '') || draft.notifiedAt !== (finding.report?.notifiedAt || '')
   const save = async () => { setSaving(true); try { await onSave(finding, draft) } finally { setSaving(false) } }
   const id = finding.findingKey.replace(/[^a-zA-Z0-9]/g, '-')
+  const deadline = findingDeadline(finding, tx, en)
   return <tr className={`reporting-status-${notificationStatus(finding)}`}>
     <td>{fmtDate(finding.date)}</td>
     <td><Link to={`/laboratory/${encodeURIComponent(finding.sample.id)}`}>{finding.sample.id}</Link><small>{en ? finding.sample.patientEn || finding.sample.patient : finding.sample.patient}</small></td>
-    <td><strong>{en ? finding.rule.en : finding.rule.el}</strong><small>{finding.result.organism}</small></td>
+    <td><strong>{en ? finding.rule.en : finding.rule.el}</strong><small>{finding.result.organism}</small><small className={deadline.overdue ? 'reporting-overdue' : undefined}>{deadline.label}{deadline.text && ` · ${deadline.text}`}</small></td>
     <td><label className="reporting-sr" htmlFor={`${id}-status`}>{tx('Κατάσταση', 'Status')}</label><select id={`${id}-status`} disabled={readOnly} value={draft.status} onChange={event => setDraft(value => ({ ...value, status: event.target.value }))}><option value="pending">{tx('Εκκρεμεί', 'Pending')}</option><option value="notified">{tx('Δηλώθηκε', 'Notified')}</option><option value="not_required">{tx('Δεν απαιτείται', 'Not required')}</option></select></td>
     <td>{draft.status === 'notified' ? <ManualDateField disabled={readOnly} className="reporting-date" label={tx('Ημερομηνία δήλωσης', 'Notification date')} value={draft.notifiedAt} onChange={notifiedAt => setDraft(value => ({ ...value, notifiedAt }))}/> : '—'}</td>
     <td><label className="reporting-sr" htmlFor={`${id}-ref`}>{tx('Αριθμός πρωτοκόλλου', 'Reference number')}</label><input id={`${id}-ref`} disabled={readOnly} value={draft.reference} placeholder={tx('Αρ. πρωτοκόλλου', 'Reference')} onChange={event => setDraft(value => ({ ...value, reference: event.target.value }))}/></td>

@@ -28,6 +28,7 @@
 .reporting-table td{border-top:1px solid #edf0f4;padding:8px 10px;vertical-align:middle;color:#26394e}
 .reporting-table td small{display:block;color:#5b6b7b;margin-top:2px}
 .reporting-table a{font-weight:700;color:#1f5f93}
+.reporting-table td small.reporting-overdue{color:#b3261e;font-weight:700}
 .reporting-table select,.reporting-table input,.reporting-form input{height:32px;border:1px solid #d3dce5;border-radius:7px;padding:0 8px;background:#fff;font:inherit;font-size:12px}
 .reporting-table input{width:130px}
 .reporting-status-pending td:first-child{box-shadow:inset 3px 0 0 #c27c0e}

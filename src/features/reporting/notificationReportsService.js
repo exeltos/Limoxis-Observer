@@ -59,6 +59,32 @@ export async function loadRecordNotificationReports(organizationId, { sampleReco
   return (data || []).map(mapRow)
 }
 
+// A new clinical notification of a patient, picked from the ΕΟΔΥ catalogue: a pending report
+// (disease_code is the catalogue id; the deadline itself is read from the catalogue). The database
+// column notification_deadline only knows '24h' and 'week', so «Αμέσως» is left empty there.
+export async function createClinicalNotificationReport(organizationId, { patientRecordId, departmentId = null, entry }, { isDemo = false } = {}) {
+  const now = new Date().toISOString()
+  const key = `clinical|${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
+  if (isDemo || !supabase) {
+    const report = { id: key, findingKey: key, status: 'pending', notifiedAt: '', reference: '', notes: '', updatedAt: now, sampleId: '', patientRecordId, disease: entry.el, diseaseCode: entry.id, createdAt: now }
+    demoReports.set(key, report)
+    return report
+  }
+  const { data, error } = await supabase.from('notifiable_disease_reports').insert({
+    organization_id: organizationId,
+    finding_key: key,
+    source: 'clinical',
+    patient_id: patientRecordId,
+    ...(departmentId ? { department_id: departmentId } : {}),
+    disease_code: entry.id,
+    disease_label: entry.el,
+    status: 'pending',
+    notification_deadline: { '24h': '24h', weekly: 'week' }[entry.deadline] || null,
+  }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at').single()
+  if (error) throw error
+  return mapRow(data)
+}
+
 // A clinical notification (no laboratory finding) is updated by its id.
 export async function updateNotificationReport(organizationId, id, draft, { isDemo = false } = {}) {
   const patch = { status: draft.status, notified_at: draft.status === 'notified' ? (draft.notifiedAt || new Date().toISOString().slice(0, 10)) : null, reference: draft.reference || null, notes: draft.notes || null, updated_at: new Date().toISOString() }
