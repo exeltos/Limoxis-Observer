@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   BedDouble,
   CheckCircle2,
+  HeartPulse,
   Microscope,
   RefreshCcw,
   ShieldCheck,
@@ -105,9 +106,12 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
   ].map(stage => ({ ...stage, locked: !unlocked[stage.id] }))
 }
 
-export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect }) {
+// extraStages: the sections of the protocols started on the episode (N3), shown
+// after the clinical assessment only once a protocol exists.
+export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [] }) {
   const { language } = useLanguage()
-  const stages = buildSurveillanceJourneyStages(record, t, fmtDate)
+  const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate)
+  const stages = extraStages.length ? [baseStages[0], ...extraStages, ...baseStages.slice(1)] : baseStages
   const samples = record?.samples || []
   const validatedSamples = samples.filter(sample => Boolean(sample.organism))
   const assessed = Boolean(record?.assessment)
@@ -163,7 +167,8 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
         </div>
       </div>
       <nav
-        className="episode-section-tabs"
+        className={`episode-section-tabs${extraStages.length ? ' has-protocol-tabs' : ''}`}
+        style={extraStages.length ? { '--episode-tab-count': stages.length } : undefined}
         aria-label={language === 'el' ? 'Ενότητες επεισοδίου' : 'Episode sections'}
       >
         {stages.map(stage => (
@@ -188,8 +193,9 @@ export function SurveillanceJourneyGuidance({
   canTherapy,
   canReassess,
   onSelect,
+  extraCues = [],
 }) {
-  const cues = [],
+  const cues = [...extraCues],
     samples = record?.samples || [],
     pendingSamples = samples.filter(sample => !sample.organism)
   if (canAssess && !record?.assessment)
@@ -243,11 +249,11 @@ export function SurveillanceJourneyGuidance({
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
 function EpisodeTab({ stage, active, onSelect }) {
-  const Icon = icons[stage.id] || Activity
+  const Icon = stage.protocol ? HeartPulse : icons[stage.id] || Activity
   return (
     <button
       type="button"
-      className={`episode-section-tab ${active ? 'active' : ''} ${stage.status === 'complete' ? 'complete' : ''} ${stage.locked ? 'locked' : ''}`.trim()}
+      className={`episode-section-tab ${active ? 'active' : ''} ${stage.status === 'complete' ? 'complete' : ''} ${stage.locked ? 'locked' : ''} ${stage.protocol ? 'protocol-tab' : ''}`.trim()}
       disabled={stage.locked}
       title={[stage.label, stage.meta].filter(Boolean).join(' · ')}
       aria-current={active ? 'page' : undefined}

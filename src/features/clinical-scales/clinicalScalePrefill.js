@@ -5,6 +5,7 @@ const FIELD_SOURCES={
  map:['map','mean_arterial_pressure','meanArterialPressure'],
  heartRate:['heartRate','heart_rate','pulse'],
  respiratoryRate:['respiratoryRate','respiratory_rate'],
+ systolicBp:['systolicBp','systolic_bp','systolic'],
  fio2:['fio2','fiO2'],
  pao2:['pao2','paO2'],
  aado2:['aado2','aa_do2'],
@@ -23,7 +24,7 @@ const FIELD_SOURCES={
 
 export function clinicalScalePrefill(scaleKey,{patient,admission,clinicalData,latestLabs,latestVitals}={}){
  const sources=[clinicalData,latestVitals,latestLabs,admission,patient]
- const allowed=scaleKey==='sofa'?['pao2Fio2','platelets','bilirubin','map','gcs','creatinine','urineOutput24h']:scaleKey==='apache-ii'?['temperature','map','heartRate','respiratoryRate','fio2','pao2','aado2','ph','sodium','potassium','creatinine','hematocrit','wbc','gcs']:[]
+ const allowed=scaleKey==='sofa'?['pao2Fio2','platelets','bilirubin','map','gcs','creatinine','urineOutput24h']:scaleKey==='qsofa'?['respiratoryRate','systolicBp','gcs']:scaleKey==='apache-ii'?['temperature','map','heartRate','respiratoryRate','fio2','pao2','aado2','ph','sodium','potassium','creatinine','hematocrit','wbc','gcs']:[]
  return Object.fromEntries(allowed.flatMap(key=>{const value=firstValue(sources,FIELD_SOURCES[key]);return value===undefined?[]:[[key,value]]}))
 }
 

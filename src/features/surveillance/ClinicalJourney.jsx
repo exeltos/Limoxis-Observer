@@ -40,6 +40,19 @@ import {
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { statusTone } from './surveillanceOptions'
+import { useAuditActor } from '../../core/audit/useAuditActor'
+import { ProtocolPanel, ProtocolPickerDialog } from './protocols/ProtocolViews'
+import { TherapyReviewCard } from './protocols/TherapyReviewCard'
+import { protocolCues, protocolStages, useEpisodeProtocols } from './protocols/useEpisodeProtocols'
+import { reviewWindow, showsReviewCard } from './protocols/therapyReview'
+import {
+  changeRecognitionTime,
+  createTherapyReview,
+  finishProtocolRun,
+  recordProtocolStep,
+  setProtocolWeight,
+  startProtocolRun,
+} from './protocols/protocolService'
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -57,8 +70,14 @@ export function CanonicalJourney({
   fmtDateTime,
   permissions,
   initialStage = null,
+  startProtocolRequest = null,
+  onProtocolRequestHandled,
 }) {
   const { notify } = useFeedback()
+  const actor = useAuditActor()
+  // N3: protocols started on the episode and the 48–72 h antimicrobial reviews.
+  const protocols = useEpisodeProtocols(record, { organizationId, isDemo })
+  const [protocolPreset, setProtocolPreset] = useState(null)
   const [stage, setStage] = useState(initialStage || 'assessment')
   useEffect(() => {
     if (initialStage) setStage(initialStage)
@@ -71,6 +90,36 @@ export function CanonicalJourney({
     [reason, setReason] = useState(''),
     [entryDetail, setEntryDetail] = useState(null)
   const active = record.status === 'active'
+  // "Start protocol" from the episode header or from a qSOFA / SOFA prompt.
+  useEffect(() => {
+    if (!startProtocolRequest?.nonce || !active) return
+    setProtocolPreset(startProtocolRequest)
+    setDialog('protocolPicker')
+    onProtocolRequestHandled?.()
+  }, [startProtocolRequest, active, onProtocolRequestHandled])
+  async function runProtocol(work, message) {
+    try {
+      const result = await work()
+      setDialog(null)
+      await protocols.reload()
+      notify(message || t('actionCompleted'), 'success')
+      return result ?? true
+    } catch (error) {
+      notify(error?.message || t('actionFailed'), 'danger')
+      return false
+    }
+  }
+  const protocolOptions = { isDemo, actor }
+  const now = new Date()
+  const extraStages = protocolStages(protocols.runs, t, language, now)
+  const extraCues = protocolCues(protocols.runs, record, protocols.reviews, t, {
+    canProtocol: permissions.canProtocol,
+    canTherapy: permissions.canTherapy,
+    now,
+  })
+  const activeRun = stage.startsWith('protocol:')
+    ? protocols.runs.find(run => `protocol:${run.id}` === stage) || null
+    : null
   const cueDialogs = {
     assessment: 'assessment',
     isolation: 'isolation',
@@ -79,7 +128,7 @@ export function CanonicalJourney({
     reassessment: 'reassessment',
   }
   function openCue(id) {
-    setStage(id)
+    setStage(id === 'therapyReview' ? 'therapy' : id)
     if (cueDialogs[id]) setDialog(cueDialogs[id])
   }
   async function run(work, message) {
@@ -141,6 +190,7 @@ export function CanonicalJourney({
         canTherapy={permissions.canTherapy}
         canReassess={permissions.canReassess}
         onSelect={openCue}
+        extraCues={extraCues}
       />
       <SurveillanceJourneyMap
         record={record}
@@ -148,8 +198,38 @@ export function CanonicalJourney({
         fmtDate={fmtDate}
         activeStage={stage}
         onSelect={setStage}
+        extraStages={extraStages}
       />
       <div className="clinical-data-grid">
+        {activeRun && (
+          <ProtocolPanel
+            run={activeRun}
+            record={record}
+            t={t}
+            language={language}
+            canRecord={permissions.canProtocol}
+            onRecordStep={draft =>
+              runProtocol(() => recordProtocolStep(organizationId, activeRun, draft, protocolOptions))
+            }
+            onChangeTime={async draft => {
+              if (
+                draft.recognizedAt &&
+                !(await runProtocol(() =>
+                  changeRecognitionTime(organizationId, activeRun, draft, protocolOptions),
+                ))
+              )
+                return false
+              if (draft.weightKg !== undefined)
+                return runProtocol(() =>
+                  setProtocolWeight(organizationId, activeRun, draft.weightKg, protocolOptions),
+                )
+              return true
+            }}
+            onFinish={draft =>
+              runProtocol(() => finishProtocolRun(organizationId, activeRun, draft, protocolOptions))
+            }
+          />
+        )}
         {stage === 'assessment' && (
           <StagePanel
             icon={ShieldCheck}
@@ -447,6 +527,26 @@ export function CanonicalJourney({
             ) : (
               <div className="inline-empty">{t('clinicalRecords.noTherapyRecorded')}</div>
             )}
+            {(record.therapy || []).map(therapy => {
+              const window = reviewWindow(therapy, protocols.reviews, now)
+              return showsReviewCard(window) ? (
+                <TherapyReviewCard
+                  key={`review-${therapy.id}`}
+                  record={record}
+                  therapy={therapy}
+                  window={window}
+                  t={t}
+                  actorName={actor?.name}
+                  canReview={permissions.canTherapy}
+                  onSave={draft =>
+                    runProtocol(
+                      () => createTherapyReview(organizationId, record, therapy, draft, protocolOptions),
+                      t('sepsis.review.saved'),
+                    )
+                  }
+                />
+              ) : null
+            })}
           </StagePanel>
         )}
         {stage === 'isolation' && (
@@ -596,6 +696,21 @@ export function CanonicalJourney({
           </StagePanel>
         )}
       </div>
+      {dialog === 'protocolPicker' && (
+        <ProtocolPickerDialog
+          t={t}
+          runs={protocols.runs}
+          preset={protocolPreset}
+          onClose={() => setDialog(null)}
+          onStart={async draft => {
+            const run = await runProtocol(() =>
+              startProtocolRun(organizationId, record, draft, protocolOptions),
+            )
+            if (run?.id) setStage(`protocol:${run.id}`)
+            return run
+          }}
+        />
+      )}
       {dialog === 'assessment' && (
         <AssessmentDialog
           t={t}
