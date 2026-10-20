@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  admissionWindowEnd,
   episodeBelongsToPatient,
   episodesForAdmission,
+  episodesOutsideAdmissions,
+  hospitalDay,
   samplesForAdmission,
   samplesForEpisode,
+  samplesOutsideAdmissions,
 } from './patientRecordScope'
 import { FileClock, FolderOpen, ListTree, UserRound, Stethoscope } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
@@ -129,21 +133,43 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       null
     : null
   const admissionEpisodes = useMemo(
-    () => episodesForAdmission(episodes, selectedAdmission),
-    [episodes, selectedAdmission],
+    () => episodesForAdmission(episodes, selectedAdmission, { admissions }),
+    [episodes, selectedAdmission, admissions],
   )
   const admissionSamples = useMemo(
-    () => samplesForAdmission(laboratory.rows || [], patient, selectedAdmission),
-    [laboratory.rows, selectedAdmission, patient],
+    () => samplesForAdmission(laboratory.rows || [], patient, selectedAdmission, { admissions, episodes }),
+    [laboratory.rows, selectedAdmission, patient, admissions, episodes],
   )
+  // Samples and episodes of the patient that belong to none of their admissions
+  // (e.g. dated before an imported admission): shown apart, never hidden.
+  const outsideSamples = useMemo(
+    () => (patientMode ? samplesOutsideAdmissions(laboratory.rows || [], patient, admissions, { episodes }) : []),
+    [patientMode, laboratory.rows, patient, admissions, episodes],
+  )
+  const outsideEpisodes = useMemo(
+    () => (patientMode ? episodesOutsideAdmissions(episodes, admissions) : []),
+    [patientMode, episodes, admissions],
+  )
+  const outsideTimeline = useMemo(() => {
+    const rows = []
+    for (const episode of outsideEpisodes)
+      rows.push({ type: 'clinicalRecords.outsideEpisode', at: episode.startedAt, detail: [episode.reason, episode.department].filter(Boolean).join(' · ') })
+    for (const sample of outsideSamples)
+      rows.push({
+        type: 'clinicalRecords.outsideSample',
+        at: sample.collectedAt || sample.requestedAt,
+        detail: [sample.typeLabel || sample.type, sample.source, sample.department, sample.organism].filter(Boolean).join(' · '),
+      })
+    return rows.filter(row => row.at)
+  }, [outsideSamples, outsideEpisodes])
   // History of an admission without surveillance: admission, clinical scales,
   // samples and discharge, so the tab is never empty for a hospitalised patient.
   const admissionTimeline = useMemo(() => {
     if (!selectedAdmission) return []
-    const from = String(selectedAdmission.admissionDate || '').slice(0, 10)
-    const to = String(selectedAdmission.dischargeDate || '9999-12-31').slice(0, 10)
+    const from = hospitalDay(selectedAdmission.admissionDate)
+    const to = admissionWindowEnd(selectedAdmission, admissions) || '9999-12-31'
     const within = value => {
-      const day = String(value || '').slice(0, 10)
+      const day = hospitalDay(value)
       return day && (!from || day >= from) && day <= to
     }
     const rows = [
@@ -162,7 +188,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     if (selectedAdmission.dischargeDate)
       rows.push({ type: 'clinicalRecords.timelineDischarge', at: selectedAdmission.dischargeDate, detail: selectedAdmission.department })
     return rows.filter(row => row.at)
-  }, [selectedAdmission, patient, riskFlagRows, admissionSamples])
+  }, [selectedAdmission, admissions, patient, riskFlagRows, admissionSamples])
   const record = patientMode
     ? selectedAdmission
       ? admissionEpisodes.find(row => String(row.id) === String(selectedEpisodeId)) ||
@@ -443,6 +469,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     }
   }
 
+  // "Outside admissions": the patient's samples and episodes of no admission, with
+  // their date and department, under the samples tab and the history.
+  const outsideSection = outsideTimeline.length ? (
+    <Timeline
+      record={{ timeline: outsideTimeline }}
+      title={t('clinicalRecords.outsideAdmissions')}
+      subtitle={t('clinicalRecords.outsideAdmissionsHint')}
+      t={t}
+      language={language}
+      fmtDateTime={value =>
+        /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+      }
+    />
+  ) : null
   const shellSubtitle = selectedAdmission
     ? `${selectedAdmission.department || '—'} · ${t('clinicalRecords.admission')}: ${fmtDate(selectedAdmission.admissionDate)}`
     : patientMode
@@ -537,6 +577,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             onDeleted={goBack}
           />
         )}
+        {patientMode && !selectedAdmission && patient && outsideSection}
         {(!patientMode || selectedAdmission) && activeTab === 'summary' && (
           <CanonicalSummary
             samples={patientMode ? admissionSamples : recordSamples}
@@ -629,6 +670,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             }}
           />
         )}
+        {activeTab === 'surveillanceJourney' && selectedAdmission && outsideSection}
         {activeTab === 'clinicalScales' && patient && selectedAdmission && (
           <PatientClinicalScalesPanel
             organizationId={tenant?.id}
@@ -704,6 +746,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             )}
           />
         )}
+        {activeTab === 'history' && selectedAdmission && outsideSection}
         {clearTestOpen && (
           <ObserverDialog
             title={translate(
