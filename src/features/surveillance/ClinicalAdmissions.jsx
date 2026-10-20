@@ -109,7 +109,8 @@ export function PatientDetailsSection({
   // Grouped as a details list: the patient, the stay, the clinical details.
   const detailSections = [
     {
-      title: t('clinicalRecords.sectionPatient'),
+      // The card heading already says the same words: no second heading above the list.
+      title: stayFields ? t('clinicalRecords.sectionPatient') : null,
       collapseMissing: true,
       items: [
         { label: cr('patientCode'), value: patient?.id },

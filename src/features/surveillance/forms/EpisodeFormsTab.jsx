@@ -10,11 +10,16 @@ import './episodeForms.css'
 // sections. The sections come from the registry (formsRegistry.js); this component only
 // owns which are open. `openRequest` ({ id, nonce }) opens one from outside, e.g. the NEWS2
 // chip of the record header opens «Κλίμακες».
-export function EpisodeFormsTab({ ctx, forms, openRequest = null }) {
+// `withoutAdmission` renders only the sections that make sense for a patient with no admission,
+// as plain sections of the page (no panel title of their own).
+export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmission = false }) {
   const { t } = useLanguage()
   const [open, setOpen] = useState({})
   const touched = useRef(new Set())
-  const sections = useMemo(() => visibleEpisodeFormSections(ctx), [ctx])
+  const sections = useMemo(
+    () => visibleEpisodeFormSections(ctx).filter(section => !withoutAdmission || section.withoutAdmission),
+    [ctx, withoutAdmission],
+  )
   const toggle = useCallback(id => {
     touched.current.add(id)
     setOpen(current => ({ ...current, [id]: !current[id] }))
@@ -41,25 +46,26 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null }) {
     })
   }, [openRequest, openSection])
   const value = useMemo(() => ({ isOpen: id => Boolean(open[id]), toggle, offer }), [open, toggle, offer])
+  const content =
+    sections.length === 0 ? null : (
+      <FormsTabContext.Provider value={value}>
+        <div className="episode-forms">
+          {sections.map(section => (
+            <section.Component
+              key={section.id}
+              ctx={ctx}
+              section={forms?.data?.[section.id] || { loading: false, value: undefined }}
+              reload={() => forms?.reload?.(section.id)}
+              openSection={openSection}
+            />
+          ))}
+        </div>
+      </FormsTabContext.Provider>
+    )
+  if (withoutAdmission) return content
   return (
     <RecordTabPanel className="episode-forms-panel" title={t('episodeForms.title')} subtitle={t('episodeForms.subtitle')}>
-      {sections.length === 0 ? (
-        <EmptyState title={t('episodeForms.noSectionsTitle')} description={t('episodeForms.noSectionsText')} />
-      ) : (
-        <FormsTabContext.Provider value={value}>
-          <div className="episode-forms">
-            {sections.map(section => (
-              <section.Component
-                key={section.id}
-                ctx={ctx}
-                section={forms?.data?.[section.id] || { loading: false, value: undefined }}
-                reload={() => forms?.reload?.(section.id)}
-                openSection={openSection}
-              />
-            ))}
-          </div>
-        </FormsTabContext.Provider>
-      )}
+      {content || <EmptyState title={t('episodeForms.noSectionsTitle')} description={t('episodeForms.noSectionsText')} />}
     </RecordTabPanel>
   )
 }

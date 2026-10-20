@@ -323,9 +323,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     selectedAdmission ||
     admissions.find(row => record?.admissionId && String(row.id) === String(record.admissionId)) ||
     null
+  const formsSamples = patientMode ? (selectedAdmission ? admissionSamples : outsideSamples) : recordSamples
   const formsCtx = {
     enabled: !loading && !stale && Boolean(patient || record),
-    scopeKey: [tenant?.id, isDemo, role, patient?.recordId || patient?.id, ...formsEpisodes.map(ep => ep.recordId || ep.id)].join('|'),
+    scopeKey: [tenant?.id, isDemo, role, patient?.recordId || patient?.id, ...formsEpisodes.map(ep => ep.recordId || ep.id), formsSamples.map(sample => sample.recordId || sample.id).join(',')].join('|'),
     organizationId: tenant?.id,
     isDemo,
     language,
@@ -336,6 +337,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     admission: formsAdmission,
     record,
     episodes: formsEpisodes,
+    // The laboratory samples of this record: the episode's, the admission's, or those outside any admission.
+    samples: formsSamples,
     patientMode,
     scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
     returnPath: `${location.pathname}${location.search}`,
@@ -840,7 +843,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           patientMode ? t('clinicalRecords.backToPatients') : t('clinicalRecords.backToSurveillance')
         }
       >
+        {/* No admission: one frame, sections one under the other (details, one line + button, the
+            notifiable reports and what lies outside admissions), never an empty page. */}
         {patientMode && !selectedAdmission && patient && (
+          <div className="patient-no-admission-view">
           <PatientDetailsSection
             patient={patient}
             tenantId={tenant?.id}
@@ -852,22 +858,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             onChanged={() => load()}
             onDeleted={goBack}
           />
-        )}
-        {patientMode && !selectedAdmission && patient && (
           <PatientWithoutAdmission
             patient={patient}
             tenantId={tenant?.id}
             isDemo={isDemo}
             canAdmit={has(CAPABILITIES.EDIT_PATIENT)}
-            canViewReports={has(CAPABILITIES.VIEW_ANALYSIS)}
             onNewAdmission={() => setNewAdmissionOpen(true)}
             episodesCount={outsideEpisodes.length}
             samplesCount={outsideSamples.length}
             t={t}
-            fmtDate={fmtDate}
           />
+          <EpisodeFormsTab ctx={formsCtx} forms={forms} withoutAdmission />
+          {outsideSection}
+          </div>
         )}
-        {patientMode && !selectedAdmission && patient && outsideSection}
         {renderTab(activeTab)}
         {clearTestOpen && (
           <ObserverDialog
