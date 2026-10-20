@@ -59,3 +59,19 @@ export function buildBundlePrefill({ ctx, device, episode, info, now = new Date(
     shift: shiftForHour(athensHour(now)),
   }
 }
+
+// What the incident report form receives: the links to save (patient, admission, surveillance
+// episode; the demo keeps codes, production the record ids) and the labels the form shows locked.
+export function incidentSource(ctx) {
+  const base = episodeContext(ctx)
+  return {
+    patientLabel: base.patientLabel,
+    admissionLabel: base.admissionLabel,
+    episodeLabel: base.episodeLabel,
+    departmentId: base.departmentId,
+    department: base.departmentName,
+    linkedPatient: ctx.isDemo ? base.patientCode : base.patientRecordId,
+    linkedSurveillance: ctx.record ? (ctx.isDemo ? ctx.record.id : base.episodeRecordId) : '',
+    linkedAdmission: ctx.isDemo ? '' : base.admissionId,
+  }
+}

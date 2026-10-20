@@ -297,7 +297,8 @@ function QualityLinks({recordType,record,t,language,organizationId,canManage=fal
   },[record.sourceId,organizationId])
   const sourceLabel=record.sourceId?.startsWith('INC-')?t('incident'):record.sourceId?.startsWith('FND-')?t('qualityRecords.finding'):record.sourceId?.startsWith('AUD-')?t('audit'):t('source')
   const links=[]
-  if(record.linkedPatient)links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
+  // A production link holds the patient's record id, which has no page of its own (the patient page opens by code).
+  if(record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
   if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':record.sourceId.startsWith('TRAINING:')?(language==='en'?'Training':'Εκπαίδευση'):record.sourceId.startsWith('RISK:')?(language==='en'?'Risk assessment':'Εκτίμηση κινδύνου'):(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση bundle'):record.sourceId.startsWith('TRAINING:')?record.sourceId.slice(9):record.sourceId.startsWith('RISK:')?record.sourceId.split(':').slice(1).join(' · '):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
   else if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
