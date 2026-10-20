@@ -7,6 +7,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -135,8 +136,9 @@ export function SurveillanceCanonicalPage() {
       membership?.customCapabilities,
     )
 
+  // Loading starts true; a reload (the laboratory list arriving, a save) keeps the
+  // rows on screen instead of blinking back to the placeholders.
   const load = useCallback(async () => {
-    setLoading(true)
     try {
       // The episode, staff and laboratory reads start together: one line per
       // episode and only the environmental samples. The patient roster is read
@@ -446,21 +448,25 @@ export function SurveillanceCanonicalPage() {
           {mode === 'employees' ? (
             <>
               <SummaryMetric
+                loading={loading}
                 icon={Activity}
                 label={t('clinicalRecords.activeEmployeeScreenings')}
                 value={employeeKpis.active}
               />
               <SummaryMetric
+                loading={loading}
                 icon={Microscope}
                 label={t('clinicalRecords.positiveEmployeeScreenings')}
                 value={employeeKpis.positive}
               />
               <SummaryMetric
+                loading={loading}
                 icon={AlertTriangle}
                 label={t('clinicalRecords.needsIntervention')}
                 value={employeeKpis.needsIntervention}
               />
               <SummaryMetric
+                loading={loading}
                 icon={Clock3}
                 label={t('clinicalRecords.needsRecheck')}
                 value={employeeKpis.needsRecheck}
@@ -469,21 +475,25 @@ export function SurveillanceCanonicalPage() {
           ) : mode === 'environmental' ? (
             <>
               <SummaryMetric
+                loading={loading}
                 icon={Activity}
                 label={t('clinicalRecords.activeEnvironmentalSampling')}
                 value={environmentKpis.active}
               />
               <SummaryMetric
+                loading={loading}
                 icon={Clock3}
                 label={t('clinicalRecords.pendingEnvironmentalLab')}
                 value={environmentKpis.pendingLab}
               />
               <SummaryMetric
+                loading={loading}
                 icon={Microscope}
                 label={t('clinicalRecords.positiveEnvironmentalPoints')}
                 value={environmentKpis.positive}
               />
               <SummaryMetric
+                loading={loading}
                 icon={AlertTriangle}
                 label={t('clinicalRecords.criticalEnvironmentalFindings')}
                 value={environmentKpis.critical}
@@ -492,6 +502,7 @@ export function SurveillanceCanonicalPage() {
           ) : (
             <>
               <SummaryMetric
+                loading={loading}
                 icon={Activity}
                 label={t('activeSurveillance')}
                 value={active}
@@ -500,6 +511,7 @@ export function SurveillanceCanonicalPage() {
                 onQuick={setQuick}
               />
               <SummaryMetric
+                loading={loading}
                 icon={Clock3}
                 label={t('clinicalRecords.needsReview')}
                 value={due}
@@ -508,6 +520,7 @@ export function SurveillanceCanonicalPage() {
                 onQuick={setQuick}
               />
               <SummaryMetric
+                loading={loading}
                 icon={AlertTriangle}
                 label={t('clinicalRecords.activeIsolation')}
                 value={isolation}
@@ -516,6 +529,7 @@ export function SurveillanceCanonicalPage() {
                 onQuick={setQuick}
               />
               <SummaryMetric
+                loading={loading}
                 icon={Microscope}
                 label={t('clinicalRecords.mdrXdr')}
                 value={resistant}
@@ -566,7 +580,7 @@ export function SurveillanceCanonicalPage() {
           }
         />
         {loading ? (
-          <div className="registry-empty-state">{t('loading')}</div>
+          <TableSkeleton />
         ) : mode === 'patients' ? (
           <PatientRows
             rows={rows}
@@ -886,10 +900,11 @@ function EmployeeStatusBadge({ row, t }) {
     </StatusBadge>
   )
 }
-function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick }) {
+function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick, loading = false }) {
   return (
     <MetricCard
       className="summary-metric"
+      loading={loading}
       icon={Icon}
       label={label}
       value={value}

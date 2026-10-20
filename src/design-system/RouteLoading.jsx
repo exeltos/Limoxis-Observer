@@ -1,18 +1,9 @@
-import { useEffect, useState } from 'react'
-import { useLanguage } from '../core/i18n/LanguageContext'
+import { PageSkeleton } from './LoadingSkeleton'
 
-const SHOW_DELAY_MS = 150
-
+// A screen that is still loading (its page file, the role that opens it, or its
+// first data): the page-shaped placeholder, at once and inside the content area.
+// It used to render nothing for 150 ms and then a spinner, so every move between
+// screens blinked blank → spinner → page.
 export function RouteLoading(){
-  const { t } = useLanguage()
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const timer = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
-    return () => window.clearTimeout(timer)
-  }, [])
-  if (!visible) return null
-  return <div className="empty-state route-loading" role="status" aria-live="polite">
-    <div className="route-loading-spinner" aria-hidden="true"/>
-    <span>{t('loading')}</span>
-  </div>
+  return <PageSkeleton className="route-loading"/>
 }

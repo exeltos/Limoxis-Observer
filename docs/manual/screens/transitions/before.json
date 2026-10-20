@@ -1,0 +1,481 @@
+{
+ "cpu": 4,
+ "latency": 150,
+ "results": [
+  {
+   "id": "sidebar /",
+   "ms": 2259,
+   "frames": 39,
+   "from": "Επισκόπηση Νοσοκομείου",
+   "to": "Επισκόπηση Νοσοκομείου",
+   "flags": []
+  },
+  {
+   "id": "sidebar /surveillance",
+   "ms": 2198,
+   "frames": 40,
+   "from": "Επισκόπηση Νοσοκομείου",
+   "to": "Επισκόπηση Νοσοκομείου",
+   "flags": []
+  },
+  {
+   "id": "sidebar /patients",
+   "ms": 3239,
+   "frames": 64,
+   "from": "Επισκόπηση Νοσοκομείου",
+   "to": "Μητρώο ασθενών",
+   "flags": [
+    "other-title:Κέντρο Επιτήρησης",
+    "empty-flash:Δεν υπάρχουν καταγραφές ασθενών Δεν έχου",
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "sidebar /laboratory",
+   "ms": 2274,
+   "frames": 93,
+   "from": "Μητρώο ασθενών",
+   "to": "Εργαστήριο",
+   "flags": [
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "sidebar /prevention",
+   "ms": 2278,
+   "frames": 74,
+   "from": "Εργαστήριο",
+   "to": "Κέντρο Πρόληψης",
+   "flags": [
+    "empty-flash:Δεν υπάρχουν καταγραφές υγιεινής χεριών ",
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "sidebar /controls",
+   "ms": 1317,
+   "frames": 37,
+   "from": "Κέντρο Πρόληψης",
+   "to": "Κέντρο Πρόληψης",
+   "flags": []
+  },
+  {
+   "id": "sidebar /quality",
+   "ms": 2726,
+   "frames": 100,
+   "from": "Κέντρο Πρόληψης",
+   "to": "Έλεγχοι",
+   "flags": []
+  },
+  {
+   "id": "sidebar /employees",
+   "ms": 3206,
+   "frames": 123,
+   "from": "Έλεγχοι",
+   "to": "Εργαζόμενοι",
+   "flags": [
+    "other-title:Κέντρο Ποιότητας",
+    "empty-flash:Καμία ενέργεια δεν λήγει σύντομα",
+    "empty-flash:Καμία επιθεώρηση τον επόμενο μήνα",
+    "empty-flash:Καμία αναφορά",
+    "empty-flash:Κανένα κλινικό ή μη κλινικό συμβάν",
+    "zero-kpi-flash",
+    "blank-content"
+   ]
+  },
+  {
+   "id": "sidebar /interviews",
+   "ms": 2119,
+   "frames": 88,
+   "from": "Εργαζόμενοι",
+   "to": "Συνεντεύξεις",
+   "flags": []
+  },
+  {
+   "id": "sidebar /analysis",
+   "ms": 2467,
+   "frames": 70,
+   "from": "Συνεντεύξεις",
+   "to": "Ανάλυση",
+   "flags": []
+  },
+  {
+   "id": "sidebar /indicators",
+   "ms": 2610,
+   "frames": 120,
+   "from": "Ανάλυση",
+   "to": "Δείκτες",
+   "flags": [
+    "empty-flash:Δεν υπάρχουν ενεργοί δείκτες Οι δείκτες ",
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "sidebar /training",
+   "ms": 3518,
+   "frames": 87,
+   "from": "Δείκτες",
+   "to": "Εκπαίδευση",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "sidebar /committees",
+   "ms": 2122,
+   "frames": 74,
+   "from": "Εκπαίδευση",
+   "to": "Επιτροπές",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "sidebar /documents",
+   "ms": 1719,
+   "frames": 43,
+   "from": "Επιτροπές",
+   "to": "Έγγραφα",
+   "flags": []
+  },
+  {
+   "id": "sidebar /regulations",
+   "ms": 2940,
+   "frames": 61,
+   "from": "Έγγραφα",
+   "to": "Κανονισμοί",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "sidebar /kitchen",
+   "ms": 2520,
+   "frames": 72,
+   "from": "Κανονισμοί",
+   "to": "Κουζίνα",
+   "flags": []
+  },
+  {
+   "id": "sidebar /pharmacy",
+   "ms": 2504,
+   "frames": 46,
+   "from": "Κουζίνα",
+   "to": "Φαρμακείο",
+   "flags": [
+    "empty-flash:Δεν έχουν καταχωριστεί περίοδοι χορήγηση",
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "sidebar /occupational-health",
+   "ms": 2457,
+   "frames": 53,
+   "from": "Φαρμακείο",
+   "to": "Ιατρός Εργασίας",
+   "flags": []
+  },
+  {
+   "id": "sidebar /calendar",
+   "ms": 2956,
+   "frames": 72,
+   "from": "Ιατρός Εργασίας",
+   "to": "Ημερολόγιο",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "sidebar /management",
+   "ms": 2623,
+   "frames": 77,
+   "from": "Ημερολόγιο",
+   "to": "Κέντρο Διαχείρισης",
+   "flags": []
+  },
+  {
+   "id": "sidebar /executive",
+   "ms": 2360,
+   "frames": 53,
+   "from": "Κέντρο Διαχείρισης",
+   "to": "Πίνακας Διοίκησης",
+   "flags": []
+  },
+  {
+   "id": "list→record /patients/PT-260190",
+   "ms": 2086,
+   "frames": 64,
+   "from": "Μητρώο ασθενών",
+   "to": "Νεογέννητο Ιωαννίδη",
+   "flags": [
+    "other-title:Κλινική καρτέλα ασθενούς"
+   ]
+  },
+  {
+   "id": "record→record /patients/PT-260184",
+   "ms": 1404,
+   "frames": 52,
+   "from": "Νεογέννητο Ιωαννίδη",
+   "to": "Ελένη Παπαδοπούλου",
+   "flags": [
+    "empty-flash:Καμία Επόμενη επανεκτίμηση 18/10/2026 εκ",
+    "other-title:Κλινική καρτέλα ασθενούς"
+   ]
+  },
+  {
+   "id": "record→list /patients",
+   "ms": 1500,
+   "frames": 45,
+   "from": "Ελένη Παπαδοπούλου",
+   "to": "Μητρώο ασθενών",
+   "flags": [
+    "empty-flash:Δεν υπάρχουν καταγραφές ασθενών Δεν έχου",
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "list→record /surveillance/SUR-260041",
+   "ms": 1448,
+   "frames": 44,
+   "from": "Κέντρο Επιτήρησης",
+   "to": "Ελένη Παπαδοπούλου",
+   "flags": []
+  },
+  {
+   "id": "record→record /surveillance/SUR-260039",
+   "ms": 1306,
+   "frames": 34,
+   "from": "Ελένη Παπαδοπούλου",
+   "to": "Νικόλαος Γεωργίου",
+   "flags": []
+  },
+  {
+   "id": "record→list /surveillance",
+   "ms": 1266,
+   "frames": 28,
+   "from": "Νικόλαος Γεωργίου",
+   "to": "Κέντρο Επιτήρησης",
+   "flags": [
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "list→record /laboratory/LAB-260829-013",
+   "ms": 1529,
+   "frames": 45,
+   "from": "Εργαστήριο",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /laboratory/LAB-260209-005",
+   "ms": 1165,
+   "frames": 33,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /laboratory",
+   "ms": 1192,
+   "frames": 39,
+   "from": "",
+   "to": "Εργαστήριο",
+   "flags": []
+  },
+  {
+   "id": "list→record /employees/EMP-001",
+   "ms": 1662,
+   "frames": 53,
+   "from": "Εργαζόμενοι",
+   "to": "Παπαδοπούλου Μαρία",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "record→record /employees/EMP-002",
+   "ms": 1129,
+   "frames": 37,
+   "from": "Παπαδοπούλου Μαρία",
+   "to": "Δημητρίου Νικόλαος",
+   "flags": []
+  },
+  {
+   "id": "record→list /employees",
+   "ms": 1174,
+   "frames": 40,
+   "from": "Δημητρίου Νικόλαος",
+   "to": "Εργαζόμενοι",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "list→record /training/TRN-001",
+   "ms": 1320,
+   "frames": 43,
+   "from": "Εκπαίδευση",
+   "to": "",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "record→record /training/TRN-003",
+   "ms": 1080,
+   "frames": 50,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /training",
+   "ms": 1479,
+   "frames": 42,
+   "from": "",
+   "to": "Εκπαίδευση",
+   "flags": []
+  },
+  {
+   "id": "list→record /documents/DOC-008",
+   "ms": 1970,
+   "frames": 73,
+   "from": "Έγγραφα",
+   "to": "",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "record→record /documents/DOC-002",
+   "ms": 1403,
+   "frames": 39,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /documents",
+   "ms": 1294,
+   "frames": 51,
+   "from": "",
+   "to": "Έγγραφα",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "list→record /controls/CTRL-DEMO-0001",
+   "ms": 1919,
+   "frames": 56,
+   "from": "Έλεγχοι",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /controls/CTRL-DEMO-0002",
+   "ms": 1400,
+   "frames": 70,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /controls",
+   "ms": 1749,
+   "frames": 61,
+   "from": "",
+   "to": "Έλεγχοι",
+   "flags": [
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "list→record /committees/COM-001",
+   "ms": 1682,
+   "frames": 73,
+   "from": "Επιτροπές",
+   "to": "",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "record→record /committees/COM-002",
+   "ms": 1217,
+   "frames": 31,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /committees",
+   "ms": 1163,
+   "frames": 32,
+   "from": "",
+   "to": "Επιτροπές",
+   "flags": [
+    "blank-content"
+   ]
+  },
+  {
+   "id": "list→record /prevention/handHygiene/HH-2601",
+   "ms": 1596,
+   "frames": 71,
+   "from": "Κέντρο Πρόληψης",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /prevention/handHygiene/HH-2602",
+   "ms": 1215,
+   "frames": 52,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /prevention",
+   "ms": 1416,
+   "frames": 55,
+   "from": "",
+   "to": "Κέντρο Πρόληψης",
+   "flags": [
+    "empty-flash:Δεν υπάρχουν καταγραφές υγιεινής χεριών ",
+    "zero-kpi-flash"
+   ]
+  },
+  {
+   "id": "list→record /quality/incidents/INC-250911-001",
+   "ms": 1741,
+   "frames": 79,
+   "from": "Κέντρο Ποιότητας",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /quality/incidents/INC-250923-002",
+   "ms": 1248,
+   "frames": 53,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /quality",
+   "ms": 1333,
+   "frames": 62,
+   "from": "",
+   "to": "Κέντρο Ποιότητας",
+   "flags": [
+    "empty-flash:Καμία ενέργεια δεν λήγει σύντομα",
+    "empty-flash:Καμία επιθεώρηση τον επόμενο μήνα",
+    "empty-flash:Καμία αναφορά",
+    "empty-flash:Κανένα κλινικό ή μη κλινικό συμβάν",
+    "zero-kpi-flash"
+   ]
+  }
+ ],
+ "errors": []
+}

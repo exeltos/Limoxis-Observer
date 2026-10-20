@@ -26,9 +26,23 @@ export function installChunkRecovery() {
 }
 
 // React.lazy for a named export, reloading once when the file is gone after a release.
+// `preload()` fetches the page file ahead of time (sidebar hover, idle time); once it
+// is in, the page renders in the same frame instead of suspending on a resolved promise.
 export function lazyPage(loader, name = 'default') {
-  return lazy(() => loader().then(module => ({ default: module[name] })).catch(error => {
-    if (isChunkLoadError(error) && reloadForNewVersion()) return new Promise(() => {})
-    throw error
-  }))
+  let loaded = null
+  let pending = null
+  const load = () => {
+    if (!pending) pending = loader().then(module => { loaded = module; return module }, error => { pending = null; throw error })
+    return pending
+  }
+  const Page = lazy(() => {
+    // An already loaded file resolves synchronously, so React never shows the fallback for it.
+    if (loaded) return { then: resolve => resolve({ default: loaded[name] }) }
+    return load().then(module => ({ default: module[name] })).catch(error => {
+      if (isChunkLoadError(error) && reloadForNewVersion()) return new Promise(() => {})
+      throw error
+    })
+  })
+  Page.preload = () => load().then(() => true, () => false)
+  return Page
 }

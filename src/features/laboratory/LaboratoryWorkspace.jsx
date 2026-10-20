@@ -38,6 +38,8 @@ export function LaboratoryWorkspace() {
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo } = useTenant()
   const { rows: repositoryRows, loading: samplesLoading, error: samplesError, createSample: createRepositorySample } = useLaboratoryRegistry()
+  // Until the first read ends the figures show placeholders, not 0.
+  const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
   const registry = useRegistryMemory('laboratory')
@@ -124,7 +126,7 @@ export function LaboratoryWorkspace() {
   }
 
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
-    <div className="module-summary-strip lab-summary"><LabKpi icon={FlaskConical} label={language === 'el' ? 'Δείγματα σήμερα' : 'Samples today'} value={k.today}/><LabKpi icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive} filter="positive" current={result} onFilter={setResult}/><LabKpi icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical > 0} filter="critical" current={result} onFilter={setResult}/></div>
+    <div className="module-summary-strip lab-summary"><LabKpi loading={kpisLoading} icon={FlaskConical} label={language === 'el' ? 'Δείγματα σήμερα' : 'Samples today'} value={k.today}/><LabKpi loading={kpisLoading} icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi loading={kpisLoading} icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive} filter="positive" current={result} onFilter={setResult}/><LabKpi loading={kpisLoading} icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical > 0} filter="critical" current={result} onFilter={setResult}/></div>
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all') }}>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="requested">{t('requested')}</option><option value="received">{t('received')}</option><option value="processing">{t('processing')}</option><option value="completed">{t('completed')}</option><option value="rejected">{t('rejected')}</option><option value="cancelled">{t('cancelled')}</option></FilterSelect>
@@ -133,7 +135,7 @@ export function LaboratoryWorkspace() {
       </FilterBar>
       <RegistryTable wrapperRef={registry.scrollRef} className="lab-table" columns={[
         {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource')},{key:'result',label:t('result')},{key:'status',label:t('status')}
-      ]} rows={pagedRows} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={samplesLoading ? (language === 'el' ? 'Φόρτωση δειγμάτων…' : 'Loading samples…') : samplesError ? (language === 'el' ? 'Τα δείγματα δεν φορτώθηκαν' : 'Samples could not be loaded') : (language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples')} emptyText={samplesLoading ? '' : samplesError ? (language === 'el' ? 'Ανανεώστε τη σελίδα ή δοκιμάστε ξανά σε λίγο.' : 'Refresh the page or try again shortly.') : filtered ? (language === 'el' ? 'Δεν βρέθηκαν εγγραφές με τα επιλεγμένα φίλτρα.' : 'No records match the selected filters.') : (language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Use “Create” to register the first sample.')} renderRow={sample => <>
+      ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={samplesLoading ? (language === 'el' ? 'Φόρτωση δειγμάτων…' : 'Loading samples…') : samplesError ? (language === 'el' ? 'Τα δείγματα δεν φορτώθηκαν' : 'Samples could not be loaded') : (language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples')} emptyText={samplesLoading ? '' : samplesError ? (language === 'el' ? 'Ανανεώστε τη σελίδα ή δοκιμάστε ξανά σε λίγο.' : 'Refresh the page or try again shortly.') : filtered ? (language === 'el' ? 'Δεν βρέθηκαν εγγραφές με τα επιλεγμένα φίλτρα.' : 'No records match the selected filters.') : (language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Use “Create” to register the first sample.')} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
@@ -148,7 +150,7 @@ export function LaboratoryWorkspace() {
 }
 
 // A card with a result filter narrows the registry to it; clicking it again clears it.
-function LabKpi({ icon: Icon, label, value, danger, filter, current, onFilter }) { const active = Boolean(filter) && current === filter; return <MetricCard icon={Icon} value={value} label={label} tone={danger ? 'danger' : 'neutral'} active={active} onClick={filter && onFilter ? () => onFilter(active ? 'all' : filter) : undefined}/> }
+function LabKpi({ icon: Icon, label, value, danger, filter, current, onFilter, loading = false }) { const active = Boolean(filter) && current === filter; return <MetricCard loading={loading} icon={Icon} value={value} label={label} tone={danger ? 'danger' : 'neutral'} active={active} onClick={filter && onFilter ? () => onFilter(active ? 'all' : filter) : undefined}/> }
 
 function NewSampleCard({ t, language, patients, employees, recentSamples, onClose, onSave }) {
   const en = language === 'en'

@@ -1,0 +1,48 @@
+/* Loading placeholders (LoadingSkeleton.jsx): quiet grey blocks that fade in,
+   so a fast load never blinks and a slow one shows the shape of the screen. */
+.page-loading-skeleton,
+.table-loading-skeleton{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  animation:loading-skeleton-in .24s ease-out both;
+}
+.page-loading-skeleton{padding:2px 0 18px}
+.table-loading-skeleton{padding:10px 12px}
+.loading-skeleton-label{
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  clip:rect(0 0 0 0);
+  white-space:nowrap;
+}
+.loading-skeleton-header,
+.loading-skeleton-metrics,
+.loading-skeleton-lines{display:grid;gap:10px}
+.loading-skeleton-header{gap:8px;margin-bottom:6px}
+.loading-skeleton-metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.page-loading-skeleton i,
+.table-loading-skeleton i,
+.metric-loading-skeleton{
+  display:block;
+  border-radius:8px;
+  background:linear-gradient(90deg,#eef2f6 0%,#f6f8fa 45%,#eef2f6 90%);
+  background-size:220% 100%;
+  animation:loading-skeleton-shimmer 1.3s ease-in-out infinite;
+}
+.loading-skeleton-header i:first-child{width:min(320px,60%);height:24px}
+.loading-skeleton-header i:last-child{width:min(480px,80%);height:13px}
+.loading-skeleton-metrics i{height:64px;border-radius:12px}
+.loading-skeleton-lines i{height:34px}
+.loading-skeleton-lines i:first-child{height:38px;background:#e9eef3}
+.metric-loading-skeleton{display:inline-block;width:2.2em;height:.9em;vertical-align:middle}
+@keyframes loading-skeleton-in{from{opacity:0}to{opacity:1}}
+@keyframes loading-skeleton-shimmer{from{background-position:100% 0}to{background-position:-120% 0}}
+@media (prefers-reduced-motion:reduce){
+  .page-loading-skeleton,
+  .table-loading-skeleton,
+  .page-loading-skeleton i,
+  .table-loading-skeleton i,
+  .metric-loading-skeleton{animation:none}
+}

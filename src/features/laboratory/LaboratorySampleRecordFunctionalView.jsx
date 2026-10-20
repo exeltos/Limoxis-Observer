@@ -3,6 +3,7 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
+import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
@@ -160,12 +161,8 @@ export function LaboratorySampleRecordFunctionalView() {
       tx('rejected'),
     )
   }
-  if (loading)
-    return (
-      <Page title={t('laboratoryRecords.sample')}>
-        <div className="inline-empty">{t('loading')}</div>
-      </Page>
-    )
+  // The sample's first read: the page placeholder, not a generic «sample» page.
+  if (loading) return <RouteLoading />
   if (error || !sample)
     return (
       <Page title={t('laboratoryRecords.sample')}>

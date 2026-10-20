@@ -1,0 +1,415 @@
+{
+ "cpu": 4,
+ "latency": 150,
+ "results": [
+  {
+   "id": "sidebar /",
+   "ms": 1964,
+   "frames": 80,
+   "from": "Επισκόπηση Νοσοκομείου",
+   "to": "Επισκόπηση Νοσοκομείου",
+   "flags": []
+  },
+  {
+   "id": "sidebar /surveillance",
+   "ms": 1715,
+   "frames": 50,
+   "from": "Επισκόπηση Νοσοκομείου",
+   "to": "Κέντρο Επιτήρησης",
+   "flags": []
+  },
+  {
+   "id": "sidebar /patients",
+   "ms": 2102,
+   "frames": 64,
+   "from": "Κέντρο Επιτήρησης",
+   "to": "Μητρώο ασθενών",
+   "flags": []
+  },
+  {
+   "id": "sidebar /laboratory",
+   "ms": 2397,
+   "frames": 68,
+   "from": "Μητρώο ασθενών",
+   "to": "Εργαστήριο",
+   "flags": []
+  },
+  {
+   "id": "sidebar /prevention",
+   "ms": 2193,
+   "frames": 44,
+   "from": "Εργαστήριο",
+   "to": "Κέντρο Πρόληψης",
+   "flags": []
+  },
+  {
+   "id": "sidebar /controls",
+   "ms": 2417,
+   "frames": 44,
+   "from": "Κέντρο Πρόληψης",
+   "to": "Έλεγχοι",
+   "flags": []
+  },
+  {
+   "id": "sidebar /quality",
+   "ms": 2808,
+   "frames": 63,
+   "from": "Έλεγχοι",
+   "to": "Κέντρο Ποιότητας",
+   "flags": []
+  },
+  {
+   "id": "sidebar /employees",
+   "ms": 2368,
+   "frames": 68,
+   "from": "Κέντρο Ποιότητας",
+   "to": "Εργαζόμενοι",
+   "flags": []
+  },
+  {
+   "id": "sidebar /interviews",
+   "ms": 1490,
+   "frames": 44,
+   "from": "Εργαζόμενοι",
+   "to": "Συνεντεύξεις",
+   "flags": []
+  },
+  {
+   "id": "sidebar /analysis",
+   "ms": 2871,
+   "frames": 65,
+   "from": "Συνεντεύξεις",
+   "to": "Ανάλυση",
+   "flags": []
+  },
+  {
+   "id": "sidebar /indicators",
+   "ms": 1899,
+   "frames": 62,
+   "from": "Ανάλυση",
+   "to": "Δείκτες",
+   "flags": []
+  },
+  {
+   "id": "sidebar /training",
+   "ms": 1615,
+   "frames": 56,
+   "from": "Δείκτες",
+   "to": "Εκπαίδευση",
+   "flags": []
+  },
+  {
+   "id": "sidebar /committees",
+   "ms": 2138,
+   "frames": 89,
+   "from": "Εκπαίδευση",
+   "to": "Επιτροπές",
+   "flags": []
+  },
+  {
+   "id": "sidebar /documents",
+   "ms": 1747,
+   "frames": 56,
+   "from": "Επιτροπές",
+   "to": "Έγγραφα",
+   "flags": []
+  },
+  {
+   "id": "sidebar /regulations",
+   "ms": 2673,
+   "frames": 99,
+   "from": "Έγγραφα",
+   "to": "Κανονισμοί",
+   "flags": []
+  },
+  {
+   "id": "sidebar /kitchen",
+   "ms": 1830,
+   "frames": 46,
+   "from": "Κανονισμοί",
+   "to": "Κουζίνα",
+   "flags": []
+  },
+  {
+   "id": "sidebar /pharmacy",
+   "ms": 1820,
+   "frames": 37,
+   "from": "Κουζίνα",
+   "to": "Φαρμακείο",
+   "flags": []
+  },
+  {
+   "id": "sidebar /occupational-health",
+   "ms": 2299,
+   "frames": 44,
+   "from": "Φαρμακείο",
+   "to": "Ιατρός Εργασίας",
+   "flags": []
+  },
+  {
+   "id": "sidebar /calendar",
+   "ms": 1894,
+   "frames": 55,
+   "from": "Ιατρός Εργασίας",
+   "to": "Ημερολόγιο",
+   "flags": []
+  },
+  {
+   "id": "sidebar /management",
+   "ms": 1788,
+   "frames": 45,
+   "from": "Ημερολόγιο",
+   "to": "Κέντρο Διαχείρισης",
+   "flags": []
+  },
+  {
+   "id": "sidebar /executive",
+   "ms": 3302,
+   "frames": 43,
+   "from": "Κέντρο Διαχείρισης",
+   "to": "Πίνακας Διοίκησης",
+   "flags": []
+  },
+  {
+   "id": "list→record /patients/PT-260190",
+   "ms": 1603,
+   "frames": 48,
+   "from": "Μητρώο ασθενών",
+   "to": "Νεογέννητο Ιωαννίδη",
+   "flags": []
+  },
+  {
+   "id": "record→record /patients/PT-260184",
+   "ms": 1464,
+   "frames": 45,
+   "from": "Νεογέννητο Ιωαννίδη",
+   "to": "Ελένη Παπαδοπούλου",
+   "flags": []
+  },
+  {
+   "id": "record→list /patients",
+   "ms": 1376,
+   "frames": 34,
+   "from": "Ελένη Παπαδοπούλου",
+   "to": "Μητρώο ασθενών",
+   "flags": []
+  },
+  {
+   "id": "list→record /surveillance/SUR-260041",
+   "ms": 1384,
+   "frames": 58,
+   "from": "Κέντρο Επιτήρησης",
+   "to": "Ελένη Παπαδοπούλου",
+   "flags": []
+  },
+  {
+   "id": "record→record /surveillance/SUR-260039",
+   "ms": 1169,
+   "frames": 32,
+   "from": "Ελένη Παπαδοπούλου",
+   "to": "Νικόλαος Γεωργίου",
+   "flags": []
+  },
+  {
+   "id": "record→list /surveillance",
+   "ms": 1632,
+   "frames": 38,
+   "from": "Νικόλαος Γεωργίου",
+   "to": "Κέντρο Επιτήρησης",
+   "flags": []
+  },
+  {
+   "id": "list→record /laboratory/LAB-260829-013",
+   "ms": 1250,
+   "frames": 36,
+   "from": "Εργαστήριο",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /laboratory/LAB-260209-005",
+   "ms": 1205,
+   "frames": 98,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /laboratory",
+   "ms": 1342,
+   "frames": 34,
+   "from": "",
+   "to": "Εργαστήριο",
+   "flags": []
+  },
+  {
+   "id": "list→record /employees/EMP-001",
+   "ms": 1303,
+   "frames": 49,
+   "from": "Εργαζόμενοι",
+   "to": "Παπαδοπούλου Μαρία",
+   "flags": []
+  },
+  {
+   "id": "record→record /employees/EMP-002",
+   "ms": 1165,
+   "frames": 44,
+   "from": "Παπαδοπούλου Μαρία",
+   "to": "Δημητρίου Νικόλαος",
+   "flags": []
+  },
+  {
+   "id": "record→list /employees",
+   "ms": 1160,
+   "frames": 55,
+   "from": "Δημητρίου Νικόλαος",
+   "to": "Εργαζόμενοι",
+   "flags": []
+  },
+  {
+   "id": "list→record /training/TRN-001",
+   "ms": 1688,
+   "frames": 35,
+   "from": "Εκπαίδευση",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /training/TRN-003",
+   "ms": 1220,
+   "frames": 46,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /training",
+   "ms": 1147,
+   "frames": 33,
+   "from": "",
+   "to": "Εκπαίδευση",
+   "flags": []
+  },
+  {
+   "id": "list→record /documents/DOC-008",
+   "ms": 1529,
+   "frames": 36,
+   "from": "Έγγραφα",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /documents/DOC-002",
+   "ms": 1218,
+   "frames": 44,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /documents",
+   "ms": 1196,
+   "frames": 42,
+   "from": "",
+   "to": "Έγγραφα",
+   "flags": []
+  },
+  {
+   "id": "list→record /controls/CTRL-DEMO-0001",
+   "ms": 1510,
+   "frames": 50,
+   "from": "Έλεγχοι",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /controls/CTRL-DEMO-0002",
+   "ms": 1213,
+   "frames": 47,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /controls",
+   "ms": 2276,
+   "frames": 42,
+   "from": "",
+   "to": "Έλεγχοι",
+   "flags": []
+  },
+  {
+   "id": "list→record /committees/COM-001",
+   "ms": 1131,
+   "frames": 41,
+   "from": "Επιτροπές",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /committees/COM-002",
+   "ms": 1184,
+   "frames": 56,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /committees",
+   "ms": 1306,
+   "frames": 50,
+   "from": "",
+   "to": "Επιτροπές",
+   "flags": []
+  },
+  {
+   "id": "list→record /prevention/handHygiene/HH-2601",
+   "ms": 1216,
+   "frames": 40,
+   "from": "Κέντρο Πρόληψης",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /prevention/handHygiene/HH-2602",
+   "ms": 1280,
+   "frames": 51,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /prevention",
+   "ms": 1527,
+   "frames": 32,
+   "from": "",
+   "to": "Κέντρο Πρόληψης",
+   "flags": []
+  },
+  {
+   "id": "list→record /quality/incidents/INC-250911-001",
+   "ms": 1390,
+   "frames": 34,
+   "from": "Κέντρο Ποιότητας",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→record /quality/incidents/INC-250923-002",
+   "ms": 1358,
+   "frames": 41,
+   "from": "",
+   "to": "",
+   "flags": []
+  },
+  {
+   "id": "record→list /quality",
+   "ms": 1630,
+   "frames": 44,
+   "from": "",
+   "to": "Κέντρο Ποιότητας",
+   "flags": []
+  }
+ ],
+ "errors": []
+}

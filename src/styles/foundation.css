@@ -297,7 +297,6 @@
 .surveillance-registry-row .status-badge,.surveillance-registry-row .risk-badge{font-size:9px;padding:3px 6px}
 @media(max-width:1200px){.surveillance-registry-head,.surveillance-registry-row{grid-template-columns:125px 185px 105px 100px 170px 180px 120px}}
 .route-loading{gap:12px}
-.route-loading-spinner{width:30px;height:30px;border-radius:50%;border:3px solid #e4e8ed;border-top-color:var(--accent);animation:route-loading-spin .7s linear infinite}
 @keyframes route-loading-spin{to{transform:rotate(360deg)}}
 
 /* v0.14.0 laboratory end-to-end workflow */
