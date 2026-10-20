@@ -92,7 +92,7 @@ describe('review follow-ups', () => {
     expect(incidentPrefill({ qualitySource: { title: 'X', description: 'Y' } })).toMatchObject({ titleEn: 'X', descriptionEn: 'Y' })
   })
 
-  it('lets the default staff_user account report (from the top bar, not the menu)', () => {
+  it('lets the default staff_user account report (from the sidebar button, not a menu entry)', () => {
     expect(can('staff_user', CAPABILITIES.REPORT_INCIDENT)).toBe(true)
     expect(navigationFor({ role: 'staff_user' }).map(item => item.key)).not.toContain('reportIncident')
     expect(migration).toContain("'staff_user'::app_role")

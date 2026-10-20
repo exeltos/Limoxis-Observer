@@ -54,7 +54,7 @@ describe('Platform Owner UI audit',()=>{
     const owner=read('src/features/workspaces/PlatformCenterPage.jsx')
     const analysis=readAnalysisPageSource()
     expect(owner).toMatch(/<AnalysisPage\s+platform\s+organizations=\{organizations\}\s*\/>/)
-    expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,embedded=false,externalRange=null,periodLabel=\'\',initialTab=\'\'})')
+    expect(analysis).toContain('export function AnalysisPage({platform=false,organizations=EMPTY_ORGANIZATIONS,embedded=false,externalRange=null,periodLabel=\'\',initialTab=\'\',department:externalDepartment=\'\',externalCompare=null})')
     expect(analysis).toContain('analysis-workspace')
     expect(analysis).toContain('className="analysis-filter-toolbar"')
     expect(analysis).toContain('className="analysis-filter-group analysis-filter-time"')

@@ -11,7 +11,7 @@ const order = role => navigationFor({ role }).map(item => item.group ? `${item.g
 describe('sidebar order per role', () => {
   it('groups the Hospital Administrator menu under headed groups, the Management Center last', () => {
     expect(order(ROLES.HOSPITAL_ADMIN)).toEqual([
-      'overview:dashboard', 'overview:executiveDashboard', 'overview:platformAnalyticsNav', 'overview:calendar',
+      'overview:dashboard', 'overview:executiveDashboard', 'overview:calendar',
       'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
       'operations:controls', 'operations:kitchen',
       'quality:quality', 'quality:meetings', 'quality:documents',

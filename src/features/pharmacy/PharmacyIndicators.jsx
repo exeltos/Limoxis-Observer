@@ -46,8 +46,8 @@ export function PharmacyIndicators({ organizationId, en }) {
       <FilterDate label={en ? 'To' : 'Έως'} value={to} onChange={setTo} />
     </FilterBar>
     {to < from && <div className="inline-empty">{en ? 'The end date must be after the start date.' : 'Η ημερομηνία λήξης πρέπει να είναι μετά την έναρξη.'}</div>}
-    {state.loading && !state.rows.length ? <TableSkeleton /> : !state.rows.length ? <RegistryEmptyState icon={Activity} language={en ? 'en' : 'el'} title={en ? 'No active pharmacy indicators' : 'Δεν υπάρχουν ενεργοί δείκτες φαρμακείου'} text={en ? 'Pharmacy indicators are defined in Indicators.' : 'Οι δείκτες φαρμακείου ορίζονται στους Δείκτες.'} /> : <div className="record-table-wrap" tabIndex={0} role="region" aria-label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'}>
-      <table className="data-table record-table">
+    {state.loading && !state.rows.length ? <TableSkeleton /> : !state.rows.length ? <RegistryEmptyState icon={Activity} language={en ? 'en' : 'el'} title={en ? 'No active pharmacy indicators' : 'Δεν υπάρχουν ενεργοί δείκτες φαρμακείου'} text={en ? 'Pharmacy indicators are defined in Indicators.' : 'Οι δείκτες φαρμακείου ορίζονται στους Δείκτες.'} /> : <div className="scroll-table" tabIndex={0} role="region" aria-label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'}>
+      <table className="data-table sticky-table">
         <thead><tr><th>{en ? 'Indicator' : 'Δείκτης'}</th><th>{en ? 'Result' : 'Αποτέλεσμα'}</th><th>{en ? 'Numerator / denominator' : 'Αριθμητής / παρονομαστής'}</th><th>{en ? 'Target' : 'Στόχος'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
         <tbody>{state.rows.map(row => { const badge = STATUS[row.status] || STATUS.context; return <tr key={row.definitionId || row.id} className={row.definitionId ? 'clickable-row' : ''} onClick={row.definitionId ? () => navigate(`/indicators/${row.definitionId}`, { state: { indicatorPeriod: { from, to, departmentId: null } } }) : undefined}>
           <td><strong>{title(row)}</strong><small>{fmtDay(from)} – {fmtDay(to)} · {row.source}</small></td>
@@ -58,8 +58,8 @@ export function PharmacyIndicators({ organizationId, en }) {
         </tr> })}</tbody>
       </table>
     </div>}
-    {Boolean(state.history.length) && <div className="record-table-wrap" tabIndex={0} role="region" aria-label={en ? 'Approved results' : 'Εγκεκριμένα αποτελέσματα'}>
-      <table className="data-table record-table">
+    {Boolean(state.history.length) && <div className="scroll-table" tabIndex={0} role="region" aria-label={en ? 'Approved results' : 'Εγκεκριμένα αποτελέσματα'}>
+      <table className="data-table sticky-table">
         <thead><tr><th>{en ? 'Approved results by period' : 'Εγκεκριμένα αποτελέσματα ανά περίοδο'}</th><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Result' : 'Αποτέλεσμα'}</th><th>{en ? 'Numerator / denominator' : 'Αριθμητής / παρονομαστής'}</th></tr></thead>
         <tbody>{state.history.map(s => <tr key={s.id}><td>{titleOf(s.indicator_key)}</td><td>{fmtDay(s.period_start)} – {fmtDay(s.period_end)}</td><td><strong>{fmtNumber(s.value, en)}</strong> {s.unit || ''}</td><td>{s.denominator == null ? fmtNumber(s.numerator, en) : `${fmtNumber(s.numerator, en)} / ${fmtNumber(s.denominator, en)}`}</td></tr>)}</tbody>
       </table>

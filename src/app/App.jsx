@@ -96,7 +96,8 @@ const IndicatorCreatePage = lazyNamed(() => import('../features/indicators/Indic
 const IndicatorRecordPage = lazyNamed(() => import('../features/indicators/IndicatorRecordPage'), 'IndicatorRecordPage')
 const MyDepartmentPage = lazyNamed(() => import('../features/workspaces/MyDepartmentPage'), 'MyDepartmentPage')
 const AboutPage = lazyNamed(() => import('../features/about/AboutPage'), 'AboutPage')
-const AnalysisPage = lazyNamed(() => import('../features/analysis/AnalysisPage'), 'AnalysisPage')
+// /analysis: the route wrapper (AnalysisRoute) sends whoever has «Δείκτες» to the matching tab there.
+const AnalysisPage = lazyNamed(() => import('../features/analysis/AnalysisRoute'), 'AnalysisRoute')
 const AccountPage = lazyNamed(() => import('../features/account/AccountPage'), 'AccountPage')
 const ExecutiveDashboardPage = lazyNamed(() => import('../features/executive/ExecutiveDashboardPage'), 'ExecutiveDashboardPage')
 const InterviewsPage = lazyNamed(() => import('../features/interviews/InterviewsPage'), 'InterviewsPage')

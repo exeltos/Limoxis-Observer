@@ -68,7 +68,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo, role, membership, canAccessRecord } = useTenant()
-  const { goBack, restored } = useContextualNavigation(patientMode ? '/patients' : '/surveillance')
+  const { goBack, restored } = useContextualNavigation(patientMode ? '/surveillance?tab=registry' : '/surveillance')
   const repository = useMemo(
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
     [isDemo, tenant?.id, actor],

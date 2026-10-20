@@ -28,7 +28,7 @@ describe("the administrator's home", () => {
     expect(items.map(item => item.key)).toEqual(['expiredCertificates', 'overdueCapa'])
   })
   it('shows one row per open module the user can reach', () => {
-    const rows = moduleStatusRows(metrics, { moduleEnabled: module => module !== 'pharmacy', canOpen: to => to !== '/committees' })
+    const rows = moduleStatusRows(metrics, { moduleEnabled: module => module !== 'pharmacy', canOpen: to => to !== '/meetings' })
     expect(rows.map(row => row.module)).toEqual(['surveillance', 'laboratory', 'controls', 'quality', 'suppliers', 'kitchen', 'interviews'])
     expect(rows.find(row => row.module === 'suppliers').status).toBe('danger')
   })

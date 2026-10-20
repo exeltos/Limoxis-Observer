@@ -67,3 +67,25 @@ export function periodSlotOptions(type,en){if(type==='month')return (en?MONTHS_E
 export function continuousMonths(points=[]){if(points.length<2)return points;const values=new Map(points);const [fy,fm]=points[0][0].split('-').map(Number),[ly,lm]=points[points.length-1][0].split('-').map(Number);const out=[];for(let y=fy,m=fm;y<ly||(y===ly&&m<=lm);m===12?(y++,m=1):m++){const key=`${y}-${String(m).padStart(2,'0')}`;out.push([key,values.get(key)??0])}return out}
 export const chartLanguage=tx=>tx('el','en')==='en'
 export function buildProductionRows(tab,snapshot,tx){const summary=snapshot?.summary||{},micro=snapshot?.microbiology||{};const antimicrobial=summary.antimicrobial&&typeof summary.antimicrobial==='object'?summary.antimicrobial:null;const antimicrobialRows=antimicrobial?[[tx('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),antimicrobial.total??0,'—','up'],[tx('Σε αναμονή έγκρισης','Pending approval'),antimicrobial.pending??0,'—','up'],[tx('Χορηγήσεις','Administrations recorded'),antimicrobial.administrations??0,'—','up']]:[[tx('Αντιμικροβιακές αγωγές','Antimicrobial therapies'),'—','—','up']];const amrRows=(snapshot?.amrSusceptibility||[]).length?snapshot.amrSusceptibility.map(([organism,tested,resistant])=>[organism,`${resistant}/${tested}`,'—','down']):[[tx('Δεν υπάρχουν δεδομένα ευαισθησίας','No susceptibility data'),'—','—','up']];const map={overview:[[tx('Επιτήρηση','Surveillance'),summary.surveillance??0,'—','up'],[tx('Εργαστήριο','Laboratory'),summary.laboratory??0,'—','up'],[tx('Πρόληψη','Prevention'),summary.prevention??0,'—','up'],[tx('Έλεγχοι','Controls'),summary.controls??0,'—','up'],[tx('Ποιότητα','Quality'),summary.quality??0,'—','up'],[tx('Εκπαίδευση','Training'),summary.training??0,'—','up']],national:[[tx('Θετικές καλλιέργειες','Positive cultures'),micro.totalPositive??0,'—','up'],['MDR/XDR/PDR',(micro.resistance||[]).reduce((sum,row)=>sum+Number(row[1]||0),0),'—','down'],[tx('Τμήματα με ≥1 εύρημα','Departments with ≥1 finding'),micro.departmentCount??0,'—','up'],[tx('Κρίσιμα αποτελέσματα','Critical results'),micro.totalCritical??0,'—','down']],surveillance:[[tx('Καταγραφές επιτήρησης','Surveillance records'),summary.surveillance??0,'—','up']],laboratory:[[tx('Εργαστηριακές καταγραφές','Laboratory records'),summary.laboratory??0,'—','up'],[tx('Θετικές καλλιέργειες','Positive cultures'),micro.totalPositive??0,'—','up'],[tx('Κρίσιμα αποτελέσματα','Critical results'),micro.totalCritical??0,'—','down']],amr:amrRows,antimicrobials:antimicrobialRows,prevention:[[tx('Πρόληψη','Prevention'),summary.prevention??0,'—','up'],[tx('Υγιεινή χεριών','Hand hygiene'),summary.handHygiene??0,'—','up'],[tx('Απόβλητα','Waste'),summary.waste??0,'—','up']],hand:[[tx('Υγιεινή χεριών','Hand hygiene'),summary.handHygiene??0,'—','up']],controls:[[tx('Έλεγχοι','Controls'),summary.controls??0,'—','up']],occupational:[[tx('Επισκέψεις εργαζομένων','Employee visits'),summary.occupationalHealth??'—','—','up']],quality:[[tx('Ποιότητα','Quality'),summary.quality??0,'—','up']],qualityfood:[[tx('Ποιότητα & ασφάλεια τροφίμων','Quality & food safety'),'—','—','up']],training:[[tx('Εκπαίδευση','Training'),summary.training??0,'—','up']],governance:[[tx('Έγγραφα','Documents'),summary.documents??0,'—','up'],[tx('Επιτροπές','Committees'),summary.committees??'—','—','up']]};return map[tab]||map.overview}
+
+// «Δείκτες» (the Executive dashboard): one row of tabs. Each tab shows its Analysis
+// sections one under the other; the prevalence survey, reporting and LIRA sit in
+// «Περισσότερα» at the end of the strip.
+export const INDICATOR_TABS=[
+ ['summary','Σύνοψη','Overview',Gauge,[]],
+ ['infections','Λοιμώξεις','Infections',Stethoscope,['surveillance']],
+ ['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical,['laboratory']],
+ ['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill,['antimicrobials']],
+ ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',ShieldCheck,['prevention','controls']],
+ ['organisation','Οργανισμός','Organisation',Users,['occupational','quality','qualityfood','training','governance']],
+]
+export const INDICATOR_MORE_TABS=[
+ ['pps','Μελέτη επιπολασμού','Prevalence survey',Activity,['pps']],
+ ['reporting','Αναφορές & ποιότητα δεδομένων','Reporting & data quality',FileWarning,['reporting']],
+ ['lira','LIRA & AI','LIRA & AI',BrainCircuit,['lira']],
+]
+// The «Δείκτες» tab that shows an Analysis tab (old links: /analysis?tab=…, ?view=analysis&tab=…).
+export function indicatorTabOf(analysisTab){
+ if(!analysisTab||analysisTab==='overview')return 'summary'
+ return [...INDICATOR_TABS,...INDICATOR_MORE_TABS].find(([id,,,,sections])=>id===analysisTab||sections.includes(analysisTab))?.[0]||'summary'
+}

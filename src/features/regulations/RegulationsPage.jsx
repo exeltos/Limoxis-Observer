@@ -61,7 +61,7 @@ export function RegulationsPage() {
 
   if (state.loading) return <RouteLoading />
   return <Page title={en ? 'Regulations' : 'Κανονισμοί'} subtitle={en ? 'The hospital’s regulations, read as books. Every edition approved and kept.' : 'Οι κανονισμοί του νοσοκομείου, σαν βιβλία. Κάθε έκδοση εγκρίνεται και φυλάσσεται.'}
-    actions={<div className="row-actions">{canSeeLegislation && !inSection && <Button variant="secondary" onClick={() => navigate('/legislation')}><Scale size={15} />{en ? 'Legislation' : 'Νομοθεσία'}</Button>}{canManage && <Button onClick={() => setCreating({ templateKey: state.templates[0]?.key || '', title: state.templates[0]?.title || '', category: state.templates[0]?.category || 'infection' })}><Plus size={15} />{en ? 'New regulation' : 'Νέος κανονισμός'}</Button>}</div>}>
+    actions={<div className="row-actions">{canSeeLegislation && !inSection && <Button variant="secondary" onClick={() => navigate('/documents?tab=legislation')}><Scale size={15} />{en ? 'Legislation' : 'Νομοθεσία'}</Button>}{canManage && <Button onClick={() => setCreating({ templateKey: state.templates[0]?.key || '', title: state.templates[0]?.title || '', category: state.templates[0]?.category || 'infection' })}><Plus size={15} />{en ? 'New regulation' : 'Νέος κανονισμός'}</Button>}</div>}>
     {state.error && <div className="data-access-state error" role="alert"><span>{en ? 'Could not load the regulations.' : 'Δεν ήταν δυνατή η φόρτωση των κανονισμών.'}</span><Button variant="secondary" onClick={reload}>{en ? 'Retry' : 'Επανάληψη'}</Button></div>}
     <section className="surface reg-library">
       {shelf.length ? <div className="reg-shelf">{shelf.map(item => {

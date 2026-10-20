@@ -954,20 +954,6 @@
 .employee-record-shell .employee-registry-empty span{color:#8293a3!important;font-size:11px!important}
 
 /* Older employee subrecord tables remain visually aligned while gradually migrated. */
-.employee-record-shell .record-section > .record-table-wrap{
-  width:100%!important;min-width:0!important;margin-top:12px!important;overflow:hidden!important;border:1px solid #e1e8ee!important;border-radius:11px!important;background:#fff!important;box-shadow:none!important;
-}
-.employee-record-shell .record-section > .record-table-wrap > .record-table{
-  width:100%!important;margin:0!important;border:0!important;border-collapse:separate!important;border-spacing:0!important;table-layout:fixed!important;background:#fff!important;
-}
-.employee-record-shell .record-section > .record-table-wrap > .record-table thead th{
-  height:42px!important;padding:0 16px!important;border:0!important;border-bottom:1px solid #dfe7ed!important;background:#f7f9fb!important;
-  color:#6f8294!important;font-size:9.5px!important;font-weight:750!important;line-height:1.2!important;letter-spacing:.045em!important;text-align:left!important;text-transform:uppercase!important;vertical-align:middle!important;
-}
-.employee-record-shell .record-section > .record-table-wrap > .record-table tbody td{
-  height:52px!important;padding:10px 16px!important;border:0!important;border-bottom:1px solid #e7edf2!important;background:#fff!important;
-  color:#486177!important;font-size:12px!important;font-weight:500!important;line-height:1.4!important;vertical-align:middle!important;
-}
 
 @media(max-width:760px){
   .entity-record-shell .record-secondary-registry > .scroll-table,
@@ -3106,7 +3092,6 @@ button{letter-spacing:0}
 .topbar-utility-card{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;gap:3px!important}
 .icon-button,.language-button,.preview-trigger,.tenant-switch select{min-height:32px!important;height:32px!important;border:1px solid var(--lo-color-border)!important;border-radius:7px!important;background:#fff!important;color:#42566a!important;box-shadow:none!important}
 .icon-button{width:32px!important}
-.language-button{min-width:34px!important;padding:0 8px!important;font-size:11px!important;font-weight:700!important}
 .user-chip{height:34px!important;padding:3px 7px 3px 4px!important;border:0!important;background:transparent!important;box-shadow:none!important}
 .user-chip:hover{background:#f4f7f9!important}
 .user-chip .avatar{width:28px!important;height:28px!important;font-size:10px!important}
@@ -3449,10 +3434,6 @@ button{letter-spacing:0}
 .patient-surveillance-clean>.record-section>.record-section-header p{
   margin-top:2px!important;
 }
-.patient-surveillance-clean .record-table-wrap{
-  min-height:0!important;
-  background:#fff!important;
-}
 .patient-surveillance-clean .record-table{
   border-collapse:collapse!important;
 }
@@ -3717,7 +3698,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 }
 .patient-surveillance-clean>.record-section>.record-section-header h3{margin:0!important;font-size:16px!important;font-weight:760!important;color:#173956!important}
 .patient-surveillance-clean>.record-section>.record-section-header p{margin:4px 0 0!important;max-width:980px!important;font-size:12.5px!important;line-height:1.42!important;color:#667f95!important}
-.patient-surveillance-clean .record-table-wrap{max-height:245px!important;overflow-y:auto!important;overflow-x:hidden!important;border:0!important;border-radius:0!important}
 .patient-surveillance-clean .record-table{width:100%!important;min-width:0!important;table-layout:fixed!important;margin:0!important}
 .patient-surveillance-clean .record-table thead th{position:sticky!important;top:0!important;z-index:2!important;background:#f7fbff!important;color:#536f87!important;font-size:11.5px!important;text-transform:none!important;letter-spacing:0!important;border-bottom:1px solid #dfeaf4!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .patient-surveillance-clean .record-table td{vertical-align:middle!important;padding-top:10px!important;padding-bottom:10px!important;overflow:hidden!important;text-overflow:ellipsis!important}

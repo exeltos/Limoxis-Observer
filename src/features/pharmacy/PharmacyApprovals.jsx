@@ -63,8 +63,8 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
       </FilterSelect>
     </FilterBar>
     {!canDecide && <div className="inline-empty">{en ? 'Read only: approving needs the antimicrobial therapy permission.' : 'Μόνο ανάγνωση: η έγκριση χρειάζεται το δικαίωμα αντιμικροβιακής αγωγής.'}</div>}
-    {loading && !rows.length ? <TableSkeleton /> : <div className="record-table-wrap" tabIndex={0} role="region" aria-label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'}>
-      <table className="data-table record-table">
+    {loading && !rows.length ? <TableSkeleton /> : <div className="scroll-table" tabIndex={0} role="region" aria-label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'}>
+      <table className="data-table sticky-table">
         <thead><tr><th>{en ? 'Started' : 'Έναρξη'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'Dose / route' : 'Δόση / οδός'}</th><th>{en ? 'Indication' : 'Ένδειξη'}</th><th>{en ? 'Patient' : 'Ασθενής'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Approval' : 'Έγκριση'}</th>{canDecide && <th />}</tr></thead>
         <tbody>{paged.map(row => { const badge = STATUS[row.approvalStatus] || STATUS.pending; return <tr key={row.id} className={canOpenRecord && row.caseId ? 'clickable-row' : ''} onClick={canOpenRecord && row.caseId ? () => navigate(`/surveillance/${row.caseId}`) : undefined}>
           <td>{fmtDay(row.startedAt)}</td><td><strong>{row.antimicrobial}</strong></td><td>{[row.dose, row.route].filter(Boolean).join(' · ') || '—'}</td><td>{row.indication || '—'}</td><td>{row.patientCode || '—'}</td><td>{(en ? row.departmentEn : row.department) || '—'}</td>

@@ -37,7 +37,7 @@ import './regulations.css'
 export function RegulationPage() {
   const { regulationId } = useParams()
   const location = useLocation()
-  const { goBack } = useContextualNavigation('/regulations')
+  const { goBack } = useContextualNavigation('/documents?tab=regulations')
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()

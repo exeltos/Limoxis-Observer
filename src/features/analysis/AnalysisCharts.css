@@ -72,4 +72,3 @@ html body .analysis-kpis article>small{font-size:12px!important;color:#5c6f7f!im
 /* Analysis inside the Executive dashboard: the page scrolls, the period is the dashboard's. */
 .analysis-workspace.analysis-embedded{height:auto;min-height:0;overflow:visible;margin:0}
 .analysis-embedded .analysis-scroll{overflow:visible}
-.analysis-embedded-actions{display:flex;justify-content:flex-end;margin-bottom:6px}

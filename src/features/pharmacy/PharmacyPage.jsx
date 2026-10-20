@@ -17,6 +17,7 @@ import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
 import { awareCategoryFor, awareCategoryLabel } from './whoAwareClassification'
 import { PharmacyApprovals } from './PharmacyApprovals'
+import { therapyAccess } from './pharmacyAccess'
 import { PharmacyIndicators } from './PharmacyIndicators'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 
@@ -33,12 +34,15 @@ export function PharmacyPage() {
   const { language, t } = useLanguage()
   const en = language === 'en'
   const { notify, notifyError } = useFeedback()
-  const { role, membership, tenant } = useTenant()
+  const { role, membership, tenant, isDemo } = useTenant()
   const addOns = useMemo(() => membership?.capabilities ?? [], [membership?.capabilities])
   const custom = useMemo(() => membership?.customCapabilities ?? [], [membership?.customCapabilities])
   const canRecord = can(role, CAPABILITIES.RECORD_PHARMACY_CONSUMPTION, addOns, custom)
-  const canDecide = can(role, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, addOns, custom)
-  const canApprovals = canDecide || can(role, CAPABILITIES.REVIEW_CLINICAL, addOns, custom)
+  // The approvals tab follows the cloud RLS of antimicrobial_therapies (pharmacyAccess.js):
+  // hidden for roles that cannot read the therapies; approve / reject needs the manage capability and the update policy.
+  const therapies = therapyAccess({ role, demoOrganization: Boolean(tenant?.is_demo), sample: Boolean(isDemo) })
+  const canDecide = therapies.update && can(role, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, addOns, custom)
+  const canApprovals = therapies.read && (canDecide || can(role, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, addOns, custom) || can(role, CAPABILITIES.REVIEW_CLINICAL, addOns, custom))
   const canIndicators = can(role, CAPABILITIES.VIEW_INDICATORS, addOns, custom)
   const canOpenCase = can(role, CAPABILITIES.VIEW_SURVEILLANCE, addOns, custom)
   const tabs = [
@@ -133,8 +137,8 @@ export function PharmacyPage() {
           {firstLoad && <TableSkeleton />}
           {!loading && !rows.length && <div className="inline-empty">{en ? 'No dispensing periods recorded yet.' : 'Δεν έχουν καταχωριστεί περίοδοι χορήγησης.'}</div>}
           {!firstLoad && Boolean(rows.length) && (
-            <div className="record-table-wrap" tabIndex={0} role="region" aria-label={t('pharmacy')}>
-              <table className="data-table record-table">
+            <div className="scroll-table" tabIndex={0} role="region" aria-label={t('pharmacy')}>
+              <table className="data-table sticky-table">
                 <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
                 <tbody>{paged.map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id}><td>{formatPeriod(row.period, en)}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
               </table>

@@ -38,7 +38,7 @@ export const MODULE_ROWS = Object.freeze([
   ['kitchen', 'Κουζίνα', 'Kitchen', '/kitchen', [['kitchenOutOfLimits30d', 'εκτός ορίων (30 ημ.)', 'out of limits (30 d)', 'warning'], ['kitchenUnverifiedDays', 'ημέρες χωρίς επαλήθευση', 'days not verified', 'warning']]],
   ['pharmacy', 'Φαρμακείο', 'Pharmacy', '/pharmacy', [['pendingApprovals', 'εγκρίσεις σε αναμονή', 'approvals pending', 'warning'], ['antimicrobialTherapies', 'αντιμικροβιακές αγωγές', 'antimicrobial therapies']]],
   ['interviews', 'Συνεντεύξεις', 'Interviews', '/interviews', [['openCandidates', 'ανοιχτές αιτήσεις', 'open applications'], ['newCandidates', 'νέες', 'new', 'warning'], ['upcomingInterviews', 'προγραμματισμένες', 'scheduled']]],
-  ['governance', 'Επιτροπές', 'Committees', '/committees', [['pendingMinutes', 'πρακτικά σε εκκρεμότητα', 'minutes pending', 'warning'], ['openDecisions', 'ανοιχτές αποφάσεις', 'open decisions']]],
+  ['governance', 'Επιτροπές', 'Committees', '/meetings', [['pendingMinutes', 'πρακτικά σε εκκρεμότητα', 'minutes pending', 'warning'], ['openDecisions', 'ανοιχτές αποφάσεις', 'open decisions']]],
 ])
 
 export function moduleStatusRows(metrics = {}, { moduleEnabled = () => true, canOpen = () => true, language = 'el' } = {}) {

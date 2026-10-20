@@ -43,3 +43,8 @@
 .kitchen-recall-warning{display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px 12px;border-radius:10px;font-size:13px;color:var(--color-warning-text,#92400e);background:var(--color-warning-surface,#fffbeb);border:1px solid var(--color-warning-border,#fde68a)}
 .kitchen-recall-count{width:96px}
 .kitchen-recall-real{margin-top:14px;padding:10px 12px;border:1px dashed var(--color-danger-border,#f3c4bf);border-radius:10px;background:var(--color-danger-surface,#fff7f6)}
+/* In the kitchen workspace the overview and HACCP sections are not cards of their own: one frame (the
+   workspace), the tables flush inside it, as in every other list of the app. */
+.kitchen-workspace .kitchen-card{border:0;border-radius:0;padding:0;background:transparent}
+.kitchen-workspace :is(.kitchen-overview,.kitchen-haccp){gap:22px 28px;padding:16px 18px}
+.kitchen-workspace .kitchen-card .scroll-table{border-width:1px 0!important;border-radius:0!important}

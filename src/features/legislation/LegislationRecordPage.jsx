@@ -30,7 +30,7 @@ const plusYear = day => { const date = new Date(`${day}T12:00:00Z`); date.setUTC
 export function LegislationRecordPage() {
   const { textId } = useParams()
   const navigate = useNavigate()
-  const { goBack } = useContextualNavigation('/legislation')
+  const { goBack } = useContextualNavigation('/documents?tab=legislation')
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()

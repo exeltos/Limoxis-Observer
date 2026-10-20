@@ -21,7 +21,7 @@ describe('role + scope access foundation', () => {
 
   it('gives platform owner direct navigation to all current product modules', () => {
     const keys = navigationFor({ role: ROLES.PLATFORM_OWNER }).map((item) => item.key)
-    expect(keys).toEqual(expect.arrayContaining(['dashboard','surveillance','laboratory','prevention','controls','quality','employees','platformAnalyticsNav','executiveDashboard','training','meetings','documents','pharmacy','occupationalHealth','management']))
+    expect(keys).toEqual(expect.arrayContaining(['dashboard','surveillance','laboratory','prevention','controls','quality','employees','executiveDashboard','training','meetings','documents','pharmacy','occupationalHealth','management']))
   })
 
   it('does not show both Dashboard and My department to department roles', () => {

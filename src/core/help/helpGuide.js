@@ -367,7 +367,7 @@ export const guideContent = {
     ['committee_secretariat', l('Οργανώνει συνεδριάσεις, πρακτικά και αποφάσεις επιτροπών.', 'Organizes committee meetings, minutes and decisions.')],
     ['pharmacy', l('Παρακολουθεί κατανάλωση και εγκρίσεις αντιμικροβιακών.', 'Tracks antimicrobial consumption and approvals.')],
     ['occupational_physician', l('Διαχειρίζεται επισκέψεις και εμβολιασμούς εργαζομένων. Έχει πρόσβαση στα ιατρικά στοιχεία.', 'Manages employee visits and vaccinations. Has access to the medical data.')],
-    ['hospital_director', l('Βλέπει τον Πίνακα Διοίκησης: δείκτες όλου του νοσοκομείου με φίλτρα περιόδου και τμήματος, και εξάγει αναφορά. Δεν καταχωρεί.', 'Sees the Executive dashboard: whole-hospital measures with period and department filters, and exports a report. Records nothing.')],
+    ['hospital_director', l('Βλέπει τους Δείκτες: Σύνοψη και μία καρτέλα ανά περιοχή (Λοιμώξεις, Μικροβιολογία & AMR, Αντιμικροβιακά, Πρόληψη & έλεγχοι, Οργανισμός), με μία γραμμή φίλτρων (περίοδος, τμήμα, σύγκριση) και εξαγωγή. Δεν καταχωρεί.', 'Sees Indicators: an overview and one tab per area (Infections, Microbiology & AMR, Antimicrobials, Prevention & controls, Organisation), with one filter row (period, department, comparison) and export. Records nothing.')],
     ['hr_office', l('Διοικητικό μητρώο εργαζομένων, χωρίς πρόσβαση σε ιατρικά στοιχεία.', 'Administrative employee registry, without access to medical data.')],
     ['staff_user', l('Βλέπει την προσωπική του καρτέλα, τις δικές του εκπαιδεύσεις και πιστοποιητικά και ό,τι του έχει ανατεθεί.', 'Sees their own record, their own training and certificates and whatever is assigned to them.')],
   ],

@@ -4,7 +4,7 @@
 // A step with `target` is outlined on screen (DemoStepSpotlight) where the
 // screen marks it with data-demo-step="scenario:step".
 export const DEMO_SCENARIOS = Object.freeze([
-  { key: 'patient_admission', to: '/patients',
+  { key: 'patient_admission', to: '/surveillance?tab=registry',
     titleEl: 'Εισαγωγή ασθενούς', titleEn: 'Admit a patient',
     textEl: 'Από το Μητρώο ασθενών πατήστε «Νέος ασθενής», συμπληρώστε τα στοιχεία και το τμήμα εισαγωγής και ανοίξτε την ενιαία κλινική καρτέλα του.',
     textEn: 'In the patient registry press "New patient", fill in the details and the admitting department, then open the patient\'s clinical record.' },
@@ -83,7 +83,7 @@ export const DEMO_ROLE_EXTRA_SCENARIOS = Object.freeze([
     textEl: 'Στο Φαρμακείο καταχωρίστε μια χορήγηση αντιβιοτικού και δείτε πώς ενημερώνεται η κατανάλωση ανά τμήμα.',
     textEn: 'In Pharmacy record an antibiotic dispensing and see how consumption per department updates.',
     steps: [{ id: 'save', labelEl: 'Καταχωρίστε μια χορήγηση', labelEn: 'Record a dispensing' }] },
-  { key: 'committee_minutes', to: '/committees',
+  { key: 'committee_minutes', to: '/meetings',
     titleEl: 'Συνεδρίαση και πρακτικά', titleEn: 'Meeting and minutes',
     textEl: 'Ανοίξτε μια επιτροπή, προγραμματίστε συνεδρίαση και καταχωρίστε τα πρακτικά της.',
     textEn: 'Open a committee, schedule a meeting and record its minutes.',

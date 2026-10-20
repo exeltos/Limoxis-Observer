@@ -1,28 +1,28 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useLocation,useNavigate } from 'react-router-dom'
-import { Activity,AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,BarChart3,BookOpen,BriefcaseMedical,ChefHat,CheckCircle2,ChevronDown,ChevronUp,ClipboardCheck,FlaskConical,Gauge,GraduationCap,Minus,ShieldCheck,TriangleAlert } from 'lucide-react'
+import { Activity,AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,BookOpen,BriefcaseMedical,ChefHat,CheckCircle2,ChevronDown,ChevronUp,ClipboardCheck,FlaskConical,GraduationCap,Minus,MoreHorizontal,ShieldCheck,TriangleAlert } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Card,CardHeader } from '../../design-system/Card'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { CheckboxField } from '../../design-system/CheckboxField'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { printElement } from '../../design-system/printElement'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { CAPABILITIES,can } from '../../core/permissions/roles'
+import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { AnalysisSelect } from '../analysis/AnalysisPanels'
 import { BarList,DonutChart,TrendChart } from '../analysis/AnalysisCharts'
-import { continuousMonths,fmtDate } from '../analysis/analysisPageModel'
+import { INDICATOR_MORE_TABS,INDICATOR_TABS,TAB_MODULES,continuousMonths,fmtDate,indicatorTabOf } from '../analysis/analysisPageModel'
 import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { AnalysisPage } from '../analysis/AnalysisPage'
 import { periodTag,readSharedPeriod,writeSharedPeriod } from '../analysis/sharedPeriod'
 import { loadCommittees } from '../committees/committeeData'
+import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { controlRanking,executiveKpis,filtersToQuery,monthlyRate,parseFilters,pct,periodRange,previousRange,redFlags,visibleFor,withDeltas } from './executiveModel'
 import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
 import './executive.css'
@@ -31,7 +31,7 @@ const PART_KEYS=['domains','people','qualityFood','microbiology','clusters','gov
 const SEVERITY_LABELS={critical:['Κρίσιμη','Critical'],high:['Υψηλή','High'],medium:['Μέτρια','Medium'],low:['Χαμηλή','Low']}
 const TONES={good:[CheckCircle2,'Εντός στόχου','On target'],warning:[AlertTriangle,'Προσοχή','Watch'],danger:[AlertOctagon,'Εκτός στόχου','Off target']}
 // Detail screen of each Analysis tab for a viewer who has it; otherwise the Analysis tab itself.
-const MODULE_SCREENS={surveillance:['/surveillance',CAPABILITIES.VIEW_SURVEILLANCE],laboratory:['/laboratory',CAPABILITIES.VIEW_LAB],prevention:['/prevention',CAPABILITIES.VIEW_PREVENTION],controls:['/controls',CAPABILITIES.VIEW_CONTROLS],quality:['/quality',CAPABILITIES.VIEW_QUALITY],qualityfood:['/quality',CAPABILITIES.VIEW_QUALITY],training:['/training',CAPABILITIES.VIEW_TRAINING],governance:['/committees',CAPABILITIES.VIEW_COMMITTEES]}
+const MODULE_SCREENS={surveillance:['/surveillance',CAPABILITIES.VIEW_SURVEILLANCE],laboratory:['/laboratory',CAPABILITIES.VIEW_LAB],prevention:['/prevention',CAPABILITIES.VIEW_PREVENTION],controls:['/controls',CAPABILITIES.VIEW_CONTROLS],quality:['/quality',CAPABILITIES.VIEW_QUALITY],qualityfood:['/quality',CAPABILITIES.VIEW_QUALITY],training:['/training',CAPABILITIES.VIEW_TRAINING],governance:['/meetings',CAPABILITIES.VIEW_COMMITTEES]}
 
 const ready=part=>part?.status==='ready'
 // Settles each part on its own, so a card shows as soon as its data is in.
@@ -61,18 +61,18 @@ function demoParts(range,en){
 function Skeleton({lines=3}){return <div className="exec-skeleton" aria-hidden="true">{Array.from({length:lines},(_,i)=><i key={i}/>)}</div>}
 const formatValue=(value,unit,en)=>value==null?'—':`${new Intl.NumberFormat(en?'en-GB':'el-GR',{maximumFractionDigits:1}).format(value)}${unit||''}`
 
-function DeltaBadge({item,tx,en}){
+function DeltaBadge({item,tx,en,against}){
  const d=item.delta
  if(!d)return null
  const Icon=d.trend==='up'?ArrowUpRight:d.trend==='down'?ArrowDownRight:Minus
  const sign=d.diff>0?'+':''
  // Rates change in percentage points; counts by their relative change (or the difference, from zero).
  const amount=item.unit==='%'?`${sign}${formatValue(d.diff,'',en)} ${tx('μον.','pts')}`:d.change!=null?`${sign}${formatValue(d.change,'%',en)}`:`${sign}${formatValue(d.diff,'',en)}`
- return <span className={`exec-delta ${d.good==null?'flat':d.good?'better':'worse'}`} title={tx('Μεταβολή έναντι της προηγούμενης περιόδου','Change against the previous period')}><Icon size={13} aria-hidden="true"/>{amount}<em>{d.good==null?tx('σταθερό','unchanged'):d.good?tx('βελτίωση','better'):tx('επιδείνωση','worse')}</em></span>
+ return <span className={`exec-delta ${d.good==null?'flat':d.good?'better':'worse'}`} title={against||tx('Μεταβολή έναντι της προηγούμενης περιόδου','Change against the previous period')}><Icon size={13} aria-hidden="true"/>{amount}<em>{d.good==null?tx('σταθερό','unchanged'):d.good?tx('βελτίωση','better'):tx('επιδείνωση','worse')}</em></span>
 }
-function KpiTile({item,loading,error,tx,en,onOpen,period}){
+function KpiTile({item,loading,error,tx,en,onOpen,period,against}){
  const [Icon,el,enLabel]=TONES[item.tone]||[]
- const body=<><span className="exec-kpi-label">{tx(...item.label)}{period&&<em className="exec-kpi-period">{period}</em>}</span>{loading?<Skeleton lines={2}/>:error?<small className="exec-kpi-error">{tx('Δεν φορτώθηκε','Not loaded')}</small>:<><strong>{formatValue(item.value,item.unit,en)}</strong>{Icon&&item.value!=null&&<span className={`exec-status exec-status-${item.tone}`}><Icon size={13} aria-hidden="true"/>{en?enLabel:el}</span>}<small>{tx(...item.hint)}</small><DeltaBadge item={item} tx={tx} en={en}/></>}</>
+ const body=<><span className="exec-kpi-label">{tx(...item.label)}{period&&<em className="exec-kpi-period">{period}</em>}</span>{loading?<Skeleton lines={2}/>:error?<small className="exec-kpi-error">{tx('Δεν φορτώθηκε','Not loaded')}</small>:<><strong>{formatValue(item.value,item.unit,en)}</strong>{Icon&&item.value!=null&&<span className={`exec-status exec-status-${item.tone}`}><Icon size={13} aria-hidden="true"/>{en?enLabel:el}</span>}<small>{tx(...item.hint)}</small><DeltaBadge item={item} tx={tx} en={en} against={against}/></>}</>
  return onOpen?<button type="button" className={`exec-kpi exec-tone-${loading||error?'neutral':item.tone}`} onClick={onOpen}>{body}</button>:<article className={`exec-kpi exec-tone-${loading||error?'neutral':item.tone}`}>{body}</article>
 }
 function Figures({rows}){return <dl className="exec-figures">{rows.filter(Boolean).map(([label,value,tone])=><div key={label} className={tone?`exec-figure-${tone}`:''}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
@@ -84,6 +84,18 @@ function SectionCard({id,icon,title,subtitle,loading,error,onOpen,tx,figures,chi
  </Card>
 }
 const FLAGS_FOLDED=5
+// «Περισσότερα» at the end of the one row of tabs: the prevalence survey, reporting and LIRA.
+function MoreTabs({tabs,activeId,onChange,tx,en}){
+ const [open,setOpen]=useState(false)
+ const rootRef=useRef(null),triggerRef=useRef(null)
+ useEffect(()=>{if(!open)return undefined;rootRef.current?.querySelector('[role="menuitem"]')?.focus();const onPointer=event=>{if(!rootRef.current?.contains(event.target))setOpen(false)};document.addEventListener('mousedown',onPointer);return()=>document.removeEventListener('mousedown',onPointer)},[open])
+ const active=tabs.find(([id])=>id===activeId)
+ const onKey=event=>{const items=[...(rootRef.current?.querySelectorAll('[role="menuitem"]')??[])];const index=items.indexOf(document.activeElement);if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();items[(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus()}else if(event.key==='Escape'){event.preventDefault();setOpen(false);triggerRef.current?.focus()}}
+ return <div ref={rootRef} className="exec-more-tabs" onKeyDown={onKey}>
+  <button ref={triggerRef} type="button" className={`tab exec-more-trigger${active?' active':''}`} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><MoreHorizontal size={15} aria-hidden="true"/><span>{active?(en?active[2]:active[1]):tx('Περισσότερα','More')}</span><ChevronDown size={13} aria-hidden="true"/></button>
+  {open&&<div className="exec-more-menu" role="menu" aria-label={tx('Περισσότερα','More')}>{tabs.map(([id,elLabel,enLabel,Icon])=><button key={id} type="button" role="menuitem" tabIndex={-1} aria-current={id===activeId?'true':undefined} onClick={()=>{setOpen(false);onChange(id)}}><Icon size={15} aria-hidden="true"/><span>{en?enLabel:elLabel}</span></button>)}</div>}
+ </div>
+}
 function RankList({title,rows,tx,en}){return <div className="exec-rank"><strong>{title}</strong>{rows.length?<ol>{rows.map(row=><li key={row.name}><span>{row.name}</span><b>{formatValue(row.rate,'%',en)}</b><small>{tx(`${row.findings}/${row.executions} με εύρημα`,`${row.findings}/${row.executions} with finding`)}</small></li>)}</ol>:<p className="inline-empty">{tx('Δεν υπάρχουν αρκετές εκτελέσεις.','Not enough executions.')}</p>}</div>}
 
 export function ExecutiveDashboardPage(){
@@ -96,18 +108,24 @@ export function ExecutiveDashboardPage(){
  const query=useMemo(()=>new URLSearchParams(location.search),[location.search])
  // The period is shared with Analysis (sharedPeriod.js): a URL without one opens on the last one picked.
  const filters=useMemo(()=>parseFilters(location.search,readSharedPeriod()),[location.search])
- const view=query.get('view')==='analysis'?'analysis':'summary'
- const searchOf=(next,nextView,extra={})=>{const params=new URLSearchParams(filtersToQuery(next).replace(/^\?/,''));if(nextView==='analysis')params.set('view','analysis');for(const [key,value] of Object.entries(extra))params.set(key,value);const out=params.toString();return out?`?${out}`:''}
- const setFilters=patch=>{const next={...filters,...patch};writeSharedPeriod(next);navigate({pathname:location.pathname,search:searchOf(next,view,view==='analysis'&&query.get('tab')?{tab:query.get('tab')}:{})},{replace:true})}
- const setView=nextView=>navigate({pathname:location.pathname,search:searchOf(filters,nextView)},{replace:true})
+ // One row of tabs (?tab=); an old ?view=analysis&tab=<analysis tab> opens the tab that shows it.
+ const askedTab=query.get('tab')||''
+ const pageTab=[...INDICATOR_TABS,...INDICATOR_MORE_TABS].some(([id])=>id===askedTab)?askedTab:query.get('view')==='analysis'?indicatorTabOf(askedTab||'surveillance'):'summary'
+ // Σύγκριση: none, the previous period, or the chosen department against the whole hospital (?vs=departments).
+ const compareMode=!filters.compare?'none':query.get('vs')==='departments'&&filters.department?'departments':'previous'
+ const searchOf=(next,nextTab,nextMode=compareMode)=>{const params=new URLSearchParams(filtersToQuery({...next,compare:nextMode!=='none'}).replace(/^\?/,''));if(nextMode==='departments')params.set('vs','departments');if(nextTab&&nextTab!=='summary')params.set('tab',nextTab);const out=params.toString();return out?`?${out}`:''}
+ const setFilters=(patch,nextMode=compareMode)=>{const next={...filters,...patch};writeSharedPeriod(next);navigate({pathname:location.pathname,search:searchOf(next,pageTab,next.department?nextMode:nextMode==='departments'?'previous':nextMode)},{replace:true})}
+ const setPageTab=nextTab=>navigate({pathname:location.pathname,search:searchOf(filters,nextTab)},{replace:true})
  const [openCards,setOpenCards]=useState(()=>new Set())
  const [allFlags,setAllFlags]=useState(false)
  const toggleCard=id=>setOpenCards(prev=>{const next=new Set(prev);if(next.has(id))next.delete(id);else next.add(id);return next})
  const cardProps=id=>({open:openCards.has(id),onToggle:()=>toggleCard(id)})
  const range=useMemo(()=>periodRange(filters),[filters])
- const previous=useMemo(()=>filters.compare?previousRange(range,filters.period):null,[filters.compare,filters.period,range])
+ const previous=useMemo(()=>compareMode==='previous'?previousRange(range,filters.period):compareMode==='departments'?range:null,[compareMode,filters.period,range])
  const organizationId=tenant?.id||''
  const department=isDemo?'':filters.department
+ // The reference the summary and every tab compare with: the previous period, or the whole hospital.
+ const previousDepartment=compareMode==='departments'?'':department
  const userCan=capability=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
  const currentParts=useMemo(()=>{
   if(isDemo)return demoParts(range,en)
@@ -118,9 +136,9 @@ export function ExecutiveDashboardPage(){
   if(!previous)return null
   if(isDemo)return demoParts(previous,en)
   if(!organizationId)return null
-  const parts=loadExecutiveParts({organizationId,...previous,departmentId:department})
+  const parts=loadExecutiveParts({organizationId,...previous,departmentId:previousDepartment})
   return {domains:parts.domains,people:parts.people,qualityFood:parts.qualityFood,microbiology:parts.microbiology}
- },[isDemo,organizationId,previous,department,en])
+},[isDemo,organizationId,previous,previousDepartment,en])
  const current=useParts(currentParts),before=useParts(previousParts)
  const snapshot=useMemo(()=>snapshotOf(current),[current])
  const governance=ready(current.governance)?current.governance.data:null
@@ -136,23 +154,24 @@ export function ExecutiveDashboardPage(){
  const partState=keys=>({loading:keys.some(key=>!current[key]||current[key].status==='loading'),error:keys.every(key=>current[key]?.status==='error')})
  const departments=useMemo(()=>(ready(current.microbiology)?current.microbiology.data?.departments||[]:[]).filter(item=>!item.organizationId||item.organizationId===organizationId),[current.microbiology,organizationId])
  const departmentName=department?(departments.find(item=>item.id===department)?.name||tx('Ένα τμήμα','One department')):tx('Όλα τα τμήματα','All departments')
- // «Αναλυτικά» opens this page's Analysis view on that tab, with the same period.
- const openAnalysis=tab=>userCan(CAPABILITIES.VIEW_ANALYSIS)?()=>{window.scrollTo?.(0,0);navigate({pathname:location.pathname,search:searchOf(filters,'analysis',{tab})})}:undefined
+ // «Αναλυτικά» opens the tab of this page that shows that Analysis section, with the same filters.
+ const openAnalysis=tab=>userCan(CAPABILITIES.VIEW_ANALYSIS)?()=>{window.scrollTo?.(0,0);navigate({pathname:location.pathname,search:searchOf(filters,indicatorTabOf(tab))})}:undefined
  const openFlag=tab=>{const [path,capability]=MODULE_SCREENS[tab]||[];if(path&&userCan(capability))return()=>navigate(path);return openAnalysis(tab)}
  const on=(...modules)=>modules.some(module=>moduleEnabled(module))
  const d=snapshot.domains,s=d.surveillance||{},hh=d.handHygiene||{},b=d.bundles||{},c=d.controls||{},q=d.quality||{},t=d.training||{},w=d.workforce||{},g=d.governance||{},f=d.qualityFood||{},micro=snapshot.microbiology||{}
  const ranking=useMemo(()=>controlRanking(c.byDepartment),[c.byDepartment])
  const periodLabel=`${fmtDate(range.from)} – ${fmtDate(range.to)}`
- const previousLabel=previous?`${fmtDate(previous.from)} – ${fmtDate(previous.to)}`:''
+ const previousLabel=compareMode==='departments'?tx('όλου του νοσοκομείου','the whole hospital'):previous?`${fmtDate(previous.from)} – ${fmtDate(previous.to)}`:''
  const presetLabels={month:tx('Τρέχων μήνας','This month'),'3m':tx('Τελευταίοι 3 μήνες','Last 3 months'),'6m':tx('Τελευταίοι 6 μήνες','Last 6 months'),'12m':tx('Τελευταίοι 12 μήνες','Last 12 months'),year:tx('Τρέχον έτος','This year'),custom:tx('Άλλο διάστημα','Custom range')}
  const hospital=tenant?.name||tx('Νοσοκομείο','Hospital')
  const generated=new Date().toLocaleString(en?'en-GB':'el-GR',{dateStyle:'short',timeStyle:'short'})
  const reportLines=[hospital,`${tx('Περίοδος','Period')}: ${periodLabel} (${presetLabels[filters.period]})`,`${tx('Τμήμα','Department')}: ${departmentName}${previous?` · ${tx('σύγκριση με','compared with')} ${previousLabel}`:''}`,`${tx('Δημιουργήθηκε','Generated')}: ${generated}`]
- const title=tx('Πίνακας Διοίκησης','Executive dashboard')
+ const title=tx('Δείκτες','Indicators')
  // A report holds every chart and the whole attention list.
  const unfoldAll=()=>flushSync(()=>{setOpenCards(new Set(['infections','prevention','controls','quality','people','food','governance']));setAllFlags(true)})
- function print(){unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'})}
+ function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'})}
  function exportPdf(){
+  signalDemoScenario('analysis_export')
   unfoldAll()
   setExportingPdf(true)
   exportElementAsPdf({element:reportRef.current,filename:`${title}_${hospital}_${range.from}_${range.to}`})
@@ -167,18 +186,29 @@ export function ExecutiveDashboardPage(){
  const kpiPeriod=periodTag(range,en,filters.period)
  const canAnalysis=userCan(CAPABILITIES.VIEW_ANALYSIS)
  const shownFlags=allFlags?flags:flags.slice(0,FLAGS_FOLDED)
- return <Page className="exec-page" title={title} subtitle={hospital} actions={view==='summary'&&<ExportMenu disabled={loadingAny} pdfBusy={exportingPdf} onPrint={print} onPdf={exportPdf}/>}>
-  {canAnalysis&&<ModuleTabs className="exec-view-tabs" activeId={view} onChange={setView} ariaLabel={tx('Προβολή','View')} tabs={[{id:'summary',label:tx('Σύνοψη','Overview'),icon:Gauge},{id:'analysis',label:tx('Ανάλυση','Analysis'),icon:BarChart3}]}/>}
+ // The Analysis sections this viewer may see (modules of the operating profile; the Director reads aggregates only, no reporting lists).
+ const sectionVisible=id=>(!TAB_MODULES[id]||TAB_MODULES[id].some(module=>moduleEnabled(module)))&&!(id==='reporting'&&role===ROLES.HOSPITAL_DIRECTOR)
+ const tabVisible=([id,,,,sections])=>id==='summary'||(canAnalysis&&sections.some(sectionVisible))
+ const mainTabs=INDICATOR_TABS.filter(tabVisible),moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
+ const activeTab=[...mainTabs,...moreTabs].find(([id])=>id===pageTab)||mainTabs[0]
+ const activeSections=activeTab[4].filter(sectionVisible)
+ const tabTitle=en?activeTab[2]:activeTab[1]
+ const compareOf={previous:{title:tx('Σύγκριση με την προηγούμενη περίοδο','Compared with the previous period'),subtitle:tx('Ίδιο εύρος, η ίσης διάρκειας περίοδος πριν.','Same scope, the period of equal length before.'),currentLabel:periodLabel,compareLabel:previousLabel},departments:{title:tx('Τμήμα έναντι νοσοκομείου','Department against the hospital'),subtitle:tx('Ίδια περίοδος· το τμήμα και όλο το νοσοκομείο.','Same period; the department and the whole hospital.'),currentLabel:departmentName,compareLabel:tx('Όλο το νοσοκομείο','Whole hospital')}}
+ const analysisCompare=previous&&compareOf[compareMode]?{range:previous,departmentId:previousDepartment,...compareOf[compareMode]}:null
+ const against=compareMode==='departments'?tx('Διαφορά έναντι όλου του νοσοκομείου','Difference against the whole hospital'):''
+ return <Page className="exec-page" title={title} subtitle={hospital}>
+  {mainTabs.length+moreTabs.length>1&&<div className="exec-tabs-row"><ModuleTabs className="exec-view-tabs" activeId={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} tabs={mainTabs.map(([id,elLabel,enLabel,icon])=>({id,label:en?enLabel:elLabel,icon}))}/>{moreTabs.length>0&&<MoreTabs tabs={moreTabs} activeId={activeTab[0]} onChange={setPageTab} tx={tx} en={en}/>}</div>}
   <div className="exec-filters" role="group" aria-label={tx('Φίλτρα','Filters')}>
    <AnalysisSelect label={tx('Περίοδος','Period')} value={filters.period} onChange={event=>setFilters({period:event.target.value,...(event.target.value==='custom'?{from:range.from,to:range.to}:{})})}>{Object.entries(presetLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</AnalysisSelect>
    {filters.period==='custom'&&<><ManualDateField label={tx('Από','From')} value={range.from} onChange={value=>value&&setFilters({from:value,to:range.to})}/><ManualDateField label={tx('Έως','To')} value={range.to} onChange={value=>value&&setFilters({from:range.from,to:value})}/></>}
-   {view==='summary'&&!isDemo&&<AnalysisSelect label={tx('Τμήμα','Department')} value={department} onChange={event=>setFilters({department:event.target.value})}><option value="">{tx('Όλα τα τμήματα','All departments')}</option>{departments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</AnalysisSelect>}
-   {view==='summary'&&<CheckboxField label={tx('Σύγκριση με την προηγούμενη περίοδο','Compare with the previous period')} checked={filters.compare} onChange={value=>setFilters({compare:value})}/>}
-   <p className="exec-period"><b>{kpiPeriod}</b>{periodLabel}{view==='summary'&&previous&&<span>{tx('έναντι','vs')} {previousLabel}</span>}</p>
+   {!isDemo&&<AnalysisSelect label={tx('Τμήμα','Department')} value={department} onChange={event=>setFilters({department:event.target.value})}><option value="">{tx('Όλα τα τμήματα','All departments')}</option>{departments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</AnalysisSelect>}
+   <AnalysisSelect label={tx('Σύγκριση','Comparison')} value={compareMode} onChange={event=>setFilters({compare:event.target.value!=='none'},event.target.value)}><option value="none">{tx('Χωρίς σύγκριση','No comparison')}</option><option value="previous">{tx('Προηγούμενη περίοδος','Previous period')}</option>{!isDemo&&<option value="departments" disabled={!department}>{tx('Τμήμα έναντι νοσοκομείου','Department vs hospital')}</option>}</AnalysisSelect>
+   <p className="exec-period"><b>{kpiPeriod}</b>{periodLabel}{previous&&<span>{tx('έναντι','vs')} {previousLabel}</span>}</p>
+   <ExportMenu disabled={activeTab[0]==='summary'&&loadingAny} pdfBusy={exportingPdf} onPrint={print} onPdf={exportPdf}/>
   </div>
-  {view==='analysis'?<AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={query.get('tab')||''}/>:<section ref={reportRef} className="exec-report">
+  {activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{activeSections.map(id=><AnalysisPage key={`${id}:${compareMode}`} embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/>)}</section>:<section ref={reportRef} className="exec-report">
    <header className="exec-report-head"><div><strong>{reportLines[0]}</strong><span>{reportLines.slice(1).join(' · ')}</span></div>{isDemo&&<span className="status-badge temporary">{tx('ΔΕΔΟΜΕΝΑ DEMO','DEMO DATA')}</span>}</header>
-   <div className="exec-kpis">{kpis.map(item=>{const parts=kpiParts(item);return <KpiTile key={item.id} item={item} loading={parts.some(part=>!part||part.status==='loading')} error={parts.some(part=>part?.status==='error')} tx={tx} en={en} period={kpiPeriod} onOpen={openAnalysis(item.tab)}/>})}</div>
+   <div className="exec-kpis">{kpis.map(item=>{const parts=kpiParts(item);return <KpiTile key={item.id} item={item} loading={parts.some(part=>!part||part.status==='loading')} error={parts.some(part=>part?.status==='error')} tx={tx} en={en} period={kpiPeriod} against={against} onOpen={openAnalysis(item.tab)}/>})}</div>
    <Card className="exec-card exec-attention">
     <CardHeader icon={TriangleAlert} title={tx('Τι χρειάζεται προσοχή','What needs attention')} subtitle={tx('Δείκτες εκτός στόχου και εκκρεμότητες, οι σοβαρότεροι πρώτοι.','Measures off target and open items, the most serious first.')}/>
     {loadingAny&&!flags.length?<Skeleton lines={3}/>:flags.length?<><ul className="exec-flags">{shownFlags.map(flag=>{const open=openFlag(flag.tab);const Icon=flag.severity==='danger'?AlertOctagon:AlertTriangle;const content=<><Icon size={16} aria-hidden="true"/><span><strong>{tx(...flag.text)}</strong>{flag.detail&&<small>{tx(...flag.detail)}</small>}</span><em>{flag.severity==='danger'?tx('Άμεσα','Urgent'):tx('Παρακολούθηση','Monitor')}</em>{open&&<ArrowRight size={15} aria-hidden="true"/>}</>;return <li key={flag.id} className={`exec-flag-${flag.severity}`}>{open?<button type="button" onClick={open}>{content}</button>:<div>{content}</div>}</li>})}</ul>{flags.length>FLAGS_FOLDED&&<button type="button" className="text-button exec-flags-more" data-pdf-ignore="" aria-expanded={allFlags} onClick={()=>setAllFlags(v=>!v)}>{allFlags?tx('Λιγότερα','Show fewer'):tx(`Όλα (${flags.length})`,`All (${flags.length})`)}{allFlags?<ChevronUp size={14} aria-hidden="true"/>:<ChevronDown size={14} aria-hidden="true"/>}</button>}</>:failedAny?<div className="inline-empty">{tx('Κάποιες ενότητες δεν φορτώθηκαν· η εικόνα είναι ελλιπής.','Some sections did not load; the picture is incomplete.')}</div>:<div className="inline-empty">{tx('Όλοι οι δείκτες είναι εντός στόχου για την περίοδο.','Every measure is on target for the period.')}</div>}

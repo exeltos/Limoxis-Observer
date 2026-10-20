@@ -229,7 +229,7 @@ export function CommitteeRecordPage() {
       success: en ? 'Committee archived.' : 'Η επιτροπή αρχειοθετήθηκε.',
       close: false,
     })
-    if (result) navigate('/committees', { replace: true })
+    if (result) navigate('/meetings', { replace: true })
   }
   async function addMember(draft) {
     const person = staff.find(x => x.id === draft.employeeId)
@@ -654,7 +654,7 @@ export function CommitteeRecordPage() {
           </span>
         }
         recordNavigation={recordNavigation}
-        onBack={() => navigate('/committees')}
+        onBack={() => navigate('/meetings')}
         headerActions={headerActions}
         tabs={tabs}
         activeTab={tab}

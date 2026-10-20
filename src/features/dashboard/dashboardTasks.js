@@ -65,9 +65,9 @@ const TASKS = {
       'pendingMinutes',
       'Πρακτικά προς οριστικοποίηση',
       'Minutes awaiting finalization',
-      '/committees',
+      '/meetings',
     ],
-    ['openDecisions', 'Ανοικτές αποφάσεις', 'Open decisions', '/committees'],
+    ['openDecisions', 'Ανοικτές αποφάσεις', 'Open decisions', '/meetings'],
   ],
   pharmacy: [
     [

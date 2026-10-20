@@ -29,7 +29,7 @@ import './regulations.css'
 // takes what it wants. {hospital} in the text becomes each hospital's name.
 export function RegulationTemplatePage() {
   const { templateKey } = useParams()
-  const { goBack } = useContextualNavigation('/regulations')
+  const { goBack } = useContextualNavigation('/documents?tab=regulations')
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
@@ -45,7 +45,7 @@ export function RegulationTemplatePage() {
   }, [templateKey])
   useEffect(() => { void reload() }, [reload])
 
-  if (!isPlatformOwner) return <Navigate to="/regulations" replace />
+  if (!isPlatformOwner) return <Navigate to="/documents?tab=regulations" replace />
   if (template === null) return <RouteLoading />
   if (template === false) return <Page title={en ? 'Template' : 'Πρότυπο'}><div className="data-access-state error" role="alert"><span>{en ? 'The template was not found.' : 'Το πρότυπο δεν βρέθηκε.'}</span><Button variant="secondary" onClick={goBack}>{en ? 'Back' : 'Πίσω'}</Button></div></Page>
 

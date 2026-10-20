@@ -1,3 +1,4 @@
+import { SECTION_TABS,sectionTabsFor } from '../../core/navigation/sectionTabs'
 import { useEffect,useMemo,useState } from 'react'
 import { Activity, ArrowRight, Award, Gauge, Gavel, LayoutGrid, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
@@ -75,11 +76,11 @@ const TILES={
   activeUsers:[Users,'/management'],activeDepartments:[Building2,'/management'],pendingActions:[ListChecks],unread:[Bell],
   activeSurveillance:[Activity,'/surveillance'],recentMdro:[ShieldAlert,'/surveillance'],isolationReviewsDue:[Clock,'/surveillance'],
   overdueControls:[ClipboardCheck,'/controls'],positiveLab:[FlaskConical,'/laboratory'],pendingSamples:[Beaker,'/laboratory'],
-  newSamplesToday:[TestTube,'/laboratory'],criticalUncommunicated:[TriangleAlert,'/laboratory'],inpatients:[BedDouble,'/patients'],
+  newSamplesToday:[TestTube,'/laboratory'],criticalUncommunicated:[TriangleAlert,'/laboratory'],inpatients:[BedDouble,'/surveillance?tab=registry'],
   antimicrobialTherapies:[Pill,'/pharmacy'],administrations:[Pill,'/pharmacy'],pendingApprovals:[CheckCheck,'/pharmacy'],
   activeEmployees:[Users,'/employees'],newEmployees30d:[UserPlus,'/employees'],ohVisitsToday:[Stethoscope,'/occupational-health'],
-  ohFollowupsDue:[Clock,'/occupational-health'],vaccinationsDue:[Syringe,'/occupational-health'],upcomingMeetings:[CalendarDays,'/committees'],
-  pendingMinutes:[FileText,'/committees'],openDecisions:[ListChecks,'/committees'],openIncidents:[Award,'/quality'],
+  ohFollowupsDue:[Clock,'/occupational-health'],vaccinationsDue:[Syringe,'/occupational-health'],upcomingMeetings:[CalendarDays,'/meetings'],
+  pendingMinutes:[FileText,'/meetings'],openDecisions:[ListChecks,'/meetings'],openIncidents:[Award,'/quality'],
   severeOpenIncidents:[TriangleAlert,'/quality'],overdueCapa:[Clock,'/quality'],
 }
 
@@ -126,7 +127,8 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const kpis=roleRows.length?roleRows:workspace.kpis.map(([label])=>[label,'—'])
   const tasks=nctx.operational
   const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
-  const canOpen=to=>menuPaths.has(to)
+  // A tile opens a screen of the menu; a tab of a merged section (?tab=) only when the role may open that tab.
+  const canOpen=to=>{const [path,search='']=String(to||'').split('?');if(!menuPaths.has(path))return false;const tab=new URLSearchParams(search).get('tab');const section=Object.keys(SECTION_TABS).find(id=>SECTION_TABS[id].path===path);return !tab||!section||sectionTabsFor(section,{role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[]}).some(item=>item.id===tab)}
   const decisions=adminHome?decisionItems(values,{moduleEnabled,canOpen,language}):[]
   const moduleRows=adminHome?moduleStatusRows(values,{moduleEnabled,canOpen,language}):[]
   // Tiles without a screen of their own lead to the card listing what they count.
@@ -140,9 +142,9 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const setupSteps=role===ROLES.HOSPITAL_ADMIN&&showKpis&&!tenant?.is_demo?firstSteps(values,{needsPatientDays:moduleEnabled('surveillance')||moduleEnabled('indicators')}):null
 
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
-    {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,to]=TILES[key]||[];const open=to&&menuPaths.has(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</div>}
+    {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,to]=TILES[key]||[];const open=to&&canOpen(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</div>}
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
-    {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Πίνακας Διοίκησης','Executive dashboard')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
+    {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Δείκτες','Indicators')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
     <div className="dashboard-workspace-v2">
       {adminHome?<Card className="dashboard-card dashboard-decisions" id="dashboard-tasks" tabIndex={-1}>
         <CardHeader icon={Gavel} title={tr('Χρειάζεται απόφαση','Needs a decision')} subtitle={tr('Εγκρίσεις σε αναμονή, ληγμένα και εκπρόθεσμα — τα σοβαρότερα πρώτα.','Pending approvals, expired and overdue items — the most serious first.')}/>

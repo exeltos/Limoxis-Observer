@@ -18,7 +18,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 const frequencies=[['monthly','Μηνιαία','Monthly'],['bimonthly','Ανά δίμηνο','Every two months'],['quarterly','Τριμηνιαία','Quarterly'],['semiannual','Εξαμηνιαία','Semiannual'],['annual','Ετήσια','Annual'],['as_needed','Όποτε απαιτείται','As needed']]
 
 export function CommitteeCreatePage(){
- const navigate=useNavigate(),location=useLocation(),actor=useAuditActor(),{notify}=useFeedback(),{goBack}=useContextualNavigation('/committees'),{language}=useLanguage(),en=language==='en',{tenant}=useTenant()
+ const navigate=useNavigate(),location=useLocation(),actor=useAuditActor(),{notify}=useFeedback(),{goBack}=useContextualNavigation('/meetings'),{language}=useLanguage(),en=language==='en',{tenant}=useTenant()
  const [saving,setSaving]=useState(false),first=IPC_COMMITTEE_CATALOG.find(x=>x.id==='custom')||IPC_COMMITTEE_CATALOG[0]
  const [draft,setDraft]=useState({templateId:first.id,name:'',shortName:'',committeeRole:'',mandate:'',legalBasis:'',decisionNumber:'',termStart:'',termEnd:'',meetingFrequency:'quarterly',quorumRule:'simple_majority',notes:''})
  const set=(k,v)=>setDraft(x=>({...x,[k]:v})),template=ipcCommitteeById(draft.templateId),manual=template.id==='custom',datesValid=!draft.termStart||!draft.termEnd||new Date(draft.termEnd)>=new Date(draft.termStart),valid=draft.name.trim()&&draft.committeeRole.trim()&&draft.mandate.trim()&&draft.termStart&&draft.termEnd&&datesValid

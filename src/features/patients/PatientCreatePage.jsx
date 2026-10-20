@@ -41,7 +41,7 @@ export function PatientCreatePage(){
       notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')
     }finally{setSaving(false)}
   }
-  return <Page fill><EntityRecordShell className="patient-create-shell workspace-fill" avatar={<UserPlus size={19}/>} eyebrow={t('patients')} title={t('newPatient')} subtitle={t('newPatientHelp')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/patients')}>
+  return <Page fill><EntityRecordShell className="patient-create-shell workspace-fill" avatar={<UserPlus size={19}/>} eyebrow={t('patients')} title={t('newPatient')} subtitle={t('newPatientHelp')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/surveillance?tab=registry')}>
     <section className="record-section patient-create-form">
       <PatientFormFields form={form} t={t} language={language} departments={departments}/>
       <div className="inline-edit-footer"><SaveButton loading={saving} disabled={form.invalid||saving} onClick={save}>{t('save')}</SaveButton></div>
