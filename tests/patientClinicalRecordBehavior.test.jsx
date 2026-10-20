@@ -125,8 +125,10 @@ describe('admissions', () => {
     expect(screen.getByRole('tab', { name: /Σύνοψη/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Εξιτήριο/ })).not.toBeInTheDocument()
     const items = patientMenu()
-    expect(items).toEqual(expect.arrayContaining(['Επεξεργασία ασθενούς', 'Μεταφορά σε άλλο τμήμα', 'Εξιτήριο', 'Διαγραφή ασθενούς']))
+    expect(items).toEqual(expect.arrayContaining(['Μεταφορά σε άλλο τμήμα', 'Εξιτήριο', 'Διαγραφή ασθενούς']))
     expect(items).not.toContain('Νέα νοσηλεία')
+    expect(items.some(label => /^Επεξεργασία/.test(label))).toBe(false)
+    expect(screen.getAllByRole('button', { name: 'Επεξεργασία' })).toHaveLength(1)
   })
 
   it('shows the admissions under the patient name and readmits a discharged patient', async () => {

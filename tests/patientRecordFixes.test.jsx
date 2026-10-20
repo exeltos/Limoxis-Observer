@@ -194,3 +194,34 @@ describe('patient with no admission', () => {
     expect(onNew).toHaveBeenCalled()
   })
 })
+
+// One rule for record pages: each action appears in exactly one place — a visible
+// button, or the «…» menu, never both.
+describe('no duplicate actions between visible buttons and the «…» menu', () => {
+  it('patient record: «Επεξεργασία» is one button; the menu has no «Επεξεργασία ασθενούς» nor a second link', async () => {
+    vi.resetModules()
+    vi.doMock('../src/core/tenant/TenantContext', () => ({ useTenant: () => ({ tenant: { id: 't1' }, isDemo: true, role: 'hospital_admin', membership: { capabilities: [], customCapabilities: [] } }) }))
+    vi.doMock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => ({ notify: () => {}, confirm: async () => true }), useOptionalFeedback: () => ({ notify: () => {}, confirm: async () => true }) }))
+    const { LanguageProvider: Provider, useLanguage: useLang } = await import('../src/core/i18n/LanguageContext')
+    const { PatientDetailsSection } = await import('../src/features/surveillance/ClinicalAdmissions')
+    function Section() {
+      const { t, language } = useLang()
+      return <PatientDetailsSection patient={{ id: 'PT-1', firstName: 'Α', lastName: 'Β', sex: '', department: 'ΜΕΘ' }} tenantId="t1" isDemo departments={[]} t={t} language={language} fmtDate={value => value} extraMenuItems={[{ id: 'discharge', label: 'Εξιτήριο', onClick: () => {} }]} />
+    }
+    render(<Provider><Section /></Provider>)
+    const visible = screen.getAllByRole('button').map(button => button.textContent.trim()).filter(Boolean)
+    expect(visible.filter(label => label === 'Επεξεργασία')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Ενέργειες ασθενούς' }))
+    const items = screen.getAllByRole('menuitem').map(item => item.textContent.trim())
+    expect(items).toContain('Εξιτήριο')
+    expect(items.some(label => /^Επεξεργασία/.test(label))).toBe(false)
+    for (const label of items) expect(visible).not.toContain(label)
+    vi.doUnmock('../src/core/tenant/TenantContext')
+    vi.doUnmock('../src/core/feedback/FeedbackContext')
+  })
+
+  it('the lab sample record does not repeat «Επεξεργασία αποτελέσματος» in its menus', () => {
+    const source = read('src/features/laboratory/LaboratorySampleRecordFunctionalView.jsx')
+    expect(source).toContain("steps.find(step => step.state === 'next')?.id !== 'result'")
+  })
+})

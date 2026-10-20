@@ -139,8 +139,7 @@ describe('laboratory record dialogs', () => {
 
   it('requires an organism before a positive result can be saved', async () => {
     await openSample('LAB-260829-013')
-    fireEvent.click(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
-    fireEvent.click(screen.getAllByRole('menuitem').find(item => /αποτελέσματος/.test(item.textContent)))
+    fireEvent.click(within(body()).getAllByRole('button', { name: 'Επεξεργασία αποτελέσματος' })[0])
     const dialog = await screen.findByRole('dialog')
     expect(dialog.querySelector('select')).toBeNull()
     chooseOption(dialog, /Αποτέλεσμα/, 'Θετικό')

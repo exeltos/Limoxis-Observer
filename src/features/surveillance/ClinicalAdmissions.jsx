@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Check,
   LogOut,
+  Pencil,
   Plus,
   Trash2,
 } from 'lucide-react'
@@ -64,12 +65,21 @@ export function PatientDetailsSection({
   // «Edit patient» turns the patient details into the form, in place.
   const [editing, setEditing] = useState(false)
   const [savingPatient, setSavingPatient] = useState(false)
+  const { role, membership } = useTenant()
+  const canEditPatient = can(role, CAPABILITIES.EDIT_PATIENT, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  // One rule: «Edit» is the visible button; the «…» menu keeps only the other actions
+  // (never a second «Edit patient»), and the missing-fields line has no second link.
   const actions = editing ? null : (
     <>
       {leadingActions}
+      {canEditPatient && (
+        <Button variant="secondary" onClick={() => setEditing(true)}>
+          <Pencil size={15} />
+          {t('edit')}
+        </Button>
+      )}
       <PatientSummaryActions
         patient={patient}
-        onEdit={() => setEditing(true)}
         onDeleted={onDeleted}
         extraItems={extraMenuItems}
       />
@@ -96,14 +106,11 @@ export function PatientDetailsSection({
     ageInDays != null && ageInDays <= 365 && !patient?.birthWeightGrams
   const lang = language === 'el' ? 'el' : 'en'
   const cr = key => translate(`copy.clinicalRecordCopy.${key}`, lang)
-  const { role, membership } = useTenant()
-  const canEditPatient = can(role, CAPABILITIES.EDIT_PATIENT, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   // Grouped as a details list: the patient, the stay, the clinical details.
   const detailSections = [
     {
       title: t('clinicalRecords.sectionPatient'),
       collapseMissing: true,
-      onEditMissing: editing || !canEditPatient ? undefined : () => setEditing(true),
       items: [
         { label: cr('patientCode'), value: patient?.id },
         { label: cr('hospitalRecordNumber'), value: patient?.hospitalRecordNumber },

@@ -290,8 +290,10 @@ export function LaboratorySampleRecordFunctionalView() {
         icon: PlayCircle,
         onClick: startProcessing,
       },
+    // «Edit result» is the visible next-step button while the result is the next step: not repeated in this menu.
     canManageActive &&
-      received && {
+      received &&
+      steps.find(step => step.state === 'next')?.id !== 'result' && {
         id: 'result',
         label: result ? tx('editResult') : tx('enterResult'),
         icon: Pencil,
