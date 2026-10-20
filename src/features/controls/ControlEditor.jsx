@@ -14,6 +14,7 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { Field } from '../../design-system/Field'
 import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { MoreSection } from '../../design-system/MoreSection'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { findLibraryItem,libraryOptions,useLibraries } from '../management/useLibraries'
 import { loadBundleLibrary } from '../management/bundleLibraryData'
@@ -55,6 +56,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const bundleTemplates=useBundleTemplates()
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
+ const [advancedForced,setAdvancedForced]=useState(false)
  const [newAnswer,setNewAnswer]=useState('')
  const lib=key=>libraries[key]||[]
  const departments=useMemo(()=>departmentOnly&&fixedDepartment?[fixedDepartment]:departmentRows.map(x=>x.name).filter(Boolean),[departmentRows,departmentOnly,fixedDepartment])
@@ -70,6 +72,12 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const ownerRequired=!initial?.dbId||Boolean(initial?.owner?.trim()||initial?.ownerPerson)
  const hasOwner=Boolean(draft.owner?.trim()||draft.ownerPerson)
  const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&(hasOwner||!ownerRequired)&&(draft.frequency.kind!=='daily'||times.every(Boolean))&&(mode!=='checklist'||checklist.some(item=>String(item.el||'').trim()))&&(mode!=='choice'||options.length>=2)
+
+ // «Advanced» (how it is recorded, criticality, goal) stays folded on a new control; it opens by itself
+ // when the control already uses it or when what it asks for is missing, so a blocked Save is never hidden.
+ const advancedOpenAtStart=Boolean(initial&&(mode!=='text'||response.deviationActions||initial.goal||initial.acceptanceCriteria||initial.description||initial.guideNotes))
+ const advancedMissing=(mode==='checklist'&&!checklist.some(item=>String(item.el||'').trim()))||(mode==='choice'&&options.length<2)
+ useEffect(()=>{if(advancedMissing)setAdvancedForced(true)},[advancedMissing])
 
  // Control types: the library first, then types already in use that it lacks.
  const typeOptions=useMemo(()=>{
@@ -97,7 +105,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const selectText={emptyLabel:en?'No match':'Καμία αντιστοιχία',clearLabel:en?'Clear':'Καθαρισμός',customLabel:text=>en?`Use «${text}»`:`Χρήση «${text}»`}
 
  return <Page fill className="control-editor-page">
-  <EntityRecordShell className="control-create-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'CONTROLS':'ΕΛΕΓΧΟΙ'} title={draft.title.trim()||title} subtitle={draft.title.trim()?title:(en?'Define what is checked, how it is recorded, where and when it runs.':'Ορίστε τι ελέγχεται, πώς καταχωρείται, πού εφαρμόζεται και πότε εκτελείται.')} tabs={[]} onBack={onCancel} headerActions={<SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton>}>
+  <EntityRecordShell className="control-create-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'CONTROLS':'ΕΛΕΓΧΟΙ'} title={draft.title.trim()||title} subtitle={draft.title.trim()?title:(en?'Define what is checked, how it is recorded, where and when it runs.':'Ορίστε τι ελέγχεται, πώς καταχωρείται, πού εφαρμόζεται και πότε εκτελείται.')} tabs={[]} onBack={onCancel}>
    <div className="record-section control-editor-body">
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'What is checked':'Τι ελέγχεται'}</strong><span>{en?'Name, type and where it applies':'Ονομασία, είδος και πού εφαρμόζεται'}</span></header>
@@ -135,6 +143,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Tolerance (minutes)':'Ανοχή (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={en?'Until the next time':'Έως την επόμενη ώρα'} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'Each time is due by the next execution time (the last by 23:59). A tolerance makes it due earlier: time + tolerance.':'Κάθε ώρα εκτέλεσης είναι εμπρόθεσμη έως την επόμενη (η τελευταία έως τις 23:59). Με ανοχή, έως την ώρα + ανοχή.'}</small></div>}
     </section>
 
+    <MoreSection key={advancedForced?'forced':'folded'} defaultOpen={advancedOpenAtStart||advancedForced} className="control-editor-advanced" moreLabel={en?'Advanced':'Προχωρημένα'}>
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'How it is recorded':'Τρόπος καταχώρησης'}</strong><span>{en?'What the person recording fills in':'Τι συμπληρώνει όποιος καταχωρεί'}</span></header>
      <SearchableSelect className="control-editor-modes" label={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={next=>next&&(changeMode)(next)} options={[
@@ -194,6 +203,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <Field label={en?'Instructions':'Οδηγίες'}><textarea rows="4" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></Field>
      <Field label={en?'Guidance notes':'Σημειώσεις καθοδήγησης'}><textarea rows="3" value={draft.guideNotes||''} onChange={e=>set('guideNotes',e.target.value)} placeholder={en?'Optional notes for whoever records…':'Προαιρετικές σημειώσεις για όποιον καταχωρεί…'}/></Field>
     </section>
+
+    </MoreSection>
 
     <div className="inline-edit-footer control-editor-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
    </div>

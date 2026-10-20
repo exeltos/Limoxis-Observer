@@ -126,7 +126,8 @@ describe('one calendar', () => {
   it('opens the calendar from Controls with the controls filter, old calendar links included', () => {
     const controls = read('src/features/controls/ControlsPage.jsx')
     expect(controls).not.toContain("{value:'calendar'")
-    expect(controls).toContain("navigate('/calendar?filter=controls')")
+    expect(controls).toContain("navigate('/calendar?filter=controls',{replace:true})")
+    expect(controls).not.toContain("onClick={()=>navigate('/calendar?filter=controls')}")
     expect(controls).toContain("get('tab')==='calendar'")
   })
 })

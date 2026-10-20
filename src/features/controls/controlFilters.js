@@ -3,8 +3,8 @@
 // the calendar and every export count the same assignments. (A control kept
 // for one department used to bring all its departments into adherence, the
 // calendar and the exports.)
-import { assignmentStatus } from './controlScheduling'
-import { controlCriticality } from './controlCriticality'
+import { assignmentStatus, frequencyLabel } from './controlScheduling'
+import { controlCriticality, criticalityLabel } from './controlCriticality'
 import { ownerText } from '../employees/peopleOptions'
 
 const ALL = 'all'
@@ -20,11 +20,18 @@ export function scopeControlRows(rows = [], { department = ALL, frequency = ALL,
     .filter((row) => row.departments.length > 0)
 }
 
+// What the search box reads: the name, code, type, responsible, place and, since the
+// list has no filters for them, the frequency and criticality as the user reads them (both languages).
+export function controlSearchText(item) {
+  const labels = ['el', 'en'].flatMap((language) => [frequencyLabel(item.frequency, language), criticalityLabel(controlCriticality(item), language)])
+  return `${item.id} ${item.title} ${item.titleEn || ''} ${item.category} ${ownerText(item)} ${item.location || ''} ${item.equipment || ''} ${labels.join(' ')}`.toLowerCase()
+}
+
 // The scope, then the search and the status: a status keeps the departments in it.
 export function filterControlRows(rows = [], { query = '', status = ALL, now = new Date(), ...scope } = {}) {
   const text = String(query || '').toLowerCase()
   return scopeControlRows(rows, scope)
-    .filter(({ item }) => !text || `${item.id} ${item.title} ${item.category} ${ownerText(item)} ${item.location || ''} ${item.equipment || ''}`.toLowerCase().includes(text))
+    .filter(({ item }) => !text || controlSearchText(item).includes(text))
     .map((row) => {
       if (status === ALL) return row
       if (status === 'temporary') return { ...row, departments: row.departments.filter((dep) => Boolean(row.item.assignments?.[dep]?.hasDraft)) }

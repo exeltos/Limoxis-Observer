@@ -5,9 +5,9 @@ import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 // Secondary content of a summary, folded behind «Περισσότερα» so a record's
 // first screen stays short (no long scrolling). It is always in the page (only
 // `hidden`), so printing shows it unfolded.
-export function MoreSection({ children, moreLabel, lessLabel, className = '' }) {
+export function MoreSection({ children, moreLabel, lessLabel, className = '', defaultOpen = false }) {
   const en = useOptionalLanguage()?.language === 'en'
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(defaultOpen)
   const id = useId()
   return (
     <div className={`lo-more-section ${open ? 'is-open' : ''} ${className}`.trim()}>

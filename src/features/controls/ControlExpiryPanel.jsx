@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PackageX } from 'lucide-react'
@@ -20,7 +20,7 @@ const normalize=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
 // record tab) or every expiry control at once (the Controls page, with a
 // «Control» column). «Removed / replaced» takes an item off the list.
 // sources: [{record,departments}]
-export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,showControl=false,query='',actorName='',language,locale}){
+export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,showControl=false,query='',actorName='',language,locale,onExportChange}){
  const en=language==='en'
  const [filter,setFilterValue]=useState('alerting')
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
@@ -37,6 +37,15 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  // The return form lists what has expired or expires soon in the current search.
  const returnItems=searched.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
  const printReturnForm=()=>printHtml(expiryReturnFormHtml({title:sources.length===1?sources[0].record.title:(en?'All expiry checks':'Όλοι οι έλεγχοι λήξεων'),items:returnItems,actorName}))
+ // One «Export» per tab: the page's own menu (top bar or record header) offers the
+ // return form; this panel only reports it, and draws its own menu when nobody takes it.
+ const printRef=useRef(printReturnForm);printRef.current=printReturnForm
+ const returnCount=returnItems.length
+ useEffect(()=>{
+  if(!onExportChange)return undefined
+  onExportChange({id:'return',kind:'print',label:en?`Return & replacement form (${returnCount})`:`Έντυπο επιστροφής (${returnCount})`,disabled:!returnCount,onClick:()=>printRef.current()})
+  return()=>onExportChange(null)
+ },[onExportChange,returnCount,en])
  const totalPages=Math.max(1,Math.ceil(shown.length/pageSize)),safePage=Math.min(page,totalPages)
  const paged=shown.slice((safePage-1)*pageSize,safePage*pageSize)
  const day=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:(value||'—')}
@@ -67,7 +76,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},
    {value:'all',label:`${en?'All':'Όλα'} (${searched.length})`},
-  ]}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<ExportMenu disabled={!returnItems.length} items={[{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,onClick:printReturnForm}]}/></div>}
+  ]}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}{!onExportChange&&<ExportMenu disabled={!returnItems.length} items={[{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,onClick:printReturnForm}]}/>}</div>}
   footer={shown.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
  >
   <RegistryTable

@@ -264,7 +264,7 @@ export const guideContent = {
       users: l('Υπεύθυνος, Προϊστάμενοι και Χρήστες Τμήματος.', 'Lead, Department Managers and Department Users.'),
       needs: null,
       analysis: l('Καρτέλα «Έλεγχοι»: εκτελέσεις, ποσοστό με εύρημα, εκπρόθεσμοι έλεγχοι, εκτελέσεις και ευρήματα ανά τμήμα.', 'Tab “Controls”: executions, share with findings, overdue controls, executions and findings per department.'),
-      start: l('Ορίστε έναν έλεγχο και αναθέστε τον σε ένα τμήμα. Οι προγραμματισμένες και οι εκτελεσμένες εκτελέσεις φαίνονται στο Ημερολόγιο, φίλτρο «Έλεγχοι» (κουμπί «Στο ημερολόγιο»).', 'Define a control and assign it to a department. Planned and performed executions are in the Calendar, filter “Controls” (button “In the calendar”).'),
+      start: l('Ορίστε έναν έλεγχο και αναθέστε τον σε ένα τμήμα. Οι προγραμματισμένες και οι εκτελεσμένες εκτελέσεις φαίνονται στο Ημερολόγιο του μενού, φίλτρο «Έλεγχοι».', 'Define a control and assign it to a department. Planned and performed executions are in the Calendar in the menu, filter “Controls”.'),
     },
     quality: {
       what: l('Συμβάντα, επιθεωρήσεις, ευρήματα και διορθωτικές και προληπτικές ενέργειες σε ελεγχόμενη ροή.', 'Incidents, audits, findings and CAPA (corrective and preventive actions) in a controlled flow.'),
