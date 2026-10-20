@@ -50,6 +50,10 @@ export function LiraOutbreakInvestigationsPanel(){
   const blockedReason=!isDemo&&!tenant?.id?(en?'Select a hospital first.':'Επιλέξτε πρώτα νοσοκομείο.'):''
  const load=useCallback(async()=>{if(!tenant?.id||isDemo)return;try{setRows(await listOutbreakInvestigations(tenant.id))}catch(e){notify(e.message,'error')}},[tenant?.id,isDemo,notify])
  useEffect(()=>{load()},[load])
+ // A link from a patient record (?investigation=<id>) opens that investigation once the list is read.
+ const wantedInvestigation=useRef(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('investigation'):null)
+ useEffect(()=>{const id=wantedInvestigation.current;if(!id||!rows.length)return;const row=rows.find(item=>String(item.id)===String(id));if(row){wantedInvestigation.current=null;void open(row)}// eslint-disable-next-line react-hooks/exhaustive-deps
+ },[rows])
  // The clusters the app has already detected (the same rule as the notifications and the Analysis).
  useEffect(()=>{let alive=true;loadActiveClustersAsync(tenant?.id).then(list=>{if(alive)setClusters(list)}).catch(()=>{if(alive)setClusters([])});return()=>{alive=false}},[tenant?.id])
  const closure=useMemo(()=>buildOutbreakClosureReadiness({lineList,caseReviews:reviews,actions,events}),[lineList,reviews,actions,events])

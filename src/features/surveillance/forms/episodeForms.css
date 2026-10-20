@@ -45,3 +45,7 @@
 .episode-form-link:hover{color:var(--lo-link-hover,#164e74)}
 .episode-form-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;margin:12px 0}
 @media (max-width:900px){.episode-form-fields{grid-template-columns:1fr}}
+.episode-outbreak{margin-top:4px}
+.episode-outbreak-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0;padding:10px 2px 2px;border-top:1px solid var(--lo-border-soft,#e3eaf0);font-size:13px;color:var(--lo-text,#253b4f)}
+.episode-outbreak-line>svg{flex:none;color:var(--lo-text-secondary,#6b7e91)}
+.episode-outbreak-line strong{font-weight:700;color:var(--lo-text-strong,#18364f)}

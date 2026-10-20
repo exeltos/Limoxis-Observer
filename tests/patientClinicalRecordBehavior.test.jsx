@@ -393,7 +393,7 @@ describe('surveillance episode record: header scale chips and printing', () => {
     await act(async () => { window.dispatchEvent(new Event('beforeprint')) })
     const report = document.querySelector('[data-record-report]')
     expect(report).not.toBeNull()
-    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Κλίμακες', '6. Δηλωτέα νοσήματα', '7. Συμβάντα', '8. Έγγραφα', '9. Ιστορικό'])
+    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Κλίμακες', '6. Δηλωτέα νοσήματα', '7. Συμβάντα', '8. Συνδέεται με έξαρση', '9. Έγγραφα', '10. Ιστορικό'])
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('LAB-260771')
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('Ανθεκτικό')
     expect(report.querySelector('.record-report-meta')).toHaveTextContent('Ημερομηνία εκτύπωσης')
