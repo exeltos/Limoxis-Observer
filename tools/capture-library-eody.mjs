@@ -28,7 +28,7 @@ const server = http.createServer((req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
 const origin = `http://127.0.0.1:${server.address().port}`
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' })
-const SIZES = { desktop: { width: 1440, height: 1000 }, tablet: { width: 820, height: 1100 } }
+const SIZES = { desktop: { width: 1440, height: 1000 }, tablet: { width: 820, height: 1180 } }
 const problems = []
 
 async function session(size, role, run) {
@@ -83,7 +83,7 @@ for (const size of ['desktop', 'tablet']) {
     await page.waitForTimeout(500)
     await shot('b-filter-immediate')
     await app().getByRole('radio', { name: 'Όλα' }).click().catch(() => {})
-    await app().locator('.eody-legacy').scrollIntoViewIfNeeded().catch(() => {})
+    await app().locator('.eody-legacy summary').click().catch(() => {})
     await app().locator('.eody-legacy-list li').first().getByRole('button').last().click().catch(() => {})
     await page.waitForTimeout(500)
     await shot('c-legacy-deactivate')

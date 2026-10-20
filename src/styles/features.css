@@ -2641,22 +2641,40 @@
 
 /* ===== FEATURE SOURCE: src/styles/library-workspace.css ===== */
 /* Libraries workspace: keep one visual contract for normal and specialized library panels. */
-.management-section .library-layout{grid-template-columns:340px minmax(0,1fr)!important;gap:22px!important;min-height:0!important}
+.management-section .library-layout{grid-template-columns:250px minmax(0,1fr)!important;gap:16px!important;min-height:0!important}
 .management-section .library-categories-v2{min-height:0!important;height:100%!important;overflow:auto!important;padding-right:8px!important}
-.management-section .library-categories-v2>button{min-height:64px!important}
+.management-section .library-categories-v2>button{min-height:34px!important;padding:4px 8px!important}
+.management-section .library-categories-v2{gap:2px!important}
+.management-section .library-categories-v2 .library-category-icon{width:24px;height:24px;border-radius:7px}
+.management-section .library-categories-v2 .library-category-copy strong{font-size:11.5px}
+.management-section .library-categories-v2>button>b{font-size:11px}
+.library-section>.section-toolbar{padding:4px 12px!important}
+.library-section>.section-toolbar>div:first-child{display:flex;align-items:baseline;gap:12px;min-width:0}
+.library-section>.section-toolbar h2{margin:0;font-size:16px;white-space:nowrap}
+.library-section>.section-toolbar p{margin:0;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.library-section>.library-governance-strip{margin:0 0 6px;padding:4px 10px;align-items:center}
+.library-section>.library-governance-strip>div{display:flex;gap:8px;min-width:0;align-items:baseline}
+.library-section>.library-governance-strip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .management-section .library-content{min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
 .management-section .library-content>.scroll-table{min-width:0!important;width:100%!important;height:100%!important;overflow:auto!important}
 /* ΕΟΔΥ catalogue of notifiable diseases: wide table inside the library area */
-.management-section .library-content>.eody-library{display:grid;grid-template-rows:minmax(120px,1fr) auto;gap:8px;min-height:0;flex:1}
+.management-section .library-content>.eody-library{display:grid;grid-template-rows:minmax(120px,1fr) auto;gap:4px;min-height:0;flex:1}
 .eody-legacy-note{margin:0;font-size:12px;color:var(--text-muted,#5b6b7b)}
+.eody-library-table,.eody-library-table.data-table.sticky-table{table-layout:fixed;width:100%;min-width:0!important}.eody-library-table th,.eody-library-table td{box-sizing:border-box}.eody-library-table.data-table td{padding:1px 10px!important;height:28px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eody-library-table .eody-col-deadline{width:96px}.eody-library-table .eody-col-note{width:104px}.eody-library-table .eody-col-status{width:84px}.eody-library-table .eody-col-actions{width:56px}
+.eody-library-table td strong,.eody-library-table td .eody-en{display:inline}
+.eody-en{margin-left:8px;font-size:11.5px;font-weight:400;color:var(--text-muted,#5b6b7b)}
+.eody-note-mark{display:inline-flex;align-items:center;gap:4px;cursor:help;border-bottom:1px dotted currentColor}
 .eody-library>.scroll-table{min-height:0;overflow:auto}
-.eody-library-table td small{display:block;color:var(--text-muted,#5b6b7b);font-size:11.5px}
 .eody-library-table .eody-col-n{width:52px;text-align:right;color:var(--text-muted,#5b6b7b);font-variant-numeric:tabular-nums}
 .eody-deadline{white-space:nowrap}.eody-deadline-immediate{font-weight:700}
-.eody-library-table td:nth-child(2){min-width:200px}.eody-note{font-size:11.5px;color:var(--text-muted,#5b6b7b);max-width:340px}.eody-note span{display:block}
+.eody-note{font-size:11.5px;color:var(--text-muted,#5b6b7b)}
 .eody-row-inactive td,.library-row-inactive td{opacity:.55}
-.eody-legacy{border-top:1px solid var(--border,#dfe5ec);padding-top:6px;display:flex;flex-direction:column;gap:4px;max-height:112px;overflow:auto}
-.eody-legacy-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}.eody-legacy-list li{display:grid;grid-template-columns:minmax(0,1fr) 140px 90px 40px;align-items:center;gap:10px;padding:3px 4px;font-size:12.5px;border-top:1px solid var(--border,#e6ebf1)}.eody-legacy-code{color:var(--text-muted,#5b6b7b);font-size:11.5px}.eody-status{font-size:12px;color:var(--text-muted,#5b6b7b)}.eody-library-filter{margin:0!important}
+.eody-legacy{border-top:1px solid var(--border,#dfe5ec);padding-top:4px;font-size:12.5px}.eody-legacy>summary{cursor:pointer;font-weight:600;color:var(--text-muted,#5b6b7b)}.eody-legacy[open]{max-height:130px;overflow:auto}
+.eody-legacy-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}.eody-legacy-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:10px;padding:3px 4px;font-size:12.5px;border-top:1px solid var(--border,#e6ebf1)}.eody-legacy-code{color:var(--text-muted,#5b6b7b);font-size:11.5px}.eody-status{font-size:12px;color:var(--text-muted,#5b6b7b)}.eody-library-filter{margin:0!important}.library-section .library-content>.filter-system{margin-bottom:4px!important;padding:0!important}.eody-library-filter>button{min-height:28px!important;padding:3px 10px!important}
+.eody-legacy-list li strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eody-library-table th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:900px){.library-section .library-content>.filter-system .filter-search{min-width:0;flex:1 1 120px}.library-section .library-content>.filter-system .filter-primary-row{gap:6px}.library-section>.library-governance-strip span{display:none}.management-section.library-section .library-layout{grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto minmax(0,1fr)!important;gap:6px!important}.library-section .library-categories-v2{display:flex!important;flex-direction:row;height:auto!important;overflow-x:auto!important;overflow-y:hidden!important;padding:0 0 4px!important;gap:4px!important}.library-section .library-categories-v2>button{flex:0 0 auto;min-width:0;gap:6px}}
 .management-section .library-content .record-inline-actions,
 .management-section .library-content .row-actions,
 .management-section .training-feedback-template-panel .record-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;white-space:nowrap!important}

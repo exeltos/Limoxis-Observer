@@ -59,4 +59,10 @@ describe('ΕΟΔΥ library layout',()=>{
     expect(splitNotifiableRows(rows,{deadline:'weekly'}).legacy).toHaveLength(0)
     expect(EODY_CATALOGUE).toHaveLength(57)
   })
+  it('keeps rows to one line: footnote in a tooltip, legacy rows in a collapsed block, no category subtitles',()=>{
+    const table=fs.readFileSync('src/features/management/NotifiableDiseasesTable.jsx','utf8')
+    expect(table).toContain('eody-note-mark')
+    expect(table).toContain('<details className="eody-legacy">')
+    expect(fs.readFileSync('src/features/management/LibrariesPanel.jsx','utf8')).not.toContain('centralLibraryHint')
+  })
 })

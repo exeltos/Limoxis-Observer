@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
+import { Info } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
-import { EODY_FOOTNOTES,deadlineGroupWords,eodyEntryByName } from '../reporting/eodyCatalogue'
+import { EODY_FOOTNOTES,eodyEntryByName } from '../reporting/eodyCatalogue'
 
+const DEADLINE_SHORT={immediate:'eodyFilterImmediate','24h':'eodyFilter24h',weekly:'eodyFilterWeekly'}
 const FILTERS=[['all','eodyFilterAll'],['immediate','eodyFilterImmediate'],['24h','eodyFilter24h'],['weekly','eodyFilterWeekly']]
 
 // Splits the platform library rows into the 57 catalogue entries (in ΕΟΔΥ order) and the earlier rows
@@ -32,22 +34,23 @@ export function NotifiableDiseasesTable({rows,query,deadline='all',language,t,lo
   <RegistryTable
    wrapperClassName="table-wrap scroll-table"
    className="eody-library-table"
-   columns={[{key:'n',label:t('librariesPanel.eodyNumber'),className:'eody-col-n'},{key:'name',label:t('librariesPanel.eodyDisease')},{key:'deadline',label:t('librariesPanel.eodyDeadline')},{key:'note',label:t('librariesPanel.eodyNote')},{key:'status',label:t('status')},{key:'actions',label:t('actions')}]}
+   columns={[{key:'n',label:t('librariesPanel.eodyNumber'),className:'eody-col-n',style:{width:56}},{key:'name',label:t('librariesPanel.eodyDisease')},{key:'deadline',label:t('librariesPanel.eodyDeadline'),className:'eody-col-deadline',style:{width:130}},{key:'note',label:t('librariesPanel.eodyNote'),className:'eody-col-note',style:{width:116}},{key:'status',label:t('status'),className:'eody-col-status',style:{width:84}},{key:'actions',label:t('actions'),className:'eody-col-actions',style:{width:112}}]}
    rows={catalogue}
    rowKey={({row,entry})=>`eody-${entry.n}-${row[2]?.id||''}`}
    rowProps={({row})=>({className:row[2]?.active===false?'eody-row-inactive':undefined})}
    renderRow={({row,entry})=>{const meta=row[2]||{};return <>
     <td className="eody-col-n">{entry.n}</td>
-    <td><strong>{en?entry.en:entry.el}</strong><small>{en?entry.el:entry.en}</small></td>
-    <td className={entry.deadline==='immediate'?'eody-deadline eody-deadline-immediate':'eody-deadline'}>{deadlineGroupWords(entry.deadline,language)}</td>
-    <td className="eody-note">{entry.notes.length?entry.notes.map(key=><span key={key}>{EODY_FOOTNOTES[key][en?'en':'el']}</span>):<span className="eody-note-none">—</span>}</td>
+    <td title={`${entry.el} — ${entry.en}`}><strong>{en?entry.en:entry.el}</strong><span className="eody-en">{en?entry.el:entry.en}</span></td>
+    <td className={entry.deadline==='immediate'?'eody-deadline eody-deadline-immediate':'eody-deadline'}>{t(`librariesPanel.${DEADLINE_SHORT[entry.deadline]}`)}</td>
+    <td className="eody-note">{entry.notes.length?<span className="eody-note-mark" tabIndex={0} title={entry.notes.map(key=>EODY_FOOTNOTES[key][en?'en':'el']).join(' ')}><Info size={13} aria-hidden="true"/>{t('librariesPanel.eodyNote')}</span>:<span className="eody-note-none">—</span>}</td>
     <td>{statusCell(meta)}</td>
     <td>{renderActions(row)}</td></>}}
   />
-  {legacy.length>0&&<div className="eody-legacy">
-   <p className="eody-legacy-note"><strong>{t('librariesPanel.legacyEntries')}</strong> {t('librariesPanel.legacyEntriesNote')}</p>
+  {legacy.length>0&&<details className="eody-legacy">
+   <summary>{t('librariesPanel.legacyEntries')} ({legacy.length})</summary>
+   <p className="eody-legacy-note">{t('librariesPanel.legacyEntriesNote')}</p>
    <ul className="eody-legacy-list">{legacy.map(row=>{const meta=row[2]||{};return <li key={`legacy-${meta.id||row[0]}`}><strong>{en?row[1]:row[0]}</strong><span className="eody-legacy-code">{meta.code||'—'}</span>{statusCell(meta)}{renderActions(row)}</li>})}</ul>
-  </div>}
+  </details>}
   {!loading&&catalogue.length===0&&legacy.length===0&&<div className="inline-empty">{t('noData')}</div>}
  </div>
 }
