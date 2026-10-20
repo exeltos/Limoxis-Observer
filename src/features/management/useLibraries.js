@@ -26,9 +26,9 @@ function shape(raw,demo){
  const libraries={}
  for(const [key,rows] of Object.entries(raw||{})){
   if(!Array.isArray(rows)||key==='departments')continue
-  libraries[key]=rows.filter(Array.isArray).map(toItem).filter(item=>item.value)
+  libraries[key]=rows.filter(Array.isArray).filter(row=>row?.[2]?.active!==false).map(toItem).filter(item=>item.value)
  }
- const departments=(raw?.departments||[]).filter(Array.isArray).map(row=>toDepartment(row,demo)).filter(dep=>dep.name)
+ const departments=(raw?.departments||[]).filter(Array.isArray).filter(row=>row?.[2]?.active!==false).map(row=>toDepartment(row,demo)).filter(dep=>dep.name)
  return {libraries,departments}
 }
 
