@@ -81,7 +81,7 @@ describe('control record page (Ο5)', () => {
   })
 
   it('has one «…» menu per execution row, with the print inside it', () => {
-    expect(record).toContain("id:'print'")
+    expect(record).toContain("id:'entry-form'")
     expect(record).not.toContain('<ExportMenu compact')
     expect((record.match(/<OverflowMenu items=\{historyActions\(h\)\}/g) || []).length).toBe(1)
   })

@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { CalendarX2, ClipboardCheck, FileClock, LockKeyhole, PlayCircle, Pencil, Printer, RotateCcw, Trash2 } from 'lucide-react'
+import { CalendarX2, ClipboardCheck, FileClock, LockKeyhole, PlayCircle, Pencil, FileText, RotateCcw, Trash2 } from 'lucide-react'
 import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -162,7 +162,7 @@ export function ControlRecordPage(){
 
  function historyActions(h){
   return [
-   h.structuredData?.rows?.length>0?{id:'print',label:isExpiryControl(record)?(en?'Print change form':'Εκτύπωση εντύπου αλλαγών'):(en?'Print entry form':'Εκτύπωση εντύπου καταχώρησης'),icon:Printer,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
+   h.structuredData?.rows?.length>0?{id:'entry-form',label:isExpiryControl(record)?(en?'Print change form':'Εκτύπωση εντύπου αλλαγών'):(en?'Print entry form':'Εκτύπωση εντύπου καταχώρησης'),icon:FileText,onClick:()=>printControlForm({record,department:h.department,execution:h})}:null,
    canEditHistory(h)?{id:'edit',label:en?'Edit entry':'Επεξεργασία καταχώρησης',icon:Pencil,onClick:()=>setEditExecution(h)}:null,
    canDeleteHistory(h)?{id:'delete',label:en?'Delete entry':'Διαγραφή καταχώρησης',icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>setDeleteExecution(h)}:null,
    canCancelHistory(h)?{id:'void',label:en?'Void entry':'Αναίρεση καταχώρησης',icon:RotateCcw,onClick:()=>setCancelExecution(h)}:null,
