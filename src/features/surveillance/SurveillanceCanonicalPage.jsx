@@ -51,7 +51,7 @@ import {
   environmentalResampleInitial,
 } from './EnvironmentalSurveillanceFlow'
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
-import { employeeScreeningLabel, statusTone } from './surveillanceOptions'
+import { PERIOD_DAYS, employeeScreeningLabel, inPeriod, statusTone } from './surveillanceOptions'
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
@@ -102,6 +102,7 @@ export function SurveillanceCanonicalPage() {
     [query, setQuery] = useState(restored.query || ''),
     [department, setDepartment] = useState(restored.department || 'all'),
     [status, setStatus] = useState(restored.status || 'all'),
+    [period, setPeriod] = useState(restored.period || 'all'),
     [page, setPage] = useState(restored.page || 1),
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
     [creation, setCreation] = useState(null),
@@ -192,7 +193,7 @@ export function SurveillanceCanonicalPage() {
   }, [creation, tenant?.id, isDemo])
   useEffect(() => {
     setPage(1)
-  }, [mode, query, department, status, pageSize, quick])
+  }, [mode, query, department, status, period, pageSize, quick])
   useEffect(() => {
     setQuick(null)
   }, [mode])
@@ -215,6 +216,7 @@ export function SurveillanceCanonicalPage() {
               department === 'all' ||
               (language === 'el' ? x.department : x.departmentEn) === department,
           )
+          .filter(x => inPeriod(x.startedAt, period))
           .filter(x =>
             status === 'all' ? !HIDDEN_CASE_STATUSES.has(x.status) : x.status === status,
           ),
@@ -231,6 +233,7 @@ export function SurveillanceCanonicalPage() {
             department === 'all' ||
             (language === 'el' ? x.department : x.departmentEn) === department,
         )
+        .filter(x => inPeriod(x.startedAt, period))
         .filter(x => status === 'all' || x.resultStatus === status || x.status === status)
     return environmentRows
       .filter(x =>
@@ -239,6 +242,7 @@ export function SurveillanceCanonicalPage() {
           .includes(q),
       )
       .filter(x => department === 'all' || x.department === department)
+      .filter(x => inPeriod(x.collectedAt || x.requestedAt, period))
       .filter(x => status === 'all' || x.status === status)
   }, [
     mode,
@@ -248,6 +252,7 @@ export function SurveillanceCanonicalPage() {
     query,
     department,
     status,
+    period,
     language,
     canAccessRecord,
     quick,
@@ -286,7 +291,7 @@ export function SurveillanceCanonicalPage() {
     label: x.name,
     labelEn: x.nameEn || x.name,
   }))
-  const saveView = () => ({ mode, page: safePage, pageSize, query, department, status })
+  const saveView = () => ({ mode, page: safePage, pageSize, query, department, status, period })
   const openCase = item =>
     registry.openRecord(
       navigate,
@@ -331,6 +336,7 @@ export function SurveillanceCanonicalPage() {
           setQuery('')
           setDepartment('all')
           setStatus('all')
+          setPeriod('all')
         },
       }
     : {
@@ -555,11 +561,14 @@ export function SurveillanceCanonicalPage() {
           query={query}
           onQueryChange={setQuery}
           placeholder={t('search')}
-          activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0)}
+          activeAdvancedCount={
+            (department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)
+          }
           onClear={() => {
             setQuery('')
             setDepartment('all')
             setStatus('all')
+            setPeriod('all')
           }}
           advanced={
             <>
@@ -578,6 +587,14 @@ export function SurveillanceCanonicalPage() {
                 <option value="positive">{t('positive')}</option>
                 <option value="negative">{t('negative')}</option>
                 {mode === 'patients' && <option value="cancelled">{t('cancelled')}</option>}
+              </FilterSelect>
+              <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}>
+                <option value="all">{t('svPeriodAll')}</option>
+                {PERIOD_DAYS.map(days => (
+                  <option key={days} value={String(days)}>
+                    {t(`svPeriod${days}`)}
+                  </option>
+                ))}
               </FilterSelect>
             </>
           }

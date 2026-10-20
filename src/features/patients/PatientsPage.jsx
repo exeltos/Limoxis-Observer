@@ -16,12 +16,11 @@ import { MetricCard } from '../../design-system/MetricCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { Field } from '../../design-system/Field'
 import { useFormValidation } from '../../design-system/FormValidation'
-import { departmentOptions,listTexts,statusTone } from '../surveillance/surveillanceOptions'
-import {ClinicalRiskFlags,ClinicalRiskLegendItems,clinicalRiskKinds} from '../clinical-scales/ClinicalRiskFlags'
+import { PERIOD_DAYS,departmentOptions,inPeriod,listTexts } from '../surveillance/surveillanceOptions'
+import {ClinicalRiskText} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
@@ -32,7 +31,7 @@ export function PatientsPage(){
   const navigate=useNavigate()
   const {canAccessRecord,tenant,isDemo,role,membership}=useTenant()
   const registry=useRegistryMemory('patients')
-  const saved=registry.loadViewState({query:'',department:'all',status:'all'})
+  const saved=registry.loadViewState({query:'',department:'all',status:'all',period:'all'})
   const [query,setQuery]=useState(saved.query)
   // null until the first load ends: the registry shows placeholders, not «no patients».
   const [loadedPatients,setPatients]=useState(null)
@@ -40,29 +39,26 @@ export function PatientsPage(){
   const loading=loadedPatients===null
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
+  const [period,setPeriod]=useState(saved.period||'all')
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
   const [riskFlags,setRiskFlags]=useState({})
   const [infectionFlags,setInfectionFlags]=useState({})
-  const [flagsReady,setFlagsReady]=useState(false)
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
-    // The legend waits for both flag sets, so it appears once and complete.
-    setFlagsReady(false)
-    Promise.allSettled([
-      loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}),
-      loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}),
-    ]).then(()=>{if(alive)setFlagsReady(true)})
+    loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}).catch(()=>{})
+    loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}).catch(()=>{})
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
-  useEffect(()=>{setPage(1)},[query,department,status,pageSize])
+  useEffect(()=>{setPage(1)},[query,department,status,period,pageSize])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
-    .filter(p=>status==='all'||p.status===status),[query,patients,department,status,language,canAccessRecord])
+    .filter(p=>inPeriod(p.admissionDate,period))
+    .filter(p=>status==='all'||p.status===status),[query,patients,department,status,period,language,canAccessRecord])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
   const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
@@ -72,7 +68,7 @@ export function PatientsPage(){
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)navigate('/patients/new')
   }
-  const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)
+  const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)+(period!=='all'?1:0)
   const scopedPatients=patients.filter(p=>canAccessRecord(p))
   const patientSummary={
     total:scopedPatients.length,
@@ -88,24 +84,24 @@ export function PatientsPage(){
       <PatientSummaryMetric loading={loading} icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred} filter="transferred" current={status} onFilter={setStatus}/>
     </div>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
+      <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </FilterBar>
-      <PatientsLegend t={t} language={language} rows={patients} ready={flagsReady} riskFlags={riskFlags} infectionFlags={infectionFlags}/>
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
-        columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'alerts',label:t('clinicalAlerts')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')}]}
+        columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'alerts',label:t('clinicalAlerts')}]}
         rows={pagedRows}
         loading={loading}
         rowKey={patient=>patient.id}
-        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={statusTone(patient.status)}>{t(patient.status)}</StatusBadge></td></>}
+        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
+        renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td>{t(patient.status)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}
-        onClearFilters={()=>{setQuery('');setDepartment('all');setStatus('all')}}
+        onClearFilters={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}
         emptyIcon={UsersRound}
         emptyAction={canCreate?{label:t('create'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
       />
@@ -186,23 +182,4 @@ export function PatientFormFields({form,t,language,departments=[],className=''})
       <SearchableSelect label={t('sex')} value={draft.sex} options={['female','male','other'].map(value=>({value,label:t(value)}))} placeholder={t('select')} clearLabel="" onChange={v=>set('sex',v)} {...validation.field('sex')}/>
       <Field label={t('notes')} className="entry-span-2"><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></Field>
     </div>
-}
-
-// One-line key for the alert badges in the registry. Built from all the
-// organization's patients (not the current page or filter) so it stays the
-// same while paging; while the flags load its line is held empty, so the table
-// does not jump when it appears.
-function PatientsLegend({t,language,rows,ready,riskFlags,infectionFlags}){
-  if(!ready)return rows.length?<div className="patient-legend patient-legend-pending" aria-hidden="true"/>:null
-  const kinds=[...new Set(rows.flatMap(p=>clinicalRiskKinds(riskFlags[p.recordId]||riskFlags[p.id]||[])))]
-  const infection=rows.map(p=>infectionFlags[p.recordId]||infectionFlags[p.id]).filter(Boolean)
-  const mdr=infection.some(f=>f.resistance),isolation=infection.some(f=>f.isolation)
-  if(!kinds.length&&!mdr&&!isolation)return null
-  return <div className="patient-legend" aria-label={t('patientsLegend')}>
-    <strong>{t('patientsLegend')}:</strong>
-    {mdr&&<span className="patient-legend-item"><span className="status-badge danger">MDR</span>{t('patientsLegendMdr')}</span>}
-    {isolation&&<span className="patient-legend-item"><span className="status-badge temporary patient-isolation-flag">{t('infectionFlags.isolation')}</span></span>}
-    <ClinicalRiskLegendItems kinds={kinds} language={language}/>
-    {kinds.length>0&&<span className="patient-legend-tones"><i className="tone-danger"/>{t('patientsLegendHigh')}<i className="tone-warning"/>{t('patientsLegendModerate')}<i className="tone-active"/>{t('patientsLegendLow')}</span>}
-  </div>
 }

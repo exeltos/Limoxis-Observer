@@ -21,6 +21,7 @@ import {
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -464,7 +465,7 @@ function EnvironmentalStatusCell({ row, t, onResample }) {
   const needsAction = environmentalNeedsAction(row)
   return (
     <span className="environment-status-cell">
-      <span className={`status-badge ${status.tone}`.trim()}>{status.label}</span>
+      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
       {needsAction && onResample && (
         <Button
           variant="secondary"

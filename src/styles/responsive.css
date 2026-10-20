@@ -549,3 +549,8 @@ html:not(#lo-analysis-page) body .analysis-workspace>.analysis-sticky{margin:0 v
   html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-header .analysis-heading-row p{display:block!important;margin:4px 0 0!important;font-size:13px!important;color:#5b7083!important}
   html:not(#lo-analysis-page):not(#lo-analysis-align) body .analysis-workspace>.analysis-tabs{margin-left:30px!important;margin-right:30px!important;width:auto!important}
 }
+
+/* Surveillance lists on a tablet: the columns share the width instead of scrolling sideways, so no header is cut. */
+@media (min-width:641px) and (max-width:960px){
+  html body .registry-workspace .data-table,html body .patient-registry-shell .data-table{min-width:0!important}
+}
