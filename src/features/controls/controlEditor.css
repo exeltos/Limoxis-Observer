@@ -170,9 +170,20 @@
   justify-content: flex-end;
   gap: 10px;
 }
+/* «Advanced»: the optional cards, folded on a new control; open they use the same grid. */
+.control-editor-advanced {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+.control-editor-advanced > .lo-more-section-body:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
 /* Tablet portrait and narrow laptop windows: one column. */
 @media (max-width: 1100px) {
-  .control-editor-body {
+  .control-editor-body,
+  .control-editor-advanced > .lo-more-section-body:not([hidden]) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
