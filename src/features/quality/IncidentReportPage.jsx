@@ -28,6 +28,7 @@ import { createQualityRecord } from './qualityService'
 import { withHarm, withIncidentClass } from './qualityRecordRules'
 import { IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, categoryKind, harmLevel, incidentCategoryLabel, incidentCategoryOptions, isSentinelHarm, rcaDueDate, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
+import { PrefilledList } from '../surveillance/forms/PrefilledList'
 import { IncidentEventFields, IncidentEventTypeField } from './IncidentEventDetails'
 import { detailBlocks, incidentDetailFacts } from './incidentDetails'
 import './quality.css'
@@ -41,6 +42,9 @@ export function emptyIncidentReport() {
 // What a control entry with a finding, or another module, hands to the form.
 export function incidentPrefill(state, language = 'el') {
   const en = language === 'en'
+  // From an episode (the forms tab): patient, admission and surveillance are linked, the department is the episode's.
+  const episode = state?.episodeSource
+  if (episode) return { reportKind: 'clinical', departmentId: episode.departmentId || '', department: episode.department || '', departmentEn: episode.department || '', date: today(), linkedPatient: episode.linkedPatient || '', linkedSurveillance: episode.linkedSurveillance || '', linkedAdmission: episode.linkedAdmission || '', episodeSource: episode }
   const control = state?.controlSource
   if (control) {
     const lines = [control.controlTitle && `${en ? 'Control' : 'Έλεγχος'}: ${control.controlTitle}`, control.value !== undefined && control.value !== '' && control.value !== null && `${en ? 'Recorded value' : 'Καταγεγραμμένη τιμή'}: ${typeof control.value === 'object' ? JSON.stringify(control.value) : control.value}`, control.notes && `${en ? 'Notes' : 'Σημειώσεις'}: ${control.notes}`].filter(Boolean)
@@ -70,6 +74,7 @@ export function IncidentReportPage() {
   const canViewQuality = ownerFullAccess || can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom)
   // Back without history: the Quality Center, or the reporter's own list.
   const { goBack } = useContextualNavigation(canViewQuality ? '/quality' : '/quality/my-reports')
+  const fromEpisode = location.state?.episodeSource || null
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState(() => ({ ...emptyIncidentReport(), ...(incidentPrefill(location.state, language) || {}) }))
   const [saving, setSaving] = useState(false)
@@ -112,6 +117,8 @@ export function IncidentReportPage() {
       const sentinel = harmful && isSentinelHarm(draft.impact)
       const created = await createQualityRecord('incidents', tenant?.id, { ...draft, eventType: classified ? draft.eventType : '', sentinel, rcaDueDate: sentinel ? rcaDueDate(draft.date) : '', category: draft.category || (isSuggestion ? 'other' : ''), title: draft.title || draft.titleEn, titleEn: draft.titleEn || draft.title, description: draft.description || draft.descriptionEn, descriptionEn: draft.descriptionEn || draft.description, immediateActions: draft.immediateActions || draft.immediateActionsEn, reportedByLabel: draft.anonymous ? '' : actor.name, history: [auditEvent('recordCreated', { actor })] }, profile?.id || user?.id)
       notify(en ? 'The report was sent.' : 'Η αναφορά στάλθηκε.', 'success')
+      // Opened from an episode: back to its forms tab, where the report is now listed.
+      if (fromEpisode) { goBack(); return }
       const code = created?.id || created?.code
       // Quality staff go on to the record; everyone else gets a receipt.
       if (canViewQuality && code && !draft.anonymous) navigate(`/quality/incidents/${code}`, { replace: true, state: { limoxisFrom: { pathname: '/quality', search: '', hash: '', state: null, tab: 'incidents', registry: null } } })
@@ -139,6 +146,7 @@ export function IncidentReportPage() {
     <StepList steps={steps} current={step} valid={valid} disabled={saving} onSelect={goTo} ariaLabel={en ? 'Steps' : 'Βήματα'} />
     <div className="lo-form-cards quality-report-body">
       {step === 0 && <>
+        {draft.episodeSource && <PrefilledList items={[{ label: t('episodeForms.prefill.patient'), value: draft.episodeSource.patientLabel }, { label: t('episodeForms.prefill.admission'), value: draft.episodeSource.admissionLabel }, { label: t('episodeForms.prefill.episode'), value: draft.episodeSource.episodeLabel }]} />}
         <FormCard wide title={en ? 'What are you reporting' : 'Τι αναφέρετε'} icon={ClipboardList} hint={REPORT_KINDS.find(item => item.value === draft.reportKind)?.hint[en ? 1 : 0]}>
           <FormGrid columns={2}>
             <ChoiceField label={en ? 'Kind *' : 'Είδος *'} value={draft.reportKind} options={vocabularyOptions(REPORT_KINDS, language)} onChange={changeKind} />

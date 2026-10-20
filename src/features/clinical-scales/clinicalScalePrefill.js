@@ -22,8 +22,8 @@ const FIELD_SOURCES={
  pao2Fio2:['pao2Fio2','pao2_fio2_ratio']
 }
 
-export function clinicalScalePrefill(scaleKey,{patient,admission,clinicalData,latestLabs,latestVitals}={}){
- const sources=[clinicalData,latestVitals,latestLabs,admission,patient]
+export function clinicalScalePrefill(scaleKey,{patient,admission,episode,clinicalData,latestLabs,latestVitals}={}){
+ const sources=[clinicalData,latestVitals,latestLabs,episode,admission,patient]
  const allowed=scaleKey==='sofa'?['pao2Fio2','platelets','bilirubin','map','gcs','creatinine','urineOutput24h']:scaleKey==='qsofa'?['respiratoryRate','systolicBp','gcs']:scaleKey==='apache-ii'?['temperature','map','heartRate','respiratoryRate','fio2','pao2','aado2','ph','sodium','potassium','creatinine','hematocrit','wbc','gcs']:[]
  return Object.fromEntries(allowed.flatMap(key=>{const value=firstValue(sources,FIELD_SOURCES[key]);return value===undefined?[]:[[key,value]]}))
 }

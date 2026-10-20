@@ -93,6 +93,7 @@ export function mapRow(section,row){
     rcaDueDate:row.rca_due_date||'',
     linkedPatient:row.linked_patient_id||'',
     linkedSurveillance:row.linked_surveillance_id||'',
+    linkedAdmission:row.linked_admission_id||'',
     category:row.category||'clinical',
     eventType:row.event_type||'',
     ...incidentDetailsFromRow(row),
@@ -193,6 +194,19 @@ export async function loadQualityRecords(section,organizationId){
     .order(config.date,{ascending:false,nullsFirst:false})
     .order('id'))
   return (await withFollowUpCodes(section,organizationId,data||[])).map(row=>mapRow(section,row))
+}
+
+// The incidents linked to an episode (its surveillance cases, or its admission), newest first.
+// Only what the user may already read comes back (the policies of quality_incidents decide).
+export async function loadLinkedIncidents(organizationId,{caseIds=[],admissionId=null,patientCode=''}={}){
+  const cases=[...new Set(caseIds.map(String).filter(Boolean))]
+  if(isDemoDataEnvironment())return loadQualityLocal('incidents').filter(row=>cases.includes(String(row.linkedSurveillance||''))||(patientCode&&String(row.linkedPatient||'')===String(patientCode))).map(row=>structuredClone(row))
+  assertReady(organizationId)
+  const filters=[cases.length&&`linked_surveillance_id.in.(${cases.join(',')})`,admissionId&&`linked_admission_id.eq.${admissionId}`].filter(Boolean)
+  if(!filters.length)return []
+  const {data,error}=await supabase.from('quality_incidents').select('*,department:departments(name)').eq('organization_id',organizationId).or(filters.join(',')).order('occurred_at',{ascending:false,nullsFirst:false})
+  if(error)throw error
+  return (data||[]).map(row=>mapRow('incidents',row))
 }
 
 export async function loadQualityRecord(section,organizationId,code){
@@ -347,7 +361,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
     const department=draft.department||draft.departmentId||''
     const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:draft.departmentEn||department,departmentId:draft.departmentId||'',owner:ownerLabels(draft)[0]||'',owners:ownerLabels(draft),ownerId:draft.ownerId||null,lifecycleStatus:'active',attachments:[],history:draft.history||[]}
     let record=common
-    if(section==='incidents'){const details=keptDetails(draft);record={...common,severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',eventType:details.eventType,fall:details.fall,sharp:details.sharp,blueCode:details.blueCode,obstetric:details.obstetric,eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:draft.anonymous?'':draft.reportedByLabel||'',reportedById:draft.anonymous?null:userId||null,anonymous:Boolean(draft.anonymous),reportKind:draft.reportKind||'clinical',sentinel:Boolean(draft.sentinel),rcaDueDate:draft.rcaDueDate||'',linkedPatient:'',linkedSurveillance:''}}
+    if(section==='incidents'){const details=keptDetails(draft);record={...common,severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),linkedPatient:draft.linkedPatient||'',linkedSurveillance:draft.linkedSurveillance||'',linkedAdmission:draft.linkedAdmission||'',category:draft.category||'clinical',eventType:details.eventType,fall:details.fall,sharp:details.sharp,blueCode:details.blueCode,obstetric:details.obstetric,eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:draft.anonymous?'':draft.reportedByLabel||'',reportedById:draft.anonymous?null:userId||null,anonymous:Boolean(draft.anonymous),reportKind:draft.reportKind||'clinical',sentinel:Boolean(draft.sentinel),rcaDueDate:draft.rcaDueDate||''}}
     if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||'',...AUDIT_FINDING_DEFAULTS(draft)}
     if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||'',subActions:draft.subActions||[],rootCauseAnalysis:null,progress:[]}
     if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:draft.leadAuditor||'',leadAuditorId:draft.leadAuditorId||null,checklist:draft.checklist||[],checklistSource:draft.checklistSource||'',scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[],...AUDIT_PROGRAMME_DEFAULTS(draft)}
@@ -362,7 +376,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   // The id is chosen here, so the details can follow even an anonymous report.
   const id=newRowId()
   let payload={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
-  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:draft.anonymous?null:userId||null,reported_by_label:draft.anonymous?null:draft.reportedByLabel||null,is_anonymous:Boolean(draft.anonymous),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
+  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',linked_patient_id:isUuid(draft.linkedPatient)?draft.linkedPatient:null,linked_surveillance_id:isUuid(draft.linkedSurveillance)?draft.linkedSurveillance:null,linked_admission_id:isUuid(draft.linkedAdmission)?draft.linkedAdmission:null,event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:draft.anonymous?null:userId||null,reported_by_label:draft.anonymous?null:draft.reportedByLabel||null,is_anonymous:Boolean(draft.anonymous),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,...findingAuditPayload(draft),follow_up_audit_id:await auditIdOf(organizationId,draft.followUpAuditId)}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
   if(section==='audits') payload={...payload,...auditTypePayload(draft.auditType),scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null,checklist_source:draft.checklistSource||null,...auditProgrammePayload(draft),follow_up_of:await auditIdOf(organizationId,draft.followUpOf)}
@@ -404,6 +418,7 @@ function buildPersistPayload(section,record){
     description:record.description||record.descriptionEn||null,
     linked_patient_id:record.linkedPatient||null,
     linked_surveillance_id:record.linkedSurveillance||null,
+    linked_admission_id:record.linkedAdmission||null,
     event_time:record.eventTime||null,
     incident_class:record.incidentClass||'nearMiss',
     reached_patient:Boolean(record.reachedPatient),

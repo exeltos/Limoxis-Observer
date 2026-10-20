@@ -60,6 +60,8 @@ export function PatientDetailsSection({
   stayFields = null,
   leadingActions = null,
   extraMenuItems = [],
+  // Without a card of its own: the page already frames it (a patient with no admission).
+  bare = false,
 }) {
   const { notify } = useFeedback()
   // «Edit patient» turns the patient details into the form, in place.
@@ -109,7 +111,8 @@ export function PatientDetailsSection({
   // Grouped as a details list: the patient, the stay, the clinical details.
   const detailSections = [
     {
-      title: t('clinicalRecords.sectionPatient'),
+      // The card heading already says the same words: no second heading above the list.
+      title: stayFields ? t('clinicalRecords.sectionPatient') : null,
       collapseMissing: true,
       items: [
         { label: cr('patientCode'), value: patient?.id },
@@ -153,7 +156,7 @@ export function PatientDetailsSection({
     },
   ]
   return (
-    <section className="clinical-panel patient-summary-card">
+    <section className={bare ? 'patient-summary-card is-bare' : 'clinical-panel patient-summary-card'}>
       {!editing && (
         <SectionHeader
           title={

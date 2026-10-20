@@ -170,10 +170,13 @@ describe('admissions', () => {
     expect(rows.some(text => /Εξιτήριο/.test(text))).toBe(true)
   })
 
-  it('opens one canonical tab structure for an admission, including clinical scales', async () => {
+  it('opens one canonical tab structure for an admission, with the forms tab holding the clinical scales', async () => {
     await openAdmission()
-    expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Σύνοψη', 'Επιτήρηση & Δείγματα', 'Κλινικές αξιολογήσεις', 'Έγγραφα', 'Ιστορικό'])
-    await openTab('Κλινικές αξιολογήσεις')
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Σύνοψη', 'Επιτήρηση & Δείγματα', 'Φόρμες & ερωτηματολόγια', 'Έγγραφα', 'Ιστορικό'])
+    await openTab('Φόρμες & ερωτηματολόγια')
+    expect(within(body()).getByRole('heading', { name: 'Κλίμακες' })).toBeInTheDocument()
+    // The full history table opens from «Όλες οι αξιολογήσεις» (the panel keeps its table, dialogs and sepsis prompt).
+    fireEvent.click(await within(body()).findByRole('button', { name: /Όλες οι αξιολογήσεις/ }))
     expect(within(body()).getByRole('heading', { name: 'Κλινικές αξιολογήσεις' })).toBeInTheDocument()
   })
 
@@ -373,14 +376,15 @@ describe('clinical data and documents', () => {
 })
 
 describe('surveillance episode record: header scale chips and printing', () => {
-  it('opens the clinical scales with their history from a header chip (NEWS2 / Braden / GCS)', async () => {
+  it('opens the «Κλίμακες» section of the forms tab from a header chip (NEWS2 / Braden / GCS)', async () => {
     await openSurveillance()
     const chip = await screen.findByRole('button', { name: /NEWS2/ })
     expect(chip).toHaveClass('clinical-risk-flag')
     fireEvent.click(chip)
-    const dialog = await screen.findByRole('dialog', { name: 'Ελένη Παπαδοπούλου' })
-    expect(within(dialog).getByRole('heading', { name: 'Κλινικές αξιολογήσεις' })).toBeInTheDocument()
-    expect(await within(dialog).findAllByText(/NEWS2/)).not.toHaveLength(0)
+    expect(await screen.findByRole('tab', { name: /Φόρμες & ερωτηματολόγια/, selected: true })).toBeInTheDocument()
+    const scales = document.querySelector('[data-section="scales"]')
+    expect(within(scales).getByRole('heading', { name: 'Κλίμακες' })).toBeInTheDocument()
+    expect(await within(scales).findAllByText(/NEWS2/)).not.toHaveLength(0)
   })
 
   it('prints the episode as a report: numbered sections, plain words, the «printed by» line, no tabs', async () => {
@@ -388,7 +392,7 @@ describe('surveillance episode record: header scale chips and printing', () => {
     await act(async () => { window.dispatchEvent(new Event('beforeprint')) })
     const report = document.querySelector('[data-record-report]')
     expect(report).not.toBeNull()
-    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Έγγραφα', '5. Ιστορικό'])
+    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Κλίμακες', '6. Δηλωτέα νοσήματα', '7. Συμβάντα', '8. Συνδέεται με έξαρση', '9. Πηγή έκθεσης προσωπικού', '10. Έγγραφα', '11. Ιστορικό'])
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('LAB-260771')
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('Ανθεκτικό')
     expect(report.querySelector('.record-report-meta')).toHaveTextContent('Ημερομηνία εκτύπωσης')

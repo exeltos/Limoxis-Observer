@@ -184,12 +184,12 @@ describe('clinical assessments', () => {
 })
 
 describe('patient with no admission', () => {
-  it('says so, offers «Νέα νοσηλεία» and lists what does exist', () => {
+  it('says so in one line, offers «Νέα νοσηλεία» and counts what exists outside admissions', () => {
     const onNew = vi.fn()
     const t = key => ({ 'clinicalRecords.noAdmissionTitle': 'Δεν υπάρχει καταγεγραμμένη νοσηλεία για τον ασθενή.', 'clinicalRecords.newAdmission': 'Νέα νοσηλεία', 'clinicalRecords.nothingElseOnRecord': 'Δεν υπάρχει άλλη καταχώριση.', 'clinicalRecords.onRecordTitle': 'Τι υπάρχει', 'clinicalRecords.samplesCountLabel': 'Δείγματα' })[key] || key
     render(<MemoryRouter><LanguageProvider><PatientWithoutAdmission patient={{ recordId: 'p1' }} isDemo canAdmit onNewAdmission={onNew} samplesCount={2} t={t} fmtDate={value => value} /></LanguageProvider></MemoryRouter>)
     expect(screen.getByText('Δεν υπάρχει καταγεγραμμένη νοσηλεία για τον ασθενή.')).toBeInTheDocument()
-    expect(screen.getByText('Δείγματα')).toBeInTheDocument()
+    expect(screen.getByText(/2 δείγματα/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Νέα νοσηλεία' }))
     expect(onNew).toHaveBeenCalled()
   })

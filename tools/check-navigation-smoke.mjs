@@ -21,7 +21,8 @@ const checks=[
   ['employees row navigation',employeeList.includes('registry.openRecord')],
   ['laboratory registry hook',read('src/features/laboratory/LaboratoryWorkspace.jsx').includes("useRegistryMemory('laboratory')")],
   ['surveillance registry hook',/useRegistryMemory\(`surveillance-/.test(read('src/features/surveillance/SurveillanceCanonicalPage.jsx'))],
-  ['patient contextual back',compact(patientRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
+  // The record also takes goTo (the forms tab opens other pages and comes back to its tab).
+  ['patient contextual back',/const\{goBack,(goTo,)?restored\}=useContextualNavigation/.test(compact(patientRecord))],
   ['employee contextual back',compact(employeeRecord).includes(compact('const {goBack,restored}=useContextualNavigation'))],
   ['surveillance row navigation',surveillanceList.includes('registry.openRecord')],
   ['controls row navigation',controls.includes('registry.openRecord')],

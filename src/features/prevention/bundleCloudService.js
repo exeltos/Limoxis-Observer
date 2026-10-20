@@ -58,10 +58,15 @@ function mapAssessment(row, templates = []) {
     answerNotes,
     shift: criteria.shift || '',
     context: criteria.context || '',
-    patientId: criteria.patientId || '',
+    patientId: criteria.patientId || row.patient_id || '',
     patientRef: criteria.patientRef || '',
-    deviceId: criteria.deviceId || '',
+    deviceId: criteria.deviceId || row.surveillance_device_id || '',
     deviceRef: criteria.deviceRef || '',
+    // Episode links (null for a check made per department).
+    patientRecordId: row.patient_id || '',
+    surveillanceCaseId: row.surveillance_case_id || '',
+    surveillanceDeviceId: row.surveillance_device_id || '',
+    deviceDay: row.device_day == null ? null : Number(row.device_day),
     generalNotes: criteria.generalNotes || '',
     followUps:
       criteria.followUps && typeof criteria.followUps === 'object' ? criteria.followUps : {},
@@ -167,6 +172,25 @@ export async function loadBundleAssessments(organizationId) {
   if (error) throw error
   return (data || []).map(row => mapAssessment(row, support.templates))
 }
+// The checks made from one episode (its devices), newest first. Production reads only the
+// episode's rows; the demo filters its in-memory list.
+export async function loadEpisodeBundleAssessments(organizationId, caseIds = []) {
+  const ids = [...new Set(caseIds.map(String).filter(Boolean))]
+  if (!ids.length) return []
+  if (isDemoDataEnvironment())
+    return loadBundlesLocal().filter(row => ids.includes(String(row.surveillanceCaseId || '')))
+  assertCloud(organizationId)
+  const support = await loadBundleSupportData(organizationId)
+  const { data, error } = await supabase
+    .from('prevention_bundle_assessments')
+    .select('*,department:departments(id,name)')
+    .eq('organization_id', organizationId)
+    .in('surveillance_case_id', ids)
+    .order('assessment_date', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(row => mapAssessment(row, support.templates))
+}
 export async function saveBundleAssessment(organizationId, record, { existingId = null } = {}) {
   if (isDemoDataEnvironment()) {
     const rows = loadBundlesLocal()
@@ -235,6 +259,10 @@ export async function saveBundleAssessment(organizationId, record, { existingId 
     criteria,
     evidence: findings,
     status: complete ? 'completed' : 'draft',
+    patient_id: record.patientRecordId || record.patientId || null,
+    surveillance_case_id: record.surveillanceCaseId || null,
+    surveillance_device_id: record.surveillanceDeviceId || record.deviceId || null,
+    device_day: record.deviceDay || null,
     updated_by: userId,
     updated_at: new Date().toISOString(),
   }

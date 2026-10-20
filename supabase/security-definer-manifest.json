@@ -497,6 +497,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Grants or removes a member's add-on supplier_renewal_sender (may e-mail suppliers for their expired certificates); Platform Owner only."
+    },
+    "surveillance_case_exposure_count": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Number of employees exposed to the source patient of a surveillance episode (counts only, never names), for whoever can view the episode (can_view_surveillance_record); 0 when the occupational-health module is locked."
     }
   }
 }

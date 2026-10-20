@@ -3981,12 +3981,10 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* New employee: rows of three (surname · name · father’s name / code · status · hire date / department · category · position / email · phone). */
 .employee-create-form .employee-create-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start}
 @media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}
-.patient-no-admission-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.patient-no-admission-head h3{margin:0 0 4px;font-size:15px;color:#18364f}
-.patient-no-admission-head p{margin:0;font-size:12.5px;color:#5b6e82}
-.patient-no-admission-reports{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.patient-no-admission-reports li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-weight:600}
-.patient-no-admission-reports small{color:#5b6e82;font-weight:500}
-.patient-no-admission-reports a{margin-left:auto;font-size:12px;font-weight:650;color:#1f6b9b}
 .record-status-word{font-size:12.5px;font-weight:650;color:#5b6e82;white-space:nowrap}
-.patient-no-admission{margin-top:12px}
+/* A patient with no admission: one frame, the sections one under the other, one short line instead of a card. */
+.patient-no-admission-view{display:flex;flex-direction:column;min-width:0;padding:6px 14px 10px}
+.patient-no-admission-view .patient-summary-card.is-bare{margin:0;padding:0 0 6px}
+.patient-no-admission-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0;padding:10px 0;border-top:1px solid var(--lo-border-soft,#e3eaf0);border-bottom:1px solid var(--lo-border-soft,#e3eaf0);font-size:13px;color:#314b60}
+.patient-no-admission-line small{font-size:12px;color:#5b6e82}
+.patient-no-admission-line .button{min-height:34px;padding:0 12px;font-size:12.5px}

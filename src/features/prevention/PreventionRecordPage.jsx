@@ -4,7 +4,7 @@ import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useEffect, useState } from 'react'
 import { ClipboardCheck, Droplets, Pencil, Recycle, ShieldCheck, Trash2 } from 'lucide-react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -83,6 +83,9 @@ const editCapabilities = {
 export function PreventionRecordPage() {
   const { recordType, recordId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  // A check opened from a device of an episode (Φόρμες & ερωτηματολόγια): it returns there.
+  const episodeBundle = recordType === 'bundles' ? location.state?.episodeBundle || null : null
   const [searchParams] = useSearchParams()
   const { locale, language } = useLanguage()
   const en = language === 'en'
@@ -419,6 +422,10 @@ export function PreventionRecordPage() {
             : 'Οι αλλαγές αποθηκεύτηκαν.',
         'success',
       )
+      if (creating && episodeBundle?.returnTo) {
+        backToEpisode()
+        return
+      }
       navigate(
         saved?.id ? `/prevention/bundles/${saved.id}?fromTab=bundles` : '/prevention?tab=bundles',
         { replace: true },
@@ -487,7 +494,10 @@ export function PreventionRecordPage() {
       )}
     </>
   )
-  const backToList = () => navigate(`/prevention?tab=${recordType}`, { replace: true })
+  const backToEpisode = () =>
+    navigate(episodeBundle.returnTo, { replace: true, state: episodeBundle.returnState || { openTab: 'episodeForms' } })
+  const backToList = () =>
+    creating && episodeBundle?.returnTo ? backToEpisode() : navigate(`/prevention?tab=${recordType}`, { replace: true })
   const backToRecord = () =>
     navigate(`/prevention/${recordType}/${record.id}?fromTab=${recordType}`, { replace: true })
   let editor = null
@@ -533,6 +543,7 @@ export function PreventionRecordPage() {
         templates={bundleSupport.templates}
         initialRecord={editing ? record : null}
         fixedDepartment={departmentScoped ? ownDepartment : ''}
+        prefill={creating ? episodeBundle?.prefill || null : null}
         onSave={saveBundle}
       />
     )

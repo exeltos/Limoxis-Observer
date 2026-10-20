@@ -205,7 +205,7 @@ Any combination that matches no preset is stored as `custom`. A package is a sho
 ### 4.2 Patients (Ασθενείς)
 
 - Registry with search; **search before create** to prevent duplicates. Fields: patient code (unique per organization), name, sex, date of birth (birth weight for infants), department, admission/discharge dates, status (`active`, `discharged`, `deceased`, `transferred`).
-- Admissions (`patient_admissions`) group episodes; the patient record opens per admission with tabs: Summary, Surveillance & samples (journey), Clinical data, Clinical assessments (clinical scales: Braden, GCS, Morse, NEWS2, SOFA), Documents, History.
+- Admissions (`patient_admissions`) group episodes; the patient record opens per admission with tabs: Summary, Surveillance & samples (journey), Clinical data, Forms & questionnaires (device prevention bundles, clinical scales — Braden, GCS, Morse, NEWS2, SOFA —, notifiable diseases, incidents; see EPISODE_FORMS_TAB.md), Documents, History.
 - Infection/risk flags (e.g. MDRO carrier, isolation active) shown as compact badges.
 - Department-scoped roles see only patients of their departments.
 
