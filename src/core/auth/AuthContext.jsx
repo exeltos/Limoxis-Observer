@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
 import { signInWithPassword, signOut as remoteSignOut } from './authService'
+import { invalidateEmployeesCache } from '../../features/employees/employeesCache'
 import { loadCurrentDemoAccess } from '../tenant/tenantService'
 import { ROLES } from '../permissions/roles'
 import { OWNER_PREVIEW_USER,isOwnerPreview } from '../preview/ownerPreview'
@@ -84,8 +85,10 @@ export function AuthProvider({ children }) {
       hydrateSession(data.session,{force:true}).catch(()=>{})
     })
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if(!mounted)return
+      // Another person may sign in on the same tab: nothing read under the last session is kept.
+      if(event==='SIGNED_IN'||event==='SIGNED_OUT')invalidateEmployeesCache()
       if(listenerTimerRef.current)clearTimeout(listenerTimerRef.current)
       listenerTimerRef.current=setTimeout(()=>{
         listenerTimerRef.current=null
@@ -113,6 +116,7 @@ export function AuthProvider({ children }) {
     setAuthState({session:{ access_token: 'demo', user: DEMO_USER },profile:DEMO_USER,loading:false})
   }, [])
   const logout = useCallback(async () => {
+    invalidateEmployeesCache()
     if(listenerTimerRef.current){clearTimeout(listenerTimerRef.current);listenerTimerRef.current=null}
     if (authState.profile?.isDemo) {
       transitionRef.current+=1

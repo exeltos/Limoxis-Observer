@@ -6,6 +6,7 @@ import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { interviewsDemoState } from './interviewsDemoData'
 import { overallRating, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule } from './interviewsModel'
 
@@ -69,7 +70,9 @@ const group = (rows, key) => { const map = new Map(); for (const row of rows) { 
 function local() {
   const saved = loadSnapshot(LOCAL_KEY, null)
   if (saved && Array.isArray(saved.candidates)) return saved
-  const state = interviewsDemoState()
+  // Empty-hospital preview: no candidates (the hospital's own records start empty).
+  const seed = interviewsDemoState()
+  const state = isEmptyPreview() ? Object.fromEntries(Object.entries(seed).map(([key, value]) => [key, Array.isArray(value) ? [] : value])) : seed
   saveSnapshot(LOCAL_KEY, state)
   return state
 }

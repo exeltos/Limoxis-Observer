@@ -479,7 +479,9 @@ export function CanonicalJourney({
                       )}
                     </Button>
                   )}
-                  {!record.isolation && (
+                  {/* «Not required» is the infection-control decision on the case
+                      (surveillance_cases + its event); the departments only start and end isolation. */}
+                  {!record.isolation && permissions.canReassess && (
                     <Button
                       variant="ghost"
                       onClick={() =>

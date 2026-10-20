@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, Clock3, Eye, FileUp, ShieldCheck } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { RouteLoading } from '../../../design-system/RouteLoading'
@@ -32,7 +32,7 @@ export function SupplierCertificatePage() {
   useEffect(() => { void load() }, [load])
 
   if (state.loading && !state.data) return <Frame><RouteLoading /></Frame>
-  if (state.error || !state.data) return <Frame><Status icon={ShieldCheck} title={en ? 'This link is not available' : 'Ο σύνδεσμος δεν είναι διαθέσιμος'} text={en ? 'A newer e-mail may have replaced it. Contact the hospital’s quality office.' : 'Μπορεί να τον αντικατέστησε νεότερο email. Επικοινωνήστε με το Γραφείο Ποιότητας του νοσοκομείου.'} /></Frame>
+  if (state.error || !state.data) return <Frame><Status icon={ShieldCheck} title={en ? 'This link is not available' : 'Ο σύνδεσμος δεν είναι διαθέσιμος'} text={en ? 'The link may have been cut when it was copied, or a newer e-mail replaced it. Paste the whole link from the e-mail below, or contact the hospital’s quality office.' : 'Ο σύνδεσμος μπορεί να κόπηκε στην αντιγραφή ή να τον αντικατέστησε νεότερο email. Επικολλήστε παρακάτω ολόκληρο τον σύνδεσμο του email ή επικοινωνήστε με το Γραφείο Ποιότητας του νοσοκομείου.'} /><PasteLink en={en} /></Frame>
   // The demo keeps its submissions on the page.
   const info = { ...state.data, items: (state.data.items || []).map(item => (done[item.id] ? { ...item, status: 'submitted', submittedAt: done[item.id] } : item)) }
   if (info.status === 'expired') return <Frame><Status icon={Clock3} title={en ? 'The link has expired' : 'Ο σύνδεσμος έληξε'} text={en ? 'Ask the hospital’s quality office to send it again.' : 'Ζητήστε από το Γραφείο Ποιότητας του νοσοκομείου να τον στείλει ξανά.'} /></Frame>
@@ -50,6 +50,18 @@ export function SupplierCertificatePage() {
     {info.items.map((item, index) => <CertificateItem key={item.id} item={item} index={index} total={total} token={token} language={language} disabled={info.status !== 'sent'} onSubmitted={() => onSubmitted(item)} onStale={load} />)}
     <div className="source-truth-note"><ShieldCheck size={16} /><span>{en ? `Personal link, no account needed${info.expiresAt && !complete ? `, valid until ${day(info.expiresAt, en)}` : ''}. The files go only to the hospital’s supplier records.` : `Προσωπικός σύνδεσμος, χωρίς λογαριασμό${info.expiresAt && !complete ? ` (ισχύει έως ${day(info.expiresAt, en)})` : ''}. Τα αρχεία καταχωρίζονται μόνο στο αρχείο προμηθευτών του νοσοκομείου.`}</span></div>
   </div></Frame>
+}
+
+// A link that arrived cut (long e-mail links wrap or lose their end): the supplier
+// pastes the whole link or its code, and the page opens it.
+function PasteLink({ en }) {
+  const navigate = useNavigate()
+  const [value, setValue] = useState('')
+  const code = value.match(/SCR-[0-9a-f]{20,}/i)?.[0] || ''
+  return <form className="public-flow-card supplier-certificate-paste" onSubmit={event => { event.preventDefault(); if (code) navigate(`/supplier-certificate/${code}`) }}>
+    <Field label={en ? 'Link or code from the e-mail' : 'Σύνδεσμος ή κωδικός από το email'}><input value={value} onChange={event => setValue(event.target.value)} autoComplete="off" /></Field>
+    <Button type="submit" disabled={!code}>{en ? 'Open' : 'Άνοιγμα'}</Button>
+  </form>
 }
 
 // One certificate: what is on file and, while it is awaited, its own form and file.

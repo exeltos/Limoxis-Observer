@@ -63,3 +63,4 @@
 .supplier-renewal-sender{display:grid;gap:8px}
 .supplier-renewal-sender p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}
 .supplier-renewal-sender strong{display:inline-flex;align-items:center;gap:6px}
+.supplier-certificate-paste{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:16px}
