@@ -19,6 +19,7 @@ import { employeeRows, employeeVaccinations } from '../employees/employeeDemoDat
 import { loadTrainingState } from '../training/trainingData'
 import { CLUSTER_THRESHOLD, CLUSTER_WINDOW_DAYS, demoClusterRecords } from '../surveillance/outbreakClusterService'
 import { detectOrganismClusters } from '../surveillance/clusterDetection'
+import { keepPerCategory } from './microbiologyLabels'
 
 // Same eight ΕΟΔΥ reference pathogens and reference antibiotics as
 // indicatorEngine.js's REFERENCE_PATHOGEN_PATTERNS/AMR_REFERENCE_ANTIBIOTIC.
@@ -105,7 +106,7 @@ function collectNationalRows(positive) {
     if (eventDate > current.lastDate) current.lastDate = eventDate
     grouped.set(key, current)
   }
-  return [...grouped.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate)).slice(0, 80).map(row => [row.organism, row.resistanceClass, row.department, row.source, row.count, row.lastDate, row.sampleType])
+  return [...grouped.values()].sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate)).map(row => [row.organism, row.resistanceClass, row.department, row.source, row.count, row.lastDate, row.sampleType]).filter(keepPerCategory(80))
 }
 
 // The months a monthly series covers: the selected range up to the current

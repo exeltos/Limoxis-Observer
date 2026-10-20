@@ -3,6 +3,7 @@ import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { loadActiveClustersAsync } from '../surveillance/outbreakClusterService'
 import { buildLiraMetrics,buildPpsMetrics } from '../analysis/analysisAddonMetrics'
+import { keepPerCategory } from '../analysis/microbiologyLabels'
 
 const localKey='limoxis.platform.center.v1'
 const NO_EXPIRATION_DATE='9999-12-31'
@@ -47,7 +48,7 @@ function sortedEntries(map,limit=10){return Object.entries(map).sort((a,b)=>b[1]
 function mergeEntryRows(snapshots,key,limit=12){const merged={};for(const snapshot of snapshots){for(const [label,value] of snapshot?.microbiology?.[key]||[]){merged[label]=(merged[label]||0)+(Number(value)||0)}}return sortedEntries(merged,limit)}
 function sumSummary(snapshots){const result={};for(const snapshot of snapshots){for(const [key,value] of Object.entries(snapshot?.summary||{})){const n=Number(value);if(Number.isFinite(n))result[key]=(result[key]||0)+n}}return result}
 function mergeMonthly(snapshots){const merged={};for(const snapshot of snapshots){for(const [month,value] of snapshot?.microbiology?.monthly||[]){merged[month]=(merged[month]||0)+(Number(value)||0)}}return Object.entries(merged).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)}
-function mergeNationalRows(snapshots){const grouped=new Map();for(const snapshot of snapshots){for(const [organism,resistanceClass,department,source,count,lastDate,sampleType] of snapshot?.microbiology?.nationalRows||[]){const key=[organism,resistanceClass,department,source,sampleType].join('|||');const current=grouped.get(key)||{organism,resistanceClass,department,source,sampleType,count:0,lastDate:''};current.count+=Number(count)||0;if(lastDate>current.lastDate)current.lastDate=lastDate;grouped.set(key,current)}}return [...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType])}
+function mergeNationalRows(snapshots){const grouped=new Map();for(const snapshot of snapshots){for(const [organism,resistanceClass,department,source,count,lastDate,sampleType] of snapshot?.microbiology?.nationalRows||[]){const key=[organism,resistanceClass,department,source,sampleType].join('|||');const current=grouped.get(key)||{organism,resistanceClass,department,source,sampleType,count:0,lastDate:''};current.count+=Number(count)||0;if(lastDate>current.lastDate)current.lastDate=lastDate;grouped.set(key,current)}}return [...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType]).filter(keepPerCategory(80))}
 
 async function loadMicrobiologyAnalytics({organizationId='',from='',to='',departmentId=''}){
   // Delegates to analysis_microbiology_findings, the same validated/amended,
@@ -77,7 +78,7 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   const bySite=sortedEntries(countBy(enriched,row=>row.sampleType),12)
   const grouped=new Map()
   for(const row of enriched){const key=[row.organism?.trim()||'—',row.resistance_class||'—',row.department,row.source,row.sampleType].join('|||');const current=grouped.get(key)||{organism:row.organism?.trim()||'—',resistanceClass:row.resistance_class||'—',department:row.department,source:row.source,sampleType:row.sampleType,count:0,lastDate:''};current.count+=1;if(row.eventDate>current.lastDate)current.lastDate=row.eventDate;grouped.set(key,current)}
-  const nationalRows=[...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType])
+  const nationalRows=[...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType]).filter(keepPerCategory(80))
   if(organizationError)throw organizationError
   const names=new Map((organizationRows||[]).map(row=>[row.id,row.name]))
   const orgTotals=countBy(enriched,row=>row.organization_id)
