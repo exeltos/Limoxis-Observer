@@ -4,6 +4,7 @@ import { lifecycleReminderEmail } from '../_shared/lifecycleReminderEmail.ts'
 import { legislationDigestEmail, legislationUpdateEmail } from '../_shared/legislationEmail.ts'
 import { newCandidates, parseFeed, parsePage } from '../_shared/legislationWatch.ts'
 import { supplierCertificateRenewalEmail } from '../_shared/supplierCertificateEmail.ts'
+import { accountAccessAddedEmail, accountBatchSummaryEmail, accountCreatedEmail } from '../_shared/accountCreatedEmail.ts'
 
 // Called by pg_cron (private.platform_dispatch_scheduled_tasks / platform_dispatch_task)
 // with the shared secret from Vault, never by a browser. Tasks:
@@ -14,7 +15,8 @@ import { supplierCertificateRenewalEmail } from '../_shared/supplierCertificateE
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 // Supplier certificate links are also sent here, so an approved request goes out even
 // when no browser drains the outbox (process-notification-outbox claims rows the same way).
-const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal']
+// So are the account e-mails of the bulk creation from the employee roster (N1).
+const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal','account_created','account_access_added','account_batch_summary']
 const DIGEST_ENTITY='00000000-0000-0000-0000-00000000a11e'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin=any
@@ -81,6 +83,9 @@ async function writeDigest(admin:Admin){
 
 function messageFor(type:string,p:Record<string,unknown>,actionUrl:string){
   if(type==='supplier_certificate_renewal')return supplierCertificateRenewalEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),supplierName:String(p.supplierName||''),certificates:Array.isArray(p.certificates)?p.certificates:[],kind:p.kind==='reminder'?'reminder':'send',expiresAt:typeof p.expiresAt==='string'?p.expiresAt:null,firstSentAt:typeof p.firstSentAt==='string'?p.firstSentAt:null,actionUrl})
+  if(type==='account_created')return accountCreatedEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),expiresAt:typeof p.expiresAt==='string'?p.expiresAt:null,kind:p.kind==='resend'?'resend':'send',actionUrl})
+  if(type==='account_access_added')return accountAccessAddedEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),recipientName:String(p.recipientName||''),username:String(p.username||''),roleLabel:String(p.roleLabel||''),departmentName:String(p.departmentName||''),actionUrl})
+  if(type==='account_batch_summary')return accountBatchSummaryEmail({organizationName:String(p.organizationName||''),recipientName:String(p.recipientName||''),createdAt:typeof p.createdAt==='string'?p.createdAt:null,people:Array.isArray(p.people)?p.people:[],actionUrl})
   if(type==='legislation_update')return legislationUpdateEmail(p,actionUrl)
   if(type==='legislation_digest')return legislationDigestEmail(p as Parameters<typeof legislationDigestEmail>[0],actionUrl)
   return lifecycleReminderEmail({kind:String(p.kind||''),audience:String(p.audience||''),days:Number(p.days),name:String(p.name||''),code:String(p.code||''),date:String(p.date||''),recipientName:String(p.recipientName||''),actionUrl,language:p.language==='en'?'en':'el'})
@@ -109,7 +114,8 @@ async function sendOutbox(admin:Admin){
       const p=row.payload||{}
       const message=messageFor(row.notification_type,p,`${appUrl}${p.path||'/'}`)
       await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text,...('replyTo' in message&&message.replyTo?{replyTo:message.replyTo}:{})})
-      await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}).eq('id',row.id)
+      // The account link's raw token is kept only until its e-mail is sent.
+      await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString(),...(row.notification_type==='account_created'?{payload:{...p,path:'/activate'}}:{})}).eq('id',row.id)
       sent++
     }catch(error){
       const attempts=Number(row.attempts||0)+1

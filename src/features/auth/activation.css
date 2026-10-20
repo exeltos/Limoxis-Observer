@@ -1,0 +1,15 @@
+/* Activation page: what the «Ορισμός κωδικού» link is for, and the strength meter. */
+.activation-context{display:grid;gap:6px;padding:12px 14px;border-radius:10px;background:var(--lo-surface-soft,#f8fafb);border:1px solid var(--lo-card-border,#dfe6ec);font-size:13px}
+.activation-context div{display:flex;justify-content:space-between;gap:12px}
+.activation-context span{color:var(--lo-text-secondary,#5f6f7c)}
+.activation-context strong{text-align:right}
+.password-strength{display:grid;gap:6px}
+.password-strength-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.password-strength-bar i{height:5px;border-radius:3px;background:#e3e9ee}
+.password-strength small{font-size:11.5px}
+.password-strength.is-weak .password-strength-bar i.on{background:#c4525b}
+.password-strength.is-weak small{color:var(--lo-status-danger-fg,#a23f46)}
+.password-strength.is-fair .password-strength-bar i.on{background:#d39b2a}
+.password-strength.is-fair small{color:var(--lo-status-warning-fg,#8a641d)}
+.password-strength.is-strong .password-strength-bar i.on{background:#3d9a69}
+.password-strength.is-strong small{color:var(--lo-status-success-fg,#2f6f4d)}

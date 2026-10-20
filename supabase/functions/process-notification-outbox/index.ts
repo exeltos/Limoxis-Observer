@@ -4,6 +4,7 @@ import { committeeMinutesApprovalEmail,committeeMinutesExternalApprovalEmail } f
 import { trainingInvitationEmail } from '../_shared/trainingInvitationEmail.ts'
 import { demoApplicationRequestEmail } from '../_shared/demoApplicationRequestEmail.ts'
 import { supplierCertificateRenewalEmail } from '../_shared/supplierCertificateEmail.ts'
+import { accountAccessAddedEmail,accountBatchSummaryEmail,accountCreatedEmail } from '../_shared/accountCreatedEmail.ts'
 import { serveWithCors } from '../_shared/cors.ts'
 
 const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
@@ -41,7 +42,7 @@ serveWithCors(async(req)=>{
   ])
   if(!profile?.is_platform_owner&&!membership?.id)return reply({ok:false,code:'EMAIL_NOT_AUTHORIZED',error:'Not authorized'},403)
 
-  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','committee_minutes_external_approval','training_invitation','demo_application_request','supplier_certificate_renewal']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
+  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','committee_minutes_external_approval','training_invitation','demo_application_request','supplier_certificate_renewal','account_created','account_access_added','account_batch_summary']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
   if(listError)return reply({ok:false,code:'EMAIL_OUTBOX_LOAD_FAILED',error:'Could not load notifications'},500)
   if(!rows?.length)return reply({ok:true,sent:0,failed:0,pending:0})
 
@@ -68,7 +69,13 @@ serveWithCors(async(req)=>{
     try{
       const payload=row.payload||{}
       const actionUrl=`${appUrl}${payload.path||'/'}`
-      const message=row.notification_type==='committee_minutes_external_approval'
+      const message=row.notification_type==='account_created'
+        ?accountCreatedEmail({organizationName:payload.organizationName||'',organizationEmail:payload.organizationEmail||'',organizationPhone:payload.organizationPhone||'',recipientName:payload.recipientName||'',username:payload.username||'',roleLabel:payload.roleLabel||'',departmentName:payload.departmentName||'',expiresAt:payload.expiresAt||null,kind:payload.kind==='resend'?'resend':'send',actionUrl})
+        :row.notification_type==='account_access_added'
+        ?accountAccessAddedEmail({organizationName:payload.organizationName||'',organizationEmail:payload.organizationEmail||'',organizationPhone:payload.organizationPhone||'',recipientName:payload.recipientName||'',username:payload.username||'',roleLabel:payload.roleLabel||'',departmentName:payload.departmentName||'',actionUrl})
+        :row.notification_type==='account_batch_summary'
+        ?accountBatchSummaryEmail({organizationName:payload.organizationName||'',recipientName:payload.recipientName||'',createdAt:payload.createdAt||null,people:Array.isArray(payload.people)?payload.people:[],actionUrl})
+        :row.notification_type==='committee_minutes_external_approval'
         ?committeeMinutesExternalApprovalEmail({memberName:payload.memberName||'',organizationName:payload.organizationName||'',committeeName:payload.committeeName||'',meetingTitle:payload.meetingTitle||'',scheduledAt:payload.scheduledAt||null,minutesNumber:payload.minutesNumber||'',topics:Array.isArray(payload.topics)?payload.topics:[],expiresAt:payload.expiresAt||null,actionUrl,language:payload.language==='en'?'en':'el'})
         :row.notification_type==='supplier_certificate_renewal'
         ?supplierCertificateRenewalEmail({organizationName:payload.organizationName||'',organizationEmail:payload.organizationEmail||'',organizationPhone:payload.organizationPhone||'',supplierName:payload.supplierName||'',certificates:Array.isArray(payload.certificates)?payload.certificates:[],kind:payload.kind==='reminder'?'reminder':'send',certificateType:payload.certificateType||'',certificateTitle:payload.certificateTitle||'',certificateNumber:payload.certificateNumber||'',certificateExpiresOn:payload.certificateExpiresOn||null,expiresAt:payload.expiresAt||null,firstSentAt:payload.firstSentAt||null,actionUrl})
@@ -78,7 +85,8 @@ serveWithCors(async(req)=>{
         ?trainingInvitationEmail({programTitle:payload.programTitle||'',employeeName:payload.employeeName||'',dueDate:payload.dueDate||null,requiresAssessment:Boolean(payload.requiresAssessment),questionCount:Number(payload.questionCount||0),externalAccess:Boolean(payload.externalAccess),actionUrl,language:payload.language==='en'?'en':'el'})
         :committeeMinutesApprovalEmail({committeeName:payload.committeeName||'',meetingTitle:payload.meetingTitle||'',scheduledAt:payload.scheduledAt||null,actionUrl,language:payload.language==='en'?'en':'el'})
       await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text,...('replyTo' in message&&message.replyTo?{replyTo:message.replyTo}:{})})
-      await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}).eq('id',row.id)
+      // The account link's raw token is kept only until its e-mail is sent.
+      await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString(),...(row.notification_type==='account_created'?{payload:{...payload,path:'/activate'}}:{})}).eq('id',row.id)
       sent++
     }catch(error){
       const attempts=Number(row.attempts||0)+1

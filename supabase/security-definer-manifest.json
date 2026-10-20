@@ -321,6 +321,11 @@
       "authenticated": true,
       "reason": "Gives a new Demo evaluator their own committee membership, minutes approval and document distributions; Platform Owner only, Demo organisations only."
     },
+    "platform_employee_accounts": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "The roster of one hospital with each active employee's account state, for the bulk creation of accounts (N1); Platform Owner only (auth.uid() and current_user_is_platform_owner)."
+    },
     "platform_extend_demo": {
       "category": "rpc",
       "authenticated": true,
