@@ -152,7 +152,7 @@ function CertificateItem({ item, index, total, token, language, disabled, onSubm
       <FormGrid columns={2}>
         <Field label={en ? 'Certificate type *' : 'Τύπος πιστοποιητικού *'}><input value={form.type} maxLength={200} onChange={e => set({ type: e.target.value })} aria-invalid={problems.includes('type') || undefined} /></Field>
         <Field label={en ? 'Certificate number *' : 'Αριθμός πιστοποιητικού *'}><input value={form.number} maxLength={200} onChange={e => set({ number: e.target.value })} aria-invalid={problems.includes('number') || undefined} /></Field>
-        <Field label={en ? 'Issued by' : 'Φορέας έκδοσης'}><input value={form.issuer} maxLength={200} onChange={e => set({ issuer: e.target.value })} /></Field>
+        <div className="supplier-certificate-wide"><Field label={en ? 'Issued by' : 'Φορέας έκδοσης'}><input value={form.issuer} maxLength={200} onChange={e => set({ issuer: e.target.value })} /></Field></div>
         <ManualDateField label={en ? 'Issue date' : 'Ημερομηνία έκδοσης'} optional value={form.issuedOn} onChange={value => set({ issuedOn: value })} />
         <ManualDateField label={en ? 'Expiry date *' : 'Ημερομηνία λήξης *'} value={form.expiresOn} onChange={value => set({ expiresOn: value })} />
       </FormGrid>

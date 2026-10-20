@@ -138,5 +138,10 @@
 .supplier-portal-powered{justify-content:center;font-size:11.5px;letter-spacing:.06em;opacity:.7}
 @media (max-width:640px){.public-flow-page.supplier-portal{padding:12px 10px 24px}.supplier-portal-band{padding:16px;gap:12px;border-radius:14px}.supplier-portal-hospital{font-size:17px}.supplier-portal-logo,.supplier-portal-monogram{width:46px;height:46px;font-size:15px}.supplier-portal-card{padding:18px 16px;border-radius:14px}.supplier-portal-intro h1{font-size:20px}.supplier-certificate-item{padding:16px}.supplier-certificate-facts{grid-template-columns:1fr 1fr}.supplier-certificate-actions .button{width:100%}.supplier-certificate-item.is-done{grid-template-columns:auto minmax(0,1fr)}.supplier-certificate-item.is-done .supplier-certificate-state{grid-column:2;text-align:left}}
 .supplier-certificate-form .lo-field-label{font-size:12.5px;font-weight:700;color:#415368}
-.supplier-certificate-form :is(input:not([type=file]),textarea){min-height:44px;border-radius:10px;font-size:15px}
+/* Text and date fields line up: the app-wide .field input rule (34px, !important) is overridden here only. */
+.supplier-certificate-form .field :is(input:not([type=file]),textarea),.supplier-certificate-form .manual-date-control input:not(.manual-date-native){min-height:44px!important;border-radius:10px!important;font-size:15px!important;box-sizing:border-box}
+.supplier-certificate-form .field input:not([type=file]),.supplier-certificate-form .manual-date-control input:not(.manual-date-native){height:44px!important;padding:0 12px!important}
+.supplier-certificate-form .field textarea{min-height:88px!important;padding:10px 12px!important}
+.supplier-certificate-form :is(.field,.manual-date-field){display:grid;gap:6px;align-content:start}
 .supplier-certificate-form :is(input:not([type=file]),textarea):focus{border-color:#6e9fc4;box-shadow:0 0 0 3px rgba(31,111,169,.12)}
+.supplier-certificate-wide{grid-column:1/-1;min-width:0}
