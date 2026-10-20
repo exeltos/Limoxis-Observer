@@ -14,3 +14,8 @@
 .subject-choice-card strong{font-size:13px}
 .subject-choice-card small{font-size:11px;line-height:1.35;color:var(--lo-color-text-muted)}
 @media(max-width:720px){.subject-choice-cards{grid-template-columns:1fr}}
+.subject-choice-cards.is-compact{gap:8px}
+.subject-choice-cards.is-compact .subject-choice-card{min-height:0;padding:9px 12px;align-items:center}
+.subject-choice-cards.is-compact .subject-choice-card>svg{margin-top:0}
+.subject-choice-step-heading:has(+.is-compact){margin-bottom:10px}
+@media(max-width:720px){.subject-choice-cards.is-compact{grid-template-columns:repeat(3,minmax(0,1fr))}.subject-choice-cards.is-compact .subject-choice-card{flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px}}

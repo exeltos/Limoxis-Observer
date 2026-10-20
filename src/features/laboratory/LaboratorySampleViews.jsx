@@ -16,6 +16,7 @@ export function ResultCard({
   isEnvironmental,
   standard,
   menu,
+  emptyState = null,
 }) {
   const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
   const title = isEnvironmental
@@ -38,7 +39,7 @@ export function ResultCard({
           <span className="smart-lock-chip">🔒 {tx('protocol')}</span>
         </div>
       )}
-      {result ? (
+      {emptyState && !(result?.result || organisms.length) ? emptyState : result ? (
         <RecordDetailsGrid
           className="laboratory-summary-grid lab-result-grid"
           fields={[

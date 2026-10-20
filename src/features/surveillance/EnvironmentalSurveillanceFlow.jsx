@@ -388,19 +388,26 @@ export function EnvironmentalRegistry({
   onOpenSample,
   onResample,
   highlightId = '',
+  scrollRef,
 }) {
+  // Date, department and batch are the secondary columns: on a narrow screen (tablet)
+  // they move under the sample code, so the list never scrolls sideways.
   const columns = [
     { key: 'surveillance', label: t('surveillance') },
-    { key: 'department', label: t('department') },
+    { key: 'department', label: t('department'), className: 'env-col-secondary' },
     { key: 'point', label: t('samplingPoint') },
-    { key: 'date', label: t('samplingDate') },
-    { key: 'batch', label: t('batch') },
+    { key: 'date', label: t('samplingDate'), className: 'env-col-secondary' },
+    { key: 'batch', label: t('batch'), className: 'env-col-secondary' },
     { key: 'result', label: t('result') },
     { key: 'status', label: t('status') },
   ]
+  const departmentName = row => (language === 'el' ? row.department : row.departmentEn)
   return (
     <section className="environmental-registry workspace-fill">
+      <div className="scroll-table" ref={scrollRef}>
       <RegistryTable
+        bare
+        className="environment-table"
         columns={columns}
         rows={rows}
         rowKey={row => row.code || row.id}
@@ -427,11 +434,14 @@ export function EnvironmentalRegistry({
             <td>
               <strong className="environment-code">{row.code || row.id}</strong>
               <small className="environment-type">{sampleTypeLabel(row.type, t)}</small>
+              <small className="env-inline-secondary">
+                {[fmt(row.collectedAt || row.requestedAt), departmentName(row), row.environmentalBatchId].filter(Boolean).join(' · ')}
+              </small>
             </td>
-            <td>{language === 'el' ? row.department : row.departmentEn}</td>
+            <td className="env-col-secondary">{departmentName(row)}</td>
             <td>{[row.location, row.point].filter(Boolean).join(' · ') || '—'}</td>
-            <td>{fmt(row.collectedAt || row.requestedAt)}</td>
-            <td>{row.environmentalBatchId || '—'}</td>
+            <td className="env-col-secondary">{fmt(row.collectedAt || row.requestedAt)}</td>
+            <td className="env-col-secondary">{row.environmentalBatchId || '—'}</td>
             <td>
               {row.result ? (
                 <span className="environment-result-cell">
@@ -456,6 +466,7 @@ export function EnvironmentalRegistry({
           </>
         )}
       />
+      </div>
     </section>
   )
 }

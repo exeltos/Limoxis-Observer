@@ -16,7 +16,8 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
   const stateWord = step => (step.state === 'done' ? L('Ολοκληρώθηκε', 'Completed') : step.state === 'na' ? L('Δεν απαιτείται', 'Not required') : L('Εκκρεμεί', 'Pending'))
   const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
   const cfu = result ? (result.result === 'negative' && result.cfuCount == null ? '0' : result.cfuCount) : ''
-  const resultPairs = result
+  // A result without an outcome yet (an empty draft) prints as «not entered».
+  const resultPairs = result && (result.result || organisms.length)
     ? [
         [t('result'), result.result && t(result.result)],
         [tx('critical'), result.critical ? L('Ναι', 'Yes') : ''],

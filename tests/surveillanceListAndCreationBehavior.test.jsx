@@ -81,8 +81,8 @@ const statusCell = row => row.querySelector('td:last-child')
 const metric = label => screen.getByText(label).closest('.metric-card')
 const openCreation = async subject => {
   fireEvent.click(screen.getByRole('button', { name: /Δημιουργία/ }))
-  const chooser = await screen.findByRole('dialog')
-  fireEvent.click(within(chooser).getByRole('button', { name: subject }))
+  const menu = await screen.findByRole('menu')
+  fireEvent.click(within(menu).getByRole('menuitem', { name: subject }))
 }
 
 beforeEach(() => {
@@ -326,8 +326,8 @@ describe('English labels', () => {
     await openTab(/Employees/)
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Create/ }))
-    const chooser = await screen.findByRole('dialog')
-    fireEvent.click(within(chooser).getByRole('button', { name: /^Patient/ }))
+    const menu = await screen.findByRole('menu')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /^Patient/ }))
     expect(await screen.findByRole('combobox', { name: 'Patient' })).toBeInTheDocument()
   })
 })

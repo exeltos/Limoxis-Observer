@@ -12,6 +12,7 @@ import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { EntityAttachmentsPanel } from '../../design-system/EntityAttachmentsPanel'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDateTime } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -317,6 +318,22 @@ export function LaboratorySampleRecordFunctionalView() {
     },
   ].filter(Boolean)
 
+  // The Result tab of a sample with no outcome yet: an empty state with the one primary action.
+  const resultEmpty = !(result?.result || organisms.length)
+  const resultAction = canManageActive
+    ? received
+      ? { label: tx('enterResult'), icon: Pencil, onClick: openResult }
+      : { label: tx('process'), icon: PlayCircle, onClick: startProcessing }
+    : null
+  const resultEmptyState = (
+    <RegistryEmptyState
+      icon={Microscope}
+      title={tx('noResult')}
+      text={received ? (canManageActive ? tx('noResultHint') : '') : tx('noResultNotReceived')}
+      action={resultAction}
+    />
+  )
+
   // One tab of the sample: on screen the active one; when the record is printed
   // (EntityRecordShell renderTab) every tab, one after the other.
   const renderTab = tabId => (
@@ -343,11 +360,14 @@ export function LaboratorySampleRecordFunctionalView() {
             organisms={organisms}
             isEnvironmental={isEnvironmental}
             standard={standard}
+            emptyState={resultEmptyState}
             menu={
               <OverflowMenu
                 items={[
+                  // With no result yet «Καταχώριση αποτελέσματος» is the button of the empty state: not repeated here.
                   canManageActive &&
-                    received && {
+                    received &&
+                    !resultEmpty && {
                       id: 'result',
                       label: result ? tx('editResult') : tx('enterResult'),
                       icon: Pencil,

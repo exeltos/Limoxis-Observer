@@ -33,6 +33,7 @@ const DocumentsSectionPage = lazyNamed(() => import('../features/sections/Sectio
 const MeetingsSectionPage = lazyNamed(() => import('../features/sections/SectionPages'), 'MeetingsSectionPage')
 const PatientClinicalRecordRoute = lazyNamed(() => import('../features/surveillance/PatientClinicalRecordRoute'), 'PatientClinicalRecordRoute')
 const LaboratoryPage = lazyNamed(() => import('../features/laboratory/LaboratoryPage'), 'LaboratoryPage')
+const EmployeeSurveillanceRecordPage = lazyNamed(() => import('../features/surveillance/EmployeeSurveillanceRecordPage'), 'EmployeeSurveillanceRecordPage')
 const LaboratorySampleRecordPage = lazyNamed(() => import('../features/laboratory/LaboratorySampleRecordPage'), 'LaboratorySampleRecordPage')
 const PreventionPage = lazyNamed(() => import('../features/prevention/PreventionPage'), 'PreventionPage')
 const PreventionRecordPage = lazyNamed(() => import('../features/prevention/PreventionRecordPage'), 'PreventionRecordPage')
@@ -108,7 +109,7 @@ const AccessDeniedPage = lazyNamed(() => import('../features/auth/AccessDeniedPa
 registerRoutePreload('/', DashboardPage)
 registerRoutePreload('/executive', ExecutiveDashboardPage)
 registerRoutePreload('/my-department', MyDepartmentPage)
-registerRoutePreload('/surveillance', SurveillanceSectionPage, SurveillancePage, PatientClinicalRecordRoute)
+registerRoutePreload('/surveillance', SurveillanceSectionPage, SurveillancePage, PatientClinicalRecordRoute, EmployeeSurveillanceRecordPage)
 registerRoutePreload('/patients', PatientsPage, PatientClinicalRecordRoute)
 registerRoutePreload('/laboratory', LaboratoryPage, LaboratorySampleRecordPage)
 registerRoutePreload('/prevention', PreventionPage, PreventionRecordPage)
@@ -142,7 +143,7 @@ export function App(){return <><GlobalTextareaExpander/><PlatformMaintenanceBann
   <Route path="platform" element={gate(CAPABILITIES.VIEW_PLATFORM,<PlatformCenterPage/>)}/><Route path="platform/health" element={gate(CAPABILITIES.VIEW_PLATFORM,<PlatformHealthPage/>)}/><Route path="platform/legislation" element={gate(CAPABILITIES.VIEW_PLATFORM,<LegislationPage/>)}/><Route path="platform/legislation/library/:textId" element={gate(CAPABILITIES.VIEW_PLATFORM,<LegislationEditorPage/>)}/><Route path="platform/audit" element={gate(CAPABILITIES.VIEW_PLATFORM,<PlatformAuditSecurityPage/>)}/><Route path="platform/settings" element={gate(CAPABILITIES.VIEW_PLATFORM,<PlatformSettingsPage/>)}/>
   <Route path="about" element={<AboutPage/>}/><Route path="analysis" element={gate(CAPABILITIES.VIEW_ANALYSIS,<AnalysisPage/>)}/><Route path="executive" element={gate(CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD,<ExecutiveDashboardPage/>)}/><Route path="account" element={<AccountPage/>}/><Route path="access-denied" element={<AccessDeniedPage/>}/><Route index element={<HomeRoute/>}/>
   <Route path="my-department" element={gate(CAPABILITIES.VIEW_MY_DEPARTMENT,<MyDepartmentPage/>)}/><Route path="my-profile" element={gate(CAPABILITIES.VIEW_MY_PROFILE,<EmployeeRecordPage selfMode/>)}/>
-  <Route path="surveillance" element={gateAny(sectionCapabilities('surveillance'),<SurveillanceSectionPage/>)}/><Route path="surveillance/environment/:sampleId" element={gateAny([CAPABILITIES.VIEW_SURVEILLANCE,CAPABILITIES.VIEW_LAB],<LaboratorySampleRecordPage/>)}/><Route path="surveillance/:caseId" element={gateAny([CAPABILITIES.VIEW_SURVEILLANCE,CAPABILITIES.VIEW_LAB],<PatientClinicalRecordRoute/>)}/>
+  <Route path="surveillance" element={gateAny(sectionCapabilities('surveillance'),<SurveillanceSectionPage/>)}/><Route path="surveillance/staff/:recordId" element={gateAny([CAPABILITIES.VIEW_SURVEILLANCE,CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH],<EmployeeSurveillanceRecordPage/>)}/><Route path="surveillance/environment/:sampleId" element={gateAny([CAPABILITIES.VIEW_SURVEILLANCE,CAPABILITIES.VIEW_LAB],<LaboratorySampleRecordPage/>)}/><Route path="surveillance/:caseId" element={gateAny([CAPABILITIES.VIEW_SURVEILLANCE,CAPABILITIES.VIEW_LAB],<PatientClinicalRecordRoute/>)}/>
   <Route path="laboratory" element={gate(CAPABILITIES.VIEW_LAB,<LaboratoryPage/>)}/><Route path="laboratory/:sampleId" element={gate(CAPABILITIES.VIEW_LAB,<LaboratorySampleRecordPage/>)}/>
   <Route path="prevention" element={gate(CAPABILITIES.VIEW_PREVENTION,<PreventionPage/>)}/><Route path="prevention/:recordType/:recordId" element={gate(CAPABILITIES.VIEW_PREVENTION,<PreventionRecordPage/>)}/>
   <Route path="controls" element={gate(CAPABILITIES.VIEW_CONTROLS,<ControlsPage/>)}/><Route path="controls/new" element={gate(CAPABILITIES.VIEW_CONTROLS,<ControlCreatePage/>)}/><Route path="controls/:controlId" element={gate(CAPABILITIES.VIEW_CONTROLS,<ControlRecordPage/>)}/>

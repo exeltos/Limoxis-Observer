@@ -27,6 +27,9 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   },[align,width])
 
   useLayoutEffect(()=>{if(open)updatePosition()},[open,updatePosition])
+  // The first item takes the focus when the menu opens, so the keyboard continues inside it.
+  const positioned=Boolean(position)
+  useEffect(()=>{if(open&&positioned)popoverRef.current?.querySelector('button:not([disabled])')?.focus()},[open,positioned])
 
   useEffect(()=>{
     if(!open)return
@@ -34,7 +37,17 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
       if(rootRef.current?.contains(event.target)||popoverRef.current?.contains(event.target))return
       setOpen(false)
     }
-    function onKey(event){if(event.key==='Escape')setOpen(false)}
+    function onKey(event){
+      if(event.key==='Escape'){setOpen(false);triggerRef.current?.querySelector('button')?.focus();return}
+      // Arrow keys, Home and End move through the items (the menu sits at the end of the page, so Tab would not reach it).
+      if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key)||!popoverRef.current)return
+      const buttons=[...popoverRef.current.querySelectorAll('button:not([disabled])')]
+      if(!buttons.length)return
+      event.preventDefault()
+      const at=buttons.indexOf(document.activeElement)
+      const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:event.key==='ArrowDown'?(at+1)%buttons.length:(at<=0?buttons.length-1:at-1)
+      buttons[next].focus()
+    }
     function onViewport(){updatePosition()}
     document.addEventListener('mousedown',onPointer)
     document.addEventListener('keydown',onKey)

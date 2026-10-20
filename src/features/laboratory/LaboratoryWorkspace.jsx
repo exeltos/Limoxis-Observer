@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Clock3, FlaskConical, Microscope, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
+import { AlertTriangle, Clock3, FlaskConical, Microscope, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
-import { SaveButton } from '../../design-system/SaveButton'
+import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { UI_ACTIONS } from '../../core/actions/actionPolicy'
+import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES } from '../../core/permissions/roles'
@@ -29,25 +29,27 @@ import { Field } from '../../design-system/Field'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
 import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
-import { LaboratoryStatus } from './LaboratoryStatus'
+import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labStatusLabel } from './LaboratoryStatus'
+import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import './LaboratoryWorkspace.css'
 
 export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
-  const { canAccessRecord, tenant, isDemo } = useTenant()
+  const { canAccessRecord, tenant, isDemo, role, actualRole, membership } = useTenant()
   const { rows: repositoryRows, loading: samplesLoading, error: samplesError, createSample: createRepositorySample } = useLaboratoryRegistry()
   // Until the first read ends the figures show placeholders, not 0.
   const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
   const registry = useRegistryMemory('laboratory')
-  const saved = registry.loadViewState({ query: '', status: 'all', result: 'all', department: 'all' })
+  const saved = registry.loadViewState({ query: '', status: 'all', result: 'all', department: 'all', period: 'all' })
   const [query, setQuery] = useState(saved.query)
   const [status, setStatus] = useState(saved.status)
   const [result, setResult] = useState(saved.result)
   const [department, setDepartment] = useState(saved.department)
+  const [period, setPeriod] = useState(saved.period || 'all')
   const [newOpen, setNewOpen] = useState(false)
   const [patients, setPatients] = useState([])
   const [page, setPage] = useState(1)
@@ -84,11 +86,20 @@ export function LaboratoryWorkspace() {
     .filter(sample => `${sample.id} ${sample.patient} ${sample.patientEn} ${sample.patientId} ${sample.organism ?? ''} ${sample.surveillanceCase ?? ''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(sample => status === 'all' || sample.status === status)
     .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
-    .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department),
-  [query, status, result, department, language, repositoryRows, canAccessRecord])
+    .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
+    .filter(sample => inPeriod(sample.collectedAt || sample.requestedAt, period)),
+  [query, status, result, department, period, language, repositoryRows, canAccessRecord])
 
-  const filtered = Boolean(query.trim()) || status !== 'all' || result !== 'all' || department !== 'all'
-  useEffect(() => setPage(1), [query, status, result, department, pageSize])
+  const clearFilters = () => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all'); setPeriod('all') }
+  const canCreate = canPerform({ role: role || actualRole, addOns: membership?.capabilities ?? [], customCapabilities: membership?.customCapabilities ?? [], action: UI_ACTIONS.CREATE, resourceCapability: CAPABILITIES.MANAGE_LAB_SAMPLES })
+  const registerLabel = language === 'el' ? 'Καταχώρηση δείγματος' : 'Register sample'
+  // Empty lists say why: nothing registered yet, or nothing matches the search or filters.
+  const recorded = repositoryRows.filter(sample => canAccessRecord(sample))
+  const empty = samplesLoading ? { title: language === 'el' ? 'Φόρτωση δειγμάτων…' : 'Loading samples…' }
+    : samplesError ? { title: language === 'el' ? 'Τα δείγματα δεν φορτώθηκαν' : 'Samples could not be loaded', text: language === 'el' ? 'Ανανεώστε τη σελίδα ή δοκιμάστε ξανά σε λίγο.' : 'Refresh the page or try again shortly.' }
+    : recorded.length ? { title: t('svEmptyFiltered'), text: t('svEmptyFilteredHint'), filtered: true, onClear: clearFilters }
+    : { title: language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples', text: canCreate ? (language === 'el' ? 'Καταχωρίστε το πρώτο δείγμα για να ξεκινήσει η εργαστηριακή ροή.' : 'Register the first sample to start the laboratory flow.') : '', icon: FlaskConical, action: canCreate ? { label: registerLabel, icon: Plus, onClick: () => setNewOpen(true) } : null }
+  useEffect(() => setPage(1), [query, status, result, department, period, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -121,29 +132,32 @@ export function LaboratoryWorkspace() {
   }
 
   function openSample(sample) {
-    registry.saveViewState({ query, status, result, department })
+    registry.saveViewState({ query, status, result, department, period })
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
   }
 
-  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
+  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
     <div className="module-summary-strip lab-summary"><LabKpi loading={kpisLoading} icon={FlaskConical} label={language === 'el' ? 'Δείγματα σήμερα' : 'Samples today'} value={k.today}/><LabKpi loading={kpisLoading} icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi loading={kpisLoading} icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive} filter="positive" current={result} onFilter={setResult}/><LabKpi loading={kpisLoading} icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical > 0} filter="critical" current={result} onFilter={setResult}/></div>
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all') }}>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="requested">{t('requested')}</option><option value="received">{t('received')}</option><option value="processing">{t('processing')}</option><option value="completed">{t('completed')}</option><option value="rejected">{t('rejected')}</option><option value="cancelled">{t('cancelled')}</option></FilterSelect>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} onClear={clearFilters} advanced={<>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(item => <option key={item}>{item}</option>)}</FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{LAB_STATUS_ORDER.map(item => <option key={item} value={item}>{labStatusLabel(item, language)}</option>)}</FilterSelect>
         <FilterSelect label={t('result')} value={result} onChange={setResult}><option value="all">{t('all')}</option><option value="positive">{t('positive')}</option><option value="negative">{t('negative')}</option><option value="critical">{t('criticalResult')}</option></FilterSelect>
-      </FilterBar>
-      <RegistryTable wrapperRef={registry.scrollRef} className="lab-table" columns={[
-        {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource')},{key:'result',label:t('result')},{key:'status',label:t('status')}
-      ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => ({...registry.rowProps(sample.id),onClick:() => openSample(sample)})} emptyTitle={samplesLoading ? (language === 'el' ? 'Φόρτωση δειγμάτων…' : 'Loading samples…') : samplesError ? (language === 'el' ? 'Τα δείγματα δεν φορτώθηκαν' : 'Samples could not be loaded') : (language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples')} emptyText={samplesLoading ? '' : samplesError ? (language === 'el' ? 'Ανανεώστε τη σελίδα ή δοκιμάστε ξανά σε λίγο.' : 'Refresh the page or try again shortly.') : filtered ? (language === 'el' ? 'Δεν βρέθηκαν εγγραφές με τα επιλεγμένα φίλτρα.' : 'No records match the selected filters.') : (language === 'el' ? 'Πατήστε «Δημιουργία» για να καταχωρίσετε το πρώτο δείγμα.' : 'Use “Create” to register the first sample.')} renderRow={sample => <>
+        <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days => <option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
+      </>}/>
+      <div className="scroll-table" ref={registry.scrollRef}>
+      <RegistryTable bare className="lab-table" columns={[
+        {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource'),className:'lab-col-secondary'},{key:'result',label:t('result')},{key:'status',label:t('status')}
+      ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => { const rp = registry.rowProps(sample.id, () => openSample(sample)); return { ...rp, className: `${rp.className} clickable-row` } }} emptyTitle={empty.title} emptyText={empty.text} emptyFiltered={Boolean(empty.filtered)} onClearFilters={empty.onClear} emptyIcon={empty.icon} emptyAction={empty.action} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
-        <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}</td>
-        <td>{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{sample.result ? <LaboratoryStatus text={t(sample.result)} kind={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
-        <td><LaboratoryStatus text={t(sample.status)} kind={sample.status}/></td>
+        <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
+        <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
+        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
+        <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status}/></td>
       </>}/>
-      {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
+      </div>
+      {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
     </section>
     {newOpen && <NewSampleCard t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>}
   </Page>
@@ -172,7 +186,6 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   function setEnvType(code) { const item = ENVIRONMENTAL_SAMPLE_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, environmentType: code || '', type: code ? 'environmental' : '', source: item?.el || '', sourceEn: item?.en || '' })) }
   function setEmployeeSource(code) { const item = EMPLOYEE_SCREENING_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, type: code ? 'surveillance' : '', sourceCode: code || '', source: item?.el || '', sourceEn: item?.en || '' })) }
   const subjectReady = subjectType === 'patient' ? Boolean(patientMode) : Boolean(subjectType)
-  const valid = Boolean(subjectType && draft.departmentId && draft.collectedAt && draft.priority) && (subjectType === 'patient' ? Boolean(patientMode && draft.subjectCode && draft.subjectName && draft.type && draft.sourceCode) : subjectType === 'employee' ? Boolean(draft.subjectCode && draft.subjectName && draft.sourceCode) : Boolean(draft.environmentType && draft.subjectName))
   const subjectChoices = [
     ['patient', UserRound, en ? 'Patient' : 'Ασθενής', en ? 'Clinical specimen linked to a patient' : 'Κλινικό δείγμα συνδεδεμένο με ασθενή'],
     ['employee', UsersRound, en ? 'Employee' : 'Εργαζόμενος', en ? 'Occupational screening specimen' : 'Δείγμα επιτήρησης εργαζομένου'],
@@ -192,23 +205,40 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   const recentDepartments = [...new Set([...recentSamples].sort((a, b) => String(b.collectedAt || '').localeCompare(String(a.collectedAt || ''))).map(sample => sample.department).filter(Boolean))].map(name => departments.find(item => item.name === name)?.id).filter(Boolean)
   const pointOptions = useMemo(() => libraryOptions([...(libraries.environmentalLocations || []), ...(libraries.surfacePoints || [])], language), [libraries.environmentalLocations, libraries.surfacePoints, language])
   const selectText = { emptyLabel: en ? 'No match' : 'Καμία αντιστοιχία', clearLabel: t('surveillanceList.clearSelection') }
+  // The shared rule: «*» on every required field, «Συμπληρώστε: …» beside the button, messages on a press.
+  const form = useFormValidation([
+    { key: 'subjectType', label: en ? 'Sample origin' : 'Προέλευση δείγματος', valid: Boolean(subjectType) },
+    subjectType === 'patient' && { key: 'patientMode', label: en ? 'Existing or new patient' : 'Υπάρχων ή νέος ασθενής', valid: Boolean(patientMode) },
+    subjectType === 'patient' && patientMode === 'existing' && { key: 'subjectCode', label: t('patient'), valid: Boolean(draft.subjectCode) },
+    subjectType === 'patient' && patientMode === 'new' && { key: 'subjectName', label: t('patient'), valid: Boolean(draft.subjectName.trim()) },
+    subjectType === 'patient' && patientMode === 'new' && { key: 'subjectCode', label: t('patientId'), valid: Boolean(draft.subjectCode.trim()) },
+    subjectType === 'employee' && { key: 'subjectCode', label: en ? 'Employee' : 'Εργαζόμενος', valid: Boolean(draft.subjectCode) },
+    subjectType === 'environment' && { key: 'environmentType', label: en ? 'Environmental sample type' : 'Τύπος περιβαλλοντικού δείγματος', valid: Boolean(draft.environmentType) },
+    subjectType === 'environment' && { key: 'subjectName', label: en ? 'Sampling point' : 'Σημείο δειγματοληψίας', valid: Boolean(draft.subjectName) },
+    subjectReady && { key: 'departmentId', label: t('department'), valid: Boolean(draft.departmentId) },
+    subjectType === 'patient' && patientMode && { key: 'type', label: t('sampleType'), valid: Boolean(draft.type) },
+    subjectType === 'patient' && patientMode && { key: 'sourceCode', label: t('collectionSource'), valid: Boolean(draft.sourceCode) },
+    subjectType === 'employee' && { key: 'sourceCode', label: en ? 'Screening type' : 'Τύπος ελέγχου', valid: Boolean(draft.sourceCode) },
+    subjectReady && { key: 'priority', label: t('priority'), valid: Boolean(draft.priority) },
+    subjectReady && { key: 'collectedDate', label: t('clinicalRecords.collectionDate'), valid: Boolean(draft.collectedAt) },
+  ])
 
-  return <ObserverDialog width="standard" fixedHeight className="lab-create-flow" eyebrow={en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} onClose={onClose} footer={<SaveButton disabled={!valid} onClick={() => onSave(draft)}>{t('save')}</SaveButton>}>
-    <div className="lab-flow-body">
-      <section className="lab-flow-section"><SubjectChoiceStep step={1} title={en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'} hint={en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'} choices={subjectChoices} value={subjectType} onChoose={switchSubject}/></section>
+  return <ObserverDialog width="standard" className="lab-create-flow" eyebrow={en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} onClose={onClose} footer={<FormSubmit form={form} onSubmit={() => onSave(draft)}>{t('save')}</FormSubmit>}>
+    <div className="lab-flow-body" ref={form.scopeRef}>
+      <section className="lab-flow-section" data-field-key="subjectType"><SubjectChoiceStep compact step={1} title={en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'} hint={en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'} choices={subjectChoices} value={subjectType} onChoose={switchSubject}/>{form.errorFor('subjectType') && <span className="field-error">{form.errorFor('subjectType')}</span>}</section>
 
-      {subjectType === 'patient' && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>2</span><div><strong>{en ? 'Patient' : 'Ασθενής'}</strong><small>{en ? 'Choose an existing patient or register a new one.' : 'Επιλέξτε υπάρχοντα ασθενή ή καταχωρήστε νέο.'}</small></div></div><ModeSwitch ariaLabel={en ? 'Patient' : 'Ασθενής'} value={patientMode} onChange={choosePatientMode} options={[{ value: 'existing', label: t('existingPatient'), icon: UserRound }, { value: 'new', label: t('laboratoryRecords.newPatientInline'), icon: UserPlus }]}/></section>}
+      {subjectType === 'patient' && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>2</span><div><strong>{en ? 'Patient' : 'Ασθενής'}</strong><small>{en ? 'Choose an existing patient or register a new one.' : 'Επιλέξτε υπάρχοντα ασθενή ή καταχωρήστε νέο.'}</small></div></div><div data-field-key="patientMode"><ModeSwitch ariaLabel={en ? 'Patient' : 'Ασθενής'} value={patientMode} onChange={choosePatientMode} options={[{ value: 'existing', label: t('existingPatient'), icon: UserRound }, { value: 'new', label: t('laboratoryRecords.newPatientInline'), icon: UserPlus }]}/>{form.errorFor('patientMode') && <span className="field-error">{form.errorFor('patientMode')}</span>}</div></section>}
 
       {subjectReady && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>{subjectType === 'patient' ? '3' : '2'}</span><div><strong>{en ? 'Sample details' : 'Στοιχεία δείγματος'}</strong><small>{en ? 'Complete the required information.' : 'Συμπληρώστε τα απαραίτητα στοιχεία.'}</small></div></div><div className="entry-grid lab-flow-grid">
-        {subjectType === 'patient' && patientMode === 'existing' && <div className="lab-flow-full"><SearchableSelect label={t('patient')} value={draft.subjectCode} onChange={choosePatient} options={patientOptions} placeholder={t('surveillanceList.patientSearchPlaceholder')} emptyLabel={t('surveillanceList.noPatientsFound')} clearLabel={t('surveillanceList.clearSelection')}/></div>}
-        {subjectType === 'patient' && patientMode === 'new' && <><Field label={t('patient')}><input value={draft.subjectName} onChange={event => { set('subjectName', event.target.value); set('subjectNameEn', event.target.value) }}/></Field><Field label={t('patientId')}><input value={draft.subjectCode} onChange={event => set('subjectCode', event.target.value)}/></Field></>}
-        {subjectType === 'employee' && <div className="lab-flow-full"><SearchableSelect label={en ? 'Employee' : 'Εργαζόμενος'} value={draft.subjectCode} onChange={chooseEmployee} options={employeeOptions} placeholder={en ? 'Search by name or code…' : 'Αναζήτηση με όνομα ή κωδικό…'} emptyLabel={en ? 'No employees found' : 'Δεν βρέθηκαν εργαζόμενοι'} clearLabel={t('surveillanceList.clearSelection')}/></div>}
-        {subjectType === 'environment' && <><SearchableSelect label={en ? 'Environmental sample type' : 'Τύπος περιβαλλοντικού δείγματος'} value={draft.environmentType} onChange={setEnvType} options={referenceOptions(ENVIRONMENTAL_SAMPLE_TYPES, language)} placeholder={en ? 'Select type' : 'Επιλέξτε τύπο'} {...selectText}/><SearchableSelect label={draft.environmentType === 'water' ? (en ? 'Sampling point' : 'Σημείο υδροληψίας') : (en ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας')} value={draft.subjectName} onChange={value => setDraft(current => ({ ...current, subjectName: value || '', subjectNameEn: value || '' }))} options={pointOptions} allowCustom customLabel={text => en ? `Use «${text}»` : `Χρήση «${text}»`} placeholder={en ? 'Search or type a point' : 'Αναζήτηση ή νέο σημείο'} {...selectText}/></>}
-        <SearchableSelect label={t('department')} value={draft.departmentId} onChange={setDepartment} options={departmentChoices} recentValues={recentDepartments} recentLabel={en ? 'Recent samples' : 'Πρόσφατα δείγματα'} placeholder={en ? 'Select department' : 'Επιλέξτε τμήμα'} {...selectText}/>
-        {subjectType === 'patient' && <><SearchableSelect label={t('sampleType')} value={draft.type ? typeChoice : ''} onChange={setType} options={typeOptions} placeholder={en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'} {...selectText}/><SearchableSelect label={t('collectionSource')} value={draft.sourceCode} disabled={!draft.type} onChange={setSource} options={patientSampleSources(draft.type).map(code => ({ value: code, label: t(sampleSourceCatalog[code]?.label || code) }))} placeholder={en ? 'Select source' : 'Επιλέξτε πηγή'} {...selectText}/><Field label={t('anatomicalSite')}><input value={draft.anatomicalSite} onChange={event => set('anatomicalSite', event.target.value)}/></Field></>}
-        {subjectType === 'employee' && <SearchableSelect label={en ? 'Screening type' : 'Τύπος ελέγχου'} value={draft.sourceCode} onChange={setEmployeeSource} options={referenceOptions(EMPLOYEE_SCREENING_TYPES, language)} placeholder={en ? 'Select screening type' : 'Επιλέξτε τύπο ελέγχου'} {...selectText}/>}
-        <ChoiceField className="lab-flow-priority" label={t('priority')} value={draft.priority} onChange={value => set('priority', value)} options={LAB_PRIORITIES.map(id => ({ value: id, label: t(id) }))}/>
-        <div className="lab-collected-pair"><ManualDateField label={t('clinicalRecords.collectionDate')} value={collectedDate} onChange={value => setCollected(value, collectedTime)}/><TimeField label={t('copy.clinicalRecordCopy.collectionTime')} value={collectedTime} onChange={value => setCollected(collectedDate, value)} disabled={!collectedDate}/></div>
+        {subjectType === 'patient' && patientMode === 'existing' && <div className="lab-flow-full"><SearchableSelect label={t('patient')} {...form.field('subjectCode')} value={draft.subjectCode} onChange={choosePatient} options={patientOptions} placeholder={t('surveillanceList.patientSearchPlaceholder')} emptyLabel={t('surveillanceList.noPatientsFound')} clearLabel={t('surveillanceList.clearSelection')}/></div>}
+        {subjectType === 'patient' && patientMode === 'new' && <><Field label={t('patient')} {...form.field('subjectName')}><input value={draft.subjectName} onChange={event => { set('subjectName', event.target.value); set('subjectNameEn', event.target.value) }}/></Field><Field label={t('patientId')} {...form.field('subjectCode')}><input value={draft.subjectCode} onChange={event => set('subjectCode', event.target.value)}/></Field></>}
+        {subjectType === 'employee' && <div className="lab-flow-full"><SearchableSelect label={en ? 'Employee' : 'Εργαζόμενος'} {...form.field('subjectCode')} value={draft.subjectCode} onChange={chooseEmployee} options={employeeOptions} placeholder={en ? 'Search by name or code…' : 'Αναζήτηση με όνομα ή κωδικό…'} emptyLabel={en ? 'No employees found' : 'Δεν βρέθηκαν εργαζόμενοι'} clearLabel={t('surveillanceList.clearSelection')}/></div>}
+        {subjectType === 'environment' && <><SearchableSelect label={en ? 'Environmental sample type' : 'Τύπος περιβαλλοντικού δείγματος'} {...form.field('environmentType')} value={draft.environmentType} onChange={setEnvType} options={referenceOptions(ENVIRONMENTAL_SAMPLE_TYPES, language)} placeholder={en ? 'Select type' : 'Επιλέξτε τύπο'} {...selectText}/><SearchableSelect label={draft.environmentType === 'water' ? (en ? 'Sampling point' : 'Σημείο υδροληψίας') : (en ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας')} {...form.field('subjectName')} value={draft.subjectName} onChange={value => setDraft(current => ({ ...current, subjectName: value || '', subjectNameEn: value || '' }))} options={pointOptions} allowCustom customLabel={text => en ? `Use «${text}»` : `Χρήση «${text}»`} placeholder={en ? 'Search or type a point' : 'Αναζήτηση ή νέο σημείο'} {...selectText}/></>}
+        <SearchableSelect label={t('department')} {...form.field('departmentId')} value={draft.departmentId} onChange={setDepartment} options={departmentChoices} recentValues={recentDepartments} recentLabel={en ? 'Recent samples' : 'Πρόσφατα δείγματα'} placeholder={en ? 'Select department' : 'Επιλέξτε τμήμα'} {...selectText}/>
+        {subjectType === 'patient' && <><SearchableSelect label={t('sampleType')} {...form.field('type')} value={draft.type ? typeChoice : ''} onChange={setType} options={typeOptions} placeholder={en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'} {...selectText}/><SearchableSelect label={t('collectionSource')} {...form.field('sourceCode')} value={draft.sourceCode} disabled={!draft.type} onChange={setSource} options={patientSampleSources(draft.type).map(code => ({ value: code, label: t(sampleSourceCatalog[code]?.label || code) }))} placeholder={en ? 'Select source' : 'Επιλέξτε πηγή'} {...selectText}/><Field label={t('anatomicalSite')}><input value={draft.anatomicalSite} onChange={event => set('anatomicalSite', event.target.value)}/></Field></>}
+        {subjectType === 'employee' && <SearchableSelect label={en ? 'Screening type' : 'Τύπος ελέγχου'} {...form.field('sourceCode')} value={draft.sourceCode} onChange={setEmployeeSource} options={referenceOptions(EMPLOYEE_SCREENING_TYPES, language)} placeholder={en ? 'Select screening type' : 'Επιλέξτε τύπο ελέγχου'} {...selectText}/>}
+        <ChoiceField className="lab-flow-priority" label={t('priority')} {...form.field('priority')} placeholder={en ? 'Select priority' : 'Επιλέξτε προτεραιότητα'} value={draft.priority} onChange={value => set('priority', value)} options={LAB_PRIORITIES.map(id => ({ value: id, label: t(id) }))}/>
+        <div className="lab-collected-pair"><ManualDateField label={t('clinicalRecords.collectionDate')} {...form.field('collectedDate')} value={collectedDate} onChange={value => setCollected(value, collectedTime)}/><TimeField label={t('copy.clinicalRecordCopy.collectionTime')} value={collectedTime} onChange={value => setCollected(collectedDate, value)} disabled={!collectedDate}/></div>
       </div></section>}
     </div>
   </ObserverDialog>

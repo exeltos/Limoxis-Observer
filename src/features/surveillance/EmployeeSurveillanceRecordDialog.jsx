@@ -22,8 +22,8 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { EMPLOYEE_SCREENING_TYPES, priorityOptions } from './surveillanceOptions'
 import './employeeLabRequest.css'
 
-const isPositive = row => ['positive', 'positive_recheck'].includes(row.resultStatus)
-const hasFollowup = row =>
+export const isPositive = row => ['positive', 'positive_recheck'].includes(row.resultStatus)
+export const hasFollowup = row =>
   Boolean(
     row.intervention ||
     row.interventionType ||
@@ -32,12 +32,12 @@ const hasFollowup = row =>
     row.noRecheck ||
     row.recheckDate,
   )
-const hasPositiveHistory = samples =>
+export const hasPositiveHistory = samples =>
   samples.some(
     sample =>
       (sample.finalizedAt || sample.resultStatus === 'validated') && sample.result === 'positive',
   )
-const compactCode = value => {
+export const compactCode = value => {
   const code = String(value || '')
   if (code.startsWith('LAB-EMP-') && code.length > 18) return `LE-${code.slice(-6).toUpperCase()}`
   if (code.startsWith('ESUR-')) {
@@ -48,14 +48,14 @@ const compactCode = value => {
 }
 
 // Requested materials are stored as comma-separated codes (e.g. "nasalSwab, handSwab").
-const REQUEST_MATERIALS = EMPLOYEE_SCREENING_TYPES
-function splitMaterials(value) {
+export const REQUEST_MATERIALS = EMPLOYEE_SCREENING_TYPES
+export function splitMaterials(value) {
   return String(value || '')
     .split(',')
     .map(part => part.trim())
     .filter(Boolean)
 }
-function materialLabels(value, en) {
+export function materialLabels(value, en) {
   return splitMaterials(value)
     .map(code => {
       const item = REQUEST_MATERIALS.find(row => row.id === code)
@@ -63,7 +63,7 @@ function materialLabels(value, en) {
     })
     .join(', ')
 }
-function toggleMaterial(value, code) {
+export function toggleMaterial(value, code) {
   const current = splitMaterials(value)
   return (current.includes(code) ? current.filter(item => item !== code) : [...current, code]).join(
     ', ',

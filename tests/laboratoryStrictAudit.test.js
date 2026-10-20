@@ -13,7 +13,8 @@ describe('Laboratory strict production audit',()=>{
     expect(rejectionMigration).toContain('rejected_at is not null')
     expect(record).toContain("setDialog('reject')")
     expect(record).toContain("'rejected',{rejectionReason:reason}")
-    expect(registry).toContain('<option value="rejected">')
+    expect(registry).toContain('LAB_STATUS_ORDER.map')
+    expect(fs.readFileSync('src/features/laboratory/LaboratoryStatus.jsx','utf8')).toContain('rejected:')
   })
 
   it('does not offer AST mutation after microbiology finalization',()=>{
