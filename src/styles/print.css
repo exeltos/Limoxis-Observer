@@ -19,21 +19,25 @@
   /* Panels that fill the screen and scroll inside it print at their full length. */
   .entity-record-shell :is(.record-tab-panel,.record-tab-panel-body,.scroll-table,.record-section,.workspace-column,.registry-workspace,.lab-record-stack,[class*="-scroll"]):not(#print-root){height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;flex:none!important}
   .entity-record-shell :is(.entity-record-header,.entity-record-body,.record-print-section):not(#print-root){border:0!important;box-shadow:none!important;background:#fff!important;padding-left:0!important;padding-right:0!important}
-  .record-print-header:not(#print-root){display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 14px;margin:0 0 10px;padding:0 0 10px;border-bottom:1.5px solid #17324a;color:#17324a;font-family:Inter,Arial,sans-serif}
+  .record-print-header:not(#print-root){display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 14px;margin:0 0 10px;padding:0 0 10px;border-bottom:0.75pt solid #000;color:#000;font-family:Georgia,'Times New Roman',serif}
   .record-print-header img{max-height:42px;max-width:140px;object-fit:contain}
   .record-print-hospital{display:flex;flex-direction:column;gap:2px;min-width:0}
   .record-print-hospital strong{font-size:13px}
-  .record-print-hospital span,.record-print-date{font-size:10px;color:#4f6477}
-  .record-print-demo{color:#9a3412!important;font-weight:700}
+  .record-print-hospital span,.record-print-date{font-size:10px;color:#000}
+  .record-print-demo{color:#000!important;font-weight:700}
   .record-print-date{grid-column:3;text-align:right}
   /* The record's own header (code, title, subtitle, status and scale chips) stays, without its controls. */
-  .entity-record-shell .entity-record-header:not(#print-root){display:flex!important;padding:0 0 10px!important;margin:0 0 12px!important;border-bottom:1px solid #cbd8e3!important;break-after:avoid}
+  .entity-record-shell .entity-record-header:not(#print-root){display:flex!important;padding:0 0 10px!important;margin:0 0 12px!important;border-bottom:0.5pt solid #777!important;break-after:avoid}
   .entity-record-shell .entity-record-avatar:not(#print-root){display:none!important}
   .record-print-section{break-before:page}
   .record-print-section:first-of-type{break-before:auto}
-  .record-print-section-title{margin:0 0 10px;padding-bottom:5px;border-bottom:1px solid #cbd8e3;font-size:14px;color:#17324a;break-after:avoid}
+  .record-print-section-title{margin:0 0 10px;padding-bottom:5px;border-bottom:0.5pt solid #777;font-size:14px;color:#000;break-after:avoid}
   .entity-record-shell :is(.detail-grid,.detail-item,tr,.sv-sample-node,.lo-section-header){break-inside:avoid-page}
   .entity-record-shell [hidden]:is(.lo-more-section-body){display:block!important}
   .entity-record-shell .summary-detail-note:not(#print-root){white-space:normal!important;overflow:visible!important}
-  .record-print-footer:not(#print-root){display:block!important;margin:14px 0 0;padding-top:6px;border-top:1px solid #cbd8e3;font-size:9px;color:#5d7083}
+  .record-print-footer:not(#print-root){display:block!important;margin:14px 0 0;padding-top:6px;border-top:0.5pt solid #777;font-size:9px;color:#000}
+  /* A printed record reads as a document, not the screen: serif, black on white, no chips, badges or coloured boxes. */
+  .entity-record-shell.record-printing:not(#print-root){font-family:Georgia,'Times New Roman',serif;color:#000}
+  .entity-record-shell.record-printing :not(#print-root,svg,svg *){color:#000!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;border-color:#888!important;font-family:inherit!important}
+  .entity-record-shell.record-printing :is([class*="badge"],[class*="chip"],[class*="pill"],[class*="tag"]):not(#print-root){border:0!important;padding:0!important;border-radius:0!important}
 }

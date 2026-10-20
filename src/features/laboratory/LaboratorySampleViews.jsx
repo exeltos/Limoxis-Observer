@@ -95,9 +95,9 @@ export function ResultCard({
   )
 }
 
-// The sample's history in the shared timeline (same look as the patient record).
-export function LabHistory({ sample, t, tx, fmt }) {
-  const events = [
+// The sample's events, newest first (the History tab and the printed report).
+export function labHistoryEvents(sample, t, tx) {
+  return [
     sample.requestedAt && { at: sample.requestedAt, title: t('requested') },
     sample.collectedAt && { at: sample.collectedAt, title: t('collectedLabel') },
     sample.receivedAt && { at: sample.receivedAt, title: t('received') },
@@ -124,6 +124,10 @@ export function LabHistory({ sample, t, tx, fmt }) {
   ]
     .filter(Boolean)
     .sort((a, b) => new Date(b.at) - new Date(a.at))
+}
+// The sample's history in the shared timeline (same look as the patient record).
+export function LabHistory({ sample, t, tx, fmt }) {
+  const events = labHistoryEvents(sample, t, tx)
   return (
     <HistoryTimeline
       title={t('history')}

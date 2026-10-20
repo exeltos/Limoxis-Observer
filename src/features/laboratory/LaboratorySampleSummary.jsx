@@ -18,6 +18,17 @@ function subjectLabel(subjectType, language) {
 // record cards in Prevention, Quality and Controls.
 export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banners }) {
   const en = language === 'en'
+  const fields = sampleSummaryFields({ sample, t, language, fmt })
+  return <section className="lab-record-card lab-summary-card">
+    <SectionHeader title={en ? 'Sample details' : 'Στοιχεία δείγματος'} actions={menu}/>
+    {banners}
+    <RecordDetailsGrid fields={fields} className="laboratory-summary-grid"/>
+  </section>
+}
+
+// The sample's own identity and logistics as label/value fields (the card and the printed report).
+export function sampleSummaryFields({ sample, t, language, fmt }) {
+  const en = language === 'en'
   const isEnvironmental = sample.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample.type)
   const rawSurveillance = sample.surveillanceCase || sample.employeeSurveillanceId || sample.environmentalBatchId || ''
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(rawSurveillance))
@@ -36,12 +47,7 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
     { id: 'turnaround', label: t('laboratoryRecords.turnaroundTime'), value: formatTurnaround(computeTurnaroundHours(sample), language) },
     { id: 'surveillance', label: t('laboratoryRecords.linkedSurveillance'), value: surveillance, hidden: !surveillance },
   ]
-
-  return <section className="lab-record-card lab-summary-card">
-    <SectionHeader title={en ? 'Sample details' : 'Στοιχεία δείγματος'} actions={menu}/>
-    {banners}
-    <RecordDetailsGrid fields={fields} className="laboratory-summary-grid"/>
-  </section>
+  return fields
 }
 
 // Guided flow: every step of the laboratory lifecycle in order, with the

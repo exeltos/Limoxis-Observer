@@ -13,6 +13,7 @@ import { BackButton } from './BackButton'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
 import { ExportMenu } from './ExportMenu'
+import { RecordReportPrint } from './RecordReportPrint'
 
 // Header actions come in three kinds: edit and delete go to the record's «…»
 // menu; the record's own commands (e.g. «Καταγραφή ελέγχου») and the export
@@ -96,6 +97,10 @@ export function EntityRecordShell({
   // or the browser's own print) puts every tab in sequence, one after the other,
   // instead of only the tab on screen.
   renderTab,
+  // The record's printed report as data (see recordReport.js), or a function returning it
+  // (built only when printing). With it the print is a clinical document instead of the
+  // screen's tabs; without it, the tabs print in the same plain style.
+  printReport,
   children,
   className='',
 }) {
@@ -160,16 +165,20 @@ export function EntityRecordShell({
   utilityActions.sort((a,b)=>(a.type===ExportMenu)-(b.type===ExportMenu))
   const printAllTabs=hasTabs&&typeof renderTab==='function'
   // The record's «Εκτύπωση» prints the whole record (every tab), not the screen as it is.
-  const shownUtilities=utilityActions.map(action=>printAllTabs&&action.type===ExportMenu&&action.props.onPrint?cloneElement(action,{onPrint:printRecord}):action)
+  const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint?cloneElement(action,{onPrint:printRecord}):action)
   const branding=getReportBranding()
   const printedLine=printedAt?[`${en?'Printed by':'Εκτυπώθηκε από'} ${branding?.printedBy||'—'}`,formatDateTime(printedAt,language)].join(' · '):''
   const cssText=value=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
   const printedTabs=printing&&printAllTabs?tabs.filter(tab=>!tab.disabled):null
+  const reportDescription=printing&&printReport?(typeof printReport==='function'?printReport():printReport):null
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
+  if(reportDescription)return <div className={`entity-record-shell record-printing record-report-mode ${className}`.trim()}>
+    <RecordReportPrint report={reportDescription} branding={branding} printedAt={printedAt} printedBy={branding?.printedBy} language={language} fmtDateTime={value=>formatDateTime(value,language)}/>
+  </div>
   return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${actionClass} ${printing?'record-printing':''} ${className}`.trim()}>
     {printing&&<style>{`@media print{@page{margin:14mm 12mm 16mm;@bottom-left{content:${cssText(printedLine)};font:9px Inter,Arial,sans-serif;color:#5d7083}@bottom-right{content:counter(page) " / " counter(pages);font:9px Inter,Arial,sans-serif;color:#5d7083}}}`}</style>}
     <div className="record-print-header" aria-hidden="true">

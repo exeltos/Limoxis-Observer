@@ -34,6 +34,7 @@ import { sampleProgress, workflowStates } from './laboratorySampleProgress'
 import { copy } from './laboratorySampleFormat'
 import { ResultCard, LabHistory } from './LaboratorySampleViews'
 import { ResultDialog, AstDialog, AmrDialog, CommunicationDialog } from './LaboratorySampleDialogs'
+import { buildLaboratorySampleReport } from './laboratorySampleReport'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function LaboratorySampleRecordFunctionalView() {
@@ -558,9 +559,25 @@ export function LaboratorySampleRecordFunctionalView() {
       {tabId === 'history' && <LabHistory sample={sample} t={t} tx={tx} fmt={fmt} />}
     </>
   )
+  // The printed report (EntityRecordShell printReport): a document, not the screen.
+  const printReport = () =>
+    buildLaboratorySampleReport({
+      sample,
+      steps,
+      progress: { result, ast, amr, communications, organisms },
+      isEnvironmental,
+      standard,
+      language,
+      t,
+      tx,
+      fmt,
+      statusWord: rejected ? t('rejected') : finalized ? t('completed') : t(sample.status),
+      documents: { organizationId: tenant?.id, entityType: 'laboratory_sample', entityId: sample.recordId },
+    })
   return (
     <Page fill>
       <EntityRecordShell
+        printReport={printReport}
         className="laboratory-record-shell workspace-fill"
         recordNavigation={recordNavigation}
         avatar={<FlaskConical size={20} />}

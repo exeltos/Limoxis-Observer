@@ -52,6 +52,8 @@ import {
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import { statusTone } from './surveillanceOptions'
+import { buildSurveillanceReport } from './surveillanceReport'
+import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import './surveillanceEpisode.css'
 export {
   timelineLabel,
@@ -688,9 +690,37 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       {tabId === 'history' && selectedAdmission && outsideSection}
     </>
   )
+  // The printed report (EntityRecordShell printReport): a document built from what this user can see.
+  const printReport = () =>
+    buildSurveillanceReport({
+      language,
+      t,
+      fmtDate,
+      fmtDateTime,
+      record,
+      patient,
+      admission: selectedAdmission,
+      patientMode,
+      admissionEpisodes,
+      samples: patientMode ? admissionSamples : recordSamples,
+      scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
+      admissionTimeline,
+      outsideTimeline,
+      libraries: clinicalLibraries,
+      documents: documentsScope
+        ? isDemo
+          ? { value: demoDocuments[documentsScope.key] || [] }
+          : { organizationId: tenant?.id, entityType: documentsScope.entityType, entityId: documentsScope.entityId }
+        : null,
+      department,
+      status: shellStatus,
+      sampleLabel: sample => sample.typeLabel || sampleTypeLabel(sample.type, t),
+      can: { surveillance: canSurveillance, lab: canLab },
+    })
   return (
     <Page fill title={name} subtitle={code}>
       <EntityRecordShell
+        printReport={printReport}
         className={`patient-record-shell workspace-fill${activeTab === 'clinicalScales' ? ' record-secondary-tab-active' : ''}`}
         avatar={name
           ?.split(' ')
