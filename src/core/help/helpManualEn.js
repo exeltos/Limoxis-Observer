@@ -75,6 +75,7 @@ export const helpManualEn={
   ['Clinical separation','HR access to administrative staff data does not automatically grant access to occupational-health visits or clinical notes.']
  ],steps:['Search for the employee.','Open the record or create a new one if permitted.','Update only the fields that belong to your role.'],preview:'employees'},
  '/kitchen':{title:'Kitchen (HACCP)',summary:'HACCP food safety: receipts and stock per batch, the production day, critical limits, verification and traceability.',audience:'Kitchen manager, cooks (custom role), Quality Manager, Hospital Admin; the Infection Control Lead reads',chapters:[
+  ['Page layout','The tabs are in four groups, each with its own tabs below: Today (Overview), Production (Menu & plan, Heat treatments, Defrosting, Pureeing), Storage (Receipts, Stock, Materials in use) and Safety (Verification, Recall drills, HACCP plan). Each group reopens on the tab you used last in it.'],
   ['Receipt and stock','Each receipt records the supplier, the time, five checks (temperature, packaging, expiry, vehicle, coding) and the products; each product is a batch in stock. A rejected receipt or product adds no stock.'],
   ['Production day','The day opens from the standard menu of its weekday. In it you record the raw materials taken from stock (FIFO, an expired batch cannot be used), the heat parameters of each dish, pureeing, disinfection and the meal plan.'],
   ['Critical limits','Each measurement is marked within or out of limits automatically with the hospital limits (e.g. chilled receipt at most 5 °C, cooking at least 75 °C, chilling to 10 °C within 2 hours). Out of limits needs a corrective action and can be reported to Quality as a deviation.'],
@@ -92,8 +93,9 @@ export const helpManualEn={
   ['FileMaker','The FileMaker applications (HR Data) were brought over with their languages, previous employers and evaluators; health details were not.']
  ],steps:['Enter the application with the candidate\'s consent, or hand them the tablet with «Application from a tablet».','Schedule the interview with the panel.','Record the evaluation with a score per criterion.','Record the decision and, to hire, create or link the employee.']},
  '/pharmacy':{title:'Pharmacy',summary:'Antimicrobial stewardship, approvals and consumption monitoring.',audience:'Pharmacy, clinical reviewers and Infection Control where authorized',chapters:[
-  ['Restricted antimicrobials','Requests and approvals follow a controlled workflow.'],
-  ['Consumption','DDD and other measures support stewardship monitoring and indicators.'],
+  ['Consumption','The Consumption tab shows the monthly dispensing periods by department and antibiotic, with period (From / To) and department filters and pages; they feed the DDD indicator.'],
+  ['Antibiotic approvals','The Antibiotic approvals tab shows the therapies with a restricted antibiotic from surveillance (pending, approved, rejected). Approving or rejecting needs the antimicrobial therapy permission; otherwise the list is read only.'],
+  ['Indicators','The Indicators tab calculates the pharmacy indicators of Indicators for the period (e.g. DDD per 100 patient-days, WHO AWaRe Access share) and shows their approved results by period.'],
   ['Connection to surveillance','Therapy data are linked to surveillance episodes without duplicate recording.']
  ],steps:['Open the pending request or record.','Review the required information.','Approve or record only when your role has the relevant permission.'],preview:'pharmacy'},
  '/occupational-health':{title:'Occupational Health',summary:'Employee visits, vaccinations and follow-up with strict confidentiality.',audience:'Occupational Physician and explicitly authorized roles',chapters:[

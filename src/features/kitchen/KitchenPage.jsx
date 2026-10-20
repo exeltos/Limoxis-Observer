@@ -12,12 +12,11 @@ import { reportExports } from '../../core/export/reportDocument'
 import { useKitchen, useKitchenAccess } from './KitchenShared'
 import { DefrostPanel, HaccpPanel, OverviewPanel, PlanPanel, PureeingPanel, ReceiptsPanel, SettingsDialog, StockPanel, ThermalPanel, TraceDialog, UsagePanel, VerificationPanel, useSignOff } from './KitchenPanels'
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
-import { addDays, categoryLabel, newReceipt, overview, productionForDay, stockRows, todayKey } from './kitchenModel'
+import { KITCHEN_TAB_GROUPS as GROUPS, addDays, categoryLabel, kitchenTabGroup as groupOf, newReceipt, overview, productionForDay, resolveKitchenTab, stockRows, todayKey } from './kitchenModel'
 import { dailyHaccpDocument, exportKitchenList, receiptsLogDocument } from './kitchenReports'
 import { RecallDialog, RecallPanel } from './KitchenRecall'
 import { drillSubject, recallSummary } from './kitchenRecallModel'
 
-const TABS = ['overview', 'plan', 'receipts', 'stock', 'thermal', 'defrost', 'pureeing', 'usage', 'verification', 'recall', 'haccp']
 const initialFilters = () => ({
   receipts: { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' },
   stock: { query: '', show: 'in', storage: 'all', category: 'all', view: 'stock' },
@@ -37,7 +36,11 @@ export function KitchenPage() {
   const navigate = useNavigate()
   const { notify } = useFeedback()
   const [params, setParams] = useSearchParams()
-  const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'overview'
+  const tab = resolveKitchenTab(params.get('tab'))
+  const group = groupOf(tab)
+  // Each group reopens on the tab last used in it.
+  const [lastInGroup, setLastInGroup] = useState({})
+  useEffect(() => { setLastInGroup(current => (current[group.value] === tab ? current : { ...current, [group.value]: tab })) }, [group.value, tab])
   const setTab = next => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
   const access = useKitchenAccess()
   const { state, loading, reload, organizationId, showSince } = useKitchen()
@@ -96,6 +99,11 @@ export function KitchenPage() {
     { value: 'recall', label: en ? 'Recall drills' : 'Ανάκληση', icon: Siren, count: recallSummary(state, today).overdue ? 1 : 0 },
     { value: 'haccp', label: en ? 'HACCP plan' : 'Σχέδιο HACCP', icon: ClipboardList },
   ]
+  const tabItem = Object.fromEntries(tabs.map(item => [item.value, item]))
+  const groupLabels = { today: en ? 'Today' : 'Σήμερα', production: en ? 'Production' : 'Παραγωγή', storage: en ? 'Storage' : 'Αποθήκη', safety: en ? 'Safety' : 'Ασφάλεια' }
+  const groupIcons = { today: LayoutDashboard, production: ChefHat, storage: Package, safety: ShieldCheck }
+  const groups = GROUPS.map(item => ({ value: item.value, label: groupLabels[item.value], icon: groupIcons[item.value], count: item.tabs.reduce((sum, key) => sum + (tabItem[key].count || 0), 0) }))
+  const openGroup = value => setTab(lastInGroup[value] || GROUPS.find(item => item.value === value).tabs[0])
   const props = { state, access, reload, organizationId, onDialog: setDialog, onOpenDay: openDay, onTrace: setTrace, onRecall: setRecall, stock }
   return <Page fill className="registry-fill-page kitchen-page" title={en ? 'Kitchen' : 'Κουζίνα'} subtitle={en ? 'HACCP food safety: receipts and stock, the production day, critical limits, verification and traceability.' : 'Ασφάλεια τροφίμων HACCP: παραλαβές και απόθεμα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση και ιχνηλασιμότητα.'} actions={actions}>
     <div className="workspace-summary"><div className="module-summary-strip">
@@ -106,7 +114,8 @@ export function KitchenPage() {
       <MetricCard icon={CalendarClock} tone={summary.expiring.length ? 'warning' : 'neutral'} value={summary.expiring.length} label={en ? 'Expire soon / expired' : 'Λήγουν / έληξαν'} onClick={() => { setAllFilters(current => ({ ...current, stock: { ...current.stock, view: 'stock', show: 'attention' } })); setTab('stock') }} />
       <MetricCard icon={ShieldCheck} tone={summary.toVerify ? 'warning' : 'neutral'} value={summary.toVerify} label={en ? 'Days to verify' : 'Ημέρες προς επαλήθευση'} onClick={() => setTab('verification')} />
     </div></div>
-    <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Kitchen' : 'Κουζίνα'} />
+    <CanonicalTabs items={groups} value={group.value} onChange={openGroup} ariaLabel={en ? 'Kitchen' : 'Κουζίνα'} />
+    {group.tabs.length > 1 && <CanonicalTabs className="canonical-subtabs" items={group.tabs.map(key => tabItem[key])} value={tab} onChange={setTab} ariaLabel={groupLabels[group.value]} />}
     <section className={`surface registry-workspace workspace-column workspace-fill kitchen-workspace kitchen-tab-${tab}`}>
       {tab === 'overview' && <OverviewPanel {...props} summary={summary} onTab={setTab} />}
       {tab === 'plan' && <PlanPanel {...props} {...pair(filtersFor('plan'))} />}

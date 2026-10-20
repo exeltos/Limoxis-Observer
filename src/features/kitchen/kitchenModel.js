@@ -295,3 +295,15 @@ export function receiptProblems(receipt, language = 'el', status = null) {
   if (status === 'out' && String(receipt.correctiveAction || '').trim().length < 3 && String(receipt.qualityNotes || '').trim().length < 3) problems.push(en ? 'note or corrective action for the nonconformity' : 'παρατήρηση ή διορθωτική ενέργεια για τη μη συμμόρφωση')
   return problems
 }
+
+// Two levels of tabs: four groups, each with its own tabs. ?tab= keeps naming the inner tab
+// (old links still open the same place); a group name opens that group's first tab.
+export const KITCHEN_TAB_GROUPS = [
+  { value: 'today', tabs: ['overview'] },
+  { value: 'production', tabs: ['plan', 'thermal', 'defrost', 'pureeing'] },
+  { value: 'storage', tabs: ['receipts', 'stock', 'usage'] },
+  { value: 'safety', tabs: ['verification', 'recall', 'haccp'] },
+]
+const KITCHEN_TABS = KITCHEN_TAB_GROUPS.flatMap(group => group.tabs)
+export const kitchenTabGroup = tab => KITCHEN_TAB_GROUPS.find(group => group.tabs.includes(tab)) || KITCHEN_TAB_GROUPS[0]
+export const resolveKitchenTab = value => (KITCHEN_TABS.includes(value) ? value : KITCHEN_TAB_GROUPS.find(group => group.value === value)?.tabs[0] || 'overview')
