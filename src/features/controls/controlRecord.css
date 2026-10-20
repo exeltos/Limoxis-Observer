@@ -12,18 +12,9 @@
 .control-ov-department-table .control-ov-action-col{width:1%;white-space:nowrap;text-align:right}
 /* Title row of the tab; the record's ⋯ menu sits at its right. */
 /* Both columns end on the same line: details stretch, the last guidance box fills the rest. */
-/* Laptop and tablet screens: the details scroll as one page, so the departments
-   table keeps room for its rows instead of shrinking to its header. */
-@media (max-height: 860px), (max-width: 1100px) {
-  .control-record-shell .control-record-view:is(div,#lo-record-sheet#lo-record-sheet) {
-    overflow: auto !important;
-  }
-  .control-record-shell .control-record-departments>.scroll-table:is(div,#lo-record-sheet#lo-record-sheet) {
-    flex: none !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-  }
-  .control-record-shell .control-record-departments:is(section,#lo-record-sheet#lo-record-sheet) {
-    flex: none !important;
-  }
-}
+/* The departments table sits straight on the card: no frame of its own (the shared table wrapper draws one with !important). */
+.control-record-shell .control-record-departments>.scroll-table{border:0!important;border-radius:0!important;background:transparent!important}
+.control-record-shell .control-record-departments .control-ov-department-table{min-width:0}
+/* Long values (instructions, deviation actions) sit under their label, not far to the right of it. */
+.control-record-details .lo-detail-item.is-wide{grid-template-columns:minmax(0,1fr);row-gap:2px}
+.control-record-details{margin-bottom:6px}
