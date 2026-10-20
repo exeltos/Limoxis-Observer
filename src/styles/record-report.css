@@ -1,0 +1,39 @@
+/* The printed record as a clinical report (RecordReportPrint): black on white, serif,
+   thin rules only; no chips, boxes, coloured cells or grid tables. It is built for the
+   print dialog and stays out of sight on screen. */
+.record-report{display:none}
+@media print{
+  .record-report{display:block;margin:0;padding:0;background:#fff;color:#000;font:11pt/1.5 Georgia,"Times New Roman",Times,serif;orphans:3;widows:3}
+  .record-report *{color:#000!important;background:transparent!important;box-shadow:none!important;border-radius:0!important}
+  .record-report p{margin:0 0 4pt}
+  .record-report-letterhead{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4pt 14pt;align-items:start;padding-bottom:8pt;border-bottom:0.75pt solid #000;break-after:avoid}
+  .record-report-letterhead img{max-height:16mm;max-width:40mm;object-fit:contain}
+  .record-report-org{grid-column:2}
+  .record-report-letterhead:not(:has(img)) .record-report-org{grid-column:1/3}
+  .record-report-org-name{font-size:14pt;font-weight:700;margin:0}
+  .record-report-org p{font-size:10pt}
+  .record-report-demo{font-weight:700;font-variant:small-caps}
+  .record-report-meta{margin:0;font-size:9.5pt;text-align:right}
+  .record-report-meta div{display:block}
+  .record-report-meta dt{display:inline;font-variant:small-caps;letter-spacing:.02em}
+  .record-report-meta dd{display:inline;margin:0 0 0 3pt}
+  .record-report-title{margin:16pt 0 2pt;font-size:19pt;line-height:1.2;font-weight:700;break-after:avoid}
+  .record-report-subtitle{margin:0 0 4pt;font-size:11.5pt;font-style:italic}
+  .record-report-status{margin:0 0 6pt;font-weight:700}
+  .record-report h2{margin:16pt 0 6pt;padding-bottom:2pt;border-bottom:0.5pt solid #777;font-size:12.5pt;font-weight:700;font-variant:small-caps;letter-spacing:.03em;break-after:avoid}
+  .record-report-pairs,.record-report-antibiogram{margin:0 0 6pt;padding:0;display:grid;grid-template-columns:minmax(0,34%) minmax(0,1fr);column-gap:14pt;row-gap:2pt}
+  .record-report-pairs>div,.record-report-antibiogram>div{display:contents}
+  .record-report-pairs dt,.record-report-antibiogram dt{margin:0;font-style:italic}
+  .record-report-pairs dd,.record-report-antibiogram dd{margin:0}
+  .record-report-antibiogram{grid-template-columns:minmax(0,45%) minmax(0,1fr)}
+  .record-report-list{margin:0 0 6pt;padding-left:16pt}
+  .record-report-list li{margin:0 0 2pt;break-inside:avoid}
+  .record-report-events{list-style:none;padding-left:0}
+  .record-report-item{margin:0 0 9pt;break-inside:avoid}
+  .record-report-item-title{margin:0 0 2pt;font-size:11.5pt;break-after:avoid}
+  .record-report-item-body{padding-left:14pt}
+  .record-report-empty{font-style:italic}
+  .record-report-summary{break-inside:avoid}
+  .record-report-end{margin-top:22pt;padding-top:6pt;border-top:0.5pt solid #777;font-size:9pt;break-inside:avoid}
+  .record-report-end p{margin:0}
+}

@@ -6,6 +6,7 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { Field } from '../../design-system/Field'
+import { ReadOnlyField } from '../../design-system/ReadOnlyField'
 import { departmentOptions, listTexts, suspectedSourceOptions } from './surveillanceOptions'
 
 export function PatientSelector({
@@ -23,6 +24,7 @@ export function PatientSelector({
   setPatientField,
   setPatientMode,
   setSelectedPatientId,
+  form,
   t,
 }) {
   return (
@@ -43,6 +45,7 @@ export function PatientSelector({
       {patientMode === 'existing' && (
         <SearchableSelect
           label={t('patient')}
+          {...form?.field('patient')}
           value={selectedPatientId}
           onChange={chooseExistingPatient}
           placeholder={t('surveillanceList.patientSearchPlaceholder')}
@@ -61,14 +64,14 @@ export function PatientSelector({
       {patientMode === 'new' && !createdPatient && (
         <div className="entry-grid inline-patient-create">
           {!isDemo && (
-            <Field label={t('patientId')}>
+            <Field label={t('patientId')} {...form?.field('patientCode')}>
               <input
                 value={patientDraft.patientCode}
                 onChange={e => setPatientField('patientCode', e.target.value)}
               />
             </Field>
           )}
-          <Field label={t('firstName')}>
+          <Field label={t('firstName')} {...form?.field('firstName')}>
             <input
               value={language === 'el' ? patientDraft.firstName : patientDraft.firstNameEn}
               onChange={e =>
@@ -76,7 +79,7 @@ export function PatientSelector({
               }
             />
           </Field>
-          <Field label={t('lastName')}>
+          <Field label={t('lastName')} {...form?.field('lastName')}>
             <input
               value={language === 'el' ? patientDraft.lastName : patientDraft.lastNameEn}
               onChange={e =>
@@ -86,6 +89,7 @@ export function PatientSelector({
           </Field>
           <SearchableSelect
             label={t('department')}
+            {...form?.field('patientDepartment')}
             value={patientDraft.departmentId || patientDraft.department}
             options={departmentOptions(departments, language)}
             placeholder={t('select')}
@@ -95,6 +99,7 @@ export function PatientSelector({
           />
           <ManualDateField
             label={t('admissionDate')}
+            {...form?.field('admissionDate')}
             value={patientDraft.admissionDate}
             onChange={v => setPatientField('admissionDate', v)}
           />
@@ -104,11 +109,12 @@ export function PatientSelector({
   )
 }
 
-export function StartStep({ contextDepartment, language, setStart, startDraft, t }) {
+export function StartStep({ contextDepartment, language, setStart, startDraft, form, t }) {
   return (
     <div className="entry-grid surveillance-start-fields">
       <ManualDateField
         label={t('surveillanceStartDate')}
+        {...form?.field('startedAt')}
         value={startDraft.startedAt}
         onChange={v => setStart('startedAt', v)}
       />
@@ -118,22 +124,21 @@ export function StartStep({ contextDepartment, language, setStart, startDraft, t
         value={startDraft.reviewDue}
         onChange={v => setStart('reviewDue', v)}
       />
-      <div className="flow-context-field">
-        <span className="lo-field-label">{t('department')}</span>
-        <strong>{contextDepartment || '—'}</strong>
-        <small>{language === 'el' ? 'Από την ενεργή νοσηλεία' : 'From active admission'}</small>
-      </div>
-      <div className="flow-context-field">
-        <span className="lo-field-label">{t('room')}</span>
-        <strong>
-          {language === 'el' ? 'Δεν έχει καταχωρηθεί στη νοσηλεία' : 'Not recorded on admission'}
-        </strong>
-        <small>
-          {language === 'el'
+      {/* Read-only context, as tall as the inputs beside it; the helper line goes under it. */}
+      <ReadOnlyField
+        label={t('department')}
+        value={contextDepartment}
+        hint={language === 'el' ? 'Από την ενεργή νοσηλεία' : 'From active admission'}
+      />
+      <ReadOnlyField
+        label={t('room')}
+        value={language === 'el' ? 'Δεν έχει καταχωρηθεί στη νοσηλεία' : 'Not recorded on admission'}
+        hint={
+          language === 'el'
             ? 'Η θέση ασθενούς δεν αλλάζει από την επιτήρηση'
-            : 'Patient location is not edited from surveillance'}
-        </small>
-      </div>
+            : 'Patient location is not edited from surveillance'
+        }
+      />
       <SearchableSelect
         label={t('clinicalRecords.suspectedSource')}
         value={startDraft.suspectedSource}
@@ -143,14 +148,13 @@ export function StartStep({ contextDepartment, language, setStart, startDraft, t
         clearLabel={listTexts(language).clearLabel}
         onChange={v => setStart('suspectedSource', v)}
       />
-      <label className="field entry-span-2">
-        <span className="lo-field-label">{t('surveillanceReason')}</span>
+      <Field className="entry-span-2" label={t('surveillanceReason')} {...form?.field('reason')}>
         <textarea
           rows={3}
           value={language === 'el' ? startDraft.reason : startDraft.reasonEn}
           onChange={e => setStart(language === 'el' ? 'reason' : 'reasonEn', e.target.value)}
         />
-      </label>
+      </Field>
     </div>
   )
 }

@@ -299,7 +299,7 @@ export function EmployeeHistoryTab({ employee, language }) {
       ? '—'
       : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', {
           dateStyle: 'medium',
-          timeStyle: 'short',
+          timeStyle: 'short', hourCycle: 'h23',
         }).format(d)
   }
   const eventLabel = action =>

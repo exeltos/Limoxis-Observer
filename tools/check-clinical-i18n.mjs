@@ -27,7 +27,7 @@ const baseline = {
   'src/features/surveillance/ClinicalJourney.jsx': 0,
   'src/features/surveillance/clinicalRecordLabels.js': 1165,
   'src/features/surveillance/ClinicalRecordViews.jsx': 0,
-  'src/features/surveillance/ClinicalRecordDialogs.jsx': 523,
+  'src/features/surveillance/ClinicalRecordDialogs.jsx': 457,
   'src/features/surveillance/SurveillanceCanonicalPage.jsx': 0,
   'src/features/patients/PatientsPage.jsx': 0,
 }

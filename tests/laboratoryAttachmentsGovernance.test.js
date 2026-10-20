@@ -29,7 +29,7 @@ describe('laboratory attachment governance',()=>{
     expect(registry).not.toContain("from './LaboratoryPage'")
     expect(record).toContain("from './LaboratoryStatus'")
     // One status component for the registry and the record, on the shared StatusBadge.
-    expect(registry).toContain("import { LaboratoryStatus } from './LaboratoryStatus'")
+    expect(registry).toContain("LaboratoryStatus, labResultLabel, labStatusLabel } from './LaboratoryStatus'")
     expect(registry).not.toContain('export function Status')
     expect(fs.readFileSync('src/features/laboratory/LaboratoryStatus.jsx','utf8')).toContain('<StatusBadge')
   })

@@ -1,11 +1,21 @@
 import { DueDate } from '../../design-system/DueDate'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, Clock3, Microscope, Plus, Users } from 'lucide-react'
+import {
+  Activity,
+  AlertTriangle,
+  Building2,
+  Clock3,
+  Microscope,
+  Plus,
+  UserRound,
+  Users,
+  UsersRound,
+} from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { useSectionTabs } from '../../design-system/SectionTabs'
-import { RecordActions } from '../../design-system/RecordActions'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
@@ -14,7 +24,7 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
-import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
+import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage, translate } from '../../core/i18n/LanguageContext'
@@ -28,7 +38,6 @@ import {
   getEnvironmentalKpis,
   loadLaboratorySamples,
 } from '../laboratory/laboratoryCloudService'
-import { laboratorySamples as demoLaboratorySamples } from '../laboratory/laboratoryDemoData'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { createClinicalRepository } from './clinicalRepository'
 import { loadClinicalCases } from './clinicalCloudService'
@@ -36,14 +45,12 @@ import { demoSurveillanceList } from './clinicalDemoData'
 import {
   employeeSurveillanceRecords,
   getEmployeeSurveillanceKpis as getDemoEmployeeSurveillanceKpis,
-  updateEmployeeSurveillanceRecord,
 } from './employeeSurveillanceData'
 import {
   getEmployeeSurveillanceKpis as getCloudEmployeeSurveillanceKpis,
   loadEmployeeSurveillanceRecords,
 } from './employeeSurveillanceCloudService'
-import { EmployeeSurveillanceFlow, SurveillanceSubjectChooser } from './EmployeeSurveillanceFlow'
-import { EmployeeSurveillanceRecordDialog } from './EmployeeSurveillanceRecordDialog'
+import { EmployeeSurveillanceFlow } from './EmployeeSurveillanceFlow'
 import {
   EnvironmentalRegistry,
   EnvironmentalSurveillanceFlow,
@@ -51,7 +58,7 @@ import {
   environmentalResampleInitial,
 } from './EnvironmentalSurveillanceFlow'
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
-import { employeeScreeningLabel, statusTone } from './surveillanceOptions'
+import { PERIOD_DAYS, employeeScreeningLabel, inPeriod, statusTone } from './surveillanceOptions'
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
@@ -104,11 +111,11 @@ export function SurveillanceCanonicalPage() {
     [query, setQuery] = useState(restored.query || ''),
     [department, setDepartment] = useState(restored.department || 'all'),
     [status, setStatus] = useState(restored.status || 'all'),
+    [period, setPeriod] = useState(restored.period || 'all'),
     [page, setPage] = useState(restored.page || 1),
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
     [creation, setCreation] = useState(null),
     [resample, setResample] = useState(null)
-  const [openEmployee, setOpenEmployee] = useState(null)
   // N3: episodes with an open protocol carry the "Sepsis" badge in the list.
   const [openRuns, setOpenRuns] = useState([])
   useEffect(() => {
@@ -143,15 +150,6 @@ export function SurveillanceCanonicalPage() {
     isDemo,
     canSeeSensitiveEmployeeHealth,
   })
-  const canManageEmployeeFollowup =
-    isDemo ||
-    can(
-      role,
-      CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
-      membership?.capabilities,
-      membership?.customCapabilities,
-    )
-
   // Loading starts true; a reload (the laboratory list arriving, a save) keeps the
   // rows on screen instead of blinking back to the placeholders.
   const load = useCallback(async () => {
@@ -207,7 +205,7 @@ export function SurveillanceCanonicalPage() {
   }, [creation, tenant?.id, isDemo])
   useEffect(() => {
     setPage(1)
-  }, [mode, query, department, status, pageSize, quick])
+  }, [mode, query, department, status, period, pageSize, quick])
   useEffect(() => {
     setQuick(null)
   }, [mode])
@@ -230,6 +228,7 @@ export function SurveillanceCanonicalPage() {
               department === 'all' ||
               (language === 'el' ? x.department : x.departmentEn) === department,
           )
+          .filter(x => inPeriod(x.startedAt, period))
           .filter(x =>
             status === 'all' ? !HIDDEN_CASE_STATUSES.has(x.status) : x.status === status,
           ),
@@ -246,6 +245,7 @@ export function SurveillanceCanonicalPage() {
             department === 'all' ||
             (language === 'el' ? x.department : x.departmentEn) === department,
         )
+        .filter(x => inPeriod(x.startedAt, period))
         .filter(x => status === 'all' || x.resultStatus === status || x.status === status)
     return environmentRows
       .filter(x =>
@@ -254,6 +254,7 @@ export function SurveillanceCanonicalPage() {
           .includes(q),
       )
       .filter(x => department === 'all' || x.department === department)
+      .filter(x => inPeriod(x.collectedAt || x.requestedAt, period))
       .filter(x => status === 'all' || x.status === status)
   }, [
     mode,
@@ -263,6 +264,7 @@ export function SurveillanceCanonicalPage() {
     query,
     department,
     status,
+    period,
     language,
     canAccessRecord,
     quick,
@@ -301,7 +303,7 @@ export function SurveillanceCanonicalPage() {
     label: x.name,
     labelEn: x.nameEn || x.name,
   }))
-  const saveView = () => ({ mode, page: safePage, pageSize, query, department, status })
+  const saveView = () => ({ mode, page: safePage, pageSize, query, department, status, period })
   const openCase = item =>
     registry.openRecord(
       navigate,
@@ -310,16 +312,14 @@ export function SurveillanceCanonicalPage() {
       rows.map(x => String(x.id)),
       { returnState: { surveillanceView: saveView() } },
     )
-  const openEmployeeSamples =
-    openEmployee && isDemo
-      ? demoLaboratorySamples.filter(sample => sample.employeeSurveillanceCase === openEmployee.id)
-      : []
-  const saveDemoEmployeeFollowup = (record, patch) =>
-    Promise.resolve(
-      updateEmployeeSurveillanceRecord(record.id, {
-        ...patch,
-        updatedAt: new Date().toISOString(),
-      }),
+  // A staff screening opens its record page (/surveillance/staff/:id), like the episodes.
+  const openEmployee = item =>
+    registry.openRecord(
+      navigate,
+      `/surveillance/staff/${item.recordId || item.id}`,
+      String(item.recordId || item.id),
+      rows.map(x => String(x.recordId || x.id)),
+      { returnState: { surveillanceView: saveView() } },
     )
   // Empty lists say why: nothing recorded yet, or nothing matches the search
   // or filters (cancelled episodes, hidden by default, count as records). The
@@ -337,6 +337,39 @@ export function SurveillanceCanonicalPage() {
     action: UI_ACTIONS.CREATE,
     resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
   })
+  // «Create» is a menu of what can be created; each entry opens its form directly.
+  const startCreation = kind => {
+    if (kind === 'employees' || kind === 'employee') {
+      if (canEmployees) setCreation('employee')
+    } else if (kind === 'environmental' || kind === 'environment') {
+      if (!canEnvironment) return
+      setResample(null)
+      setCreation('environmental')
+    } else setCreation('patient')
+  }
+  const createItems = [
+    {
+      id: 'patient',
+      icon: UserRound,
+      label: t('patient'),
+      description: t('clinicalRecords.patientSurveillanceChoiceHelp'),
+      onClick: () => startCreation('patient'),
+    },
+    canEmployees && {
+      id: 'employee',
+      icon: UsersRound,
+      label: t('employee'),
+      description: t('clinicalRecords.employeeSurveillanceChoiceHelp'),
+      onClick: () => startCreation('employee'),
+    },
+    canEnvironment && {
+      id: 'environment',
+      icon: Building2,
+      label: t('environmentalSurveillance'),
+      description: t('clinicalRecords.environmentalSurveillanceChoiceHelp'),
+      onClick: () => startCreation('environment'),
+    },
+  ].filter(Boolean)
   const empty = recorded.length
     ? {
         title: t('svEmptyFiltered'),
@@ -346,6 +379,7 @@ export function SurveillanceCanonicalPage() {
           setQuery('')
           setDepartment('all')
           setStatus('all')
+          setPeriod('all')
         },
       }
     : {
@@ -358,7 +392,7 @@ export function SurveillanceCanonicalPage() {
         ),
         text: canCreate ? t('svEmptyHint') : '',
         icon: { patients: Activity, employees: Users, environmental: Microscope }[mode],
-        action: canCreate ? { label: t('create'), icon: Plus, onClick: () => setCreation('chooser') } : null,
+        action: canCreate ? { label: t('create'), icon: Plus, onClick: () => startCreation(mode) } : null,
       }
   const tabItems = [
     { value: 'patients', label: t('patients'), icon: Activity },
@@ -452,11 +486,23 @@ export function SurveillanceCanonicalPage() {
       title={t('clinicalRecords.surveillanceCenter')}
       subtitle={t('surveillanceSubtitleV051')}
       actions={
-        <RecordActions
-          actions={[UI_ACTIONS.CREATE]}
-          actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.CREATE_SURVEILLANCE }}
-          onAction={() => setCreation('chooser')}
-        />
+        canCreate && (
+          <div className="record-actions">
+            <OverflowMenu
+              label={t('create')}
+              triggerTone="primary"
+              align="end"
+              width={320}
+              trigger={
+                <>
+                  <Plus size={15} aria-hidden="true" />
+                  {t('create')}
+                </>
+              }
+              items={createItems}
+            />
+          </div>
+        )
       }
     >
       <div className="workspace-summary surveillance-summary">
@@ -570,11 +616,14 @@ export function SurveillanceCanonicalPage() {
           query={query}
           onQueryChange={setQuery}
           placeholder={t('search')}
-          activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0)}
+          activeAdvancedCount={
+            (department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)
+          }
           onClear={() => {
             setQuery('')
             setDepartment('all')
             setStatus('all')
+            setPeriod('all')
           }}
           advanced={
             <>
@@ -593,6 +642,14 @@ export function SurveillanceCanonicalPage() {
                 <option value="positive">{t('positive')}</option>
                 <option value="negative">{t('negative')}</option>
                 {mode === 'patients' && <option value="cancelled">{t('cancelled')}</option>}
+              </FilterSelect>
+              <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}>
+                <option value="all">{t('svPeriodAll')}</option>
+                {PERIOD_DAYS.map(days => (
+                  <option key={days} value={String(days)}>
+                    {t(`svPeriod${days}`)}
+                  </option>
+                ))}
               </FilterSelect>
             </>
           }
@@ -618,7 +675,7 @@ export function SurveillanceCanonicalPage() {
             language={language}
             fmt={fmt}
             t={t}
-            onOpen={setOpenEmployee}
+            onOpen={openEmployee}
           />
         ) : (
           <EnvironmentalRegistry
@@ -646,6 +703,7 @@ export function SurveillanceCanonicalPage() {
                 : undefined
             }
             highlightId={registry.highlightId}
+            scrollRef={registry.scrollRef}
           />
         )}
         {filtered.length > 0 && (
@@ -663,18 +721,6 @@ export function SurveillanceCanonicalPage() {
           />
         )}
       </div>
-      {creation === 'chooser' && (
-        <SurveillanceSubjectChooser
-          onClose={() => setCreation(null)}
-          onPatient={() => setCreation('patient')}
-          onEmployee={() => canEmployees && setCreation('employee')}
-          onEnvironmental={() => {
-            if (!canEnvironment) return
-            setResample(null)
-            setCreation('environmental')
-          }}
-        />
-      )}
       {creation === 'patient' && (
         <NewSurveillanceFlow
           patients={patients}
@@ -701,27 +747,6 @@ export function SurveillanceCanonicalPage() {
             setResample(null)
             await load()
             setMode('environmental')
-          }}
-        />
-      )}
-      {openEmployee && (
-        <EmployeeSurveillanceRecordDialog
-          organizationId={tenant?.id}
-          record={openEmployee}
-          samples={openEmployeeSamples}
-          canManage={canManageEmployeeFollowup}
-          t={t}
-          language={language}
-          fmt={fmt}
-          onClose={() => setOpenEmployee(null)}
-          onSaveFollowup={isDemo ? saveDemoEmployeeFollowup : undefined}
-          onUpdated={updated => {
-            setEmployeeRows(current =>
-              current.map(row =>
-                (row.recordId || row.id) === (updated.recordId || updated.id) ? updated : row,
-              ),
-            )
-            setOpenEmployee(updated)
           }}
         />
       )}

@@ -20,3 +20,17 @@
   font-size: 11px !important;
   white-space: nowrap;
 }
+
+/* Environmental list: the second line of the code cell holds date, department and batch
+   on a narrow screen, where those three columns are hidden. */
+.environmental-registry .env-inline-secondary {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .environmental-registry .env-col-secondary {
+    display: none;
+  }
+  .environmental-registry .env-inline-secondary {
+    display: block;
+  }
+}

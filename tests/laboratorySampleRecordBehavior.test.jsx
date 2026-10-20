@@ -139,17 +139,20 @@ describe('laboratory record dialogs', () => {
 
   it('requires an organism before a positive result can be saved', async () => {
     await openSample('LAB-260829-013')
-    fireEvent.click(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
-    fireEvent.click(screen.getAllByRole('menuitem').find(item => /αποτελέσματος/.test(item.textContent)))
+    fireEvent.click(within(body()).getAllByRole('button', { name: 'Επεξεργασία αποτελέσματος' })[0])
     const dialog = await screen.findByRole('dialog')
     expect(dialog.querySelector('select')).toBeNull()
     chooseOption(dialog, /Αποτέλεσμα/, 'Θετικό')
     const save = within(dialog).getAllByRole('button').filter(button => /Αποθήκευση|Επικύρωση/.test(button.textContent)).at(-1)
-    expect(save).toBeDisabled()
+    // Blocked (aria-disabled, still pressable) with a line saying what is missing.
+    expect(save).toHaveAttribute('aria-disabled', 'true')
+    expect(within(dialog).getByText(/Για επικύρωση συμπληρώστε:/).closest('p')).toHaveTextContent('Μικροοργανισμοί')
+    fireEvent.click(save)
+    expect(await within(dialog).findByText(/τουλάχιστον ένας μικροοργανισμός/)).toBeInTheDocument()
     // Organisms come from the Microorganisms library through the shared multi-select.
     fireEvent.click(dialog.querySelector('.lab-dialog-span .multi-select-button'))
     fireEvent.click(dialog.querySelector('.multi-select-panel [role="option"]'))
-    await waitFor(() => expect(save).toBeEnabled())
+    await waitFor(() => expect(save).not.toHaveAttribute('aria-disabled'))
     expect(dialog.querySelector('.lab-organism-chip')).not.toBeNull()
   })
 })

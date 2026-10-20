@@ -23,8 +23,8 @@ const MEETING_ICONS = Object.freeze({ committees: BookOpenCheck, departments: Cl
 // The outbreak investigations (formerly Management Center › LIRA & AI), now a tab of Surveillance.
 function OutbreakInvestigationsScreen() {
   const { t } = useLanguage()
-  return <Page fill title={t('sidebarNav.tabOutbreaks')} subtitle={t('sidebarNav.outbreaksSubtitle')}>
-    <section className="management-section management-scroll-section workspace-fill"><LiraOutbreakInvestigationsPanel /></section>
+  return <Page title={t('sidebarNav.tabOutbreaks')} subtitle={t('sidebarNav.outbreaksSubtitle')}>
+    <LiraOutbreakInvestigationsPanel />
   </Page>
 }
 

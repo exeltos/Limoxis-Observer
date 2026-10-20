@@ -23,3 +23,6 @@ export function ClinicalRiskFlags({rows=[],language='el',compact=false,named=fal
 // Legend for the patient registry: icon + name of each alert kind that appears on the page.
 export function ClinicalRiskLegendItems({kinds=Object.keys(CONFIG),language='el'}){return kinds.filter(k=>CONFIG[k]).map(k=>{const {Icon,labelEl,labelEn}=CONFIG[k];return <span key={k} className="patient-legend-item"><Icon size={12} aria-hidden="true"/>{language==='en'?labelEn:labelEl}</span>})}
 export const clinicalRiskKinds=rows=>clinicalRiskFlags(rows).map(f=>f.kind)
+
+// The registry's plain version: the scale and its score as small outlined text («NEWS2 8»), no colour fill.
+export function ClinicalRiskText({rows=[],language='el'}){const flags=clinicalRiskFlags(rows);if(!flags.length)return null;return <span className="patient-signal-tags" aria-label={language==='en'?'Clinical alerts':'Κλινικές επισημάνσεις'}>{flags.map(({kind,row,config})=>{const label=language==='en'?config.labelEn:config.labelEl;return <span key={kind} className="patient-signal-tag" title={`${label} · ${scaleShortName(row.scale_key)} ${row.score??'—'}`}>{scaleShortName(row.scale_key)} {row.score??'—'}</span>})}</span>}

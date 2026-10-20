@@ -1,0 +1,58 @@
+import './DetailList.css'
+import { useOptionalLanguage } from '../core/i18n/LanguageContext'
+
+// The one look for the field values of a record (instead of a grid of boxed
+// cells): sections with a short heading, each a two-column list of label /
+// value pairs. The label is small and muted above its value, rows are
+// separated by a thin line, nothing is boxed, values wrap (never truncated),
+// a missing value reads «—» in muted text.
+//
+//   <DetailList sections={[
+//     { title: 'Στοιχεία ασθενούς', items: [{ label: 'Επώνυμο', value: 'Ιωαννίδη' }, { label: 'Σημειώσεις', value: '…', wide: true }] },
+//   ]} />
+//
+// `collapseMissing` on a section moves its empty items into one muted line
+// «Δεν έχουν καταχωριστεί: Πατρώνυμο, Φύλο» (with `onEditMissing` as a link).
+export const isBlankValue = value => value == null || value === false || (typeof value === 'string' && !value.trim()) || value === '—'
+
+export function DetailItem({ label, value, wide = false, className = '' }) {
+  const blank = isBlankValue(value)
+  return (
+    <div className={`lo-detail-item${wide ? ' is-wide' : ''}${blank ? ' is-empty' : ''} ${className}`.trim()}>
+      <dt>{label}</dt>
+      <dd>{blank ? '—' : value}</dd>
+    </div>
+  )
+}
+
+export function DetailSection({ title, items = [], collapseMissing = false, onEditMissing, editLabel, className = '' }) {
+  const en = useOptionalLanguage()?.language === 'en'
+  const visible = items.filter(Boolean)
+  const shown = collapseMissing ? visible.filter(item => !isBlankValue(item.value)) : visible
+  const missing = collapseMissing ? visible.filter(item => isBlankValue(item.value)) : []
+  if (!shown.length && !missing.length) return null
+  return (
+    <section className={`lo-detail-section ${className}`.trim()}>
+      {title && <h4 className="lo-detail-heading">{title}</h4>}
+      {shown.length > 0 && (
+        <dl className="lo-detail-list">
+          {shown.map(item => <DetailItem key={item.key || item.label} {...item} />)}
+        </dl>
+      )}
+      {missing.length > 0 && (
+        <p className="lo-detail-missing">
+          <span>{en ? 'Not recorded:' : 'Δεν έχουν καταχωριστεί:'} {missing.map(item => item.label).join(', ')}</span>
+          {onEditMissing && <button type="button" className="lo-detail-missing-link" onClick={onEditMissing}>{editLabel || (en ? 'Edit' : 'Επεξεργασία')}</button>}
+        </p>
+      )}
+    </section>
+  )
+}
+
+export function DetailList({ sections = [], className = '' }) {
+  return (
+    <div className={`lo-detail-sections ${className}`.trim()}>
+      {sections.filter(Boolean).map((section, index) => <DetailSection key={section.key || section.title || index} {...section} />)}
+    </div>
+  )
+}

@@ -152,17 +152,29 @@ html body .surveillance-final-report.final-report-v2{max-width:none!important;wi
 @media print{.final-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-card{break-inside:avoid}}
 /* Patient record summary: the patient & admission sheet in four columns, and
    shorter rows on every summary sheet, so the summary fits without scrolling. */
-html body .clean-patient-summary .patient-detail-grid.patient-detail-grid-wide:is(.detail-grid,#lo-patient-grid){grid-template-columns:repeat(4,minmax(0,1fr))!important}
-html body .clean-patient-summary .patient-detail-grid.patient-detail-grid-wide>.detail-item:nth-child(3n){border-right:1px solid #e9eef2!important}
-html body .clean-patient-summary .patient-detail-grid.patient-detail-grid-wide>.detail-item:nth-child(4n){border-right:0!important}
 html body .clean-patient-summary .patient-detail-grid:is(.detail-grid,#lo-patient-grid)>.detail-item{min-height:0!important;padding-top:7px!important;padding-bottom:7px!important}
-@media(max-width:1100px){html body .clean-patient-summary .patient-detail-grid.patient-detail-grid-wide:is(.detail-grid,#lo-patient-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 /* Tighter spacing between the summary sections (one screen, no scrolling). */
 html body .clean-patient-summary:is(.clean-patient-summary,#lo-patient-summary){gap:8px!important}
 html body .clean-patient-summary>.clinical-panel>.record-section-header:is(.record-section-header,#lo-patient-summary){margin-bottom:6px!important;padding-bottom:6px!important}
 /* Patient notes: one full-width row of the sheet (whole text on hover). */
-html body .clean-patient-summary .patient-detail-grid>.detail-item.patient-detail-notes{grid-column:1/-1!important;border-right:0!important;border-top:1px solid #e9eef2!important}
-html body .clean-patient-summary .patient-detail-notes>strong{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;font-weight:600!important}
 /* A tab's section sits straight on the record body (already a card): no card
    inside the card. */
 html body .patient-record-shell .entity-record-body>.record-section:not(.documents-workspace):is(.record-section,#lo-record-tab){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;margin:0!important}
+/* Surveillance episode summary (reference pattern for record summaries): at
+   1200px and wider the patient sheet and the current surveillance sit side by
+   side instead of two tall cards stacked; secondary rows fold behind «Περισσότερα». */
+@media(min-width:1200px){
+html body .clean-patient-summary.summary-two-column:is(.clean-patient-summary,#lo-patient-summary){grid-template-columns:minmax(240px,1fr) minmax(0,2.6fr)!important;align-items:start!important;column-gap:16px!important}
+html body .clean-patient-summary.summary-two-column>.summary-attention{grid-column:1/-1!important}
+html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid:is(.detail-grid,#lo-patient-grid){grid-template-columns:1fr!important}
+html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid>.detail-item:is(.detail-item,#lo-patient-grid){border-right:0!important;border-bottom:1px solid #e9eef2!important}
+html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid>.detail-item:last-child:is(.detail-item,#lo-patient-grid){border-bottom:0!important}
+}
+/* The scale chips of the record header open the clinical scales (with their history). */
+.entity-record-header .clinical-risk-flag{cursor:pointer}
+.entity-record-header .clinical-risk-flag:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(31,95,139,.12)}
+.entity-record-header .clinical-risk-flag:focus-visible{outline:2px solid #5b8db4;outline-offset:2px}
+/* The scales opened from a header chip: the scales panel (a record-tab layout that
+   fills its parent) gets a body tall enough for its table and pager. */
+.modal-backdrop>.observer-dialog.clinical-scales-dialog>.observer-dialog-body{display:flex;flex-direction:column;height:min(560px,calc(100vh - 140px));padding:0!important}
+.modal-backdrop>.observer-dialog.clinical-scales-dialog>.observer-dialog-body>.record-tab-panel{flex:1 1 auto;min-height:0}

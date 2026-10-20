@@ -164,7 +164,7 @@ export function ExecutiveDashboardPage(){
  const previousLabel=compareMode==='departments'?tx('όλου του νοσοκομείου','the whole hospital'):previous?`${fmtDate(previous.from)} – ${fmtDate(previous.to)}`:''
  const presetLabels={month:tx('Τρέχων μήνας','This month'),'3m':tx('Τελευταίοι 3 μήνες','Last 3 months'),'6m':tx('Τελευταίοι 6 μήνες','Last 6 months'),'12m':tx('Τελευταίοι 12 μήνες','Last 12 months'),year:tx('Τρέχον έτος','This year'),custom:tx('Άλλο διάστημα','Custom range')}
  const hospital=tenant?.name||tx('Νοσοκομείο','Hospital')
- const generated=new Date().toLocaleString(en?'en-GB':'el-GR',{dateStyle:'short',timeStyle:'short'})
+ const generated=new Date().toLocaleString(en?'en-GB':'el-GR',{dateStyle:'short',timeStyle:'short', hourCycle: 'h23'})
  const reportLines=[hospital,`${tx('Περίοδος','Period')}: ${periodLabel} (${presetLabels[filters.period]})`,`${tx('Τμήμα','Department')}: ${departmentName}${previous?` · ${tx('σύγκριση με','compared with')} ${previousLabel}`:''}`,`${tx('Δημιουργήθηκε','Generated')}: ${generated}`]
  const title=tx('Δείκτες','Indicators')
  // A report holds every chart and the whole attention list.

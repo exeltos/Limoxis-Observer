@@ -163,3 +163,14 @@
 @media(max-width:800px){.identity-settings{grid-template-columns:1fr}}
 /* «Ορισμοί δεικτών»: the hospital indicator list under the definitions, one tab. */
 .management-indicator-list{margin-top:18px;padding-top:14px;border-top:1px solid var(--lo-color-border,#e2e8ef)}
+.outbreak-investigations{margin-top:14px}
+.outbreak-clusters{margin:0 0 14px;padding:10px 14px;border:1px solid #e3e9ef;border-radius:10px;background:#fbfcfd}
+.outbreak-clusters h3{margin:0 0 6px;font-size:13px;font-weight:750;color:#1d3a52}
+.outbreak-clusters ul{margin:0;padding:0;list-style:none}
+.outbreak-clusters li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid #eef2f5}
+.outbreak-clusters li:first-child{border-top:0}
+.outbreak-clusters li>div{min-width:0}
+.outbreak-clusters li strong{display:block;font-size:13px;color:#1d3a52}
+.outbreak-clusters li span{display:block;margin-top:2px;font-size:12px;color:#5f6e7c}
+.outbreak-cluster-note{margin:0 0 12px;font-size:12.5px;color:#4a5f6c}
+@media(max-width:640px){.outbreak-clusters li{flex-direction:column;align-items:flex-start}}

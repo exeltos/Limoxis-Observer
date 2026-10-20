@@ -12,9 +12,16 @@ import {
 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
+import {
+  FieldLabelText,
+  FieldMessage,
+  FormSubmit,
+  useFormValidation,
+} from '../../design-system/FormValidation'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -178,6 +185,21 @@ export function EnvironmentalSurveillanceFlow({
   }
   const addRow = () => setBatchRows(rows => [...rows, { id: Date.now(), location: '', point: '' }]),
     sources = sourceByType[subjectType] || ['other']
+  const form = useFormValidation([
+    { key: 'department', label: t('department'), valid: Boolean(departmentValue) },
+    { key: 'date', label: t('samplingDate'), valid: Boolean(date) },
+    { key: 'method', label: t('samplingMethod'), valid: Boolean(sourceCode) },
+    mode === 'single' && {
+      key: 'location',
+      label: `${t('locationArea')} / ${t('samplingPoint')}`,
+      valid: Boolean(location.trim() || point.trim()),
+    },
+    mode === 'batch' && {
+      key: 'points',
+      label: t('samplingPoints'),
+      valid: batchRows.some(x => x.location.trim() || x.point.trim()),
+    },
+  ])
   return (
     <ObserverDialog
       width="standard"
@@ -194,17 +216,9 @@ export function EnvironmentalSurveillanceFlow({
       }
       onClose={onClose}
       footer={
-        <Button
-          disabled={
-            saving ||
-            !date ||
-            (mode === 'single' && !location.trim() && !point.trim()) ||
-            (mode === 'batch' && !batchRows.some(x => x.location.trim() || x.point.trim()))
-          }
-          onClick={save}
-        >
+        <FormSubmit form={form} icon={false} disabled={saving} onSubmit={save}>
           {t('createSurveillance')}
-        </Button>
+        </FormSubmit>
       }
     >
       <div className="environmental-type-grid">
@@ -235,6 +249,7 @@ export function EnvironmentalSurveillanceFlow({
       <div className="entry-grid">
         <SearchableSelect
           label={t('department')}
+          {...form.field('department')}
           value={departmentValue}
           options={departmentOptions.map(item => ({
             value: item.value,
@@ -245,9 +260,15 @@ export function EnvironmentalSurveillanceFlow({
           clearLabel={texts.clearLabel}
           onChange={setDepartmentValue}
         />
-        <ManualDateField label={t('samplingDate')} value={date} onChange={setDate} />
+        <ManualDateField
+          label={t('samplingDate')}
+          {...form.field('date')}
+          value={date}
+          onChange={setDate}
+        />
         <SearchableSelect
           label={t('samplingMethod')}
+          {...form.field('method')}
           value={sourceCode}
           options={sources.map(code => ({ value: code, label: environmentalMethodLabel(code, t) }))}
           emptyLabel={texts.emptyLabel}
@@ -256,33 +277,45 @@ export function EnvironmentalSurveillanceFlow({
       </div>
       {mode === 'single' ? (
         <div className="entry-grid environmental-point-fields">
+          {/* Either one is enough; the examples go under the field, the placeholder is the same «Επιλέξτε» as every select. */}
           <SearchableSelect
             label={t('locationArea')}
+            {...form.field('location')}
             value={location}
             options={locationOptions}
             allowCustom
             customLabel={texts.customLabel}
-            placeholder={t('clinicalRecords.locationAreaPlaceholder')}
+            placeholder={t('select')}
+            hint={t('clinicalRecords.locationAreaPlaceholder')}
             emptyLabel=""
             clearLabel={texts.clearLabel}
             onChange={setLocation}
           />
           <SearchableSelect
             label={t('samplingPoint')}
+            required
+            error={form.errorFor('location')}
+            hint={t('clinicalRecords.samplingPointPlaceholder')}
             value={point}
             options={pointOptions}
             allowCustom
             customLabel={texts.customLabel}
-            placeholder={t('clinicalRecords.samplingPointPlaceholder')}
+            placeholder={t('select')}
             emptyLabel=""
             clearLabel={texts.clearLabel}
             onChange={setPoint}
           />
         </div>
       ) : (
-        <div className="environmental-batch-points">
+        <div
+          className="environmental-batch-points"
+          data-field-key="points"
+          data-invalid={form.errorFor('points') ? 'true' : undefined}
+        >
           <div className="batch-point-head">
-            <strong>{t('samplingPoints')}</strong>
+            <strong>
+              <FieldLabelText label={t('samplingPoints')} required />
+            </strong>
             <Button variant="secondary" onClick={addRow}>
               <Plus size={14} />
               {t('clinicalRecords.addPoint')}
@@ -332,6 +365,7 @@ export function EnvironmentalSurveillanceFlow({
               )}
             </div>
           ))}
+          <FieldMessage error={form.errorFor('points')} />
         </div>
       )}
       <label className="environmental-notes">
@@ -354,19 +388,26 @@ export function EnvironmentalRegistry({
   onOpenSample,
   onResample,
   highlightId = '',
+  scrollRef,
 }) {
+  // Date, department and batch are the secondary columns: on a narrow screen (tablet)
+  // they move under the sample code, so the list never scrolls sideways.
   const columns = [
     { key: 'surveillance', label: t('surveillance') },
-    { key: 'department', label: t('department') },
+    { key: 'department', label: t('department'), className: 'env-col-secondary' },
     { key: 'point', label: t('samplingPoint') },
-    { key: 'date', label: t('samplingDate') },
-    { key: 'batch', label: t('batch') },
+    { key: 'date', label: t('samplingDate'), className: 'env-col-secondary' },
+    { key: 'batch', label: t('batch'), className: 'env-col-secondary' },
     { key: 'result', label: t('result') },
     { key: 'status', label: t('status') },
   ]
+  const departmentName = row => (language === 'el' ? row.department : row.departmentEn)
   return (
     <section className="environmental-registry workspace-fill">
+      <div className="scroll-table" ref={scrollRef}>
       <RegistryTable
+        bare
+        className="environment-table"
         columns={columns}
         rows={rows}
         rowKey={row => row.code || row.id}
@@ -393,11 +434,14 @@ export function EnvironmentalRegistry({
             <td>
               <strong className="environment-code">{row.code || row.id}</strong>
               <small className="environment-type">{sampleTypeLabel(row.type, t)}</small>
+              <small className="env-inline-secondary">
+                {[fmt(row.collectedAt || row.requestedAt), departmentName(row), row.environmentalBatchId].filter(Boolean).join(' · ')}
+              </small>
             </td>
-            <td>{language === 'el' ? row.department : row.departmentEn}</td>
+            <td className="env-col-secondary">{departmentName(row)}</td>
             <td>{[row.location, row.point].filter(Boolean).join(' · ') || '—'}</td>
-            <td>{fmt(row.collectedAt || row.requestedAt)}</td>
-            <td>{row.environmentalBatchId || '—'}</td>
+            <td className="env-col-secondary">{fmt(row.collectedAt || row.requestedAt)}</td>
+            <td className="env-col-secondary">{row.environmentalBatchId || '—'}</td>
             <td>
               {row.result ? (
                 <span className="environment-result-cell">
@@ -422,6 +466,7 @@ export function EnvironmentalRegistry({
           </>
         )}
       />
+      </div>
     </section>
   )
 }
@@ -431,7 +476,7 @@ function EnvironmentalStatusCell({ row, t, onResample }) {
   const needsAction = environmentalNeedsAction(row)
   return (
     <span className="environment-status-cell">
-      <span className={`status-badge ${status.tone}`.trim()}>{status.label}</span>
+      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
       {needsAction && onResample && (
         <Button
           variant="secondary"

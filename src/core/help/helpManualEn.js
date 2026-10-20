@@ -18,7 +18,7 @@ export const helpManualEn={
   ['Patient record','The patient record brings together demographics and linked surveillance episodes. Available actions depend on your permission set.'],
   ['New patient','A new patient can be created only by users with Create permission and only with the minimum required information.']
  ],steps:['Search for the patient first.','Open the existing record or create a new one if permitted.','Continue to the linked surveillance episode.'],preview:'registry'},
- '/surveillance':{title:'Surveillance',summary:'Complete infection-surveillance workflow from initial assessment to outcome. One section with tabs: Patients, Surveillance episodes, Outbreaks, Employees, Environment.',audience:'Infection Control lead/team and authorized clinical roles',chapters:[
+ '/surveillance':{title:'Surveillance',summary:'Complete infection-surveillance workflow from initial assessment to outcome. One section with tabs: Surveillance episodes, Patients, Outbreaks, Employees, Environment.',audience:'Infection Control lead/team and authorized clinical roles',chapters:[
   ['Surveillance episode','Each episode is treated as one continuous record. Avoid creating disconnected parallel records for the same episode.'],
   ['Clinical assessment','Record the clinical information required for HAI assessment and the patient’s current clinical picture.'],
   ['Microbiology & AMR','Laboratory data are reused from the Laboratory module. MDR/XDR/PDR assessment is based on available validated microbiology results.'],

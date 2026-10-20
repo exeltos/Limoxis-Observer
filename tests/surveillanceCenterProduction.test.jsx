@@ -101,9 +101,10 @@ describe('employee surveillance access', () => {
     await waitFor(() => expect(screen.getByText('Άννα Αλεξίου')).toBeInTheDocument())
     expect(tabNames()).not.toContain('Εργαζόμενοι')
     fireEvent.click(screen.getByRole('button', { name: /Δημιουργία/ }))
-    const chooser = await screen.findByRole('dialog')
-    fireEvent.click(within(chooser).getByRole('button', { name: /Εργαζόμενος/ }))
-    expect(screen.getByRole('dialog')).toBe(chooser)
+    // The menu offers the patient surveillance only: no staff entry without staff-health access.
+    const menu = await screen.findByRole('menu')
+    expect(within(menu).getByRole('menuitem', { name: /Ασθενής/ })).toBeInTheDocument()
+    expect(within(menu).queryByRole('menuitem', { name: /Εργαζόμενος/ })).toBeNull()
   })
 
   it('is not listed for a department manager', async () => {

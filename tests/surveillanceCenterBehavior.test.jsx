@@ -67,13 +67,15 @@ describe('Surveillance Center registry', () => {
     expect(rowOf('Νικόλαος Γεωργίου')[0]).not.toHaveClass('registry-row-returned')
   })
 
-  it('starts a patient surveillance from the creation chooser with the shared flow', async () => {
+  it('starts a patient surveillance from the Create menu with the shared flow', async () => {
     await openCenter()
     fireEvent.click(screen.getByRole('button', { name: /Δημιουργία/ }))
-    const chooser = await screen.findByRole('dialog')
-    expect(within(chooser).getByRole('button', { name: /Εργαζόμενος/ })).toBeInTheDocument()
-    expect(within(chooser).getByRole('button', { name: /Περιβαλλοντική επιτήρηση/ })).toBeInTheDocument()
-    fireEvent.click(within(chooser).getByRole('button', { name: /Ασθενής/ }))
+    // «Create» is a menu of what can be created, not a chooser window.
+    const menu = await screen.findByRole('menu')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(within(menu).getByRole('menuitem', { name: /Εργαζόμενος/ })).toBeInTheDocument()
+    expect(within(menu).getByRole('menuitem', { name: /Περιβαλλοντική επιτήρηση/ })).toBeInTheDocument()
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /Ασθενής/ }))
     const flow = await screen.findByRole('dialog')
     expect(within(flow).getByText('Νέα επιτήρηση')).toBeInTheDocument()
     expect(within(flow).getAllByText('Επιλογή ασθενούς').length).toBeGreaterThan(0)

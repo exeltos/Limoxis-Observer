@@ -12,6 +12,7 @@ import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { EntityAttachmentsPanel } from '../../design-system/EntityAttachmentsPanel'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDateTime } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -34,6 +35,7 @@ import { sampleProgress, workflowStates } from './laboratorySampleProgress'
 import { copy } from './laboratorySampleFormat'
 import { ResultCard, LabHistory } from './LaboratorySampleViews'
 import { ResultDialog, AstDialog, AmrDialog, CommunicationDialog } from './LaboratorySampleDialogs'
+import { buildLaboratorySampleReport } from './laboratorySampleReport'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 export function LaboratorySampleRecordFunctionalView() {
@@ -289,8 +291,10 @@ export function LaboratorySampleRecordFunctionalView() {
         icon: PlayCircle,
         onClick: startProcessing,
       },
+    // «Edit result» is the visible next-step button while the result is the next step: not repeated in this menu.
     canManageActive &&
-      received && {
+      received &&
+      steps.find(step => step.state === 'next')?.id !== 'result' && {
         id: 'result',
         label: result ? tx('editResult') : tx('enterResult'),
         icon: Pencil,
@@ -314,9 +318,288 @@ export function LaboratorySampleRecordFunctionalView() {
     },
   ].filter(Boolean)
 
+  // The Result tab of a sample with no outcome yet: an empty state with the one primary action.
+  const resultEmpty = !(result?.result || organisms.length)
+  const resultAction = canManageActive
+    ? received
+      ? { label: tx('enterResult'), icon: Pencil, onClick: openResult }
+      : { label: tx('process'), icon: PlayCircle, onClick: startProcessing }
+    : null
+  const resultEmptyState = (
+    <RegistryEmptyState
+      icon={Microscope}
+      title={tx('noResult')}
+      text={received ? (canManageActive ? tx('noResultHint') : '') : tx('noResultNotReceived')}
+      action={resultAction}
+    />
+  )
+
+  // One tab of the sample: on screen the active one; when the record is printed
+  // (EntityRecordShell renderTab) every tab, one after the other.
+  const renderTab = tabId => (
+    <>
+      {tabId === 'sample' && (
+        <div className="lab-record-stack">
+          <LaboratoryWorkflow steps={steps} language={language} closedNote={closedNote} />
+          <LaboratorySampleSummary
+            sample={sample}
+            t={t}
+            language={language}
+            fmt={fmt}
+            menu={<OverflowMenu items={sampleMenu} />}
+          />
+        </div>
+      )}
+      {tabId === 'result' && (
+        <div className="lab-record-stack">
+          <ResultCard
+            t={t}
+            tx={tx}
+            language={language}
+            result={result}
+            organisms={organisms}
+            isEnvironmental={isEnvironmental}
+            standard={standard}
+            emptyState={resultEmptyState}
+            menu={
+              <OverflowMenu
+                items={[
+                  // With no result yet «Καταχώριση αποτελέσματος» is the button of the empty state: not repeated here.
+                  canManageActive &&
+                    received &&
+                    !resultEmpty && {
+                      id: 'result',
+                      label: result ? tx('editResult') : tx('enterResult'),
+                      icon: Pencil,
+                      onClick: openResult,
+                    },
+                  canManageActive &&
+                    astRequired && {
+                      id: 'ast',
+                      label: tx('addAst'),
+                      icon: Microscope,
+                      onClick: () => openAst(firstMissingAst),
+                    },
+                  canCommunicate &&
+                    !locked &&
+                    communicationRequired && {
+                      id: 'communication',
+                      label: tx('addCommunication'),
+                      icon: PhoneCall,
+                      onClick: openCommunication,
+                    },
+                  finalized &&
+                    canReopen &&
+                    !rejected && {
+                      id: 'correct',
+                      label: tx('correction'),
+                      icon: RotateCcw,
+                      separatorBefore: true,
+                      onClick: () => setDialog('correction'),
+                    },
+                ].filter(Boolean)}
+              />
+            }
+          />
+          {astRequired && (
+            <section className="lab-record-card lab-ast-card">
+              <SectionHeader title={language === 'el' ? 'Αντιβιόγραμμα και AMR' : 'AST and AMR'} />
+              {organisms.map(name => {
+                const tagged = ast.filter(row => row.organism === name)
+                const current = amr.filter(row => row.organism === name).slice(-1)[0] || null
+                return (
+                  <article className="lab-isolate-card" key={name} data-demo-step="microbiology_mdro:amr">
+                    <div className="lab-isolate-summary">
+                      <div className="lab-isolate-identity">
+                        <span className="lab-isolate-icon">
+                          <Microscope size={18} />
+                        </span>
+                        <div>
+                          <span className="eyebrow">{tx('organism')}</span>
+                          <h3>{name}</h3>
+                        </div>
+                      </div>
+                      <div className="record-section-actions">
+                        {current && <StatusBadge tone="danger">{current.classification}</StatusBadge>}
+                        {canManageActive && (
+                          <OverflowMenu
+                            items={[
+                              {
+                                id: 'add-ast',
+                                label: tx('addAst'),
+                                icon: Microscope,
+                                onClick: () => openAst(name),
+                              },
+                              {
+                                id: 'classify-amr',
+                                label: current ? tx('changeAmr') : tx('classifyAmr'),
+                                icon: ShieldAlert,
+                                onClick: () => setDialog(`amr:${name}`),
+                              },
+                            ]}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    {current && (
+                      <div className="lab-amr-strip">
+                        <ShieldAlert size={16} />
+                        <div>
+                          <span>{tx('amrTitle')}</span>
+                          <strong>
+                            {current.classification} · {current.definitionSource || '—'}{' '}
+                            {current.definitionVersion || ''}
+                          </strong>
+                          {current.rationale && <small>{current.rationale}</small>}
+                        </div>
+                      </div>
+                    )}
+                    <RegistryTable
+                      className="lab-ast-table"
+                      wrapperClassName="lab-ast-scroll"
+                      columns={[
+                        { key: 'drug', label: tx('antibiotic') },
+                        { key: 'mic', label: 'MIC' },
+                        { key: 'sir', label: 'S/I/R' },
+                        { key: 'method', label: tx('method') },
+                        { key: 'standard', label: tx('standard') },
+                      ]}
+                      rows={tagged}
+                      rowKey={(row, index) => row.id ?? index}
+                      emptyTitle={tx('noAst')}
+                      renderRow={row => (
+                        <>
+                          <td>
+                            <strong>{row.drug}</strong>
+                          </td>
+                          <td>
+                            {row.mic != null && row.mic !== ''
+                              ? `${row.operator || ''}${row.mic}`
+                              : row.zone != null
+                                ? `${row.zone} mm`
+                                : '—'}
+                          </td>
+                          <td>
+                            <span className={`lab-sir-badge sir-${String(row.sir || '').toLowerCase()}`}>
+                              {row.sir || '—'}
+                            </span>
+                          </td>
+                          <td>{row.method || '—'}</td>
+                          <td>{[row.standard, row.version].filter(Boolean).join(' ') || '—'}</td>
+                        </>
+                      )}
+                    />
+                  </article>
+                )
+              })}
+            </section>
+          )}
+          {communicationRequired && (
+            <section className="lab-record-card lab-communication-card" data-demo-step="microbiology_mdro:communication">
+              <SectionHeader
+                title={tx('communicationTitle')}
+                subtitle={communicationComplete ? null : t('laboratoryRecords.criticalCommunicationRequired')}
+                actions={canCommunicate && !locked && (
+                  <OverflowMenu
+                    items={[
+                      {
+                        id: 'add-communication',
+                        label: tx('addCommunication'),
+                        icon: PhoneCall,
+                        onClick: openCommunication,
+                      },
+                    ]}
+                  />
+                )}
+              />
+              {communications.length ? (
+                <div className="lab-communication-list">
+                  {communications.map(row => (
+                    <article className="lab-communication-row" key={row.id}>
+                      <div>
+                        <strong>{row.to || row.recipientName || '—'}</strong>
+                        {(row.recipientRole || row.recipientDepartment) && (
+                          <span>
+                            {[row.recipientRole, row.recipientDepartment]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <span>{fmt(row.at)}</span>
+                        <span>{t(row.method)}</span>
+                        {row.readBack && (
+                          <StatusBadge tone="success">{t('laboratoryRecords.readBack')}</StatusBadge>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="lab-inline-warning">
+                  <AlertTriangle size={16} />
+                  {tx('noCommunication')}
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      )}
+      {tabId === 'attachments' && (
+        <div className="lab-record-stack">
+          {!locked && !documentsReviewed && (
+            <div className="lab-inline-action">
+              <div>
+                <strong>{tx('stepDocuments')}</strong>
+                <span>{tx('documentsHint')}</span>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  run(() => repository.markDocumentsReviewed(sample.id), tx('documentsDone'))
+                }
+              >
+                <CheckCircle2 size={15} />
+                {tx('documents')}
+              </Button>
+            </div>
+          )}
+          <div className="lab-attachments-card">
+            <EntityAttachmentsPanel
+              organizationId={tenant?.id}
+              entityType="laboratory_sample"
+              entityRecordId={sample.recordId}
+              category="laboratory_evidence"
+              canManage={canManage && !locked}
+              t={t}
+              notify={notify}
+            />
+          </div>
+        </div>
+      )}
+      {tabId === 'history' && <LabHistory sample={sample} t={t} tx={tx} fmt={fmt} />}
+    </>
+  )
+  // The printed report (EntityRecordShell printReport): a document, not the screen.
+  const printReport = () =>
+    buildLaboratorySampleReport({
+      sample,
+      steps,
+      progress: { result, ast, amr, communications, organisms },
+      isEnvironmental,
+      standard,
+      language,
+      t,
+      tx,
+      fmt,
+      statusWord: rejected ? t('rejected') : finalized ? t('completed') : t(sample.status),
+      documents: { organizationId: tenant?.id, entityType: 'laboratory_sample', entityId: sample.recordId },
+    })
   return (
     <Page fill>
       <EntityRecordShell
+        printReport={printReport}
         className="laboratory-record-shell workspace-fill"
         recordNavigation={recordNavigation}
         avatar={<FlaskConical size={20} />}
@@ -331,249 +614,13 @@ export function LaboratorySampleRecordFunctionalView() {
         }
         tabs={tabs}
         activeTab={tab}
+        renderTab={renderTab}
         onTabChange={setTab}
         headerActions={<ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} />}
         onBack={goBack}
         backLabel={inSurveillance ? t('clinicalRecords.backToSurveillance') : t('backToLaboratory')}
       >
-        {tab === 'sample' && (
-          <div className="lab-record-stack">
-            <LaboratoryWorkflow steps={steps} language={language} closedNote={closedNote} />
-            <LaboratorySampleSummary
-              sample={sample}
-              t={t}
-              language={language}
-              fmt={fmt}
-              menu={<OverflowMenu items={sampleMenu} />}
-            />
-          </div>
-        )}
-        {tab === 'result' && (
-          <div className="lab-record-stack">
-            <ResultCard
-              t={t}
-              tx={tx}
-              language={language}
-              result={result}
-              organisms={organisms}
-              isEnvironmental={isEnvironmental}
-              standard={standard}
-              menu={
-                <OverflowMenu
-                  items={[
-                    canManageActive &&
-                      received && {
-                        id: 'result',
-                        label: result ? tx('editResult') : tx('enterResult'),
-                        icon: Pencil,
-                        onClick: openResult,
-                      },
-                    canManageActive &&
-                      astRequired && {
-                        id: 'ast',
-                        label: tx('addAst'),
-                        icon: Microscope,
-                        onClick: () => openAst(firstMissingAst),
-                      },
-                    canCommunicate &&
-                      !locked &&
-                      communicationRequired && {
-                        id: 'communication',
-                        label: tx('addCommunication'),
-                        icon: PhoneCall,
-                        onClick: openCommunication,
-                      },
-                    finalized &&
-                      canReopen &&
-                      !rejected && {
-                        id: 'correct',
-                        label: tx('correction'),
-                        icon: RotateCcw,
-                        separatorBefore: true,
-                        onClick: () => setDialog('correction'),
-                      },
-                  ].filter(Boolean)}
-                />
-              }
-            />
-            {astRequired && (
-              <section className="lab-record-card lab-ast-card">
-                <SectionHeader title={language === 'el' ? 'Αντιβιόγραμμα και AMR' : 'AST and AMR'} />
-                {organisms.map(name => {
-                  const tagged = ast.filter(row => row.organism === name)
-                  const current = amr.filter(row => row.organism === name).slice(-1)[0] || null
-                  return (
-                    <article className="lab-isolate-card" key={name} data-demo-step="microbiology_mdro:amr">
-                      <div className="lab-isolate-summary">
-                        <div className="lab-isolate-identity">
-                          <span className="lab-isolate-icon">
-                            <Microscope size={18} />
-                          </span>
-                          <div>
-                            <span className="eyebrow">{tx('organism')}</span>
-                            <h3>{name}</h3>
-                          </div>
-                        </div>
-                        <div className="record-section-actions">
-                          {current && <StatusBadge tone="danger">{current.classification}</StatusBadge>}
-                          {canManageActive && (
-                            <OverflowMenu
-                              items={[
-                                {
-                                  id: 'add-ast',
-                                  label: tx('addAst'),
-                                  icon: Microscope,
-                                  onClick: () => openAst(name),
-                                },
-                                {
-                                  id: 'classify-amr',
-                                  label: current ? tx('changeAmr') : tx('classifyAmr'),
-                                  icon: ShieldAlert,
-                                  onClick: () => setDialog(`amr:${name}`),
-                                },
-                              ]}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      {current && (
-                        <div className="lab-amr-strip">
-                          <ShieldAlert size={16} />
-                          <div>
-                            <span>{tx('amrTitle')}</span>
-                            <strong>
-                              {current.classification} · {current.definitionSource || '—'}{' '}
-                              {current.definitionVersion || ''}
-                            </strong>
-                            {current.rationale && <small>{current.rationale}</small>}
-                          </div>
-                        </div>
-                      )}
-                      <RegistryTable
-                        className="lab-ast-table"
-                        wrapperClassName="lab-ast-scroll"
-                        columns={[
-                          { key: 'drug', label: tx('antibiotic') },
-                          { key: 'mic', label: 'MIC' },
-                          { key: 'sir', label: 'S/I/R' },
-                          { key: 'method', label: tx('method') },
-                          { key: 'standard', label: tx('standard') },
-                        ]}
-                        rows={tagged}
-                        rowKey={(row, index) => row.id ?? index}
-                        emptyTitle={tx('noAst')}
-                        renderRow={row => (
-                          <>
-                            <td>
-                              <strong>{row.drug}</strong>
-                            </td>
-                            <td>
-                              {row.mic != null && row.mic !== ''
-                                ? `${row.operator || ''}${row.mic}`
-                                : row.zone != null
-                                  ? `${row.zone} mm`
-                                  : '—'}
-                            </td>
-                            <td>
-                              <span className={`lab-sir-badge sir-${String(row.sir || '').toLowerCase()}`}>
-                                {row.sir || '—'}
-                              </span>
-                            </td>
-                            <td>{row.method || '—'}</td>
-                            <td>{[row.standard, row.version].filter(Boolean).join(' ') || '—'}</td>
-                          </>
-                        )}
-                      />
-                    </article>
-                  )
-                })}
-              </section>
-            )}
-            {communicationRequired && (
-              <section className="lab-record-card lab-communication-card" data-demo-step="microbiology_mdro:communication">
-                <SectionHeader
-                  title={tx('communicationTitle')}
-                  subtitle={communicationComplete ? null : t('laboratoryRecords.criticalCommunicationRequired')}
-                  actions={canCommunicate && !locked && (
-                    <OverflowMenu
-                      items={[
-                        {
-                          id: 'add-communication',
-                          label: tx('addCommunication'),
-                          icon: PhoneCall,
-                          onClick: openCommunication,
-                        },
-                      ]}
-                    />
-                  )}
-                />
-                {communications.length ? (
-                  <div className="lab-communication-list">
-                    {communications.map(row => (
-                      <article className="lab-communication-row" key={row.id}>
-                        <div>
-                          <strong>{row.to || row.recipientName || '—'}</strong>
-                          {(row.recipientRole || row.recipientDepartment) && (
-                            <span>
-                              {[row.recipientRole, row.recipientDepartment]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <span>{fmt(row.at)}</span>
-                          <span>{t(row.method)}</span>
-                          {row.readBack && (
-                            <StatusBadge tone="success">{t('laboratoryRecords.readBack')}</StatusBadge>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="lab-inline-warning">
-                    <AlertTriangle size={16} />
-                    {tx('noCommunication')}
-                  </div>
-                )}
-              </section>
-            )}
-          </div>
-        )}
-        {tab === 'attachments' && (
-          <div className="lab-record-stack">
-            {!locked && !documentsReviewed && (
-              <div className="lab-inline-action">
-                <div>
-                  <strong>{tx('stepDocuments')}</strong>
-                  <span>{tx('documentsHint')}</span>
-                </div>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    run(() => repository.markDocumentsReviewed(sample.id), tx('documentsDone'))
-                  }
-                >
-                  <CheckCircle2 size={15} />
-                  {tx('documents')}
-                </Button>
-              </div>
-            )}
-            <div className="lab-attachments-card">
-              <EntityAttachmentsPanel
-                organizationId={tenant?.id}
-                entityType="laboratory_sample"
-                entityRecordId={sample.recordId}
-                category="laboratory_evidence"
-                canManage={canManage && !locked}
-                t={t}
-                notify={notify}
-              />
-            </div>
-          </div>
-        )}
-        {tab === 'history' && <LabHistory sample={sample} t={t} tx={tx} fmt={fmt} />}
+        {renderTab(tab)}
       </EntityRecordShell>
       {dialog === 'result' && (
         <ResultDialog

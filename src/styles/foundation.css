@@ -2945,11 +2945,9 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 .modal-backdrop>.observer-dialog.observer-dialog-compact{width:min(var(--lo-dialog-compact),calc(100vw - 32px))!important}
 .modal-backdrop>.observer-dialog.observer-dialog-wide{width:min(var(--lo-dialog-wide),calc(100vw - 32px))!important}
 .modal-backdrop>.observer-dialog.observer-dialog-workspace{width:min(var(--lo-dialog-workspace),calc(100vw - 32px))!important}
-/* …except a form whose content switches (existing/new, single/batch): it keeps
-   one height so the window does not jump (ObserverDialog fixedHeight). */
-.modal-backdrop>.observer-dialog.observer-dialog-fixed-height{
-  height:min(var(--lo-dialog-max-height),820px)!important;
-}
+/* A form whose content switches (existing/new, single/batch) opens at the height
+   of its content and does not shrink back (ObserverDialog fixedHeight): no
+   fixed tall window with an empty area under a few fields. */
 @media(max-width:760px){
   .modal-backdrop>:is(.entry-card,.entry-editor,.role-editor,.control-execution-card,.control-editor-card,.committee-create-card,.patient-entry-card,.surveillance-entry-card,.waste-entry-card,.antiseptic-entry-card,.lab-entry-card,.ast-entry-card,.communication-entry-card,.prevention-entry-card,.certificate-entry-card,.correction-entry-card){
     width:calc(100vw - 20px)!important;

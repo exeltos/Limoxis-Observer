@@ -13,7 +13,7 @@ import './resources.css'
 
 const asDate = value => new Date(String(value).length === 10 ? `${value}T12:00:00` : value)
 const day = (value, en) => (value ? asDate(value).toLocaleDateString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—')
-const dayTime = (value, en) => (value ? asDate(value).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—')
+const dayTime = (value, en) => (value ? asDate(value).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '—')
 const size = bytes => (bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`)
 const certificateName = item => [item.type, item.title && item.title !== item.type ? item.title : ''].filter(Boolean).join(' · ') || '—'
 const isExpired = item => Boolean(item.expiresOn) && String(item.expiresOn).slice(0, 10) <= new Date().toISOString().slice(0, 10)

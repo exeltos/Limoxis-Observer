@@ -1009,7 +1009,6 @@
 .canonical-metric-card-interactive[aria-pressed="true"]{border-color:var(--lo-color-primary)!important;box-shadow:inset 0 0 0 1px var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 6%,var(--lo-color-surface))!important}
 .management-tab-groups.canonical-module-tabs{margin-bottom:2px}
 .data-table td.indicator-result-cell.onTarget strong{color:#28754b!important}.data-table td.indicator-result-cell.attention strong{color:#a13d3d!important}.indicator-result-cell small.indicator-target{font-weight:700;color:#4a5f6c}.indicator-approval-none{color:#9aa7b1;font-weight:700}
-.patient-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:6px 14px;border-bottom:1px solid #e1e8ee;font-size:11px;color:#4a5f6c}.patient-legend-pending{min-height:30px}.patient-legend>strong{font-size:10.5px;font-weight:800;color:#33434d}.patient-legend-item{display:inline-flex;align-items:center;gap:5px}.patient-legend-item .status-badge{font-size:9.5px}.patient-legend-tones{display:inline-flex;align-items:center;gap:5px}.patient-legend-tones i{display:inline-block;width:9px;height:9px;margin-left:4px;border-radius:50%}.patient-legend-tones i.tone-danger{background:#b42318}.patient-legend-tones i.tone-warning{background:#d98a1c}.patient-legend-tones i.tone-active{background:#1f7a45}
 html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>button.tab{height:46px!important;min-height:46px!important;padding:0 14px!important;font-size:14px!important;font-weight:750!important;border-bottom-width:3px!important}
 .pharmacy-workspace.workspace-fill{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden}
 /* Pharmacy lists: the standard registry (one frame, the table flush inside it). */
@@ -1218,3 +1217,32 @@ td>.lo-meter{margin-top:5px}
 .field-label-note{font-weight:500;color:var(--lo-color-muted,#6b7c8c);text-transform:none;letter-spacing:0}
 /* A record tab's save bar sits inside the card, with normal padding, clear of the floating assistant button. */
 .record-tab-panel>.inline-edit-footer{flex:0 0 auto;margin:0!important;padding:12px 76px 14px 16px!important;border-top:1px solid var(--lo-color-border,#e2e8ee)!important;background:var(--lo-color-surface,#fff);position:sticky;bottom:0;z-index:2}
+/* Forms never save empty (design-system/FormValidation): «*» on a required
+   label; once the form was submitted, the missing field is marked and its
+   message sits under it; beside the primary button (which looks disabled while
+   something is missing) one line says what: «Συμπληρώστε: Τμήμα, Ημερομηνία». */
+.lo-required-mark::after{content:"\00a0*";color:#b33a3a;font-weight:800}
+[data-invalid="true"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.multi-select-button){border-color:#c24a4a!important;box-shadow:0 0 0 3px rgba(194,74,74,.1)!important}
+[data-invalid="true"] .lo-choice-chips-list>button{border-color:#d99494}
+[data-invalid="true"]>.field-error{display:block;margin-top:2px;font-weight:650}
+.form-missing-summary{margin:0;flex:0 1 auto;min-width:0;text-align:right;font-size:11px;line-height:1.35;color:#8a3434}
+.form-missing-summary strong{font-weight:750}
+.button.is-blocked{opacity:.55;cursor:not-allowed}
+/* A read-only value in a form row (ReadOnlyField): as tall as an input, label above, helper below. */
+.lo-readonly-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.lo-readonly-field-value{box-sizing:border-box;min-height:var(--lo-field-height);display:flex;align-items:center;padding:0 10px;border:1px dashed var(--lo-field-border);border-radius:var(--lo-field-radius);background:#f4f7f9;color:#263b4d;font-size:12px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* A form grid with helper or error text under some fields: every field starts at
+   the top of its row (not at its bottom), so a message under one field does not
+   push its label and box above the others of the row. */
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint):is(div,#lo-form-row){align-items:start!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint)>:not(.lo-checkbox-field):is(div,label,#lo-form-row){align-self:start!important}
+:is(.field-with-message,.searchable-select,.lo-choice-chips)>:is(.field-error,.field-hint){display:block;margin-top:4px}
+/* A field with a message under it: the <label> holds the name and the control, the message follows it. */
+.field-with-message{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field-with-message-label{display:flex;flex-direction:column;gap:6px;min-width:0}
+/* «Περισσότερα»: the secondary rows of a summary, folded (MoreSection). */
+.lo-more-section{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.lo-more-section-toggle{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;padding:4px 2px;border:0;background:transparent;color:var(--lo-color-primary,#1f5f8b);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.lo-more-section-toggle>svg{transition:transform .15s ease}
+.lo-more-section.is-open .lo-more-section-toggle>svg{transform:rotate(180deg)}
+.lo-more-section-toggle:focus-visible{outline:2px solid var(--lo-field-focus,#5b8db4);outline-offset:2px;border-radius:6px}

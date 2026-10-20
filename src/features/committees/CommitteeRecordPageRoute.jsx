@@ -15,7 +15,7 @@ import { CommitteeRecordPage } from './CommitteeRecordPage'
 import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
 import { loadCommitteeApprovalDeepLinkAsync,decideCommitteeApprovalDeepLinkAsync } from './committeeApprovalDeepLinkService'
 
-const fmtDateTime=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short'}):'—'
+const fmtDateTime=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short', hourCycle: 'h23'}):'—'
 
 export function CommitteeRecordPageRoute(){
   const [params,setParams]=useSearchParams()

@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
+import { FieldLabelText, FieldMessage } from './FormValidation'
 import './SearchableSelect.css'
 import './MultiSelect.css'
 
@@ -31,6 +32,10 @@ export function MultiSelect({
   className = '',
   tags = false,
   search = true,
+  required = false,
+  error = '',
+  hint = '',
+  fieldKey,
 }) {
   const baseId = useId().replace(/:/g, '')
   const buttonId = `${baseId}-button`,
@@ -115,6 +120,8 @@ export function MultiSelect({
     <div
       ref={rootRef}
       className={`searchable-select multi-select ${className}`.trim()}
+      data-field-key={fieldKey}
+      data-invalid={error ? 'true' : undefined}
       onKeyDown={event => {
         if (event.key === 'Escape' && open) {
           event.preventDefault()
@@ -124,7 +131,9 @@ export function MultiSelect({
       }}
     >
       <label htmlFor={buttonId}>
-        <span className="lo-field-label">{label}</span>
+        <span className="lo-field-label">
+          <FieldLabelText label={label} required={required} />
+        </span>
       </label>
       <div className="searchable-select-control">
         <button
@@ -135,6 +144,8 @@ export function MultiSelect({
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listId}
+          aria-invalid={error ? true : undefined}
+          aria-required={required || undefined}
           title={chosenLabels.join(', ')}
           disabled={disabled}
           onClick={() => {
@@ -219,6 +230,7 @@ export function MultiSelect({
           </ul>
         </div>
       )}
+      <FieldMessage error={error} hint={hint} />
     </div>
   )
 }

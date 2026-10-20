@@ -7,7 +7,7 @@ import { demoScenariosForEvaluator } from './demoScenarios'
 import { loadDemoEvaluationOverview, updateDemoApplicationRequestStatus } from './demoEvaluationService'
 import './demoEvaluation.css'
 
-const fmt=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):''
+const fmt=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'}):''
 
 // The questionnaire beside a scenario's rating: ease, clarity and the time it took.
 function QuestionnaireDetails({row,en}){

@@ -1,7 +1,10 @@
-import { Children, Fragment, isValidElement } from 'react'
+import { Children, Fragment, cloneElement, isValidElement, useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { ChevronLeft,ChevronRight } from 'lucide-react'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { useLanguage } from '../core/i18n/LanguageContext'
+import { formatDateTime } from '../core/i18n/formatDay'
+import { DEMO_REPORT_MARK_EL,DEMO_REPORT_MARK_EN,getReportBranding } from '../core/organization/branding'
 import { useContextualNavigation } from '../core/navigation/useContextualNavigation'
 import { useTabStrip } from './useTabStrip'
 import { registryStorageKey } from '../core/navigation/useRegistryMemory'
@@ -10,6 +13,7 @@ import { BackButton } from './BackButton'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
 import { ExportMenu } from './ExportMenu'
+import { RecordReportPrint } from './RecordReportPrint'
 
 // Header actions come in three kinds: edit and delete go to the record's «…»
 // menu; the record's own commands (e.g. «Καταγραφή ελέγχου») and the export
@@ -89,10 +93,35 @@ export function EntityRecordShell({
   onTabChange,
   onBack,
   backLabel,
+  // (tabId) => that tab's content. With it, printing the record («Εξαγωγή › Εκτύπωση»
+  // or the browser's own print) puts every tab in sequence, one after the other,
+  // instead of only the tab on screen.
+  renderTab,
+  // The record's printed report as data (see recordReport.js), or a function returning it
+  // (built only when printing). With it the print is a clinical document instead of the
+  // screen's tabs; without it, the tabs print in the same plain style.
+  printReport,
   children,
   className='',
 }) {
   const { t,language }=useLanguage();const en=language==='en'
+  // Print mode: a clean printed record — hospital header, record title and code,
+  // print date, every tab's content, and on each page «Εκτυπώθηκε από …» with the
+  // page number; the on-screen controls are hidden by print.css.
+  const [printedAt,setPrintedAt]=useState(null)
+  const printing=Boolean(printedAt)
+  useEffect(()=>{
+    const before=()=>flushSync(()=>setPrintedAt(current=>current||new Date()))
+    const after=()=>setPrintedAt(null)
+    window.addEventListener('beforeprint',before)
+    window.addEventListener('afterprint',after)
+    return()=>{window.removeEventListener('beforeprint',before);window.removeEventListener('afterprint',after)}
+  },[])
+  function printRecord(){
+    flushSync(()=>setPrintedAt(new Date()))
+    // Tabs that load their content (documents, history) get a moment before the snapshot.
+    setTimeout(()=>window.print(),400)
+  }
   const { goBack }=useContextualNavigation('/')
   const navigate=useNavigate();const location=useLocation()
   const handleBack=onBack||goBack
@@ -134,12 +163,33 @@ export function EntityRecordShell({
   const utilityActions=[]
   const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions,[],utilityActions)
   utilityActions.sort((a,b)=>(a.type===ExportMenu)-(b.type===ExportMenu))
+  const printAllTabs=hasTabs&&typeof renderTab==='function'
+  // The record's «Εκτύπωση» prints the whole record (every tab), not the screen as it is.
+  const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint?cloneElement(action,{onPrint:printRecord}):action)
+  const branding=getReportBranding()
+  const printedLine=printedAt?[`${en?'Printed by':'Εκτυπώθηκε από'} ${branding?.printedBy||'—'}`,formatDateTime(printedAt,language)].join(' · '):''
+  const cssText=value=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
+  const printedTabs=printing&&printAllTabs?tabs.filter(tab=>!tab.disabled):null
+  const reportDescription=printing&&printReport?(typeof printReport==='function'?printReport():printReport):null
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
   const secondaryBodyStyle=primaryTabActive?undefined:{display:'flex',flexDirection:'column',minHeight:0}
 
-  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${actionClass} ${className}`.trim()}>
+  if(reportDescription)return <div className={`entity-record-shell record-printing record-report-mode ${className}`.trim()}>
+    <RecordReportPrint report={reportDescription} branding={branding} printedAt={printedAt} printedBy={branding?.printedBy} language={language} fmtDateTime={value=>formatDateTime(value,language)}/>
+  </div>
+  return <div className={`entity-record-shell canonical-detail-screen ${recordTabClass} ${paneClass} ${actionClass} ${printing?'record-printing':''} ${className}`.trim()}>
+    {printing&&<style>{`@media print{@page{margin:14mm 12mm 16mm;@bottom-left{content:${cssText(printedLine)};font:9px Inter,Arial,sans-serif;color:#5d7083}@bottom-right{content:counter(page) " / " counter(pages);font:9px Inter,Arial,sans-serif;color:#5d7083}}}`}</style>}
+    <div className="record-print-header" aria-hidden="true">
+      {branding?.logo&&<img src={branding.logo} alt=""/>}
+      <div className="record-print-hospital">
+        <strong>{branding?.name||''}</strong>
+        {branding?.reportHeader&&<span>{branding.reportHeader}</span>}
+        {branding?.demo&&<span className="record-print-demo">{en?DEMO_REPORT_MARK_EN:DEMO_REPORT_MARK_EL}</span>}
+      </div>
+      <div className="record-print-date">{en?'Print date':'Ημερομηνία εκτύπωσης'}: {printedAt?formatDateTime(printedAt,language):''}</div>
+    </div>
     <header className="entity-record-header surface">
       <BackButton className="entity-record-back-left" onClick={handleBack} label={backLabel||t('back')}/>
       <div className="entity-record-avatar">{avatar}</div>
@@ -151,7 +201,7 @@ export function EntityRecordShell({
       </div>
       <div className="entity-record-header-actions">
         {status}
-        {utilityActions.length>0&&<div className="record-utility-actions entity-record-utilities">{utilityActions.map((action,index)=><Fragment key={action.key||index}>{action}</Fragment>)}</div>}
+        {shownUtilities.length>0&&<div className="record-utility-actions entity-record-utilities">{shownUtilities.map((action,index)=><Fragment key={action.key||index}>{action}</Fragment>)}</div>}
         {effectiveRecordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
           <IconButton size="sm" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></IconButton>
           {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
@@ -165,7 +215,11 @@ export function EntityRecordShell({
     </nav>}
     <section className="entity-record-body surface" style={secondaryBodyStyle}>
       {primaryTabActive&&generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
-      {children}
+      {printedTabs?printedTabs.map(tab=><section key={tab.id} className="record-print-section" data-print-tab={tab.id}>
+        <h3 className="record-print-section-title">{tab.label}</h3>
+        {renderTab(tab.id)}
+      </section>):children}
     </section>
+    {printing&&<p className="record-print-footer">{printedLine}</p>}
   </div>
 }

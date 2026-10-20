@@ -13,3 +13,12 @@
 .laboratory-registry .lab-table td:nth-child(5){min-width:125px}
 .laboratory-registry .lab-table td:nth-child(6){min-width:115px}
 .lab-critical-note{color:var(--lo-color-danger,#b42318)!important;font-weight:750}
+
+/* Registry: the source column is the secondary one; on a narrow screen (tablet)
+   it moves under the sample type, so the list never scrolls sideways. */
+.laboratory-registry .lab-inline-secondary{display:none}
+@media(max-width:1100px){
+.laboratory-registry .lab-col-secondary{display:none}
+.laboratory-registry .lab-inline-secondary{display:block}
+.laboratory-registry .lab-table td:nth-child(n){min-width:0}
+}

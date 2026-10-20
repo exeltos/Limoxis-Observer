@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { CheckCircle2, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { MultiSelect } from '../../design-system/MultiSelect'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
@@ -63,13 +64,23 @@ export function ResultDialog({
     )
   const save = status => onSave(resultToSave(draft, status, { isEnvironmental, standard }))
   const { complete, needsOrganism } = resultDraftChecks(draft, isEnvironmental)
+  const en = language === 'en'
+  // One rule for the form: «*» on the required fields, a line saying what keeps «Επικύρωση» blocked,
+  // messages on the fields once a button is pressed. A draft needs only the outcome (and the CFU count);
+  // validating a positive result also needs its organism.
+  const form = useFormValidation([
+    { key: 'result', label: t('result'), valid: Boolean(draft.result), message: en ? 'Choose the result' : 'Επιλέξτε αποτέλεσμα' },
+    isEnvironmental && draft.result === 'positive' && { key: 'cfu', label: tx('cfu'), valid: draft.cfuCount !== '' },
+    !isEnvironmental && draft.result === 'positive' && { key: 'organisms', label: tx('organisms'), valid: !needsOrganism, message: tx('organismRequired') },
+  ])
+  const saveDraft = () => (complete ? save('draft') : form.submit(() => {})())
   const title = isEnvironmental
     ? t('laboratoryRecords.environmentalResult')
     : t('laboratoryRecords.resultAndOrganism')
+  const blockedReason = !form.valid ? form.missingLabels.join(', ') : ''
   return (
     <ObserverDialog
       width="standard"
-      fixedHeight
       className="lab-result-dialog"
       eyebrow={t('laboratoryRecords.microbiologyResult')}
       title={title}
@@ -77,11 +88,12 @@ export function ResultDialog({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" disabled={!complete} onClick={() => save('draft')}>
+          {canValidate && blockedReason && <p className="form-missing-summary" role="status"><strong>{en ? 'To validate, fill in:' : 'Για επικύρωση συμπληρώστε:'}</strong> {blockedReason}</p>}
+          <Button variant="secondary" className={complete ? '' : 'is-blocked'} aria-disabled={!complete || undefined} onClick={saveDraft}>
             {tx('saveDraft')}
           </Button>
           {canValidate && (
-            <Button disabled={!complete || needsOrganism} onClick={() => save('validated')}>
+            <Button className={form.valid ? '' : 'is-blocked'} aria-disabled={!form.valid || undefined} title={blockedReason ? `${en ? 'To validate, fill in: ' : 'Για επικύρωση συμπληρώστε: '}${blockedReason}` : undefined} onClick={form.submit(() => save('validated'))}>
               <CheckCircle2 size={15} />
               {tx('validate')}
             </Button>
@@ -89,10 +101,12 @@ export function ResultDialog({
         </>
       }
     >
-      <div className="lab-dialog-form">
+      <div className="lab-dialog-form" ref={form.scopeRef}>
         <ChoiceField
           className="lab-dialog-span"
-          label={`${t('result')} *`}
+          label={t('result')}
+          {...form.field('result')}
+          placeholder={en ? 'Select result' : 'Επιλέξτε αποτέλεσμα'}
           value={draft.result}
           onChange={value => set('result', value)}
           options={RESULT_VALUES.map(value => ({ value, label: t(value) }))}
@@ -113,7 +127,8 @@ export function ResultDialog({
         {draft.result === 'positive' && (
           <div className="lab-dialog-span">
             <MultiSelect
-              label={`${tx('organisms')} *`}
+              label={tx('organisms')}
+              {...form.field('organisms')}
               options={options}
               selected={draft.organisms}
               onChange={next => set('organisms', next)}
@@ -134,11 +149,10 @@ export function ResultDialog({
                 ))}
               </div>
             )}
-            {needsOrganism && <small className="lab-dialog-hint">{tx('organismRequired')}</small>}
           </div>
         )}
         {isEnvironmental && draft.result === 'positive' && (
-          <Field label={tx('cfu')}>
+          <Field label={tx('cfu')} {...form.field('cfu')}>
             <input
               inputMode="decimal"
               value={draft.cfuCount}
@@ -178,6 +192,12 @@ export function AstDialog({
     setDraft(d => ({ ...d, drug: value, code: (value && item?.code) || '' }))
   }
   const noMatch = language === 'el' ? 'Καμία αντιστοιχία' : 'No match'
+  const form = useFormValidation([
+    { key: 'organism', label: tx('organism'), valid: Boolean(draft.organism) },
+    { key: 'drug', label: tx('antibiotic'), valid: Boolean(draft.drug) },
+    { key: 'sir', label: 'S/I/R', valid: Boolean(draft.sir) },
+    { key: 'version', label: tx('version'), valid: Boolean(draft.version.trim()) },
+  ])
   return (
     <ObserverDialog
       width="standard"
@@ -186,22 +206,23 @@ export function AstDialog({
       subtitle={draft.organism}
       onClose={onClose}
       footer={
-        <DialogActions
-          onSave={() => onSave(draft)}
-          disabled={!draft.organism || !draft.drug || !draft.version}
-        />
+        <FormSubmit form={form} onSubmit={() => onSave(draft)}>
+          {language === 'el' ? 'Αποθήκευση' : 'Save'}
+        </FormSubmit>
       }
     >
-      <div className="lab-dialog-form">
+      <div className="lab-dialog-form" ref={form.scopeRef}>
         <SearchableSelect
-          label={`${tx('organism')} *`}
+          label={tx('organism')}
+          {...form.field('organism')}
           value={draft.organism}
           onChange={value => value && set('organism', value)}
           options={organisms.map(x => ({ value: x, label: x }))}
           emptyLabel={noMatch}
         />
         <SearchableSelect
-          label={`${tx('antibiotic')} *`}
+          label={tx('antibiotic')}
+          {...form.field('drug')}
           value={draft.drug}
           onChange={choose}
           options={libraryOptions(antibiotics, language)}
@@ -211,7 +232,9 @@ export function AstDialog({
         />
         <ChoiceField
           className="lab-dialog-span lab-sir-choice"
-          label="S/I/R *"
+          label="S/I/R"
+          {...form.field('sir')}
+          placeholder={language === 'el' ? 'Επιλέξτε' : 'Select'}
           value={draft.sir}
           onChange={value => set('sir', value)}
           options={['S', 'I', 'R'].map(value => ({ value, label: value }))}
@@ -225,7 +248,7 @@ export function AstDialog({
         <Field label={tx('standard')}>
           <input value={draft.standard} onChange={e => set('standard', e.target.value)} />
         </Field>
-        <Field label={`${tx('version')} *`}>
+        <Field label={tx('version')} {...form.field('version')}>
           <input value={draft.version} onChange={e => set('version', e.target.value)} />
         </Field>
         <div className="lab-dialog-span">
@@ -246,6 +269,11 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
     rationale: '',
   })
   const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
+  const form = useFormValidation([
+    { key: 'classification', label: tx('classification'), valid: Boolean(draft.classification) },
+    { key: 'definitionSource', label: tx('definitionSource'), valid: Boolean(draft.definitionSource.trim()) },
+    { key: 'definitionVersion', label: tx('definitionVersion'), valid: Boolean(draft.definitionVersion.trim()) },
+  ])
   return (
     <ObserverDialog
       width="standard"
@@ -254,16 +282,17 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
       subtitle={organism}
       onClose={onClose}
       footer={
-        <DialogActions
-          onSave={() => onSave({ ...draft, organism })}
-          disabled={!draft.classification || !draft.definitionSource || !draft.definitionVersion}
-        />
+        <FormSubmit form={form} onSubmit={() => onSave({ ...draft, organism })}>
+          {language === 'el' ? 'Αποθήκευση' : 'Save'}
+        </FormSubmit>
       }
     >
-      <div className="lab-dialog-form">
+      <div className="lab-dialog-form" ref={form.scopeRef}>
         <ChoiceField
           className="lab-dialog-span"
-          label={`${tx('classification')} *`}
+          label={tx('classification')}
+          {...form.field('classification')}
+          placeholder={language === 'el' ? 'Επιλέξτε κατηγορία' : 'Select category'}
           value={draft.classification}
           onChange={value => set('classification', value)}
           options={AMR_CLASSES.map(item => ({
@@ -271,13 +300,13 @@ export function AmrDialog({ tx, language, organism, initialClassification = '', 
             label: language === 'el' ? item.el : item.en,
           }))}
         />
-        <Field label={`${tx('definitionSource')} *`}>
+        <Field label={tx('definitionSource')} {...form.field('definitionSource')}>
           <input
             value={draft.definitionSource}
             onChange={e => set('definitionSource', e.target.value)}
           />
         </Field>
-        <Field label={`${tx('definitionVersion')} *`}>
+        <Field label={tx('definitionVersion')} {...form.field('definitionVersion')}>
           <input
             value={draft.definitionVersion}
             onChange={e => set('definitionVersion', e.target.value)}
@@ -312,6 +341,11 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
     notes: '',
   })
   const set = (key, value) => setDraft(d => ({ ...d, [key]: value }))
+  const form = useFormValidation([
+    { key: 'recipientName', label: tx('recipient'), valid: Boolean(draft.recipientName.trim()) },
+    { key: 'recipientRole', label: tx('role'), valid: Boolean(draft.recipientRole.trim()) },
+    { key: 'communicatedDate', label: tx('date'), valid: Boolean(draft.communicatedDate) },
+  ])
   return (
     <ObserverDialog
       width="standard"
@@ -319,22 +353,24 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
       title={tx('communicationTitle')}
       onClose={onClose}
       footer={
-        <DialogActions
-          onSave={() =>
+        <FormSubmit
+          form={form}
+          onSubmit={() =>
             onSave({
               ...draft,
               at: `${draft.communicatedDate}T${draft.communicatedTime || '00:00'}`,
             })
           }
-          disabled={!draft.recipientName || !draft.recipientRole || !draft.communicatedDate}
-        />
+        >
+          {language === 'el' ? 'Αποθήκευση' : 'Save'}
+        </FormSubmit>
       }
     >
-      <div className="lab-dialog-form">
-        <Field label={`${tx('recipient')} *`}>
+      <div className="lab-dialog-form" ref={form.scopeRef}>
+        <Field label={tx('recipient')} {...form.field('recipientName')}>
           <input value={draft.recipientName} onChange={e => set('recipientName', e.target.value)} />
         </Field>
-        <Field label={`${tx('role')} *`}>
+        <Field label={tx('role')} {...form.field('recipientRole')}>
           <input value={draft.recipientRole} onChange={e => set('recipientRole', e.target.value)} />
         </Field>
         <Field label={tx('department')}>
@@ -351,7 +387,8 @@ export function CommunicationDialog({ tx, onClose, onSave }) {
           emptyLabel={language === 'el' ? 'Καμία αντιστοιχία' : 'No match'}
         />
         <ManualDateField
-          label={`${tx('date')} *`}
+          label={tx('date')}
+          {...form.field('communicatedDate')}
           value={draft.communicatedDate}
           onChange={v => set('communicatedDate', v)}
         />

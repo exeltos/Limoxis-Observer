@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button } from '../../design-system/Button'
+import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
@@ -154,6 +154,12 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
   const en = language === 'en',
     valid = chosen.length > 0,
     texts = listTexts(language)
+  const form = useFormValidation([
+    { key: 'date', label: en ? 'Screening date' : 'Ημερομηνία ελέγχου', valid: Boolean(date) },
+    { key: 'types', label: en ? 'Screening type' : 'Τύπος ελέγχου', valid: types.length > 0 },
+    { key: 'employees', label: en ? 'Employees' : 'Εργαζόμενοι', valid },
+  ])
+  // The window is as tall as its few fields (no fixed height with an empty area under them).
   return (
     <ObserverDialog
       width="standard"
@@ -165,10 +171,9 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
           ? 'Tick one or more employees; each one gets their own surveillance record.'
           : 'Επιλέξτε έναν ή περισσότερους εργαζόμενους· ο καθένας αποκτά τη δική του επιτήρηση.'
       }
-      fixedHeight
       onClose={onClose}
       footer={
-        <Button disabled={saving || !date || !types.length || !valid} onClick={save}>
+        <FormSubmit form={form} icon={false} disabled={saving} onSubmit={save}>
           {saving
             ? en
               ? 'Saving…'
@@ -176,7 +181,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
             : en
               ? 'Create surveillance'
               : 'Δημιουργία επιτήρησης'}
-        </Button>
+        </FormSubmit>
       }
     >
       <div className="employee-surveillance-body">
@@ -189,16 +194,19 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
             emptyLabel={texts.emptyLabel}
             clearLabel={texts.clearLabel}
             onChange={value => setDepartment(value || 'all')}
+            hint={en ? 'Narrows the list of employees below.' : 'Περιορίζει τη λίστα εργαζομένων παρακάτω.'}
           />
           <ManualDateField
             label={en ? 'Screening date' : 'Ημερομηνία ελέγχου'}
+            {...form.field('date')}
             value={date}
             onChange={setDate}
           />
         </div>
-        <ScreeningTypes types={types} toggle={toggleType} en={en} />
+        <ScreeningTypes types={types} toggle={toggleType} en={en} fieldProps={form.field('types')} />
         <MultiSelect
           label={en ? 'Employees' : 'Εργαζόμενοι'}
+          {...(employee ? {} : form.field('employees'))}
           options={employeeOptions}
           selected={employee ? [employee.id] : selectedIds}
           onChange={setSelectedIds}
@@ -223,9 +231,10 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     </ObserverDialog>
   )
 }
-function ScreeningTypes({ types, toggle, en }) {
+function ScreeningTypes({ types, toggle, en, fieldProps }) {
   return (
     <ChoiceChips
+      {...fieldProps}
       className="bulk-screening-types"
       label={en ? 'Screening type' : 'Τύπος ελέγχου'}
       options={employeeScreeningOptions(en ? 'en' : 'el')}

@@ -10,9 +10,11 @@ export function ChoiceField({
   disabled = false,
   className = '',
   placeholder = '',
+  ...fieldProps
 }) {
   return (
     <SearchableSelect
+      {...fieldProps}
       className={className}
       label={label}
       value={value ?? ''}

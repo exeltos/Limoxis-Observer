@@ -1,0 +1,20 @@
+/* DetailList: sections of label / value pairs, two columns, no boxes. */
+.lo-detail-sections{display:flex;flex-direction:column;gap:12px;margin-top:2px}
+.lo-detail-section{min-width:0}
+.lo-detail-heading{margin:0;padding:0 0 4px;font-size:10.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:#6b7e91;border-bottom:1px solid #d7e0e8}
+.lo-detail-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;margin:0;padding:0}
+.lo-detail-item{display:grid;grid-template-columns:minmax(110px,40%) minmax(0,1fr);column-gap:12px;align-items:baseline;min-width:0;margin:0;padding:6px 0 7px;border-bottom:1px solid #edf1f5}
+.lo-detail-item.is-wide{grid-column:1/-1}
+.lo-detail-item dt{margin:0;font-size:11.5px;font-weight:600;line-height:1.3;color:#718096}
+.lo-detail-item dd{margin:0;font-size:13px;font-weight:600;line-height:1.35;color:#18364f;overflow-wrap:anywhere;white-space:normal}
+.lo-detail-item.is-wide dd{font-weight:500;white-space:pre-wrap}
+.lo-detail-item.is-empty dd{font-weight:400;color:#97a5b3}
+.lo-detail-item dd .status-badge{margin-left:4px;vertical-align:middle}
+.lo-detail-item dd small{display:block;margin-top:2px;font-size:11.5px;font-weight:500;color:#5b6e82;white-space:normal}
+.lo-detail-missing{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin:6px 0 0;font-size:12px;line-height:1.4;color:#8493a3}
+.lo-detail-missing-link{border:0;background:transparent;padding:0;font:inherit;font-weight:650;color:#1f6b9b;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.lo-detail-missing-link:hover{color:#164e74}
+@media(max-width:760px){.lo-detail-list{grid-template-columns:1fr}.lo-detail-item{grid-template-columns:1fr;row-gap:1px}}
+@media print{.lo-detail-item{break-inside:avoid}}
+/* Narrow column (the patient beside the current surveillance of an episode): one column. */
+.summary-two-column .summary-patient-card .lo-detail-list{grid-template-columns:1fr}

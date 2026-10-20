@@ -31,7 +31,7 @@ export function EmployeePositionTab({employee,positions=[],language,organization
  useEffect(()=>{let active=true;loadPositionAcknowledgements(organizationId,employee).then(rows=>{if(active)setAcks(rows)}).catch(()=>{if(active)setAcks([])});return()=>{active=false}},[organizationId,employee])
  const forPosition=useMemo(()=>acks.filter(a=>a.position===employee.position),[acks,employee.position])
  const {state,latest}=acknowledgementState(jd,forPosition)
- const fmt=v=>v?new Intl.DateTimeFormat(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'—'
+ const fmt=v=>v?new Intl.DateTimeFormat(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short', hourCycle: 'h23'}).format(new Date(v)):'—'
  async function accept(){
   setBusy(true)
   try{const saved=await acknowledgePosition(organizationId,employee,{position:employee.position,version:jd.version,actorName});setAcks(current=>[saved,...current]);notify(en?'Job description accepted.':'Η περιγραφή θέσης έγινε αποδεκτή.','success')}

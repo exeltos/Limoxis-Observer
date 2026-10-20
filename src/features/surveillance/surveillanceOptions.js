@@ -80,3 +80,11 @@ export function listTexts(language='el'){
     customLabel:text=>en?`Use «${text}»`:`Χρήση «${text}»`,
   }
 }
+
+// The period filter of the lists: the record started within the last N days («all» keeps everything).
+export const PERIOD_DAYS = [7, 30, 90, 365]
+export function inPeriod(value, period) {
+  if (!period || period === 'all') return true
+  const time = value ? new Date(String(value).length <= 10 ? `${value}T12:00:00` : value).getTime() : NaN
+  return !Number.isNaN(time) && Date.now() - time <= Number(period) * 86400000
+}

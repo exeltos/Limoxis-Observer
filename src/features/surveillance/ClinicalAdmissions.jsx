@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Check,
   LogOut,
+  Pencil,
   Plus,
   Trash2,
 } from 'lucide-react'
@@ -18,6 +19,10 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate, useLanguage } from '../../core/i18n/LanguageContext'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
+import { MoreSection } from '../../design-system/MoreSection'
+import { DetailList } from '../../design-system/DetailList'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { can, CAPABILITIES } from '../../core/permissions/roles'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import {
   createAdmission,
@@ -28,8 +33,10 @@ import {
 } from '../patients/patientsService'
 import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { PatientFormFields, usePatientForm } from '../patients/PatientsPage'
-import { SaveButton } from '../../design-system/SaveButton'
+import { FormSubmit } from '../../design-system/FormValidation'
 import { SimpleDialog } from './ClinicalRecordDialogs'
+import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
+import { formatDay } from '../../core/i18n/formatDay'
 import { clinicalTerm } from './clinicalRecordLabels'
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
@@ -58,12 +65,21 @@ export function PatientDetailsSection({
   // «Edit patient» turns the patient details into the form, in place.
   const [editing, setEditing] = useState(false)
   const [savingPatient, setSavingPatient] = useState(false)
+  const { role, membership } = useTenant()
+  const canEditPatient = can(role, CAPABILITIES.EDIT_PATIENT, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  // One rule: «Edit» is the visible button; the «…» menu keeps only the other actions
+  // (never a second «Edit patient»), and the missing-fields line has no second link.
   const actions = editing ? null : (
     <>
       {leadingActions}
+      {canEditPatient && (
+        <Button variant="secondary" onClick={() => setEditing(true)}>
+          <Pencil size={15} />
+          {t('edit')}
+        </Button>
+      )}
       <PatientSummaryActions
         patient={patient}
-        onEdit={() => setEditing(true)}
         onDeleted={onDeleted}
         extraItems={extraMenuItems}
       />
@@ -88,63 +104,54 @@ export function PatientDetailsSection({
   // CLABSI indicators, so say so where the value can be corrected.
   const infantWithoutBirthWeight =
     ageInDays != null && ageInDays <= 365 && !patient?.birthWeightGrams
-  const profile = [
-    [
-      translate('copy.clinicalRecordCopy.patientCode', language === 'el' ? 'el' : 'en'),
-      patient?.id,
-    ],
-    [
-      translate('copy.clinicalRecordCopy.hospitalRecordNumber', language === 'el' ? 'el' : 'en'),
-      patient?.hospitalRecordNumber,
-    ],
-    // Separate surname / first name (as in the patient form) instead of one
-    // "full name" field whose order differed from the header.
-    [
-      translate('copy.clinicalRecordCopy.lastName', language === 'el' ? 'el' : 'en'),
-      (language === 'en' && patient?.lastNameEn) ||
-        patient?.lastName ||
-        (!patient?.firstName && patient?.name) ||
-        '—',
-    ],
-    [
-      translate('copy.clinicalRecordCopy.firstName', language === 'el' ? 'el' : 'en'),
-      (language === 'en' && patient?.firstNameEn) || patient?.firstName || '—',
-    ],
-    [
-      translate('copy.clinicalRecordCopy.fatherName', language === 'el' ? 'el' : 'en'),
-      (language === 'en' && patient?.patronymicEn) || patient?.fatherName || patient?.patronymic,
-    ],
-    [
-      translate('copy.clinicalRecordCopy.dateOfBirthAge', language === 'el' ? 'el' : 'en'),
-      patient?.dateOfBirth ? `${fmtDate(patient.dateOfBirth)} · ${ageLabel}` : '—',
-    ],
-    patient?.birthWeightGrams
-      ? [
-          translate('copy.clinicalRecordCopy.birthWeight', language === 'el' ? 'el' : 'en'),
-          `${patient.birthWeightGrams} g`,
-        ]
-      : infantWithoutBirthWeight
-        ? [translate('copy.clinicalRecordCopy.birthWeight', language === 'el' ? 'el' : 'en'), '—']
-        : null,
-    patient?.gestationalAgeWeeks
-      ? [
-          translate('copy.clinicalRecordCopy.gestationalAge', language === 'el' ? 'el' : 'en'),
-          `${patient.gestationalAgeWeeks} ${translate('copy.clinicalRecordCopy.wk', language === 'el' ? 'el' : 'en')}`,
-        ]
-      : null,
-    [
-      translate('copy.clinicalRecordCopy.sex', language === 'el' ? 'el' : 'en'),
-      patient?.sex ? t(patient.sex) : '—',
-    ],
-    // With the admission shown here too, its department replaces «current department».
-    stayFields
-      ? null
-      : [
-          translate('copy.clinicalRecordCopy.currentDepartment', language === 'el' ? 'el' : 'en'),
-          patient?.department || '—',
-        ],
-    ...(stayFields || []),
-  ].filter(Boolean)
+  const lang = language === 'el' ? 'el' : 'en'
+  const cr = key => translate(`copy.clinicalRecordCopy.${key}`, lang)
+  // Grouped as a details list: the patient, the stay, the clinical details.
+  const detailSections = [
+    {
+      title: t('clinicalRecords.sectionPatient'),
+      collapseMissing: true,
+      items: [
+        { label: cr('patientCode'), value: patient?.id },
+        { label: cr('hospitalRecordNumber'), value: patient?.hospitalRecordNumber },
+        // Separate surname / first name (as in the patient form) instead of one
+        // "full name" field whose order differed from the header.
+        {
+          label: cr('lastName'),
+          value:
+            (language === 'en' && patient?.lastNameEn) ||
+            patient?.lastName ||
+            (!patient?.firstName && patient?.name) ||
+            '',
+        },
+        { label: cr('firstName'), value: (language === 'en' && patient?.firstNameEn) || patient?.firstName || '' },
+        { label: cr('fatherName'), value: (language === 'en' && patient?.patronymicEn) || patient?.fatherName || patient?.patronymic },
+        { label: cr('dateOfBirthAge'), value: patient?.dateOfBirth ? `${fmtDate(patient.dateOfBirth)} · ${ageLabel}` : '' },
+        { label: cr('sex'), value: patient?.sex ? t(patient.sex) : '' },
+        patient?.notes ? { label: cr('notes'), value: patient.notes, wide: true } : null,
+      ],
+    },
+    {
+      title: t('clinicalRecords.sectionStay'),
+      // With the admission shown here too, its department replaces «current department».
+      items: stayFields
+        ? stayFields.map(([label, value]) => ({ label, value }))
+        : patient?.department
+          ? [{ label: cr('currentDepartment'), value: patient.department }]
+          : [],
+    },
+    {
+      title: t('clinicalRecords.sectionClinical'),
+      items: [
+        patient?.birthWeightGrams || infantWithoutBirthWeight
+          ? { label: cr('birthWeight'), value: patient?.birthWeightGrams ? `${patient.birthWeightGrams} g` : '' }
+          : null,
+        patient?.gestationalAgeWeeks
+          ? { label: cr('gestationalAge'), value: `${patient.gestationalAgeWeeks} ${cr('wk')}` }
+          : null,
+      ],
+    },
+  ]
   return (
     <section className="clinical-panel patient-summary-card">
       {!editing && (
@@ -193,19 +200,7 @@ export function PatientDetailsSection({
           }}
         />
       ) : (
-        <div className="detail-grid patient-detail-grid patient-detail-grid-wide">
-          {profile.map(([label, value]) => (
-            <Detail key={label} label={label} value={value} />
-          ))}
-          {patient?.notes && (
-            <div className="detail-item patient-detail-notes">
-              <span className="lo-field-label">
-                {translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en')}
-              </span>
-              <strong title={patient.notes}>{patient.notes}</strong>
-            </div>
-          )}
-        </div>
+        <DetailList sections={detailSections} />
       )}
       {infantWithoutBirthWeight && (
         <p className="field-hint neonatal-missing-weight" role="status">
@@ -372,8 +367,27 @@ export function CanonicalSummary({
   ) : (
     t('clinicalRecords.none')
   )
+  // A surveillance episode's summary (no patient sheet above it): the patient's few
+  // details beside the current surveillance, two columns on a wide screen, the
+  // secondary rows folded behind "More" — one screen, no long scrolling.
+  const twoColumn = Boolean(record) && !(admission && showPatientActions)
+  const sampleCountValue = recordSamples.length
+    ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
+    : t('clinicalRecords.none')
+  const therapyItem = { label: t('therapy'), value: therapyValue }
+  const lastReviewItem = {
+    label: t('clinicalRecords.lastReassessment'),
+    value: lastReview ? clinicalTerm(lastReview.status, language, t) : t('clinicalRecords.none'),
+  }
+  const samplesItem = { label: t('clinicalRecords.samplesLabel'), value: sampleCountValue }
+  // A therapy awaiting approval needs action: it stays in view.
+  const secondaryItems = pendingTherapy.length
+    ? [samplesItem, lastReviewItem]
+    : [samplesItem, therapyItem, lastReviewItem]
   return (
-    <div className="patient-summary-layout clean-patient-summary">
+    <div
+      className={`patient-summary-layout clean-patient-summary${twoColumn ? ' summary-two-column' : ''}`}
+    >
       {attention.length > 0 && (
         // One compact «Needs attention» strip, the same as inside an episode.
         <div
@@ -454,7 +468,7 @@ export function CanonicalSummary({
         />
       )}
       {!(admission && showPatientActions) && (
-        <section className="clinical-panel patient-summary-card">
+        <section className="clinical-panel patient-summary-card summary-patient-card">
           <SectionHeader
             title={
               admission
@@ -463,88 +477,65 @@ export function CanonicalSummary({
             }
             actions={actions}
           />
-          <div className="detail-grid patient-detail-grid">
-            {details.map(([label, value]) => (
-              <Detail key={label} label={label} value={value} />
-            ))}
-          </div>
+          <DetailList sections={[{ items: details.map(([label, value]) => ({ label, value })) }]} />
         </section>
       )}
       {!record && (
         <section className="clinical-panel patient-summary-card">
           <SectionHeader title={t('clinicalRecords.clinicalPicture')} />
-          <div className="detail-grid patient-detail-grid">
-            {clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => (
-              <Detail
-                key={kind}
-                label={en ? config.labelEn : config.labelEl}
-                value={
-                  <>
-                    {badge(`${scaleShortName(row.scale_key)} ${row.score ?? '—'}`, tone)}
-                    {row.assessed_at ? <small> {fmtDate(row.assessed_at)}</small> : null}
-                  </>
-                }
-              />
-            ))}
-            {!scaleRows.length && (
-              <Detail
-                label={t('clinicalRecords.clinicalAssessmentLabel')}
-                value={t('clinicalRecords.none')}
-              />
-            )}
-            <Detail
-              label={t('clinicalRecords.samplesLabel')}
-              value={
-                recordSamples.length
-                  ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
-                  : t('clinicalRecords.none')
-              }
-            />
-            <Detail label={t('clinicalRecords.latestFinding')} value={findingValue} />
-            <Detail label={t('surveillance')} value={t('clinicalRecords.noSurveillance')} />
-          </div>
+          <DetailList
+            sections={[
+              {
+                items: [
+                  ...clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => ({
+                    key: kind,
+                    label: en ? config.labelEn : config.labelEl,
+                    value: (
+                      <>
+                        {badge(`${scaleShortName(row.scale_key)} ${row.score ?? '—'}`, tone)}
+                        {row.assessed_at ? <small> {fmtDate(row.assessed_at)}</small> : null}
+                      </>
+                    ),
+                  })),
+                  !scaleRows.length ? { label: t('clinicalRecords.clinicalAssessmentLabel'), value: t('clinicalRecords.none') } : null,
+                  { label: t('clinicalRecords.samplesLabel'), value: sampleCountValue },
+                  { label: t('clinicalRecords.latestFinding'), value: findingValue },
+                  { label: t('surveillance'), value: t('clinicalRecords.noSurveillance') },
+                ],
+              },
+            ]}
+          />
         </section>
       )}
       {record && (
         <section className="clinical-panel patient-summary-card">
           <SectionHeader title={t('clinicalRecords.currentSurveillance')} />
-          <div className="detail-grid patient-detail-grid">
-            <Detail
-              label={t('surveillance')}
-              value={badge(t(record.status), record.status === 'active' ? 'active' : '')}
-            />
-            <Detail label={t('clinicalRecords.haiClassification')} value={haiValue} />
-            <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={assessmentValue} />
-            <Detail label={t('clinicalRecords.latestFinding')} value={findingValue} />
-            <Detail
-              label={t('clinicalRecords.samplesLabel')}
-              value={
-                recordSamples.length
-                  ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
-                  : t('clinicalRecords.none')
-              }
-            />
-            <Detail label={t('therapy')} value={therapyValue} />
-            <Detail label={t('isolation')} value={isolationValue} />
-            <Detail
-              label={t('clinicalRecords.lastReassessment')}
-              value={
-                lastReview
-                  ? clinicalTerm(lastReview.status, language, t)
-                  : t('clinicalRecords.none')
-              }
-            />
-            <Detail
-              label={t('nextReview')}
-              value={
-                record.status === 'active' ? (
-                  <DueDate value={record.reviewDue} format={fmtDate} />
-                ) : (
-                  fmtDate(record.reviewDue)
-                )
-              }
-            />
-          </div>
+          <DetailList
+            sections={[
+              {
+                items: [
+                  { label: t('surveillance'), value: badge(t(record.status), record.status === 'active' ? 'active' : '') },
+                  { label: t('clinicalRecords.haiClassification'), value: haiValue },
+                  { label: t('clinicalRecords.clinicalAssessmentLabel'), value: assessmentValue },
+                  { label: t('clinicalRecords.latestFinding'), value: findingValue },
+                  pendingTherapy.length > 0 ? { label: t('therapy'), value: therapyValue } : null,
+                  { label: t('isolation'), value: isolationValue },
+                  {
+                    label: t('nextReview'),
+                    value:
+                      record.status === 'active' ? (
+                        <DueDate value={record.reviewDue} format={fmtDate} />
+                      ) : (
+                        fmtDate(record.reviewDue)
+                      ),
+                  },
+                ],
+              },
+            ]}
+          />
+          <MoreSection className="summary-more">
+            <DetailList sections={[{ items: secondaryItems }]} />
+          </MoreSection>
         </section>
       )}
     </div>
@@ -572,13 +563,13 @@ function PatientDetailsEditor({
             <Button variant="secondary" onClick={onCancel} disabled={saving}>
               {t('cancelChanges')}
             </Button>
-            <SaveButton
+            <FormSubmit
+              form={form.validation}
               loading={saving}
-              disabled={form.invalid || saving}
-              onClick={() => onSave(form.payload())}
+              onSubmit={() => onSave(form.payload())}
             >
               {t('save')}
-            </SaveButton>
+            </FormSubmit>
           </>
         }
       />
@@ -618,6 +609,20 @@ function useAdmissionLifecycle({
   const open = next => {
     setDraft({ date: new Date().toISOString().slice(0, 10), departmentId: '', reason: '' })
     setKind(next)
+  }
+  // The discharge is recorded only from the confirmation step of its dialog.
+  async function confirmDischarge(result) {
+    try {
+      setBusy(true)
+      await dischargeAdmission(tenantId, patient, admission, result, { isDemo })
+      setKind(null)
+      await onChanged?.()
+      notify(t('saved'), 'success')
+    } catch (error) {
+      notify(error?.message || t('actionFailed'), 'danger')
+    } finally {
+      setBusy(false)
+    }
   }
   async function save() {
     if (!draft.date) return
@@ -664,7 +669,18 @@ function useAdmissionLifecycle({
           },
         ]
       : []
-  const dialog = kind ? (
+  const dialog = kind === 'discharge' ? (
+    <AdmissionDischargeDialog
+      patient={patient}
+      admission={admission}
+      t={t}
+      language={language}
+      fmtDate={value => formatDay(value, language)}
+      busy={busy}
+      onClose={() => setKind(null)}
+      onConfirm={confirmDischarge}
+    />
+  ) : kind ? (
     <SimpleDialog
       title={
         kind === 'transfer'

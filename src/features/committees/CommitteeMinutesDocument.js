@@ -26,7 +26,7 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }) {
     (minutes.scheduledAt
       ? new Date(minutes.scheduledAt).toLocaleTimeString(en ? 'en-GB' : 'el-GR', {
           hour: '2-digit',
-          minute: '2-digit',
+          minute: '2-digit', hourCycle: 'h23',
         })
       : '')
   return {
