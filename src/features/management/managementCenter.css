@@ -176,4 +176,7 @@
 .outbreak-section-title{margin:0 0 6px;font-size:13px;font-weight:750;color:#1d3a52}
 .outbreak-clusters li .outbreak-start{flex:none;min-height:30px;padding:3px 12px;font-size:12.5px}
 .outbreak-cluster-note{margin:0 0 12px;font-size:12.5px;color:#4a5f6c}
+.outbreak-clusters li small.outbreak-cluster-rule{display:block;margin-top:2px;font-size:12px;color:#7a5a00}
+.outbreak-create-form{min-width:0;max-width:100%}
+.outbreak-create-form .lo-form-grid>*{min-width:0}
 @media(max-width:640px){.outbreak-clusters li{flex-direction:column;align-items:flex-start}}
