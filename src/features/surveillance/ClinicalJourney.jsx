@@ -69,6 +69,7 @@ export function CanonicalJourney({
   fmtDate,
   fmtDateTime,
   permissions,
+  deviceBundles = null,
   initialStage = null,
   startProtocolRequest = null,
   onProtocolRequestHandled,
@@ -331,18 +332,47 @@ export function CanonicalJourney({
                       language === 'el' ? 'el' : 'en',
                     ),
                   },
+                  ...(deviceBundles ? [{ key: 'day', label: t('episodeForms.bundles.dayColumn') }] : []),
                   { key: 'status', label: t('status') },
+                  ...(deviceBundles ? [{ key: 'bundle', label: t('episodeForms.bundles.column') }, { key: 'check', label: '' }] : []),
                 ]}
                 rows={record.devices}
-                renderRow={x => (
+                renderRow={x => {
+                  // The one place a bundle check starts: only a device still in place has one.
+                  const bundle = deviceBundles && !x.removedAt && x.status !== 'removed' ? deviceBundles.info(x) : null
+                  const hasBundle = Boolean(bundle?.bundleKeys.length)
+                  return (
                   <>
                     <td>{x.name || x.type || '—'}</td>
                     <td>{fmtDate(x.insertedAt || x.startedAt)}</td>
+                    {deviceBundles && <td>{bundle?.deviceDay ?? '—'}</td>}
                     <td>
                       <StateBadge status={x.status || 'active'} label={t(x.status || 'active')} />
                     </td>
+                    {deviceBundles && (
+                      <td>
+                        {hasBundle ? (
+                          <>
+                            {bundle.bundleKeys[0]}
+                            <small className="entry-detail-note">{t(`episodeForms.status.${bundle.status}`)}</small>
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    )}
+                    {deviceBundles && (
+                      <td className="open-record-cell">
+                        {hasBundle && deviceBundles.canCheck && (
+                          <Button variant={bundle.status === 'overdue' ? 'primary' : 'secondary'} onClick={() => deviceBundles.check(x, record)}>
+                            {t('episodeForms.bundles.check')}
+                          </Button>
+                        )}
+                      </td>
+                    )}
                   </>
-                )}
+                  )
+                }}
               />
             ) : (
               <div className="inline-empty">

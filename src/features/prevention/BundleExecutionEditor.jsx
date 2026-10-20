@@ -9,6 +9,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments } from './PreventionFields'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadBundleClinicalOptions } from './bundleCloudService'
+import { PrefilledList } from '../surveillance/forms/PrefilledList'
 
 function scoreFor(answers = {}) {
   const applicable = Object.values(answers).filter(x => x === 'yes' || x === 'no')
@@ -32,6 +33,7 @@ export function BundleExecutionEditor({
   initialRecord = null,
   departments = [],
   templates = [],
+  prefill = null,
 }) {
   const { profile, user } = useAuth()
   const { tenant } = useTenant()
@@ -41,19 +43,30 @@ export function BundleExecutionEditor({
   const [saving, setSaving] = useState(false)
   const [clinicalLoading, setClinicalLoading] = useState(false)
   const [clinicalOptions, setClinicalOptions] = useState({ patients: [], devices: [] })
+  // Opened from a device of an episode: the patient, episode, device, department and day
+  // come from there (locked); the user chooses only date, shift and the bundle elements.
+  const locked = Boolean(prefill?.surveillanceDeviceId) && !initialRecord
   const [draft, setDraft] = useState(() =>
     initialRecord
       ? JSON.parse(JSON.stringify(initialRecord))
       : {
+          ...(locked
+            ? {
+                surveillanceCaseId: prefill.surveillanceCaseId,
+                surveillanceDeviceId: prefill.surveillanceDeviceId,
+                patientRecordId: prefill.patientRecordId || '',
+                deviceDay: prefill.deviceDay || null,
+              }
+            : {}),
           templateId: '',
-          departmentEl: fixedDepartment || '',
-          date: '',
-          shift: '',
+          departmentEl: (locked && prefill.departmentName) || fixedDepartment || '',
+          date: (locked && prefill.date) || '',
+          shift: (locked && prefill.shift) || '',
           context: '',
-          patientId: '',
-          patientRef: '',
-          deviceId: '',
-          deviceRef: '',
+          patientId: (locked && prefill.patientRecordId) || '',
+          patientRef: (locked && prefill.patientLabel) || '',
+          deviceId: (locked && prefill.surveillanceDeviceId) || '',
+          deviceRef: (locked && prefill.deviceLabel) || '',
           answers: {},
           answerNotes: {},
           generalNotes: '',
@@ -65,8 +78,24 @@ export function BundleExecutionEditor({
     if (!initialRecord && fixedDepartment && draft.departmentEl !== fixedDepartment)
       setDraft(current => ({ ...current, departmentEl: fixedDepartment }))
   }, [fixedDepartment, initialRecord, draft.departmentEl])
+  // The episode's department, matched to the organization's list (by id, else by name).
   useEffect(() => {
-    if (!tenant?.id) return
+    if (!locked || !departments.length) return
+    const match =
+      departments.find(item => prefill.departmentId && String(item.id) === String(prefill.departmentId)) ||
+      departments.find(item => [item.el, item.en].includes(prefill.departmentName))
+    if (match && match.el !== draft.departmentEl) setDraft(current => ({ ...current, departmentEl: match.el }))
+  }, [locked, prefill, departments, draft.departmentEl])
+  // The bundle of the device type, chosen as soon as the library is read.
+  useEffect(() => {
+    if (!locked || draft.templateId || !templates.length) return
+    const match = (prefill.bundleKeys || [])
+      .map(key => templates.find(item => item.bundleKey === key || item.id === key))
+      .find(Boolean)
+    if (match) setDraft(current => (current.templateId ? current : { ...current, templateId: match.id }))
+  }, [locked, prefill, templates, draft.templateId])
+  useEffect(() => {
+    if (!tenant?.id || locked) return
     let active = true
     setClinicalLoading(true)
     loadBundleClinicalOptions(tenant.id)
@@ -82,7 +111,7 @@ export function BundleExecutionEditor({
     return () => {
       active = false
     }
-  }, [tenant?.id])
+  }, [tenant?.id, locked])
 
   const template =
     templates.find(x => x.id === draft.templateId || x.bundleKey === draft.templateId) || null
@@ -202,7 +231,21 @@ export function BundleExecutionEditor({
   return (
     <div className="bundle-page-editor">
       <section className="bundle-page-context">
+        {locked && (
+          <PrefilledList
+            items={[
+              { label: en ? 'Patient' : 'Ασθενής', value: prefill.patientLabel },
+              { label: en ? 'Admission' : 'Νοσηλεία', value: prefill.admissionLabel },
+              { label: en ? 'Surveillance episode' : 'Επεισόδιο επιτήρησης', value: prefill.episodeLabel },
+              { label: en ? 'Device' : 'Συσκευή', value: prefill.deviceLabel },
+              { label: en ? 'Device day' : 'Ημέρα συσκευής', value: prefill.deviceDay ? String(prefill.deviceDay) : '' },
+              { label: en ? 'Department' : 'Τμήμα', value: prefill.departmentName },
+              { label: en ? 'Bundle' : 'Δέσμη μέτρων', value: template ? `${template.name} — ${en ? template.titleEn || template.title : template.title}` : '' },
+            ]}
+          />
+        )}
         <div className="bundle-page-grid">
+          {!locked && (
           <SearchableSelect
             label={en ? 'Bundle *' : 'Δέσμη μέτρων *'}
             value={draft.templateId}
@@ -218,12 +261,15 @@ export function BundleExecutionEditor({
             placeholder={en ? 'Select Bundle' : 'Επιλέξτε δέσμη μέτρων'}
             {...selectTexts(en)}
           />
+          )}
+          {!locked && (
           <PreventionDepartmentField
             value={draft.departmentEl}
             onChange={chooseDepartment}
             departments={departments}
             fixed={Boolean(fixedDepartment)}
           />
+          )}
           <ManualDateField
             label={en ? 'Date *' : 'Ημερομηνία *'}
             value={draft.date}
@@ -240,6 +286,7 @@ export function BundleExecutionEditor({
             placeholder={en ? 'Select shift / context' : 'Επιλέξτε βάρδια / πλαίσιο'}
             {...selectTexts(en, { clear: true })}
           />
+          {!locked && (<>
           <SearchableSelect
             label={en ? 'Patient' : 'Ασθενής'}
             value={draft.patientId || ''}
@@ -278,6 +325,7 @@ export function BundleExecutionEditor({
             }
             {...selectTexts(en, { clear: true })}
           />
+          </>)}
         </div>
         {template && (
           <div className="bundle-page-template-meta">

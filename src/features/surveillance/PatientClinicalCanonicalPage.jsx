@@ -9,7 +9,7 @@ import {
   samplesForEpisode,
   samplesOutsideAdmissions,
 } from './patientRecordScope'
-import { FileClock, FolderOpen, ListTree, UserRound, Stethoscope } from 'lucide-react'
+import { ClipboardList, FileClock, FolderOpen, ListTree, UserRound } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
@@ -41,7 +41,10 @@ import { linkLaboratorySampleToSurveillance } from '../laboratory/laboratoryLink
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { PatientWithoutAdmission } from './PatientWithoutAdmission'
 import { createClinicalRepository } from './clinicalRepository'
-import { PatientClinicalScalesPanel } from '../clinical-scales/PatientClinicalScalesPanel'
+import { EpisodeFormsTab } from './forms/EpisodeFormsTab'
+import { useEpisodeFormsData } from './forms/useEpisodeFormsData'
+import { episodeFormSections } from './forms/formsRegistry'
+import { makeDeviceBundles } from './forms/deviceBundles'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
 import {
@@ -64,6 +67,11 @@ export {
   SURVEILLANCE_OUTCOMES,
 } from './clinicalRecordLabels'
 
+// The former clinical assessments tab is now the scales section of the forms tab:
+// an old link or a stored tab name lands on the new tab.
+const legacyTab = id => (id === 'clinicalScales' ? 'episodeForms' : id)
+const deepLinkTab = location => new URLSearchParams(location.search).get('tab')
+
 export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
@@ -71,7 +79,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo, role, membership, canAccessRecord } = useTenant()
-  const { goBack, restored } = useContextualNavigation(patientMode ? '/surveillance?tab=registry' : '/surveillance')
+  const { goBack, goTo, restored } = useContextualNavigation(patientMode ? '/surveillance?tab=registry' : '/surveillance')
   const repository = useMemo(
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
     [isDemo, tenant?.id, actor],
@@ -97,10 +105,13 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const [sampleToLink, setSampleToLink] = useState(null)
   const [clearTestOpen, setClearTestOpen] = useState(false)
   const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
-  // The header's NEWS2 / Braden / GCS chips open the clinical scales with their history.
-  const [scalesOpen, setScalesOpen] = useState(false)
+  // The header's NEWS2 / Braden / GCS chips (and ?tab=clinicalScales) open the scales
+  // section of the forms tab.
+  const [formsOpenRequest, setFormsOpenRequest] = useState(() =>
+    deepLinkTab(location) === 'clinicalScales' ? { id: 'scales', nonce: 0 } : null,
+  )
   const creatingAdmissionSampleRef = useMemo(() => ({ current: false }), [])
-  const [tab, setTab] = useState(() => location.state?.openTab || restored?.tab || 'summary')
+  const [tab, setTab] = useState(() => legacyTab(deepLinkTab(location) || location.state?.openTab || restored?.tab || 'summary'))
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
   const [journeyStage, setJourneyStage] = useState(null)
   // N3: a qSOFA / SOFA prompt asks the surveillance tab to open the protocol picker.
@@ -303,7 +314,46 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     return () => {
       alive = false
     }
-  }, [tenant?.id, isDemo, patient, tab, scalesOpen])
+  }, [tenant?.id, isDemo, patient, tab, formsOpenRequest])
+  // Forms tab: what every registered section needs (forms/formsRegistry.js).
+  // Read here, not in the tab, so the device row of the surveillance stage, the header and the
+  // printed report see the same rows.
+  const formsEpisodes = patientMode ? admissionEpisodes : record ? [record] : []
+  const formsAdmission =
+    selectedAdmission ||
+    admissions.find(row => record?.admissionId && String(row.id) === String(record.admissionId)) ||
+    null
+  const formsCtx = {
+    enabled: !loading && !stale && Boolean(patient || record),
+    scopeKey: [tenant?.id, isDemo, role, patient?.recordId || patient?.id, ...formsEpisodes.map(ep => ep.recordId || ep.id)].join('|'),
+    organizationId: tenant?.id,
+    isDemo,
+    language,
+    t,
+    role,
+    has,
+    patient,
+    admission: formsAdmission,
+    record,
+    episodes: formsEpisodes,
+    patientMode,
+    scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
+    returnPath: `${location.pathname}${location.search}`,
+    goTo,
+    fmtDate: value => formatDay(value, language),
+    fmtDateTime: value => formatDateTime(value, language),
+    // A qSOFA / SOFA prompt of the scales section asks the surveillance tab for a protocol.
+    startProtocol: prompt => {
+      const episode = admissionEpisodes.find(ep => ep.status === 'active') || formsEpisodes.find(ep => ep.status === 'active')
+      if (episode) {
+        setSelectedEpisodeId(episode.id)
+        setProtocolRequest({ nonce: Date.now(), episodeId: episode.id, source: prompt?.kind || 'clinical', assessmentId: prompt?.assessmentId || null })
+      }
+      setTab('surveillanceJourney')
+    },
+  }
+  const forms = useEpisodeFormsData(formsCtx)
+  const deviceBundles = makeDeviceBundles(formsCtx, forms.data.bundles?.value)
   // The record's first read: the page placeholder, not a generic «patient record» page.
   if (loading || stale) return <RouteLoading />
   if (error)
@@ -358,14 +408,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             ),
             icon: ListTree,
           },
-          ...(patientMode && selectedAdmission
-            ? [
-                {
-                  id: 'clinicalScales',
-                  label: t('clinicalRecords.clinicalAssessments'),
-                  icon: Stethoscope,
-                },
-              ]
+          // One tab for every form of the episode; the former clinical assessments tab is its scales section.
+          ...(episodeFormSections().some(section => !section.canSee || section.canSee(formsCtx)) &&
+          (selectedAdmission || record)
+            ? [{ id: 'episodeForms', label: t('episodeForms.title'), icon: ClipboardList }]
             : []),
           { id: 'documents', label: t('documents'), icon: FolderOpen },
           { id: 'history', label: t('history'), icon: FileClock },
@@ -374,12 +420,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   // A header scale chip: the patient record has the scales as a tab; the
   // surveillance episode opens the same scales panel (history included) over the page.
   function openClinicalScales() {
-    if (tabs.some(item => item.id === 'clinicalScales')) setTab('clinicalScales')
-    else setScalesOpen(true)
+    setTab('episodeForms')
+    setFormsOpenRequest({ id: 'scales', nonce: Date.now() })
   }
-  const episodeAdmission =
-    admissions.find(row => record?.admissionId && String(row.id) === String(record.admissionId)) ||
-    null
 
   function openAdmission(id) {
     const scoped = episodes.filter(ep => String(ep.admissionId || '') === String(id))
@@ -574,6 +617,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           canCreateSample={canCreateLabSample}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
+          deviceBundles={deviceBundles}
           t={t}
           language={language}
           fmtDate={fmtDate}
@@ -620,30 +664,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         />
       )}
       {tabId === 'surveillanceJourney' && selectedAdmission && outsideSection}
-      {tabId === 'clinicalScales' && patient && selectedAdmission && (
-        <PatientClinicalScalesPanel
-          organizationId={tenant?.id}
-          patient={patient}
-          admission={selectedAdmission}
-          isDemo={isDemo}
-          language={language}
-          canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-          hasActiveEpisode={admissionEpisodes.some(ep => ep.status === 'active')}
-          onStartProtocol={prompt => {
-            const episode = admissionEpisodes.find(ep => ep.status === 'active')
-            if (episode) {
-              setSelectedEpisodeId(episode.id)
-              setProtocolRequest({
-                nonce: Date.now(),
-                episodeId: episode.id,
-                source: prompt?.kind || 'clinical',
-                assessmentId: prompt?.assessmentId || null,
-              })
-            }
-            setTab('surveillanceJourney')
-          }}
-        />
-      )}
+      {tabId === 'episodeForms' && <EpisodeFormsTab ctx={formsCtx} forms={forms} openRequest={formsOpenRequest} />}
       {/* Documents belong to the surveillance when there is one, else to the
           admission itself, so they can be added before any surveillance. */}
       {tabId === 'documents' && documentsScope && (
@@ -738,12 +759,17 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       status: shellStatus,
       sampleLabel: sample => sample.typeLabel || sampleTypeLabel(sample.type, t),
       can: { surveillance: canSurveillance, lab: canLab },
+      // The sections of the forms tab this user can see, as printed sections.
+      formSections: episodeFormSections()
+        .filter(section => !section.canSee || section.canSee(formsCtx))
+        .map(section => section.buildReport?.(formsCtx, forms.data[section.id] || {}))
+        .filter(Boolean),
     })
   return (
     <Page fill title={name} subtitle={code}>
       <EntityRecordShell
         printReport={printReport}
-        className={`patient-record-shell workspace-fill${activeTab === 'clinicalScales' ? ' record-secondary-tab-active' : ''}`}
+        className={`patient-record-shell workspace-fill${activeTab === 'episodeForms' ? ' record-secondary-tab-active' : ''}`}
         avatar={name
           ?.split(' ')
           .map(x => x?.[0])
@@ -859,24 +885,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 language === 'el' ? 'el' : 'en',
               )}
             </p>
-          </ObserverDialog>
-        )}
-        {scalesOpen && patient && (
-          <ObserverDialog
-            width="wide"
-            className="clinical-scales-dialog"
-            title={name}
-            subtitle={code}
-            onClose={() => setScalesOpen(false)}
-          >
-            <PatientClinicalScalesPanel
-              organizationId={tenant?.id}
-              patient={patient}
-              admission={episodeAdmission}
-              isDemo={isDemo}
-              language={language}
-              canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-            />
           </ObserverDialog>
         )}
         {createOpen && (

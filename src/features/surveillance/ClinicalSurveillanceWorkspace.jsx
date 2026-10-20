@@ -47,6 +47,7 @@ export function SurveillanceWorkspace({
   onLibraryAdded,
   permissions,
   protocolRequest = null,
+  deviceBundles = null,
 }) {
   const { notify } = useFeedback()
   // N3: "Start protocol" (header or a qSOFA / SOFA prompt) and the open protocols for the badges.
@@ -300,6 +301,7 @@ export function SurveillanceWorkspace({
               fmtDate={fmtDate}
               fmtDateTime={fmtDateTime}
               permissions={permissions}
+              deviceBundles={deviceBundles}
             />
           </div>
         </section>

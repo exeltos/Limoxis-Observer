@@ -622,7 +622,7 @@ export const antisepticRows = [
   }),
 ]
 
-function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner }) {
+function bundleAssessmentRow({ id, template, department, date, answers, shift, context, owner, links = {} }) {
   const elementIds = template.rawElements.map(item => item.id)
   const applicable = elementIds
     .map(itemId => answers[itemId])
@@ -668,10 +668,45 @@ function bundleAssessmentRow({ id, template, department, date, answers, shift, c
     createdById: 'demo-user',
     updatedAt: `${date}T10:00:00`,
     updatedById: 'demo-user',
+    ...links,
   }
 }
 
 export const bundleRows = [
+  // Checks made from the devices of three demo episodes (the episode forms tab).
+  bundleAssessmentRow({
+    id: 'BND-2610',
+    template: bundleTemplateLibrary[0],
+    department: preventionDepartments[0],
+    date: '2026-08-28',
+    shift: 'Πρωινή',
+    context: 'Κεντρικός φλεβικός καθετήρας',
+    owner: 'Ελένη Παπαδοπούλου',
+    answers: { hand_hygiene: 'yes', barrier: 'yes', skin_prep: 'yes', site_review: 'no' },
+    links: { surveillanceCaseId: 'SUR-260041', surveillanceDeviceId: 'DEV-26011', patientRecordId: 'PT-260184', deviceDay: 8 },
+  }),
+  bundleAssessmentRow({
+    id: 'BND-2611',
+    template: bundleTemplateLibrary[2],
+    department: preventionDepartments[0],
+    date: '2026-08-29',
+    shift: 'Πρωινή',
+    context: 'Ουροκαθετήρας',
+    owner: 'Νικόλαος Δημητρίου',
+    answers: { indication: 'yes', aseptic_insertion: 'yes', closed_drainage: 'yes', bag_below_bladder: 'yes', daily_review: 'yes' },
+    links: { surveillanceCaseId: 'SUR-260039', surveillanceDeviceId: 'DEV-26012', deviceDay: 7 },
+  }),
+  bundleAssessmentRow({
+    id: 'BND-2612',
+    template: bundleTemplateLibrary[1],
+    department: preventionDepartments[0],
+    date: '2026-08-27',
+    shift: 'Νυχτερινή',
+    context: 'Μηχανικός αερισμός',
+    owner: 'Ελένη Κωνσταντίνου',
+    answers: { head_elevation: 'yes', oral_care: 'yes', sedation_break: 'no' },
+    links: { surveillanceCaseId: 'SUR-260036', surveillanceDeviceId: 'DEV-26013', deviceDay: 9 },
+  }),
   bundleAssessmentRow({
     id: 'BND-2601',
     template: bundleTemplateLibrary[0],

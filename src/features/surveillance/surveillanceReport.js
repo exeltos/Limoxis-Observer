@@ -112,6 +112,8 @@ export function buildSurveillanceReport({
   status = '',
   sampleLabel = sample => sample.typeLabel || sample.type,
   can = {},
+  // Sections of the «Φόρμες & ερωτηματολόγια» tab (forms/formsRegistry.js buildReport), after the scales.
+  formSections = [],
 }) {
   const en = language === 'en'
   const L = (el, enText) => (en ? enText : el)
@@ -176,6 +178,7 @@ export function buildSurveillanceReport({
         })), keep: true }),
     can.lab !== false && { id: 'samples', title: L('Δείγματα και αποτελέσματα', 'Samples and results'), items: samples.map(sample => sampleItem(sample, ctx)), keep: true },
     patientMode && can.scales !== false && { id: 'scales', title: L('Κλινικές αξιολογήσεις', 'Clinical assessments'), list: scaleLines },
+    ...formSections,
     { id: 'documents', title: L('Έγγραφα', 'Documents'), documents: documents || { value: [] } },
     { id: 'history', title: L('Ιστορικό', 'History'), events: timelineEvents(record ? [...(record.timeline || []), ...outsideTimeline] : [...admissionTimeline, ...outsideTimeline], ctx), keep: true },
   ].filter(Boolean)
