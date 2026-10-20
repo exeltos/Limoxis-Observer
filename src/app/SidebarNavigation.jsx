@@ -3,18 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, Layers3 } from 'lucide-react'
 import { sidebarLayout } from './navigation'
 import { preloadRoute } from './routePreload'
-import { readLocalValue, writeLocalValue } from '../core/storage/browserStorage'
 
 const isUnder=(pathname,to)=>to==='/'?pathname==='/':pathname===to||pathname.startsWith(`${to}/`)
-const groupStorageKey=userKey=>`limoxis.sidebar.collapsedGroups.${userKey||'user'}`
-
-// The groups this user folded, remembered per user on this browser (storage may be unavailable).
-function readCollapsed(userKey){
-  try{const value=JSON.parse(readLocalValue(groupStorageKey(userKey),'[]')||'[]');return new Set(Array.isArray(value)?value:[])}catch{return new Set()}
-}
-function writeCollapsed(userKey,collapsed){
-  try{writeLocalValue(groupStorageKey(userKey),JSON.stringify([...collapsed]))}catch{/* the choice simply is not remembered */}
-}
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon
@@ -22,11 +12,10 @@ function NavEntry({item,t,nested=false,onNavigate}){
   return <NavLink to={item.to} end={item.to==='/'} onClick={onNavigate} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></NavLink>
 }
 
-// A headed group of the sidebar: the heading folds and unfolds it; the group
-// holding the open screen stays unfolded.
-function NavGroup({block,t,collapsed,onToggle,pathname}){
+// A headed group of the sidebar: the heading folds and unfolds it. One group is
+// open at a time, so the menu never grows long enough to scroll.
+function NavGroup({block,t,open,onToggle,pathname}){
   const active=block.items.some(item=>isUnder(pathname,item.to))
-  const open=active||!collapsed
   const listId=`sidebar-group-${block.id}`
   const label=t(block.label)
   return <div className={`sidebar-nav-section ${open?'open':'collapsed'} ${active?'has-active':''}`.trim()} role="group" aria-labelledby={`${listId}-heading`}>
@@ -40,13 +29,16 @@ function NavGroup({block,t,collapsed,onToggle,pathname}){
 export function SidebarNavigation({role,items,t,userKey}){
   const {pathname}=useLocation()
   const [moreOpen,setMoreOpen]=useState(false)
-  const [collapsed,setCollapsed]=useState(()=>readCollapsed(userKey))
-  const [collapsedFor,setCollapsedFor]=useState(userKey)
-  if(collapsedFor!==userKey){setCollapsedFor(userKey);setCollapsed(readCollapsed(userKey))}
-  function toggleGroup(id){setCollapsed(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);writeCollapsed(userKey,next);return next})}
+  const layout=sidebarLayout(role,items)
+  // The open group follows the open screen; opening another closes it.
+  const activeGroup=layout.find(block=>block.kind==='group'&&block.items.some(item=>isUnder(pathname,item.to)))?.id||null
+  const [openGroup,setOpenGroup]=useState(activeGroup)
+  const [openFor,setOpenFor]=useState(`${userKey}|${activeGroup}`)
+  if(openFor!==`${userKey}|${activeGroup}`){setOpenFor(`${userKey}|${activeGroup}`);setOpenGroup(activeGroup)}
+  const toggleGroup=id=>setOpenGroup(current=>current===id?null:id)
   const closeMore=()=>setMoreOpen(false)
-  return sidebarLayout(role,items).map(block=>{
-    if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} collapsed={collapsed.has(block.id)} onToggle={toggleGroup} pathname={pathname}/>
+  return layout.map(block=>{
+    if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={openGroup===block.id} onToggle={toggleGroup} pathname={pathname}/>
     if(block.kind==='list')return block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)
     if(block.kind==='management')return <div key="management" className="sidebar-nav-management">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)}</div>
     const moreActive=block.items.some(item=>isUnder(pathname,item.to))

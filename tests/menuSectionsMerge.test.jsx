@@ -68,22 +68,17 @@ describe('grouped sidebar', () => {
   const t = key => key
   const renderMenu = (role = ROLES.HOSPITAL_ADMIN, path = '/') => render(<MemoryRouter initialEntries={[path]}><nav><SidebarNavigation role={role} items={navigationFor({ role })} t={t} userKey="u1" /></nav></MemoryRouter>)
 
-  it('shows headed groups that fold and remembers the choice per user', () => {
-    const first = renderMenu()
-    const heading = screen.getByRole('button', { name: 'sidebarNav.groupStaff' })
-    expect(heading.getAttribute('aria-expanded')).toBe('true')
-    fireEvent.click(heading)
-    expect(heading.getAttribute('aria-expanded')).toBe('false')
-    expect(JSON.parse(window.localStorage.getItem('limoxis.sidebar.collapsedGroups.u1'))).toEqual(['staff'])
-    first.unmount()
-    renderMenu()
-    expect(screen.getByRole('button', { name: 'sidebarNav.groupStaff' }).getAttribute('aria-expanded')).toBe('false')
-  })
-
-  it('keeps the group of the open screen unfolded', () => {
-    window.localStorage.setItem('limoxis.sidebar.collapsedGroups.u1', JSON.stringify(['clinical']))
+  it('opens one group at a time: the group of the open screen, or the one chosen', () => {
     renderMenu(ROLES.HOSPITAL_ADMIN, '/laboratory')
-    expect(screen.getByRole('button', { name: 'sidebarNav.groupClinical' }).getAttribute('aria-expanded')).toBe('true')
+    const clinical = screen.getByRole('button', { name: 'sidebarNav.groupClinical' })
+    const staff = screen.getByRole('button', { name: 'sidebarNav.groupStaff' })
+    expect(clinical.getAttribute('aria-expanded')).toBe('true')
+    expect(staff.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(staff)
+    expect(staff.getAttribute('aria-expanded')).toBe('true')
+    expect(clinical.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.click(staff)
+    expect(staff.getAttribute('aria-expanded')).toBe('false')
   })
 
   it('labels a merged entry with the section name', () => {
