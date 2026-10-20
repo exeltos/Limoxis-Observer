@@ -5,7 +5,10 @@ import { sidebarLayout } from './navigation'
 import { preloadRoute } from './routePreload'
 import { forgetRegistryViewStates } from '../core/navigation/useRegistryMemory'
 
-const isUnder=(pathname,to)=>to==='/'?pathname==='/':pathname===to||pathname.startsWith(`${to}/`)
+// Record pages of the merged sections keep their old address (/patients/:id): the menu entry they belong to.
+const MENU_ALIASES=[['/patients','/surveillance'],['/committees','/meetings'],['/regulations','/documents'],['/legislation','/documents']]
+const menuPathOf=pathname=>{const alias=MENU_ALIASES.find(([from])=>pathname===from||pathname.startsWith(`${from}/`));return alias?alias[1]:pathname}
+const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);return to==='/'?path==='/':path===to||path.startsWith(`${to}/`)}
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon
@@ -13,8 +16,8 @@ function NavEntry({item,t,nested=false,onNavigate}){
   return <NavLink to={item.to} end={item.to==='/'} onClick={()=>{forgetRegistryViewStates();onNavigate?.()}} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></NavLink>
 }
 
-// A headed group of the sidebar: the heading folds and unfolds it. One group is
-// open at a time, so the menu never grows long enough to scroll.
+// A headed group of the sidebar: the heading folds and unfolds it. The group of the open
+// screen stays open, so the place in the menu is always visible.
 function NavGroup({block,t,open,onToggle,pathname}){
   const active=block.items.some(item=>isUnder(pathname,item.to))
   const listId=`sidebar-group-${block.id}`
@@ -31,15 +34,16 @@ export function SidebarNavigation({role,items,t,userKey}){
   const {pathname}=useLocation()
   const [moreOpen,setMoreOpen]=useState(false)
   const layout=sidebarLayout(role,items)
-  // The open group follows the open screen; opening another closes it.
+  // The group of the open screen is always open, so the place in the menu is always visible;
+  // the other groups open and close on their own without closing it.
   const activeGroup=layout.find(block=>block.kind==='group'&&block.items.some(item=>isUnder(pathname,item.to)))?.id||null
-  const [openGroup,setOpenGroup]=useState(activeGroup)
-  const [openFor,setOpenFor]=useState(`${userKey}|${activeGroup}`)
-  if(openFor!==`${userKey}|${activeGroup}`){setOpenFor(`${userKey}|${activeGroup}`);setOpenGroup(activeGroup)}
-  const toggleGroup=id=>setOpenGroup(current=>current===id?null:id)
+  const [openGroups,setOpenGroups]=useState(()=>new Set())
+  const [openFor,setOpenFor]=useState(userKey)
+  if(openFor!==userKey){setOpenFor(userKey);setOpenGroups(new Set())}
+  const toggleGroup=id=>{if(id===activeGroup)return;setOpenGroups(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})}
   const closeMore=()=>setMoreOpen(false)
   return layout.map(block=>{
-    if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={openGroup===block.id} onToggle={toggleGroup} pathname={pathname}/>
+    if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={block.id===activeGroup||openGroups.has(block.id)} onToggle={toggleGroup} pathname={pathname}/>
     if(block.kind==='list')return block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)
     if(block.kind==='management')return <div key="management" className="sidebar-nav-management">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)}</div>
     const moreActive=block.items.some(item=>isUnder(pathname,item.to))

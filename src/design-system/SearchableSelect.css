@@ -18,6 +18,7 @@
   border-radius: 8px;
   background: #fff;
   font: inherit;
+  cursor: pointer;
 }
 .searchable-select .searchable-select-chevron,
 .searchable-select .searchable-select-clear {
@@ -113,3 +114,10 @@
   color: var(--lo-color-muted, #617386);
 }
 .control-expiry-filter,.leg-status-filter,.registers-view-select,.reg-mode-select,.register-period-select{min-width:220px}
+/* Native selects and date fields are pressed to open: the hand, like the type-to-filter select. */
+select:not(:disabled),
+input[type="date"]:not(:disabled):not(:read-only),
+input[type="datetime-local"]:not(:disabled):not(:read-only),
+input[type="time"]:not(:disabled):not(:read-only) {
+  cursor: pointer;
+}

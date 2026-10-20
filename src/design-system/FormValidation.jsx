@@ -93,10 +93,13 @@ export function FormSubmit({
   className = '',
 }) {
   const blocked = !form.valid
+  const language = useOptionalLanguage()?.language
   const props = {
     disabled,
     loading,
     'aria-disabled': blocked || undefined,
+    // Hovering the button of an incomplete form says what is missing.
+    title: blocked && form.missingLabels.length ? `${language === 'en' ? 'Fill in:' : 'Συμπληρώστε:'} ${form.missingLabels.join(', ')}` : undefined,
     className: `${blocked ? 'is-blocked' : ''} ${className}`.trim(),
     onClick: form.submit(onSubmit),
   }
