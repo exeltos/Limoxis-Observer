@@ -71,7 +71,7 @@ describe('grouped sidebar', () => {
   const t = key => key
   const renderMenu = (role = ROLES.HOSPITAL_ADMIN, path = '/') => render(<MemoryRouter initialEntries={[path]}><nav><SidebarNavigation role={role} items={navigationFor({ role })} t={t} userKey="u1" /></nav></MemoryRouter>)
 
-  it('keeps the group of the open screen open and lets the others open and close on their own', () => {
+  it('opens one group at a time and keeps the group of the open screen marked', () => {
     renderMenu(ROLES.HOSPITAL_ADMIN, '/laboratory')
     const clinical = screen.getByRole('button', { name: 'sidebarNav.groupClinical' })
     const staff = screen.getByRole('button', { name: 'sidebarNav.groupStaff' })
@@ -79,11 +79,11 @@ describe('grouped sidebar', () => {
     expect(staff.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(staff)
     expect(staff.getAttribute('aria-expanded')).toBe('true')
-    expect(clinical.getAttribute('aria-expanded')).toBe('true')
+    expect(clinical.getAttribute('aria-expanded')).toBe('false')
+    expect(clinical.closest('.sidebar-nav-section').className).toContain('has-active')
+    expect(staff.closest('.sidebar-nav-section').className).not.toContain('has-active')
     fireEvent.click(staff)
     expect(staff.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.click(clinical)
-    expect(clinical.getAttribute('aria-expanded')).toBe('true')
   })
 
   it('opens the group of a record page of a merged section (a patient is under Surveillance)', () => {

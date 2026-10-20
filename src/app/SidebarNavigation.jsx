@@ -18,8 +18,8 @@ function NavEntry({item,t,nested=false,onNavigate}){
   return <Link to={item.to} onClick={()=>{forgetRegistryViewStates();onNavigate?.()}} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} aria-current={here?'page':undefined} className={`nav-item ${nested?'nested':''} ${here?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></Link>
 }
 
-// A headed group of the sidebar: the heading folds and unfolds it. The group of the open
-// screen stays open, so the place in the menu is always visible.
+// A headed group of the sidebar: the heading folds and unfolds it. One group is open at a time,
+// so the menu never grows long enough to scroll; the group of the open screen stays marked.
 function NavGroup({block,t,open,onToggle,pathname}){
   const active=block.items.some(item=>isUnder(pathname,item.to))
   const listId=`sidebar-group-${block.id}`
@@ -36,16 +36,16 @@ export function SidebarNavigation({role,items,t,userKey}){
   const {pathname}=useLocation()
   const [moreOpen,setMoreOpen]=useState(false)
   const layout=sidebarLayout(role,items)
-  // The group of the open screen is always open, so the place in the menu is always visible;
-  // the other groups open and close on their own without closing it.
+  // One group is open at a time and it follows the open screen; the heading of the group the
+  // open screen belongs to stays marked (dot, bold) even when another group is opened.
   const activeGroup=layout.find(block=>block.kind==='group'&&block.items.some(item=>isUnder(pathname,item.to)))?.id||null
-  const [openGroups,setOpenGroups]=useState(()=>new Set())
-  const [openFor,setOpenFor]=useState(userKey)
-  if(openFor!==userKey){setOpenFor(userKey);setOpenGroups(new Set())}
-  const toggleGroup=id=>{if(id===activeGroup)return;setOpenGroups(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})}
+  const [openGroup,setOpenGroup]=useState(activeGroup)
+  const [openFor,setOpenFor]=useState(`${userKey}|${activeGroup}`)
+  if(openFor!==`${userKey}|${activeGroup}`){setOpenFor(`${userKey}|${activeGroup}`);setOpenGroup(activeGroup)}
+  const toggleGroup=id=>setOpenGroup(current=>current===id?null:id)
   const closeMore=()=>setMoreOpen(false)
   return layout.map(block=>{
-    if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={block.id===activeGroup||openGroups.has(block.id)} onToggle={toggleGroup} pathname={pathname}/>
+    if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={openGroup===block.id} onToggle={toggleGroup} pathname={pathname}/>
     if(block.kind==='list')return block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)
     if(block.kind==='management')return <div key="management" className="sidebar-nav-management">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)}</div>
     const moreActive=block.items.some(item=>isUnder(pathname,item.to))
