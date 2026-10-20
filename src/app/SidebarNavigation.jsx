@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ChevronDown, Layers3 } from 'lucide-react'
 import { sidebarLayout } from './navigation'
 import { preloadRoute } from './routePreload'
@@ -13,7 +13,9 @@ const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);return to==='/'?pa
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon
   const label=t(item.label||item.key)
-  return <NavLink to={item.to} end={item.to==='/'} onClick={()=>{forgetRegistryViewStates();onNavigate?.()}} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></NavLink>
+  const {pathname}=useLocation()
+  const here=isUnder(pathname,item.to)
+  return <Link to={item.to} onClick={()=>{forgetRegistryViewStates();onNavigate?.()}} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} aria-current={here?'page':undefined} className={`nav-item ${nested?'nested':''} ${here?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></Link>
 }
 
 // A headed group of the sidebar: the heading folds and unfolds it. The group of the open
