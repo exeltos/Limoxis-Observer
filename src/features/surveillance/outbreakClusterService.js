@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { detectOrganismClusters } from './clusterDetection'
+import { isSkinFloraOrganism } from './skinFloraOrganisms'
 
 export const CLUSTER_WINDOW_DAYS = 14
 export const CLUSTER_THRESHOLD = 3
@@ -8,7 +9,7 @@ export const CLUSTER_THRESHOLD = 3
 export function demoClusterRecords(laboratorySamples) {
   return laboratorySamples
     .filter(x => x.result === 'positive' && ['validated', 'amended'].includes(x.resultStatus) && x.organism)
-    .map(x => ({ organism: x.organism.trim(), department: x.department, resistance: x.resistance || null, date: String(x.resultedAt || '').slice(0, 10) }))
+    .map(x => ({ organism: x.organism.trim(), department: x.department, resistance: x.resistance || null, date: String(x.resultedAt || '').slice(0, 10), patientId: x.patientId || null, sampleId: x.id || null }))
     .filter(x => x.date)
 }
 
@@ -28,6 +29,7 @@ function mapCloudCluster(row) {
     lastDate: row.last_event,
     resistanceLabels: row.resistance_class ? [row.resistance_class] : [],
     lastEventDate: row.last_event,
+    skinFloraRule: isSkinFloraOrganism(row.organism),
   }
 }
 
