@@ -586,11 +586,36 @@ async function loadRelatedLab(related, sampleIds) {
   }
 }
 
+// A line of the Surveillance list from surveillance_case_summaries
+// (20261201110000): the episode with its patient, department and isolation,
+// and only the samples that name an organism or a resistance (all the list reads).
+function mapCaseSummary(row) {
+  const isolations = row.isolation ? [{ ...row.isolation, surveillance_case_id: row.id }] : []
+  return {
+    ...mapClinicalCase({ caseRow: row, patient: row.patient, department: row.department, isolations }),
+    samples: (row.samples || []).map(sample => ({
+      id: sample.sample_code,
+      recordId: sample.id,
+      requestedAt: sample.requested_at,
+      organism: sample.organism || null,
+      resistance: sample.resistance || null,
+      surveillanceCaseId: row.id,
+      microbiologyResults: [],
+    })),
+  }
+}
+
 // Every case of the organization, read page by page (a single response is
 // capped), then hydrated once so the related lists are read once too.
-export async function loadClinicalCases(organizationId) {
+// `summary` (the list) reads one line per episode in a single call instead;
+// the full read stays for a database without surveillance_case_summaries yet.
+export async function loadClinicalCases(organizationId, { summary = false } = {}) {
   assertCloud()
   if (!organizationId) return []
+  if (summary && typeof supabase.rpc === 'function') {
+    const listed = await supabase.rpc('surveillance_case_summaries', { p_organization_id: organizationId })
+    if (!listed?.error && Array.isArray(listed?.data)) return listed.data.map(mapCaseSummary)
+  }
   const rows = await selectAllPages(() =>
     supabase
       .from('surveillance_cases')

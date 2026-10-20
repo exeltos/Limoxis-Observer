@@ -36,6 +36,18 @@ export async function loadPatients(organizationId, {isDemo=false,includeArchived
   return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
 }
 
+// Only the patients a record opens (by patient code or record id), in the
+// roster's shape, instead of the organization's whole roster.
+export async function loadPatientsByKeys(organizationId, {codes=[], recordIds=[]}={}){
+  const wantedCodes=[...new Set(codes.filter(Boolean).map(String))],wantedIds=[...new Set(recordIds.filter(Boolean).map(String))]
+  if(!organizationId || !supabase || (!wantedCodes.length&&!wantedIds.length)) return []
+  let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId).is('archived_at',null)
+  query=wantedCodes.length?query.in('patient_code',wantedCodes):query.in('id',wantedIds)
+  const {data,error}=await query
+  if(error) throw error
+  return (data||[]).map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
+}
+
 async function resolveDepartment(organizationId, departmentId){
   if(!departmentId) return null
   const {data,error}=await supabase.from('departments').select('id,name,is_active').eq('organization_id',organizationId).eq('id',departmentId).eq('is_active',true).maybeSingle()

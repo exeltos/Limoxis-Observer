@@ -115,7 +115,17 @@ export async function loadSurveys(organizationId) {
     const state = local()
     return state.surveys.map(survey => { const own = state.responses.filter(response => response.surveyId === survey.id); return { ...survey, responseCount: own.length, recentCount: own.filter(response => response.submittedAt >= since).length } })
   }
-  const rows = must(await supabase.from('quality_surveys').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false })) || []
+  // The surveys and every survey's counts in two reads side by side
+  // (quality_survey_response_counts, 20261201110000), not two counts per survey.
+  const [surveyRows, counted] = await Promise.all([
+    supabase.from('quality_surveys').select('*').eq('organization_id', organizationId).order('created_at', { ascending: false }),
+    supabase.rpc('quality_survey_response_counts', { p_organization_id: organizationId, p_since: since }),
+  ])
+  const rows = must(surveyRows) || []
+  if (!counted?.error && Array.isArray(counted?.data)) {
+    const counts = new Map(counted.data.map(item => [item.survey_id, item]))
+    return rows.map(row => ({ ...toSurvey(row), responseCount: Number(counts.get(row.id)?.total || 0), recentCount: Number(counts.get(row.id)?.recent || 0) }))
+  }
   return Promise.all(rows.map(async row => {
     const [all, recent] = await Promise.all([
       supabase.from('quality_survey_responses').select('id', { count: 'exact', head: true }).eq('survey_id', row.id),

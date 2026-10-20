@@ -60,7 +60,10 @@ describe('loading a production organization', () => {
     service.employees.mockRejectedValue(failure)
     openCenter()
     await waitFor(() => expect(screen.getByText('Άννα Αλεξίου')).toBeInTheDocument())
-    for (const load of Object.values(service)) expect(load).toHaveBeenCalledWith('org-1')
+    for (const load of Object.values(service)) expect(load.mock.calls[0][0]).toBe('org-1')
+    // The list reads one line per episode and only the environmental samples.
+    expect(service.cases).toHaveBeenCalledWith('org-1', { summary: true })
+    expect(service.samples).toHaveBeenCalledWith('org-1', { environmental: true })
     await waitFor(() => expect(notifyError).toHaveBeenCalledWith(failure, 'load', { operation: 'surveillance_canonical_load' }))
   })
 

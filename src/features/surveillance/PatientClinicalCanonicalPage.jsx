@@ -24,7 +24,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { can, CAPABILITIES, isProfileDisabled } from '../../core/permissions/roles'
-import { loadAdmissions, loadPatients } from '../patients/patientsService'
+import { loadAdmissions, loadPatients, loadPatientsByKeys } from '../patients/patientsService'
 import { useDepartments } from '../management/useLibraries'
 import {
   loadManagementLibraries,
@@ -68,7 +68,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
     [isDemo, tenant?.id, actor],
   )
-  const laboratory = useLaboratoryRegistry()
   // The organization's active departments, one shape for every dialog of the record.
   const { departments } = useDepartments()
   const [patients, setPatients] = useState([]),
@@ -101,6 +100,18 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         : patients.find(row => episodes.some(ep => episodeBelongsToPatient(ep, row))) || null,
     [patients, patientMode, patientId, episodes],
   )
+  // Production reads the samples of this patient and of its episodes only,
+  // once they are known; the demo keeps its whole in-memory list.
+  const labScopeKey =
+    isDemo || !tenant?.id
+      ? ''
+      : [patient?.recordId || '', ...episodes.map(row => row.recordId || row.id)].join(',')
+  const labScope = useMemo(() => {
+    if (!labScopeKey.replaceAll(',', '')) return null
+    const [patientRecordId, ...caseIds] = labScopeKey.split(',')
+    return { patientRecordId: patientRecordId || null, caseIds }
+  }, [labScopeKey])
+  const laboratory = useLaboratoryRegistry({ enabled: isDemo || !tenant?.id || Boolean(labScope), scope: labScope })
   // The patient record opens straight on an admission: the chosen one, else the
   // active one, else the latest. Older admissions are picked in the header.
   const orderedAdmissions = useMemo(
@@ -180,8 +191,13 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     setLoading(true)
     setError('')
     try {
-      const roster = await loadPatients(tenant?.id, { isDemo })
-      setPatients(roster)
+      // A production record reads its own patient, not the whole roster.
+      const cloud = !isDemo && Boolean(tenant?.id)
+      let roster = !cloud
+        ? await loadPatients(tenant?.id, { isDemo })
+        : patientMode
+          ? await loadPatientsByKeys(tenant.id, { codes: [patientId] })
+          : []
       const selectedPatient = patientMode
         ? roster.find(row => String(row.id) === String(patientId))
         : null
@@ -191,6 +207,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         const one = await repository.loadCase(caseId)
         rows = one ? [one] : []
       }
+      if (cloud && !patientMode)
+        roster = await loadPatientsByKeys(tenant.id, { recordIds: rows.map(row => row.patientRecordId) })
+      setPatients(roster)
       // Surveillance switched off by the operating profile: its episodes are hidden, not deleted.
       if (isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE)) rows = []
       setEpisodes(rows)
@@ -201,24 +220,22 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         )
       const patientForAdmissions =
         selectedPatient || roster.find(row => rows.some(ep => episodeBelongsToPatient(ep, row)))
-      if (isDemo)
-        setAdmissions(
-          patientForAdmissions ? await loadAdmissions(patientForAdmissions, { isDemo: true }) : [],
-        )
-      else if (patientForAdmissions?.recordId)
-        try {
-          setAdmissions(await loadAdmissions(patientForAdmissions.recordId))
-        } catch {
-          setAdmissions([])
-        }
-      else setAdmissions([])
-      if (!isDemo && tenant?.id)
-        try {
-          setClinicalLibraries(await loadManagementLibraries(tenant.id))
-        } catch {
-          // The record still opens; the dialogs fall back to their built-in lists.
-        }
-      else setClinicalLibraries(demoLibrarySeed)
+      // The admissions and the libraries are read together.
+      const [admissionRows, libraries] = await Promise.all([
+        isDemo
+          ? patientForAdmissions
+            ? loadAdmissions(patientForAdmissions, { isDemo: true })
+            : []
+          : patientForAdmissions?.recordId
+            ? loadAdmissions(patientForAdmissions.recordId).catch(() => [])
+            : [],
+        !isDemo && tenant?.id
+          ? // The record still opens; the dialogs fall back to their built-in lists.
+            loadManagementLibraries(tenant.id).catch(() => null)
+          : demoLibrarySeed,
+      ])
+      setAdmissions(admissionRows)
+      if (libraries) setClinicalLibraries(libraries)
     } catch (err) {
       setError(err?.message || t('actionFailed'))
     } finally {

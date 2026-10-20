@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase/client'
+import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { normalizeMemberRoles,officerName,storedMemberRoles } from './committeeMemberRoles'
@@ -22,10 +23,14 @@ function fromRow(row,workflow={}){
   const memberRefs=(row.committee_members||[]).map(fromMemberRow),memberKeyByDbId=new Map(memberRefs.filter(x=>x.dbId).map(x=>[x.dbId,x.id])),memberNameByDbId=new Map(memberRefs.filter(x=>x.dbId).map(x=>[x.dbId,x.name]));const meetings=(workflow.meetings||[]).filter(x=>x.committee_id===row.id).map(x=>fromMeetingRow(x,workflow.attendance||[],workflow.approvals||[],workflow.approvalHistory||[],memberKeyByDbId,memberNameByDbId,workflow.external||[]));const meetingKeyByDbId=new Map(meetings.filter(x=>x.dbId).map(x=>[x.dbId,x.id]));const base={name:row.name,shortName:row.short_name||''}
   return {id:row.code,dbId:row.id,organizationId:row.organization_id,templateId:inferTemplate(base),name:row.name,shortName:row.short_name||'',type:row.committee_type,status:row.status,chair:officerName(memberRefs,'chair',/^πρόεδρ/i)||officerName(memberRefs,'coordinator',/συντον/i),secretary:officerName(memberRefs,'secretary',/γραμματ/i),termStart:row.term_start||'',termEnd:row.term_end||'',committeeRole:row.committee_role||'',legalBasis:row.legal_basis||'',mandate:row.mandate||'',decisionNumber:row.decision_number||'',meetingFrequency:row.meeting_frequency||'quarterly',quorumRule:row.quorum_rule||'simple_majority',notes:row.notes||'',members:memberRefs.map(x=>x.name),memberRefs,meetings,decisions:(workflow.decisions||[]).filter(x=>x.committee_id===row.id).map(fromDecisionRow).map(x=>({...x,meetingId:x.meetingId?(meetingKeyByDbId.get(x.meetingId)||x.meetingId):null})),annualPlan:(workflow.plan||[]).filter(x=>x.committee_id===row.id).map(fromPlanRow),documents:(workflow.documents||[]).filter(x=>x.committee_id===row.id).map(fromDocumentRow),history:(workflow.history||[]).filter(x=>x.committee_id===row.id).map(fromHistoryRow),createdAt:row.created_at,updatedAt:row.updated_at}
 }
-async function selectRows(table,columns,organizationId,orderBy=null){let query=supabase.from(table).select(columns).eq('organization_id',organizationId);if(orderBy)query=query.order(orderBy.replace(/^-/,''),{ascending:!orderBy.startsWith('-')});const {data,error}=await query;if(error)throw error;return data||[]}
+// Every row, page by page: a single response is capped at 1,000 rows (a large
+// hospital has more attendance and decision rows than that).
+async function selectRows(table,columns,organizationId,orderBy=null){return selectAllPages(()=>{let query=supabase.from(table).select(columns).eq('organization_id',organizationId);if(orderBy)query=query.order(orderBy.replace(/^-/,''),{ascending:!orderBy.startsWith('-')});return query.order('id',{ascending:true})})}
 export async function loadCommitteesAsync(organizationId){
-  if(!requireProduction(organizationId,'load'))return loadCommitteesLocal();const {data,error}=await supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id',organizationId).order('name');if(error)throw error
-  const [meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external]=await Promise.all([
+  if(!requireProduction(organizationId,'load'))return loadCommitteesLocal()
+  // The committees and their workflow lists are read side by side.
+  const [{data,error},meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external]=await Promise.all([
+    supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id',organizationId).order('name'),
     selectRows('committee_meetings','id,client_key,committee_id,organization_id,title,scheduled_at,meeting_type,location,status,minutes_number,quorum_met,agenda,minutes,finalized_at,finalized_by,created_by,created_at,updated_at',organizationId,'scheduled_at'),
     selectRows('committee_meeting_attendance','id,client_key,meeting_id,committee_id,organization_id,member_id,employee_id,attendee_name,attendance_status,has_vote,recorded_by,created_at,updated_at',organizationId),
     selectRows('committee_decisions','id,client_key,committee_id,meeting_id,organization_id,topic_key,title,action,owner_id,owner_label,due_date,priority,status,created_at,updated_at',organizationId),
@@ -35,7 +40,7 @@ export async function loadCommitteesAsync(organizationId){
     selectRows('committee_documents','id,committee_id,organization_id,document_id,document_kind,attachment,created_by,created_at,document:controlled_documents!committee_documents_document_tenant_fk(code,title,status)',organizationId),
     selectRows('committee_history','id,committee_id,organization_id,action,reason,event_data,actor_id,created_at',organizationId,'-created_at'),
     selectRows('committee_minutes_external_approvals','id,meeting_id,committee_id,organization_id,member_id,member_name,method,email,status,comment,requested_at,sent_at,send_count,token_expires_at,decided_at,updated_at',organizationId),
-  ]);const workflow={meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external};return (data||[]).map(row=>fromRow(row,workflow))
+  ]);if(error)throw error;const workflow={meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external};return (data||[]).map(row=>fromRow(row,workflow))
 }
 export async function getNextCommitteeCodeAsync(organizationId){if(!requireProduction(organizationId,'next_code'))return nextCommitteeId(loadCommitteesLocal());const {data,error}=await supabase.from('committees').select('code').eq('organization_id',organizationId);if(error)throw error;const used=new Set((data||[]).map(r=>r.code));let n=1;while(used.has(`COM-${String(n).padStart(3,'0')}`))n++;return `COM-${String(n).padStart(3,'0')}`}
 export async function createCommitteeAsync(organizationId,draft){

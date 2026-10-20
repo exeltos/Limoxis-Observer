@@ -145,9 +145,17 @@ async function hydrateSamples(rows){
   ))
 }
 
-export async function loadLaboratorySamples(organizationId){
+// One call (laboratory_sample_list, 20261201110000) returns the samples already
+// joined with their patient, department and results; `environmental` keeps the
+// environmental ones (a superset the screens still filter). The paged reads
+// below stay for a database without it yet.
+export async function loadLaboratorySamples(organizationId,{environmental=false}={}){
   assertCloud()
   if(!organizationId)return []
+  if(typeof supabase.rpc==='function'){
+    const listed=await supabase.rpc('laboratory_sample_list',{p_organization_id:organizationId,p_environmental:environmental})
+    if(!listed?.error&&Array.isArray(listed?.data))return listed.data.map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map(item=>mapMicrobiology(item,item.ast,item.communications,item.amr))))
+  }
   const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}))
   return hydrateSamples(rows)
 }
@@ -162,6 +170,19 @@ export async function loadEmployeeSurveillanceSamples(organizationId,surveillanc
   const {data,error}=await selectInChunks(ids,chunk=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).in('employee_surveillance_id',chunk).order('created_at',{ascending:false}).order('id',{ascending:true}),{order:[['created_at',{ascending:false}],['id',{ascending:true}]]})
   if(error)throw error
   return hydrateSamples(data||[])
+}
+
+// The samples of one patient record: the patient's own and those of its
+// surveillance episodes, instead of the organization's whole list.
+const UUID_PATTERN=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export async function loadPatientLaboratorySamples(organizationId,{patientRecordId=null,caseIds=[]}={}){
+  assertCloud()
+  if(!organizationId)return []
+  const cases=[...new Set((caseIds||[]).filter(id=>UUID_PATTERN.test(String(id))))]
+  const filters=[UUID_PATTERN.test(String(patientRecordId||''))&&`patient_id.eq.${patientRecordId}`,cases.length&&`surveillance_case_id.in.(${cases.join(',')})`].filter(Boolean)
+  if(!filters.length)return []
+  const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).or(filters.join(',')).order('created_at',{ascending:false}).order('id',{ascending:true}))
+  return hydrateSamples(rows)
 }
 
 // Every sample of the organization, for reports that must see the full history.
