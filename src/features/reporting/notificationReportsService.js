@@ -14,6 +14,15 @@ export async function loadNotificationReports(organizationId, { isDemo = false }
   return (data || []).map(mapRow)
 }
 
+// The notifications made for one patient (clinical ones carry the patient, laboratory ones their sample's patient),
+// newest first. Read-only; the demo workspace has none per patient.
+export async function loadPatientNotificationReports(organizationId, patientRecordId, { isDemo = false } = {}) {
+  if (isDemo || !supabase || !organizationId || !patientRecordId) return []
+  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,disease_code,disease_label,status,notified_at,created_at').eq('organization_id', organizationId).eq('patient_id', patientRecordId).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(row => ({ id: row.id, disease: row.disease_label || row.disease_code || '', status: row.status, notifiedAt: row.notified_at || '', createdAt: row.created_at || '' }))
+}
+
 export async function saveNotificationReport(organizationId, finding, draft, { isDemo = false } = {}) {
   const report = { findingKey: finding.findingKey, status: draft.status, notifiedAt: draft.status === 'notified' ? (draft.notifiedAt || new Date().toISOString().slice(0, 10)) : '', reference: draft.reference || '', notes: draft.notes || '', updatedAt: new Date().toISOString() }
   if (isDemo) { demoReports.set(report.findingKey, report); return report }

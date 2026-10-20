@@ -17,7 +17,7 @@ export function PlatformUpdateCenter({language='el',pending=[],history=[],change
  const en=language==='en',c=copy[en?'en':'el'],locale=en?'en-GB':'el-GR'
  const [showAll,setShowAll]=useState(false),[openRun,setOpenRun]=useState(null)
  const runChanges=changesByRun(history,changes)
- const fmt=value=>value?new Date(value).toLocaleString(locale,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'
+ const fmt=value=>value?new Date(value).toLocaleString(locale,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'}):'—'
  const last=history[0]||null
  const failures=history.filter(run=>run.status==='failed'&&Date.now()-new Date(run.started_at).getTime()<30*DAY).length
  const visibleHistory=showAll?history:history.slice(0,6)

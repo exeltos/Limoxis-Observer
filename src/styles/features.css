@@ -3967,10 +3967,11 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* In-place edit of the patient details: four columns like the read-only sheet,
    notes across the row, so the form fits without scrolling. */
 .patient-details-editor{padding:6px 2px 0}
-.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px 14px!important;padding:0!important}
+.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 28px!important;padding:0!important;align-items:start!important}
 .patient-details-editor .patient-entry-grid-wide>.entry-span-2{grid-column:1/-1!important}
 .patient-details-editor .patient-entry-grid-wide textarea{min-height:64px!important;height:64px}
-@media(max-width:1100px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:700px){.patient-details-editor .patient-entry-grid.patient-entry-grid-wide:is(.entry-grid,#lo-patient-form){grid-template-columns:1fr!important}}
+.patient-details-editor .patient-entry-grid-wide .field-hint,.patient-create-form .patient-entry-grid .field-hint{margin-top:4px}
 /* Admission picker under the patient name: a compact text menu button. */
 .entity-record-context{margin-top:2px;line-height:0}
 .entity-record-shell>.entity-record-header:has(.entity-record-context):is(.surface,#lo-record-header){padding-top:6px!important;padding-bottom:6px!important}
@@ -3981,3 +3982,12 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* New employee: rows of three (surname · name · father’s name / code · status · hire date / department · category · position / email · phone). */
 .employee-create-form .employee-create-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start}
 @media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}
+.patient-no-admission-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.patient-no-admission-head h3{margin:0 0 4px;font-size:15px;color:#18364f}
+.patient-no-admission-head p{margin:0;font-size:12.5px;color:#5b6e82}
+.patient-no-admission-reports{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.patient-no-admission-reports li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-weight:600}
+.patient-no-admission-reports small{color:#5b6e82;font-weight:500}
+.patient-no-admission-reports a{margin-left:auto;font-size:12px;font-weight:650;color:#1f6b9b}
+.record-status-word{font-size:12.5px;font-weight:650;color:#5b6e82;white-space:nowrap}
+.patient-no-admission{margin-top:12px}

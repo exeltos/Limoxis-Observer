@@ -11,8 +11,8 @@ export const SECTION_TABS = Object.freeze({
     title: 'sidebarNav.surveillanceSection',
     defaultTab: 'episodes',
     tabs: [
-      { id: 'registry', label: 'sidebarNav.tabRegistry', capability: CAPABILITIES.VIEW_PATIENTS },
       { id: 'episodes', label: 'sidebarNav.tabEpisodes', capability: CAPABILITIES.VIEW_SURVEILLANCE },
+      { id: 'registry', label: 'sidebarNav.tabRegistry', capability: CAPABILITIES.VIEW_PATIENTS },
       { id: 'outbreaks', label: 'sidebarNav.tabOutbreaks', capability: CAPABILITIES.VIEW_LIRA },
       { id: 'employees', label: 'sidebarNav.tabEmployees', capability: CAPABILITIES.VIEW_SURVEILLANCE },
       { id: 'environmental', label: 'sidebarNav.tabEnvironment', capability: CAPABILITIES.VIEW_SURVEILLANCE },

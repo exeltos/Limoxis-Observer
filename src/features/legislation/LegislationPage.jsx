@@ -241,7 +241,7 @@ function SourcesList({ sources, language, onChanged }) {
         renderRow={item => { const health = sourceHealth(item); return <>
           <td><strong>{item.name}</strong><small><a href={item.url} target="_blank" rel="noreferrer">{item.url}</a> · {item.kind === 'rss' ? 'RSS' : (en ? 'page' : 'σελίδα')}</small></td>
           <td className="leg-keywords-cell">{item.keywords.join(', ')}</td>
-          <td className="nowrap-cell">{item.lastCheckedAt ? new Date(item.lastCheckedAt).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}{item.lastError && <small className="quality-overdue-text">{item.lastError}</small>}</td>
+          <td className="nowrap-cell">{item.lastCheckedAt ? new Date(item.lastCheckedAt).toLocaleString(en ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : '—'}{item.lastError && <small className="quality-overdue-text">{item.lastError}</small>}</td>
           <td><StatusBadge tone={sourceHealthTone(health)}>{sourceHealthLabel(health, language)}</StatusBadge></td>
           <td><div className="row-actions"><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ ...item, keywordsText: item.keywords.join(', ') })}><Pencil size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => remove(item)}><Trash2 size={14} /></IconButton></div></td>
         </> }} />

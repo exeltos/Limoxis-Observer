@@ -18,7 +18,8 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
-import { ChoiceField } from '../../design-system/ChoiceField'
+import { Field } from '../../design-system/Field'
+import { useFormValidation } from '../../design-system/FormValidation'
 import { departmentOptions,listTexts,statusTone } from '../surveillance/surveillanceOptions'
 import {ClinicalRiskFlags,ClinicalRiskLegendItems,clinicalRiskKinds} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
@@ -119,6 +120,7 @@ function PatientSummaryMetric({icon,label,value,kind='',filter,current,onFilter,
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.
 export function usePatientForm({patient=null,departments=[],existingPatients=[]}){
+  const {t,language}=useLanguage()
   const editing=Boolean(patient)
   const [draft,setDraft]=useState(()=>({
     patientCode:patient?.id||'',firstName:patient?.firstName||'',lastName:patient?.lastName||'',fatherName:patient?.fatherName||'',hospitalRecordNumber:patient?.hospitalRecordNumber||'',
@@ -142,31 +144,47 @@ export function usePatientForm({patient=null,departments=[],existingPatients=[]}
   // Warn while typing when the code is already taken, instead of failing on save.
   const codeKey=draft.patientCode.trim().toLowerCase()
   const duplicate=!editing&&codeKey?existingPatients.find(item=>String(item.id||item.patientCode||'').trim().toLowerCase()===codeKey):null
-  const invalid=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
+  const invalid=Boolean(duplicate)||!draft.patientCode.trim()||!draft.firstName.trim()||!draft.lastName.trim()||!draft.sex||(!editing&&!draft.admissionDate)||birthInvalid||birthWeightInvalid||gestationInvalid
+  // The shared form rule: required marks, the missing-fields line, the first missing field focused.
+  const validation=useFormValidation([
+    {key:'patientCode',label:t('patientId'),valid:Boolean(draft.patientCode.trim())&&!duplicate,message:duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:undefined},
+    {key:'firstName',label:t('firstName'),valid:Boolean(draft.firstName.trim())},
+    {key:'lastName',label:t('lastName'),valid:Boolean(draft.lastName.trim())},
+    {key:'sex',label:t('sex'),valid:Boolean(draft.sex)},
+    !editing&&{key:'admissionDate',label:t('admissionDate'),valid:Boolean(draft.admissionDate)},
+    {key:'dateOfBirth',label:t('dateOfBirth'),valid:!birthInvalid,message:t('invalidDateOfBirth')},
+    {key:'birthWeightGrams',label:translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en'),valid:!birthWeightInvalid,message:t('invalidBirthWeight')},
+    {key:'gestationalAgeWeeks',label:translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en'),valid:!gestationInvalid,message:t('invalidGestationalAge')},
+  ])
   function payload(){
     const first=draft.firstName.trim(),last=draft.lastName.trim()
     return {...draft,patientCode:draft.patientCode.trim(),name:`${first} ${last}`.trim(),nameEn:`${first} ${last}`.trim(),birthWeightGrams:draft.birthWeightGrams?Number(draft.birthWeightGrams):null,gestationalAgeWeeks:draft.gestationalAgeWeeks?Number(draft.gestationalAgeWeeks):null}
   }
-  return {editing,draft,set,setDepartment,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate,invalid,payload}
+  return {editing,draft,set,setDepartment,validation,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate,invalid,payload}
 }
 
 export function PatientFormFields({form,t,language,departments=[],className=''}){
-  const {editing,draft,set,setDepartment,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate}=form
-  return <div className={`entry-grid patient-entry-grid ${className}`.trim()}>
-      <label><span className="lo-field-label">{t('patientId')} *</span><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/>{duplicate&&<small className="field-error">{t('patientCodeDuplicate')}{duplicate.name?` (${duplicate.name})`:''}</small>}</label>
-      <label><span className="lo-field-label">{t('firstName')} *</span><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
-      <label><span className="lo-field-label">{t('lastName')} *</span><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></label>
-      <label><span className="lo-field-label">{t('fatherName')}</span><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
-      <label><span className="lo-field-label">{t('hospitalRecordNumber')}</span><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></label>
-      <div><ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)}/>{birthInvalid&&<small className="field-error">{t('invalidDateOfBirth')}</small>}{ageYears!=null&&!birthInvalid&&<small className="entry-detail-note">{ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))}</small>}</div>
-      <ChoiceField label={t('sex')} value={draft.sex} onChange={v=>set('sex',v)} options={['female','male','other'].map(value=>({value,label:t(value)}))}/>
-      {showNeonatal&&<>
-      <label><span className="lo-field-label">{translate('copy.patientsCopy.birthWeightG',language==='el'?'el':'en')}</span><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{birthWeightInvalid&&<small className="field-error">{t('invalidBirthWeight')}</small>}</label>
-      <label><span className="lo-field-label">{translate('copy.patientsCopy.gestationalAgeWeeks',language==='el'?'el':'en')}</span><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)} placeholder={translate('copy.patientsCopy.optionalForNeonates',language==='el'?'el':'en')}/>{gestationInvalid&&<small className="field-error">{t('invalidGestationalAge')}</small>}</label>
-      </>}
+  const {editing,draft,set,setDepartment,validation,birthInvalid,birthWeightInvalid,gestationInvalid,ageDays,ageYears,showNeonatal,duplicate}=form
+  const lang=language==='el'?'el':'en'
+  // Calculated age: the helper text under the date of birth.
+  const ageHint=ageYears!=null&&!birthInvalid?(ageDays<28?t('calculatedAgeDays').replace('{age}',String(ageDays)):ageDays<730?t('calculatedAgeMonthsDays').replace('{months}',String(Math.floor(ageDays/30.4375))).replace('{days}',String(Math.floor(ageDays%30.4375))):t('calculatedAge').replace('{age}',String(ageYears))):''
+  // Optional fields with a wrong value: the message shows at once, not only after a submit.
+  const optionalError=(key,invalid,message)=>invalid?{fieldKey:key,error:message}:{fieldKey:key}
+  return <div ref={validation.scopeRef} className={`entry-grid patient-entry-grid ${className}`.trim()}>
+      <Field label={t('patientId')} {...validation.field('patientCode')} error={duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:validation.errorFor('patientCode')}><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/></Field>
+      <Field label={t('hospitalRecordNumber')}><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></Field>
+      <Field label={t('firstName')} {...validation.field('firstName')}><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></Field>
+      <Field label={t('lastName')} {...validation.field('lastName')}><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></Field>
+      <Field label={t('fatherName')}><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></Field>
+      <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)} hint={ageHint} {...optionalError('dateOfBirth',birthInvalid,t('invalidDateOfBirth'))}/>
+      {showNeonatal?<>
+      <Field label={translate('copy.patientsCopy.birthWeightG',lang)} {...optionalError('birthWeightGrams',birthWeightInvalid,t('invalidBirthWeight'))}><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)}/></Field>
+      <Field label={translate('copy.patientsCopy.gestationalAgeWeeks',lang)} {...optionalError('gestationalAgeWeeks',gestationInvalid,t('invalidGestationalAge'))}><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)}/></Field>
+      </>:null}
       {!editing&&<><SearchableSelect label={t('department')} value={draft.departmentId} options={departmentOptions(departments,language)} placeholder={t('select')} emptyLabel={listTexts(language).emptyLabel} clearLabel={listTexts(language).clearLabel} onChange={setDepartment}/>
-      <ManualDateField label={`${t('admissionDate')} *`} value={draft.admissionDate} onChange={v=>set('admissionDate',v)}/></>}
-      <label className="entry-span-2"><span className="lo-field-label">{t('notes')}</span><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></label>
+      <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)} {...validation.field('admissionDate')}/></>}
+      <SearchableSelect label={t('sex')} value={draft.sex} options={['female','male','other'].map(value=>({value,label:t(value)}))} placeholder={t('select')} clearLabel="" onChange={v=>set('sex',v)} {...validation.field('sex')}/>
+      <Field label={t('notes')} className="entry-span-2"><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></Field>
     </div>
 }
 

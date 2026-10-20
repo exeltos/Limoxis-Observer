@@ -39,6 +39,7 @@ import { demoLibrarySeed } from '../management/managementData'
 import { useLaboratoryRegistry } from '../laboratory/hooks/useLaboratoryRegistry'
 import { linkLaboratorySampleToSurveillance } from '../laboratory/laboratoryLinkService'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
+import { PatientWithoutAdmission } from './PatientWithoutAdmission'
 import { createClinicalRepository } from './clinicalRepository'
 import { PatientClinicalScalesPanel } from '../clinical-scales/PatientClinicalScalesPanel'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
@@ -744,7 +745,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
         status={
           <>
-            <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
+            {patientMode && shellStatus !== 'active' ? (
+              <span className="record-status-word">{t(shellStatus)}</span>
+            ) : (
+              <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
+            )}
             {record?.resistance && <StatusBadge tone="danger">{record.resistance}</StatusBadge>}
             {patient && (
               <ClinicalRiskFlags
@@ -795,6 +800,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             fmtDate={fmtDate}
             onChanged={() => load()}
             onDeleted={goBack}
+          />
+        )}
+        {patientMode && !selectedAdmission && patient && (
+          <PatientWithoutAdmission
+            patient={patient}
+            tenantId={tenant?.id}
+            isDemo={isDemo}
+            canAdmit={has(CAPABILITIES.EDIT_PATIENT)}
+            canViewReports={has(CAPABILITIES.VIEW_ANALYSIS)}
+            onNewAdmission={() => setNewAdmissionOpen(true)}
+            episodesCount={outsideEpisodes.length}
+            samplesCount={outsideSamples.length}
+            t={t}
+            fmtDate={fmtDate}
           />
         )}
         {patientMode && !selectedAdmission && patient && outsideSection}

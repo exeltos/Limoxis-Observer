@@ -9,7 +9,7 @@ import { cancelOrganizationDeletion, exportOrganization, listOrganizationExports
 import './platformLifecycle.css'
 
 const fmtDate=(value,en)=>value?new Date(value).toLocaleDateString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—'
-const fmtDateTime=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—'
+const fmtDateTime=(value,en)=>value?new Date(value).toLocaleString(en?'en-GB':'el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'}):'—'
 const fmtSize=bytes=>!bytes?'—':bytes<1024*1024?`${Math.max(1,Math.round(bytes/1024))} KB`:`${(bytes/1024/1024).toFixed(1)} MB`
 const RECENT_EXPORT_DAYS=30
 const isRecent=value=>value&&Date.now()-new Date(value).getTime()<RECENT_EXPORT_DAYS*86400000

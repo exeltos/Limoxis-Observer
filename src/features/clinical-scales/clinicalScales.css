@@ -59,9 +59,12 @@
 .cs-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px 16px}
 .cs-form-grid label{display:flex;flex-direction:column;gap:5px;min-width:0}
 .cs-form-grid label>span{font-size:13px;font-weight:600;color:#34506a}
-.cs-form-grid label.is-out input{border-color:#e0685c;background:#fff8f7}
+.cs-form-grid .is-out input{border-color:#e0685c;background:#fff8f7}
 .cs-checks{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:14px}
 .cs-checks label{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;font-size:13.5px;font-weight:500;color:#1d3a52}
 .cs-checks input[type=checkbox]{width:16px!important;height:16px!important;min-height:0!important;margin:0!important;flex:none}
 @media(max-width:700px){.cs-report-hero,.cs-live{flex-direction:column}.cs-meta{grid-template-columns:1fr}}
 @media print{.cs-card,.cs-report-hero{break-inside:avoid}}
+.cs-form-error{display:flex;align-items:flex-start;gap:8px;margin:10px 0 0;padding:9px 12px;border:1px solid var(--lo-status-danger-border,#efcfd2);border-radius:9px;background:var(--lo-status-danger-bg,#fff0f0);color:var(--lo-status-danger-fg,#a23f46)}
+.cs-form-error svg{flex:0 0 auto;margin-top:2px}
+.clinical-assessment-registry .data-table td .status-badge{white-space:normal;max-width:100%;overflow:visible;text-overflow:clip;line-height:1.25}

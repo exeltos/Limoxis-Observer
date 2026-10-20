@@ -15,7 +15,7 @@ const ids = (section, role) => sectionTabsFor(section, { role }).map(tab => tab.
 
 describe('merged sections: one menu entry, the tabs the role may open', () => {
   it('names the tabs of Surveillance, Documents & regulations and Meetings & decisions in order', () => {
-    expect(SECTION_TABS.surveillance.tabs.map(tab => tab.id)).toEqual(['registry', 'episodes', 'outbreaks', 'employees', 'environmental'])
+    expect(SECTION_TABS.surveillance.tabs.map(tab => tab.id)).toEqual(['episodes', 'registry', 'outbreaks', 'employees', 'environmental'])
     expect(SECTION_TABS.documents.tabs.map(tab => tab.id)).toEqual(['documents', 'regulations', 'legislation'])
     expect(SECTION_TABS.meetings.tabs.map(tab => tab.id)).toEqual(['committees', 'departments', 'reviews'])
   })
@@ -43,6 +43,9 @@ describe('merged sections: one menu entry, the tabs the role may open', () => {
     expect(resolveSectionTab('surveillance', 'nope', allowed)).toBe('episodes')
     expect(resolveSectionTab('meetings', null, sectionTabsFor('meetings', { role: ROLES.QUALITY_MANAGER }))).toBe('committees')
     expect(sectionTabPath('surveillance', 'episodes')).toBe('/surveillance')
+    expect(SECTION_TABS.surveillance.defaultTab).toBe('episodes')
+    expect(resolveSectionTab('surveillance', null, allowed)).toBe('episodes')
+    expect(sectionTabPath('surveillance', 'registry')).toBe('/surveillance?tab=registry')
     expect(sectionTabPath('documents', 'legislation', 'view=register')).toBe('/documents?view=register&tab=legislation')
   })
 

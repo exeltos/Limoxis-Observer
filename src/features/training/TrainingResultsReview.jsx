@@ -14,7 +14,7 @@ import {finalizeTrainingReviewAsync} from './trainingService'
 import './TrainingResultsReview.css'
 import {trainerFeedbackQuestionsForProgram} from './trainingFeedbackTemplate'
 
-const fmt=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+const fmt=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit', hourCycle: 'h23'})}
 
 function answerText(question,answer,en){
  const q=normalizeTrainingQuestion(question)
