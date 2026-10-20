@@ -3,6 +3,7 @@ import nodemailer from 'npm:nodemailer@6.10.1'
 import { lifecycleReminderEmail } from '../_shared/lifecycleReminderEmail.ts'
 import { legislationDigestEmail, legislationUpdateEmail } from '../_shared/legislationEmail.ts'
 import { newCandidates, parseFeed, parsePage } from '../_shared/legislationWatch.ts'
+import { supplierCertificateRenewalEmail } from '../_shared/supplierCertificateEmail.ts'
 
 // Called by pg_cron (private.platform_dispatch_scheduled_tasks / platform_dispatch_task)
 // with the shared secret from Vault, never by a browser. Tasks:
@@ -11,7 +12,9 @@ import { newCandidates, parseFeed, parsePage } from '../_shared/legislationWatch
 //   legislation_digest          check, write the Platform Owner's morning digest, then send.
 
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
-const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest']
+// Supplier certificate links are also sent here, so an approved request goes out even
+// when no browser drains the outbox (process-notification-outbox claims rows the same way).
+const MAILED=['platform_lifecycle_reminder','legislation_update','legislation_digest','supplier_certificate_renewal']
 const DIGEST_ENTITY='00000000-0000-0000-0000-00000000a11e'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Admin=any
@@ -77,6 +80,7 @@ async function writeDigest(admin:Admin){
 }
 
 function messageFor(type:string,p:Record<string,unknown>,actionUrl:string){
+  if(type==='supplier_certificate_renewal')return supplierCertificateRenewalEmail({organizationName:String(p.organizationName||''),supplierName:String(p.supplierName||''),certificates:Array.isArray(p.certificates)?p.certificates:[],kind:p.kind==='reminder'?'reminder':'send',expiresAt:typeof p.expiresAt==='string'?p.expiresAt:null,actionUrl})
   if(type==='legislation_update')return legislationUpdateEmail(p,actionUrl)
   if(type==='legislation_digest')return legislationDigestEmail(p as Parameters<typeof legislationDigestEmail>[0],actionUrl)
   return lifecycleReminderEmail({kind:String(p.kind||''),audience:String(p.audience||''),days:Number(p.days),name:String(p.name||''),code:String(p.code||''),date:String(p.date||''),recipientName:String(p.recipientName||''),actionUrl,language:p.language==='en'?'en':'el'})
