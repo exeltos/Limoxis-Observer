@@ -1,32 +1,58 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { KITCHEN_TAB_GROUPS, kitchenTabGroup, resolveKitchenTab } from '../src/features/kitchen/kitchenModel'
+import { KITCHEN_PRIMARY_ACTION, KITCHEN_TABS, KITCHEN_VIEWS, resolveKitchenLocation, resolveKitchenTab } from '../src/features/kitchen/kitchenModel'
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
-describe('kitchen: two levels of tabs', () => {
-  it('groups the eleven tabs in four groups, each tab in one group', () => {
-    expect(KITCHEN_TAB_GROUPS.map(group => group.value)).toEqual(['today', 'production', 'storage', 'safety'])
-    const tabs = KITCHEN_TAB_GROUPS.flatMap(group => group.tabs)
-    expect(tabs).toHaveLength(11)
-    expect(new Set(tabs).size).toBe(11)
-    expect(kitchenTabGroup('thermal').value).toBe('production')
-    expect(kitchenTabGroup('usage').value).toBe('storage')
-    expect(kitchenTabGroup('haccp').value).toBe('safety')
+describe('kitchen: five tabs in one row', () => {
+  it('has Today, Production days, Storage, Verification & recall and the HACCP plan', () => {
+    expect(KITCHEN_TABS).toEqual(['today', 'days', 'storage', 'safety', 'haccp'])
+    expect(KITCHEN_VIEWS).toEqual({ storage: ['receipts', 'stock', 'products'], safety: ['verification', 'recall'] })
   })
 
-  it('keeps old ?tab= links and opens a group by its name', () => {
-    for (const tab of ['overview', 'plan', 'receipts', 'stock', 'thermal', 'defrost', 'pureeing', 'usage', 'verification', 'recall', 'haccp']) expect(resolveKitchenTab(tab)).toBe(tab)
-    expect(resolveKitchenTab('storage')).toBe('receipts')
-    expect(resolveKitchenTab('safety')).toBe('verification')
-    expect(resolveKitchenTab('nope')).toBe('overview')
-    expect(resolveKitchenTab(null)).toBe('overview')
+  it('opens every old ?tab= address on its new tab and view', () => {
+    const expected = {
+      overview: ['today', ''], plan: ['days', ''], thermal: ['days', ''], defrost: ['days', ''], pureeing: ['days', ''],
+      receipts: ['storage', 'receipts'], stock: ['storage', 'stock'], usage: ['storage', 'stock'],
+      verification: ['safety', 'verification'], recall: ['safety', 'recall'], haccp: ['haccp', ''],
+      production: ['days', ''], storage: ['storage', 'receipts'], safety: ['safety', 'verification'], today: ['today', ''],
+    }
+    for (const [old, [tab, view]] of Object.entries(expected)) expect(resolveKitchenLocation(old)).toEqual({ tab, view })
+    expect(resolveKitchenTab('recall')).toBe('safety')
+    expect(resolveKitchenLocation('nope')).toEqual({ tab: 'today', view: '' })
+    expect(resolveKitchenLocation(null)).toEqual({ tab: 'today', view: '' })
   })
 
-  it('draws the second level as lighter canonical tabs', () => {
+  it('keeps a valid view of the new tabs and ignores a foreign one', () => {
+    expect(resolveKitchenLocation('storage', 'products')).toEqual({ tab: 'storage', view: 'products' })
+    expect(resolveKitchenLocation('safety', 'recall')).toEqual({ tab: 'safety', view: 'recall' })
+    expect(resolveKitchenLocation('storage', 'recall').view).toBe('receipts')
+    expect(resolveKitchenLocation('days', 'stock').view).toBe('')
+  })
+
+  it('has one primary button per tab beside Export, and none on the HACCP plan', () => {
+    expect(KITCHEN_PRIMARY_ACTION).toEqual({ today: 'production', days: 'day', storage: 'receipt', safety: 'drill', haccp: null })
     const page = read('src/features/kitchen/KitchenPage.jsx')
-    expect(page).toContain('<CanonicalTabs className="canonical-subtabs"')
-    expect(read('src/styles/responsive.css')).toContain('nav.canonical-tabs.canonical-subtabs')
+    expect(page).toContain('KITCHEN_PRIMARY_ACTION[tab]')
+    // The top bar is Export plus that one button; no other page-level action buttons.
+    expect(page).toContain('{primaryButton}')
+    expect((page.match(/<Button onClick=\{\(\) => \(?(?:summary\.production|setDialog|setRecall)/g) || []).length).toBe(4)
+  })
+
+  it('draws one row of tabs, the cards only on Today and the storage selector as a mode switch', () => {
+    const page = read('src/features/kitchen/KitchenPage.jsx')
+    expect(page).not.toContain('canonical-subtabs')
+    expect(page).not.toContain('MetricCard')
+    expect(page).toContain('<ModeSwitch')
+    expect(read('src/features/kitchen/KitchenPanels.jsx')).toContain('kitchen-attention')
+  })
+
+  it('signs the HACCP verification only in the production day', () => {
+    const panels = read('src/features/kitchen/KitchenPanels.jsx')
+    const verification = panels.slice(panels.indexOf('export function VerificationPanel'), panels.indexOf('// --- HACCP plan'))
+    expect(verification).not.toContain('onSign')
+    expect(verification).toContain('onOpenDay(row.production.id)')
+    expect(read('src/features/kitchen/KitchenDayRecordPage.jsx')).toContain("sign('kitchen_productions', production)")
   })
 })
 

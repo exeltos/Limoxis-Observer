@@ -275,11 +275,6 @@ html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,.entity
 html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)::after,html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)::before{display:none!important}
 html:not(#lo-unified-tabs) body :is(nav.canonical-module-tabs>button.tab,nav.canonical-tabs>button.canonical-tab,.entity-record-tabs>button)>span{font-size:inherit!important;font-weight:inherit!important;color:inherit!important;line-height:1!important}
 html:not(#lo-unified-tabs) body nav.canonical-tabs>button.canonical-tab>b.canonical-tab-count{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:2px;padding:0 5px;border-radius:999px;background:#fdeceb;color:#b42318;font-size:10px;font-weight:800;line-height:1}
-/* Second-level tabs (a group's own tabs, under the main tab bar): lighter, smaller, the active one a soft chip. */
-html:not(#lo-unified-tabs) body nav.canonical-tabs.canonical-subtabs{gap:2px!important;padding:5px 6px!important;background:transparent!important;border-bottom:0!important}
-html:not(#lo-unified-tabs) body nav.canonical-tabs.canonical-subtabs>button.canonical-tab{height:30px!important;min-height:30px!important;margin:0!important;padding:0 10px!important;border-bottom:0!important;border-radius:999px!important;font-size:12.5px!important;font-weight:600!important}
-html:not(#lo-unified-tabs) body nav.canonical-tabs.canonical-subtabs>button.canonical-tab svg{width:14px!important;height:14px!important}
-html:not(#lo-unified-tabs) body nav.canonical-tabs.canonical-subtabs>button.canonical-tab.active{background:#e8f2fa!important;color:#0b6097!important;font-weight:700!important}
 
 /* ==== short-viewport ==== */
 /* Short screens (13" notebooks, tablets, zoomed browsers): full-height pages

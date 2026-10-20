@@ -30,7 +30,7 @@ import { kitchenErrorMessage, removeEntry } from './kitchenService'
 export function KitchenReceiptRecordPage() {
   const { receiptId } = useParams()
   const navigate = useNavigate()
-  const { goBack } = useContextualNavigation('/kitchen?tab=receipts')
+  const { goBack } = useContextualNavigation('/kitchen?tab=storage&view=receipts')
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()

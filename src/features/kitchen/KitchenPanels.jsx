@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, ShieldCheck, Snowflake, Thermometer, Trash2, Truck, Undo2 } from 'lucide-react'
+import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, Trash2, Truck, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -19,16 +19,14 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { KitchenList, LimitBadge, matches, useKitchenActor, useKitchenTrace } from './KitchenShared'
 import { limitText } from './kitchenLimits'
-import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, dayOf, newReceipt, defrostMethodLabel, fmtQty, fmtTemp, haccpReviewDue, pureeMethodLabel, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu, newProduction, newThermal, newDefrost, newPureeing } from './kitchenModel'
+import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, newReceipt, fmtQty, fmtTemp, haccpReviewDue, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu } from './kitchenModel'
 import { kitchenErrorMessage, removeEntry, reopen, saveSettings, signOff } from './kitchenService'
 import { traceabilityDocument } from './kitchenReports'
-import { RecallOverviewCard } from './KitchenRecall'
 
 export const fmtDay = value => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
 export const fmtStamp = (value, language) => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).format(d) }
 const timeOf = value => { if (!value) return ''; const d = new Date(value); return Number.isNaN(d.getTime()) ? '' : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 const inPeriod = (date, from, to) => (!from || String(date) >= from) && (!to || String(date).slice(0, 10) <= to)
-const temp = (value, text, language) => (value !== '' && value != null ? fmtTemp(value, language) : text ? <span className="kitchen-unparsed" title={text}>{text}</span> : '—')
 
 // An entry out of limits can become a quality deviation (the incident report, prefilled).
 export function useDeviationReport() {
@@ -38,51 +36,58 @@ export function useDeviationReport() {
   return (title, lines, date) => navigate('/quality/report', { state: { qualitySource: { title: `${en ? 'Kitchen deviation' : 'Απόκλιση κουζίνας (HACCP)'}: ${title}`, description: lines.filter(Boolean).join('\n'), date: String(date || '').slice(0, 10) }, limoxisFrom: { path: '/kitchen', label: en ? 'Kitchen' : 'Κουζίνα' } } })
 }
 
-// --- Overview ------------------------------------------------------------------------------
+// --- Today ---------------------------------------------------------------------------------------
+// What needs action, on one screen: today's day, what is out of limits, the days waiting for verification.
 
-export function OverviewPanel({ state, summary, access, onOpenDay, onDialog, onTab, onRecall }) {
+export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStockAttention }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
   const report = useDeviationReport()
   const kindLabel = { receipt: en ? 'Receipt' : 'Παραλαβή', thermal: en ? 'Heat treatment' : 'Θερμική επεξεργασία', defrost: en ? 'Defrosting' : 'Απόψυξη', pureeing: en ? 'Pureeing' : 'Πολτοποίηση' }
   const production = summary.production
+  const queue = verificationQueue(state, { today: summary.today, since: addDays(summary.today, -30) })
+  const todayRows = [
+    ...summary.receipts.map(row => ({ id: `r-${row.id}`, kind: en ? 'Receipt' : 'Παραλαβή', what: `${row.code} · ${row.supplierName || ''}`, when: row.receivedTime, status: row.limitStatus, path: `/kitchen/receipts/${row.id}` })),
+    ...summary.thermal.map(row => ({ id: `t-${row.id}`, kind: en ? 'Heat' : 'Ζέστη', what: row.dishName, when: row.processTime, status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
+    ...summary.defrosting.map(row => ({ id: `d-${row.id}`, kind: en ? 'Defrost' : 'Απόψυξη', what: `${row.productName}${row.endedAt ? '' : ` · ${en ? 'in progress' : 'σε εξέλιξη'}`}`, when: timeOf(row.endedAt || row.startedAt), status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : production ? `/kitchen/days/${production.id}` : '' })),
+    ...summary.pureeing.map(row => ({ id: `p-${row.id}`, kind: en ? 'Pureeing' : 'Πολτοποίηση', what: row.productName, when: '', status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
+  ]
   return <div className="kitchen-overview">
+    <nav className="kitchen-attention" aria-label={en ? 'What needs action' : 'Τι χρειάζεται ενέργεια'}>
+      <span className={summary.outOfLimits.length ? 'is-alert' : ''}><strong>{summary.outOfLimits.length}</strong>{en ? 'out of limits (30 d)' : 'εκτός ορίων (30 ημ.)'}</span>
+      <button type="button" className={summary.expiring.length ? 'is-alert' : ''} onClick={onStockAttention}><strong>{summary.expiring.length}</strong>{en ? 'expire soon / expired' : 'λήγουν / έληξαν'}</button>
+      <button type="button" className={summary.toVerify ? 'is-alert' : ''} onClick={() => onTab('safety')}><strong>{summary.toVerify}</strong>{en ? 'days to verify' : 'ημέρες προς επαλήθευση'}</button>
+    </nav>
     <section className="kitchen-card">
-      <SectionHeader title={`${en ? 'Today' : 'Σήμερα'} · ${weekdayLabel(weekdayOf(summary.today), language)} ${fmtDay(summary.today)}`} subtitle={production ? (production.verifiedAt ? `${en ? 'Signed off by' : 'Επαληθεύτηκε από'} ${production.verifiedByName || '—'}` : (en ? 'Production day open' : 'Η ημέρα παραγωγής είναι ανοιχτή')) : (en ? 'No production day yet' : 'Δεν έχει ανοίξει ημέρα παραγωγής')}
-        actions={production ? <Button onClick={() => onOpenDay(production.id)}><ChefHat size={15} />{en ? 'Production day' : 'Ημέρα παραγωγής'}</Button> : access.canRecord && <Button onClick={() => onDialog({ type: 'production', initial: newProduction(summary.today) })}><Plus size={15} />{en ? 'Open today\'s production' : 'Άνοιγμα σημερινής παραγωγής'}</Button>} />
-      {production?.menuText && <pre className="kitchen-menu-text">{production.menuText}</pre>}
-      <RegistryTable className="kitchen-table" rows={[
-        ...summary.receipts.map(row => ({ id: `r-${row.id}`, kind: en ? 'Receipt' : 'Παραλαβή', what: `${row.code} · ${row.supplierName || ''}`, when: row.receivedTime, status: row.limitStatus, path: `/kitchen/receipts/${row.id}` })),
-        ...summary.thermal.map(row => ({ id: `t-${row.id}`, kind: en ? 'Heat' : 'Ζέστη', what: row.dishName, when: row.processTime, status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
-        ...summary.defrosting.map(row => ({ id: `d-${row.id}`, kind: en ? 'Defrost' : 'Απόψυξη', what: `${row.productName}${row.endedAt ? '' : ` · ${en ? 'in progress' : 'σε εξέλιξη'}`}`, when: timeOf(row.endedAt || row.startedAt), status: row.limitStatus, path: '' })),
-        ...summary.pureeing.map(row => ({ id: `p-${row.id}`, kind: en ? 'Pureeing' : 'Πολτοποίηση', what: row.productName, when: '', status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
-      ]} rowKey={row => row.id} columns={[{ key: 'kind', label: en ? 'Record' : 'Καταγραφή' }, { key: 'what', label: en ? 'What' : 'Τι' }, { key: 'when', label: en ? 'Time' : 'Ώρα' }, { key: 'status', label: en ? 'Limits' : 'Όρια' }]}
+      <SectionHeader title={`${en ? 'Today' : 'Σήμερα'} · ${weekdayLabel(weekdayOf(summary.today), language)} ${fmtDay(summary.today)}`} subtitle={production ? (production.verifiedAt ? `${en ? 'Signed off by' : 'Επαληθεύτηκε από'} ${production.verifiedByName || '—'}` : (en ? 'Production day open' : 'Η ημέρα παραγωγής είναι ανοιχτή')) : (en ? 'No production day yet' : 'Δεν έχει ανοίξει ημέρα παραγωγής')} />
+      {production?.menuText && <pre className="kitchen-menu-text is-compact">{production.menuText}</pre>}
+      <RegistryTable className="kitchen-table" rows={todayRows.slice(0, 4)} rowKey={row => row.id} columns={[{ key: 'kind', label: en ? 'Record' : 'Καταγραφή' }, { key: 'what', label: en ? 'What' : 'Τι' }, { key: 'when', label: en ? 'Time' : 'Ώρα' }, { key: 'status', label: en ? 'Limits' : 'Όρια' }]}
         emptyTitle={en ? 'Nothing recorded today' : 'Τίποτα καταγεγραμμένο σήμερα'} emptyText={en ? 'Receipts, heat parameters, defrosting and pureeing of today appear here.' : 'Εδώ εμφανίζονται οι σημερινές παραλαβές, θερμοκρασίες, αποψύξεις και πολτοποιήσεις.'}
         rowProps={row => (row.path ? { className: 'registry-row-clickable', onClick: () => navigate(row.path) } : {})}
         renderRow={row => <><td>{row.kind}</td><td>{row.what}</td><td className="nowrap-cell">{row.when || '—'}</td><td><LimitBadge status={row.status} language={language} /></td></>} />
+      {todayRows.length > 4 && <p className="kitchen-muted">{en ? `+${todayRows.length - 4} more in the production day` : `+${todayRows.length - 4} ακόμη στην ημέρα παραγωγής`}</p>}
     </section>
-    <section className="kitchen-card">
-      <SectionHeader title={en ? 'Out of limits (30 days)' : 'Εκτός ορίων (30 ημέρες)'} subtitle={en ? `${summary.outOfLimitsAll} in the whole history` : `${summary.outOfLimitsAll} σε όλο το ιστορικό`} />
-      <RegistryTable className="kitchen-table" rows={summary.outOfLimits.slice(0, 12)} rowKey={row => `${row.kind}-${row.id}`} columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'record', label: en ? 'Record' : 'Καταγραφή' }, { key: 'action', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }, { key: 'report', label: '' }]}
-        emptyTitle={en ? 'Every measurement within limits' : 'Όλες οι μετρήσεις εντός ορίων'}
-        renderRow={row => <>
-          <td className="nowrap-cell">{fmtDay(row.date)}</td>
-          <td><strong>{row.title}</strong><small>{kindLabel[row.kind]}{row.detail ? ` · ${row.detail}` : ''}</small></td>
-          <td className="kitchen-text-cell">{row.action || <StatusBadge tone="danger">{en ? 'Missing' : 'Λείπει'}</StatusBadge>}</td>
-          <td>{access.canRecord && <Button variant="secondary" onClick={() => report(row.title, [`${kindLabel[row.kind]} · ${fmtDay(row.date)}`, row.detail, row.action && `${en ? 'Corrective action' : 'Διορθωτική ενέργεια'}: ${row.action}`], row.date)}><AlertTriangle size={15} />{en ? 'Deviation' : 'Απόκλιση'}</Button>}</td>
-        </>} />
-    </section>
-    <section className="kitchen-card">
-      <SectionHeader title={en ? 'Expiry and low stock' : 'Λήξεις και χαμηλό απόθεμα'} actions={<Button variant="secondary" onClick={() => onTab('stock')}><Package size={15} />{en ? 'Stock' : 'Απόθεμα'}</Button>} />
-      <RegistryTable className="kitchen-table" rows={[...summary.expiring, ...summary.lowStock.filter(row => !row.expiring && !row.expired)].slice(0, 10)} rowKey={row => row.receiptItemId} columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'left', label: en ? 'Remaining' : 'Υπόλοιπο' }, { key: 'note', label: '' }]}
-        emptyTitle={en ? 'Nothing expires soon' : 'Τίποτα δεν λήγει σύντομα'}
-        renderRow={row => <><td>{row.productName}<small>{row.receiptCode} · {row.supplierName}</small></td><td className="nowrap-cell">{fmtQty(row.remaining, language)} {unitLabel(row.unit, language)}</td><td><StockNotes row={row} language={language} /></td></>} />
-    </section>
-    <section className="kitchen-card">
-      <SectionHeader title={en ? 'HACCP verification' : 'Επαλήθευση HACCP'} subtitle={en ? 'Days waiting for the sign-off of the kitchen manager or quality office (30 days).' : 'Ημέρες που περιμένουν την επαλήθευση του υπεύθυνου κουζίνας ή του γραφείου ποιότητας (30 ημέρες).'} actions={<Button variant="secondary" onClick={() => onTab('verification')}><ShieldCheck size={15} />{summary.toVerify}</Button>} />
-    </section>
-    {state && <RecallOverviewCard state={state} access={access} onTab={onTab} onRecall={onRecall} />}
+    <div className="kitchen-overview-side">
+      <section className="kitchen-card">
+        <SectionHeader title={en ? 'Out of limits (30 days)' : 'Εκτός ορίων (30 ημέρες)'} subtitle={en ? `${summary.outOfLimitsAll} in the whole history` : `${summary.outOfLimitsAll} σε όλο το ιστορικό`} />
+        <RegistryTable className="kitchen-table" rows={summary.outOfLimits.slice(0, 3)} rowKey={row => `${row.kind}-${row.id}`} columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'record', label: en ? 'Record' : 'Καταγραφή' }, { key: 'action', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }, { key: 'report', label: '' }]}
+          emptyTitle={en ? 'Every measurement within limits' : 'Όλες οι μετρήσεις εντός ορίων'}
+          renderRow={row => <>
+            <td className="nowrap-cell">{fmtDay(row.date)}</td>
+            <td><strong>{row.title}</strong><small>{kindLabel[row.kind]}{row.detail ? ` · ${row.detail}` : ''}</small></td>
+            <td className="kitchen-text-cell">{row.action ? <span className="kitchen-clamp" title={row.action}>{row.action}</span> : <StatusBadge tone="danger">{en ? 'Missing' : 'Λείπει'}</StatusBadge>}</td>
+            <td>{access.canRecord && <IconButton size="sm" label={en ? 'Report a deviation' : 'Αναφορά απόκλισης'} onClick={() => report(row.title, [`${kindLabel[row.kind]} · ${fmtDay(row.date)}`, row.detail, row.action && `${en ? 'Corrective action' : 'Διορθωτική ενέργεια'}: ${row.action}`], row.date)}><AlertTriangle size={14} /></IconButton>}</td>
+          </>} />
+      </section>
+      <section className="kitchen-card">
+        <SectionHeader title={en ? 'HACCP verification' : 'Επαλήθευση HACCP'} subtitle={en ? 'Days waiting for the sign-off (30 days).' : 'Ημέρες που περιμένουν επαλήθευση (30 ημέρες).'} />
+        <RegistryTable className="kitchen-table" rows={queue.slice(0, 3).map(row => ({ ...row, id: row.production.id }))} rowKey={row => row.id} columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }]}
+          emptyTitle={en ? 'Nothing to verify' : 'Τίποτα προς επαλήθευση'}
+          rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpenDay(row.production.id) })}
+          renderRow={row => <><td className="nowrap-cell"><strong>{fmtDay(row.production.productionDate)}</strong><small>{weekdayLabel(weekdayOf(row.production.productionDate), language)}</small></td><td>{row.total}</td><td>{row.outOfLimits ? <StatusBadge tone="danger">{row.outOfLimits}</StatusBadge> : '—'}</td></>} />
+      </section>
+    </div>
   </div>
 }
 
@@ -99,7 +104,7 @@ export function StockNotes({ row, language }) {
 
 // --- Receipts -------------------------------------------------------------------------------
 
-export function ReceiptsPanel({ state, access, onDialog, filters, setFilters }) {
+export function ReceiptsPanel({ state, access, onDialog, filters, setFilters, switcher = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -108,7 +113,7 @@ export function ReceiptsPanel({ state, access, onDialog, filters, setFilters }) 
   const rows = state.receipts.filter(row => (filters.result === 'all' || row.result === filters.result) && (filters.supplier === 'all' || (row.supplierId || row.supplierName) === filters.supplier) && (filters.limits === 'all' || row.limitStatus === filters.limits) && inPeriod(row.receivedOn, filters.from, filters.to) && matches(filters.query, row.code, row.supplierName, row.orderReference, row.receiverName, ...(row.items || []).map(item => `${item.productName} ${item.batchCode}`)))
     .sort((a, b) => String(b.receivedOn).localeCompare(String(a.receivedOn)) || String(b.receivedTime || '').localeCompare(String(a.receivedTime || '')) || String(b.code).localeCompare(String(a.code)))
   const active = ['result', 'supplier', 'limits'].filter(key => filters[key] !== 'all').length + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
-  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search code, supplier, product, batch…' : 'Αναζήτηση κωδικού, προμηθευτή, προϊόντος, παρτίδας…'} activeFilters={active}
+  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search code, supplier, product, batch…' : 'Αναζήτηση κωδικού, προμηθευτή, προϊόντος, παρτίδας…'} activeFilters={active} end={switcher}
     onClear={() => setFilters(current => ({ ...current, query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' }))}
     filters={<>
       <FilterSelect label={en ? 'Result' : 'Αποτέλεσμα'} value={filters.result} onChange={value => set('result', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{RECEIPT_RESULTS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -132,12 +137,11 @@ export function ReceiptsPanel({ state, access, onDialog, filters, setFilters }) 
 
 // --- Stock and catalogue ----------------------------------------------------------------------
 
-export function StockPanel({ state, stock, access, filters, setFilters, onDialog, onTrace, reload, organizationId }) {
+export function StockPanel({ state, stock, access, filters, setFilters, onDialog, onTrace, reload, organizationId, view = 'stock', switcher = null, onView }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { confirm, notify } = useFeedback()
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
-  const view = filters.view || 'stock'
   const suppliers = new Map((state.suppliers || []).map(item => [item.id, item.name]))
   const rows = stock.filter(row => (filters.show === 'all' || (filters.show === 'in' && row.inStock && row.remaining > 0.0005) || (filters.show === 'attention' && (row.expiring || row.expired || row.low || row.overused))) && (filters.storage === 'all' || row.storage === filters.storage) && matches(filters.query, row.productName, row.supplierName, row.batchCode, row.lotLabel, row.receiptCode))
     .sort((a, b) => String(b.receivedOn).localeCompare(String(a.receivedOn)) || String(a.productName).localeCompare(String(b.productName), 'el'))
@@ -146,13 +150,13 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
     .sort((a, b) => (a.supplierName ? 0 : 1) - (b.supplierName ? 0 : 1) || String(a.supplierName).localeCompare(String(b.supplierName), 'el') || a.name.localeCompare(b.name, 'el'))
   // Grouped by supplier, as FileMaker's «ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ».
   const grouped = products.flatMap((item, index) => (index === 0 || products[index - 1].supplierName !== item.supplierName ? [{ id: `group-${item.supplierName || 'none'}-${index}`, group: item.supplierName || (en ? 'No supplier' : 'Χωρίς προμηθευτή'), count: products.filter(other => other.supplierName === item.supplierName).length }, item] : [item]))
-  const switcher = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view} onChange={value => set('view', value)} options={[{ value: 'stock', label: en ? 'Received products' : 'Παραληφθέντα προϊόντα', icon: Package }, { value: 'products', label: en ? 'Product list' : 'Λίστα προϊόντων', icon: ClipboardCheck }]} />
+  const inner = <ModeSwitch ariaLabel={en ? 'Stock view' : 'Προβολή αποθέματος'} value={view} onChange={onView} options={[{ value: 'stock', label: en ? 'Received products' : 'Παραληφθέντα προϊόντα', icon: Package }, { value: 'products', label: en ? 'Product list' : 'Λίστα προϊόντων', icon: ClipboardCheck }]} />
   async function removeProduct(item) {
     if (!await confirm({ title: en ? 'Delete product' : 'Διαγραφή προϊόντος', message: en ? 'The product leaves the catalogue; receipts keep its name. A product no longer bought is better made inactive.' : 'Το προϊόν φεύγει από τη λίστα· οι παραλαβές κρατούν το όνομά του. Για προϊόν που δεν αγοράζεται πια, προτιμήστε «Ανενεργό».', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })) return
     try { await removeEntry(organizationId, 'kitchen_products', item.id); await reload() } catch (error) { notify(kitchenErrorMessage(error, language), 'error') }
   }
   if (view === 'products') return <KitchenList rows={grouped} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search product, supplier, code…' : 'Αναζήτηση προϊόντος, προμηθευτή, κωδικού…'} activeFilters={filters.category !== 'all' ? 1 : 0}
-    onClear={() => setFilters(current => ({ ...current, query: '', category: 'all' }))} end={<>{switcher}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
+    onClear={() => setFilters(current => ({ ...current, query: '', category: 'all' }))} end={<>{switcher}{inner}{access.canManage && <Button onClick={() => onDialog({ type: 'product', initial: newProduct() })}><Plus size={15} />{en ? 'Product' : 'Προϊόν'}</Button>}</>}
     filters={<FilterSelect label={en ? 'Category' : 'Κατηγορία'} value={filters.category} onChange={value => set('category', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{PRODUCT_CATEGORIES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>}
     columns={[{ key: 'code', label: en ? 'Supplier code' : 'Κωδικός προμηθευτή' }, { key: 'name', label: en ? 'Product' : 'Ονομασία / περιγραφή προϊόντος' }, { key: 'category', label: en ? 'Category' : 'Κατηγορία' }, { key: 'storage', label: en ? 'Storage' : 'Αποθήκευση' }, { key: 'actions', label: '' }]}
     rowProps={item => (item.group ? { className: 'kitchen-group-row' } : {})}
@@ -164,7 +168,7 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
       <td><div className="row-actions">{access.canManage && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'product', initial: { ...item } })}><Pencil size={14} /></IconButton>}{access.canManage && <IconButton size="sm" tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={() => removeProduct(item)}><Trash2 size={14} /></IconButton>}</div></td>
     </>} />
   return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search product, supplier, batch…' : 'Αναζήτηση προϊόντος, προμηθευτή, παρτίδας…'} activeFilters={(filters.show !== 'in' ? 1 : 0) + (filters.storage !== 'all' ? 1 : 0)}
-    onClear={() => setFilters(current => ({ ...current, query: '', show: 'in', storage: 'all' }))} end={switcher}
+    onClear={() => setFilters(current => ({ ...current, query: '', show: 'in', storage: 'all' }))} end={<>{switcher}{inner}</>}
     filters={<>
       <FilterSelect label={en ? 'Show' : 'Εμφάνιση'} value={filters.show} onChange={value => set('show', value)}><option value="in">{en ? 'In stock' : 'Σε απόθεμα'}</option><option value="attention">{en ? 'Expiry, low, overuse' : 'Λήξεις, χαμηλό, υπερκατανάλωση'}</option><option value="all">{en ? 'Every batch' : 'Όλες οι παρτίδες'}</option></FilterSelect>
       <FilterSelect label={en ? 'Storage' : 'Αποθήκευση'} value={filters.storage} onChange={value => set('storage', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{STORAGES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -183,114 +187,6 @@ export function StockPanel({ state, stock, access, filters, setFilters, onDialog
         <IconButton size="sm" label={en ? 'Traceability' : 'Ιχνηλάτηση'} onClick={() => onTrace(row.receiptItemId)}><Route size={14} /></IconButton>
         {access.canRecord && row.inStock && row.remaining > 0.0005 && <Button variant="secondary" onClick={() => onDialog({ type: 'writeoff', batch: row })}><Undo2 size={15} />{en ? 'Withdraw' : 'Απόσυρση'}</Button>}
       </div></td>
-    </>} />
-}
-
-// --- Heat parameters, defrosting, pureeing ------------------------------------------------
-
-export function ThermalPanel({ state, access, filters, setFilters, onDialog }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const report = useDeviationReport()
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
-  const locked = id => Boolean(id && state.productions.find(item => item.id === id)?.verifiedAt)
-  const rows = state.thermal.filter(row => (filters.limits === 'all' || row.limitStatus === filters.limits || (filters.limits === 'none' && !row.limitStatus)) && inPeriod(row.processDate, filters.from, filters.to) && matches(filters.query, row.dishName, row.notes, row.recordedByName))
-    .sort((a, b) => String(b.processDate).localeCompare(String(a.processDate)) || String(b.processTime || '').localeCompare(String(a.processTime || '')))
-  const active = (filters.limits !== 'all' ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
-  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search dish…' : 'Αναζήτηση πιάτου…'} activeFilters={active} onClear={() => setFilters(current => ({ ...current, query: '', limits: 'all', from: '', to: '' }))}
-    end={access.canRecord && <Button onClick={() => onDialog({ type: 'thermal', initial: newThermal() })}><Thermometer size={15} />{en ? 'Record' : 'Καταχώριση'}</Button>}
-    filters={<><LimitsFilter value={filters.limits} onChange={value => set('limits', value)} en={en} /><FilterDate label={en ? 'From' : 'Από'} value={filters.from} onChange={value => set('from', value)} /><FilterDate label={en ? 'To' : 'Έως'} value={filters.to} onChange={value => set('to', value)} /></>}
-    columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'dish', label: en ? 'Dish' : 'Πιάτο' }, { key: 'cook', label: `${en ? 'Core' : 'Πυρήνας'} ${limitText(state.limits.find(item => item.limitKey === 'cooking_core'), language)}` }, { key: 'chill', label: `${en ? 'Chilling' : 'Ψύξη'} ${limitText(state.limits.find(item => item.limitKey === 'chilling'), language)}` }, { key: 'reheat', label: `${en ? 'Reheating' : 'Αναθέρμανση'} ${limitText(state.limits.find(item => item.limitKey === 'reheating'), language)}` }, { key: 'fry', label: en ? 'Frying' : 'Τηγάνισμα' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'actions', label: '' }]}
-    empty={!rows.length} emptyTitle={en ? 'No heat treatments' : 'Δεν υπάρχουν θερμικές επεξεργασίες'} emptyText={en ? 'Cooking, chilling, reheating and frying temperatures of each dish.' : 'Θερμοκρασίες μαγειρέματος, ψύξης, αναθέρμανσης και τηγανίσματος κάθε πιάτου.'}
-    renderRow={row => <>
-      <td className="nowrap-cell">{fmtDay(row.processDate)}{row.processTime && <small>{row.processTime}</small>}</td>
-      <td><strong>{row.dishName}</strong>{row.recordedByName && <small>{row.recordedByName}</small>}</td>
-      <td className={`nowrap-cell kitchen-measure is-${row.cookingStatus || 'none'}`}>{temp(row.cookingTemp, row.cookingText, language)}</td>
-      <td className={`nowrap-cell kitchen-measure is-${row.chillStatus || 'none'}`}>{row.chillTemp !== '' && row.chillTemp != null ? `${fmtTemp(row.chillTemp, language)}${row.chillMinutes ? ` · ${row.chillMinutes}′` : ''}` : temp('', row.chillText, language)}</td>
-      <td className={`nowrap-cell kitchen-measure is-${row.reheatStatus || 'none'}`}>{temp(row.reheatTemp, row.reheatText, language)}</td>
-      <td className={`nowrap-cell kitchen-measure is-${row.fryingStatus || 'none'}`}>{temp(row.fryingTemp, row.fryingText, language)}</td>
-      <td><LimitBadge status={row.limitStatus} language={language} />{row.correctiveAction && <small className="kitchen-action-text" title={row.correctiveAction}>{row.correctiveAction}</small>}</td>
-      <td><div className="row-actions">
-        {access.canRecord && !locked(row.productionId) && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'thermal', initial: { ...row } })}><Pencil size={14} /></IconButton>}
-        {access.canRecord && row.limitStatus === 'out' && <IconButton size="sm" label={en ? 'Report a deviation' : 'Αναφορά απόκλισης'} onClick={() => report(row.dishName, [`${en ? 'Heat treatment' : 'Θερμική επεξεργασία'} · ${fmtDay(row.processDate)} ${row.processTime || ''}`, row.correctiveAction && `${en ? 'Corrective action' : 'Διορθωτική ενέργεια'}: ${row.correctiveAction}`], row.processDate)}><AlertTriangle size={14} /></IconButton>}
-      </div></td>
-    </>} />
-}
-
-const LimitsFilter = ({ value, onChange, en }) => <FilterSelect label={en ? 'Limits' : 'Όρια'} value={value} onChange={onChange}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="out">{en ? 'Out of limits' : 'Εκτός ορίων'}</option><option value="in">{en ? 'Within limits' : 'Εντός ορίων'}</option><option value="none">{en ? 'Not measured' : 'Χωρίς μέτρηση'}</option></FilterSelect>
-
-// The defrost list (as FileMaker's «Λίστα Αποψύξεων»): one line per defrosting, with
-// its HACCP sign-off (who and when), which locks the line until reopened with a reason.
-export function DefrostPanel({ state, access, filters, setFilters, onDialog, onSign, onReopen }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
-  const rows = state.defrosting.filter(row => (filters.limits === 'all' || row.limitStatus === filters.limits || (filters.limits === 'none' && !row.limitStatus)) && (filters.signed === 'all' || (filters.signed === 'pending' ? !row.verifiedAt : Boolean(row.verifiedAt))) && inPeriod(dayOf(row.startedAt), filters.from, filters.to) && matches(filters.query, row.productName, row.notes, row.verifiedByName))
-    .sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)))
-  const active = (filters.limits !== 'all' ? 1 : 0) + (filters.signed !== 'all' ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
-  const draftOf = row => ({ ...row, startDay: dayOf(row.startedAt), startTime: timeOf(row.startedAt), endDay: row.endedAt ? dayOf(row.endedAt) : '', endTime: row.endedAt ? timeOf(row.endedAt) : '' })
-  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search product…' : 'Αναζήτηση προϊόντος…'} activeFilters={active} onClear={() => setFilters(current => ({ ...current, query: '', limits: 'all', signed: 'all', from: '', to: '' }))}
-    end={access.canRecord && <Button onClick={() => onDialog({ type: 'defrost', initial: newDefrost() })}><Snowflake size={15} />{en ? 'Record' : 'Καταχώριση'}</Button>}
-    filters={<><LimitsFilter value={filters.limits} onChange={value => set('limits', value)} en={en} /><FilterSelect label={en ? 'HACCP sign-off' : 'Επαλήθευση HACCP'} value={filters.signed} onChange={value => set('signed', value)}><option value="all">{en ? 'All' : 'Όλες'}</option><option value="pending">{en ? 'Pending' : 'Εκκρεμεί'}</option><option value="signed">{en ? 'Signed off' : 'Επαληθευμένες'}</option></FilterSelect><FilterDate label={en ? 'From' : 'Από'} value={filters.from} onChange={value => set('from', value)} /><FilterDate label={en ? 'To' : 'Έως'} value={filters.to} onChange={value => set('to', value)} /></>}
-    columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'start', label: en ? 'At the start of defrosting' : 'Κατά την έναρξη της απόψυξης' }, { key: 'end', label: en ? 'At the end of defrosting' : 'Κατά τη λήξη της απόψυξης' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'sign', label: en ? 'HACCP sign-off' : 'Επαλήθευση HACCP' }]}
-    empty={!rows.length} emptyTitle={en ? 'No defrosting' : 'Δεν υπάρχουν αποψύξεις'} emptyText={en ? 'Each defrosting with its start and end temperature and the HACCP sign-off.' : 'Κάθε απόψυξη με θερμοκρασία έναρξης και λήξης και την επαλήθευση HACCP.'}
-    rowProps={row => (access.canRecord && !row.verifiedAt ? { className: 'registry-row-clickable', onClick: () => onDialog({ type: 'defrost', initial: draftOf(row) }) } : {})}
-    renderRow={row => <>
-      <td><strong>{row.productName}</strong><small>{fmtQty(row.quantity, language)} {unitLabel(row.unit, language)} · {defrostMethodLabel(row.method, language)}</small></td>
-      <td className="nowrap-cell">{fmtStamp(row.startedAt, language)}<small>{temp(row.startTemp, row.startText, language)}</small></td>
-      <td className={`nowrap-cell kitchen-measure is-${row.limitStatus || 'none'}`}>{row.endedAt ? <>{fmtStamp(row.endedAt, language)}<small>{temp(row.endTemp, row.endText, language)}</small></> : <StatusBadge tone="info">{en ? 'In progress' : 'Σε εξέλιξη'}</StatusBadge>}</td>
-      <td><LimitBadge status={row.limitStatus} language={language} />{row.correctiveAction && <small className="kitchen-action-text" title={row.correctiveAction}>{row.correctiveAction}</small>}</td>
-      <td onClick={event => event.stopPropagation()}>{row.verifiedAt
-        ? <span className="kitchen-signoff"><StatusBadge tone="success"><ShieldCheck size={13} />{row.verifiedByName || '—'}</StatusBadge><small>{fmtStamp(row.verifiedAt, language)}</small>{access.canManage && <IconButton size="sm" label={en ? 'Reopen' : 'Άνοιγμα ξανά'} onClick={() => onReopen('kitchen_defrosting', row)}><Undo2 size={14} /></IconButton>}</span>
-        : access.canManage ? <Button variant="secondary" disabled={!row.endedAt} onClick={() => onSign('kitchen_defrosting', row)}><ShieldCheck size={15} />{en ? 'HACCP sign-off' : 'Επαλήθευση HACCP'}</Button> : <StatusBadge tone="warning">{en ? 'Pending' : 'Εκκρεμεί'}</StatusBadge>}</td>
-    </>} />
-}
-
-export function PureeingPanel({ state, access, filters, setFilters, onDialog }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
-  const yes = value => (value == null ? '—' : value ? (en ? 'OK' : 'Εντάξει') : <StatusBadge tone="danger">{en ? 'Not OK' : 'Όχι'}</StatusBadge>)
-  const locked = id => Boolean(id && state.productions.find(item => item.id === id)?.verifiedAt)
-  const rows = state.pureeing.filter(row => (filters.limits === 'all' || row.limitStatus === filters.limits || (filters.limits === 'none' && !row.limitStatus)) && inPeriod(row.pureedOn, filters.from, filters.to) && matches(filters.query, row.productName, row.notes))
-    .sort((a, b) => String(b.pureedOn).localeCompare(String(a.pureedOn)))
-  const active = (filters.limits !== 'all' ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
-  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search dish…' : 'Αναζήτηση πιάτου…'} activeFilters={active} onClear={() => setFilters(current => ({ ...current, query: '', limits: 'all', from: '', to: '' }))}
-    end={access.canRecord && <Button onClick={() => onDialog({ type: 'pureeing', initial: newPureeing() })}><Plus size={15} />{en ? 'Record' : 'Καταχώριση'}</Button>}
-    filters={<><LimitsFilter value={filters.limits} onChange={value => set('limits', value)} en={en} /><FilterDate label={en ? 'From' : 'Από'} value={filters.from} onChange={value => set('from', value)} /><FilterDate label={en ? 'To' : 'Έως'} value={filters.to} onChange={value => set('to', value)} /></>}
-    columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'dish', label: en ? 'Dish / product' : 'Πιάτο / προϊόν' }, { key: 'method', label: en ? 'Method' : 'Μέθοδος' }, { key: 'visual', label: en ? 'Visual check' : 'Οπτικός έλεγχος' }, { key: 'blade', label: en ? 'Blade check' : 'Έλεγχος λεπίδας' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'actions', label: '' }]}
-    empty={!rows.length} emptyTitle={en ? 'No pureeing' : 'Δεν υπάρχουν πολτοποιήσεις'}
-    renderRow={row => <>
-      <td className="nowrap-cell">{fmtDay(row.pureedOn)}</td><td><strong>{row.productName}</strong>{row.recordedByName && <small>{row.recordedByName}</small>}</td><td>{pureeMethodLabel(row.method, language)}</td>
-      <td>{yes(row.visualCheck)}</td><td>{yes(row.bladeCheck)}</td><td><LimitBadge status={row.limitStatus} language={language} /></td>
-      <td>{access.canRecord && !locked(row.productionId) && <IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => onDialog({ type: 'pureeing', initial: { ...row } })}><Pencil size={14} /></IconButton>}</td>
-    </>} />
-}
-
-// --- Materials in use (traceability) -----------------------------------------------------
-
-export function UsagePanel({ state, stock, filters, setFilters, onTrace }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const navigate = useNavigate()
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
-  const batches = new Map(stock.map(row => [row.receiptItemId, row]))
-  const rows = state.usage.map(row => ({ ...row, batch: batches.get(row.receiptItemId) || null }))
-    .filter(row => (filters.link === 'all' || (filters.link === 'linked' ? Boolean(row.batch) : !row.batch)) && inPeriod(row.usedOn, filters.from, filters.to) && matches(filters.query, row.productName, row.dishName, row.lotLabel, row.batch?.supplierName, row.batch?.receiptCode))
-    .sort((a, b) => String(b.usedOn).localeCompare(String(a.usedOn)))
-  const active = (filters.link !== 'all' ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
-  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search product, dish, batch, supplier…' : 'Αναζήτηση προϊόντος, πιάτου, παρτίδας, προμηθευτή…'} activeFilters={active} onClear={() => setFilters(current => ({ ...current, query: '', link: 'all', from: '', to: '' }))}
-    filters={<><FilterSelect label={en ? 'Batch' : 'Παρτίδα'} value={filters.link} onChange={value => set('link', value)}><option value="all">{en ? 'All' : 'Όλες'}</option><option value="linked">{en ? 'Traced to a receipt' : 'Με παραλαβή'}</option><option value="unlinked">{en ? 'Without a receipt' : 'Χωρίς παραλαβή'}</option></FilterSelect><FilterDate label={en ? 'From' : 'Από'} value={filters.from} onChange={value => set('from', value)} /><FilterDate label={en ? 'To' : 'Έως'} value={filters.to} onChange={value => set('to', value)} /></>}
-    columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'product', label: en ? 'Raw material · batch' : 'Πρώτη ύλη · παρτίδα' }, { key: 'receipt', label: en ? 'Supplier · receipt' : 'Προμηθευτής · παραλαβή' }, { key: 'qty', label: en ? 'Quantity' : 'Ποσότητα' }, { key: 'dish', label: en ? 'Dish' : 'Πιάτο' }, { key: 'actions', label: '' }]}
-    empty={!rows.length} emptyTitle={en ? 'No raw materials used' : 'Δεν υπάρχουν πρώτες ύλες σε χρήση'} emptyText={en ? 'Supplier → batch → production day → dish: every batch used in a production.' : 'Προμηθευτής → παρτίδα → ημέρα παραγωγής → πιάτο: κάθε παρτίδα που μπήκε στην παραγωγή.'}
-    rowProps={row => (row.productionId ? { className: 'registry-row-clickable', onClick: () => navigate(`/kitchen/days/${row.productionId}`) } : {})}
-    renderRow={row => <>
-      <td className="nowrap-cell">{fmtDay(row.usedOn)}</td>
-      <td><strong>{row.productName}</strong><small>{row.batch?.batchCode || row.lotLabel || '—'}</small></td>
-      <td>{row.batch ? <>{row.batch.supplierName || '—'}<small>{row.batch.receiptCode} · {fmtDay(row.batch.receivedOn)}</small></> : <span className="kitchen-muted">{en ? 'Batch not found' : 'Χωρίς παρτίδα παραλαβής'}</span>}</td>
-      <td className="nowrap-cell">{fmtQty(row.quantity, language)} {unitLabel(row.unit, language)}</td>
-      <td>{row.dishName || '—'}</td>
-      <td onClick={event => event.stopPropagation()}>{row.receiptItemId && <IconButton size="sm" label={en ? 'Traceability' : 'Ιχνηλάτηση'} onClick={() => onTrace(row.receiptItemId)}><Route size={14} /></IconButton>}</td>
     </>} />
 }
 
@@ -340,7 +236,7 @@ export function PlanPanel({ state, access, filters, setFilters, onDialog, onOpen
     .sort((a, b) => String(b.productionDate).localeCompare(String(a.productionDate)))
   const active = (filters.when !== 'all' ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)
   return <KitchenList rows={days} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search menu, notes, date…' : 'Αναζήτηση μενού, σημειώσεων, ημερομηνίας…'} activeFilters={active} onClear={() => setFilters(current => ({ ...current, query: '', when: 'all', from: '', to: '' }))}
-    end={<>{switcher}{access.canRecord && <Button onClick={() => onDialog({ type: 'production', initial: newProduction(today) })}><Plus size={15} />{en ? 'Production day' : 'Ημέρα παραγωγής'}</Button>}</>}
+    end={switcher}
     filters={<><FilterSelect label={en ? 'Days' : 'Ημέρες'} value={filters.when} onChange={value => set('when', value)}><option value="all">{en ? 'All' : 'Όλες'}</option><option value="upcoming">{en ? 'Today and planned' : 'Σήμερα και προγραμματισμένες'}</option><option value="past">{en ? 'Past' : 'Περασμένες'}</option></FilterSelect><FilterDate label={en ? 'From' : 'Από'} value={filters.from} onChange={value => set('from', value)} /><FilterDate label={en ? 'To' : 'Έως'} value={filters.to} onChange={value => set('to', value)} /></>}
     columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'menu', label: en ? 'Daily menu' : 'Μενού ημέρας' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'verify', label: en ? 'Verification' : 'Επαλήθευση' }]}
     empty={!days.length} emptyTitle={en ? 'No production days' : 'Δεν υπάρχουν ημέρες παραγωγής'} emptyText={en ? 'Open the day from its menu, then record what the production uses and the heat parameters.' : 'Ανοίξτε την ημέρα από το μενού της και καταγράψτε τις πρώτες ύλες και τις παραμέτρους ζέστης.'}
@@ -355,7 +251,7 @@ export function PlanPanel({ state, access, filters, setFilters, onDialog, onOpen
 
 // --- Verification queue -----------------------------------------------------------------------
 
-export function VerificationPanel({ state, access, filters, setFilters, onOpenDay, onSign }) {
+export function VerificationPanel({ state, filters, setFilters, onOpenDay }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
@@ -364,7 +260,7 @@ export function VerificationPanel({ state, access, filters, setFilters, onOpenDa
     .filter(row => matches(filters.query, row.production.menuText, fmtDay(row.production.productionDate)))
   return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search date or menu…' : 'Αναζήτηση ημερομηνίας ή μενού…'} activeFilters={filters.range !== '30' ? 1 : 0} onClear={() => setFilters(current => ({ ...current, query: '', range: '30' }))}
     filters={<FilterSelect label={en ? 'Period' : 'Περίοδος'} value={filters.range} onChange={value => set('range', value)}><option value="7">{en ? 'Last 7 days' : 'Τελευταίες 7 ημέρες'}</option><option value="30">{en ? 'Last 30 days' : 'Τελευταίες 30 ημέρες'}</option><option value="all">{en ? 'Every unverified day' : 'Όλες οι ανεπαλήθευτες ημέρες'}</option></FilterSelect>}
-    columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }, { key: 'defrost', label: en ? 'Defrosts to sign' : 'Αποψύξεις προς επαλήθευση' }, { key: 'actions', label: '' }]}
+    columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }, { key: 'defrost', label: en ? 'Defrosts to sign' : 'Αποψύξεις προς επαλήθευση' }]}
     empty={!rows.length} emptyTitle={en ? 'Nothing to verify' : 'Τίποτα προς επαλήθευση'} emptyText={en ? 'Every production day of the period is signed off.' : 'Όλες οι ημέρες παραγωγής της περιόδου έχουν επαληθευτεί.'}
     rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpenDay(row.production.id) })}
     renderRow={row => <>
@@ -372,7 +268,6 @@ export function VerificationPanel({ state, access, filters, setFilters, onOpenDa
       <td>{[`${row.receipts.length} ${en ? 'receipts' : 'παραλαβές'}`, `${row.usage.length} ${en ? 'materials' : 'α΄ ύλες'}`, `${row.thermal.length} ${en ? 'heat' : 'ζέστη'}`, `${row.pureeing.length} ${en ? 'pureeing' : 'πολτοπ.'}`, `${row.defrosting.length} ${en ? 'defrost' : 'αποψ.'}`].join(' · ')}</td>
       <td>{row.outOfLimits ? <StatusBadge tone="danger">{row.outOfLimits}</StatusBadge> : '—'}</td>
       <td>{row.pendingDefrosts || '—'}</td>
-      <td onClick={event => event.stopPropagation()}>{access.canManage && <Button variant="secondary" onClick={() => onSign('kitchen_productions', row.production)}><ShieldCheck size={15} />{en ? 'Sign off' : 'Επαλήθευση'}</Button>}</td>
     </>} />
 }
 

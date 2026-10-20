@@ -298,12 +298,21 @@ export function receiptProblems(receipt, language = 'el', status = null) {
 
 // Two levels of tabs: four groups, each with its own tabs. ?tab= keeps naming the inner tab
 // (old links still open the same place); a group name opens that group's first tab.
-export const KITCHEN_TAB_GROUPS = [
-  { value: 'today', tabs: ['overview'] },
-  { value: 'production', tabs: ['plan', 'thermal', 'defrost', 'pureeing'] },
-  { value: 'storage', tabs: ['receipts', 'stock', 'usage'] },
-  { value: 'safety', tabs: ['verification', 'recall', 'haccp'] },
-]
-const KITCHEN_TABS = KITCHEN_TAB_GROUPS.flatMap(group => group.tabs)
-export const kitchenTabGroup = tab => KITCHEN_TAB_GROUPS.find(group => group.tabs.includes(tab)) || KITCHEN_TAB_GROUPS[0]
-export const resolveKitchenTab = value => (KITCHEN_TABS.includes(value) ? value : KITCHEN_TAB_GROUPS.find(group => group.value === value)?.tabs[0] || 'overview')
+// The five tabs of the kitchen. Storage and Safety hold more than one list: `view` says which.
+export const KITCHEN_TABS = ['today', 'days', 'storage', 'safety', 'haccp']
+export const KITCHEN_VIEWS = { storage: ['receipts', 'stock', 'products'], safety: ['verification', 'recall'] }
+// The tabs of earlier versions (and the old group names) still open: each lands on its new tab and view.
+const OLD_KITCHEN_TABS = {
+  overview: { tab: 'today' },
+  plan: { tab: 'days' }, production: { tab: 'days' }, thermal: { tab: 'days' }, defrost: { tab: 'days' }, pureeing: { tab: 'days' },
+  receipts: { tab: 'storage', view: 'receipts' }, stock: { tab: 'storage', view: 'stock' }, usage: { tab: 'storage', view: 'stock' },
+  verification: { tab: 'safety', view: 'verification' }, recall: { tab: 'safety', view: 'recall' },
+}
+export function resolveKitchenLocation(tab, view) {
+  const target = KITCHEN_TABS.includes(tab) ? { tab } : OLD_KITCHEN_TABS[tab] || { tab: 'today' }
+  const views = KITCHEN_VIEWS[target.tab]
+  return { tab: target.tab, view: views ? (views.includes(view) ? view : target.view || views[0]) : '' }
+}
+export const resolveKitchenTab = (value, view) => resolveKitchenLocation(value, view).tab
+// The one primary button of the top bar for each tab (Export is always beside it).
+export const KITCHEN_PRIMARY_ACTION = { today: 'production', days: 'day', storage: 'receipt', safety: 'drill', haccp: null }
