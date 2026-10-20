@@ -24,23 +24,59 @@ function fromRow(row,workflow={}){
   return {id:row.code,dbId:row.id,organizationId:row.organization_id,templateId:inferTemplate(base),name:row.name,shortName:row.short_name||'',type:row.committee_type,status:row.status,chair:officerName(memberRefs,'chair',/^πρόεδρ/i)||officerName(memberRefs,'coordinator',/συντον/i),secretary:officerName(memberRefs,'secretary',/γραμματ/i),termStart:row.term_start||'',termEnd:row.term_end||'',committeeRole:row.committee_role||'',legalBasis:row.legal_basis||'',mandate:row.mandate||'',decisionNumber:row.decision_number||'',meetingFrequency:row.meeting_frequency||'quarterly',quorumRule:row.quorum_rule||'simple_majority',notes:row.notes||'',members:memberRefs.map(x=>x.name),memberRefs,meetings,decisions:(workflow.decisions||[]).filter(x=>x.committee_id===row.id).map(fromDecisionRow).map(x=>({...x,meetingId:x.meetingId?(meetingKeyByDbId.get(x.meetingId)||x.meetingId):null})),annualPlan:(workflow.plan||[]).filter(x=>x.committee_id===row.id).map(fromPlanRow),documents:(workflow.documents||[]).filter(x=>x.committee_id===row.id).map(fromDocumentRow),history:(workflow.history||[]).filter(x=>x.committee_id===row.id).map(fromHistoryRow),createdAt:row.created_at,updatedAt:row.updated_at}
 }
 // Every row, page by page: a single response is capped at 1,000 rows (a large
-// hospital has more attendance and decision rows than that).
-async function selectRows(table,columns,organizationId,orderBy=null){return selectAllPages(()=>{let query=supabase.from(table).select(columns).eq('organization_id',organizationId);if(orderBy)query=query.order(orderBy.replace(/^-/,''),{ascending:!orderBy.startsWith('-')});return query.order('id',{ascending:true})})}
+// hospital has more attendance and decision rows than that). `filter` narrows
+// the read (one committee, or only the open rows).
+async function selectRows(table,columns,organizationId,orderBy=null,filter=null){return selectAllPages(()=>{let query=supabase.from(table).select(columns).eq('organization_id',organizationId);if(filter)query=filter(query);if(orderBy)query=query.order(orderBy.replace(/^-/,''),{ascending:!orderBy.startsWith('-')});return query.order('id',{ascending:true})})}
+const MEETING_COLUMNS='id,client_key,committee_id,organization_id,title,scheduled_at,meeting_type,location,status,minutes_number,quorum_met,agenda,minutes,finalized_at,finalized_by,created_by,created_at,updated_at'
+const MEETING_LIST_COLUMNS='id,client_key,committee_id,organization_id,title,scheduled_at,meeting_type,location,status,minutes_number,quorum_met,finalized_at,created_at,updated_at'
+const DECISION_COLUMNS='id,client_key,committee_id,meeting_id,organization_id,topic_key,title,action,owner_id,owner_label,due_date,priority,status,created_at,updated_at'
+const openDecisions=query=>query.not('status','in','(completed,closed)')
+const openMeetings=query=>query.not('status','in','(finalized,cancelled)')
+// The workflow lists of the organization, or of one committee (filter), side by side.
+async function readWorkflow(organizationId,filter=null){
+  const [meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external]=await Promise.all([
+    selectRows('committee_meetings',MEETING_COLUMNS,organizationId,'scheduled_at',filter),
+    selectRows('committee_meeting_attendance','id,client_key,meeting_id,committee_id,organization_id,member_id,employee_id,attendee_name,attendance_status,has_vote,recorded_by,created_at,updated_at',organizationId,null,filter),
+    selectRows('committee_decisions',DECISION_COLUMNS,organizationId,null,filter),
+    selectRows('committee_minutes_approvals','id,meeting_id,committee_id,organization_id,approver_id,member_id,status,comment,requested_at,decided_at,created_at,updated_at',organizationId,null,filter),
+    selectRows('committee_minutes_approval_history','id,approval_id,meeting_id,committee_id,organization_id,approver_id,member_id,status,comment,requested_at,decided_at,archived_at',organizationId,null,filter),
+    selectRows('committee_plan_items','id,client_key,committee_id,organization_id,title,indicator,baseline,target,owner_id,owner_label,due_date,status,created_at,updated_at',organizationId,null,filter),
+    selectRows('committee_documents','id,committee_id,organization_id,document_id,document_kind,attachment,created_by,created_at,document:controlled_documents!committee_documents_document_tenant_fk(code,title,status)',organizationId,null,filter),
+    selectRows('committee_history','id,committee_id,organization_id,action,reason,event_data,actor_id,created_at',organizationId,'-created_at',filter),
+    selectRows('committee_minutes_external_approvals','id,meeting_id,committee_id,organization_id,member_id,member_name,method,email,status,comment,requested_at,sent_at,send_count,token_expires_at,decided_at,updated_at',organizationId,null,filter),
+  ]);return {meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external}
+}
+// Every committee with every workflow row: the read used before the counts
+// call existed, kept for a database without committee_overview_counts.
+export async function loadCommitteesFullAsync(organizationId){
+  if(!requireProduction(organizationId,'load'))return loadCommitteesLocal()
+  const [{data,error},workflow]=await Promise.all([
+    supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id',organizationId).order('name'),
+    readWorkflow(organizationId),
+  ]);if(error)throw error;return (data||[]).map(row=>fromRow(row,workflow))
+}
+// The Committees list and the calendar: the committees with their members,
+// how many meetings each has (committee_overview_counts, 20261201120000), and
+// only the open decisions and open meetings, in one round. Attendance and the
+// closed decisions are read when a committee is opened (loadCommitteeRecordAsync).
 export async function loadCommitteesAsync(organizationId){
   if(!requireProduction(organizationId,'load'))return loadCommitteesLocal()
-  // The committees and their workflow lists are read side by side.
-  const [{data,error},meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external]=await Promise.all([
+  const [{data,error},counted,meetings,decisions]=await Promise.all([
     supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id',organizationId).order('name'),
-    selectRows('committee_meetings','id,client_key,committee_id,organization_id,title,scheduled_at,meeting_type,location,status,minutes_number,quorum_met,agenda,minutes,finalized_at,finalized_by,created_by,created_at,updated_at',organizationId,'scheduled_at'),
-    selectRows('committee_meeting_attendance','id,client_key,meeting_id,committee_id,organization_id,member_id,employee_id,attendee_name,attendance_status,has_vote,recorded_by,created_at,updated_at',organizationId),
-    selectRows('committee_decisions','id,client_key,committee_id,meeting_id,organization_id,topic_key,title,action,owner_id,owner_label,due_date,priority,status,created_at,updated_at',organizationId),
-    selectRows('committee_minutes_approvals','id,meeting_id,committee_id,organization_id,approver_id,member_id,status,comment,requested_at,decided_at,created_at,updated_at',organizationId),
-    selectRows('committee_minutes_approval_history','id,approval_id,meeting_id,committee_id,organization_id,approver_id,member_id,status,comment,requested_at,decided_at,archived_at',organizationId),
-    selectRows('committee_plan_items','id,client_key,committee_id,organization_id,title,indicator,baseline,target,owner_id,owner_label,due_date,status,created_at,updated_at',organizationId),
-    selectRows('committee_documents','id,committee_id,organization_id,document_id,document_kind,attachment,created_by,created_at,document:controlled_documents!committee_documents_document_tenant_fk(code,title,status)',organizationId),
-    selectRows('committee_history','id,committee_id,organization_id,action,reason,event_data,actor_id,created_at',organizationId,'-created_at'),
-    selectRows('committee_minutes_external_approvals','id,meeting_id,committee_id,organization_id,member_id,member_name,method,email,status,comment,requested_at,sent_at,send_count,token_expires_at,decided_at,updated_at',organizationId),
-  ]);if(error)throw error;const workflow={meetings,attendance,decisions,approvals,approvalHistory,plan,documents,history,external};return (data||[]).map(row=>fromRow(row,workflow))
+    supabase.rpc('committee_overview_counts',{p_organization_id:organizationId}),
+    selectRows('committee_meetings',MEETING_LIST_COLUMNS,organizationId,'scheduled_at',openMeetings),
+    selectRows('committee_decisions',DECISION_COLUMNS,organizationId,null,openDecisions),
+  ]);if(counted?.error||!Array.isArray(counted?.data))return loadCommitteesFullAsync(organizationId);if(error)throw error
+  const counts=new Map(counted.data.map(x=>[x.committee_id,x]))
+  return (data||[]).map(row=>{const c=counts.get(row.id);return {...fromRow(row,{meetings,decisions}),partial:true,overview:{meetings:Number(c?.meetings_total||0),openMeetings:Number(c?.meetings_open||0),openDecisions:Number(c?.decisions_open||0)}}})
+}
+// How many meetings a committee has: the count from the list read, else its meetings.
+export function committeeMeetingCount(row){return row?.overview?Number(row.overview.meetings||0):(row?.meetings||[]).length}
+// One committee (by code) with all of its workflow rows, as a one-row list.
+export async function loadCommitteeRecordAsync(organizationId,committeeCode){
+  if(!requireProduction(organizationId,'load'))return loadCommitteesLocal()
+  const {data,error}=await supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id',organizationId).eq('code',committeeCode).maybeSingle();if(error)throw error;if(!data)return []
+  const workflow=await readWorkflow(organizationId,query=>query.eq('committee_id',data.id));return [fromRow(data,workflow)]
 }
 export async function getNextCommitteeCodeAsync(organizationId){if(!requireProduction(organizationId,'next_code'))return nextCommitteeId(loadCommitteesLocal());const {data,error}=await supabase.from('committees').select('code').eq('organization_id',organizationId);if(error)throw error;const used=new Set((data||[]).map(r=>r.code));let n=1;while(used.has(`COM-${String(n).padStart(3,'0')}`))n++;return `COM-${String(n).padStart(3,'0')}`}
 export async function createCommitteeAsync(organizationId,draft){

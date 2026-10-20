@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadCommitteesAsync } from './committeeService'
+import { loadCommitteeRecordAsync, loadCommitteesAsync } from './committeeService'
 
-export function useCommitteesData() {
+// With a committee code, only that committee is read (with every attendance
+// and decision row); without one, the list with its counts.
+export function useCommitteesData(committeeCode = null) {
   const { tenant } = useTenant()
   const organizationId = tenant?.id ?? null
   const [data, setData] = useState([])
@@ -12,7 +14,7 @@ export function useCommitteesData() {
   const reload = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const next = await loadCommitteesAsync(organizationId)
+      const next = committeeCode ? await loadCommitteeRecordAsync(organizationId, committeeCode) : await loadCommitteesAsync(organizationId)
       setData(next)
       return next
     } catch (err) {
@@ -21,7 +23,7 @@ export function useCommitteesData() {
     } finally {
       setLoading(false)
     }
-  }, [organizationId])
+  }, [organizationId, committeeCode])
 
   useEffect(() => { void reload().catch(() => {}) }, [reload])
 

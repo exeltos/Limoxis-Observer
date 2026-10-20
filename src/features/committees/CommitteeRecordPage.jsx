@@ -83,7 +83,7 @@ export function CommitteeRecordPage() {
   const en = language === 'en'
   const { notify, notifyError, confirm } = useFeedback()
   const n = useNotifications()
-  const { data: rows, setData: setRows, loading, error, reload } = useCommitteesData()
+  const { data: rows, setData: setRows, loading, error, reload } = useCommitteesData(committeeId)
   const { data: employeeRows } = useEmployeesData()
   const [tab, setTab] = useState('overview')
   const [dialog, setDialog] = useState(null)
