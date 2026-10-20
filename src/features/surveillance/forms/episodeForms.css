@@ -39,3 +39,7 @@
   .episode-form-action{grid-column:2;grid-row:2}
   .episode-prefilled .lo-detail-list{grid-template-columns:1fr}
 }
+.episode-form-main strong .status-badge{margin-left:8px;vertical-align:middle}
+.episode-form-more{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 0 0;font-size:12.5px;color:var(--lo-text-secondary,#718096)}
+.episode-form-link{border:0;background:transparent;padding:0;font:inherit;font-weight:650;color:var(--lo-link,#1f6b9b);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.episode-form-link:hover{color:var(--lo-link-hover,#164e74)}

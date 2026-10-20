@@ -175,6 +175,8 @@ describe('admissions', () => {
     expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual(['Σύνοψη', 'Επιτήρηση & Δείγματα', 'Φόρμες & ερωτηματολόγια', 'Έγγραφα', 'Ιστορικό'])
     await openTab('Φόρμες & ερωτηματολόγια')
     expect(within(body()).getByRole('heading', { name: 'Κλίμακες' })).toBeInTheDocument()
+    // The full history table opens from «Όλες οι αξιολογήσεις» (the panel keeps its table, dialogs and sepsis prompt).
+    fireEvent.click(await within(body()).findByRole('button', { name: /Όλες οι αξιολογήσεις/ }))
     expect(within(body()).getByRole('heading', { name: 'Κλινικές αξιολογήσεις' })).toBeInTheDocument()
   })
 
@@ -391,7 +393,7 @@ describe('surveillance episode record: header scale chips and printing', () => {
     await act(async () => { window.dispatchEvent(new Event('beforeprint')) })
     const report = document.querySelector('[data-record-report]')
     expect(report).not.toBeNull()
-    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Έγγραφα', '6. Ιστορικό'])
+    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Κλίμακες', '6. Έγγραφα', '7. Ιστορικό'])
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('LAB-260771')
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('Ανθεκτικό')
     expect(report.querySelector('.record-report-meta')).toHaveTextContent('Ημερομηνία εκτύπωσης')

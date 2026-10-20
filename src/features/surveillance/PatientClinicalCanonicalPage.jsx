@@ -339,6 +339,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     patientMode,
     scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
     returnPath: `${location.pathname}${location.search}`,
+    // A scale saved or deleted in the forms tab refreshes the header chips at once.
+    onScalesChanged: () =>
+      loadLatestPatientRiskFlags(tenant?.id, { isDemo })
+        .then(setRiskFlagRows)
+        .catch(() => {}),
     goTo,
     fmtDate: value => formatDay(value, language),
     fmtDateTime: value => formatDateTime(value, language),
@@ -746,7 +751,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       patientMode,
       admissionEpisodes,
       samples: patientMode ? admissionSamples : recordSamples,
-      scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
       admissionTimeline,
       outsideTimeline,
       libraries: clinicalLibraries,

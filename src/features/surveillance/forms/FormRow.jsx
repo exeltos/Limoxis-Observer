@@ -11,14 +11,17 @@ import { FORM_STATUS } from './formStatus'
 //   <FormRow title detail status={FORM_STATUS.OVERDUE} statusDetail date dateLabel
 //            action={{ label, onClick, primary }} signal="danger" />
 // Props are listed above.
-export function FormRow({ title, detail, status, statusLabel, statusDetail, signal = '', date, dateLabel, action = null, children }) {
+export function FormRow({ title, detail, status, statusLabel, statusDetail, signal = '', badge = null, date, dateLabel, action = null, children }) {
   const { t } = useLanguage()
   const word = statusLabel || (status ? t(`episodeForms.status.${status}`) : '')
   const danger = signal === 'danger' || status === FORM_STATUS.OVERDUE
   return (
     <li className={`episode-form-row${danger ? ' is-signal' : ''}`}>
       <div className="episode-form-main">
-        <strong>{title}</strong>
+        <strong>
+          {title}
+          {badge && <StatusBadge tone={badge.tone || 'neutral'}>{badge.label}</StatusBadge>}
+        </strong>
         {detail && <small>{detail}</small>}
         {children}
       </div>
