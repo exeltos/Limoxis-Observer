@@ -2646,6 +2646,17 @@
 .management-section .library-categories-v2>button{min-height:64px!important}
 .management-section .library-content{min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
 .management-section .library-content>.scroll-table{min-width:0!important;width:100%!important;height:100%!important;overflow:auto!important}
+/* ΕΟΔΥ catalogue of notifiable diseases: wide table inside the library area */
+.management-section .library-content>.eody-library{display:grid;grid-template-rows:minmax(120px,1fr) auto;gap:8px;min-height:0;flex:1}
+.eody-legacy-note{margin:0;font-size:12px;color:var(--text-muted,#5b6b7b)}
+.eody-library>.scroll-table{min-height:0;overflow:auto}
+.eody-library-table td small{display:block;color:var(--text-muted,#5b6b7b);font-size:11.5px}
+.eody-library-table .eody-col-n{width:52px;text-align:right;color:var(--text-muted,#5b6b7b);font-variant-numeric:tabular-nums}
+.eody-deadline{white-space:nowrap}.eody-deadline-immediate{font-weight:700}
+.eody-library-table td:nth-child(2){min-width:200px}.eody-note{font-size:11.5px;color:var(--text-muted,#5b6b7b);max-width:340px}.eody-note span{display:block}
+.eody-row-inactive td,.library-row-inactive td{opacity:.55}
+.eody-legacy{border-top:1px solid var(--border,#dfe5ec);padding-top:6px;display:flex;flex-direction:column;gap:4px;max-height:112px;overflow:auto}
+.eody-legacy-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}.eody-legacy-list li{display:grid;grid-template-columns:minmax(0,1fr) 140px 90px 40px;align-items:center;gap:10px;padding:3px 4px;font-size:12.5px;border-top:1px solid var(--border,#e6ebf1)}.eody-legacy-code{color:var(--text-muted,#5b6b7b);font-size:11.5px}.eody-status{font-size:12px;color:var(--text-muted,#5b6b7b)}.eody-library-filter{margin:0!important}
 .management-section .library-content .record-inline-actions,
 .management-section .library-content .row-actions,
 .management-section .training-feedback-template-panel .record-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;white-space:nowrap!important}

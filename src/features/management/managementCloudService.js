@@ -12,7 +12,7 @@ const isUuid=value=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const toLibraryTuple=row=>[
   row.name_el,
   row.name_en||row.name_el,
-  {id:row.id,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.category?{category:row.category}:{}),...(row.metadata?.jobDescription?{jobDescription:row.metadata.jobDescription}:{})},
+  {id:row.id,active:row.is_active!==false,system:Boolean(row.metadata?.system),locked:Boolean(row.metadata?.locked),source:row.source_authority||'Hospital',version:row.source_version||'local',code:row.code||null,...(row.category?{category:row.category}:{}),...(row.metadata?.jobDescription?{jobDescription:row.metadata.jobDescription}:{})},
 ]
 
 // departments.department_type drives neonatal/paediatric logic (clinical scale
@@ -91,11 +91,13 @@ const requireCloud=()=>{if(!supabase)throw new Error('Supabase is not configured
 
 // Global (organization_id is null) master library rows: edits here fan out to
 // every organization's linked copy via the master_library_items_propagate trigger.
+// The three pre-catalogue rows that still sit in the platform library until the owner deactivates them.
+const PREVIEW_LEGACY_NOTIFIABLE=[['Ιογενής ηπατίτιδα Α','Viral hepatitis A','ND-HEPA'],['Λεγιονέλλωση','Legionellosis','ND-LEGIONELLA'],['Λοίμωξη από ιό Δυτικού Νείλου','West Nile virus infection','ND-WNV']].map(([el,en,code])=>[el,en,{id:`preview-${code}`,active:true,system:true,locked:true,source:'ΕΟΔΥ · υποχρεωτική δήλωση',version:'current',code}])
 export async function loadGlobalLibraryItems(){
   // Platform Owner preview (help screenshots): the shipped catalogues stand in for the global rows.
-  if(isOwnerPreview()){const {departments,...shared}=structuredClone(demoLibrarySeed);void departments;return shared}
+  if(isOwnerPreview()){const {departments,...shared}=structuredClone(demoLibrarySeed);void departments;shared.notifiableDiseases=[...(shared.notifiableDiseases||[]),...PREVIEW_LEGACY_NOTIFIABLE];return shared}
   requireCloud()
-  const {data,error}=await supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').is('organization_id',null).eq('is_active',true).order('name_el')
+  const {data,error}=await supabase.from('master_library_items').select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').is('organization_id',null).order('name_el')
   if(error) throw error
   const result={}
   for(const row of data||[]){if(!result[row.library_key])result[row.library_key]=[];result[row.library_key].push(toLibraryTuple(row))}
@@ -109,9 +111,11 @@ export async function createGlobalLibraryItem(libraryKey,{nameEl,nameEn}){
   return toLibraryTuple(data)
 }
 
-export async function updateGlobalLibraryItem(row,{nameEl,nameEn}){
+// isActive (optional) switches the row on or off for every hospital's linked copy; the audit trigger records the actor.
+export async function updateGlobalLibraryItem(row,{nameEl,nameEn,isActive}){
+  if(isOwnerPreview()){const meta=row?.[2]||{};return [nameEl,nameEn||nameEl,{...meta,...(typeof isActive==='boolean'?{active:isActive}:{})}]}
   requireCloud();const id=row?.[2]?.id;if(!id)throw new Error('Cloud library item id is missing.')
-  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl}).is('organization_id',null).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version').single()
+  const {data,error}=await supabase.from('master_library_items').update({name_el:nameEl,name_en:nameEn||nameEl,...(typeof isActive==='boolean'?{is_active:isActive}:{})}).is('organization_id',null).eq('id',id).select('id,library_key,code,name_el,name_en,metadata,source_authority,source_version,is_active').single()
   if(error) throw error
   return toLibraryTuple(data)
 }
