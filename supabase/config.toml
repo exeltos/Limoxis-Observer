@@ -28,3 +28,11 @@ verify_jwt = false
 # Public: the e-mailed supplier link (single-use token checked inside the function).
 [functions.supplier-certificate-submit]
 verify_jwt = false
+
+# Platform Owner only (checked inside too): bulk creation of accounts from the employee roster.
+[functions.platform-bulk-create-accounts]
+verify_jwt = true
+
+# Public: the e-mailed «Ορισμός κωδικού» link (single-use token checked inside the function).
+[functions.redeem-access-token]
+verify_jwt = false

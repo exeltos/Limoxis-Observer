@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Save,
   Send,
+  ShieldCheck,
   Trash2,
   UserPlus,
   Users,
@@ -45,6 +46,9 @@ import { loadEmployeesAsync } from '../employees/employeeService'
 import { MetricCard } from '../../design-system/MetricCard'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
+import { SubTabs } from '../../design-system/SubTabs'
+import { BulkAccountsPanel } from './BulkAccountsPanel'
+import { loadEmployeeAccounts } from './bulkAccountsService'
 
 const GREEK_REGIONS = [
   'Ανατολική Μακεδονία και Θράκη',
@@ -138,6 +142,7 @@ export function PlatformOrganizationRecord({
   onEnter,
   onDelete,
   onChanged,
+  onOpenEmployee,
 }) {
   const en = language === 'en',
     tx = (elText, enText) => (en ? enText : elText)
@@ -209,6 +214,24 @@ export function PlatformOrganizationRecord({
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+  // «Χρήστες & Ρόλοι» › «Εργαζόμενοι χωρίς λογαριασμό» (N1, Platform Owner only).
+  const [usersView, setUsersView] = useState('accounts')
+  const [roster, setRoster] = useState({ employees: [], departments: [] })
+  const [rosterLoading, setRosterLoading] = useState(false)
+  const loadRoster = useCallback(async () => {
+    setRosterLoading(true)
+    try {
+      setRoster(await loadEmployeeAccounts(organization.id))
+    } catch (error) {
+      notifyError(error, 'load', { operation: 'platform_employee_accounts_load' })
+    } finally {
+      setRosterLoading(false)
+    }
+  }, [organization.id, notifyError])
+  useEffect(() => {
+    if (initialTab === 'users') loadRoster()
+  }, [initialTab, loadRoster])
+  const rosterWithoutAccount = roster.employees.filter(row => row.accountState === 'none').length
   const admins = useMemo(() => users.filter(user => user.role === 'hospital_admin'), [users])
   const selectedUser = useMemo(
     () => users.find(user => user.userId === selectedUserId) || null,
@@ -1265,12 +1288,23 @@ export function PlatformOrganizationRecord({
               <div>
                 <strong>{tx('Χρήστες & Ρόλοι', 'Users & Roles')}</strong>
                 <span>
-                  {tx(
-                    'Επίλεξε έναν χρήστη για πλήρη διαχείριση λογαριασμού, ρόλου και σύνδεσης με εργαζόμενο.',
-                    'Select a user to manage the account, role and employee link.',
-                  )}
+                  {usersView === 'roster'
+                    ? tx(
+                        'Λογαριασμοί του νοσοκομείου και εργαζόμενοι του μητρώου που δεν έχουν ακόμη λογαριασμό. Η μαζική δημιουργία γίνεται μόνο από τον Ιδιοκτήτη Πλατφόρμας.',
+                        'The hospital accounts and the roster employees who have no account yet. Bulk creation is done only by the Platform Owner.',
+                      )
+                    : tx(
+                        'Επίλεξε έναν χρήστη για πλήρη διαχείριση λογαριασμού, ρόλου και σύνδεσης με εργαζόμενο.',
+                        'Select a user to manage the account, role and employee link.',
+                      )}
                 </span>
               </div>
+              {usersView === 'roster' ? (
+                <span className="bulk-accounts-owner-only">
+                  <ShieldCheck size={13} aria-hidden="true" />
+                  {tx('Μόνο Ιδιοκτήτης Πλατφόρμας', 'Platform Owner only')}
+                </span>
+              ) : (
               <div className="row-actions">
                 <ExportMenu
                   items={[
@@ -1315,7 +1349,28 @@ export function PlatformOrganizationRecord({
                   {tx('Νέος χρήστης', 'New user')}
                 </Button>
               </div>
+              )}
             </div>
+            <SubTabs
+              ariaLabel={tx('Χρήστες & Ρόλοι', 'Users & Roles')}
+              activeId={usersView}
+              onChange={setUsersView}
+              tabs={[
+                { id: 'accounts', label: tx('Λογαριασμοί', 'Accounts'), icon: Users, count: users.length },
+                { id: 'roster', label: tx('Εργαζόμενοι χωρίς λογαριασμό', 'Employees without account'), icon: UserPlus, count: rosterWithoutAccount },
+              ]}
+            />
+            {usersView === 'roster' ? (
+              <BulkAccountsPanel
+                organization={record}
+                language={language}
+                roster={roster}
+                loading={rosterLoading}
+                onReload={loadRoster}
+                onAccountsChanged={loadUsers}
+                onOpenEmployee={onOpenEmployee}
+              />
+            ) : (
             <section className="surface registry-workspace workspace-column workspace-fill">
               <FilterBar
                 query={userQuery}
@@ -1407,6 +1462,7 @@ export function PlatformOrganizationRecord({
                 </div>
               )}
             </section>
+            )}
           </div>
         )}
         {initialTab === 'diagnostics' && (
