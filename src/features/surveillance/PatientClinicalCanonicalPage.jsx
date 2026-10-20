@@ -46,6 +46,9 @@ import { EpisodeFormsTab } from './forms/EpisodeFormsTab'
 import { useEpisodeFormsData } from './forms/useEpisodeFormsData'
 import { episodeFormSections } from './forms/formsRegistry'
 import { makeDeviceBundles } from './forms/deviceBundles'
+import { epiRows } from './forms/sections/epiQuestionnaireSection'
+import { EpiRiskLine } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { factorCountWords } from './epiQuestionnaire/epiQuestionnaireText'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
 import {
@@ -373,6 +376,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   }
   const forms = useEpisodeFormsData(formsCtx)
   const deviceBundles = makeDeviceBundles(formsCtx, forms.data.bundles?.value)
+  // The epidemiological questionnaire of the selected episode: the header line and the safety signal.
+  const epiEntry =
+    record && forms.data.epiQuestionnaire?.value
+      ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find(item => String(item.episode.id) === String(record.id)) || null
+      : null
   // The record's first read: the page placeholder, not a generic «patient record» page.
   if (loading || stale) return <RouteLoading />
   if (error)
@@ -590,9 +598,19 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           samples={patientMode ? admissionSamples : recordSamples}
           scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
           onOpenStage={stage => {
+            if (stage === 'questionnaire') {
+              setTab('episodeForms')
+              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+              return
+            }
             setJourneyStage(stage)
             setTab('surveillanceJourney')
           }}
+          extraAttention={
+            epiEntry?.summary.signal
+              ? [{ id: 'epiRisk', tone: 'warning', stage: 'questionnaire', text: `${t('epiQuestionnaire.signal')}: ${factorCountWords(epiEntry.summary.factorCount, t)}`, action: t('epiQuestionnaire.link') }]
+              : []
+          }
           patient={patient}
           admission={selectedAdmission}
           record={record}
@@ -806,6 +824,18 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               onNew={has(CAPABILITIES.EDIT_PATIENT) ? () => setNewAdmissionOpen(true) : null}
               t={t}
               fmtDate={fmtDate}
+            />
+          ) : null
+        }
+        headerNote={
+          epiEntry ? (
+            <EpiRiskLine
+              summary={epiEntry.summary}
+              row={epiEntry.row}
+              onOpen={() => {
+                setTab('episodeForms')
+                setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+              }}
             />
           ) : null
         }

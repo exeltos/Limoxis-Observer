@@ -4,6 +4,7 @@ import { notifiableSection } from './sections/notifiableSection'
 import { incidentsSection } from './sections/incidentsSection'
 import { outbreakSection } from './sections/outbreakSection'
 import { exposureSourceSection } from './sections/exposureSourceSection'
+import { epiQuestionnaireSection } from './sections/epiQuestionnaireSection'
 
 // The registered sections of the «Φόρμες & ερωτηματολόγια» tab, in display order.
 //
@@ -19,7 +20,7 @@ import { exposureSourceSection } from './sections/exposureSourceSection'
 //
 // A later builder (questionnaires) adds its object with registerEpisodeFormSection() or to the
 // array below; nothing else in the tab changes. See docs/EPISODE_FORMS_TAB.md.
-const REGISTERED = [bundlesSection, scalesSection, notifiableSection, incidentsSection, outbreakSection, exposureSourceSection]
+const REGISTERED = [bundlesSection, scalesSection, notifiableSection, incidentsSection, epiQuestionnaireSection, outbreakSection, exposureSourceSection]
 
 export function registerEpisodeFormSection(definition) {
   if (!definition?.id || !definition.Component) throw new Error('A form section needs an id and a Component.')

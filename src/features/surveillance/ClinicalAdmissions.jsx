@@ -224,6 +224,7 @@ export function PatientDetailsSection({
 // current surveillance with its clinical assessment, findings, therapy and review.
 export function CanonicalSummary({
   onOpenStage,
+  extraAttention = [],
   samples,
   scaleRows = [],
   patient,
@@ -335,7 +336,7 @@ export function CanonicalSummary({
   // The samples shown under the surveillance, laboratory registry rows included.
   const recordSamples = samples || record?.samples || []
   const awaitingCount = recordSamples.filter(isAwaitingResult).length
-  const attention = summaryAttention(record, { t, samples: recordSamples })
+  const attention = summaryAttention(record, { t, samples: recordSamples, extra: extraAttention })
   const assessment = record?.assessment
   const reassessments = record?.reassessments || []
   const lastReview = reassessments[reassessments.length - 1]

@@ -63,6 +63,9 @@ import { PERIOD_DAYS, employeeScreeningLabel, inPeriod, statusTone } from './sur
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
+import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { epiPending, useEpiIndex } from './epiQuestionnaire/useEpiIndex'
+import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
 import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
@@ -126,6 +129,8 @@ export function SurveillanceCanonicalPage() {
     [resample, setResample] = useState(null)
   // N3: episodes with an open protocol carry the "Sepsis" badge in the list.
   const [openRuns, setOpenRuns] = useState([])
+  // The epidemiological questionnaires: an active episode without its core answers shows a grey reminder.
+  const epiIndex = useEpiIndex({ organizationId: tenant?.id, isDemo, enabled: canWriteEpi(role) })
   useEffect(() => {
     let alive = true
     loadOpenProtocolRuns(tenant?.id, { isDemo })
@@ -716,6 +721,7 @@ export function SurveillanceCanonicalPage() {
           <PatientRows
             rows={rows}
             openRuns={openRuns}
+            epiIndex={epiIndex}
             empty={empty}
             registry={registry}
             t={t}
@@ -850,7 +856,7 @@ function episodeSummary(x, t) {
   const active = x.activeCount ?? (x.status === 'active' ? 1 : 0)
   return `${total} ${t(total === 1 ? 'svEpisodeOne' : 'svEpisodeMany')}${active ? ` · ${active} ${t(active === 1 ? 'svActiveOne' : 'svActiveMany')}` : ''}`
 }
-function PatientRows({ rows, openRuns = [], empty, registry, t, language, fmt, onOpen }) {
+function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
     (x.episodes || [x])
       .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
@@ -896,6 +902,11 @@ function PatientRows({ rows, openRuns = [], empty, registry, t, language, fmt, o
             </td>
             <td>
               <StatusBadge tone={statusTone(x.status)}>{t(x.status)}</StatusBadge>
+              {(x.episodes || [x]).some(ep => epiPending(epiIndex, ep)) && (
+                <small className="epi-row-line">
+                  <EpiReminder />
+                </small>
+              )}
             </td>
             <td>
               {x.status === 'active' ? (

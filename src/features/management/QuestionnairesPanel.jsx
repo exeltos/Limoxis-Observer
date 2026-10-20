@@ -10,6 +10,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadSnapshot,saveSnapshot } from '../../core/data/repository'
 import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE } from '../training/trainingFeedbackTemplate'
+import { EpiQuestionnaireRegistryCells,EpiQuestionnaireSettings,useEpiSettings } from './EpiQuestionnaireSettings'
+const EPI_ROW={id:'epi-system',title:'',category:'surveillance',status:'active',questions:[]}
 const STORE='management_questionnaires_v1'
 const types={rating:{el:'Κλίμακα 1–5',en:'Rating 1–5'},yesno:{el:'Ναι / Όχι',en:'Yes / No'},single:{el:'Μία επιλογή',en:'Single choice'},multiple:{el:'Πολλαπλή επιλογή',en:'Multiple choice'},text:{el:'Ελεύθερο κείμενο',en:'Free text'}}
 const id=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`
@@ -44,7 +46,7 @@ function load(){const rows=loadSnapshot(STORE,null);return Array.isArray(rows)&&
 function categoryLabel(value,en){if(value==='training')return en?'Training':'Εκπαίδευση';if(value==='audit')return en?'Audit':'Έλεγχος';if(value==='quality')return en?'Quality':'Ποιότητα';if(value==='evaluation')return en?'Evaluation':'Αξιολόγηση';return en?'General':'Γενικό'}
 
 export function QuestionnairesPanel(){
- const {language}=useLanguage(),en=language==='en';const {confirm}=useFeedback();const [rows,setRows]=useState(load);const [selectedId,setSelectedId]=useState(null);const [editor,setEditor]=useState(null);const [previewOpen,setPreviewOpen]=useState(false);const selected=useMemo(()=>rows.find(x=>x.id===selectedId)||null,[rows,selectedId])
+ const {language}=useLanguage(),en=language==='en';const {confirm}=useFeedback();const [rows,setRows]=useState(load);const [selectedId,setSelectedId]=useState(null);const [editor,setEditor]=useState(null);const [previewOpen,setPreviewOpen]=useState(false);const [epiOpen,setEpiOpen]=useState(false);const epi=useEpiSettings();const selected=useMemo(()=>rows.find(x=>x.id===selectedId)||null,[rows,selectedId])
  function persist(next){setRows(next);saveSnapshot(STORE,next)}
  function newQuestionnaire(){setEditor({kind:'questionnaire',mode:'new',draft:{id:id('questionnaire'),title:'',category:'general',status:'active',questions:[]}})}
  function editQuestionnaire(){if(selected)setEditor({kind:'questionnaire',mode:'edit',draft:{...selected}})}
@@ -56,14 +58,15 @@ export function QuestionnairesPanel(){
  async function removeQuestion(question){const ok=await confirm({title:en?'Delete question':'Διαγραφή ερώτησης',message:en?'Remove this question from the questionnaire?':'Να αφαιρεθεί η ερώτηση από το ερωτηματολόγιο;',confirmLabel:en?'Delete':'Διαγραφή',danger:true});if(ok)persist(rows.map(row=>row.id!==selected.id?row:{...row,questions:row.questions.filter(x=>x.id!==question.id)}))}
  function move(index,delta){const target=index+delta;if(target<0||target>=selected.questions.length)return;const questions=[...selected.questions];[questions[index],questions[target]]=[questions[target],questions[index]];persist(rows.map(row=>row.id===selected.id?{...row,questions}:row))}
 
+ if(epiOpen)return <EpiQuestionnaireSettings onBack={()=>setEpiOpen(false)}/>
  return <div className="questionnaires-panel workspace-column workspace-fill">
   {!selected?<><div className="section-toolbar"><div><h2>{en?'Questionnaires':'Ερωτηματολόγια'}</h2><p>{en?'Reusable questionnaires for training, audits, evaluations and other workflows.':'Επαναχρησιμοποιήσιμα ερωτηματολόγια για εκπαίδευση, audits, αξιολογήσεις και άλλες ροές.'}</p></div><Button onClick={newQuestionnaire}><Plus size={15}/>{en?'New questionnaire':'Νέο ερωτηματολόγιο'}</Button></div><RegistryTable
     wrapperClassName="table-wrap scroll-table questionnaires-registry"
     columns={[{key:'title',label:en?'Questionnaire':'Ερωτηματολόγιο'},{key:'category',label:en?'Category':'Κατηγορία'},{key:'questions',label:en?'Questions':'Ερωτήσεις'},{key:'status',label:en?'Status':'Κατάσταση'}]}
-    rows={rows}
+    rows={[EPI_ROW,...rows]}
     rowKey={row=>row.id}
-    rowProps={row=>({className:'clickable-row',onClick:()=>setSelectedId(row.id)})}
-    renderRow={row=><><td><strong>{displayTitle(row,en)}</strong></td><td>{categoryLabel(row.category,en)}</td><td>{row.questions.length}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{row.status==='active'?(en?'Active':'Ενεργό'):(en?'Inactive':'Ανενεργό')}</span></td></>}
+    rowProps={row=>({className:'clickable-row',onClick:()=>row.id===EPI_ROW.id?setEpiOpen(true):setSelectedId(row.id)})}
+    renderRow={row=>row.id===EPI_ROW.id?<EpiQuestionnaireRegistryCells version={epi.version}/>:<><td><strong>{displayTitle(row,en)}</strong></td><td>{categoryLabel(row.category,en)}</td><td>{row.questions.length}</td><td><span className={`status-badge ${row.status==='active'?'active':''}`}>{row.status==='active'?(en?'Active':'Ενεργό'):(en?'Inactive':'Ανενεργό')}</span></td></>}
   /></>:<EntityRecordShell className="questionnaire-record-shell workspace-fill" avatar={<ClipboardList size={19}/>} eyebrow={en?'QUESTIONNAIRE':'ΕΡΩΤΗΜΑΤΟΛΟΓΙΟ'} title={selected.title} subtitle={`${selected.questions.length} ${en?'questions':'ερωτήσεις'} · ${categoryLabel(selected.category,en)}`} status={<span className={`status-badge ${selected.status==='active'?'active':''}`}>{selected.status==='active'?(en?'Active':'Ενεργό'):(en?'Inactive':'Ανενεργό')}</span>} onBack={()=>setSelectedId(null)} backLabel={en?'Back to questionnaires':'Επιστροφή στα ερωτηματολόγια'}>
     <div className="record-section workspace-column workspace-fill questionnaire-questions-section"><div className="record-section-header"><div><span className="eyebrow">{en?'QUESTIONS':'ΕΡΩΤΗΣΕΙΣ'}</span><h3>{en?'Questionnaire questions':'Ερωτήσεις ερωτηματολογίου'}</h3><p>{en?'Select the answer type, required status and order for each question.':'Ορίστε τον τύπο απάντησης, αν είναι υποχρεωτική και τη σειρά κάθε ερώτησης.'}</p></div><div className="questionnaire-record-actions"><Button onClick={newQuestion}><Plus size={15}/>{en?'New question':'Νέα ερώτηση'}</Button><OverflowMenu items={[
     {id:'preview',label:en?'Preview':'Προεπισκόπηση',icon:Eye,onClick:()=>setPreviewOpen(true)},

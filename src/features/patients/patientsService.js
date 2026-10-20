@@ -133,6 +133,9 @@ function mapAdmission(row, departmentLabel, departmentType){
     dischargeDate: row.discharge_date,
     status: row.status,
     notes: row.notes,
+    // Where the patient came from (home, other_hospital, ltcf, other): prefills the questionnaire's transfer question.
+    admissionSource: row.admission_source || null,
+    sourceFacility: row.source_facility || '',
   }
 }
 

@@ -66,6 +66,7 @@ function mapSample(row,patient,department,microbiology=[]){
     department:department?.name||'',
     departmentEn:department?.name||'',
     surveillanceCase:row.surveillance_case_id||null,
+    clinicalContext:row.clinical_context||null,
     type:row.sample_type,
     source:row.source_site||'',
     sourceEn:row.source_site||'',
@@ -256,6 +257,7 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
     received_at:iso(draft.receivedAt),
     status:draft.collectedAt?'collected':'requested',
     priority:draft.priority||'routine',
+    clinical_context:draft.clinicalContext&&Object.keys(draft.clinicalContext).length?draft.clinicalContext:null,
     created_by:actorId,
   }).select('*').single()
   if(error)throw error

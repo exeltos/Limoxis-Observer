@@ -217,6 +217,9 @@ describe('surveillance tree and samples', () => {
     expect(within(followUp).getByText(/Συμπληρώστε:/).closest('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση')
     expect(within(body()).queryByText(/LAB-260771-R1/)).toBeNull()
     fireEvent.change(within(followUp).getByLabelText('Ανατομική θέση / προέλευση'), { target: { value: 'Περιφερική φλέβα' } })
+    // The three core questions of the epidemiological history come with a culture; «Άγνωστο» is a valid answer.
+    await waitFor(() => expect(within(followUp).getAllByRole('radio', { name: 'Άγνωστο' })).toHaveLength(3))
+    for (const unknown of within(followUp).getAllByRole('radio', { name: 'Άγνωστο' })) fireEvent.click(unknown)
     fireEvent.click(within(followUp).getByRole('button', { name: /Αποστολή αιτήματος/ }))
     const child = await waitFor(() => {
       const node = within(body()).getByText(/LAB-260771-R1/).closest('.sv-sample-node')
@@ -392,7 +395,7 @@ describe('surveillance episode record: header scale chips and printing', () => {
     await act(async () => { window.dispatchEvent(new Event('beforeprint')) })
     const report = document.querySelector('[data-record-report]')
     expect(report).not.toBeNull()
-    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Κλίμακες', '6. Δηλωτέα νοσήματα', '7. Συμβάντα', '8. Συνδέεται με έξαρση', '9. Πηγή έκθεσης προσωπικού', '10. Έγγραφα', '11. Ιστορικό'])
+    expect([...report.querySelectorAll('h2')].map(heading => heading.textContent)).toEqual(['Περίληψη', '1. Στοιχεία ασθενούς', '2. Επιτήρηση', '3. Δείγματα και αποτελέσματα', '4. Δέσμες πρόληψης συσκευών', '5. Κλίμακες', '6. Δηλωτέα νοσήματα', '7. Συμβάντα', '8. Επιδημιολογικό ιστορικό', '9. Συνδέεται με έξαρση', '10. Πηγή έκθεσης προσωπικού', '11. Έγγραφα', '12. Ιστορικό'])
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('LAB-260771')
     expect(report.querySelector('[data-report-section="samples"]')).toHaveTextContent('Ανθεκτικό')
     expect(report.querySelector('.record-report-meta')).toHaveTextContent('Ημερομηνία εκτύπωσης')

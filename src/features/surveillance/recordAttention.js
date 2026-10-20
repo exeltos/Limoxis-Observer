@@ -16,7 +16,7 @@ export const isCommunicated = sample =>
 
 // What needs attention in the current surveillance, most urgent first; each item
 // opens the stage of the surveillance where it is done.
-export function summaryAttention(record, { t, samples = record?.samples || [] }) {
+export function summaryAttention(record, { t, samples = record?.samples || [], extra = [] }) {
   if (!record || record.status !== 'active') return []
   const items = []
   const lateDays = daysOverdue(record.reviewDue)
@@ -55,5 +55,7 @@ export function summaryAttention(record, { t, samples = record?.samples || [] })
       text: `${t('clinicalRecords.samplesAwaitingResult')}: ${awaiting.map(x => x.id).join(', ')}`,
       action: t('clinicalRecords.openSamples'),
     })
+  // Further signals computed elsewhere (the epidemiological questionnaire's risk signal).
+  items.push(...extra)
   return items
 }
