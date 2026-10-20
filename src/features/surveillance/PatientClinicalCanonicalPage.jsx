@@ -98,6 +98,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const [tab, setTab] = useState(() => location.state?.openTab || restored?.tab || 'summary')
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
   const [journeyStage, setJourneyStage] = useState(null)
+  // N3: a qSOFA / SOFA prompt asks the surveillance tab to open the protocol picker.
+  const [protocolRequest, setProtocolRequest] = useState(null)
   const has = cap =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const patient = useMemo(
@@ -611,6 +613,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         {(!patientMode || selectedAdmission) && activeTab === 'surveillanceJourney' && (
           <SurveillanceWorkspace
             initialStage={journeyStage}
+            protocolRequest={protocolRequest}
             samples={patientMode ? admissionSamples : recordSamples}
             episodes={admissionEpisodes}
             selectedId={record?.id}
@@ -662,6 +665,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               canClassifyResistance: has(CAPABILITIES.CLASSIFY_RESISTANCE),
               canIsolation: has(CAPABILITIES.MANAGE_ISOLATION),
               canTherapy,
+              // Protocols (Hour-1 bundle) are recorded by the clinical team and,
+              // in their departments, by the roles that manage isolation.
+              canProtocol:
+                has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || has(CAPABILITIES.MANAGE_ISOLATION),
               canReassess: has(CAPABILITIES.REASSESS_SURVEILLANCE),
               canOutcome:
                 has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
@@ -681,6 +688,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             isDemo={isDemo}
             language={language}
             canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
+            hasActiveEpisode={admissionEpisodes.some(ep => ep.status === 'active')}
+            onStartProtocol={prompt => {
+              const episode = admissionEpisodes.find(ep => ep.status === 'active')
+              if (episode) {
+                setSelectedEpisodeId(episode.id)
+                setProtocolRequest({
+                  nonce: Date.now(),
+                  episodeId: episode.id,
+                  source: prompt?.kind || 'clinical',
+                  assessmentId: prompt?.assessmentId || null,
+                })
+              }
+              setTab('surveillanceJourney')
+            }}
           />
         )}
         {/* Documents belong to the surveillance when there is one, else to the

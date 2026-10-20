@@ -1,8 +1,10 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
-import { Activity, CalendarClock, ChevronRight, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
+import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
+import { ProtocolBadge } from './protocols/ProtocolViews'
+import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { Button } from '../../design-system/Button'
 import { DueDate } from '../../design-system/DueDate'
 import { Breadcrumbs } from '../../design-system/Breadcrumbs'
@@ -44,8 +46,12 @@ export function SurveillanceWorkspace({
   isDemo,
   onLibraryAdded,
   permissions,
+  protocolRequest = null,
 }) {
   const { notify } = useFeedback()
+  // N3: "Start protocol" (header or a qSOFA / SOFA prompt) and the open protocols for the badges.
+  const [startRequest, setStartRequest] = useState(null),
+    [openRuns, setOpenRuns] = useState([])
   const [sampleOpen, setSampleOpen] = useState(false),
     [samplePrompt, setSamplePrompt] = useState(null),
     [followUpParent, setFollowUpParent] = useState(null),
@@ -80,6 +86,25 @@ export function SurveillanceWorkspace({
                         )
                     }
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
+  const episodeKey = episodes.map(ep => ep.id).join(',')
+  useEffect(() => {
+    let alive = true
+    loadOpenProtocolRuns(organizationId, { isDemo })
+      .then(rows => {
+        if (alive) setOpenRuns(rows)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [organizationId, isDemo, episodeKey, detailId])
+  useEffect(() => {
+    if (!protocolRequest?.episodeId) return
+    setDetailId(protocolRequest.episodeId)
+    setStartRequest(protocolRequest)
+  }, [protocolRequest])
+  const openRunFor = ep =>
+    openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id) || String(run.caseId) === String(ep.id))
   async function saveSample(draft) {
     if (!onCreateSample) return
     const parent = followUpParent
@@ -202,6 +227,19 @@ export function SurveillanceWorkspace({
             </div>
             <div className="episode-detail-actions">
               <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
+              {permissions.canProtocol && detailRecord.status === 'active' && (
+                <span className="episode-protocol-action">
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      setStartRequest({ nonce: Date.now(), episodeId: detailRecord.id, source: 'clinical' })
+                    }
+                  >
+                    <HeartPulse size={15} />
+                    {t('sepsis.startProtocol')}
+                  </Button>
+                </span>
+              )}
               <ExportMenu onPrint={printDetailReport} onPdf={printDetailReport} /><OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',
@@ -244,6 +282,12 @@ export function SurveillanceWorkspace({
           <div className="episode-detail-scroll progressive-surveillance-scroll">
             <CanonicalJourney
               initialStage={initialStage}
+              startProtocolRequest={
+                startRequest && String(startRequest.episodeId) === String(detailRecord.id)
+                  ? startRequest
+                  : null
+              }
+              onProtocolRequestHandled={() => setStartRequest(null)}
               record={detailRecord}
               repository={repository}
               libraries={libraries}
@@ -413,6 +457,7 @@ export function SurveillanceWorkspace({
                         )}
                     </strong>
                     <StatusBadge tone={statusTone(ep.status)}>{t(ep.status)}</StatusBadge>
+                    <ProtocolBadge entry={openRunFor(ep)} t={t} language={language} />
                   </span>
                   <small>
                     {translate(

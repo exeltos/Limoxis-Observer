@@ -53,6 +53,8 @@ import {
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
 import { employeeScreeningLabel, statusTone } from './surveillanceOptions'
 import { surveillanceTabAccess } from './surveillanceTabAccess'
+import { ProtocolBadge } from './protocols/ProtocolViews'
+import { loadOpenProtocolRuns } from './protocols/protocolService'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
 const latestResistance = row =>
@@ -107,6 +109,19 @@ export function SurveillanceCanonicalPage() {
     [creation, setCreation] = useState(null),
     [resample, setResample] = useState(null)
   const [openEmployee, setOpenEmployee] = useState(null)
+  // N3: episodes with an open protocol carry the "Sepsis" badge in the list.
+  const [openRuns, setOpenRuns] = useState([])
+  useEffect(() => {
+    let alive = true
+    loadOpenProtocolRuns(tenant?.id, { isDemo })
+      .then(rows => {
+        if (alive) setOpenRuns(rows)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [tenant?.id, isDemo])
   useEffect(() => {
     if (sectionMode) setMode(sectionMode)
   }, [sectionMode])
@@ -587,6 +602,7 @@ export function SurveillanceCanonicalPage() {
         ) : mode === 'patients' ? (
           <PatientRows
             rows={rows}
+            openRuns={openRuns}
             empty={empty}
             registry={registry}
             t={t}
@@ -753,7 +769,11 @@ function episodeSummary(x, t) {
   const active = x.activeCount ?? (x.status === 'active' ? 1 : 0)
   return `${total} ${t(total === 1 ? 'svEpisodeOne' : 'svEpisodeMany')}${active ? ` · ${active} ${t(active === 1 ? 'svActiveOne' : 'svActiveMany')}` : ''}`
 }
-function PatientRows({ rows, empty, registry, t, language, fmt, onOpen }) {
+function PatientRows({ rows, openRuns = [], empty, registry, t, language, fmt, onOpen }) {
+  const openRunOf = x =>
+    (x.episodes || [x])
+      .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
+      .find(Boolean)
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
@@ -785,6 +805,7 @@ function PatientRows({ rows, empty, registry, t, language, fmt, onOpen }) {
               <small>
                 {x.patientId || '—'} · {episodeSummary(x, t)}
               </small>
+              <ProtocolBadge entry={openRunOf(x)} t={t} language={language} />
             </td>
             <td>{language === 'el' ? x.department : x.departmentEn}</td>
             <td>{fmt(x.startedAt)}</td>
