@@ -4,6 +4,7 @@ import { Activity, AlertTriangle, Clock3, Microscope, Plus, Users } from 'lucide
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
+import { useSectionTabs } from '../../design-system/SectionTabs'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
@@ -51,6 +52,7 @@ import {
 } from './EnvironmentalSurveillanceFlow'
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
 import { employeeScreeningLabel, statusTone } from './surveillanceOptions'
+import { surveillanceTabAccess } from './surveillanceTabAccess'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
 const latestResistance = row =>
@@ -62,6 +64,8 @@ const reviewState = row =>
       ? 'overdue'
       : 'inProgress'
 const isEnvironmental = isEnvironmentalSample
+// The section tab (core/navigation/sectionTabs.js) that opens each list.
+const SECTION_MODES = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
 const unique = values => [...new Set(values.filter(Boolean))]
 
 export function SurveillanceCanonicalPage() {
@@ -83,6 +87,9 @@ export function SurveillanceCanonicalPage() {
     { notify, notifyError } = useFeedback()
   const restored = location.state?.surveillanceView || {}
   const restoredMode = restored.mode === 'batches' ? 'employees' : restored.mode
+  // Inside the merged «Surveillance» section the section's tabs choose the list.
+  const section = useSectionTabs()
+  const sectionMode = section ? SECTION_MODES[section.value] || null : null
   const [patients, setPatients] = useState([]),
     [cases, setCases] = useState([]),
     [employeeRows, setEmployeeRows] = useState([]),
@@ -91,7 +98,7 @@ export function SurveillanceCanonicalPage() {
   const { departments } = useDepartments()
   // Clicking a summary card narrows the patient list to it; clicking it again clears it.
   const [quick, setQuick] = useState(null)
-  const [mode, setMode] = useState(restoredMode || 'patients'),
+  const [mode, setMode] = useState(sectionMode || restoredMode || 'patients'),
     [query, setQuery] = useState(restored.query || ''),
     [department, setDepartment] = useState(restored.department || 'all'),
     [status, setStatus] = useState(restored.status || 'all'),
@@ -100,6 +107,9 @@ export function SurveillanceCanonicalPage() {
     [creation, setCreation] = useState(null),
     [resample, setResample] = useState(null)
   const [openEmployee, setOpenEmployee] = useState(null)
+  useEffect(() => {
+    if (sectionMode) setMode(sectionMode)
+  }, [sectionMode])
   const registry = useRegistryMemory(`surveillance-${mode}`),
     // Only the demo reads its samples through the registry; in production the
     // environmental rows come from the one laboratory read in load() below.
@@ -112,21 +122,12 @@ export function SurveillanceCanonicalPage() {
   const productionOrganizations = (memberships || []).filter(
     item => item?.organization?.id && !item.organization.is_demo,
   )
-  const canEmployees =
-    actualRole === ROLES.PLATFORM_OWNER ||
-    isDemo ||
-    [
-      ROLES.HOSPITAL_ADMIN,
-      ROLES.INFECTION_CONTROL_LEAD,
-      ROLES.INFECTION_CONTROL_MEMBER,
-      ROLES.OCCUPATIONAL_PHYSICIAN,
-    ].includes(role) ||
-    Boolean(canSeeSensitiveEmployeeHealth)
-  const canEnvironment = ![
-    ROLES.DEPARTMENT_MANAGER,
-    ROLES.DEPARTMENT_USER,
-    ROLES.DOCTOR_REVIEWER,
-  ].includes(role)
+  const { employees: canEmployees, environment: canEnvironment } = surveillanceTabAccess({
+    role,
+    actualRole,
+    isDemo,
+    canSeeSensitiveEmployeeHealth,
+  })
   const canManageEmployeeFollowup =
     isDemo ||
     can(
@@ -541,12 +542,14 @@ export function SurveillanceCanonicalPage() {
           )}
         </div>
       </div>
-      <CanonicalTabs
-        items={tabItems}
-        value={mode}
-        onChange={setMode}
-        ariaLabel={t('surveillanceCategoriesAria')}
-      />
+      {!section && (
+        <CanonicalTabs
+          items={tabItems}
+          value={mode}
+          onChange={setMode}
+          ariaLabel={t('surveillanceCategoriesAria')}
+        />
+      )}
       <div className="surface registry-workspace workspace-fill">
         <FilterBar
           query={query}

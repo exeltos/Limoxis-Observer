@@ -93,7 +93,7 @@ export function ReviewRecordPage() {
   const [saving, setSaving] = useState(false)
   const [facts, setFacts] = useState({ incidents: [], capas: [], findings: [], audits: [] })
   const objectives = useObjectives(tenant?.id)
-  const back = () => navigate('/quality', { replace: true })
+  const back = () => navigate('/meetings?tab=reviews', { replace: true })
 
   useEffect(() => {
     let active = true

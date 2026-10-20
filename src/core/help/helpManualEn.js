@@ -1,5 +1,5 @@
 export const helpManualEn={
- '/':{title:'Dashboard',summary:'Your personal operational view of the day.',audience:'All users with Dashboard access',chapters:[
+ '/':{title:'Home',summary:'Your personal operational view of the day. An incident report opens from the “+ Incident report” button at the foot of the menu.',audience:'All users with Home access',chapters:[
   ['Orientation','The Dashboard is not identical for every user. It adapts to your role, scope, additional capabilities and current assignments.'],
   ['What needs attention','Start with pending items and notifications. Selecting a task takes you directly to the corresponding operational record.'],
   ['Quick actions','Use only the actions available for your role. If an action is not visible, the related permission has not been granted.']
@@ -18,7 +18,7 @@ export const helpManualEn={
   ['Patient record','The patient record brings together demographics and linked surveillance episodes. Available actions depend on your permission set.'],
   ['New patient','A new patient can be created only by users with Create permission and only with the minimum required information.']
  ],steps:['Search for the patient first.','Open the existing record or create a new one if permitted.','Continue to the linked surveillance episode.'],preview:'registry'},
- '/surveillance':{title:'Surveillance',summary:'Complete infection-surveillance workflow from initial assessment to outcome.',audience:'Infection Control lead/team and authorized clinical roles',chapters:[
+ '/surveillance':{title:'Surveillance',summary:'Complete infection-surveillance workflow from initial assessment to outcome. One section with tabs: Patients, Surveillance episodes, Outbreaks, Employees, Environment.',audience:'Infection Control lead/team and authorized clinical roles',chapters:[
   ['Surveillance episode','Each episode is treated as one continuous record. Avoid creating disconnected parallel records for the same episode.'],
   ['Clinical assessment','Record the clinical information required for HAI assessment and the patient’s current clinical picture.'],
   ['Microbiology & AMR','Laboratory data are reused from the Laboratory module. MDR/XDR/PDR assessment is based on available validated microbiology results.'],
@@ -37,7 +37,7 @@ export const helpManualEn={
   ['Antiseptics & waste','These workflows are visible only to users with the appropriate operational responsibility.'],
   ['Use of data','Prevention records feed indicators and analytics without unnecessary duplicate entry.']
  ],steps:['Choose the prevention workflow.','Set department and period using the filters.','Record the observation or bundle assessment.','Review the calculated result before saving.'],preview:'prevention'},
- '/controls':{title:'Controls',summary:'Execution of assigned controls with evidence and independent status by department.',audience:'Users with a control assignment or Controls permission',chapters:[
+ '/controls':{title:'Controls',summary:'Execution of assigned controls with evidence and independent status by department. The day-by-day programme is in the Calendar (filter “Controls”).',audience:'Users with a control assignment or Controls permission',chapters:[
   ['To execute','Shows controls assigned to you or to your permitted organizational scope.'],
   ['Executing a control','Open the task, review the criteria, record the result and attach evidence where required.'],
   ['What executors cannot change','Executors do not change frequency, programme, departments or governance settings for the control.'],
@@ -49,7 +49,7 @@ export const helpManualEn={
   ['Audits','Audits and their findings remain linked to follow-up actions and evidence.'],
   ['Risk assessment','A risk register on the 5×5 (NHS) matrix: inherent, residual and target risk for every risk (likelihood × consequence) with the score and level computed, heat maps, comparison between years or semesters, JCI mapping, CAPA from a risk, import from Excel (the hospital risk assessment form) and a full printout.']
  ],steps:['Open the relevant queue.','Select the incident, audit or finding.','Record the assessment and actions.','Follow CAPA through controlled completion.'],preview:'quality'},
- '/indicators':{title:'Indicators',summary:'Measurable monitoring with explicit numerator, denominator, target and drill-down.',audience:'Infection Control, Quality and authorized management roles',chapters:[
+ '/indicators':{title:'Indicators',summary:'Measurable monitoring with explicit numerator, denominator, target and drill-down. For management, “Indicators” in the menu is the executive dashboard and this list is in Management Center › Indicator definitions.',audience:'Infection Control, Quality and authorized management roles',chapters:[
   ['Indicator definition','Every indicator has a definition, unit, numerator, denominator, multiplier, target and direction.'],
   ['Automatic calculation','Where reliable source data exist, the indicator is calculated without duplicate manual entry.'],
   ['Drill-down','Each displayed value should be explainable through the source data that produced it.']
@@ -59,12 +59,12 @@ export const helpManualEn={
   ['For employees','Employees see their own assigned and completed training and available certificates.'],
   ['Evidence','Attendance, completion and competence are retained as controlled evidence.']
  ],steps:['Open the programme or assignment.','Perform the action available to your role.','Review completion, results and certificates.'],preview:'training'},
- '/committees':{title:'Committees',summary:'Meetings, minutes, decisions and action follow-up.',audience:'Committee Secretariat and authorized members',chapters:[
+ '/meetings':{title:'Meetings & decisions',summary:'Committees, department meetings and the management review in one section with tabs: meetings, minutes, decisions and action follow-up.',audience:'Committee Secretariat and authorized members',chapters:[
   ['Membership','Members and committee roles have validity periods and history.'],
   ['Meetings','Meetings include participants, quorum, agenda topics and minutes.'],
   ['Decisions & actions','A decision can create a follow-up action with owner and deadline.']
  ],steps:['Open the committee.','Select a meeting or create one if permitted.','Record topics and decisions.','Follow actions through completion.'],preview:'committees'},
- '/documents':{title:'Documents',summary:'Controlled documents and shared content by role and scope.',audience:'Users with document access',chapters:[
+ '/documents':{title:'Documents & regulations',summary:'Controlled documents, regulations and legislation in one section with tabs; shared content by role and scope.',audience:'Users with document access',chapters:[
   ['Viewing documents','Standard users see documents shared with them or their department.'],
   ['Management','Creating, publishing and archiving require the relevant permissions.'],
   ['History','Published content should not be silently overwritten. Significant changes retain revision history.']

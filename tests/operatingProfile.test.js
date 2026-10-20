@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { ADDONS, MODULES, missingDependencies, profileFor, disabledCapabilitiesFor, moduleEnabled, normalizeProfile, profileModules } from '../src/core/organization/operatingProfile'
 import { CAPABILITIES, ROLES, can, configureProfileAccess } from '../src/core/permissions/roles'
 import { navigationFor } from '../src/app/navigation'
+import { sectionTabsFor } from '../src/core/navigation/sectionTabs'
 
 afterEach(() => configureProfileAccess(new Set()))
 
@@ -42,8 +43,10 @@ describe('operating profile', () => {
     expect(full).toEqual(expect.arrayContaining(['surveillance', 'prevention', 'laboratory']))
     configureProfileAccess(disabledCapabilitiesFor(org('laboratory', [])))
     const lab = navKeys()
-    expect(lab).toEqual(expect.arrayContaining(['laboratory', 'patients']))
-    for (const key of ['surveillance', 'prevention', 'controls', 'committees', 'indicators', 'pharmacy', 'occupationalHealth']) expect(lab).not.toContain(key)
+    // «Surveillance» stays in the menu for its always-on patient registry tab, and shows only that tab.
+    expect(lab).toEqual(expect.arrayContaining(['laboratory', 'surveillance']))
+    expect(sectionTabsFor('surveillance', { role: ROLES.HOSPITAL_ADMIN }).map(tab => tab.id)).toEqual(['registry'])
+    for (const key of ['prevention', 'controls', 'meetings', 'indicators', 'pharmacy', 'occupationalHealth']) expect(lab).not.toContain(key)
   })
 
   it('lists each profile cumulatively so the picker matches the rules', () => {

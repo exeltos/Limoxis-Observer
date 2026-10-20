@@ -1,6 +1,6 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useCallback,useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,CalendarDays,ChevronLeft,ChevronRight,ClipboardCheck,GraduationCap,ListChecks,Plus } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -15,7 +15,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { exportRegistry } from '../../core/export/registryExports'
-import { loadControlProgramme } from '../controls/controlCloudService'
+import { loadControlCalendarMonths,loadControlProgramme } from '../controls/controlCloudService'
+import { programmeCalendar } from '../controls/controlCalendar'
 import { loadQualityRecords } from '../quality/qualityService'
 import { loadTrainingCalendarAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
@@ -26,7 +27,7 @@ import { withSupplierStatus } from '../quality/resources/resourceModel'
 import { loadKitchen } from '../kitchen/kitchenService'
 import { addDays, kitchenCalendarItems, todayKey } from '../kitchen/kitchenModel'
 import { useAuditActor } from '../../core/audit/useAuditActor'
-import { CALENDAR_KINDS,buildCalendarEvents,calendarKindLabel,dayKey,monthGrid } from './calendarEvents'
+import { CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,dayKey,monthGrid,parseCalendarFilter } from './calendarEvents'
 import './calendar.css'
 
 const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES,suppliers:CAPABILITIES.VIEW_QUALITY,kitchen:CAPABILITIES.VIEW_KITCHEN}
@@ -53,7 +54,14 @@ export function CalendarPage(){
  const [cursor,setCursor]=useState(()=>{const d=new Date();return {year:d.getFullYear(),month:d.getMonth()}})
  const [selected,setSelected]=useState(()=>dayKey(new Date()))
  const [view,setView]=useState('month')
- const [hidden,setHidden]=useState(()=>new Set())
+ // The chips (controls, trainings, meetings, expiries, other) live in the address: ?filter=controls opens only the controls.
+ const [searchParams,setSearchParams]=useSearchParams()
+ const filterKinds=useMemo(()=>calendarFiltersFor(allowedKinds),[allowedKinds])
+ const filterParam=searchParams.get('filter')||''
+ const picked=useMemo(()=>parseCalendarFilter(filterParam),[filterParam])
+ const isOn=useCallback(filter=>!picked||picked.has(filter),[picked])
+ // The controls' done, late and missed executions of the shown year (counted in the database; null in the demo).
+ const [controlMonths,setControlMonths]=useState({year:null,months:null})
  const [department,setDepartment]=useState('all')
  // A module line in a day cell narrows that day's panel to the module.
  const [panelKind,setPanelKind]=useState(null)
@@ -80,12 +88,30 @@ export function CalendarPage(){
   return()=>{active=false}
  },[tenant?.id,allowedKinds,language])
 
+ const controlsAllowed=allowedKinds.includes('controls')
+ useEffect(()=>{
+  if(!controlsAllowed||!tenant?.id){setControlMonths({year:cursor.year,months:null});return undefined}
+  let active=true
+  loadControlCalendarMonths(tenant.id,cursor.year).then(months=>{if(active)setControlMonths({year:cursor.year,months})}).catch(()=>{if(active)setControlMonths({year:cursor.year,months:null})})
+  return()=>{active=false}
+ },[controlsAllowed,tenant?.id,cursor.year])
  const weeks=useMemo(()=>monthGrid(cursor.year,cursor.month),[cursor])
  const today=dayKey(new Date())
  const range=useMemo(()=>{const from=weeks[0][0],last=weeks[weeks.length-1][6];const horizon=dayKey(new Date(Date.now()+60*24*60*60*1000));return {from:from<today?from:today,to:last>horizon?last:horizon}},[weeks,today])
- const allEvents=useMemo(()=>sources?buildCalendarEvents(sources,{...range,today,language,ownerId:isDemo?undefined:userId}):[],[sources,range,today,language,isDemo,userId])
+ const executions=useMemo(()=>{
+  if(!sources?.controls?.length||controlMonths.year!==cursor.year)return []
+  const lines=programmeCalendar(sources.controls.map(item=>({item,departments:Object.keys(item.assignments||{})})),cursor.year,new Date(),controlMonths.months)
+  return controlExecutionEvents(lines,{year:cursor.year,month:cursor.month,today,language})
+ },[sources,controlMonths,cursor,today,language])
+ const allEvents=useMemo(()=>{
+  if(!sources)return []
+  const planned=buildCalendarEvents(sources,{...range,today,language,ownerId:isDemo?undefined:userId})
+  // A missed due date already listed as overdue is not repeated.
+  const overdueKeys=new Set(planned.filter(e=>e.kind==='controls'&&e.state==='overdue').map(e=>`${e.path}|${e.department}|${e.date}`))
+  return [...planned,...executions.filter(e=>e.state!=='missed'||!overdueKeys.has(`${e.path}|${e.department}|${e.date}`))].sort((a,b)=>a.date.localeCompare(b.date)||(a.time||'99').localeCompare(b.time||'99'))
+ },[sources,range,today,language,isDemo,userId,executions])
  const departments=useMemo(()=>[...new Set(allEvents.map(e=>e.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,language)),[allEvents,language])
- const events=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&!hidden.has(e.kind)&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,hidden,department,canAccessRecord])
+ const events=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&isOn(calendarFilterOf(e))&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,isOn,department,canAccessRecord])
  const byDay=useMemo(()=>{const map=new Map();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return map},[events])
  const overdue=events.filter(e=>e.state==='overdue')
  const weekEnd=dayKey(new Date(Date.now()+7*24*60*60*1000))
@@ -93,8 +119,8 @@ export function CalendarPage(){
  const monthKey=`${cursor.year}-${String(cursor.month+1).padStart(2,'0')}`
  const monthEvents=events.filter(e=>e.date.startsWith(monthKey))
  // Modules switched off or a department chosen, and nothing left this month: say it is the filters.
- const filtered=hidden.size>0||department!=='all'
- const upcoming=events.filter(e=>e.state!=='done'&&(e.state==='overdue'||e.date>=today)).slice(0,200)
+ const filtered=Boolean(picked)||department!=='all'
+ const upcoming=events.filter(e=>!['done','late','missed'].includes(e.state)&&(e.state==='overdue'||e.date>=today)).slice(0,200)
  const monthTitle=new Intl.DateTimeFormat(locale,{month:'long',year:'numeric'}).format(new Date(cursor.year,cursor.month,1))
  const fmtDay=key=>new Intl.DateTimeFormat(locale,{weekday:'long',day:'numeric',month:'long'}).format(new Date(`${key}T12:00:00`))
  const fmtShort=key=>new Intl.DateTimeFormat(locale,{day:'numeric',month:'short'}).format(new Date(`${key}T12:00:00`))
@@ -102,8 +128,9 @@ export function CalendarPage(){
  function moveMonth(step){setCursor(c=>{const d=new Date(c.year,c.month+step,1);return {year:d.getFullYear(),month:d.getMonth()}})}
  function openDay(key){setCursor({year:Number(key.slice(0,4)),month:Number(key.slice(5,7))-1});setSelected(key);setPanelKind(null)}
  function goToday(){const d=new Date();setCursor({year:d.getFullYear(),month:d.getMonth()});setSelected(dayKey(d));setPanelKind(null)}
- function clearFilters(){setHidden(new Set());setDepartment('all')}
- function toggleKind(kind){setHidden(current=>{const next=new Set(current);if(next.has(kind))next.delete(kind);else next.add(kind);return next})}
+ function setFilter(next){setSearchParams(current=>{const params=new URLSearchParams(current);if(!next||filterKinds.every(filter=>next.has(filter)))params.delete('filter');else params.set('filter',[...next].join(',')||'none');return params},{replace:true})}
+ function clearFilters(){setFilter(null);setDepartment('all')}
+ function toggleFilter(filter){const next=new Set(filterKinds.filter(isOn));if(next.has(filter))next.delete(filter);else next.add(filter);setFilter(next)}
  function exportMonth(){
   exportRegistry({name:en?`calendar-${monthKey}`:`imerologio-${monthKey}`,
    headers:en?['Date','Time','Module','Item','Detail','Department','Status']:['Ημερομηνία','Ώρα','Ενότητα','Θέμα','Λεπτομέρεια','Τμήμα','Κατάσταση'],
@@ -133,7 +160,7 @@ export function CalendarPage(){
   <section className="surface registry-workspace workspace-column workspace-fill calendar-workspace">
    <ModuleTabs activeId={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} tabs={[{id:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{id:'list',label:en?'To do':'Εκκρεμότητες',icon:ListChecks}]}/>
    <div className="calendar-toolbar">
-    <div className="calendar-kinds" role="group" aria-label={en?'Modules':'Ενότητες'}>{allowedKinds.map(kind=><button key={kind} type="button" className={`calendar-kind-toggle kind-${kind} ${hidden.has(kind)?'off':''}`} aria-pressed={!hidden.has(kind)} onClick={()=>toggleKind(kind)}><span className="calendar-dot"/>{calendarKindLabel(kind,language)}</button>)}</div>
+    <div className="calendar-kinds" role="group" aria-label={en?'Show':'Εμφάνιση'}>{filterKinds.map(filter=><button key={filter} type="button" className={`calendar-kind-toggle filter-${filter} ${isOn(filter)?'':'off'}`} aria-pressed={isOn(filter)} onClick={()=>toggleFilter(filter)}><span className="calendar-dot"/>{calendarFilterLabel(filter,language)}</button>)}</div>
     <div className="calendar-department"><FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All':'Όλα'}</option>{departments.map(d=><option key={d} value={d}>{d}</option>)}</FilterSelect></div>
    </div>
    {filtersHideAll&&<div className="calendar-filter-empty"><RegistryEmptyState filtered title={en?'Nothing pending with the selected filters':'Δεν υπάρχουν εκκρεμότητες με τα επιλεγμένα φίλτρα'} text={en?'Turn a module back on or choose another department.':'Ενεργοποιήστε ξανά μια ενότητα ή επιλέξτε άλλο τμήμα.'} onClearFilters={clearFilters}/></div>}
@@ -169,10 +196,12 @@ function EventRow({event,language,date,onOpen}){
   <span className="calendar-event-when">{date||event.time||''}</span>
   <span className="calendar-event-main"><strong title={event.title}>{event.title}</strong><small>{[calendarKindLabel(event.kind,language),event.detail,event.department].filter(Boolean).join(' · ')}</small></span>
   {event.state==='overdue'&&<span className="status-badge danger">{en?'Overdue':'Εκπρόθεσμο'}</span>}
+  {/* The controls' executions keep the colours of their own calendar: done, late, missed, planned. */}
+  {event.kind==='controls'&&['done','late','missed','planned'].includes(event.state)&&<span className={`status-badge calendar-execution ${event.state}`}>{event.detail||stateLabel(event.state,en)}</span>}
   {event.criticality==='high'&&<span className="status-badge danger">{en?'High':'Υψηλή'}</span>}
   <ChevronRight size={16} aria-hidden="true"/>
  </button></li>
 }
 
 function groupByDate(events){const map=new Map();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return [...map.entries()].slice(0,45)}
-function stateLabel(state,en){return ({overdue:en?'Overdue':'Εκπρόθεσμο',due:en?'Due':'Προς εκτέλεση',planned:en?'Planned':'Προγραμματισμένο',done:en?'Done':'Ολοκληρώθηκε'})[state]||state}
+function stateLabel(state,en){return ({overdue:en?'Overdue':'Εκπρόθεσμο',due:en?'Due':'Προς εκτέλεση',planned:en?'Planned':'Προγραμματισμένο',done:en?'Done':'Ολοκληρώθηκε',late:en?'Done late':'Έγινε με καθυστέρηση',missed:en?'Missed':'Χάθηκε'})[state]||state}

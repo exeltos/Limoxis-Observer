@@ -16,6 +16,12 @@
 .kind-committees{--calendar-color:#3d6f7a}
 .kind-suppliers{--calendar-color:#8a5a2b}
 .kind-kitchen{--calendar-color:#2f7d6d}
+/* The filter chips: controls, trainings, meetings, expiries, other. */
+.filter-controls{--calendar-color:#1f6fa9}
+.filter-training{--calendar-color:#2f8a57}
+.filter-meetings{--calendar-color:#3d6f7a}
+.filter-expiries{--calendar-color:#a07a12}
+.filter-other{--calendar-color:#6b7c8c}
 .calendar-month-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;flex:1 1 auto;min-height:0}
 .calendar-month{display:flex;flex-direction:column;min-height:0;padding:0 14px 14px;overflow:auto}
 .calendar-month-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:8px;height:52px;flex:0 0 auto;background:#fff}
@@ -36,6 +42,13 @@
 .calendar-event{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:1px solid var(--lo-color-border);border-left:4px solid var(--calendar-color,#6b7c8c);border-radius:8px;background:#fff;font:inherit;text-align:left;cursor:pointer}
 .calendar-event:hover{background:#f7fafc}
 .calendar-event.done{opacity:.6}
+/* A control's execution, in the colours of the controls' own calendar. */
+.calendar-event.late,.calendar-event.missed{opacity:1}
+.calendar-execution{flex:0 0 auto;white-space:nowrap}
+.calendar-execution.done{background:#e3f4ea;color:#1d6b3f}
+.calendar-execution.late{background:#fff3d6;color:#8a5a00}
+.calendar-execution.missed{background:#fdeceb;color:#8f1d14}
+.calendar-execution.planned{background:#e8f1fa;color:#1f5f8f}
 .calendar-event-when{flex:0 0 auto;min-width:42px;font-size:11px;font-weight:800;color:var(--lo-color-muted)}
 .calendar-event-main{display:grid;flex:1;min-width:0;gap:2px}
 .calendar-event-main strong{font-size:12px;line-height:1.35;color:var(--lo-color-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}

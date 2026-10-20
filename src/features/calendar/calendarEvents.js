@@ -13,6 +13,53 @@ const KIND_LABELS={
 }
 export const calendarKindLabel=(kind,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
 
+// The calendar's filter chips: controls, trainings, meetings and expiries
+// (certificates, licences, kitchen batches); everything else is «Other».
+// ?filter=controls (or controls,training) opens the calendar with only those on.
+export const CALENDAR_FILTERS=['controls','training','meetings','expiries','other']
+const FILTER_LABELS={
+ el:{controls:'Έλεγχοι',training:'Εκπαιδεύσεις',meetings:'Συνεδριάσεις',expiries:'Λήξεις',other:'Λοιπά'},
+ en:{controls:'Controls',training:'Trainings',meetings:'Meetings',expiries:'Expiries',other:'Other'},
+}
+export const calendarFilterLabel=(filter,language='el')=>FILTER_LABELS[language==='en'?'en':'el'][filter]||filter
+export function calendarFilterOf(event){
+ if(event.expiry||/^(cert|kit-exp):/.test(String(event.id||'')))return 'expiries'
+ if(event.kind==='controls')return 'controls'
+ if(event.kind==='training')return 'training'
+ if(event.kind==='committees')return 'meetings'
+ return 'other'
+}
+// The chips a calendar can offer from the modules the user may see.
+export function calendarFiltersFor(kinds=[]){
+ const has=kind=>kinds.includes(kind)
+ return CALENDAR_FILTERS.filter(filter=>filter==='controls'?has('controls'):filter==='training'?has('training'):filter==='meetings'?has('committees'):filter==='expiries'?has('training')||has('documents')||has('kitchen'):kinds.some(kind=>['capa','audits','documents','suppliers','kitchen'].includes(kind)))
+}
+// ?filter= as the set of chips that are on; null when the address names none (all on).
+export function parseCalendarFilter(value){
+ if(value==='none')return new Set()
+ const picked=String(value||'').split(',').map(item=>item.trim()).filter(item=>CALENDAR_FILTERS.includes(item))
+ return picked.length?new Set(picked):null
+}
+
+// What the controls' own calendar showed, day by day: the executions done
+// (on time or late), the missed due dates and — from controlEvents — the
+// planned ones. lines: programmeCalendar() of controls/controlCalendar.js for the year.
+const EXECUTION_DETAIL={el:{done:'Έγινε',late:'Έγινε με καθυστέρηση',missed:'Χάθηκε'},en:{done:'Done',late:'Done late',missed:'Missed'}}
+export function controlExecutionEvents(lines=[],{year,month,today=dayKey(new Date()),language='el'}={}){
+ const en=language==='en'
+ const words=EXECUTION_DETAIL[en?'en':'el']
+ const list=[]
+ const day=n=>`${year}-${pad(month+1)}-${pad(n)}`
+ for(const {item,department,months} of lines){
+  const cell=months?.[month]
+  if(!cell||cell.inactive)continue
+  const base={kind:'controls',title:en?item.titleEn||item.title:item.title,department,path:`/controls/${item.id}`,criticality:item.responseConfig?.criticality||'medium'}
+  ;(cell.marks||[]).forEach((mark,index)=>{const date=day(mark.day);list.push({...base,id:`ctrl-done:${item.id}:${department}:${date}:${index}`,date,state:mark.late?'late':'done',detail:mark.late?words.late:words.done})})
+  if(!cell.frequent)for(const missed of cell.missed||[]){const date=day(missed);if(date<today)list.push({...base,id:`ctrl-missed:${item.id}:${department}:${date}`,date,state:'missed',detail:words.missed})}
+ }
+ return list
+}
+
 const pad=n=>String(n).padStart(2,'0')
 export const dayKey=date=>`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`
 const toDay=value=>{
@@ -117,7 +164,7 @@ function documentEvents(families,range,today,list,en){
   const live=family.activePublished
   if(!live?.reviewDate)continue
   const day=toDay(live.reviewDate)
-  push(list,{id:`doc:${live.id}`,kind:'documents',date:day,title:live.title,detail:`${live.type==='licence'?(en?'Expires':'Λήξη'):(en?'Review due':'Αναθεώρηση')} · ${family.root?.id||live.id} v${live.version||''}`,department:live.department||'',path:`/documents/${live.id}`,state:stateOf(day,today)},range)
+  push(list,{id:`doc:${live.id}`,kind:'documents',expiry:live.type==='licence',date:day,title:live.title,detail:`${live.type==='licence'?(en?'Expires':'Λήξη'):(en?'Review due':'Αναθεώρηση')} · ${family.root?.id||live.id} v${live.version||''}`,department:live.department||'',path:`/documents/${live.id}`,state:stateOf(day,today)},range)
  }
 }
 

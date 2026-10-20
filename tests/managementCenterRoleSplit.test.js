@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import { can, CAPABILITIES, ROLES } from '../src/core/permissions/roles'
+import { SECTION_TABS, sectionTabsFor } from '../src/core/navigation/sectionTabs'
 
 // User-requested: the hospital Management Center must not mix in the
 // platform's tools. Platform-wide items (LIRA Knowledge, external
@@ -15,7 +16,9 @@ const globalTabs = page.slice(page.indexOf('if(global)return ['), page.indexOf('
 describe('Management Center: hospital vs platform', () => {
   it('keeps platform-wide tabs out of the hospital Management Center', () => {
     for (const id of ['liraKnowledge', 'references', 'platform']) expect(hospitalTabs).not.toContain(`id:'${id}'`)
-    for (const id of ['users', 'roles', 'announcements', 'libraries', 'questionnaires', 'clinicalScales', 'environmentTemplates', 'bundles', 'haiCriteria', 'indicators', 'patientDays', 'hospitalStructure', 'prevalenceSurvey', 'liraAi', 'liraOutbreaks']) expect(hospitalTabs).toContain(`id:'${id}'`)
+    for (const id of ['users', 'roles', 'announcements', 'libraries', 'questionnaires', 'clinicalScales', 'environmentTemplates', 'bundles', 'haiCriteria', 'indicators', 'patientDays', 'hospitalStructure', 'prevalenceSurvey', 'liraAi']) expect(hospitalTabs).toContain(`id:'${id}'`)
+    // The outbreak investigations moved to Surveillance › Outbreaks; LIRA & AI keeps the AI settings.
+    expect(hospitalTabs).not.toContain("id:'liraOutbreaks'")
   })
 
   it('offers LIRA Knowledge and external references on the platform screen', () => {
@@ -29,8 +32,10 @@ describe('Management Center: hospital vs platform', () => {
     expect(can(ROLES.HOSPITAL_ADMIN, CAPABILITIES.VIEW_PLATFORM, [], [])).toBe(false)
   })
 
-  it('gives outbreak investigations to the Infection Control Lead via VIEW_LIRA', () => {
-    expect(hospitalTabs).toContain("...(ok(CAPABILITIES.VIEW_LIRA)?[{id:'liraOutbreaks'")
+  it('gives outbreak investigations to the Infection Control Lead via VIEW_LIRA, as a tab of Surveillance', () => {
+    expect(sectionTabsFor('surveillance', { role: ROLES.INFECTION_CONTROL_LEAD }).map(tab => tab.id)).toContain('outbreaks')
+    expect(SECTION_TABS.surveillance.tabs.find(tab => tab.id === 'outbreaks').capability).toBe(CAPABILITIES.VIEW_LIRA)
     expect(can(ROLES.INFECTION_CONTROL_LEAD, CAPABILITIES.VIEW_LIRA, [], [])).toBe(true)
+    expect(page).toContain("navigate('/surveillance?tab=outbreaks',{replace:true})")
   })
 })

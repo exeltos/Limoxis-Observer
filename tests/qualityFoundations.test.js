@@ -16,11 +16,9 @@ describe('Quality foundations', () => {
     for (const role of Object.values(ROLES)) expect(can(role, CAPABILITIES.REPORT_INCIDENT), role).toBe(true)
   })
 
-  it('gives staff without the Quality Center the report form in the menu', () => {
+  it('keeps the incident report out of every menu (it opens from the top bar) and the Quality Center in Quality\'s', () => {
     const keys = role => navigationFor({ role }).map(item => item.key)
-    expect(keys(ROLES.DEPARTMENT_USER)).toContain('reportIncident')
-    expect(keys(ROLES.LABORATORY)).toContain('reportIncident')
-    expect(keys(ROLES.QUALITY_MANAGER)).not.toContain('reportIncident')
+    for (const role of Object.values(ROLES)) expect(keys(role), role).not.toContain('reportIncident')
     expect(keys(ROLES.QUALITY_MANAGER)).toContain('quality')
   })
 
@@ -94,9 +92,9 @@ describe('review follow-ups', () => {
     expect(incidentPrefill({ qualitySource: { title: 'X', description: 'Y' } })).toMatchObject({ titleEn: 'X', descriptionEn: 'Y' })
   })
 
-  it('lets the default staff_user account report and sees its reports in the menu', () => {
+  it('lets the default staff_user account report (from the top bar, not the menu)', () => {
     expect(can('staff_user', CAPABILITIES.REPORT_INCIDENT)).toBe(true)
-    expect(navigationFor({ role: 'staff_user' }).map(item => item.key)).toContain('reportIncident')
+    expect(navigationFor({ role: 'staff_user' }).map(item => item.key)).not.toContain('reportIncident')
     expect(migration).toContain("'staff_user'::app_role")
   })
 

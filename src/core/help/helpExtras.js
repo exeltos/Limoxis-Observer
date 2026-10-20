@@ -1,7 +1,7 @@
 export const helpExtras={
  '/':{
   checks:{el:['Ελέγξτε αν οι επείγουσες εκκρεμότητες έχουν ανοίξει.','Επιβεβαιώστε ότι οι ειδοποιήσεις που διαβάσατε έχουν μειωθεί από το badge.'],en:['Confirm that urgent pending items have been opened.','Check that notifications you read are removed from the unread badge.']},
-  tip:{el:'Χρησιμοποιήστε την Κεντρική εικόνα ως σημείο εκκίνησης, όχι ως δεύτερο μητρώο. Η πραγματική εργασία ολοκληρώνεται στις αντίστοιχες ενότητες.',en:'Use the Dashboard as a starting point, not as a second registry. Complete the actual work in the underlying modules.'},
+  tip:{el:'Χρησιμοποιήστε την Αρχική ως σημείο εκκίνησης, όχι ως δεύτερο μητρώο. Η πραγματική εργασία ολοκληρώνεται στις αντίστοιχες ενότητες.',en:'Use Home as a starting point, not as a second registry. Complete the actual work in the underlying modules.'},
   related:['/surveillance','/controls','/training']
  },
  '/my-department':{
@@ -54,7 +54,7 @@ export const helpExtras={
   tip:{el:'Ο εργαζόμενος πρέπει να βλέπει μόνο τις δικές του αναθέσεις και πιστοποιήσεις, ενώ ο διαχειριστής έχει συνολική εικόνα.',en:'Employees should see only their own assignments and certificates, while administrators have the broader programme view.'},
   related:['/employees','/my-profile']
  },
- '/committees':{
+ '/meetings':{
   checks:{el:['Ελέγξτε απαρτία και συμμετέχοντες.','Καταγράψτε σαφείς αποφάσεις.','Κάθε ενέργεια παρακολούθησης πρέπει να έχει υπεύθυνο και προθεσμία.'],en:['Confirm quorum and participants.','Record clear decisions.','Every follow-up action should have an owner and deadline.']},
   tip:{el:'Το πρακτικό έχει αξία όταν οι αποφάσεις μετατρέπονται σε παρακολουθήσιμες ενέργειες.',en:'Minutes become operationally useful when decisions are converted into trackable actions.'},
   related:['/documents','/quality']
@@ -62,7 +62,7 @@ export const helpExtras={
  '/documents':{
   checks:{el:['Ανοίξτε την τρέχουσα δημοσιευμένη έκδοση.','Μην αλλάζετε σιωπηλά δημοσιευμένο περιεχόμενο.','Ελέγξτε εύρος/κοινοποίηση πριν τη δημοσίευση.'],en:['Open the current published version.','Do not silently overwrite published content.','Review scope/sharing before publication.']},
   tip:{el:'Η διαχείριση εγγράφων πρέπει να διαχωρίζει πρόχειρο, δημοσιευμένο και αρχειοθετημένο περιεχόμενο.',en:'Document control should clearly separate draft, published and archived content.'},
-  related:['/quality','/committees','/training']
+  related:['/quality','/meetings','/training']
  },
  '/employees':{
   checks:{el:['Ελέγξτε ότι τμήμα και ιδιότητα προέρχονται από τις κεντρικές βιβλιοθήκες.','Μην καταχωρείτε ιατρικές σημειώσεις σε διοικητικά πεδία.'],en:['Ensure department and position come from central libraries.','Do not store medical notes in administrative fields.']},

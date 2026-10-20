@@ -73,7 +73,8 @@ describe('page files', () => {
     expect(app).toContain("registerRoutePreload('/patients', PatientsPage, PatientClinicalRecordRoute)")
     const shell = read('src/app/AppShell.jsx')
     expect(shell).toContain('<ScreenErrorBoundary resetKey={location.pathname}><Suspense fallback={<RouteLoading/>}><Outlet/></Suspense></ScreenErrorBoundary>')
-    expect(shell).toContain('onPointerEnter={()=>void preloadRoute(item.to)}')
+    // The hospital menu's entries are drawn by the sidebar component.
+    expect(read('src/app/SidebarNavigation.jsx')).toContain('onPointerEnter={()=>void preloadRoute(item.to)}')
     expect(shell).toContain('preloadRoutesWhenIdle(')
   })
 })

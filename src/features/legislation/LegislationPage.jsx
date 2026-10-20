@@ -41,7 +41,9 @@ export function LegislationPage() {
     ...(tenant?.id || access.isDemo ? [{ value: 'register', icon: Scale, label: en ? 'Hospital register' : 'Μητρώο νοσοκομείου' }] : []),
     ...(access.isPlatformOwner ? [{ value: 'library', icon: BookMarked, label: en ? 'Platform library' : 'Βιβλιοθήκη πλατφόρμας' }, { value: 'review', icon: Inbox, label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'sources', icon: Radar, label: en ? 'Sources' : 'Πηγές' }] : []),
   ]
-  const requested = new URLSearchParams(location.search).get('tab')
+  const requestedParams = new URLSearchParams(location.search)
+  // Inside «Έγγραφα & Κανονισμοί» ?tab= picks the section's tab; this page's own tab travels as ?view=.
+  const requested = requestedParams.get('view') || requestedParams.get('tab')
   const [tab, setTab] = useState(() => (tabs.some(item => item.value === requested) ? requested : tabs[0]?.value || 'register'))
   const [register, setRegister] = useState({ loading: true, versions: [], rows: [] })
   const [library, setLibrary] = useState({ loading: true, texts: [], versions: [] })

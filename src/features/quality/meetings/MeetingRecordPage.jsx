@@ -88,7 +88,7 @@ export function MeetingRecordPage() {
   const { notify } = useFeedback()
   const { tenant } = useTenant()
   const { user, profile } = useAuth()
-  const { goBack } = useContextualNavigation('/quality')
+  const { goBack } = useContextualNavigation('/meetings?tab=departments')
   const list = useMeetings()
   const { departments, loading: departmentsLoading } = useDepartments()
   // Topics from the hospital's library (Management > Libraries > Committee and meeting topics).

@@ -22,10 +22,13 @@ describe('Quality center entry and tabs', () => {
     expect(qualityTabOf('risks')).toEqual({ tab: 'risks', view: null })
     expect(qualityTabOf('registers')).toEqual({ tab: 'indicators', view: 'registers' })
     expect(qualityTabOf('indicators:objectives')).toEqual({ tab: 'indicators', view: 'objectives' })
-    expect(qualityTabOf('review')).toEqual({ tab: 'review', view: null })
+    // The meetings and the management review left the Center for «Meetings & decisions»: their old sections open the overview.
+    expect(qualityTabOf('review')).toBe(null)
     expect(qualityTabOf('management')).toEqual({ tab: 'indicators', view: 'objectives' })
-    expect(qualityTabOf('measure:reviews')).toEqual({ tab: 'review', view: 'reviews' })
-    expect(qualityTabOf('review:meetings')).toEqual({ tab: 'review', view: 'meetings' })
+    expect(qualityTabOf('measure:reviews')).toBe(null)
+    expect(qualityTabOf('review:meetings')).toBe(null)
+    expect(page).not.toContain("value:'review'")
+    expect(page).toContain("navigate('/meetings?tab=departments')")
     expect(qualityTabOf('measure:registers')).toEqual({ tab: 'indicators', view: 'registers' })
   })
 

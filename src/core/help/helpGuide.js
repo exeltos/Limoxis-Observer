@@ -103,10 +103,11 @@ export const guideContent = {
       done: l('Η πρώτη πραγματική εγγραφή έχει καταχωριστεί και φαίνεται στις Αναλύσεις.', 'The first real record has been entered and shows in Analysis.'),
     },
     {
-      id: 'daily', who: l('Όλοι οι χρήστες', 'All users'), where: l('Κεντρική εικόνα και οι ενότητες του ρόλου σας', 'Dashboard and your role’s modules'),
+      id: 'daily', who: l('Όλοι οι χρήστες', 'All users'), where: l('Αρχική και οι ενότητες του ρόλου σας', 'Home and your role’s modules'),
       title: l('Καθημερινή χρήση', 'Daily use'),
       steps: [
-        l('Ξεκινήστε από την Κεντρική εικόνα: δείχνει μόνο όσα χρειάζονται προσοχή και όσα δικαιούστε να γνωρίζετε.', 'Start from the Dashboard: it shows only what needs attention and what you are entitled to know.'),
+        l('Ξεκινήστε από την Αρχική: δείχνει μόνο όσα χρειάζονται προσοχή και όσα δικαιούστε να γνωρίζετε. Η διοίκηση βλέπει τους δείκτες του νοσοκομείου στο «Δείκτες».', 'Start from Home: it shows only what needs attention and what you are entitled to know. Management sees the hospital’s indicators under “Indicators”.'),
+        l('Ένα συμβάν αναφέρεται από το κουμπί «+ Αναφορά συμβάντος» στο κάτω μέρος του μενού: «Νέα αναφορά» ή «Οι αναφορές μου».', 'Report an incident with the “+ Incident report” button at the foot of the menu: “New report” or “My reports”.'),
         l('Ανοίξτε την εργασία που περιμένει και ολοκληρώστε την. Μην ξαναγράφετε δεδομένα που υπάρχουν ήδη: το Εργαστήριο, η Επιτήρηση και οι Δείκτες μοιράζονται τα ίδια στοιχεία.', 'Open the task that is waiting and complete it. Do not re-enter data that already exists: Laboratory, Surveillance and Indicators share the same data.'),
         l('Στο τέλος της εβδομάδας δείτε τις εκκρεμότητες του τμήματος και τα καθυστερημένα.', 'At the end of the week check the department’s pending and overdue items.'),
       ],
@@ -221,7 +222,7 @@ export const guideContent = {
       users: l('Ομάδα Ελέγχου Λοιμώξεων και εξουσιοδοτημένοι κλινικοί ρόλοι.', 'Infection Control team and authorized clinical roles.'),
       needs: null,
       analysis: l('Δεν έχει δική του καρτέλα: τα στοιχεία των ασθενών δεν εμφανίζονται στις Αναλύσεις.', 'No tab of its own: patient details never appear in Analysis.'),
-      start: l('Αναζητήστε πρώτα τον ασθενή, δημιουργήστε μόνο αν δεν υπάρχει.', 'Search for the patient first; create only if not found.'),
+      start: l('Επιτήρηση › Ασθενείς: αναζητήστε πρώτα τον ασθενή, δημιουργήστε μόνο αν δεν υπάρχει.', 'Surveillance › Patients: search for the patient first; create only if not found.'),
     },
     laboratory: {
       what: l('Δείγματα, καλλιέργειες, ευαισθησία (AST) και επικοινωνία κρίσιμων αποτελεσμάτων. Είναι η πηγή αλήθειας για τη μικροβιολογία.', 'Samples, cultures, susceptibility (AST) and communication of critical results. It is the source of truth for microbiology.'),
@@ -263,7 +264,7 @@ export const guideContent = {
       users: l('Υπεύθυνος, Προϊστάμενοι και Χρήστες Τμήματος.', 'Lead, Department Managers and Department Users.'),
       needs: null,
       analysis: l('Καρτέλα «Έλεγχοι»: εκτελέσεις, ποσοστό με εύρημα, εκπρόθεσμοι έλεγχοι, εκτελέσεις και ευρήματα ανά τμήμα.', 'Tab “Controls”: executions, share with findings, overdue controls, executions and findings per department.'),
-      start: l('Ορίστε έναν έλεγχο και αναθέστε τον σε ένα τμήμα.', 'Define a control and assign it to a department.'),
+      start: l('Ορίστε έναν έλεγχο και αναθέστε τον σε ένα τμήμα. Οι προγραμματισμένες και οι εκτελεσμένες εκτελέσεις φαίνονται στο Ημερολόγιο, φίλτρο «Έλεγχοι» (κουμπί «Στο ημερολόγιο»).', 'Define a control and assign it to a department. Planned and performed executions are in the Calendar, filter “Controls” (button “In the calendar”).'),
     },
     quality: {
       what: l('Συμβάντα, επιθεωρήσεις, ευρήματα και διορθωτικές και προληπτικές ενέργειες σε ελεγχόμενη ροή.', 'Incidents, audits, findings and CAPA (corrective and preventive actions) in a controlled flow.'),
@@ -284,7 +285,7 @@ export const guideContent = {
       users: l('Γραμματεία Επιτροπής, Υπεύθυνος, εξουσιοδοτημένοι χρήστες.', 'Committee Secretariat, Lead, authorized users.'),
       needs: null,
       analysis: l('Καρτέλα «Διακυβέρνηση»: ελεγχόμενα έγγραφα και έγγραφα προς αναθεώρηση, συνεδριάσεις επιτροπών και εκκρεμή πρακτικά.', 'Tab “Governance”: controlled documents and documents due for review, committee meetings and pending minutes.'),
-      start: l('Προγραμματίστε την πρώτη συνεδρίαση ή δημιουργήστε το πρώτο έγγραφο.', 'Schedule the first meeting or create the first document.'),
+      start: l('Συνεδριάσεις & αποφάσεις › Επιτροπές: προγραμματίστε την πρώτη συνεδρίαση· Έγγραφα & Κανονισμοί › Έγγραφα: δημιουργήστε το πρώτο έγγραφο.', 'Meetings & decisions › Committees: schedule the first meeting; Documents & regulations › Documents: create the first document.'),
     },
     kitchen: {
       what: l('Κουζίνα κατά HACCP: παραλαβές και απόθεμα ανά παρτίδα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση, ιχνηλασιμότητα και άσκηση ανάκλησης.', 'Kitchen under HACCP: receipts and stock by batch, production day, critical limits, verification, traceability and the recall drill.'),
@@ -347,7 +348,7 @@ export const guideContent = {
       users: l('Ομάδα Ελέγχου Λοιμώξεων, Διαχειριστής Νοσοκομείου (σύνδεση παρόχου).', 'Infection Control team, Hospital Admin (provider connection).'),
       needs: null,
       analysis: l('Καρτέλα «LIRA & AI»: διερευνήσεις (ενεργές, κλειστές, μέσος χρόνος ολοκλήρωσης), ενεργές συρροές, κατανομή ανά μικροοργανισμό και μήνα.', 'Tab “LIRA & AI”: investigations (active, closed, average time to close), active clusters, distribution per organism and month.'),
-      start: l('Κέντρο Διαχείρισης › LIRA & AI: συνδέστε πάροχο (προαιρετικά). Οι διερευνήσεις γίνονται από Κέντρο Διαχείρισης › Διερευνήσεις εξάρσεων.', 'Management Center › LIRA & AI: connect a provider (optional). Investigations are run from Management Center › Outbreak investigations.'),
+      start: l('Κέντρο Διαχείρισης › LIRA & AI: συνδέστε πάροχο (προαιρετικά). Οι διερευνήσεις γίνονται από Επιτήρηση › Εξάρσεις.', 'Management Center › LIRA & AI: connect a provider (optional). Investigations are run from Surveillance › Outbreaks.'),
     },
   },
 

@@ -54,7 +54,7 @@ export function HelpRolesView(){
         return <div className="manual-roles-row" role="row" key={role}>
           <b role="cell">{t(roleLabelKey(role))}</b>
           <span role="cell">{pick(guide.who)}</span>
-          <span role="cell">{navigationFor({role}).map(item=>t(item.key)).join(', ')}</span>
+          <span role="cell">{navigationFor({role}).map(item=>t(item.label||item.key)).join(', ')}</span>
           <span role="cell">{pick(guide.does)}{scenarios.length>0&&<small>{en?'Demo scenarios':'Σενάρια Demo'}: {scenarios.map(key=>scenarioTitle(key,en)).join(' · ')}</small>}</span>
         </div>})}
     </div>

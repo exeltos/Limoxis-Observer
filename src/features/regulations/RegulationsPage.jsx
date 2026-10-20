@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BookMarked, BookOpen, FilePlus2, Library, PencilLine, Plus, Scale } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { useSectionTabs } from '../../design-system/SectionTabs'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { Field } from '../../design-system/Field'
@@ -29,6 +30,8 @@ export function RegulationsPage() {
   const { notify } = useFeedback()
   const { tenant, role, membership } = useTenant()
   const { canManage, isPlatformOwner } = useRegulationAccess()
+  // Inside «Έγγραφα & Κανονισμοί» the legislation is a tab beside this one.
+  const inSection = Boolean(useSectionTabs())
   const canSeeLegislation = isPlatformOwner || can(role, CAPABILITIES.VIEW_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const [state, setState] = useState({ loading: true, regulations: [], templates: [], error: null })
   const [creating, setCreating] = useState(null)
@@ -58,7 +61,7 @@ export function RegulationsPage() {
 
   if (state.loading) return <RouteLoading />
   return <Page title={en ? 'Regulations' : 'Κανονισμοί'} subtitle={en ? 'The hospital’s regulations, read as books. Every edition approved and kept.' : 'Οι κανονισμοί του νοσοκομείου, σαν βιβλία. Κάθε έκδοση εγκρίνεται και φυλάσσεται.'}
-    actions={<div className="row-actions">{canSeeLegislation && <Button variant="secondary" onClick={() => navigate('/legislation')}><Scale size={15} />{en ? 'Legislation' : 'Νομοθεσία'}</Button>}{canManage && <Button onClick={() => setCreating({ templateKey: state.templates[0]?.key || '', title: state.templates[0]?.title || '', category: state.templates[0]?.category || 'infection' })}><Plus size={15} />{en ? 'New regulation' : 'Νέος κανονισμός'}</Button>}</div>}>
+    actions={<div className="row-actions">{canSeeLegislation && !inSection && <Button variant="secondary" onClick={() => navigate('/legislation')}><Scale size={15} />{en ? 'Legislation' : 'Νομοθεσία'}</Button>}{canManage && <Button onClick={() => setCreating({ templateKey: state.templates[0]?.key || '', title: state.templates[0]?.title || '', category: state.templates[0]?.category || 'infection' })}><Plus size={15} />{en ? 'New regulation' : 'Νέος κανονισμός'}</Button>}</div>}>
     {state.error && <div className="data-access-state error" role="alert"><span>{en ? 'Could not load the regulations.' : 'Δεν ήταν δυνατή η φόρτωση των κανονισμών.'}</span><Button variant="secondary" onClick={reload}>{en ? 'Retry' : 'Επανάληψη'}</Button></div>}
     <section className="surface reg-library">
       {shelf.length ? <div className="reg-shelf">{shelf.map(item => {
