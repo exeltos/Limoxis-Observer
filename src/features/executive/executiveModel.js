@@ -5,7 +5,8 @@
 // ({domains, microbiology, clusters}), so production and demo read the same.
 
 export const PERIOD_PRESETS=['month','3m','6m','12m','year','custom']
-export const DEFAULT_FILTERS=Object.freeze({period:'3m',from:'',to:'',department:'',compare:true})
+// The current calendar year by default, as Analysis (sharedPeriod.js).
+export const DEFAULT_FILTERS=Object.freeze({period:'year',from:'',to:'',department:'',compare:true})
 const MONTHS_BACK={month:0,'3m':2,'6m':5,'12m':11}
 const MONTH_SHIFT={month:1,'3m':3,'6m':6,'12m':12,year:12}
 
@@ -43,10 +44,13 @@ export function previousRange(range,period='custom'){
  return {from:addDays(to,-(days-1)),to}
 }
 
-export function parseFilters(search=''){
+// A URL without a period opens on `fallback` (the period shared with Analysis).
+export function parseFilters(search='',fallback=null){
  const query=new URLSearchParams(search)
- const period=PERIOD_PRESETS.includes(query.get('period'))?query.get('period'):DEFAULT_FILTERS.period
- return {period,from:period==='custom'&&validDay(query.get('from'))?query.get('from'):'',to:period==='custom'&&validDay(query.get('to'))?query.get('to'):'',department:query.get('department')||'',compare:query.get('compare')!=='0'}
+ const base=!query.get('period')&&fallback&&PERIOD_PRESETS.includes(fallback.period)?fallback:null
+ const period=base?base.period:PERIOD_PRESETS.includes(query.get('period'))?query.get('period'):DEFAULT_FILTERS.period
+ const from=base?base.from:query.get('from'),to=base?base.to:query.get('to')
+ return {period,from:period==='custom'&&validDay(from)?from:'',to:period==='custom'&&validDay(to)?to:'',department:query.get('department')||'',compare:query.get('compare')!=='0'}
 }
 // Only what differs from the defaults goes in the URL.
 export function filtersToQuery(filters){

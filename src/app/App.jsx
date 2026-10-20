@@ -6,7 +6,7 @@ import { ProtectedRoute } from '../core/auth/ProtectedRoute'
 import { useAuth } from '../core/auth/AuthContext'
 import { useTenant } from '../core/tenant/TenantContext'
 import { RequireCapability, RequireAnyCapability } from '../core/permissions/RequireCapability'
-import { CAPABILITIES, MANAGEMENT_CAPABILITIES } from '../core/permissions/roles'
+import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES } from '../core/permissions/roles'
 import { LoginPage } from '../features/auth/LoginPage'
 import { RouteLoading } from '../design-system/RouteLoading'
 import { registerRoutePreload } from './routePreload'
@@ -125,7 +125,8 @@ registerRoutePreload('/platform', PlatformCenterPage)
 const KITCHEN_CAPABILITIES = [CAPABILITIES.VIEW_KITCHEN, CAPABILITIES.RECORD_KITCHEN, CAPABILITIES.MANAGE_KITCHEN]
 const gate = (capability, element) => <RequireCapability capability={capability}>{element}</RequireCapability>
 const gateAny = (capabilities, element) => <RequireAnyCapability capabilities={capabilities}>{element}</RequireAnyCapability>
-function HomeRoute(){const {profile}=useAuth();const {activeMembershipId,isDemo,loading}=useTenant();if(loading)return <RouteLoading/>;if(profile?.isPlatformOwner&&!activeMembershipId&&!isDemo)return <Navigate to="/platform" replace/>;return gate(CAPABILITIES.VIEW_DASHBOARD,<DashboardPage/>)}
+// The Director's home is the Executive dashboard (overview + analysis), not the generic overview.
+function HomeRoute(){const {profile}=useAuth();const {activeMembershipId,isDemo,loading,role}=useTenant();if(loading)return <RouteLoading/>;if(profile?.isPlatformOwner&&!activeMembershipId&&!isDemo)return <Navigate to="/platform" replace/>;if(role===ROLES.HOSPITAL_DIRECTOR)return <Navigate to="/executive" replace/>;return gate(CAPABILITIES.VIEW_DASHBOARD,<DashboardPage/>)}
 export function App(){return <><GlobalTextareaExpander/><PlatformMaintenanceBanner/><Routes>
  <Route path="/login" element={<LoginPage/>}/><Route path="/activate" element={<Suspense fallback={<RouteLoading/>}><ActivateAccountPage/></Suspense>}/><Route path="/forgot-access" element={<Suspense fallback={<RouteLoading/>}><ForgotAccessPage/></Suspense>}/><Route path="/privacy" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="privacy"/></Suspense>}/><Route path="/terms" element={<Suspense fallback={<RouteLoading/>}><LegalPage kind="terms"/></Suspense>}/><Route path="/reset-password" element={<Suspense fallback={<RouteLoading/>}><ResetPasswordPage/></Suspense>}/><Route path="training-access/:token" element={<Suspense fallback={<RouteLoading/>}><TrainingAccessPage/></Suspense>}/><Route path="minutes-approval/:token" element={<Suspense fallback={<RouteLoading/>}><MinutesApprovalPage/></Suspense>}/><Route path="survey/:token" element={<Suspense fallback={<RouteLoading/>}><SurveyRespondPage/></Suspense>}/><Route path="apply" element={<Suspense fallback={<RouteLoading/>}><ApplicationPage/></Suspense>}/><Route path="apply/:token" element={<Suspense fallback={<RouteLoading/>}><ApplicationPage/></Suspense>}/><Route path="supplier-certificate/:token" element={<Suspense fallback={<RouteLoading/>}><SupplierCertificatePage/></Suspense>}/>
  <Route element={<ProtectedRoute/>}><Route element={<AppShell/>}>

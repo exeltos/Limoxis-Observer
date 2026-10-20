@@ -53,6 +53,7 @@ html body .analysis-kpis article.kpi-good{--kpi-accent:#1baf7a}
 html body .analysis-kpis article.kpi-warning{--kpi-accent:#eda100}
 html body .analysis-kpis article.kpi-danger{--kpi-accent:#e34948}
 html body .analysis-kpis article>span{font-size:12px!important;font-weight:650!important;color:#5f768a!important}
+html body .analysis-kpis .analysis-kpi-period{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;background:#eef2f6;color:#4f6274;font-size:10px;font-weight:600;font-style:normal;vertical-align:1px}
 html body .analysis-kpis article>strong{font-size:26px!important;line-height:1.15!important;color:#10233b!important}
 html body .analysis-kpis article>small{font-size:12px!important;color:#5c6f7f!important;line-height:1.4!important}
 .analysis-resistant-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--lo-color-muted,#53697d);cursor:pointer;white-space:nowrap}
@@ -68,3 +69,7 @@ html body .analysis-kpis article>small{font-size:12px!important;color:#5c6f7f!im
 .analysis-matrix tbody td.tone-danger{background:rgba(220,70,60,var(--cell-heat,0))}
 .analysis-matrix .analysis-matrix-total,.analysis-matrix tfoot td{font-weight:800;background:#f7f9fb;color:#1d3a52}
 .analysis-matrix tfoot th,.analysis-matrix tfoot td{border-bottom:0}
+/* Analysis inside the Executive dashboard: the page scrolls, the period is the dashboard's. */
+.analysis-workspace.analysis-embedded{height:auto;min-height:0;overflow:visible;margin:0}
+.analysis-embedded .analysis-scroll{overflow:visible}
+.analysis-embedded-actions{display:flex;justify-content:flex-end;margin-bottom:6px}

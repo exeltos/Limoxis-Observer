@@ -134,6 +134,6 @@ describe('collectAnalysisDemoSnapshot computes from the same demo fixtures every
 describe('the year/hospital comparison filter group is hidden in demo mode', () => {
   it('wraps the comparison filter section content in a !isDemo check', () => {
     const page = readAnalysisPageSource()
-    expect(page).toContain('className={`analysis-filter-group analysis-filter-compare${isDemo?\' analysis-filter-group-placeholder\':\'\'}`}>{!isDemo&&<>')
+    expect(page).toContain('className={`analysis-filter-group analysis-filter-compare${isDemo||embedded?\' analysis-filter-group-placeholder\':\'\'}`}>{!isDemo&&!embedded&&<>')
   })
 })

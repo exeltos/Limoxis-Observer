@@ -46,7 +46,8 @@ describe('PlatformDashboardView', () => {
   it('shows the live-platform pill; organizations open from their own card', () => {
     render(<PlatformDashboardView {...baseProps}/>)
     expect(screen.getByText('Πλατφόρμα ενεργή')).toBeInTheDocument()
-    expect(screen.queryByText('Lena Hospital')).not.toBeInTheDocument()
+    // Hospitals appear on the Overview only in the health list (last activity, errors / 24 h).
+    expect(screen.getByText('Lena Hospital').closest('.platform-health-row')).not.toBeNull()
     expect(screen.getAllByText(/Οργανισμοί/).length).toBeGreaterThan(0)
   })
 })
