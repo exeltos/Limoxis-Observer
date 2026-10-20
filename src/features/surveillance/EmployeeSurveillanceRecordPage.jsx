@@ -52,6 +52,7 @@ import {
 } from './EmployeeSurveillanceRecordDialog'
 import { employeeScreeningLabel, priorityOptions, statusTone } from './surveillanceOptions'
 import { surveillanceTabAccess } from './surveillanceTabAccess'
+import { EmployeeExposureSection } from './EmployeeExposureSection'
 import './employeeLabRequest.css'
 
 // A staff screening opened from the «Εργαζόμενοι» list of the Surveillance
@@ -348,6 +349,7 @@ export function EmployeeSurveillanceRecordPage() {
               {sampleRows.length ? sampleRows : <div className="inline-empty">{L('Δεν υπάρχουν εργαστηριακά δείγματα για αυτόν τον έλεγχο.', 'No laboratory samples for this screening yet.')}</div>}
             </div>
           </section>
+          <EmployeeExposureSection record={record} department={department} />
           {!followupEligible && (
             <div className="source-truth-note employee-record-note">
               {resultKnown

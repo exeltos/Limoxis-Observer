@@ -127,6 +127,7 @@ describe('the record of a patient under surveillance', () => {
     expect(screen.getAllByRole('tab').map(tab => tab.textContent.trim())).toEqual([
       'Σύνοψη',
       'Επιτήρηση & Δείγματα',
+      'Φόρμες & ερωτηματολόγια',
       'Έγγραφα',
       'Ιστορικό',
     ])

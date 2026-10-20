@@ -4,7 +4,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadExposureIncidents,saveExposureIncidents } from '../employees/employeeRecordsService'
 
-const COLUMNS='id,employee_id,incident_date,exposure_type,device_or_source,body_site,source_patient_status,reported_at,pep_administered,pep_details,follow_up_status,follow_up_due_at,notes,status,created_at,updated_at'
+const COLUMNS='id,employee_id,incident_date,exposure_type,device_or_source,body_site,source_patient_status,reported_at,pep_administered,pep_details,follow_up_status,follow_up_due_at,notes,status,created_at,updated_at,employee_surveillance_record_id,source_case_id'
 
 function ensureCloud(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -31,6 +31,8 @@ function fromRow(row){
     status:row.status||'open',
     createdAt:row.created_at||null,
     updatedAt:row.updated_at||null,
+    employeeSurveillanceRecordId:row.employee_surveillance_record_id||'',
+    sourceCaseId:row.source_case_id||'',
   }
 }
 
@@ -68,6 +70,8 @@ export async function createExposureIncidentAsync(organizationId,employee,draft)
       followUpDueAt:draft.followUpDueAt||'',
       notes:String(draft.notes||'').trim(),
       status:draft.status||'open',
+      employeeSurveillanceRecordId:draft.employeeSurveillanceRecordId||'',
+      sourceCaseId:draft.sourceCaseId||'',
     }
     saveExposureIncidents([added,...existing])
     return added
@@ -91,9 +95,38 @@ export async function createExposureIncidentAsync(organizationId,employee,draft)
       follow_up_due_at:draft.followUpDueAt||null,
       notes:String(draft.notes||'').trim()||null,
       status:draft.status||'open',
+      employee_surveillance_record_id:draft.employeeSurveillanceRecordId||null,
+      source_case_id:draft.sourceCaseId||null,
     })
     .select(COLUMNS)
     .single()
   if(error)throw error
   return fromRow(data)
+}
+
+// The exposures recorded from one staff surveillance record (the «Έκθεση προσωπικού» section).
+export async function loadExposureIncidentsForRecordAsync(organizationId,recordId){
+  if(!recordId)return []
+  if(isDemoDataEnvironment())return loadExposureIncidents().filter(row=>String(row.employeeSurveillanceRecordId||'')===String(recordId))
+  ensureCloud(organizationId,'occupational_exposure_incidents.load_for_record')
+  const {data,error}=await supabase
+    .from('occupational_exposure_incidents')
+    .select(COLUMNS)
+    .eq('organization_id',organizationId)
+    .eq('employee_surveillance_record_id',recordId)
+    .order('incident_date',{ascending:false})
+  if(error)throw error
+  return (data||[]).map(fromRow)
+}
+
+// How many employees were exposed to the source patient of a surveillance episode: a number only,
+// never names. Production asks the database (surveillance_case_exposure_count checks that the
+// caller may see the episode); the demo counts its own sample exposures.
+export async function countSourceExposuresAsync(organizationId,caseRef){
+  if(!caseRef)return 0
+  if(isDemoDataEnvironment())return new Set(loadExposureIncidents().filter(row=>String(row.sourceCaseId||'')===String(caseRef)).map(row=>row.employeeId)).size
+  if(!hasSupabaseConfig||!supabase||!organizationId)return 0
+  const {data,error}=await supabase.rpc('surveillance_case_exposure_count',{p_case_id:caseRef})
+  if(error)throw error
+  return Number(data)||0
 }

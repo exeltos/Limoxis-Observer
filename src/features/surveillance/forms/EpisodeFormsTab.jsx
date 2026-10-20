@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
 import { EmptyState } from '../../../design-system/EmptyState'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
-import { FormsTabContext } from './FormSection'
+import { FormsTabContext, useFormsTabState } from './FormSection'
 import { visibleEpisodeFormSections } from './formsRegistry'
 import './episodeForms.css'
 
@@ -14,27 +14,11 @@ import './episodeForms.css'
 // as plain sections of the page (no panel title of their own).
 export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmission = false }) {
   const { t } = useLanguage()
-  const [open, setOpen] = useState({})
-  const touched = useRef(new Set())
   const sections = useMemo(
     () => visibleEpisodeFormSections(ctx).filter(section => !withoutAdmission || section.withoutAdmission),
     [ctx, withoutAdmission],
   )
-  const toggle = useCallback(id => {
-    touched.current.add(id)
-    setOpen(current => ({ ...current, [id]: !current[id] }))
-  }, [])
-  const offer = useCallback((id, wantOpen, attentionNow) => {
-    setOpen(current => {
-      if (!(id in current)) return { ...current, [id]: wantOpen }
-      if (attentionNow && !touched.current.has(id) && !current[id]) return { ...current, [id]: true }
-      return current
-    })
-  }, [])
-  const openSection = useCallback(id => {
-    touched.current.add(id)
-    setOpen(current => ({ ...current, [id]: true }))
-  }, [])
+  const { value, openSection } = useFormsTabState()
   const handled = useRef(null)
   useEffect(() => {
     if (!openRequest?.id || handled.current === openRequest.nonce) return
@@ -45,7 +29,6 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
       document.querySelector(`.episode-forms [data-section="${openRequest.id}"]`)?.scrollIntoView?.({ block: 'start' })
     })
   }, [openRequest, openSection])
-  const value = useMemo(() => ({ isOpen: id => Boolean(open[id]), toggle, offer }), [open, toggle, offer])
   const content =
     sections.length === 0 ? null : (
       <FormsTabContext.Provider value={value}>
