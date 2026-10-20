@@ -466,7 +466,7 @@
       "category": "public-token",
       "anon": true,
       "authenticated": true,
-      "reason": "Shows a supplier the certificates of its renewal request (each with its state) from the e-mailed link; only the SHA-256 of the random token is stored (14 days, extended by reminders)."
+      "reason": "Shows a supplier the certificates of its renewal request (each with its state) and the hospital's name, logo and contact e-mail/phone from the e-mailed link; only the SHA-256 of the random token is stored (14 days, extended by reminders)."
     },
     "quality_supplier_certificate_request_action": {
       "category": "rpc",

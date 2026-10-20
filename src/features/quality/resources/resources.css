@@ -54,13 +54,89 @@
 .supplier-renewal-locked>*{pointer-events:none}
 .supplier-renewal-locked-note{display:flex;align-items:center;gap:8px;margin:0;padding:10px 16px;border-bottom:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:13px}
 .supplier-renewal-note{margin:0;white-space:pre-wrap}
-.supplier-certificate-progress{margin:6px 0 0;color:var(--lo-color-muted)}
-.supplier-certificate-item.is-done{opacity:.85}
-.supplier-certificate-item.is-done h2 svg{color:var(--lo-color-success,#1f7a4d)}
-.supplier-certificate-state{margin-left:auto;font-size:12px;font-weight:600;color:var(--lo-color-success,#1f7a4d)}
 .supplier-certificate-demo{border-color:var(--lo-color-warning,#b7791f)}
 @media (max-width:640px){.supplier-renewal-send-row{grid-template-columns:1fr}}
 .supplier-renewal-sender{display:grid;gap:8px}
 .supplier-renewal-sender p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}
 .supplier-renewal-sender strong{display:inline-flex;align-items:center;gap:6px}
 .supplier-certificate-paste{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-top:16px}
+/* Supplier certificate public page (e-mailed link): hospital band, explanation, progress, one card per certificate. */
+.public-flow-page.supplier-portal{padding:32px 16px 40px;background:radial-gradient(60% 40% at 92% 0%,rgba(37,107,155,.10),transparent 70%),radial-gradient(50% 40% at 0% 100%,rgba(143,199,189,.16),transparent 70%),var(--lo-color-bg)}
+.supplier-portal-shell{width:min(880px,100%);margin:0 auto;display:grid;gap:16px}
+.supplier-portal-band{display:flex;align-items:center;gap:16px;padding:20px 24px;border-radius:18px;background:linear-gradient(155deg,#102d4d 0%,#16395f 56%,#1a456c 100%);color:#fff;box-shadow:0 18px 40px -22px rgba(16,45,77,.45)}
+.supplier-portal-band>div{display:grid;gap:3px;min-width:0;flex:1 1 auto}
+.supplier-portal-hospital{font-size:21px;line-height:1.25;font-weight:750;overflow-wrap:anywhere}
+.supplier-portal-band>div>span{font-size:13px;color:rgba(255,255,255,.78)}
+.supplier-portal-logo{flex:none;width:56px;height:56px;object-fit:contain;padding:6px;border-radius:14px;background:#fff}
+.supplier-portal-monogram{flex:none;display:grid;place-items:center;width:56px;height:56px;border-radius:14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);font-size:18px;font-weight:800;letter-spacing:.04em;color:#fff}
+.supplier-portal-language{flex:none;align-self:flex-start;min-width:40px;height:32px;padding:0 10px;border:1px solid rgba(255,255,255,.3);border-radius:999px;background:transparent;color:#fff;font-weight:700;font-size:12px;cursor:pointer}
+.supplier-portal-language:focus-visible{outline:2px solid #8fc7bd;outline-offset:2px}
+.supplier-portal-card{display:grid;gap:18px;padding:28px;border:1px solid var(--lo-color-border);border-radius:18px;background:var(--lo-color-surface);box-shadow:var(--lo-shadow-soft)}
+.supplier-portal-intro h1{margin:0;font-size:24px;line-height:1.25;color:var(--lo-color-nav)}
+.supplier-portal-to{margin:6px 0 0;font-size:15px;font-weight:600;color:var(--lo-color-muted)}
+.supplier-portal-explain{display:flex;gap:12px;padding:14px 16px;border:1px solid var(--lo-status-info-border);border-radius:12px;background:var(--lo-status-info-bg);color:var(--lo-status-info-fg)}
+.supplier-portal-explain>svg{flex:none;margin-top:2px}
+.supplier-portal-explain p{margin:0;color:var(--lo-color-text);font-size:14px;line-height:1.6}
+.supplier-portal-explain p+p{margin-top:6px}
+.supplier-portal-progress{display:grid;gap:8px}
+.supplier-portal-progress-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 16px;font-size:14px}
+.supplier-portal-progress-head span{display:inline-flex;align-items:center;gap:6px;color:var(--lo-color-muted);font-size:13px}
+.supplier-portal-bar{height:8px;border-radius:999px;background:var(--lo-status-neutral-bg);overflow:hidden}
+.supplier-portal-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--lo-color-primary),#3f8f7d);transition:width .3s ease}
+.supplier-portal-items{display:grid;gap:14px}
+.supplier-certificate-item{display:grid;gap:14px;padding:20px;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface)}
+.supplier-certificate-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.supplier-certificate-counter{grid-column:1/-1;font-size:11.5px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--lo-color-muted)}
+.supplier-certificate-head h2{display:flex;align-items:center;gap:8px;margin:0;font-size:17px;line-height:1.3;color:var(--lo-color-nav)}
+.supplier-certificate-head h2 svg{flex:none;color:var(--lo-color-primary)}
+.supplier-certificate-pill{padding:3px 10px;border-radius:999px;border:1px solid;font-size:12px;font-weight:700;white-space:nowrap}
+.supplier-certificate-pill.is-expired{background:var(--lo-status-danger-bg);border-color:var(--lo-status-danger-border);color:var(--lo-status-danger-fg)}
+.supplier-certificate-pill.is-expiring{background:var(--lo-status-warning-bg);border-color:var(--lo-status-warning-border);color:var(--lo-status-warning-fg)}
+.supplier-certificate-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:12px 14px;border-radius:10px;background:var(--lo-color-surface-muted)}
+.supplier-certificate-facts div{display:grid;gap:2px;min-width:0}
+.supplier-certificate-facts dt{font-size:12px;color:var(--lo-color-muted)}
+.supplier-certificate-facts dd{margin:0;font-weight:700;font-size:14px;overflow-wrap:anywhere}
+.supplier-certificate-facts dd.is-expired{color:var(--lo-status-danger-fg)}
+.supplier-certificate-facts dd.is-expiring{color:var(--lo-status-warning-fg)}
+.supplier-certificate-comment{margin:0;padding:10px 12px;border-left:3px solid var(--lo-status-warning-border);background:var(--lo-status-warning-bg);border-radius:8px;font-size:13px}
+.supplier-certificate-form{display:grid;gap:14px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
+.supplier-certificate-form h3{margin:0;font-size:14px;color:var(--lo-color-text)}
+.supplier-certificate-error{margin:0}
+.supplier-certificate-actions{display:flex;justify-content:flex-end}
+.supplier-certificate-actions .button{min-height:44px;padding:0 22px}
+.supplier-certificate-item.is-done{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px 18px;border-color:var(--lo-status-success-border);background:var(--lo-status-success-bg)}
+.supplier-certificate-item.is-done>svg{color:var(--lo-status-success-fg)}
+.supplier-certificate-item.is-done>div{display:grid;gap:2px;min-width:0}
+.supplier-certificate-item.is-done small{color:var(--lo-color-muted);font-size:12px}
+.supplier-certificate-item.is-rejected{border-color:var(--lo-status-danger-border);background:var(--lo-status-danger-bg)}
+.supplier-certificate-state{font-size:13px;font-weight:700;color:var(--lo-status-success-fg);text-align:right}
+.supplier-file{display:grid;gap:6px}
+.supplier-file-input{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.supplier-file-zone{display:grid;justify-items:center;gap:4px;padding:22px 16px;border:2px dashed var(--lo-color-border-strong);border-radius:12px;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+.supplier-file-zone strong{color:var(--lo-color-text);font-size:14px}
+.supplier-file-zone small{font-size:12px}
+.supplier-file-zone svg{color:var(--lo-color-primary)}
+.supplier-file-zone:hover,.supplier-file-zone.is-over{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft)}
+.supplier-file-zone.is-invalid{border-color:var(--lo-status-danger-border);background:var(--lo-status-danger-bg)}
+.supplier-file-input:focus-visible+.supplier-file-zone{outline:3px solid rgba(37,107,155,.35);outline-offset:2px;border-color:var(--lo-color-primary)}
+.supplier-file-chosen{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--lo-status-info-border);border-radius:12px;background:var(--lo-status-info-bg)}
+.supplier-file-chosen>svg{color:var(--lo-color-primary)}
+.supplier-file-chosen div{display:grid;gap:2px;min-width:0}
+.supplier-file-chosen strong{overflow-wrap:anywhere;font-size:14px}
+.supplier-file-chosen small{color:var(--lo-color-muted);font-size:12px}
+.supplier-file-remove{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-muted);cursor:pointer}
+.supplier-file-remove:hover{color:var(--lo-status-danger-fg);border-color:var(--lo-status-danger-border)}
+.supplier-portal-thanks{display:grid;justify-items:center;gap:6px;padding:28px 20px;border:1px solid var(--lo-status-success-border);border-radius:14px;background:var(--lo-status-success-bg);text-align:center}
+.supplier-portal-thanks svg{color:var(--lo-status-success-fg)}
+.supplier-portal-thanks h2{margin:4px 0 0;font-size:20px;color:var(--lo-color-nav)}
+.supplier-portal-thanks p{margin:0;max-width:52ch;line-height:1.55}
+.supplier-portal-footer{display:grid;gap:8px;padding-top:16px;border-top:1px solid var(--lo-color-border);font-size:13px;color:var(--lo-color-muted)}
+.supplier-portal-footer p{display:flex;gap:8px;margin:0;line-height:1.5}
+.supplier-portal-footer p>svg{flex:none;margin-top:2px}
+.supplier-portal-footer a{color:var(--lo-color-primary)}
+.supplier-portal-phone{display:inline-flex;align-items:center;gap:4px}
+.supplier-portal-powered{justify-content:center;font-size:11.5px;letter-spacing:.06em;opacity:.7}
+@media (max-width:640px){.public-flow-page.supplier-portal{padding:12px 10px 24px}.supplier-portal-band{padding:16px;gap:12px;border-radius:14px}.supplier-portal-hospital{font-size:17px}.supplier-portal-logo,.supplier-portal-monogram{width:46px;height:46px;font-size:15px}.supplier-portal-card{padding:18px 16px;border-radius:14px}.supplier-portal-intro h1{font-size:20px}.supplier-certificate-item{padding:16px}.supplier-certificate-facts{grid-template-columns:1fr 1fr}.supplier-certificate-actions .button{width:100%}.supplier-certificate-item.is-done{grid-template-columns:auto minmax(0,1fr)}.supplier-certificate-item.is-done .supplier-certificate-state{grid-column:2;text-align:left}}
+.supplier-certificate-form .lo-field-label{font-size:12.5px;font-weight:700;color:#415368}
+.supplier-certificate-form :is(input:not([type=file]),textarea){min-height:44px;border-radius:10px;font-size:15px}
+.supplier-certificate-form :is(input:not([type=file]),textarea):focus{border-color:#6e9fc4;box-shadow:0 0 0 3px rgba(31,111,169,.12)}

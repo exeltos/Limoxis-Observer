@@ -146,11 +146,11 @@ export const DEMO_ACCESS_TOKEN = 'demo'
 export const isDemoAccessToken = token => token === DEMO_ACCESS_TOKEN
 export function demoSupplierAccess() {
   return {
-    status: 'sent', demo: true, organizationName: 'Γενικό Νοσοκομείο (δείγμα)', supplierName: 'Ιατροτεχνική Δείγμα Α.Ε.', expiresAt: at(14),
+    status: 'sent', demo: true, organizationName: 'Γενικό Νοσοκομείο (δείγμα)', organizationLogo: null, organizationEmail: 'quality@hospital.example', organizationPhone: '210 000 0000', supplierName: 'Ιατροτεχνική Δείγμα Α.Ε.', expiresAt: at(14),
     items: [
       { id: 'demo-item-1', status: 'pending', type: 'ISO 9001', title: '', number: 'QM-2290', issuer: 'Φορέας πιστοποίησης', expiresOn: day(-20), submittedAt: null, reviewComment: null },
       { id: 'demo-item-2', status: 'pending', type: 'ISO 14001', title: '', number: 'EM-2291', issuer: 'Φορέας πιστοποίησης', expiresOn: day(-45), submittedAt: null, reviewComment: null },
-      { id: 'demo-item-3', status: 'pending', type: 'ISO 13485', title: 'Ιατροτεχνολογικά προϊόντα', number: 'MD-4471', issuer: 'Κοινοποιημένος οργανισμός', expiresOn: day(-8), submittedAt: null, reviewComment: null },
+      { id: 'demo-item-3', status: 'pending', type: 'ISO 13485', title: 'Ιατροτεχνολογικά προϊόντα', number: 'MD-4471', issuer: 'Κοινοποιημένος οργανισμός', expiresOn: day(21), submittedAt: null, reviewComment: null },
     ],
   }
 }

@@ -80,7 +80,7 @@ async function writeDigest(admin:Admin){
 }
 
 function messageFor(type:string,p:Record<string,unknown>,actionUrl:string){
-  if(type==='supplier_certificate_renewal')return supplierCertificateRenewalEmail({organizationName:String(p.organizationName||''),supplierName:String(p.supplierName||''),certificates:Array.isArray(p.certificates)?p.certificates:[],kind:p.kind==='reminder'?'reminder':'send',expiresAt:typeof p.expiresAt==='string'?p.expiresAt:null,actionUrl})
+  if(type==='supplier_certificate_renewal')return supplierCertificateRenewalEmail({organizationName:String(p.organizationName||''),organizationEmail:String(p.organizationEmail||''),organizationPhone:String(p.organizationPhone||''),supplierName:String(p.supplierName||''),certificates:Array.isArray(p.certificates)?p.certificates:[],kind:p.kind==='reminder'?'reminder':'send',expiresAt:typeof p.expiresAt==='string'?p.expiresAt:null,firstSentAt:typeof p.firstSentAt==='string'?p.firstSentAt:null,actionUrl})
   if(type==='legislation_update')return legislationUpdateEmail(p,actionUrl)
   if(type==='legislation_digest')return legislationDigestEmail(p as Parameters<typeof legislationDigestEmail>[0],actionUrl)
   return lifecycleReminderEmail({kind:String(p.kind||''),audience:String(p.audience||''),days:Number(p.days),name:String(p.name||''),code:String(p.code||''),date:String(p.date||''),recipientName:String(p.recipientName||''),actionUrl,language:p.language==='en'?'en':'el'})
@@ -108,7 +108,7 @@ async function sendOutbox(admin:Admin){
     try{
       const p=row.payload||{}
       const message=messageFor(row.notification_type,p,`${appUrl}${p.path||'/'}`)
-      await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text})
+      await transport.sendMail({from:`Limoxis Observer <${smtpUser}>`,to:row.recipient_email,subject:message.subject||row.subject,html:message.html,text:message.text,...('replyTo' in message&&message.replyTo?{replyTo:message.replyTo}:{})})
       await admin.from('notification_outbox').update({status:'sent',sent_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()}).eq('id',row.id)
       sent++
     }catch(error){

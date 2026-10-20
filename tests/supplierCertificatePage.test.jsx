@@ -48,12 +48,55 @@ describe('the supplier certificate public page', () => {
     access = { ...sent, items: items.map(item => ({ ...item, status: 'submitted' })) }
     openPage()
     await waitFor(() => expect(screen.getByText(/Υποβλήθηκαν και τα 3 πιστοποιητικά/)).toBeInTheDocument())
+    expect(screen.getByRole('heading', { name: 'Ευχαριστούμε' })).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Υποβολή πιστοποιητικού/ })).not.toBeInTheDocument()
+  })
+
+  it('shows the hospital, what is asked, the progress and each certificate as a card', async () => {
+    access = { ...sent, organizationEmail: 'quality@hospital.gr', organizationPhone: '210 1234567' }
+    const { container } = openPage()
+    expect(await screen.findByText('Γενικό Νοσοκομείο', { selector: '.supplier-portal-hospital' })).toBeInTheDocument()
+    expect(container.querySelector('.supplier-portal-monogram')).toHaveTextContent('ΓΝ')
+    expect(screen.getByText(/ISO 22000 \/ HACCP/)).toBeInTheDocument()
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1')
+    expect(screen.getAllByText('Έληξε', { selector: '.supplier-certificate-pill' })).toHaveLength(2)
+    expect(screen.getByText(/Υποβλήθηκε στις 18\/10\/2026/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'quality@hospital.gr' })).toHaveAttribute('href', 'mailto:quality@hospital.gr')
+    expect(screen.getByText(/Μην τον προωθήσετε/)).toBeInTheDocument()
+  })
+
+  it('shows the hospital logo when it has one', async () => {
+    access = { ...sent, organizationLogo: 'data:image/png;base64,AAAA' }
+    const { container } = openPage()
+    await screen.findByText(/Υποβλήθηκαν 1 από 3/)
+    expect(container.querySelector('img.supplier-portal-logo')).toHaveAttribute('src', 'data:image/png;base64,AAAA')
+    expect(container.querySelector('.supplier-portal-monogram')).toBeNull()
+  })
+
+  it('the file zone takes a PDF or image up to 10 MB, shows it and can remove it', async () => {
+    access = sent
+    openPage()
+    const card = (await screen.findAllByRole('button', { name: /Υποβολή πιστοποιητικού/ }))[0].closest('section')
+    const input = card.querySelector('input[type=file]')
+    const big = new File(['x'], 'big.pdf', { type: 'application/pdf' })
+    Object.defineProperty(big, 'size', { value: 11 * 1024 * 1024 })
+    fireEvent.change(input, { target: { files: [big] } })
+    expect(within(card).getByRole('alert')).toHaveTextContent('αρχείο έως 10 MB')
+    fireEvent.change(input, { target: { files: [new File(['x'], 'notes.txt', { type: 'text/plain' })] } })
+    expect(within(card).getByRole('alert')).toHaveTextContent('PDF ή εικόνα')
+    fireEvent.change(input, { target: { files: [new File(['%PDF'], 'ISO-13485.pdf', { type: 'application/pdf' })] } })
+    expect(within(card).getByText('ISO-13485.pdf')).toBeInTheDocument()
+    expect(within(card).queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.click(within(card).getByRole('button', { name: /Αφαίρεση αρχείου ISO-13485.pdf/ }))
+    expect(within(card).queryByText('ISO-13485.pdf')).not.toBeInTheDocument()
+    expect(within(card).getByText(/Σύρετε εδώ το αρχείο/)).toBeInTheDocument()
   })
 
   it('says when the link is unknown', async () => {
     openPage()
     await waitFor(() => expect(screen.getByText(/δεν είναι διαθέσιμος/)).toBeInTheDocument())
+    expect(screen.getByLabelText(/Σύνδεσμος ή κωδικός από το email/)).toBeInTheDocument()
   })
 
   it('the demo link shows an invented sample and keeps the submission on the page', async () => {
