@@ -5,6 +5,11 @@ import { sampleParentCode, sampleTone } from './patientRecordScope'
 import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { epiPending, useEpiIndex } from './epiQuestionnaire/useEpiIndex'
+import { canWriteEpi, rowLine } from './epiQuestionnaire/epiQuestionnaireText'
+import { epiSummary } from './epiQuestionnaire/epiQuestionnaireModel'
 import { Button } from '../../design-system/Button'
 import { DueDate } from '../../design-system/DueDate'
 import { Breadcrumbs } from '../../design-system/Breadcrumbs'
@@ -88,6 +93,8 @@ export function SurveillanceWorkspace({
                     }
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
   const episodeKey = episodes.map(ep => ep.id).join(',')
+  // The epidemiological questionnaire: a grey reminder, or the origin and risk factors in words, on each episode row.
+  const epiIndex = useEpiIndex({ organizationId, isDemo, enabled: canWriteEpi(useTenant().role), refreshKey: episodeKey })
   useEffect(() => {
     let alive = true
     loadOpenProtocolRuns(organizationId, { isDemo })
@@ -472,6 +479,18 @@ export function SurveillanceWorkspace({
                       </>
                     ) : null}
                   </small>
+                  {epiPending(epiIndex, ep) ? (
+                    <small className="epi-row-line">
+                      <EpiReminder />
+                    </small>
+                  ) : (
+                    epiIndex.ready &&
+                    epiIndex.rows[ep.recordId || ep.id] && (
+                      <small className="epi-row-line">
+                        {rowLine(epiSummary({ row: epiIndex.rows[ep.recordId || ep.id], record: ep, admissionDate: ep.admissionDate, samples: linked }), t)}
+                      </small>
+                    )
+                  )}
                 </span>
                 <span className="sv-episode-findings">
                   {organism ? (
@@ -588,6 +607,11 @@ export function SurveillanceWorkspace({
               : null
           }
           initialType={followUpParent?.type || followUpParent?.sampleType || ''}
+          epi={(() => {
+            const parentCase = String(followUpParent?.surveillanceCase || followUpParent?.surveillanceCaseId || '')
+            const episode = parentCase ? episodes.find(ep => parentCase === String(ep.id) || parentCase === String(ep.recordId || '')) : null
+            return episode ? { episode, admission: null, samples: episode.samples || [] } : null
+          })()}
           onClose={() => {
             setSampleOpen(false)
             setFollowUpParent(null)

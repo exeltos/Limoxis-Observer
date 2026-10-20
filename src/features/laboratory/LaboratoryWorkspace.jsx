@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
+import { isCultureSampleType } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
 import { AlertTriangle, Clock3, FlaskConical, Microscope, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -212,7 +214,12 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   const pointOptions = useMemo(() => libraryOptions([...(libraries.environmentalLocations || []), ...(libraries.surfacePoints || [])], language), [libraries.environmentalLocations, libraries.surfacePoints, language])
   const selectText = { emptyLabel: en ? 'No match' : 'Καμία αντιστοιχία', clearLabel: t('surveillanceList.clearSelection') }
   // The shared rule: «*» on every required field, «Συμπληρώστε: …» beside the button, messages on a press.
+  // The mini version of the epidemiological questionnaire (3 core questions) for patient cultures: kept with
+  // the sample and used to prefill the questionnaire when a surveillance episode is opened for it.
+  const miniOn = subjectType === 'patient' && Boolean(patientMode) && isCultureSampleType(draft.type)
+  const mini = useEpiMini({ enabled: true })
   const form = useFormValidation([
+    ...(miniOn ? mini.rules : []),
     { key: 'subjectType', label: en ? 'Sample origin' : 'Προέλευση δείγματος', valid: Boolean(subjectType) },
     subjectType === 'patient' && { key: 'patientMode', label: en ? 'Existing or new patient' : 'Υπάρχων ή νέος ασθενής', valid: Boolean(patientMode) },
     subjectType === 'patient' && patientMode === 'existing' && { key: 'subjectCode', label: t('patient'), valid: Boolean(draft.subjectCode) },
@@ -229,7 +236,7 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
     subjectReady && { key: 'collectedDate', label: t('clinicalRecords.collectionDate'), valid: Boolean(draft.collectedAt) },
   ])
 
-  return <ObserverDialog width="standard" className="lab-create-flow" eyebrow={en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} onClose={onClose} footer={<FormSubmit form={form} onSubmit={() => onSave(draft)}>{t('save')}</FormSubmit>}>
+  return <ObserverDialog width="standard" className="lab-create-flow" eyebrow={en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} onClose={onClose} footer={<FormSubmit form={form} onSubmit={() => onSave(miniOn ? { ...draft, clinicalContext: mini.context() } : draft)}>{t('save')}</FormSubmit>}>
     <div className="lab-flow-body" ref={form.scopeRef}>
       <section className="lab-flow-section" data-field-key="subjectType"><SubjectChoiceStep compact step={1} title={en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'} hint={en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'} choices={subjectChoices} value={subjectType} onChoose={switchSubject}/>{form.errorFor('subjectType') && <span className="field-error">{form.errorFor('subjectType')}</span>}</section>
 
@@ -246,6 +253,7 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
         <ChoiceField className="lab-flow-priority" label={t('priority')} {...form.field('priority')} placeholder={en ? 'Select priority' : 'Επιλέξτε προτεραιότητα'} value={draft.priority} onChange={value => set('priority', value)} options={LAB_PRIORITIES.map(id => ({ value: id, label: t(id) }))}/>
         <div className="lab-collected-pair"><ManualDateField label={t('clinicalRecords.collectionDate')} {...form.field('collectedDate')} value={collectedDate} onChange={value => setCollected(value, collectedTime)}/><TimeField label={t('copy.clinicalRecordCopy.collectionTime')} value={collectedTime} onChange={value => setCollected(collectedDate, value)} disabled={!collectedDate}/></div>
       </div></section>}
+      {miniOn && <EpiMiniQuestions mini={mini} form={form}/>}
     </div>
   </ObserverDialog>
 }

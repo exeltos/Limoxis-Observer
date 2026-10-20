@@ -85,6 +85,8 @@ export function EntityRecordShell({
   title,
   subtitle,
   context,
+  // A full-width line under the header row (e.g. the origin and risk factors of an episode).
+  headerNote,
   status,
   headerActions,
   recordNavigation,
@@ -209,6 +211,7 @@ export function EntityRecordShell({
         </div>}
         {ownerHeaderActions}
       </div>
+      {headerNote&&<div className="entity-record-note">{headerNote}</div>}
     </header>
     {hasTabs&&<nav ref={tabStripRef} className="entity-record-tabs surface" role="tablist">
       {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange?.(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}

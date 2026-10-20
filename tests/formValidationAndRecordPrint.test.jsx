@@ -80,9 +80,11 @@ describe('forms never save empty', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: /Αποστολή αιτήματος/ }))
     expect(onSave).not.toHaveBeenCalled()
     expect(dialog.querySelector('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση')
-    expect(within(dialog).getAllByText('Υποχρεωτικό πεδίο')).toHaveLength(1)
+    // A culture also asks the three core questions of the epidemiological history (one of them, «Άγνωστο», is enough).
+    expect(within(dialog).getAllByText('Υποχρεωτικό πεδίο')).toHaveLength(4)
     await waitFor(() => expect(within(dialog).getByLabelText('Ανατομική θέση / προέλευση')).toHaveFocus())
     fireEvent.change(within(dialog).getByLabelText('Ανατομική θέση / προέλευση'), { target: { value: 'Περιφερική φλέβα' } })
+    for (const unknown of within(dialog).getAllByRole('radio', { name: 'Άγνωστο' })) fireEvent.click(unknown)
     fireEvent.click(within(dialog).getByRole('button', { name: /Αποστολή αιτήματος/ }))
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ source: 'Περιφερική φλέβα', type: 'bloodCulture', priority: 'routine' }))
     expect(onSave.mock.calls[0][0]).not.toHaveProperty('collectedAt')

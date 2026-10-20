@@ -771,6 +771,7 @@ export function CanonicalJourney({
             episode: [episodeTypeLabel(record, t), fmtDate(record.startedAt)].filter(Boolean).join(' · '),
             department: language === 'el' ? record.department : record.departmentEn || record.department,
           }}
+          epi={{ episode: record, admission: null, samples: record.samples || [] }}
           onClose={() => setDialog(null)}
           onSave={draft => run(() => repository.requestSample(record, draft), t('actionCompleted'))}
         />

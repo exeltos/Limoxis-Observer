@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { advancedAntibioticNames, newTherapyRow, therapiesToSave } from './therapyEntries'
 import { Button } from '../../design-system/Button'
 import './surveillanceEntryCard.css'
@@ -21,6 +21,11 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { listTexts, patientSampleTypeOptions, priorityOptions } from './surveillanceOptions'
 import { ReadOnlyField } from '../../design-system/ReadOnlyField'
 import { SAMPLE_REQUEST_QUESTIONS, emptySampleRequest, sampleRequestPayload } from '../laboratory/sampleRequestForm'
+import { TenantContext } from '../../core/tenant/TenantContext'
+import { useOptionalFeedback } from '../../core/feedback/FeedbackContext'
+import { EpiMiniQuestions, useEpiMini } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { isCultureSampleType } from './epiQuestionnaire/epiQuestionnaireModel'
+import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
 import {
   criteriaKeyOf,
   withCriteriaKeys,
@@ -372,7 +377,7 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
 // laboratory receives and completes it, and the result is entered only there.
 // `context` ({ patient, episode, department }) is shown read-only; the extra questions
 // of sampleRequestForm.js are rendered after the core fields.
-export function SampleRequestDialog({ t, title, initialType = '', context = null, onClose, onSave }) {
+export function SampleRequestDialog({ t, title, initialType = '', context = null, epi = null, onClose, onSave }) {
   const { language } = useLanguage(),
     tr = copy(language)
   const en = language === 'en'
@@ -380,9 +385,16 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
   const [d, setD] = useState(() => emptySampleRequest({ type: initialType }))
   const answer = key => d.requestQuestions?.[key] ?? ''
   const setAnswer = (key, value) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
+  // The mini version (3 core questions) of the epidemiological questionnaire: for cultures only, and
+  // written to the episode's one questionnaire (or to the sample when there is no episode).
+  const role = useContext(TenantContext)?.role
+  const notify = useOptionalFeedback()?.notify
+  const miniOn = (epi?.episode ? canWriteEpi(role) : true) && isCultureSampleType(d.type)
+  const mini = useEpiMini({ episode: epi?.episode || null, admission: epi?.admission || null, samples: epi?.samples || [], enabled: true })
   const form = useFormValidation([
     { key: 'type', label: t('sampleType'), valid: Boolean(d.type) },
     { key: 'source', label: tr('anatomicalSiteSource'), valid: Boolean(d.source.trim()) },
+    ...(miniOn ? mini.rules : []),
     ...SAMPLE_REQUEST_QUESTIONS.map(question => ({
       key: `question:${question.key}`,
       label: question.label[en ? 'en' : 'el'],
@@ -394,7 +406,11 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
       title={title || tr('sampleRequest')}
       t={t}
       onClose={onClose}
-      onSave={() => onSave(sampleRequestPayload(d))}
+      onSave={() => {
+        const result = onSave({ ...sampleRequestPayload(d), ...(miniOn && !epi?.episode ? { clinicalContext: mini.context() } : {}) })
+        if (miniOn && epi?.episode) mini.save().catch(() => notify?.(t('epiQuestionnaire.miniSaveFailed'), 'danger'))
+        return result
+      }}
       saveLabel={tr('sendRequest')}
       form={form}
     >
@@ -437,6 +453,11 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
             <input value={answer(question.key)} onChange={e => setAnswer(question.key, e.target.value)} />
           </Field>
         ),
+      )}
+      {miniOn && mini.loaded && (
+        <div className="entry-span-2">
+          <EpiMiniQuestions mini={mini} form={form} episodeCode={epi?.episode?.id || ''} />
+        </div>
       )}
       <p className="entry-span-2 field-hint">{tr('sampleRequestNote')}</p>
     </SimpleDialog>
