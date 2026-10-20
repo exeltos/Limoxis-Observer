@@ -552,6 +552,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
         )}
         {tab === 'details' && (
           <Details
+            // A new employee mounts a new form: never one frame of the previous employee's fields.
+            key={employee.dbId || employee.id}
             employee={employee}
             t={t}
             language={language}

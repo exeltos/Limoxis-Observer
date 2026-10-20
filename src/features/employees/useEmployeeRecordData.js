@@ -18,6 +18,9 @@ export function useEmployeeRecordData({ code = null, selfMode = false, self = {}
   const [loading, setLoading] = useState(single)
   const [error, setError] = useState(null)
   const loaded = useRef(null)
+  // The code the rows on hand were read for: moving to another employee shows the
+  // placeholder, not one frame of the previous employee (or «not found»).
+  const [loadedCode, setLoadedCode] = useState(undefined)
   const { employeeCode = null, userId = null, email = null } = self
 
   const read = useCallback(async ({ keep = false } = {}) => {
@@ -35,6 +38,7 @@ export function useEmployeeRecordData({ code = null, selfMode = false, self = {}
       setError(err)
       throw err
     } finally {
+      setLoadedCode(code)
       setLoading(false)
     }
   }, [organizationId, code, selfMode, employeeCode, userId, email])
@@ -42,5 +46,5 @@ export function useEmployeeRecordData({ code = null, selfMode = false, self = {}
 
   useEffect(() => { if (single) void read().catch(() => {}) }, [single, read])
 
-  return single ? { data, setData, loading, error, reload } : roster
+  return single ? { data, setData, loading: loading || (!selfMode && loadedCode !== code), error, reload } : roster
 }

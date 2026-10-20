@@ -33,7 +33,10 @@ export function PatientsPage(){
   const registry=useRegistryMemory('patients')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query)
-  const [patients,setPatients]=useState([])
+  // null until the first load ends: the registry shows placeholders, not «no patients».
+  const [loadedPatients,setPatients]=useState(null)
+  const patients=useMemo(()=>loadedPatients||[],[loadedPatients])
+  const loading=loadedPatients===null
   const [department,setDepartment]=useState(saved.department)
   const [status,setStatus]=useState(saved.status)
   const [page,setPage]=useState(1)
@@ -43,7 +46,7 @@ export function PatientsPage(){
   const [flagsReady,setFlagsReady]=useState(false)
   useEffect(()=>{
     let alive=true
-    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive)notify(error?.message||t('patientsLoadFailed'),'danger')})
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
     // The legend waits for both flag sets, so it appears once and complete.
     setFlagsReady(false)
     Promise.allSettled([
@@ -78,10 +81,10 @@ export function PatientsPage(){
   }
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
-      <PatientSummaryMetric icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active" filter="active" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged} filter="discharged" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred} filter="transferred" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric loading={loading} icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric loading={loading} icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active" filter="active" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric loading={loading} icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged} filter="discharged" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric loading={loading} icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred} filter="transferred" current={status} onFilter={setStatus}/>
     </div>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}}>
@@ -94,6 +97,7 @@ export function PatientsPage(){
         wrapperRef={registry.scrollRef}
         columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'alerts',label:t('clinicalAlerts')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')}]}
         rows={pagedRows}
+        loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskFlags rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} compact/></span></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={statusTone(patient.status)}>{t(patient.status)}</StatusBadge></td></>}
@@ -110,7 +114,7 @@ export function PatientsPage(){
 }
 
 // A summary card filters the registry by its status; clicking it again shows everyone.
-function PatientSummaryMetric({icon,label,value,kind='',filter,current,onFilter}){const active=filter!=='all'&&current===filter;return <MetricCard icon={icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={onFilter?()=>onFilter(active?'all':filter):undefined}/>}
+function PatientSummaryMetric({icon,label,value,kind='',filter,current,onFilter,loading=false}){const active=filter!=='all'&&current===filter;return <MetricCard loading={loading} icon={icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={onFilter?()=>onFilter(active?'all':filter):undefined}/>}
 
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.

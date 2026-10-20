@@ -6,6 +6,7 @@ import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { MetricCard } from '../../design-system/MetricCard'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -126,18 +127,18 @@ export function PreventionPage() {
     [pageSize, setPageSize] = useState(15)
   const [handRows, setHandRows] = useState([]),
     [handDepartments, setHandDepartments] = useState([]),
-    [handLoading, setHandLoading] = useState(false)
+    [handLoading, setHandLoading] = useState(true)
   const [wasteRows, setWasteRows] = useState([]),
     [wasteSupport, setWasteSupport] = useState({ departments: [], wasteTypes: [] }),
-    [wasteLoading, setWasteLoading] = useState(false)
+    [wasteLoading, setWasteLoading] = useState(true)
   const [antisepticRows, setAntisepticRows] = useState([]),
     [antisepticSupport, setAntisepticSupport] = useState({ departments: [], products: [] }),
-    [antisepticLoading, setAntisepticLoading] = useState(false)
+    [antisepticLoading, setAntisepticLoading] = useState(true)
   const [bundleRows, setBundleRows] = useState([]),
     [bundleSupport, setBundleSupport] = useState({ departments: [], templates: [] }),
-    [bundleLoading, setBundleLoading] = useState(false)
+    [bundleLoading, setBundleLoading] = useState(true)
   const [vaccinationRows, setVaccinationRows] = useState([]),
-    [vaccinationLoading, setVaccinationLoading] = useState(false),
+    [vaccinationLoading, setVaccinationLoading] = useState(true),
     [vaccinationEditor, setVaccinationEditor] = useState(null)
   const employeeMap = useMemo(() => {
     const out = {}
@@ -233,6 +234,7 @@ export function PreventionPage() {
     if (!tenant?.id || !tabAccess.handHygiene) {
       setHandRows([])
       setHandDepartments([])
+      setHandLoading(false)
       return
     }
     setHandLoading(true)
@@ -253,6 +255,7 @@ export function PreventionPage() {
     if (!tenant?.id || !tabAccess.waste) {
       setWasteRows([])
       setWasteSupport({ departments: [], wasteTypes: [] })
+      setWasteLoading(false)
       return
     }
     setWasteLoading(true)
@@ -273,6 +276,7 @@ export function PreventionPage() {
     if (!tenant?.id || !tabAccess.antiseptics) {
       setAntisepticRows([])
       setAntisepticSupport({ departments: [], products: [] })
+      setAntisepticLoading(false)
       return
     }
     setAntisepticLoading(true)
@@ -293,6 +297,7 @@ export function PreventionPage() {
     if (!tenant?.id || !tabAccess.bundles) {
       setBundleRows([])
       setBundleSupport({ departments: [], templates: [] })
+      setBundleLoading(false)
       return
     }
     setBundleLoading(true)
@@ -312,6 +317,7 @@ export function PreventionPage() {
   const reloadVaccinations = useCallback(async () => {
     if (!tenant?.id || !tabAccess.vaccinations) {
       setVaccinationRows([])
+      setVaccinationLoading(false)
       return
     }
     setVaccinationLoading(true)
@@ -340,26 +346,33 @@ export function PreventionPage() {
     if (!tenant?.id) return
     if (tabAccess.handHygiene) void reloadHandHygiene()
     else {
+      setHandLoading(false)
       setHandRows([])
       setHandDepartments([])
     }
     if (tabAccess.waste) void reloadWaste()
     else {
+      setWasteLoading(false)
       setWasteRows([])
       setWasteSupport({ departments: [], wasteTypes: [] })
     }
     if (tabAccess.antiseptics) void reloadAntiseptics()
     else {
+      setAntisepticLoading(false)
       setAntisepticRows([])
       setAntisepticSupport({ departments: [], products: [] })
     }
     if (tabAccess.bundles) void reloadBundles()
     else {
+      setBundleLoading(false)
       setBundleRows([])
       setBundleSupport({ departments: [], templates: [] })
     }
     if (tabAccess.vaccinations) void reloadVaccinations()
-    else setVaccinationRows([])
+    else {
+      setVaccinationLoading(false)
+      setVaccinationRows([])
+    }
   }, [
     tenant?.id,
     tabAccess.handHygiene,
@@ -498,8 +511,10 @@ export function PreventionPage() {
       notifyError(error, 'delete', { operation: 'staff_vaccinations_delete' })
     }
   }
+  // Placeholders only until the tab's first read ends: a reload after a save keeps the rows.
   const loading =
-    tab === 'handHygiene'
+    !source.length &&
+    (tab === 'handHygiene'
       ? handLoading
       : tab === 'waste'
         ? wasteLoading
@@ -507,7 +522,7 @@ export function PreventionPage() {
           ? antisepticLoading
           : tab === 'bundles'
             ? bundleLoading
-            : vaccinationLoading
+            : vaccinationLoading)
   const pageActions = canCreateRecord ? [UI_ACTIONS.CREATE] : []
   const actionCapabilities = { [UI_ACTIONS.CREATE]: createCapability }
   return (
@@ -530,10 +545,16 @@ export function PreventionPage() {
       <div className="workspace-summary prevention-summary">
         <div className="module-summary-strip">
           {tabAccess.handHygiene && (
-            <Kpi icon={ShieldCheck} value={`${fmtOne(avg)}%`} label={t('whoCompliance')} />
+            <Kpi
+              loading={handLoading && !handRows.length}
+              icon={ShieldCheck}
+              value={`${fmtOne(avg)}%`}
+              label={t('whoCompliance')}
+            />
           )}{' '}
           {tabAccess.bundles && (
             <Kpi
+              loading={bundleLoading && !bundleRows.length}
               icon={ClipboardCheck}
               value={bundleAvg == null ? '—' : `${fmtOne(bundleAvg)}%`}
               label={t('bundleComplianceKpi')}
@@ -541,6 +562,7 @@ export function PreventionPage() {
           )}{' '}
           {tabAccess.waste && (
             <Kpi
+              loading={wasteLoading && !wasteRows.length}
               icon={Recycle}
               value={`${fmtOne(wasteRows.reduce((s, x) => s + x.weight, 0))} kg`}
               label={t('wasteRecorded')}
@@ -548,6 +570,7 @@ export function PreventionPage() {
           )}{' '}
           {tabAccess.antiseptics && (
             <Kpi
+              loading={antisepticLoading && !antisepticRows.length}
               icon={Droplets}
               value={`${fmtOne(antisepticRows.reduce((s, x) => s + x.litres, 0))} L`}
               label={t('antisepticRecorded')}
@@ -637,11 +660,7 @@ export function PreventionPage() {
           </FilterSelect>
         </FilterBar>
         <div className="scroll-table" ref={registry.scrollRef}>
-          {loading && (
-            <div className="registry-empty-state">
-              <strong>{t('preventionLoadingRecords')}</strong>
-            </div>
-          )}
+          {loading && <TableSkeleton />}
           {tab === 'handHygiene' && !loading && (
             <HandTable
               rows={pagedRows}
@@ -729,8 +748,8 @@ export function PreventionPage() {
     </Page>
   )
 }
-function Kpi({ icon: Icon, value, label }) {
-  return <MetricCard icon={Icon} value={value} label={label} />
+function Kpi({ icon: Icon, value, label, loading = false }) {
+  return <MetricCard loading={loading} icon={Icon} value={value} label={label} />
 }
 const preventionEmptyTitleKeys = {
   handHygiene: 'preventionEmptyHandHygieneTitle',

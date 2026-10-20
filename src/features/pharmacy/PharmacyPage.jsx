@@ -3,6 +3,7 @@ import { Page } from '../../design-system/Page'
 import { CalendarRange, Clock3, Building2, Pill, Plus } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { MetricCard } from '../../design-system/MetricCard'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -27,11 +28,12 @@ export function PharmacyPage() {
   const canRecord = can(role, CAPABILITIES.RECORD_PHARMACY_CONSUMPTION, addOns, custom)
   const [rows, setRows] = useState([])
   const [support, setSupport] = useState({ departments: [], products: [] })
-  const [loading, setLoading] = useState(false)
+  // True until the first read ends: placeholders, not «no periods» and 0 figures.
+  const [loading, setLoading] = useState(true)
   const [dialog, setDialog] = useState(false)
 
   const reload = useCallback(async () => {
-    if (!tenant?.id || !canRecord) { setRows([]); setSupport({ departments: [], products: [] }); return }
+    if (!tenant?.id || !canRecord) { setRows([]); setSupport({ departments: [], products: [] }); setLoading(false); return }
     setLoading(true)
     try {
       const [records, supportData] = await Promise.all([loadAntibioticDispensingRecords(tenant.id), loadPharmacySupportData(tenant.id)])
@@ -45,6 +47,7 @@ export function PharmacyPage() {
   }, [tenant?.id, canRecord, notifyError])
 
   useEffect(() => { void reload() }, [reload])
+  const firstLoad = loading && !rows.length
 
   async function save(draft) {
     try {
@@ -64,10 +67,10 @@ export function PharmacyPage() {
       {!canRecord && <div className="surface"><div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div></div>}
       {canRecord && (
         <div className="module-summary-strip">
-          <MetricCard icon={CalendarRange} value={rows.length} label={en ? 'Dispensing records' : 'Καταχωρίσεις χορήγησης'} />
-          <MetricCard icon={Pill} value={new Set(rows.map(row => row.productEn || row.product).filter(Boolean)).size} label={en ? 'Antibiotics' : 'Αντιβιοτικά'} />
-          <MetricCard icon={Building2} value={new Set(rows.map(row => row.departmentEl).filter(Boolean)).size} label={en ? 'Departments' : 'Τμήματα'} />
-          <MetricCard icon={Clock3} value={formatPeriod(rows.reduce((latest, row) => (row.period > latest ? row.period : latest), ''), en, 'short')} label={en ? 'Latest period' : 'Τελευταία περίοδος'} />
+          <MetricCard loading={firstLoad} icon={CalendarRange} value={rows.length} label={en ? 'Dispensing records' : 'Καταχωρίσεις χορήγησης'} />
+          <MetricCard loading={firstLoad} icon={Pill} value={new Set(rows.map(row => row.productEn || row.product).filter(Boolean)).size} label={en ? 'Antibiotics' : 'Αντιβιοτικά'} />
+          <MetricCard loading={firstLoad} icon={Building2} value={new Set(rows.map(row => row.departmentEl).filter(Boolean)).size} label={en ? 'Departments' : 'Τμήματα'} />
+          <MetricCard loading={firstLoad} icon={Clock3} value={formatPeriod(rows.reduce((latest, row) => (row.period > latest ? row.period : latest), ''), en, 'short')} label={en ? 'Latest period' : 'Τελευταία περίοδος'} />
         </div>
       )}
       {canRecord && (
@@ -77,9 +80,9 @@ export function PharmacyPage() {
               ? 'Records here feed the ΥΑ 388/2014 antibiotic consumption indicator (DDD per 100 patient-days). DDD reference values per antibiotic must be verified by pharmacy staff against the current WHO ATC/DDD Index before this indicator is relied on for ΕΟΔΥ reporting.'
               : 'Οι καταχωρίσεις εδώ τροφοδοτούν τον δείκτη κατανάλωσης αντιβιοτικών της ΥΑ 388/2014 (DDD ανά 100 ασθενοημέρες). Οι τιμές αναφοράς DDD ανά αντιβιοτικό πρέπει να επαληθευτούν από το φαρμακείο έναντι του τρέχοντος επίσημου δείκτη WHO ATC/DDD πριν χρησιμοποιηθεί ο δείκτης για αναφορά στον ΕΟΔΥ.'}
           </div>
-          {loading && <div className="registry-empty-state"><strong>{en ? 'Loading…' : 'Φόρτωση…'}</strong></div>}
+          {firstLoad && <TableSkeleton />}
           {!loading && !rows.length && <div className="inline-empty">{en ? 'No dispensing periods recorded yet.' : 'Δεν έχουν καταχωριστεί περίοδοι χορήγησης.'}</div>}
-          {!loading && Boolean(rows.length) && (
+          {!firstLoad && Boolean(rows.length) && (
             <div className="record-table-wrap" tabIndex={0} role="region" aria-label={t('pharmacy')}>
               <table className="data-table record-table">
                 <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { RouteLoading } from '../../design-system/RouteLoading'
 import { AlertOctagon, AlertTriangle, CheckSquare2, Scale, ChevronRight, ClipboardCheck, FileClock, Link2, ListChecks, Paperclip, Pencil, RotateCcw, ShieldCheck, Trash2, GitBranch, TrendingUp } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
@@ -88,7 +89,10 @@ export function QualityRecordPage(){
   const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const canAttach=ownerFullAccess||can(role,CAPABILITIES.ATTACH_FILES,addOns,custom)
   const canPrint=ownerFullAccess||can(role,CAPABILITIES.PRINT_RECORDS,addOns,custom)
-  useEffect(()=>{let active=true;setLoading(true);loadQualityRecord(recordType,organizationId,recordId).then(data=>{if(active)setRecord(data)}).catch(()=>{if(active)setRecord(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[recordType,recordId,organizationId])
+  // The record on hand belongs to loadedFor: moving to the next record never shows one frame of the previous one.
+  const recordKey=`${recordType}:${recordId}`
+  const [loadedFor,setLoadedFor]=useState('')
+  useEffect(()=>{let active=true;setLoading(true);loadQualityRecord(recordType,organizationId,recordId).then(data=>{if(active)setRecord(data)}).catch(()=>{if(active)setRecord(null)}).finally(()=>{if(active){setLoadedFor(`${recordType}:${recordId}`);setLoading(false)}});return()=>{active=false}},[recordType,recordId,organizationId])
   // What follows the record: an incident's or a finding's CAPAs, an audit's
   // findings. The incident flow and the «at a glance» figures read them.
   const [linked,setLinked]=useState([])
@@ -98,7 +102,7 @@ export function QualityRecordPage(){
   const linkedCapas=recordType==='incidents'?linked:[]
   const finalized=isFinalizedQualityRecord(record)
   const recordInScope=!record||canAccessRecord({...record,department:record.department})
-  if(loading)return <Page title={t('quality')}><div className="inline-empty">{language==='en'?'Loading…':'Φόρτωση…'}</div></Page>
+  if(loading||loadedFor!==recordKey)return <RouteLoading/>
   if(!record)return <Page title={t('quality')}><div className="inline-empty">{t('noData')}</div></Page>
   if(!recordInScope)return <Page title={t('quality')}><div className="inline-empty">{language==='en'?'You do not have access to this record.':'Δεν έχετε πρόσβαση σε αυτή την εγγραφή.'}</div></Page>
   const Icon=iconMap[recordType]||ShieldCheck

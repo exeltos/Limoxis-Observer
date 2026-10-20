@@ -11,6 +11,7 @@ import {
 } from './patientRecordScope'
 import { FileClock, FolderOpen, ListTree, UserRound, Stethoscope } from 'lucide-react'
 import { useLocation, useParams } from 'react-router-dom'
+import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -86,6 +87,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   )
   const [selectedEpisodeId, setSelectedEpisodeId] = useState(caseId || ''),
     [loading, setLoading] = useState(true),
+    // The record the episodes and admissions on hand belong to (see `stale` below).
+    [loadedFor, setLoadedFor] = useState(''),
     [error, setError] = useState(''),
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState(null)
@@ -213,6 +216,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     pathForId: id => (patientMode ? `/patients/${id}` : `/surveillance/${id}`),
   })
 
+  // Moving to another record (sequence, link) keeps this page mounted: until its
+  // own read ends, the previous patient's episodes and admissions are never shown.
+  const recordKey = `${patientMode ? 'patient' : 'case'}:${patientMode ? patientId : caseId}`
+  const stale = loadedFor !== recordKey
   async function load(preferred = '') {
     setLoading(true)
     setError('')
@@ -265,6 +272,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     } catch (err) {
       setError(err?.message || t('actionFailed'))
     } finally {
+      setLoadedFor(recordKey)
       setLoading(false)
     }
   }
@@ -289,14 +297,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       alive = false
     }
   }, [tenant?.id, isDemo, patient, tab])
-  if (loading)
-    return (
-      <Page title={t('clinicalRecords.patientRecord')}>
-        <div className="surface clinical-surface">
-          <p>{t('loading')}</p>
-        </div>
-      </Page>
-    )
+  // The record's first read: the page placeholder, not a generic «patient record» page.
+  if (loading || stale) return <RouteLoading />
   if (error)
     return (
       <Page title={t('clinicalRecords.patientRecord')}>

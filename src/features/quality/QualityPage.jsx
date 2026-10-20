@@ -7,6 +7,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
+import { PageSkeleton } from '../../design-system/LoadingSkeleton'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -295,12 +296,12 @@ export function QualityPage(){
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
   {figures.length>0&&<div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{'--quality-kpis':figures.length}}>
-   {figures.map(figure=><MetricCard key={figure.key} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active}/>)}
+   {figures.map(figure=><MetricCard key={figure.key} loading={records.loading&&typeof figure.value==='number'} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active}/>)}
   </div></div>}
   <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:item.value==='reports'?register.counts.stages?.toAssess||0:item.value==='deviations'?deviations.counts.total:item.value==='actions'?overdueActions:0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
-   <QualityOverview reports={register.rows} capas={records.data.capas} audits={records.data.audits} objectives={objectives.objectives} language={language} categories={categories}
-    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):setTab(target)}/>
+   {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={register.rows} capas={records.data.capas} audits={records.data.audits} objectives={objectives.objectives} language={language} categories={categories}
+    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):setTab(target)}/>}
   </div>:<section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
