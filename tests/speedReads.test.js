@@ -50,9 +50,12 @@ describe('app shell reads', () => {
     expect(auth.indexOf('const demoAccessRead=')).toBeLessThan(auth.indexOf(".from('profiles')"))
   })
 
-  it('surveillance reads the laboratory once and with the patients', () => {
+  it('surveillance reads the laboratory once, and the patient roster only for a new episode', () => {
     expect(surveillance).toContain('useLaboratoryRegistry({ enabled: isDemo })')
-    expect(surveillance.indexOf('const rest =')).toBeLessThan(surveillance.indexOf('const roster = await loadPatients'))
+    expect(surveillance).toContain('loadClinicalCases(tenant.id, { summary: true })')
+    expect(surveillance).toContain('loadLaboratorySamples(tenant.id, { environmental: true })')
+    expect(surveillance).not.toContain('const roster = await loadPatients')
+    expect(surveillance).toContain("if (creation !== 'patient') return")
   })
 })
 

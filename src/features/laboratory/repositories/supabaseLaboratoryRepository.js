@@ -1,13 +1,14 @@
 import { repositoryResult } from '../../../core/data/repositoryResult'
-import { addAstResult, communicateCriticalResult, loadAllLaboratorySamples, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, saveAmrClassification, updateLaboratorySampleStatus } from '../laboratoryCloudService'
+import { addAstResult, communicateCriticalResult, loadAllLaboratorySamples, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, loadPatientLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, saveAmrClassification, updateLaboratorySampleStatus } from '../laboratoryCloudService'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
 
 export function createSupabaseLaboratoryRepository({ organizationId } = {}) {
   return defineLaboratoryRepository({
     environment: 'production',
-    async list() {
-      const rows = await loadLaboratorySamples(organizationId)
+    // `scope` ({ patientRecordId, caseIds }) reads one patient's samples only.
+    async list(scope) {
+      const rows = scope ? await loadPatientLaboratorySamples(organizationId, scope) : await loadLaboratorySamples(organizationId)
       return repositoryResult(normalizeLaboratorySamples(rows))
     },
     async listAll() {

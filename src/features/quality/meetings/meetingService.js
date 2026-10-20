@@ -61,15 +61,13 @@ async function departmentNames(organizationId) {
 // unless they see the whole Quality Center.
 export async function loadMeetings(organizationId) {
   if (isLocal()) return local()
-  const rows = must(await supabase.from('quality_department_meetings').select('*').eq('organization_id', organizationId).order('meeting_date', { ascending: false })) || []
-  if (!rows.length) return []
-  const ids = rows.map(row => row.id)
-  const [decisions, participants, departments] = await Promise.all([
-    supabase.from('quality_department_meeting_decisions').select('*').in('meeting_id', ids).then(must),
-    supabase.from('quality_department_meeting_participants').select('*').in('meeting_id', ids).then(must),
+  // The meetings with their decisions and participants embedded, beside the
+  // department names: one round trip instead of two in a row.
+  const [rows, departments] = await Promise.all([
+    supabase.from('quality_department_meetings').select('*,decisions:quality_department_meeting_decisions(*),participants:quality_department_meeting_participants(*)').eq('organization_id', organizationId).order('meeting_date', { ascending: false }).then(must),
     departmentNames(organizationId),
   ])
-  return rows.map(row => toMeeting(row, (decisions || []).filter(item => item.meeting_id === row.id), (participants || []).filter(item => item.meeting_id === row.id), departments))
+  return (rows || []).map(({ decisions, participants, ...row }) => toMeeting(row, decisions || [], participants || [], departments))
 }
 
 // Saves the meeting and replaces its decisions and participants.

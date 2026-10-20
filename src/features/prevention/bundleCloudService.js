@@ -3,7 +3,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { bundleTemplateLibrary } from './preventionDemoData'
 import { loadBundlesLocal, saveBundlesLocal } from './preventionStore'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
-import { deletePreventionRecord, loadPreventionDepartments } from './preventionCloud'
+import { deletePreventionRecord, loadPreventionDepartments, sharedInFlight } from './preventionCloud'
 
 function mapTemplate(row) {
   const elements = Array.isArray(row.elements) ? row.elements : []
@@ -86,16 +86,20 @@ export async function loadBundleSupportData(organizationId) {
       templates: bundleTemplateLibrary,
     }
   assertCloud(organizationId)
+  // The tab and its assessments ask at the same time: one read serves both.
   const [departments, templatesResult] = await Promise.all([
     loadPreventionDepartments(organizationId),
-    supabase
-      .from('prevention_bundle_templates')
-      .select('*')
-      .eq('status', 'published')
-      .eq('hidden', false)
-      .or(`is_system.eq.true,organization_id.eq.${organizationId}`)
-      .order('is_system', { ascending: false })
-      .order('name'),
+    sharedInFlight(`bundle-templates|${organizationId}`, () =>
+      supabase
+        .from('prevention_bundle_templates')
+        .select('*')
+        .eq('status', 'published')
+        .eq('hidden', false)
+        .or(`is_system.eq.true,organization_id.eq.${organizationId}`)
+        .order('is_system', { ascending: false })
+        .order('name')
+        .then(result => result),
+    ),
   ])
   if (templatesResult.error) throw templatesResult.error
   return {

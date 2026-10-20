@@ -5,15 +5,16 @@ import { useLaboratoryRepository } from './useLaboratoryRepository'
 const initialState = { rows: [], loading: true, error: null, readiness: READINESS.READY, missingConfiguration: [] }
 
 // enabled:false skips the read (a screen that loads the samples itself and
-// only needs the repository's actions).
-export function useLaboratoryRegistry({ enabled = true } = {}) {
+// only needs the repository's actions). `scope` ({ patientRecordId, caseIds },
+// kept stable by the caller) narrows the production read to one patient.
+export function useLaboratoryRegistry({ enabled = true, scope = null } = {}) {
   const repository = useLaboratoryRepository()
   const [state, setState] = useState(enabled ? initialState : { ...initialState, loading: false })
 
   const reload = useCallback(async () => {
     setState(current => ({ ...current, loading: true, error: null }))
     try {
-      const result = await repository.list()
+      const result = await (scope ? repository.list(scope) : repository.list())
       setState({
         rows: result.data,
         loading: false,
@@ -26,7 +27,7 @@ export function useLaboratoryRegistry({ enabled = true } = {}) {
       setState(current => ({ ...current, loading: false, error }))
       return null
     }
-  }, [repository])
+  }, [repository, scope])
 
   useEffect(() => { if (enabled) void reload() }, [reload, enabled])
 

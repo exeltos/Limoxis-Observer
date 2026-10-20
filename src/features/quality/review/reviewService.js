@@ -76,11 +76,9 @@ const toReview = (row, sections = [], actions = [], participants = []) => ({
 
 export async function loadReviews(organizationId) {
   if (isLocal()) return local('quality_local_reviews', demoReviews)
-  const rows = must(await supabase.from('quality_management_reviews').select('*').eq('organization_id', organizationId).order('review_date', { ascending: false })) || []
-  if (!rows.length) return []
-  const ids = rows.map(row => row.id)
-  const [sections, actions, participants] = await Promise.all(['quality_management_review_sections', 'quality_management_review_actions', 'quality_management_review_participants'].map(table => supabase.from(table).select('*').in('review_id', ids).then(must)))
-  return rows.map(row => toReview(row, (sections || []).filter(item => item.review_id === row.id), (actions || []).filter(item => item.review_id === row.id), (participants || []).filter(item => item.review_id === row.id)))
+  // The reviews with their sections, decisions and participants embedded: one round trip.
+  const rows = must(await supabase.from('quality_management_reviews').select('*,sections:quality_management_review_sections(*),actions:quality_management_review_actions(*),participants:quality_management_review_participants(*)').eq('organization_id', organizationId).order('review_date', { ascending: false })) || []
+  return rows.map(({ sections, actions, participants, ...row }) => toReview(row, sections || [], actions || [], participants || []))
 }
 
 // Saves the review and replaces its sections, decisions and participants.

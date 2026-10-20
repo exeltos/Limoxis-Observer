@@ -51,11 +51,13 @@ export function LaboratoryWorkspace() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
 
+  // The patient roster serves only the new-sample form: read when it opens.
   useEffect(() => {
+    if (!newOpen) return
     let alive = true
     loadPatients(tenant?.id, { isDemo }).then(patientRows => { if (alive) setPatients(patientRows) }).catch(() => {})
     return () => { alive = false }
-  }, [tenant?.id, isDemo])
+  }, [newOpen, tenant?.id, isDemo])
 
   const k = getLaboratoryKpis(repositoryRows)
   const fmt = value => formatDateTime(value, language)

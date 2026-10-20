@@ -138,17 +138,17 @@ export function SurveillanceCanonicalPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      // The patients and the episode, staff and laboratory reads start together.
+      // The episode, staff and laboratory reads start together: one line per
+      // episode and only the environmental samples. The patient roster is read
+      // when a new episode is started (below).
       const rest =
         !isDemo && tenant?.id
           ? Promise.allSettled([
-              loadClinicalCases(tenant.id),
+              loadClinicalCases(tenant.id, { summary: true }),
               loadEmployeeSurveillanceRecords(tenant.id),
-              loadLaboratorySamples(tenant.id),
+              loadLaboratorySamples(tenant.id, { environmental: true }),
             ])
           : null
-      const roster = await loadPatients(tenant?.id, { isDemo })
-      setPatients(roster)
       if (isDemo) {
         setCases(demoSurveillanceList())
         setEmployeeRows(employeeSurveillanceRecords.map(x => ({ ...x })))
@@ -175,6 +175,18 @@ export function SurveillanceCanonicalPage() {
   useEffect(() => {
     void load()
   }, [load, canEmployees])
+  useEffect(() => {
+    if (creation !== 'patient') return
+    let alive = true
+    loadPatients(tenant?.id, { isDemo })
+      .then(roster => {
+        if (alive) setPatients(roster)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [creation, tenant?.id, isDemo])
   useEffect(() => {
     setPage(1)
   }, [mode, query, department, status, pageSize, quick])

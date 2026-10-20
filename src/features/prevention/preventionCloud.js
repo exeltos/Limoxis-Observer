@@ -8,15 +8,32 @@ import { preventionDepartments } from './preventionDemoData'
 // bundles) share: the organization's departments, the approved patient-days of
 // one reporting period and deleting a record through the recycle bin.
 
+// The Prevention tabs open together and each asks for the departments: callers
+// that ask while a read is in flight share it (each gets its own copy).
+const inFlight = new Map()
+export function sharedInFlight(key, read) {
+  if (!inFlight.has(key)) {
+    const promise = read()
+    inFlight.set(key, promise)
+    const done = () => { if (inFlight.get(key) === promise) inFlight.delete(key) }
+    promise.then(done, done)
+  }
+  return inFlight.get(key)
+}
+
 // Active departments as {id,el,en}; records store the Greek name (el), the id
 // resolves the department in the database. The demo keeps its own fixture,
 // whose English names ('ED' for 'ΤΕΠ') the demo records were written with.
-export async function loadPreventionDepartments(organizationId) {
-  if (isDemoDataEnvironment()) return preventionDepartments.map(({ id, el, en }) => ({ id, el, en }))
-  assertCloud(organizationId)
+async function readPreventionDepartments(organizationId) {
   const { data, error } = await supabase.from('departments').select('id,name').eq('organization_id', organizationId).eq('is_active', true).order('name')
   if (error) throw error
   return (data || []).map(row => ({ id: row.id, el: row.name, en: row.name }))
+}
+export async function loadPreventionDepartments(organizationId) {
+  if (isDemoDataEnvironment()) return preventionDepartments.map(({ id, el, en }) => ({ id, el, en }))
+  assertCloud(organizationId)
+  const rows = await sharedInFlight(`departments|${organizationId}`, () => readPreventionDepartments(organizationId))
+  return rows.map(row => ({ ...row }))
 }
 
 export async function findPreventionDepartment(organizationId, name) {
