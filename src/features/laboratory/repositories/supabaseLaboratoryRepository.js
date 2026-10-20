@@ -1,5 +1,7 @@
 import { repositoryResult } from '../../../core/data/repositoryResult'
 import { addAstResult, communicateCriticalResult, loadAllLaboratorySamples, createLaboratorySample, deleteLaboratorySample, finalizeLaboratorySample, loadEnvironmentalStandards, loadLaboratorySample, loadLaboratorySamples, loadPatientLaboratorySamples, markDocumentsReviewed, reopenLaboratorySample, saveMicrobiologyResult, saveAmrClassification, updateLaboratorySampleStatus } from '../laboratoryCloudService'
+import { loadSamplesAwaitingReview, reviewLaboratorySample } from '../laboratoryCloudService'
+import { samplesAwaitingReview } from '../sampleReviewModel'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
 
@@ -54,5 +56,8 @@ export function createSupabaseLaboratoryRepository({ organizationId } = {}) {
     async finalize(sampleCode) { const current=await loadLaboratorySample(organizationId,sampleCode);if(!current)return null;await finalizeLaboratorySample(organizationId,current.recordId);return this.get(sampleCode) },
     async reopen(sampleCode, reason) { const current=await loadLaboratorySample(organizationId,sampleCode);if(!current)return null;await reopenLaboratorySample(organizationId,current.recordId,reason);return this.get(sampleCode) },
     async loadStandards() { return loadEnvironmentalStandards(organizationId) },
+    // «Προς έλεγχο»: the positive samples with no episode and no decision, and the decision.
+    async listAwaitingReview() { return samplesAwaitingReview(normalizeLaboratorySamples(await loadSamplesAwaitingReview(organizationId))) },
+    async review(sample, decision) { await reviewLaboratorySample(organizationId, sample.recordId, decision);return true },
   })
 }

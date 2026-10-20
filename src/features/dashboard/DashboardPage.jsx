@@ -20,6 +20,9 @@ import { loadAnalysisSnapshot } from '../platform/platformService'
 import './dashboard.css'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 import { decisionItems, moduleStatusRows } from './adminHomeModel'
+import { ClipboardCheck as ReviewIcon } from 'lucide-react'
+import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
+import { canReviewSamples } from '../laboratory/sampleReviewModel'
 
 function hospitalAdminWorkspace(english){
   return english?{
@@ -125,6 +128,9 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const values=demo?demo.metrics:metrics
   const roleRows=useMemo(()=>roleKpis(role,values,english,nctx.unreadCount),[role,values,english,nctx.unreadCount])
   const kpis=roleRows.length?roleRows:workspace.kpis.map(([label])=>[label,'—'])
+  // «Προς έλεγχο (N)»: new positive samples with no episode and no decision, for the infection-control roles.
+  const reviewCard=showKpis&&!department&&canReviewSamples(role)&&menuPaths.has('/surveillance')
+  const awaitingReview=useSamplesAwaitingReview({enabled:reviewCard&&Boolean(isDemo||tenant?.id)})
   const tasks=nctx.operational
   const adminHome=role===ROLES.HOSPITAL_ADMIN&&showKpis
   // A tile opens a screen of the menu; a tab of a merged section (?tab=) only when the role may open that tab.
@@ -144,6 +150,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
     {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,to]=TILES[key]||[];const open=to&&canOpen(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</div>}
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
+    {reviewCard&&<Card className="dashboard-card dashboard-executive-link dashboard-review-link"><CardHeader icon={ReviewIcon} title={`${tr('Προς έλεγχο','To review')} (${awaitingReview.loading?'…':awaitingReview.rows.length})`} subtitle={awaitingReview.rows.length?tr('Νέα θετικά δείγματα χωρίς επεισόδιο: ανοίξτε επεισόδιο ή σημειώστε ότι δεν χρειάζεται επιτήρηση.','New positive samples with no episode: open an episode or mark that no surveillance is needed.'):tr('Κανένα νέο θετικό δείγμα δεν περιμένει απόφαση.','No new positive sample is waiting for a decision.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/surveillance?tab=episodes&review=1')}>{tr('Προβολή λίστας','View list')}<ArrowRight size={14}/></button>}/></Card>}
     {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Δείκτες','Indicators')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
     <div className="dashboard-workspace-v2">
       {adminHome?<Card className="dashboard-card dashboard-decisions" id="dashboard-tasks" tabIndex={-1}>

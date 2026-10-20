@@ -95,6 +95,11 @@ function mapSample(row,patient,department,microbiology=[]){
     finalizedAt:row.finalized_at||null,
     finalizedBy:row.finalized_by||null,
     correctionReason:row.correction_reason||'',
+    surveillanceReviewStatus:row.surveillance_review_status||null,
+    surveillanceReviewReason:row.surveillance_review_reason||null,
+    surveillanceReviewNote:row.surveillance_review_note||'',
+    surveillanceReviewedAt:row.surveillance_reviewed_at||null,
+    surveillanceReviewedBy:row.surveillance_reviewed_by||null,
   }
 }
 
@@ -170,6 +175,32 @@ export async function loadEmployeeSurveillanceSamples(organizationId,surveillanc
   const {data,error}=await selectInChunks(ids,chunk=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).in('employee_surveillance_id',chunk).order('created_at',{ascending:false}).order('id',{ascending:true}),{order:[['created_at',{ascending:false}],['id',{ascending:true}]]})
   if(error)throw error
   return hydrateSamples(data||[])
+}
+
+// «Προς έλεγχο»: patient samples with a positive result, no episode and no decision yet,
+// read without the organization's whole list (the filter runs in the database: an
+// inner join on the positive result). The caller narrows them with samplesAwaitingReview.
+export async function loadSamplesAwaitingReview(organizationId,{limit=300}={}){
+  assertCloud()
+  if(!organizationId)return []
+  const {data,error}=await supabase.from('laboratory_samples').select('*,microbiology_results!inner(id)')
+    .eq('organization_id',organizationId).eq('microbiology_results.result_status','positive')
+    .is('surveillance_case_id',null).is('surveillance_review_status',null).not('patient_id','is',null)
+    .order('requested_at',{ascending:false}).limit(limit)
+  if(error)throw error
+  const unique=[...new Map((data||[]).map(({microbiology_results:_joined,...row})=>[row.id,row])).values()]
+  return hydrateSamples(unique)
+}
+
+// The infection-control decision on a sample. Only the review_laboratory_sample function
+// may write it (the update policy of laboratory_samples is limited to laboratory roles):
+// status 'episode_opened' (with caseId, also links the sample to the episode) or
+// 'no_surveillance_needed' (with a reason code and an optional note).
+export async function reviewLaboratorySample(organizationId,sampleRecordId,{status,reason=null,note=null,caseId=null}){
+  assertCloud()
+  const {error}=await supabase.rpc('review_laboratory_sample',{p_organization_id:organizationId,p_sample_id:sampleRecordId,p_status:status,p_reason:reason,p_note:note,p_case_id:caseId})
+  if(error)throw error
+  return true
 }
 
 // The samples of one patient record: the patient's own and those of its

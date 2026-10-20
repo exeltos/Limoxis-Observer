@@ -38,6 +38,7 @@ import {
 import { demoLibrarySeed } from '../management/managementData'
 import { useLaboratoryRegistry } from '../laboratory/hooks/useLaboratoryRegistry'
 import { linkLaboratorySampleToSurveillance } from '../laboratory/laboratoryLinkService'
+import { canReviewSamples } from '../laboratory/sampleReviewModel'
 import { NewSurveillanceFlow } from './NewSurveillanceFlow'
 import { PatientWithoutAdmission } from './PatientWithoutAdmission'
 import { createClinicalRepository } from './clinicalRepository'
@@ -95,6 +96,16 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [error, setError] = useState(''),
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState(null)
+  // "Open episode" from the worklist or the sample record: this page opens the
+  // new-episode flow once, with the patient and the sample already chosen.
+  const fromSample = location.state?.createFromSample || null
+  const fromSampleOpened = useMemo(() => ({ current: false }), [])
+  useEffect(() => {
+    if (!fromSample || loading || fromSampleOpened.current) return
+    fromSampleOpened.current = true
+    setSampleToLink(fromSample)
+    setCreateOpen(true)
+  }, [fromSample, loading, fromSampleOpened])
   const [clearTestOpen, setClearTestOpen] = useState(false)
   const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
   // The header's NEWS2 / Braden / GCS chips open the clinical scales with their history.
@@ -402,8 +413,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     const created = await repository.createCase(targetPatient || patient, scopedDraft)
     if (sampleToLink) {
       try {
-        if (isDemo)
-          await laboratory.repository.update(sampleToLink.id, { surveillanceCase: created.id })
+        // The infection-control roles cannot update a sample: the review function links it.
+        if (isDemo || canReviewSamples(role))
+          await laboratory.repository.review(sampleToLink, { status: 'episode_opened', caseId: created.id })
         else await linkLaboratorySampleToSurveillance(tenant?.id, sampleToLink.recordId, created.id)
         await laboratory.reload()
       } catch (linkError) {
@@ -571,7 +583,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             patientMode && role === 'platform_owner' ? () => setClearTestOpen(true) : null
           }
           canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
-          canCreateSample={canCreateLabSample}
+          canCreateSample={canCreateLabSample || canReviewSamples(role)}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
           t={t}
@@ -884,6 +896,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             patient={patient}
             patients={patients}
             onPatientsChange={setPatients}
+            sample={sampleToLink}
             onClose={() => {
               setCreateOpen(false)
               setSampleToLink(null)

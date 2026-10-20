@@ -4,6 +4,7 @@ import {
   Activity,
   AlertTriangle,
   Building2,
+  ClipboardCheck,
   Clock3,
   Microscope,
   Plus,
@@ -62,6 +63,9 @@ import { PERIOD_DAYS, employeeScreeningLabel, inPeriod, statusTone } from './sur
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
+import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
+import { canReviewSamples, sampleEpisodeTarget } from '../laboratory/sampleReviewModel'
+import { SampleReviewWorklist, worklistTexts } from './SampleReviewWorklist'
 
 const latestOrganism = row => row.samples?.find(x => x.organism)?.organism || row.organism || null
 const latestResistance = row =>
@@ -106,7 +110,11 @@ export function SurveillanceCanonicalPage() {
     [loading, setLoading] = useState(true)
   const { departments } = useDepartments()
   // Clicking a summary card narrows the patient list to it; clicking it again clears it.
-  const [quick, setQuick] = useState(null)
+  // The «to review» card (quick key 'review') swaps the episode list for the sample worklist;
+  // the home card opens it with ?review=1.
+  const [quick, setQuick] = useState(() =>
+    new URLSearchParams(location.search).get('review') === '1' ? 'review' : null,
+  )
   const [mode, setMode] = useState(sectionMode || restoredMode || 'patients'),
     [query, setQuery] = useState(restored.query || ''),
     [department, setDepartment] = useState(restored.department || 'all'),
@@ -140,6 +148,17 @@ export function SurveillanceCanonicalPage() {
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
     [isDemo, tenant?.id, actor],
   )
+  // Review worklist: only the infection-control roles decide on a sample.
+  const canReview = canReviewSamples(role || actualRole)
+  const awaitingReview = useSamplesAwaitingReview({ enabled: canReview && Boolean(tenant?.id || isDemo) })
+  const reviewRows = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return awaitingReview.rows
+      .filter(canAccessRecord)
+      .filter(x => !q || `${x.patient || ''} ${x.patientEn || ''} ${x.patientId || ''} ${x.organism || ''} ${x.id || ''}`.toLowerCase().includes(q))
+      .filter(x => department === 'all' || (language === 'el' ? x.department : x.departmentEn) === department)
+  }, [awaitingReview.rows, canAccessRecord, query, department, language])
+  const showWorklist = canReview && mode === 'patients' && quick === 'review'
   const platformOwnerNoTenant = !isDemo && actualRole === ROLES.PLATFORM_OWNER && !tenant?.id
   const productionOrganizations = (memberships || []).filter(
     item => item?.organization?.id && !item.organization.is_demo,
@@ -207,7 +226,7 @@ export function SurveillanceCanonicalPage() {
     setPage(1)
   }, [mode, query, department, status, period, pageSize, quick])
   useEffect(() => {
-    setQuick(null)
+    setQuick(current => (current === 'review' && mode === 'patients' ? current : null))
   }, [mode])
 
   const fmt = value => formatDay(value, language)
@@ -563,6 +582,17 @@ export function SurveillanceCanonicalPage() {
             </>
           ) : (
             <>
+              {canReview && (
+                <SummaryMetric
+                  loading={awaitingReview.loading}
+                  icon={ClipboardCheck}
+                  label={worklistTexts(language).title}
+                  value={awaitingReview.rows.filter(canAccessRecord).length}
+                  quickKey="review"
+                  quick={quick}
+                  onQuick={setQuick}
+                />
+              )}
               <SummaryMetric
                 loading={loading}
                 icon={Activity}
@@ -654,7 +684,33 @@ export function SurveillanceCanonicalPage() {
             </>
           }
         />
-        {loading ? (
+        {showWorklist ? (
+          awaitingReview.loading ? (
+            <TableSkeleton />
+          ) : (
+            <SampleReviewWorklist
+              rows={reviewRows}
+              empty={{ title: worklistTexts(language).emptyTitle, text: worklistTexts(language).emptyText }}
+              language={language}
+              t={t}
+              canOpenEpisode={canCreate}
+              onOpenEpisode={sample => {
+                const target = sampleEpisodeTarget(sample)
+                navigate(target.path, { state: target.state })
+              }}
+              onDecide={async (sample, decision) => {
+                try {
+                  await awaitingReview.review(sample, decision)
+                  notify(worklistTexts(language).saved, 'success')
+                  return true
+                } catch (error) {
+                  notifyError(error, 'save', { operation: 'sample_surveillance_review' })
+                  return false
+                }
+              }}
+            />
+          )
+        ) : loading ? (
           <TableSkeleton />
         ) : mode === 'patients' ? (
           <PatientRows
@@ -706,7 +762,7 @@ export function SurveillanceCanonicalPage() {
             scrollRef={registry.scrollRef}
           />
         )}
-        {filtered.length > 0 && (
+        {filtered.length > 0 && !showWorklist && (
           <RegistryPagination
             language={language}
             page={safePage}

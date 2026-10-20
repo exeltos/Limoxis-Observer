@@ -2,7 +2,7 @@ import { SectionHeader } from '../../design-system/SectionHeader'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -37,6 +37,7 @@ import { ResultCard, LabHistory } from './LaboratorySampleViews'
 import { ResultDialog, AstDialog, AmrDialog, CommunicationDialog } from './LaboratorySampleDialogs'
 import { buildLaboratorySampleReport } from './laboratorySampleReport'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { canReviewSamples, reviewTag, sampleEpisodeTarget } from './sampleReviewModel'
 
 export function LaboratorySampleRecordFunctionalView() {
   const { sampleId } = useParams()
@@ -49,6 +50,7 @@ export function LaboratorySampleRecordFunctionalView() {
   // An environmental sample opened from the Surveillance Center stays there:
   // its own address, back and previous/next follow the surveillance list.
   const inSurveillance = useLocation().pathname.startsWith('/surveillance/')
+  const navigate = useNavigate()
   const { goBack } = useContextualNavigation(inSurveillance ? '/surveillance' : '/laboratory')
   const recordNavigation = useRecordSequenceNavigation({
     registry: inSurveillance ? 'surveillance-environmental' : 'laboratory',
@@ -607,16 +609,27 @@ export function LaboratorySampleRecordFunctionalView() {
         title={sampleTypeLabel(sample.type, t)}
         subtitle={`${sample.subjectName || sample.patient || '—'}${sample.subjectCode || sample.patientId ? ` · ${sample.subjectCode || sample.patientId}` : ''} · ${sample.department || '—'}`}
         status={
-          <Status
-            text={rejected ? t('rejected') : finalized ? t('completed') : t(sample.status)}
-            kind={rejected ? 'rejected' : finalized ? 'completed' : sample.status}
-          />
+          <>
+            <Status
+              text={rejected ? t('rejected') : finalized ? t('completed') : t(sample.status)}
+              kind={rejected ? 'rejected' : finalized ? 'completed' : sample.status}
+            />
+            {reviewTag(sample, language) && <StatusBadge tone="neutral">{reviewTag(sample, language)}</StatusBadge>}
+          </>
         }
         tabs={tabs}
         activeTab={tab}
         renderTab={renderTab}
         onTabChange={setTab}
-        headerActions={<ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} />}
+        headerActions={<>
+          {/* «Άνοιγμα επεισοδίου»: here only (not also in the menu) — a positive patient sample with no episode, for the infection-control roles. */}
+          {canReviewSamples(role) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && sample.subjectType === 'patient' && !sample.surveillanceCase && sample.result === 'positive' && (
+            <Button variant="secondary" className="sample-open-episode" onClick={() => { const target = sampleEpisodeTarget(sample); navigate(target.path, { state: target.state }) }}>
+              <PlayCircle size={15} />{language === 'en' ? 'Open episode' : 'Άνοιγμα επεισοδίου'}
+            </Button>
+          )}
+          <ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} />
+        </>}
         onBack={goBack}
         backLabel={inSurveillance ? t('clinicalRecords.backToSurveillance') : t('backToLaboratory')}
       >

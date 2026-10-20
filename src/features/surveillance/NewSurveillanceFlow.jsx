@@ -16,6 +16,7 @@ export function NewSurveillanceFlow({
   onClose,
   onCreate,
   onPatientsChange,
+  sample = null,
 }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
@@ -45,12 +46,16 @@ export function NewSurveillanceFlow({
     dateOfBirth: '',
   })
   const [busy, setBusy] = useState(false)
+  // Opened from a positive sample («Προς έλεγχο»): the start date and the reason come from it.
+  const sampleFinding = sample
+    ? [t(sample.type || 'other'), sample.organism, sample.resistance].filter(Boolean).join(' · ')
+    : ''
   const [startDraft, setStartDraft] = useState({
-    startedAt: today,
+    startedAt: String(sample?.collectedAt || '').slice(0, 10) || today,
     reviewDue: '',
     room: '',
-    reason: '',
-    reasonEn: '',
+    reason: sample ? `Θετική καλλιέργεια: ${sampleFinding}` : '',
+    reasonEn: sample ? `Positive culture: ${sampleFinding}` : '',
     suspectedSource: '',
     departmentId: selectedPatient?.departmentId || '',
     department: firstDepartment[0] || '',
@@ -250,6 +255,15 @@ export function NewSurveillanceFlow({
           form={form}
           t={t}
         />
+      )}
+      {sample && (
+        <div className="progressive-guidance sample-prefill-note">
+          <AlertTriangle size={16} />
+          <div>
+            <strong>{language === 'el' ? 'Από δείγμα' : 'From a sample'}</strong>
+            <span>{[sample.id, sampleFinding].filter(Boolean).join(' · ')}{language === 'el' ? ' — θα συνδεθεί με το επεισόδιο.' : ' — it will be linked to the episode.'}</span>
+          </div>
+        </div>
       )}
       <div className="progressive-guidance">
         <AlertTriangle size={16} />

@@ -13,6 +13,7 @@
 .laboratory-registry .lab-table td:nth-child(5){min-width:125px}
 .laboratory-registry .lab-table td:nth-child(6){min-width:115px}
 .lab-critical-note{color:var(--lo-color-danger,#b42318)!important;font-weight:750}
+.lab-review-tag{display:block;margin-top:4px}
 
 /* Registry: the source column is the secondary one; on a narrow screen (tablet)
    it moves under the sample type, so the list never scrolls sideways. */

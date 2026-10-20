@@ -23,12 +23,13 @@ import {
   administrationStatusLabel,
   clinicalTerm,
   clinicalValueLabel,
+  episodeTypeLabel,
 } from './clinicalRecordLabels'
 import {
   AdministrationDialog,
   AssessmentDialog,
   DeviceDialog,
-  SampleDialog,
+  SampleRequestDialog,
   HaiDialog,
   TherapyDialog,
   IsolationDialog,
@@ -365,7 +366,7 @@ export function CanonicalJourney({
                   variant="secondary"
                   onClick={() => setDialog('sample')}
                 >
-                  {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
+                  {translate('copy.clinicalRecordCopy.sampleRequest', language === 'el' ? 'el' : 'en')}
                 </Button>
               ) : null
             }
@@ -733,8 +734,13 @@ export function CanonicalJourney({
         />
       )}{' '}
       {dialog === 'sample' && (
-        <SampleDialog
+        <SampleRequestDialog
           t={t}
+          context={{
+            patient: language === 'el' ? record.patient : record.patientEn || record.patient,
+            episode: [episodeTypeLabel(record, t), fmtDate(record.startedAt)].filter(Boolean).join(' · '),
+            department: language === 'el' ? record.department : record.departmentEn || record.department,
+          }}
           onClose={() => setDialog(null)}
           onSave={draft => run(() => repository.requestSample(record, draft), t('actionCompleted'))}
         />

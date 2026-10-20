@@ -18,7 +18,7 @@ import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { RESISTANCE_ALERT, printSurveillanceReport, episodeTypeLabel } from './clinicalRecordLabels'
 import { CanonicalJourney } from './ClinicalJourney'
-import { SimpleDialog, SampleDialog, ReasonDialog } from './ClinicalRecordDialogs'
+import { SimpleDialog, SampleRequestDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { SAMPLE_TONES } from './ClinicalRecordViews'
 import { listTexts, statusTone, suspectedSourceOptions } from './surveillanceOptions'
 
@@ -390,19 +390,6 @@ export function SurveillanceWorkspace({
               {translate('copy.clinicalRecordCopy.clearTestData', language === 'el' ? 'el' : 'en')}
             </Button>
           )}
-          {canCreateSample && onCreateSample && (
-            <Button
-              className="clinical-add-action"
-              variant="secondary"
-              onClick={() => {
-                setFollowUpParent(null)
-                setSampleOpen(true)
-              }}
-            >
-              <Microscope size={15} />
-              {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
-            </Button>
-          )}
           {canCreate && (
             <Button className="clinical-primary-action" onClick={onCreate}>
               <PlayCircle size={15} />{' '}
@@ -587,11 +574,15 @@ export function SurveillanceWorkspace({
         )}
       </div>
       {sampleOpen && (
-        <SampleDialog
+        <SampleRequestDialog
           t={t}
+          context={{
+            patient: language === 'el' ? followUpParent?.patient : followUpParent?.patientEn || followUpParent?.patient,
+            department: language === 'el' ? followUpParent?.department : followUpParent?.departmentEn || followUpParent?.department,
+          }}
           title={
             followUpParent
-              ? translate('copy.clinicalRecordCopy.sampleFollowUp', language === 'el' ? 'el' : 'en')
+              ? translate('copy.clinicalRecordCopy.sampleRequestFollowUp', language === 'el' ? 'el' : 'en')
               : null
           }
           initialType={followUpParent?.type || followUpParent?.sampleType || ''}

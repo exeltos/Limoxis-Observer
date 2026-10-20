@@ -208,14 +208,13 @@ describe('surveillance tree and samples', () => {
     expect(within(body()).getByText('Λοίμωξη αιματικής ροής')).toBeInTheDocument()
     const parent = within(body()).getByText(/LAB-260771/).closest('.sv-sample-node')
     fireEvent.click(within(parent).getByRole('button', { name: /Επανέλεγχος/ }))
-    const followUp = screen.getByRole('dialog', { name: 'Επανέλεγχος δείγματος' })
-    // A follow-up is never saved empty: where and how the sample was taken come first.
-    fireEvent.click(within(followUp).getByRole('button', { name: /Αποθήκευση/ }))
-    expect(within(followUp).getByText(/Συμπληρώστε:/).closest('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση, Τρόπος λήψης')
+    const followUp = screen.getByRole('dialog', { name: 'Αίτημα επανελέγχου δείγματος' })
+    // A follow-up is a request to the laboratory, never sent empty: the site comes first.
+    fireEvent.click(within(followUp).getByRole('button', { name: /Αποστολή αιτήματος/ }))
+    expect(within(followUp).getByText(/Συμπληρώστε:/).closest('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση')
     expect(within(body()).queryByText(/LAB-260771-R1/)).toBeNull()
     fireEvent.change(within(followUp).getByLabelText('Ανατομική θέση / προέλευση'), { target: { value: 'Περιφερική φλέβα' } })
-    fireEvent.change(within(followUp).getByLabelText('Τρόπος λήψης'), { target: { value: 'Φλεβοκέντηση' } })
-    fireEvent.click(within(followUp).getByRole('button', { name: /Αποθήκευση/ }))
+    fireEvent.click(within(followUp).getByRole('button', { name: /Αποστολή αιτήματος/ }))
     const child = await waitFor(() => {
       const node = within(body()).getByText(/LAB-260771-R1/).closest('.sv-sample-node')
       expect(node).toHaveClass('is-followup')
@@ -236,15 +235,15 @@ describe('surveillance tree and samples', () => {
     expect(within(within(body()).getByText(/LAB-POS-1/).closest('.sv-sample')).getByRole('button', { name: /Έναρξη επιτήρησης/ })).toBeInTheDocument()
   })
 
-  it('collects samples with the canonical date and time fields', async () => {
+  it('requests a sample from the episode: the laboratory records the collection and the result', async () => {
     await openSurveillance()
     await openEpisode()
     const panel = await openStage('Δείγμα / Εργαστήριο')
-    fireEvent.click(within(panel).getByRole('button', { name: /Νέο δείγμα/ }))
-    const dialog = screen.getByRole('dialog')
-    expect(within(dialog).getByPlaceholderText('ηη/μμ/εεεε')).toBeInTheDocument()
-    expect(within(dialog).getByText('Ώρα λήψης')).toBeInTheDocument()
-    expect(dialog.querySelector('input[type="datetime-local"]')).toBeNull()
+    fireEvent.click(within(panel).getByRole('button', { name: /Αίτημα δείγματος/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Αίτημα δείγματος' })
+    expect(within(dialog).queryByPlaceholderText('ηη/μμ/εεεε')).toBeNull()
+    expect(within(dialog).queryByText('Ώρα λήψης')).toBeNull()
+    expect(within(dialog).getByText('Προτεραιότητα')).toBeInTheDocument()
   })
 })
 
