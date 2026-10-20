@@ -12,7 +12,7 @@ vi.mock('../src/core/tenant/TenantContext', () => ({ useTenant: () => ({ tenant:
 vi.mock('../src/core/feedback/FeedbackContext', () => ({ useFeedback: () => feedback, useOptionalFeedback: () => feedback }))
 vi.mock('../src/core/audit/useAuditActor', () => ({ useAuditActor: () => ({ id: 'u-actor', name: 'Ελένη Γεωργίου' }) }))
 
-const { RecallDialog, RecallPanel, RecallOverviewCard } = await import('../src/features/kitchen/KitchenRecall')
+const { RecallDialog, RecallPanel } = await import('../src/features/kitchen/KitchenRecall')
 const { kitchenDemoState } = await import('../src/features/kitchen/kitchenDemoData')
 const { newRecallDrill } = await import('../src/features/kitchen/kitchenRecallModel')
 
@@ -48,8 +48,8 @@ describe('Kitchen recall drill screens', () => {
     expect(feedback.notify).toHaveBeenCalledWith(expect.stringContaining('η παρτίδα'), 'error')
   })
 
-  it('warns on the overview when no drill was done', () => {
-    wrap(<RecallOverviewCard state={{ ...state, recallDrills: [] }} access={access} onTab={vi.fn()} onRecall={vi.fn()} />)
-    expect(screen.getByText(/Καμία άσκηση ανάκλησης τους τελευταίους 12 μήνες/)).toBeInTheDocument()
+  it('warns in the list when no drill was done', () => {
+    wrap(<RecallPanel state={{ ...state, recallDrills: [] }} access={access} filters={{ query: '', result: 'all', scenario: 'all' }} setFilters={vi.fn()} onRecall={vi.fn()} />)
+    expect(screen.getByText(/Δεν έχει γίνει άσκηση ανάκλησης/)).toBeInTheDocument()
   })
 })
