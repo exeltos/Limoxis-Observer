@@ -21,7 +21,7 @@ vi.mock('../src/core/supabase/client', () => ({
       const builder = {
         select: columns => { query.columns = columns; return builder },
         eq: (column, value) => { query.filters[column] = value; return builder },
-        order: (column, options) => { query.order = [column, options]; return builder },
+        order: (column, options) => { query.order ??= [column, options]; return builder },
         then: resolve => resolve({ data: visitRows, error: null }),
       }
       return builder

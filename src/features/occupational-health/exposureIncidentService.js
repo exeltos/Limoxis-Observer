@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase/client'
+import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadExposureIncidents,saveExposureIncidents } from '../employees/employeeRecordsService'
@@ -36,13 +37,13 @@ function fromRow(row){
 export async function loadAllExposureIncidentsAsync(organizationId){
   if(isDemoDataEnvironment())return loadExposureIncidents()
   ensureCloud(organizationId,'occupational_exposure_incidents.load_all')
-  const {data,error}=await supabase
+  const data=await selectAllPages(()=>supabase
     .from('occupational_exposure_incidents')
     .select(COLUMNS)
     .eq('organization_id',organizationId)
     .order('incident_date',{ascending:false})
-  if(error)throw error
-  return (data||[]).map(fromRow)
+    .order('id'))
+  return data.map(fromRow)
 }
 
 export async function createExposureIncidentAsync(organizationId,employee,draft){

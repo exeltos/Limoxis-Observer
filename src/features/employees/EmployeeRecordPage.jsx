@@ -39,7 +39,7 @@ import {
   deleteEmployeeAsync,
   updateEmployeeAsync,
 } from './employeeService'
-import { useEmployeesData } from './useEmployeesData'
+import { useEmployeeRecordData } from './useEmployeeRecordData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
@@ -60,19 +60,33 @@ import { EmployeeHeaderPhoto } from './EmployeePhoto'
 export function EmployeeRecordPage({ selfMode = false }) {
   const { employeeId } = useParams()
   const navigate = useNavigate()
-  const {
-    data: employeeRows,
-    loading: employeesLoading,
-    error: employeesError,
-    reload: reloadEmployees,
-    setData: setEmployeeRows,
-  } = useEmployeesData()
   const { goBack, restored } = useContextualNavigation('/employees')
   const { t, language, locale } = useLanguage()
   const { confirm, notify } = useFeedback()
   const { role, membership, canAccessRecord, canSeeSensitiveEmployeeHealth, isDemo, tenant } =
     useTenant()
   const { user, profile } = useAuth()
+  const {
+    data: employeeRows,
+    loading: employeesLoading,
+    error: employeesError,
+    reload: reloadEmployees,
+    setData: setEmployeeRows,
+  } = useEmployeeRecordData({
+    code: employeeId || null,
+    selfMode,
+    self: {
+      employeeCode:
+        membership?.employeeId ||
+        membership?.employee_id ||
+        membership?.profile?.employeeId ||
+        profile?.employeeId ||
+        profile?.employee_id ||
+        null,
+      userId: profile?.id || user?.id || null,
+      email: profile?.email || user?.email || null,
+    },
+  })
   const [accountOpen, setAccountOpen] = useState(false)
   const [accountSaving, setAccountSaving] = useState(false)
   const [departments, setDepartments] = useState([])

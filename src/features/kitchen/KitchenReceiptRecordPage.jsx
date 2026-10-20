@@ -35,7 +35,7 @@ export function KitchenReceiptRecordPage() {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const access = useKitchenAccess()
-  const { state, loading, reload, organizationId } = useKitchen()
+  const { state, loading, reload, organizationId } = useKitchen({ receiptId })
   const [tab, setTab] = useState('items')
   const [dialog, setDialog] = useState(null)
   const [trace, setTrace] = useState(null)
@@ -109,6 +109,6 @@ export function KitchenReceiptRecordPage() {
       {receipt.supplierId && <div className="kitchen-pad"><Button variant="secondary" onClick={() => navigate(`/quality/suppliers/${receipt.supplierId}`)}><Truck size={15} />{en ? 'Supplier record' : 'Καρτέλα προμηθευτή'}</Button></div>}
     </RecordTabPanel>}
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={[]} organizationId={organizationId} reload={reload} />
-    {trace && <TraceDialog state={state} receiptItemId={trace} onClose={() => setTrace(null)} />}
+    {trace && <TraceDialog state={state} organizationId={organizationId} receiptItemId={trace} onClose={() => setTrace(null)} />}
   </EntityRecordShell></Page>
 }

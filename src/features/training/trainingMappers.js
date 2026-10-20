@@ -8,8 +8,17 @@ const byPosition=(a,b)=>(a.position??0)-(b.position??0)||String(a.question_key||
 const sorted=list=>[...(Array.isArray(list)?list:[])].sort(byPosition)
 const num=value=>value==null||value===''?null:Number(value)
 
-export const PROGRAM_SELECT='id,program_key,title,title_en,category,method,delivery_kind,owner,trainer,audience,description,start_date,start_time,due_date,duration_hours,location,cost,valid_months,requires_assessment,pass_score,status,department_id,feedback_template_key,feedback_title_el,feedback_title_en,created_at,updated_at,training_program_materials(material_key,position,title,material_type,url),training_assessment_questions(question_key,position,question_type,text,points,required,correct_boolean,model_answer,manual_review,training_assessment_options(option_key,position,text,correct)),training_program_effectiveness(planned_date,method,criterion,result,evaluated_at,evaluated_by,notes,comment),training_program_feedback_questions(question_key,position,label_el,label_en)'
-export const ASSIGNMENT_SELECT='id,assignment_key,program_id,employee_id,employee_code,employee_name,department_name,department_id,employee_user_id,email,account_linked,manual_entry,assigned_date,due_date,status,invitation_sent_at,access_token,attendance_response,attendance,attendance_confirmed_at,attendance_attested,attendance_attested_at,attendance_attestation_method,attendance_attestation_version,completion_confirmed_at,feedback_submitted_at,assessment_submitted_at,assessment_review_status,assessment_reviewed_at,assessment_reviewed_by,assessment_review_acknowledged,assessment_review_note,score,competent,completed_date,created_at,updated_at,training_assessment_answers(question_key,answer_kind,answer_text,answer_boolean,answer_number,answer_option_keys,awarded_points),training_feedback_responses(employee_code,user_id,submitted_at,comment,training_feedback_scores(question_key,score)),training_certificates(certificate_key)'
+// The register reads lean rows: no assessment questions (only their keys, to count them), no
+// trainer-feedback questions, answers or evaluations, and never the learner's
+// access token. An opened programme reads its details (the *_DETAIL_SELECTs).
+export const PROGRAM_SELECT='id,program_key,title,title_en,category,method,delivery_kind,owner,trainer,audience,description,start_date,start_time,due_date,duration_hours,location,cost,valid_months,requires_assessment,pass_score,status,department_id,feedback_template_key,feedback_title_el,feedback_title_en,created_at,updated_at,training_program_materials(material_key,position,title,material_type,url),training_program_effectiveness(planned_date,method,criterion,result,evaluated_at,evaluated_by,notes,comment),training_assessment_questions(question_key)'
+export const PROGRAM_DETAIL_SELECT='id,program_key,title,title_en,category,method,delivery_kind,owner,trainer,audience,description,start_date,start_time,due_date,duration_hours,location,cost,valid_months,requires_assessment,pass_score,status,department_id,feedback_template_key,feedback_title_el,feedback_title_en,created_at,updated_at,training_program_materials(material_key,position,title,material_type,url),training_assessment_questions(question_key,position,question_type,text,points,required,correct_boolean,model_answer,manual_review,training_assessment_options(option_key,position,text,correct)),training_program_effectiveness(planned_date,method,criterion,result,evaluated_at,evaluated_by,notes,comment),training_program_feedback_questions(question_key,position,label_el,label_en)'
+export const ASSIGNMENT_SELECT='id,assignment_key,program_id,employee_id,employee_code,employee_name,department_name,department_id,employee_user_id,email,account_linked,manual_entry,assigned_date,due_date,status,invitation_sent_at,attendance_response,attendance,attendance_confirmed_at,attendance_attested,attendance_attested_at,attendance_attestation_method,attendance_attestation_version,completion_confirmed_at,feedback_submitted_at,assessment_submitted_at,assessment_review_status,assessment_reviewed_at,assessment_reviewed_by,assessment_review_acknowledged,assessment_review_note,score,competent,completed_date,created_at,updated_at,training_certificates(certificate_key)'
+export const ASSIGNMENT_DETAIL_SELECT='id,assignment_key,program_id,employee_id,employee_code,employee_name,department_name,department_id,employee_user_id,email,account_linked,manual_entry,assigned_date,due_date,status,invitation_sent_at,attendance_response,attendance,attendance_confirmed_at,attendance_attested,attendance_attested_at,attendance_attestation_method,attendance_attestation_version,completion_confirmed_at,feedback_submitted_at,assessment_submitted_at,assessment_review_status,assessment_reviewed_at,assessment_reviewed_by,assessment_review_acknowledged,assessment_review_note,score,competent,completed_date,created_at,updated_at,training_assessment_answers(question_key,answer_kind,answer_text,answer_boolean,answer_number,answer_option_keys,awarded_points),training_feedback_responses(employee_code,user_id,submitted_at,comment,training_feedback_scores(question_key,score)),training_certificates(certificate_key)'
+// The calendar's dates only.
+export const PROGRAM_CALENDAR_SELECT='id,program_key,title,title_en,audience,start_date,due_date,status,training_program_effectiveness(planned_date,result)'
+export const ASSIGNMENT_CALENDAR_SELECT='id,assignment_key,program_id,employee_name,department_name,status'
+export const CERTIFICATE_CALENDAR_SELECT='id,certificate_key,assignment_id,title,valid_until'
 export const CERTIFICATE_SELECT='id,certificate_key,assignment_id,employee_code,title,issued_date,valid_until,issuer,issued_at,issued_by,department_id,employee_user_id,training_assignments(assignment_key)'
 export const REQUIREMENT_SELECT='id,requirement_key,title,renewal_months,active,training_requirement_programs(position,training_programs(program_key)),training_requirement_targets(target_kind,value,position)'
 export const HISTORY_SELECT='position,occurred_at,actor,action'
@@ -108,6 +117,25 @@ export function trainingStateFromRows({programs=[],assignments=[],certificates=[
  return {programs:programs.map(row=>programFromRow(row,responses.get(row.id)||[])),assignments:assignments.map(row=>assignmentFromRow(row,programKeyById)),certificates:certificates.map(row=>certificateFromRow(row,assignmentKeyById)),requirements:requirements.map(requirementFromRow),emailOutbox:[],history:historyFromRows(history)}
 }
 
+// A lean register row leaves the detail keys out (not empty): a save of a lean
+// programme then keeps its questions and feedback template in the database
+// (training_save_program only replaces what it is sent).
+export function leanProgram(program,row){
+ const lean={...program}
+ delete lean.assessmentQuestions;delete lean.trainerFeedbackTemplate;delete lean.feedbackResponses
+ lean.questionCount=Array.isArray(row?.training_assessment_questions)?row.training_assessment_questions.length:0
+ return lean
+}
+export function leanAssignment(assignment){
+ const lean={...assignment}
+ delete lean.assessmentAnswers;delete lean.feedbackScores;delete lean.feedbackComment;delete lean.awardedPoints
+ return lean
+}
+export function leanTrainingStateFromRows(rows={}){
+ const state=trainingStateFromRows(rows),byKey=new Map((rows.programs||[]).map(row=>[row.program_key,row]))
+ return {...state,programs:state.programs.map(program=>leanProgram(program,byKey.get(program.id))),assignments:state.assignments.map(leanAssignment)}
+}
+
 // What the learner submits through the e-mailed link, and what follows from
 // it. A manager's save never sends these: the RPC ignores them and the
 // database keeps them (trg_training_assignments_learner_fields).
@@ -116,7 +144,7 @@ const derivedFields=['dbId','employeeDbId','computedStatus','createdAt','updated
 
 function omit(value,keys){const clean={...value};for(const key of keys)delete clean[key];return clean}
 // RPC input (JSON only as the input format; the RPC writes columns).
-export const programToRpc=program=>omit(program,['dbId','feedbackResponses','createdAt','updatedAt'])
+export const programToRpc=program=>omit(program,['dbId','feedbackResponses','questionCount','createdAt','updatedAt'])
 export const assignmentToRpc=assignment=>omit(assignment,[...learnerOwnedAssignmentFields,...derivedFields])
 export const requirementToRpc=requirement=>omit(requirement,['dbId','departmentId','userId'])
 

@@ -115,6 +115,8 @@ export function withStatuses(state) {
 
 // Every received batch with what was used, written off and what remains. A rejected
 // receipt or item adds no stock. Sorted FIFO: the oldest receipt first, then expiry.
+// In the cloud `state.balances` (kitchen_batch_balances) carries each batch's uses and
+// write-offs over its whole life, since the loaded uses cover a window only.
 export function stockRows(state, today = todayKey()) {
   const used = new Map(), uses = new Map(), off = new Map()
   for (const row of state.usage || []) if (row.receiptItemId) { used.set(row.receiptItemId, (used.get(row.receiptItemId) || 0) + (Number(row.quantity) || 0)); uses.set(row.receiptItemId, (uses.get(row.receiptItemId) || 0) + 1) }
@@ -127,14 +129,15 @@ export function stockRows(state, today = todayKey()) {
     for (const item of receipt.items || []) {
       const inStock = receipt.accepted !== false && item.accepted !== false
       const received = Number(item.quantity) || 0
-      const usedQty = round(used.get(item.id) || 0), offQty = round(off.get(item.id) || 0)
+      const balance = state.balances?.[item.id]
+      const usedQty = round(balance ? balance.used : used.get(item.id) || 0), offQty = round(balance ? balance.writtenOff : off.get(item.id) || 0)
       const remaining = inStock ? round(received - usedQty - offQty) : 0
       const daysLeft = item.expiryOn ? daysBetween(today, item.expiryOn) : null
       const product = products.get(item.productId)
       rows.push({
         receiptItemId: item.id, receiptId: receipt.id, receiptCode: receipt.code, receivedOn: receipt.receivedOn, supplierId: receipt.supplierId, supplierName: suppliers.get(receipt.supplierId) || receipt.supplierName || '',
         productId: item.productId, productName: item.productName, category: product?.category || '', storage: item.storage || product?.storage || '', batchCode: item.batchCode || '', lotLabel: item.lotLabel || '', expiryOn: item.expiryOn || '', unit: item.unit || 'kg',
-        received, used: usedQty, writtenOff: offQty, remaining, uses: uses.get(item.id) || 0, inStock,
+        received, used: usedQty, writtenOff: offQty, remaining, uses: balance ? balance.uses : uses.get(item.id) || 0, inStock,
         expired: inStock && remaining > 0 && daysLeft != null && daysLeft < 0, expiring: inStock && remaining > 0 && daysLeft != null && daysLeft >= 0 && daysLeft <= warn, daysLeft,
         overused: inStock && remaining < -0.0005,
         low: inStock && remaining > 0 && product?.lowStockQuantity !== '' && product?.lowStockQuantity != null && remaining <= Number(product.lowStockQuantity),
@@ -239,7 +242,7 @@ export function overview(state, today = todayKey()) {
     defrosting: (state.defrosting || []).filter(row => dayOf(row.startedAt) === today || dayOf(row.endedAt) === today || (!row.endedAt && dayOf(row.startedAt) >= addDays(today, -3))),
     pureeing: (state.pureeing || []).filter(row => row.pureedOn === today),
     outOfLimits: out.filter(recent),
-    outOfLimitsAll: out.length,
+    outOfLimitsAll: state.outOfLimitsTotal ?? out.length,
     expiring: stock.filter(row => row.expiring || row.expired),
     lowStock: stock.filter(row => row.low),
     inStock: stock.filter(row => row.inStock && row.remaining > 0.0005).length,

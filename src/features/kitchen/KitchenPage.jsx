@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertTriangle, Blend, CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, Route, ShieldCheck, Siren, Snowflake, Thermometer, Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -40,14 +40,17 @@ export function KitchenPage() {
   const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'overview'
   const setTab = next => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
   const access = useKitchenAccess()
-  const { state, loading, reload, organizationId } = useKitchen()
+  const { state, loading, reload, organizationId, showSince } = useKitchen()
   const [filters, setAllFilters] = useState(initialFilters)
+  // The lists show the loaded window; a «From» date (or a longer verification period) before it reads further back.
+  const today = todayKey()
+  const wantSince = useMemo(() => (filters.verification.range === 'all' ? null : [addDays(today, -Number(filters.verification.range || 30)), ...['receipts', 'thermal', 'defrost', 'pureeing', 'usage', 'plan'].map(key => filters[key].from)].filter(Boolean).sort()[0]), [filters, today])
+  useEffect(() => { showSince(wantSince) }, [wantSince, showSince])
   const filtersFor = key => [filters[key], updater => setAllFilters(current => ({ ...current, [key]: typeof updater === 'function' ? updater(current[key]) : updater }))]
   const [dialog, setDialog] = useState(null)
   const [trace, setTrace] = useState(null)
   const [recall, setRecall] = useState(null)
   const { sign, reopenRow } = useSignOff(organizationId, reload)
-  const today = todayKey()
   const stock = useMemo(() => (state ? stockRows(state, today) : []), [state, today])
   const summary = useMemo(() => (state ? overview(state, today) : null), [state, today])
   const dishes = useMemo(() => (state ? [...new Set([...state.thermal.map(row => row.dishName), ...state.productions.flatMap(row => (row.meals || []).map(meal => meal.dish))].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')).slice(0, 400) : []), [state])
@@ -118,7 +121,7 @@ export function KitchenPage() {
       {tab === 'haccp' && <HaccpPanel {...props} />}
     </section>
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={dishes} organizationId={organizationId} reload={reload} onOpenDay={openDay} />
-    {trace && <TraceDialog state={state} receiptItemId={trace} onClose={() => setTrace(null)} />}
+    {trace && <TraceDialog state={state} organizationId={organizationId} receiptItemId={trace} onClose={() => setTrace(null)} />}
     {recall && <RecallDialog key={recall.id || 'new'} state={state} organizationId={organizationId} access={access} initial={recall} onClose={() => setRecall(null)} onSaved={reload} />}
   </Page>
 }

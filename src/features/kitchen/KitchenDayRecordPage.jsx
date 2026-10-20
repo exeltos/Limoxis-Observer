@@ -45,7 +45,7 @@ export function KitchenDayRecordPage() {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const access = useKitchenAccess()
-  const { state, loading, reload, organizationId } = useKitchen()
+  const { state, loading, reload, organizationId } = useKitchen({ productionId })
   const { sign, reopenRow } = useSignOff(organizationId, reload)
   const [tab, setTab] = useState('usage')
   const [dialog, setDialog] = useState(null)
@@ -175,7 +175,7 @@ export function KitchenDayRecordPage() {
     </RecordTabPanel>}
     {meal && <MealDialog initial={meal.item} onClose={() => setMeal(null)} onSave={async item => { const meals = meal.index < 0 ? [...(production.meals || []), item] : production.meals.map((entry, at) => (at === meal.index ? item : entry)); if (await persist({ ...production, meals })) setMeal(null) }} />}
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={dishes} organizationId={organizationId} reload={reload} />
-    {trace && <TraceDialog state={state} receiptItemId={trace} onClose={() => setTrace(null)} />}
+    {trace && <TraceDialog state={state} organizationId={organizationId} receiptItemId={trace} onClose={() => setTrace(null)} />}
     {traceDay && <ObserverDialog width="wide" title={en ? 'Traceability of the day' : 'Ιχνηλάτηση ημέρας'} subtitle={`${fmtDay(production.productionDate)} · ${en ? 'supplier → batch → dish' : 'προμηθευτής → παρτίδα → πιάτο'}`} onClose={() => setTraceDay(false)} footer={<DialogActions />}>
       <RegistryTable className="kitchen-table" rows={usedBatches} rowKey={row => row.receiptItemId}
         columns={[{ key: 'supplier', label: en ? 'Supplier · receipt' : 'Προμηθευτής · παραλαβή' }, { key: 'batch', label: en ? 'Product · batch' : 'Προϊόν · παρτίδα' }, { key: 'dishes', label: en ? 'Dishes of the day' : 'Πιάτα της ημέρας' }, { key: 'more', label: '' }]}

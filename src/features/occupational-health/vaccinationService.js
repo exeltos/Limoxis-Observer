@@ -1,5 +1,6 @@
 import { binCloudRows,binLocalRow,describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { supabase } from '../../core/supabase/client'
+import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadVaccinations,saveVaccinations } from '../employees/employeeRecordsService'
@@ -32,13 +33,13 @@ function fromRow(row){
 export async function loadAllVaccinationsAsync(organizationId){
   if(isDemoDataEnvironment())return loadVaccinations()
   ensureCloud(organizationId,'employee_vaccinations.load_all')
-  const {data,error}=await supabase
+  const data=await selectAllPages(()=>supabase
     .from('employee_vaccinations')
     .select(COLUMNS)
     .eq('organization_id',organizationId)
     .order('vaccination_date',{ascending:false,nullsFirst:false})
-  if(error)throw error
-  return (data||[]).map(fromRow)
+    .order('id'))
+  return data.map(fromRow)
 }
 
 export async function createVaccinationsBulkAsync(organizationId,employees,draft){

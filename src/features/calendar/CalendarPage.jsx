@@ -17,14 +17,14 @@ import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { exportRegistry } from '../../core/export/registryExports'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadQualityRecords } from '../quality/qualityService'
-import { loadTrainingStateAsync } from '../training/trainingService'
+import { loadTrainingCalendarAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
 import { loadCommitteesAsync } from '../committees/committeeService'
 import { loadProtocolSuggestionsAsync } from '../documents/protocolReview/protocolReviewService'
 import { loadSupplierSchedule } from '../quality/resources/resourceService'
 import { withSupplierStatus } from '../quality/resources/resourceModel'
 import { loadKitchen } from '../kitchen/kitchenService'
-import { kitchenCalendarItems } from '../kitchen/kitchenModel'
+import { addDays, kitchenCalendarItems, todayKey } from '../kitchen/kitchenModel'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CALENDAR_KINDS,buildCalendarEvents,calendarKindLabel,dayKey,monthGrid } from './calendarEvents'
 import './calendar.css'
@@ -67,12 +67,13 @@ export function CalendarPage(){
    safe('controls',()=>loadControlProgramme(organizationId),[]),
    safe('capa',()=>loadQualityRecords('capas',organizationId),[]),
    safe('audits',()=>loadQualityRecords('audits',organizationId),[]),
-   safe('training',()=>loadTrainingStateAsync(organizationId),null),
+   safe('training',()=>loadTrainingCalendarAsync(organizationId),null),
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
    safe('documents',()=>loadProtocolSuggestionsAsync(organizationId),[]),
    safe('suppliers',()=>loadSupplierSchedule(organizationId).then(({suppliers,templates})=>withSupplierStatus(suppliers,[],undefined,templates)),[]),
-   safe('kitchen',()=>loadKitchen(organizationId).then(state=>kitchenCalendarItems(state,{language})),[]),
+   // The kitchen's calendar items reach back 30 days (verification, out of limits) and forward (plan, expiry): only that window is read.
+   safe('kitchen',()=>loadKitchen(organizationId,{since:addDays(todayKey(),-30)}).then(state=>kitchenCalendarItems(state,{language})),[]),
   ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions,suppliers,kitchen])=>{
    if(active)setSources({controls,capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
   })

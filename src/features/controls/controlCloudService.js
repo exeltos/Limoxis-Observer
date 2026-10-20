@@ -5,6 +5,7 @@ import { deleteAttachment,uploadAttachment } from '../../core/attachments/attach
 import { evidenceSummary } from './controlCriticality'
 import { loadControlDefinitionsLocal,saveControlDefinitionsLocal,loadControlAssignmentsLocal,saveControlAssignmentsLocal,loadControlExecutionsLocal,saveControlExecutionsLocal,loadControlDraftsLocal,saveControlDraftsLocal } from './controlStore'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
+import { selectAllPages } from '../../core/data/inChunks'
 
 const demoId=prefix=>`${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`
 const demoResolveDepartments=(names=[])=>(names||[]).filter(Boolean).map(name=>({id:name,name}))
@@ -140,6 +141,8 @@ async function readExecutionPages(build){
  }
 }
 const RECENT_PER_ASSIGNMENT=50
+// Definitions and assignments read page by page as well (past 1,000 the API cut them silently).
+const readPages=build=>selectAllPages(build).then(data=>({data,error:null}),error=>({data:null,error}))
 const isExpiryDefinition=row=>row?.response_config?.mode==='list'&&row?.response_config?.template==='medication_expiry'
 
 // The programme: definitions, assignments, drafts and per-assignment counts.
@@ -156,14 +159,16 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
   return definitions.map(row=>mapDefinition(row,assignments,executions,drafts))
  }
  assertCloud(organizationId)
- let definitionsQuery=supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false})
- if(code)definitionsQuery=definitionsQuery.eq('code',code)
+ const definitionsQuery=readPages(()=>{
+  const query=supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false}).order('id')
+  return code?query.eq('code',code):query
+ })
  let draftsQuery=supabase.from('control_drafts').select('*').eq('organization_id',organizationId).order('saved_at',{ascending:false})
  if(code)draftsQuery=draftsQuery.eq('control_id',code)
  const assignmentsSelect='*,department:departments(id,name)'
  // The whole programme reads every assignment, so that read starts with the
  // others; one control (code) needs its definition's id first.
- const allAssignments=code?null:supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId)
+ const allAssignments=code?null:readPages(()=>supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId).order('id'))
  const findingsRead=findingsSince?readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).eq('has_finding',true).gte('performed_at',new Date(findingsSince).toISOString())):Promise.resolve([])
  findingsRead.catch(()=>{}) // handled with the other reads below
  const [definitionsResult,draftsResult,summaryResult,progressResult,allAssignmentsResult]=await Promise.all([
@@ -183,7 +188,7 @@ export async function loadControlProgramme(organizationId,{code=null,findingsSin
  if(expiryIds.length)reads.push(readExecutionPages(()=>supabase.from('control_executions').select('*').eq('organization_id',organizationId).in('control_id',expiryIds).eq('has_item_list',true)))
  let assignments=allAssignmentsResult.data
  if(code){
-  const {data,error}=await supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId).in('control_id',definitions.map(row=>row.id))
+  const {data,error}=await readPages(()=>supabase.from('control_assignments').select(assignmentsSelect).eq('organization_id',organizationId).in('control_id',definitions.map(row=>row.id)).order('id'))
   if(error)throw error
   assignments=data
   // The recent entries of every department in one request (control_recent_executions, 20261128500000), not one per assignment.
@@ -203,13 +208,13 @@ const EXPIRY_EXECUTION_COLUMNS='id,assignment_id,control_id,performed_at,status,
 export async function loadExpiryProgramme(organizationId){
  if(isDemoDataEnvironment())return (await loadControlProgramme(organizationId,{summary:false})).filter(row=>row.responseConfig?.mode==='list'&&row.responseConfig?.template==='medication_expiry')
  assertCloud(organizationId)
- const {data:rows,error}=await supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').eq('response_config->>template','medication_expiry').order('created_at',{ascending:false})
+ const {data:rows,error}=await readPages(()=>supabase.from('control_definitions').select('*').eq('organization_id',organizationId).neq('status','archived').eq('response_config->>template','medication_expiry').order('created_at',{ascending:false}).order('id'))
  if(error)throw error
  const definitions=(rows||[]).filter(isExpiryDefinition)
  if(!definitions.length)return []
  const ids=definitions.map(row=>row.id)
  const [assignmentsResult,executions]=await Promise.all([
-  supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId).in('control_id',ids),
+  readPages(()=>supabase.from('control_assignments').select('*,department:departments(id,name)').eq('organization_id',organizationId).in('control_id',ids).order('id')),
   readExecutionPages(()=>supabase.from('control_executions').select(EXPIRY_EXECUTION_COLUMNS).eq('organization_id',organizationId).in('control_id',ids).eq('has_item_list',true)),
  ])
  if(assignmentsResult.error)throw assignmentsResult.error
@@ -220,7 +225,7 @@ export async function loadExpiryProgramme(organizationId){
 export async function loadControlCategories(organizationId){
  const rows=isDemoDataEnvironment()?loadControlDefinitionsLocal():await (async()=>{
   assertCloud(organizationId)
-  const {data,error}=await supabase.from('control_definitions').select('category').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false})
+  const {data,error}=await readPages(()=>supabase.from('control_definitions').select('category').eq('organization_id',organizationId).neq('status','archived').order('created_at',{ascending:false}).order('id'))
   if(error)throw error
   return data||[]
  })()

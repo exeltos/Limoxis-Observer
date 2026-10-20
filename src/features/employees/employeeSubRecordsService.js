@@ -1,8 +1,9 @@
 import { supabase } from '../../core/supabase/client'
+import { selectAllPages } from '../../core/data/inChunks'
 import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadTrainingState } from '../training/trainingData'
-import { ASSIGNMENT_SELECT,CERTIFICATE_SELECT,PROGRAM_SELECT,trainingStateFromRows } from '../training/trainingMappers'
+import { ASSIGNMENT_DETAIL_SELECT,CERTIFICATE_SELECT,PROGRAM_DETAIL_SELECT,trainingStateFromRows } from '../training/trainingMappers'
 import { loadOccupationalVisits as loadVisitsLocal, saveOccupationalVisits as saveVisitsLocal, loadVaccinations as loadVaccinationsLocal, loadEmployeeTraining as loadTrainingLocal, loadEvaluations as loadEvaluationsLocal, saveEvaluations as saveEvaluationsLocal, loadCertificates as loadCertificatesLocal, loadExposureIncidents as loadExposureIncidentsLocal } from './employeeRecordsService'
 
 function ensureProductionContext(organizationId,employeeDbId,operation){
@@ -34,18 +35,18 @@ async function loadCanonicalTrainingContext(organizationId,employeeDbId,employee
   const userId=employee?.user_id||null
   const quoted=value=>`"${String(value).replace(/["\\]/g,'')}"`
   const matches=[`employee_id.eq.${employeeDbId}`,userId&&`employee_user_id.eq.${userId}`,employeeCode&&`employee_code.eq.${quoted(employeeCode)}`,employeeId&&String(employeeId)!==employeeCode&&`employee_code.eq.${quoted(employeeId)}`].filter(Boolean)
-  const {data:assignmentRows,error:assignmentError}=await supabase
+  const assignmentRows=await selectAllPages(()=>supabase
     .from('training_assignments')
-    .select(ASSIGNMENT_SELECT)
+    .select(ASSIGNMENT_DETAIL_SELECT)
     .eq('organization_id',organizationId)
     .or(matches.join(','))
     .order('updated_at',{ascending:false})
-  if(assignmentError)throw assignmentError
+    .order('id'))
 
   const programIds=[...new Set((assignmentRows||[]).map(row=>row.program_id).filter(Boolean))]
   let programRows=[]
   if(programIds.length){
-    const {data,error:programError}=await supabase.from('training_programs').select(PROGRAM_SELECT).eq('organization_id',organizationId).in('id',programIds)
+    const {data,error:programError}=await supabase.from('training_programs').select(PROGRAM_DETAIL_SELECT).eq('organization_id',organizationId).in('id',programIds)
     if(programError)throw programError
     programRows=data||[]
   }
@@ -94,14 +95,14 @@ function visitFromRow(row) {
 export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadVisitsLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'occupational_health_visits.load')
-  const { data, error } = await supabase
+  const data = await selectAllPages(() => supabase
     .from('occupational_health_visits')
     .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
     .order('visit_date', { ascending: false })
-  if (error) throw error
-  return (data || []).map(visitFromRow)
+    .order('id'))
+  return data.map(visitFromRow)
 }
 
 // Every employee's visits, for the Occupational Health registry. Rows keep the
@@ -110,13 +111,13 @@ export async function loadOccupationalVisitsAsync(organizationId, employeeDbId, 
 export async function loadAllOccupationalVisitsAsync(organizationId) {
   if(!cloudEnabled())return loadVisitsLocal()
   if(!organizationId)return []
-  const { data, error } = await supabase
+  const data = await selectAllPages(() => supabase
     .from('occupational_health_visits')
     .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
     .order('visit_date', { ascending: false })
-  if (error) throw error
-  return (data || []).map(visitFromRow)
+    .order('id'))
+  return data.map(visitFromRow)
 }
 
 // Records a visit of the occupational physician (scheduled, or done with its
@@ -161,14 +162,14 @@ function vaccinationFromRow(row) {
 export async function loadVaccinationsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadVaccinationsLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_vaccinations.load')
-  const { data, error } = await supabase
+  const data = await selectAllPages(() => supabase
     .from('employee_vaccinations')
     .select('id,employee_id,vaccine_label_snapshot,dose,vaccination_date,lot_number,valid_until,status,clinical_notes,created_at,updated_at')
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
     .order('vaccination_date', { ascending: false, nullsFirst: false })
-  if (error) throw error
-  return (data || []).map(vaccinationFromRow)
+    .order('id'))
+  return data.map(vaccinationFromRow)
 }
 
 // --- Training summary ---
@@ -320,14 +321,14 @@ const CERTIFICATE_COLUMNS = 'id,employee_id,title,title_en,issuer,issue_date,val
 export async function loadCertificatesAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadCertificatesLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'employee_certificates.load')
-  const { data, error } = await supabase
+  const data = await selectAllPages(() => supabase
     .from('employee_certificates')
     .select(CERTIFICATE_COLUMNS)
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
     .order('issue_date', { ascending: false })
-  if (error) throw error
-  return (data || []).map(certificateFromRow)
+    .order('id'))
+  return data.map(certificateFromRow)
 }
 
 export async function createCertificateAsync(organizationId, employeeDbId, draft) {
@@ -364,14 +365,14 @@ const EXPOSURE_INCIDENT_COLUMNS = 'id,employee_id,incident_date,exposure_type,de
 export async function loadExposureIncidentsAsync(organizationId, employeeDbId, employeeId) {
   if(isDemoDataEnvironment())return loadExposureIncidentsLocal().filter(x => x.employeeId === employeeId)
   ensureProductionContext(organizationId,employeeDbId,'occupational_exposure_incidents.load')
-  const { data, error } = await supabase
+  const data = await selectAllPages(() => supabase
     .from('occupational_exposure_incidents')
     .select(EXPOSURE_INCIDENT_COLUMNS)
     .eq('organization_id', organizationId)
     .eq('employee_id', employeeDbId)
     .order('incident_date', { ascending: false })
-  if (error) throw error
-  return (data || []).map(exposureIncidentFromRow)
+    .order('id'))
+  return data.map(exposureIncidentFromRow)
 }
 
 export async function createExposureIncidentAsync(organizationId, employeeDbId, draft) {

@@ -9,8 +9,9 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
+import { selectInChunks } from '../../core/data/inChunks'
 import { kitchenDemoState } from './kitchenDemoData'
-import { batchProblem, combine, stockRows, withStatuses } from './kitchenModel'
+import { addDays, batchProblem, combine, normalize, stockRows, todayKey, withStatuses } from './kitchenModel'
 import { defrostStatus, needsCorrectiveAction, pureeingStatus, receiptStatus, resolveLimits, thermalStatuses } from './kitchenLimits'
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
@@ -109,41 +110,239 @@ export class KitchenRuleError extends Error { constructor(code) { super(code); t
 
 // --- API -----------------------------------------------------------------------------------
 
-// Everything the kitchen screens need, in one go, with each entry's in / out of limits.
-export async function loadKitchen(organizationId) {
-  if (isLocal()) return withStatuses(local())
-  if (!organizationId) return withStatuses({ settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] })
-  const [settings, limits, steps, products, menus, receipts, items, writeoffs, productions, meals, usage, thermal, pureeing, defrosting, suppliers, recallDrills] = await Promise.all([
+// --- Reading -------------------------------------------------------------------------------
+// The screens no longer read every kitchen table in full:
+// - the configuration (settings, limits, HACCP steps, products, menus, suppliers) is
+//   read once per organization and kept for KITCHEN_CONFIG_TTL_MS (a change to it clears it);
+// - the day records (receipts, production days and meals, materials used, heat treatments,
+//   pureeing, defrosting) are read from `since` on (default: the last
+//   KITCHEN_WINDOW_DAYS days and the future plan); an older date filter extends it;
+// - the stock of every batch comes from kitchen_batch_balances (20261201100100): what each
+//   batch used and wrote off over its whole life, and the older receipts that still hold stock;
+// - a receipt or a production day reads its own rows (loadKitchenReceipt, loadKitchenDay),
+//   and a trace or recall drill the rows of its batches (loadKitchenTrace).
+export const KITCHEN_WINDOW_DAYS = 90
+export const KITCHEN_CONFIG_TTL_MS = 5 * 60 * 1000
+export const kitchenSince = (today = todayKey()) => addDays(today, -KITCHEN_WINDOW_DAYS)
+const CONFIG_TABLES = new Set(['kitchen_settings', 'kitchen_limits', 'kitchen_haccp_steps', 'kitchen_products', 'kitchen_menus'])
+const configCache = new Map()
+export function clearKitchenConfigCache(organizationId) { if (organizationId === undefined) configCache.clear(); else configCache.delete(organizationId) }
+const DEFAULT_SETTINGS = { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', recallDrillMonths: 12, notes: '' }
+const EMPTY_STATE = { settings: null, limits: [], steps: [], products: [], menus: [], receipts: [], writeoffs: [], productions: [], usage: [], thermal: [], pureeing: [], defrosting: [], suppliers: [], recallDrills: [] }
+
+function loadKitchenConfig(organizationId, now = Date.now()) {
+  const hit = configCache.get(organizationId)
+  if (hit && hit.expires > now) return hit.promise
+  const promise = Promise.all([
     supabase.from('kitchen_settings').select('*').eq('organization_id', organizationId).maybeSingle().then(must),
     byOrg('kitchen_limits', organizationId, 'limit_key'), byOrg('kitchen_haccp_steps', organizationId, 'position'), byOrg('kitchen_products', organizationId, 'name'), byOrg('kitchen_menus', organizationId, 'weekday'),
-    byOrg('kitchen_receipts', organizationId, 'received_on'), byOrg('kitchen_receipt_items', organizationId, 'position'), byOrg('kitchen_stock_writeoffs', organizationId, 'written_off_on'),
-    byOrg('kitchen_productions', organizationId, 'production_date'), byOrg('kitchen_production_meals', organizationId, 'position'), byOrg('kitchen_material_usage', organizationId, 'used_on'),
-    byOrg('kitchen_thermal_processes', organizationId, 'process_date'), byOrg('kitchen_pureeing', organizationId, 'pureed_on'), byOrg('kitchen_defrosting', organizationId, 'started_at'),
     selectAll(() => supabase.from('quality_suppliers').select('id,name,category,status').eq('organization_id', organizationId).order('name').order('id')).catch(() => []),
-    byOrg('kitchen_recall_drills', organizationId, 'drill_date').catch(() => []),
-  ])
-  const itemsBy = group(items.map(row => ({ ...fromRow('kitchen_receipt_items', row), receiptId: row.receipt_id })), 'receiptId')
-  const mealsBy = group(meals.map(row => ({ ...fromRow('kitchen_production_meals', row), productionId: row.production_id })), 'productionId')
-  return {
-    settings: settings ? fromRow('kitchen_settings', settings) : { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: '', haccpDocumentId: '', haccpTeam: '', recallDrillMonths: 12, notes: '' },
+  ]).then(([settings, limits, steps, products, menus, suppliers]) => ({
+    settings: settings ? fromRow('kitchen_settings', settings) : { ...DEFAULT_SETTINGS },
     limits: resolveLimits(limits.map(row => fromRow('kitchen_limits', row))),
     steps: steps.map(row => fromRow('kitchen_haccp_steps', row)),
     products: products.map(row => fromRow('kitchen_products', row)),
     menus: menus.map(row => fromRow('kitchen_menus', row)),
-    receipts: receipts.map(row => ({ ...fromRow('kitchen_receipts', row), items: itemsBy.get(row.id) || [] })),
+    suppliers: suppliers.map(row => ({ id: row.id, name: row.name, category: row.category, status: row.status })),
+  }))
+  configCache.set(organizationId, { promise, expires: now + KITCHEN_CONFIG_TTL_MS })
+  promise.catch(() => { if (configCache.get(organizationId)?.promise === promise) configCache.delete(organizationId) })
+  return promise
+}
+
+// Rows of a table whose `column` is one of `values` (in chunks), in the order given.
+const rowsIn = (table, organizationId, column, values, order = [['created_at'], ['id']], select = '*') => (values.length
+  ? selectInChunks(values, chunk => supabase.from(table).select(select).eq('organization_id', organizationId).in(column, chunk).order(order[0][0]).order('id'), { order }).then(must)
+  : Promise.resolve([]))
+const fromSince = (table, organizationId, column, since, order = column) => selectAll(() => {
+  const query = supabase.from(table).select('*').eq('organization_id', organizationId)
+  return (since ? query.gte(column, since) : query).order(order).order('id')
+})
+const balancesOf = rows => Object.fromEntries(rows.map(row => [row.receipt_item_id, { used: Number(row.used) || 0, uses: Number(row.uses) || 0, writtenOff: Number(row.written_off) || 0 }]))
+const receiptsWithItems = (receipts, items) => {
+  const itemsBy = group(items.map(row => ({ ...fromRow('kitchen_receipt_items', row), receiptId: row.receipt_id })), 'receiptId')
+  return receipts.map(row => ({ ...fromRow('kitchen_receipts', row), items: itemsBy.get(row.id) || [] }))
+}
+const productionsWithMeals = (productions, meals) => {
+  const mealsBy = group(meals.map(row => ({ ...fromRow('kitchen_production_meals', row), productionId: row.production_id })), 'productionId')
+  return productions.map(row => ({ ...fromRow('kitchen_productions', row), meals: mealsBy.get(row.id) || [] }))
+}
+const byReceivedOn = (a, b) => String(a.received_on).localeCompare(String(b.received_on)) || String(a.id).localeCompare(String(b.id))
+// Receipts by id with all their products.
+async function loadReceiptRows(organizationId, ids) {
+  const receipts = (await rowsIn('kitchen_receipts', organizationId, 'id', ids, [['received_on'], ['id']])).sort(byReceivedOn)
+  const items = await rowsIn('kitchen_receipt_items', organizationId, 'receipt_id', receipts.map(row => row.id), [['position'], ['id']])
+  return receiptsWithItems(receipts, items)
+}
+// Production days by id with their meals.
+async function loadProductionRows(organizationId, ids) {
+  const productions = await rowsIn('kitchen_productions', organizationId, 'id', ids, [['production_date'], ['id']])
+  const meals = await rowsIn('kitchen_production_meals', organizationId, 'production_id', productions.map(row => row.id), [['position'], ['id']])
+  return productionsWithMeals(productions, meals)
+}
+const outCount = (table, organizationId) => supabase.from(table).select('id', { count: 'exact', head: true }).eq('organization_id', organizationId).eq('limit_status', 'out').then(({ count, error }) => { if (error) throw error; return count || 0 })
+
+// The kitchen screens' state, with each entry's in / out of limits. `since` (a day, or
+// null for the whole history) is where the day records start.
+export async function loadKitchen(organizationId, { since = kitchenSince() } = {}) {
+  if (isLocal()) return withStatuses(local())
+  if (!organizationId) return withStatuses({ ...EMPTY_STATE })
+  const [config, balances, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, recallDrills, outOfLimitsTotal] = await Promise.all([
+    loadKitchenConfig(organizationId),
+    selectAll(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId, p_since: since || null }).order('receipt_item_id')),
+    fromSince('kitchen_receipts', organizationId, 'received_on', since),
+    byOrg('kitchen_stock_writeoffs', organizationId, 'written_off_on'),
+    fromSince('kitchen_productions', organizationId, 'production_date', since),
+    fromSince('kitchen_material_usage', organizationId, 'used_on', since),
+    fromSince('kitchen_thermal_processes', organizationId, 'process_date', since),
+    fromSince('kitchen_pureeing', organizationId, 'pureed_on', since),
+    selectAll(() => {
+      const query = supabase.from('kitchen_defrosting').select('*').eq('organization_id', organizationId)
+      return (since ? query.or(`started_at.gte.${since},ended_at.gte.${since}`) : query).order('started_at').order('id')
+    }),
+    byOrg('kitchen_recall_drills', organizationId, 'drill_date').catch(() => []),
+    // The overview counts the entries out of limits in the whole history.
+    since ? Promise.all(['kitchen_receipts', 'kitchen_thermal_processes', 'kitchen_defrosting', 'kitchen_pureeing'].map(table => outCount(table, organizationId))).then(counts => counts.reduce((sum, n) => sum + n, 0)).catch(() => null) : Promise.resolve(null),
+  ])
+  // Older receipts that still hold stock come with the window's.
+  const inWindow = new Set(receipts.map(row => row.id))
+  const older = [...new Set(balances.map(row => row.receipt_id))].filter(id => id && !inWindow.has(id))
+  const [olderReceipts, items, meals] = await Promise.all([
+    rowsIn('kitchen_receipts', organizationId, 'id', older, [['received_on'], ['id']]),
+    rowsIn('kitchen_receipt_items', organizationId, 'receipt_id', [...inWindow, ...older], [['position'], ['id']]),
+    rowsIn('kitchen_production_meals', organizationId, 'production_id', productions.map(row => row.id), [['position'], ['id']]),
+  ])
+  return {
+    ...config,
+    receipts: receiptsWithItems([...olderReceipts, ...receipts].sort(byReceivedOn), items),
     writeoffs: writeoffs.map(row => fromRow('kitchen_stock_writeoffs', row)),
-    productions: productions.map(row => ({ ...fromRow('kitchen_productions', row), meals: mealsBy.get(row.id) || [] })),
+    productions: productionsWithMeals(productions, meals),
     usage: usage.map(row => fromRow('kitchen_material_usage', row)),
     thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)),
     pureeing: pureeing.map(row => fromRow('kitchen_pureeing', row)),
     defrosting: defrosting.map(row => fromRow('kitchen_defrosting', row)),
-    suppliers: suppliers.map(row => ({ id: row.id, name: row.name, category: row.category, status: row.status })),
     recallDrills: recallDrills.map(row => ({ ...fromRow('kitchen_recall_drills', row), stockCounts: row.trace_snapshot?.stockCounts || {} })),
+    balances: balancesOf(balances),
+    since: since || null,
+    ...(outOfLimitsTotal == null ? {} : { outOfLimitsTotal }),
   }
+}
+
+// One receipt (its record page): the receipt and its products, the uses and write-offs
+// of those batches and the production days they went to (for the trace).
+export async function loadKitchenReceipt(organizationId, receiptId) {
+  if (isLocal()) return withStatuses(local())
+  if (!organizationId || !isUuid(receiptId)) return withStatuses({ ...EMPTY_STATE })
+  const [config, receipts] = await Promise.all([loadKitchenConfig(organizationId), loadReceiptRows(organizationId, [receiptId])])
+  const itemIds = receipts.flatMap(row => row.items.map(item => item.id))
+  const [usage, writeoffs] = await Promise.all([
+    rowsIn('kitchen_material_usage', organizationId, 'receipt_item_id', itemIds, [['used_on'], ['id']]),
+    rowsIn('kitchen_stock_writeoffs', organizationId, 'receipt_item_id', itemIds, [['written_off_on'], ['id']]),
+  ])
+  const productionIds = [...new Set(usage.map(row => row.production_id).filter(Boolean))]
+  const [productions, thermal] = await Promise.all([
+    loadProductionRows(organizationId, productionIds),
+    rowsIn('kitchen_thermal_processes', organizationId, 'production_id', productionIds, [['process_date'], ['id']]),
+  ])
+  return { ...EMPTY_STATE, ...config, receipts, writeoffs: writeoffs.map(row => fromRow('kitchen_stock_writeoffs', row)), productions, usage: usage.map(row => fromRow('kitchen_material_usage', row)), thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)) }
+}
+
+// One production day (its record page): the day and its meals, what was recorded on it,
+// the receipts of the day, and the batches in stock it may take from (with their balances).
+export async function loadKitchenDay(organizationId, productionId) {
+  if (isLocal()) return withStatuses(local())
+  if (!organizationId || !isUuid(productionId)) return withStatuses({ ...EMPTY_STATE })
+  const [config, productions] = await Promise.all([loadKitchenConfig(organizationId), loadProductionRows(organizationId, [productionId])])
+  const production = productions[0]
+  if (!production) return { ...EMPTY_STATE, ...config }
+  const day = production.productionDate, near = [addDays(day, -2), addDays(day, 2)]
+  const loose = column => `and(production_id.is.null,${column}.gte.${near[0]},${column}.lt.${near[1]})`
+  const [usage, thermal, pureeing, defrosting, dayReceipts, writeoffs] = await Promise.all([
+    rowsIn('kitchen_material_usage', organizationId, 'production_id', [productionId], [['used_on'], ['id']]),
+    rowsIn('kitchen_thermal_processes', organizationId, 'production_id', [productionId], [['process_date'], ['id']]),
+    rowsIn('kitchen_pureeing', organizationId, 'production_id', [productionId], [['pureed_on'], ['id']]),
+    selectAll(() => supabase.from('kitchen_defrosting').select('*').eq('organization_id', organizationId).or(`production_id.eq.${productionId},${loose('started_at')},${loose('ended_at')}`).order('started_at').order('id')),
+    selectAll(() => supabase.from('kitchen_receipts').select('id,received_on').eq('organization_id', organizationId).eq('received_on', day).order('id')),
+    byOrg('kitchen_stock_writeoffs', organizationId, 'written_off_on'),
+  ])
+  // The batches the day used may be older than the stock still on the shelf: the balances
+  // start from the oldest of them.
+  const usedItems = await rowsIn('kitchen_receipt_items', organizationId, 'id', [...new Set(usage.map(row => row.receipt_item_id).filter(Boolean))], [['position'], ['id']], 'id,receipt_id,position')
+  const usedReceipts = await rowsIn('kitchen_receipts', organizationId, 'id', [...new Set(usedItems.map(row => row.receipt_id))], [['received_on'], ['id']], 'id,received_on')
+  const since = [day, ...usedReceipts.map(row => row.received_on)].filter(Boolean).sort()[0]
+  const balances = await selectAll(() => supabase.rpc('kitchen_batch_balances', { p_organization_id: organizationId, p_since: since }).order('receipt_item_id'))
+  const receipts = await loadReceiptRows(organizationId, [...new Set([...balances.map(row => row.receipt_id), ...dayReceipts.map(row => row.id), ...usedReceipts.map(row => row.id)])])
+  return {
+    ...EMPTY_STATE, ...config, receipts, productions,
+    writeoffs: writeoffs.map(row => fromRow('kitchen_stock_writeoffs', row)),
+    usage: usage.map(row => fromRow('kitchen_material_usage', row)),
+    thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)),
+    pureeing: pureeing.map(row => fromRow('kitchen_pureeing', row)),
+    defrosting: defrosting.map(row => fromRow('kitchen_defrosting', row)),
+    balances: balancesOf(balances),
+  }
+}
+
+// What a trace or a recall drill needs beyond the loaded window, read from the
+// database: every batch of the subject (a lot, a product's batches or a dish's), every
+// use of those batches, the other materials of the same days, those days with their
+// meals and heat treatments, and the receipts of all the batches involved. null in the demo.
+export async function loadKitchenTrace(organizationId, { receiptItemIds = [], productId = '', productName = '', dishName = '' } = {}) {
+  if (isLocal() || !organizationId) return null
+  const itemIds = new Set(receiptItemIds.filter(isUuid))
+  const usageIds = new Set()
+  const light = (table, columns, build = query => query) => selectAll(() => build(supabase.from(table).select(columns).eq('organization_id', organizationId)).order('id'))
+  if (isUuid(productId)) {
+    for (const row of await light('kitchen_receipt_items', 'id', query => query.eq('product_id', productId))) itemIds.add(row.id)
+    for (const row of await light('kitchen_material_usage', 'id', query => query.is('receipt_item_id', null).eq('product_id', productId))) usageIds.add(row.id)
+  } else if (normalize(productName)) {
+    const name = normalize(productName)
+    for (const row of await light('kitchen_receipt_items', 'id,product_name')) if (normalize(row.product_name) === name) itemIds.add(row.id)
+    for (const row of await light('kitchen_material_usage', 'id,product_name', query => query.is('receipt_item_id', null))) if (normalize(row.product_name) === name) usageIds.add(row.id)
+  }
+  if (normalize(dishName)) {
+    const dish = normalize(dishName)
+    for (const row of await light('kitchen_material_usage', 'id,dish_name,receipt_item_id')) if (normalize(row.dish_name) === dish) { usageIds.add(row.id); if (row.receipt_item_id) itemIds.add(row.receipt_item_id) }
+  }
+  const order = [['used_on'], ['id']]
+  const [byItem, byId] = await Promise.all([rowsIn('kitchen_material_usage', organizationId, 'receipt_item_id', [...itemIds], order), rowsIn('kitchen_material_usage', organizationId, 'id', [...usageIds], order)])
+  const productionIds = [...new Set([...byItem, ...byId].map(row => row.production_id).filter(Boolean))]
+  const days = [...new Set([...byItem, ...byId].map(row => row.used_on).filter(Boolean))]
+  // The other materials of the same days (the backward trace).
+  const [byDay, byDate] = await Promise.all([rowsIn('kitchen_material_usage', organizationId, 'production_id', productionIds, order), rowsIn('kitchen_material_usage', organizationId, 'used_on', days, order)])
+  const usage = [...new Map([...byItem, ...byId, ...byDay, ...byDate].map(row => [row.id, row])).values()]
+  const allProductions = [...new Set(usage.map(row => row.production_id).filter(Boolean))]
+  const items = await rowsIn('kitchen_receipt_items', organizationId, 'id', [...new Set([...itemIds, ...usage.map(row => row.receipt_item_id).filter(Boolean)])], [['position'], ['id']], 'id,receipt_id,position')
+  const [receipts, productions, thermal] = await Promise.all([
+    loadReceiptRows(organizationId, [...new Set(items.map(row => row.receipt_id))]),
+    loadProductionRows(organizationId, allProductions),
+    rowsIn('kitchen_thermal_processes', organizationId, 'production_id', allProductions, [['process_date'], ['id']]),
+  ])
+  return { receipts, productions, usage: usage.map(row => fromRow('kitchen_material_usage', row)), thermal: thermal.map(row => fromRow('kitchen_thermal_processes', row)) }
+}
+
+// Every dish name the materials were used for (the recall drill's dish list).
+export async function loadKitchenDishNames(organizationId) {
+  if (isLocal() || !organizationId) return []
+  const rows = await selectAll(() => supabase.from('kitchen_material_usage').select('id,dish_name').eq('organization_id', organizationId).not('dish_name', 'is', null).order('id'))
+  return [...new Set(rows.map(row => row.dish_name).filter(Boolean))]
+}
+
+// The loaded state with rows read for a trace (by id; the loaded rows stay).
+export function mergeKitchenState(state, extra) {
+  if (!state || !extra) return state
+  const merged = { ...state }
+  for (const key of ['receipts', 'productions', 'usage', 'thermal']) {
+    const known = new Set((state[key] || []).map(row => row.id))
+    const added = (extra[key] || []).filter(row => !known.has(row.id))
+    if (added.length) merged[key] = [...(state[key] || []), ...added]
+  }
+  return merged
 }
 const group = (rows, key) => { const map = new Map(); for (const row of rows) { const list = map.get(row[key]) || []; list.push(row); map.set(row[key], list) } return map }
 
 async function writeRow(table, organizationId, entry, extra = {}) {
+  if (CONFIG_TABLES.has(table)) clearKitchenConfigCache(organizationId)
   const row = { ...toRow(table, entry), ...extra }
   if (isUuid(entry.id)) return must(await supabase.from(table).update(row).eq('id', entry.id).eq('organization_id', organizationId).select('*').single())
   return must(await supabase.from(table).insert({ ...row, organization_id: organizationId }).select('*').single())
@@ -185,6 +384,7 @@ export async function removeEntry(organizationId, table, id) {
     saveLocal(state)
     return
   }
+  if (CONFIG_TABLES.has(table)) clearKitchenConfigCache(organizationId)
   must(await supabase.from(table).delete().eq('id', id).eq('organization_id', organizationId))
 }
 const LOCAL_FIELD = { kitchen_receipts: 'receipts', kitchen_material_usage: 'usage', kitchen_thermal_processes: 'thermal', kitchen_pureeing: 'pureeing', kitchen_defrosting: 'defrosting', kitchen_productions: 'productions', kitchen_products: 'products', kitchen_menus: 'menus', kitchen_haccp_steps: 'steps', kitchen_stock_writeoffs: 'writeoffs', kitchen_recall_drills: 'recallDrills' }
@@ -302,6 +502,7 @@ export async function saveLimits(organizationId, limits) {
     saveLocal(state)
     return
   }
+  clearKitchenConfigCache(organizationId)
   const rows = limits.map(item => ({ ...toRow('kitchen_limits', { ...item, label: item.label?.[0] || item.limitKey }), organization_id: organizationId }))
   must(await supabase.from('kitchen_limits').upsert(rows, { onConflict: 'organization_id,limit_key' }))
 }
@@ -312,6 +513,7 @@ export async function saveSettings(organizationId, settings) {
     saveLocal(state)
     return
   }
+  clearKitchenConfigCache(organizationId)
   must(await supabase.from('kitchen_settings').upsert({ ...toRow('kitchen_settings', settings), organization_id: organizationId }, { onConflict: 'organization_id' }))
 }
 

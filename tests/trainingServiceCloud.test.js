@@ -43,10 +43,35 @@ describe('training service on the relational tables',()=>{
  it('loads the state with embeds and keeps the in-app shapes',async()=>{
   const state=await service.loadTrainingStateAsync('org-1')
   expect(calls.select.map(c=>c.table).sort()).toEqual(['training_assignments','training_certificates','training_history_events','training_programs','training_requirements'])
-  expect(calls.select.find(c=>c.table==='training_assignments').columns).toContain('training_assessment_answers(')
-  expect(state.programs[0]).toMatchObject({id:'TRN-1',dbId:'p1',passScore:80,trainerFeedbackTemplate:{id:'TRAINER-FEEDBACK-DEFAULT',questions:[{id:'clarity',labelEl:'Σαφήνεια',labelEn:'Clarity'}]},feedbackResponses:[{assignmentId:'TRA-1',employeeId:'EMP-001',scores:{clarity:5},comment:'Καλό'}]})
-  expect(state.programs[0]).not.toHaveProperty('effectiveness')
-  expect(state.assignments[0]).toMatchObject({id:'TRA-1',dbId:'a1',programId:'TRN-1',employeeId:'EMP-001',employeeDbId:'e1',departmentId:'d1',assessmentReviewStatus:'pending',assessmentAnswers:{Q1:'Because it is'},feedbackScores:{clarity:5},feedbackComment:'Καλό',certificateId:null,accessToken:'TRN-ACCESS-1'})
+  // The register is lean: no answers, evaluations or questions, never the access token.
+  const assignmentColumns=calls.select.find(c=>c.table==='training_assignments').columns
+  expect(assignmentColumns).not.toContain('training_assessment_answers(')
+  expect(assignmentColumns).not.toContain('training_feedback_responses(')
+  expect(assignmentColumns).not.toContain('access_token')
+  expect(calls.select.find(c=>c.table==='training_programs').columns).toContain('training_assessment_questions(question_key)')
+  expect(state.programs[0]).toMatchObject({id:'TRN-1',dbId:'p1',passScore:80,questionCount:1})
+  for(const key of ['assessmentQuestions','trainerFeedbackTemplate','feedbackResponses','effectiveness'])expect(state.programs[0]).not.toHaveProperty(key)
+  expect(state.assignments[0]).toMatchObject({id:'TRA-1',dbId:'a1',programId:'TRN-1',employeeId:'EMP-001',employeeDbId:'e1',departmentId:'d1',assessmentReviewStatus:'pending',certificateId:null})
+  for(const key of ['assessmentAnswers','feedbackScores','feedbackComment'])expect(state.assignments[0]).not.toHaveProperty(key)
+ })
+
+ it('reads an opened programme in full, with its assignments\' answers and evaluations',async()=>{
+  await service.loadTrainingStateAsync('org-1')
+  calls.select.length=0
+  const detail=await service.loadTrainingProgramDetailAsync('org-1','TRN-1')
+  expect(calls.select.map(c=>c.table)).toEqual(['training_programs','training_assignments'])
+  expect(calls.select[1].columns).toContain('training_assessment_answers(')
+  expect(calls.select[1].columns).not.toContain('access_token')
+  expect(detail.program).toMatchObject({id:'TRN-1',trainerFeedbackTemplate:{id:'TRAINER-FEEDBACK-DEFAULT',questions:[{id:'clarity',labelEl:'Σαφήνεια',labelEn:'Clarity'}]},feedbackResponses:[{assignmentId:'TRA-1',employeeId:'EMP-001',scores:{clarity:5},comment:'Καλό'}]})
+  expect(detail.program.assessmentQuestions).toHaveLength(1)
+  expect(detail.assignments[0]).toMatchObject({id:'TRA-1',assessmentAnswers:{Q1:'Because it is'},feedbackScores:{clarity:5},feedbackComment:'Καλό'})
+ })
+
+ it('saves a lean programme without its questions or feedback template, so the database keeps them',async()=>{
+  const state=await service.loadTrainingStateAsync('org-1')
+  await service.saveManagedTrainingStateAsync('org-1',{...state,programs:state.programs.map(p=>({...p,title:'Renamed'}))})
+  const sent=calls.rpc[0].args.p_programs[0]
+  for(const key of ['assessmentQuestions','trainerFeedbackTemplate','questionCount'])expect(sent).not.toHaveProperty(key)
  })
 
  it('saves only the changed records, in one training_save_state call, without learner fields',async()=>{

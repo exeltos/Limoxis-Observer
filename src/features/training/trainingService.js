@@ -3,7 +3,7 @@ import { hasSupabaseConfig } from '../../core/config/env'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadTrainingState,saveTrainingState } from './trainingData'
 import { DEFAULT_TRAINER_FEEDBACK_TEMPLATE,normalizeTrainerFeedbackTemplate } from './trainingFeedbackTemplate'
-import { ASSIGNMENT_SELECT,CERTIFICATE_SELECT,HISTORY_SELECT,PROGRAM_SELECT,REQUIREMENT_SELECT,TEMPLATE_SELECT,assignmentToRpc,changedRecords,fingerprints,learnerOwnedAssignmentFields,programToRpc,requirementToRpc,templateFromRow,trainingStateFromRows } from './trainingMappers'
+import { ASSIGNMENT_CALENDAR_SELECT,ASSIGNMENT_DETAIL_SELECT,ASSIGNMENT_SELECT,CERTIFICATE_CALENDAR_SELECT,CERTIFICATE_SELECT,HISTORY_SELECT,PROGRAM_CALENDAR_SELECT,PROGRAM_DETAIL_SELECT,PROGRAM_SELECT,REQUIREMENT_SELECT,TEMPLATE_SELECT,assignmentToRpc,changedRecords,fingerprints,leanTrainingStateFromRows,learnerOwnedAssignmentFields,programToRpc,requirementToRpc,templateFromRow,trainingStateFromRows } from './trainingMappers'
 import { applyReview } from './trainingScoring'
 
 // Production training lives in the training_* tables (20261115100000):
@@ -23,10 +23,10 @@ function requireProduction(organizationId,operation){
 
 // Every row of a table for the organization (PostgREST returns at most 1000 per request).
 const PAGE=1000
-async function selectAll(table,columns,organizationId,order){
+async function selectAll(table,columns,organizationId,order,filter=query=>query){
   const rows=[]
   for(let from=0;;from+=PAGE){
-    let query=supabase.from(table).select(columns).eq('organization_id',organizationId)
+    let query=filter(supabase.from(table).select(columns).eq('organization_id',organizationId))
     for(const [column,ascending] of order)query=query.order(column,{ascending})
     const {data,error}=await query.range(from,from+PAGE-1)
     if(error)throw error
@@ -38,6 +38,9 @@ async function selectAll(table,columns,organizationId,order){
 // What was loaded, per organization: a save sends only the records that differ.
 const baselines=new Map()
 
+// The register: lean rows (trainingMappers PROGRAM_SELECT / ASSIGNMENT_SELECT);
+// an opened programme adds its details with loadTrainingProgramDetailAsync.
+
 export async function loadTrainingStateAsync(organizationId){
   if(isDemoDataEnvironment())return loadTrainingState()
   requireProduction(organizationId,'load')
@@ -48,9 +51,44 @@ export async function loadTrainingStateAsync(organizationId){
     selectAll('training_requirements',REQUIREMENT_SELECT,organizationId,[['updated_at',false],['id',true]]),
     selectAll('training_history_events',HISTORY_SELECT,organizationId,[['position',true]]),
   ])
-  const state=trainingStateFromRows({programs,assignments,certificates,requirements,history})
+  const state=leanTrainingStateFromRows({programs,assignments,certificates,requirements,history})
   baselines.set(organizationId,fingerprints(state))
   return state
+}
+
+// One programme in full (assessment and feedback questions) with its
+// assignments' answers and evaluations. The demo state is already whole: null.
+export async function loadTrainingProgramDetailAsync(organizationId,programKey){
+  if(isDemoDataEnvironment()||!programKey)return null
+  requireProduction(organizationId,'program_detail')
+  const {data:program,error}=await supabase.from('training_programs').select(PROGRAM_DETAIL_SELECT).eq('organization_id',organizationId).eq('program_key',programKey).maybeSingle()
+  if(error)throw error
+  if(!program)return null
+  const assignments=await selectAll('training_assignments',ASSIGNMENT_DETAIL_SELECT,organizationId,[['updated_at',false],['id',true]],query=>query.eq('program_id',program.id))
+  const state=trainingStateFromRows({programs:[program],assignments})
+  const baseline=baselines.get(organizationId),loaded=fingerprints(state)
+  if(baseline)for(const key of ['programs','assignments'])for(const [id,value] of loaded[key])baseline[key].set(id,value)
+  return {program:state.programs[0],assignments:state.assignments}
+}
+
+// Programmes only (lean), for screens that list them (deviation queue).
+export async function loadTrainingProgramsAsync(organizationId){
+  if(isDemoDataEnvironment())return loadTrainingState().programs||[]
+  requireProduction(organizationId,'programs_load')
+  const programs=await selectAll('training_programs',PROGRAM_SELECT,organizationId,[['updated_at',false],['id',true]])
+  return leanTrainingStateFromRows({programs}).programs
+}
+
+// What the calendar shows: programme dates, open assignments, certificate expiry.
+export async function loadTrainingCalendarAsync(organizationId){
+  if(isDemoDataEnvironment())return loadTrainingState()
+  requireProduction(organizationId,'calendar_load')
+  const [programs,assignments,certificates]=await Promise.all([
+    selectAll('training_programs',PROGRAM_CALENDAR_SELECT,organizationId,[['updated_at',false],['id',true]]),
+    selectAll('training_assignments',ASSIGNMENT_CALENDAR_SELECT,organizationId,[['updated_at',false],['id',true]]),
+    selectAll('training_certificates',CERTIFICATE_CALENDAR_SELECT,organizationId,[['updated_at',false],['id',true]],query=>query.not('valid_until','is',null)),
+  ])
+  return leanTrainingStateFromRows({programs,assignments,certificates})
 }
 
 async function loadTrainerFeedbackTemplateAsync(organizationId){

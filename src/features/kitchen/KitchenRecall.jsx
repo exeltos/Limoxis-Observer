@@ -16,10 +16,10 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
-import { KitchenList, matches, useKitchenActor } from './KitchenShared'
+import { KitchenList, matches, useKitchenActor, useKitchenTrace } from './KitchenShared'
 import { dietLabel, fmtQty, mealLabel, options, stockRows, unitLabel, writeoffReasonLabel } from './kitchenModel'
 import { BALANCE_TOLERANCE, RECALL_RESULTS, RECALL_SCENARIOS, drillFindings, drillSubject, elapsedMinutes, fmtDuration, newRecallDrill, recallProblems, recallResultLabel, recallResultTone, recallScenarioLabel, recallSummary, recallTrace, suggestedResult, withinTarget } from './kitchenRecallModel'
-import { kitchenErrorMessage, removeEntry, saveRecallDrill, saveWriteoff } from './kitchenService'
+import { kitchenErrorMessage, loadKitchenDishNames, removeEntry, saveRecallDrill, saveWriteoff } from './kitchenService'
 import { recallDrillDocument } from './kitchenReports'
 
 const fmtDay = value => { if (!value) return '—'; const [y, m, d] = String(value).slice(0, 10).split('-'); return `${d}/${m}/${y}` }
@@ -86,7 +86,7 @@ export function RecallOverviewCard({ state, access, onTab, onRecall }) {
 // A drill: scenario and subject, the running clock from the start, the forward and
 // backward trace with the mass balance worked out at once, then whom it notified, what
 // was done, the lessons and the result. A completed drill shows the trace as it was found.
-export function RecallDialog({ state, organizationId, access, initial, onClose, onSaved }) {
+export function RecallDialog({ state: loaded, organizationId, access, initial, onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { confirm, notify } = useFeedback()
@@ -98,6 +98,16 @@ export function RecallDialog({ state, organizationId, access, initial, onClose, 
   const running = !readOnly && !draft.finishedAt
   useEffect(() => { if (!running) return undefined; const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer) }, [running])
   const set = next => setDraft(current => ({ ...current, ...next }))
+  // The drill traces the whole history of its subject, not only the loaded window.
+  const { scenario, receiptItemId, productId, productName, dishName } = draft
+  const subject = useMemo(() => {
+    if (draft.status === 'completed' && draft.traceSnapshot?.batches) return null
+    const next = scenario === 'supplier_lot' ? { receiptItemIds: receiptItemId ? [receiptItemId] : [] } : scenario === 'product' ? { productId: productId || '', productName: productId ? '' : productName || '' } : { dishName: dishName || '' }
+    return Object.values(next).some(value => (Array.isArray(value) ? value.length : value)) ? next : null
+  }, [draft.status, draft.traceSnapshot, scenario, receiptItemId, productId, productName, dishName])
+  const { state, ready } = useKitchenTrace(loaded, organizationId, subject)
+  const [dishNames, setDishNames] = useState([])
+  useEffect(() => { if (readOnly || scenario !== 'dish') return undefined; let active = true; loadKitchenDishNames(organizationId).then(names => { if (active) setDishNames(names) }).catch(() => {}); return () => { active = false } }, [readOnly, scenario, organizationId])
   const live = useMemo(() => recallTrace(state, draft), [state, draft])
   const trace = draft.status === 'completed' && draft.traceSnapshot?.batches ? draft.traceSnapshot : live
   const stock = useMemo(() => stockRows(state), [state])
@@ -107,7 +117,7 @@ export function RecallDialog({ state, organizationId, access, initial, onClose, 
   const inTime = withinTarget(minutes, target)
   const suggestion = suggestedResult(trace, minutes, target)
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
-  const dishes = useMemo(() => [...new Set((state.usage || []).map(row => row.dishName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [state.usage])
+  const dishes = useMemo(() => [...new Set([...(state.usage || []).map(row => row.dishName), ...dishNames].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')), [state.usage, dishNames])
   const lots = stock.filter(row => row.inStock || row.receiptItemId === draft.receiptItemId).sort((a, b) => String(b.receivedOn).localeCompare(String(a.receivedOn)))
 
   async function save(complete) {
@@ -141,8 +151,8 @@ export function RecallDialog({ state, organizationId, access, initial, onClose, 
     footer={<DialogActions>
       <ExportMenu {...exportProps} />
       {access.canManage && draft.id && <Button variant="secondary" onClick={remove}><Trash2 size={15} />{en ? 'Delete' : 'Διαγραφή'}</Button>}
-      {!readOnly && <Button variant="secondary" disabled={saving} onClick={() => save(false)}>{en ? 'Save draft' : 'Αποθήκευση προχείρου'}</Button>}
-      {!readOnly && <Button disabled={saving} onClick={() => save(true)}><CheckCircle2 size={15} />{en ? 'Complete drill' : 'Ολοκλήρωση άσκησης'}</Button>}
+      {!readOnly && <Button variant="secondary" disabled={saving || !ready} onClick={() => save(false)}>{en ? 'Save draft' : 'Αποθήκευση προχείρου'}</Button>}
+      {!readOnly && <Button disabled={saving || !ready} onClick={() => save(true)}><CheckCircle2 size={15} />{en ? 'Complete drill' : 'Ολοκλήρωση άσκησης'}</Button>}
     </DialogActions>}>
     <div className={`kitchen-recall-clock ${inTime === false ? 'is-over' : ''}`.trim()} role="timer" aria-live="off">
       <Timer size={18} /><strong>{clock(draft.status === 'completed' ? minutes * 60 : seconds)}</strong>

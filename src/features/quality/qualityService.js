@@ -1,4 +1,5 @@
 import { supabase } from '../../core/supabase/client'
+import { selectAllPages } from '../../core/data/inChunks'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadQualityLocal, saveQualityLocal } from './qualityStore'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
@@ -184,12 +185,13 @@ export async function loadQualityRecords(section,organizationId){
   assertReady(organizationId)
   const config=sectionConfig[section]
   if(!config) return []
-  const {data,error}=await supabase
+  // Page by page: a register past 1,000 records was cut at the API's row cap.
+  const data=await selectAllPages(()=>supabase
     .from(config.table)
     .select(config.select)
     .eq('organization_id',organizationId)
     .order(config.date,{ascending:false,nullsFirst:false})
-  if(error) throw error
+    .order('id'))
   return (await withFollowUpCodes(section,organizationId,data||[])).map(row=>mapRow(section,row))
 }
 

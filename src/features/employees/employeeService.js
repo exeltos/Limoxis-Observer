@@ -5,6 +5,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { invalidateEmployeesCache } from './employeesCache'
+import { selectAllPages } from '../../core/data/inChunks'
 // The demo store (and its seed data) loads only in the demo workspace.
 const localStore = () => import('./employeeStore')
 
@@ -85,10 +86,41 @@ export async function loadEmployeesAsync(organizationId) {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees()
   if(isOwnerPreview())return []
   productionContext(organizationId,'employees.load')
+  // Page by page: past 1,000 employees the API cut the list silently.
+  const data = await selectAllPages(() => supabase
+    .from('employees')
+    .select(`${EMPLOYEE_COLUMNS},organization_id`)
+    .eq('organization_id', organizationId)
+    .order('last_name')
+    .order('id'))
+  return data.map(fromRow)
+}
+
+// One employee record (the record page), not the register: by employee code,
+// or by database id once the record is open (a code change keeps finding it).
+export async function loadEmployeeRecordAsync(organizationId, { code = null, dbId = null } = {}) {
+  productionContext(organizationId,'employees.load_one')
+  if (!code && !dbId) return []
+  let query = supabase.from('employees').select(`${EMPLOYEE_COLUMNS},organization_id`).eq('organization_id', organizationId)
+  query = dbId ? query.eq('id', dbId) : query.eq('employee_code', code)
+  const { data, error } = await query.limit(1)
+  if (error) throw error
+  return (data || []).map(fromRow)
+}
+
+// The candidates for "My profile" (employee code, linked account or sign-in
+// e-mail, case-insensitive: a stray % or _ only widens the candidates);
+// resolveSelfEmployee picks among them in its own order.
+export async function loadSelfEmployeeCandidatesAsync(organizationId, { employeeCode = null, userId = null, email = null } = {}) {
+  productionContext(organizationId,'employees.load_self')
+  const quoted = value => `"${String(value).replace(/["\\]/g, '')}"`
+  const matches = [employeeCode && `employee_code.eq.${quoted(employeeCode)}`, userId && `user_id.eq.${userId}`, email && String(email).trim() && `email.ilike.${quoted(String(email).trim())}`].filter(Boolean)
+  if (!matches.length) return []
   const { data, error } = await supabase
     .from('employees')
     .select(`${EMPLOYEE_COLUMNS},organization_id`)
     .eq('organization_id', organizationId)
+    .or(matches.join(','))
     .order('last_name')
   if (error) throw error
   return (data || []).map(fromRow)

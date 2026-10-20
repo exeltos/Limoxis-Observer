@@ -101,14 +101,10 @@ function mergeAmrRows(snapshots){
 
 // Add-on modules without an analysis RPC: read their tables (row-level security keeps the scope)
 // and aggregate on the client. A failure only leaves that section empty.
-async function loadAddonDomains({organizationId='',from='',to=''}){
-  const range={from,to}
-  const read=async(table,columns)=>{const query=supabase.from(table).select(columns);const {data,error}=await (organizationId?query.eq('organization_id',organizationId):query);if(error)throw error;return data||[]}
-  const [pps,lira]=await Promise.all([
-    read('point_prevalence_surveys','survey_date,patients_total,patients_with_hai,patients_on_antibiotics').then(rows=>buildPpsMetrics(rows.map(row=>({surveyDate:row.survey_date,patientsTotal:row.patients_total,patientsWithHai:row.patients_with_hai,patientsOnAntibiotics:row.patients_on_antibiotics})),range)).catch(()=>null),
-    read('lira_outbreak_investigations','status,organism,created_at,closed_at').then(rows=>buildLiraMetrics(rows,range)).catch(()=>null),
-  ])
-  return {...(pps?{pps}:{}),...(lira?{lira}:{})}
+async function readAddonTable(organizationId,table,columns){const query=supabase.from(table).select(columns);const {data,error}=await (organizationId?query.eq('organization_id',organizationId):query);if(error)throw error;return data||[]}
+const ADDON_READS={
+  pps:({organizationId,from,to})=>readAddonTable(organizationId,'point_prevalence_surveys','survey_date,patients_total,patients_with_hai,patients_on_antibiotics').then(rows=>buildPpsMetrics(rows.map(row=>({surveyDate:row.survey_date,patientsTotal:row.patients_total,patientsWithHai:row.patients_with_hai,patientsOnAntibiotics:row.patients_on_antibiotics})),{from,to})).catch(()=>null),
+  lira:({organizationId,from,to})=>readAddonTable(organizationId,'lira_outbreak_investigations','status,organism,created_at,closed_at').then(rows=>buildLiraMetrics(rows,{from,to})).catch(()=>null),
 }
 
 // Adds the cross-tabulations to the sections the domain metrics returned (a
@@ -120,25 +116,62 @@ function withCrosstabs(domains,crosstabs){
   return out
 }
 
-async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId=''}){
-  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,addonDomains,crosstabResult,qualityFoodResult]=await withTimeout(Promise.all([
-    supabase.rpc('platform_report_summary',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
-    loadMicrobiologyAnalytics({organizationId,from,to,departmentId}),
-    loadAmrSusceptibility({organizationId,from,to,departmentId}),
-    organizationId?loadActiveClustersAsync(organizationId).catch(()=>[]):Promise.resolve([]),
-    // Section indicators; a failure here must not hide the rest of the analysis.
-    Promise.resolve(supabase.rpc('analysis_domain_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
-    Promise.resolve(supabase.rpc('analysis_people_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
-    loadAddonDomains({organizationId,from,to}),
-    // Cross-tabulations (20261030120000_analysis_crosstab_metrics.sql); before that migration the matrices stay hidden.
-    Promise.resolve(supabase.rpc('analysis_crosstab_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
-    // Quality & food safety (20261126100000_analysis_quality_food_metrics.sql); before that migration the section stays empty.
-    Promise.resolve(supabase.rpc('analysis_quality_food_metrics',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error})),
-  ]))
-  if(summaryResult.error)throw summaryResult.error
+// The parts of an analysis snapshot, each read on its own and kept for a
+// minute per (hospital, range, department): a tab reads only the parts it shows
+// (analysisPartsForTab), switching tabs reuses what was read, and the Executive
+// dashboard (loadAnalysisSections) shares the same reads. An RPC part resolves
+// to {data,error} (a section's failure must not hide the rest); a failed read
+// is not kept.
+export const ANALYSIS_PARTS=['summary','domains','people','crosstab','qualityFood','microbiology','amr','clusters','pps','lira']
+// What every tab needs: the overview (domain metrics, microbiology, the counts
+// shown when the metrics are missing) and the department list.
+const BASE_PARTS=['summary','domains','microbiology']
+const TAB_PARTS={surveillance:['crosstab'],laboratory:['amr','clusters'],antimicrobials:['crosstab'],controls:['crosstab'],quality:['crosstab'],occupational:['people'],training:['people'],governance:['people'],qualityfood:['qualityFood'],pps:['pps'],lira:['lira','clusters']}
+export function analysisPartsForTab(tab){return [...BASE_PARTS,...(TAB_PARTS[tab]||[])]}
+const partCache=new Map()
+function rpcPart(call,{organizationId,from,to,departmentId}){return Promise.resolve().then(()=>call({p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})).catch(error=>({data:null,error}))}
+const PART_READS={
+  summary:args=>rpcPart(params=>supabase.rpc('platform_report_summary',params),args),
+  // Section indicators; a failure here must not hide the rest of the analysis.
+  domains:args=>rpcPart(params=>supabase.rpc('analysis_domain_metrics',params),args),
+  people:args=>rpcPart(params=>supabase.rpc('analysis_people_metrics',params),args),
+  // Cross-tabulations (20261030120000_analysis_crosstab_metrics.sql); before that migration the matrices stay hidden.
+  crosstab:args=>rpcPart(params=>supabase.rpc('analysis_crosstab_metrics',params),args),
+  // Quality & food safety (20261126100000_analysis_quality_food_metrics.sql); before that migration the section stays empty.
+  qualityFood:args=>rpcPart(params=>supabase.rpc('analysis_quality_food_metrics',params),args),
+  microbiology:args=>loadMicrobiologyAnalytics(args),
+  amr:args=>loadAmrSusceptibility(args),
+  clusters:({organizationId})=>organizationId?loadActiveClustersAsync(organizationId).catch(()=>[]):Promise.resolve([]),
+  pps:args=>ADDON_READS.pps(args),
+  lira:args=>ADDON_READS.lira(args),
+}
+function readPart(part,{organizationId='',from='',to='',departmentId=''}){
+  const args={organizationId,from,to,departmentId}
+  // Clusters are current, not of a period; the add-on tables are not split by department.
+  const key=JSON.stringify([part,organizationId,part==='clusters'?'':from,part==='clusters'?'':to,['clusters','pps','lira'].includes(part)?'':departmentId])
+  const now=Date.now()
+  for(const [cachedKey,entry] of partCache)if(entry.expires<=now)partCache.delete(cachedKey)
+  const cached=partCache.get(key)
+  if(cached)return cached.promise
+  const promise=Promise.resolve().then(()=>PART_READS[part](args))
+  partCache.set(key,{promise,expires:now+SNAPSHOT_TTL_MS})
+  const forget=()=>{if(partCache.get(key)?.promise===promise)partCache.delete(key)}
+  promise.then(result=>{if(result?.error)forget()},forget)
+  return promise
+}
+
+async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',departmentId='',parts=null}){
+  const wanted=new Set(parts||ANALYSIS_PARTS)
+  const scope={organizationId,from,to,departmentId}
+  const read=part=>wanted.has(part)?readPart(part,scope):Promise.resolve(undefined)
+  const [summaryResult,microbiology,amrSusceptibility,clusters,domainsResult,peopleResult,pps,lira,crosstabResult,qualityFoodResult]=await withTimeout(Promise.all(['summary','microbiology','amr','clusters','domains','people','pps','lira','crosstab','qualityFood'].map(read)))
+  if(summaryResult?.error)throw summaryResult.error
+  const addonDomains={...(pps?{pps:{...pps}}:{}),...(lira?{lira:{...lira}}:{})}
   if(addonDomains.lira)addonDomains.lira.clusters=Array.isArray(clusters)?clusters.length:0
-  const domains=(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...(qualityFoodResult?.error?{}:(qualityFoodResult?.data||{})),...addonDomains}
-  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:withCrosstabs(domains,crosstabResult?.error?null:crosstabResult?.data)}
+  // A part this tab did not read counts as missing, as a failed one does.
+  const missing=result=>!result||result.error||!result.data
+  const domains=missing(domainsResult)&&missing(peopleResult)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...(qualityFoodResult?.error?{}:(qualityFoodResult?.data||{})),...addonDomains}
+  return {source:'production',summary:summaryResult?.data||{},microbiology:microbiology||{},amrSusceptibility:amrSusceptibility||[],clusters:clusters||[],domains:withCrosstabs(domains,crosstabResult?.error?null:crosstabResult?.data)}
 }
 
 // One row per hospital for the platform's "all hospitals" comparison: the same
@@ -165,16 +198,17 @@ function mergeAnalysisSnapshots(snapshots){
 // hospitals" passes the production ones, so Demo organizations never count,
 // and the comparison is by hospital (`hospitals`, named from
 // `organizationNames`). Without a list, one organization (`organizationId`).
-// Snapshots read in the last minute are reused (same hospitals, range and
-// department): going back to a range, or the comparison and the dashboard
+// `parts` (analysisPartsForTab) reads only what a tab shows; without it, every
+// part. Snapshots read in the last minute are reused (same hospitals, range,
+// department and parts): going back to a range, or the comparison and the dashboard
 // asking for the same one, costs no new set of analysis RPCs. A failed read is
 // not kept.
 const SNAPSHOT_TTL_MS=60000
 const snapshotCache=new Map()
-export function clearAnalysisSnapshotCache(){snapshotCache.clear()}
+export function clearAnalysisSnapshotCache(){snapshotCache.clear();partCache.clear()}
 export async function loadAnalysisSnapshot(options={}){
-  const {organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId=''}=options
-  const key=JSON.stringify([organizationId,Array.isArray(organizationIds)?[...organizationIds].sort():null,organizationNames,from,to,departmentId])
+  const {organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId='',parts=null}=options
+  const key=JSON.stringify([organizationId,Array.isArray(organizationIds)?[...organizationIds].sort():null,organizationNames,from,to,departmentId,parts?[...new Set(parts)].sort():null])
   const now=Date.now()
   for(const [cachedKey,entry] of snapshotCache)if(entry.expires<=now)snapshotCache.delete(cachedKey)
   const cached=snapshotCache.get(key)
@@ -185,13 +219,13 @@ export async function loadAnalysisSnapshot(options={}){
   return promise
 }
 
-async function readAnalysisSnapshot({organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId=''}={}){
+async function readAnalysisSnapshot({organizationId='',organizationIds=null,organizationNames=null,from='',to='',departmentId='',parts=null}={}){
   if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
-  if(!Array.isArray(organizationIds))return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId})
+  if(!Array.isArray(organizationIds))return loadSingleAnalysisSnapshot({organizationId,from,to,departmentId,parts})
   const scopedIds=[...new Set(organizationIds.filter(Boolean))]
   if(!scopedIds.length)return {source:'production',summary:{},domains:null,microbiology:{},amrSusceptibility:[],clusters:[]}
-  if(scopedIds.length===1)return loadSingleAnalysisSnapshot({organizationId:scopedIds[0],from,to,departmentId})
-  const snapshots=await withTimeout(Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:''}))))
+  if(scopedIds.length===1)return loadSingleAnalysisSnapshot({organizationId:scopedIds[0],from,to,departmentId,parts})
+  const snapshots=await withTimeout(Promise.all(scopedIds.map(id=>loadSingleAnalysisSnapshot({organizationId:id,from,to,departmentId:'',parts}))))
   return {...mergeAnalysisSnapshots(snapshots),hospitals:hospitalRows(snapshots,scopedIds,organizationNames)}
 }
 
@@ -201,13 +235,13 @@ async function readAnalysisSnapshot({organizationId='',organizationIds=null,orga
 // add-on tables it does not show. A failed part rejects alone.
 export function loadAnalysisSections({organizationId='',from='',to='',departmentId=''}={}){
   if(!hasSupabaseConfig||!supabase)throw new Error('SUPABASE_REQUIRED_FOR_PRODUCTION_ANALYTICS')
-  const args={p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}
-  const rpc=name=>withTimeout(Promise.resolve(supabase.rpc(name,args)).then(({data,error})=>{if(error)throw error;return data||{}}))
+  const scope={organizationId,from,to,departmentId}
+  const rpc=part=>withTimeout(readPart(part,scope).then(({data,error})=>{if(error)throw error;return data||{}}))
   return {
-    domains:rpc('analysis_domain_metrics'),
-    people:rpc('analysis_people_metrics'),
-    qualityFood:rpc('analysis_quality_food_metrics'),
-    microbiology:withTimeout(loadMicrobiologyAnalytics({organizationId,from,to,departmentId})),
-    clusters:organizationId?loadActiveClustersAsync(organizationId).catch(()=>[]):Promise.resolve([]),
+    domains:rpc('domains'),
+    people:rpc('people'),
+    qualityFood:rpc('qualityFood'),
+    microbiology:withTimeout(readPart('microbiology',scope)),
+    clusters:readPart('clusters',scope),
   }
 }

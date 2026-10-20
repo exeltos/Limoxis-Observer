@@ -7,7 +7,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
-import { loadKitchen } from './kitchenService'
+import { kitchenSince, loadKitchen, loadKitchenDay, loadKitchenReceipt, loadKitchenTrace, mergeKitchenState } from './kitchenService'
 import { limitFor, limitText, statusLabel, statusTone } from './kitchenLimits'
 import './kitchen.css'
 
@@ -23,18 +23,39 @@ export function useKitchenAccess() {
   return { canView, canRecord, canManage }
 }
 
-// The whole kitchen, with each entry's in / out of limits.
-export function useKitchen() {
+// The kitchen, with each entry's in / out of limits: the register from `since` on
+// (showSince(day) reads further back, showSince(null) the whole history), or one
+// receipt (receiptId) or production day (productionId) with what its page needs.
+export function useKitchen({ receiptId = null, productionId = null } = {}) {
   const { tenant } = useTenant()
   const [state, setState] = useState(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  const [since, setSince] = useState(() => kitchenSince())
   const reload = useCallback(() => {
     setLoading(true)
-    return loadKitchen(tenant?.id).then(next => { setState(next); setFailed(false) }).catch(error => { console.error(error); setFailed(true) }).finally(() => setLoading(false))
-  }, [tenant?.id])
+    const read = receiptId ? loadKitchenReceipt(tenant?.id, receiptId) : productionId ? loadKitchenDay(tenant?.id, productionId) : loadKitchen(tenant?.id, { since })
+    return read.then(next => { setState(next); setFailed(false) }).catch(error => { console.error(error); setFailed(true) }).finally(() => setLoading(false))
+  }, [tenant?.id, receiptId, productionId, since])
   useEffect(() => { void reload() }, [reload])
-  return { state, loading, failed, reload, organizationId: tenant?.id || null }
+  const showSince = useCallback(day => setSince(current => (current && (day === null || (day && day < current)) ? day : current)), [])
+  return { state, loading, failed, reload, organizationId: tenant?.id || null, since, showSince }
+}
+
+// The state with what a trace needs beyond it (every use of the subject's batches),
+// read from the database; `ready` once it is there. The demo has it all already.
+export function useKitchenTrace(state, organizationId, subject) {
+  const key = subject ? JSON.stringify(subject) : ''
+  const [extra, setExtra] = useState(null)
+  useEffect(() => {
+    if (!key) return undefined
+    let active = true
+    loadKitchenTrace(organizationId, JSON.parse(key)).then(rows => { if (active) setExtra({ key, rows }) }).catch(error => { console.error(error); if (active) setExtra({ key, rows: null }) })
+    return () => { active = false }
+  }, [key, organizationId])
+  const ready = !key || extra?.key === key
+  const merged = useMemo(() => (key && extra?.key === key ? mergeKitchenState(state, extra.rows) : state), [state, extra, key])
+  return { state: merged, ready }
 }
 
 // The person recording: the signed-in user (and their employee record when linked).

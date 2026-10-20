@@ -10,7 +10,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadBundleAssessments } from '../prevention/bundleCloudService'
-import { loadTrainingStateAsync } from '../training/trainingService'
+import { loadTrainingProgramsAsync } from '../training/trainingService'
 import { loadQualityRecords } from './qualityService'
 import { capaPrefill,deviationQueue } from './qualityDeviations'
 import { REGISTER_SOURCES,filterRegister,registerCounts,registerRows } from './qualityRegister'
@@ -59,7 +59,7 @@ export function useDeviationQueue(organizationId,enabled=true){
   let active=true
   setLoading(true)
   const safe=promise=>promise.catch(()=>[])
-  Promise.all([safe(loadControlProgramme(organizationId,{summary:false,findingsSince:Date.now()-365*24*60*60*1000})),safe(loadBundleAssessments(organizationId)),safe(loadTrainingStateAsync(organizationId).then(state=>state?.programs||[])),safe(loadQualityRecords('capas',organizationId))])
+  Promise.all([safe(loadControlProgramme(organizationId,{summary:false,findingsSince:Date.now()-365*24*60*60*1000})),safe(loadBundleAssessments(organizationId)),safe(loadTrainingProgramsAsync(organizationId)),safe(loadQualityRecords('capas',organizationId))])
    .then(([controls,bundles,trainings,capas])=>{if(active)setSources({controls,bundles,trainings,capas})})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}

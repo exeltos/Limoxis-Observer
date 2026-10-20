@@ -17,7 +17,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
-import { KitchenList, LimitBadge, matches, useKitchenActor } from './KitchenShared'
+import { KitchenList, LimitBadge, matches, useKitchenActor, useKitchenTrace } from './KitchenShared'
 import { limitText } from './kitchenLimits'
 import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, dayOf, newReceipt, defrostMethodLabel, fmtQty, fmtTemp, haccpReviewDue, pureeMethodLabel, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu, newProduction, newThermal, newDefrost, newPureeing } from './kitchenModel'
 import { kitchenErrorMessage, removeEntry, reopen, saveSettings, signOff } from './kitchenService'
@@ -295,11 +295,14 @@ export function UsagePanel({ state, stock, filters, setFilters, onTrace }) {
 }
 
 // The traceability of one batch, with its document.
-export function TraceDialog({ state, receiptItemId, onClose }) {
+export function TraceDialog({ state: loaded, organizationId = null, receiptItemId, onClose }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
   const navigate = useNavigate()
+  // Every use of the batch, also those older than the loaded window.
+  const subject = useMemo(() => ({ receiptItemIds: [receiptItemId] }), [receiptItemId])
+  const { state } = useKitchenTrace(loaded, organizationId, subject)
   const trace = useMemo(() => traceBatch(state, receiptItemId), [state, receiptItemId])
   const b = trace.batch
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
