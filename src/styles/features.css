@@ -3074,13 +3074,6 @@ button{letter-spacing:0}
 .sidebar nav{padding:8px 8px!important;gap:2px!important}
 /* Side menu (not the phone bar): the list takes the free height and scrolls above the bin and the footer. */
 @media (min-width:641px){.sidebar nav{flex:1 1 auto;border-bottom:1px solid rgba(255,255,255,.08)}}
-.nav-item{min-height:31px!important;padding:6px 12px!important;border-radius:7px!important;color:rgba(240,246,252,.73)!important;font-size:13px!important;font-weight:500!important;gap:10px!important;border:0!important;background:transparent!important}
-.nav-item svg{opacity:.82}
-/* One line per menu entry; a long label ends in an ellipsis and stays whole in the tooltip. */
-.sidebar .nav-item>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.nav-item:hover{background:rgba(255,255,255,.075)!important;color:#fff!important}
-.nav-item.active,.nav-item.active-group{background:rgba(255,255,255,.12)!important;color:#fff!important;box-shadow:inset 2px 0 0 #6fb2dd!important}
-.nav-item.active svg{opacity:1}
 .nav-item.nested{min-height:25px!important;padding-left:27px!important;font-size:12.5px!important}
 .sidebar-nav-children{padding:2px 0 4px!important}
 .sidebar-nav-management{margin-top:5px!important;padding-top:5px!important;border-top:1px solid rgba(255,255,255,.08)!important}
