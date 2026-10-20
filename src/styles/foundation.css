@@ -1123,19 +1123,6 @@
  display:flex;flex-direction:column;gap:1px;margin:1px 0 3px 15px;padding-left:9px;
  border-left:1px solid rgba(255,255,255,.14);
 }
-.nav-item.nested{padding:5px 9px;gap:9px}
-/* headed sidebar groups that fold (SidebarNavigation) */
-.sidebar-nav-section{display:flex;flex-direction:column;gap:1px}
-.sidebar-nav-section+.sidebar-nav-section,.nav-item+.sidebar-nav-section,.sidebar-nav-section+.nav-item{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.07)}
-.nav-section-heading{display:flex;align-items:center;gap:6px;width:100%;margin:0;padding:5px 10px 3px;border:0;border-radius:6px;background:transparent;color:rgba(255,255,255,.58);font:inherit;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;text-align:left;cursor:pointer}
-.nav-section-heading:hover{color:#fff;background:rgba(255,255,255,.05)}
-.nav-section-heading:focus-visible{outline:2px solid #8cc4ff;outline-offset:1px}
-.nav-section-heading .nav-group-chevron{margin-left:auto;transition:transform .16s ease}
-.sidebar-nav-section.collapsed .nav-section-heading .nav-group-chevron{transform:rotate(-90deg)}
-.sidebar-nav-section-items{display:flex;flex-direction:column;gap:1px}
-.sidebar-nav-section.collapsed .sidebar-nav-section-items{display:none}
-/* a longer menu name (a merged section) wraps instead of being cut */
-.sidebar nav .nav-item>span{white-space:normal;line-height:1.25}
 /* «+ Incident report» at the foot of the sidebar (SidebarIncidentReport); its menu opens upwards */
 .sidebar-incident{position:relative;padding:6px 10px 2px}
 .sidebar-incident-trigger{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:36px;padding:7px 10px;border:1px solid rgba(255,255,255,.3);border-radius:9px;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
@@ -3615,58 +3602,53 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 /* Canonical navigation contract.
    Feature-specific layouts must not redefine record navigation or registry geometry here. */
 
-/* Sidebar navigation uses both NavLink anchors and semantic buttons.
-   Normalize both elements so platform navigation cannot inherit browser/button chrome. */
-.sidebar .nav-item{
+/* The sidebar hierarchy, in one place (SidebarNavigation): two levels.
+   Group heading = small, uppercase, semi-bold, one line, folding chevron; the heading of the open screen's group is marked.
+   Entry = 13px regular, icon + label, indented under its heading; the open screen's entry is highlighted.
+   Rows share one height; the icon rail and phone menu (responsive.css) only hide parts of it. */
+.sidebar nav .nav-item{
   width:100%;
-  min-height:40px;
+  min-height:32px;
   margin:0;
-  padding:10px 11px;
+  padding:6px 10px 6px var(--lo-nav-indent,12px);
   border:0;
-  border-radius:9px;
+  border-radius:7px;
   appearance:none;
   -webkit-appearance:none;
   background:transparent;
   box-shadow:none;
-  color:rgba(255,255,255,.78);
+  color:rgba(240,246,252,.8);
   display:flex;
   align-items:center;
   justify-content:flex-start;
-  gap:11px;
+  gap:10px;
   text-align:left;
   text-decoration:none;
   font:inherit;
   font-size:13px;
-  line-height:1.2;
+  font-weight:400;
+  line-height:1.25;
   cursor:pointer;
 }
-
-.sidebar .nav-item svg{
-  flex:0 0 auto;
-  color:currentColor;
-}
-
-.sidebar .nav-item:hover{
-  background:rgba(255,255,255,.08);
-  color:#fff;
-}
-
-.sidebar .nav-item.active{
-  background:var(--lo-color-surface);
-  color:var(--lo-color-nav);
-  font-weight:700;
-  box-shadow:none;
-}
-
-.sidebar .nav-item:focus-visible{
-  outline:2px solid rgba(255,255,255,.72);
-  outline-offset:2px;
-}
-
-.sidebar .nav-item:disabled{
-  opacity:.48;
-  cursor:not-allowed;
-}
+.sidebar nav .nav-item>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar nav .nav-item svg{flex:0 0 auto;color:currentColor;opacity:.85}
+.sidebar nav .nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sidebar nav .nav-item.active,.sidebar nav .nav-item.active-group{background:rgba(255,255,255,.14);color:#fff;font-weight:500;box-shadow:inset 3px 0 0 #6fb2dd}
+.sidebar nav .nav-item.active svg{opacity:1}
+.sidebar nav .nav-item:focus-visible{outline:2px solid rgba(255,255,255,.72);outline-offset:-2px}
+.sidebar nav .nav-item:disabled{opacity:.48;cursor:not-allowed}
+.sidebar-nav-section{display:flex;flex-direction:column;gap:1px}
+.sidebar-nav-section+.sidebar-nav-section,.nav-item+.sidebar-nav-section,.sidebar-nav-section+.nav-item{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08)}
+.nav-section-heading{display:flex;align-items:center;gap:6px;width:100%;min-height:28px;margin:0;padding:4px 10px 4px 12px;border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.72);font:inherit;font-size:11px;font-weight:600;line-height:1.2;letter-spacing:.05em;text-transform:uppercase;text-align:left;cursor:pointer}
+.nav-section-heading>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-section-heading:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-section-heading:focus-visible{outline:2px solid #8cc4ff;outline-offset:-2px}
+.nav-section-heading .nav-group-chevron{flex:0 0 auto;margin-left:auto;transition:transform .16s ease}
+.sidebar-nav-section.collapsed .nav-section-heading .nav-group-chevron{transform:rotate(-90deg)}
+.sidebar-nav-section.has-active>.nav-section-heading{color:#fff;font-weight:700}
+.sidebar-nav-section.has-active>.nav-section-heading>span::before{content:'';display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:#6fb2dd;vertical-align:middle}
+.sidebar-nav-section-items{display:flex;flex-direction:column;gap:1px;--lo-nav-indent:22px}
+.sidebar-nav-section.collapsed .sidebar-nav-section-items{display:none}
 
 .page-heading-group{
   min-width:0;
