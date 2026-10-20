@@ -108,7 +108,10 @@ describe('new surveillance: inline patient creation', () => {
 
   it('does not create the patient without a code outside demo', async () => {
     const onCreate = await fillNewPatient()
-    await waitFor(() => expect(feedback.notify).toHaveBeenCalledWith(expect.any(String), 'warning'))
+    // The form says what is missing and marks the field, instead of a warning after the press.
+    expect(screen.getByText(/Συμπληρώστε:/).closest('.form-missing-summary')).toHaveTextContent(t('patientId'))
+    expect(await screen.findByText('Υποχρεωτικό πεδίο')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText(t('patientId'))).toHaveFocus())
     expect(createPatient).not.toHaveBeenCalled()
     expect(onCreate).not.toHaveBeenCalled()
   })

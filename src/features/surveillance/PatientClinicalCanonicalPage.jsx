@@ -94,6 +94,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const [sampleToLink, setSampleToLink] = useState(null)
   const [clearTestOpen, setClearTestOpen] = useState(false)
   const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
+  // The header's NEWS2 / Braden / GCS chips open the clinical scales with their history.
+  const [scalesOpen, setScalesOpen] = useState(false)
   const creatingAdmissionSampleRef = useMemo(() => ({ current: false }), [])
   const [tab, setTab] = useState(() => location.state?.openTab || restored?.tab || 'summary')
   // Stage the surveillance tab opens on, e.g. when the summary sends the user to an overdue reassessment.
@@ -296,7 +298,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     return () => {
       alive = false
     }
-  }, [tenant?.id, isDemo, patient, tab])
+  }, [tenant?.id, isDemo, patient, tab, scalesOpen])
   // The record's first read: the page placeholder, not a generic «patient record» page.
   if (loading || stale) return <RouteLoading />
   if (error)
@@ -364,6 +366,15 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           { id: 'history', label: t('history'), icon: FileClock },
         ]
   const activeTab = tabs.some(item => item.id === tab) ? tab : 'summary'
+  // A header scale chip: the patient record has the scales as a tab; the
+  // surveillance episode opens the same scales panel (history included) over the page.
+  function openClinicalScales() {
+    if (tabs.some(item => item.id === 'clinicalScales')) setTab('clinicalScales')
+    else setScalesOpen(true)
+  }
+  const episodeAdmission =
+    admissions.find(row => record?.admissionId && String(row.id) === String(record.admissionId)) ||
+    null
 
   function openAdmission(id) {
     const scoped = episodes.filter(ep => String(ep.admissionId || '') === String(id))
@@ -502,6 +513,181 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
       : null
   const shellStatus = selectedAdmission?.status || record?.status || patient?.status || 'active'
+  // One tab of the record: on screen the active one; when the record is printed
+  // (EntityRecordShell renderTab) every tab, one after the other.
+  const renderTab = tabId => (
+    <>
+      {(!patientMode || selectedAdmission) && tabId === 'summary' && (
+        <CanonicalSummary
+          samples={patientMode ? admissionSamples : recordSamples}
+          scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
+          onOpenStage={stage => {
+            setJourneyStage(stage)
+            setTab('surveillanceJourney')
+          }}
+          patient={patient}
+          admission={selectedAdmission}
+          record={record}
+          tenantId={tenant?.id}
+          isDemo={isDemo}
+          departments={departments}
+          canEdit={patientMode && has(CAPABILITIES.EDIT_PATIENT)}
+          canDelete={patientMode && has(CAPABILITIES.DELETE_PATIENT) && admissions.length > 1}
+          showPatientActions={patientMode}
+          onDeleted={goBack}
+          onChanged={() => load()}
+          onAdmissionDeleted={() => {
+            setSelectedAdmissionId('')
+            return load()
+          }}
+          t={t}
+          language={language}
+          fmtDate={fmtDate}
+        />
+      )}
+      {(!patientMode || selectedAdmission) && tabId === 'surveillanceJourney' && (
+        <SurveillanceWorkspace
+          initialStage={journeyStage}
+          samples={patientMode ? admissionSamples : recordSamples}
+          episodes={admissionEpisodes}
+          selectedId={record?.id}
+          onSelect={setSelectedEpisodeId}
+          onCreate={() => {
+            setSampleToLink(null)
+            setCreateOpen(true)
+          }}
+          onCreateFromSample={sample => {
+            setSampleToLink(sample)
+            setCreateOpen(true)
+          }}
+          onCreateSample={patient ? createAdmissionSample : null}
+          onClearTestData={
+            patientMode && role === 'platform_owner' ? () => setClearTestOpen(true) : null
+          }
+          canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
+          canCreateSample={canCreateLabSample}
+          repository={repository}
+          onReload={preferred => load(preferred || record?.id)}
+          t={t}
+          language={language}
+          fmtDate={fmtDate}
+          fmtDateTime={fmtDateTime}
+          libraries={clinicalLibraries}
+          organizationId={tenant?.id}
+          isDemo={isDemo}
+          onLibraryAdded={async (key, item) => {
+            if (isDemo) {
+              setClinicalLibraries(current => ({
+                ...current,
+                [key]: [...(current[key] || []), item],
+              }))
+              return item
+            }
+            const created = await createManagementLibraryItem(tenant.id, key, {
+              nameEl: item[0],
+              nameEn: item[1] || item[0],
+            })
+            setClinicalLibraries(current => ({
+              ...current,
+              [key]: [...(current[key] || []), created],
+            }))
+            return created
+          }}
+          permissions={{
+            canAssess: has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT),
+            canLab,
+            canClassifyResistance: has(CAPABILITIES.CLASSIFY_RESISTANCE),
+            canIsolation: has(CAPABILITIES.MANAGE_ISOLATION),
+            canTherapy,
+            canReassess: has(CAPABILITIES.REASSESS_SURVEILLANCE),
+            canOutcome:
+              has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
+              has(CAPABILITIES.CLOSE_SURVEILLANCE),
+            canEdit: has(CAPABILITIES.EDIT_SURVEILLANCE),
+            canDelete: has(CAPABILITIES.DELETE_SURVEILLANCE),
+            canReopen: has(CAPABILITIES.REOPEN_SURVEILLANCE),
+          }}
+        />
+      )}
+      {tabId === 'surveillanceJourney' && selectedAdmission && outsideSection}
+      {tabId === 'clinicalScales' && patient && selectedAdmission && (
+        <PatientClinicalScalesPanel
+          organizationId={tenant?.id}
+          patient={patient}
+          admission={selectedAdmission}
+          isDemo={isDemo}
+          language={language}
+          canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
+        />
+      )}
+      {/* Documents belong to the surveillance when there is one, else to the
+          admission itself, so they can be added before any surveillance. */}
+      {tabId === 'documents' && documentsScope && (
+        <DocumentsWorkspace
+          title={translate('copy.clinicalRecordCopy.documents', language === 'en' ? 'en' : 'el')}
+          disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
+          {...(isDemo
+            ? {
+                value: demoDocuments[documentsScope.key] || [],
+                onChange: files =>
+                  setDemoDocuments(current => ({ ...current, [documentsScope.key]: files })),
+              }
+            : {
+                organizationId: tenant?.id,
+                entityType: documentsScope.entityType,
+                entityId: documentsScope.entityId,
+              })}
+        />
+      )}
+      {tabId === 'documents' && !documentsScope && (
+        <EmptyState
+          title={translate(
+            'copy.clinicalRecordCopy.noDocumentsYet',
+            language === 'el' ? 'el' : 'en',
+          )}
+          description={translate(
+            'copy.clinicalRecordCopy.surveillanceDocumentsWillAppearHereAfter',
+            language === 'el' ? 'el' : 'en',
+          )}
+        />
+      )}
+      {tabId === 'history' && record && (
+        <Timeline
+          record={record}
+          t={t}
+          language={language}
+          fmtDateTime={value =>
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+          }
+        />
+      )}
+      {tabId === 'history' && !record && selectedAdmission && (
+        <Timeline
+          record={{ timeline: admissionTimeline }}
+          title={t('clinicalRecords.admissionHistory')}
+          subtitle={t('clinicalRecords.admissionHistoryHint')}
+          t={t}
+          language={language}
+          fmtDateTime={value =>
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+          }
+        />
+      )}
+      {tabId === 'history' && !record && !selectedAdmission && (
+        <EmptyState
+          title={translate(
+            'copy.clinicalRecordCopy.noSurveillanceHistoryYet',
+            language === 'el' ? 'el' : 'en',
+          )}
+          description={translate(
+            'copy.clinicalRecordCopy.theActivityHistoryWillAppearHere',
+            language === 'el' ? 'el' : 'en',
+          )}
+        />
+      )}
+      {tabId === 'history' && selectedAdmission && outsideSection}
+    </>
+  )
   return (
     <Page fill title={name} subtitle={code}>
       <EntityRecordShell
@@ -536,6 +722,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 language={language}
                 compact
                 named
+                onSelect={openClinicalScales}
               />
             )}
           </>
@@ -560,6 +747,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
         tabs={tabs}
         activeTab={activeTab}
+        renderTab={renderTab}
         onTabChange={setTab}
         onBack={goBack}
         backLabel={
@@ -580,175 +768,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           />
         )}
         {patientMode && !selectedAdmission && patient && outsideSection}
-        {(!patientMode || selectedAdmission) && activeTab === 'summary' && (
-          <CanonicalSummary
-            samples={patientMode ? admissionSamples : recordSamples}
-            scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
-            onOpenStage={stage => {
-              setJourneyStage(stage)
-              setTab('surveillanceJourney')
-            }}
-            patient={patient}
-            admission={selectedAdmission}
-            record={record}
-            tenantId={tenant?.id}
-            isDemo={isDemo}
-            departments={departments}
-            canEdit={patientMode && has(CAPABILITIES.EDIT_PATIENT)}
-            canDelete={patientMode && has(CAPABILITIES.DELETE_PATIENT) && admissions.length > 1}
-            showPatientActions={patientMode}
-            onDeleted={goBack}
-            onChanged={() => load()}
-            onAdmissionDeleted={() => {
-              setSelectedAdmissionId('')
-              return load()
-            }}
-            t={t}
-            language={language}
-            fmtDate={fmtDate}
-          />
-        )}
-        {(!patientMode || selectedAdmission) && activeTab === 'surveillanceJourney' && (
-          <SurveillanceWorkspace
-            initialStage={journeyStage}
-            samples={patientMode ? admissionSamples : recordSamples}
-            episodes={admissionEpisodes}
-            selectedId={record?.id}
-            onSelect={setSelectedEpisodeId}
-            onCreate={() => {
-              setSampleToLink(null)
-              setCreateOpen(true)
-            }}
-            onCreateFromSample={sample => {
-              setSampleToLink(sample)
-              setCreateOpen(true)
-            }}
-            onCreateSample={patient ? createAdmissionSample : null}
-            onClearTestData={
-              patientMode && role === 'platform_owner' ? () => setClearTestOpen(true) : null
-            }
-            canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
-            canCreateSample={canCreateLabSample}
-            repository={repository}
-            onReload={preferred => load(preferred || record?.id)}
-            t={t}
-            language={language}
-            fmtDate={fmtDate}
-            fmtDateTime={fmtDateTime}
-            libraries={clinicalLibraries}
-            organizationId={tenant?.id}
-            isDemo={isDemo}
-            onLibraryAdded={async (key, item) => {
-              if (isDemo) {
-                setClinicalLibraries(current => ({
-                  ...current,
-                  [key]: [...(current[key] || []), item],
-                }))
-                return item
-              }
-              const created = await createManagementLibraryItem(tenant.id, key, {
-                nameEl: item[0],
-                nameEn: item[1] || item[0],
-              })
-              setClinicalLibraries(current => ({
-                ...current,
-                [key]: [...(current[key] || []), created],
-              }))
-              return created
-            }}
-            permissions={{
-              canAssess: has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT),
-              canLab,
-              canClassifyResistance: has(CAPABILITIES.CLASSIFY_RESISTANCE),
-              canIsolation: has(CAPABILITIES.MANAGE_ISOLATION),
-              canTherapy,
-              canReassess: has(CAPABILITIES.REASSESS_SURVEILLANCE),
-              canOutcome:
-                has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
-                has(CAPABILITIES.CLOSE_SURVEILLANCE),
-              canEdit: has(CAPABILITIES.EDIT_SURVEILLANCE),
-              canDelete: has(CAPABILITIES.DELETE_SURVEILLANCE),
-              canReopen: has(CAPABILITIES.REOPEN_SURVEILLANCE),
-            }}
-          />
-        )}
-        {activeTab === 'surveillanceJourney' && selectedAdmission && outsideSection}
-        {activeTab === 'clinicalScales' && patient && selectedAdmission && (
-          <PatientClinicalScalesPanel
-            organizationId={tenant?.id}
-            patient={patient}
-            admission={selectedAdmission}
-            isDemo={isDemo}
-            language={language}
-            canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-          />
-        )}
-        {/* Documents belong to the surveillance when there is one, else to the
-            admission itself, so they can be added before any surveillance. */}
-        {activeTab === 'documents' && documentsScope && (
-          <DocumentsWorkspace
-            title={translate('copy.clinicalRecordCopy.documents', language === 'en' ? 'en' : 'el')}
-            disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
-            {...(isDemo
-              ? {
-                  value: demoDocuments[documentsScope.key] || [],
-                  onChange: files =>
-                    setDemoDocuments(current => ({ ...current, [documentsScope.key]: files })),
-                }
-              : {
-                  organizationId: tenant?.id,
-                  entityType: documentsScope.entityType,
-                  entityId: documentsScope.entityId,
-                })}
-          />
-        )}
-        {activeTab === 'documents' && !documentsScope && (
-          <EmptyState
-            title={translate(
-              'copy.clinicalRecordCopy.noDocumentsYet',
-              language === 'el' ? 'el' : 'en',
-            )}
-            description={translate(
-              'copy.clinicalRecordCopy.surveillanceDocumentsWillAppearHereAfter',
-              language === 'el' ? 'el' : 'en',
-            )}
-          />
-        )}
-        {activeTab === 'history' && record && (
-          <Timeline
-            record={record}
-            t={t}
-            language={language}
-            fmtDateTime={value =>
-              /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
-            }
-          />
-        )}
-        {activeTab === 'history' && !record && selectedAdmission && (
-          <Timeline
-            record={{ timeline: admissionTimeline }}
-            title={t('clinicalRecords.admissionHistory')}
-            subtitle={t('clinicalRecords.admissionHistoryHint')}
-            t={t}
-            language={language}
-            fmtDateTime={value =>
-              /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
-            }
-          />
-        )}
-        {activeTab === 'history' && !record && !selectedAdmission && (
-          <EmptyState
-            title={translate(
-              'copy.clinicalRecordCopy.noSurveillanceHistoryYet',
-              language === 'el' ? 'el' : 'en',
-            )}
-            description={translate(
-              'copy.clinicalRecordCopy.theActivityHistoryWillAppearHere',
-              language === 'el' ? 'el' : 'en',
-            )}
-          />
-        )}
-        {activeTab === 'history' && selectedAdmission && outsideSection}
+        {renderTab(activeTab)}
         {clearTestOpen && (
           <ObserverDialog
             title={translate(
@@ -769,6 +789,24 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                 language === 'el' ? 'el' : 'en',
               )}
             </p>
+          </ObserverDialog>
+        )}
+        {scalesOpen && patient && (
+          <ObserverDialog
+            width="wide"
+            className="clinical-scales-dialog"
+            title={name}
+            subtitle={code}
+            onClose={() => setScalesOpen(false)}
+          >
+            <PatientClinicalScalesPanel
+              organizationId={tenant?.id}
+              patient={patient}
+              admission={episodeAdmission}
+              isDemo={isDemo}
+              language={language}
+              canRecord={has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
+            />
           </ObserverDialog>
         )}
         {createOpen && (

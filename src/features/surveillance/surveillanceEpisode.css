@@ -166,3 +166,21 @@ html body .clean-patient-summary .patient-detail-notes>strong{display:block!impo
 /* A tab's section sits straight on the record body (already a card): no card
    inside the card. */
 html body .patient-record-shell .entity-record-body>.record-section:not(.documents-workspace):is(.record-section,#lo-record-tab){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important;margin:0!important}
+/* Surveillance episode summary (reference pattern for record summaries): at
+   1200px and wider the patient sheet and the current surveillance sit side by
+   side instead of two tall cards stacked; secondary rows fold behind «Περισσότερα». */
+@media(min-width:1200px){
+html body .clean-patient-summary.summary-two-column:is(.clean-patient-summary,#lo-patient-summary){grid-template-columns:minmax(240px,1fr) minmax(0,2.6fr)!important;align-items:start!important;column-gap:16px!important}
+html body .clean-patient-summary.summary-two-column>.summary-attention{grid-column:1/-1!important}
+html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid:is(.detail-grid,#lo-patient-grid){grid-template-columns:1fr!important}
+html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid>.detail-item:is(.detail-item,#lo-patient-grid){border-right:0!important;border-bottom:1px solid #e9eef2!important}
+html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid>.detail-item:last-child:is(.detail-item,#lo-patient-grid){border-bottom:0!important}
+}
+/* The scale chips of the record header open the clinical scales (with their history). */
+.entity-record-header .clinical-risk-flag{cursor:pointer}
+.entity-record-header .clinical-risk-flag:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(31,95,139,.12)}
+.entity-record-header .clinical-risk-flag:focus-visible{outline:2px solid #5b8db4;outline-offset:2px}
+/* The scales opened from a header chip: the scales panel (a record-tab layout that
+   fills its parent) gets a body tall enough for its table and pager. */
+.modal-backdrop>.observer-dialog.clinical-scales-dialog>.observer-dialog-body{display:flex;flex-direction:column;height:min(560px,calc(100vh - 140px));padding:0!important}
+.modal-backdrop>.observer-dialog.clinical-scales-dialog>.observer-dialog-body>.record-tab-panel{flex:1 1 auto;min-height:0}

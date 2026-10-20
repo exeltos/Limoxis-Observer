@@ -18,6 +18,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate, useLanguage } from '../../core/i18n/LanguageContext'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
+import { MoreSection } from '../../design-system/MoreSection'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import {
   createAdmission,
@@ -372,8 +373,32 @@ export function CanonicalSummary({
   ) : (
     t('clinicalRecords.none')
   )
+  // A surveillance episode's summary (no patient sheet above it): the patient's few
+  // details beside the current surveillance, two columns on a wide screen, the
+  // secondary rows folded behind "More" — one screen, no long scrolling.
+  const twoColumn = Boolean(record) && !(admission && showPatientActions)
+  const sampleCountValue = recordSamples.length
+    ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
+    : t('clinicalRecords.none')
+  const therapyDetail = <Detail key="therapy" label={t('therapy')} value={therapyValue} />
+  const lastReviewDetail = (
+    <Detail
+      key="last-review"
+      label={t('clinicalRecords.lastReassessment')}
+      value={lastReview ? clinicalTerm(lastReview.status, language, t) : t('clinicalRecords.none')}
+    />
+  )
+  const samplesDetail = (
+    <Detail key="samples" label={t('clinicalRecords.samplesLabel')} value={sampleCountValue} />
+  )
+  // A therapy awaiting approval needs action: it stays in view.
+  const secondaryDetails = pendingTherapy.length
+    ? [samplesDetail, lastReviewDetail]
+    : [samplesDetail, therapyDetail, lastReviewDetail]
   return (
-    <div className="patient-summary-layout clean-patient-summary">
+    <div
+      className={`patient-summary-layout clean-patient-summary${twoColumn ? ' summary-two-column' : ''}`}
+    >
       {attention.length > 0 && (
         // One compact «Needs attention» strip, the same as inside an episode.
         <div
@@ -454,7 +479,7 @@ export function CanonicalSummary({
         />
       )}
       {!(admission && showPatientActions) && (
-        <section className="clinical-panel patient-summary-card">
+        <section className="clinical-panel patient-summary-card summary-patient-card">
           <SectionHeader
             title={
               admission
@@ -516,24 +541,8 @@ export function CanonicalSummary({
             <Detail label={t('clinicalRecords.haiClassification')} value={haiValue} />
             <Detail label={t('clinicalRecords.clinicalAssessmentLabel')} value={assessmentValue} />
             <Detail label={t('clinicalRecords.latestFinding')} value={findingValue} />
-            <Detail
-              label={t('clinicalRecords.samplesLabel')}
-              value={
-                recordSamples.length
-                  ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
-                  : t('clinicalRecords.none')
-              }
-            />
-            <Detail label={t('therapy')} value={therapyValue} />
+            {pendingTherapy.length > 0 && therapyDetail}
             <Detail label={t('isolation')} value={isolationValue} />
-            <Detail
-              label={t('clinicalRecords.lastReassessment')}
-              value={
-                lastReview
-                  ? clinicalTerm(lastReview.status, language, t)
-                  : t('clinicalRecords.none')
-              }
-            />
             <Detail
               label={t('nextReview')}
               value={
@@ -545,6 +554,9 @@ export function CanonicalSummary({
               }
             />
           </div>
+          <MoreSection className="summary-more">
+            <div className="detail-grid patient-detail-grid">{secondaryDetails}</div>
+          </MoreSection>
         </section>
       )}
     </div>

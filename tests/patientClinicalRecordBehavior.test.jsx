@@ -206,7 +206,14 @@ describe('surveillance tree and samples', () => {
     expect(within(body()).getByText('Λοίμωξη αιματικής ροής')).toBeInTheDocument()
     const parent = within(body()).getByText(/LAB-260771/).closest('.sv-sample-node')
     fireEvent.click(within(parent).getByRole('button', { name: /Επανέλεγχος/ }))
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Επανέλεγχος δείγματος' })).getByRole('button', { name: /Αποθήκευση/ }))
+    const followUp = screen.getByRole('dialog', { name: 'Επανέλεγχος δείγματος' })
+    // A follow-up is never saved empty: where and how the sample was taken come first.
+    fireEvent.click(within(followUp).getByRole('button', { name: /Αποθήκευση/ }))
+    expect(within(followUp).getByText(/Συμπληρώστε:/).closest('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση, Τρόπος λήψης')
+    expect(within(body()).queryByText(/LAB-260771-R1/)).toBeNull()
+    fireEvent.change(within(followUp).getByLabelText('Ανατομική θέση / προέλευση'), { target: { value: 'Περιφερική φλέβα' } })
+    fireEvent.change(within(followUp).getByLabelText('Τρόπος λήψης'), { target: { value: 'Φλεβοκέντηση' } })
+    fireEvent.click(within(followUp).getByRole('button', { name: /Αποθήκευση/ }))
     const child = await waitFor(() => {
       const node = within(body()).getByText(/LAB-260771-R1/).closest('.sv-sample-node')
       expect(node).toHaveClass('is-followup')
@@ -361,5 +368,32 @@ describe('clinical data and documents', () => {
     await openTab('Ιστορικό')
     await openTab('Έγγραφα')
     expect(screen.getByText('culture.pdf')).toBeInTheDocument()
+  })
+})
+
+describe('surveillance episode record: header scale chips and printing', () => {
+  it('opens the clinical scales with their history from a header chip (NEWS2 / Braden / GCS)', async () => {
+    await openSurveillance()
+    const chip = await screen.findByRole('button', { name: /NEWS2/ })
+    expect(chip).toHaveClass('clinical-risk-flag')
+    fireEvent.click(chip)
+    const dialog = await screen.findByRole('dialog', { name: 'Ελένη Παπαδοπούλου' })
+    expect(within(dialog).getByRole('heading', { name: 'Κλινικές αξιολογήσεις' })).toBeInTheDocument()
+    expect(await within(dialog).findAllByText(/NEWS2/)).not.toHaveLength(0)
+  })
+
+  it('prints every tab of the record in sequence, with the hospital header and the «printed by» line', async () => {
+    await openSurveillance()
+    await act(async () => { window.dispatchEvent(new Event('beforeprint')) })
+    const sections = [...document.querySelectorAll('.record-print-section')]
+    expect(sections.map(section => section.dataset.printTab)).toEqual(['summary', 'surveillanceJourney', 'documents', 'history'])
+    expect(sections.map(section => section.querySelector('.record-print-section-title').textContent)).toEqual(['Σύνοψη', 'Επιτήρηση & Δείγματα', 'Έγγραφα', 'Ιστορικό'])
+    expect(sections[1]).toHaveTextContent('LAB-260771')
+    expect(sections[3]).toHaveTextContent('Ιστορικό επιτήρησης')
+    expect(document.querySelector('.record-print-header')).toHaveTextContent('Ημερομηνία εκτύπωσης')
+    expect(document.querySelector('.record-print-footer')).toHaveTextContent('Εκτυπώθηκε από')
+    await act(async () => { window.dispatchEvent(new Event('afterprint')) })
+    expect(document.querySelector('.record-print-section')).toBeNull()
+    expect(screen.getByRole('tab', { name: /Σύνοψη/ })).toHaveAttribute('aria-selected', 'true')
   })
 })

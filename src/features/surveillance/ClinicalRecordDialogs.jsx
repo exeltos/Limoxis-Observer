@@ -4,6 +4,7 @@ import { advancedAntibioticNames, newTherapyRow, therapiesToSave } from './thera
 import { Button } from '../../design-system/Button'
 import './surveillanceEntryCard.css'
 import { SaveButton } from '../../design-system/SaveButton'
+import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -108,6 +109,8 @@ export function SimpleDialog({
   disabled = false,
   width = 'standard',
   className = '',
+  // A form from useFormValidation: the save says what is missing instead of saving empty.
+  form = null,
 }) {
   return (
     <ObserverDialog
@@ -116,9 +119,15 @@ export function SimpleDialog({
       className={`patient-simple-dialog ${className}`.trim()}
       onClose={onClose}
       footer={
-        <SaveButton disabled={disabled} onClick={onSave}>
-          {t('save')}
-        </SaveButton>
+        form ? (
+          <FormSubmit form={form} disabled={disabled} onSubmit={onSave}>
+            {t('save')}
+          </FormSubmit>
+        ) : (
+          <SaveButton disabled={disabled} onClick={onSave}>
+            {t('save')}
+          </SaveButton>
+        )
       }
     >
       <div className="entry-grid">{children}</div>
@@ -372,6 +381,27 @@ export function SampleDialog({ t, title, initialType = '', onClose, onSave }) {
     collectedDate: initialDate,
     collectedTime: initialTime,
   })
+  // A sample is never saved empty: what it is, where it was taken from and when;
+  // for blood and urine cultures also how (peripheral vein / central line…).
+  const methodRequired = d.type === 'bloodCulture' || d.type === 'urineCulture'
+  const form = useFormValidation([
+    { key: 'type', label: t('sampleType'), valid: Boolean(d.type) },
+    { key: 'source', label: tr('anatomicalSiteSource'), valid: Boolean(d.source.trim()) },
+    { key: 'collectedDate', label: tr('collectionDate'), valid: Boolean(d.collectedDate) },
+    { key: 'collectedTime', label: tr('collectionTime'), valid: Boolean(d.collectedTime) },
+    methodRequired && {
+      key: 'collectionMethod',
+      label: tr('collectionMethod'),
+      valid: Boolean(d.collectionMethod.trim()),
+    },
+  ])
+  const methodHint = tr(
+    d.type === 'bloodCulture'
+      ? 'collectionMethodHintBlood'
+      : d.type === 'urineCulture'
+        ? 'collectionMethodHintUrine'
+        : 'collectionMethodHintOther',
+  )
   const save = () =>
     onSave({ ...d, collectedAt: `${d.collectedDate}T${d.collectedTime || '00:00'}` })
   return (
@@ -380,41 +410,39 @@ export function SampleDialog({ t, title, initialType = '', onClose, onSave }) {
       t={t}
       onClose={onClose}
       onSave={save}
-      disabled={!d.collectedDate}
+      form={form}
     >
       <SearchableSelect
         label={t('sampleType')}
+        {...form.field('type')}
         value={d.type}
         options={patientSampleTypeOptions(libraries.sampleTypes || [], language, t)}
         emptyLabel={listTexts(language).emptyLabel}
         onChange={v => v && setD(x => ({ ...x, type: v }))}
       />
-      <Field label={tr('anatomicalSiteSource')}>
+      <Field label={tr('anatomicalSiteSource')} {...form.field('source')}>
         <input value={d.source} onChange={e => setD(x => ({ ...x, source: e.target.value }))} />
       </Field>
       <ManualDateField
-        label={t('collectedLabel')}
+        label={tr('collectionDate')}
+        {...form.field('collectedDate')}
         value={d.collectedDate}
         onChange={v => setD(x => ({ ...x, collectedDate: v }))}
       />
       <TimeField
         label={tr('collectionTime')}
+        {...form.field('collectedTime')}
         value={d.collectedTime}
         onChange={v => setD(x => ({ ...x, collectedTime: v }))}
       />
-      <Field label={tr('collectionMethod')}>
+      <Field
+        label={tr('collectionMethod')}
+        {...(methodRequired ? form.field('collectionMethod') : {})}
+        hint={methodHint}
+      >
         <input
           value={d.collectionMethod}
           onChange={e => setD(x => ({ ...x, collectionMethod: e.target.value }))}
-          placeholder={
-            language === 'el'
-              ? d.type === 'bloodCulture'
-                ? 'π.χ. περιφερική φλέβα / κεντρική γραμμή'
-                : d.type === 'urineCulture'
-                  ? 'π.χ. μέσο ρεύμα / ουροκαθετήρας'
-                  : 'Προαιρετικό'
-              : 'Optional sample-specific metadata'
-          }
         />
       </Field>
       <ChoiceField

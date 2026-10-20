@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { Button } from '../../design-system/Button'
+import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -164,11 +164,48 @@ export function NewSurveillanceFlow({
     }
   }
 
-  const canStart =
-    !busy &&
-    Boolean(startDraft.startedAt) &&
-    Boolean(startDraft.reason || startDraft.reasonEn) &&
-    (patientMode === 'new' || Boolean(selectedPatient))
+  // What keeps «Έναρξη επιτήρησης» from starting, said beside it (never a silent disabled button).
+  const newPatient = !patient && patientMode === 'new' && !createdPatient
+  const form = useFormValidation([
+    !patient &&
+      patientMode === 'existing' && {
+        key: 'patient',
+        label: t('patient'),
+        valid: Boolean(selectedPatient),
+      },
+    newPatient &&
+      !isDemo && {
+        key: 'patientCode',
+        label: t('patientId'),
+        valid: Boolean(patientDraft.patientCode.trim()),
+      },
+    newPatient && {
+      key: 'firstName',
+      label: t('firstName'),
+      valid: Boolean((patientDraft.firstName || patientDraft.firstNameEn).trim()),
+    },
+    newPatient && {
+      key: 'lastName',
+      label: t('lastName'),
+      valid: Boolean((patientDraft.lastName || patientDraft.lastNameEn).trim()),
+    },
+    newPatient && {
+      key: 'patientDepartment',
+      label: t('department'),
+      valid: Boolean(patientDraft.department),
+    },
+    newPatient && {
+      key: 'admissionDate',
+      label: t('admissionDate'),
+      valid: Boolean(patientDraft.admissionDate),
+    },
+    { key: 'startedAt', label: t('surveillanceStartDate'), valid: Boolean(startDraft.startedAt) },
+    {
+      key: 'reason',
+      label: t('surveillanceReason'),
+      valid: Boolean((startDraft.reason || startDraft.reasonEn).trim()),
+    },
+  ])
   return (
     <ObserverDialog
       width="standard"
@@ -183,7 +220,7 @@ export function NewSurveillanceFlow({
       }
       onClose={onClose}
       footer={
-        <Button disabled={!canStart} onClick={saveStart}>
+        <FormSubmit form={form} icon={false} disabled={busy} onSubmit={saveStart}>
           {busy
             ? language === 'el'
               ? 'Αποθήκευση…'
@@ -191,7 +228,7 @@ export function NewSurveillanceFlow({
             : language === 'el'
               ? 'Έναρξη επιτήρησης'
               : 'Start surveillance'}
-        </Button>
+        </FormSubmit>
       }
     >
       {!patient && (
@@ -210,6 +247,7 @@ export function NewSurveillanceFlow({
           setPatientField={setPatientField}
           setPatientMode={setPatientMode}
           setSelectedPatientId={setSelectedPatientId}
+          form={form}
           t={t}
         />
       )}
@@ -229,6 +267,7 @@ export function NewSurveillanceFlow({
         language={language}
         setStart={setStart}
         startDraft={startDraft}
+        form={form}
         t={t}
       />
     </ObserverDialog>

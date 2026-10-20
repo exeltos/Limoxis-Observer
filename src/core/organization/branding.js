@@ -38,7 +38,8 @@ export function useOrganizationBranding(tenant,isDemo){
 // What PDFs print at the top. The app shell keeps it current for the open
 // organization, so every export gets it without passing it around.
 let reportBranding=null
-export function setReportBranding(value){reportBranding=value?{name:String(value.name||''),logo:value.logo||'',reportHeader:value.reportHeader||'',demo:Boolean(value.demo)}:null}
+// printedBy: who is signed in, for the «Εκτυπώθηκε από …» line of printed records.
+export function setReportBranding(value){reportBranding=value?{name:String(value.name||''),logo:value.logo||'',reportHeader:value.reportHeader||'',demo:Boolean(value.demo),printedBy:String(value.printedBy||'')}:null}
 export const getReportBranding=()=>reportBranding
 // A Demo organization's reports carry a "DEMO" mark (PDF pages, CSV first row,
 // print), so a file from a Demo is never taken for a real report.

@@ -17,15 +17,29 @@ export function ObserverDialog({
   footer,
   width='standard',
   presentation='modal',
-  // Forms whose content switches (existing/new, single/batch) keep one height,
-  // so the window does not jump when the choice changes.
+  // Forms whose content switches (existing/new, single/batch) do not shrink
+  // back when the choice changes, so the window does not jump; they still open
+  // at the height of their content, never at a fixed tall height.
   fixedHeight=false,
   className='',
 }){
   const {language}=useLanguage();const en=language==='en'
+  // Sizes: small / medium / large (= compact / standard / wide), or workspace.
+  // A dialog is as tall as its content up to the screen; the header and the
+  // footer with its buttons stay in view and only the body scrolls.
+  const widthAliases={small:'compact',medium:'standard',large:'wide'}
   const allowedWidths=new Set(['compact','standard','wide','workspace'])
   const allowedPresentations=new Set(['modal','workspace'])
-  const dialogWidth=allowedWidths.has(width)?width:'standard'
+  const dialogWidth=allowedWidths.has(widthAliases[width]||width)?(widthAliases[width]||width):'standard'
+  const sectionRef=useRef(null)
+  useEffect(()=>{
+    const node=sectionRef.current
+    if(!fixedHeight||!node||typeof ResizeObserver==='undefined')return undefined
+    let tallest=0
+    const observer=new ResizeObserver(()=>{const height=Math.round(node.getBoundingClientRect().height);if(height>tallest){tallest=height;node.style.minHeight=`min(${height}px, var(--lo-dialog-max-height, 86vh))`}})
+    observer.observe(node)
+    return()=>observer.disconnect()
+  },[fixedHeight])
   const dialogPresentation=allowedPresentations.has(presentation)?presentation:'modal'
   const workspace=dialogPresentation==='workspace'
   // Once the user has typed into the dialog, closing it with ×, Back or a click outside
@@ -44,7 +58,7 @@ export function ObserverDialog({
     onClose?.()
   }
   return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&e.target===e.currentTarget)requestClose()}}>
-    <section className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
+    <section ref={sectionRef} className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
       <header>
         <div className={workspace?'observer-dialog-workspace-heading':''}>
           {workspace&&<IconButton label={en?'Back':'Πίσω'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><ArrowLeft size={19}/></IconButton>}

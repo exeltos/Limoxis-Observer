@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, X } from 'lucide-react'
+import { FieldLabelText, FieldMessage } from './FormValidation'
 import './SearchableSelect.css'
 
 const normalize = value =>
@@ -28,6 +29,10 @@ export function SearchableSelect({
   customLabel = text => `«${text}»`,
   hideLabel = false,
   disabled = false,
+  required = false,
+  error = '',
+  hint = '',
+  fieldKey,
 }) {
   const baseId = useId().replace(/:/g, '')
   const inputId = `${baseId}-input`,
@@ -137,10 +142,16 @@ export function SearchableSelect({
   }
 
   return (
-    <div className={`searchable-select ${className}`.trim()}>
+    <div
+      className={`searchable-select ${className}`.trim()}
+      data-field-key={fieldKey}
+      data-invalid={error ? 'true' : undefined}
+    >
       {!hideLabel && (
         <label htmlFor={inputId}>
-          <span className="lo-field-label">{label}</span>
+          <span className="lo-field-label">
+            <FieldLabelText label={label} required={required} />
+          </span>
         </label>
       )}
       <div className="searchable-select-control" ref={controlRef}>
@@ -149,6 +160,8 @@ export function SearchableSelect({
           type="text"
           role="combobox"
           aria-label={hideLabel ? label : undefined}
+          aria-invalid={error ? true : undefined}
+          aria-required={required || undefined}
           disabled={disabled}
           autoComplete="off"
           aria-autocomplete="list"
@@ -162,7 +175,11 @@ export function SearchableSelect({
             setOpen(true)
             setActiveIndex(event.target.value ? 0 : -1)
           }}
-          onFocus={() => setOpen(true)}
+          // A form pointing at a missing field focuses it quietly (data-quiet-focus):
+          // the list stays closed so the field's message stays in view.
+          onFocus={event => {
+            if (!event.target.dataset.quietFocus) setOpen(true)
+          }}
           onClick={() => setOpen(true)}
           onBlur={() => {
             // A typed name is kept on leaving the field: the library entry it
@@ -234,6 +251,7 @@ export function SearchableSelect({
           </li>
         )}
       </ul>
+      <FieldMessage error={error} hint={hint} />
     </div>
   )
 }

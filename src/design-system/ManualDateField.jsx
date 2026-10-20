@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
 import { useLanguage } from '../core/i18n/LanguageContext'
+import { FieldLabelText, FieldMessage } from './FormValidation'
 
 function isoToDisplay(value){
   if(!value)return ''
@@ -20,7 +21,7 @@ function displayToIso(value){
   return m?text:''
 }
 
-export function ManualDateField({label,value,onChange,optional=false,disabled=false,className=''}){
+export function ManualDateField({label,value,onChange,optional=false,required=false,error='',hint='',fieldKey,disabled=false,className=''}){
   const {t,language}=useLanguage();const en=language==='en'
   const [text,setText]=useState(()=>isoToDisplay(value))
   const pickerRef=useRef(null)
@@ -36,12 +37,16 @@ export function ManualDateField({label,value,onChange,optional=false,disabled=fa
     const el=pickerRef.current
     if(el?.showPicker)el.showPicker(); else el?.click()
   }
-  return <label className={`manual-date-field ${className}`.trim()}>
-    {label&&<span className="lo-field-label">{label}{optional&&<small> · {t('optional')}</small>}</span>}
-    <div className="manual-date-control">
-      <input disabled={disabled} inputMode="numeric" placeholder={en?'dd/mm/yyyy':'ηη/μμ/εεεε'} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>commit()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();commit()}}}/>
+  const caption=label&&<span className="lo-field-label"><FieldLabelText label={label} required={required} optional={optional} optionalLabel={t('optional')}/></span>
+  const control=<div className="manual-date-control">
+      <input disabled={disabled} aria-invalid={error?true:undefined} aria-required={required||undefined} inputMode="numeric" placeholder={en?'dd/mm/yyyy':'ηη/μμ/εεεε'} value={text} onChange={e=>setText(e.target.value)} onBlur={()=>commit()} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();commit()}}}/>
       <button type="button" disabled={disabled} onClick={openPicker} aria-label={en?'Calendar':'Ημερολόγιο'} title={en?'Calendar':'Ημερολόγιο'}><CalendarDays size={16}/></button>
       <input ref={pickerRef} className="manual-date-native" tabIndex={-1} type="date" value={value||''} onChange={e=>{onChange(e.target.value);setText(isoToDisplay(e.target.value))}}/>
     </div>
-  </label>
+  // A message goes under the field, outside the <label>, so the field's name stays its label.
+  if(!required&&!hint&&!error&&!fieldKey)return <label className={`manual-date-field ${className}`.trim()}>{caption}{control}</label>
+  return <div className={`manual-date-field field-with-message ${className}`.trim()} data-field-key={fieldKey} data-invalid={error?'true':undefined}>
+    <label className="field-with-message-label">{caption}{control}</label>
+    <FieldMessage error={error} hint={hint}/>
+  </div>
 }

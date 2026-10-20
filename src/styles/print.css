@@ -1,11 +1,39 @@
 /* Printing a page: the record itself, without the app's chrome, flowing over as
    many pages as it needs (on screen the shell is a fixed-height, scrolling frame).
    `:not(#print-root)` matches every element; it only lifts these rules above the
-   screen rules (e.g. `.entity-record-shell>.entity-record-body{overflow:auto!important}`). */
+   screen rules (e.g. `.entity-record-shell>.entity-record-body{overflow:auto!important}`).
+   A record page (EntityRecordShell) prints as a clean document: the hospital's
+   header, the record's title and code and the print date on top, every tab in
+   sequence (each from a new page, `renderTab`), no on-screen controls (back,
+   export, record pager, tab strip, «…» menus, buttons, table pagers), and on each
+   page «Εκτυπώθηκε από …» and the page number (the @page boxes the shell adds). */
+.record-print-header,.record-print-footer{display:none}
 @media print{
   html,body,#root{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
   :is(.sidebar,.topbar,.preview-banner,.lira-assistant-fab,.lira-assistant-panel):not(#print-root){display:none!important}
   :is(.app-shell,.main-column,.content,.page,.page-fill,.workspace-fill,.entity-record-shell,.entity-record-body):not(#print-root){
     position:static!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
   }
+  .entity-record-shell:not(#print-root){display:block!important;padding:0!important;gap:0!important}
+  .entity-record-shell :is(.entity-record-tabs,.entity-record-back-left,.entity-record-sequence,.entity-record-utilities,.entity-record-general-actions,.lo-export-menu,.lo-overflow-menu,.lo-overflow-trigger-wrap,.registry-pagination,.button,.lo-icon-button,.lo-more-section-toggle,[data-print-hide]):not(#print-root){display:none!important}
+  /* Panels that fill the screen and scroll inside it print at their full length. */
+  .entity-record-shell :is(.record-tab-panel,.record-tab-panel-body,.scroll-table,.record-section,.workspace-column,.registry-workspace,.lab-record-stack,[class*="-scroll"]):not(#print-root){height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;flex:none!important}
+  .entity-record-shell :is(.entity-record-header,.entity-record-body,.record-print-section):not(#print-root){border:0!important;box-shadow:none!important;background:#fff!important;padding-left:0!important;padding-right:0!important}
+  .record-print-header:not(#print-root){display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px 14px;margin:0 0 10px;padding:0 0 10px;border-bottom:1.5px solid #17324a;color:#17324a;font-family:Inter,Arial,sans-serif}
+  .record-print-header img{max-height:42px;max-width:140px;object-fit:contain}
+  .record-print-hospital{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .record-print-hospital strong{font-size:13px}
+  .record-print-hospital span,.record-print-date{font-size:10px;color:#4f6477}
+  .record-print-demo{color:#9a3412!important;font-weight:700}
+  .record-print-date{grid-column:3;text-align:right}
+  /* The record's own header (code, title, subtitle, status and scale chips) stays, without its controls. */
+  .entity-record-shell .entity-record-header:not(#print-root){display:flex!important;padding:0 0 10px!important;margin:0 0 12px!important;border-bottom:1px solid #cbd8e3!important;break-after:avoid}
+  .entity-record-shell .entity-record-avatar:not(#print-root){display:none!important}
+  .record-print-section{break-before:page}
+  .record-print-section:first-of-type{break-before:auto}
+  .record-print-section-title{margin:0 0 10px;padding-bottom:5px;border-bottom:1px solid #cbd8e3;font-size:14px;color:#17324a;break-after:avoid}
+  .entity-record-shell :is(.detail-grid,.detail-item,tr,.sv-sample-node,.lo-section-header){break-inside:avoid-page}
+  .entity-record-shell [hidden]:is(.lo-more-section-body){display:block!important}
+  .entity-record-shell .summary-detail-note:not(#print-root){white-space:normal!important;overflow:visible!important}
+  .record-print-footer:not(#print-root){display:block!important;margin:14px 0 0;padding-top:6px;border-top:1px solid #cbd8e3;font-size:9px;color:#5d7083}
 }

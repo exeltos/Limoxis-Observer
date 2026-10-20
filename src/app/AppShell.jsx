@@ -82,7 +82,7 @@ export function AppShell(){
   const idleLockMinutes=useIdleLockMinutes(tenant,isDemo)
   const branding=useOrganizationBranding(tenant,isDemo)
   // Every PDF prints the open hospital's name, logo and report header.
-  useEffect(()=>{setReportBranding(tenant?{name:currentOrganization?.name||tenant.name||'',...branding,demo:Boolean(isDemo||tenant?.is_demo)}:null)},[tenant,currentOrganization?.name,branding,isDemo])
+  useEffect(()=>{setReportBranding(tenant?{name:currentOrganization?.name||tenant.name||'',...branding,demo:Boolean(isDemo||tenant?.is_demo),printedBy:profile?.fullName||profile?.email||user?.email||''}:null)},[tenant,currentOrganization?.name,branding,isDemo,profile?.fullName,profile?.email,user?.email])
   const productionMemberships=(memberships||[]).filter(item=>item?.organization?.id&&!item?.organization?.is_demo)
   // A legislation link (from an e-mail or the bell) opens the platform's own legislation screen.
   useEffect(()=>{if(platformMode&&!tenantLoading&&!location.pathname.startsWith('/platform')&&location.pathname!=='/about'&&location.pathname!=='/account')navigate(location.pathname.startsWith('/legislation')?`/platform${location.pathname}${location.search}`:'/platform',{replace:true})},[platformMode,tenantLoading,location.pathname,location.search,navigate])
