@@ -364,6 +364,9 @@ describe('bundle follow-up persistence (cloud)', () => {
   beforeEach(async () => {
     queries = []
     stored = { id: 'BND-1', bundle_key: 'VAP', assessment_date: '2026-10-01', status: 'completed', evidence: [], criteria: { answers: { oral_care: 'no', head_elevation: 'yes' }, answerNotes: { oral_care: 'Χωρίς χλωρεξιδίνη' }, followUps: { head_elevation: { status: 'open' } } } }
+    // The screens rendered above may still be importing their lazy modules;
+    // let them settle so the fresh import below sees the mocked client.
+    await vi.dynamicImportSettled()
     vi.resetModules()
     vi.doMock('../src/core/supabase/client', () => ({
       supabase: { from: table => builder(table), auth: { getUser: async () => ({ data: { user: { id: 'actor-1' } }, error: null }) } },
