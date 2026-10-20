@@ -6,7 +6,6 @@ import './surveillanceEntryCard.css'
 import { SaveButton } from '../../design-system/SaveButton'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { TimeField } from '../../design-system/TimeField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { Field } from '../../design-system/Field'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
@@ -20,6 +19,8 @@ import { evaluateHaiCriteria, haiCriteriaSetForType } from './haiCriteriaDefinit
 import { loadHaiCriteriaSets } from './haiCriteriaLibraryService'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { listTexts, patientSampleTypeOptions, priorityOptions } from './surveillanceOptions'
+import { ReadOnlyField } from '../../design-system/ReadOnlyField'
+import { SAMPLE_REQUEST_QUESTIONS, emptySampleRequest, sampleRequestPayload } from '../laboratory/sampleRequestForm'
 import {
   criteriaKeyOf,
   withCriteriaKeys,
@@ -107,6 +108,7 @@ export function SimpleDialog({
   onSave,
   children,
   disabled = false,
+  saveLabel = '',
   width = 'standard',
   className = '',
   // A form from useFormValidation: the save says what is missing instead of saving empty.
@@ -121,7 +123,7 @@ export function SimpleDialog({
       footer={
         form ? (
           <FormSubmit form={form} disabled={disabled} onSubmit={onSave}>
-            {t('save')}
+            {saveLabel || t('save')}
           </FormSubmit>
         ) : (
           <SaveButton disabled={disabled} onClick={onSave}>
@@ -365,53 +367,40 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
     </SimpleDialog>
   )
 }
-export function SampleDialog({ t, title, initialType = '', onClose, onSave }) {
+// Sample request: a request to the laboratory, not a sample entry. It names the
+// patient, the episode, the department, the sample type and site and the priority; the
+// laboratory receives and completes it, and the result is entered only there.
+// `context` ({ patient, episode, department }) is shown read-only; the extra questions
+// of sampleRequestForm.js are rendered after the core fields.
+export function SampleRequestDialog({ t, title, initialType = '', context = null, onClose, onSave }) {
   const { language } = useLanguage(),
     tr = copy(language)
+  const en = language === 'en'
   const { libraries } = useLibraries()
-  const now = new Date(),
-    initialDate = now.toISOString().slice(0, 10),
-    initialTime = now.toTimeString().slice(0, 5)
-  const [d, setD] = useState({
-    type: initialType || 'bloodCulture',
-    source: '',
-    collectionMethod: '',
-    deviceRelated: 'unknown',
-    priority: 'routine',
-    collectedDate: initialDate,
-    collectedTime: initialTime,
-  })
-  // A sample is never saved empty: what it is, where it was taken from and when;
-  // for blood and urine cultures also how (peripheral vein / central line…).
-  const methodRequired = d.type === 'bloodCulture' || d.type === 'urineCulture'
+  const [d, setD] = useState(() => emptySampleRequest({ type: initialType }))
+  const answer = key => d.requestQuestions?.[key] ?? ''
+  const setAnswer = (key, value) => setD(x => ({ ...x, requestQuestions: { ...x.requestQuestions, [key]: value } }))
   const form = useFormValidation([
     { key: 'type', label: t('sampleType'), valid: Boolean(d.type) },
     { key: 'source', label: tr('anatomicalSiteSource'), valid: Boolean(d.source.trim()) },
-    { key: 'collectedDate', label: tr('collectionDate'), valid: Boolean(d.collectedDate) },
-    { key: 'collectedTime', label: tr('collectionTime'), valid: Boolean(d.collectedTime) },
-    methodRequired && {
-      key: 'collectionMethod',
-      label: tr('collectionMethod'),
-      valid: Boolean(d.collectionMethod.trim()),
-    },
+    ...SAMPLE_REQUEST_QUESTIONS.map(question => ({
+      key: `question:${question.key}`,
+      label: question.label[en ? 'en' : 'el'],
+      valid: !question.required || Boolean(String(answer(question.key)).trim()),
+    })),
   ])
-  const methodHint = tr(
-    d.type === 'bloodCulture'
-      ? 'collectionMethodHintBlood'
-      : d.type === 'urineCulture'
-        ? 'collectionMethodHintUrine'
-        : 'collectionMethodHintOther',
-  )
-  const save = () =>
-    onSave({ ...d, collectedAt: `${d.collectedDate}T${d.collectedTime || '00:00'}` })
   return (
     <SimpleDialog
-      title={title || t('laboratoryRecords.newSample')}
+      title={title || tr('sampleRequest')}
       t={t}
       onClose={onClose}
-      onSave={save}
+      onSave={() => onSave(sampleRequestPayload(d))}
+      saveLabel={tr('sendRequest')}
       form={form}
     >
+      {context?.patient && <ReadOnlyField className="entry-span-2" label={t('patient')} value={context.patient} />}
+      {context?.episode && <ReadOnlyField label={tr('episodeWord')} value={context.episode} />}
+      {context?.department && <ReadOnlyField label={t('department')} value={context.department} />}
       <SearchableSelect
         label={t('sampleType')}
         {...form.field('type')}
@@ -420,48 +409,36 @@ export function SampleDialog({ t, title, initialType = '', onClose, onSave }) {
         emptyLabel={listTexts(language).emptyLabel}
         onChange={v => v && setD(x => ({ ...x, type: v }))}
       />
-      <Field label={tr('anatomicalSiteSource')} {...form.field('source')}>
+      <Field
+        label={tr('anatomicalSiteSource')}
+        hint={tr('collectionMethodHintBlood')}
+        {...form.field('source')}
+      >
         <input value={d.source} onChange={e => setD(x => ({ ...x, source: e.target.value }))} />
       </Field>
-      <ManualDateField
-        label={tr('collectionDate')}
-        {...form.field('collectedDate')}
-        value={d.collectedDate}
-        onChange={v => setD(x => ({ ...x, collectedDate: v }))}
-      />
-      <TimeField
-        label={tr('collectionTime')}
-        {...form.field('collectedTime')}
-        value={d.collectedTime}
-        onChange={v => setD(x => ({ ...x, collectedTime: v }))}
-      />
-      <Field
-        label={tr('collectionMethod')}
-        {...(methodRequired ? form.field('collectionMethod') : {})}
-        hint={methodHint}
-      >
-        <input
-          value={d.collectionMethod}
-          onChange={e => setD(x => ({ ...x, collectionMethod: e.target.value }))}
-        />
-      </Field>
-      <ChoiceField
-        label={tr('deviceRelated')}
-        value={d.deviceRelated}
-        onChange={v => setD(x => ({ ...x, deviceRelated: v }))}
-        options={[
-          { value: 'unknown', label: tr('unknown') },
-          { value: 'yes', label: tr('yes') },
-          { value: 'no', label: tr('no') },
-        ]}
-      />
       <ChoiceField
         label={t('priority')}
         value={d.priority}
         onChange={v => setD(x => ({ ...x, priority: v }))}
         options={priorityOptions(language)}
       />
-      <p className="entry-span-2 field-hint">{tr('onlyCollectionMetadataAreRecordedOn')}</p>
+      {SAMPLE_REQUEST_QUESTIONS.map(question =>
+        question.kind === 'choice' ? (
+          <ChoiceField
+            key={question.key}
+            label={question.label[en ? 'en' : 'el']}
+            {...form.field(`question:${question.key}`)}
+            value={answer(question.key)}
+            onChange={v => setAnswer(question.key, v)}
+            options={question.options.map(option => ({ value: option.value, label: option.label[en ? 'en' : 'el'] }))}
+          />
+        ) : (
+          <Field key={question.key} label={question.label[en ? 'en' : 'el']} {...form.field(`question:${question.key}`)}>
+            <input value={answer(question.key)} onChange={e => setAnswer(question.key, e.target.value)} />
+          </Field>
+        ),
+      )}
+      <p className="entry-span-2 field-hint">{tr('sampleRequestNote')}</p>
     </SimpleDialog>
   )
 }

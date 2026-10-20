@@ -69,6 +69,12 @@ export function normalizeLaboratorySample(row = {}) {
     microbiologyResults,
     documentsReviewedAt: row.documentsReviewedAt ?? row.documents_reviewed_at ?? null,
     finalizedAt: row.finalizedAt ?? row.finalized_at ?? null,
+    // «Προς έλεγχο»: the infection-control decision on a positive sample (null = none yet).
+    surveillanceReviewStatus: row.surveillanceReviewStatus ?? row.surveillance_review_status ?? null,
+    surveillanceReviewReason: row.surveillanceReviewReason ?? row.surveillance_review_reason ?? null,
+    surveillanceReviewNote: row.surveillanceReviewNote ?? row.surveillance_review_note ?? '',
+    surveillanceReviewedAt: row.surveillanceReviewedAt ?? row.surveillance_reviewed_at ?? null,
+    surveillanceReviewedBy: row.surveillanceReviewedBy ?? row.surveillance_reviewed_by ?? null,
   }
 }
 

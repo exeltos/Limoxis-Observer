@@ -32,6 +32,8 @@ import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labStatusLabel } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ChoiceField } from '../../design-system/ChoiceField'
+import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, reviewTag } from './sampleReviewModel'
+import { SampleReviewTag } from '../surveillance/SampleReviewWorklist'
 import './LaboratoryWorkspace.css'
 
 export function LaboratoryWorkspace() {
@@ -44,12 +46,14 @@ export function LaboratoryWorkspace() {
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
   const registry = useRegistryMemory('laboratory')
-  const saved = registry.loadViewState({ query: '', status: 'all', result: 'all', department: 'all', period: 'all' })
+  const saved = registry.loadViewState({ query: '', status: 'all', result: 'all', department: 'all', period: 'all', scope: defaultLabScope(role || actualRole) })
   const [query, setQuery] = useState(saved.query)
   const [status, setStatus] = useState(saved.status)
   const [result, setResult] = useState(saved.result)
   const [department, setDepartment] = useState(saved.department)
   const [period, setPeriod] = useState(saved.period || 'all')
+  // «Μόνο θετικά / Όλα»: the infection-control roles open on the positives, the laboratory on everything. Negatives are only hidden here, never removed.
+  const [scope, setScope] = useState(saved.scope || defaultLabScope(role || actualRole))
   const [newOpen, setNewOpen] = useState(false)
   const [patients, setPatients] = useState([])
   const [page, setPage] = useState(1)
@@ -87,10 +91,11 @@ export function LaboratoryWorkspace() {
     .filter(sample => status === 'all' || sample.status === status)
     .filter(sample => result === 'all' || (result === 'critical' ? sample.critical : sample.result === result))
     .filter(sample => department === 'all' || (language === 'el' ? sample.department : sample.departmentEn) === department)
+    .filter(sample => matchesLabScope(sample, scope))
     .filter(sample => inPeriod(sample.collectedAt || sample.requestedAt, period)),
-  [query, status, result, department, period, language, repositoryRows, canAccessRecord])
+  [query, status, result, department, period, scope, language, repositoryRows, canAccessRecord])
 
-  const clearFilters = () => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all'); setPeriod('all') }
+  const clearFilters = () => { setQuery(''); setStatus('all'); setResult('all'); setDepartment('all'); setPeriod('all'); setScope(LAB_RESULT_SCOPES.ALL) }
   const canCreate = canPerform({ role: role || actualRole, addOns: membership?.capabilities ?? [], customCapabilities: membership?.customCapabilities ?? [], action: UI_ACTIONS.CREATE, resourceCapability: CAPABILITIES.MANAGE_LAB_SAMPLES })
   const registerLabel = language === 'el' ? 'Καταχώρηση δείγματος' : 'Register sample'
   // Empty lists say why: nothing registered yet, or nothing matches the search or filters.
@@ -99,7 +104,7 @@ export function LaboratoryWorkspace() {
     : samplesError ? { title: language === 'el' ? 'Τα δείγματα δεν φορτώθηκαν' : 'Samples could not be loaded', text: language === 'el' ? 'Ανανεώστε τη σελίδα ή δοκιμάστε ξανά σε λίγο.' : 'Refresh the page or try again shortly.' }
     : recorded.length ? { title: t('svEmptyFiltered'), text: t('svEmptyFilteredHint'), filtered: true, onClear: clearFilters }
     : { title: language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples', text: canCreate ? (language === 'el' ? 'Καταχωρίστε το πρώτο δείγμα για να ξεκινήσει η εργαστηριακή ροή.' : 'Register the first sample to start the laboratory flow.') : '', icon: FlaskConical, action: canCreate ? { label: registerLabel, icon: Plus, onClick: () => setNewOpen(true) } : null }
-  useEffect(() => setPage(1), [query, status, result, department, period, pageSize])
+  useEffect(() => setPage(1), [query, status, result, department, period, scope, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -132,14 +137,15 @@ export function LaboratoryWorkspace() {
   }
 
   function openSample(sample) {
-    registry.saveViewState({ query, status, result, department, period })
+    registry.saveViewState({ query, status, result, department, period, scope })
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
   }
 
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
     <div className="module-summary-strip lab-summary"><LabKpi loading={kpisLoading} icon={FlaskConical} label={language === 'el' ? 'Δείγματα σήμερα' : 'Samples today'} value={k.today}/><LabKpi loading={kpisLoading} icon={Clock3} label={t('laboratoryRecords.pendingResults')} value={k.pending}/><LabKpi loading={kpisLoading} icon={Microscope} label={t('laboratoryRecords.positiveResults')} value={k.positive} filter="positive" current={result} onFilter={setResult}/><LabKpi loading={kpisLoading} icon={AlertTriangle} label={t('laboratoryRecords.uncommunicatedCritical')} value={k.critical} danger={k.critical > 0} filter="critical" current={result} onFilter={setResult}/></div>
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} onClear={clearFilters} advanced={<>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0) + (scope !== LAB_RESULT_SCOPES.ALL ? 1 : 0)} onClear={clearFilters} advanced={<>
+        <FilterSelect label={language === 'en' ? 'Show' : 'Εμφάνιση'} value={scope} onChange={setScope}><option value={LAB_RESULT_SCOPES.ALL}>{language === 'en' ? 'All' : 'Όλα'}</option><option value={LAB_RESULT_SCOPES.POSITIVE}>{language === 'en' ? 'Positive only' : 'Μόνο θετικά'}</option></FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(item => <option key={item}>{item}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{LAB_STATUS_ORDER.map(item => <option key={item} value={item}>{labStatusLabel(item, language)}</option>)}</FilterSelect>
         <FilterSelect label={t('result')} value={result} onChange={setResult}><option value="all">{t('all')}</option><option value="positive">{t('positive')}</option><option value="negative">{t('negative')}</option><option value="critical">{t('criticalResult')}</option></FilterSelect>
@@ -153,7 +159,7 @@ export function LaboratoryWorkspace() {
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample.type,t)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}</td>
+        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{sample.critical && <small className="lab-critical-note">{language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}</small>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
         <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status}/></td>
       </>}/>
       </div>

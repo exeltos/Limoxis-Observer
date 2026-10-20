@@ -1,6 +1,7 @@
 import { repositoryResult } from '../../../core/data/repositoryResult'
 import { binMemoryRow, describeDeleted } from '../../../core/recycleBin/recycleBinService'
 import { createDemoLabSample, getLabSample, laboratorySamples, updateLabSample } from '../laboratoryDemoData'
+import { samplesAwaitingReview } from '../sampleReviewModel'
 import { normalizeLaboratorySample, normalizeLaboratorySamples } from '../model/laboratoryModel'
 import { defineLaboratoryRepository } from './laboratoryRepository'
 
@@ -78,5 +79,12 @@ export function createDemoLaboratoryRepository({ actorName = 'Demo user' } = {})
     async finalize(sampleCode) { return this.update(sampleCode, { finalizedAt: new Date().toISOString(), status: 'completed' }) },
     async reopen(sampleCode, reason) { return this.update(sampleCode, { finalizedAt: null, documentsReviewedAt: null, correctionReason: reason, status: 'processing' }) },
     async loadStandards() { return [] },
+    // «Προς έλεγχο»: the same decision as the production function, kept in the demo list.
+    async listAwaitingReview() { return samplesAwaitingReview(normalizeLaboratorySamples(laboratorySamples)) },
+    async review(sample, { status, reason = null, note = null, caseId = null }) {
+      const patch = { surveillanceReviewStatus: status, surveillanceReviewReason: status === 'no_surveillance_needed' ? reason : null, surveillanceReviewNote: status === 'no_surveillance_needed' ? note || '' : '', surveillanceReviewedAt: new Date().toISOString(), surveillanceReviewedBy: actorName }
+      if (status === 'episode_opened' && caseId) patch.surveillanceCase = caseId
+      return Boolean(updateLabSample(sample.id, current => ({ ...current, ...patch })))
+    },
   })
 }

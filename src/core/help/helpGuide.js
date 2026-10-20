@@ -225,11 +225,11 @@ export const guideContent = {
       start: l('Επιτήρηση › Ασθενείς: αναζητήστε πρώτα τον ασθενή, δημιουργήστε μόνο αν δεν υπάρχει.', 'Surveillance › Patients: search for the patient first; create only if not found.'),
     },
     laboratory: {
-      what: l('Δείγματα, καλλιέργειες, ευαισθησία (AST) και επικοινωνία κρίσιμων αποτελεσμάτων. Είναι η πηγή αλήθειας για τη μικροβιολογία.', 'Samples, cultures, susceptibility (AST) and communication of critical results. It is the source of truth for microbiology.'),
+      what: l('Δείγματα, καλλιέργειες, ευαισθησία (AST) και επικοινωνία κρίσιμων αποτελεσμάτων. Είναι η πηγή αλήθειας για τη μικροβιολογία. Το εργαστήριο καταχωρεί δείγμα, αποτέλεσμα και AST· η λοίμωξη του ασθενή ανήκει στην Επιτήρηση. Τα αιτήματα δείγματος από ένα επεισόδιο εμφανίζονται εδώ ως εκκρεμή προς παραλαβή.', 'Samples, cultures, susceptibility (AST) and communication of critical results. It is the source of truth for microbiology. The laboratory enters sample, result and AST; a patient’s infection belongs to Surveillance. Sample requests made from an episode appear here as pending, waiting to be received.'),
       users: l('Εργαστήριο, Ομάδα Ελέγχου Λοιμώξεων.', 'Laboratory, Infection Control team.'),
       needs: null,
       analysis: l('Καρτέλα «Μικροβιολογία & AMR»: θετικές καλλιέργειες, MDR/XDR/PDR, κρίσιμα αποτελέσματα, συρροές, αντοχή ανά μικροοργανισμό και αναλυτική λίστα.', 'Tab “Microbiology & AMR”: positive cultures, MDR/XDR/PDR, critical results, clusters, resistance per organism and the detailed line list.'),
-      start: l('Ανοίξτε την ουρά εκκρεμών δειγμάτων και καταχωρίστε το πρώτο αποτέλεσμα.', 'Open the pending sample queue and enter the first result.'),
+      start: l('Ανοίξτε την ουρά εκκρεμών δειγμάτων και καταχωρίστε το πρώτο αποτέλεσμα. Ο Έλεγχος Λοιμώξεων βλέπει από προεπιλογή «Μόνο θετικά»· τα αρνητικά δεν διαγράφονται ποτέ, γιατί είναι παρονομαστές των δεικτών.', 'Open the pending sample queue and enter the first result. Infection Control sees “Positive only” by default; negatives are never deleted because they are the denominators of the indicators.'),
     },
     national: {
       what: l('Αναφορές προς τον ΕΟΔΥ και το EARS-Net, με έλεγχο ποιότητας δεδομένων πριν την αποστολή.', 'Reports to ΕΟΔΥ and EARS-Net, with a data quality check before submission.'),
@@ -239,7 +239,7 @@ export const guideContent = {
       start: l('Ανοίξτε «Αναφορές & ποιότητα δεδομένων» και διορθώστε πρώτα τις ελλείψεις.', 'Open “Reporting & data quality” and fix the gaps first.'),
     },
     surveillance: {
-      what: l('Ο φάκελος επιτήρησης λοίμωξης: κλινική αξιολόγηση, ταξινόμηση HAI, μικροβιολογία, αγωγή, απομόνωση, συσκευές, επανεκτιμήσεις και έκβαση, σε ενιαίο χρονολόγιο.', 'The infection surveillance record: clinical assessment, HAI classification, microbiology, therapy, isolation, devices, reassessments and outcome, in one timeline.'),
+      what: l('Ο φάκελος επιτήρησης λοίμωξης (ένα επεισόδιο έχει πολλά δείγματα· τα περισσότερα δείγματα δεν γίνονται ποτέ επεισόδιο): το «Προς έλεγχο» δείχνει τα νέα θετικά δείγματα χωρίς επεισόδιο, για άνοιγμα επεισοδίου ή «Δεν χρειάζεται επιτήρηση». Κλινική αξιολόγηση, ταξινόμηση HAI, μικροβιολογία, αγωγή, απομόνωση, συσκευές, επανεκτιμήσεις και έκβαση, σε ενιαίο χρονολόγιο.', 'The infection surveillance record (one episode has many samples; most samples never become an episode): “To review” shows new positive samples with no episode, to open an episode or mark “No surveillance needed”. Clinical assessment, HAI classification, microbiology, therapy, isolation, devices, reassessments and outcome, in one timeline.'),
       users: l('Ομάδα Ελέγχου Λοιμώξεων, Ιατρός Αξιολογητής, Link Nurse.', 'Infection Control team, Doctor Reviewer, Link Nurse.'),
       needs: ['laboratory'],
       analysis: l('Καρτέλες «Επιτήρηση & HAI» και «Αντιμικροβιακά»: επεισόδια, επιβεβαιωμένα και πιθανά HAI, ενεργές απομονώσεις, επεμβατικές συσκευές, έκβαση, χρήση αντιμικροβιακών.', 'Tabs “Surveillance & HAI” and “Antimicrobials”: episodes, confirmed and probable HAI, active isolations, invasive devices, outcome, antimicrobial use.'),

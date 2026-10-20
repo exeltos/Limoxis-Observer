@@ -71,7 +71,21 @@ const LAB_ONLY_POSITIVES=[
  ['2026-07-08','Παθολογική','midstream','Proteus mirabilis',null],['2026-07-21','ΤΕΠ','midstream','Klebsiella pneumoniae','ESBL'],
  ['2026-08-05','Ορθοπαιδική','woundSwab','Escherichia coli',null],['2026-08-12','ΜΕΘ','urinaryCatheter','Klebsiella pneumoniae','MDR'],
 ]
-LAB_ONLY_POSITIVES.forEach(([date,department,site,organism,resistance,critical],index)=>laboratorySamples.push(historySample({id:`LAB-${date.replace(/-/g,'').slice(2)}-0${pad2(30+index)}`,...nextPatient(),department,site,date,hour:8+index%6,organism,resistance,critical})))
+// The samples waiting for review belong to registered patients, so «Άνοιγμα επεισοδίου» opens their record.
+const WAITING_PATIENTS=[
+ {patient:'Άννα Νικολάου',patientEn:'Anna Nikolaou',patientId:'PT-260126',department:'Παθολογική'},
+ {patient:'Παναγιώτης Σταθόπουλος',patientEn:'Panagiotis Stathopoulos',patientId:'PT-260093',department:'Παθολογική'},
+ {patient:'Ιωάννα Αντωνίου',patientEn:'Ioanna Antoniou',patientId:'PT-260148',department:'Ορθοπαιδική'},
+ {patient:'Αλέξανδρος Δημητρίου',patientEn:'Alexandros Dimitriou',patientId:'PT-260155',department:'ΜΕΘ'},
+]
+// «Προς έλεγχο»: the older isolates were already reviewed by infection control; the latest
+// four wait for a decision so the worklist has something to show.
+LAB_ONLY_POSITIVES.forEach(([date,department,site,organism,resistance,critical],index)=>{
+ const sample=historySample({id:`LAB-${date.replace(/-/g,'').slice(2)}-0${pad2(30+index)}`,...nextPatient(),department,site,date,hour:8+index%6,organism,resistance,critical})
+ if(index<LAB_ONLY_POSITIVES.length-4)Object.assign(sample,{surveillanceReviewStatus:'no_surveillance_needed',surveillanceReviewReason:resistance?'colonization':'contamination',surveillanceReviewNote:'',surveillanceReviewedBy:'Ομάδα ελέγχου λοιμώξεων'})
+ else{const waiting=WAITING_PATIENTS[index-(LAB_ONLY_POSITIVES.length-4)];Object.assign(sample,waiting,{departmentEn:WARD_EN[waiting.department]})}
+ laboratorySamples.push(sample)
+})
 // Negative cultures: most of the laboratory's daily work.
 const NEGATIVE_SITES=['peripheral','peripheral','centralLine','midstream','urinaryCatheter','sputum','trachealAspirate','woundSwab']
 const NEGATIVE_WARDS=Object.keys(WARD_EN)

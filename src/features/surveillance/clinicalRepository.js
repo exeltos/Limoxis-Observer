@@ -1,3 +1,4 @@
+import { createDemoLabSample } from '../laboratory/laboratoryDemoData'
 import {
   clinicalCases,
   createClinicalSurveillance,
@@ -99,7 +100,9 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
   }
   async function requestSample(record,draft){
     if(!isDemo)return requestLaboratorySample(organizationId,record,draft)
-    const target=demoRecord(clinicalCases[record.id]);const sample={id:id('LAB'),type:draft.type,source:draft.source||'',priority:draft.priority||'routine',requestedAt:now(),result:'pending',organism:null,resistance:null,critical:false}
+    const target=demoRecord(clinicalCases[record.id]);const sample={id:`LAB-${new Date().toISOString().slice(2,10).replaceAll('-','')}-${String(Date.now()).slice(-5)}`,type:draft.type,source:draft.source||'',priority:draft.priority||'routine',requestedAt:now(),result:'pending',organism:null,resistance:null,critical:false}
+    // The request is also a «requested» row of the laboratory list, linked to the episode and the patient: the laboratory receives it and enters the result there.
+    createDemoLabSample({id:sample.id,patient:target.patient,patientEn:target.patientEn||target.patient,patientId:target.patientId,department:target.department,departmentEn:target.departmentEn||target.department,type:sample.type,source:sample.source,sourceEn:sample.source,collectedAt:null,requestedAt:sample.requestedAt,receivedAt:null,priority:sample.priority,status:'requested',surveillanceCase:target.id,result:null,resultStatus:'draft',organism:null,resistance:null,critical:false,ast:[],communications:[],attachments:[],requestQuestions:draft.requestQuestions||{},timeline:[{at:sample.requestedAt,type:'sampleRequested',actor:actor?.name||'Demo user'}]})
     target.samples.unshift(sample);touch(target,actor,'samples',sample.id);return clone(sample)
   }
   async function setIsolationNotRequired(record){

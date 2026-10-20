@@ -488,6 +488,11 @@
       "authenticated": true,
       "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
     },
+    "review_laboratory_sample": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Worklist «Προς έλεγχο»: lets Hospital Admin / IPC Lead / IPC Member / Doctor Reviewer of the organisation (Surveillance module on) record the surveillance review of a patient's laboratory sample; writes only the surveillance_review_* columns and the link to an episode of the same patient and organisation. The update policy of laboratory_samples is limited to laboratory roles."
+    },
     "set_member_supplier_renewal_sender": {
       "category": "rpc",
       "authenticated": true,

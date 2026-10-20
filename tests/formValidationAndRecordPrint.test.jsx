@@ -19,7 +19,7 @@ const { FormSubmit, useFormValidation } = await import('../src/design-system/For
 const { ObserverDialog } = await import('../src/design-system/ObserverDialog')
 const { EntityRecordShell } = await import('../src/design-system/EntityRecordShell')
 const { ExportMenu } = await import('../src/design-system/ExportMenu')
-const { SampleDialog } = await import('../src/features/surveillance/ClinicalRecordDialogs')
+const { SampleRequestDialog } = await import('../src/features/surveillance/ClinicalRecordDialogs')
 
 const read = path => fs.readFileSync(path, 'utf8')
 afterEach(() => { cleanup(); vi.useRealTimers() })
@@ -67,23 +67,25 @@ describe('forms never save empty', () => {
     expect(onSave).toHaveBeenCalledWith({ department: 'ΜΕΘ', date: '2026-10-20' })
   })
 
-  it('does not save an empty «Νέο δείγμα» / «Επανέλεγχος» of a surveillance', async () => {
+  it('does not send an empty «Αίτημα δείγματος» of a surveillance', async () => {
     const onSave = vi.fn()
-    render(<LanguageProvider><SampleDialog t={key => ({ save: 'Αποθήκευση', sampleType: 'Τύπος δείγματος', 'laboratoryRecords.newSample': 'Νέο δείγμα', priority: 'Προτεραιότητα' })[key] || key} onClose={() => {}} onSave={onSave} /></LanguageProvider>)
-    const dialog = screen.getByRole('dialog', { name: 'Νέο δείγμα' })
+    render(<LanguageProvider><SampleRequestDialog t={key => ({ save: 'Αποθήκευση', sampleType: 'Τύπος δείγματος', priority: 'Προτεραιότητα' })[key] || key} context={{ patient: 'Ελένη Παπαδοπούλου', episode: 'CLABSI · 12/10/2026', department: 'ΜΕΘ' }} onClose={() => {}} onSave={onSave} /></LanguageProvider>)
+    const dialog = screen.getByRole('dialog', { name: 'Αίτημα δείγματος' })
+    // The request names who and where; the collection time and method are the laboratory's.
+    expect(within(dialog).getByText('Ελένη Παπαδοπούλου')).toBeInTheDocument()
+    expect(within(dialog).queryByLabelText('Τρόπος λήψης')).toBeNull()
     // The long example is helper text under the field, not a cut-off placeholder.
     expect(within(dialog).getByText('π.χ. περιφερική φλέβα / κεντρική γραμμή')).toHaveClass('field-hint')
     expect(dialog.querySelector('input[placeholder^="π.χ."]')).toBeNull()
-    fireEvent.click(within(dialog).getByRole('button', { name: /Αποθήκευση/ }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /Αποστολή αιτήματος/ }))
     expect(onSave).not.toHaveBeenCalled()
-    expect(dialog.querySelector('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση, Τρόπος λήψης')
-    // After the press the message replaces the helper text under the field.
-    expect(within(dialog).getAllByText('Υποχρεωτικό πεδίο')).toHaveLength(2)
+    expect(dialog.querySelector('.form-missing-summary')).toHaveTextContent('Ανατομική θέση / προέλευση')
+    expect(within(dialog).getAllByText('Υποχρεωτικό πεδίο')).toHaveLength(1)
     await waitFor(() => expect(within(dialog).getByLabelText('Ανατομική θέση / προέλευση')).toHaveFocus())
     fireEvent.change(within(dialog).getByLabelText('Ανατομική θέση / προέλευση'), { target: { value: 'Περιφερική φλέβα' } })
-    fireEvent.change(within(dialog).getByLabelText('Τρόπος λήψης'), { target: { value: 'Φλεβοκέντηση' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: /Αποθήκευση/ }))
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ source: 'Περιφερική φλέβα', collectionMethod: 'Φλεβοκέντηση', type: 'bloodCulture' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /Αποστολή αιτήματος/ }))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ source: 'Περιφερική φλέβα', type: 'bloodCulture', priority: 'routine' }))
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('collectedAt')
   })
 
   it('wires the rule into every surveillance creation form', () => {
