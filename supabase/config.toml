@@ -25,6 +25,10 @@ verify_jwt = true
 [functions.filemaker-staging-purge]
 verify_jwt = false
 
+# Scheduler-secret endpoint (pg_net, no user JWT): fills the Library «Νέα» tab.
+[functions.library-news-ingest]
+verify_jwt = false
+
 # Public: the e-mailed supplier link (single-use token checked inside the function).
 [functions.supplier-certificate-submit]
 verify_jwt = false

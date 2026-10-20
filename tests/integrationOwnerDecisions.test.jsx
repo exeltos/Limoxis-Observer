@@ -89,10 +89,10 @@ describe('integration: owner decisions', () => {
     expect(management).toContain("{id:'indicators',label:t('sidebarNav.indicatorDefinitions')")
   })
 
-  it('gives the staff user its home, and documents only with view_documents', () => {
+  it('gives the staff user its home and the Library, and documents only with view_documents', () => {
     expect(capabilitiesFor(ROLES.STAFF_USER)).toContain(CAPABILITIES.VIEW_DASHBOARD)
     expect(capabilitiesFor(ROLES.STAFF_USER)).not.toContain(CAPABILITIES.VIEW_DOCUMENTS)
-    expect(navigationFor({ role: ROLES.STAFF_USER }).map(item => item.key)).toEqual(['dashboard'])
+    expect(navigationFor({ role: ROLES.STAFF_USER }).map(item => item.key)).toEqual(['dashboard', 'library'])
     expect(navigationFor({ role: ROLES.STAFF_USER, customCapabilities: [CAPABILITIES.VIEW_DOCUMENTS] }).map(item => item.key)).toEqual(expect.arrayContaining(['dashboard', 'documents']))
   })
 })

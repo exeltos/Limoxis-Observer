@@ -6,7 +6,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Menu, Scale, Settings, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LibraryBig, Menu, Scale, Settings, ShieldCheck, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { SidebarNavigation } from './SidebarNavigation'
@@ -67,6 +67,7 @@ export function AppShell(){
     {key:'platformNav.users',label:'platformNav.menuUsers',path:'/platform',hash:'users',icon:Users},
     {key:'platformNav.analysis',label:'platformNav.menuAnalysis',path:'/platform',hash:'reports',icon:BarChart3},
     {key:'platformNav.legislation',label:'platformNav.menuLegislation',path:'/platform/legislation',hash:'',icon:Scale},
+    {key:'libraryNav.admin',label:'libraryNav.menu',path:'/platform/library',hash:'',icon:LibraryBig},
     {key:'platformNav.management',label:'platformNav.menuManagement',path:'/platform',hash:'management',icon:Database,children:[
       {key:'managementGroupLibraries',label:'managementGroupLibraries',path:'/platform',hash:'management?group=libraries'},
       {key:'managementGroupData',label:'managementGroupData',path:'/platform',hash:'management?group=data'},
@@ -76,7 +77,7 @@ export function AppShell(){
     {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,governance:true},
   ]
   const platformHashFull=location.hash.replace(/^#/,'')
-  const platformActive=item=>(item.path==='/platform/legislation'&&location.pathname.startsWith('/platform/legislation'))||location.pathname===item.path&&(item.path!=='/platform'||(item.hash.includes('?')?platformHashFull===item.hash||(item.hash.endsWith('=libraries')&&platformHashFull==='management'):platformHashKey===item.hash))
+  const platformActive=item=>(item.path==='/platform/legislation'&&location.pathname.startsWith('/platform/legislation'))||(item.path==='/platform/library'&&location.pathname.startsWith('/platform/library'))||location.pathname===item.path&&(item.path!=='/platform'||(item.hash.includes('?')?platformHashFull===item.hash||(item.hash.endsWith('=libraries')&&platformHashFull==='management'):platformHashKey===item.hash))
   const selectedMembership=membership||memberships.find(item=>item?.organization?.id===tenant?.id)||null
   const currentOrganization=selectedMembership?.organization||tenant||null
   const idleLockMinutes=useIdleLockMinutes(tenant,isDemo)

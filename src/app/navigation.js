@@ -1,4 +1,4 @@
-import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, Home, LayoutDashboard, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -49,6 +49,8 @@ export const navigation=[
   {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsDecisions',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
   // «Έγγραφα & Κανονισμοί»: documents, regulations and legislation.
   {to:'/documents',key:'documents',label:'sidebarNav.documentsRegulations',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
+  // «Βιβλιοθήκη»: trusted sources (links, guidelines, clinical guides, news) for every role, staff users included.
+  {to:'/library',key:'library',label:'libraryNav.menu',icon:LibraryBig,everyone:true},
   {to:'/kitchen',key:'kitchen',icon:ChefHat,capability:CAPABILITIES.VIEW_KITCHEN,anyCapabilities:kitchenCapabilities},
   {to:'/pharmacy',key:'pharmacy',icon:Pill,capability:CAPABILITIES.VIEW_PHARMACY},
   {to:'/occupational-health',key:'occupationalHealth',icon:Stethoscope,capability:CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH},
@@ -87,7 +89,7 @@ const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
   ['clinical',['surveillance','laboratory','prevention','pharmacy']],
   ['operations',['controls','kitchen']],
-  ['quality',['quality','meetings','documents']],
+  ['quality',['quality','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
   ['management',['management']],
 ]
@@ -100,67 +102,67 @@ const roleMenuPolicy=Object.freeze({
   [ROLES.HOSPITAL_ADMIN]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
     ['dashboard','surveillance','laboratory','prevention','controls','indicators','meetings','calendar'],
-    ['platformAnalyticsNav','quality','employees','training','documents','kitchen'],
+    ['platformAnalyticsNav','quality','employees','training','documents','library','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_MEMBER]:policy(
     ['dashboard','surveillance','laboratory','prevention','controls','calendar'],
-    ['indicators','training','documents'],
+    ['indicators','training','documents','library'],
     ['pharmacy','occupationalHealth','management'],
   ),
   [ROLES.LABORATORY]:policy(
     ['dashboard','laboratory','employees','controls','calendar'],
-    ['documents'],
+    ['documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
     ['myDepartment','employees','controls','surveillance','calendar'],
-    ['indicators','training','documents'],
+    ['indicators','training','documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
     ['myDepartment','surveillance','prevention','controls','calendar'],
-    ['employees','indicators','training','documents','laboratory','quality','meetings'],
+    ['employees','indicators','training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
     ['myDepartment','controls','calendar'],
-    ['training','documents','laboratory','quality','meetings'],
+    ['training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.HR_OFFICE]:policy(
     ['dashboard','employees','interviews','training','calendar'],
-    ['documents'],
+    ['documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.OCCUPATIONAL_PHYSICIAN]:policy(
     ['dashboard','occupationalHealth','employees','calendar'],
-    ['documents'],
+    ['documents','library'],
     ['management','pharmacy'],
   ),
   [ROLES.QUALITY_MANAGER]:policy(
-    ['dashboard','quality','controls','kitchen','indicators','documents','calendar'],
+    ['dashboard','quality','controls','kitchen','indicators','documents','library','calendar'],
     ['meetings'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.PHARMACY]:policy(
     ['dashboard','pharmacy','indicators','calendar'],
-    ['documents'],
+    ['documents','library'],
     ['management','occupationalHealth'],
   ),
   [ROLES.DOCTOR_REVIEWER]:policy(
     ['dashboard','surveillance','laboratory','indicators','calendar'],
-    [],
+    ['library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   // The Director works from the executive dashboard (it holds the analysis and the incident report).
   [ROLES.HOSPITAL_DIRECTOR]:policy(
-    ['executiveDashboard','indicators','documents','calendar'],
+    ['executiveDashboard','indicators','documents','library','calendar'],
     [],
     ['dashboard','platformAnalyticsNav','management','pharmacy','occupationalHealth'],
   ),
   [ROLES.COMMITTEE_SECRETARIAT]:policy(
-    ['dashboard','meetings','documents','calendar'],
+    ['dashboard','meetings','documents','library','calendar'],
     [],
     ['management','pharmacy','occupationalHealth'],
   ),
@@ -229,6 +231,8 @@ export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignmen
   const allowed=navigation.filter(item=>
     item.excludeRoles&&item.excludeRoles.includes(role)?false:
     item.roles&&!item.roles.includes(role)?false:
+    // Open to every member of a hospital, whatever the role (no capability of its own).
+    item.everyone?true:
     // A merged section is shown when at least one of its tabs is open to the role.
     item.section?sectionTabsFor(item.section,{role,addOns,customCapabilities}).length>0:
     isProfileDisabled(item.capability)?false:

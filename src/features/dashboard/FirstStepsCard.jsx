@@ -4,14 +4,14 @@ import { Card, CardHeader } from '../../design-system/Card'
 const text = {
   el: {
     title: 'Πρώτα βήματα του νοσοκομείου', subtitle: 'Ολοκληρώστε τα με τη σειρά. Η κάρτα κρύβεται μόλις γίνουν όλα.',
-    departments: 'Δημιουργήστε τα τμήματα', departmentsHint: 'Κέντρο Διαχείρισης › Βιβλιοθήκες › Τμήματα',
+    departments: 'Δημιουργήστε τα τμήματα', departmentsHint: 'Κέντρο Διαχείρισης › Λίστες & ρυθμίσεις › Τμήματα',
     users: 'Προσθέστε χρήστες και ρόλους', usersHint: 'Κέντρο Διαχείρισης › Χρήστες & Ρόλοι',
     patientDays: 'Καταχωρίστε κλινοημέρες', patientDaysHint: 'Ο παρονομαστής των δεικτών · Κέντρο Διαχείρισης › Κλινοημέρες',
     done: 'Ολοκληρώθηκε', open: 'Άνοιγμα', progress: (n, total) => `${n} από ${total}`, guide: 'Όλα τα βήματα: Βοήθεια › Οδηγός έναρξης',
   },
   en: {
     title: 'Hospital first steps', subtitle: 'Complete them in order. The card disappears once all are done.',
-    departments: 'Create the departments', departmentsHint: 'Management Center › Libraries › Departments',
+    departments: 'Create the departments', departmentsHint: 'Management Center › Lists & settings › Departments',
     users: 'Add users and roles', usersHint: 'Management Center › Users & Roles',
     patientDays: 'Enter patient-days', patientDaysHint: 'The indicators’ denominator · Management Center › Patient-days',
     done: 'Done', open: 'Open', progress: (n, total) => `${n} of ${total}`, guide: 'All the steps: Help › Getting started',

@@ -85,9 +85,9 @@ export const guideContent = {
       id: 'setup', who: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), where: l('Κέντρο Διαχείρισης', 'Management Center'),
       title: l('Στήσιμο του νοσοκομείου', 'Set up the hospital'),
       steps: [
-        l('Βιβλιοθήκες › Τμήματα: δημιουργήστε πρώτα όλα τα τμήματα. Οι χρήστες συνδέονται με τμήμα.', 'Libraries › Departments: create all departments first. Users are linked to a department.'),
+        l('Λίστες & ρυθμίσεις › Τμήματα: δημιουργήστε πρώτα όλα τα τμήματα. Οι χρήστες συνδέονται με τμήμα.', 'Lists & settings › Departments: create all departments first. Users are linked to a department.'),
         l('Χρήστες & Ρόλοι: δημιουργήστε τους χρήστες, δώστε ρόλο και τμήμα. Κάθε χρήστης παίρνει πρόσκληση και ορίζει μόνος τον κωδικό του.', 'Users & Roles: create the users, give each a role and department. Each user receives an invitation and sets their own password.'),
-        l('Βιβλιοθήκες: ελέγξτε τα μικρόβια, τα αντιβιοτικά και τις λοιπές κοινές τιμές. Τα βασικά (core) στοιχεία δεν διαγράφονται· κρύβονται ή παρακάμπτονται.', 'Libraries: review microorganisms, antibiotics and other shared values. Core items are not deleted; they are hidden or overridden.'),
+        l('Λίστες & ρυθμίσεις: ελέγξτε τα μικρόβια, τα αντιβιοτικά και τις λοιπές κοινές τιμές. Τα βασικά (core) στοιχεία δεν διαγράφονται· κρύβονται ή παρακάμπτονται.', 'Lists & settings: review microorganisms, antibiotics and other shared values. Core items are not deleted; they are hidden or overridden.'),
         l('Κλινοημέρες: καταχωρίστε τις (αν υπάρχουν Δείκτες ή Επιτήρηση). Είναι ο παρονομαστής των δεικτών.', 'Patient-days: enter them (if Indicators or Surveillance exist). They are the denominator of the indicators.'),
         l('Δομικοί δείκτες: συμπληρώστε τα δομικά στοιχεία του νοσοκομείου όπου ζητούνται.', 'Structural indicators: fill in the hospital’s structural items where requested.'),
       ],
@@ -144,7 +144,7 @@ export const guideContent = {
       goal: l('Να υπάρχει σωστό, χωρίς διπλοεγγραφές μητρώο ασθενών, πάνω στο οποίο θα προστεθούν οι υπόλοιπες ενότητες.', 'A correct registry of patients without duplicates, on which the other modules are added later.'),
       steps: [
         { title: l('Επιλογή πακέτου', 'Choose the package'), who: l('Platform Owner', 'Platform Owner'), text: l('Στο Προφίλ λειτουργίας επιλέξτε «Βασική καταγραφή» και αποθηκεύστε.', 'In the Operating profile choose “Basic records” and save.') },
-        { title: l('Τμήματα', 'Departments'), who: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), text: l('Κέντρο Διαχείρισης › Βιβλιοθήκες › Τμήματα: δημιουργήστε όλα τα τμήματα.', 'Management Center › Libraries › Departments: create all departments.') },
+        { title: l('Τμήματα', 'Departments'), who: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), text: l('Κέντρο Διαχείρισης › Λίστες & ρυθμίσεις › Τμήματα: δημιουργήστε όλα τα τμήματα.', 'Management Center › Lists & settings › Departments: create all departments.') },
         { title: l('Χρήστες', 'Users'), who: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), text: l('Χρήστες & Ρόλοι: δημιουργήστε τον Υπεύθυνο Ελέγχου Λοιμώξεων και όσους θα καταχωρούν ασθενείς. Δώστε τον κατάλληλο ρόλο και τμήμα.', 'Users & Roles: create the Infection Control Lead and those who will register patients. Give the right role and department.') },
         { title: l('Πρώτος ασθενής', 'First patient'), who: l('Εξουσιοδοτημένος χρήστης', 'Authorized user'), text: l('Ασθενείς: αναζητήστε πρώτα τον ασθενή. Μόνο αν δεν υπάρχει, δημιουργήστε νέα καρτέλα με τα ελάχιστα απαραίτητα στοιχεία.', 'Patients: search for the patient first. Only if not found, create a new record with the minimum required details.') },
         { title: l('Επέκταση', 'Expand'), who: l('Platform Owner', 'Platform Owner'), text: l('Όταν χρειαστεί εργαστήριο ή αναφορές ΕΟΔΥ/EARS-Net, ξεκλειδώστε τις ενότητες στο Προφίλ λειτουργίας (βλ. «Εργαστηριακή καταγραφή» παρακάτω).', 'When you need laboratory or ΕΟΔΥ/EARS-Net reports, unlock the modules in the Operating profile (see “Laboratory records” below).') },
