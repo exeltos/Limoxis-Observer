@@ -176,5 +176,3 @@ html body .clean-patient-summary.summary-two-column>.summary-patient-card .patie
 .entity-record-header .clinical-risk-flag:focus-visible{outline:2px solid #5b8db4;outline-offset:2px}
 /* The scales opened from a header chip: the scales panel (a record-tab layout that
    fills its parent) gets a body tall enough for its table and pager. */
-.modal-backdrop>.observer-dialog.clinical-scales-dialog>.observer-dialog-body{display:flex;flex-direction:column;height:min(560px,calc(100vh - 140px));padding:0!important}
-.modal-backdrop>.observer-dialog.clinical-scales-dialog>.observer-dialog-body>.record-tab-panel{flex:1 1 auto;min-height:0}

@@ -3,6 +3,10 @@
 import { supabase } from '../../core/supabase/client'
 
 const demoReports = new Map()
+// A clinical notification of the demo patient with no admission (PT-260231): it shows in that
+// patient's record under «Δηλωτέα νοσήματα» even though the patient has no admission.
+const DEMO_NOTIFIED_AT = new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10)
+demoReports.set('clinical|demo-1', { id: 'clinical|demo-1', findingKey: 'clinical|demo-1', status: 'notified', notifiedAt: DEMO_NOTIFIED_AT, reference: 'ΕΟΔΥ-2026-0147', notes: '', updatedAt: `${DEMO_NOTIFIED_AT}T10:00:00Z`, sampleId: '', patientRecordId: 'PT-260231', disease: 'Ελονοσία', diseaseCode: 'malaria', createdAt: `${DEMO_NOTIFIED_AT}T09:30:00Z` })
 
 const mapRow = row => ({ id: row.id, findingKey: row.finding_key, status: row.status, notifiedAt: row.notified_at || '', reference: row.reference || '', notes: row.notes || '', updatedAt: row.updated_at, sampleId: row.sample_id || '', patientRecordId: row.patient_id || '', disease: row.disease_label || '', diseaseCode: row.disease_code || '', createdAt: row.created_at || '' })
 
@@ -45,7 +49,7 @@ export async function saveNotificationReport(organizationId, finding, draft, { i
 // The notifications that belong to one record: those of the given laboratory samples (the
 // episode's, reached through sample_id) and the clinical ones carrying the patient. Newest first.
 export async function loadRecordNotificationReports(organizationId, { sampleRecordIds = [], patientRecordId = null } = {}, { isDemo = false } = {}) {
-  if (isDemo) return [...demoReports.values()]
+  if (isDemo) return [...demoReports.values()].filter(report => (patientRecordId && report.patientRecordId === patientRecordId) || sampleRecordIds.some(id => String(report.findingKey).startsWith(`${id}|`)))
   if (!supabase || !organizationId) return []
   const ids = [...new Set(sampleRecordIds.filter(Boolean))]
   const filters = [ids.length && `sample_id.in.(${ids.join(',')})`, patientRecordId && `patient_id.eq.${patientRecordId}`].filter(Boolean)

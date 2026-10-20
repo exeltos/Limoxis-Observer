@@ -13,8 +13,10 @@ export const patientDemoData = [
   { id:'PT-260115', firstName:'Δημήτριος', lastName:'Οικονόμου', sex:'male', name:'Δημήτριος Οικονόμου', nameEn:'Dimitrios Oikonomou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-04-03', dischargeDate:'2026-04-18', status:'discharged' },
   { id:'PT-260104', firstName:'Κατερίνα', lastName:'Βασιλείου', sex:'female', name:'Κατερίνα Βασιλείου', nameEn:'Katerina Vasileiou', department:'Χειρουργική', departmentEn:'Surgery', admissionDate:'2026-03-11', dischargeDate:'2026-03-17', status:'discharged' },
   { id:'PT-260093', firstName:'Παναγιώτης', lastName:'Σταθόπουλος', sex:'male', name:'Παναγιώτης Σταθόπουλος', nameEn:'Panagiotis Stathopoulos', department:'Παθολογική', departmentEn:'Internal Medicine', admissionDate:'2026-02-07', dischargeDate:'2026-02-14', status:'discharged' },
-  { id:'PT-260082', firstName:'Ευαγγελία', lastName:'Μάρκου', sex:'female', name:'Ευαγγελία Μάρκου', nameEn:'Evangelia Markou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-01-18', dischargeDate:'2026-01-29', status:'discharged' }
+  { id:'PT-260082', firstName:'Ευαγγελία', lastName:'Μάρκου', sex:'female', name:'Ευαγγελία Μάρκου', nameEn:'Evangelia Markou', department:'ΜΕΘ', departmentEn:'ICU', admissionDate:'2026-01-18', dischargeDate:'2026-01-29', status:'discharged' },
 
+  // A patient with no admission: only a notifiable disease report is on record (the case the patient page must not leave empty).
+  { id:'PT-260231', hospitalRecordNumber:'FMP-1464', firstName:'Γεώργιος', lastName:'Αλεξίου', sex:'male', name:'Γεώργιος Αλεξίου', nameEn:'Georgios Alexiou', dateOfBirth:'1971-03-02', department:'Παθολογική', departmentEn:'Internal Medicine', status:'active' },
 ]
 
 // The patients of the year's other surveillance episodes (demoInfectionHistory.js).

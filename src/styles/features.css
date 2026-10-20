@@ -3985,8 +3985,8 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 @media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}
 .record-status-word{font-size:12.5px;font-weight:650;color:#5b6e82;white-space:nowrap}
 /* A patient with no admission: one frame, the sections one under the other, one short line instead of a card. */
-.patient-no-admission-view{display:flex;flex-direction:column;min-width:0}
-.patient-no-admission-view>.clinical-panel{border:0;box-shadow:none;background:transparent;border-radius:0;margin:0;padding:0 0 6px}
+.patient-no-admission-view{display:flex;flex-direction:column;min-width:0;padding:6px 14px 10px}
+.patient-no-admission-view .patient-summary-card.is-bare{margin:0;padding:0 0 6px}
 .patient-no-admission-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0;padding:10px 0;border-top:1px solid var(--lo-border-soft,#e3eaf0);border-bottom:1px solid var(--lo-border-soft,#e3eaf0);font-size:13px;color:#314b60}
 .patient-no-admission-line small{font-size:12px;color:#5b6e82}
 .patient-no-admission-line .button{min-height:34px;padding:0 12px;font-size:12.5px}

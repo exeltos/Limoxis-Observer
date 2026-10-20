@@ -15,10 +15,6 @@ import { scaleTrend } from '../scaleTrend'
 // A scale appears when it has an assessment, or when the hospital recommends or requires it.
 const listed = item => item.latest || item.availability === 'required' || item.recommended
 const statusOf = item => (item.state === 'overdue' ? FORM_STATUS.OVERDUE : item.state === 'completed' || item.state === 'current' ? FORM_STATUS.DONE : FORM_STATUS.PENDING)
-const fullNameTail = (item, en) => {
-  const name = (en ? item.name_en : item.name_el) || ''
-  return name.includes('—') ? name.split('—').slice(1).join('—').trim() : name
-}
 // «Κλίμακες» rows as plain data (screen and printed report share it).
 export function scaleLines({ scaleContext = [], ctx }) {
   const en = ctx.language === 'en'
@@ -30,8 +26,7 @@ export function scaleLines({ scaleContext = [], ctx }) {
 }
 
 function ScalesSection({ ctx }) {
-  const { t, language } = useLanguage()
-  const en = language === 'en'
+  const { t } = useLanguage()
   const [data, setData] = useState({ scaleContext: [], rows: [] })
   const [request, setRequest] = useState(null)
   const [showAll, setShowAll] = useState(false)
@@ -70,15 +65,17 @@ function ScalesSection({ ctx }) {
       ) : (
         <FormRows label={t('episodeForms.scales.title')}>
           {lines.map(({ item, band, trend, status }) => {
+            // The risk band is the badge beside the title when it is a safety signal; else it is a word here.
+            const flagged = band && (band.tone === 'danger' || band.tone === 'warning')
             const detail = item.latest
-              ? [`${t('episodeForms.scales.score')} ${item.latest.score}`, band?.label, trend.text].filter(Boolean).join(' · ')
+              ? [`${t('episodeForms.scales.score')} ${item.latest.score}`, !flagged && band?.label, trend.text].filter(Boolean).join(' · ')
               : t('episodeForms.scales.notRecorded')
             return (
               <FormRow
                 key={item.id}
                 title={`${scaleShortName(item.scale_key)}`}
-                badge={band && (band.tone === 'danger' || band.tone === 'warning') ? { label: band.label, tone: band.tone === 'danger' ? 'danger' : 'warning' } : null}
-                detail={[fullNameTail(item, en), detail].filter(Boolean).join(' · ')}
+                badge={flagged ? { label: band.label, tone: band.tone === 'danger' ? 'danger' : 'warning' } : null}
+                detail={detail}
                 status={status}
                 date={item.latest ? ctx.fmtDateTime(item.latest.assessed_at) : ''}
                 dateLabel={item.latest ? t('episodeForms.scales.lastAssessment') : ''}

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
 import { EmptyState } from '../../../design-system/EmptyState'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FormsTabContext, useFormsTabState } from './FormSection'
@@ -46,9 +45,12 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
       </FormsTabContext.Provider>
     )
   if (withoutAdmission) return content
+  // No title of its own: the tab already says «Φόρμες & ερωτηματολόγια».
   return (
-    <RecordTabPanel className="episode-forms-panel" title={t('episodeForms.title')} subtitle={t('episodeForms.subtitle')}>
-      {content || <EmptyState title={t('episodeForms.noSectionsTitle')} description={t('episodeForms.noSectionsText')} />}
-    </RecordTabPanel>
+    <section className="record-tab-panel episode-forms-panel" aria-label={t('episodeForms.title')}>
+      <div className="record-tab-panel-body">
+        {content || <EmptyState title={t('episodeForms.noSectionsTitle')} description={t('episodeForms.noSectionsText')} />}
+      </div>
+    </section>
   )
 }

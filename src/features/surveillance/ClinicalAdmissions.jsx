@@ -60,6 +60,8 @@ export function PatientDetailsSection({
   stayFields = null,
   leadingActions = null,
   extraMenuItems = [],
+  // Without a card of its own: the page already frames it (a patient with no admission).
+  bare = false,
 }) {
   const { notify } = useFeedback()
   // «Edit patient» turns the patient details into the form, in place.
@@ -154,7 +156,7 @@ export function PatientDetailsSection({
     },
   ]
   return (
-    <section className="clinical-panel patient-summary-card">
+    <section className={bare ? 'patient-summary-card is-bare' : 'clinical-panel patient-summary-card'}>
       {!editing && (
         <SectionHeader
           title={

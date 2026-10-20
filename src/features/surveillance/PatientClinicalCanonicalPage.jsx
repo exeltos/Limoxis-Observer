@@ -776,7 +776,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     <Page fill title={name} subtitle={code}>
       <EntityRecordShell
         printReport={printReport}
-        className={`patient-record-shell workspace-fill${activeTab === 'episodeForms' ? ' record-secondary-tab-active' : ''}`}
+        className={`patient-record-shell${patientMode && !selectedAdmission ? '' : ' workspace-fill'}${activeTab === 'episodeForms' ? ' record-secondary-tab-active' : ''}`}
         avatar={name
           ?.split(' ')
           .map(x => x?.[0])
@@ -848,6 +848,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         {patientMode && !selectedAdmission && patient && (
           <div className="patient-no-admission-view">
           <PatientDetailsSection
+            bare
             patient={patient}
             tenantId={tenant?.id}
             isDemo={isDemo}

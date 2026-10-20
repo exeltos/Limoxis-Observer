@@ -165,7 +165,8 @@ export const notifiableSection = {
   load: ctx =>
     loadRecordNotificationReports(
       ctx.organizationId,
-      { sampleRecordIds: (ctx.samples || []).map(sample => sample.recordId).filter(Boolean), patientRecordId: ctx.patient?.recordId || null },
+      // The demo has no record ids: its patients and samples are found by their codes.
+      { sampleRecordIds: (ctx.samples || []).map(sample => sample.recordId || (ctx.isDemo ? sample.id : null)).filter(Boolean), patientRecordId: ctx.patient?.recordId || (ctx.isDemo ? ctx.patient?.id : null) || null },
       { isDemo: ctx.isDemo },
     ),
   Component: NotifiableSection,

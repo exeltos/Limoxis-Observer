@@ -17,10 +17,12 @@ export function useFormsTabState() {
     touched.current.add(id)
     setOpen(current => ({ ...current, [id]: !current[id] }))
   }, [])
-  const offer = useCallback((id, wantOpen, attentionNow) => {
+  // A section says how it would like to be: the first time sets its default; later it only ever
+  // asks to open (its data arrived, or it needs action), and only if the user has not chosen.
+  const offer = useCallback((id, wantOpen) => {
     setOpen(current => {
       if (!(id in current)) return { ...current, [id]: wantOpen }
-      if (attentionNow && !touched.current.has(id) && !current[id]) return { ...current, [id]: true }
+      if (wantOpen && !touched.current.has(id) && !current[id]) return { ...current, [id]: true }
       return current
     })
   }, [])
@@ -39,12 +41,10 @@ export function FormsTabProvider({ children }) {
 
 export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }) {
   const { isOpen, toggle, offer } = useFormsTab()
-  // The tab learns each section's default once; a section that needs action opens itself
+  // The tab learns how each section would like to be; one that needs action opens itself
   // (unless the user already chose).
-  const offered = useRef(false)
   useEffect(() => {
-    offer(id, defaultOpen || needsAttention, offered.current ? needsAttention : false)
-    offered.current = true
+    offer(id, defaultOpen || needsAttention)
   }, [id, defaultOpen, needsAttention, offer])
   const open = isOpen(id)
   return (
