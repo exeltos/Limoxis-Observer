@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Play, Siren, Timer, Trash2, Undo2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Play, Timer, Trash2, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { SectionHeader } from '../../design-system/SectionHeader'
@@ -18,7 +18,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { KitchenList, matches, useKitchenActor, useKitchenTrace } from './KitchenShared'
 import { dietLabel, fmtQty, mealLabel, options, stockRows, unitLabel, writeoffReasonLabel } from './kitchenModel'
-import { BALANCE_TOLERANCE, RECALL_RESULTS, RECALL_SCENARIOS, drillFindings, drillSubject, elapsedMinutes, fmtDuration, newRecallDrill, recallProblems, recallResultLabel, recallResultTone, recallScenarioLabel, recallSummary, recallTrace, suggestedResult, withinTarget } from './kitchenRecallModel'
+import { BALANCE_TOLERANCE, RECALL_RESULTS, RECALL_SCENARIOS, drillFindings, drillSubject, elapsedMinutes, fmtDuration, recallProblems, recallResultLabel, recallResultTone, recallScenarioLabel, recallSummary, recallTrace, suggestedResult, withinTarget } from './kitchenRecallModel'
 import { kitchenErrorMessage, loadKitchenDishNames, removeEntry, saveRecallDrill, saveWriteoff } from './kitchenService'
 import { recallDrillDocument } from './kitchenReports'
 
@@ -30,7 +30,7 @@ const qty = (value, unit, language) => `${fmtQty(value, language)}${unit && unit
 
 // --- The list (Ανάκληση tab) ------------------------------------------------------------------
 
-export function RecallPanel({ state, access, filters, setFilters, onRecall }) {
+export function RecallPanel({ state, filters, setFilters, onRecall }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
@@ -43,7 +43,6 @@ export function RecallPanel({ state, access, filters, setFilters, onRecall }) {
     {summary.overdue && <div className="kitchen-recall-warning" role="status"><AlertTriangle size={15} />{summary.last ? (en ? `No recall drill since ${fmtDay(summary.last.drillDate)}: one is due every ${summary.months} months.` : `Καμία άσκηση ανάκλησης από ${fmtDay(summary.last.drillDate)}: προβλέπεται κάθε ${summary.months} μήνες.`) : (en ? 'No recall drill recorded: HACCP asks that the recall procedure is tested.' : 'Δεν έχει γίνει άσκηση ανάκλησης: το HACCP ζητά η διαδικασία ανάκλησης να δοκιμάζεται.')}</div>}
     <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search code, product, dish, trigger…' : 'Αναζήτηση κωδικού, προϊόντος, πιάτου, αφορμής…'} activeFilters={active}
       onClear={() => setFilters(current => ({ ...current, query: '', result: 'all', scenario: 'all' }))}
-      end={access.canRecord && <Button onClick={() => onRecall(newRecallDrill())}><Siren size={15} />{en ? 'New drill' : 'Νέα άσκηση'}</Button>}
       filters={<>
         <FilterSelect label={en ? 'Result' : 'Αποτέλεσμα'} value={filters.result} onChange={value => set('result', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{RECALL_RESULTS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}<option value="draft">{en ? 'In progress' : 'Σε εξέλιξη'}</option></FilterSelect>
         <FilterSelect label={en ? 'Scenario' : 'Σενάριο'} value={filters.scenario} onChange={value => set('scenario', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{RECALL_SCENARIOS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
@@ -60,25 +59,6 @@ export function RecallPanel({ state, access, filters, setFilters, onRecall }) {
         <td>{row.status === 'completed' ? <StatusBadge tone={recallResultTone(row.result)}>{recallResultLabel(row.result, language)}</StatusBadge> : <StatusBadge tone="info">{en ? 'In progress' : 'Σε εξέλιξη'}</StatusBadge>}</td>
       </> }} />
   </>
-}
-
-// --- The overview card ------------------------------------------------------------------------
-
-export function RecallOverviewCard({ state, access, onTab, onRecall }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const summary = recallSummary(state)
-  const last = summary.last
-  return <section className="kitchen-card">
-    <SectionHeader title={en ? 'Mock recall drill' : 'Άσκηση ανάκλησης'} subtitle={en ? `The recall procedure is tested at least every ${summary.months} months.` : `Η διαδικασία ανάκλησης δοκιμάζεται τουλάχιστον κάθε ${summary.months} μήνες.`}
-      actions={<>{access.canRecord && <Button variant="secondary" onClick={() => onRecall(newRecallDrill())}><Siren size={15} />{en ? 'New drill' : 'Νέα άσκηση'}</Button>}<Button variant="secondary" onClick={() => onTab('recall')}>{en ? 'Drills' : 'Ασκήσεις'}</Button></>} />
-    <RecordDetailsGrid fields={[
-      { label: en ? 'Last drill' : 'Τελευταία άσκηση', value: last ? `${fmtDay(last.drillDate)} · ${last.code}` : '—', meta: last ? drillSubject(last, state, language) : '' },
-      { label: en ? 'Result' : 'Αποτέλεσμα', value: last ? <StatusBadge tone={recallResultTone(last.result)}>{recallResultLabel(last.result, language)}</StatusBadge> : '—' },
-      { label: en ? 'Next due' : 'Επόμενη', value: summary.due ? fmtDay(summary.due) : (en ? 'Now' : 'Άμεσα'), meta: summary.overdue ? (en ? 'Overdue' : 'Εκπρόθεσμη') : summary.dueSoon ? (en ? 'Within 30 days' : 'Εντός 30 ημερών') : '' },
-    ]} />
-    {summary.overdue && <div className="kitchen-recall-warning" role="status"><AlertTriangle size={15} />{en ? `No recall drill in the last ${summary.months} months.` : `Καμία άσκηση ανάκλησης τους τελευταίους ${summary.months} μήνες.`}</div>}
-  </section>
 }
 
 // --- The drill ---------------------------------------------------------------------------------

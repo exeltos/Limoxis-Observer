@@ -288,11 +288,11 @@ export const guideContent = {
       start: l('Συνεδριάσεις & αποφάσεις › Επιτροπές: προγραμματίστε την πρώτη συνεδρίαση· Έγγραφα & Κανονισμοί › Έγγραφα: δημιουργήστε το πρώτο έγγραφο.', 'Meetings & decisions › Committees: schedule the first meeting; Documents & regulations › Documents: create the first document.'),
     },
     kitchen: {
-      what: l('Κουζίνα κατά HACCP: παραλαβές και απόθεμα ανά παρτίδα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση, ιχνηλασιμότητα και άσκηση ανάκλησης.', 'Kitchen under HACCP: receipts and stock by batch, production day, critical limits, verification, traceability and the recall drill.'),
+      what: l('Κουζίνα κατά HACCP σε πέντε καρτέλες (Σήμερα, Ημέρες παραγωγής, Αποθήκη, Επαλήθευση & Ανάκληση, Σχέδιο HACCP): παραλαβές και απόθεμα ανά παρτίδα, ημέρα παραγωγής με τις καταγραφές της, κρίσιμα όρια, επαλήθευση, ιχνηλασιμότητα και άσκηση ανάκλησης.', 'Kitchen under HACCP in five tabs (Today, Production days, Storage, Verification & recall, HACCP plan): receipts and stock by batch, the production day with its records, critical limits, verification, traceability and the recall drill.'),
       users: l('Υπεύθυνος κουζίνας, Υπεύθυνος Ποιότητας, Διαχειριστής Νοσοκομείου.', 'Kitchen lead, Quality Manager, Hospital Admin.'),
       needs: null,
       analysis: l('Καρτέλα «Ποιότητα & ασφάλεια τροφίμων».', 'Tab “Food quality & safety”.'),
-      start: l('Ορίστε τα κρίσιμα όρια και καταχωρήστε την πρώτη παραλαβή.', 'Set the critical limits and record the first receipt.'),
+      start: l('Σχέδιο HACCP › ορίστε τα κρίσιμα όρια· Αποθήκη › Παραλαβή: καταχωρήστε την πρώτη παραλαβή· Σήμερα › Σημερινή παραγωγή: ανοίξτε την ημέρα.', 'HACCP plan › set the critical limits; Storage › Receipt: record the first receipt; Today › Production of the day: open the day.'),
     },
     suppliers: {
       what: l('Μητρώο προμηθευτών με αξιολογήσεις και πιστοποιητικά, ειδοποίηση για ληγμένα πιστοποιητικά και φόρμα αντικατάστασης για τον προμηθευτή.', 'Supplier register with evaluations and certificates, expired-certificate notices and a replacement form for the supplier.'),

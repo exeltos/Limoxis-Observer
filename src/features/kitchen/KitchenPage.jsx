@@ -1,29 +1,26 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AlertTriangle, Blend, CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, Route, ShieldCheck, Siren, Snowflake, Thermometer, Truck } from 'lucide-react'
+import { CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, ShieldCheck, Siren, Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
-import { MetricCard } from '../../design-system/MetricCard'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { useKitchen, useKitchenAccess } from './KitchenShared'
-import { DefrostPanel, HaccpPanel, OverviewPanel, PlanPanel, PureeingPanel, ReceiptsPanel, SettingsDialog, StockPanel, ThermalPanel, TraceDialog, UsagePanel, VerificationPanel, useSignOff } from './KitchenPanels'
+import { HaccpPanel, OverviewPanel, PlanPanel, ReceiptsPanel, SettingsDialog, StockPanel, TraceDialog, VerificationPanel, fmtDay } from './KitchenPanels'
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
-import { KITCHEN_TAB_GROUPS as GROUPS, addDays, categoryLabel, kitchenTabGroup as groupOf, newReceipt, overview, productionForDay, resolveKitchenTab, stockRows, todayKey } from './kitchenModel'
+import { KITCHEN_PRIMARY_ACTION, addDays, categoryLabel, newProduction, newReceipt, overview, productionForDay, resolveKitchenLocation, stockRows, todayKey } from './kitchenModel'
 import { dailyHaccpDocument, exportKitchenList, receiptsLogDocument } from './kitchenReports'
 import { RecallDialog, RecallPanel } from './KitchenRecall'
-import { drillSubject, recallSummary } from './kitchenRecallModel'
+import { drillSubject, newRecallDrill, recallSummary } from './kitchenRecallModel'
 
 const initialFilters = () => ({
   receipts: { query: '', result: 'all', supplier: 'all', limits: 'all', from: '', to: '' },
-  stock: { query: '', show: 'in', storage: 'all', category: 'all', view: 'stock' },
-  thermal: { query: '', limits: 'all', from: '', to: '' },
-  defrost: { query: '', limits: 'all', signed: 'all', from: '', to: '' },
-  pureeing: { query: '', limits: 'all', from: '', to: '' },
-  usage: { query: '', link: 'all', from: '', to: '' },
+  stock: { query: '', show: 'in', storage: 'all', category: 'all' },
   plan: { query: '', when: 'all', from: '', to: '', view: 'days' },
   verification: { query: '', range: '30' },
   recall: { query: '', result: 'all', scenario: 'all' },
@@ -36,25 +33,27 @@ export function KitchenPage() {
   const navigate = useNavigate()
   const { notify } = useFeedback()
   const [params, setParams] = useSearchParams()
-  const tab = resolveKitchenTab(params.get('tab'))
-  const group = groupOf(tab)
-  // Each group reopens on the tab last used in it.
-  const [lastInGroup, setLastInGroup] = useState({})
-  useEffect(() => { setLastInGroup(current => (current[group.value] === tab ? current : { ...current, [group.value]: tab })) }, [group.value, tab])
-  const setTab = next => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
+  // The tab and its view; an address of the old eleven tabs (?tab=thermal, ?tab=recall…) is rewritten to its new place.
+  const { tab, view } = resolveKitchenLocation(params.get('tab'), params.get('view'))
+  const setLocation = (next, nextView = '') => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); if (nextView) copy.set('view', nextView); else copy.delete('view'); return copy }, { replace: true })
+  const setTab = next => setLocation(next, resolveKitchenLocation(next).view)
+  const wantsRewrite = params.get('tab') !== tab || (view || '') !== (params.get('view') || '')
+  useEffect(() => { if (params.get('tab') && wantsRewrite) setLocation(tab, view) }, [wantsRewrite, tab, view]) // eslint-disable-line react-hooks/exhaustive-deps
   const access = useKitchenAccess()
   const { state, loading, reload, organizationId, showSince } = useKitchen()
   const [filters, setAllFilters] = useState(initialFilters)
   // The lists show the loaded window; a «From» date (or a longer verification period) before it reads further back.
   const today = todayKey()
-  const wantSince = useMemo(() => (filters.verification.range === 'all' ? null : [addDays(today, -Number(filters.verification.range || 30)), ...['receipts', 'thermal', 'defrost', 'pureeing', 'usage', 'plan'].map(key => filters[key].from)].filter(Boolean).sort()[0]), [filters, today])
+  const wantSince = useMemo(() => (filters.verification.range === 'all' ? null : [addDays(today, -Number(filters.verification.range || 30)), ...['receipts', 'plan'].map(key => filters[key].from)].filter(Boolean).sort()[0]), [filters, today])
   useEffect(() => { showSince(wantSince) }, [wantSince, showSince])
   const filtersFor = key => [filters[key], updater => setAllFilters(current => ({ ...current, [key]: typeof updater === 'function' ? updater(current[key]) : updater }))]
   const [dialog, setDialog] = useState(null)
   const [trace, setTrace] = useState(null)
-  const [recall, setRecall] = useState(null)
-  const { sign, reopenRow } = useSignOff(organizationId, reload)
-  const stock = useMemo(() => (state ? stockRows(state, today) : []), [state, today])
+  const [recallDraft, setRecall] = useState(null)
+  // An address of the old Recall / Verification tabs scrolls to its section of the shared tab.
+  const focusRef = useRef(null)
+  useEffect(() => { if (tab === 'safety' && params.get('view') && focusRef.current?.scrollIntoView) focusRef.current.scrollIntoView({ block: 'start' }) }, [tab, view, state]) // eslint-disable-line react-hooks/exhaustive-deps
+    const stock = useMemo(() => (state ? stockRows(state, today) : []), [state, today])
   const summary = useMemo(() => (state ? overview(state, today) : null), [state, today])
   const dishes = useMemo(() => (state ? [...new Set([...state.thermal.map(row => row.dishName), ...state.productions.flatMap(row => (row.meals || []).map(meal => meal.dish))].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')).slice(0, 400) : []), [state])
   const openDay = id => navigate(`/kitchen/days/${id}`)
@@ -67,76 +66,73 @@ export function KitchenPage() {
   const [receiptFilters] = filtersFor('receipts')
   const receiptsInView = state.receipts.filter(row => (!receiptFilters.from || row.receivedOn >= receiptFilters.from) && (!receiptFilters.to || row.receivedOn <= receiptFilters.to)).sort((a, b) => String(a.receivedOn).localeCompare(String(b.receivedOn)))
   const logFrom = receiptFilters.from || addDays(today, -30), logTo = receiptFilters.to || today
+  const productsExcel = () => exportKitchenList('products', state.products.map(item => ({ ...item, supplierName: state.suppliers.find(s => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) })), language)
+  const dayDocument = todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {}
   const exportsFor = {
-    overview: todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {},
-    receipts: { ...reportExports(() => receiptsLogDocument(receiptsInView.filter(row => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) },
-    stock: { onExcel: () => (filters.stock.view === 'products' ? exportKitchenList('products', state.products.map(item => ({ ...item, supplierName: state.suppliers.find(s => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) })), language) : exportKitchenList('stock', stock, language)) },
-    thermal: { onExcel: () => exportKitchenList('thermal', state.thermal, language) },
-    defrost: { onExcel: () => exportKitchenList('defrosting', state.defrosting, language) },
-    pureeing: { onExcel: () => exportKitchenList('pureeing', state.pureeing, language) },
-    usage: { onExcel: () => exportKitchenList('usage', state.usage.map(row => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) })), language) },
-    plan: todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {},
-    recall: { onExcel: () => exportKitchenList('recall', (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), language) },
-    verification: {}, haccp: {},
+    today: dayDocument,
+    // The period lists of the records (heat, defrosting, pureeing, materials in use) are Excel files here: they are recorded in the production day.
+    days: { ...dayDocument, items: [
+      { id: 'x-thermal', kind: 'excel', label: en ? 'Excel · Heat treatments' : 'Excel · Θερμικές επεξεργασίες', onClick: () => exportKitchenList('thermal', state.thermal, language) },
+      { id: 'x-defrost', kind: 'excel', label: en ? 'Excel · Defrosting' : 'Excel · Αποψύξεις', onClick: () => exportKitchenList('defrosting', state.defrosting, language) },
+      { id: 'x-pureeing', kind: 'excel', label: en ? 'Excel · Pureeing' : 'Excel · Πολτοποιήσεις', onClick: () => exportKitchenList('pureeing', state.pureeing, language) },
+      { id: 'x-usage', kind: 'excel', label: en ? 'Excel · Materials in use' : 'Excel · Υλικά σε χρήση', onClick: () => exportKitchenList('usage', state.usage.map(row => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) })), language) },
+    ] },
+    storage: view === 'receipts' ? { ...reportExports(() => receiptsLogDocument(receiptsInView.filter(row => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) }
+      : { onExcel: view === 'products' ? productsExcel : () => exportKitchenList('stock', stock, language) },
+    safety: { onExcel: () => exportKitchenList('recall', (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), language) },
+    haccp: {},
   }
   const exportProps = exportsFor[tab] || {}
+  // One button per action: Export, and the one primary action of the tab.
+  const primary = access.canRecord ? KITCHEN_PRIMARY_ACTION[tab] : null
+  const primaryButton = {
+    production: <Button onClick={() => (summary.production ? openDay(summary.production.id) : setDialog({ type: 'production', initial: newProduction(today) }))}><ChefHat size={15} />{summary.production ? (en ? 'Today\'s production' : 'Σημερινή παραγωγή') : (en ? 'Open today' : 'Άνοιγμα ημέρας')}</Button>,
+    day: <Button onClick={() => setDialog({ type: 'production', initial: newProduction(today) })}><ChefHat size={15} />{en ? 'New day' : 'Νέα ημέρα'}</Button>,
+    receipt: <Button onClick={() => setDialog({ type: 'receipt', initial: newReceipt() })}><Truck size={15} />{en ? 'Receipt' : 'Παραλαβή'}</Button>,
+    drill: <Button onClick={() => setRecall(newRecallDrill())}><Siren size={15} />{en ? 'New drill' : 'Νέα άσκηση'}</Button>,
+  }[primary]
   const actions = <div className="row-actions">
     {Object.keys(exportProps).length > 0 && <ExportMenu {...exportProps} />}
-    {access.canRecord && <Button variant="secondary" onClick={() => setDialog({ type: 'receipt', initial: newReceipt() })}><Truck size={15} />{en ? 'Receipt' : 'Παραλαβή'}</Button>}
-    {access.canRecord && <Button onClick={() => (summary.production ? openDay(summary.production.id) : setDialog({ type: 'production', initial: { ...newProductionFor(today) } }))}><ChefHat size={15} />{summary.production ? (en ? 'Today\'s production' : 'Σημερινή παραγωγή') : (en ? 'Open today' : 'Άνοιγμα ημέρας')}</Button>}
+    {primaryButton}
   </div>
 
+  const recall = recallSummary(state, today)
   const tabs = [
-    { value: 'overview', label: en ? 'Overview' : 'Επισκόπηση', icon: LayoutDashboard },
-    { value: 'plan', label: en ? 'Menu & plan' : 'Μενού & Πλάνο', icon: CalendarClock },
-    { value: 'receipts', label: en ? 'Receipts' : 'Παραλαβές', icon: Truck },
-    { value: 'stock', label: en ? 'Stock' : 'Απόθεμα', icon: Package, count: summary.expiring.filter(row => row.expired).length },
-    { value: 'thermal', label: en ? 'Heat treatments' : 'Θερμικές επεξεργασίες', icon: Thermometer },
-    { value: 'defrost', label: en ? 'Defrosting' : 'Αποψύξεις', icon: Snowflake },
-    { value: 'pureeing', label: en ? 'Pureeing' : 'Πολτοποιήσεις', icon: Blend },
-    { value: 'usage', label: en ? 'Materials in use' : 'Υλικά σε χρήση', icon: Route },
-    { value: 'verification', label: en ? 'Verification' : 'Επαλήθευση', icon: ShieldCheck, count: summary.toVerify },
-    { value: 'recall', label: en ? 'Recall drills' : 'Ανάκληση', icon: Siren, count: recallSummary(state, today).overdue ? 1 : 0 },
+    { value: 'today', label: en ? 'Today' : 'Σήμερα', icon: LayoutDashboard },
+    { value: 'days', label: en ? 'Production days' : 'Ημέρες παραγωγής', icon: CalendarClock },
+    { value: 'storage', label: en ? 'Storage' : 'Αποθήκη', icon: Package, count: summary.expiring.filter(row => row.expired).length },
+    { value: 'safety', label: en ? 'Verification & recall' : 'Επαλήθευση & Ανάκληση', icon: ShieldCheck, count: summary.toVerify + (recall.overdue ? 1 : 0) },
     { value: 'haccp', label: en ? 'HACCP plan' : 'Σχέδιο HACCP', icon: ClipboardList },
   ]
-  const tabItem = Object.fromEntries(tabs.map(item => [item.value, item]))
-  const groupLabels = { today: en ? 'Today' : 'Σήμερα', production: en ? 'Production' : 'Παραγωγή', storage: en ? 'Storage' : 'Αποθήκη', safety: en ? 'Safety' : 'Ασφάλεια' }
-  const groupIcons = { today: LayoutDashboard, production: ChefHat, storage: Package, safety: ShieldCheck }
-  const groups = GROUPS.map(item => ({ value: item.value, label: groupLabels[item.value], icon: groupIcons[item.value], count: item.tabs.reduce((sum, key) => sum + (tabItem[key].count || 0), 0) }))
-  const openGroup = value => setTab(lastInGroup[value] || GROUPS.find(item => item.value === value).tabs[0])
+  const storageSwitch = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view === 'receipts' ? 'receipts' : 'stock'} onChange={value => setLocation('storage', value)} options={[{ value: 'receipts', label: en ? 'Receipts' : 'Παραλαβές', icon: Truck }, { value: 'stock', label: en ? 'Stock' : 'Απόθεμα', icon: Package }]} />
   const props = { state, access, reload, organizationId, onDialog: setDialog, onOpenDay: openDay, onTrace: setTrace, onRecall: setRecall, stock }
+  const lastDrill = recall.last
   return <Page fill className="registry-fill-page kitchen-page" title={en ? 'Kitchen' : 'Κουζίνα'} subtitle={en ? 'HACCP food safety: receipts and stock, the production day, critical limits, verification and traceability.' : 'Ασφάλεια τροφίμων HACCP: παραλαβές και απόθεμα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση και ιχνηλασιμότητα.'} actions={actions}>
-    <div className="workspace-summary"><div className="module-summary-strip">
-      <MetricCard icon={Truck} value={summary.receipts.length} label={en ? 'Receipts today' : 'Παραλαβές σήμερα'} onClick={() => setTab('receipts')} />
-      <MetricCard icon={Thermometer} value={summary.thermal.length} label={en ? 'Heat treatments today' : 'Θερμικές σήμερα'} onClick={() => setTab('thermal')} />
-      <MetricCard icon={AlertTriangle} tone={summary.outOfLimits.length ? 'danger' : 'neutral'} value={summary.outOfLimits.length} label={en ? 'Out of limits (30 d)' : 'Εκτός ορίων (30 ημ.)'} onClick={() => setTab('overview')} />
-      <MetricCard icon={Package} value={summary.inStock} label={en ? 'Batches in stock' : 'Παρτίδες σε απόθεμα'} onClick={() => setTab('stock')} />
-      <MetricCard icon={CalendarClock} tone={summary.expiring.length ? 'warning' : 'neutral'} value={summary.expiring.length} label={en ? 'Expire soon / expired' : 'Λήγουν / έληξαν'} onClick={() => { setAllFilters(current => ({ ...current, stock: { ...current.stock, view: 'stock', show: 'attention' } })); setTab('stock') }} />
-      <MetricCard icon={ShieldCheck} tone={summary.toVerify ? 'warning' : 'neutral'} value={summary.toVerify} label={en ? 'Days to verify' : 'Ημέρες προς επαλήθευση'} onClick={() => setTab('verification')} />
-    </div></div>
-    <CanonicalTabs items={groups} value={group.value} onChange={openGroup} ariaLabel={en ? 'Kitchen' : 'Κουζίνα'} />
-    {group.tabs.length > 1 && <CanonicalTabs className="canonical-subtabs" items={group.tabs.map(key => tabItem[key])} value={tab} onChange={setTab} ariaLabel={groupLabels[group.value]} />}
+    <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Kitchen' : 'Κουζίνα'} />
     <section className={`surface registry-workspace workspace-column workspace-fill kitchen-workspace kitchen-tab-${tab}`}>
-      {tab === 'overview' && <OverviewPanel {...props} summary={summary} onTab={setTab} />}
-      {tab === 'plan' && <PlanPanel {...props} {...pair(filtersFor('plan'))} />}
-      {tab === 'receipts' && <ReceiptsPanel {...props} {...pair(filtersFor('receipts'))} />}
-      {tab === 'stock' && <StockPanel {...props} {...pair(filtersFor('stock'))} />}
-      {tab === 'thermal' && <ThermalPanel {...props} {...pair(filtersFor('thermal'))} />}
-      {tab === 'defrost' && <DefrostPanel {...props} {...pair(filtersFor('defrost'))} onSign={sign} onReopen={reopenRow} />}
-      {tab === 'pureeing' && <PureeingPanel {...props} {...pair(filtersFor('pureeing'))} />}
-      {tab === 'usage' && <UsagePanel {...props} {...pair(filtersFor('usage'))} />}
-      {tab === 'verification' && <VerificationPanel {...props} {...pair(filtersFor('verification'))} onSign={sign} />}
-      {tab === 'recall' && <RecallPanel {...props} {...pair(filtersFor('recall'))} />}
+      {tab === 'today' && <OverviewPanel {...props} summary={summary} onTab={setTab} onStockAttention={() => { setAllFilters(current => ({ ...current, stock: { ...current.stock, show: 'attention' } })); setLocation('storage', 'stock') }} />}
+      {tab === 'days' && <PlanPanel {...props} {...pair(filtersFor('plan'))} />}
+      {tab === 'storage' && view === 'receipts' && <ReceiptsPanel {...props} {...pair(filtersFor('receipts'))} switcher={storageSwitch} />}
+      {tab === 'storage' && view !== 'receipts' && <StockPanel {...props} {...pair(filtersFor('stock'))} view={view} switcher={storageSwitch} onView={value => setLocation('storage', value)} />}
+      {tab === 'safety' && <div className="kitchen-safety">
+        <section className="kitchen-card kitchen-safety-section" ref={view === 'verification' ? focusRef : null}>
+          <SectionHeader title={en ? 'Days to verify' : 'Ημέρες προς επαλήθευση'} subtitle={en ? 'Open a day to review its records and sign it off.' : 'Ανοίξτε την ημέρα για να ελέγξετε τις καταγραφές και να την επαληθεύσετε.'} />
+          <VerificationPanel {...props} {...pair(filtersFor('verification'))} />
+        </section>
+        <section className="kitchen-card kitchen-safety-section" ref={view === 'recall' ? focusRef : null}>
+          <SectionHeader title={en ? 'Recall drills' : 'Ασκήσεις ανάκλησης'} subtitle={lastDrill ? (en ? `Last drill ${fmtDay(lastDrill.drillDate)} · next due ${recall.due ? fmtDay(recall.due) : 'now'}` : `Τελευταία άσκηση ${fmtDay(lastDrill.drillDate)} · επόμενη ${recall.due ? fmtDay(recall.due) : 'άμεσα'}`) : (en ? `The recall procedure is tested at least every ${recall.months} months.` : `Η διαδικασία ανάκλησης δοκιμάζεται τουλάχιστον κάθε ${recall.months} μήνες.`)} />
+          <RecallPanel {...props} {...pair(filtersFor('recall'))} />
+        </section>
+      </div>}
       {tab === 'haccp' && <HaccpPanel {...props} />}
     </section>
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={dishes} organizationId={organizationId} reload={reload} onOpenDay={openDay} />
     {trace && <TraceDialog state={state} organizationId={organizationId} receiptItemId={trace} onClose={() => setTrace(null)} />}
-    {recall && <RecallDialog key={recall.id || 'new'} state={state} organizationId={organizationId} access={access} initial={recall} onClose={() => setRecall(null)} onSaved={reload} />}
+    {recallDraft && <RecallDialog key={recallDraft.id || 'new'} state={state} organizationId={organizationId} access={access} initial={recallDraft} onClose={() => setRecall(null)} onSaved={reload} />}
   </Page>
 }
 
 const pair = ([filters, setFilters]) => ({ filters, setFilters })
-const newProductionFor = day => ({ id: '', productionDate: day, menuId: '', menuText: '', notes: '', disinfectionVegetables: false, disinfectionFruit: false, meals: [], source: 'app' })
 
 // The dialogs of the kitchen, shared by the page and the records.
 export function KitchenDialogHost({ dialog, setDialog, state, stock, dishes, organizationId, reload, onOpenDay }) {

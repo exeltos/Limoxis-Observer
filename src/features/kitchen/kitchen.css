@@ -48,3 +48,15 @@
 .kitchen-workspace .kitchen-card{border:0;border-radius:0;padding:0;background:transparent}
 .kitchen-workspace :is(.kitchen-overview,.kitchen-haccp){gap:22px 28px;padding:16px 18px}
 .kitchen-workspace .kitchen-card .scroll-table{border-width:1px 0!important;border-radius:0!important}
+/* Today: one line of what needs action, then today's day beside the out-of-limits and verification lists, without scrolling. */
+.kitchen-attention{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;font-size:13px;color:var(--color-text-secondary,#475569)}
+.kitchen-attention>*{display:inline-flex;align-items:baseline;gap:6px;margin:0;padding:0;border:0;background:none;font:inherit;color:inherit}
+.kitchen-attention button{cursor:pointer}
+.kitchen-attention button:hover{color:var(--color-text,#0f172a);text-decoration:underline}
+.kitchen-attention strong{font-size:20px;font-variant-numeric:tabular-nums;color:var(--color-text,#0f172a)}
+.kitchen-attention .is-alert strong{color:var(--color-danger,#b42318)}
+.kitchen-overview-side{display:flex;flex-direction:column;gap:14px;min-width:0}
+.kitchen-workspace .kitchen-overview{align-items:start;gap:12px 28px;padding:12px 18px}
+.kitchen-safety{display:flex;flex-direction:column;gap:18px;padding:12px 18px;overflow:auto}
+.kitchen-safety-section{display:flex;flex-direction:column;min-width:0}
+.kitchen-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
