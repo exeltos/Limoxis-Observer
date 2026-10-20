@@ -3,13 +3,14 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, Layers3 } from 'lucide-react'
 import { sidebarLayout } from './navigation'
 import { preloadRoute } from './routePreload'
+import { forgetRegistryViewStates } from '../core/navigation/useRegistryMemory'
 
 const isUnder=(pathname,to)=>to==='/'?pathname==='/':pathname===to||pathname.startsWith(`${to}/`)
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon
   const label=t(item.label||item.key)
-  return <NavLink to={item.to} end={item.to==='/'} onClick={onNavigate} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></NavLink>
+  return <NavLink to={item.to} end={item.to==='/'} onClick={()=>{forgetRegistryViewStates();onNavigate?.()}} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} className={({isActive})=>`nav-item ${nested?'nested':''} ${isActive?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></NavLink>
 }
 
 // A headed group of the sidebar: the heading folds and unfolds it. One group is

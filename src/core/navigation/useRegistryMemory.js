@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { readSessionJson, readSessionValue, writeSessionJson, writeSessionValue } from '../storage/browserStorage'
+import { readSessionJson, readSessionValue, removeSessionValue, writeSessionJson, writeSessionValue } from '../storage/browserStorage'
 
 export const registryStorageKey=(registry,part)=>`limoxis.registry.${registry}.${part}`
 
@@ -70,4 +70,14 @@ export function readRegistryViewState(registry){
 
 export function writeRegistryViewState(registry,state){
   writeSessionJson(registryStorageKey(registry,'view'),state||{})
+}
+
+// Opening a section from the menu starts it clean: the searches and filters kept
+// for the way back from a record are forgotten (storage may be unavailable).
+export function forgetRegistryViewStates(){
+  try{
+    const keys=[]
+    for(let index=0;index<window.sessionStorage.length;index+=1){const key=window.sessionStorage.key(index);if(key?.startsWith('limoxis.registry.')&&key.endsWith('.view'))keys.push(key)}
+    keys.forEach(removeSessionValue)
+  }catch{/* nothing was kept */}
 }

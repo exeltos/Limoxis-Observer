@@ -145,3 +145,15 @@ describe('incident report button and indicators', () => {
     expect(read('src/app/App.jsx')).toContain('<Route path="indicators" element={gateAny([CAPABILITIES.VIEW_INDICATORS,CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD],<IndicatorsRoute/>)}/>')
   })
 })
+
+describe('menu entries start a section clean', () => {
+  afterEach(cleanup)
+  it('forgets the kept search of a registry when its section is opened from the menu', () => {
+    window.sessionStorage.setItem('limoxis.registry.patients.view', JSON.stringify({ query: 'FMP-00539' }))
+    window.sessionStorage.setItem('limoxis.registry.patients.selected', 'FMP-00539')
+    render(<MemoryRouter initialEntries={['/']}><nav><SidebarNavigation role={ROLES.HOSPITAL_ADMIN} items={navigationFor({ role: ROLES.HOSPITAL_ADMIN })} t={key => key} userKey="u1" /></nav></MemoryRouter>)
+    fireEvent.click(screen.getByRole('link', { name: 'sidebarNav.surveillanceSection' }))
+    expect(window.sessionStorage.getItem('limoxis.registry.patients.view')).toBeNull()
+    expect(window.sessionStorage.getItem('limoxis.registry.patients.selected')).toBe('FMP-00539')
+  })
+})
