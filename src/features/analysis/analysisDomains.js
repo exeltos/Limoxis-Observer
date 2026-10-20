@@ -193,7 +193,7 @@ export { mergeDomainMetrics } from './analysisDomainMerge'
 const LABELS = {
   confirmed: ['Επιβεβαιωμένη', 'Confirmed'], probable: ['Πιθανή', 'Probable'], suspected: ['Υπό διερεύνηση', 'Suspected'], notHai: ['Όχι HAI', 'Not HAI'], excluded: ['Αποκλείστηκε', 'Excluded'],
   high: ['Υψηλή', 'High'], medium: ['Μέτρια', 'Medium'], low: ['Χαμηλή', 'Low'], critical: ['Κρίσιμη', 'Critical'],
-  reported: ['Αναφέρθηκε', 'Reported'], underReview: ['Υπό διερεύνηση', 'Under review'], inProgress: ['Σε εξέλιξη', 'In progress'], open: ['Ανοιχτό', 'Open'], closed: ['Κλειστό', 'Closed'], resolved: ['Επιλύθηκε', 'Resolved'],
+  reported: ['Αναφέρθηκε', 'Reported'], underReview: ['Υπό διερεύνηση', 'Under review'], under_review: ['Υπό διερεύνηση', 'Under review'], inProgress: ['Σε εξέλιξη', 'In progress'], open: ['Ανοιχτό', 'Open'], closed: ['Κλειστό', 'Closed'], resolved: ['Επιλύθηκε', 'Resolved'],
   pending: ['Σε αναμονή', 'Pending'], approved: ['Εγκρίθηκε', 'Approved'], rejected: ['Απορρίφθηκε', 'Rejected'], not_required: ['Δεν απαιτείται έγκριση', 'No approval needed'],
   transferred: ['Μεταφορά', 'Transferred'], deceased: ['Θάνατος', 'Deceased'], discharged: ['Έξοδος', 'Discharged'], recovered: ['Ίαση', 'Recovered'],
   bloodstreamInfection: ['Λοίμωξη αιματικής ροής', 'Bloodstream infection'], urinaryTractInfection: ['Λοίμωξη ουροποιητικού', 'Urinary tract infection'], pneumonia: ['Πνευμονία', 'Pneumonia'], surgicalSiteInfection: ['Λοίμωξη χειρουργικού πεδίου', 'Surgical site infection'],
@@ -203,8 +203,11 @@ const LABELS = {
   needlestick: ['Τρύπημα από βελόνα', 'Needlestick'], mucocutaneous: ['Έκθεση βλεννογόνου', 'Mucocutaneous'], non_intact_skin: ['Μη ακέραιο δέρμα', 'Non-intact skin'], sharps_object: ['Αιχμηρό αντικείμενο', 'Sharps object'], other: ['Άλλο', 'Other'],
   ventilatorAssociatedPneumonia: ['Πνευμονία σχετιζόμενη με αναπνευστήρα (VAP)', 'Ventilator-associated pneumonia (VAP)'], vaccinationReview: ['Έλεγχος εμβολιασμών', 'Vaccination review'],
   published: ['Δημοσιευμένο', 'Published'], draft: ['Προσχέδιο', 'Draft'], review: ['Υπό αναθεώρηση', 'In review'],
-  CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'],
+  // HAI types as the cloud stores them (hai_classifications.hai_type).
+  CLABSI: ['CLABSI', 'CLABSI'], CAUTI: ['CAUTI', 'CAUTI'], SSI: ['SSI', 'SSI'], VAP: ['VAP', 'VAP'], VAE: ['VAE', 'VAE'],
 }
+// The same codes name the prevention bundles in «Συμμόρφωση ανά δέσμη».
+const BUNDLE_LABELS = { CLABSI: ['Δέσμη CLABSI', 'CLABSI bundle'], VAE: ['Δέσμη VAE', 'VAE bundle'], VAP: ['Δέσμη VAP', 'VAP bundle'], CAUTI: ['Δέσμη CAUTI', 'CAUTI bundle'], SSI: ['Δέσμη SSI', 'SSI bundle'], PIV: ['Δέσμη PIV (περιφερικός φλεβικός καθετήρας)', 'PIV bundle (peripheral IV)'], HD: ['Δέσμη HD (αιμοκάθαρση)', 'HD bundle (haemodialysis)'] }
 const pct = (part, whole) => (whole ? Math.round((part / whole) * 1000) / 10 : null)
 const fmtPct = value => (value == null ? '—' : `${String(value).replace('.', ',')}%`)
 
@@ -316,7 +319,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'trend', wide: true, sparse: true, title: tx('Υγιεινή χεριών ανά μήνα (%)', 'Hand hygiene by month (%)'), subtitle: tx('Ποσοστό ευκαιριών με σωστή υγιεινή χεριών.', 'Share of opportunities with correct hand hygiene.'), points: (hh.monthly || []).map(([key, total, part]) => [key, pct(part, total) ?? 0]) },
         { type: 'rate', title: tx('Υγιεινή χεριών ανά τμήμα', 'Hand hygiene by department'), subtitle: tx('Ποσοστό συμμόρφωσης.', 'Compliance rate.'), rows: rateRows(hh.byDepartment) },
         { type: 'rate', title: tx('Υγιεινή χεριών ανά επαγγελματική κατηγορία', 'Hand hygiene by professional category'), subtitle: tx('Ποσοστό συμμόρφωσης.', 'Compliance rate.'), rows: rateRows(hh.byCategory) },
-        { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [label(key), score]) },
+        { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [BUNDLE_LABELS[key] ? BUNDLE_LABELS[key][en ? 1 : 0] : label(key), score]) },
         { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]) => score != null).map(([key, , score]) => [key, score]) },
         { type: 'bars', title: tx('Απόβλητα ανά τμήμα (kg)', 'Waste by department (kg)'), subtitle: tx('Βάρος στην περίοδο.', 'Weight in the period.'), rows: w.byDepartment },
       ],
