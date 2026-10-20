@@ -232,10 +232,10 @@ export const guideContent = {
       start: l('Ανοίξτε την ουρά εκκρεμών δειγμάτων και καταχωρίστε το πρώτο αποτέλεσμα. Ο Έλεγχος Λοιμώξεων βλέπει από προεπιλογή «Μόνο θετικά»· τα αρνητικά δεν διαγράφονται ποτέ, γιατί είναι παρονομαστές των δεικτών.', 'Open the pending sample queue and enter the first result. Infection Control sees “Positive only” by default; negatives are never deleted because they are the denominators of the indicators.'),
     },
     national: {
-      what: l('Αναφορές προς τον ΕΟΔΥ και το EARS-Net, με έλεγχο ποιότητας δεδομένων πριν την αποστολή.', 'Reports to ΕΟΔΥ and EARS-Net, with a data quality check before submission.'),
+      what: l('Αναφορές προς τον ΕΟΔΥ και το EARS-Net, με έλεγχο ποιότητας δεδομένων πριν την αποστολή. Τα νοσήματα υποχρεωτικής δήλωσης και οι χρόνοι δήλωσης (αμέσως, 24 ώρες, εβδομάδα) είναι ο επίσημος κατάλογος του ΕΟΔΥ, 57 νοσήματα.', 'Reports to ΕΟΔΥ and EARS-Net, with a data quality check before submission. The notifiable diseases and their deadlines (immediately, 24 hours, one week) follow the official ΕΟΔΥ catalogue of 57 diseases.'),
       users: l('Υπεύθυνος και Μέλη Ελέγχου Λοιμώξεων.', 'Infection Control Lead and Members.'),
       needs: ['laboratory'],
-      analysis: l('Καρτέλες «Μικροβιολογία & AMR» και «Αναφορές & ποιότητα δεδομένων»: ειδοποιήσεις ΕΟΔΥ, εξαγωγή EARS-Net και ελλείψεις δεδομένων.', 'Tabs “Microbiology & AMR” and “Reporting & data quality”: ΕΟΔΥ notifications, EARS-Net export and data gaps.'),
+      analysis: l('Καρτέλες «Μικροβιολογία & AMR» και «Αναφορές & ποιότητα δεδομένων»: ειδοποιήσεις ΕΟΔΥ με τον χρόνο δήλωσης κάθε νοσήματος, εξαγωγή EARS-Net και ελλείψεις δεδομένων. Στον φάκελο του ασθενούς, στις «Φόρμες & ερωτηματολόγια», το «Νέα δήλωση» ανοίγει τον κατάλογο των 57 νοσημάτων.', 'Tabs “Microbiology & AMR” and “Reporting & data quality”: ΕΟΔΥ notifications with the deadline of each disease, EARS-Net export and data gaps. In the patient record, under “Forms & questionnaires”, “New notification” opens the catalogue of 57 diseases.'),
       start: l('Ανοίξτε «Αναφορές & ποιότητα δεδομένων» και διορθώστε πρώτα τις ελλείψεις.', 'Open “Reporting & data quality” and fix the gaps first.'),
     },
     surveillance: {

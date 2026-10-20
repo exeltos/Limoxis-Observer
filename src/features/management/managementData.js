@@ -1,6 +1,7 @@
 import { demoOffsetDays, shiftDemoMonth } from '../../core/data/demoClock'
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { DEMO_WARDS, demoMonthlyPatientDays, lastDayOfMonth, pad2 } from '../../core/data/demoSeed'
+import { EODY_CATALOGUE, EODY_SOURCE, EODY_SOURCE_VERSION } from '../reporting/eodyCatalogue'
 const SYS=(source,version='current')=>({system:true,locked:true,source,version})
 const LOCAL=()=>({system:false,locked:false,source:'Hospital',version:'local'})
 
@@ -125,22 +126,7 @@ export const demoLibrarySeed = {
     ['Κεφταζιδίμη/Αβιμπακτάμη','Ceftazidime/avibactam',SYS('WHO AWaRe / Reserve','2022')],
     ['Κεφτολοζάνη/Ταζομπακτάμη','Ceftolozane/tazobactam',SYS('WHO AWaRe / Reserve','2022')],
   ],
-  notifiableDiseases:[
-    ['Ιλαρά','Measles',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Ερυθρά','Rubella',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Παρωτίτιδα','Mumps',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Μηνιγγιτιδοκοκκική νόσος','Meningococcal disease',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Διφθερίτιδα','Diphtheria',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Κοκκύτης','Pertussis',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Φυματίωση','Tuberculosis',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Λεγιονέλλωση','Legionellosis',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Ιογενής ηπατίτιδα Α','Viral hepatitis A',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-    ['Ιογενής ηπατίτιδα Β','Viral hepatitis B',SYS('ΕΟΔΥ · επιτήρηση')],
-    ['Ιογενής ηπατίτιδα C','Viral hepatitis C',SYS('ΕΟΔΥ · επιτήρηση')],
-    ['Σαλμονέλλωση','Salmonellosis',SYS('ΕΟΔΥ · επιτήρηση')],
-    ['Σιγκέλλωση','Shigellosis',SYS('ΕΟΔΥ · επιτήρηση')],
-    ['Λοίμωξη από ιό Δυτικού Νείλου','West Nile virus infection',SYS('ΕΟΔΥ · υποχρεωτική δήλωση')],
-  ],
+  notifiableDiseases:EODY_CATALOGUE.map(entry=>[entry.el,entry.en,SYS(EODY_SOURCE,EODY_SOURCE_VERSION)]),
   sampleTypes:[
     ['Αίμα','Blood',SYS('Clinical microbiology core')],
     ['Ούρα','Urine',SYS('Clinical microbiology core')],

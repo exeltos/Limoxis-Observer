@@ -76,7 +76,10 @@ describe('notifiable disease section', () => {
     const list = screen.getByRole('list', { name: 'Δηλωτέα νοσήματα' })
     expect(within(list).getByText('Μηνιγγιτιδοκοκκική νόσος')).toBeInTheDocument()
     expect(within(list).getByText('Δηλωτέο')).toBeInTheDocument()
-    expect(within(list).getByText('Εκκρεμεί')).toBeInTheDocument()
+    // Meningococcal disease is notified within 24 hours; the finding is older, so it is overdue.
+    expect(within(list).getByText('Εκπρόθεσμη')).toBeInTheDocument()
+    expect(within(list).getByText(/Δήλωση εντός 24 ωρών/)).toBeInTheDocument()
+    expect(within(list).getByText(/καθυστέρηση/)).toBeInTheDocument()
     fireEvent.click(within(list).getByRole('button', { name: 'Νέα δήλωση' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Προσυμπληρωμένα')).toBeInTheDocument()
