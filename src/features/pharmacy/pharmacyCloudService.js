@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { pharmacyDepartments, antibioticLibrary } from './pharmacyDemoData'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
+import { selectAllPages } from '../../core/data/inChunks'
 
 const assertCloud=organizationId=>{
  if(!supabase)throw new Error('Supabase is not configured.')
@@ -41,9 +42,9 @@ export async function loadPharmacySupportData(organizationId){
 export async function loadAntibioticDispensingRecords(organizationId){
  if(isDemoDataEnvironment())return loadAntibioticDispensingLocal()
  assertCloud(organizationId)
- const {data,error}=await supabase.from('antibiotic_dispensing_periods').select('*,department:departments(id,name),antibiotic_item:master_library_items(id,name_el,name_en,code)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false})
- if(error)throw error
- return (data||[]).map(mapRow)
+ // Read page by page: a single response stops at 1000 rows.
+ const data=await selectAllPages(()=>supabase.from('antibiotic_dispensing_periods').select('*,department:departments(id,name),antibiotic_item:master_library_items(id,name_el,name_en,code)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false}).order('id',{ascending:true}))
+ return data.map(mapRow)
 }
 
 export async function saveAntibioticDispensingRecord(organizationId,record,{existingId=null}={}){
@@ -74,4 +75,25 @@ export async function saveAntibioticDispensingRecord(organizationId,record,{exis
  else{const {data,error}=await supabase.from('antibiotic_dispensing_periods').insert({...payload,created_by:userId}).select('*').single();if(error)throw error;saved=data}
  const rows=await loadAntibioticDispensingRecords(organizationId)
  return rows.find(x=>x.id===saved.id)||null
+}
+
+// Antimicrobial therapies that needed stewardship approval (pending, approved,
+// rejected): the same therapies the surveillance record approves, as one list.
+const APPROVAL_STATES=['pending','approved','rejected']
+export async function loadTherapyApprovals(organizationId){
+ if(isDemoDataEnvironment()){
+  const {clinicalCases}=await import('../surveillance/clinicalDemoData')
+  return Object.values(clinicalCases).flatMap(record=>(record.therapy||[]).filter(item=>APPROVAL_STATES.includes(item.approvalStatus)).map(item=>({id:item.id,caseId:record.id,patientCode:record.patientId||'',department:record.department||'',departmentEn:record.departmentEn||record.department||'',antimicrobial:item.antimicrobial,dose:item.dose||'',route:item.route||'',indication:item.indication||'',startedAt:item.startedAt||null,approvalStatus:item.approvalStatus,status:item.status||'active'})))
+   .sort((a,b)=>String(b.startedAt||'').localeCompare(String(a.startedAt||'')))
+ }
+ assertCloud(organizationId)
+ const data=await selectAllPages(()=>supabase.from('antimicrobial_therapies').select('id,antimicrobial,dose,route,indication,started_at,approval_status,status,surveillance_case_id,patient:patients(patient_code),surveillance_case:surveillance_cases(department:departments(name))').eq('organization_id',organizationId).in('approval_status',APPROVAL_STATES).order('started_at',{ascending:false}).order('id',{ascending:true}))
+ return data.map(row=>({id:row.id,caseId:row.surveillance_case_id||'',patientCode:row.patient?.patient_code||'',department:row.surveillance_case?.department?.name||'',departmentEn:row.surveillance_case?.department?.name||'',antimicrobial:row.antimicrobial,dose:row.dose||'',route:row.route||'',indication:row.indication||'',startedAt:row.started_at,approvalStatus:row.approval_status,status:row.status}))
+}
+
+// Approve or reject through the surveillance repository, as the surveillance record does.
+export async function decideTherapyApproval(organizationId,row,approvalStatus,actor){
+ const {createClinicalRepository}=await import('../surveillance/clinicalRepository')
+ const repository=createClinicalRepository({isDemo:isDemoDataEnvironment(),organizationId,actor})
+ return repository.updateTherapyApproval({id:row.caseId},row.id,approvalStatus)
 }
