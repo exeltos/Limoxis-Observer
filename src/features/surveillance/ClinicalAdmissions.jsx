@@ -473,7 +473,7 @@ export function CanonicalSummary({
           <section className="clinical-panel patient-summary-card record-summary-card">
             <SectionHeader
               title={t('clinicalRecords.currentSurveillance')}
-              actions={badge(`${t(record.status)}${record.id ? ` · ${record.id}` : ''}`, record.status === 'active' ? 'active' : '')}
+              actions={badge(t(record.status), record.status === 'active' ? 'active' : '')}
             />
             <DetailList
               sections={[
