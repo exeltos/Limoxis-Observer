@@ -66,7 +66,8 @@ describe('Management Center follow-ups', () => {
   it('the outbreak workspace uses shared sections, registry tables and translated evidence entries', () => {
     const source = read('src/features/management/LiraOutbreakInvestigationsPanel.jsx')
     expect(source).not.toContain('className="management-table"')
-    expect(source).toContain('<RecordDetailsGrid')
+    expect(source).toContain('<DetailList sections=')
+    expect(source).toContain('<EntityRecordShell')
     expect(source).toContain('function eventText(')
     expect(source).not.toContain("b.code.replaceAll('_',' ')")
   })
