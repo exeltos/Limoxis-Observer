@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowRightLeft, LogOut, Plus, UsersRound } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Activity, LogOut, Plus, ShieldAlert, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -58,13 +58,14 @@ export function PatientsPage(){
     return ()=>{alive=false}
   },[tenant?.id,isDemo,notify,t])
   useEffect(()=>{setPage(1)},[query,department,status,period,pageSize])
+  const isolated=useCallback(p=>Boolean((infectionFlags[p.recordId]||infectionFlags[p.id])?.isolation),[infectionFlags])
   const departments=useMemo(()=>[...new Set(patients.map(p=>language==='el'?p.department:p.departmentEn).filter(Boolean))],[patients,language])
   const rows=useMemo(()=>patients
     .filter(p=>canAccessRecord(p))
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>inPeriod(p.admissionDate,period))
-    .filter(p=>status==='all'||p.status===status),[query,patients,department,status,period,language,canAccessRecord])
+    .filter(p=>status==='all'||(status==='isolation'?isolated(p):p.status===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
   const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
@@ -80,19 +81,20 @@ export function PatientsPage(){
     total:scopedPatients.length,
     active:scopedPatients.filter(p=>p.status==='active').length,
     discharged:scopedPatients.filter(p=>p.status==='discharged').length,
-    transferred:scopedPatients.filter(p=>p.status==='transferred').length,
+    // In production a transfer between departments keeps the patient active, so the card counts isolations in place.
+    isolation:scopedPatients.filter(p=>isolated(p)).length,
   }
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(rows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
       <PatientSummaryMetric loading={loading} icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
       <PatientSummaryMetric loading={loading} icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active" filter="active" current={status} onFilter={setStatus}/>
       <PatientSummaryMetric loading={loading} icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged} filter="discharged" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric loading={loading} icon={ArrowRightLeft} label={t('patientsCountTransferred')} value={patientSummary.transferred} filter="transferred" current={status} onFilter={setStatus}/>
+      <PatientSummaryMetric loading={loading} icon={ShieldAlert} label={t('patientsCountIsolation')} value={patientSummary.isolation} filter="isolation" current={status} onFilter={setStatus}/>
     </div>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option><option value="deceased">{t('deceased')}</option></FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
       <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </FilterBar>
       <RegistryTable

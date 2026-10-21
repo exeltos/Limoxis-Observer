@@ -116,7 +116,7 @@ function ExposureSectionBody({ record, department }) {
                   title={exposureTypeLabel(row.exposureType, en)}
                   detail={[row.deviceOrSource, row.bodySite, row.sourcePatientStatus && sourceStatusLabel(row.sourcePatientStatus, en), row.pepAdministered != null && `${t('episodeForms.exposure.pep')}: ${row.pepAdministered ? t('episodeForms.exposure.yes') : t('episodeForms.exposure.no')}`].filter(Boolean).join(' · ')}
                   status={status}
-                  statusDetail={[followUpLabel(row.followUpStatus, en), row.followUpDueAt && fmt(row.followUpDueAt)].filter(Boolean).join(' · ')}
+                  statusDetail={[followUpLabel(row.followUpStatus, en), row.followUpStatus !== 'completed' && row.followUpDueAt && fmt(row.followUpDueAt)].filter(Boolean).join(' · ')}
                   date={fmt(row.incidentDate)}
                   dateLabel={t('episodeForms.exposure.incidentDate')}
                   action={{ label: t('episodeForms.open'), onClick: () => setDetail(row) }}
@@ -154,7 +154,7 @@ function ExposureSectionBody({ record, department }) {
                   { label: t('episodeForms.exposure.sourceStatus'), value: detail.sourcePatientStatus ? sourceStatusLabel(detail.sourcePatientStatus, en) : '' },
                   { label: t('episodeForms.exposure.bodySite'), value: detail.bodySite },
                   { label: t('episodeForms.exposure.pep'), value: detail.pepAdministered == null ? '' : [detail.pepAdministered ? t('episodeForms.exposure.yes') : t('episodeForms.exposure.no'), detail.pepDetails].filter(Boolean).join(' · ') },
-                  { label: t('episodeForms.exposure.followUp'), value: [followUpLabel(detail.followUpStatus, en), detail.followUpDueAt && fmt(detail.followUpDueAt)].filter(Boolean).join(' · ') },
+                  { label: t('episodeForms.exposure.followUp'), value: [followUpLabel(detail.followUpStatus, en), detail.followUpStatus !== 'completed' && detail.followUpDueAt && fmt(detail.followUpDueAt)].filter(Boolean).join(' · ') },
                   { label: t('episodeForms.exposure.notes'), value: detail.notes, wide: true },
                 ],
               },
