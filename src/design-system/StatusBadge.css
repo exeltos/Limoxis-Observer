@@ -5,3 +5,12 @@
   color: var(--lo-status-info-fg) !important;
   border-color: var(--lo-status-info-border) !important;
 }
+
+/* SignalBadge: every tone but danger is plain text. */
+.status-plain {
+  color: var(--muted);
+}
+.status-plain.is-strong {
+  color: inherit;
+  font-weight: 700;
+}

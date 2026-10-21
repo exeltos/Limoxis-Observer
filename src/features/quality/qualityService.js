@@ -57,7 +57,7 @@ export function mapRow(section,row){
     id:row.code,
     displayId:compactCode(row.code),
     title:row.title||'',
-    titleEn:row.title||'',
+    titleEn:row.title_en||row.title||'',
     department,
     departmentEn:department,
     departmentId:row.department_id||null,
@@ -84,7 +84,7 @@ export function mapRow(section,row){
     harmOccurred:Boolean(row.harm_occurred),
     date:row.occurred_at?.slice(0,10)||'',
     description:row.description||'',
-    descriptionEn:row.description||'',
+    descriptionEn:row.description_en||row.description||'',
     reportedBy:row.reported_by_label||'',
     reportedById:row.reported_by||null,
     anonymous:Boolean(row.is_anonymous),
@@ -111,7 +111,7 @@ export function mapRow(section,row){
     severity:row.severity||'medium',
     date:row.identified_at?.slice(0,10)||'',
     description:row.description||'',
-    descriptionEn:row.description||'',
+    descriptionEn:row.description_en||row.description||'',
     source:row.source_type||'manual',
     sourceId:row.source_id||'',
     findingClass:row.finding_class||'',
@@ -134,7 +134,7 @@ export function mapRow(section,row){
     effectivenessDue:row.effectiveness_due||'',
     effectivenessStatus:uiStatus(row.effectiveness_status||'pending'),
     description:row.description||'',
-    descriptionEn:row.description||'',
+    descriptionEn:row.description_en||row.description||'',
     source:row.source_type||'other',
     sourceId:row.source_id||'',
     subActions:subActionsFromRows(row.sub_actions),
@@ -354,6 +354,13 @@ function codeFor(section){
   return `${prefix}-${stamp.slice(2,8)}-${stamp.slice(8,14)}`
 }
 
+// The English title / description are stored only when they differ from the
+// written text (a record read back in English falls back to the written one).
+function englishColumns(record,section){
+  const own=(en,el)=>{const text=String(en||'').trim();return text&&text!==String(el||'').trim()?text:null}
+  return {title_en:own(record.titleEn,record.title),...(section==='audits'?{}:{description_en:own(record.descriptionEn,record.description)})}
+}
+
 export async function createQualityRecord(section,organizationId,draft,userId){
   const code=codeFor(section)
   if(isDemoDataEnvironment()){
@@ -375,7 +382,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   if(!config) throw new Error('Unsupported quality record type.')
   // The id is chosen here, so the details can follow even an anonymous report.
   const id=newRowId()
-  let payload={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
+  let payload={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),...englishColumns(draft,section),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
   if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',linked_patient_id:isUuid(draft.linkedPatient)?draft.linkedPatient:null,linked_surveillance_id:isUuid(draft.linkedSurveillance)?draft.linkedSurveillance:null,linked_admission_id:isUuid(draft.linkedAdmission)?draft.linkedAdmission:null,event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:draft.anonymous?null:userId||null,reported_by_label:draft.anonymous?null:draft.reportedByLabel||null,is_anonymous:Boolean(draft.anonymous),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,...findingAuditPayload(draft),follow_up_audit_id:await auditIdOf(organizationId,draft.followUpAuditId)}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
@@ -396,6 +403,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
 function buildPersistPayload(section,record){
   const payload={
     title:(record.title||record.titleEn||'').trim(),
+    ...englishColumns(record,section),
     department_id:isUuid(record.departmentId)?record.departmentId:null,
     status:dbStatus(record.status),
     // quality_audits has no owner_id: its person is the lead auditor.

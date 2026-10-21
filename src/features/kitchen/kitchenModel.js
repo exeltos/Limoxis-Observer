@@ -59,6 +59,9 @@ export const dietLabel = (value, language) => pick(DIETS, value, language)
 export const writeoffReasonLabel = (value, language) => pick(WRITEOFF_REASONS, value, language)
 export const receiptResultLabel = (value, language) => pick(RECEIPT_RESULTS, value, language)
 export const receiptResultTone = value => RECEIPT_RESULTS.find(item => item.value === value)?.tone || 'neutral'
+// A receipt by its people-readable name («Παραλαβή 20/10 · Προμηθευτής»); the code PAR-0007 stays secondary.
+export const shortDay = value => { const [, m, d] = String(value || '').slice(0, 10).split('-'); return m && d ? `${d}/${m}` : '' }
+export const receiptTitle = (row, language = 'el') => `${language === 'en' ? 'Receipt' : 'Παραλαβή'} ${shortDay(row.receivedOn)}${row.supplierName ? ` · ${row.supplierName}` : ''}`.replace(/\s+/g, ' ').trim()
 export const weekdayOf = date => { const d = new Date(`${String(date).slice(0, 10)}T12:00:00`); return Number.isNaN(d.getTime()) ? null : ((d.getDay() + 6) % 7) + 1 }
 export const weekdayLabel = (weekday, language = 'el') => (weekday >= 1 && weekday <= 7 ? (language === 'en' ? WEEKDAYS_EN : WEEKDAYS)[weekday - 1] : '—')
 export const options = (list, language) => list.map(item => ({ value: item.value, label: item.label[language === 'en' ? 1 : 0] }))

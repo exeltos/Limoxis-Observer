@@ -17,7 +17,7 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { SaveButton } from '../../design-system/SaveButton'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { useLibraries } from '../management/useLibraries'
 import { assignmentProgress,getAssignment,frequencyLabel } from './controlScheduling'
 import { progressCompleteMessage,progressText } from './controlProgress'
@@ -105,7 +105,7 @@ function LastEntry({state,record}){
  if(!last||mode==='list')return null
  const shown=mode==='choice'?answerLabel(last.value,language,state.answers):mode==='checklist'?(last.structuredData?.rows?checklistSummary(last.structuredData.rows,language):last.value):`${last.value}${mode==='numeric'&&response.unit?` ${response.unit}`:''}`
  const recent=mode==='numeric'?history.slice(0,5).map(h=>h.value).filter(v=>String(v).trim()):[]
- return <div className="control-exec-last"><History size={15}/><span>{en?'Last entry':'Τελευταία καταχώρηση'}</span><strong>{shown||'—'}</strong>{last.hasFinding&&<StatusBadge tone="danger">{en?'Finding':'Εύρημα'}</StatusBadge>}<small>{formatDateTime(last.at,language)}{last.by?` · ${last.by}`:''}</small>{recent.length>1&&<small className="control-exec-trend">{en?'Recent':'Πρόσφατες'}: {recent.join(' · ')}{response.unit?` ${response.unit}`:''}</small>}{record.equipment&&<small>{record.equipment}</small>}</div>
+ return <div className="control-exec-last"><History size={15}/><span>{en?'Last entry':'Τελευταία καταχώρηση'}</span><strong>{shown||'—'}</strong>{last.hasFinding&&<SignalBadge tone="danger">{en?'Finding':'Εύρημα'}</SignalBadge>}<small>{formatDateTime(last.at,language)}{last.by?` · ${last.by}`:''}</small>{recent.length>1&&<small className="control-exec-trend">{en?'Recent':'Πρόσφατες'}: {recent.join(' · ')}{response.unit?` ${response.unit}`:''}</small>}{record.equipment&&<small>{record.equipment}</small>}</div>
 }
 
 function ResultField({state}){
@@ -117,7 +117,7 @@ function ResultField({state}){
  }
  if(mode==='numeric')return <div className="control-exec-result control-exec-numeric">
   <Field label={`${label}${response.unit?` (${response.unit})`:''} *`}><input autoFocus inputMode="decimal" type="number" step="any" value={value} onChange={e=>setValue(e.target.value)} placeholder={en?'Enter value':'Καταχωρήστε τιμή'} className={outOfRange?'is-out-of-range':''}/></Field>
-  {(response.min!==''&&response.min!=null||response.max!==''&&response.max!=null)&&<div className={`control-exec-range${outOfRange?' danger':''}`}><span>{en?'Acceptable range':'Αποδεκτά όρια'}</span><strong>{response.min??'—'} – {response.max??'—'} {response.unit||''}</strong>{outOfRange&&<StatusBadge tone="danger">{en?'Out of range':'Εκτός ορίων'}</StatusBadge>}</div>}
+  {(response.min!==''&&response.min!=null||response.max!==''&&response.max!=null)&&<div className={`control-exec-range${outOfRange?' danger':''}`}><span>{en?'Acceptable range':'Αποδεκτά όρια'}</span><strong>{response.min??'—'} – {response.max??'—'} {response.unit||''}</strong>{outOfRange&&<SignalBadge tone="danger">{en?'Out of range':'Εκτός ορίων'}</SignalBadge>}</div>}
  </div>
  // Free text: what earlier entries recorded is one click away.
  const recent=[...new Set(history.map(h=>String(h.value||'').trim()).filter(Boolean))].slice(0,8)
@@ -208,7 +208,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
     {structured&&<ExportMenu items={[{id:'form',kind:'print',label:expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:printDraft}]}/>}
     <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
-    {draftSaved&&<StatusBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</StatusBadge>}
+    {draftSaved&&<SignalBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</SignalBadge>}
    </div>
    <SaveButton disabled={!valid||saving||blocked} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):extraReason?(en?'Save extra entry':'Αποθήκευση έκτακτης'):(en?'Save entry':'Αποθήκευση')}</SaveButton>
   </div>

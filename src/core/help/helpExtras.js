@@ -75,7 +75,7 @@ export const helpExtras={
   related:['/occupational-health','/training','/my-profile']
  },
  '/kitchen':{
-  checks:{el:['Μετρήστε τη θερμοκρασία κάθε ψυχόμενου και κατεψυγμένου προϊόντος στην παραλαβή.','Πάρτε πρώτα την παλαιότερη παρτίδα (FIFO) και ποτέ παρτίδα που έληξε.','Γράψτε διορθωτική ενέργεια για κάθε μέτρηση εκτός ορίων.','Επαληθεύστε την ημέρα πριν κλείσει η βάρδια.','Δοκιμάστε τη διαδικασία ανάκλησης με άσκηση τουλάχιστον μία φορά τον χρόνο.'],en:['Measure the temperature of every chilled and frozen product at receipt.','Use the oldest batch first (FIFO) and never an expired one.','Record a corrective action for every measurement out of limits.','Sign off the day before the shift ends.','Test the recall procedure with a drill at least once a year.']},
+  checks:{el:['Μετρήστε τη θερμοκρασία κάθε ψυχόμενου και κατεψυγμένου προϊόντος στην παραλαβή.','Πάρτε πρώτα την παλαιότερη παρτίδα και ποτέ παρτίδα που έληξε.','Γράψτε διορθωτική ενέργεια για κάθε μέτρηση εκτός ορίων.','Επαληθεύστε την ημέρα πριν κλείσει η βάρδια.','Δοκιμάστε τη διαδικασία ανάκλησης με άσκηση τουλάχιστον μία φορά τον χρόνο.'],en:['Measure the temperature of every chilled and frozen product at receipt.','Use the oldest batch first and never an expired one.','Record a corrective action for every measurement out of limits.','Sign off the day before the shift ends.','Test the recall procedure with a drill at least once a year.']},
   tip:{el:'Το HACCP στηρίζεται στις καταγραφές: μια μέτρηση που δεν γράφτηκε δεν έγινε. Γράψτε την την ώρα που γίνεται, όχι στο τέλος της ημέρας.',en:'HACCP rests on records: a measurement that was not written down was not made. Record it when it happens, not at the end of the day.'},
   related:['/quality','/controls','/documents']
  },

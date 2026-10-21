@@ -20,3 +20,12 @@ export function StatusBadge({ tone = 'neutral', icon: Icon, className = '', titl
     </span>
   )
 }
+
+// Operations screens: only a safety signal (out of limits, expired, overdue,
+// failed: the danger tone) is a coloured chip; everything else is plain text with
+// the same words (a time-critical warning in bold).
+export function SignalBadge({ tone = 'neutral', icon: Icon, className = '', title, children }) {
+  const resolved = statusTone(tone)
+  if (resolved === 'danger') return <StatusBadge tone="danger" icon={Icon} className={className} title={title}>{children}</StatusBadge>
+  return <span className={['status-plain', resolved === 'warning' && 'is-strong', className].filter(Boolean).join(' ')} title={title}>{Icon && <Icon size={11} aria-hidden="true" />}{children}</span>
+}

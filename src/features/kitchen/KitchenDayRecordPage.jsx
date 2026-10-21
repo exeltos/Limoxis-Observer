@@ -6,7 +6,7 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -97,9 +97,9 @@ export function KitchenDayRecordPage() {
   const usedBatches = [...new Set(records.usage.map(row => row.receiptItemId).filter(Boolean))].map(id => stock.find(row => row.receiptItemId === id)).filter(Boolean)
   return <Page fill><EntityRecordShell className="kitchen-record-shell workspace-fill" avatar={<ChefHat size={19} />} eyebrow={en ? 'Production day' : 'Ημέρα παραγωγής'} title={`${weekdayLabel(weekdayOf(production.productionDate), language)} ${fmtDay(production.productionDate)}`}
     subtitle={(production.menuText || '').split('\n').map(line => line.trim()).filter(line => line && !MEAL_HEADING.test(line)).slice(0, 4).join(' · ')}
-    status={<span className="kitchen-notes">{locked ? <StatusBadge tone="success"><ShieldCheck size={13} />{en ? 'Signed off' : 'Επαληθεύτηκε'} · {production.verifiedByName || '—'} · {fmtStamp(production.verifiedAt, language)}</StatusBadge> : <StatusBadge tone="warning">{en ? 'HACCP sign-off pending' : 'Εκκρεμεί επαλήθευση HACCP'}</StatusBadge>}{records.outOfLimits > 0 && <StatusBadge tone="danger">{records.outOfLimits} {en ? 'out of limits' : 'εκτός ορίων'}</StatusBadge>}</span>}
+    status={<span className="kitchen-notes">{locked ? <SignalBadge tone="success"><ShieldCheck size={13} />{en ? 'Signed off' : 'Επαληθεύτηκε'} · {production.verifiedByName || '—'} · {fmtStamp(production.verifiedAt, language)}</SignalBadge> : <SignalBadge tone="warning">{en ? 'Sign-off pending' : 'Εκκρεμεί επαλήθευση'}</SignalBadge>}{records.outOfLimits > 0 && <SignalBadge tone="danger">{records.outOfLimits} {en ? 'out of limits' : 'εκτός ορίων'}</SignalBadge>}</span>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'usage' && <RecordTabPanel title={en ? 'Raw materials' : 'Πρώτες ύλες'} subtitle={en ? 'Taken from the batches in stock (FIFO); each comes off its batch. An expired batch cannot be used.' : 'Από τις παρτίδες του αποθέματος (FIFO)· κάθε μία αφαιρείται από την παρτίδα της. Παρτίδα που έληξε δεν χρησιμοποιείται.'} actions={add(en ? 'Raw material' : 'Πρώτη ύλη', () => setDialog({ type: 'usage', initial: newUsage(production) }))}>
+    {tab === 'usage' && <RecordTabPanel title={en ? 'Raw materials' : 'Πρώτες ύλες'} subtitle={en ? 'Taken from the batches in stock, the oldest batch first; each comes off its batch. An expired batch cannot be used.' : 'Από τις παρτίδες του αποθέματος, πρώτα η παλαιότερη παρτίδα· κάθε μία αφαιρείται από την παρτίδα της. Παρτίδα που έληξε δεν χρησιμοποιείται.'} actions={add(en ? 'Raw material' : 'Πρώτη ύλη', () => setDialog({ type: 'usage', initial: newUsage(production) }))}>
       <RegistryTable className="kitchen-table" rows={records.usage} rowKey={row => row.id}
         columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'batch', label: en ? 'Batch · supplier' : 'Παρτίδα · προμηθευτής' }, { key: 'qty', label: en ? 'Quantity' : 'Ποσότητα' }, { key: 'dish', label: en ? 'Dish' : 'Πιάτο' }, { key: 'notes', label: en ? 'Notes' : 'Παρατηρήσεις' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No raw materials yet' : 'Δεν έχουν καταγραφεί πρώτες ύλες'} emptyText={en ? 'Record each batch the production uses: it comes off the stock.' : 'Καταγράψτε κάθε παρτίδα που χρησιμοποιεί η παραγωγή: αφαιρείται από το απόθεμα.'}
@@ -149,14 +149,14 @@ export function KitchenDayRecordPage() {
     </RecordTabPanel>}
     {tab === 'defrost' && <RecordTabPanel title={en ? 'Defrosting' : 'Αποψύξεις'} subtitle={en ? 'The defrosts of this day, with their HACCP sign-off.' : 'Οι αποψύξεις της ημέρας, με την επαλήθευση HACCP.'} actions={access.canRecord && <Button onClick={() => setDialog({ type: 'defrost', initial: { ...newDefrost(), productionId: production.id } })}><Plus size={15} />{en ? 'Defrosting' : 'Απόψυξη'}</Button>}>
       <RegistryTable className="kitchen-table" rows={records.defrosting} rowKey={row => row.id}
-        columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'start', label: en ? 'Start' : 'Έναρξη' }, { key: 'end', label: en ? 'End' : 'Λήξη' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'sign', label: en ? 'HACCP sign-off' : 'Επαλήθευση HACCP' }]}
+        columns={[{ key: 'product', label: en ? 'Product' : 'Προϊόν' }, { key: 'start', label: en ? 'Start' : 'Έναρξη' }, { key: 'end', label: en ? 'End' : 'Λήξη' }, { key: 'result', label: en ? 'Result' : 'Αποτέλεσμα' }, { key: 'sign', label: en ? 'Sign-off' : 'Επαλήθευση' }]}
         emptyTitle={en ? 'No defrosting this day' : 'Καμία απόψυξη την ημέρα αυτή'}
         renderRow={row => <>
           <td><strong>{row.productName}</strong><small>{fmtQty(row.quantity, language)} {unitLabel(row.unit, language)} · {defrostMethodLabel(row.method, language)}</small></td>
           <td className="nowrap-cell">{fmtDay(dayOf(row.startedAt))} {timeOf(row.startedAt)}<small>{temp(row.startTemp, row.startText, language)}</small></td>
           <td className="nowrap-cell">{row.endedAt ? <>{fmtDay(dayOf(row.endedAt))} {timeOf(row.endedAt)}<small>{temp(row.endTemp, row.endText, language)}</small></> : (en ? 'In progress' : 'Σε εξέλιξη')}</td>
           <td><LimitBadge status={row.limitStatus} language={language} /></td>
-          <td>{row.verifiedAt ? <span className="kitchen-signoff"><StatusBadge tone="success"><ShieldCheck size={13} />{row.verifiedByName || '—'}</StatusBadge><small>{fmtStamp(row.verifiedAt, language)}</small></span> : access.canManage ? <Button variant="secondary" disabled={!row.endedAt} onClick={() => sign('kitchen_defrosting', row)}><ShieldCheck size={15} />{en ? 'Sign off' : 'Επαλήθευση'}</Button> : <StatusBadge tone="warning">{en ? 'Pending' : 'Εκκρεμεί'}</StatusBadge>}</td>
+          <td>{row.verifiedAt ? <span className="kitchen-signoff"><SignalBadge tone="success"><ShieldCheck size={13} />{row.verifiedByName || '—'}</SignalBadge><small>{fmtStamp(row.verifiedAt, language)}</small></span> : access.canManage ? <Button variant="secondary" disabled={!row.endedAt} onClick={() => sign('kitchen_defrosting', row)}><ShieldCheck size={15} />{en ? 'Sign off' : 'Επαλήθευση'}</Button> : <SignalBadge tone="warning">{en ? 'Pending' : 'Εκκρεμεί'}</SignalBadge>}</td>
         </>} />
     </RecordTabPanel>}
     {tab === 'menu' && <RecordTabPanel title={en ? 'Daily menu and meal plan' : 'Μενού ημέρας και πλάνο γευμάτων'} actions={canEdit && <Button onClick={() => setMeal({ index: -1, item: newMeal() })}><Plus size={15} />{en ? 'Meal plan line' : 'Γραμμή πλάνου'}</Button>}>

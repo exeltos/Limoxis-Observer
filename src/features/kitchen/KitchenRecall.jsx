@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Play, Timer, Trash2, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
@@ -51,12 +51,12 @@ export function RecallPanel({ state, filters, setFilters, onRecall }) {
       empty={!rows.length} emptyTitle={en ? 'No recall drills' : 'Δεν υπάρχουν ασκήσεις ανάκλησης'} emptyText={en ? 'A drill starts from a supplier\'s lot, a product or a dish and traces where it went and where it came from, against the time target.' : 'Η άσκηση ξεκινά από παρτίδα προμηθευτή, προϊόν ή πιάτο και ιχνηλατεί πού πήγε και από πού ήρθε, με στόχο χρόνου.'}
       rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onRecall(row) })}
       renderRow={row => { const minutes = row.status === 'completed' && row.elapsedMinutes !== '' ? Number(row.elapsedMinutes) : elapsedMinutes(row.startedAt, row.finishedAt); const inTime = withinTarget(minutes, row.targetMinutes); return <>
-        <td className="nowrap-cell"><strong>{row.code || '—'}</strong><small>{fmtDay(row.drillDate)}</small></td>
+        <td className="nowrap-cell"><strong>{fmtDay(row.drillDate)}</strong><small>{row.code || '—'}</small></td>
         <td><strong>{row.subject}</strong><small>{recallScenarioLabel(row.scenario, language)}{row.triggerText ? ` · ${row.triggerText}` : ''}</small></td>
-        <td className="nowrap-cell">{fmtDuration(minutes, language)}<small>{inTime == null ? '' : inTime ? (en ? 'within target' : 'εντός στόχου') : <StatusBadge tone="danger">{en ? 'over target' : 'εκτός στόχου'}</StatusBadge>}</small></td>
+        <td className="nowrap-cell">{fmtDuration(minutes, language)}<small>{inTime == null ? '' : inTime ? (en ? 'within target' : 'εντός στόχου') : <SignalBadge tone="danger">{en ? 'over target' : 'εκτός στόχου'}</SignalBadge>}</small></td>
         <td className="nowrap-cell">{pct(row.accountedPercent, en)}</td>
         <td className="nowrap-cell">{row.affectedDays || 0} {en ? 'days' : 'ημέρες'} · {row.affectedPortions || 0} {en ? 'portions' : 'μερίδες'}</td>
-        <td>{row.status === 'completed' ? <StatusBadge tone={recallResultTone(row.result)}>{recallResultLabel(row.result, language)}</StatusBadge> : <StatusBadge tone="info">{en ? 'In progress' : 'Σε εξέλιξη'}</StatusBadge>}</td>
+        <td>{row.status === 'completed' ? <SignalBadge tone={recallResultTone(row.result)}>{recallResultLabel(row.result, language)}</SignalBadge> : <SignalBadge tone="info">{en ? 'In progress' : 'Σε εξέλιξη'}</SignalBadge>}</td>
       </> }} />
   </>
 }
@@ -127,7 +127,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
   const scenarioChange = value => set({ scenario: value, receiptItemId: '', productId: '', productName: '', dishName: '', stockCounts: {} })
   const exportProps = reportExports(() => recallDrillDocument({ ...draft, elapsedMinutes: minutes }, trace, { language }), { onBlocked: blocked })
 
-  return <ObserverDialog width="wide" title={draft.code ? `${en ? 'Mock recall drill' : 'Άσκηση ανάκλησης'} · ${draft.code}` : (en ? 'New mock recall drill' : 'Νέα άσκηση ανάκλησης')} subtitle={en ? 'Trace forward and backward, check the mass balance and the time against the target.' : 'Ιχνηλάτηση εμπρός και πίσω, ισοζύγιο μάζας και χρόνος έναντι στόχου.'} onClose={onClose}
+  return <ObserverDialog width="wide" title={draft.code ? `${en ? 'Mock recall drill' : 'Άσκηση ανάκλησης'} · ${fmtDay(draft.drillDate)}` : (en ? 'New mock recall drill' : 'Νέα άσκηση ανάκλησης')} subtitle={en ? 'Trace forward and backward, check the mass balance and the time against the target.' : 'Ιχνηλάτηση εμπρός και πίσω, ισοζύγιο μάζας και χρόνος έναντι στόχου.'} onClose={onClose}
     footer={<DialogActions>
       <ExportMenu {...exportProps} />
       {access.canManage && draft.id && <Button variant="secondary" onClick={remove}><Trash2 size={15} />{en ? 'Delete' : 'Διαγραφή'}</Button>}
@@ -157,7 +157,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
 
     <SectionHeader title={en ? 'Mass balance' : 'Ισοζύγιο μάζας'} subtitle={en ? `Received = used + in stock + written off (within ± ${BALANCE_TOLERANCE} %). Enter the stock counted on the shelf.` : `Παραλήφθηκε = χρησιμοποιήθηκε + σε απόθεμα + απόσυρση (εντός ± ${BALANCE_TOLERANCE} %). Γράψτε το απόθεμα που μετρήθηκε στο ράφι.`} />
     <RecordDetailsGrid fields={[{ label: en ? 'Received' : 'Παραλήφθηκε', value: qty(trace.received, trace.unit, language) }, { label: en ? 'Used' : 'Χρησιμοποιήθηκε', value: qty(trace.used, trace.unit, language) }, { label: en ? 'In stock' : 'Σε απόθεμα', value: qty(trace.inStock, trace.unit, language) }, { label: en ? 'Written off' : 'Απόσυρση', value: qty(trace.writtenOff, trace.unit, language) },
-      { label: en ? 'Accounted for' : 'Βρέθηκε', value: <StatusBadge tone={trace.percent == null ? 'neutral' : trace.balanced ? 'success' : 'danger'}>{pct(trace.percent, en)}</StatusBadge> }, { label: en ? 'Production days' : 'Ημέρες παραγωγής', value: String(trace.affectedDays) }, { label: en ? 'Meals' : 'Γεύματα', value: String(trace.affectedMeals) }, { label: en ? 'Portions' : 'Μερίδες', value: String(trace.affectedPortions), meta: trace.untraced ? (en ? `${trace.untraced} uses without a batch` : `${trace.untraced} καταναλώσεις χωρίς παρτίδα`) : '' }]} />
+      { label: en ? 'Accounted for' : 'Βρέθηκε', value: <SignalBadge tone={trace.percent == null ? 'neutral' : trace.balanced ? 'success' : 'danger'}>{pct(trace.percent, en)}</SignalBadge> }, { label: en ? 'Production days' : 'Ημέρες παραγωγής', value: String(trace.affectedDays) }, { label: en ? 'Meals' : 'Γεύματα', value: String(trace.affectedMeals) }, { label: en ? 'Portions' : 'Μερίδες', value: String(trace.affectedPortions), meta: trace.untraced ? (en ? `${trace.untraced} uses without a batch` : `${trace.untraced} καταναλώσεις χωρίς παρτίδα`) : '' }]} />
     <RegistryTable className="kitchen-table" rows={trace.batches} rowKey={row => row.receiptItemId} columns={[{ key: 'batch', label: en ? 'Batch' : 'Παρτίδα' }, { key: 'supplier', label: en ? 'Supplier · receipt' : 'Προμηθευτής · παραλαβή' }, { key: 'received', label: en ? 'Received' : 'Παραλήφθηκε' }, { key: 'used', label: en ? 'Used' : 'Χρησιμοποιήθηκε' }, { key: 'count', label: en ? 'Counted in stock' : 'Καταμέτρηση αποθέματος' }, { key: 'off', label: en ? 'Written off' : 'Απόσυρση' }, { key: 'pct', label: '%' }]}
       emptyTitle={en ? 'Choose the subject of the drill' : 'Επιλέξτε το αντικείμενο της άσκησης'} emptyText={en ? 'The batches are found at once from the receipts and the materials used.' : 'Οι παρτίδες βρίσκονται αμέσως από τις παραλαβές και τα υλικά σε χρήση.'}
       renderRow={row => <>
@@ -167,7 +167,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
         <td className="nowrap-cell">{qty(row.used, row.unit, language)}</td>
         <td className="nowrap-cell">{readOnly ? <>{qty(row.inStock, row.unit, language)}{row.counted && <small>{en ? 'counted' : 'καταμέτρηση'}</small>}</> : <input className="kitchen-recall-count" inputMode="decimal" aria-label={en ? 'Counted in stock' : 'Καταμέτρηση αποθέματος'} placeholder={fmtQty(Math.max(0, row.remaining), language)} value={draft.stockCounts?.[row.receiptItemId] ?? ''} onChange={e => set({ stockCounts: { ...draft.stockCounts, [row.receiptItemId]: e.target.value.replace(',', '.') } })} />}</td>
         <td className="nowrap-cell">{qty(row.writtenOff, row.unit, language)}</td>
-        <td className="nowrap-cell">{row.percent == null ? '—' : <StatusBadge tone={Math.abs(row.percent - 100) <= BALANCE_TOLERANCE ? 'success' : 'danger'}>{pct(row.percent, en)}</StatusBadge>}</td>
+        <td className="nowrap-cell">{row.percent == null ? '—' : <SignalBadge tone={Math.abs(row.percent - 100) <= BALANCE_TOLERANCE ? 'success' : 'danger'}>{pct(row.percent, en)}</SignalBadge>}</td>
       </>} />
 
     <SectionHeader title={en ? 'Where it went (forward)' : 'Πού πήγε (εμπρός)'} subtitle={en ? 'Every use by day, dish and the meals that served it.' : 'Κάθε χρήση ανά ημέρα, πιάτο και τα γεύματα που το σέρβιραν.'} />
@@ -186,7 +186,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
       emptyTitle={en ? 'No other raw material' : 'Καμία άλλη πρώτη ύλη'}
       renderRow={row => <>
         <td className="nowrap-cell">{fmtDay(row.usedOn)}</td><td>{row.dishName || '—'}</td><td>{row.productName}<small>{row.batchCode || '—'}</small></td>
-        <td>{row.traced ? <>{row.supplierName || '—'}<small>{row.receiptCode}</small></> : <StatusBadge tone="warning">{en ? 'No receipt' : 'Χωρίς παραλαβή'}</StatusBadge>}</td>
+        <td>{row.traced ? <>{row.supplierName || '—'}<small>{row.receiptCode}</small></> : <SignalBadge tone="warning">{en ? 'No receipt' : 'Χωρίς παραλαβή'}</SignalBadge>}</td>
         <td className="nowrap-cell">{qty(row.quantity, row.unit, language)}</td>
       </>} />
 
@@ -195,7 +195,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
         renderRow={row => <><td className="nowrap-cell">{fmtDay(row.writtenOffOn)}</td><td>{row.productName}<small>{row.notes}</small></td><td className="nowrap-cell">{fmtQty(row.quantity, language)}</td><td>{writeoffReasonLabel(row.reason, language)}</td></>} /></>}
 
     <SectionHeader title={en ? 'Notification, actions, result' : 'Ενημέρωση, ενέργειες, αποτέλεσμα'} subtitle={readOnly ? '' : (en ? `The trace suggests: ${recallResultLabel(suggestion, language)}.` : `Η ιχνηλάτηση προτείνει: ${recallResultLabel(suggestion, language)}.`)} />
-    {readOnly ? <RecordDetailsGrid fields={[{ label: en ? 'Notified' : 'Ενημερώθηκαν', value: draft.notified, className: 'kitchen-span-3' }, { label: en ? 'Actions' : 'Ενέργειες', value: draft.actions, className: 'kitchen-span-3' }, { label: en ? 'Lessons learned' : 'Συμπεράσματα και βελτιώσεις', value: draft.lessons, className: 'kitchen-span-3' }, { label: en ? 'Result' : 'Αποτέλεσμα', value: draft.result ? <StatusBadge tone={recallResultTone(draft.result)}>{recallResultLabel(draft.result, language)}</StatusBadge> : '—' }]} />
+    {readOnly ? <RecordDetailsGrid fields={[{ label: en ? 'Notified' : 'Ενημερώθηκαν', value: draft.notified, className: 'kitchen-span-3' }, { label: en ? 'Actions' : 'Ενέργειες', value: draft.actions, className: 'kitchen-span-3' }, { label: en ? 'Lessons learned' : 'Συμπεράσματα και βελτιώσεις', value: draft.lessons, className: 'kitchen-span-3' }, { label: en ? 'Result' : 'Αποτέλεσμα', value: draft.result ? <SignalBadge tone={recallResultTone(draft.result)}>{recallResultLabel(draft.result, language)}</SignalBadge> : '—' }]} />
       : <>
         <Field label={en ? 'Who was notified *' : 'Ποιοι ενημερώθηκαν *'} hint={en ? 'Quality, management, infection control, supplier, wards…' : 'Ποιότητα, Διοίκηση, Πρόληψη Λοιμώξεων, προμηθευτής, τμήματα…'}><textarea rows={2} value={draft.notified || ''} onChange={e => set({ notified: e.target.value })} /></Field>
         <Field label={en ? 'Actions *' : 'Ενέργειες *'}><textarea rows={2} value={draft.actions || ''} onChange={e => set({ actions: e.target.value })} /></Field>
