@@ -19,7 +19,8 @@ describe('new surveillance Demo/Production parity',()=>{
     expect(record).toContain('repository.saveAssessment')
     expect(record).toContain('repository.requestSample')
     expect(repository).toContain('createClinicalCase(organizationId,patient.recordId,draft)')
-    expect(repository).toContain('linkSurveillanceCaseToAdmission')
+    // The admission link is written with the case, in one transaction (create_surveillance_case).
+    expect(fs.readFileSync('src/features/surveillance/clinicalCloudService.js','utf8')).toContain("p_admission_id: draft.admissionId || null")
     expect(admissionService).toContain("update({admission_id:admissionId})")
   })
 })

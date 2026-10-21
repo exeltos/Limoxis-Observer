@@ -69,7 +69,17 @@ function builder(table) {
 }
 
 vi.mock('../src/core/supabase/client', () => ({
-  supabase: { from: table => builder(table), auth: { getUser: async () => ({ data: { user: { id: 'actor-1' } }, error: null }) } },
+  supabase: {
+    from: table => builder(table),
+    auth: { getUser: async () => ({ data: { user: { id: 'actor-1' } }, error: null }) },
+    // create_surveillance_case writes what the database function does: the case and its start event.
+    rpc: async (name, args) => {
+      if (name !== 'create_surveillance_case') return { data: null, error: { message: `unknown rpc ${name}` } }
+      const { data: created } = await builder('surveillance_cases').insert({ organization_id: args.p_organization_id, patient_id: args.p_patient_id, department_id: args.p_department_id, status: 'active', started_at: args.p_started_at, review_due_on: args.p_review_due, room: args.p_room, reason: args.p_reason, reason_en: args.p_reason_en, suspected_source: args.p_suspected_source, admission_id: args.p_admission_id, created_by: 'actor-1' }).select('*').single()
+      await builder('surveillance_events').insert({ organization_id: args.p_organization_id, surveillance_case_id: created.id, event_type: 'surveillance_start', event_status: 'completed', occurred_at: args.p_started_at, detail: 'created', created_by: 'actor-1' }).select('*').single()
+      return { data: [created], error: null }
+    },
+  },
 }))
 
 const service = await import('../src/features/surveillance/clinicalCloudService')

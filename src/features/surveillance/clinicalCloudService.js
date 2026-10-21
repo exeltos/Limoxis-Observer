@@ -655,42 +655,21 @@ export async function loadClinicalCasesForPatient(organizationId, patientRecordI
 
 export async function createClinicalCase(organizationId, patientRecordId, draft) {
   assertCloud()
-  const actorId = await currentUserId()
-  const { data: department, error: departmentError } = draft.departmentId
-    ? await supabase
-        .from('departments')
-        .select('id')
-        .eq('organization_id', organizationId)
-        .eq('id', draft.departmentId)
-        .eq('is_active', true)
-        .maybeSingle()
-    : { data: null, error: null }
-  if (departmentError) throw departmentError
-  if (draft.departmentId && !department)
-    throw new Error('Selected department is not available for this organization.')
-  const { data: caseRow, error } = await supabase
-    .from('surveillance_cases')
-    .insert({
-      organization_id: organizationId,
-      patient_id: patientRecordId,
-      department_id: department?.id || null,
-      status: 'active',
-      started_at: iso(draft.startedAt || new Date()),
-      ...startColumns({
-        reviewDue: draft.reviewDue,
-        room: draft.room,
-        reason: draft.reason || draft.reasonEn,
-        reasonEn: draft.reasonEn || draft.reason,
-        suspectedSource: draft.suspectedSource,
-      }),
-      created_by: actorId,
-    })
-    .select('*')
-    .single()
-  if (error) throw error
-  await saveClinicalEvent(organizationId, caseRow.id, 'surveillance_start', 'created', {
-    occurredAt: draft.startedAt || new Date(),
+  // One transaction in the database: the case, its admission link and the start event.
+  const { data, error } = await supabase.rpc('create_surveillance_case', {
+    p_organization_id: organizationId,
+    p_patient_id: patientRecordId,
+    p_department_id: draft.departmentId || null,
+    p_started_at: iso(draft.startedAt || new Date()),
+    p_review_due: dateOnly(draft.reviewDue),
+    p_room: draft.room || null,
+    p_reason: draft.reason || draft.reasonEn || null,
+    p_reason_en: draft.reasonEn || draft.reason || null,
+    p_suspected_source: draft.suspectedSource || null,
+    p_admission_id: draft.admissionId || null,
   })
+  if (error) throw error
+  const caseRow = Array.isArray(data) ? data[0] : data
   return (await hydrateCases([caseRow]))[0]
 }
 

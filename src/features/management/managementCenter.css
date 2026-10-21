@@ -164,6 +164,7 @@
 /* «Ορισμοί δεικτών»: the hospital indicator list under the definitions, one tab. */
 .management-indicator-list{margin-top:18px;padding-top:14px;border-top:1px solid var(--lo-color-border,#e2e8ef)}
 .outbreak-investigations{margin-top:14px}
+.page-fill>.outbreak-investigations{margin-top:0}
 .outbreak-clusters{margin:0 0 14px;padding:10px 14px;border:1px solid #e3e9ef;border-radius:10px;background:#fbfcfd}
 .outbreak-clusters h3{margin:0 0 6px;font-size:13px;font-weight:750;color:#1d3a52}
 .outbreak-clusters ul{margin:0;padding:0;list-style:none}

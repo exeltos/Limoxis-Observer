@@ -24,7 +24,7 @@ const MEETING_ICONS = Object.freeze({ committees: BookOpenCheck, departments: Cl
 function OutbreakInvestigationsScreen() {
   const { t } = useLanguage()
   // The same screen layout as the other tabs: the create button in the header, counts, then the list.
-  return <LiraOutbreakInvestigationsPanel shell={({ actions, summary, children }) => <Page title={t('sidebarNav.tabOutbreaks')} subtitle={t('sidebarNav.outbreaksSubtitle')} actions={actions}>
+  return <LiraOutbreakInvestigationsPanel shell={({ actions, summary, children }) => <Page fill title={t('sidebarNav.tabOutbreaks')} subtitle={t('sidebarNav.outbreaksSubtitle')} actions={actions}>
     {summary}
     {children}
   </Page>} />

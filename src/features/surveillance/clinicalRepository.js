@@ -28,7 +28,7 @@ import {
   updateClinicalCaseBasics,
   voidClinicalCase,
 } from './clinicalCloudService'
-import { linkSurveillanceCaseToAdmission,loadSurveillanceAdmissionLinks } from './clinicalAdmissionService'
+import { loadSurveillanceAdmissionLinks } from './clinicalAdmissionService'
 
 const now=()=>new Date().toISOString()
 const clone=value=>JSON.parse(JSON.stringify(value))
@@ -69,12 +69,9 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
   }
   async function createCase(patient,draft){
     if(!isDemo){
+      // The admission link is set with the case, in the same transaction.
       const created=await createClinicalCase(organizationId,patient.recordId,draft)
-      if(draft.admissionId){
-        await linkSurveillanceCaseToAdmission(organizationId,created.recordId||created.id,draft.admissionId)
-        return {...created,admissionId:draft.admissionId,admissionDate:draft.admissionDate||created.admissionDate}
-      }
-      return created
+      return draft.admissionId?{...created,admissionId:draft.admissionId,admissionDate:draft.admissionDate||created.admissionDate}:created
     }
     return clone(createClinicalSurveillance({
       patientId:patient.id,patient:patient.name,patientEn:patient.nameEn||patient.name,dateOfBirth:patient.dateOfBirth,

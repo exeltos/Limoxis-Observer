@@ -23,8 +23,10 @@ function builder(table) {
   return chain
 }
 vi.mock('../src/core/supabase/client', () => ({
-  supabase: { from: table => builder(table), auth: { getUser: async () => ({ data: { user: { id: 'actor-1' } }, error: null }) } },
+  supabase: { from: table => builder(table), rpc: async (name, args) => { rpcCalls.push({ name, args }); return rpcRespond(name, args) }, auth: { getUser: async () => ({ data: { user: { id: 'actor-1' } }, error: null }) } },
 }))
+let rpcCalls = []
+let rpcRespond = () => ({ data: [{ id: 'case-new' }], error: null })
 
 const service = await import('../src/features/surveillance/clinicalCloudService')
 
@@ -42,22 +44,21 @@ beforeEach(() => {
 })
 
 describe('creating a surveillance case', () => {
-  it('opens an active case with what the start records, and its surveillance-start event, both by the signed-in user', async () => {
-    await service.createClinicalCase('org-1', 'pat-1', { departmentId: 'dep-1', startedAt: '2026-10-01', reason: 'Πυρετός', reviewDue: '2026-10-04', suspectedSource: 'urinary' })
-    const [caseInsert] = writes('surveillance_cases', 'insert')
-    expect(caseInsert.payload).toMatchObject({ organization_id: 'org-1', patient_id: 'pat-1', department_id: 'dep-1', status: 'active', created_by: 'actor-1',
-      reason: 'Πυρετός', reason_en: 'Πυρετός', review_due_on: '2026-10-04', suspected_source: 'urinary', room: null })
-    const [event] = writes('surveillance_events', 'insert')
-    expect(event.payload).toMatchObject({ surveillance_case_id: 'surveillance_cases-new', event_type: 'surveillance_start', detail: 'created', created_by: 'actor-1' })
-    expect(event.payload).not.toHaveProperty('payload')
+  it('opens the case, its admission link and its surveillance-start event in one database call', async () => {
+    rpcCalls = []
+    await service.createClinicalCase('org-1', 'pat-1', { departmentId: 'dep-1', startedAt: '2026-10-01', reason: 'Πυρετός', reviewDue: '2026-10-04', suspectedSource: 'urinary', admissionId: 'adm-1' })
+    expect(rpcCalls).toHaveLength(1)
+    expect(rpcCalls[0].name).toBe('create_surveillance_case')
+    expect(rpcCalls[0].args).toMatchObject({ p_organization_id: 'org-1', p_patient_id: 'pat-1', p_department_id: 'dep-1', p_reason: 'Πυρετός', p_reason_en: 'Πυρετός', p_review_due: '2026-10-04', p_suspected_source: 'urinary', p_room: null, p_admission_id: 'adm-1' })
+    // Nothing is written table by table: no half-created episode.
+    expect(writes('surveillance_cases', 'insert')).toHaveLength(0)
+    expect(writes('surveillance_events', 'insert')).toHaveLength(0)
   })
 
-  it('accepts only an active department of the same organization', async () => {
-    respond = query => (query.table === 'departments' ? { data: null, error: null } : { data: [], error: null })
+  it('reports the database refusal of a department of another organization', async () => {
+    rpcRespond = () => ({ data: null, error: new Error('Selected department is not available for this organization.') })
     await expect(service.createClinicalCase('org-1', 'pat-1', { departmentId: 'dep-x' })).rejects.toThrow('Selected department is not available for this organization.')
-    const [check] = queries.filter(q => q.table === 'departments')
-    expect(check.filters).toEqual(expect.arrayContaining([['eq', 'organization_id', 'org-1'], ['eq', 'id', 'dep-x'], ['eq', 'is_active', true]]))
-    expect(writes('surveillance_cases', 'insert')).toHaveLength(0)
+    rpcRespond = () => ({ data: [{ id: 'case-new' }], error: null })
   })
 })
 
