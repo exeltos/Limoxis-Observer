@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, Trash2, Truck, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
@@ -76,7 +76,7 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
           renderRow={row => <>
             <td className="nowrap-cell">{fmtDay(row.date)}</td>
             <td><strong>{row.title}</strong><small>{kindLabel[row.kind]}{row.detail ? ` · ${row.detail}` : ''}</small></td>
-            <td className="kitchen-text-cell">{row.action ? <span className="kitchen-clamp" title={row.action}>{row.action}</span> : <StatusBadge tone="danger">{en ? 'Missing' : 'Λείπει'}</StatusBadge>}</td>
+            <td className="kitchen-text-cell">{row.action ? <span className="kitchen-clamp" title={row.action}>{row.action}</span> : <SignalBadge tone="danger">{en ? 'Missing' : 'Λείπει'}</SignalBadge>}</td>
             <td>{access.canRecord && <IconButton size="sm" label={en ? 'Report a deviation' : 'Αναφορά απόκλισης'} onClick={() => report(row.title, [`${kindLabel[row.kind]} · ${fmtDay(row.date)}`, row.detail, row.action && `${en ? 'Corrective action' : 'Διορθωτική ενέργεια'}: ${row.action}`], row.date)}><AlertTriangle size={14} /></IconButton>}</td>
           </>} />
       </section>
@@ -85,7 +85,7 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
         <RegistryTable className="kitchen-table" rows={queue.slice(0, 3).map(row => ({ ...row, id: row.production.id }))} rowKey={row => row.id} columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }]}
           emptyTitle={en ? 'Nothing to verify' : 'Τίποτα προς επαλήθευση'}
           rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpenDay(row.production.id) })}
-          renderRow={row => <><td className="nowrap-cell"><strong>{fmtDay(row.production.productionDate)}</strong><small>{weekdayLabel(weekdayOf(row.production.productionDate), language)}</small></td><td>{row.total}</td><td>{row.outOfLimits ? <StatusBadge tone="danger">{row.outOfLimits}</StatusBadge> : '—'}</td></>} />
+          renderRow={row => <><td className="nowrap-cell"><strong>{fmtDay(row.production.productionDate)}</strong><small>{weekdayLabel(weekdayOf(row.production.productionDate), language)}</small></td><td>{row.total}</td><td>{row.outOfLimits ? <SignalBadge tone="danger">{row.outOfLimits}</SignalBadge> : '—'}</td></>} />
       </section>
     </div>
   </div>
@@ -94,11 +94,11 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
 export function StockNotes({ row, language }) {
   const en = language === 'en'
   return <span className="kitchen-notes">
-    {!row.inStock && <StatusBadge tone="neutral">{en ? 'Rejected' : 'Απορρίφθηκε'}</StatusBadge>}
-    {row.expired && <StatusBadge tone="danger">{en ? 'Expired' : 'Έληξε'}</StatusBadge>}
-    {row.expiring && <StatusBadge tone="warning">{row.daysLeft === 0 ? (en ? 'Expires today' : 'Λήγει σήμερα') : (en ? `Expires in ${row.daysLeft} d` : `Λήγει σε ${row.daysLeft} ημ.`)}</StatusBadge>}
-    {row.low && <StatusBadge tone="info">{en ? 'Low stock' : 'Χαμηλό απόθεμα'}</StatusBadge>}
-    {row.overused && <StatusBadge tone="warning">{en ? 'To check · used more than received' : 'Προς έλεγχο · υπερκατανάλωση'}</StatusBadge>}
+    {!row.inStock && <SignalBadge tone="neutral">{en ? 'Rejected' : 'Απορρίφθηκε'}</SignalBadge>}
+    {row.expired && <SignalBadge tone="danger">{en ? 'Expired' : 'Έληξε'}</SignalBadge>}
+    {row.expiring && <SignalBadge tone="warning">{row.daysLeft === 0 ? (en ? 'Expires today' : 'Λήγει σήμερα') : (en ? `Expires in ${row.daysLeft} d` : `Λήγει σε ${row.daysLeft} ημ.`)}</SignalBadge>}
+    {row.low && <SignalBadge tone="info">{en ? 'Low stock' : 'Χαμηλό απόθεμα'}</SignalBadge>}
+    {row.overused && <SignalBadge tone="warning">{en ? 'To check · used more than received' : 'Προς έλεγχο · υπερκατανάλωση'}</SignalBadge>}
   </span>
 }
 
@@ -130,8 +130,8 @@ export function ReceiptsPanel({ state, access, onDialog, filters, setFilters, sw
       <td className="nowrap-cell"><strong>{row.code}</strong><small>{fmtDay(row.receivedOn)}{row.receivedTime ? ` · ${row.receivedTime}` : ''}</small></td>
       <td>{row.supplierName || '—'}{row.orderReference && <small>{en ? 'Order' : 'Παραγγελία'} {row.orderReference}</small>}</td>
       <td>{(row.items || []).length ? (row.items || []).slice(0, 2).map(item => item.productName).join(' · ') : '—'}{(row.items || []).length > 2 && <small>+{row.items.length - 2}</small>}</td>
-      <td>{bad.length ? <span className="kitchen-notes">{bad.map(item => <StatusBadge key={item.field} tone="danger">{item.label[en ? 1 : 0]}</StatusBadge>)}</span> : row.limitStatus === 'out' ? <LimitBadge status="out" language={language} /> : row.limitStatus === 'in' ? (en ? 'All compliant' : 'Όλοι σε συμμόρφωση') : '—'}{row.measuredTemperature !== '' && row.measuredTemperature != null && <small>{fmtTemp(row.measuredTemperature, language)}</small>}</td>
-      <td><StatusBadge tone={receiptResultTone(row.result)}>{receiptResultLabel(row.result, language)}</StatusBadge></td>
+      <td>{bad.length ? <span className="kitchen-notes">{bad.map(item => <SignalBadge key={item.field} tone="danger">{item.label[en ? 1 : 0]}</SignalBadge>)}</span> : row.limitStatus === 'out' ? <LimitBadge status="out" language={language} /> : row.limitStatus === 'in' ? (en ? 'All compliant' : 'Όλοι σε συμμόρφωση') : '—'}{row.measuredTemperature !== '' && row.measuredTemperature != null && <small>{fmtTemp(row.measuredTemperature, language)}</small>}</td>
+      <td><SignalBadge tone={receiptResultTone(row.result)}>{receiptResultLabel(row.result, language)}</SignalBadge></td>
     </> }} />
 }
 
@@ -244,8 +244,8 @@ export function PlanPanel({ state, access, filters, setFilters, onDialog, onOpen
     renderRow={item => <>
       <td className="nowrap-cell"><strong>{fmtDay(item.productionDate)}</strong><small>{weekdayLabel(weekdayOf(item.productionDate), language)}{item.productionDate > today ? ` · ${en ? 'planned' : 'προγραμματισμένη'}` : ''}</small></td>
       <td className="kitchen-text-cell">{(item.menuText || '—').split('\n').filter(line => line.trim()).slice(0, 3).join(' · ')}</td>
-      <td className="nowrap-cell">{item.records.usage.length} {en ? 'materials' : 'α΄ ύλες'} · {item.records.thermal.length} {en ? 'heat' : 'ζέστη'}{item.records.outOfLimits > 0 && <small><StatusBadge tone="danger">{item.records.outOfLimits} {en ? 'out of limits' : 'εκτός ορίων'}</StatusBadge></small>}</td>
-      <td>{item.verifiedAt ? <StatusBadge tone="success">{item.verifiedByName || (en ? 'Signed off' : 'Επαληθεύτηκε')}</StatusBadge> : item.productionDate <= today ? <StatusBadge tone="warning">{en ? 'Pending' : 'Εκκρεμεί'}</StatusBadge> : '—'}</td>
+      <td className="nowrap-cell">{item.records.usage.length} {en ? 'materials' : 'α΄ ύλες'} · {item.records.thermal.length} {en ? 'heat' : 'ζέστη'}{item.records.outOfLimits > 0 && <small><SignalBadge tone="danger">{item.records.outOfLimits} {en ? 'out of limits' : 'εκτός ορίων'}</SignalBadge></small>}</td>
+      <td>{item.verifiedAt ? <SignalBadge tone="success">{item.verifiedByName || (en ? 'Signed off' : 'Επαληθεύτηκε')}</SignalBadge> : item.productionDate <= today ? <SignalBadge tone="warning">{en ? 'Pending' : 'Εκκρεμεί'}</SignalBadge> : '—'}</td>
     </>} />
 }
 
@@ -266,7 +266,7 @@ export function VerificationPanel({ state, filters, setFilters, onOpenDay }) {
     renderRow={row => <>
       <td className="nowrap-cell"><strong>{fmtDay(row.production.productionDate)}</strong><small>{weekdayLabel(weekdayOf(row.production.productionDate), language)}</small></td>
       <td>{[`${row.receipts.length} ${en ? 'receipts' : 'παραλαβές'}`, `${row.usage.length} ${en ? 'materials' : 'α΄ ύλες'}`, `${row.thermal.length} ${en ? 'heat' : 'ζέστη'}`, `${row.pureeing.length} ${en ? 'pureeing' : 'πολτοπ.'}`, `${row.defrosting.length} ${en ? 'defrost' : 'αποψ.'}`].join(' · ')}</td>
-      <td>{row.outOfLimits ? <StatusBadge tone="danger">{row.outOfLimits}</StatusBadge> : '—'}</td>
+      <td>{row.outOfLimits ? <SignalBadge tone="danger">{row.outOfLimits}</SignalBadge> : '—'}</td>
       <td>{row.pendingDefrosts || '—'}</td>
     </>} />
 }
@@ -297,8 +297,8 @@ export function HaccpPanel({ state, access, onDialog }) {
         emptyTitle={en ? 'No HACCP plan' : 'Δεν υπάρχει σχέδιο HACCP'}
         renderRow={row => <>
           <td><strong>{row.position}. {row.name}</strong>{row.controlMeasure && <small>{row.controlMeasure}</small>}</td>
-          <td><span className="kitchen-notes">{HAZARD_LABELS.filter(([key]) => row[key]).map(([key, el, enLabel]) => <StatusBadge key={key} tone="neutral">{en ? enLabel : el}</StatusBadge>)}</span>{row.hazards && <small>{row.hazards}</small>}</td>
-          <td>{row.isCcp ? <StatusBadge tone="danger">CCP</StatusBadge> : '—'}{row.limitKey && <small>{limitText(limitOf(row.limitKey), language)}</small>}</td>
+          <td><span className="kitchen-notes">{HAZARD_LABELS.filter(([key]) => row[key]).map(([key, el, enLabel]) => <SignalBadge key={key} tone="neutral">{en ? enLabel : el}</SignalBadge>)}</span>{row.hazards && <small>{row.hazards}</small>}</td>
+          <td>{row.isCcp ? <SignalBadge tone="neutral">CCP</SignalBadge> : '—'}{row.limitKey && <small>{limitText(limitOf(row.limitKey), language)}</small>}</td>
           <td>{row.monitoring || '—'}{row.frequency && <small>{row.frequency}</small>}</td>
           <td className="kitchen-text-cell">{row.correctiveAction || '—'}</td>
           <td>{row.verification || '—'}{row.records && <small>{row.records}</small>}</td>

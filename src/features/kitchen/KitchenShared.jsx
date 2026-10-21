@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
@@ -65,8 +65,10 @@ export function useKitchenActor() {
   return useMemo(() => ({ id: actor?.id || null, name: actor?.name || actor?.fullName || '', employeeId: membership?.employeeId || '' }), [actor, membership?.employeeId])
 }
 
-export function LimitBadge({ status, language }) {
-  return <StatusBadge tone={statusTone(status)}>{statusLabel(status, language)}</StatusBadge>
+// Out of limits is the only chip; within limits shows nothing in a list (live: plain text while typing).
+export function LimitBadge({ status, language, live = false }) {
+  if (status === 'in' && !live) return null
+  return <SignalBadge tone={statusTone(status)}>{statusLabel(status, language)}</SignalBadge>
 }
 
 // The live check under a measurement while it is typed: the result and the limit.
@@ -74,7 +76,7 @@ export function LiveLimit({ status, limits, limitKey, language, text = '' }) {
   const en = language === 'en'
   const limit = limitKey ? limitFor(limits, limitKey) : null
   return <div className={`kitchen-live-check is-${status || 'none'}`} role="status" aria-live="polite">
-    <LimitBadge status={status} language={language} />
+    <LimitBadge status={status} language={language} live />
     <span>{text || (limit ? `${en ? 'Limit' : 'Όριο'} ${limitText(limit, language)}` : '')}</span>
   </div>
 }
