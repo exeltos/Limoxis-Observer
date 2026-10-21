@@ -29,8 +29,13 @@ function mapRow(row, departmentLabel){
   }
 }
 
+// A write in production needs the hospital and the database; it never «succeeds» locally.
+function requireLive(organizationId){if(!organizationId||!supabase)throw new Error('NO_ORGANIZATION')}
+
 export async function loadPatients(organizationId, {isDemo=false,includeArchived=false}={}){
-  if(isDemo || !organizationId || !supabase) return structuredClone(patientDemoData)
+  if(isDemo) return structuredClone(patientDemoData)
+  // Production never falls back to the demo patients: no hospital, no list.
+  if(!organizationId || !supabase) return []
   // Reports need archived patients too: their past isolates still count.
   const data=await selectAllPages(()=>{let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId);if(!includeArchived)query=query.is('archived_at',null);return query.order('admission_date',{ascending:false}).order('id',{ascending:true})})
   return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
@@ -65,7 +70,8 @@ async function createInitialAdmission(organizationId,record,draft,{isDemo=false}
 
 export async function createPatient(organizationId, existing, draft, {isDemo=false}={}){
   const patientCode=draft.patientCode
-  if(isDemo || !organizationId || !supabase){
+  if(!isDemo) requireLive(organizationId)
+  if(isDemo){
     // No real "patients" row is inserted here, so the patients_create_initial_admission
     // DB trigger never runs — mirror it locally so the patient isn't left without an admission.
     const record=await createInitialAdmission(organizationId,{id:patientCode,status:'active',...draft},draft,{isDemo})
@@ -99,7 +105,8 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
 }
 
 export async function updatePatient(organizationId, patient, patch, {isDemo=false}={}){
-  if(isDemo || !organizationId || !supabase) return {...patient,...patch,name:`${patch.firstName??patient.firstName??''} ${patch.lastName??patient.lastName??''}`.trim()}
+  if(!isDemo) requireLive(organizationId)
+  if(isDemo) return {...patient,...patch,name:`${patch.firstName??patient.firstName??''} ${patch.lastName??patient.lastName??''}`.trim()}
   const payload={}
   if(patch.firstName!==undefined)payload.first_name=patch.firstName||null
   if(patch.lastName!==undefined)payload.last_name=patch.lastName||null
@@ -117,7 +124,8 @@ export async function updatePatient(organizationId, patient, patch, {isDemo=fals
 }
 
 export async function archivePatient(organizationId, patient, reason, {isDemo=false}={}){
-  if(isDemo || !organizationId || !supabase) return
+  if(!isDemo) requireLive(organizationId)
+  if(isDemo) return
   const {error}=await supabase.rpc('archive_patient',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_reason:reason})
   if(error) throw error
 }
@@ -155,7 +163,8 @@ export async function loadAdmissions(patientOrRecordId, {isDemo=false}={}){
 }
 
 export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){
-  if(isDemo || !patient.recordId || !supabase){
+  if(!isDemo){requireLive(organizationId);if(!patient.recordId)throw new Error('PATIENT_NOT_SAVED')}
+  if(isDemo){
     return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)
@@ -173,14 +182,16 @@ export async function createAdmission(organizationId, patient, draft, {isDemo=fa
 }
 
 export async function dischargeAdmission(organizationId,patient,admission,draft,{isDemo=false}={}){
-  if(isDemo || !supabase) return {...admission,status:'discharged',dischargeDate:draft.date,notes:draft.reason||admission.notes}
+  if(!isDemo) requireLive(organizationId)
+  if(isDemo) return {...admission,status:'discharged',dischargeDate:draft.date,notes:draft.reason||admission.notes}
   const {data,error}=await supabase.rpc('close_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_discharge_date:draft.date,p_reason:draft.reason||null})
   if(error) throw error
   return mapAdmission(data,admission.department)
 }
 
 export async function transferAdmission(organizationId,patient,admission,draft,{isDemo=false}={}){
-  if(isDemo || !supabase) return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId,admission_date:draft.date,discharge_date:null,status:'active',notes:draft.reason||null},draft.department)
+  if(!isDemo) requireLive(organizationId)
+  if(isDemo) return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId,admission_date:draft.date,discharge_date:null,status:'active',notes:draft.reason||null},draft.department)
   const department=await resolveDepartment(organizationId,draft.departmentId)
   const {data,error}=await supabase.rpc('transfer_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_to_department_id:draft.departmentId,p_transfer_date:draft.date,p_reason:draft.reason||null})
   if(error) throw error
@@ -192,7 +203,8 @@ export async function transferAdmission(organizationId,patient,admission,draft,{
 // surveillance episodes; those errors come back as `code` for a clear message.
 export async function deleteAdmission(organizationId,patient,admission,reason,{isDemo=false}={}){
   if(!String(reason||'').trim())throw new Error('reason required')
-  if(isDemo || !supabase) return
+  if(!isDemo) requireLive(organizationId)
+  if(isDemo) return
   const {error}=await supabase.rpc('delete_patient_admission',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_admission_id:admission.id,p_reason:reason.trim()})
   if(!error)return
   const message=String(error.message||'')
