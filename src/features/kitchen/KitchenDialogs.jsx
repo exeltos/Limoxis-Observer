@@ -17,7 +17,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LimitBadge, LiveLimit, useKitchenActor } from './KitchenShared'
 import { defrostStatus, fryingStatus, itemStatus, limitText, needsCorrectiveAction, pureeingStatus, receiptStatus, thermalStatuses } from './kitchenLimits'
-import { DEFROST_METHODS, DIETS, MEALS, PRODUCT_CATEGORIES, PUREE_METHODS, RECEIPT_CHECK_FIELDS, CHECK_RESULTS, STORAGES, TEMPERATURE_CLASSES, UNITS, WEEKDAYS, WRITEOFF_REASONS, availableBatches, batchProblem, fifoAdvice, fmtQty, menuForDay, newReceiptItem, options, receiptProblems, receiptResultLabel, receiptResultTone, unitLabel } from './kitchenModel'
+import { receiptTitle, DEFROST_METHODS, DIETS, MEALS, PRODUCT_CATEGORIES, PUREE_METHODS, RECEIPT_CHECK_FIELDS, CHECK_RESULTS, STORAGES, TEMPERATURE_CLASSES, UNITS, WEEKDAYS, WRITEOFF_REASONS, availableBatches, batchProblem, fifoAdvice, fmtQty, menuForDay, newReceiptItem, options, receiptProblems, receiptResultLabel, receiptResultTone, unitLabel } from './kitchenModel'
 import { defrostEntry, kitchenErrorMessage, saveEntry, saveProduction, saveReceipt, saveSimple, saveWriteoff, saveLimits } from './kitchenService'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -62,7 +62,7 @@ export function ReceiptDialog({ state, organizationId, initial, onClose, onSaved
   const suppliers = [...(state.suppliers || [])].sort((a, b) => (a.category === 'kitchen' ? 0 : 1) - (b.category === 'kitchen' ? 0 : 1) || a.name.localeCompare(b.name, 'el'))
   const classKey = { chilled: 'receipt_chilled', frozen: 'receipt_frozen', hot: 'receipt_hot' }[draft.temperatureClass]
   const save = () => run(async () => { await saveReceipt(organizationId, { ...draft, items: draft.items.filter(item => String(item.productName || '').trim()) }); onClose() }, en ? 'Receipt saved.' : 'Η παραλαβή αποθηκεύτηκε.')
-  return <ObserverDialog width="wide" title={initial.id ? `${en ? 'Receipt' : 'Παραλαβή'} ${initial.code}` : (en ? 'New receipt' : 'Νέα παραλαβή')} subtitle={en ? 'Receipt checks, temperature and the products received. Checked against the limits as you type.' : 'Έλεγχοι παραλαβής, θερμοκρασία και τα προϊόντα. Ελέγχονται με τα όρια καθώς γράφετε.'} onClose={onClose}
+  return <ObserverDialog width="wide" title={initial.id ? receiptTitle(initial, language) : (en ? 'New receipt' : 'Νέα παραλαβή')} subtitle={en ? 'Receipt checks, temperature and the products received. Checked against the limits as you type.' : 'Έλεγχοι παραλαβής, θερμοκρασία και τα προϊόντα. Ελέγχονται με τα όρια καθώς γράφετε.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={initial.id ? (en ? 'Save' : 'Αποθήκευση') : (en ? 'Register receipt' : 'Καταχώριση παραλαβής')}>
       <span className="kitchen-dialog-result"><SignalBadge tone={receiptResultTone(live.result)}>{receiptResultLabel(live.result, language)}</SignalBadge>{problems.length > 0 && <small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small>}</span>
     </DialogActions>}>
@@ -230,7 +230,7 @@ export function UsageDialog({ organizationId, initial, stock, dishes = [], onClo
   const older = fifoAdvice(own, chosen, draft.usedOn)
   const missing = !chosen || !(Number(draft.quantity) > 0) || Boolean(problem)
   const save = () => run(async () => { await saveEntry(organizationId, 'kitchen_material_usage', { ...draft, productId: chosen.productId, productName: chosen.productName, unit: chosen.unit, lotLabel: draft.lotLabel || chosen.batchCode || chosen.lotLabel }); onClose() })
-  return <ObserverDialog width="wide" title={en ? 'Raw material used' : 'Πρώτη ύλη σε χρήση'} subtitle={en ? 'Pick the batch from stock: the oldest first (FIFO); an expired batch cannot be used.' : 'Επιλέξτε την παρτίδα από το απόθεμα: πρώτα η παλαιότερη (FIFO)· παρτίδα που έληξε δεν χρησιμοποιείται.'} onClose={onClose}
+  return <ObserverDialog width="wide" title={en ? 'Raw material used' : 'Πρώτη ύλη σε χρήση'} subtitle={en ? 'Pick the batch from stock: the oldest first; an expired batch cannot be used.' : 'Επιλέξτε την παρτίδα από το απόθεμα: πρώτα η παλαιότερη παρτίδα· παρτίδα που έληξε δεν χρησιμοποιείται.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || missing} />}>
     <FormGrid columns={3}>
       <SearchableSelect className="kitchen-span-2" label={en ? 'Batch in stock *' : 'Παρτίδα από το απόθεμα *'} value={draft.receiptItemId}
@@ -242,7 +242,7 @@ export function UsageDialog({ organizationId, initial, stock, dishes = [], onClo
     </FormGrid>
     {chosen && <div className="kitchen-batch-note">
       {chosen.expiring && <SignalBadge tone="warning">{en ? `Expires ${day(chosen.expiryOn)}` : `Λήγει ${day(chosen.expiryOn)}`}</SignalBadge>}
-      {older && <SignalBadge tone="info">{en ? `FIFO: an older batch of ${older.productName} (received ${day(older.receivedOn)}) is in stock` : `FIFO: υπάρχει παλαιότερη παρτίδα ${older.productName} (παραλαβή ${day(older.receivedOn)})`}</SignalBadge>}
+      {older && <SignalBadge tone="info">{en ? `An older batch of ${older.productName} (received ${day(older.receivedOn)}) is in stock: use it first` : `Υπάρχει παλαιότερη παρτίδα ${older.productName} (παραλαβή ${day(older.receivedOn)})· χρησιμοποιήστε πρώτα εκείνη`}</SignalBadge>}
       {problem && <SignalBadge tone="danger">{problem}</SignalBadge>}
     </div>}
     <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={draft.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>

@@ -19,7 +19,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { KitchenList, LimitBadge, matches, useKitchenActor, useKitchenTrace } from './KitchenShared'
 import { limitText } from './kitchenLimits'
-import { RECEIPT_CHECK_FIELDS, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, newReceipt, fmtQty, fmtTemp, haccpReviewDue, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu } from './kitchenModel'
+import { RECEIPT_CHECK_FIELDS, shortDay, RECEIPT_RESULTS, STORAGES, PRODUCT_CATEGORIES, categoryLabel, newReceipt, fmtQty, fmtTemp, haccpReviewDue, receiptResultLabel, receiptResultTone, storageLabel, todayKey, traceBatch, unitLabel, verificationQueue, weekdayLabel, weekdayOf, dayRecords, addDays, newProduct, newMenu } from './kitchenModel'
 import { kitchenErrorMessage, removeEntry, reopen, saveSettings, signOff } from './kitchenService'
 import { traceabilityDocument } from './kitchenReports'
 
@@ -48,7 +48,7 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
   const production = summary.production
   const queue = verificationQueue(state, { today: summary.today, since: addDays(summary.today, -30) })
   const todayRows = [
-    ...summary.receipts.map(row => ({ id: `r-${row.id}`, kind: en ? 'Receipt' : 'Παραλαβή', what: `${row.code} · ${row.supplierName || ''}`, when: row.receivedTime, status: row.limitStatus, path: `/kitchen/receipts/${row.id}` })),
+    ...summary.receipts.map(row => ({ id: `r-${row.id}`, kind: en ? 'Receipt' : 'Παραλαβή', what: `${shortDay(row.receivedOn)} · ${row.supplierName || '—'}`, when: row.receivedTime, status: row.limitStatus, path: `/kitchen/receipts/${row.id}` })),
     ...summary.thermal.map(row => ({ id: `t-${row.id}`, kind: en ? 'Heat' : 'Ζέστη', what: row.dishName, when: row.processTime, status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
     ...summary.defrosting.map(row => ({ id: `d-${row.id}`, kind: en ? 'Defrost' : 'Απόψυξη', what: `${row.productName}${row.endedAt ? '' : ` · ${en ? 'in progress' : 'σε εξέλιξη'}`}`, when: timeOf(row.endedAt || row.startedAt), status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : production ? `/kitchen/days/${production.id}` : '' })),
     ...summary.pureeing.map(row => ({ id: `p-${row.id}`, kind: en ? 'Pureeing' : 'Πολτοποίηση', what: row.productName, when: '', status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
@@ -81,7 +81,7 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
           </>} />
       </section>
       <section className="kitchen-card">
-        <SectionHeader title={en ? 'HACCP verification' : 'Επαλήθευση HACCP'} subtitle={en ? 'Days waiting for the sign-off (30 days).' : 'Ημέρες που περιμένουν επαλήθευση (30 ημέρες).'} />
+        <SectionHeader title={en ? 'Days to verify' : 'Ημέρες προς επαλήθευση'} subtitle={en ? 'Days waiting for the sign-off (30 days).' : 'Ημέρες που περιμένουν επαλήθευση (30 ημέρες).'} />
         <RegistryTable className="kitchen-table" rows={queue.slice(0, 3).map(row => ({ ...row, id: row.production.id }))} rowKey={row => row.id} columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }]}
           emptyTitle={en ? 'Nothing to verify' : 'Τίποτα προς επαλήθευση'}
           rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpenDay(row.production.id) })}
@@ -127,7 +127,7 @@ export function ReceiptsPanel({ state, access, onDialog, filters, setFilters, sw
     emptyIcon={Truck} emptyAction={access?.canRecord && onDialog ? { label: en ? 'New receipt' : 'Νέα παραλαβή', icon: Plus, onClick: () => onDialog({ type: 'receipt', initial: newReceipt() }) } : null}
     rowProps={row => ({ className: 'registry-row-clickable', onClick: () => navigate(`/kitchen/receipts/${row.id}`) })}
     renderRow={row => { const bad = RECEIPT_CHECK_FIELDS.filter(item => row[item.field] === 'noncompliant'); return <>
-      <td className="nowrap-cell"><strong>{row.code}</strong><small>{fmtDay(row.receivedOn)}{row.receivedTime ? ` · ${row.receivedTime}` : ''}</small></td>
+      <td className="nowrap-cell"><strong>{fmtDay(row.receivedOn)}{row.receivedTime ? ` · ${row.receivedTime}` : ''}</strong><small>{row.code}</small></td>
       <td>{row.supplierName || '—'}{row.orderReference && <small>{en ? 'Order' : 'Παραγγελία'} {row.orderReference}</small>}</td>
       <td>{(row.items || []).length ? (row.items || []).slice(0, 2).map(item => item.productName).join(' · ') : '—'}{(row.items || []).length > 2 && <small>+{row.items.length - 2}</small>}</td>
       <td>{bad.length ? <span className="kitchen-notes">{bad.map(item => <SignalBadge key={item.field} tone="danger">{item.label[en ? 1 : 0]}</SignalBadge>)}</span> : row.limitStatus === 'out' ? <LimitBadge status="out" language={language} /> : row.limitStatus === 'in' ? (en ? 'All compliant' : 'Όλοι σε συμμόρφωση') : '—'}{row.measuredTemperature !== '' && row.measuredTemperature != null && <small>{fmtTemp(row.measuredTemperature, language)}</small>}</td>
@@ -338,7 +338,7 @@ export function useSignOff(organizationId, reload) {
   const { confirm, notify } = useFeedback()
   const actor = useKitchenActor()
   const sign = async (table, row) => {
-    const notes = await confirm({ title: en ? 'HACCP sign-off' : 'Επαλήθευση HACCP', message: table === 'kitchen_productions' ? (en ? `You confirm that the records of ${fmtDay(row.productionDate)} were reviewed. The day is locked until reopened.` : `Επιβεβαιώνετε ότι ελέγξατε τις καταγραφές της ${fmtDay(row.productionDate)}. Η ημέρα κλειδώνει ώσπου να ανοίξει ξανά.`) : (en ? `You confirm the defrosting of ${row.productName}. The line is locked until reopened.` : `Επιβεβαιώνετε την απόψυξη «${row.productName}». Η γραμμή κλειδώνει ώσπου να ανοίξει ξανά.`),
+    const notes = await confirm({ title: en ? 'Sign-off' : 'Επαλήθευση', message: table === 'kitchen_productions' ? (en ? `You confirm that the records of ${fmtDay(row.productionDate)} were reviewed. The day is locked until reopened.` : `Επιβεβαιώνετε ότι ελέγξατε τις καταγραφές της ${fmtDay(row.productionDate)}. Η ημέρα κλειδώνει ώσπου να ανοίξει ξανά.`) : (en ? `You confirm the defrosting of ${row.productName}. The line is locked until reopened.` : `Επιβεβαιώνετε την απόψυξη «${row.productName}». Η γραμμή κλειδώνει ώσπου να ανοίξει ξανά.`),
       confirmLabel: en ? 'Sign off' : 'Επαλήθευση', input: { label: en ? 'Remarks (optional)' : 'Παρατηρήσεις (προαιρετικά)' } })
     if (notes === false) return
     try { await signOff(organizationId, table, row.id, { actor, notes: typeof notes === 'string' ? notes : '' }); notify(en ? 'Signed off.' : 'Επαληθεύτηκε.', 'success'); await reload() } catch (error) { console.error(error); notify(kitchenErrorMessage(error, language), 'error') }

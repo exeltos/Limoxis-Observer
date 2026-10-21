@@ -51,7 +51,7 @@ export function RecallPanel({ state, filters, setFilters, onRecall }) {
       empty={!rows.length} emptyTitle={en ? 'No recall drills' : 'Δεν υπάρχουν ασκήσεις ανάκλησης'} emptyText={en ? 'A drill starts from a supplier\'s lot, a product or a dish and traces where it went and where it came from, against the time target.' : 'Η άσκηση ξεκινά από παρτίδα προμηθευτή, προϊόν ή πιάτο και ιχνηλατεί πού πήγε και από πού ήρθε, με στόχο χρόνου.'}
       rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onRecall(row) })}
       renderRow={row => { const minutes = row.status === 'completed' && row.elapsedMinutes !== '' ? Number(row.elapsedMinutes) : elapsedMinutes(row.startedAt, row.finishedAt); const inTime = withinTarget(minutes, row.targetMinutes); return <>
-        <td className="nowrap-cell"><strong>{row.code || '—'}</strong><small>{fmtDay(row.drillDate)}</small></td>
+        <td className="nowrap-cell"><strong>{fmtDay(row.drillDate)}</strong><small>{row.code || '—'}</small></td>
         <td><strong>{row.subject}</strong><small>{recallScenarioLabel(row.scenario, language)}{row.triggerText ? ` · ${row.triggerText}` : ''}</small></td>
         <td className="nowrap-cell">{fmtDuration(minutes, language)}<small>{inTime == null ? '' : inTime ? (en ? 'within target' : 'εντός στόχου') : <SignalBadge tone="danger">{en ? 'over target' : 'εκτός στόχου'}</SignalBadge>}</small></td>
         <td className="nowrap-cell">{pct(row.accountedPercent, en)}</td>
@@ -127,7 +127,7 @@ export function RecallDialog({ state: loaded, organizationId, access, initial, o
   const scenarioChange = value => set({ scenario: value, receiptItemId: '', productId: '', productName: '', dishName: '', stockCounts: {} })
   const exportProps = reportExports(() => recallDrillDocument({ ...draft, elapsedMinutes: minutes }, trace, { language }), { onBlocked: blocked })
 
-  return <ObserverDialog width="wide" title={draft.code ? `${en ? 'Mock recall drill' : 'Άσκηση ανάκλησης'} · ${draft.code}` : (en ? 'New mock recall drill' : 'Νέα άσκηση ανάκλησης')} subtitle={en ? 'Trace forward and backward, check the mass balance and the time against the target.' : 'Ιχνηλάτηση εμπρός και πίσω, ισοζύγιο μάζας και χρόνος έναντι στόχου.'} onClose={onClose}
+  return <ObserverDialog width="wide" title={draft.code ? `${en ? 'Mock recall drill' : 'Άσκηση ανάκλησης'} · ${fmtDay(draft.drillDate)}` : (en ? 'New mock recall drill' : 'Νέα άσκηση ανάκλησης')} subtitle={en ? 'Trace forward and backward, check the mass balance and the time against the target.' : 'Ιχνηλάτηση εμπρός και πίσω, ισοζύγιο μάζας και χρόνος έναντι στόχου.'} onClose={onClose}
     footer={<DialogActions>
       <ExportMenu {...exportProps} />
       {access.canManage && draft.id && <Button variant="secondary" onClick={remove}><Trash2 size={15} />{en ? 'Delete' : 'Διαγραφή'}</Button>}

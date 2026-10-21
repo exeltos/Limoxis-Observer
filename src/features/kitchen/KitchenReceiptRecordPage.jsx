@@ -20,7 +20,7 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { LimitBadge, useKitchen, useKitchenAccess } from './KitchenShared'
 import { KitchenDialogHost } from './KitchenPage'
 import { StockNotes, TraceDialog, fmtDay, fmtStamp, useDeviationReport } from './KitchenPanels'
-import { RECEIPT_CHECK_FIELDS, checkLabel, fmtQty, fmtTemp, receiptResultLabel, receiptResultTone, stockRows, storageLabel, temperatureClassLabel, unitLabel } from './kitchenModel'
+import { RECEIPT_CHECK_FIELDS, receiptTitle, checkLabel, fmtQty, fmtTemp, receiptResultLabel, receiptResultTone, stockRows, storageLabel, temperatureClassLabel, unitLabel } from './kitchenModel'
 import { limitText } from './kitchenLimits'
 import { receiptsLogDocument } from './kitchenReports'
 import { kitchenErrorMessage, removeEntry } from './kitchenService'
@@ -58,7 +58,7 @@ export function KitchenReceiptRecordPage() {
   }
   const headerActions = <div className="row-actions">
     <ExportMenu {...reportExports(() => receiptsLogDocument([receipt], { from: receipt.receivedOn, to: receipt.receivedOn, language }), { onBlocked: blocked })} />
-    {access.canRecord && receipt.limitStatus === 'out' && <Button variant="secondary" onClick={() => report(`${receipt.code} · ${receipt.supplierName || ''}`, [`${en ? 'Receipt' : 'Παραλαβή'} ${fmtDay(receipt.receivedOn)} ${receipt.receivedTime || ''}`, ...bad.map(item => `${item.label[en ? 1 : 0]}: ${checkLabel('noncompliant', language)}`), ...rows.filter(item => item.accepted === false).map(item => `${item.productName}: ${item.rejectionReason}`), receipt.qualityNotes, receipt.correctiveAction && `${en ? 'Corrective action' : 'Διορθωτική ενέργεια'}: ${receipt.correctiveAction}`], receipt.receivedOn)}><AlertTriangle size={15} />{en ? 'Deviation' : 'Απόκλιση'}</Button>}
+    {access.canRecord && receipt.limitStatus === 'out' && <Button variant="secondary" onClick={() => report(receiptTitle(receipt, language), [`${en ? 'Receipt' : 'Παραλαβή'} ${fmtDay(receipt.receivedOn)} ${receipt.receivedTime || ''}`, ...bad.map(item => `${item.label[en ? 1 : 0]}: ${checkLabel('noncompliant', language)}`), ...rows.filter(item => item.accepted === false).map(item => `${item.productName}: ${item.rejectionReason}`), receipt.qualityNotes, receipt.correctiveAction && `${en ? 'Corrective action' : 'Διορθωτική ενέργεια'}: ${receipt.correctiveAction}`], receipt.receivedOn)}><AlertTriangle size={15} />{en ? 'Deviation' : 'Απόκλιση'}</Button>}
     {access.canRecord && <IconButton label={en ? 'Edit receipt' : 'Επεξεργασία παραλαβής'} tone="edit" onClick={() => setDialog({ type: 'receipt', initial: structuredClone(receipt) })}><Pencil size={16} /></IconButton>}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete receipt' : 'Διαγραφή παραλαβής'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
@@ -69,8 +69,8 @@ export function KitchenReceiptRecordPage() {
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: Info },
   ]
   const demo = isDemoDataEnvironment()
-  return <Page fill><EntityRecordShell className="kitchen-record-shell workspace-fill" avatar={<Truck size={19} />} eyebrow={receipt.code} title={receipt.supplierName || (en ? 'Receipt' : 'Παραλαβή')}
-    subtitle={[`${fmtDay(receipt.receivedOn)}${receipt.receivedTime ? ` ${receipt.receivedTime}` : ''}`, receipt.orderReference && `${en ? 'Order' : 'Παραγγελία'} ${receipt.orderReference}`, receipt.receiverName].filter(Boolean).join(' · ')}
+  return <Page fill><EntityRecordShell className="kitchen-record-shell workspace-fill" avatar={<Truck size={19} />} eyebrow={en ? 'Receipt' : 'Παραλαβή'} recordId={receipt.code} title={receipt.supplierName || (en ? 'Receipt' : 'Παραλαβή')}
+    subtitle={[`${fmtDay(receipt.receivedOn)}${receipt.receivedTime ? ` ${receipt.receivedTime}` : ''}`, receipt.orderReference && `${en ? 'Order' : 'Παραγγελία'} ${receipt.orderReference}`, receipt.receiverName, receipt.code].filter(Boolean).join(' · ')}
     status={<span className="kitchen-notes"><SignalBadge tone={receiptResultTone(receipt.result)}>{receiptResultLabel(receipt.result, language)}</SignalBadge><LimitBadge status={receipt.limitStatus} language={language} />{receipt.status === 'in_progress' && <SignalBadge tone="info">{en ? 'In progress' : 'Σε εξέλιξη'}</SignalBadge>}</span>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'items' && <RecordTabPanel title={en ? 'Products' : 'Προϊόντα'} subtitle={en ? 'Each product is a batch in stock; a rejected one adds none.' : 'Κάθε προϊόν είναι μια παρτίδα στο απόθεμα· όσα απορρίφθηκαν δεν προσθέτουν.'}>
