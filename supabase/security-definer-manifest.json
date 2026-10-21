@@ -403,6 +403,11 @@
       "authenticated": true,
       "reason": "Signs a regulation's draft in a role; checks private.can_sign_regulation (Hospital Admin as administrator, IPC Lead as infection_lead, or Platform Owner). The signatures table has no write grant."
     },
+    "organization_users_list": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Management › Users: the members of one organization with their profile (name, username, contact email); the organization's admin or the Platform Owner only, since member and profile RLS show an admin only its own row."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
