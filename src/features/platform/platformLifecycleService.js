@@ -23,12 +23,6 @@ export async function convertPlatformDemo(organizationId, { name, code, details 
   return data
 }
 
-// Deletes the Demos that expired more than the configured number of days ago.
-export async function runPlatformHousekeeping() {
-  if (isOwnerPreview() || !supabase) return { purged: [], failed: [] }
-  return invokeAuthenticatedFunction('platform-housekeeping', {})
-}
-
 export async function exportOrganization(organizationId) {
   return invokeAuthenticatedFunction('platform-export-organization', { organizationId })
 }

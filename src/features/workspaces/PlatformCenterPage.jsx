@@ -27,8 +27,6 @@ import { PlatformUsersRegistry } from '../platform/PlatformUsersRegistry'
 import { OrganizationDeleteDialog } from '../platform/OrganizationDeleteDialog'
 import { PlatformGlobalManagement } from '../platform/PlatformGlobalManagement'
 import { getPlatformSettings } from '../platform/platformSettingsService'
-import { runPlatformHousekeeping } from '../platform/platformLifecycleService'
-import { readSessionValue, writeSessionValue } from '../../core/storage/browserStorage'
 
 const emptyOrganization={name:'',code:'',type:'hospital',status:'active',region:'',healthRegion:'',city:'',country:DEFAULT_COUNTRY,contactEmail:'',contactPhone:'',bedCapacity:'',adminFullName:'',adminEmail:''}
 function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b)-new Date(a))/86400000))}
@@ -49,7 +47,6 @@ export function PlatformCenterPage(){
  useEffect(()=>{void refreshPlatformData()},[memberships.length])
  // Once per session: Demos that expired more than the configured number of days
  // ago are deleted (platform setting; 0 = never), through the ticketed path.
- useEffect(()=>{const key='limoxis.platform.housekeeping';if(readSessionValue(key)==='1')return;writeSessionValue(key,'1');runPlatformHousekeeping().then(result=>{const purged=result?.purged||[];if(purged.length){notify(tx(`Διαγράφηκαν αυτόματα ${purged.length===1?'1 Demo που είχε':`${purged.length} Demo που είχαν`} λήξει: ${purged.map(item=>item.name||item.code).join(', ')}.`,`${purged.length} expired Demo${purged.length===1?' was':'s were'} deleted automatically: ${purged.map(item=>item.name||item.code).join(', ')}.`),'info',{operation:'platform_housekeeping'});void refreshPlatformData()}}).catch(()=>{})},[]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{let active=true;(async()=>{try{const settings=await getPlatformSettings();if(!active)return;const days=Math.min(365,Math.max(1,Number(settings?.defaultDemoDurationDays)||30));setDefaultDemoDurationDays(days);setMaxDemoUsers(Math.min(20,Math.max(1,Number(settings?.maxDemoUsers)||5)))}catch{/* keep safe 30-day fallback */}})();return()=>{active=false}},[])
  const setField=(k,v)=>setDraft(c=>({...c,[k]:v}));const codeValid=/^[A-Z0-9_-]{2,24}$/.test(draft.code.trim().toUpperCase()),emailValid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draft.adminEmail.trim()),formValid=Boolean(draft.name.trim()&&codeValid&&draft.region&&draft.healthRegion&&draft.city.trim()&&draft.adminFullName.trim()&&emailValid)
  function openCreate(){setDraft({...emptyOrganization,code:generateOrganizationCode()});setFormError('');setCreateOpen(true)}

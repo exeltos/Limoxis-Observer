@@ -55,6 +55,12 @@ describe('Demo access enforcement', () => {
     expect(migration).toContain('after update of status on public.organizations')
     expect(migration).toContain("cron.schedule('limoxis-org-access', '7 * * * *', 'select private.apply_all_org_access()')")
   })
+  it('closes a Demo when its last day ends in Athens, checked every minute', () => {
+    const expiry = fs.readFileSync('supabase/migrations/20261210110000_demo_expiry_athens_minute.sql', 'utf8')
+    expect(expiry).toContain("(now() at time zone 'Europe/Athens')::date between e.valid_from and e.valid_until")
+    expect(expiry).toContain("e.valid_until - (now() at time zone 'Europe/Athens')::date")
+    expect(expiry).toContain("cron.schedule('limoxis-org-access', '* * * * *', 'select private.apply_all_org_access()')")
+  })
   it('never puts a Platform Owner on hold', () => {
     expect(migration).toMatch(/access_hold is null\s+and not exists \(select 1 from public\.profiles p where p\.id = om\.user_id and coalesce\(p\.is_platform_owner, false\)\)/)
   })
