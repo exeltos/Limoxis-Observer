@@ -8,7 +8,7 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { libraryOptions } from '../management/useLibraries'
 import { ITEM_FORMS,expiryState,expiryWindow,formKey,formLabel } from './controlExpiry'
 import { EXPIRY_FINDINGS,expiryFindingCode,expiryFindingLabel } from './controlVocabulary'
@@ -87,8 +87,8 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
 export function ExpiryBadge({row,window,language,now}){
  const en=language==='en'
  const {state,days}=expiryState(row?.expiry,window,now)
- if(state==='unknown')return <StatusBadge className="control-expiry-badge">—</StatusBadge>
- if(state==='expired')return <StatusBadge tone="danger" className="control-expiry-badge">{days===-1?(en?'Expired yesterday':'Έληξε χθες'):(en?`Expired ${-days} days ago`:`Έληξε πριν ${-days} ημ.`)}</StatusBadge>
- if(state==='expiring')return <StatusBadge tone="warning" className="control-expiry-badge">{days===0?(en?'Expires today':'Λήγει σήμερα'):(en?`Expires in ${days} days`:`Λήγει σε ${days} ημ.`)}</StatusBadge>
- return <StatusBadge tone="success" className="control-expiry-badge">{en?'In date':'Εντός'}</StatusBadge>
+ if(state==='unknown')return <SignalBadge className="control-expiry-badge">—</SignalBadge>
+ if(state==='expired')return <SignalBadge tone="danger" className="control-expiry-badge">{days===-1?(en?'Expired yesterday':'Έληξε χθες'):(en?`Expired ${-days} days ago`:`Έληξε πριν ${-days} ημ.`)}</SignalBadge>
+ if(state==='expiring')return <SignalBadge tone="warning" className="control-expiry-badge">{days===0?(en?'Expires today':'Λήγει σήμερα'):(en?`Expires in ${days} days`:`Λήγει σε ${days} ημ.`)}</SignalBadge>
+ return <SignalBadge tone="success" className="control-expiry-badge">{en?'In date':'Εντός'}</SignalBadge>
 }

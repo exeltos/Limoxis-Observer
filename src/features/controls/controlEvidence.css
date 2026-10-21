@@ -20,9 +20,9 @@ button.control-evidence-link{cursor:pointer}
 button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-evidence-existing{display:flex;align-items:center;gap:8px;margin:10px 0;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
 .control-evidence-existing .control-evidence-links{margin:0}
-.control-criticality-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;font-size:9.5px;font-weight:800;vertical-align:1px}
-.control-criticality-badge.high{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
-.control-criticality-badge.medium{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.control-criticality-badge{display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:var(--lo-color-muted)}
+.control-criticality-badge.is-strong{color:inherit;font-weight:800}
+.control-criticality-badge.signal{padding:0 6px;border-radius:999px;font-size:9.5px;font-weight:800;vertical-align:1px;background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
 /* Expiry check: the list of medicines and supplies (ControlEditor field + dialog). */
 .control-expiry-catalogue-dialog .control-catalogue-toolbar{display:flex;gap:8px;margin-bottom:12px}
 .control-expiry-catalogue-dialog .control-catalogue-paste{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin-bottom:12px;padding:12px;border:1px dashed var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface-muted)}

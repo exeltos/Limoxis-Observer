@@ -82,6 +82,7 @@ function toOverflowItem(action,index,en){
 export function EntityRecordShell({
   avatar,
   eyebrow,
+  recordId,
   title,
   subtitle,
   context,
@@ -139,7 +140,7 @@ export function EntityRecordShell({
   const contextualRegistry=typeof location.state?.limoxisFrom?.registry==='string'?location.state.limoxisFrom.registry:null
   const inferredRegistry=!contextualRegistry&&location.pathname.startsWith('/training/')?'training-programs':null
   const sourceRegistry=contextualRegistry||inferredRegistry
-  const currentRecordId=eyebrow==null?'':String(eyebrow)
+  const currentRecordId=(recordId??eyebrow)==null?'':String(recordId??eyebrow)
   const fallbackIds=sourceRegistry?readSessionJson(registryStorageKey(sourceRegistry,'sequence'),[]):[]
   const fallbackSequence=Array.isArray(fallbackIds)?fallbackIds.map(String):[]
   const fallbackIndex=currentRecordId?fallbackSequence.indexOf(currentRecordId):-1

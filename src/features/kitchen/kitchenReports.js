@@ -20,7 +20,7 @@ export function dailyHaccpDocument(state, production, { language = 'el' } = {}) 
   const records = dayRecords(state, production)
   const limits = state.limits
   const out = [
-    ...records.receipts.filter(row => row.limitStatus === 'out').map(row => [L('Παραλαβή', 'Receipt'), `${row.code} · ${row.supplierName || ''}`, row.correctiveAction || row.qualityNotes || '—']),
+    ...records.receipts.filter(row => row.limitStatus === 'out').map(row => [L('Παραλαβή', 'Receipt'), `${row.supplierName || ''} · ${row.code}`, row.correctiveAction || row.qualityNotes || '—']),
     ...records.thermal.filter(row => row.limitStatus === 'out').map(row => [L('Θερμική επεξεργασία', 'Heat treatment'), row.dishName, row.correctiveAction || '—']),
     ...records.defrosting.filter(row => row.limitStatus === 'out').map(row => [L('Απόψυξη', 'Defrosting'), row.productName, row.correctiveAction || '—']),
     ...records.pureeing.filter(row => row.limitStatus === 'out').map(row => [L('Πολτοποίηση', 'Pureeing'), row.productName, row.correctiveAction || '—']),

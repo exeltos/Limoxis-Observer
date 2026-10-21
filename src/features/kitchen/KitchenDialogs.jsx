@@ -12,12 +12,12 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { StatusBadge } from '../../design-system/StatusBadge'
+import { SignalBadge } from '../../design-system/StatusBadge'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LimitBadge, LiveLimit, useKitchenActor } from './KitchenShared'
 import { defrostStatus, fryingStatus, itemStatus, limitText, needsCorrectiveAction, pureeingStatus, receiptStatus, thermalStatuses } from './kitchenLimits'
-import { DEFROST_METHODS, DIETS, MEALS, PRODUCT_CATEGORIES, PUREE_METHODS, RECEIPT_CHECK_FIELDS, CHECK_RESULTS, STORAGES, TEMPERATURE_CLASSES, UNITS, WEEKDAYS, WRITEOFF_REASONS, availableBatches, batchProblem, fifoAdvice, fmtQty, menuForDay, newReceiptItem, options, receiptProblems, receiptResultLabel, receiptResultTone, unitLabel } from './kitchenModel'
+import { receiptTitle, DEFROST_METHODS, DIETS, MEALS, PRODUCT_CATEGORIES, PUREE_METHODS, RECEIPT_CHECK_FIELDS, CHECK_RESULTS, STORAGES, TEMPERATURE_CLASSES, UNITS, WEEKDAYS, WRITEOFF_REASONS, availableBatches, batchProblem, fifoAdvice, fmtQty, menuForDay, newReceiptItem, options, receiptProblems, receiptResultLabel, receiptResultTone, unitLabel } from './kitchenModel'
 import { defrostEntry, kitchenErrorMessage, saveEntry, saveProduction, saveReceipt, saveSimple, saveWriteoff, saveLimits } from './kitchenService'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -62,9 +62,9 @@ export function ReceiptDialog({ state, organizationId, initial, onClose, onSaved
   const suppliers = [...(state.suppliers || [])].sort((a, b) => (a.category === 'kitchen' ? 0 : 1) - (b.category === 'kitchen' ? 0 : 1) || a.name.localeCompare(b.name, 'el'))
   const classKey = { chilled: 'receipt_chilled', frozen: 'receipt_frozen', hot: 'receipt_hot' }[draft.temperatureClass]
   const save = () => run(async () => { await saveReceipt(organizationId, { ...draft, items: draft.items.filter(item => String(item.productName || '').trim()) }); onClose() }, en ? 'Receipt saved.' : 'Η παραλαβή αποθηκεύτηκε.')
-  return <ObserverDialog width="wide" title={initial.id ? `${en ? 'Receipt' : 'Παραλαβή'} ${initial.code}` : (en ? 'New receipt' : 'Νέα παραλαβή')} subtitle={en ? 'Receipt checks, temperature and the products received. Checked against the limits as you type.' : 'Έλεγχοι παραλαβής, θερμοκρασία και τα προϊόντα. Ελέγχονται με τα όρια καθώς γράφετε.'} onClose={onClose}
+  return <ObserverDialog width="wide" title={initial.id ? receiptTitle(initial, language) : (en ? 'New receipt' : 'Νέα παραλαβή')} subtitle={en ? 'Receipt checks, temperature and the products received. Checked against the limits as you type.' : 'Έλεγχοι παραλαβής, θερμοκρασία και τα προϊόντα. Ελέγχονται με τα όρια καθώς γράφετε.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={initial.id ? (en ? 'Save' : 'Αποθήκευση') : (en ? 'Register receipt' : 'Καταχώριση παραλαβής')}>
-      <span className="kitchen-dialog-result"><StatusBadge tone={receiptResultTone(live.result)}>{receiptResultLabel(live.result, language)}</StatusBadge>{problems.length > 0 && <small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small>}</span>
+      <span className="kitchen-dialog-result"><SignalBadge tone={receiptResultTone(live.result)}>{receiptResultLabel(live.result, language)}</SignalBadge>{problems.length > 0 && <small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small>}</span>
     </DialogActions>}>
     <FormGrid columns={3}>
       <SearchableSelect label={en ? 'Supplier *' : 'Προμηθευτής *'} value={draft.supplierId || draft.supplierName} allowCustom customLabel={value => `«${value}»`}
@@ -125,7 +125,7 @@ export function ThermalDialog({ state, organizationId, initial, dishes = [], onC
   const num = value => value.replace(',', '.')
   const save = () => run(async () => { await saveEntry(organizationId, 'kitchen_thermal_processes', draft); onClose() })
   return <ObserverDialog width="wide" title={en ? 'Heat parameters' : 'Παράμετροι ζέστης'} subtitle={en ? 'Cooking core, chilling, reheating and frying of a dish, against the critical limits.' : 'Πυρήνας μαγειρέματος, ψύξη, αναθέρμανση και τηγάνισμα ενός πιάτου, με τα κρίσιμα όρια.'} onClose={onClose}
-    footer={<DialogActions onSave={save} disabled={saving || missing}><span className="kitchen-dialog-result"><LimitBadge status={s.overall} language={language} /></span></DialogActions>}>
+    footer={<DialogActions onSave={save} disabled={saving || missing}><span className="kitchen-dialog-result"><LimitBadge status={s.overall} language={language} live /></span></DialogActions>}>
     <FormGrid columns={3}>
       <SearchableSelect label={en ? 'Dish *' : 'Πιάτο *'} value={draft.dishName} allowCustom customLabel={value => `«${value}»`} options={dishes.map(dish => ({ value: dish, label: dish }))} onChange={value => set({ dishName: value || '' })} {...selectText(en)} />
       <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={draft.processDate} onChange={value => set({ processDate: value })} />
@@ -163,7 +163,7 @@ export function DefrostDialog({ state, organizationId, initial, stock = [], onCl
   const hours = entry.endedAt && entry.startedAt ? Math.round((new Date(entry.endedAt) - new Date(entry.startedAt)) / 360000) / 10 : null
   const save = () => run(async () => { await saveEntry(organizationId, 'kitchen_defrosting', entry); onClose() })
   return <ObserverDialog width="wide" title={initial.id ? (en ? 'Defrosting' : 'Απόψυξη') : (en ? 'New defrosting' : 'Νέα απόψυξη')} subtitle={en ? 'Start and end of the defrosting: date, time and temperature.' : 'Έναρξη και λήξη της απόψυξης: ημερομηνία, ώρα και θερμοκρασία.'} onClose={onClose}
-    footer={<DialogActions onSave={save} disabled={saving || missing}><span className="kitchen-dialog-result"><LimitBadge status={status} language={language} />{endBeforeStart && <small>{en ? 'The end is before the start.' : 'Η λήξη είναι πριν την έναρξη.'}</small>}</span></DialogActions>}>
+    footer={<DialogActions onSave={save} disabled={saving || missing}><span className="kitchen-dialog-result"><LimitBadge status={status} language={language} live />{endBeforeStart && <small>{en ? 'The end is before the start.' : 'Η λήξη είναι πριν την έναρξη.'}</small>}</span></DialogActions>}>
     <FormGrid columns={3}>
       <SearchableSelect label={en ? 'Product *' : 'Προϊόν *'} value={draft.productId || draft.productName} allowCustom customLabel={value => `«${value}»`} options={productOptions(products, en)}
         onChange={value => { const found = products.find(item => item.id === value); set(found ? { productId: found.id, productName: found.name, unit: found.unit, receiptItemId: '' } : { productId: '', productName: value || '', receiptItemId: '' }) }} {...selectText(en)} />
@@ -198,14 +198,14 @@ export function PureeingDialog({ organizationId, initial, dishes = [], onClose, 
   const missing = !String(draft.productName || '').trim() || !draft.pureedOn || needsCorrectiveAction(status, draft.correctiveAction)
   const save = () => run(async () => { await saveEntry(organizationId, 'kitchen_pureeing', draft); onClose() })
   return <ObserverDialog title={en ? 'Pureeing / sieving' : 'Πολτοποίηση / σούρωμα'} subtitle={en ? 'Visual check of the purée and check of the blade before and after.' : 'Οπτικός έλεγχος του πολτού και έλεγχος της λεπίδας πριν και μετά.'} onClose={onClose}
-    footer={<DialogActions onSave={save} disabled={saving || missing}><span className="kitchen-dialog-result"><LimitBadge status={status} language={language} /></span></DialogActions>}>
+    footer={<DialogActions onSave={save} disabled={saving || missing}><span className="kitchen-dialog-result"><LimitBadge status={status} language={language} live /></span></DialogActions>}>
     <FormGrid columns={3}>
       <SearchableSelect label={en ? 'Dish / product *' : 'Πιάτο / προϊόν *'} value={draft.productName} allowCustom customLabel={value => `«${value}»`} options={dishes.map(dish => ({ value: dish, label: dish }))} onChange={value => set({ productName: value || '' })} {...selectText(en)} />
       <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={draft.pureedOn} onChange={value => set({ pureedOn: value })} />
       <ChoiceField label={en ? 'Method' : 'Μέθοδος'} value={draft.method} options={options(PUREE_METHODS, language)} onChange={value => set({ method: value })} />
       <CheckboxField label={en ? 'Visual check OK' : 'Οπτικός έλεγχος εντάξει'} checked={draft.visualCheck !== false} onChange={checked => set({ visualCheck: checked })} />
       <CheckboxField label={en ? 'Blade check OK' : 'Έλεγχος λεπίδας εντάξει'} checked={draft.bladeCheck !== false} onChange={checked => set({ bladeCheck: checked })} />
-      <div className="kitchen-live-slot"><LimitBadge status={status} language={language} /></div>
+      <div className="kitchen-live-slot"><LimitBadge status={status} language={language} live /></div>
     </FormGrid>
     <CorrectiveAction status={status} value={draft.correctiveAction} onChange={value => set({ correctiveAction: value })} language={language} />
     <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={draft.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>
@@ -230,7 +230,7 @@ export function UsageDialog({ organizationId, initial, stock, dishes = [], onClo
   const older = fifoAdvice(own, chosen, draft.usedOn)
   const missing = !chosen || !(Number(draft.quantity) > 0) || Boolean(problem)
   const save = () => run(async () => { await saveEntry(organizationId, 'kitchen_material_usage', { ...draft, productId: chosen.productId, productName: chosen.productName, unit: chosen.unit, lotLabel: draft.lotLabel || chosen.batchCode || chosen.lotLabel }); onClose() })
-  return <ObserverDialog width="wide" title={en ? 'Raw material used' : 'Πρώτη ύλη σε χρήση'} subtitle={en ? 'Pick the batch from stock: the oldest first (FIFO); an expired batch cannot be used.' : 'Επιλέξτε την παρτίδα από το απόθεμα: πρώτα η παλαιότερη (FIFO)· παρτίδα που έληξε δεν χρησιμοποιείται.'} onClose={onClose}
+  return <ObserverDialog width="wide" title={en ? 'Raw material used' : 'Πρώτη ύλη σε χρήση'} subtitle={en ? 'Pick the batch from stock: the oldest first; an expired batch cannot be used.' : 'Επιλέξτε την παρτίδα από το απόθεμα: πρώτα η παλαιότερη παρτίδα· παρτίδα που έληξε δεν χρησιμοποιείται.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || missing} />}>
     <FormGrid columns={3}>
       <SearchableSelect className="kitchen-span-2" label={en ? 'Batch in stock *' : 'Παρτίδα από το απόθεμα *'} value={draft.receiptItemId}
@@ -241,9 +241,9 @@ export function UsageDialog({ organizationId, initial, stock, dishes = [], onClo
       <SearchableSelect className="kitchen-span-2" label={en ? 'Dish' : 'Πιάτο'} value={draft.dishName} allowCustom customLabel={value => `«${value}»`} options={dishes.map(dish => ({ value: dish, label: dish }))} onChange={value => set({ dishName: value || '' })} {...selectText(en)} />
     </FormGrid>
     {chosen && <div className="kitchen-batch-note">
-      {chosen.expiring && <StatusBadge tone="warning">{en ? `Expires ${day(chosen.expiryOn)}` : `Λήγει ${day(chosen.expiryOn)}`}</StatusBadge>}
-      {older && <StatusBadge tone="info">{en ? `FIFO: an older batch of ${older.productName} (received ${day(older.receivedOn)}) is in stock` : `FIFO: υπάρχει παλαιότερη παρτίδα ${older.productName} (παραλαβή ${day(older.receivedOn)})`}</StatusBadge>}
-      {problem && <StatusBadge tone="danger">{problem}</StatusBadge>}
+      {chosen.expiring && <SignalBadge tone="warning">{en ? `Expires ${day(chosen.expiryOn)}` : `Λήγει ${day(chosen.expiryOn)}`}</SignalBadge>}
+      {older && <SignalBadge tone="info">{en ? `An older batch of ${older.productName} (received ${day(older.receivedOn)}) is in stock: use it first` : `Υπάρχει παλαιότερη παρτίδα ${older.productName} (παραλαβή ${day(older.receivedOn)})· χρησιμοποιήστε πρώτα εκείνη`}</SignalBadge>}
+      {problem && <SignalBadge tone="danger">{problem}</SignalBadge>}
     </div>}
     <Field label={en ? 'Notes' : 'Σημειώσεις'}><textarea rows={2} value={draft.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>
   </ObserverDialog>
