@@ -87,11 +87,23 @@ export const programmeAudits = [
   audit('AUD-2612-110', { key: 'iso9001', department: '', title: 'Επιθεώρηση πιστοποίησης ISO 9001 (επιτήρηση)', titleEn: 'ISO 9001 certification audit (surveillance)', type: 'certification', planned: '2026-12-01', status: 'planned', monthOnly: true, team: [external('tm-10', 'Φορέας πιστοποίησης — επικεφαλής επιθεωρητής', 'Φορέας πιστοποίησης', 'lead')], risk: 'medium' }),
 ]
 
+// The English title and description of each audit finding.
+const FINDING_EN = {
+  'FND-2603-101': ['ISO 9001 7.5.3 · Two versions of a form at the station', 'Audit AUD-2603-101, ISO 9001 7.5.3: two versions of the nursing accountability form were found at the station.'],
+  'FND-2603-102': ['ISO 9001 9.1.2 · Satisfaction surveys are not discussed', 'Satisfaction surveys are collected but not discussed in the department meetings.'],
+  'FND-2605-103': ['ISO 15224 CP-3 · Medication reconciliation at discharge', 'Medication reconciliation was not done in 3 of 10 discharges.'],
+  'FND-2605-104': ['ISO 15224 8.5.1 · Structured shift handover (SBAR)', 'Shift handover is verbal, without a structured tool.'],
+  'FND-2607-105': ['TEMOS T2.3 · Translation of the discharge note', 'The discharge note is given only in Greek and English.'],
+  'FND-2609-106': ['JCI IPSG.3 · Concentrated KCl in an open cabinet', 'Audit AUD-2609-104, JCI IPSG.3: concentrated KCl in an open cabinet of room 2, without a high-alert label.'],
+  'FND-2609-107': ['JCI IPSG.2 · Telephone orders without read-back', 'Two telephone orders without read-back documentation.'],
+  'FND-2609-108': ['JCI PCI.8 · Contact isolation signage', 'Incomplete contact isolation signage in one room.'],
+  'FND-2609-109': ['JCI MMU.6 · Barcode scanning at administration', 'Barcode scanning at medication administration is proposed.'],
+}
 const finding = (id, auditId, itemRef, findingClass, severity, status, title, description, owner, dueDate, extra = {}) => {
   const source = programmeAudits.find(item => item.id === auditId)
   const [itemClause, nth = 1] = itemRef.split('#')
   const row = source.checklist.filter(item => item.clauseRef === itemClause)[Number(nth) - 1]
-  return { id, title, titleEn: title, source: 'audit', sourceId: auditId, department: source.department, departmentEn: source.departmentEn, departmentId: '', date: source.completedDate, severity, status, owner, owners: [owner], description, descriptionEn: description, attachments: [], history: [{ at: `${source.completedDate}T15:30:00+03:00`, action: 'findingCreated', actor: 'Σταθάτου Δήμητρα' }],
+  return { id, title, titleEn: FINDING_EN[id]?.[0] || title, source: 'audit', sourceId: auditId, department: source.department, departmentEn: source.departmentEn, departmentId: '', date: source.completedDate, severity, status, owner, owners: [owner], description, descriptionEn: FINDING_EN[id]?.[1] || description, attachments: [], history: [{ at: `${source.completedDate}T15:30:00+03:00`, action: 'findingCreated', actor: 'Σταθάτου Δήμητρα' }],
     findingClass, auditItemId: row?.id || null, clauseRef: itemClause, standard: source.standard, dueDate, verificationStatus: 'pending', verifiedOn: '', verifiedBy: '', verificationNote: '', followUpAuditId: '', ...extra }
 }
 
