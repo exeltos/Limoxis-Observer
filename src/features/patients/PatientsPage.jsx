@@ -15,7 +15,7 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { exportRegistry } from '../../core/export/registryExports'
+import { exportRegistry, patientsListExport } from '../../core/export/registryExports'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
@@ -28,15 +28,6 @@ import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
 
-// The Excel (.csv) file of the registry as filtered on screen.
-function patientsListExport(rows,{language,t,fmt}){
-  const en=language==='en'
-  return {
-    name:en?'patients':'asthenis',
-    headers:en?['Patient','Patient code','Record number','Department','Admission','Status']:['Ασθενής','Κωδικός ασθενούς','Αριθμός φακέλου','Τμήμα','Εισαγωγή','Κατάσταση'],
-    rows:rows.map(p=>[en?(p.nameEn||p.name):p.name,p.id,p.hospitalRecordNumber||'',en?p.departmentEn:p.department,fmt(p.admissionDate),t(p.status)]),
-  }
-}
 // The registry shows the patient first, as the episodes do, and the status as a badge.
 const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral'}
 

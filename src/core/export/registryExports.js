@@ -79,3 +79,36 @@ export function qualityExport(section,rows,{en,t=value=>value}){
  return {name:en?'audits':'epitheoriseis',headers:[en?'Code':'Κωδικός',en?'Title':'Τίτλος',en?'Type':'Τύπος',en?'Planned':'Προγραμματισμένη',en?'Completed':'Ολοκληρώθηκε',en?'Lead auditor':'Επικεφαλής ελεγκτής',en?'Status':'Κατάσταση'],
   rows:rows.map(r=>[r.displayId||r.id,title(r),t(r.auditType),day(r.plannedDate,en),day(r.completedDate,en),r.leadAuditor||'',t(r.status)])}
 }
+
+// The Excel (.csv) file of what the open tab lists, after its search and filters.
+export function surveillanceListExport(mode, rows, { language, t, fmt, organism, resistance, screening }) {
+  const en = language === 'en'
+  const pick = (el, enValue) => (en ? enValue || el : el)
+  if (mode === 'employees')
+    return {
+      name: en ? 'employee-screenings' : 'elegxoi-ergazomenon',
+      headers: en ? ['Employee', 'Code', 'Department', 'Started', 'Screening', 'Result', 'Status'] : ['Εργαζόμενος', 'Κωδικός', 'Τμήμα', 'Έναρξη', 'Έλεγχος', 'Αποτέλεσμα', 'Κατάσταση'],
+      rows: rows.map(x => [pick(x.employeeName, x.employeeNameEn), x.employeeId || '', pick(x.department, x.departmentEn), fmt(x.startedAt), (x.screeningTypes || []).map(screening).join(', '), t(x.resultStatus || 'pending'), t(x.status)]),
+    }
+  if (mode === 'environmental')
+    return {
+      name: en ? 'environmental-sampling' : 'perivallontiki-epitirisi',
+      headers: en ? ['Code', 'Type', 'Department', 'Sampling point', 'Date', 'Batch', 'Result', 'CFU', 'Status'] : ['Κωδικός', 'Τύπος', 'Τμήμα', 'Σημείο δειγματοληψίας', 'Ημερομηνία', 'Παρτίδα', 'Αποτέλεσμα', 'CFU', 'Κατάσταση'],
+      rows: rows.map(x => [x.code || x.id, x.type || '', x.department || '', [x.location, x.point].filter(Boolean).join(' · '), fmt(x.collectedAt || x.requestedAt), x.environmentalBatchId || '', x.result ? t(x.result) : '', x.microbiologyResults?.[0]?.cfuCount ?? '', t(x.status)]),
+    }
+  return {
+    name: en ? 'surveillance-episodes' : 'epeisodia-epitirisis',
+    headers: en ? ['Patient', 'Patient code', 'Department', 'Started', 'Organism', 'Resistance', 'Status', 'Next review'] : ['Ασθενής', 'Κωδικός ασθενούς', 'Τμήμα', 'Έναρξη', 'Μικροοργανισμός', 'Αντοχή', 'Κατάσταση', 'Επόμενη επανεκτίμηση'],
+    rows: rows.map(x => [pick(x.patient, x.patientEn), x.patientId || '', pick(x.department, x.departmentEn), fmt(x.startedAt), organism(x), resistance(x), t(x.status), x.status === 'active' ? fmt(x.groupReviewDue ?? x.reviewDue) : '']),
+  }
+}
+
+// The Excel (.csv) file of the registry as filtered on screen.
+export function patientsListExport(rows,{language,t,fmt}){
+  const en=language==='en'
+  return {
+    name:en?'patients':'asthenis',
+    headers:en?['Patient','Patient code','Record number','Department','Admission','Status']:['Ασθενής','Κωδικός ασθενούς','Αριθμός φακέλου','Τμήμα','Εισαγωγή','Κατάσταση'],
+    rows:rows.map(p=>[en?(p.nameEn||p.name):p.name,p.id,p.hospitalRecordNumber||'',en?p.departmentEn:p.department,fmt(p.admissionDate),t(p.status)]),
+  }
+}

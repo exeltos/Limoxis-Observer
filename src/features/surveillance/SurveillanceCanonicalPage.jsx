@@ -15,7 +15,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { useSectionTabs } from '../../design-system/SectionTabs'
 import { Button } from '../../design-system/Button'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { exportRegistry } from '../../core/export/registryExports'
+import { exportRegistry, surveillanceListExport } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
@@ -489,7 +489,7 @@ export function SurveillanceCanonicalPage() {
       actions={
         // One button that creates what the open tab lists.
         <div className="record-actions">
-            <ExportMenu onExcel={filtered.length ? () => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt })) : undefined} disabled={!filtered.length} />
+            <ExportMenu onExcel={filtered.length ? () => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) })) : undefined} disabled={!filtered.length} />
             {canCreate && (
             <Button variant="primary" onClick={() => startCreation(mode)}>
               <Plus size={15} aria-hidden="true" />
@@ -985,28 +985,6 @@ function EmployeeStatusBadge({ row, t }) {
       {state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}
     </StatusBadge>
   )
-}
-// The Excel (.csv) file of what the open tab lists, after its search and filters.
-function surveillanceListExport(mode, rows, { language, t, fmt }) {
-  const en = language === 'en'
-  const pick = (el, enValue) => (en ? enValue || el : el)
-  if (mode === 'employees')
-    return {
-      name: en ? 'employee-screenings' : 'elegxoi-ergazomenon',
-      headers: en ? ['Employee', 'Code', 'Department', 'Started', 'Screening', 'Result', 'Status'] : ['Εργαζόμενος', 'Κωδικός', 'Τμήμα', 'Έναρξη', 'Έλεγχος', 'Αποτέλεσμα', 'Κατάσταση'],
-      rows: rows.map(x => [pick(x.employeeName, x.employeeNameEn), x.employeeId || '', pick(x.department, x.departmentEn), fmt(x.startedAt), (x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', '), t(x.resultStatus || 'pending'), t(x.status)]),
-    }
-  if (mode === 'environmental')
-    return {
-      name: en ? 'environmental-sampling' : 'perivallontiki-epitirisi',
-      headers: en ? ['Code', 'Type', 'Department', 'Sampling point', 'Date', 'Batch', 'Result', 'CFU', 'Status'] : ['Κωδικός', 'Τύπος', 'Τμήμα', 'Σημείο δειγματοληψίας', 'Ημερομηνία', 'Παρτίδα', 'Αποτέλεσμα', 'CFU', 'Κατάσταση'],
-      rows: rows.map(x => [x.code || x.id, x.type || '', x.department || '', [x.location, x.point].filter(Boolean).join(' · '), fmt(x.collectedAt || x.requestedAt), x.environmentalBatchId || '', x.result ? t(x.result) : '', x.microbiologyResults?.[0]?.cfuCount ?? '', t(x.status)]),
-    }
-  return {
-    name: en ? 'surveillance-episodes' : 'epeisodia-epitirisis',
-    headers: en ? ['Patient', 'Patient code', 'Department', 'Started', 'Organism', 'Resistance', 'Status', 'Next review'] : ['Ασθενής', 'Κωδικός ασθενούς', 'Τμήμα', 'Έναρξη', 'Μικροοργανισμός', 'Αντοχή', 'Κατάσταση', 'Επόμενη επανεκτίμηση'],
-    rows: rows.map(x => [pick(x.patient, x.patientEn), x.patientId || '', pick(x.department, x.departmentEn), fmt(x.startedAt), (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', (x.episodes || [x]).map(latestResistance).find(Boolean) || '', t(x.status), x.status === 'active' ? fmt(x.groupReviewDue ?? x.reviewDue) : '']),
-  }
 }
 function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick, loading = false }) {
   return (
