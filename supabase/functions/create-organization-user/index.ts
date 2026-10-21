@@ -31,7 +31,8 @@ serveWithCors(async(req)=>{
       admin.from('platform_demo_entitlements').select('id').eq('organization_id',organizationId).order('created_at',{ascending:false}).limit(1).maybeSingle(),
     ])
     const maxUsers=Math.min(20,Math.max(1,Number(settings?.max_demo_users)||5))
-    if(!profile?.is_platform_owner&&(memberCount||0)>=maxUsers)return reply({error:`Το Demo επιτρέπει έως ${maxUsers} χρήστες.`,code:'DEMO_USER_LIMIT',maxUsers},403)
+    // The same limit for everyone (the database enforces it too); the Owner raises it in the Platform settings.
+    if((memberCount||0)>=maxUsers)return reply({error:`Το Demo επιτρέπει έως ${maxUsers} χρήστες.`,code:'DEMO_USER_LIMIT',maxUsers},403)
     demoEntitlementId=entitlement?.id||null
   }
   const normalizedEmail=String(email).trim().toLowerCase();const username=await generateUserName(admin,fullName);const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'');const redirectTo=`${appUrl}/activate`
@@ -39,8 +40,15 @@ serveWithCors(async(req)=>{
   let userId:string;let createdMembership=false
   if(inviteError||!invited?.user){
     if(!/already been registered|already registered|already exists/i.test(inviteError?.message||''))return reply({error:inviteError?.message||'Could not invite user'},500)
-    const {data:existingProfile}=await admin.from('profiles').select('id,username').ilike('contact_email',normalizedEmail).maybeSingle();if(!existingProfile)return reply({error:'Αυτό το email χρησιμοποιείται ήδη από λογαριασμό χωρίς αντίστοιχο προφίλ. Επικοινώνησε με τον Platform Owner.'},409)
+    const {data:existingProfile}=await admin.from('profiles').select('id,username,is_platform_owner').ilike('contact_email',normalizedEmail).maybeSingle();if(!existingProfile)return reply({error:'Αυτό το email χρησιμοποιείται ήδη από λογαριασμό χωρίς αντίστοιχο προφίλ. Επικοινώνησε με τον Platform Owner.'},409)
     userId=existingProfile.id
+    // A Hospital Admin never attaches an account another hospital (or the platform) uses:
+    // that would grant access without the user's consent and reveal the account's username.
+    if(!profile?.is_platform_owner){
+      const {count:elsewhere,error:elsewhereError}=await admin.from('organization_members').select('id',{count:'exact',head:true}).eq('user_id',userId).neq('organization_id',organizationId)
+      if(elsewhereError)return reply({error:'MEMBERSHIP_LOOKUP_FAILED'},500)
+      if(existingProfile.is_platform_owner||(elsewhere||0)>0)return reply({error:'Αυτό το email ανήκει σε λογαριασμό που χρησιμοποιείται ήδη αλλού. Για να προστεθεί και εδώ, επικοινώνησε με τον Platform Owner.',code:'ACCOUNT_IN_USE'},409)
+    }
     const {data:existingMembership}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
     if(!existingMembership){const {error:reuseMemberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:userId,role,status:'active'});if(reuseMemberError)return reply({error:reuseMemberError.message},500);createdMembership=true}
     try{const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username:existingProfile.username,userId,emailSent:false,reused:true,employeeId:linkedEmployeeId})}catch(error){if(createdMembership)await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);return reply({error:String(error?.message||error)},409)}

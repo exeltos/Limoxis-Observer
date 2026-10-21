@@ -49,7 +49,11 @@ describe('Demo data and user limit', () => {
   })
   it('limits the users of a Demo, also when its own Hospital Admin adds them', () => {
     expect(createDemo).toContain("if((count||0)>=maxUsers)return reply")
-    expect(createUser).toContain("if(!profile?.is_platform_owner&&(memberCount||0)>=maxUsers)return reply")
+    // The same limit for the Owner too; the database enforces it as well.
+    expect(createUser).toContain("if((memberCount||0)>=maxUsers)return reply")
     expect(createUser).toContain("code:'DEMO_USER_LIMIT'")
+    const migration=read('supabase/migrations/20261210100000_demo_user_limit_enforced.sql')
+    expect(migration).toContain('before insert on public.organization_members')
+    expect(migration).toContain('for update')
   })
 })
