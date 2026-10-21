@@ -64,14 +64,12 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
   const tr = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
   const events = [...(record?.timeline || [])]
     .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+    // One line says what happened ("Reassessment: clinical improvement"), the next who and which sample.
     .map(x => ({
       at: x.at,
-      title: timelineLabel(x.type, language, t),
-      detail: x.detail ? clinicalValueLabel(x.detail, language, t) : null,
-      meta: [
-        (x.actor || x.actorId) && `${tr('user')}: ${x.actor || x.actorId}`,
-        x.sampleId && `${tr('sample')}: ${x.sampleId}`,
-      ],
+      title: [timelineLabel(x.type, language, t), x.detail ? clinicalValueLabel(x.detail, language, t) : ''].filter(Boolean).join(': '),
+      detail: null,
+      meta: [x.actor || x.actorId, x.sampleId && `${tr('sample')}: ${x.sampleId}`],
     }))
   return (
     <HistoryTimeline

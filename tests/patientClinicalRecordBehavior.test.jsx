@@ -48,7 +48,7 @@ const openSurveillance = async () => {
 }
 const openPatient = async (id = 'PT-260190') => {
   await openRecord(`/patients/${id}`)
-  await screen.findByText('Στοιχεία ασθενούς & νοσηλείας')
+  await screen.findByText('Ασθενής & νοσηλεία')
 }
 // The patient record opens straight on the active (else the latest) admission.
 const openAdmission = openPatient
@@ -93,13 +93,13 @@ afterEach(async () => {
 })
 
 describe('patient profile', () => {
-  it('shows surname and first name as separate fields, with a neonate age in days and birth data', async () => {
+  it('names the patient once, in the header, with a neonate age in days and birth data in the summary', async () => {
     await openPatient()
-    const sheet = screen.getByText('Στοιχεία ασθενούς & νοσηλείας').closest('section, article, div.record-section') || document.body
-    expect(within(sheet).getByText('Επώνυμο')).toBeInTheDocument()
-    expect(within(sheet).getByText('Ιωαννίδη')).toBeInTheDocument()
-    expect(within(sheet).getByText('Όνομα')).toBeInTheDocument()
-    expect(within(sheet).getByText('Νεογέννητο')).toBeInTheDocument()
+    const sheet = screen.getByText('Ασθενής & νοσηλεία').closest('section, article, div.record-section') || document.body
+    // The summary does not repeat the name the header already shows.
+    expect(within(sheet).queryByText('Ιωαννίδη')).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Νεογέννητο Ιωαννίδη/).length).toBeGreaterThan(0)
+    expect(within(sheet).getByText('Φύλο · ηλικία')).toBeInTheDocument()
     expect(screen.queryByText('Ονοματεπώνυμο')).not.toBeInTheDocument()
     expect(within(sheet).getByText(/ · \d+ ημέρες/)).toBeInTheDocument()
     expect(within(sheet).getByText('980 g')).toBeInTheDocument()

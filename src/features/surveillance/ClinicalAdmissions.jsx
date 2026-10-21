@@ -1,5 +1,5 @@
 import { DueDate } from '../../design-system/DueDate'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { stayDays } from './patientRecordScope'
 import {
   AlertTriangle,
@@ -19,7 +19,6 @@ import { ManualDateField } from '../../design-system/ManualDateField'
 import { translate, useLanguage } from '../../core/i18n/LanguageContext'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { MoreSection } from '../../design-system/MoreSection'
 import { DetailList } from '../../design-system/DetailList'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../core/permissions/roles'
@@ -37,7 +36,7 @@ import { FormSubmit } from '../../design-system/FormValidation'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
 import { formatDay } from '../../core/i18n/formatDay'
-import { clinicalTerm } from './clinicalRecordLabels'
+import { clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
@@ -62,6 +61,10 @@ export function PatientDetailsSection({
   extraMenuItems = [],
   // Without a card of its own: the page already frames it (a patient with no admission).
   bare = false,
+  // The record summary's column: one short list (the name is in the header), with the
+  // stay and the questionnaire's origin and risk factors (`extraItems`) in it.
+  compact = false,
+  extraItems = [],
 }) {
   const { notify } = useFeedback()
   // «Edit patient» turns the patient details into the form, in place.
@@ -109,7 +112,27 @@ export function PatientDetailsSection({
   const lang = language === 'el' ? 'el' : 'en'
   const cr = key => translate(`copy.clinicalRecordCopy.${key}`, lang)
   // Grouped as a details list: the patient, the stay, the clinical details.
-  const detailSections = [
+  const compactSections = [
+    {
+      collapseMissing: true,
+      items: [
+        { label: cr('hospitalRecordNumber'), value: patient?.hospitalRecordNumber },
+        {
+          label: t('clinicalRecords.sexAge'),
+          value: [patient?.sex ? t(patient.sex) : '', patient?.dateOfBirth ? `${ageLabel} (${fmtDate(patient.dateOfBirth)})` : ''].filter(Boolean).join(' · '),
+        },
+        ...(stayFields || []).map(([label, value]) => ({ label, value })),
+        ...extraItems,
+        patient?.birthWeightGrams || infantWithoutBirthWeight
+          ? { label: cr('birthWeight'), value: patient?.birthWeightGrams ? `${patient.birthWeightGrams} g` : '' }
+          : null,
+        patient?.gestationalAgeWeeks
+          ? { label: cr('gestationalAge'), value: `${patient.gestationalAgeWeeks} ${cr('wk')}` }
+          : null,
+      ],
+    },
+  ]
+  const detailSections = compact ? compactSections : [
     {
       // The card heading already says the same words: no second heading above the list.
       title: stayFields ? t('clinicalRecords.sectionPatient') : null,
@@ -156,16 +179,16 @@ export function PatientDetailsSection({
     },
   ]
   return (
-    <section className={bare ? 'patient-summary-card is-bare' : 'clinical-panel patient-summary-card'}>
+    <section className={bare ? 'patient-summary-card is-bare' : `clinical-panel patient-summary-card${compact ? ' record-summary-card' : ''}`}>
       {!editing && (
         <SectionHeader
           title={
-            stayFields
+            stayFields || compact
               ? t('clinicalRecords.patientAndAdmission')
               : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')
           }
           subtitle={
-            stayFields
+            stayFields || compact
               ? null
               : translate(
                   'copy.clinicalRecordCopy.coreIdentityAndCurrentAdmissionInformation',
@@ -224,7 +247,10 @@ export function PatientDetailsSection({
 // current surveillance with its clinical assessment, findings, therapy and review.
 export function CanonicalSummary({
   onOpenStage,
+  onOpenHistory,
   extraAttention = [],
+  // The epidemiological questionnaire's origin and risk factors, as rows of the patient column.
+  epiItems = [],
   samples,
   scaleRows = [],
   patient,
@@ -338,8 +364,6 @@ export function CanonicalSummary({
   const awaitingCount = recordSamples.filter(isAwaitingResult).length
   const attention = summaryAttention(record, { t, samples: recordSamples, extra: extraAttention })
   const assessment = record?.assessment
-  const reassessments = record?.reassessments || []
-  const lastReview = reassessments[reassessments.length - 1]
   const assessmentValue = assessment ? (
     <>
       {clinicalTerm(assessment.classification, language, t)}
@@ -371,93 +395,161 @@ export function CanonicalSummary({
   ) : (
     t('clinicalRecords.none')
   )
-  // A surveillance episode's summary (no patient sheet above it): the patient's few
-  // details beside the current surveillance, two columns on a wide screen, the
-  // secondary rows folded behind "More" — one screen, no long scrolling.
-  const twoColumn = Boolean(record) && !(admission && showPatientActions)
   const sampleCountValue = recordSamples.length
     ? `${recordSamples.length}${awaitingCount ? ` · ${awaitingCount} ${t('clinicalRecords.awaitingResultShort')}` : ''}`
     : t('clinicalRecords.none')
   const therapyItem = { label: t('therapy'), value: therapyValue }
-  const lastReviewItem = {
-    label: t('clinicalRecords.lastReassessment'),
-    value: lastReview ? clinicalTerm(lastReview.status, language, t) : t('clinicalRecords.none'),
-  }
-  const samplesItem = { label: t('clinicalRecords.samplesLabel'), value: sampleCountValue }
-  // A therapy awaiting approval needs action: it stays in view.
-  const secondaryItems = pendingTherapy.length
-    ? [samplesItem, lastReviewItem]
-    : [samplesItem, therapyItem, lastReviewItem]
+  // The latest three events of the surveillance, newest first, under its details.
+  const recentEvents = [...(record?.timeline || [])]
+    .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0))
+    .slice(0, 3)
+  const stayRows = admission
+    ? details
+    : [
+        [t('department'), en ? record?.departmentEn || patient?.departmentEn || record?.department || patient?.department : record?.department || patient?.department],
+        [t('admissionDate'), fmtDate(admittedAt)],
+        [t('clinicalRecords.lengthOfStay'), daysLabel],
+      ]
+  const patientMenu = admission && showPatientActions
+    ? [
+        ...lifecycle.items,
+        ...(canDelete
+          ? [{ id: 'delete-admission', label: t('clinicalRecords.deleteAdmission'), icon: Trash2, tone: 'danger', separatorBefore: true, onClick: () => setAdmissionDeleteOpen(true) }]
+          : []),
+      ]
+    : []
+  // One summary wherever the record opens from: what needs attention, then two columns,
+  // the patient and the stay on the left, the current surveillance on the right; one screen.
   return (
-    <div
-      className={`patient-summary-layout clean-patient-summary${twoColumn ? ' summary-two-column' : ''}`}
-    >
+    <div className="patient-summary-layout record-summary">
       {attention.length > 0 && (
-        // One compact «Needs attention» strip, the same as inside an episode.
         <div
-          className="journey-guidance compact-guidance summary-attention"
+          className="record-summary-attention"
           role={attention.some(item => item.tone === 'danger') ? 'alert' : 'status'}
         >
-          <div className="journey-guidance-title">
+          <div className="record-summary-attention-title">
             <AlertTriangle size={15} aria-hidden="true" />
             <strong>{t('clinicalRecords.attentionNeeded')}</strong>
             <span>{attention.length}</span>
           </div>
-          <div className="journey-guidance-items">
-            {attention.map(item =>
-              onOpenStage ? (
-                <button
-                  type="button"
-                  key={item.id}
-                  className={`guidance-cue ${item.tone === 'warning' ? 'warning' : 'due'}`}
-                  title={item.action}
-                  onClick={() => onOpenStage(item.stage)}
-                >
-                  <strong>{item.text}</strong>
-                </button>
-              ) : (
-                <span
-                  key={item.id}
-                  className={`guidance-cue ${item.tone === 'warning' ? 'warning' : 'due'}`}
-                >
-                  <strong>{item.text}</strong>
-                </span>
-              ),
-            )}
-          </div>
+          <ul>
+            {attention.map(item => (
+              <li key={item.id} className={`tone-${item.tone === 'warning' ? 'warning' : 'danger'}`}>
+                <span>{item.text}</span>
+                {onOpenStage && item.action && (
+                  <button type="button" className="record-summary-link" aria-label={`${item.action}: ${item.text}`} onClick={() => onOpenStage(item.stage)}>
+                    {item.action} →
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
-      {admission && showPatientActions && (
-        // The patient record opens on its admission: one sheet with the patient's
-        // details (editable in place) and the stay, transfer/discharge beside it.
-        <PatientDetailsSection
-          patient={patient}
-          tenantId={tenantId}
-          isDemo={isDemo}
-          departments={departments}
-          t={t}
-          language={language}
-          fmtDate={fmtDate}
-          onChanged={onChanged}
-          onDeleted={onDeleted}
-          stayFields={details}
-          extraMenuItems={[
-            ...lifecycle.items,
-            ...(canDelete
-              ? [
-                  {
-                    id: 'delete-admission',
-                    label: t('clinicalRecords.deleteAdmission'),
-                    icon: Trash2,
-                    tone: 'danger',
-                    separatorBefore: true,
-                    onClick: () => setAdmissionDeleteOpen(true),
-                  },
-                ]
-              : []),
-          ]}
-        />
-      )}
+      <div className="record-summary-grid">
+        {patient ? (
+          <PatientDetailsSection
+            compact
+            patient={patient}
+            tenantId={tenantId}
+            isDemo={isDemo}
+            departments={departments}
+            t={t}
+            language={language}
+            fmtDate={fmtDate}
+            onChanged={onChanged}
+            onDeleted={onDeleted}
+            stayFields={stayRows}
+            extraItems={epiItems}
+            extraMenuItems={patientMenu}
+          />
+        ) : (
+          <section className="clinical-panel patient-summary-card record-summary-card">
+            <SectionHeader title={t('clinicalRecords.patientDetails')} actions={actions} />
+            <DetailList sections={[{ items: stayRows.map(([label, value]) => ({ label, value })) }]} />
+          </section>
+        )}
+        {record ? (
+          <section className="clinical-panel patient-summary-card record-summary-card">
+            <SectionHeader
+              title={t('clinicalRecords.currentSurveillance')}
+              actions={badge(`${t(record.status)}${record.id ? ` · ${record.id}` : ''}`, record.status === 'active' ? 'active' : '')}
+            />
+            <DetailList
+              sections={[
+                {
+                  items: [
+                    { label: t('clinicalRecords.haiClassification'), value: haiValue },
+                    { label: t('clinicalRecords.latestFinding'), value: findingValue },
+                    { label: t('clinicalRecords.clinicalAssessmentLabel'), value: assessmentValue },
+                    therapyItem,
+                    { label: t('isolation'), value: isolationValue },
+                    {
+                      label: t('nextReview'),
+                      value:
+                        record.status === 'active' ? (
+                          <DueDate value={record.reviewDue} format={fmtDate} />
+                        ) : (
+                          fmtDate(record.reviewDue)
+                        ),
+                    },
+                  ],
+                },
+              ]}
+            />
+            {recentEvents.length > 0 && (
+              <div className="record-summary-events">
+                <h4>{t('clinicalRecords.recentEvents')}</h4>
+                <ul>
+                  {recentEvents.map((event, index) => (
+                    <li key={`${event.at}-${index}`}>
+                      <b>{fmtDate(event.at)}</b>
+                      <span>
+                        {[timelineLabel(event.type, language, t), event.detail ? clinicalValueLabel(event.detail, language, t) : '', event.actor || '']
+                          .filter(Boolean)
+                          .map((part, partIndex) => (
+                            <Fragment key={partIndex}>{partIndex ? ' · ' : ''}<span>{part}</span></Fragment>
+                          ))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {onOpenHistory && (
+                  <button type="button" className="record-summary-link" onClick={onOpenHistory}>
+                    {t('clinicalRecords.fullHistory')} →
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="clinical-panel patient-summary-card record-summary-card">
+            <SectionHeader title={t('clinicalRecords.clinicalPicture')} />
+            <DetailList
+              sections={[
+                {
+                  items: [
+                    ...clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => ({
+                      key: kind,
+                      label: en ? config.labelEn : config.labelEl,
+                      value: (
+                        <>
+                          {badge(`${scaleShortName(row.scale_key)} ${row.score ?? '—'}`, tone)}
+                          {row.assessed_at ? <small> {fmtDate(row.assessed_at)}</small> : null}
+                        </>
+                      ),
+                    })),
+                    !scaleRows.length ? { label: t('clinicalRecords.clinicalAssessmentLabel'), value: t('clinicalRecords.none') } : null,
+                    { label: t('clinicalRecords.samplesLabel'), value: sampleCountValue },
+                    { label: t('clinicalRecords.latestFinding'), value: findingValue },
+                    { label: t('surveillance'), value: t('clinicalRecords.noSurveillance') },
+                  ],
+                },
+              ]}
+            />
+          </section>
+        )}
+      </div>
       {lifecycle.dialog}
       {admission && showPatientActions && (
         <AdmissionDeleteDialog
@@ -470,77 +562,6 @@ export function CanonicalSummary({
           onClose={() => setAdmissionDeleteOpen(false)}
           onDeleted={onAdmissionDeleted}
         />
-      )}
-      {!(admission && showPatientActions) && (
-        <section className="clinical-panel patient-summary-card summary-patient-card">
-          <SectionHeader
-            title={
-              admission
-                ? t('clinicalRecords.admissionSummary')
-                : t('clinicalRecords.patientDetails')
-            }
-            actions={actions}
-          />
-          <DetailList sections={[{ items: details.map(([label, value]) => ({ label, value })) }]} />
-        </section>
-      )}
-      {!record && (
-        <section className="clinical-panel patient-summary-card">
-          <SectionHeader title={t('clinicalRecords.clinicalPicture')} />
-          <DetailList
-            sections={[
-              {
-                items: [
-                  ...clinicalRiskFlags(scaleRows).map(({ kind, row, config, tone }) => ({
-                    key: kind,
-                    label: en ? config.labelEn : config.labelEl,
-                    value: (
-                      <>
-                        {badge(`${scaleShortName(row.scale_key)} ${row.score ?? '—'}`, tone)}
-                        {row.assessed_at ? <small> {fmtDate(row.assessed_at)}</small> : null}
-                      </>
-                    ),
-                  })),
-                  !scaleRows.length ? { label: t('clinicalRecords.clinicalAssessmentLabel'), value: t('clinicalRecords.none') } : null,
-                  { label: t('clinicalRecords.samplesLabel'), value: sampleCountValue },
-                  { label: t('clinicalRecords.latestFinding'), value: findingValue },
-                  { label: t('surveillance'), value: t('clinicalRecords.noSurveillance') },
-                ],
-              },
-            ]}
-          />
-        </section>
-      )}
-      {record && (
-        <section className="clinical-panel patient-summary-card">
-          <SectionHeader title={t('clinicalRecords.currentSurveillance')} />
-          <DetailList
-            sections={[
-              {
-                items: [
-                  { label: t('surveillance'), value: badge(t(record.status), record.status === 'active' ? 'active' : '') },
-                  { label: t('clinicalRecords.haiClassification'), value: haiValue },
-                  { label: t('clinicalRecords.clinicalAssessmentLabel'), value: assessmentValue },
-                  { label: t('clinicalRecords.latestFinding'), value: findingValue },
-                  pendingTherapy.length > 0 ? { label: t('therapy'), value: therapyValue } : null,
-                  { label: t('isolation'), value: isolationValue },
-                  {
-                    label: t('nextReview'),
-                    value:
-                      record.status === 'active' ? (
-                        <DueDate value={record.reviewDue} format={fmtDate} />
-                      ) : (
-                        fmtDate(record.reviewDue)
-                      ),
-                  },
-                ],
-              },
-            ]}
-          />
-          <MoreSection className="summary-more">
-            <DetailList sections={[{ items: secondaryItems }]} />
-          </MoreSection>
-        </section>
       )}
     </div>
   )

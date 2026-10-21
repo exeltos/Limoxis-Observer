@@ -47,8 +47,7 @@ import { useEpisodeFormsData } from './forms/useEpisodeFormsData'
 import { episodeFormSections } from './forms/formsRegistry'
 import { makeDeviceBundles } from './forms/deviceBundles'
 import { epiRows } from './forms/sections/epiQuestionnaireSection'
-import { EpiRiskLine } from './epiQuestionnaire/EpiQuestionnaireViews'
-import { factorCountWords } from './epiQuestionnaire/epiQuestionnaireText'
+import { factorCountWords, originWords, riskWords } from './epiQuestionnaire/epiQuestionnaireText'
 import { ClinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
 import { loadLatestPatientRiskFlags } from '../clinical-scales/patientRiskFlagsService'
 import {
@@ -606,6 +605,32 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             setJourneyStage(stage)
             setTab('surveillanceJourney')
           }}
+          onOpenHistory={() => setTab('history')}
+          epiItems={
+            epiEntry
+              ? [
+                  { label: t('epiQuestionnaire.originLabel'), value: originWords(epiEntry.summary.origin, t) },
+                  {
+                    label: t('epiQuestionnaire.riskLabel'),
+                    value: (
+                      <>
+                        {epiEntry.summary.status === 'done' ? riskWords(epiEntry.row, language, t) : t('epiQuestionnaire.riskPending')}{' '}
+                        <button
+                          type="button"
+                          className="record-summary-link"
+                          onClick={() => {
+                            setTab('episodeForms')
+                            setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+                          }}
+                        >
+                          {t('epiQuestionnaire.link')}
+                        </button>
+                      </>
+                    ),
+                  },
+                ]
+              : []
+          }
           extraAttention={
             epiEntry?.summary.signal
               ? [{ id: 'epiRisk', tone: 'warning', stage: 'questionnaire', text: `${t('epiQuestionnaire.signal')}: ${factorCountWords(epiEntry.summary.factorCount, t)}`, action: t('epiQuestionnaire.link') }]
@@ -824,18 +849,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               onNew={has(CAPABILITIES.EDIT_PATIENT) ? () => setNewAdmissionOpen(true) : null}
               t={t}
               fmtDate={fmtDate}
-            />
-          ) : null
-        }
-        headerNote={
-          epiEntry ? (
-            <EpiRiskLine
-              summary={epiEntry.summary}
-              row={epiEntry.row}
-              onOpen={() => {
-                setTab('episodeForms')
-                setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
-              }}
             />
           ) : null
         }

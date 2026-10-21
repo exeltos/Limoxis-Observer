@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { Link2, ShieldAlert } from 'lucide-react'
+import { Link2 } from 'lucide-react'
 import { ObserverDialog } from '../../../design-system/ObserverDialog'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { StatusBadge } from '../../../design-system/StatusBadge'
@@ -24,7 +24,7 @@ import {
   setEpiAnswer,
   startingAnswers,
 } from './epiQuestionnaireModel'
-import { fill, originWords, riskWords } from './epiQuestionnaireText'
+import { fill } from './epiQuestionnaireText'
 import { loadEpiQuestionnaires, loadEpiSettings, saveEpiCoreAnswers, saveEpiQuestionnaire } from './epiQuestionnaireService'
 import { athensToday } from '../forms/formStatus'
 import './epiQuestionnaire.css'
@@ -246,32 +246,6 @@ export function EpiMiniQuestions({ mini, form, episodeCode = '', className = '' 
 }
 
 // ---- header line and list reminder -----------------------------------------------------------------
-// «Προέλευση: νοσοκομειακή (>48 ώρες) · Παράγοντες κινδύνου: …» in the episode header: words, no chips.
-export function EpiRiskLine({ summary, row, onOpen }) {
-  const { t, language } = useLanguage()
-  if (!summary) return null
-  return (
-    <div className="epi-risk-line">
-      <ShieldAlert size={14} aria-hidden="true" />
-      <span>
-        {t('epiQuestionnaire.originLabel')}: <b>{originWords(summary.origin, t)}</b>
-      </span>
-      {summary.status === 'done' ? (
-        <span>
-          {t('epiQuestionnaire.riskLabel')}: <b>{riskWords(row, language, t)}</b>
-        </span>
-      ) : (
-        <span>{t('epiQuestionnaire.riskPending')}</span>
-      )}
-      {onOpen && (
-        <button type="button" className="epi-link" onClick={onOpen}>
-          {t('epiQuestionnaire.link')}
-        </button>
-      )}
-    </div>
-  )
-}
-
 // The neutral grey reminder of a list row (not a safety signal, so not coloured).
 export function EpiReminder() {
   const { t } = useLanguage()

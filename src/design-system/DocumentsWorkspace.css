@@ -8,3 +8,5 @@
    where align-self:start alone would shrink it to its content. */
 .record-section.documents-workspace{align-self:start!important;width:100%!important;height:auto!important;min-height:0!important;flex:0 0 auto!important}
 .record-section.documents-workspace>.record-section-header h3{font-size:18px!important}
+/* One frame: the card; the attachment box inside it has no second border of its own. */
+.record-section.documents-workspace>.attachment-field{border:0!important;background:transparent!important;padding:0!important;border-radius:0!important;box-shadow:none!important}

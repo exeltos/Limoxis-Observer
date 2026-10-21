@@ -135,7 +135,8 @@ describe('the record of a patient under surveillance', () => {
     expect(
       screen.getByText('Πυρετός και αιμοδυναμική επιβάρυνση μετά την εισαγωγή στη ΜΕΘ.'),
     ).toBeInTheDocument()
-    expect(screen.getByText('Τελευταία επανεκτίμηση')).toBeInTheDocument()
+    // The latest events (the last reassessment among them) sit under the current surveillance.
+    expect(screen.getByText('Τελευταία γεγονότα')).toBeInTheDocument()
   })
 
   it('names each clinical scale beside its score in the header', async () => {

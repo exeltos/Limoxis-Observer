@@ -152,10 +152,7 @@ html body .surveillance-final-report.final-report-v2{max-width:none!important;wi
 @media print{.final-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.final-report-card{break-inside:avoid}}
 /* Patient record summary: the patient & admission sheet in four columns, and
    shorter rows on every summary sheet, so the summary fits without scrolling. */
-html body .clean-patient-summary .patient-detail-grid:is(.detail-grid,#lo-patient-grid)>.detail-item{min-height:0!important;padding-top:7px!important;padding-bottom:7px!important}
 /* Tighter spacing between the summary sections (one screen, no scrolling). */
-html body .clean-patient-summary:is(.clean-patient-summary,#lo-patient-summary){gap:8px!important}
-html body .clean-patient-summary>.clinical-panel>.record-section-header:is(.record-section-header,#lo-patient-summary){margin-bottom:6px!important;padding-bottom:6px!important}
 /* Patient notes: one full-width row of the sheet (whole text on hover). */
 /* A tab's section sits straight on the record body (already a card): no card
    inside the card. */
@@ -163,16 +160,27 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 /* Surveillance episode summary (reference pattern for record summaries): at
    1200px and wider the patient sheet and the current surveillance sit side by
    side instead of two tall cards stacked; secondary rows fold behind «Περισσότερα». */
-@media(min-width:1200px){
-html body .clean-patient-summary.summary-two-column:is(.clean-patient-summary,#lo-patient-summary){grid-template-columns:minmax(240px,1fr) minmax(0,2.6fr)!important;align-items:start!important;column-gap:16px!important}
-html body .clean-patient-summary.summary-two-column>.summary-attention{grid-column:1/-1!important}
-html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid:is(.detail-grid,#lo-patient-grid){grid-template-columns:1fr!important}
-html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid>.detail-item:is(.detail-item,#lo-patient-grid){border-right:0!important;border-bottom:1px solid #e9eef2!important}
-html body .clean-patient-summary.summary-two-column>.summary-patient-card .patient-detail-grid>.detail-item:last-child:is(.detail-item,#lo-patient-grid){border-bottom:0!important}
-}
 /* The scale chips of the record header open the clinical scales (with their history). */
 .entity-record-header .clinical-risk-flag{cursor:pointer}
 .entity-record-header .clinical-risk-flag:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(31,95,139,.12)}
 .entity-record-header .clinical-risk-flag:focus-visible{outline:2px solid #5b8db4;outline-offset:2px}
 /* The scales opened from a header chip: the scales panel (a record-tab layout that
    fills its parent) gets a body tall enough for its table and pager. */
+/* The record summary (ClinicalAdmissions CanonicalSummary): attention list, then two columns. */
+.record-summary-attention{border:1px solid var(--lo-status-warning-border);background:#fffbf0;border-radius:10px;padding:8px 12px}
+.record-summary-attention-title{display:flex;align-items:center;gap:6px;margin-bottom:2px;color:var(--lo-status-warning-fg);font-size:12.5px}
+.record-summary-attention-title span{min-width:18px;padding:0 6px;border-radius:999px;background:var(--lo-status-warning-border);text-align:center;font-size:11px;font-weight:700}
+.record-summary-attention ul,.record-summary-events ul{margin:0;padding:0;list-style:none}
+.record-summary-attention li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--lo-status-warning-border);font-size:12.5px;color:#172033}
+.record-summary-attention li:first-child{border-top:0}
+.record-summary-attention li>span::before{content:'';display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--lo-status-warning-fg);vertical-align:1px}
+.record-summary-attention li.tone-danger>span::before{background:var(--lo-status-danger-fg)}
+.record-summary-link{padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:650;color:#1d4f7a;white-space:nowrap;cursor:pointer}
+.record-summary-link:hover{color:#123a5b;text-decoration:underline}
+.record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start}
+.record-summary-grid>.record-summary-card{margin:0;height:100%}
+.record-summary-events{margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border,#e3e8ee)}
+.record-summary-events h4{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5f6f7d}
+.record-summary-events li{display:flex;gap:8px;padding:3px 0;font-size:12px;color:#172033}
+.record-summary-events li b{flex:none;font-weight:650}
+@media (max-width:1000px){.record-summary-grid{grid-template-columns:1fr}}

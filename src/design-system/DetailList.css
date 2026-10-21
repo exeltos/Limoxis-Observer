@@ -16,5 +16,5 @@
 .lo-detail-missing-link:hover{color:#164e74}
 @media(max-width:760px){.lo-detail-list{grid-template-columns:1fr}.lo-detail-item{grid-template-columns:1fr;row-gap:1px}}
 @media print{.lo-detail-item{break-inside:avoid}}
-/* Narrow column (the patient beside the current surveillance of an episode): one column. */
-.summary-two-column .summary-patient-card .lo-detail-list{grid-template-columns:1fr}
+/* The two columns of the record summary: one list each. */
+.record-summary-card .lo-detail-list{grid-template-columns:1fr}
