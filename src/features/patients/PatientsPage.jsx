@@ -13,6 +13,9 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients } from './patientsService'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MetricCard } from '../../design-system/MetricCard'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { exportRegistry } from '../../core/export/registryExports'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
@@ -24,6 +27,18 @@ import {ClinicalRiskText} from '../clinical-scales/ClinicalRiskFlags'
 import {PatientInfectionFlags} from './PatientInfectionFlags'
 import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
+
+// The Excel (.csv) file of the registry as filtered on screen.
+function patientsListExport(rows,{language,t,fmt}){
+  const en=language==='en'
+  return {
+    name:en?'patients':'asthenis',
+    headers:en?['Patient','Patient code','Record number','Department','Admission','Status']:['Ασθενής','Κωδικός ασθενούς','Αριθμός φακέλου','Τμήμα','Εισαγωγή','Κατάσταση'],
+    rows:rows.map(p=>[en?(p.nameEn||p.name):p.name,p.id,p.hospitalRecordNumber||'',en?p.departmentEn:p.department,fmt(p.admissionDate),t(p.status)]),
+  }
+}
+// The registry shows the patient first, as the episodes do, and the status as a badge.
+const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral'}
 
 export function PatientsPage(){
   const {t,language}=useLanguage()
@@ -76,7 +91,7 @@ export function PatientsPage(){
     discharged:scopedPatients.filter(p=>p.status==='discharged').length,
     transferred:scopedPatients.filter(p=>p.status==='transferred').length,
   }
-  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction}/>}>
+  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(rows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
     <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
       <PatientSummaryMetric loading={loading} icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
       <PatientSummaryMetric loading={loading} icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active" filter="active" current={status} onFilter={setStatus}/>
@@ -86,18 +101,18 @@ export function PatientsPage(){
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option></FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option><option value="deceased">{t('deceased')}</option></FilterSelect>
       <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </FilterBar>
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
-        columns={[{key:'id',label:t('patientId')},{key:'name',label:t('name')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'alerts',label:t('clinicalAlerts')}]}
+        columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'alerts',label:t('clinicalAlerts')}]}
         rows={pagedRows}
         loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{patient.id}</strong>{patient.hospitalRecordNumber&&<small>{patient.hospitalRecordNumber}</small>}</td><td>{language==='el'?patient.name:(patient.nameEn||patient.name)}</td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td>{t(patient.status)}</td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language}/></span></td></>}
+        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[patient.status]||'neutral'}>{t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}

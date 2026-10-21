@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
-import {BrainCircuit,Plus,Radar,Sparkles} from 'lucide-react'
+import {Activity,BrainCircuit,CheckCircle2,Plus,Radar,Sparkles} from 'lucide-react'
 import {Button} from '../../design-system/Button'
+import {MetricCard} from '../../design-system/MetricCard'
 import {FilterBar} from '../../design-system/FilterBar'
 import {RegistryTable} from '../../design-system/RegistryTable'
 import {RegistryEmptyState} from '../../design-system/RegistryEmptyState'
@@ -47,7 +48,9 @@ const blockerLabel=(code,en)=>({unreviewed_candidates:en?'Unreviewed candidates'
 const timelineTypeLabel=(t,en)=>({microbiology:en?'Microbiology':'Μικροβιολογία',hai:'HAI',device:en?'Device':'Συσκευή',isolation:en?'Isolation':'Απομόνωση'}[t]||t)
 const eventTypeLabel=(t,en)=>({status:en?'Status':'Κατάσταση',note:en?'Note':'Σημείωση',hypothesis:en?'Hypothesis':'Υπόθεση',decision:en?'Decision':'Απόφαση',case_review:en?'Case review':'Αξιολόγηση περιστατικού',evidence:en?'Evidence':'Τεκμήριο'}[t]||t)
 function eventText(e,en){const p=e.payload||{};if(p.text)return p.text;if(p.action==='created')return en?'Investigation created':'Δημιουργία διερεύνησης';if(p.action==='capa_created')return `${en?'CAPA created':'Δημιουργία διορθωτικής ενέργειας'}${p.title?`: ${p.title}`:''}`;if(p.action==='capa_status')return `${en?'CAPA status':'Κατάσταση διορθωτικής ενέργειας'} → ${actionStatusLabel(p.status,en)}`;if(p.action==='lira_signal_handoff')return en?'Started from a LIRA signal':'Έναρξη από σήμα της LIRA';if(e.event_type==='status'&&p.to)return `${statusLabel(p.from,en)} → ${statusLabel(p.to,en)}`;if(e.event_type==='case_review')return `${p.recordKey||''} · ${classificationLabel(p.classification,en)}`;return '—'}
-export function LiraOutbreakInvestigationsPanel(){
+// `shell` lays the panel out as a screen like the other Surveillance tabs: the new-investigation
+// button in the page header and a row of counts above the list ({actions,summary,children}) => page.
+export function LiraOutbreakInvestigationsPanel({shell=null}={}){
  const reportRef=useRef(null)
  const {language}=useLanguage(),en=language==='en';const {tenant,isDemo,role}=useTenant();const {notify}=useFeedback()
  const [rows,setRows]=useState([]),[selected,setSelected]=useState(null),[events,setEvents]=useState([]),[query,setQuery]=useState(''),[creating,setCreating]=useState(false),[note,setNote]=useState(''),[lineList,setLineList]=useState(null),[timeline,setTimeline]=useState([]),[caseReview,setCaseReview]=useState(null),[evidenceLoading,setEvidenceLoading]=useState(false),[reviews,setReviews]=useState([]),[reviewing,setReviewing]=useState(null),[reviewForm,setReviewForm]=useState({classification:'suspected',rationale:''}),[actions,setActions]=useState([]),[actionForm,setActionForm]=useState({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''}),[addingAction,setAddingAction]=useState(false),[closing,setClosing]=useState(false),[closureNote,setClosureNote]=useState('')
@@ -82,10 +85,17 @@ export function LiraOutbreakInvestigationsPanel(){
   function closeCreate(){setCreating(false);setForm(EMPTY_FORM);validation.reset()}
   const newButton=canCreate?<Button disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={startNew}><Plus size={16}/>{en?'New investigation':'Νέα διερεύνηση'}</Button>:null
   const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
-  return <section className="outbreak-investigations">
+  const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
+  const summary=shell?<div className="workspace-summary surveillance-summary"><div className="module-summary-strip">
+   <MetricCard className="summary-metric" icon={Radar} label={en?'Possible clusters':'Πιθανές συρροές'} value={visibleClusters.length}/>
+   <MetricCard className="summary-metric" icon={Activity} label={en?'Open investigations':'Ανοιχτές διερευνήσεις'} value={openCount}/>
+   <MetricCard className="summary-metric" icon={CheckCircle2} label={en?'Closed investigations':'Κλειστές διερευνήσεις'} value={closedCount}/>
+  </div></div>:null
+  const toolbarButton=shell?null:newButton
+  const body=<section className="outbreak-investigations">
    {(hasRows||hasClusters)
     ?<>
-   {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={newButton}/>:newButton&&<div className="outbreak-toolbar">{newButton}</div>}
+   {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={toolbarButton}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
    {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
     <h3>{en?'Possible clusters':'Πιθανές συρροές'}</h3>
     <ul>{visibleClusters.slice(0,5).map(c=><li key={clusterAlertId(c)}>
@@ -143,4 +153,5 @@ export function LiraOutbreakInvestigationsPanel(){
   {reviewing&&<ObserverDialog width="wide" title={en?'Human case review':'Ανθρώπινη αξιολόγηση περιστατικού'} subtitle={[reviewing.eventDate,reviewing.organism,reviewing.department].filter(Boolean).join(' · ')} onClose={()=>setReviewing(null)} footer={<DialogActions onCancel={()=>setReviewing(null)} onSave={saveCaseReview} disabled={!reviewForm.rationale.trim()}/>}><div className="form-grid"><label>{en?'Classification':'Ταξινόμηση'}<select value={reviewForm.classification} onChange={e=>setReviewForm({...reviewForm,classification:e.target.value})}><option value="suspected">{classificationLabel('suspected',en)}</option><option value="probable">{classificationLabel('probable',en)}</option><option value="confirmed">{classificationLabel('confirmed',en)}</option><option value="excluded">{classificationLabel('excluded',en)}</option></select></label><label className="form-span-2">{en?'Rationale':'Αιτιολόγηση'}<textarea value={reviewForm.rationale} onChange={e=>setReviewForm({...reviewForm,rationale:e.target.value})} placeholder={en?'Required clinical/epidemiological rationale…':'Υποχρεωτική κλινική/επιδημιολογική αιτιολόγηση…'}/></label></div><p className="muted">{en?'Classification is a human-reviewed investigation decision and does not alter the source clinical record.':'Η ταξινόμηση αποτελεί ανθρώπινη απόφαση της διερεύνησης και δεν μεταβάλλει την αρχική κλινική εγγραφή.'}</p></ObserverDialog>}
   {creating&&<ObserverDialog width="wide" title={en?'New outbreak investigation':'Νέα διερεύνηση πιθανής έξαρσης'} onClose={closeCreate} footer={<FormSubmit form={validation} onSubmit={create}>{en?'Save':'Αποθήκευση'}</FormSubmit>}>{form.cluster&&<p className="outbreak-cluster-note">{en?`From the detected cluster: ${form.cluster.count} cases in ${form.cluster.department} within ${form.cluster.windowDays} days. The linked cases are collected from the organism and the period.`:`Από την ανίχνευση συρροής: ${form.cluster.count} περιστατικά στο τμήμα ${form.cluster.department} σε ${form.cluster.windowDays} ημέρες. Τα συνδεδεμένα περιστατικά συλλέγονται από τον μικροοργανισμό και την περίοδο.`}</p>}<div className="outbreak-create-form"><FormGrid columns={2}><Field label={en?'Title':'Τίτλος'} className="is-span" {...validation.field('title')}><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></Field><Field label={en?'Organism':'Μικροοργανισμός'} className="is-span"><input value={form.organism} onChange={e=>setForm({...form,organism:e.target.value})}/></Field><ManualDateField label={en?'From':'Από'} value={form.from} onChange={value=>setForm({...form,from:value})} optional/><ManualDateField label={en?'To':'Έως'} value={form.to} onChange={value=>setForm({...form,to:value})} optional/></FormGrid><MoreSection moreLabel={en?'Advanced':'Προχωρημένα'} lessLabel={en?'Hide advanced':'Απόκρυψη προχωρημένων'}><FormGrid columns={2}><Field label={en?'Case definition ID':'Κωδικός ορισμού περιστατικού'} hint={en?'Only if your hospital keeps a written case definition. Leave empty otherwise.':'Μόνο αν το νοσοκομείο έχει γραπτό ορισμό περιστατικού. Αλλιώς αφήστε το κενό.'}><input value={form.definitionId} onChange={e=>setForm({...form,definitionId:e.target.value})}/></Field><Field label={en?'Definition version':'Έκδοση ορισμού'} hint={en?'The version of that definition, e.g. 2 or 2025-06.':'Η έκδοση αυτού του ορισμού, π.χ. 2 ή 2025-06.'}><input value={form.definitionVersion} onChange={e=>setForm({...form,definitionVersion:e.target.value})}/></Field></FormGrid></MoreSection></div></ObserverDialog>}
  </section>
+  return shell?shell({actions:newButton,summary,children:body}):body
 }

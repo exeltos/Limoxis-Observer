@@ -2932,6 +2932,8 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 .modal-backdrop>.observer-dialog.observer-dialog-compact{width:min(var(--lo-dialog-compact),calc(100vw - 32px))!important}
 .modal-backdrop>.observer-dialog.observer-dialog-wide{width:min(var(--lo-dialog-wide),calc(100vw - 32px))!important}
 .modal-backdrop>.observer-dialog.observer-dialog-workspace{width:min(var(--lo-dialog-workspace),calc(100vw - 32px))!important}
+/* The workspace presentation fills the canvas beside the menu (the 1280px width is for modals). */
+.modal-backdrop>.observer-dialog.observer-dialog-presentation-workspace{width:100%!important}
 /* A form whose content switches (existing/new, single/batch) opens at the height
    of its content and does not shrink back (ObserverDialog fixedHeight): no
    fixed tall window with an empty area under a few fields. */
