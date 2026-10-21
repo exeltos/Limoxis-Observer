@@ -79,10 +79,11 @@ const openTab = async name => {
 const rowOf = text => screen.getByText(text).closest('tr')
 const statusCell = row => row.querySelector('td:last-child')
 const metric = label => screen.getByText(label).closest('.metric-card')
+// The create button creates what the open tab lists.
 const openCreation = async subject => {
-  fireEvent.click(screen.getByRole('button', { name: /Δημιουργία/ }))
-  const menu = await screen.findByRole('menu')
-  fireEvent.click(within(menu).getByRole('menuitem', { name: subject }))
+  const employee = String(subject).includes('Εργαζόμενος')
+  if (employee) await openTab(/Εργαζόμενοι/)
+  fireEvent.click(screen.getByRole('button', { name: employee ? 'Νέος έλεγχος εργαζομένου' : 'Νέα επιτήρηση' }))
 }
 
 beforeEach(() => {
@@ -325,9 +326,8 @@ describe('English labels', () => {
     ).toBeInTheDocument()
     await openTab(/Employees/)
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Create/ }))
-    const menu = await screen.findByRole('menu')
-    fireEvent.click(within(menu).getByRole('menuitem', { name: /^Patient/ }))
+    await openTab(/Patients/)
+    fireEvent.click(screen.getByRole('button', { name: 'New surveillance' }))
     expect(await screen.findByRole('combobox', { name: 'Patient' })).toBeInTheDocument()
   })
 })
@@ -360,11 +360,11 @@ describe('empty surveillance lists', () => {
     expect(
       await screen.findByText('Δεν υπάρχουν καταγραφές περιβαλλοντικής επιτήρησης'),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Πατήστε «Δημιουργία»/)).toBeInTheDocument()
+    expect(screen.getByText(/Πατήστε το κουμπί δημιουργίας/)).toBeInTheDocument()
     act(() => {
       api.startRolePreview('infection_control_member')
     })
-    await waitFor(() => expect(screen.queryByText(/Πατήστε «Δημιουργία»/)).toBeNull())
+    await waitFor(() => expect(screen.queryByText(/Πατήστε το κουμπί δημιουργίας/)).toBeNull())
     expect(
       screen.getByText('Δεν υπάρχουν καταγραφές περιβαλλοντικής επιτήρησης'),
     ).toBeInTheDocument()

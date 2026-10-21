@@ -44,12 +44,14 @@ export function SidebarNavigation({role,items,t,userKey}){
   if(openFor!==`${userKey}|${activeGroup}`){setOpenFor(`${userKey}|${activeGroup}`);setOpenGroup(activeGroup)}
   const toggleGroup=id=>setOpenGroup(current=>current===id?null:id)
   const closeMore=()=>setMoreOpen(false)
-  return layout.map(block=>{
+  return layout.map((block,index)=>{
     if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={openGroup===block.id} onToggle={toggleGroup} pathname={pathname}/>
-    if(block.kind==='list')return block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)
+    // Plain entries after a headed group start under a divider, so they never read as part of the group.
+    if(block.kind==='list')return [layout[index-1]?.kind==='group'&&<div key={`divider-${index}`} className="sidebar-nav-divider" aria-hidden="true"/>,...block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)]
     if(block.kind==='management')return <div key="management" className="sidebar-nav-management">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)}</div>
     const moreActive=block.items.some(item=>isUnder(pathname,item.to))
     const moreExpanded=moreOpen||moreActive
-    return <div key="more" className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" title={t('more')} className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} nested/>)}</div>}</div>
+    const more=<div key="more" className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" title={t('more')} className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} nested/>)}</div>}</div>
+    return layout[index-1]?.kind==='group'?[<div key={`divider-${index}`} className="sidebar-nav-divider" aria-hidden="true"/>,more]:more
   })
 }

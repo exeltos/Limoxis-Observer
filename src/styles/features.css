@@ -3095,6 +3095,7 @@ button{letter-spacing:0}
 .nav-item.nested{min-height:25px!important;padding-left:27px!important;font-size:12.5px!important}
 .sidebar-nav-children{padding:2px 0 4px!important}
 .sidebar-nav-management{margin-top:5px!important;padding-top:5px!important;border-top:1px solid rgba(255,255,255,.08)!important}
+@media (min-width:641px){.sidebar-nav-divider{margin:5px 0 3px;border-top:1px solid rgba(255,255,255,.08)}}
 .sidebar-footer{padding:8px 14px 8px!important;border-top:1px solid rgba(255,255,255,.08)!important;color:rgba(255,255,255,.64)!important}
 .sidebar-meta,.app-version-stamp{font-size:10px!important;opacity:.72}
 /* Menu footer: the list scrolls above it; meta and version share one line so the whole menu fits 900px. */

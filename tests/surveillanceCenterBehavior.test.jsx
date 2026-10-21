@@ -67,15 +67,11 @@ describe('Surveillance Center registry', () => {
     expect(rowOf('Νικόλαος Γεωργίου')[0]).not.toHaveClass('registry-row-returned')
   })
 
-  it('starts a patient surveillance from the Create menu with the shared flow', async () => {
+  it('starts a patient surveillance from the create button of the tab with the shared flow', async () => {
     await openCenter()
-    fireEvent.click(screen.getByRole('button', { name: /Δημιουργία/ }))
-    // «Create» is a menu of what can be created, not a chooser window.
-    const menu = await screen.findByRole('menu')
-    expect(screen.queryByRole('dialog')).toBeNull()
-    expect(within(menu).getByRole('menuitem', { name: /Εργαζόμενος/ })).toBeInTheDocument()
-    expect(within(menu).getByRole('menuitem', { name: /Περιβαλλοντική επιτήρηση/ })).toBeInTheDocument()
-    fireEvent.click(within(menu).getByRole('menuitem', { name: /Ασθενής/ }))
+    // The button creates what the open tab lists, without a menu or a chooser window.
+    fireEvent.click(screen.getByRole('button', { name: 'Νέα επιτήρηση' }))
+    expect(screen.queryByRole('menu')).toBeNull()
     const flow = await screen.findByRole('dialog')
     expect(within(flow).getByText('Νέα επιτήρηση')).toBeInTheDocument()
     expect(within(flow).getAllByText('Επιλογή ασθενούς').length).toBeGreaterThan(0)

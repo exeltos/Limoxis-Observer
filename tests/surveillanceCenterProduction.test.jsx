@@ -4,7 +4,7 @@
 // back to the Demo datasets, cancelled episodes stay hidden by default, and
 // employee surveillance is offered only to roles allowed to see staff health.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter } from 'react-router-dom'
 
@@ -100,11 +100,9 @@ describe('employee surveillance access', () => {
     openCenter()
     await waitFor(() => expect(screen.getByText('Άννα Αλεξίου')).toBeInTheDocument())
     expect(tabNames()).not.toContain('Εργαζόμενοι')
-    fireEvent.click(screen.getByRole('button', { name: /Δημιουργία/ }))
-    // The menu offers the patient surveillance only: no staff entry without staff-health access.
-    const menu = await screen.findByRole('menu')
-    expect(within(menu).getByRole('menuitem', { name: /Ασθενής/ })).toBeInTheDocument()
-    expect(within(menu).queryByRole('menuitem', { name: /Εργαζόμενος/ })).toBeNull()
+    // Patient surveillance only: no staff screening without staff-health access.
+    expect(screen.getByRole('button', { name: 'Νέα επιτήρηση' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Νέος έλεγχος εργαζομένου' })).toBeNull()
   })
 
   it('is not listed for a department manager', async () => {

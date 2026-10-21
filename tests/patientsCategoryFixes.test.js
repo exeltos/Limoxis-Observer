@@ -51,13 +51,13 @@ describe('surveillance review', () => {
     expect(episodeBelongsToPatient({ patientId: 7 }, { id: '7' })).toBe(true)
     expect(episodeBelongsToPatient({}, {})).toBe(false)
   })
-  it('«Create» of the Surveillance Center is a menu, and the new laboratory sample keeps compact icon cards', () => {
+  it('«Create» of the Surveillance Center creates what the open tab lists, and the new laboratory sample keeps compact icon cards', () => {
     const flow = fs.readFileSync('src/features/surveillance/EmployeeSurveillanceFlow.jsx', 'utf8')
     const page = fs.readFileSync('src/features/surveillance/SurveillanceCanonicalPage.jsx', 'utf8')
     const lab = fs.readFileSync('src/features/laboratory/LaboratoryWorkspace.jsx', 'utf8')
     expect(flow).not.toContain('SurveillanceSubjectChooser')
     expect(page).not.toContain("'chooser'")
-    expect(page).toContain('<OverflowMenu')
+    expect(page).toContain("startCreation(mode)")
     expect(lab).toContain('<SubjectChoiceStep compact')
   })
   it('documents tabs open the same way: record-section card + shared attachment box', () => {

@@ -3,20 +3,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
-  Building2,
   ClipboardCheck,
   Clock3,
   Microscope,
   Plus,
-  UserRound,
   Users,
-  UsersRound,
 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { useSectionTabs } from '../../design-system/SectionTabs'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { Button } from '../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
@@ -307,7 +304,8 @@ export function SurveillanceCanonicalPage() {
       ),
     [mode, cases, employeeRows, environmentRows, language],
   )
-  const activeCases = cases.filter(x => x.status === 'active'),
+  // The counts follow the list: the episodes the user may open, as the rows below.
+  const activeCases = cases.filter(x => x.status === 'active' && canAccessRecord(x)),
     active = activeCases.length,
     due = activeCases.filter(x => reviewState(x) === 'overdue').length,
     resistant = activeCases.filter(x => latestResistance(x)).length,
@@ -361,7 +359,7 @@ export function SurveillanceCanonicalPage() {
     action: UI_ACTIONS.CREATE,
     resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
   })
-  // «Create» is a menu of what can be created; each entry opens its form directly.
+  // «Create» opens the form of what the open tab lists.
   const startCreation = kind => {
     if (kind === 'employees' || kind === 'employee') {
       if (canEmployees) setCreation('employee')
@@ -371,29 +369,6 @@ export function SurveillanceCanonicalPage() {
       setCreation('environmental')
     } else setCreation('patient')
   }
-  const createItems = [
-    {
-      id: 'patient',
-      icon: UserRound,
-      label: t('patient'),
-      description: t('clinicalRecords.patientSurveillanceChoiceHelp'),
-      onClick: () => startCreation('patient'),
-    },
-    canEmployees && {
-      id: 'employee',
-      icon: UsersRound,
-      label: t('employee'),
-      description: t('clinicalRecords.employeeSurveillanceChoiceHelp'),
-      onClick: () => startCreation('employee'),
-    },
-    canEnvironment && {
-      id: 'environment',
-      icon: Building2,
-      label: t('environmentalSurveillance'),
-      description: t('clinicalRecords.environmentalSurveillanceChoiceHelp'),
-      onClick: () => startCreation('environment'),
-    },
-  ].filter(Boolean)
   const empty = recorded.length
     ? {
         title: t('svEmptyFiltered'),
@@ -416,7 +391,7 @@ export function SurveillanceCanonicalPage() {
         ),
         text: canCreate ? t('svEmptyHint') : '',
         icon: { patients: Activity, employees: Users, environmental: Microscope }[mode],
-        action: canCreate ? { label: t('create'), icon: Plus, onClick: () => startCreation(mode) } : null,
+        action: canCreate ? { label: t({ patients: 'svCreateEpisode', employees: 'svCreateEmployee', environmental: 'svCreateEnvironmental' }[mode] || 'create'), icon: Plus, onClick: () => startCreation(mode) } : null,
       }
   const tabItems = [
     { value: 'patients', label: t('patients'), icon: Activity },
@@ -510,21 +485,13 @@ export function SurveillanceCanonicalPage() {
       title={t('clinicalRecords.surveillanceCenter')}
       subtitle={t('surveillanceSubtitleV051')}
       actions={
+        // One button that creates what the open tab lists.
         canCreate && (
           <div className="record-actions">
-            <OverflowMenu
-              label={t('create')}
-              triggerTone="primary"
-              align="end"
-              width={320}
-              trigger={
-                <>
-                  <Plus size={15} aria-hidden="true" />
-                  {t('create')}
-                </>
-              }
-              items={createItems}
-            />
+            <Button variant="primary" onClick={() => startCreation(mode)}>
+              <Plus size={15} aria-hidden="true" />
+              {t({ patients: 'svCreateEpisode', employees: 'svCreateEmployee', environmental: 'svCreateEnvironmental' }[mode] || 'create')}
+            </Button>
           </div>
         )
       }
