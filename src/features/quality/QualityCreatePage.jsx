@@ -7,6 +7,7 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { FormCard,FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
+import { MoreSection } from '../../design-system/MoreSection'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -74,6 +75,10 @@ function QualityRecordCreate({recordType}){
     </div>:<div className="lo-form-cards">
       <FormCard title={en?'Record':'Εγγραφή'} icon={Icon}>
         <Field label={`${t('title')} *`}><input value={draft[titleKey]} onChange={e=>set(titleKey,e.target.value)}/></Field>
+        {!en&&<MoreSection className="quality-english-more" moreLabel="Αγγλική μετάφραση" lessLabel="Λιγότερα">
+          <Field label="Τίτλος (αγγλικά)"><input value={draft.titleEn} onChange={e=>set('titleEn',e.target.value)}/></Field>
+          <Field label="Περιγραφή (αγγλικά)"><textarea rows={3} value={draft.descriptionEn} onChange={e=>set('descriptionEn',e.target.value)}/></Field>
+        </MoreSection>}
         <QualityDepartmentField value={departmentRef(draft)} onChange={patch}/>
         {recordType==='findings'&&<ChoiceField label={t('severity')} value={draft.severity} options={severityOptions(t)} onChange={v=>set('severity',v)}/>}
         {recordType==='capas'&&<><SearchableSelect label={t('actionType')} value={draft.actionType} options={vocabularyOptions(CAPA_TYPES,language)} onChange={v=>set('actionType',v||'corrective')} clearLabel=""/><ChoiceField label={t('priority')} value={draft.priority} options={severityOptions(t)} onChange={v=>set('priority',v)}/></>}

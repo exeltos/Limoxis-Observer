@@ -5,6 +5,7 @@ import { Meter } from '../../../design-system/MiniCharts'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
+import { MoreSection } from '../../../design-system/MoreSection'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { ManualDateField } from '../../../design-system/ManualDateField'
@@ -69,12 +70,14 @@ export function targetReach(objective) {
 }
 const objectiveStateTone = state => ({ met: 'success', missed: 'danger' })[state] || 'info'
 
+export const objectiveTitle = (objective, language) => (language === 'en' && objective.titleEn) || objective.title
+
 export function objectivesExport(rows, language) {
   const en = language === 'en'
   return {
     name: en ? 'quality-objectives' : 'stoxoi-poiotitas',
     headers: en ? ['Code', 'Year', 'Objective', 'Measured by', 'Value', 'Target', 'Owner', 'Due', 'Status'] : ['Κωδικός', 'Έτος', 'Στόχος', 'Μετριέται με', 'Τιμή', 'Στόχος (τιμή)', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
-    rows: rows.map(objective => [objective.code, objective.year, objective.title, objective.indicator ? textOf(objective.indicator, language) : '', formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
+    rows: rows.map(objective => [objective.code, objective.year, objectiveTitle(objective, language), objective.indicator ? textOf(objective.indicator, language) : '', formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
   }
 }
 
@@ -95,7 +98,7 @@ export function ObjectivesTable({ rows, loading, onOpen }) {
     rowProps={objective => ({ onClick: () => onOpen?.(objective) })}
     renderRow={objective => <>
       <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
-      <td>{objective.title}</td>
+      <td>{objectiveTitle(objective, language)}</td>
       <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
       <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small><Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
       <td>{roleTitleText(objective.ownerLabel, language) || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
@@ -128,8 +131,8 @@ export function ObjectiveBars({ objectives }) {
   const en = language === 'en'
   if (!objectives.length) return null
   return <ul className="objective-bars">{objectives.map(objective => <li key={objective.id || objective.code}>
-    <span className="objective-bars-title">{objective.title}</span>
-    <Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={`${objective.title}: ${formatObjectiveValue(objective.current.value, objective.unit, language)}`} />
+    <span className="objective-bars-title">{objectiveTitle(objective, language)}</span>
+    <Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={`${objectiveTitle(objective, language)}: ${formatObjectiveValue(objective.current.value, objective.unit, language)}`} />
     <span className="objective-bars-value"><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong> {objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</span>
     <StatusBadge tone={objectiveStateTone(objective.current.status)}>{objectiveStateLabel(objective.current.status, en)}</StatusBadge>
   </li>)}</ul>
@@ -160,6 +163,7 @@ export function ObjectiveDialog({ objective: initial, registers, onClose, onSave
   return <ObserverDialog title={initial.id ? (en ? 'Quality objective' : 'Στόχος ποιότητας') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')} subtitle={en ? 'ISO 9001 §6.2: measurable, with an owner and a date.' : 'ISO 9001 §6.2: μετρήσιμος, με υπεύθυνο και προθεσμία.'} onClose={onClose} width="wide" footer={<DialogActions onCancel={onClose} onSave={save} disabled={!valid || saving} saveLabel={en ? 'Save' : 'Αποθήκευση'} />}>
     <div className="lo-form-cards"><FormCard wide>
       <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
+      {!en && <MoreSection moreLabel="Αγγλική μετάφραση" lessLabel="Λιγότερα"><Field label="Τίτλος (αγγλικά)"><input value={objective.titleEn || ''} onChange={event => set({ titleEn: event.target.value })} /></Field></MoreSection>}
       <FormGrid columns={2}>
         <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} placeholder={en ? 'None: value reported by the owner' : 'Κανένα: τιμή από τον υπεύθυνο'} {...selectText(en)} />
         {register ? <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} /> : <Field label={en ? 'Value so far' : 'Τιμή έως σήμερα'}><input inputMode="decimal" value={objective.reportedValue ?? ''} onChange={event => set({ reportedValue: event.target.value })} /></Field>}

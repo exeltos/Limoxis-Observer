@@ -18,6 +18,7 @@ import { can, CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Field } from '../../design-system/Field'
+import { MoreSection } from '../../design-system/MoreSection'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
@@ -154,7 +155,8 @@ function QualityDetails({autoEdit=false,view='details',recordType,record,linked=
   const [saving,setSaving]=useState(false)
   const {libraries}=useLibraries()
   const categories=libraries.incidentCategories||[]
-  const set=(k,v)=>setDraft(x=>({...x,[k]:v}))
+  // The English text follows the written one while it is only its fallback copy.
+  const set=(k,v)=>setDraft(x=>({...x,[k]:v,...((k==='title'||k==='description')&&x[`${k}En`]===x[k]?{[`${k}En`]:v}:{})}))
   const patch=next=>setDraft(x=>({...x,...next}))
 
   async function persist(next){
@@ -223,6 +225,10 @@ function QualityDetails({autoEdit=false,view='details',recordType,record,linked=
       </>:<>
       {/* Code, title and status are in the record's header; the form edits them. */}
       {editing&&<EditText editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/>}
+      {editing&&language==='el'&&<MoreSection className="quality-english-more" moreLabel="Αγγλική μετάφραση" lessLabel="Λιγότερα">
+        <Field label="Τίτλος (αγγλικά)"><input value={draft.titleEn===draft.title?'':(draft.titleEn||'')} onChange={e=>set('titleEn',e.target.value)}/></Field>
+        {recordType!=='audits'&&<Field label="Περιγραφή (αγγλικά)"><textarea rows={3} value={draft.descriptionEn===draft.description?'':(draft.descriptionEn||'')} onChange={e=>set('descriptionEn',e.target.value)}/></Field>}
+      </MoreSection>}
       {editing?<div className="detail-item editable"><QualityDepartmentField value={departmentRef(draft)} onChange={patch}/></div>:<Detail label={t('department')} value={en?draft.departmentEn||draft.department:draft.department}/>}
       {recordType!=='incidents'&&editing&&<EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>}
       {recordType==='incidents'&&<>
