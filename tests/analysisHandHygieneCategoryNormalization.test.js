@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import fs from 'node:fs'
 import { mergeDomainMetrics } from '../src/features/analysis/analysisDomainMerge'
 
 describe('hand hygiene professional category normalization', () => {
@@ -46,5 +47,15 @@ describe('hand hygiene professional category normalization', () => {
       ['Νοσηλευτής/τρια', 12, 10],
       ['Μαία/Μαιευτής', 9, 8],
     ])
+  })
+
+  it('normalizes the single-hospital production analytics path before returning domains', () => {
+    const source = fs.readFileSync(
+      new URL('../src/features/platform/platformService.js', import.meta.url),
+      'utf8',
+    )
+    expect(source).toContain(
+      'domains:mergeDomainMetrics(scopedDomains?[scopedDomains]:[])',
+    )
   })
 })
