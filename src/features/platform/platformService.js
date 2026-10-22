@@ -132,7 +132,8 @@ async function loadSingleAnalysisSnapshot({organizationId='',from='',to='',depar
   if(summaryResult.error)throw summaryResult.error
   if(addonDomains.lira)addonDomains.lira.clusters=Array.isArray(clusters)?clusters.length:0
   const domains=(domainsResult?.error||!domainsResult?.data)&&(peopleResult?.error||!peopleResult?.data)?null:{...(domainsResult?.error?{}:(domainsResult?.data||{})),...(peopleResult?.error?{}:(peopleResult?.data||{})),...(qualityFoodResult?.error?{}:(qualityFoodResult?.data||{})),...addonDomains}
-  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:withCrosstabs(domains,crosstabResult?.error?null:crosstabResult?.data)}
+  const scopedDomains=withCrosstabs(domains,crosstabResult?.error?null:crosstabResult?.data)
+  return {source:'production',summary:summaryResult.data||{},microbiology,amrSusceptibility,clusters,domains:mergeDomainMetrics(scopedDomains?[scopedDomains]:[])}
 }
 
 // One row per hospital for the platform's "all hospitals" comparison: the same
