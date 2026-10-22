@@ -1,9 +1,30 @@
 // Platform scope over several hospitals: add counts, merge breakdowns by key.
 function mergePairs(lists) { const out = new Map(); for (const list of lists) for (const [key, ...values] of list || []) { const current = out.get(key) || values.map(() => 0); values.forEach((value, index) => { current[index] += Number(value) || 0 }); out.set(key, current) } return [...out.entries()].map(([key, values]) => [key, ...values]).sort((a, b) => b[1] - a[1]) }
+
+// Historical hand-hygiene records used the verbose nursing label while the
+// Management Center now uses the canonical "Νοσηλευτής/τρια" label. Treat
+// those spellings as one category in analytics without rewriting audit/history data.
+function normalizeHandHygieneCategory(value) {
+  const text = String(value || '').trim().replace(/\s+/g, ' ')
+  if (/^Νοσηλευτής\s*\/\s*(?:Νοσηλεύτρια|τρια)$/iu.test(text)) return 'Νοσηλευτής/τρια'
+  return text || '—'
+}
+function normalizeHandHygieneMetrics(metrics) {
+  if (!metrics || !Array.isArray(metrics.byCategory)) return metrics
+  const byCategory = mergePairs([
+    metrics.byCategory.map(([key, ...values]) => [normalizeHandHygieneCategory(key), ...values]),
+  ])
+  return { ...metrics, byCategory }
+}
+function normalizeDomainItem(item) {
+  if (!item?.handHygiene) return item
+  return { ...item, handHygiene: normalizeHandHygieneMetrics(item.handHygiene) }
+}
+
 // Cross-tabulation cells ([row, column, count]): kept side by side, the matrix adds them up.
 const CELL_KEYS = new Set(['haiByDepartment', 'organismByHaiType', 'deviceAssociated', 'byAgentDepartment', 'byAgentOrganism', 'findingsByControl', 'severityByDepartment'])
 export function mergeDomainMetrics(list = []) {
-  const items = list.filter(Boolean)
+  const items = list.filter(Boolean).map(normalizeDomainItem)
   if (!items.length) return null
   if (items.length === 1) return items[0]
   const merged = {}
