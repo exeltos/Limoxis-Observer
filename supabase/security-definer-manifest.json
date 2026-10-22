@@ -36,6 +36,11 @@
       "authenticated": true,
       "reason": "Staff analytics; Platform Owner or Hospital Admin / IPC Lead / Hospital Director; health data gated by view_occupational_health."
     },
+    "analysis_training_metrics": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Training analytics aggregates (assignment completion, person-hours, departments, programmes and professional categories); Platform Owner or Hospital Admin / IPC Lead / Hospital Director of the organisation."
+    },
     "answer_committee_membership": {
       "category": "rpc",
       "authenticated": true,
