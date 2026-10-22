@@ -39,21 +39,24 @@ async function loadTrainingAnalytics({organizationId,range,departmentId}){
 
 export function TrainingAnalyticsReport({organizationId='',range,departmentId='',compareRange=null,compareLabel='',currentLabel='',tx,en=false}){
  const [details,setDetails]=useState(empty),[compare,setCompare]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[employeeQuery,setEmployeeQuery]=useState('')
+ const rangeFrom=range?.from||'',rangeTo=range?.to||'',compareFrom=compareRange?.from||'',compareTo=compareRange?.to||''
  useEffect(()=>{
   let live=true
   setLoading(true);setError('')
-  Promise.all([loadTrainingAnalytics({organizationId,range,departmentId}),compareRange?loadTrainingAnalytics({organizationId,range:compareRange,departmentId}):Promise.resolve(null)])
+  const mainRange={from:rangeFrom,to:rangeTo}
+  const comparisonRange=compareFrom||compareTo?{from:compareFrom,to:compareTo}:null
+  Promise.all([loadTrainingAnalytics({organizationId,range:mainRange,departmentId}),comparisonRange?loadTrainingAnalytics({organizationId,range:comparisonRange,departmentId}):Promise.resolve(null)])
    .then(([main,comparison])=>{if(live){setDetails(main);setCompare(comparison)}})
    .catch(failure=>{if(live){setDetails(empty);setCompare(null);setError(failure?.message||'TRAINING_ANALYTICS_LOAD_FAILED')}})
    .finally(()=>{if(live)setLoading(false)})
   return()=>{live=false}
- },[organizationId,range?.from,range?.to,departmentId,compareRange?.from,compareRange?.to])
+ },[organizationId,rangeFrom,rangeTo,departmentId,compareFrom,compareTo])
 
  const rows=kpiRows(details,tx,en),compareRows=compare?kpiRows(compare,tx,en):[]
  const hoursByDepartment=useMemo(()=>new Map((details.hoursByDepartment||[]).map(([name,completed,trainees,hours,avg])=>[name,{completed:n(completed),trainees:n(trainees),hours:n(hours),avg:n(avg)}])),[details.hoursByDepartment])
  const departmentRows=useMemo(()=>(details.byDepartment||[]).map(([name,assigned,completed])=>{const h=hoursByDepartment.get(name)||{};return {key:name,name,assigned:n(assigned),completed:n(completed),completion:pct(completed,assigned),trainees:h.trainees??0,hours:h.hours??0,avgHours:h.avg??0}}),[details.byDepartment,hoursByDepartment])
  const programRows=details.byProgram||[]
- const employeeRows=details.byEmployee||[]
+ const employeeRows=useMemo(()=>details.byEmployee||[],[details.byEmployee])
  const filteredEmployees=useMemo(()=>{const q=employeeQuery.trim().toLocaleLowerCase('el');if(!q)return employeeRows;return employeeRows.filter(([,name,department,profession])=>`${name} ${department} ${profession}`.toLocaleLowerCase('el').includes(q))},[employeeRows,employeeQuery])
  const topPrograms=programRows.filter(([,title])=>title).slice(0,12).map(([,title,,,,,,hours])=>[title,n(hours)])
  const topTrainees=employeeRows.slice(0,12).map(([,name,,,,,,hours])=>[name,n(hours)])
