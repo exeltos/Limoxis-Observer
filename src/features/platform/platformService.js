@@ -50,10 +50,9 @@ function mergeMonthly(snapshots){const merged={};for(const snapshot of snapshots
 function mergeNationalRows(snapshots){const grouped=new Map();for(const snapshot of snapshots){for(const [organism,resistanceClass,department,source,count,lastDate,sampleType] of snapshot?.microbiology?.nationalRows||[]){const key=[organism,resistanceClass,department,source,sampleType].join('|||');const current=grouped.get(key)||{organism,resistanceClass,department,source,sampleType,count:0,lastDate:''};current.count+=Number(count)||0;if(lastDate>current.lastDate)current.lastDate=lastDate;grouped.set(key,current)}}return [...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType])}
 
 async function loadMicrobiologyAnalytics({organizationId='',from='',to='',departmentId=''}){
-  // Delegates to analysis_microbiology_findings, the same validated/amended,
-  // non-superseded, amr_classifications-aware finding definition used by
-  // every microbiology aggregate in private.indicator_metric_snapshot —
-  // rather than an independent, less strict re-implementation.
+  // The RPC returns one row per identified organism. Keep that exploded shape
+  // for organism matrices, but deduplicate by result for headline/result-level
+  // metrics so a culture with two organisms is still one positive result.
   const {data,error}=await supabase.rpc('analysis_microbiology_findings',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null})
   if(error)throw error
   let departmentQuery=supabase.from('departments').select('id,organization_id,name').eq('is_active',true).order('name')
@@ -61,23 +60,24 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   const {data:departmentRows,error:departmentError}=await departmentQuery
   if(departmentError)throw departmentError
   const departments=departmentRows||[]
-  const enriched=(data||[]).map(row=>({organization_id:row.organization_id,organism:row.organism,resistance_class:row.resistance_class,is_critical:row.is_critical,departmentId:row.department_id||'',department:row.department_name||'—',source:row.source||'—',sampleType:row.sample_type||'—',eventDate:String(row.event_date||'').slice(0,10)}))
+  const enriched=(data||[]).map(row=>({resultId:row.microbiology_result_id,organization_id:row.organization_id,organism:row.organism,resistance_class:row.resistance_class,is_critical:row.is_critical,departmentId:row.department_id||'',department:row.department_name||'—',source:row.source||'—',sampleType:row.sample_type||'—',eventDate:String(row.event_date||'').slice(0,10)}))
+  const resultRows=[...new Map(enriched.map((row,index)=>[row.resultId||`row-${index}`,row])).values()]
   const microorganisms=sortedEntries(countBy(enriched,row=>row.organism?.trim()),12)
-  const resistance=sortedEntries(countBy(enriched,row=>row.resistance_class),5)
-  const monthly=Object.entries(countBy(enriched,row=>monthKey(row.eventDate))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
-  const byDepartment=sortedEntries(countBy(enriched,row=>row.department),12)
-  const bySource=sortedEntries(countBy(enriched,row=>row.source),12)
-  const bySite=sortedEntries(countBy(enriched,row=>row.sampleType),12)
+  const resistance=sortedEntries(countBy(resultRows,row=>row.resistance_class),5)
+  const monthly=Object.entries(countBy(resultRows,row=>monthKey(row.eventDate))).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12)
+  const byDepartment=sortedEntries(countBy(resultRows,row=>row.department),12)
+  const bySource=sortedEntries(countBy(resultRows,row=>row.source),12)
+  const bySite=sortedEntries(countBy(resultRows,row=>row.sampleType),12)
   const grouped=new Map()
   for(const row of enriched){const key=[row.organism?.trim()||'—',row.resistance_class||'—',row.department,row.source,row.sampleType].join('|||');const current=grouped.get(key)||{organism:row.organism?.trim()||'—',resistanceClass:row.resistance_class||'—',department:row.department,source:row.source,sampleType:row.sampleType,count:0,lastDate:''};current.count+=1;if(row.eventDate>current.lastDate)current.lastDate=row.eventDate;grouped.set(key,current)}
   const nationalRows=[...grouped.values()].sort((a,b)=>b.count-a.count||b.lastDate.localeCompare(a.lastDate)).slice(0,80).map(row=>[row.organism,row.resistanceClass,row.department,row.source,row.count,row.lastDate,row.sampleType])
   const {data:organizationRows,error:organizationError}=await supabase.from('organizations').select('id,name').order('name')
   if(organizationError)throw organizationError
   const names=new Map((organizationRows||[]).map(row=>[row.id,row.name]))
-  const orgTotals=countBy(enriched,row=>row.organization_id)
-  const orgResistant=countBy(enriched.filter(row=>['MDR','XDR','PDR'].includes(row.resistance_class)),row=>row.organization_id)
+  const orgTotals=countBy(resultRows,row=>row.organization_id)
+  const orgResistant=countBy(resultRows.filter(row=>['MDR','XDR','PDR'].includes(row.resistance_class)),row=>row.organization_id)
   const byOrganization=Object.entries(orgTotals).map(([id,total])=>[names.get(id)||id,total,orgResistant[id]||0]).sort((a,b)=>b[1]-a[1]).slice(0,12)
-  return {microorganisms,resistance,monthly,byOrganization,byDepartment,bySource,bySite,nationalRows,totalPositive:enriched.length,totalCritical:enriched.filter(row=>row.is_critical).length,departmentCount:new Set(enriched.map(row=>row.department).filter(name=>name&&name!=='—')).size,departments:departments.map(row=>({id:row.id,organizationId:row.organization_id,name:row.name}))}
+  return {microorganisms,resistance,monthly,byOrganization,byDepartment,bySource,bySite,nationalRows,totalPositive:resultRows.length,totalCritical:resultRows.filter(row=>row.is_critical).length,departmentCount:new Set(resultRows.map(row=>row.department).filter(name=>name&&name!=='—')).size,departments:departments.map(row=>({id:row.id,organizationId:row.organization_id,name:row.name}))}
 }
 
 async function loadAmrSusceptibility({organizationId='',from='',to='',departmentId=''}){
