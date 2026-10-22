@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
+import { supabase } from '../../core/supabase/client'
+import { useTenant } from '../../core/tenant/TenantContext'
 import { YesNoField } from '../../design-system/YesNoField'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -50,6 +52,9 @@ export const WHO_PROFESSIONS = [
   ['Άλλο', 'Other'],
 ]
 
+const fallbackProfessionalCategories = () =>
+  WHO_PROFESSIONS.map(([el, enLabel]) => ({ value: el, labelEl: el, labelEn: enLabel }))
+
 const blankObservation = () => ({
   id: '',
   professionalsCount: 1,
@@ -89,10 +94,11 @@ export function WhoHandHygieneEditor({
   departments = [],
 }) {
   const { profile, user } = useAuth()
+  const { tenant } = useTenant()
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useMemo(() => controlActorFromAuth({ profile, user }), [profile, user])
-  const { confirm, notify } = useFeedback()
+  const { confirm, notify, notifyError } = useFeedback()
   const today = new Date().toISOString().slice(0, 10)
   const firstDepartment = fixedDepartment || initialRecord?.departmentEl || departments[0]?.el || ''
   const [session, setSession] = useState(() =>
@@ -123,6 +129,7 @@ export function WhoHandHygieneEditor({
         }))
       : [],
   )
+  const [professionalCategories, setProfessionalCategories] = useState(fallbackProfessionalCategories)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -132,6 +139,68 @@ export function WhoHandHygieneEditor({
     if (nextDepartment)
       setSession(state => (state.department ? state : { ...state, department: nextDepartment }))
   }, [departments, fixedDepartment, initialRecord?.departmentEl, session.department])
+
+  useEffect(() => {
+    if (!supabase || !tenant?.id) return
+    let active = true
+    supabase
+      .from('master_library_items')
+      .select('id,name_el,name_en')
+      .eq('organization_id', tenant.id)
+      .eq('library_key', 'professionalCategories')
+      .eq('is_active', true)
+      .order('name_el')
+      .then(({ data, error }) => {
+        if (error) throw error
+        if (!active || !data?.length) return
+        const mapped = data.map(row => ({
+          value: row.name_el,
+          labelEl: row.name_el,
+          labelEn: row.name_en || row.name_el,
+        }))
+        setProfessionalCategories(mapped)
+        setCurrent(state => {
+          if (mapped.some(category => category.value === state.professionalCategory)) return state
+          const preferred =
+            mapped.find(category => category.value === 'Νοσηλευτής/τρια') ||
+            mapped.find(category => category.value.toLocaleLowerCase('el').includes('νοσηλευ')) ||
+            mapped[0]
+          return preferred && state.professionalCategory === 'Νοσηλευτής / Νοσηλεύτρια'
+            ? { ...state, professionalCategory: preferred.value }
+            : state
+        })
+      })
+      .catch(error => {
+        if (active)
+          notifyError(error, 'load', { operation: 'hand_hygiene_professional_categories_load' })
+      })
+    return () => {
+      active = false
+    }
+  }, [tenant?.id, notifyError])
+
+  const professionalOptions = useMemo(() => {
+    const options = professionalCategories.map(category => ({
+      value: category.value,
+      label: en ? category.labelEn : category.labelEl,
+      keywords: `${category.labelEl} ${category.labelEn}`,
+    }))
+    if (
+      current.professionalCategory &&
+      !options.some(option => option.value === current.professionalCategory)
+    )
+      options.unshift({
+        value: current.professionalCategory,
+        label: current.professionalCategory,
+        keywords: current.professionalCategory,
+      })
+    return options
+  }, [professionalCategories, current.professionalCategory, en])
+
+  const professionalLabel = value => {
+    const category = professionalCategories.find(item => item.value === value)
+    return category ? (en ? category.labelEn : category.labelEl) : value
+  }
 
   const setS = (key, value) => setSession(state => ({ ...state, [key]: value }))
   const setO = (key, value) => {
@@ -171,7 +240,11 @@ export function WhoHandHygieneEditor({
       ...list,
       { ...current, moments: currentMoments, id: `WHO-OBS-${Date.now()}-${list.length}` },
     ])
-    setCurrent(blankObservation())
+    setCurrent(state => ({
+      ...blankObservation(),
+      professionalsCount: state.professionalsCount,
+      professionalCategory: state.professionalCategory,
+    }))
     setCurrentTouched(false)
   }
 
@@ -308,7 +381,7 @@ export function WhoHandHygieneEditor({
               <SearchableSelect
                 label={en ? 'Professional category' : 'Επαγγελματική κατηγορία'}
                 value={current.professionalCategory}
-                options={WHO_PROFESSIONS.map(([el, enLabel]) => ({ value: el, label: en ? enLabel : el, keywords: `${el} ${enLabel}` }))}
+                options={professionalOptions}
                 onChange={value => value && setO('professionalCategory', value)}
                 {...selectTexts(en)}
               />
@@ -479,10 +552,7 @@ export function WhoHandHygieneEditor({
             <div className="who-opportunity-cards">
               {items.map((item, index) => {
                 const labels = momentLabels(normalizeWhoMoments(item), en)
-                const professionLabel = en
-                  ? WHO_PROFESSIONS.find(([el]) => el === item.professionalCategory)?.[1] ||
-                    item.professionalCategory
-                  : item.professionalCategory
+                const professionLabel = professionalLabel(item.professionalCategory)
                 return (
                   <article className="who-opportunity-card" key={item.id}>
                     <span className="who-opportunity-index">{index + 1}</span>
