@@ -55,7 +55,7 @@ export function TrainingAnalyticsReport({organizationId='',range,departmentId=''
  const programRows=details.byProgram||[]
  const employeeRows=details.byEmployee||[]
  const filteredEmployees=useMemo(()=>{const q=employeeQuery.trim().toLocaleLowerCase('el');if(!q)return employeeRows;return employeeRows.filter(([,name,department,profession])=>`${name} ${department} ${profession}`.toLocaleLowerCase('el').includes(q))},[employeeRows,employeeQuery])
- const topPrograms=programRows.filter(([,title])=>title).slice(0,12).map(([,title,,,,,,,hours])=>[title,n(hours)])
+ const topPrograms=programRows.filter(([,title])=>title).slice(0,12).map(([,title,,,,,,hours])=>[title,n(hours)])
  const topTrainees=employeeRows.slice(0,12).map(([,name,,,,,,hours])=>[name,n(hours)])
  const professionHours=(details.byProfession||[]).map(([profession,,,hours])=>[profession,n(hours)]).slice(0,12)
 
@@ -67,7 +67,7 @@ export function TrainingAnalyticsReport({organizationId='',range,departmentId=''
  return <>
   <Kpis rows={rows}/>
   {compare&&<ScopeComparison title={tx('Σύγκριση εκπαίδευσης','Training comparison')} subtitle={tx('Ίδιο εύρος και ίδια φίλτρα.','Same scope and filters.')} currentRows={rows} compareRows={compareRows} currentLabel={currentLabel} compareLabel={compareLabel} tx={tx}/>} 
-  {details.missingDurationCompletions>0&&<div className="governance-banner"><strong>{tx('Έλεγχος ωρών:','Hours check:')}</strong><span>{tx(`${details.missingDurationCompletions} ολοκληρώσεις δεν έχουν διάρκεια στο πρόγραμμα και δεν προσμετρώνται στις ανθρωποώρες.`,` ${details.missingDurationCompletions} completions have no programme duration and are not included in person-hours.`)}</span></div>}
+  {details.missingDurationCompletions>0&&<div className="governance-banner"><strong>{tx('Έλεγχος ωρών:','Hours check:')}</strong><span>{tx(`${details.missingDurationCompletions} ολοκληρώσεις δεν έχουν διάρκεια στο πρόγραμμα και δεν προσμετρώνται στις ανθρωποώρες.`,`${details.missingDurationCompletions} completions have no programme duration and are not included in person-hours.`)}</span></div>}
   <div className="analysis-chart-grid">
    <ChartCard wide title={tx('Ανθρωποώρες ανά μήνα','Person-hours by month')} subtitle={tx('Ώρες των εκπαιδεύσεων που ολοκληρώθηκαν μέσα στην επιλεγμένη περίοδο.','Hours for training completed inside the selected period.')}><TrendChart points={details.monthlyHours||[]} en={en} label={tx('Ανθρωποώρες ανά μήνα','Person-hours by month')}/></ChartCard>
    <ChartCard title={tx('Ανθρωποώρες ανά τμήμα','Person-hours by department')} subtitle={tx('Συνολικές ώρες συμμετοχής εργαζομένων ανά τμήμα.','Total employee participation hours by department.')}><BarList rows={(details.hoursByDepartment||[]).map(([name,,,hours])=>[name,n(hours)])} en={en} max={12}/></ChartCard>
