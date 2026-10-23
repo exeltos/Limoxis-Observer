@@ -1,18 +1,45 @@
 import { describe, expect, it } from 'vitest'
 import { indicatorTrend, suggestIndicators } from '../src/features/quality/risk/riskIndicators'
 
-const all = ['hai-prevalence-pps', 'who-hh', 'clabsi-rate', 'cauti-rate', 'vap-rate', 'mdr-introduction-index', 'mdro-bsi-per-1000', 'open-high-incidents']
+const all = [
+  'hai-prevalence-pps',
+  'hh-compliance',
+  'bundle-compliance',
+  'clabsi-per-1000-cvc-days',
+  'vap-per-1000-ventilator-days',
+  'mdro-bsi-rate',
+  'mdr-active-share',
+  'bacteremia-incidence-rate',
+  'antibiotic-ddd-per-100-patient-days',
+  'vaccination-coverage',
+  'patient-satisfaction',
+]
 
 describe('indicators that measure a risk', () => {
-  it('proposes indicators from the wording of the risk', () => {
-    expect(suggestIndicators({ hazard: 'Λοίμωξη αίματος από κεντρικό φλεβικό καθετήρα (CLABSI)' }, all)).toEqual(['clabsi-rate', 'hai-prevalence-pps', 'who-hh'])
-    expect(suggestIndicators({ hazard: 'Κίνδυνος Διασποράς Λοιμογόνου Παράγοντα (π.χ PAM)', indicator: ' ΔΕΙΚΤΗΣ ΕΕΛ' }, all)).toEqual(['mdr-introduction-index', 'mdro-bsi-per-1000', 'hai-prevalence-pps'])
-    expect(suggestIndicators({ hazard: 'Πτώση ασθενή', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual(['open-high-incidents'])
+  it('proposes only meaningful indicators from the wording of Risk 2025', () => {
+    expect(suggestIndicators({ hazard: 'Λοίμωξη αίματος από κεντρικό φλεβικό καθετήρα (CLABSI)' }, all)).toEqual([
+      'clabsi-per-1000-cvc-days',
+      'bundle-compliance',
+      'hh-compliance',
+    ])
+    expect(suggestIndicators({ hazard: 'Κίνδυνος Διασποράς Λοιμογόνου Παράγοντα (π.χ PAM)', indicator: 'ΔΕΙΚΤΗΣ ΕΕΛ' }, all)).toEqual([
+      'mdro-bsi-rate',
+      'mdr-active-share',
+      'hh-compliance',
+    ])
+    expect(suggestIndicators({ hazard: 'Μείωση αριθμού ασθενών λόγω μη ικανοποίησης αναγκών και προσδοκιών ενδιαφερομένων μερών' }, all)).toEqual(['patient-satisfaction'])
   })
-  it('proposes only indicators the organization has and leaves out the linked ones', () => {
-    expect(suggestIndicators({ hazard: 'Πνευμονία σε αναπνευστήρα', indicatorKeys: ['vap-rate'] }, all)).toEqual([])
-    expect(suggestIndicators({ hazard: 'Πνευμονία σε αναπνευστήρα' }, ['who-hh'])).toEqual([])
+
+  it('does not turn the generic Risk 2025 incident label into a KPI', () => {
+    expect(suggestIndicators({ hazard: 'Πτώση ασθενή', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual([])
+    expect(suggestIndicators({ hazard: 'Εμφάνιση Πυρκαγιάς', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual([])
   })
+
+  it('proposes only indicators the organization has and leaves out linked ones', () => {
+    expect(suggestIndicators({ hazard: 'Πνευμονία σε αναπνευστήρα', indicatorKeys: ['vap-per-1000-ventilator-days'] }, all)).toEqual(['bundle-compliance', 'hh-compliance'])
+    expect(suggestIndicators({ hazard: 'Πνευμονία σε αναπνευστήρα' }, ['hh-compliance'])).toEqual(['hh-compliance'])
+  })
+
   it('reads the trend with the direction of the indicator', () => {
     expect(indicatorTrend(1.2, 2.0, 'lower')).toBe('better')
     expect(indicatorTrend(80, 90, 'higher')).toBe('worse')
