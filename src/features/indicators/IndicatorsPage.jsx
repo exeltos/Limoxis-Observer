@@ -23,18 +23,19 @@ import { approveIndicatorSnapshot,collectCloudIndicatorMetrics,calculateCloudDef
 
 const today=()=>new Date().toISOString().slice(0,10)
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
+const yearStart=()=>`${new Date().getFullYear()}-01-01`
 const categoryLabel=(category,t)=>({surveillance:t('surveillance'),prevention:t('prevention'),workforce:t('workforce'),laboratory:t('laboratory'),pharmacy:t('pharmacy'),quality:t('indicatorsRecords.qualityCategory')}[category]||category)
 const statusText=(status,t)=>status==='onTarget'?t('indicatorsRecords.onTargetStatus'):status==='attention'?t('indicatorsRecords.attentionStatus'):t('indicatorsRecords.contextStatus')
 
 function fmtIndicatorDay(value){const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:(value||'—')}
 function fmtIndicatorValue(value,el){if(value==null||value==='')return '—';const n=Number(value);return Number.isFinite(n)?new Intl.NumberFormat(el?'el-GR':'en-GB',{maximumFractionDigits:2}).format(n):String(value)}
-export function IndicatorsPage(){
- const navigate=useNavigate();const registry=useRegistryMemory('indicators');const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify}=useFeedback();const el=language==='el'
+export function IndicatorsPage({defaultPeriod='month',registryKey='indicators'}={}){
+ const navigate=useNavigate();const registry=useRegistryMemory(registryKey);const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify}=useFeedback();const el=language==='el'
  const addOns=membership?.capabilities||[],customCapabilities=membership?.customCapabilities||[];const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,customCapabilities)
  const indicatorScope=scopeFor(CAPABILITIES.VIEW_INDICATORS,{role,scopeOverrides:membership?.scopeOverrides||{}})
  const scopedDepartmentIds=useMemo(()=>membership?.previewDepartment?[membership.previewDepartment]:(membership?.departmentIds||[]),[membership?.previewDepartment,membership?.departmentIds])
  const departmentScoped=indicatorScope===DATA_SCOPES.DEPARTMENT
- const defaultFrom=monthStart(),defaultTo=today();const remembered=registry.loadViewState({from:defaultFrom,to:defaultTo,department:'',query:'',category:'all',page:1,pageSize:15})
+ const defaultFrom=defaultPeriod==='year'?yearStart():monthStart(),defaultTo=today();const remembered=registry.loadViewState({from:defaultFrom,to:defaultTo,department:'',query:'',category:'all',page:1,pageSize:15})
  const [from,setFrom]=useState(()=>remembered.from||defaultFrom);const [to,setTo]=useState(()=>remembered.to||defaultTo);const [department,setDepartment]=useState(()=>remembered.department||'');const [departments,setDepartments]=useState([]);const [definitions,setDefinitions]=useState([]);const [rows,setRows]=useState([]);const [snapshots,setSnapshots]=useState([]);const [loading,setLoading]=useState(true);const [approvingId,setApprovingId]=useState('');const [query,setQuery]=useState(()=>remembered.query||'');const [category,setCategory]=useState(()=>remembered.category||'all');const [page,setPage]=useState(()=>Number(remembered.page)||1);const [pageSize,setPageSize]=useState(()=>Number(remembered.pageSize)||15)
  const allowedDepartments=useMemo(()=>departmentScoped?departments.filter(d=>scopedDepartmentIds.includes(d.id)):departments,[departments,departmentScoped,scopedDepartmentIds]);const effectiveDepartment=departmentScoped?(department||allowedDepartments[0]?.id||''):department
  useEffect(()=>{if(isDemo){setDepartments(demoLibrarySeed.departments.map(([name,nameEn])=>({id:name,name,nameEn})));return}if(!tenant?.id)return;loadDepartments(tenant.id).then(data=>setDepartments((data||[]).filter(x=>x.is_active!==false))).catch(()=>setDepartments([]))},[tenant?.id,isDemo])
