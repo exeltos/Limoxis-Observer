@@ -96,6 +96,116 @@ function samplePatient(sample, patient) {
     : String(sample.patientId || '') === String(patient.id || '')
 }
 
+const SAMPLE_SOURCE = {
+  bloodCulture: 'bloodstream',
+  urineCulture: 'urinary',
+  respiratorySample: 'respiratory',
+  woundCulture: 'surgicalSite',
+}
+const SOURCE_PATTERNS = [
+  ['bloodstream', /αιμοκαλλ|αίμα|αιμα|blood|bloodstream/i],
+  ['urinary', /ούρ|ουρ|urine|urinary/i],
+  ['respiratory', /πτύελ|πτυελ|sputum|τραχει|trache|bal\b|βρογχ|bronch|αναπνευ|respir/i],
+  ['surgicalSite', /τραύμ|τραυμ|wound|χειρουργ|surg|τομή|τομη|incision|πύον|pus/i],
+]
+
+function sourceFromText(value) {
+  const text = String(value || '')
+  return SOURCE_PATTERNS.find(([, pattern]) => pattern.test(text))?.[0] || ''
+}
+
+function sampleSource(sample) {
+  return SAMPLE_SOURCE[sample?.sampleType || sample?.type] || sourceFromText(`${sample?.source || ''} ${sample?.type || ''}`)
+}
+
+function episodeSource(episode) {
+  const stored = String(episode?.suspectedSource || '')
+  if (stored && stored !== 'other') return stored
+  return sourceFromText(`${episode?.reason || ''} ${episode?.reasonEn || ''}`)
+}
+
+function daysApart(a, b) {
+  if (!a || !b) return Number.POSITIVE_INFINITY
+  const left = new Date(`${a}T12:00:00Z`).getTime()
+  const right = new Date(`${b}T12:00:00Z`).getTime()
+  if (!Number.isFinite(left) || !Number.isFinite(right)) return Number.POSITIVE_INFINITY
+  return Math.abs(left - right) / 86400000
+}
+
+function sampleMatchesEpisodeList(sample, episode) {
+  const ids = [sample?.id, sample?.recordId].filter(Boolean).map(String)
+  return (episode?.samples || []).some(row =>
+    [row?.id, row?.recordId].filter(Boolean).some(value => ids.includes(String(value))),
+  )
+}
+
+// Imported/LIS samples can belong to the same admission as an existing surveillance
+// episode but have no surveillance_case_id. For the patient folder we still want the
+// clinical hierarchy Admission -> Surveillance -> Sample. Explicit database links are
+// always authoritative; only missing links are inferred, from the same admission, by
+// clinical source and then by the closest date. A specific source is never silently
+// attached to an incompatible specific source when several episodes exist.
+export function inferredEpisodeForSample(sample, episodes = []) {
+  if (!sample) return null
+  const visible = episodes.filter(episode => episode && episode.status !== 'cancelled')
+  const caseId = String(
+    sample.surveillanceCase || sample.surveillanceCaseId || sample.surveillance_case_id || '',
+  )
+  if (caseId) {
+    const explicit = visible.find(
+      episode => sameId(episode.id, caseId) || (episode.recordId && sameId(episode.recordId, caseId)),
+    )
+    if (explicit) return explicit
+  }
+
+  const embedded = visible.find(episode => sampleMatchesEpisodeList(sample, episode))
+  if (embedded) return embedded
+  if (!visible.length) return null
+
+  const sampleKind = sampleSource(sample)
+  const sampleDate = day(sample.collectedAt || sample.requestedAt || sample.resultedAt)
+  const candidates = visible
+    .map(episode => {
+      const kind = episodeSource(episode)
+      const generic = !kind || !episode.suspectedSource || episode.suspectedSource === 'other'
+      const compatible = !sampleKind || !kind || kind === sampleKind
+      if (sampleKind && kind && kind !== sampleKind) return null
+      const distance = daysApart(sampleDate, day(episode.startedAt))
+      return {
+        episode,
+        score:
+          (kind && sampleKind && kind === sampleKind ? 1000 : 0) +
+          (generic ? 100 : 0) +
+          (distance === 0 ? 50 : 0) -
+          (Number.isFinite(distance) ? distance : 30),
+        distance,
+        compatible,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score || a.distance - b.distance)
+
+  if (candidates.length) return candidates[0].episode
+  // If the admission has only one surveillance episode, an otherwise unclassified
+  // imported sample belongs beneath that single clinical episode rather than in a
+  // second, disconnected bucket.
+  return visible.length === 1 ? visible[0] : null
+}
+
+function withInferredSurveillance(sample, episodes) {
+  if (
+    sample.surveillanceCase ||
+    sample.surveillanceCaseId ||
+    sample.surveillance_case_id ||
+    episodes.some(episode => sampleMatchesEpisodeList(sample, episode))
+  )
+    return sample
+  const episode = inferredEpisodeForSample(sample, episodes)
+  return episode
+    ? { ...sample, surveillanceCase: episode.id, surveillanceLinkInferred: true }
+    : sample
+}
+
 // The admission of the episode a sample is linked to, or ''.
 function linkedAdmissionId(sample, episodes) {
   const caseId = String(sample.surveillanceCase || sample.surveillanceCaseId || '')
@@ -108,16 +218,20 @@ function linkedAdmissionId(sample, episodes) {
 // admission belongs to that admission, whatever its date; any other sample
 // belongs to the admission it was taken in (`admissions` closes a discharged
 // stay without a discharge date), in its department. A sample without a
-// collection or request date is kept.
+// collection or request date is kept. Missing legacy/LIS case links are enriched
+// in-memory so the patient folder can display them under the matching surveillance.
 export function samplesForAdmission(samples = [], patient, admission, { admissions = [], episodes = [] } = {}) {
   if (!patient || !admission) return []
-  return samples.filter(sample => {
-    if (!samplePatient(sample, patient)) return false
-    const linked = linkedAdmissionId(sample, episodes)
-    if (linked) return sameId(linked, admission.id)
-    const date = day(sample.collectedAt || sample.requestedAt)
-    return (!date || withinAdmission(date, admission, admissions)) && sameDepartment(sample, admission)
-  })
+  const scopedEpisodes = episodesForAdmission(episodes, admission, { admissions })
+  return samples
+    .filter(sample => {
+      if (!samplePatient(sample, patient)) return false
+      const linked = linkedAdmissionId(sample, episodes)
+      if (linked) return sameId(linked, admission.id)
+      const date = day(sample.collectedAt || sample.requestedAt)
+      return (!date || withinAdmission(date, admission, admissions)) && sameDepartment(sample, admission)
+    })
+    .map(sample => withInferredSurveillance(sample, scopedEpisodes))
 }
 
 // The patient's samples that belong to none of their admissions, so the record
