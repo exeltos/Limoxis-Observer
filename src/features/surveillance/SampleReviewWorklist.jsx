@@ -16,9 +16,6 @@ export const worklistTexts = language => language === 'en'
   ? { title: 'To review', emptyTitle: 'No samples to review', emptyText: 'New positive samples without an episode appear here until a decision is made.', saved: 'Decision saved.' }
   : { title: 'Προς έλεγχο', emptyTitle: 'Δεν υπάρχουν δείγματα προς έλεγχο', emptyText: 'Τα νέα θετικά δείγματα χωρίς επεισόδιο εμφανίζονται εδώ μέχρι να ληφθεί απόφαση.', saved: 'Η απόφαση αποθηκεύτηκε.' }
 
-// «Προς έλεγχο»: the positive/alert samples that have no episode and no decision yet.
-// The two actions live here only (one action, one place): open an episode from the
-// sample, or record that no surveillance is needed, with a reason.
 export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode, onOpenEpisode, onDecide }) {
   const en = language === 'en'
   const [deciding, setDeciding] = useState(null)
@@ -44,7 +41,7 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
               <small>{[sample.patientId, en ? sample.departmentEn : sample.department].filter(Boolean).join(' · ') || '—'}</small>
             </td>
             <td>
-              <strong>{sampleTypeLabel(sample.type, t)}</strong>
+              <strong>{sampleTypeLabel(sample, t, language)}</strong>
               <small>{[formatDateTime(sample.collectedAt || sample.requestedAt, language), sample.id].join(' · ')}</small>
             </td>
             <td>
@@ -83,7 +80,6 @@ export function SampleReviewWorklist({ rows, empty, language, t, canOpenEpisode,
   )
 }
 
-// «Δεν χρειάζεται επιτήρηση»: the reason is required (contamination, colonisation, known case, other).
 export function NoSurveillanceDialog({ sample, language, onClose, onSave }) {
   const en = language === 'en'
   const [reason, setReason] = useState('')
@@ -128,7 +124,6 @@ export function NoSurveillanceDialog({ sample, language, onClose, onSave }) {
   )
 }
 
-// The plain-word tag a decided sample carries (Laboratory list and sample record).
 export function SampleReviewTag({ label }) {
   if (!label) return null
   return <StatusBadge tone="neutral">{label}</StatusBadge>
