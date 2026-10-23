@@ -4,33 +4,32 @@ import { demoLibrarySeed } from '../src/features/management/managementData'
 import { EMPLOYEE_SCREENING_TYPES, ENVIRONMENTAL_SAMPLE_TYPES, PATIENT_SAMPLE_TYPES, patientSampleSources, patientSampleTypeOptions, sampleSourceLabel } from '../src/features/laboratory/laboratoryReferenceData'
 import { laboratoryStatusTone } from '../src/features/laboratory/LaboratoryStatus'
 
-const sampleTypes = demoLibrarySeed.sampleTypes.map(([el, en]) => ({ value: el, el, en }))
+const sampleTypes = demoLibrarySeed.sampleTypes.map(([el, en, meta]) => ({ id: meta?.id || null, value: el, code: meta?.code || null, el, en, meta: meta || {} }))
 const t = key => `t:${key}`
 
-// The new laboratory sample takes its lists from the central libraries and
-// shared constants; what a sample stores stays the same codes as before.
 describe('laboratory reference lists', () => {
-  it('maps the Sample types library onto the stored patient sample types', () => {
+  it('uses the Sample types library as the patient specimen list while keeping technical categories', () => {
     const options = patientSampleTypeOptions(sampleTypes, 'el', t)
-    const byName = Object.fromEntries(options.map(option => [option.value, option]))
-    expect(byName['Αίμα']).toMatchObject({ type: 'bloodCulture', source: '' })
-    expect(byName['Ούρα']).toMatchObject({ type: 'urineCulture' })
-    expect(byName.BAL).toMatchObject({ type: 'respiratorySample', source: 'bal' })
-    expect(byName['Βαθύς ιστός']).toMatchObject({ type: 'woundCulture', source: 'deepTissue' })
-    // Environmental and unmapped library names are not patient sample types.
-    expect(byName['Επιφάνεια']).toBeUndefined()
-    expect(byName['ΕΝΥ']).toBeUndefined()
+    const byLabel = Object.fromEntries(options.map(option => [option.label, option]))
+    expect(byLabel['Αίμα']).toMatchObject({ type: 'bloodCulture', source: '' })
+    expect(byLabel['Ούρα']).toMatchObject({ type: 'urineCulture' })
+    expect(byLabel.BAL).toMatchObject({ type: 'respiratorySample', source: 'bal' })
+    expect(byLabel['ΕΝΥ']).toMatchObject({ type: 'specimen' })
+    expect(byLabel['Κόπρανα']).toMatchObject({ type: 'specimen' })
+    // Environmental specimens stay in environmental surveillance, not patient choices.
+    expect(byLabel['Επιφάνεια']).toBeUndefined()
+    expect(byLabel['Νερό']).toBeUndefined()
     for (const option of options) {
-      const type = PATIENT_SAMPLE_TYPES.find(row => row.id === option.type)
-      expect(type).toBeTruthy()
-      if (option.source) expect(type.sources).toContain(option.source)
+      expect(PATIENT_SAMPLE_TYPES.some(row => row.id === option.type)).toBe(true)
     }
     expect(patientSampleTypeOptions(sampleTypes, 'en', t).find(option => option.type === 'urineCulture').label).toBe('Urine')
   })
 
-  it('falls back to the four stored types while the library is empty', () => {
-    expect(patientSampleTypeOptions([], 'el', t)).toEqual(PATIENT_SAMPLE_TYPES.map(type => ({ value: type.id, label: `t:${type.id}`, type: type.id, source: '' })))
+  it('falls back to the four legacy technical types while the library is empty', () => {
+    const fallback = PATIENT_SAMPLE_TYPES.filter(type => !['specimen', 'surveillanceSpecimen'].includes(type.id)).map(type => ({ value: type.id, label: `t:${type.id}`, type: type.id, source: '', specimenTypeId: null }))
+    expect(patientSampleTypeOptions([], 'el', t)).toEqual(fallback)
     expect(patientSampleSources('urineCulture')).toEqual(['midstream', 'urinaryCatheter', 'nephrostomy', 'suprapubicCatheter', 'other'])
+    expect(patientSampleSources('specimen')).toEqual([])
     expect(patientSampleSources('')).toEqual([])
   })
 
