@@ -31,7 +31,10 @@ describe('demo / production isolation',()=>{
   })
 
   it('routes both demo and production clinical records to the canonical record implementation',()=>{
-    expect(patientRoute).toContain('<PatientClinicalCanonicalPage patientMode={patientMode}/>')
+    expect(patientRoute).toContain('<PatientClinicalCanonicalPage patientMode />')
+    expect(patientRoute).toContain('<PatientClinicalCanonicalPage />')
+    expect(patientRoute).toContain("location.state?.limoxisFrom?.registry === 'surveillance-patients'")
+    expect(patientRoute).toContain('to={`/patients/${target.patientRecordId}`}')
     expect(patientRoute).not.toContain('PatientClinicalCloudRecordPage')
     expect(patientRoute).not.toContain('PatientClinicalRecordPage')
     expect(canonicalPatientRecord).toContain('createClinicalRepository')
