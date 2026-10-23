@@ -16,12 +16,13 @@ export const INCIDENT_CLASSES = [
 
 export const SEVERITIES = ['low', 'medium', 'high', 'critical']
 
-// What is being reported: a patient-safety (clinical) incident, a non-clinical
-// one (equipment, facility, staff safety…), a complaint, or a suggestion for
-// improvement. One form, one register (ISO 9001 §10.2, JCI QPS).
+// A member of staff submits a neutral report. Quality then classifies it as a
+// clinical/non-clinical incident, complaint or suggestion. A deviation is a
+// linked quality_finding, not a choice the reporter has to understand.
 export const REPORT_KINDS = [
+  { value: 'report', label: ['Αναφορά προς αξιολόγηση', 'Report to assess'], hint: ['Η Ποιότητα θα αξιολογήσει και θα ταξινομήσει την αναφορά.', 'Quality will assess and classify the report.'] },
   { value: 'clinical', label: ['Κλινικό συμβάν', 'Clinical incident'], hint: ['Ασφάλεια ασθενούς: φάρμακο, πτώση, λοίμωξη, ταυτοποίηση…', 'Patient safety: medication, fall, infection, identification…'] },
-  { value: 'nonClinical', label: ['Μη κλινικό', 'Non-clinical'], hint: ['Εξοπλισμός, εγκαταστάσεις, ασφάλεια προσωπικού, προμηθευτής…', 'Equipment, facility, staff safety, supplier…'] },
+  { value: 'nonClinical', label: ['Μη κλινικό συμβάν', 'Non-clinical incident'], hint: ['Εξοπλισμός, εγκαταστάσεις, ασφάλεια προσωπικού, προμηθευτής…', 'Equipment, facility, staff safety, supplier…'] },
   { value: 'complaint', label: ['Παράπονο', 'Complaint'], hint: ['Ασθενούς ή συνοδού: φροντίδα, επικοινωνία, αναμονή, καθαριότητα', 'From a patient or relative: care, communication, waiting, cleanliness'] },
   { value: 'suggestion', label: ['Πρόταση βελτίωσης', 'Improvement idea'], hint: ['Μια ιδέα για να γίνει κάτι καλύτερα ή πιο ασφαλές', 'An idea to make something better or safer'] },
 ]
@@ -51,7 +52,7 @@ export function rcaDueDate(date) {
 export const FINDING_SOURCES = [
   { value: 'manual', label: ['Χειροκίνητη καταχώρηση', 'Manual entry'] },
   { value: 'audit', label: ['Επιθεώρηση', 'Audit'] },
-  { value: 'incident', label: ['Συμβάν', 'Incident'] },
+  { value: 'incident', label: ['Αναφορά / συμβάν', 'Report / incident'] },
   { value: 'control', label: ['Έλεγχος', 'Control'] },
 ]
 
@@ -104,7 +105,7 @@ export function incidentCategoryOptions(items = [], language = 'el', kind = null
   const source = items.length ? items : DEFAULT_INCIDENT_CATEGORIES.map(([key, el, en]) => ({ value: el, code: incidentCategoryCode(key), el, en }))
   return source
     .map(item => ({ value: incidentCategoryValue(item), label: libraryLabel(item, language), keywords: `${item.el} ${item.en}` }))
-    .filter(option => !kind || !categoryKind(option.value) || categoryKind(option.value) === kind)
+    .filter(option => !kind || kind === 'report' || !categoryKind(option.value) || categoryKind(option.value) === kind)
 }
 
 export function incidentCategoryLabel(value, items = [], language = 'el') {
