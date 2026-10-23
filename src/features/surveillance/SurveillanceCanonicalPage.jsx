@@ -79,7 +79,6 @@ const reviewState = row =>
       ? 'overdue'
       : 'inProgress'
 const isEnvironmental = isEnvironmentalSample
-// The section tab (core/navigation/sectionTabs.js) that opens each list.
 const SECTION_MODES = { episodes: 'patients', employees: 'employees', environmental: 'environmental' }
 const unique = values => [...new Set(values.filter(Boolean))]
 
@@ -102,7 +101,6 @@ export function SurveillanceCanonicalPage() {
     { notify, notifyError } = useFeedback()
   const restored = location.state?.surveillanceView || {}
   const restoredMode = restored.mode === 'batches' ? 'employees' : restored.mode
-  // Inside the merged «Surveillance» section the section's tabs choose the list.
   const section = useSectionTabs()
   const sectionMode = section ? SECTION_MODES[section.value] || null : null
   const [patients, setPatients] = useState([]),
@@ -111,9 +109,6 @@ export function SurveillanceCanonicalPage() {
     [environmentRows, setEnvironmentRows] = useState([]),
     [loading, setLoading] = useState(true)
   const { departments } = useDepartments()
-  // Clicking a summary card narrows the patient list to it; clicking it again clears it.
-  // The «to review» card (quick key 'review') swaps the episode list for the sample worklist;
-  // the home card opens it with ?review=1.
   const [quick, setQuick] = useState(() =>
     new URLSearchParams(location.search).get('review') === '1' ? 'review' : null,
   )
@@ -126,9 +121,7 @@ export function SurveillanceCanonicalPage() {
     [pageSize, setPageSize] = useState(restored.pageSize || 15),
     [creation, setCreation] = useState(null),
     [resample, setResample] = useState(null)
-  // N3: episodes with an open protocol carry the "Sepsis" badge in the list.
   const [openRuns, setOpenRuns] = useState([])
-  // The epidemiological questionnaires: an active episode without its core answers shows a grey reminder.
   const epiIndex = useEpiIndex({ organizationId: tenant?.id, isDemo, enabled: canWriteEpi(role) })
   useEffect(() => {
     let alive = true
@@ -145,14 +138,11 @@ export function SurveillanceCanonicalPage() {
     if (sectionMode) setMode(sectionMode)
   }, [sectionMode])
   const registry = useRegistryMemory(`surveillance-${mode}`),
-    // Only the demo reads its samples through the registry; in production the
-    // environmental rows come from the one laboratory read in load() below.
     laboratoryRegistry = useLaboratoryRegistry({ enabled: isDemo })
   const clinical = useMemo(
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
     [isDemo, tenant?.id, actor],
   )
-  // Review worklist: only the infection-control roles decide on a sample.
   const canReview = canReviewSamples(role || actualRole)
   const awaitingReview = useSamplesAwaitingReview({ enabled: canReview && Boolean(tenant?.id || isDemo) })
   const reviewRows = useMemo(() => {
@@ -173,13 +163,8 @@ export function SurveillanceCanonicalPage() {
     isDemo,
     canSeeSensitiveEmployeeHealth,
   })
-  // Loading starts true; a reload (the laboratory list arriving, a save) keeps the
-  // rows on screen instead of blinking back to the placeholders.
   const load = useCallback(async () => {
     try {
-      // The episode, staff and laboratory reads start together: one line per
-      // episode and only the environmental samples. The patient roster is read
-      // when a new episode is started (below).
       const rest =
         !isDemo && tenant?.id
           ? Promise.allSettled([
@@ -306,7 +291,6 @@ export function SurveillanceCanonicalPage() {
       ),
     [mode, cases, employeeRows, environmentRows, language],
   )
-  // The counts follow the list: the episodes the user may open, as the rows below.
   const activeCases = cases.filter(x => x.status === 'active' && canAccessRecord(x)),
     active = activeCases.length,
     due = activeCases.filter(x => reviewState(x) === 'overdue').length,
@@ -317,7 +301,6 @@ export function SurveillanceCanonicalPage() {
   const employeeKpis = isDemo
     ? getDemoEmployeeSurveillanceKpis()
     : getCloudEmployeeSurveillanceKpis(employeeRows)
-  // Out-of-limit results count as critical findings, as the rows mark them "Action needed".
   const environmentKpis = {
     ...getEnvironmentalKpis(environmentRows),
     critical: environmentRows.filter(x => x.critical || environmentalNeedsAction(x)).length,
@@ -336,7 +319,6 @@ export function SurveillanceCanonicalPage() {
       rows.map(x => String(x.id)),
       { returnState: { surveillanceView: saveView() } },
     )
-  // A staff screening opens its record page (/surveillance/staff/:id), like the episodes.
   const openEmployee = item =>
     registry.openRecord(
       navigate,
@@ -345,9 +327,6 @@ export function SurveillanceCanonicalPage() {
       rows.map(x => String(x.recordId || x.id)),
       { returnState: { surveillanceView: saveView() } },
     )
-  // Empty lists say why: nothing recorded yet, or nothing matches the search
-  // or filters (cancelled episodes, hidden by default, count as records). The
-  // «press Create» hint shows only to those who see the Create button.
   const recorded =
     {
       patients: cases.filter(canAccessRecord),
@@ -361,7 +340,6 @@ export function SurveillanceCanonicalPage() {
     action: UI_ACTIONS.CREATE,
     resourceCapability: CAPABILITIES.CREATE_SURVEILLANCE,
   })
-  // «Create» opens the form of what the open tab lists.
   const startCreation = kind => {
     if (kind === 'employees' || kind === 'employee') {
       if (canEmployees) setCreation('employee')
@@ -487,7 +465,6 @@ export function SurveillanceCanonicalPage() {
       title={t('clinicalRecords.surveillanceCenter')}
       subtitle={t('surveillanceSubtitleV051')}
       actions={
-        // One button that creates what the open tab lists.
         <div className="record-actions">
             <ExportMenu onExcel={filtered.length ? () => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) })) : undefined} disabled={!filtered.length} />
             {canCreate && (
@@ -503,127 +480,40 @@ export function SurveillanceCanonicalPage() {
         <div className="module-summary-strip">
           {mode === 'employees' ? (
             <>
-              <SummaryMetric
-                loading={loading}
-                icon={Activity}
-                label={t('clinicalRecords.activeEmployeeScreenings')}
-                value={employeeKpis.active}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={Microscope}
-                label={t('clinicalRecords.positiveEmployeeScreenings')}
-                value={employeeKpis.positive}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={AlertTriangle}
-                label={t('clinicalRecords.needsIntervention')}
-                value={employeeKpis.needsIntervention}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={Clock3}
-                label={t('clinicalRecords.needsRecheck')}
-                value={employeeKpis.needsRecheck}
-              />
+              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active} />
+              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive} />
+              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention} />
+              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck} />
             </>
           ) : mode === 'environmental' ? (
             <>
-              <SummaryMetric
-                loading={loading}
-                icon={Activity}
-                label={t('clinicalRecords.activeEnvironmentalSampling')}
-                value={environmentKpis.active}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={Clock3}
-                label={t('clinicalRecords.pendingEnvironmentalLab')}
-                value={environmentKpis.pendingLab}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={Microscope}
-                label={t('clinicalRecords.positiveEnvironmentalPoints')}
-                value={environmentKpis.positive}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={AlertTriangle}
-                label={t('clinicalRecords.criticalEnvironmentalFindings')}
-                value={environmentKpis.critical}
-              />
+              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} />
+              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} />
+              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentKpis.positive} />
+              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} />
             </>
           ) : (
             <>
               {canReview && (
-                <SummaryMetric
-                  loading={awaitingReview.loading}
-                  icon={ClipboardCheck}
-                  label={worklistTexts(language).title}
-                  value={awaitingReview.rows.filter(canAccessRecord).length}
-                  quickKey="review"
-                  quick={quick}
-                  onQuick={setQuick}
-                />
+                <SummaryMetric loading={awaitingReview.loading} icon={ClipboardCheck} label={worklistTexts(language).title} value={awaitingReview.rows.filter(canAccessRecord).length} quickKey="review" quick={quick} onQuick={setQuick} />
               )}
-              <SummaryMetric
-                loading={loading}
-                icon={Activity}
-                label={t('activeSurveillance')}
-                value={active}
-                quickKey="active"
-                quick={quick}
-                onQuick={setQuick}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={Clock3}
-                label={t('clinicalRecords.needsReview')}
-                value={due}
-                quickKey="due"
-                quick={quick}
-                onQuick={setQuick}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={AlertTriangle}
-                label={t('clinicalRecords.activeIsolation')}
-                value={isolation}
-                quickKey="isolation"
-                quick={quick}
-                onQuick={setQuick}
-              />
-              <SummaryMetric
-                loading={loading}
-                icon={Microscope}
-                label={t('clinicalRecords.mdrXdr')}
-                value={resistant}
-                quickKey="resistant"
-                quick={quick}
-                onQuick={setQuick}
-              />
+              <SummaryMetric loading={loading} icon={Activity} label={t('activeSurveillance')} value={active} quickKey="active" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsReview')} value={due} quickKey="due" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation} quickKey="isolation" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant} quickKey="resistant" quick={quick} onQuick={setQuick} />
             </>
           )}
         </div>
       </div>
       {!section && (
-        <CanonicalTabs
-          items={tabItems}
-          value={mode}
-          onChange={setMode}
-          ariaLabel={t('surveillanceCategoriesAria')}
-        />
+        <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
       )}
       <div className="surface registry-workspace workspace-fill">
         <FilterBar
           query={query}
           onQueryChange={setQuery}
           placeholder={t('search')}
-          activeAdvancedCount={
-            (department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)
-          }
+          activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)}
           onClear={() => {
             setQuery('')
             setDepartment('all')
@@ -634,11 +524,7 @@ export function SurveillanceCanonicalPage() {
             <>
               <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
                 <option value="all">{t('allDepartments')}</option>
-                {departmentNames.map(x => (
-                  <option key={x} value={x}>
-                    {x}
-                  </option>
-                ))}
+                {departmentNames.map(x => <option key={x} value={x}>{x}</option>)}
               </FilterSelect>
               <FilterSelect label={t('status')} value={status} onChange={setStatus}>
                 <option value="all">{t('all')}</option>
@@ -650,19 +536,13 @@ export function SurveillanceCanonicalPage() {
               </FilterSelect>
               <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}>
                 <option value="all">{t('svPeriodAll')}</option>
-                {PERIOD_DAYS.map(days => (
-                  <option key={days} value={String(days)}>
-                    {t(`svPeriod${days}`)}
-                  </option>
-                ))}
+                {PERIOD_DAYS.map(days => <option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}
               </FilterSelect>
             </>
           }
         />
         {showWorklist ? (
-          awaitingReview.loading ? (
-            <TableSkeleton />
-          ) : (
+          awaitingReview.loading ? <TableSkeleton /> : (
             <SampleReviewWorklist
               rows={reviewRows}
               empty={{ title: worklistTexts(language).emptyTitle, text: worklistTexts(language).emptyText }}
@@ -685,30 +565,10 @@ export function SurveillanceCanonicalPage() {
               }}
             />
           )
-        ) : loading ? (
-          <TableSkeleton />
-        ) : mode === 'patients' ? (
-          <PatientRows
-            rows={rows}
-            openRuns={openRuns}
-            epiIndex={epiIndex}
-            empty={empty}
-            registry={registry}
-            t={t}
-            language={language}
-            fmt={fmt}
-            onOpen={openCase}
-          />
+        ) : loading ? <TableSkeleton /> : mode === 'patients' ? (
+          <PatientRows rows={rows} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
         ) : mode === 'employees' ? (
-          <EmployeeRows
-            rows={rows}
-            empty={empty}
-            registry={registry}
-            language={language}
-            fmt={fmt}
-            t={t}
-            onOpen={openEmployee}
-          />
+          <EmployeeRows rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} />
         ) : (
           <EnvironmentalRegistry
             rows={rows}
@@ -717,23 +577,11 @@ export function SurveillanceCanonicalPage() {
             t={t}
             language={language}
             fmt={fmt}
-            onOpenSample={id =>
-              registry.openRecord(
-                navigate,
-                `/surveillance/environment/${id}`,
-                String(id),
-                filtered.map(x => String(x.code || x.id)),
-                { returnState: { surveillanceView: saveView() } },
-              )
-            }
-            onResample={
-              canEnvironment
-                ? row => {
-                    setResample(environmentalResampleInitial(row, environmentDepartmentOptions))
-                    setCreation('environmental')
-                  }
-                : undefined
-            }
+            onOpenSample={id => registry.openRecord(navigate, `/surveillance/environment/${id}`, String(id), filtered.map(x => String(x.code || x.id)), { returnState: { surveillanceView: saveView() } })}
+            onResample={canEnvironment ? row => {
+              setResample(environmentalResampleInitial(row, environmentDepartmentOptions))
+              setCreation('environmental')
+            } : undefined}
             highlightId={registry.highlightId}
             scrollRef={registry.scrollRef}
           />
@@ -753,17 +601,8 @@ export function SurveillanceCanonicalPage() {
           />
         )}
       </div>
-      {creation === 'patient' && (
-        <NewSurveillanceFlow
-          patients={patients}
-          onPatientsChange={setPatients}
-          onClose={() => setCreation(null)}
-          onCreate={createPatient}
-        />
-      )}
-      {creation === 'employee' && canEmployees && (
-        <EmployeeSurveillanceFlow onClose={() => setCreation(null)} onCreated={load} />
-      )}
+      {creation === 'patient' && <NewSurveillanceFlow patients={patients} onPatientsChange={setPatients} onClose={() => setCreation(null)} onCreate={createPatient} />}
+      {creation === 'employee' && canEmployees && <EmployeeSurveillanceFlow onClose={() => setCreation(null)} onCreated={load} />}
       {creation === 'environmental' && canEnvironment && (
         <EnvironmentalSurveillanceFlow
           isDemo={isDemo}
@@ -786,8 +625,6 @@ export function SurveillanceCanonicalPage() {
   )
 }
 
-// One row per patient: cancelled/voided episodes are hidden unless explicitly
-// filtered, and a patient with several episodes is summarised on a single line.
 const HIDDEN_CASE_STATUSES = new Set(['cancelled', 'voided', 'void'])
 function groupByPatient(list) {
   const groups = new Map()
@@ -804,14 +641,24 @@ function groupByPatient(list) {
           String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
       )
       const active = ordered.filter(x => x.status === 'active')
-      const reviews = active
-        .map(x => x.reviewDue)
-        .filter(Boolean)
-        .sort()
+      const reviews = active.map(x => x.reviewDue).filter(Boolean).sort()
+      const explicitSampleCounts = ordered
+        .map(x => x.sampleCount)
+        .filter(value => value != null && Number.isFinite(Number(value)))
+      const linkedSampleCount = new Set(
+        ordered.flatMap(x =>
+          (x.samples || [])
+            .map(sample => sample.recordId || sample.id)
+            .filter(Boolean),
+        ),
+      ).size
       return {
         ...ordered[0],
         episodes: ordered,
         activeCount: active.length,
+        sampleCount: explicitSampleCounts.length
+          ? Math.max(...explicitSampleCounts.map(Number))
+          : linkedSampleCount,
         groupReviewDue: reviews[0] || ordered[0].reviewDue,
       }
     })
@@ -821,10 +668,10 @@ function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-function episodeSummary(x, t) {
-  const total = x.episodes?.length || 1
-  const active = x.activeCount ?? (x.status === 'active' ? 1 : 0)
-  return `${total} ${t(total === 1 ? 'svEpisodeOne' : 'svEpisodeMany')}${active ? ` · ${active} ${t(active === 1 ? 'svActiveOne' : 'svActiveMany')}` : ''}`
+function cultureSummary(x, language) {
+  const total = Number(x.sampleCount) || 0
+  if (language === 'en') return `${total} ${total === 1 ? 'culture' : 'cultures'}`
+  return `${total} ${total === 1 ? 'καλλιέργεια' : 'καλλιέργειες'}`
 }
 function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
@@ -860,7 +707,7 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
             <td>
               <strong>{language === 'el' ? x.patient : x.patientEn}</strong>
               <small>
-                {x.patientId || '—'} · {episodeSummary(x, t)}
+                {x.patientId || '—'} · {cultureSummary(x, language)}
               </small>
               <ProtocolBadge entry={openRunOf(x)} t={t} language={language} />
             </td>
@@ -873,18 +720,10 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
             <td>
               <StatusBadge tone={statusTone(x.status)}>{t(x.status)}</StatusBadge>
               {(x.episodes || [x]).some(ep => epiPending(epiIndex, ep)) && (
-                <small className="epi-row-line">
-                  <EpiReminder />
-                </small>
+                <small className="epi-row-line"><EpiReminder /></small>
               )}
             </td>
-            <td>
-              {x.status === 'active' ? (
-                <DueDate value={x.groupReviewDue ?? x.reviewDue} format={fmt} />
-              ) : (
-                '—'
-              )}
-            </td>
+            <td>{x.status === 'active' ? <DueDate value={x.groupReviewDue ?? x.reviewDue} format={fmt} /> : '—'}</td>
           </>
         )}
       />
@@ -898,26 +737,11 @@ function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
       <RegistryTable
         bare
         columns={[
-          {
-            key: 'name',
-            label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el'),
-          },
-          {
-            key: 'department',
-            label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el'),
-          },
-          {
-            key: 'date',
-            label: translate('copy.surveillanceCopy.started', language === 'en' ? 'en' : 'el'),
-          },
-          {
-            key: 'screening',
-            label: translate('copy.surveillanceCopy.screening', language === 'en' ? 'en' : 'el'),
-          },
-          {
-            key: 'result',
-            label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el'),
-          },
+          { key: 'name', label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el') },
+          { key: 'department', label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el') },
+          { key: 'date', label: translate('copy.surveillanceCopy.started', language === 'en' ? 'en' : 'el') },
+          { key: 'screening', label: translate('copy.surveillanceCopy.screening', language === 'en' ? 'en' : 'el') },
+          { key: 'result', label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el') },
           { key: 'status', label: t('status') },
         ]}
         rows={rows}
@@ -940,26 +764,15 @@ function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
             </td>
             <td>{language === 'en' ? x.departmentEn : x.department}</td>
             <td>{fmt(x.startedAt)}</td>
-            <td>
-              {(x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', ') || '—'}
-            </td>
-            <td>
-              <StatusBadge tone={statusTone(x.resultStatus || 'pending')}>
-                {t(x.resultStatus || 'pending')}
-              </StatusBadge>
-            </td>
-            <td>
-              <EmployeeStatusBadge row={x} t={t} />
-            </td>
+            <td>{(x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', ') || '—'}</td>
+            <td><StatusBadge tone={statusTone(x.resultStatus || 'pending')}>{t(x.resultStatus || 'pending')}</StatusBadge></td>
+            <td><EmployeeStatusBadge row={x} t={t} /></td>
           </>
         )}
       />
     </div>
   )
 }
-// The record's follow-up state, from the same fields as the employee summary counts:
-// a positive screening without a recorded intervention or re-check (or a re-check
-// that is due) still needs follow-up.
 const POSITIVE_EMPLOYEE_RESULTS = ['positive', 'positive_recheck']
 const CLOSED_EMPLOYEE_STATUSES = ['cancelled', 'voided', 'void']
 function employeeFollowupState(row) {
@@ -972,19 +785,13 @@ function employeeFollowupState(row) {
     !row.noIntervention &&
     !['completed', 'recorded', 'in_progress'].includes(row.interventionStatus)
   const recheckMissing = !row.recheckDate && !row.recheckDue && !row.noRecheck
-  const recheckDue =
-    row.status === 'active' && row.recheckDue && String(row.recheckDue).slice(0, 10) <= today
-  if ((positive && (interventionOpen || interventionMissing || recheckMissing)) || recheckDue)
-    return 'needsFollowup'
+  const recheckDue = row.status === 'active' && row.recheckDue && String(row.recheckDue).slice(0, 10) <= today
+  if ((positive && (interventionOpen || interventionMissing || recheckMissing)) || recheckDue) return 'needsFollowup'
   return row.status === 'active' ? 'active' : 'completed'
 }
 function EmployeeStatusBadge({ row, t }) {
   const state = employeeFollowupState(row)
-  return (
-    <StatusBadge tone={statusTone(state)}>
-      {state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}
-    </StatusBadge>
-  )
+  return <StatusBadge tone={statusTone(state)}>{state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}</StatusBadge>
 }
 function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick, loading = false }) {
   return (
@@ -994,24 +801,16 @@ function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick, loa
       icon={Icon}
       label={label}
       value={value}
-      onClick={
-        quickKey && onQuick ? () => onQuick(quick === quickKey ? null : quickKey) : undefined
-      }
+      onClick={quickKey && onQuick ? () => onQuick(quick === quickKey ? null : quickKey) : undefined}
       active={Boolean(quickKey) && quick === quickKey}
     />
   )
 }
-// The same rules as the summary counts above the list.
 function matchesQuick(x, quick) {
   const active = x.status === 'active'
   if (quick === 'active') return active
   if (quick === 'due') return active && reviewState(x) === 'overdue'
-  if (quick === 'isolation')
-    return (
-      active &&
-      Boolean(x.isolation) &&
-      !['ended', 'completed', 'closed'].includes(x.isolation.status)
-    )
+  if (quick === 'isolation') return active && Boolean(x.isolation) && !['ended', 'completed', 'closed'].includes(x.isolation.status)
   if (quick === 'resistant') return active && Boolean(latestResistance(x))
   return true
 }
