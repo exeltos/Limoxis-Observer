@@ -18,6 +18,8 @@ const RULES = [
   [/υγιειν\S* χεριων/, ['hh-compliance']],
   [/bundle|δεσμ\S* μετρ/, ['bundle-compliance']],
   [/ενδονοσοκομειακ|νοσοκομειακ\S* λοιμωξ|λοιμογον|(^|\s)εελ(\s|$)|επιδημ/, ['hai-prevalence-pps', 'hh-compliance', 'bundle-compliance']],
+  [/πτωσ\S* (ασθεν|νοσηλευ)|patient fall/, ['patient-falls-per-1000-patient-days']],
+  [/(λανθασμεν|λαθος|σφαλμ|ανεπιθυμητ)\S*.*φαρμακ|φαρμακ\S*.*(λανθασμεν|λαθος|σφαλμ|ανεπιθυμητ)/, ['medication-incidents-per-1000-patient-days']],
   [/αντιβιοτ|αντιμικροβ/, ['antibiotic-ddd-per-100-patient-days']],
   [/εμβολιασ/, ['vaccination-coverage']],
   [/ικανοποιησ\S* (ασθεν|ενδιαφερομεν)|patient satisfaction/, ['patient-satisfaction']],
