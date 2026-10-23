@@ -30,10 +30,10 @@ import './quality.css'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 
-const config={findings:{icon:ShieldCheck,title:'newFinding'},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
+const config={findings:{icon:ShieldCheck,title:['Νέα απόκλιση','New deviation']},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
 
-// A new incident is the staff report form; findings, CAPA and audits are
-// created here by the Quality team.
+// A new incident route is the neutral staff report form. Deviations, CAPA and
+// audits are governed records created by the Quality team.
 export function QualityCreatePage(){
   const {recordType}=useParams()
   if(recordType==='incidents')return <IncidentReportPage/>
@@ -42,7 +42,7 @@ export function QualityCreatePage(){
 
 const initialStatus={findings:'open',capas:'open',audits:'planned'}
 
-// What another screen (a deviation, a risk, the calendar, an incident) hands to the form.
+// What another screen (a pending deviation, risk, calendar or incident) hands to the form.
 function prefillFrom(source){
   if(!source)return {}
   return Object.fromEntries(Object.entries({source:source.source,sourceId:source.sourceId,departmentId:source.departmentId,department:source.department,departmentEn:source.departmentEn,title:source.title,titleEn:source.title,description:source.description,descriptionEn:source.description,priority:source.priority,subActions:Array.isArray(source.subActions)?source.subActions:undefined,dueDate:source.dueDate,plannedDate:source.plannedDate}).filter(([,value])=>value!==undefined&&value!==null&&value!==''))
@@ -50,12 +50,12 @@ function prefillFrom(source){
 
 function QualityRecordCreate({recordType}){
   const location=useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const {user,profile}=useAuth();const {role,membership,tenant,actualRole,isRolePreview}=useTenant();const c=config[recordType];const Icon=c.icon
+  const pageTitle=Array.isArray(c.title)?c.title[en?1:0]:t(c.title)
   const [saving,setSaving]=useState(false)
   const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',standard:'',templateId:null,clausesScope:[],team:[],riskLevel:'medium',frequencyMonths:12,plannedMonthOnly:false,...prefillFrom(location.state?.qualitySource)}))
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const patch=next=>setDraft(x=>({...x,...next}))
   const titleKey=en?'titleEn':'title';const textKey=recordType==='audits'?(en?'scopeEn':'scope'):(en?'descriptionEn':'description')
-  // An audit takes its questionnaire from the library; the lead auditor may not audit their own department.
   const {templates}=useAuditTemplates(recordType==='audits'?tenant?.id:false)
   const competence=useAuditorCompetence(recordType==='audits'?tenant?.id:false)
   const blocked=recordType==='audits'&&independenceBlocks(draft.team||[],{id:draft.departmentId,name:draft.department})
@@ -65,7 +65,7 @@ function QualityRecordCreate({recordType}){
   if(!canManage)return <Navigate to="/quality" replace/>
   const sourceText={emptyLabel:en?'No match':'Δεν βρέθηκε',clearLabel:en?'Clear':'Καθαρισμός'}
   const steps=draft.subActions?.length>0&&recordType==='capas'&&<FormCard wide icon={ListChecks} title={String(draft.sourceId||'').startsWith('TRAINING:')?(en?'Suggested steps':'Προτεινόμενα βήματα'):en?'Steps from the control’s actions on deviation':'Βήματα από τις ενέργειες σε απόκλιση του ελέγχου'} hint={en?'Assign owners and due dates in the Steps tab after saving.':'Υπεύθυνους και προθεσμίες ορίζετε στην καρτέλα «Βήματα» μετά την αποθήκευση.'}><ol className="quality-prefill-steps">{draft.subActions.map(step=><li key={step.id}>{step.title}</li>)}</ol></FormCard>
-  return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={t('quality')} title={t(c.title)} subtitle={t('qualityRecords.newQualityRecord')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
+  return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Icon size={19}/>} eyebrow={t('quality')} title={pageTitle} subtitle={t('qualityRecords.newQualityRecord')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={goBack}>
     <div className="record-section quality-create-form">{recordType==='audits'?<div className="lo-form-cards audit-plan-form">
       <AuditPlanFields draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language}/>
       <FormCard wide title={t('qualityRecords.auditScope')}>
@@ -86,7 +86,7 @@ function QualityRecordCreate({recordType}){
       </FormCard>
       <FormCard title={recordType==='audits'?(en?'Planning':'Προγραμματισμός'):(en?'Responsibility':'Ευθύνη')} icon={UserCheck}>
         {recordType==='audits'?<><QualityPersonField label={t('leadAuditor')} name={draft.leadAuditor} department={draft.department} onChange={({name,userId})=>patch({leadAuditor:name,leadAuditorId:userId})}/><ManualDateField label={t('plannedDate')} value={draft.plannedDate} onChange={v=>set('plannedDate',v)}/></>:<QualityOwnerField record={draft} onChange={patch}/>}
-        {recordType==='findings'&&<FormGrid columns={2}><SearchableSelect label={t('source')} value={draft.source} options={vocabularyOptions(FINDING_SOURCES,language)} onChange={v=>set('source',v||'manual')} {...sourceText} clearLabel=""/><Field label={t('qualityRecords.sourceId')}><input value={draft.sourceId} onChange={e=>set('sourceId',e.target.value)} placeholder={en?'e.g. AUD-2608-003':'π.χ. AUD-2608-003'}/></Field></FormGrid>}
+        {recordType==='findings'&&<FormGrid columns={2}><SearchableSelect label={t('source')} value={draft.source} options={vocabularyOptions(FINDING_SOURCES,language)} onChange={v=>set('source',v||'manual')} {...sourceText} clearLabel=""/><Field label={t('qualityRecords.sourceId')}><input value={draft.sourceId} onChange={e=>set('sourceId',e.target.value)} placeholder={en?'e.g. INC-2608-003':'π.χ. INC-2608-003'}/></Field></FormGrid>}
         {recordType==='capas'&&<FormGrid columns={2}><ManualDateField label={t('dueDate')} value={draft.dueDate} onChange={v=>set('dueDate',v)}/><Field label={t('qualityRecords.sourceId')}><input value={draft.sourceId} onChange={e=>set('sourceId',e.target.value)}/></Field></FormGrid>}
       </FormCard>
       <FormCard wide title={t(recordType==='audits'?'qualityRecords.auditScope':'description')}>
