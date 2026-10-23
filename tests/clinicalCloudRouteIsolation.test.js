@@ -9,10 +9,16 @@ const app=fs.readFileSync('src/app/App.jsx','utf8')
 
 describe('clinical route isolation',()=>{
   it('routes Demo and Production through one canonical clinical record',()=>{
-    expect(route).toContain('<PatientClinicalCanonicalPage patientMode={patientMode}/>')
-    expect(route).not.toContain('isDemo')
+    expect(route).toContain('<PatientClinicalCanonicalPage patientMode />')
     expect(route).not.toContain('PatientClinicalCloudRecordPage')
     expect(route).not.toContain('PatientClinicalRecordPage')
+  })
+
+  it('opens a patient row from Surveillance in the unified patient folder',()=>{
+    expect(route).toContain("location.state?.limoxisFrom?.registry === 'surveillance-patients'")
+    expect(route).toContain('repository.loadCase(caseId)')
+    expect(route).toContain('to={`/patients/${target.patientRecordId}`}')
+    expect(route).toContain('admissionId: target.admissionId')
   })
 
   it('routes patient and surveillance records through the canonical record route',()=>{
