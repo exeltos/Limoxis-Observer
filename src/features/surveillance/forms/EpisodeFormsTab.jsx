@@ -5,7 +5,19 @@ import { FormsTabContext, useFormsTabState } from './FormSection'
 import { visibleEpisodeFormSections } from './formsRegistry'
 import './episodeForms.css'
 
-const sectionLabel = (section, t) => section.navLabel?.(t) || section.title?.(t) || t(`episodeForms.${section.id}.title`)
+const SECTION_LABEL_KEYS = {
+  bundles: 'episodeForms.bundles.title',
+  scales: 'episodeForms.scales.title',
+  notifiable: 'episodeForms.notifiable.title',
+  incidents: 'episodeForms.incidents.title',
+  epiQuestionnaire: 'epiQuestionnaire.title',
+  outbreak: 'episodeForms.outbreak.title',
+  exposureSource: 'episodeForms.exposureSource.title',
+}
+const sectionLabel = (section, t) =>
+  section.navLabel?.(t) ||
+  section.title?.(t) ||
+  t(SECTION_LABEL_KEYS[section.id] || `episodeForms.${section.id}.title`)
 
 // «Φόρμες & ερωτηματολόγια»: every form connected to the episode in one tab of collapsible
 // sections. The sections come from the registry (formsRegistry.js); this component only
@@ -21,7 +33,6 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
   )
   const { value, openSection } = useFormsTabState()
   const handled = useRef(null)
-  const navRef = useRef(null)
   const [activeSection, setActiveSection] = useState(sections[0]?.id || '')
 
   useEffect(() => {
@@ -32,8 +43,9 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
     openSection(id)
     setActiveSection(id)
     requestAnimationFrame(() => {
-      const target = document.querySelector(`.episode-forms [data-section="${id}"]`)
-      target?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+      document
+        .querySelector(`.episode-forms [data-section="${id}"]`)
+        ?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
     })
   }
 
@@ -68,7 +80,7 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
       <FormsTabContext.Provider value={value}>
         {!withoutAdmission && sections.length > 1 && (
           <div className="episode-forms-nav-shell">
-            <nav ref={navRef} className="episode-forms-nav" aria-label={t('episodeForms.title')}>
+            <nav className="episode-forms-nav" aria-label={t('episodeForms.title')}>
               {sections.map(section => {
                 const active = section.id === activeSection
                 return (
