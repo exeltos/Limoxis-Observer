@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { episodesForAdmission, sampleTone, samplesForAdmission, samplesForEpisode, stayDays } from '../src/features/surveillance/patientRecordScope'
+import {
+  episodesForAdmission,
+  inferredEpisodeForSample,
+  sampleTone,
+  samplesForAdmission,
+  samplesForEpisode,
+  stayDays,
+} from '../src/features/surveillance/patientRecordScope'
 
 const admission = { id: 'ADM-1', admissionDate: '2026-09-01', dischargeDate: '2026-09-10', departmentId: 'ICU' }
 
@@ -53,6 +60,49 @@ describe('samplesForAdmission', () => {
   it('is empty without a patient or an admission', () => {
     expect(samplesForAdmission([{ id: 'S' }], null, admission)).toEqual([])
     expect(samplesForAdmission([{ id: 'S' }], patient, null)).toEqual([])
+  })
+
+  it('places legacy/LIS samples under the matching surveillance of the same admission', () => {
+    const episodes = [
+      { id: 'BLOOD-8', admissionId: 'ADM-1', startedAt: '2026-09-02', suspectedSource: 'bloodstream' },
+      { id: 'BLOOD-9', admissionId: 'ADM-1', startedAt: '2026-09-03', suspectedSource: 'bloodstream' },
+      { id: 'GENERIC', admissionId: 'ADM-1', startedAt: '2026-09-06', reason: 'Λοίμωξη' },
+    ]
+    const samples = [
+      { id: 'URINE', patientRecordId: 'REC-1', collectedAt: '2026-09-02', departmentId: 'ICU', type: 'urineCulture', source: 'Ούρα' },
+      { id: 'BLOOD', patientRecordId: 'REC-1', collectedAt: '2026-09-03', departmentId: 'ICU', type: 'bloodCulture', source: 'Καλλιέργεια αίματος' },
+    ]
+    const scoped = samplesForAdmission(samples, patient, admission, { admissions: [admission], episodes })
+    expect(scoped.find(sample => sample.id === 'BLOOD')).toMatchObject({ surveillanceCase: 'BLOOD-9', surveillanceLinkInferred: true })
+    expect(scoped.find(sample => sample.id === 'URINE')).toMatchObject({ surveillanceCase: 'GENERIC', surveillanceLinkInferred: true })
+  })
+})
+
+describe('inferredEpisodeForSample', () => {
+  const episodes = [
+    { id: 'B1', startedAt: '2026-02-08', suspectedSource: 'bloodstream' },
+    { id: 'B2', startedAt: '2026-02-09', suspectedSource: 'bloodstream' },
+    { id: 'G', startedAt: '2026-02-12', reason: 'Λοίμωξη' },
+  ]
+
+  it('keeps an explicit case link authoritative', () => {
+    expect(inferredEpisodeForSample({ id: 'S', surveillanceCase: 'B1', type: 'bloodCulture' }, episodes)?.id).toBe('B1')
+  })
+
+  it('chooses the same-day source-compatible episode first', () => {
+    expect(inferredEpisodeForSample({ id: 'S', type: 'bloodCulture', source: 'Αίμα', collectedAt: '2026-02-09' }, episodes)?.id).toBe('B2')
+  })
+
+  it('uses a generic infection episode instead of an incompatible specific episode', () => {
+    expect(inferredEpisodeForSample({ id: 'S', type: 'urineCulture', source: 'Ούρα', collectedAt: '2026-02-08' }, episodes)?.id).toBe('G')
+  })
+
+  it('does not attach a known source to the wrong one when there are several specific episodes', () => {
+    const specific = [
+      { id: 'B', startedAt: '2026-02-08', suspectedSource: 'bloodstream' },
+      { id: 'R', startedAt: '2026-02-08', suspectedSource: 'respiratory' },
+    ]
+    expect(inferredEpisodeForSample({ id: 'S', type: 'urineCulture', collectedAt: '2026-02-08' }, specific)).toBeNull()
   })
 })
 
