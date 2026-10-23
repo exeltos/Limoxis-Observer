@@ -1,6 +1,6 @@
 const cultureLabels = {
-  el: { one: 'καλλιέργεια', many: 'καλλιέργειες' },
-  en: { one: 'culture', many: 'cultures' },
+  el: { one: 'θετική καλλιέργεια συνολικά', many: 'θετικές καλλιέργειες συνολικά' },
+  en: { one: 'positive culture total', many: 'positive cultures total' },
 }
 
 export function formatSurveillanceCultureCount(value, language = 'el') {
