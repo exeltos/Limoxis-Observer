@@ -19,24 +19,68 @@ export const sampleSourceCatalog={
   other:{label:'other',el:'Άλλο',en:'Other'},
 }
 
-// Patient specimen types: a sample stores the id (sample_type), its label is
-// t(id), and the collection sources depend on it. `library` lists the names of
-// the central «Sample types» library (Management > Libraries) that mean this
-// type, with the source a library name already implies.
+// `sample_type` remains the stable technical category used by indicators and
+// analysis. `specimen_type_id` is the clinical specimen selected from the
+// central Sample types library and is the value shown to users.
 export const PATIENT_SAMPLE_TYPES=[
   {id:'bloodCulture',sources:['peripheral','centralLine','arterialLine','other'],library:{'Αίμα':'',Blood:''}},
   {id:'urineCulture',sources:['midstream','urinaryCatheter','nephrostomy','suprapubicCatheter','other'],library:{'Ούρα':'',Urine:''}},
   {id:'respiratorySample',sources:['sputum','trachealAspirate','bal','other'],library:{'Πτύελα':'sputum',Sputum:'sputum','Τραχειακό αναρρόφημα':'trachealAspirate','Tracheal aspirate':'trachealAspirate',BAL:'bal'}},
   {id:'woundCulture',sources:['woundSwab','deepTissue','drainage','other'],library:{'Τραύμα / επίχρισμα':'woundSwab','Wound / swab':'woundSwab','Βαθύς ιστός':'deepTissue','Deep tissue':'deepTissue'}},
+  {id:'specimen',sources:[],library:{}},
+  {id:'surveillanceSpecimen',sources:[],library:{}},
 ]
 export const patientSampleSources=type=>PATIENT_SAMPLE_TYPES.find(item=>item.id===type)?.sources||[]
 
-// The sample-type choices of a new patient sample: the library's names that map
-// onto a stored type (choosing one may also fill the source), or, while the
-// library has none of them, the four stored types themselves.
+const ENVIRONMENTAL_LIBRARY_CODES=new Set(['SAMPLE-SURFACE','SAMPLE-WATER'])
+const RESPIRATORY_LIBRARY_CODES=new Set(['SAMPLE-SPUTUM','SAMPLE-BAL','SAMPLE-BRONCHIAL-SECRETIONS','SAMPLE-NASAL-SWAB','SAMPLE-THROAT-SWAB','SAMPLE-NASOPHARYNGEAL','SAMPLE-RESPIRATORY'])
+const WOUND_LIBRARY_CODES=new Set(['SAMPLE-WOUND','SAMPLE-WOUND-MATERIAL','SAMPLE-PUS','SAMPLE-DRAINAGE','SAMPLE-SUTURE'])
+
+export function technicalPatientSampleType(item={}){
+  const code=String(item.code||'').toUpperCase()
+  if(code==='SAMPLE-BLOOD')return 'bloodCulture'
+  if(code==='SAMPLE-URINE')return 'urineCulture'
+  if(RESPIRATORY_LIBRARY_CODES.has(code))return 'respiratorySample'
+  if(WOUND_LIBRARY_CODES.has(code))return 'woundCulture'
+  if(code==='SAMPLE-SURVEILLANCE')return 'surveillanceSpecimen'
+  return 'specimen'
+}
+
+function defaultSourceForSpecimen(item,type){
+  const code=String(item.code||'').toUpperCase()
+  if(code==='SAMPLE-SPUTUM')return 'sputum'
+  if(code==='SAMPLE-BAL')return 'bal'
+  if(code==='SAMPLE-WOUND')return 'woundSwab'
+  if(code==='SAMPLE-DRAINAGE')return 'drainage'
+  if(type==='bloodCulture'||type==='urineCulture')return ''
+  // For the remaining library specimens the specimen name is itself the most
+  // precise source; NewSampleCard can still add an anatomical site separately.
+  return item.el||item.value||''
+}
+
+// Patient choices come directly from Management > Libraries > Sample types.
+// Surface/water stay in environmental surveillance; no synthetic «Other» item
+// is offered for patient samples. The technical type remains separate so
+// existing indicators continue to work.
 export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
-  const mapped=items.flatMap(item=>{const type=PATIENT_SAMPLE_TYPES.find(row=>[item.el,item.en,item.value].some(name=>name in row.library));if(!type)return [];const source=type.library[item.el]??type.library[item.en]??'';const label=language==='en'?item.en||item.el:item.el;return [{value:item.value,label,description:t(type.id)!==label?t(type.id):undefined,keywords:`${item.el} ${item.en} ${t(type.id)}`,type:type.id,source}]})
-  return mapped.length?mapped:PATIENT_SAMPLE_TYPES.map(type=>({value:type.id,label:t(type.id),type:type.id,source:''}))
+  const clinical=items.filter(item=>!ENVIRONMENTAL_LIBRARY_CODES.has(String(item.code||'').toUpperCase()))
+  const mapped=clinical.map(item=>{
+    const type=technicalPatientSampleType(item)
+    const label=language==='en'?item.en||item.el:item.el
+    return {
+      value:item.id||item.meta?.id||item.value,
+      label,
+      description:t(type)!==label?t(type):undefined,
+      keywords:`${item.el} ${item.en} ${item.code||''} ${t(type)}`,
+      type,
+      source:defaultSourceForSpecimen(item,type),
+      specimenTypeId:item.id||item.meta?.id||null,
+      specimenCode:item.code||null,
+      specimenEl:item.el,
+      specimenEn:item.en||item.el,
+    }
+  })
+  return mapped.length?mapped:PATIENT_SAMPLE_TYPES.filter(type=>!['specimen','surveillanceSpecimen'].includes(type.id)).map(type=>({value:type.id,label:t(type.id),type:type.id,source:'',specimenTypeId:null}))
 }
 
 // Employee screening swabs (stored as sourceCode with type 'surveillance').
