@@ -11,30 +11,28 @@ const demoSnapshot = fs.readFileSync('src/features/analysis/analysisDemoSnapshot
 const filterCss = fs.readFileSync('src/styles/features.css', 'utf8')
 const tabsCss = fs.readFileSync('src/styles/responsive.css', 'utf8')
 
-// User-reported gap: the RPC behind the National/AMR tabs (and its demo
-// mirror) already carried sample_type — the infection-site category
-// (bloodCulture/urineCulture/respiratorySample/woundCulture) distinct from
-// `source` (specimen collection detail like "central line") — but nothing
-// on the page ever surfaced it. Organisms could only be cross-referenced by
-// department and collection detail, never by infection site.
-describe('organisms are shown by infection site (bloodstream/urinary/respiratory/wound), not only by department and collection detail', () => {
-  it('production carries sample_type through to a bySite aggregate and the nationalRows line list', () => {
+// `sample_type` is intentionally retained as a broad technical category for
+// indicator compatibility and clinical/environment/staff filtering. The user-
+// facing specimen dimension is `source`, which production now resolves from
+// specimen_type_id and the central Sample types library.
+describe('microbiology analysis separates the technical category from the exact specimen-library type', () => {
+  it('production carries sample_type through to bySite while nationalRows also retain the exact source/specimen', () => {
     expect(service).toContain('row.sampleType')
     expect(service).toContain('bySite')
     expect(service).toContain('row.department,row.source,row.sampleType')
   })
 
-  it('demo mirrors the same site dimension from laboratorySamples.type', () => {
+  it('demo mirrors the same technical category dimension from laboratorySamples.type', () => {
     expect(demoSnapshot).toContain("bySite: sortedEntries(countBy(positive, x => x.type), 12)")
     expect(demoSnapshot).toContain('row.type].join')
   })
 
-  it('the owner-level (multi-hospital) merge carries bySite and the site dimension through nationalRows', () => {
+  it('the owner-level (multi-hospital) merge carries bySite and the technical category through nationalRows', () => {
     expect(service).toContain("mergeEntryRows(snapshots,'bySite')")
     expect(service).toContain('sampleType] of snapshot?.microbiology?.nationalRows')
   })
 
-  it('AnalysisPage translates the four canonical sample types to Greek/English infection-site labels', () => {
+  it('AnalysisPage still translates the canonical technical categories used by indicators', () => {
     expect(page).toContain('bloodCulture:')
     expect(page).toContain('urineCulture:')
     expect(page).toContain('respiratorySample:')
@@ -42,33 +40,38 @@ describe('organisms are shown by infection site (bloodstream/urinary/respiratory
     expect(page).toContain('function siteLabel(')
   })
 
-  it('renders a dedicated organism-by-infection-site breakdown and a site-only distribution, plus the site column in the detailed line list', () => {
-    expect(page).toContain('function organismBySiteRows(')
-    expect(page).toContain("tx('Μικροοργανισμοί ανά σημείο λοίμωξης','Organisms by infection site')")
-    expect(page).toContain("tx('Σημείο λοίμωξης','Infection site')")
-    expect(page).toContain("key:'site',label:tx('Σημείο λοίμωξης','Infection site')")
+  it('renders the user-facing organism matrix by exact specimen type from the central library', () => {
+    expect(page).toContain("tx('Μικροοργανισμοί ανά είδος δείγματος','Organisms by specimen type')")
+    expect(page).toContain("tx('Είδος δείγματος','Specimen type')")
+    expect(page).toContain("key:'source',label:tx('Είδος δείγματος','Specimen type')")
+    expect(page).toContain('organismRows.map(([organism,,,source,count])=>[organism,specimenLabel(source,tx),count])')
+  })
+
+  it('keeps the broad technical category visible but clearly labels it as a category, not an infection site', () => {
+    expect(page).toContain("tx('Κατηγορία κλινικού δείγματος','Clinical specimen category')")
+    expect(page).toContain("key:'category',label:tx('Κατηγορία δείγματος','Specimen category')")
+    expect(page).not.toContain("key:'site',label:tx('Σημείο λοίμωξης','Infection site')")
   })
 })
 
-// User-reported regression: a real production sample_type outside the four
-// clinical culture types ('surface', an environmental swab) echoed verbatim
-// in the infection-site column, appearing as a meaningless duplicate right
-// next to the specimen-detail column showing the same raw string.
-describe('non-clinical sample types (environmental/surveillance swabs) never echo a raw code as an infection site', () => {
-  it('siteLabel falls back to a generic translated label instead of the raw value for an unmapped sample_type', () => {
+// Non-clinical sample types remain technical categories used to separate
+// environment/staff findings from patient specimens. They must never leak as a
+// raw user-facing specimen name.
+describe('non-clinical sample types remain classification-only', () => {
+  it('siteLabel falls back to a generic translated label instead of a raw value for an unmapped sample_type', () => {
     expect(page).toContain("function siteLabel(value,tx){const pair=SITE_LABELS[value];return pair?tx(pair[0],pair[1]):tx('Λοιπό δείγμα','Other sample')}")
   })
 
-  it('SITE_LABELS also covers the known non-clinical sample types (environmental/surveillance) with dedicated labels', () => {
+  it('SITE_LABELS covers known non-clinical technical categories', () => {
     expect(page).toContain('environmental:')
     expect(page).toContain('surveillance:')
     expect(page).toContain('surface:')
   })
 
-  it('the organism-by-site and site-distribution cards are restricted to clinical sites only, so environmental/surveillance rows do not dilute them', () => {
+  it('the category distribution is restricted to clinical sites while the specimen matrix uses library source values', () => {
     expect(page).toContain('const CLINICAL_SITES=')
-    expect(page).toContain('if(!CLINICAL_SITES.includes(sampleType))continue')
     expect(page).toContain('(details?.bySite||[]).filter(([value])=>CLINICAL_SITES.includes(value))')
+    expect(page).toContain('specimenLabel(source,tx)')
   })
 })
 
@@ -81,6 +84,11 @@ describe('detailed microbiology line lists can be exported as CSV', () => {
   it('wires an export button into the detailed line list, exporting the resistant subset when it is narrowed', () => {
     expect(page).toContain('<ExportCsvButton rows={listRows}')
     expect(page).toContain("resistantOnly?nationalRows.filter(")
+  })
+
+  it('exports both exact specimen type and technical specimen category with explicit headers', () => {
+    expect(page).toContain("tx('Είδος δείγματος','Specimen type')")
+    expect(page).toContain("tx('Κατηγορία δείγματος','Specimen category')")
   })
 })
 
