@@ -11,7 +11,17 @@ const environmentalTypes=['water','surface','environment','environmental','room'
 // The environmental types with a sampling standard (shared with Surveillance).
 export const ENVIRONMENTAL_CATEGORIES=ENVIRONMENTAL_TYPES
 const environmentalCategories=new Set(ENVIRONMENTAL_CATEGORIES)
-export function sampleTypeLabel(type,t){return environmentalCategories.has(type)?t(`environmentalStandards.${type==='room'?'roomCategory':type}`):t(type)}
+const specimenLabel=(specimen,language='el')=>specimen?(language==='en'?(specimen.nameEn||specimen.name_en||specimen.nameEl||specimen.name_el):(specimen.nameEl||specimen.name_el||specimen.nameEn||specimen.name_en))||'':''
+// Patient samples display the concrete specimen from the central Sample types
+// library. The technical sample_type is retained separately for indicators.
+export function sampleTypeLabel(value,t,language='el'){
+  const sample=value&&typeof value==='object'?value:null
+  const specimen=sample?.specimenType||sample?.specimen_type||null
+  const exact=specimenLabel(specimen,language)
+  if(exact)return exact
+  const type=sample?.type||sample?.sample_type||value
+  return environmentalCategories.has(type)?t(`environmentalStandards.${type==='room'?'roomCategory':type}`):t(type)
+}
 export function environmentalMethodLabel(method,t){return method?t(`environmentalStandards.${method}`):''}
 
 function mapMicrobiology(row,ast=[],communications=[],amr=[]){
@@ -42,13 +52,20 @@ function mapMicrobiology(row,ast=[],communications=[],amr=[]){
   }
 }
 
-function mapSample(row,patient,department,microbiology=[]){
+function mapSample(row,patient,department,microbiology=[],specimenType=null){
   const result=microbiology[0]||null
   const patientName=patient?`${patient.first_name||''} ${patient.last_name||''}`.trim():''
   const inferredType=patient?'patient':environmentalTypes.some(value=>String(row.sample_type||'').toLowerCase().includes(value))?'environment':'other'
   const subjectType=row.subject_type||inferredType
   const subjectName=row.subject_name||patientName||(subjectType==='environment'?(row.source_site||''):'')
   const subjectCode=row.subject_code||patient?.patient_code||''
+  const specimen=specimenType||row.specimen_type||null
+  const mappedSpecimen=specimen?{
+    id:specimen.id||row.specimen_type_id||null,
+    code:specimen.code||null,
+    nameEl:specimen.nameEl||specimen.name_el||'',
+    nameEn:specimen.nameEn||specimen.name_en||specimen.nameEl||specimen.name_el||'',
+  }:null
   return {
     id:row.sample_code,
     recordId:row.id,
@@ -68,6 +85,8 @@ function mapSample(row,patient,department,microbiology=[]){
     surveillanceCase:row.surveillance_case_id||null,
     clinicalContext:row.clinical_context||null,
     type:row.sample_type,
+    specimenTypeId:row.specimen_type_id||mappedSpecimen?.id||null,
+    specimenType:mappedSpecimen,
     source:row.source_site||'',
     sourceEn:row.source_site||'',
     environmentalMethod:row.environmental_method||'',
@@ -120,14 +139,17 @@ async function hydrateSamples(rows){
   const organizationId=rows[0].organization_id
   const patientIds=[...new Set(rows.map(row=>row.patient_id).filter(Boolean))]
   const departmentIds=[...new Set(rows.map(row=>row.department_id).filter(Boolean))]
+  const specimenIds=[...new Set(rows.map(row=>row.specimen_type_id).filter(Boolean))]
   const sampleIds=rows.map(row=>row.id)
   const related=(table,select,column,ids,orderColumn,orderOptions)=>relatedRows(organizationId,table,select,column,ids,orderColumn,orderOptions)
-  const [patientsResult,departmentsResult,microResult]=await Promise.all([
+  const specimenPromise=specimenIds.length?related('master_library_items','id,code,name_el,name_en','id',specimenIds):Promise.resolve({data:[],error:null})
+  const [patientsResult,departmentsResult,specimensResult,microResult]=await Promise.all([
     related('patients','id,patient_code,first_name,last_name','id',patientIds),
     related('departments','id,name','id',departmentIds),
+    specimenPromise,
     related('microbiology_results','*','sample_id',sampleIds,'resulted_at',{ascending:false}),
   ])
-  for(const result of [patientsResult,departmentsResult,microResult])if(result.error)throw result.error
+  for(const result of [patientsResult,departmentsResult,specimensResult,microResult])if(result.error)throw result.error
   const microRows=microResult.data||[]
   const microIds=microRows.map(row=>row.id)
   const [astResult,commResult,amrResult]=microIds.length?await Promise.all([
@@ -139,6 +161,7 @@ async function hydrateSamples(rows){
   // Each sample and result gets only its own rows, so mapping stays linear.
   const patients=new Map((patientsResult.data||[]).map(item=>[item.id,item]))
   const departments=new Map((departmentsResult.data||[]).map(item=>[item.id,item]))
+  const specimens=new Map((specimensResult.data||[]).map(item=>[item.id,item]))
   const microBySample=groupByColumn(microRows,'sample_id')
   const astByResult=groupByColumn(astResult.data,'microbiology_result_id')
   const commByResult=groupByColumn(commResult.data,'microbiology_result_id')
@@ -148,19 +171,20 @@ async function hydrateSamples(rows){
     patients.get(row.patient_id),
     departments.get(row.department_id),
     (microBySample.get(row.id)||[]).map(item=>mapMicrobiology(item,astByResult.get(item.id)||[],commByResult.get(item.id)||[],amrByResult.get(item.id)||[])),
+    specimens.get(row.specimen_type_id)||null,
   ))
 }
 
 // One call (laboratory_sample_list, 20261201110000) returns the samples already
-// joined with their patient, department and results; `environmental` keeps the
-// environmental ones (a superset the screens still filter). The paged reads
-// below stay for a database without it yet.
+// joined with their patient, department, specimen-library item and results;
+// `environmental` keeps the environmental ones (a superset the screens still filter).
+// The paged reads below stay for a database without it yet.
 export async function loadLaboratorySamples(organizationId,{environmental=false}={}){
   assertCloud()
   if(!organizationId)return []
   if(typeof supabase.rpc==='function'){
     const listed=await supabase.rpc('laboratory_sample_list',{p_organization_id:organizationId,p_environmental:environmental})
-    if(!listed?.error&&Array.isArray(listed?.data))return listed.data.map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map(item=>mapMicrobiology(item,item.ast,item.communications,item.amr))))
+    if(!listed?.error&&Array.isArray(listed?.data))return listed.data.map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map(item=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
   }
   const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).order('created_at',{ascending:false}).order('id',{ascending:true}))
   return hydrateSamples(rows)
@@ -246,6 +270,7 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
     subject_code:draft.subjectCode||null,
     sample_code:code,
     sample_type:draft.type,
+    specimen_type_id:draft.specimenTypeId||null,
     source_site:draft.source||null,
     environmental_method:draft.environmentalMethod||null,
     location:draft.location||null,
