@@ -1,0 +1,94 @@
+/* Branch-only surveillance redesign layer.
+   Keep selectors scoped to the clinical patient record so the rest of Limoxis is unchanged. */
+
+/* Primary navigation inside the patient folder: one compact, modern strip. */
+.patient-record-shell .entity-record-tabs{
+  display:flex!important;
+  align-items:center!important;
+  gap:4px!important;
+  min-height:50px!important;
+  padding:7px 12px!important;
+  border-bottom:1px solid var(--lo-border-soft,#e3eaf0)!important;
+  background:var(--lo-surface,#fff)!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none;
+}
+.patient-record-shell .entity-record-tabs::-webkit-scrollbar{display:none}
+.patient-record-shell .entity-record-tabs>button{
+  flex:0 0 auto!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  min-height:34px!important;
+  margin:0!important;
+  padding:0 11px!important;
+  border:1px solid transparent!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  color:var(--lo-text-secondary,#5f7183)!important;
+  font-size:12.5px!important;
+  font-weight:650!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+  transition:background .15s,border-color .15s,color .15s!important;
+}
+.patient-record-shell .entity-record-tabs>button>svg{
+  width:15px!important;
+  height:15px!important;
+  flex:none!important;
+  color:currentColor!important;
+}
+.patient-record-shell .entity-record-tabs>button:hover{
+  background:var(--lo-surface-hover,#f4f7fa)!important;
+  color:var(--lo-text-strong,#18364f)!important;
+}
+.patient-record-shell .entity-record-tabs>button.active{
+  border-color:color-mix(in srgb,var(--lo-accent,#2475a9) 24%,#dce6ee)!important;
+  background:color-mix(in srgb,var(--lo-accent,#2475a9) 9%,#fff)!important;
+  color:var(--lo-accent-strong,#155f91)!important;
+  font-weight:700!important;
+}
+.patient-record-shell .entity-record-tabs>button:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--lo-accent,#2475a9) 40%,transparent)!important;
+  outline-offset:1px!important;
+}
+
+/* The surveillance tab and the forms tab should feel like parts of the same workspace. */
+.patient-record-shell .record-tab-panel{
+  border-radius:0!important;
+}
+.patient-record-shell .record-tab-panel>.record-tab-panel-header{
+  min-height:66px;
+  padding:14px 18px!important;
+  border-bottom:1px solid var(--lo-border-faint,#edf1f5)!important;
+  background:var(--lo-surface,#fff)!important;
+}
+.patient-record-shell .record-tab-panel>.record-tab-panel-header h2{
+  font-size:16px!important;
+  letter-spacing:-.01em;
+}
+.patient-record-shell .record-tab-panel>.record-tab-panel-header p{
+  max-width:760px;
+  margin-top:3px!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  color:var(--lo-text-secondary,#6b7e91)!important;
+}
+
+@media (max-width:900px){
+  .patient-record-shell .entity-record-tabs{
+    min-height:46px!important;
+    padding:6px 8px!important;
+  }
+  .patient-record-shell .entity-record-tabs>button{
+    min-height:32px!important;
+    padding:0 9px!important;
+    font-size:12px!important;
+  }
+  .patient-record-shell .record-tab-panel>.record-tab-panel-header{
+    padding:12px 13px!important;
+  }
+}
