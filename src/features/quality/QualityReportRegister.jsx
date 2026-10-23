@@ -20,11 +20,12 @@ import { daysUntil } from './QualityGlance'
 import { FINDING_SOURCES,REPORT_KINDS,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 
-// The Quality Center has two different concepts here:
-// 1. reports submitted by staff, which Quality assesses and classifies;
-// 2. the actual deviation/finding register (quality_findings), plus a small
-//    queue of automatic signals from controls/bundles/training not yet turned
-//    into a governed quality record.
+// The Quality Center separates three concepts:
+// - Reports: neutral staff submissions waiting for Quality to classify.
+// - Incidents: reports already classified as clinical/non-clinical, complaint
+//   or improvement suggestion and followed through the incident workflow.
+// - Deviations: the governed quality_findings register, plus a small queue of
+//   automatic signals from controls/bundles/training waiting for review.
 
 const PERIODS=[30,90,365]
 const KIND_ICON={report:FileWarning,clinical:Stethoscope,nonClinical:Wrench,complaint:MessageSquareWarning,suggestion:Lightbulb}
@@ -70,18 +71,28 @@ export function useDeviationQueue(organizationId,enabled=true){
 }
 
 const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null}
-const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all'}
+const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',quick:null}
 const departmentsOf=(rows,language)=>[...new Set(rows.map(row=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
-export function useReportRegister(incidents,capas,language){
+function useClassifiedRegister(incidents,capas,language,mode){
  const [filters,setFilters]=useState(REPORT_DEFAULTS)
  const set=(key,value)=>setFilters(current=>({...current,[key]:value}))
- const rows=useMemo(()=>registerRows(incidents,[],capas),[incidents,capas])
+ const rows=useMemo(()=>registerRows(incidents,[],capas).filter(row=>mode==='reports'?row.kind==='report':row.kind!=='report'),[incidents,capas,mode])
  const filtered=useMemo(()=>filterRegister(rows,{...filters,language}),[rows,filters,language])
  const counts=useMemo(()=>registerCounts(rows),[rows])
  const departments=useMemo(()=>departmentsOf(rows,language),[rows,language])
  const categories=useMemo(()=>[...new Set(rows.map(row=>row.category).filter(Boolean))],[rows])
  return {rows,filtered,counts,filters,set,clear:()=>setFilters(REPORT_DEFAULTS),departments,categories}
+}
+
+// Inbox: only neutral submissions that Quality has not classified yet.
+export function useReportRegister(incidents,capas,language){
+ return useClassifiedRegister(incidents,capas,language,'reports')
+}
+
+// Classified quality incidents/complaints/suggestions live here after assessment.
+export function useIncidentRegister(incidents,capas,language){
+ return useClassifiedRegister(incidents,capas,language,'incidents')
 }
 
 function findingRows(findings,capas){
@@ -134,6 +145,7 @@ export function useDeviations(sources,language){
    .filter(row=>filters.status==='all'||(row.type==='finding'&&row.status===filters.status))
    .filter(row=>filters.priority==='all'||row.severity===filters.priority)
    .filter(row=>filters.department==='all'||(language==='en'?row.departmentEn:row.department)===filters.department)
+   .filter(row=>!filters.quick||(filters.quick==='withoutCapa'?row.type==='finding'&&row.status!=='closed'&&!row.hasCapa:true))
  },[rows,filters,language])
  const counts=useMemo(()=>({
   total:registry.length,
@@ -191,7 +203,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const paging=usePage(items,JSON.stringify(filters))
  const advanced=['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search reports…':'Αναζήτηση αναφορών…'} activeAdvancedCount={advanced} onClear={view.clear}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search…':'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={view.clear}>
    <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
    <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
@@ -200,7 +212,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
   <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}
-    emptyTitle={en?'No reports':'Δεν υπάρχουν αναφορές'} emptyText={en?'Staff reports appear here first; Quality assesses and classifies them before the follow-up workflow continues.':'Οι αναφορές του προσωπικού εμφανίζονται πρώτα εδώ· η Ποιότητα τις αξιολογεί και τις ταξινομεί πριν συνεχιστεί η ροή διαχείρισης.'}
+    emptyTitle={en?'No records':'Δεν υπάρχουν εγγραφές'} emptyText={en?'Reports appear in the inbox first; after Quality classifies them they move to the incident register.':'Οι νέες αναφορές εμφανίζονται πρώτα στο inbox· μετά την ταξινόμηση από την Ποιότητα μεταφέρονται στο μητρώο Συμβάντων.'}
     rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,items)})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
