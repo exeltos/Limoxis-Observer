@@ -593,6 +593,7 @@ function mapCaseSummary(row) {
   const isolations = row.isolation ? [{ ...row.isolation, surveillance_case_id: row.id }] : []
   return {
     ...mapClinicalCase({ caseRow: row, patient: row.patient, department: row.department, isolations }),
+    sampleCount: Number(row.patient_sample_count ?? 0),
     samples: (row.samples || []).map(sample => ({
       id: sample.sample_code,
       recordId: sample.id,
