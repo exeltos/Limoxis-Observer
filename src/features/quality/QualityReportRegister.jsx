@@ -29,11 +29,7 @@ import { roleTitleText } from '../../core/i18n/roleTitles'
 const PERIODS=[30,90,365]
 const KIND_ICON={report:FileWarning,clinical:Stethoscope,nonClinical:Wrench,complaint:MessageSquareWarning,suggestion:Lightbulb}
 const SOURCE_ICON={manual:FileWarning,audit:ClipboardCheck,incident:AlertOctagon,control:ClipboardCheck,bundle:ShieldCheck,training:GraduationCap,other:FileWarning}
-const PENDING_SOURCES=[
- {value:'bundle',label:['Bundle','Bundle']},
- {value:'training',label:['Εκπαίδευση','Training']},
-]
-const DEVIATION_SOURCES=[...FINDING_SOURCES,...PENDING_SOURCES]
+const DEVIATION_SOURCES=[...FINDING_SOURCES,...REGISTER_SOURCES.filter(item=>['bundle','training'].includes(item.value))]
 
 export const STAGE_LABELS={
  toAssess:['Προς αξιολόγηση','To assess'],
