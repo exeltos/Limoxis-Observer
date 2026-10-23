@@ -35,26 +35,28 @@ export const patientSampleSources=type=>PATIENT_SAMPLE_TYPES.find(item=>item.id=
 const ENVIRONMENTAL_LIBRARY_CODES=new Set(['SAMPLE-SURFACE','SAMPLE-WATER'])
 const RESPIRATORY_LIBRARY_CODES=new Set(['SAMPLE-SPUTUM','SAMPLE-BAL','SAMPLE-BRONCHIAL-SECRETIONS','SAMPLE-NASAL-SWAB','SAMPLE-THROAT-SWAB','SAMPLE-NASOPHARYNGEAL','SAMPLE-RESPIRATORY'])
 const WOUND_LIBRARY_CODES=new Set(['SAMPLE-WOUND','SAMPLE-WOUND-MATERIAL','SAMPLE-PUS','SAMPLE-DRAINAGE','SAMPLE-SUTURE'])
+const itemText=item=>`${item?.code||''} ${item?.el||''} ${item?.en||''} ${item?.value||''}`.toLocaleLowerCase('el')
+const environmentalLibraryItem=item=>ENVIRONMENTAL_LIBRARY_CODES.has(String(item?.code||'').toUpperCase())||/(επιφάν|surface|νερό|water)/i.test(itemText(item))
 
 export function technicalPatientSampleType(item={}){
   const code=String(item.code||'').toUpperCase()
-  if(code==='SAMPLE-BLOOD')return 'bloodCulture'
-  if(code==='SAMPLE-URINE')return 'urineCulture'
-  if(RESPIRATORY_LIBRARY_CODES.has(code))return 'respiratorySample'
-  if(WOUND_LIBRARY_CODES.has(code))return 'woundCulture'
-  if(code==='SAMPLE-SURVEILLANCE')return 'surveillanceSpecimen'
+  const text=itemText(item)
+  if(code==='SAMPLE-BLOOD'||/(^|\s)(αίμα|αιμα|blood)(\s|$)/i.test(text))return 'bloodCulture'
+  if(code==='SAMPLE-URINE'||/ούρ|ουρ|urine/i.test(text))return 'urineCulture'
+  if(RESPIRATORY_LIBRARY_CODES.has(code)||/πτύελ|πτυελ|sputum|\bbal\b|βρογχ|bronch|ρινοφάρ|ρινοφαρ|nasopharyn|ρινικό|nasal|φαρυγγ|throat|αναπνευσ|respir/i.test(text))return 'respiratorySample'
+  if(WOUND_LIBRARY_CODES.has(code)||/τραύμ|τραυμ|wound|πύο|πυο|\bpus\b|παροχέτευ|drainage|ράμμα|ραμμα|suture/i.test(text))return 'woundCulture'
+  if(code==='SAMPLE-SURVEILLANCE'||/δείγμα επιτήρησης|surveillance specimen/i.test(text))return 'surveillanceSpecimen'
   return 'specimen'
 }
 
 function defaultSourceForSpecimen(item,type){
   const code=String(item.code||'').toUpperCase()
-  if(code==='SAMPLE-SPUTUM')return 'sputum'
-  if(code==='SAMPLE-BAL')return 'bal'
-  if(code==='SAMPLE-WOUND')return 'woundSwab'
-  if(code==='SAMPLE-DRAINAGE')return 'drainage'
+  const text=itemText(item)
+  if(code==='SAMPLE-SPUTUM'||/πτύελ|πτυελ|sputum/i.test(text))return 'sputum'
+  if(code==='SAMPLE-BAL'||/(^|\s)bal(\s|$)/i.test(text))return 'bal'
+  if(code==='SAMPLE-WOUND'||/τραύμα \/ επίχρισμα|wound \/ swab/i.test(text))return 'woundSwab'
+  if(code==='SAMPLE-DRAINAGE'||/παροχέτευ|drainage/i.test(text))return 'drainage'
   if(type==='bloodCulture'||type==='urineCulture')return ''
-  // For the remaining library specimens the specimen name is itself the most
-  // precise source; NewSampleCard can still add an anatomical site separately.
   return item.el||item.value||''
 }
 
@@ -63,7 +65,7 @@ function defaultSourceForSpecimen(item,type){
 // is offered for patient samples. The technical type remains separate so
 // existing indicators continue to work.
 export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
-  const clinical=items.filter(item=>!ENVIRONMENTAL_LIBRARY_CODES.has(String(item.code||'').toUpperCase()))
+  const clinical=items.filter(item=>!environmentalLibraryItem(item))
   const mapped=clinical.map(item=>{
     const type=technicalPatientSampleType(item)
     const label=language==='en'?item.en||item.el:item.el
@@ -83,22 +85,12 @@ export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
   return mapped.length?mapped:PATIENT_SAMPLE_TYPES.filter(type=>!['specimen','surveillanceSpecimen'].includes(type.id)).map(type=>({value:type.id,label:t(type.id),type:type.id,source:'',specimenTypeId:null}))
 }
 
-// Employee screening swabs (stored as sourceCode with type 'surveillance').
-// Surveillance keeps the same ids in employeeScreeningCatalog.
-// Employee screening types: the surveillance list (one source) plus «other».
 export const EMPLOYEE_SCREENING_TYPES=[...SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING]
-
-// Environmental sample types of a new laboratory sample (stored as
-// environmentType; the label is stored as the source).
 export { ENVIRONMENTAL_SAMPLE_TYPES }
-
-// Sample priority (stored as priority; label t(id)).
 export const LAB_PRIORITIES=SAMPLE_PRIORITIES.map(item=>item.value)
 
-// Screening / environmental source codes stored as raw keys (e.g. "nasalSwab, handSwab").
 const sampleSourceAliases=Object.fromEntries([...EMPLOYEE_SCREENING_TYPES,...ENVIRONMENTAL_SAMPLE_TYPES].filter(item=>!(item.id in sampleSourceCatalog)).map(item=>[item.id,item]))
 export function sampleSourceLabel(value,language='el'){const lang=language==='en'?'en':'el';const parts=String(value||'').split(',').map(item=>item.trim()).filter(Boolean);return parts.length?parts.map(item=>{const row=sampleSourceAliases[item]||sampleSourceCatalog[item];return row?.[lang]||row?.el||item}).join(', '):''}
 
-// {id, el, en} items as SearchableSelect options.
 export const referenceOptions=(items,language='el')=>items.map(item=>({value:item.id,label:language==='en'?item.en:item.el,keywords:`${item.el} ${item.en}`}))
 export const referenceLabel=(items,id,language='el')=>{const item=items.find(row=>row.id===id);return item?(language==='en'?item.en:item.el):id||'—'}
