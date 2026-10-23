@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { EmptyState } from '../../../design-system/EmptyState'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FormsTabContext, useFormsTabState } from './FormSection'
 import { visibleEpisodeFormSections } from './formsRegistry'
 import './episodeForms.css'
+
+const sectionLabel = (section, t) => section.navLabel?.(t) || section.title?.(t) || t(`episodeForms.${section.id}.title`)
 
 // «Φόρμες & ερωτηματολόγια»: every form connected to the episode in one tab of collapsible
 // sections. The sections come from the registry (formsRegistry.js); this component only
@@ -19,18 +21,71 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
   )
   const { value, openSection } = useFormsTabState()
   const handled = useRef(null)
+  const navRef = useRef(null)
+  const [activeSection, setActiveSection] = useState(sections[0]?.id || '')
+
+  useEffect(() => {
+    if (!sections.some(section => section.id === activeSection)) setActiveSection(sections[0]?.id || '')
+  }, [sections, activeSection])
+
+  const revealSection = id => {
+    openSection(id)
+    setActiveSection(id)
+    requestAnimationFrame(() => {
+      const target = document.querySelector(`.episode-forms [data-section="${id}"]`)
+      target?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+    })
+  }
+
   useEffect(() => {
     if (!openRequest?.id || handled.current === openRequest.nonce) return
     handled.current = openRequest.nonce
-    openSection(openRequest.id)
-    // The section is on screen after the next paint; bring it into view.
-    requestAnimationFrame(() => {
-      document.querySelector(`.episode-forms [data-section="${openRequest.id}"]`)?.scrollIntoView?.({ block: 'start' })
-    })
-  }, [openRequest, openSection])
+    revealSection(openRequest.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequest])
+
+  useEffect(() => {
+    if (withoutAdmission || typeof IntersectionObserver === 'undefined' || !sections.length) return
+    const nodes = sections
+      .map(section => document.querySelector(`.episode-forms [data-section="${section.id}"]`))
+      .filter(Boolean)
+    if (!nodes.length) return
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        if (visible?.target?.dataset?.section) setActiveSection(visible.target.dataset.section)
+      },
+      { rootMargin: '-18% 0px -68% 0px', threshold: [0, 0.25, 0.5] },
+    )
+    nodes.forEach(node => observer.observe(node))
+    return () => observer.disconnect()
+  }, [sections, withoutAdmission])
+
   const content =
     sections.length === 0 ? null : (
       <FormsTabContext.Provider value={value}>
+        {!withoutAdmission && sections.length > 1 && (
+          <div className="episode-forms-nav-shell">
+            <nav ref={navRef} className="episode-forms-nav" aria-label={t('episodeForms.title')}>
+              {sections.map(section => {
+                const active = section.id === activeSection
+                return (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={`episode-forms-nav-item${active ? ' is-active' : ''}`}
+                    aria-current={active ? 'location' : undefined}
+                    onClick={() => revealSection(section.id)}
+                  >
+                    <span>{sectionLabel(section, t)}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+        )}
         <div className="episode-forms">
           {sections.map(section => (
             <section.Component
@@ -48,7 +103,7 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
   // No title of its own: the tab already says «Φόρμες & ερωτηματολόγια».
   return (
     <section className="record-tab-panel episode-forms-panel" aria-label={t('episodeForms.title')}>
-      <div className="record-tab-panel-body">
+      <div className="record-tab-panel-body episode-forms-panel-body">
         {content || <EmptyState title={t('episodeForms.noSectionsTitle')} description={t('episodeForms.noSectionsText')} />}
       </div>
     </section>
