@@ -5,20 +5,22 @@ import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadOperational
 
 const fold = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-// (Greek letters are not \w for JavaScript, hence \S and explicit edges.)
-// Wording of a risk → the indicators that usually measure it, most specific first.
+// Risk 2025 is a risk register, not an indicator generator. Only risks with a
+// meaningful, repeatable measure get suggestions here. In particular, the
+// generic source value "Δείκτης Συμβάντος" must NOT turn every incident risk
+// into a KPI; incident-specific indicators are added only when a reliable
+// numerator/denominator exists in the Indicators module.
 const RULES = [
-  [/κεντρικ\S* (φλεβικ\S* )?(καθετηρ|γραμμ)|clabsi/, ['clabsi-rate']],
-  [/ουροκαθετηρ|cauti|ουρολοιμωξ/, ['cauti-rate']],
-  [/αναπνευστηρ|(^|\W)vap(\W|$)/, ['vap-rate']],
-  [/πολυανθεκτ|mdr|(^|\W)pam(\W|$)|kpc|(^|\W)cre(\W|$)/, ['mdr-introduction-index', 'mdro-bsi-per-1000']],
+  [/κεντρικ\S* (φλεβικ\S* )?(καθετηρ|γραμμ)|clabsi/, ['clabsi-per-1000-cvc-days', 'bundle-compliance', 'hh-compliance']],
+  [/αναπνευστηρ|μηχανικ\S* αερισμ|(^|\W)vap(\W|$)/, ['vap-per-1000-ventilator-days', 'bundle-compliance', 'hh-compliance']],
+  [/πολυανθεκτ|mdr|xdr|pdr|(^|\W)pam(\W|$)|kpc|(^|\W)cre(\W|$)/, ['mdro-bsi-rate', 'mdr-active-share', 'hh-compliance']],
   [/βακτηριαιμ|σηψ/, ['bacteremia-incidence-rate']],
-  [/υγιειν\S* χεριων/, ['who-hh']],
-  [/ενδονοσοκομειακ|λοιμογον|λοιμωξ|(^|\s)εελ(\s|$)/, ['hai-prevalence-pps', 'who-hh']],
+  [/υγιειν\S* χεριων/, ['hh-compliance']],
+  [/bundle|δεσμ\S* μετρ/, ['bundle-compliance']],
+  [/ενδονοσοκομειακ|νοσοκομειακ\S* λοιμωξ|λοιμογον|(^|\s)εελ(\s|$)|επιδημ/, ['hai-prevalence-pps', 'hh-compliance', 'bundle-compliance']],
   [/αντιβιοτ|αντιμικροβ/, ['antibiotic-ddd-per-100-patient-days']],
-  [/εμβολιασ/, ['staff-vaccination']],
-  [/επιδημ|εξαρσ/, ['outbreak-response-hours']],
-  [/συμβαντ/, ['open-high-incidents']],
+  [/εμβολιασ/, ['vaccination-coverage']],
+  [/ικανοποιησ\S* (ασθεν|ενδιαφερομεν)|patient satisfaction/, ['patient-satisfaction']],
 ]
 
 // Indicators to propose for a risk, among those the organization has; the
