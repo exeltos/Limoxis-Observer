@@ -23,6 +23,7 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
+import { formatSurveillanceCultureCount } from '../../core/i18n/surveillanceCultureCount'
 import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -668,11 +669,6 @@ function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-function cultureSummary(x, language) {
-  const total = Number(x.sampleCount) || 0
-  if (language === 'en') return `${total} ${total === 1 ? 'culture' : 'cultures'}`
-  return `${total} ${total === 1 ? 'καλλιέργεια' : 'καλλιέργειες'}`
-}
 function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
     (x.episodes || [x])
@@ -707,7 +703,7 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
             <td>
               <strong>{language === 'el' ? x.patient : x.patientEn}</strong>
               <small>
-                {x.patientId || '—'} · {cultureSummary(x, language)}
+                {x.patientId || '—'} · {formatSurveillanceCultureCount(x.sampleCount, language)}
               </small>
               <ProtocolBadge entry={openRunOf(x)} t={t} language={language} />
             </td>
