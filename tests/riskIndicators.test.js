@@ -10,6 +10,8 @@ const all = [
   'mdro-bsi-rate',
   'mdr-active-share',
   'bacteremia-incidence-rate',
+  'patient-falls-per-1000-patient-days',
+  'medication-incidents-per-1000-patient-days',
   'antibiotic-ddd-per-100-patient-days',
   'vaccination-coverage',
   'patient-satisfaction',
@@ -27,12 +29,14 @@ describe('indicators that measure a risk', () => {
       'mdr-active-share',
       'hh-compliance',
     ])
+    expect(suggestIndicators({ hazard: 'Πτώση ασθενή', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual(['patient-falls-per-1000-patient-days'])
+    expect(suggestIndicators({ hazard: 'Εμφάνιση ανεπιθύμητης ενέργειας λόγω λανθασμένης φαρμακευτικής αγωγής', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual(['medication-incidents-per-1000-patient-days'])
     expect(suggestIndicators({ hazard: 'Μείωση αριθμού ασθενών λόγω μη ικανοποίησης αναγκών και προσδοκιών ενδιαφερομένων μερών' }, all)).toEqual(['patient-satisfaction'])
   })
 
-  it('does not turn the generic Risk 2025 incident label into a KPI', () => {
-    expect(suggestIndicators({ hazard: 'Πτώση ασθενή', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual([])
+  it('does not turn the generic Risk 2025 incident label into a KPI by itself', () => {
     expect(suggestIndicators({ hazard: 'Εμφάνιση Πυρκαγιάς', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual([])
+    expect(suggestIndicators({ hazard: 'Απώλεια / Κλοπή προσωπικών αντικειμένων', indicator: 'Δείκτης Συμβάντος' }, all)).toEqual([])
   })
 
   it('proposes only indicators the organization has and leaves out linked ones', () => {
