@@ -49,7 +49,7 @@ export function sampleSummaryFields({ sample, t, language, fmt }) {
   const fields = [
     { id: 'subject', label: subjectLabel(sample.subjectType, language), value: (en ? sample.subjectNameEn : sample.subjectName) || sample.patient, meta: sample.subjectCode || sample.patientId || '' },
     { id: 'department', label: t('department'), value: (en ? sample.departmentEn : sample.department) || sample.department },
-    { id: 'sampleType', label: t('sampleType'), value: sampleTypeLabel(sample.type, t) },
+    { id: 'sampleType', label: t('sampleType'), value: sampleTypeLabel(sample, t, language) },
     isEnvironmental
       ? { id: 'method', label: en ? 'Sampling method' : 'Μέθοδος δειγματοληψίας', value: environmentalMethodLabel(sample.environmentalMethod, t) || sample.source }
       : { id: 'source', label: t('clinicalSource'), value: sampleSourceLabel((en ? sample.sourceEn : sample.source) || sample.source, language) },
@@ -78,7 +78,6 @@ export function LaboratoryWorkflow({ steps, language, closedNote }) {
   return <section className="lab-record-card lab-workflow-card">
     <SectionHeader title={en ? 'Sample progress' : 'Πρόοδος δείγματος'} actions={<span className="lab-workflow-count">{done}/{total}</span>}/>
     <ol className="lab-workflow-steps">
-      {/* steps that do not apply carry no number, so the numbers run 1…N like the counter */}
       {steps.map(step => <li key={step.id} className={`lab-workflow-step is-${step.state}`}>
         <span className="lab-workflow-marker">{step.state === 'done' ? <Check size={14}/> : step.state === 'na' ? <Minus size={14}/> : numberOf(step)}</span>
         <div><strong>{step.label}</strong><small>{step.meta || (step.state === 'na' ? (en ? 'Not required' : 'Δεν απαιτείται') : step.state === 'done' ? (en ? 'Completed' : 'Ολοκληρώθηκε') : (en ? 'Pending' : 'Εκκρεμεί'))}</small></div>
