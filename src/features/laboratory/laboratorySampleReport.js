@@ -40,16 +40,17 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
   })
   const communicationLines = communications.map(row => [row.to || row.recipientName, [row.recipientRole, row.recipientDepartment].filter(Boolean).join(', '), row.at && fmt(row.at), row.method && t(row.method), row.readBack && t('laboratoryRecords.readBack')].filter(Boolean).join(' · '))
   const events = labHistoryEvents(sample, t, tx).map(event => ({ when: fmt(event.at), sort: String(event.at), title: event.title, by: event.by }))
+  const specimenTitle = sampleTypeLabel(sample, t, language)
 
   return {
     kind: L('Εργαστηριακό δείγμα', 'Laboratory sample'),
     code: sample.id,
-    title: sampleTypeLabel(sample.type, t),
+    title: specimenTitle,
     subtitle: [sample.subjectName || sample.patient, sample.subjectCode || sample.patientId, sample.department].filter(Boolean).join(' · '),
     statusLabel: L('Κατάσταση', 'Status'),
     status: statusWord,
     summaryText: [
-      `${L('Δείγμα', 'Sample')} ${sample.id} (${sampleTypeLabel(sample.type, t)})${sample.collectedAt ? `, ${L('λήψη', 'collected')} ${fmt(sample.collectedAt)}` : ''}.`,
+      `${L('Δείγμα', 'Sample')} ${sample.id} (${specimenTitle})${sample.collectedAt ? `, ${L('λήψη', 'collected')} ${fmt(sample.collectedAt)}` : ''}.`,
       statusWord && `${L('Κατάσταση', 'Status')}: ${statusWord}.`,
       result?.result && `${t('result')}: ${t(result.result)}${organisms.length ? ` (${organisms.join(', ')})` : ''}.`,
     ].filter(Boolean).join(' '),
