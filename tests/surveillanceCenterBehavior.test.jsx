@@ -50,12 +50,12 @@ beforeEach(() => {
 afterEach(() => { cleanup(); localStorage.clear(); sessionStorage.clear() })
 
 describe('Surveillance Center registry', () => {
-  it('lists each patient once, summarising their episodes', async () => {
+  it('lists each patient once, showing the cultures linked to that patient', async () => {
     await openCenter()
     await waitFor(() => expect(rowOf('Ελένη Παπαδοπούλου')).toHaveLength(1))
     const rows = rowOf('Ελένη Παπαδοπούλου')
-    expect(rows[0]).toHaveTextContent('2 επιτηρήσεις')
-    expect(rows[0]).toHaveTextContent('1 ενεργή')
+    expect(rows[0]).toHaveTextContent(/καλλιέργεια/)
+    expect(rows[0]).not.toHaveTextContent('επιτηρήσεις')
   })
 
   it('marks the opened patient when the user comes back, keeping the row clickable', async () => {
