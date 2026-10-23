@@ -7,14 +7,14 @@ import { demoLibrarySeed } from './managementData'
 
 // One way for every screen to read the central libraries (Management >
 // Libraries): the organization's rows in the cloud, or the demo seed plus the
-// demo's own edits. Items come back as {value,code,el,en,system}; value is the
+// demo's own edits. Items come back as {id,value,code,el,en,system}; value is the
 // Greek name, which is what records store. Departments come as {id,name,nameEn,
 // departmentType}; in the demo a department's id is its name.
 
 const CACHE_MS=30_000
 const cache=new Map()
 
-const toItem=row=>({value:String(row?.[0]||''),code:row?.[2]?.code||null,el:String(row?.[0]||''),en:String(row?.[1]||row?.[0]||''),system:Boolean(row?.[2]?.system),meta:row?.[2]||{}})
+const toItem=row=>({id:row?.[2]?.id||null,value:String(row?.[0]||''),code:row?.[2]?.code||null,el:String(row?.[0]||''),en:String(row?.[1]||row?.[0]||''),system:Boolean(row?.[2]?.system),meta:row?.[2]||{}})
 const toDepartment=(row,demo)=>({id:demo?String(row?.[0]||''):(row?.[2]?.id||''),name:String(row?.[0]||''),nameEn:String(row?.[1]||row?.[0]||''),departmentType:row?.[2]?.departmentType||'general'})
 
 function demoLibraries(){
@@ -79,5 +79,5 @@ export function libraryOptions(items=[],language='el',{getValue=item=>item.value
 export function findLibraryItem(items=[],value){
  const text=String(value??'').trim().toLocaleLowerCase('el')
  if(!text)return null
- return items.find(item=>[item.value,item.code,item.el,item.en].some(x=>String(x||'').trim().toLocaleLowerCase('el')===text))||null
+ return items.find(item=>[item.id,item.value,item.code,item.el,item.en].some(x=>String(x||'').trim().toLocaleLowerCase('el')===text))||null
 }
