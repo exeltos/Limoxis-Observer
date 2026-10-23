@@ -10,9 +10,7 @@ const SECTION_LABEL_KEYS = {
   scales: 'episodeForms.scales.title',
   notifiable: 'episodeForms.notifiable.title',
   incidents: 'episodeForms.incidents.title',
-  epiQuestionnaire: 'epiQuestionnaire.title',
-  outbreak: 'episodeForms.outbreak.title',
-  exposureSource: 'episodeForms.exposureSource.title',
+  epiQuestionnaire: 'epiQuestionnaire.sectionTitle',
 }
 const sectionLabel = (section, t) =>
   section.navLabel?.(t) ||
@@ -31,13 +29,20 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
     () => visibleEpisodeFormSections(ctx).filter(section => !withoutAdmission || section.withoutAdmission),
     [ctx, withoutAdmission],
   )
+  // Outbreak/source-exposure are contextual read-only notices, not collapsible form sections.
+  // Keep them in the content flow but out of the form navigation strip.
+  const navigableSections = useMemo(
+    () => sections.filter(section => SECTION_LABEL_KEYS[section.id]),
+    [sections],
+  )
   const { value, openSection } = useFormsTabState()
   const handled = useRef(null)
-  const [activeSection, setActiveSection] = useState(sections[0]?.id || '')
+  const [activeSection, setActiveSection] = useState(navigableSections[0]?.id || '')
 
   useEffect(() => {
-    if (!sections.some(section => section.id === activeSection)) setActiveSection(sections[0]?.id || '')
-  }, [sections, activeSection])
+    if (!navigableSections.some(section => section.id === activeSection))
+      setActiveSection(navigableSections[0]?.id || '')
+  }, [navigableSections, activeSection])
 
   const revealSection = id => {
     openSection(id)
@@ -57,8 +62,9 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
   }, [openRequest])
 
   useEffect(() => {
-    if (withoutAdmission || typeof IntersectionObserver === 'undefined' || !sections.length) return
-    const nodes = sections
+    if (withoutAdmission || typeof IntersectionObserver === 'undefined' || !navigableSections.length)
+      return
+    const nodes = navigableSections
       .map(section => document.querySelector(`.episode-forms [data-section="${section.id}"]`))
       .filter(Boolean)
     if (!nodes.length) return
@@ -73,15 +79,15 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
     )
     nodes.forEach(node => observer.observe(node))
     return () => observer.disconnect()
-  }, [sections, withoutAdmission])
+  }, [navigableSections, withoutAdmission])
 
   const content =
     sections.length === 0 ? null : (
       <FormsTabContext.Provider value={value}>
-        {!withoutAdmission && sections.length > 1 && (
+        {!withoutAdmission && navigableSections.length > 1 && (
           <div className="episode-forms-nav-shell">
             <nav className="episode-forms-nav" aria-label={t('episodeForms.title')}>
-              {sections.map(section => {
+              {navigableSections.map(section => {
                 const active = section.id === activeSection
                 return (
                   <button
