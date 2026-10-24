@@ -41,6 +41,8 @@ import {
 } from './employeeService'
 import { useEmployeeRecordData } from './useEmployeeRecordData'
 import { loadDepartments } from '../management/departmentsService'
+import { creatableManagementRoles } from '../management/managementRoles'
+import { needsDepartment } from '../platform/bulkAccountsModel'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
 import { EmployeeSurveillanceFlow } from '../surveillance/EmployeeSurveillanceFlow'
@@ -661,6 +663,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       {accountOpen && !selfReadOnly && (
         <EmployeeAccountDialog
           employee={employee}
+          departments={departments}
           language={language}
           saving={accountSaving}
           onClose={() => setAccountOpen(false)}
@@ -1002,19 +1005,24 @@ function Details({
   )
 }
 
-function EmployeeAccountDialog({ employee, language, saving, onClose, onCreate }) {
+// The role is always chosen (no default); a department role also needs the department
+// it sees, which starts from the employee's own.
+function EmployeeAccountDialog({ employee, departments = [], language, saving, onClose, onCreate }) {
+  const en = language === 'en'
   const [email, setEmail] = useState(employee.email || ''),
     [phone, setPhone] = useState(employee.phone || ''),
     [jobTitle, setJobTitle] = useState(employee.profession || ''),
-    [role, setRole] = useState('staff_user')
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    [role, setRole] = useState(''),
+    [departmentId, setDepartmentId] = useState(employee.departmentId || '')
+  const scoped = needsDepartment(role)
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && Boolean(role) && (!scoped || Boolean(departmentId))
   return (
     <ObserverDialog
       width="wide"
-      eyebrow={language === 'en' ? 'Employee account' : 'Λογαριασμός εργαζομένου'}
-      title={language === 'en' ? 'Create and link account' : 'Δημιουργία και σύνδεση λογαριασμού'}
+      eyebrow={en ? 'Employee account' : 'Λογαριασμός εργαζομένου'}
+      title={en ? 'Create and link account' : 'Δημιουργία και σύνδεση λογαριασμού'}
       subtitle={
-        language === 'en'
+        en
           ? `${employee.firstName} ${employee.lastName} will be linked directly to this account.`
           : `Ο λογαριασμός θα συνδεθεί απευθείας με τον εργαζόμενο ${employee.firstName} ${employee.lastName}.`
       }
@@ -1023,7 +1031,13 @@ function EmployeeAccountDialog({ employee, language, saving, onClose, onCreate }
         <DialogActions
           onCancel={onClose}
           onSave={() =>
-            onCreate({ email: email.trim(), phone: phone.trim(), jobTitle: jobTitle.trim(), role })
+            onCreate({
+              email: email.trim(),
+              phone: phone.trim(),
+              jobTitle: jobTitle.trim(),
+              role,
+              departmentId: scoped ? departmentId : null,
+            })
           }
           disabled={!valid || saving}
         />
@@ -1035,31 +1049,32 @@ function EmployeeAccountDialog({ employee, language, saving, onClose, onCreate }
           <input type="email" value={email} onChange={event => setEmail(event.target.value)} />
         </label>
         <label>
-          <span>{language === 'en' ? 'Phone' : 'Τηλέφωνο'}</span>
+          <span>{en ? 'Phone' : 'Τηλέφωνο'}</span>
           <input value={phone} onChange={event => setPhone(event.target.value)} />
         </label>
         <label>
-          <span>{language === 'en' ? 'Job title' : 'Ιδιότητα'}</span>
+          <span>{en ? 'Job title' : 'Ιδιότητα'}</span>
           <input value={jobTitle} onChange={event => setJobTitle(event.target.value)} />
         </label>
         <SearchableSelect
-          label={language === 'en' ? 'Account role' : 'Ρόλος λογαριασμού'}
+          label={en ? 'Account role *' : 'Ρόλος λογαριασμού *'}
           value={role}
-          onChange={next => setRole(next || 'staff_user')}
-          options={[
-            { value: 'staff_user', label: language === 'en' ? 'Staff user' : 'Εργαζόμενος' },
-            {
-              value: 'department_user',
-              label: language === 'en' ? 'Department user' : 'Χρήστης τμήματος',
-            },
-            {
-              value: 'department_manager',
-              label: language === 'en' ? 'Department manager' : 'Προϊστάμενος τμήματος',
-            },
-            { value: 'link_nurse', label: 'Link Nurse' },
-            { value: 'laboratory', label: language === 'en' ? 'Laboratory' : 'Εργαστήριο' },
-          ]}
+          onChange={next => setRole(next || '')}
+          placeholder={en ? 'Choose a role…' : 'Επιλέξτε ρόλο…'}
+          options={creatableManagementRoles.map(value => ({ value, label: roleLabel(value, language) }))}
         />
+        {scoped && (
+          <SearchableSelect
+            label={en ? 'Department *' : 'Τμήμα *'}
+            value={departmentId}
+            onChange={next => setDepartmentId(next || '')}
+            placeholder={en ? 'Choose a department…' : 'Επιλέξτε τμήμα…'}
+            options={departments.map(department => ({
+              value: department.id,
+              label: en ? department.nameEn || department.name : department.name,
+            }))}
+          />
+        )}
       </div>
     </ObserverDialog>
   )

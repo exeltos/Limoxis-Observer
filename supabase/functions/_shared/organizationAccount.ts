@@ -38,3 +38,40 @@ export async function linkOrCreateEmployee(admin:Admin,{organizationId,userId,no
 // database keeps (account_invitations.token_hash), as the supplier link does.
 export async function sha256Hex(value:string){const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value));return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 export function randomAccessToken(){const bytes=crypto.getRandomValues(new Uint8Array(32));return `ACT-${[...bytes].map(b=>b.toString(16).padStart(2,'0')).join('')}`}
+
+// The roles of a department see only their department (organization_member_scopes):
+// without one they see nothing. create-organization-user and manage-organization-user
+// set it with the role; platform-bulk-create-accounts sets it per person.
+export const DEPARTMENT_ROLES=['department_manager','link_nurse','department_user']
+
+// The department a role needs: the one asked for, else the linked employee's own.
+// Other roles need none (null). Checked before any account is created.
+export async function resolveMemberDepartment(admin:Admin,{organizationId,role,departmentId,employeeDbId}:{organizationId:string,role:string,departmentId?:string|null,employeeDbId?:string|null}):Promise<{departmentId:string|null}|{error:string}>{
+  if(!DEPARTMENT_ROLES.includes(role))return {departmentId:null}
+  let id=String(departmentId||'').trim()
+  if(!id&&employeeDbId){const {data}=await admin.from('employees').select('department_id').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle();id=data?.department_id||''}
+  if(!id)return {error:'DEPARTMENT_REQUIRED'}
+  const {data:department,error}=await admin.from('departments').select('id').eq('organization_id',organizationId).eq('id',id).eq('is_active',true).maybeSingle()
+  if(error)return {error:'DEPARTMENT_LOOKUP_FAILED'}
+  if(!department)return {error:'DEPARTMENT_NOT_FOUND'}
+  return {departmentId:id}
+}
+
+// The member's department becomes exactly this one (none for a role without department).
+export async function setMemberDepartment(admin:Admin,{organizationId,userId,departmentId}:{organizationId:string,userId:string,departmentId:string|null}){
+  const {data:member,error:memberError}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  if(memberError||!member)throw new Error('MEMBERSHIP_NOT_FOUND')
+  const {error:clearError}=await admin.from('organization_member_scopes').delete().eq('membership_id',member.id)
+  if(clearError)throw new Error('DEPARTMENT_SAVE_FAILED')
+  if(!departmentId)return
+  const {error:insertError}=await admin.from('organization_member_scopes').insert({membership_id:member.id,department_id:departmentId})
+  if(insertError)throw new Error('DEPARTMENT_SAVE_FAILED')
+}
+
+// The departments of a membership, to carry over when the membership is replaced.
+export async function memberDepartmentIds(admin:Admin,{organizationId,userId}:{organizationId:string,userId:string}):Promise<string[]>{
+  const {data:member}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  if(!member)return []
+  const {data}=await admin.from('organization_member_scopes').select('department_id').eq('membership_id',member.id)
+  return (data||[]).map((row:Admin)=>row.department_id).filter(Boolean)
+}

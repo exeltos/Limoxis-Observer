@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serveWithCors } from '../_shared/cors.ts'
-import { ALLOWED_ROLES, ROLE_LABELS, generateUserName, linkOrCreateEmployee } from '../_shared/organizationAccount.ts'
+import { ALLOWED_ROLES, ROLE_LABELS, generateUserName, linkOrCreateEmployee, resolveMemberDepartment, setMemberDepartment } from '../_shared/organizationAccount.ts'
 
 const DEFAULT_APP_URL='https://www.limoxis.com'
 const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
@@ -13,7 +13,7 @@ serveWithCors(async(req)=>{
   if(!supabaseUrl||!serviceRoleKey||!anonKey)return reply({error:'Function is not configured'},500)
   const jwt=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');if(!jwt)return reply({error:'Missing Authorization header'},401)
   let body:any;try{body=await req.json()}catch{return reply({error:'Invalid JSON body'},400)}
-  const {organizationId,fullName,role,email,phone,jobTitle,employeeDbId,employee}=body||{}
+  const {organizationId,fullName,role,email,phone,jobTitle,employeeDbId,employee,departmentId}=body||{}
   if(!organizationId||!fullName||!role||!email)return reply({error:'organizationId, fullName, role and email are required'},400)
   if(!ALLOWED_ROLES.includes(role))return reply({error:`Unknown role: ${role}`},400)
   const caller=createClient(supabaseUrl,anonKey,{global:{headers:{Authorization:`Bearer ${jwt}`}}});const {data:callerData}=await caller.auth.getUser();if(!callerData?.user)return reply({error:'Invalid session'},401)
@@ -35,6 +35,9 @@ serveWithCors(async(req)=>{
     if((memberCount||0)>=maxUsers)return reply({error:`Το Demo επιτρέπει έως ${maxUsers} χρήστες.`,code:'DEMO_USER_LIMIT',maxUsers},403)
     demoEntitlementId=entitlement?.id||null
   }
+  // The roles of a department see only their department: it is settled before any account exists.
+  const department=await resolveMemberDepartment(admin,{organizationId,role,departmentId,employeeDbId})
+  if('error' in department)return reply({error:department.error==='DEPARTMENT_REQUIRED'?'Ο ρόλος χρειάζεται τμήμα.':department.error==='DEPARTMENT_NOT_FOUND'?'Το τμήμα δεν βρέθηκε στον οργανισμό.':department.error,code:department.error},400)
   const normalizedEmail=String(email).trim().toLowerCase();const username=await generateUserName(admin,fullName);const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||req.headers.get('origin')||DEFAULT_APP_URL).replace(/\/$/,'');const redirectTo=`${appUrl}/activate`
   const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(normalizedEmail,{redirectTo,data:{full_name:fullName,username,role,role_label:ROLE_LABELS[role]||role,organization_id:organizationId,organization_name:org.name,invited_by:profile?.full_name||'',is_platform_owner:false}})
   let userId:string;let createdMembership=false
@@ -51,10 +54,10 @@ serveWithCors(async(req)=>{
     }
     const {data:existingMembership}=await admin.from('organization_members').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
     if(!existingMembership){const {error:reuseMemberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:userId,role,status:'active'});if(reuseMemberError)return reply({error:reuseMemberError.message},500);createdMembership=true}
-    try{const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username:existingProfile.username,userId,emailSent:false,reused:true,employeeId:linkedEmployeeId})}catch(error){if(createdMembership)await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);return reply({error:String(error?.message||error)},409)}
+    try{await setMemberDepartment(admin,{organizationId,userId,departmentId:department.departmentId});const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username:existingProfile.username,userId,emailSent:false,reused:true,employeeId:linkedEmployeeId})}catch(error){if(createdMembership)await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);return reply({error:String(error?.message||error)},409)}
   }
   userId=invited.user.id
   const {error:profileError}=await admin.from('profiles').update({full_name:fullName,username,contact_email:normalizedEmail,phone:phone||null,job_title:jobTitle||null,...(org.is_demo?{is_demo:true,demo_entitlement_id:demoEntitlementId}:{})}).eq('id',userId);if(profileError){await admin.auth.admin.deleteUser(userId);return reply({error:profileError.message},500)}
   const {error:memberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:userId,role,status:'invited'});if(memberError){await admin.auth.admin.deleteUser(userId);return reply({error:memberError.message},500)}
-  try{const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username,userId,emailSent:true,provider:'supabase_auth',employeeId:linkedEmployeeId})}catch(error){await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);await admin.auth.admin.deleteUser(userId);return reply({error:String(error?.message||error)},409)}
+  try{await setMemberDepartment(admin,{organizationId,userId,departmentId:department.departmentId});const linkedEmployeeId=await linkOrCreateEmployee(admin,{organizationId,userId,normalizedEmail,phone,jobTitle,employeeDbId,employee});return reply({ok:true,username,userId,emailSent:true,provider:'supabase_auth',employeeId:linkedEmployeeId})}catch(error){await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId);await admin.auth.admin.deleteUser(userId);return reply({error:String(error?.message||error)},409)}
 })

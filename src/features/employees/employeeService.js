@@ -201,11 +201,12 @@ export async function updateEmployeeAsync(organizationId, employeeDbId, v, previ
   }
 }
 
-export async function createEmployeeAccountAsync(organizationId,employee,{role='staff_user',email,phone,jobTitle}={}){
+export async function createEmployeeAccountAsync(organizationId,employee,{role,departmentId=null,email,phone,jobTitle}={}){
   if(isDemoDataEnvironment())throw new Error('DEMO_EMPLOYEE_ACCOUNT_NOT_AVAILABLE')
   productionContext(organizationId,'employees.account.create')
   if(!employee?.dbId)throw new Error('EMPLOYEE_DB_ID_REQUIRED')
   if(employee.userId)throw new Error('EMPLOYEE_ACCOUNT_ALREADY_LINKED')
+  if(!role)throw new Error('EMPLOYEE_ACCOUNT_ROLE_REQUIRED')
   const accountEmail=String(email||employee.email||'').trim()
   if(!accountEmail)throw new Error('EMPLOYEE_EMAIL_REQUIRED')
   // The new account is linked to the employee row (user_id).
@@ -217,6 +218,7 @@ export async function createEmployeeAccountAsync(organizationId,employee,{role='
     phone:phone??employee.phone??'',
     jobTitle:jobTitle??employee.profession??'',
     employeeDbId:employee.dbId,
+    departmentId,
   })
   invalidateEmployeesCache(organizationId)
   return result

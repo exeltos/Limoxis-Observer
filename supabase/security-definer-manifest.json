@@ -413,6 +413,11 @@
       "authenticated": true,
       "reason": "Management › Users: the members of one organization with their profile (name, username, contact email); the organization's admin or the Platform Owner only, since member and profile RLS show an admin only its own row."
     },
+    "organization_member_departments": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Management › Users: the department of each member of one organization (organization_member_scopes); the organization's admin or the Platform Owner only, since scope RLS shows a user only its own rows."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
