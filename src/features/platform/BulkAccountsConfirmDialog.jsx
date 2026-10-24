@@ -160,10 +160,9 @@ export function BulkAccountsConfirmDialog({ organization, language, items, rowsB
               <div className="bulk-accounts-callout is-success">
                 <ShieldCheck size={16} />
                 <div>
-                  <strong>{tx('Μόνο ο Ιδιοκτήτης Πλατφόρμας', 'Only the Platform Owner')}</strong>{' '}
                   {tx(
-                    'μπορεί να δημιουργεί λογαριασμούς μαζικά. Ο έλεγχος γίνεται και στον server· η ενέργεια καταγράφεται στο Ιστορικό του νοσοκομείου και της πλατφόρμας.',
-                    'can create accounts in bulk. The server checks it too; the action is recorded in the history of the hospital and of the platform.',
+                    'Μόνο ο Διαχειριστής του νοσοκομείου και ο Ιδιοκτήτης Πλατφόρμας δημιουργούν λογαριασμούς μαζικά. Ο έλεγχος γίνεται και στον server· η ενέργεια καταγράφεται στο Ιστορικό.',
+                    'Only the hospital administrator and the Platform Owner create accounts in bulk. The server checks it too; the action is recorded in the history.',
                   )}
                 </div>
               </div>

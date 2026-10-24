@@ -46,6 +46,7 @@ import {
 import { createBulkAccounts, previewBulkAccounts, resendAccountAccess } from './bulkAccountsService'
 import { BulkAccountsConfirmDialog } from './BulkAccountsConfirmDialog'
 import '../../design-system/ChoiceChips.css'
+import './platformDeletion.css'
 import './bulkAccounts.css'
 
 const shortDay = (value, language) => (value ? new Date(value).toLocaleDateString(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit' }) : '')

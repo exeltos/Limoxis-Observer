@@ -57,8 +57,8 @@ function initial() {
 }
 const state = () => (rows ||= initial())
 
-export function previewEmployeeAccounts(organizationId) {
-  if (organizationId !== ORG) return { employees: [], departments: [] }
+export function previewEmployeeAccounts(organizationId, { anyOrganization = false } = {}) {
+  if (!anyOrganization && organizationId !== ORG) return { employees: [], departments: [] }
   return { employees: state().map(row => ({ ...row })), departments: DEPARTMENTS }
 }
 
