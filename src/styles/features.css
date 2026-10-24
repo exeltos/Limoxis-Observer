@@ -2480,6 +2480,7 @@
 .management-user-section-heading strong{display:block;color:#172b40;font-size:13px;font-weight:800}
 .management-user-section-heading p{margin:3px 0 0;color:#738395;font-size:11px;line-height:1.45}
 .management-user-role-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px}
+.management-user-role-row:has(>.field+.field){grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto}
 .management-user-role-row .field{margin:0}
 .management-user-role-row .field>span{font-size:10px!important;text-transform:uppercase;letter-spacing:.035em;color:#7c8b99!important;font-weight:800!important}
 .management-user-role-row select{height:42px!important}

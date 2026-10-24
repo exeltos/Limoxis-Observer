@@ -23,6 +23,7 @@ const DEMO_USERS=[
  {id:'DEMO-MEMBER-001',userId:'DEMO-USER-001',role:ROLES.HOSPITAL_ADMIN,status:'active',username:'demo.admin',name:'Διαχειριστής Demo',nameEn:'Demo Administrator',email:'demo.admin@example.org'},
  {id:'DEMO-MEMBER-002',userId:'DEMO-USER-002',role:ROLES.INFECTION_CONTROL_LEAD,status:'active',username:'demo.infection',name:'Υπεύθυνος Λοιμώξεων',nameEn:'Infection Control Lead',email:'infection.demo@example.org'},
  {id:'DEMO-MEMBER-003',userId:'DEMO-USER-003',role:ROLES.LABORATORY,status:'active',username:'demo.lab',name:'Εργαστήριο Demo',nameEn:'Demo Laboratory',email:'lab.demo@example.org'},
+ {id:'DEMO-MEMBER-004',userId:'DEMO-USER-004',role:ROLES.DEPARTMENT_MANAGER,status:'active',username:'demo.icu',name:'Προϊστάμενος ΜΕΘ',nameEn:'ICU Manager',email:'icu.demo@example.org',departmentId:'ΜΕΘ',departmentName:'ΜΕΘ'},
 ]
 
 // Greek or English text by the interface language.
@@ -96,7 +97,7 @@ function CreateUserDialog({tenantId,t,busy,isDemo,departments=[],onClose,onCreat
  const [mode,setMode]=useState('existing'),[employees,setEmployees]=useState([]),[employeesLoading,setEmployeesLoading]=useState(false),[form,setForm]=useState({fullName:'',role:'',departmentId:'',email:'',phone:'',jobTitle:'',employeeDbId:'',employeeCode:'',employmentStatus:'active',screenGuides:'default'})
  const set=(k,v)=>setForm(x=>({...x,[k]:v}))
  useEffect(()=>{
-  if(isDemo){setEmployees(demoEmployeeRows.map(row=>({id:row.id,user_id:null,employee_code:row.id,first_name:row.firstName,last_name:row.lastName,email:row.email,phone:row.phone,profession_name:row.profession,employment_status:row.employmentStatus})));setEmployeesLoading(false);return}
+  if(isDemo){setEmployees(demoEmployeeRows.map(row=>({id:row.id,user_id:null,employee_code:row.id,first_name:row.firstName,last_name:row.lastName,email:row.email,phone:row.phone,profession_name:row.profession,employment_status:row.employmentStatus,department_id:row.department||null})));setEmployeesLoading(false);return}
   if(!supabase||!tenantId)return
   let alive=true;setEmployeesLoading(true);supabase.from('employees').select('id,user_id,employee_code,first_name,last_name,email,phone,profession_name,employment_status,department_id').eq('organization_id',tenantId).order('last_name').then(({data,error})=>{if(alive){if(!error)setEmployees((data||[]).filter(x=>!x.user_id));setEmployeesLoading(false)}});return()=>{alive=false}
  },[tenantId,isDemo])
