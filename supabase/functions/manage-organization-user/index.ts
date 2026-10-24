@@ -29,7 +29,7 @@ serveWithCors(async(req)=>{
  if(!isOwner&&sharedAccount&&action==='update'&&['fullName','email','phone','jobTitle'].some(key=>b[key]!==undefined))return reply({error:'Ο λογαριασμός χρησιμοποιείται και σε άλλον οργανισμό· τα στοιχεία του αλλάζουν μόνο από τον ίδιο τον χρήστη ή τον Platform Owner.',code:'SHARED_ACCOUNT'},403)
  const isSelf=userId===cu.user.id
  if(isSelf&&!isOwner){
-  if(action==='update'&&b.role)return reply({error:'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο ή τα δικαιώματα πρόσβασης.'},403)
+  if(action==='update'&&(b.role||b.departmentId!==undefined))return reply({error:'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο ή τα δικαιώματα πρόσβασης.'},403)
   if(['suspend','reactivate','delete','resend_invitation','invitation_link'].includes(action))return reply({error:'Δεν μπορείτε να αλλάξετε την κατάσταση πρόσβασης ή να διαγράψετε τον δικό σας λογαριασμό.'},403)
  }
  if(action==='update'){const profilePatch:any={};if(b.fullName!==undefined)profilePatch.full_name=String(b.fullName||'').trim();if(b.email!==undefined)profilePatch.contact_email=String(b.email||'').trim().toLowerCase()||null;if(b.phone!==undefined)profilePatch.phone=b.phone||null;if(b.jobTitle!==undefined)profilePatch.job_title=b.jobTitle||null;if(Object.keys(profilePatch).length){const {error}=await admin.from('profiles').update(profilePatch).eq('id',userId);if(error)return reply({error:error.message},500)}if(b.email!==undefined){const email=String(b.email||'').trim().toLowerCase();if(email){const {error}=await admin.auth.admin.updateUserById(userId,{email});if(error)return reply({error:error.message},500)}}if(b.role||b.departmentId!==undefined){
