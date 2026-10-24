@@ -36,11 +36,8 @@ async function create(recordType) {
   await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
   act(() => { api.enterSampleDemo() })
   if (recordType === 'incidents') {
-    // The three steps of the report form: what happened, description, send.
-    const category = await screen.findByRole('combobox', { name: /Κατηγορία/ })
-    fireEvent.change(category, { target: { value: 'Φάρμακο' } })
-    fireEvent.keyDown(category, { key: 'Enter' })
-    const department = screen.getByRole('combobox', { name: /Τμήμα/ })
+    // The three steps of the neutral report: where and when, what happened, send.
+    const department = await screen.findByRole('combobox', { name: /Τμήμα/ })
     fireEvent.change(department, { target: { value: 'ΜΕΘ' } })
     fireEvent.keyDown(department, { key: 'Enter' })
     fireEvent.click(screen.getByRole('button', { name: /Επόμενο/ }))

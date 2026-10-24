@@ -15,7 +15,8 @@ describe('indicator registry navigation and record behavior',()=>{
 
  it('uses the shared registry memory so returning highlights the last indicator row',()=>{
   const list=read('src/features/indicators/IndicatorsPage.jsx')
-  expect(list).toContain("useRegistryMemory('indicators')")
+  expect(list).toContain("registryKey='indicators'")
+  expect(list).toContain('useRegistryMemory(registryKey)')
   expect(list).toContain('registry.rowProps')
   expect(list).toContain('registry.openRecord')
   expect(list).toContain('registry.scrollRef')

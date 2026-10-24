@@ -54,7 +54,7 @@ describe('Surveillance Center registry', () => {
     await openCenter()
     await waitFor(() => expect(rowOf('Ελένη Παπαδοπούλου')).toHaveLength(1))
     const rows = rowOf('Ελένη Παπαδοπούλου')
-    expect(rows[0]).toHaveTextContent(/καλλιέργεια/)
+    expect(rows[0]).toHaveTextContent(/εργαστηριακά δείγματα/)
     expect(rows[0]).not.toHaveTextContent('επιτηρήσεις')
   })
 

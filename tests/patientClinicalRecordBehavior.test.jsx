@@ -231,9 +231,10 @@ describe('surveillance tree and samples', () => {
   })
 
   it('does not offer to start a surveillance from a negative sample', async () => {
-    const unlinked = { ...structuredClone(laboratorySamples.find(sample => sample.id === 'LAB-260827-001')), surveillanceCase: null, ast: [], critical: false, resistance: null, organism: null }
+    // A stay without a surveillance episode: an episode of the same stay would adopt its samples.
+    const unlinked = { ...structuredClone(laboratorySamples.find(sample => sample.id === 'LAB-260124-002')), surveillanceCase: null, ast: [], critical: false, resistance: null, organism: null }
     laboratorySamples.unshift({ ...unlinked, id: 'LAB-NEG-1', result: 'negative' }, { ...unlinked, id: 'LAB-POS-1', result: 'positive', organism: 'Escherichia coli' })
-    await openPatient('PT-260184')
+    await openPatient('PT-260082')
     await openTab('Επιτήρηση & Δείγματα')
     const negative = within(body()).getByText(/LAB-NEG-1/).closest('.sv-sample')
     expect(negative.querySelector('.sample-negative-note')).toHaveAttribute('title', 'Ένα αρνητικό αποτέλεσμα δεν μπορεί να ξεκινήσει επιτήρηση.')

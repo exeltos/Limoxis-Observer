@@ -55,7 +55,7 @@ describe('Quality foundations', () => {
 
   it('prefills a report from a control entry with a finding', () => {
     const draft = incidentPrefill({ controlSource: { controlTitle: 'Θερμοκρασία ψυγείου', department: 'ΜΕΘ', value: 11, notes: 'Πάνω από 8°C', scheduledAt: '2026-10-15T08:00:00Z' } })
-    expect(draft).toMatchObject({ title: 'Απόκλιση στον έλεγχο: Θερμοκρασία ψυγείου', department: 'ΜΕΘ', category: 'process', date: '2026-10-15' })
+    expect(draft).toMatchObject({ reportKind: 'report', title: 'Αναφορά από έλεγχο: Θερμοκρασία ψυγείου', department: 'ΜΕΘ', category: 'other', date: '2026-10-15' })
     expect(draft.description).toContain('Καταγεγραμμένη τιμή: 11')
     expect(incidentPrefill({})).toBeNull()
   })
