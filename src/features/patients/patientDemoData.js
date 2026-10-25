@@ -25,6 +25,9 @@ for(const item of historyCases){
   patientDemoData.push({id:item.patientId,firstName,lastName:rest.join(' '),sex:item.sex,patronymic:'',firstNameEn,lastNameEn:restEn.join(' '),patronymicEn:'',name:item.patient,nameEn:item.patientEn,dateOfBirth:item.dateOfBirth,...(item.birthWeightGrams?{birthWeightGrams:item.birthWeightGrams,gestationalAgeWeeks:item.gestationalAgeWeeks}:{}),department:item.department,departmentEn:item.departmentEn,admissionDate:item.admissionDate,...(item.completedAt?{dischargeDate:item.completedAt,status:item.outcome==='transferred'?'transferred':'discharged'}:{status:'active'})})
 }
 
+// A patient registered for a sample before any admission: the record without an admission is shown in the demo too.
+patientDemoData.push({ id:'PT-260232', firstName:'Γεώργιος', lastName:'Ραφαηλίδης', dateOfBirth:'1971-03-09', sex:'male', patronymic:'', firstNameEn:'Georgios', lastNameEn:'Rafailidis', patronymicEn:'', name:'Γεώργιος Ραφαηλίδης', nameEn:'Georgios Rafailidis', department:'Παθολογική', departmentEn:'Internal Medicine', status:'active' })
+
 export function demoAdmissionsForPatient(patient){
   if(!patient?.admissionDate)return []
   return [{

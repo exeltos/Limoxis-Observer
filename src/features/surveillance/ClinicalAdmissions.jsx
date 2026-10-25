@@ -65,6 +65,8 @@ export function PatientDetailsSection({
   // stay and the questionnaire's origin and risk factors (`extraItems`) in it.
   compact = false,
   extraItems = [],
+  // The card's own heading when it is not «Patient & admission» (a patient with no admission).
+  title = null,
 }) {
   const { notify } = useFeedback()
   // «Edit patient» turns the patient details into the form, in place.
@@ -185,9 +187,10 @@ export function PatientDetailsSection({
       {!editing && (
         <SectionHeader
           title={
-            stayFields || compact
+            title ||
+            (stayFields || compact
               ? t('clinicalRecords.patientAndAdmission')
-              : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')
+              : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en'))
           }
           subtitle={
             stayFields || compact

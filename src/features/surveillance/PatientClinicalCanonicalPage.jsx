@@ -19,6 +19,7 @@ import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDateTime, formatDay, formatDayTime } from '../../core/i18n/formatDay'
 import { useLanguage, translate } from '../../core/i18n/LanguageContext'
@@ -630,9 +631,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                     label: t('epiQuestionnaire.riskLabel'),
                     value: (
                       <>
-                        {epiEntry.summary.status === 'done' ? riskWords(epiEntry.row, language, t) : t('epiQuestionnaire.riskPending')}{' '}
-                        {/* With a risk signal the «Needs attention» box already links to the questionnaire. */}
-                        {!epiEntry.summary.signal && (
+                        {/* Pending: one word that opens the questionnaire. Done: the risk factors, then the link
+                            (with a risk signal the «Needs attention» box already links to it). */}
+                        {epiEntry.summary.status === 'done' && <>{riskWords(epiEntry.row, language, t)} </>}
+                        {(epiEntry.summary.status !== 'done' || !epiEntry.summary.signal) && (
                           <button
                             type="button"
                             className="record-summary-link"
@@ -641,7 +643,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                               setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
                             }}
                           >
-                            {t('epiQuestionnaire.link')}
+                            {epiEntry.summary.status === 'done' ? t('epiQuestionnaire.link') : t('episodeForms.status.pending')}
                           </button>
                         )}
                       </>
@@ -923,8 +925,12 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             notifiable reports and what lies outside admissions), never an empty page. */}
         {patientMode && !selectedAdmission && patient && (
           <div className="patient-no-admission-view">
+          {/* The same two cards as a patient with an admission: the patient on the left, the admission on the right. */}
+          <div className="record-summary-grid">
           <PatientDetailsSection
-            bare
+            compact
+            title={t('patient')}
+            stayFields={patient?.department ? [[translate('copy.clinicalRecordCopy.currentDepartment', language === 'el' ? 'el' : 'en'), patient.department]] : null}
             patient={patient}
             tenantId={tenant?.id}
             isDemo={isDemo}
@@ -935,6 +941,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             onChanged={() => load()}
             onDeleted={goBack}
           />
+          <section className="clinical-panel patient-summary-card record-summary-card">
+            <SectionHeader title={t('clinicalRecords.admission')} />
           <PatientWithoutAdmission
             patient={patient}
             tenantId={tenant?.id}
@@ -945,6 +953,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             samplesCount={outsideSamples.length}
             t={t}
           />
+          </section>
+          </div>
           <EpisodeFormsTab ctx={formsCtx} forms={forms} withoutAdmission />
           {outsideSection}
           </div>
