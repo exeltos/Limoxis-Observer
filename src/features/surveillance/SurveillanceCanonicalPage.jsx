@@ -307,7 +307,9 @@ export function SurveillanceCanonicalPage() {
     : getCloudEmployeeSurveillanceKpis(employeeRows)
   const environmentKpis = {
     ...getEnvironmentalKpis(environmentRows),
-    critical: environmentRows.filter(x => x.critical || environmentalNeedsAction(x)).length,
+    // Points that need action (a result outside the acceptable limits) and the critical findings, apart.
+    outside: environmentRows.filter(x => environmentalNeedsAction(x)).length,
+    critical: environmentRows.filter(x => x.critical).length,
   }
   const environmentDepartmentOptions = departments.map(x => ({
     value: x.id,
@@ -502,7 +504,7 @@ export function SurveillanceCanonicalPage() {
             <>
               <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
               <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} quickKey="pending" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentKpis.positive} quickKey="positive" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.outsideLimitsPoints')} value={environmentKpis.outside} quickKey="outside" quick={quick} onQuick={setQuick} />
               <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} quickKey="critical" quick={quick} onQuick={setQuick} />
             </>
           ) : (
@@ -824,8 +826,8 @@ function matchesEmployeeQuick(row, quick) {
 function matchesEnvironmentQuick(row, quick) {
   if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status)
   if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status) && !row.result
-  if (quick === 'positive') return row.result === 'positive'
-  if (quick === 'critical') return Boolean(row.critical) || environmentalNeedsAction(row)
+  if (quick === 'outside') return environmentalNeedsAction(row)
+  if (quick === 'critical') return Boolean(row.critical)
   return true
 }
 function matchesQuick(x, quick) {

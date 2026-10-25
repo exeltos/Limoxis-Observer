@@ -441,16 +441,19 @@ export function EnvironmentalRegistry({
             <td className="env-col-secondary">{departmentName(row)}</td>
             <td>{[row.location, row.point].filter(Boolean).join(' · ') || '—'}</td>
             <td className="env-col-secondary">{fmt(row.collectedAt || row.requestedAt)}</td>
-            <td className="env-col-secondary">{row.environmentalBatchId || '—'}</td>
+            <td className="env-col-secondary env-batch">{row.environmentalBatchId || '—'}</td>
             <td>
               {row.result ? (
+                // The limits decide what the point needs, so they lead; the result and CFU follow, small.
                 <span className="environment-result-cell">
-                  <span className="environment-result-line">
+                  {row.microbiologyResults?.[0]?.withinLimit === true ? (
+                    <StatusBadge tone="success">{t('clinicalRecords.withinLimitsShort')}</StatusBadge>
+                  ) : row.microbiologyResults?.[0]?.withinLimit === false ? (
+                    <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>
+                  ) : (
                     <strong>{t(row.result)}</strong>
-                    {row.microbiologyResults?.[0]?.withinLimit === true && <StatusBadge tone="success">{t('withinLimits')}</StatusBadge>}
-                    {row.microbiologyResults?.[0]?.withinLimit === false && <StatusBadge tone="danger">{t('outsideLimits')}</StatusBadge>}
-                  </span>
-                  {row.microbiologyResults?.[0]?.cfuCount != null && <small>{row.microbiologyResults[0].cfuCount} CFU</small>}
+                  )}
+                  <small>{[row.microbiologyResults?.[0]?.withinLimit != null && t(row.result), row.microbiologyResults?.[0]?.cfuCount != null && `${row.microbiologyResults[0].cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
                 </span>
               ) : (
                 '—'

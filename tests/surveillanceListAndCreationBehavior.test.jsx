@@ -103,7 +103,7 @@ describe('Environment tab: results outside limits', () => {
     await openCenter()
     await openTab(/Περιβάλλον/)
     const row = rowOf('ENV-260824-003')
-    expect(row).toHaveTextContent('Εκτός αποδεκτών ορίων')
+    expect(row).toHaveTextContent('Εκτός ορίων')
     const badge = within(statusCell(row)).getByText('Χρειάζεται ενέργεια')
     expect(badge).toHaveClass('status-badge', 'warning')
     expect(statusCell(row)).not.toHaveTextContent('Ολοκληρώθηκε')
@@ -119,12 +119,12 @@ describe('Environment tab: results outside limits', () => {
     expect(badge).not.toHaveClass('active')
   })
 
-  it('counts the rows needing action in the critical findings tile', async () => {
+  it('counts the rows needing action in the outside-limits tile', async () => {
     await openCenter()
     await openTab(/Περιβάλλον/)
     const needingAction = screen.getAllByText('Χρειάζεται ενέργεια').length
     expect(needingAction).toBeGreaterThan(0)
-    expect(metric('Κρίσιμα ευρήματα')).toHaveTextContent(String(needingAction))
+    expect(metric('Σημεία εκτός ορίων')).toHaveTextContent(String(needingAction))
   })
 
   it('starts a re-sampling of the same point from the record of the sample, which sends it here', async () => {

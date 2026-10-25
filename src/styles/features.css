@@ -3954,7 +3954,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* Sidebar: the entries inside an opened group wrap onto a second line instead of ending in «…». */
 .sidebar .sidebar-nav-children .nav-item>span{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25}
 .sidebar .sidebar-nav-children .nav-item{height:auto!important;min-height:34px;padding-top:6px!important;padding-bottom:6px!important}
-.environment-result-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .record-summary-card .patient-no-admission-line{border-top:0;padding-top:4px}
 .patient-no-admission-view>.record-summary-grid{margin-bottom:12px}
 
