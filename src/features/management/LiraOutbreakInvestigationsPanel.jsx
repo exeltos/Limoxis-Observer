@@ -67,6 +67,7 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
  const [form,setForm]=useState(EMPTY_FORM),[clusters,setClusters]=useState([]),[recordTab,setRecordTab]=useState('summary')
  // The list shows placeholders until both reads end: never «no investigations» or 0 figures before the first load.
  const [rowsLoaded,setRowsLoaded]=useState(Boolean(isDemo)),[clustersLoaded,setClustersLoaded]=useState(false)
+ useEffect(()=>{if(isDemo)setRowsLoaded(true)},[isDemo])
  const [,setSearchParams]=useSearchParams()
  // Back to the list: the address loses ?investigation= so a reload shows the list again.
  function closeRecord(){setSelected(null);setSearchParams(current=>{const next=new URLSearchParams(current);next.delete('investigation');return next},{replace:true})}
