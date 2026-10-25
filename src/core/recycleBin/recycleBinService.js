@@ -51,6 +51,17 @@ const newId = () =>
 
 // Demo lists that live only in memory, and how a row goes back into each.
 const MEMORY_STORES = {
+  protocol_runs: () =>
+    import('../../features/surveillance/protocols/protocolService').then(m => row => m.restoreDemoProtocolRun(row)),
+  clinical_case_entries: () =>
+    import('../../features/surveillance/clinicalDemoData').then(m => ({caseId, field, list, item}) => {
+      const target = m.clinicalCases[caseId]
+      if (!target) return
+      if (!list) target[field] = item
+      else if (!(target[field] || []).some(entry => String(entry.id) === String(item.id))) target[field] = [item, ...(target[field] || [])]
+    }),
+  epi_questionnaires: () =>
+    import('../../features/surveillance/epiQuestionnaire/epiQuestionnaireService').then(m => row => m.restoreDemoEpiQuestionnaire(row)),
   notification_reports: () =>
     import('../../features/reporting/notificationReportsService').then(m => row => m.restoreDemoNotificationReport(row)),
   scale_assessments: () =>

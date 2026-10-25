@@ -6,6 +6,7 @@ import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCirc
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
 import { epiPending, useEpiIndex } from './epiQuestionnaire/useEpiIndex'
 import { canWriteEpi, rowLine } from './epiQuestionnaire/epiQuestionnaireText'
@@ -93,6 +94,7 @@ export function SurveillanceWorkspace({
                           'error',
                         )
                     }
+  const deleteItem = useRecordDelete()
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
   const episodeKey = episodes.map(ep => ep.id).join(',')
   // The epidemiological questionnaire: a grey reminder, or the origin and risk factors in words, on each episode row.
@@ -312,6 +314,7 @@ export function SurveillanceWorkspace({
               fmtDateTime={fmtDateTime}
               permissions={permissions}
               deviceBundles={deviceBundles}
+              deleteItem={deleteItem}
             />
           </div>
         </section>

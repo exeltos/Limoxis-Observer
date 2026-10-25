@@ -12,7 +12,8 @@ import {
   RefreshCcw,
   ShieldCheck,
 } from 'lucide-react'
-import { translate } from '../../core/i18n/LanguageContext'
+import { translate, useLanguage } from '../../core/i18n/LanguageContext'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import {
   RESISTANCE_ALERT,
   episodeTypeLabel,
@@ -30,7 +31,8 @@ import {
 // A sample's result as a status-badge tone (sampleTone: positive / negative / pending).
 export const SAMPLE_TONES = { positive: 'danger', negative: 'success', pending: 'warning' }
 
-export function StagePanel({ icon: Icon, title, action, children }) {
+export function StagePanel({ icon: Icon, title, action, menu = [], children }) {
+  const { t } = useLanguage()
   return (
     <section className="clinical-panel full-panel">
       <div className="record-section-header">
@@ -38,7 +40,14 @@ export function StagePanel({ icon: Icon, title, action, children }) {
           {Icon && <Icon size={17} />}
           <strong>{title}</strong>
         </div>
-        {action}
+        {menu.filter(Boolean).length > 0 ? (
+          <div className="row-actions">
+            {action}
+            <OverflowMenu label={t('episodeForms.rowActions')} items={menu} />
+          </div>
+        ) : (
+          action
+        )}
       </div>
       {children}
     </section>

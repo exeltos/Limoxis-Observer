@@ -3,7 +3,7 @@ import { ShieldCheck } from 'lucide-react'
 import { ObserverDialog } from '../../../../design-system/ObserverDialog'
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
-import { loadEpisodeBundleAssessments } from '../../../prevention/bundleCloudService'
+import { deleteBundleAssessment, loadEpisodeBundleAssessments } from '../../../prevention/bundleCloudService'
 import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { FORM_STATUS, athensToday, bundleStatusForDevice, isActiveDevice } from '../formStatus'
@@ -27,7 +27,7 @@ export function deviceTitle(device, language) {
   return (language === 'en' ? device.nameEn || device.name : device.name) || '—'
 }
 
-function BundleHistory({ row, ctx, onClose }) {
+function BundleHistory({ row, ctx, onClose, reload }) {
   const { t, language } = useLanguage()
   const { fmtDate } = ctx
   return (
@@ -55,6 +55,20 @@ function BundleHistory({ row, ctx, onClose }) {
               statusLabel={check.status === 'completed' ? t('episodeForms.status.done') : t('episodeForms.status.draft')}
               date={fmtDate(check.date)}
               action={{ label: t('episodeForms.open'), onClick: () => ctx.goTo(`/prevention/bundles/${check.id}?fromTab=bundles`, { returnTab: 'episodeForms' }) }}
+              menu={[
+                ctx.deleteItem?.({
+                  createdBy: check.createdById,
+                  table: 'prevention_bundle_assessments',
+                  id: check.id,
+                  label: `${deviceTitle(row.device, language)} · ${keyLabel(row.info)}`,
+                  detail: fmtDate(check.date),
+                  demo: () => deleteBundleAssessment(ctx.organizationId, check.id),
+                  onDone: async () => {
+                    onClose()
+                    await reload?.()
+                  },
+                }),
+              ]}
             />
           ))}
         </FormRows>
@@ -63,7 +77,7 @@ function BundleHistory({ row, ctx, onClose }) {
   )
 }
 
-function BundlesSection({ ctx, section }) {
+function BundlesSection({ ctx, section, reload }) {
   const { t, language } = useLanguage()
   const { fmtDate } = ctx
   const [historyOf, setHistoryOf] = useState(null)
@@ -110,7 +124,7 @@ function BundlesSection({ ctx, section }) {
           )
         })}
       </FormRows>
-      {historyOf && <BundleHistory row={historyOf} ctx={ctx} onClose={() => setHistoryOf(null)} />}
+      {historyOf && <BundleHistory row={historyOf} ctx={ctx} reload={reload} onClose={() => setHistoryOf(null)} />}
     </FormSection>
   )
 }

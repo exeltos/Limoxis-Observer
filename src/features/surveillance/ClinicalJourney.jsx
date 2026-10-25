@@ -38,7 +38,9 @@ import {
   OutcomeDialog,
   ReasonDialog,
 } from './ClinicalRecordDialogs'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
+import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { statusTone } from './surveillanceOptions'
 import { useAuditActor } from '../../core/audit/useAuditActor'
@@ -51,6 +53,7 @@ import {
   createTherapyReview,
   finishProtocolRun,
   recordProtocolStep,
+  removeDemoProtocolRun,
   setProtocolWeight,
   startProtocolRun,
 } from './protocols/protocolService'
@@ -74,6 +77,7 @@ export function CanonicalJourney({
   initialStage = null,
   startProtocolRequest = null,
   onProtocolRequestHandled,
+  deleteItem = null,
 }) {
   const { notify } = useFeedback()
   const actor = useAuditActor()
@@ -92,6 +96,28 @@ export function CanonicalJourney({
     [reason, setReason] = useState(''),
     [entryDetail, setEntryDetail] = useState(null)
   const active = record.status === 'active'
+  // «Delete» of an entry of the episode, for a «…» menu (null when the person may not delete it).
+  const ENTRY_TABLES = {
+    assessment: ['clinical_assessments', row => row.byId],
+    hai: ['hai_classifications', row => row.classifiedBy],
+    isolation: ['isolation_episodes', row => row.createdBy],
+    outcome: ['surveillance_outcomes', row => row.recordedById],
+    therapy: ['antimicrobial_therapies', row => row.createdBy],
+    reassessment: ['surveillance_reassessments', row => row.byId],
+    device: ['surveillance_devices', row => row.createdBy],
+  }
+  const entryDelete = (kind, row, label) =>
+    row?.id && deleteItem
+      ? deleteItem({
+          createdBy: ENTRY_TABLES[kind][1](row),
+          table: ENTRY_TABLES[kind][0],
+          id: row.id,
+          label,
+          detail: record.id,
+          demo: () => repository.deleteEntry(record, kind, row),
+          onDone: onReload,
+        })
+      : null
   // "Start protocol" from the episode header or from a qSOFA / SOFA prompt.
   useEffect(() => {
     if (!startProtocolRequest?.nonce || !active) return
@@ -202,6 +228,24 @@ export function CanonicalJourney({
         {activeRun && (
           <ProtocolPanel
             run={activeRun}
+            menu={[
+              deleteItem?.({
+                createdBy: activeRun.startedBy,
+                table: 'clinical_protocol_runs',
+                id: activeRun.id,
+                label: t(`sepsis.protocols.${activeRun.protocolKey}.panelTitle`),
+                detail: record.id,
+                demo: async () => {
+                  const removed = removeDemoProtocolRun(activeRun.id)
+                  if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'clinical_protocol_runs', label: t(`sepsis.protocols.${activeRun.protocolKey}.panelTitle`), detail: record.id, store: 'protocol_runs', row: removed })
+                },
+                onDone: async () => {
+                  await protocols.reload()
+                  setStage('assessment')
+                  await onReload()
+                },
+              }),
+            ]}
             record={record}
             t={t}
             language={language}
@@ -232,6 +276,7 @@ export function CanonicalJourney({
           <StagePanel
             icon={ShieldCheck}
             title={t('clinicalAssessment')}
+            menu={[entryDelete('assessment', record.assessment, t('clinicalAssessment'))]}
             action={
               permissions.canAssess ? (
                 <Button
@@ -332,6 +377,7 @@ export function CanonicalJourney({
                   ...(deviceBundles ? [{ key: 'day', label: t('episodeForms.bundles.dayColumn') }] : []),
                   { key: 'status', label: t('status') },
                   ...(deviceBundles ? [{ key: 'bundle', label: t('episodeForms.bundles.column') }, { key: 'check', label: '' }] : []),
+                  ...(deleteItem ? [{ key: 'menu', label: '' }] : []),
                 ]}
                 rows={record.devices}
                 renderRow={x => {
@@ -365,6 +411,11 @@ export function CanonicalJourney({
                             {t('episodeForms.bundles.check')}
                           </Button>
                         )}
+                      </td>
+                    )}
+                    {deleteItem && (
+                      <td className="open-record-cell">
+                        {entryDelete('device', x, x.name || x.type) && <OverflowMenu label={t('episodeForms.rowActions')} items={[entryDelete('device', x, x.name || x.type)]} />}
                       </td>
                     )}
                   </>
@@ -435,6 +486,7 @@ export function CanonicalJourney({
         {stage === 'hai' && (
           <StagePanel
             icon={AlertTriangle}
+            menu={[entryDelete('hai', record.haiClassification, t('haiClassification'))]}
             title={translate(
               'copy.clinicalRecordCopy.haiHealthcareAssociatedInfectionsAmrAntimicrobial',
               language === 'el' ? 'el' : 'en',
@@ -580,6 +632,7 @@ export function CanonicalJourney({
           <StagePanel
             icon={BedDouble}
             title={t('isolation')}
+            menu={[entryDelete('isolation', record.isolation, t('isolation'))]}
             action={
               permissions.canIsolation ? (
                 <div className="row-actions">
@@ -691,6 +744,7 @@ export function CanonicalJourney({
           <StagePanel
             icon={Activity}
             title={t('outcome')}
+            menu={[entryDelete('outcome', record.outcome, t('outcome'))]}
             action={
               permissions.canOutcome ? (
                 <Button
@@ -837,6 +891,11 @@ export function CanonicalJourney({
           fmtDateTime={fmtDateTime}
           canManage={active}
           onClose={() => setEntryDetail(null)}
+          onDelete={
+            entryDetail.kind === 'therapy' || entryDetail.kind === 'reassessment'
+              ? entryDelete(entryDetail.kind, entryDetail.row, entryDetail.kind === 'therapy' ? entryDetail.row.antimicrobial : t('reassessment'))
+              : null
+          }
           onEdit={() => {
             const kind = entryDetail.kind
             setEntryDetail(null)
@@ -909,6 +968,7 @@ function ClinicalEntryDetail({
   fmtDateTime,
   canManage,
   onClose,
+  onDelete,
   onEdit,
   onFinishTherapy,
   onApproveTherapy,
@@ -986,7 +1046,8 @@ function ClinicalEntryDetail({
         (canAdminister && onRecordAdministration) ||
         onFinishTherapy,
       )) ||
-    (entry.kind === 'reassessment' && canManage)
+    (entry.kind === 'reassessment' && canManage) ||
+    Boolean(onDelete)
   const footerActions = (
     <>
       {entry.kind === 'therapy' && pendingApproval && onRejectTherapy && (
@@ -1010,6 +1071,17 @@ function ClinicalEntryDetail({
       {entry.kind === 'therapy' && onFinishTherapy && (
         <Button variant="secondary" onClick={onFinishTherapy}>
           {translate('copy.clinicalRecordCopy.endTherapy', language === 'el' ? 'el' : 'en')}
+        </Button>
+      )}
+      {onDelete && (
+        <Button
+          variant="secondary"
+          onClick={() => {
+            onClose()
+            onDelete.onClick()
+          }}
+        >
+          {onDelete.label}
         </Button>
       )}
       {entry.kind === 'reassessment' && canManage && (

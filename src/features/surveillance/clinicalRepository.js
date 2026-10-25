@@ -190,5 +190,29 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     await binServerRecord(organizationId,{table:'surveillance_cases',id:record.recordId,label,detail,reason})
     return true
   }
-  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase,deleteCase}
+  // «Delete» of one entry of the episode (assessment, HAI, isolation, therapy, reassessment, device, outcome): it goes to the deleter's recycle bin.
+  const ENTRY_KINDS={
+    assessment:{table:'clinical_assessments',field:'assessment',label:'Κλινική εκτίμηση'},
+    hai:{table:'hai_classifications',field:'haiClassification',label:'Ταξινόμηση ΛΑΝ'},
+    isolation:{table:'isolation_episodes',field:'isolation',label:'Απομόνωση'},
+    outcome:{table:'surveillance_outcomes',field:'outcome',label:'Έκβαση'},
+    therapy:{table:'antimicrobial_therapies',field:'therapy',list:true,label:'Αντιμικροβιακή θεραπεία'},
+    reassessment:{table:'surveillance_reassessments',field:'reassessments',list:true,label:'Επαναξιολόγηση'},
+    device:{table:'surveillance_devices',field:'devices',list:true,label:'Συσκευή'},
+  }
+  async function deleteEntry(record,kind,row){
+    const spec=ENTRY_KINDS[kind];if(!spec||!row?.id)return false
+    const {label,detail}=describeDeleted(spec.label,{code:record.patientId,date:record.startedAt,department:record.department})
+    if(isDemo){
+      const target=demoRecord(clinicalCases[record.id]);const item=target[spec.field]&&!spec.list?target[spec.field]:(target[spec.field]||[]).find(x=>String(x.id)===String(row.id))
+      if(!item)return false
+      if(spec.list)target[spec.field]=target[spec.field].filter(x=>String(x.id)!==String(row.id))
+      else{target[spec.field]=null;if(kind==='outcome'){target.status='active';target.completedAt=null}}
+      await binMemoryRow(null,{module:'clinical',kind:spec.table,label,detail,store:'clinical_case_entries',row:{caseId:record.id,field:spec.field,list:Boolean(spec.list),item:clone(item)}})
+      return true
+    }
+    await binServerRecord(organizationId,{table:spec.table,id:row.id,label,detail})
+    return true
+  }
+  return {deleteEntry,loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase,deleteCase}
 }
