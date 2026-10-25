@@ -198,7 +198,6 @@
 .surveillance-journey{display:flex;flex-direction:column;gap:14px;max-width:1220px;margin:0 auto}
 .journey-map{border:1px solid var(--line);border-radius:14px;background:#fbfcfd;padding:14px;display:flex;flex-direction:column;align-items:center}
 .clinical-data-hub{max-width:1220px;margin:0 auto}.clinical-data-heading{margin-bottom:10px}.clinical-data-heading h3{font-size:18px;margin:2px 0}.clinical-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.clinical-data-grid>.clinical-panel{margin:0}
-@media(max-width:1200px){.patient-summary-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:800px){.patient-summary-strip,.clinical-data-grid,.journey-nodes{grid-template-columns:1fr}}
 
 /* v0.10.4 surveillance episode selector, completed summary and guidance cues */
@@ -2679,11 +2678,6 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 
 /* v0.26.98 - Patient registry & intake refinement */
 .page-fill:has(.patient-registry-shell){overflow:hidden}
-.patient-summary-strip{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:8px;
-}
 .patient-registry-shell{
   display:flex;
   flex-direction:column;
@@ -2714,9 +2708,6 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 .patient-registry-shell .data-table tbody tr.registry-row-returned{
   background:#eef5f9;
   box-shadow:inset 3px 0 0 var(--primary,#247386);
-}
-@media(max-width:900px){
-  .patient-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 

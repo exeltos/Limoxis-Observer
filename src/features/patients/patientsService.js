@@ -1,6 +1,7 @@
 import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { patientDemoData, demoAdmissionsForPatient } from './patientDemoData'
+import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 
 function mapRow(row, departmentLabel){
@@ -26,7 +27,23 @@ function mapRow(row, departmentLabel){
     status: row.status,
     notes: row.notes,
     updatedAt: row.updated_at || null,
+    // Who entered the patient: only they (and the admin / infection control lead) may delete it.
+    createdBy: row.created_by || null,
   }
+}
+
+// Demo: the bin takes a patient, with the surveillance episodes under it, out of the session lists and puts them back on restore.
+export function removeDemoPatient(code){
+  const index=patientDemoData.findIndex(item=>item.id===code)
+  if(index<0)return null
+  const [patient]=patientDemoData.splice(index,1)
+  const cases=Object.values(clinicalCases).filter(item=>item.patientId===patient.id)
+  for(const item of cases)delete clinicalCases[item.id]
+  return {patient,cases}
+}
+export function restoreDemoPatient({patient,cases=[]}){
+  if(patient&&!patientDemoData.some(item=>item.id===patient.id))patientDemoData.unshift(patient)
+  for(const item of cases)clinicalCases[item.id]=item
 }
 
 // A write in production needs the hospital and the database; it never «succeeds» locally.
