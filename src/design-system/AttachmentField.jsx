@@ -232,6 +232,8 @@ export function AttachmentField({
     {cloudMode&&cloudLoading&&<div className="inline-empty">{t('loading')||'…'}</div>}
     {cloudMode&&cloudError&&<div className="data-access-state error" role="alert">{t('loadFailed')||'Could not load attachments.'}</div>}
 
+    {!cloudLoading&&!cloudError&&files.length===0&&<div className="inline-empty">{t('noAttachments')}</div>}
+
     {!cloudLoading&&files.length>0&&<div className="attachment-list">
       {files.map(file=><div key={file.id} className="attachment-row attachment-row-v2">
         <div className="attachment-file-info">

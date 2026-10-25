@@ -1,3 +1,4 @@
+import { episodeTypeLabel } from '../clinicalRecordLabels'
 import { athensHour, athensToday, shiftForHour } from './formStatus'
 
 // What every form opened from an episode already knows: patient, admission, episode. Built
@@ -26,7 +27,8 @@ export function episodeContext(ctx, episode = ctx.record) {
     admissionLabel: [department, admissionDate && fmtDate(admissionDate)].filter(Boolean).join(' · '),
     episodeId: episode?.id || '',
     episodeRecordId: episode?.recordId || episode?.id || '',
-    episodeLabel: episode ? [episode.id, episode.startedAt && fmtDate(episode.startedAt)].filter(Boolean).join(' · ') : '',
+    // The episode is named by what it is (its infection or source), never by its code or record id.
+    episodeLabel: episode ? [ctx.t ? episodeTypeLabel(episode, ctx.t) : '', episode.startedAt && fmtDate(episode.startedAt)].filter(label => label && label !== '—').join(' · ') : '',
     departmentId: episode?.departmentId || admission?.departmentId || '',
     departmentName: department,
   }

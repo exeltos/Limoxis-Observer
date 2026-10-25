@@ -3,6 +3,7 @@ import { createDemoLabSample } from '../laboratory/laboratoryDemoData'
 import {
   clinicalCases,
   createClinicalSurveillance,
+  demoClinicalDocuments,
   deleteClinicalSurveillance,
   findCasesByPatient,
   getClinicalCase,
@@ -214,5 +215,5 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     await binServerRecord(organizationId,{table:spec.table,id:row.id,label,detail})
     return true
   }
-  return {deleteEntry,loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase,deleteCase}
+  return {demoDocuments:demoClinicalDocuments,deleteEntry,loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase,deleteCase}
 }

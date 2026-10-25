@@ -756,11 +756,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           admission itself, so they can be added before any surveillance. */}
       {tabId === 'documents' && documentsScope && (
         <DocumentsWorkspace
-          title={translate('copy.clinicalRecordCopy.documents', language === 'en' ? 'en' : 'el')}
           disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
           {...(isDemo
             ? {
-                value: demoDocuments[documentsScope.key] || [],
+                value: demoDocuments[documentsScope.key] ?? repository.demoDocuments(),
                 onChange: files =>
                   setDemoDocuments(current => ({ ...current, [documentsScope.key]: files })),
               }
@@ -838,7 +837,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       libraries: clinicalLibraries,
       documents: documentsScope
         ? isDemo
-          ? { value: demoDocuments[documentsScope.key] || [] }
+          ? { value: demoDocuments[documentsScope.key] ?? repository.demoDocuments() }
           : { organizationId: tenant?.id, entityType: documentsScope.entityType, entityId: documentsScope.entityId }
         : null,
       department,
