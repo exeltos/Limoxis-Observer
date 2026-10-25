@@ -39,6 +39,22 @@ export function FormsTabProvider({ children }) {
   return <FormsTabContext.Provider value={value}>{children}</FormsTabContext.Provider>
 }
 
+// A section that is a single line, without a body: icon, title, what it says and its link.
+export function FormLine({ id, title, icon: Icon, summary, action }) {
+  return (
+    <section className="episode-form-section episode-form-line" data-section={id}>
+      <div className="episode-form-section-head">
+        <div className="episode-form-section-toggle">
+          {Icon && <Icon size={15} aria-hidden="true" />}
+          <h3>{title}</h3>
+          <span className="episode-form-summary">{summary}</span>
+        </div>
+        {action && <div className="episode-form-section-actions">{action}</div>}
+      </div>
+    </section>
+  )
+}
+
 export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }) {
   const { isOpen, toggle, offer } = useFormsTab()
   // The tab learns how each section would like to be; one that needs action opens itself

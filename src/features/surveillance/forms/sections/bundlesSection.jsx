@@ -71,50 +71,45 @@ function BundlesSection({ ctx, section }) {
   const rows = useMemo(() => bundleRowsFor(ctx, section.value, today), [ctx, section.value, today])
   const overdue = rows.filter(row => row.info.status === FORM_STATUS.OVERDUE).length
   const pending = rows.filter(row => row.info.status === FORM_STATUS.PENDING).length
-  const summary = rows.length
-    ? [
-        overdue && `${overdue} ${t('episodeForms.status.overdue').toLowerCase()}`,
-        pending && `${pending} ${t('episodeForms.status.pending').toLowerCase()}`,
-        rows.length - overdue - pending > 0 && `${rows.length - overdue - pending} ${t('episodeForms.status.done').toLowerCase()}`,
-      ].filter(Boolean).join(' · ')
-    : t('episodeForms.bundles.none')
+  // Without a device with a bundle there is nothing to show: no section, no instructions.
+  if (rows.length === 0) return null
+  const summary = [
+    overdue && `${overdue} ${t('episodeForms.status.overdue').toLowerCase()}`,
+    pending && `${pending} ${t('episodeForms.status.pending').toLowerCase()}`,
+    rows.length - overdue - pending > 0 && `${rows.length - overdue - pending} ${t('episodeForms.status.done').toLowerCase()}`,
+  ].filter(Boolean).join(' · ')
   return (
     <FormSection id="bundles" title={t('episodeForms.bundles.title')} icon={ShieldCheck} defaultOpen summary={summary} needsAttention={overdue > 0}>
-      {rows.length === 0 ? (
-        <FormEmpty>{t('episodeForms.bundles.empty')}</FormEmpty>
-      ) : (
-        <FormRows label={t('episodeForms.bundles.title')}>
-          {rows.map(({ device, episode, info }) => {
-            const statusDetail =
-              info.status === FORM_STATUS.OVERDUE
-                ? `${t('episodeForms.bundles.dueWas')} ${fmtDate(info.dueOn)}`
-                : info.status === FORM_STATUS.DONE
-                  ? `${t('episodeForms.bundles.checkedOn')} ${fmtDate(info.lastDate)}`
-                  : info.dueOn <= today
-                    ? t('episodeForms.bundles.dueToday')
-                    : `${t('episodeForms.bundles.dueOn')} ${fmtDate(info.dueOn)}`
-            const detail = [
-              info.deviceDay && `${t('episodeForms.bundles.day')} ${info.deviceDay}`,
-              keyLabel(info),
-              info.compliance != null && `${t('episodeForms.bundles.compliance')} ${info.compliance}%${info.applicable ? ` (${info.yes}/${info.applicable})` : ''}`,
-              ctx.episodes.length > 1 && episode.id,
-            ].filter(Boolean).join(' · ')
-            return (
-              <FormRow
-                key={device.id}
-                title={deviceTitle(device, language)}
-                detail={detail}
-                status={info.status}
-                statusDetail={statusDetail}
-                date={info.lastDate ? fmtDate(hospitalDay(info.lastDate)) : ''}
-                dateLabel={info.lastDate ? t('episodeForms.bundles.lastCheck') : t('episodeForms.bundles.noCheck')}
-                action={{ label: t('episodeForms.bundles.history'), onClick: () => setHistoryOf({ device, episode, info }) }}
-              />
-            )
-          })}
-        </FormRows>
-      )}
-      {rows.length > 0 && <p className="episode-form-note">{t('episodeForms.bundles.note')}</p>}
+      <FormRows label={t('episodeForms.bundles.title')}>
+        {rows.map(({ device, episode, info }) => {
+          const statusDetail =
+            info.status === FORM_STATUS.OVERDUE
+              ? `${t('episodeForms.bundles.dueWas')} ${fmtDate(info.dueOn)}`
+              : info.status === FORM_STATUS.DONE
+                ? `${t('episodeForms.bundles.checkedOn')} ${fmtDate(info.lastDate)}`
+                : info.dueOn <= today
+                  ? t('episodeForms.bundles.dueToday')
+                  : `${t('episodeForms.bundles.dueOn')} ${fmtDate(info.dueOn)}`
+          const detail = [
+            info.deviceDay && `${t('episodeForms.bundles.day')} ${info.deviceDay}`,
+            keyLabel(info),
+            info.compliance != null && `${t('episodeForms.bundles.compliance')} ${info.compliance}%${info.applicable ? ` (${info.yes}/${info.applicable})` : ''}`,
+            ctx.episodes.length > 1 && episode.id,
+          ].filter(Boolean).join(' · ')
+          return (
+            <FormRow
+              key={device.id}
+              title={deviceTitle(device, language)}
+              detail={detail}
+              status={info.status}
+              statusDetail={statusDetail}
+              date={info.lastDate ? fmtDate(hospitalDay(info.lastDate)) : ''}
+              dateLabel={info.lastDate ? t('episodeForms.bundles.lastCheck') : t('episodeForms.bundles.noCheck')}
+              action={{ label: t('episodeForms.bundles.history'), onClick: () => setHistoryOf({ device, episode, info }) }}
+            />
+          )
+        })}
+      </FormRows>
       {historyOf && <BundleHistory row={historyOf} ctx={ctx} onClose={() => setHistoryOf(null)} />}
     </FormSection>
   )

@@ -38,7 +38,7 @@ describe('«Συνδέεται με έξαρση»', () => {
         </LanguageProvider>
       </MemoryRouter>,
     )
-    expect(screen.getByText(/Συνδέεται με έξαρση:/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Συνδέεται με έξαρση' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Άνοιγμα διερεύνησης' }))
     expect(goTo).toHaveBeenCalledWith('/surveillance?tab=outbreaks&investigation=inv-1', { returnTab: 'episodeForms' })
     rerender(
@@ -49,7 +49,7 @@ describe('«Συνδέεται με έξαρση»', () => {
       </MemoryRouter>,
     )
     expect(screen.queryByRole('button', { name: 'Άνοιγμα διερεύνησης' })).toBeNull()
-    expect(screen.getByText(/Συνδέεται με έξαρση:/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Συνδέεται με έξαρση' })).toBeInTheDocument()
     rerender(
       <MemoryRouter>
         <LanguageProvider>

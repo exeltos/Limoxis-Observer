@@ -165,7 +165,7 @@ function NotifiableSection({ ctx, section, reload }) {
                 statusDetail={statusDetail}
                 date={row.date ? fmtDate(row.date) : ''}
                 dateLabel={row.date ? t('episodeForms.notifiable.findingDate') : ''}
-                action={{ label: row.report ? t('episodeForms.open') : t('episodeForms.notifiable.new'), onClick: () => setOpenRow(row) }}
+                action={{ label: row.report ? t('episodeForms.open') : t('episodeForms.notifiable.submit'), onClick: () => setOpenRow(row) }}
               />
             )
           })}

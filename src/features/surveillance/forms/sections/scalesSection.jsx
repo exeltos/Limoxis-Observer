@@ -12,8 +12,9 @@ import { FORM_STATUS } from '../formStatus'
 import { episodeContext } from '../formPrefill'
 import { scaleTrend } from '../scaleTrend'
 
-// A scale appears when it has an assessment, or when the hospital recommends or requires it.
-const listed = item => item.latest || item.availability === 'required' || item.recommended
+// A scale appears when it has an assessment, or when the hospital requires it; the others
+// are reached from «New assessment», which lists every tool.
+const listed = item => item.latest || item.availability === 'required'
 const statusOf = item => (item.state === 'overdue' ? FORM_STATUS.OVERDUE : item.state === 'completed' || item.state === 'current' ? FORM_STATUS.DONE : FORM_STATUS.PENDING)
 // «Κλίμακες» rows as plain data (screen and printed report share it).
 export function scaleLines({ scaleContext = [], ctx }) {
@@ -86,7 +87,6 @@ function ScalesSection({ ctx }) {
         </FormRows>
       )}
       <div className="episode-form-more">
-        {lines.length > 0 && <small>{t('episodeForms.scales.hint')}</small>}
         {data.rows.length > 0 && (
           <button type="button" className="episode-form-link" onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>
             {showAll ? t('episodeForms.scales.hideAll') : `${t('episodeForms.scales.all')} (${data.rows.length})`}
