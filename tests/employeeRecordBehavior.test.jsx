@@ -103,7 +103,7 @@ describe('employee surveillance', () => {
     await openEmployee()
     openTab('Επιτήρηση')
     fireEvent.click(within(body()).getByRole('button', { name: /Νέα επιτήρηση/ }))
-    const flow = (await screen.findByRole('heading', { name: 'Επιτήρηση εργαζομένων' })).closest('.employee-surveillance-entry')
+    const flow = (await screen.findByRole('heading', { name: 'Νέος έλεγχος εργαζομένων' })).closest('.employee-surveillance-entry')
     expect(flow).not.toBeNull()
     cleanup()
     await openEmployee()

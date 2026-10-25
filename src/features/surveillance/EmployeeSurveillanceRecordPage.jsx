@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardList, FileClock, FolderOpen, Pencil, Trash2, UserRound, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -19,7 +19,8 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
-import { formatDay } from '../../core/i18n/formatDay'
+import { formatDay, formatDayTime } from '../../core/i18n/formatDay'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -91,6 +92,8 @@ export function EmployeeSurveillanceRecordPage() {
   const has = capability => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManageFollowup = isDemo || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
   const canManageLab = !isDemo && has(CAPABILITIES.MANAGE_LAB_SAMPLES)
+  const canOpenSample = has(CAPABILITIES.VIEW_LAB)
+  const navigate = useNavigate()
 
   const loadSamples = useCallback(
     async row => {
@@ -284,13 +287,24 @@ export function EmployeeSurveillanceRecordPage() {
       : []
     return (
       <div key={sample.recordId || sample.id} className="employee-sample-row">
-        <div className="employee-sample-main">
-          <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
-          <span>
-            {sampleTypeLabel(sample.type, t)}
-            {sample.source ? ` · ${materialLabels(sample.source, en)}` : ''}
-          </span>
-        </div>
+        {/* The sample opens its laboratory record (the source of the result) for those who may see it. */}
+        {canOpenSample ? (
+          <button type="button" className="employee-sample-main employee-sample-open" onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)}>
+            <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
+            <span>
+              {sampleTypeLabel(sample.type, t)}
+              {sample.source ? ` · ${materialLabels(sample.source, en)}` : ''}
+            </span>
+          </button>
+        ) : (
+          <div className="employee-sample-main">
+            <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
+            <span>
+              {sampleTypeLabel(sample.type, t)}
+              {sample.source ? ` · ${materialLabels(sample.source, en)}` : ''}
+            </span>
+          </div>
+        )}
         <div className="employee-lab-actions">
           <StatusBadge tone={sample.result === 'negative' ? 'success' : 'neutral'}>
             {sample.result ? t(sample.result) : t(sample.status)}
@@ -303,7 +317,7 @@ export function EmployeeSurveillanceRecordPage() {
   })
 
   const history = [
-    record.startedAt && { at: record.startedAt, title: L('Έναρξη επιτήρησης', 'Surveillance started') },
+    record.startedAt && { at: record.startedAt, title: L('Έναρξη ελέγχου', 'Screening started') },
     ...samples.flatMap(sample => [
       sample.collectedAt && { at: sample.collectedAt, title: `${L('Λήψη δείγματος', 'Sample collected')} · ${compactCode(sample.id)}` },
       (sample.resultedAt || sample.finalizedAt) && {
@@ -320,17 +334,17 @@ export function EmployeeSurveillanceRecordPage() {
     <>
       {tabId === 'summary' && (
         <div className="record-section employee-record-page-summary">
+          <SectionHeader title={L('Έλεγχος', 'Screening')} />
           <DetailList
             sections={[
               {
-                title: L('Έλεγχος', 'Screening'),
                 items: [
                   { label: L('Εργαζόμενος', 'Employee'), value: name },
                   { label: L('Κωδικός', 'Code'), value: record.employeeId },
                   { label: L('Τμήμα', 'Department'), value: department },
                   { label: L('Έναρξη', 'Started'), value: fmt(record.startedAt) },
                   { label: L('Τύπος ελέγχου', 'Screening type'), value: screening },
-                  { label: L('Αποτέλεσμα', 'Result'), value: t(resultStatus) },
+                  { label: L('Αποτέλεσμα', 'Result'), value: <StatusBadge tone={statusTone(resultStatus)}>{t(resultStatus)}</StatusBadge> },
                 ],
               },
               followupEligible && {
@@ -391,7 +405,14 @@ export function EmployeeSurveillanceRecordPage() {
         />
       )}
       {tabId === 'history' && (
-        <HistoryTimeline title={t('history')} events={history} when={fmt} emptyText={t('noData')} />
+        <HistoryTimeline
+          card
+          title={t('history')}
+          subtitle={L('Χρονολογικό ιστορικό των ενεργειών του ελέγχου.', 'Chronological history of the screening actions.')}
+          events={history}
+          when={value => (/^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmt(value) : formatDayTime(value, language))}
+          emptyText={t('noData')}
+        />
       )}
     </>
   )

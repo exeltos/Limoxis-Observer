@@ -28,7 +28,7 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
       </div>
       <div className="episode-form-status">
         {word && (danger ? <StatusBadge tone="danger">{word}</StatusBadge> : <span>{word}</span>)}
-        {statusDetail && <small>{statusDetail}</small>}
+        {statusDetail && statusDetail !== word && <small>{statusDetail}</small>}
       </div>
       <div className="episode-form-date">
         {date ? <b>{date}</b> : <span className="episode-form-none">—</span>}
