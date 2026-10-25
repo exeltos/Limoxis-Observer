@@ -7,6 +7,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { EmptyState } from '../../design-system/EmptyState'
@@ -52,6 +53,7 @@ export function LaboratorySampleRecordFunctionalView() {
   const inSurveillance = useLocation().pathname.startsWith('/surveillance/')
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation(inSurveillance ? '/surveillance' : '/laboratory')
+  const deleteItem = useRecordDelete()
   const recordNavigation = useRecordSequenceNavigation({
     registry: inSurveillance ? 'surveillance-environmental' : 'laboratory',
     currentId: sampleId,
@@ -598,6 +600,16 @@ export function LaboratorySampleRecordFunctionalView() {
       statusWord: rejected ? t('rejected') : finalized ? t('completed') : t(sample.status),
       documents: { organizationId: tenant?.id, entityType: 'laboratory_sample', entityId: sample.recordId },
     })
+  // «Delete» of the sample (with its results) is made from inside the record, in its «…» menu.
+  const sampleDelete = deleteItem({
+    createdBy: sample.createdBy,
+    table: 'laboratory_samples',
+    id: sample.recordId,
+    label: sample.id,
+    detail: language === 'el' ? sample.patient : sample.patientEn,
+    demo: () => repository.remove(sample.id),
+    onDone: goBack,
+  })
   return (
     <Page fill>
       <EntityRecordShell
@@ -622,6 +634,7 @@ export function LaboratorySampleRecordFunctionalView() {
         renderTab={renderTab}
         onTabChange={setTab}
         headerActions={<>
+          {sampleDelete && <Button tone="danger" label={t('laboratoryRecords.deleteSample')} onClick={sampleDelete.onClick} />}
           {/* «Άνοιγμα επεισοδίου»: here only (not also in the menu) — a positive patient sample with no episode, for the infection-control roles. */}
           {canReviewSamples(role) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && sample.subjectType === 'patient' && !sample.surveillanceCase && sample.result === 'positive' && (
             <Button variant="secondary" className="sample-open-episode" onClick={() => { const target = sampleEpisodeTarget(sample); navigate(target.path, { state: target.state }) }}>

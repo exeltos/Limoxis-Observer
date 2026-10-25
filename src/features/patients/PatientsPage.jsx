@@ -10,11 +10,8 @@ import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadPatients, removeDemoPatient } from './patientsService'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { loadPatients } from './patientsService'
 import { StatusChips } from '../../design-system/StatusChips'
-import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
-import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -53,8 +50,6 @@ export function PatientsPage(){
   const [pageSize,setPageSize]=useState(15)
   const [riskFlags,setRiskFlags]=useState({})
   const [infectionFlags,setInfectionFlags]=useState({})
-  const deleteItem=useRecordDelete()
-  const reload=useCallback(()=>loadPatients(tenant?.id,{isDemo}).then(list=>setPatients(list)),[tenant?.id,isDemo])
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
@@ -80,14 +75,6 @@ export function PatientsPage(){
   function pageAction(action){
     if(action===UI_ACTIONS.CREATE)navigate('/patients/new')
   }
-  // «Delete» moves the patient, with everything under it, to the deleter's recycle bin.
-  const rowMenu=patient=>{
-    const label=language==='el'?patient.name:(patient.nameEn||patient.name)
-    const item=deleteItem({createdBy:patient.createdBy,table:'patients',id:patient.recordId,label,detail:[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · '),
-      demo:async()=>{const removed=removeDemoPatient(patient.id);if(removed)await binMemoryRow(null,{module:'clinical',kind:'patients',label,detail:patient.id,store:'patients',row:removed})},
-      onDone:reload})
-    return item?<OverflowMenu label={t('episodeForms.rowActions')} items={[item]}/>:null
-  }
   const activeAdvancedCount=(department!=='all'?1:0)+(status!=='all'?1:0)+(period!=='all'?1:0)
   const scopedPatients=patients.filter(p=>canAccessRecord(p))
   const patientSummary={
@@ -108,12 +95,12 @@ export function PatientsPage(){
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
-        columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')},{key:'menu',label:'',ariaLabel:t('episodeForms.rowActions'),className:'row-menu-column'}]}
+        columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
         rows={pagedRows}
         loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[patient.status]||'neutral'}>{t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td><td className="row-menu-cell" onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}>{rowMenu(patient)}</td></>}
+        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[patient.status]||'neutral'}>{t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}

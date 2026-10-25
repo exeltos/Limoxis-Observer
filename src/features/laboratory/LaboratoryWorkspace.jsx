@@ -22,8 +22,6 @@ import { useEmployeesData } from '../employees/useEmployeesData'
 import { libraryOptions, useLibraries } from '../management/useLibraries'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { StatusChips } from '../../design-system/StatusChips'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -48,8 +46,7 @@ export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo, role, actualRole, membership } = useTenant()
-  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, createSample: createRepositorySample, reload: reloadSamples, repository } = useLaboratoryRegistry()
-  const deleteItem = useRecordDelete()
+  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, createSample: createRepositorySample } = useLaboratoryRegistry()
   const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
@@ -143,17 +140,6 @@ export function LaboratoryWorkspace() {
     } catch (error) { notify(error?.message || t('actionFailed'), 'error') }
   }
 
-  // «Delete» moves the sample, with its results, to the deleter's recycle bin.
-  function rowMenu(sample) {
-    const label = displaySampleCode(sample)
-    const item = deleteItem({
-      createdBy: sample.createdBy, table: 'laboratory_samples', id: sample.recordId, label, detail: language === 'el' ? sample.patient : sample.patientEn,
-      demo: () => repository.remove(sample.id),
-      onDone: reloadSamples,
-    })
-    return item ? <OverflowMenu label={t('episodeForms.rowActions')} items={[item]} /> : null
-  }
-
   function openSample(sample) {
     registry.saveViewState({ query, status, result, department, period, scope, quick })
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
@@ -176,7 +162,7 @@ export function LaboratoryWorkspace() {
       </>}/>
       <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable bare className="lab-table" columns={[
-        {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource'),className:'lab-col-secondary'},{key:'result',label:t('result')},{key:'status',label:t('status')},{key:'menu',label:'',ariaLabel:t('episodeForms.rowActions'),className:'row-menu-column'}
+        {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource'),className:'lab-col-secondary'},{key:'result',label:t('result')},{key:'status',label:t('status')}
       ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => { const rp = registry.rowProps(sample.id, () => openSample(sample)); return { ...rp, className: `${rp.className} clickable-row` } }} emptyTitle={empty.title} emptyText={empty.text} emptyFiltered={Boolean(empty.filtered)} onClearFilters={empty.onClear} emptyIcon={empty.icon} emptyAction={empty.action} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
@@ -184,7 +170,6 @@ export function LaboratoryWorkspace() {
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
         <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
         <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status}/></td>
-        <td className="row-menu-cell" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>{rowMenu(sample)}</td>
       </>}/>
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}

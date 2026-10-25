@@ -29,7 +29,8 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { can, CAPABILITIES, isProfileDisabled } from '../../core/permissions/roles'
-import { loadAdmissions, loadPatients, loadPatientsByKeys } from '../patients/patientsService'
+import { loadAdmissions, loadPatients, loadPatientsByKeys, removeDemoPatient } from '../patients/patientsService'
+import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { useDepartments } from '../management/useLibraries'
 import {
   loadManagementLibraries,
@@ -426,6 +427,23 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       ? patient?.name || record?.patient
       : patient?.nameEn || record?.patientEn || patient?.name || record?.patient
   const code = patient?.id || record?.patientId
+  // «Delete» of the whole patient (with its admissions, episodes and samples) is made from inside the record, in its «…» menu.
+  const patientName = patient ? (language === 'en' ? patient.nameEn || patient.name : patient.name) : ''
+  const patientDelete =
+    patientMode && patient && (patient.recordId || isDemo)
+      ? deleteItem({
+          createdBy: patient.createdBy,
+          table: 'patients',
+          id: patient.recordId,
+          label: patientName,
+          detail: [patient.id, patient.hospitalRecordNumber].filter(Boolean).join(' · '),
+          demo: async () => {
+            const removed = removeDemoPatient(patient.id)
+            if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'patients', label: patientName, detail: patient.id, store: 'patients', row: removed })
+          },
+          onDone: goBack,
+        })
+      : null
   const department =
     selectedAdmission?.department ||
     (language === 'el'
@@ -897,8 +915,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
         recordNavigation={recordNavigation}
         headerActions={
-          selectedAdmission || !patientMode ? (
+          selectedAdmission || !patientMode || patientDelete ? (
             <>
+            {patientDelete && <Button tone="danger" label={t('clinicalRecords.deletePatient')} onClick={patientDelete.onClick} />}
             <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() =>
                 downloadRecordJson(
                   {
