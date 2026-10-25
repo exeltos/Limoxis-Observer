@@ -12,6 +12,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadPatients, removeDemoPatient } from './patientsService'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { StatusChips } from '../../design-system/StatusChips'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -97,14 +98,9 @@ export function PatientsPage(){
     isolation:scopedPatients.filter(p=>isolated(p)).length,
   }
   return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(rows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
-    <div className="patient-status-chips" role="group" aria-label={t('patientRegistry')}>
-      <PatientStatusChip loading={loading} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
-      <PatientStatusChip loading={loading} label={t('patientsCountActive')} value={patientSummary.active} filter="active" current={status} onFilter={setStatus}/>
-      <PatientStatusChip loading={loading} label={t('patientsCountDischarged')} value={patientSummary.discharged} filter="discharged" current={status} onFilter={setStatus}/>
-      <PatientStatusChip loading={loading} label={t('patientsCountIsolation')} value={patientSummary.isolation} filter="isolation" current={status} onFilter={setStatus}/>
-    </div>
+    <StatusChips label={t('patientRegistry')} loading={loading} items={[['all','patientsCountAll',patientSummary.total],['active','patientsCountActive',patientSummary.active],['discharged','patientsCountDischarged',patientSummary.discharged],['isolation','patientsCountIsolation',patientSummary.isolation]].map(([filter,key,value])=>{const active=filter==='all'?status==='all':status===filter;return {key:filter,label:t(key),value,active,onToggle:()=>setStatus(filter==='all'||active?'all':filter)}})}/>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
       <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
@@ -130,8 +126,6 @@ export function PatientsPage(){
   </Page>
 }
 
-// A status chip filters the registry by its status; pressing it again shows everyone.
-function PatientStatusChip({label,value,filter,current,onFilter,loading=false}){const active=filter==='all'?current==='all':current===filter;return <button type="button" className={`patient-status-chip ${active?'is-active':''}`.trim()} aria-pressed={active} onClick={()=>onFilter(filter==='all'||active?'all':filter)}>{label}<strong>{loading?'…':value}</strong></button>}
 
 // The next patient code, from the most recent code that ends in a number (PT-260190 → PT-260191).
 export function suggestPatientCode(patients=[]){

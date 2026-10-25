@@ -69,6 +69,8 @@ function mapSample(row,patient,department,microbiology=[],specimenType=null){
   return {
     id:row.sample_code,
     recordId:row.id,
+    // Who entered the sample: only they (and the admin / infection control lead) may delete it.
+    createdBy:row.created_by||null,
     organizationId:row.organization_id,
     patientRecordId:row.patient_id,
     patientId:patient?.patient_code||subjectCode||row.patient_id,

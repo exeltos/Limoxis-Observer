@@ -39,11 +39,11 @@ describe('Patients category fixes', () => {
     expect(flow).toContain('<ObserverDialog')
   })
 
-  it('patient list count cards use plural labels, the fourth counts isolations in place', () => {
+  it('patient list status chips use plural labels, the fourth counts isolations in place', () => {
     const page = fs.readFileSync('src/features/patients/PatientsPage.jsx', 'utf8')
-    expect(page).toContain("label={t('patientsCountDischarged')}")
+    expect(page).toContain("'patientsCountDischarged'")
     // A transfer between departments keeps the patient active, so «Transferred» stayed 0 in production.
-    expect(page).toContain("label={t('patientsCountIsolation')}")
+    expect(page).toContain("'patientsCountIsolation'")
   })
 })
 
