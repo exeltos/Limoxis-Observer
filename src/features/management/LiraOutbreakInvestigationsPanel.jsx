@@ -3,6 +3,7 @@ import {Activity,BrainCircuit,CheckCircle2,ClipboardList,History,ListChecks,Plus
 import {useSearchParams} from 'react-router-dom'
 import {Button} from '../../design-system/Button'
 import {StatusCards} from '../../design-system/StatusCards'
+import {TableSkeleton} from '../../design-system/LoadingSkeleton'
 import {Page} from '../../design-system/Page'
 import {EntityRecordShell} from '../../design-system/EntityRecordShell'
 import {SectionTabsProvider} from '../../design-system/SectionTabs'
@@ -64,6 +65,8 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
  const {language}=useLanguage(),en=language==='en';const {tenant,isDemo,role}=useTenant();const {notify}=useFeedback()
  const [rows,setRows]=useState([]),[selected,setSelected]=useState(null),[events,setEvents]=useState([]),[query,setQuery]=useState(''),[creating,setCreating]=useState(false),[note,setNote]=useState(''),[lineList,setLineList]=useState(null),[timeline,setTimeline]=useState([]),[caseReview,setCaseReview]=useState(null),[evidenceLoading,setEvidenceLoading]=useState(false),[reviews,setReviews]=useState([]),[reviewing,setReviewing]=useState(null),[reviewForm,setReviewForm]=useState({classification:'suspected',rationale:''}),[actions,setActions]=useState([]),[actionForm,setActionForm]=useState({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''}),[addingAction,setAddingAction]=useState(false),[closing,setClosing]=useState(false),[closureNote,setClosureNote]=useState('')
  const [form,setForm]=useState(EMPTY_FORM),[clusters,setClusters]=useState([]),[recordTab,setRecordTab]=useState('summary')
+ // The list shows placeholders until both reads end: never «no investigations» or 0 figures before the first load.
+ const [rowsLoaded,setRowsLoaded]=useState(Boolean(isDemo)),[clustersLoaded,setClustersLoaded]=useState(false)
  const [,setSearchParams]=useSearchParams()
  // Back to the list: the address loses ?investigation= so a reload shows the list again.
  function closeRecord(){setSelected(null);setSearchParams(current=>{const next=new URLSearchParams(current);next.delete('investigation');return next},{replace:true})}
@@ -71,14 +74,14 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
   const canCreate=INVESTIGATION_ROLES.includes(role)
   // Without a hospital in production there is nowhere to record the investigation: the button says why instead of just greying out.
   const blockedReason=!isDemo&&!tenant?.id?(en?'Select a hospital first.':'Επιλέξτε πρώτα νοσοκομείο.'):''
- const load=useCallback(async()=>{if(!tenant?.id||isDemo)return;try{setRows(await listOutbreakInvestigations(tenant.id))}catch(e){notify(e.message,'error')}},[tenant?.id,isDemo,notify])
+ const load=useCallback(async()=>{if(!tenant?.id||isDemo)return;try{setRows(await listOutbreakInvestigations(tenant.id))}catch(e){notify(e.message,'error')}finally{setRowsLoaded(true)}},[tenant?.id,isDemo,notify])
  useEffect(()=>{load()},[load])
  // A link from a patient record (?investigation=<id>) opens that investigation once the list is read.
  const wantedInvestigation=useRef(typeof window!=='undefined'?new URLSearchParams(window.location.search).get('investigation'):null)
  useEffect(()=>{const id=wantedInvestigation.current;if(!id||!rows.length)return;const row=rows.find(item=>String(item.id)===String(id));if(row){wantedInvestigation.current=null;void open(row)}// eslint-disable-next-line react-hooks/exhaustive-deps
  },[rows])
  // The clusters the app has already detected (the same rule as the notifications and the Analysis).
- useEffect(()=>{let alive=true;loadActiveClustersAsync(tenant?.id).then(list=>{if(alive)setClusters(list)}).catch(()=>{if(alive)setClusters([])});return()=>{alive=false}},[tenant?.id])
+ useEffect(()=>{let alive=true;loadActiveClustersAsync(tenant?.id).then(list=>{if(alive)setClusters(list)}).catch(()=>{if(alive)setClusters([])}).finally(()=>{if(alive)setClustersLoaded(true)});return()=>{alive=false}},[tenant?.id])
  const closure=useMemo(()=>buildOutbreakClosureReadiness({lineList,caseReviews:reviews,actions,events}),[lineList,reviews,actions,events])
  const copilot=useMemo(()=>buildInvestigationCopilot({investigation:selected,lineList,caseReviews:reviews,actions,events,closure,language}),[selected,lineList,reviews,actions,events,closure,language])
  function runCopilotSuggestion(item){if(item.target==='closure'){setClosing(true);return}const ids={'line-list':'lira-investigation-line-list',capa:'lira-investigation-capa',hypotheses:'lira-investigation-hypotheses',evidence:'lira-investigation-evidence'};setRecordTab(SUGGESTION_TAB[item.target]||'summary');setTimeout(()=>document.getElementById(ids[item.target])?.scrollIntoView({behavior:'smooth',block:'start'}),60)}
@@ -97,15 +100,18 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
   function closeCreate(){setCreating(false);setForm(EMPTY_FORM);validation.reset()}
   const newButton=canCreate?<Button disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={startNew}><Plus size={16}/>{en?'New investigation':'Νέα διερεύνηση'}</Button>:null
   const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
+  const loading=!rowsLoaded||!clustersLoaded
   const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
-  const summary=shell?<StatusCards label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} items={[
+  const summary=shell?<StatusCards label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} loading={loading} items={[
    {key:'clusters',icon:Radar,label:en?'Possible clusters':'Πιθανές συρροές',value:visibleClusters.length},
    {key:'open',icon:Activity,label:en?'Open investigations':'Ανοιχτές διερευνήσεις',value:openCount},
    {key:'closed',icon:CheckCircle2,label:en?'Closed investigations':'Κλειστές διερευνήσεις',value:closedCount},
   ]}/>:null
   const toolbarButton=shell?null:newButton
   const body=<section className="outbreak-investigations">
-   {(hasRows||hasClusters)
+   {loading
+    ?<TableSkeleton rows={5}/>
+    :(hasRows||hasClusters)
     ?<>
    {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={toolbarButton}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
    {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>

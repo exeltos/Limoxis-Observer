@@ -578,12 +578,13 @@ export function SurveillanceCanonicalPage() {
               }}
             />
           )
-        ) : loading ? <TableSkeleton /> : mode === 'patients' ? (
-          <PatientRows rows={rows} showDepartment={!ownDepartmentOnly} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
+        ) : mode === 'patients' ? (
+          <PatientRows loading={loading} rows={rows} showDepartment={!ownDepartmentOnly} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
         ) : mode === 'employees' ? (
-          <EmployeeRows rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} />
+          <EmployeeRows loading={loading} rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} />
         ) : (
           <EnvironmentalRegistry
+            loading={loading}
             rows={rows}
             empty={empty}
             summaryRows={filtered}
@@ -677,7 +678,7 @@ function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-function PatientRows({ rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
+function PatientRows({ loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
     (x.episodes || [x])
       .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
@@ -686,6 +687,7 @@ function PatientRows({ rows, showDepartment = true, openRuns = [], epiIndex = nu
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
         bare
+        loading={loading}
         columns={[
           { key: 'patient', label: t('patient') },
           ...(showDepartment ? [{ key: 'department', label: t('department') }] : []),
@@ -732,12 +734,13 @@ function PatientRows({ rows, showDepartment = true, openRuns = [], epiIndex = nu
     </div>
   )
 }
-function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
+function EmployeeRows({ loading = false, rows, empty, registry, language, fmt, t, onOpen }) {
   const rowId = x => String(x.recordId || x.id)
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
         bare
+        loading={loading}
         columns={[
           { key: 'name', label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el') },
           { key: 'department', label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el') },

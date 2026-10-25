@@ -379,6 +379,7 @@ export function EnvironmentalSurveillanceFlow({
 }
 
 export function EnvironmentalRegistry({
+  loading = false,
   rows,
   empty,
   t,
@@ -404,6 +405,7 @@ export function EnvironmentalRegistry({
     <section className="environmental-registry workspace-fill">
       <div className="scroll-table" ref={scrollRef}>
       <RegistryTable
+        loading={loading}
         bare
         className="environment-table"
         columns={columns}

@@ -1,4 +1,5 @@
 import { AttachmentField } from './AttachmentField'
+import { useLanguage } from '../core/i18n/LanguageContext'
 import './DocumentsWorkspace.css'
 
 // Every record's documents tab opens the same way (as in Quality): a
@@ -14,8 +15,11 @@ export function DocumentsWorkspace({
   value=[],
   onChange=()=>{},
 }){
+  const {t}=useLanguage()
+  // Every documents card has the same shape: title, one line saying what it holds, then the files (or one line and the button).
+  const shownTitle=title||t('documents'),shownSubtitle=subtitle||t('documentsSubtitle')
   return <div className="record-section documents-workspace">
-    {(title||subtitle)&&<div className="record-section-header lo-section-header"><div>{title&&<h3>{title}</h3>}{subtitle&&<p>{subtitle}</p>}</div></div>}
+    <div className="record-section-header lo-section-header"><div><h3>{shownTitle}</h3><p>{shownSubtitle}</p></div></div>
     <AttachmentField
       disabled={disabled}
       value={value}
