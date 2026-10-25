@@ -80,13 +80,14 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
     // One line says what happened ("Reassessment: clinical improvement"), the next who and which sample.
     .map(x => ({
       at: x.at,
-      title: [timelineLabel(x.type, language, t), x.detail ? clinicalValueLabel(x.detail, language, t) : ''].filter(Boolean).join(': '),
+      // The detail may hold several stored values ("CLABSI · confirmed"): each is put into words.
+      title: [timelineLabel(x.type, language, t), x.detail ? String(x.detail).split(' · ').map(part => termLabel(part, t, language)).join(' · ') : ''].filter(Boolean).join(': '),
       detail: null,
       meta: [personLabel(x), x.sampleId && `${tr('sample')}: ${x.sampleId}`],
     }))
   return (
     <HistoryTimeline
-      title={title || tr('surveillanceHistory')}
+      title={title === undefined ? tr('surveillanceHistory') : title}
       subtitle={subtitle || tr('chronologicalAuditTrailOfClinicalActions')}
       events={events}
       when={fmtDateTime}

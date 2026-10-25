@@ -20,7 +20,7 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
+import { formatDateTime, formatDay, formatDayTime } from '../../core/i18n/formatDay'
 import { useLanguage, translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -785,22 +785,23 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       {tabId === 'history' && record && (
         <Timeline
           record={record}
+          title=""
           t={t}
           language={language}
           fmtDateTime={value =>
-            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value, language)
           }
         />
       )}
       {tabId === 'history' && !record && selectedAdmission && (
         <Timeline
           record={{ timeline: admissionTimeline }}
-          title={t('clinicalRecords.admissionHistory')}
+          title=""
           subtitle={t('clinicalRecords.admissionHistoryHint')}
           t={t}
           language={language}
           fmtDateTime={value =>
-            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value, language)
           }
         />
       )}
