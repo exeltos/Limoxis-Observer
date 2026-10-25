@@ -4559,29 +4559,6 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 /* Control history follows the standard registry/table rhythm. */
 .control-record-shell .control-action-col{width:120px!important;text-align:right!important}
 
-/* KPI + actions become one visual row. */
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts),
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-facts),
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-summary-strip),
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-kpi-strip),
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(.record-section:first-of-type > .module-summary-strip),
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .workspace-summary > .module-summary-strip){position:relative!important}
-
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .employee-record-facts,
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-facts) > .record-facts,
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-summary-strip) > .record-summary-strip,
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-kpi-strip) > .record-kpi-strip,
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(.record-section:first-of-type > .module-summary-strip) .record-section:first-of-type > .module-summary-strip,
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .workspace-summary > .module-summary-strip) > .workspace-summary > .module-summary-strip{
-  width:calc(100% - 88px)!important;
-}
-
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip)) > .entity-record-general-actions,
-.canonical-detail-screen.record-general-tab-active > .entity-record-body:has(.record-section:first-of-type > .module-summary-strip) > .entity-record-general-actions{
-  position:absolute!important;top:10px!important;right:14px!important;z-index:5!important;
-  display:flex!important;align-items:center!important;gap:6px!important;margin:0!important;padding:0!important;
-}
-
 /* Local Employee/Training pairs also occupy that exact KPI rail. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .record-section:first-of-type > .record-section-header,
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .workspace-summary > .module-summary-strip) > .workspace-column .record-section:first-of-type > .record-section-header{
@@ -4596,17 +4573,6 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 @media (max-width:760px){
   .workspace-summary > :is(.module-summary-strip,.lab-kpis),
   .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip,.module-summary-strip){grid-template-columns:1fr!important}
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .employee-record-facts,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-facts) > .record-facts,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-summary-strip) > .record-summary-strip,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .record-kpi-strip) > .record-kpi-strip,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(.record-section:first-of-type > .module-summary-strip) .record-section:first-of-type > .module-summary-strip,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .workspace-summary > .module-summary-strip) > .workspace-summary > .module-summary-strip{width:100%!important}
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body > .entity-record-general-actions,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .record-section:first-of-type > .record-section-header .record-inline-actions,
-  .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .workspace-summary > .module-summary-strip) > .workspace-column .record-section:first-of-type > .record-section-header .record-inline-actions{
-    position:static!important;justify-content:flex-end!important;margin:0 0 10px!important;
-  }
 }
 
 

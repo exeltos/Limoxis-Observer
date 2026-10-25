@@ -878,11 +878,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
         status={
           <>
-            {patientMode && shellStatus !== 'active' ? (
-              <span className="record-status-word">{t(shellStatus)}</span>
-            ) : (
-              <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
-            )}
+            {/* The same status badge on every record (active, discharged, completed). */}
+            <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
             {record?.resistance && <StatusBadge tone="danger">{record.resistance}</StatusBadge>}
             {patient && (
               <ClinicalRiskFlags

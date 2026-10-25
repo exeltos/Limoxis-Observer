@@ -254,30 +254,9 @@
 /* General-tab record actions are relocated by EntityRecordShell next to the first
    details-section heading. This is the one canonical position for edit/archive/delete. */
 .canonical-detail-screen>.entity-record-body{position:relative!important}
-.canonical-detail-screen>.entity-record-body>.entity-record-general-actions{
-  position:absolute!important;
-  top:22px!important;
-  right:24px!important;
-  z-index:4!important;
-  width:auto!important;
-  min-height:36px!important;
-  margin:0!important;
-  padding:0!important;
-}
-.canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
-.canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{
-  padding-right:88px!important;
-}
 
 /* Employee is the canonical record CRUD appearance. All record-level edit/destructive
    actions resolve to this exact geometry, color and placement. */
-.canonical-detail-screen.record-general-tab-active .record-section-header>.record-inline-actions,
-.canonical-detail-screen.record-general-tab-active>.entity-record-body>.entity-record-general-actions{
-  display:flex!important;
-  align-items:center!important;
-  justify-content:flex-end!important;
-  gap:6px!important;
-}
 
 .lo-action-button{min-height:var(--lo-control-height);height:var(--lo-control-height);border-radius:var(--lo-radius-control)}
 .lo-action-button-edit{color:var(--lo-color-text);background:var(--lo-color-surface);border-color:var(--lo-color-border)}
@@ -343,9 +322,6 @@
 .attachment-file-info>strong.attachment-open-target{cursor:pointer;color:var(--lo-color-text);text-decoration:none}
 .attachment-file-info>strong.attachment-open-target:hover{text-decoration:underline;text-underline-offset:3px;color:var(--lo-color-primary)}
 @media (max-width:760px){
-  .canonical-detail-screen>.entity-record-body>.entity-record-general-actions{top:16px!important;right:16px!important}
-  .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type>.record-section-header,
-  .canonical-detail-screen>.entity-record-body:has(>.entity-record-general-actions) .record-section:first-of-type .record-section-header:first-child{padding-right:78px!important}
   .login-briefing-dialog .briefing-sections-v2{grid-template-columns:1fr}
   .login-briefing-dialog .briefing-summary-v2{align-items:flex-start;flex-direction:column}
   .platform-maintenance-banner{top:8px;width:calc(100vw - 20px);font-size:11px}
@@ -1256,3 +1232,4 @@ td>.lo-meter{margin-top:5px}
 /* Attachment field with nothing attached: one line, the button on the right. */
 .attachment-empty-row{display:flex;align-items:center;gap:10px;padding:4px 2px;color:var(--lo-color-muted,#5f6f7c);font-size:13px}
 .attachment-empty-row>span{flex:1 1 auto}
+.observer-dialog:focus{outline:none}

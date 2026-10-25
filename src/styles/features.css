@@ -1294,56 +1294,6 @@
 .prevention-record-shell.record-has-general-actions>.entity-record-body>.prevention-record-card{
   padding-top:18px!important;
 }
-/* the actions menu sits beside the record's first block instead of above it */
-.prevention-record-shell.record-has-general-actions>.entity-record-body>.prevention-record-card>:first-child>:first-child{
-  margin-right:44px;
-}
-
-.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{
-  position:absolute!important;
-  top:18px!important;
-  right:22px!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  width:34px!important;
-  height:34px!important;
-  min-width:34px!important;
-  min-height:34px!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  z-index:6!important;
-}
-.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-overflow-menu,
-.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-overflow-trigger-wrap{
-  display:inline-flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-}
-.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-icon-button{
-  width:34px!important;
-  height:34px!important;
-  min-width:34px!important;
-  min-height:34px!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:8px!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  color:#49657d!important;
-}
-.canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions .lo-icon-button:hover{
-  background:#f3f6f8!important;
-  transform:none!important;
-}
 
 /* ---------- WHO workspace ---------- */
 .prevention-record-shell .who-page-editor,
@@ -1561,7 +1511,6 @@
   .prevention-record-shell .who-live-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 @media(max-width:820px){
-  .canonical-detail-screen.prevention-record-shell>.entity-record-body>.entity-record-general-actions{top:14px!important;right:14px!important}
   .prevention-record-shell .who-action-options{grid-template-columns:1fr!important}
   .prevention-record-shell .who-live-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .prevention-record-shell .who-session-panel,
@@ -3984,7 +3933,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* New employee: rows of three (surname · name · father’s name / code · status · hire date / department · category · position / email · phone). */
 .employee-create-form .employee-create-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start}
 @media(max-width:900px){.employee-create-form .employee-create-grid{grid-template-columns:1fr!important}}
-.record-status-word{font-size:12.5px;font-weight:650;color:#5b6e82;white-space:nowrap}
 /* A patient with no admission: one frame, the sections one under the other, one short line instead of a card. */
 .patient-no-admission-view{display:flex;flex-direction:column;min-width:0;padding:6px 14px 10px}
 .patient-no-admission-view .patient-summary-card.is-bare{margin:0;padding:0 0 6px}

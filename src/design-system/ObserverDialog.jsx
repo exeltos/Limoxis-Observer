@@ -57,8 +57,21 @@ export function ObserverDialog({
     if(dirty.current&&confirm&&!await confirm({title:en?'Discard changes?':'Απόρριψη αλλαγών;',message:en?'The changes you made in this window have not been saved.':'Οι αλλαγές που κάνατε σε αυτό το παράθυρο δεν έχουν αποθηκευτεί.',confirmLabel:en?'Discard':'Απόρριψη',danger:true}))return
     onClose?.()
   }
+  // Escape closes the window like ×, with the same «discard changes?» question. A list or menu open inside
+  // it closes first (they stop the key), and only the window that holds the focus answers.
+  const closeOnEscape=event=>{
+    if(event.key!=='Escape'||event.defaultPrevented)return
+    event.preventDefault()
+    event.stopPropagation()
+    void requestClose()
+  }
+  // The window takes the focus when it opens (unless a field inside already has it), so Escape works at once.
+  useEffect(()=>{
+    const node=sectionRef.current
+    if(node&&!node.contains(document.activeElement))node.focus({preventScroll:true})
+  },[])
   return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&e.target===e.currentTarget)requestClose()}}>
-    <section ref={sectionRef} className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
+    <section ref={sectionRef} className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} tabIndex={-1} onKeyDown={closeOnEscape} onChangeCapture={markDirty} onInputCapture={markDirty}>
       <header>
         <div className={workspace?'observer-dialog-workspace-heading':''}>
           {workspace&&<IconButton label={en?'Back':'Πίσω'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><ArrowLeft size={19}/></IconButton>}

@@ -205,6 +205,8 @@ export function EntityRecordShell({
       <div className="entity-record-header-actions">
         {status}
         {shownUtilities.length>0&&<div className="record-utility-actions entity-record-utilities">{shownUtilities.map((action,index)=><Fragment key={action.key||index}>{action}</Fragment>)}</div>}
+        {/* The record's «…» (edit, archive, delete) sits in the header, beside the export and the record arrows, never over the content. */}
+        {generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
         {effectiveRecordNavigation&&<div className="entity-record-sequence" aria-label={en?'Record navigation':'Πλοήγηση εγγραφών'}>
           <IconButton size="sm" disabled={!effectiveRecordNavigation.hasPrevious} onClick={effectiveRecordNavigation.previous} label={en?'Previous record':'Προηγούμενη εγγραφή'}><ChevronLeft size={16}/></IconButton>
           {effectiveRecordNavigation.position&&effectiveRecordNavigation.total>0&&<span>{effectiveRecordNavigation.position}/{effectiveRecordNavigation.total}</span>}
@@ -218,7 +220,6 @@ export function EntityRecordShell({
       {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange?.(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
     </nav>}
     <section className="entity-record-body surface" style={secondaryBodyStyle}>
-      {primaryTabActive&&generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
       {printedTabs?printedTabs.map(tab=><section key={tab.id} className="record-print-section" data-print-tab={tab.id}>
         <h3 className="record-print-section-title">{tab.label}</h3>
         {renderTab(tab.id)}
