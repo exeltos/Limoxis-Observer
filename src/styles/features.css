@@ -3991,3 +3991,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .patient-no-admission-line{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0;padding:10px 0;border-top:1px solid var(--lo-border-soft,#e3eaf0);border-bottom:1px solid var(--lo-border-soft,#e3eaf0);font-size:13px;color:#314b60}
 .patient-no-admission-line small{font-size:12px;color:#5b6e82}
 .patient-no-admission-line .button{min-height:34px;padding:0 12px;font-size:12.5px}
+
+/* A completed episode's top row holds only «Reopen»: at the right. */
+.clinical-data-heading>button:only-child{margin-left:auto}

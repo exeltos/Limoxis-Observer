@@ -15,6 +15,7 @@ import {
   createClinicalCase,
   endAntimicrobialTherapy,
   endIsolation,
+  loadActorNames,
   loadClinicalCase,
   loadClinicalCasesForPatient,
   markIsolationNotRequired,
@@ -57,16 +58,24 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     const links=await loadSurveillanceAdmissionLinks(organizationId,rows.map(row=>row.recordId||row.id))
     return rows.map(row=>({...row,admissionId:links.get(row.recordId||row.id)||null}))
   }
+  // «Recorded by»: the name of each person in the history, from their id.
+  async function withActorNames(rows){
+    const ids=rows.flatMap(row=>(row.timeline||[]).map(item=>item.actorId))
+    if(!ids.some(Boolean))return rows
+    const names=await loadActorNames(organizationId,ids).catch(()=>null)
+    if(!names?.size)return rows
+    return rows.map(row=>({...row,timeline:(row.timeline||[]).map(item=>item.actor||!names.has(String(item.actorId))?item:{...item,actor:names.get(String(item.actorId))})}))
+  }
   async function loadForPatient(patient){
     if(isDemo)return clone(findCasesByPatient(patient?.id||patient?.patientId||''))
     if(!organizationId||!patient?.recordId)return []
-    return withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId))
+    return withActorNames(await withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId)))
   }
   async function loadCase(caseId){
     if(isDemo)return clone(getClinicalCase(caseId))
     if(!organizationId||!caseId)return null
     const row=await loadClinicalCase(organizationId,caseId)
-    return row?(await withAdmissionLinks([row]))[0]:null
+    return row?(await withActorNames(await withAdmissionLinks([row])))[0]:null
   }
   async function createCase(patient,draft){
     if(!isDemo){

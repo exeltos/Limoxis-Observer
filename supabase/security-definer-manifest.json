@@ -433,6 +433,11 @@
       "authenticated": true,
       "reason": "Recycle bin: deletes one of the caller's own entries for good."
     },
+    "organization_member_names": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Clinical history: the full names of the people who recorded entries of one organization (its members and the Platform Owner), for «recorded by»; an active member of that organization or the Platform Owner only, since profile RLS shows a user only its own row."
+    },
     "organization_member_departments": {
       "category": "rpc",
       "authenticated": true,

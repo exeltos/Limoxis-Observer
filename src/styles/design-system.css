@@ -1052,6 +1052,7 @@ html:not(#lo-unified-tabs) body nav.canonical-module-tabs.management-tab-groups>
 :is(.lo-section-header,#lo-section-header-scope) .lo-section-header-copy{min-width:0}
 :is(.lo-section-header,#lo-section-header-scope) h3{margin:0!important;padding:0!important;border:0!important;color:#173650!important;font-size:16px!important;font-weight:750!important;line-height:1.3!important}
 :is(.lo-section-header,#lo-section-header-scope) p{margin:3px 0 0!important;color:#4f6477!important;font-size:11.5px!important;line-height:1.4!important}
+:is(.lo-section-header-bare,#lo-section-header-scope).lo-section-header-bare{justify-content:flex-end!important}
 :is(.lo-section-header,#lo-section-header-scope) .lo-section-header-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;flex:none}
 
 /* ==== record-tab-panel ==== */
@@ -1246,3 +1247,7 @@ td>.lo-meter{margin-top:5px}
 .lo-more-section-toggle>svg{transition:transform .15s ease}
 .lo-more-section.is-open .lo-more-section-toggle>svg{transform:rotate(180deg)}
 .lo-more-section-toggle:focus-visible{outline:2px solid var(--lo-field-focus,#5b8db4);outline-offset:2px;border-radius:6px}
+
+/* The surveillance tree takes the height of its content when the «outside admissions» list follows it. */
+.entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel).surveillance-tree-section:has(+.record-tab-panel){flex:0 0 auto!important}
+.entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel).surveillance-tree-section:has(+.record-tab-panel)>:is(.record-tab-panel-body,#lo-record-tab-panel-body){flex:0 0 auto!important;overflow:visible!important}

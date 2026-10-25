@@ -277,6 +277,16 @@ function mapOutcome(row) {
   }
 }
 
+// The names of the people who recorded the entries of a case (best effort: an id that
+// cannot be resolved is simply not shown).
+export async function loadActorNames(organizationId, userIds = []) {
+  const ids = [...new Set(userIds.filter(Boolean).map(String))].slice(0, 200)
+  if (!organizationId || !ids.length) return new Map()
+  const { data, error } = await supabase.rpc('organization_member_names', { p_organization_id: organizationId, p_user_ids: ids })
+  if (error) throw error
+  return new Map((data || []).map(row => [String(row.user_id), row.full_name]))
+}
+
 function clinicalTimeline({
   events = [],
   assessments = [],
@@ -293,7 +303,8 @@ function clinicalTimeline({
       at: row.occurred_at || row.created_at,
       type: row.event_type,
       actorId: row.created_by,
-      detail: row.detail || row.event_status,
+      // «created» / «completed» only repeat the event's own name.
+      detail: row.detail && row.detail !== 'created' ? row.detail : '',
     })),
     ...assessments.map(row => ({
       at: row.assessed_at,

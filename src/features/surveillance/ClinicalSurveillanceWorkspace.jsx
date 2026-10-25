@@ -389,14 +389,6 @@ export function SurveillanceWorkspace({
   return (
     <RecordTabPanel
       className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
-      title={translate(
-        'copy.clinicalRecordCopy.surveillanceSamples',
-        language === 'el' ? 'el' : 'en',
-      )}
-      subtitle={translate(
-        'copy.clinicalRecordCopy.unifiedClinicalFlowLinkedSamplesAppear',
-        language === 'el' ? 'el' : 'en',
-      )}
       actions={
         <>
           {onClearTestData && (

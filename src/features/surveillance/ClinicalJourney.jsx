@@ -147,18 +147,14 @@ export function CanonicalJourney({
   if (!active)
     return (
       <div className="clinical-data-hub">
-        <div className="clinical-data-heading">
-          <div>
-            <span className="eyebrow">{t('surveillance')}</span>
-            <h3>{t('clinicalRecords.completedSurveillance')}</h3>
-          </div>
-          {permissions.canReopen && (
+        {permissions.canReopen && (
+          <div className="clinical-data-heading">
             <Button variant="secondary" onClick={() => setDialog('reopen')}>
               <RefreshCcw size={15} />
               {t('clinicalRecords.reopenSurveillance')}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
         <CompletedReport
           record={record}
           t={t}

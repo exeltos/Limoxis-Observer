@@ -59,6 +59,10 @@ export function TagList({ title, items = [], rows = [], t, language }) {
     </>
   )
 }
+// Who recorded it: the person's name, never their id (an unresolved id shows nothing).
+const UUID_TEXT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const personLabel = x => x.actor || (UUID_TEXT.test(String(x.actorId || '')) ? '' : x.actorId || '')
+
 // `title`/`subtitle` replace the surveillance heading (an admission without surveillance).
 export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) {
   const tr = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
@@ -69,7 +73,7 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
       at: x.at,
       title: [timelineLabel(x.type, language, t), x.detail ? clinicalValueLabel(x.detail, language, t) : ''].filter(Boolean).join(': '),
       detail: null,
-      meta: [x.actor || x.actorId, x.sampleId && `${tr('sample')}: ${x.sampleId}`],
+      meta: [personLabel(x), x.sampleId && `${tr('sample')}: ${x.sampleId}`],
     }))
   return (
     <HistoryTimeline
@@ -127,9 +131,6 @@ export function CompletedReport({
         <div>
           <span className="eyebrow">{t('clinicalRecords.finalSurveillanceReport')}</span>
           <h2>{episodeTypeLabel(record, t) || record.patient}</h2>
-          <p>
-            {record.patient} · {record.department || '—'} · {record.id}
-          </p>
         </div>
         <div className="final-report-hero-facts">
           <div>
@@ -228,9 +229,6 @@ export function CompletedReport({
                   </strong>
                 </div>
               </div>
-              {hai.definitionSet && (
-                <small className="final-report-note">{hai.definitionSet}</small>
-              )}
               {(hai.rationale || hai.rationaleEn) && (
                 <p>{el ? hai.rationale : hai.rationaleEn || hai.rationale}</p>
               )}
@@ -276,7 +274,7 @@ export function CompletedReport({
               {therapy.map(x => (
                 <li key={x.id}>
                   <strong>{x.antimicrobial}</strong>
-                  <span>{[x.dose, x.route].filter(Boolean).join(' · ') || '—'}</span>
+                  {[x.dose, x.route].filter(Boolean).length > 0 && <span>{[x.dose, x.route].filter(Boolean).join(' · ')}</span>}
                   <small>
                     {fmtDate(x.startedAt)}
                     {x.plannedEnd || x.endedAt ? ` → ${fmtDate(x.endedAt || x.plannedEnd)}` : ''}
@@ -330,7 +328,7 @@ export function CompletedReport({
               {reassessments.map(x => (
                 <li key={x.id || x.date}>
                   <strong>{termLabel(x.status, t, language)}</strong>
-                  <span>{x.notes || '—'}</span>
+                  {x.notes && <span>{x.notes}</span>}
                   <small>{fmtDate(x.date)}</small>
                 </li>
               ))}
@@ -366,9 +364,9 @@ export function CompletedReport({
               {record.timeline.map((x, i) => (
                 <div key={`${x.at}-${i}`} className="course-event">
                   <time>{fmtDateTime(x.at)}</time>
-                  <span>{termLabel(x.type, t, language)}</span>
-                  <strong>{x.actor || x.actorId || '—'}</strong>
-                  <p>{x.detail || '—'}</p>
+                  <span>{timelineLabel(x.type, language, t)}</span>
+                  <strong>{personLabel(x)}</strong>
+                  <p>{x.detail ? clinicalValueLabel(x.detail, language, t) : ''}</p>
                 </div>
               ))}
             </div>

@@ -10,6 +10,7 @@ import {
   Syringe,
   Stethoscope,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const icons = {
@@ -168,7 +169,6 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
       </div>
       <nav
         className={`episode-section-tabs${extraStages.length ? ' has-protocol-tabs' : ''}`}
-        style={extraStages.length ? { '--episode-tab-count': stages.length } : undefined}
         aria-label={language === 'el' ? 'Ενότητες επεισοδίου' : 'Episode sections'}
       >
         {stages.map(stage => (
@@ -195,6 +195,8 @@ export function SurveillanceJourneyGuidance({
   onSelect,
   extraCues = [],
 }) {
+  // A short list: the first three, the rest behind «and N more».
+  const [showAll, setShowAll] = useState(false)
   const cues = [...extraCues],
     samples = record?.samples || [],
     pendingSamples = samples.filter(sample => !sample.organism)
@@ -231,7 +233,7 @@ export function SurveillanceJourneyGuidance({
         <span>{cues.length}</span>
       </div>
       <div className="journey-guidance-items">
-        {cues.map((cue, index) => (
+        {(showAll ? cues : cues.slice(0, 3)).map((cue, index) => (
           <button
             type="button"
             key={`${cue.id}-${index}`}
@@ -239,8 +241,14 @@ export function SurveillanceJourneyGuidance({
             onClick={() => onSelect?.(cue.id)}
           >
             <strong>{cue.title}</strong>
+            <span aria-hidden="true">→</span>
           </button>
         ))}
+        {!showAll && cues.length > 3 && (
+          <button type="button" className="record-summary-link" onClick={() => setShowAll(true)}>
+            {String(t('clinicalRecords.attentionMore')).replace('{count}', String(cues.length - 3))}
+          </button>
+        )}
       </div>
     </div>
   )
