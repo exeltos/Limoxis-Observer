@@ -229,3 +229,13 @@ export async function deleteAdmission(organizationId,patient,admission,reason,{i
   if(message.includes('surveillance episodes'))throw Object.assign(new Error(message),{code:'has_surveillance'})
   throw error
 }
+
+// The next patient code, from the most recent code that ends in a number (PT-260190 → PT-260191).
+export function suggestPatientCode(patients=[]){
+  const parts=patients.map(item=>/^(\D*)(\d+)$/.exec(String(item.id||item.patientCode||'').trim())).filter(Boolean)
+  if(!parts.length)return ''
+  const prefix=parts[0][1]
+  const same=parts.filter(part=>part[1]===prefix)
+  const top=same.reduce((best,part)=>Number(part[2])>Number(best[2])?part:best,same[0])
+  return `${prefix}${String(Number(top[2])+1).padStart(top[2].length,'0')}`
+}

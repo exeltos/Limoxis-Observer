@@ -53,7 +53,7 @@ export function notifiableRows(ctx, reports = []) {
   return rows
 }
 
-function NotifiableDialog({ ctx, row, onClose, onSaved }) {
+export function NotifiableDialog({ ctx, row, onClose, onSaved }) {
   const { t } = useLanguage()
   const { notify } = useFeedback()
   const [draft, setDraft] = useState({ status: row.status, notifiedAt: row.report?.notifiedAt || '', reference: row.report?.reference || '' })

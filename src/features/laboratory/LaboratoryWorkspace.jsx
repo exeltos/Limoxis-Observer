@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
 import { isCultureSampleType } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
-import { AlertTriangle, Clock3, FlaskConical, Microscope, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { AlertTriangle, Clock3, FlaskConical, Megaphone, Microscope, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
+import { Button } from '../../design-system/Button'
+import { NotifiableReportsPanel } from './NotifiableReportsPanel'
+import { canSeeNotifiable } from '../surveillance/forms/sections/notifiableSection'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
@@ -63,6 +67,12 @@ export function LaboratoryWorkspace() {
   const [patients, setPatients] = useState([])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
+  // Two categories: the samples and the notifiable diseases (only for the roles that see notifications).
+  const [searchParams, setSearchParams] = useSearchParams()
+  const showNotifiable = canSeeNotifiable({ role: role || actualRole })
+  const tab = showNotifiable && searchParams.get('tab') === 'notifiable' ? 'notifiable' : 'samples'
+  const setTab = value => setSearchParams(current => { const next = new URLSearchParams(current); if (value === 'notifiable') next.set('tab', value); else next.delete('tab'); return next }, { replace: true })
+  const [notifiableNew, setNotifiableNew] = useState(false)
 
   useEffect(() => {
     if (!newOpen) return
@@ -145,7 +155,14 @@ export function LaboratoryWorkspace() {
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
   }
 
+  const tabs = showNotifiable && <CanonicalTabs items={[{ value: 'samples', label: t('labNotifiable.samplesTab'), icon: FlaskConical }, { value: 'notifiable', label: t('labNotifiable.tab'), icon: Megaphone }]} value={tab} onChange={setTab} ariaLabel={t('labNotifiable.tabsLabel')} />
+  if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button>}>
+    {tabs}
+    <NotifiableReportsPanel organizationId={tenant?.id} isDemo={isDemo} samples={repositoryRows.filter(sample => canAccessRecord(sample))} canCreate creating={notifiableNew} onCreatingChange={setNotifiableNew} />
+  </Page>
+
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
+    {tabs}
     <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
       { key: 'today', icon: FlaskConical, label: language === 'el' ? 'Σήμερα' : 'Today', value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
       { key: 'pending', icon: Clock3, label: t('laboratoryRecords.pendingResults'), value: k.pending, active: quick === 'pending', onToggle: () => setQuick(quick === 'pending' ? 'all' : 'pending') },

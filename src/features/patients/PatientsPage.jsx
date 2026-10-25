@@ -10,7 +10,8 @@ import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadPatients } from './patientsService'
+import { loadPatients, suggestPatientCode } from './patientsService'
+export { suggestPatientCode }
 import { StatusCards } from '../../design-system/StatusCards'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -113,16 +114,6 @@ export function PatientsPage(){
   </Page>
 }
 
-
-// The next patient code, from the most recent code that ends in a number (PT-260190 → PT-260191).
-export function suggestPatientCode(patients=[]){
-  const parts=patients.map(item=>/^(\D*)(\d+)$/.exec(String(item.id||item.patientCode||'').trim())).filter(Boolean)
-  if(!parts.length)return ''
-  const prefix=parts[0][1]
-  const same=parts.filter(part=>part[1]===prefix)
-  const top=same.reduce((best,part)=>Number(part[2])>Number(best[2])?part:best,same[0])
-  return `${prefix}${String(Number(top[2])+1).padStart(top[2].length,'0')}`
-}
 
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.
