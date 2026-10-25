@@ -1,22 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Clock3, Megaphone, UserPlus, UserRound } from 'lucide-react'
+import { AlertTriangle, Clock3, Megaphone } from 'lucide-react'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { StatusCards } from '../../design-system/StatusCards'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
-import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { Field } from '../../design-system/Field'
-import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { createClinicalNotificationReport, loadNotificationReports } from '../reporting/notificationReportsService'
 import { deadlineStatusText, deadlineWords } from '../reporting/eodyCatalogue'
 import { NotifiableDialog, notifiableRows } from '../surveillance/forms/sections/notifiableSection'
-import { NotifiablePicker } from '../surveillance/forms/sections/notifiablePicker'
-import { createPatient, loadPatients, suggestPatientCode } from '../patients/patientsService'
+import { NewNotificationDialog } from '../surveillance/forms/sections/notifiablePicker'
+import { createPatient, loadPatients } from '../patients/patientsService'
+
+// A patient's name; one just registered here may carry only its last and first name.
+const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '') || patient?.name || [patient?.lastName, patient?.firstName].filter(Boolean).join(' ')
 
 // «Δηλωτέα νοσήματα» of the laboratory: every notification of the hospital in one list, the
 // notifiable laboratory findings (with or without a report yet) and the clinical notifications.
@@ -32,7 +30,9 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   const [query, setQuery] = useState('')
   const [quick, setQuick] = useState('all')
   const [openRow, setOpenRow] = useState(null)
-  const [disease, setDisease] = useState(null)
+  const [busy, setBusy] = useState(false)
+  // Patients registered here stay known even when a reload does not return them (the demo keeps none).
+  const [added, setAdded] = useState([])
 
   const reload = useCallback(() => {
     let alive = true
@@ -45,13 +45,14 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   useEffect(() => reload(), [reload])
 
   // Clinical reports carry the patient's record id (the code in the demo); findings their sample's patient.
-  const patientOf = useCallback(report => patients.find(item => item.recordId === report?.patientRecordId || item.id === report?.patientRecordId) || null, [patients])
+  const known = useMemo(() => [...patients, ...added.filter(item => !patients.some(patient => patient.id === item.id))], [patients, added])
+  const patientOf = useCallback(report => known.find(item => item.recordId === report?.patientRecordId || item.id === report?.patientRecordId) || null, [known])
   const rows = useMemo(() => {
     const ctx = { language, t, samples }
     return notifiableRows(ctx, reports).map(row => {
       const patient = row.finding ? null : patientOf(row.report)
       const sample = row.finding?.sample
-      const name = sample ? (language === 'en' ? sample.patientEn || sample.patient : sample.patient) : (language === 'en' ? patient?.nameEn || patient?.name : patient?.name)
+      const name = sample ? (language === 'en' ? sample.patientEn || sample.patient : sample.patient) : nameOf(patient, language)
       const code = sample ? sample.patientId : patient?.id
       const waiting = row.status === 'pending' && row.entry ? deadlineStatusText(row.entry.deadline, row.start, { language }) : { overdue: false, text: '' }
       return { ...row, patient, patientName: name || '', patientCode: code || '', overdue: waiting.overdue, waitingText: waiting.text }
@@ -68,20 +69,29 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   // The notification window needs the patient (for its prefilled lines); a finding brings its sample's.
   const dialogCtx = row => {
     const sample = row.finding?.sample
-    const patient = row.patient || (sample ? patients.find(item => item.id === sample.patientId) || { id: sample.patientId, name: sample.patient, nameEn: sample.patientEn, recordId: sample.patientRecordId || null } : null)
+    const patient = row.patient || (sample ? known.find(item => item.id === sample.patientId) || { id: sample.patientId, name: sample.patient, nameEn: sample.patientEn, recordId: sample.patientRecordId || null } : null)
     return { organizationId, isDemo, language, t, fmtDate, patient, admission: null, record: null, samples }
   }
 
-  async function createReport({ patient }) {
+  // «Δημιουργία δήλωσης»: a new patient is registered first, then the pending report is made and opened.
+  async function createReport({ entry, patient, newPatient }) {
+    setBusy(true)
     try {
-      const report = await createClinicalNotificationReport(organizationId, { patientRecordId: isDemo ? patient.id : patient.recordId, departmentId: patient.departmentId || null, entry: disease }, { isDemo })
+      let target = patient
+      if (newPatient) {
+        const created = await createPatient(organizationId, known, { ...newPatient, admissionDate: new Date().toISOString().slice(0, 10), status: 'active' }, { isDemo })
+        target = { ...created.record, name: created.record.name || [newPatient.lastName, newPatient.firstName].join(' ') }
+        setAdded(current => [...current, target])
+      }
+      const report = await createClinicalNotificationReport(organizationId, { patientRecordId: isDemo ? target.id : target.recordId, departmentId: target.departmentId || null, entry }, { isDemo })
       notify(t('episodeForms.notifiable.saved'), 'success')
-      setDisease(null)
       onCreatingChange?.(false)
       reload()
-      setOpenRow({ key: report.id, finding: null, report, title: report.disease || disease.el, sample: '', organism: '', date: String(report.createdAt || '').slice(0, 10), start: report.createdAt, entry: disease, status: 'pending', patient })
+      setOpenRow({ key: report.id, finding: null, report, title: report.disease || entry.el, sample: '', organism: '', date: String(report.createdAt || '').slice(0, 10), start: report.createdAt, entry, status: 'pending', patient: target })
     } catch (error) {
-      notify(error?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
+      notify(error?.duplicateCode ? t('patientCodeDuplicate') : error?.message || t('episodeForms.notifiable.saveFailed'), 'danger')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -115,70 +125,8 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
           </>} />
         </div>
       </section>
-      {creating && canCreate && !disease && <NotifiablePicker onPick={entry => setDisease(entry)} onClose={() => onCreatingChange?.(false)} />}
-      {creating && canCreate && disease && (
-        <NotifiablePatientDialog organizationId={organizationId} isDemo={isDemo} patients={patients} disease={disease} language={language} t={t}
-          onClose={() => { setDisease(null); onCreatingChange?.(false) }} onDone={createReport} onPatientCreated={list => setPatients(list)} />
-      )}
+      {creating && canCreate && <NewNotificationDialog patients={known} busy={busy} onSave={createReport} onClose={() => onCreatingChange?.(false)} />}
       {openRow && <NotifiableDialog ctx={dialogCtx(openRow)} row={openRow} onClose={() => setOpenRow(null)} onSaved={() => { setOpenRow(null); reload() }} />}
     </>
-  )
-}
-
-// Step 2 of «Νέα δήλωση»: the patient. An existing one is searched; a new one is registered with
-// the few fields of the laboratory's «new patient» (last name, first name, patient code).
-function NotifiablePatientDialog({ organizationId, isDemo, patients, disease, language, t, onClose, onDone, onPatientCreated }) {
-  const en = language === 'en'
-  const { notify } = useFeedback()
-  const [mode, setMode] = useState('')
-  const [patientId, setPatientId] = useState('')
-  const [draft, setDraft] = useState({ lastName: '', firstName: '', patientCode: '' })
-  const [busy, setBusy] = useState(false)
-  const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
-  const form = useFormValidation([
-    { key: 'mode', label: t('labNotifiable.patientTitle'), valid: Boolean(mode) },
-    mode === 'existing' && { key: 'patientId', label: t('patient'), valid: Boolean(patientId) },
-    mode === 'new' && { key: 'lastName', label: t('labNotifiable.lastName'), valid: Boolean(draft.lastName.trim()) },
-    mode === 'new' && { key: 'firstName', label: t('labNotifiable.firstName'), valid: Boolean(draft.firstName.trim()) },
-    mode === 'new' && { key: 'patientCode', label: t('labNotifiable.patientCode'), valid: Boolean(draft.patientCode.trim()) },
-  ])
-  const options = patients.map(patient => ({ value: patient.id, label: en ? patient.nameEn || patient.name : patient.name, description: [patient.id, en ? patient.departmentEn || patient.department : patient.department].filter(Boolean).join(' · ') }))
-  function chooseMode(value) {
-    setMode(value)
-    if (value === 'new' && !draft.patientCode) set('patientCode', suggestPatientCode(patients))
-  }
-  async function save() {
-    setBusy(true)
-    try {
-      if (mode === 'existing') return await onDone({ patient: patients.find(item => item.id === patientId) })
-      const created = await createPatient(organizationId, patients, { patientCode: draft.patientCode.trim(), firstName: draft.firstName.trim(), lastName: draft.lastName.trim(), admissionDate: new Date().toISOString().slice(0, 10), status: 'active' }, { isDemo })
-      onPatientCreated?.(created.list)
-      await onDone({ patient: created.record })
-    } catch (error) {
-      notify(error?.duplicateCode ? t('patientCodeDuplicate') : error?.message || t('patientSaveFailed'), 'danger')
-    } finally {
-      setBusy(false)
-    }
-  }
-  return (
-    <ObserverDialog width="standard" title={en ? disease.en || disease.el : disease.el} subtitle={t('labNotifiable.patientSubtitle')} onClose={onClose}
-      footer={<FormSubmit form={form} disabled={busy} onSubmit={save}>{t('labNotifiable.create')}</FormSubmit>}>
-      <div className="lab-flow-body" ref={form.scopeRef}>
-        <div data-field-key="mode">
-          <ModeSwitch ariaLabel={t('labNotifiable.patientTitle')} value={mode} onChange={chooseMode} options={[{ value: 'existing', label: t('existingPatient'), icon: UserRound }, { value: 'new', label: t('laboratoryRecords.newPatientInline'), icon: UserPlus }]} />
-          {form.errorFor('mode') && <span className="field-error">{form.errorFor('mode')}</span>}
-        </div>
-        {mode === 'existing' && (
-          <SearchableSelect label={t('patient')} {...form.field('patientId')} value={patientId} onChange={value => setPatientId(value || '')} options={options} placeholder={t('surveillanceList.patientSearchPlaceholder')} emptyLabel={t('surveillanceList.noPatientsFound')} clearLabel={t('surveillanceList.clearSelection')} />
-        )}
-        {mode === 'new' && (
-          <div className="entry-grid lab-flow-grid">
-            <Field label={t('labNotifiable.lastName')} {...form.field('lastName')}><input value={draft.lastName} onChange={event => set('lastName', event.target.value)} /></Field>
-            <Field label={t('labNotifiable.firstName')} {...form.field('firstName')}><input value={draft.firstName} onChange={event => set('firstName', event.target.value)} /></Field>
-            <Field label={t('labNotifiable.patientCode')} {...form.field('patientCode')}><input value={draft.patientCode} onChange={event => set('patientCode', event.target.value)} /></Field>
-          </div>
-        )}
-      </div>
-    </ObserverDialog>
   )
 }

@@ -14,7 +14,7 @@ import { notifiableFindings } from '../../../reporting/notifiableFindings'
 import { loadRecordNotificationReports, removeDemoNotificationReport, saveNotificationReport, updateNotificationReport, createClinicalNotificationReport } from '../../../reporting/notificationReportsService'
 import { binMemoryRow } from '../../../../core/recycleBin/recycleBinService'
 import { deadlineStatusText, deadlineWords, eodyEntry, eodyEntryByName } from '../../../reporting/eodyCatalogue'
-import { NotifiablePicker } from './notifiablePicker'
+import { NewNotificationDialog } from './notifiablePicker'
 import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { PrefilledList } from '../PrefilledList'
@@ -208,7 +208,7 @@ function NotifiableSection({ ctx, section, reload }) {
           })}
         </FormRows>
       )}
-      {picking && <NotifiablePicker busy={creating} onPick={createReport} onClose={() => setPicking(false)} />}
+      {picking && <NewNotificationDialog busy={creating} onSave={({ entry }) => createReport(entry)} onClose={() => setPicking(false)} />}
       {openRow && (
         <NotifiableDialog
           ctx={ctx}
