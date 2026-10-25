@@ -413,6 +413,26 @@
       "authenticated": true,
       "reason": "Management › Users: the members of one organization with their profile (name, username, contact email); the organization's admin or the Platform Owner only, since member and profile RLS show an admin only its own row."
     },
+    "bin_delete": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: moves a clinical record and every row under it to the bin in one transaction; the Platform Owner, Hospital Admin or Infection Control Lead any record of the hospital, anyone else only what they entered (created_by)."
+    },
+    "bin_restore": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: puts a deleted record back exactly as it was; only the person who deleted it, while the entry has not expired."
+    },
+    "bin_list_mine": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: the caller's own deletions in one hospital, without the expired ones."
+    },
+    "bin_purge_mine": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: deletes one of the caller's own entries for good."
+    },
     "organization_member_departments": {
       "category": "rpc",
       "authenticated": true,
