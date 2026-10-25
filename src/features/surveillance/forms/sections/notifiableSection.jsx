@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Megaphone, Plus } from 'lucide-react'
+import { ExternalLink, Megaphone, Plus } from 'lucide-react'
 import { Button } from '../../../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../../../design-system/ObserverDialog'
 import { Field } from '../../../../design-system/Field'
 import { ManualDateField } from '../../../../design-system/ManualDateField'
 import { SearchableSelect } from '../../../../design-system/SearchableSelect'
+import { DocumentsWorkspace } from '../../../../design-system/DocumentsWorkspace'
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../../core/feedback/FeedbackContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
@@ -23,6 +24,8 @@ import { episodeContext } from '../formPrefill'
 // The roles the database lets read and write notifiable disease reports (RLS of
 // notifiable_disease_reports). Everyone else does not even learn that a report exists.
 export const NOTIFIABLE_ROLES = Object.freeze([ROLES.PLATFORM_OWNER, ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.LABORATORY])
+// The EODY page that lists the blank notification forms (Word), per disease.
+export const EODY_FORMS_URL = 'https://www.eody.gov.gr/el/symvanta-dimosias-ygeias/epidimiologiki-epitirisi/systimata-epitirisis/systima-ypoxreotikis-dilosis.html'
 export const canSeeNotifiable = ctx =>
   NOTIFIABLE_ROLES.includes(ctx.role) && (!isProfileDisabled(CAPABILITIES.VIEW_LAB) || !isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE))
 
@@ -55,7 +58,10 @@ function NotifiableDialog({ ctx, row, onClose, onSaved }) {
   const { notify } = useFeedback()
   const [draft, setDraft] = useState({ status: row.status, notifiedAt: row.report?.notifiedAt || '', reference: row.report?.reference || '' })
   const [busy, setBusy] = useState(false)
+  const [demoForms, setDemoForms] = useState([])
   const base = episodeContext(ctx)
+  // The completed form hangs on the saved report (its id); the demo keeps it on the screen only.
+  const reportId = row.report?.id
   async function save() {
     setBusy(true)
     try {
@@ -106,6 +112,21 @@ function NotifiableDialog({ ctx, row, onClose, onSaved }) {
           <input value={draft.reference} onChange={event => setDraft(current => ({ ...current, reference: event.target.value }))} />
         </Field>
       </div>
+      {reportId || ctx.isDemo ? (
+        <DocumentsWorkspace
+          title={t('episodeForms.notifiable.formTitle')}
+          subtitle={t('episodeForms.notifiable.formSubtitle')}
+          {...(ctx.isDemo ? { value: demoForms, onChange: setDemoForms } : { organizationId: ctx.organizationId, entityType: 'notifiable_disease_report', entityId: reportId })}
+        />
+      ) : (
+        <p className="field-hint">{t('episodeForms.notifiable.formAfterSave')}</p>
+      )}
+      <p className="notifiable-forms-link">
+        <a href={EODY_FORMS_URL} target="_blank" rel="noreferrer">
+          <ExternalLink size={14} aria-hidden="true" />
+          {t('episodeForms.notifiable.eodyForms')}
+        </a>
+      </p>
     </ObserverDialog>
   )
 }

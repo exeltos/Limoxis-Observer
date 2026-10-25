@@ -3957,3 +3957,8 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .environment-result-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .record-summary-card .patient-no-admission-line{border-top:0;padding-top:4px}
 .patient-no-admission-view>.record-summary-grid{margin-bottom:12px}
+
+/* Notifiable disease report: link to the blank EODY forms */
+.notifiable-forms-link{margin:12px 0 0;font-size:.875rem}
+.notifiable-forms-link a{display:inline-flex;align-items:center;gap:6px;font-weight:600;text-decoration:none}
+.notifiable-forms-link a:hover{text-decoration:underline}
