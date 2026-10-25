@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 vi.mock('../src/core/auth/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'owner-1' }, profile: { id: 'owner-1', isPlatformOwner: true, fullName: 'Platform Owner', isDemo: false }, isAuthenticated: true, isDemoSession: false, loading: false }),
@@ -116,6 +116,31 @@ describe('patient profile', () => {
     await openSurveillance()
     const flags = await screen.findByLabelText('Κλινικές επισημάνσεις')
     expect(within(flags).getByRole('button', { name: 'Κλινική επιδείνωση · NEWS2 8' })).toHaveClass('risk-tone-danger')
+  })
+})
+
+describe('record arrows', () => {
+  // A patient opened from the surveillance list arrives by its episode: the arrows keep walking that list.
+  it('walks the list the patient was opened from, by episode, from a patient page reached through it', async () => {
+    sessionStorage.setItem('limoxis.registry.surveillance-patients.sequence', JSON.stringify(['SUR-260041', 'SUR-260045', 'SUR-260050']))
+    let api
+    function Capture() { api = useTenant(); return null }
+    function Where() { const { pathname } = useLocation(); return <output data-testid="where">{pathname}</output> }
+    const entry = { pathname: '/patients/PT-260184', state: { limoxisFrom: { registry: 'surveillance-patients' }, fromCaseId: 'SUR-260041' } }
+    render(<MemoryRouter initialEntries={[entry]}><LanguageProvider><FeedbackProvider><TenantProvider><Capture/><Where/>
+      <Routes>
+        <Route path="/patients/:patientId" element={<PatientClinicalRecordRoute patientMode/>}/>
+        <Route path="/surveillance/:caseId" element={<PatientClinicalRecordRoute/>}/>
+      </Routes>
+    </TenantProvider></FeedbackProvider></LanguageProvider></MemoryRouter>)
+    await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
+    act(() => { api.enterSampleDemo() })
+    await screen.findByText('Ασθενής & νοσηλεία')
+    const nav = document.querySelector('.entity-record-sequence')
+    expect(nav).toHaveTextContent('1/3')
+    expect(within(nav).getByRole('button', { name: 'Προηγούμενη εγγραφή' })).toBeDisabled()
+    fireEvent.click(within(nav).getByRole('button', { name: 'Επόμενη εγγραφή' }))
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/surveillance/SUR-260045'))
   })
 })
 

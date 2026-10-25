@@ -242,15 +242,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     () => (patientMode ? [] : samplesForEpisode(record, laboratory.rows || [])),
     [patientMode, record, laboratory.rows],
   )
-  const sequenceId = patientMode ? patientId : caseId
+  // A patient opened from the surveillance list arrives by its episode (/surveillance/:caseId
+  // leads here): the arrows then walk that list, whose rows are episodes, not the patient list.
+  const fromEpisodeList = patientMode && Boolean(location.state?.fromCaseId) && location.state?.limoxisFrom?.registry === 'surveillance-patients'
+  const sequenceId = fromEpisodeList ? location.state.fromCaseId : patientMode ? patientId : caseId
   const recordNavigation = useRecordSequenceNavigation({
-    registry: patientMode
-      ? 'patients'
-      : typeof location.state?.limoxisFrom?.registry === 'string'
-        ? location.state.limoxisFrom.registry
-        : 'surveillance-patients',
+    registry: fromEpisodeList
+      ? 'surveillance-patients'
+      : patientMode
+        ? 'patients'
+        : typeof location.state?.limoxisFrom?.registry === 'string'
+          ? location.state.limoxisFrom.registry
+          : 'surveillance-patients',
     currentId: sequenceId,
-    pathForId: id => (patientMode ? `/patients/${id}` : `/surveillance/${id}`),
+    pathForId: id => (patientMode && !fromEpisodeList ? `/patients/${id}` : `/surveillance/${id}`),
   })
 
   // Moving to another record (sequence, link) keeps this page mounted: until its
