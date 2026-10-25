@@ -26,6 +26,8 @@ function mapRow(row, departmentLabel){
     dischargeDate: row.discharge_date,
     status: row.status,
     notes: row.notes,
+    // The hospital record number of this admission (a new admission has a number of its own).
+    caseNumber: row.case_number||'',
     updatedAt: row.updated_at || null,
     // Who entered the patient: only they (and the admin / infection control lead) may delete it.
     createdBy: row.created_by || null,
@@ -113,7 +115,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     notes:draft.notes||null,
   }).select().single()
   if(error){
-    if(error.code==='23505')error.duplicateCode=true
+    if(!markRecordNumberTaken(error)&&error.code==='23505')error.duplicateCode=true
     throw error
   }
   // The patients_create_initial_admission DB trigger already inserted the admission row.
@@ -145,6 +147,13 @@ export async function archivePatient(organizationId, patient, reason, {isDemo=fa
   if(isDemo) return
   const {error}=await supabase.rpc('archive_patient',{p_organization_id:organizationId,p_patient_id:patient.recordId,p_reason:reason})
   if(error) throw error
+}
+
+// The database refuses a record number another admission of the hospital already has.
+export function markRecordNumberTaken(error){
+  if(!String(error?.message||'').includes('ADMISSION_CASE_NUMBER_TAKEN'))return false
+  error.duplicateRecordNumber=true
+  return true
 }
 
 function mapAdmission(row, departmentLabel, departmentType){
@@ -182,19 +191,20 @@ export async function loadAdmissions(patientOrRecordId, {isDemo=false}={}){
 export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){
   if(!isDemo){requireLive(organizationId);if(!patient.recordId)throw new Error('PATIENT_NOT_SAVED')}
   if(isDemo){
-    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
+    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null,case_number:draft.caseNumber||null},draft.department)
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)
-  const {data,error}=await supabase.rpc('create_patient_admission',{
+  const {data,error}=await supabase.rpc('create_patient_admission_numbered',{
     p_organization_id:organizationId,
     p_patient_id:patient.recordId,
     p_department_id:department?.id||null,
     p_admission_date:draft.admissionDate,
+    p_case_number:draft.caseNumber||null,
     p_discharge_date:draft.dischargeDate||null,
     p_status:draft.status||'active',
     p_notes:draft.notes||null,
   })
-  if(error) throw error
+  if(error){markRecordNumberTaken(error);throw error}
   return mapAdmission(data,department?.name||draft.department)
 }
 
@@ -238,4 +248,21 @@ export function suggestPatientCode(patients=[]){
   const same=parts.filter(part=>part[1]===prefix)
   const top=same.reduce((best,part)=>Number(part[2])>Number(best[2])?part:best,same[0])
   return `${prefix}${String(Number(top[2])+1).padStart(top[2].length,'0')}`
+}
+
+// Possible duplicates of a patient about to be created: the same last and first name (without
+// accents or case) with the same date of birth (or none given), or the same hospital record number.
+const foldName=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim()
+export function findPatientMatches(patients=[],draft={}){
+  const last=foldName(draft.lastName),first=foldName(draft.firstName),full=foldName(draft.fullName)
+  const record=foldName(draft.hospitalRecordNumber),born=String(draft.dateOfBirth||'').slice(0,10)
+  return patients.filter(patient=>{
+    if(record&&foldName(patient.hospitalRecordNumber)===record)return true
+    const sameName=last&&first
+      ?foldName(patient.lastName)===last&&foldName(patient.firstName)===first
+      :Boolean(full)&&[foldName(`${patient.lastName||''} ${patient.firstName||''}`),foldName(`${patient.firstName||''} ${patient.lastName||''}`),foldName(patient.name)].includes(full)
+    if(!sameName)return false
+    const theirs=String(patient.dateOfBirth||'').slice(0,10)
+    return !born||!theirs||born===theirs
+  })
 }

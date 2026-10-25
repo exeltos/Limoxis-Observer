@@ -125,7 +125,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     setCreateOpen(true)
   }, [fromSample, loading, fromSampleOpened])
   const [clearTestOpen, setClearTestOpen] = useState(false)
-  const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
+  // «New admission for the existing patient» (from a would-be duplicate patient) opens the new admission at once.
+  const [newAdmissionOpen, setNewAdmissionOpen] = useState(() => Boolean(location.state?.openNewAdmission))
   // The header's NEWS2 / Braden / GCS chips (and ?tab=clinicalScales) open the scales
   // section of the forms tab.
   const [formsOpenRequest, setFormsOpenRequest] = useState(() =>

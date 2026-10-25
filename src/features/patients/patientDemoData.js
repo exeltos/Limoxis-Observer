@@ -38,6 +38,7 @@ export function demoAdmissionsForPatient(patient){
     dischargeDate: patient.dischargeDate||null,
     status: patient.status||'active',
     notes: patient.notes||null,
+    caseNumber: patient.hospitalRecordNumber||'',
   }]
 }
 

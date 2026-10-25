@@ -132,7 +132,7 @@ describe('patientsService', () => {
   it('surfaces the admission created for a brand new demo patient when its admissions are loaded', async () => {
     const { record } = await createPatient('hospital-new', [], { patientCode: 'DEMO-2', firstName: 'Demo', lastName: 'Two', departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31' }, { isDemo: true })
     const admissions = await loadAdmissions(record, { isDemo: true })
-    expect(admissions).toEqual([{ id: record.admissionId, departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31', dischargeDate: null, status: 'active', notes: null }])
+    expect(admissions).toEqual([{ id: record.admissionId, departmentId: 'dept-demo', department: 'ICU', admissionDate: '2026-08-31', dischargeDate: null, status: 'active', notes: null, caseNumber: '' }])
   })
 
   it('keeps patients created in one organization out of another', async () => {

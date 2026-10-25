@@ -187,6 +187,9 @@ describe('admissions', () => {
     const department = within(dialog).getAllByRole('combobox').find(select => optionsOf(select).includes('ΜΕΘ'))
     chooseOption(department, optionsOf(department)[1])
     expect(department).toHaveValue(optionsOf(department)[1])
+    // Every admission has its own record number: the save waits for it.
+    expect(save).toBeDisabled()
+    fireEvent.change(within(dialog).getByLabelText(/Αριθμός φακέλου/), { target: { value: 'ΦΑΚ-2026-9001' } })
     await waitFor(() => expect(save).toBeEnabled())
     fireEvent.click(save)
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

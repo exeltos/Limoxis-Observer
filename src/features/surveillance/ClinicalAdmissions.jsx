@@ -34,6 +34,7 @@ import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { PatientFormFields, usePatientForm } from '../patients/PatientsPage'
 import { FormSubmit } from '../../design-system/FormValidation'
 import { SimpleDialog } from './ClinicalRecordDialogs'
+import { Field } from '../../design-system/Field'
 import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
 import { formatDay } from '../../core/i18n/formatDay'
 import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
@@ -289,6 +290,7 @@ export function CanonicalSummary({
       : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}${dischargedAt ? ` · ${t('clinicalRecords.dischargedOn')} ${fmtDate(dischargedAt)}` : ''}`
   const details = admission
     ? [
+        [t('hospitalRecordNumber'), admission.caseNumber || '—'],
         [t('admissionDate'), fmtDate(admission.admissionDate)],
         [t('department'), admission.department || '—'],
         [t('clinicalRecords.lengthOfStay'), daysLabel],
@@ -831,6 +833,7 @@ export function NewAdmissionDialog({
     admissionDate: today,
     departmentId: '',
     dischargeDate: today,
+    caseNumber: '',
   })
   async function save() {
     try {
@@ -852,6 +855,7 @@ export function NewAdmissionDialog({
           departmentId: draft.departmentId,
           department: dept?.name || '',
           admissionDate: draft.admissionDate,
+          caseNumber: draft.caseNumber.trim(),
           status: 'active',
         },
         { isDemo },
@@ -859,12 +863,14 @@ export function NewAdmissionDialog({
       await onAdmitted?.(row, discharged)
       notify(t('saved'), 'success')
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify(error?.duplicateRecordNumber ? t('recordNumberTaken') : error?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }
   }
+  // Every admission has a record number of its own (a patient back after discharge gets a new one).
   const invalid =
+    !draft.caseNumber.trim() ||
     !draft.admissionDate ||
     (departments.length > 0 && !draft.departmentId) ||
     (activeAdmission &&
@@ -894,6 +900,9 @@ export function NewAdmissionDialog({
           onChange={v => setDraft(d => ({ ...d, dischargeDate: v }))}
         />
       )}
+      <Field label={t('hospitalRecordNumber')} required>
+        <input value={draft.caseNumber} onChange={event => setDraft(d => ({ ...d, caseNumber: event.target.value }))} />
+      </Field>
       <ManualDateField
         label={t('admissionDate')}
         value={draft.admissionDate}
@@ -922,7 +931,7 @@ export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtD
       current: String(row.id) === String(selected?.id),
       icon: String(row.id) === String(selected?.id) ? Check : CalendarDays,
       label: `${fmtDate(row.admissionDate)} – ${row.dischargeDate ? fmtDate(row.dischargeDate) : t('clinicalRecords.admissionOngoing')}`,
-      description: `${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
+      description: `${row.caseNumber ? `${t('recordNumberShort')} ${row.caseNumber} · ` : ''}${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
       onClick: () => onSelect(row.id),
     }
   })

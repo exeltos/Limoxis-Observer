@@ -21,7 +21,8 @@ import { CAPABILITIES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { formatDateTime } from '../../core/i18n/formatDay'
 import { ENVIRONMENTAL_SAMPLE_TYPES, EMPLOYEE_SCREENING_TYPES, LAB_PRIORITIES, patientSampleSources, patientSampleTypeOptions, referenceOptions, sampleSourceCatalog, sampleSourceLabel } from './laboratoryReferenceData'
-import { createPatient, loadPatients } from '../patients/patientsService'
+import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
+import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { libraryOptions, useLibraries } from '../management/useLibraries'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -73,6 +74,7 @@ export function LaboratoryWorkspace() {
   const tab = showNotifiable && searchParams.get('tab') === 'notifiable' ? 'notifiable' : 'samples'
   const setTab = value => setSearchParams(current => { const next = new URLSearchParams(current); if (value === 'notifiable') next.set('tab', value); else next.delete('tab'); return next }, { replace: true })
   const [notifiableNew, setNotifiableNew] = useState(false)
+  const [duplicate, setDuplicate] = useState(null)
 
   useEffect(() => {
     if (!newOpen) return
@@ -123,7 +125,11 @@ export function LaboratoryWorkspace() {
   const safePage = Math.min(page, totalPages)
   const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
 
-  async function createSample(draft) {
+  async function createSample(draft, confirmed = false) {
+    // A «new» patient who is already registered: use the existing one instead (or continue as new).
+    const found = draft.subjectType === 'patient' && draft.newPatient && !confirmed ? findPatientMatches(patients, { fullName: draft.subjectName }) : []
+    if (found.length) return setDuplicate({ draft, matches: found })
+    setDuplicate(null)
     try {
       let patient = null
       if (draft.subjectType === 'patient') {
@@ -191,6 +197,9 @@ export function LaboratoryWorkspace() {
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
     </section>
+    {duplicate && <DuplicatePatientDialog matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createSample(duplicate.draft, true)} actions={[
+      { key: 'use', label: t('patientDuplicate.useExisting'), onClick: patient => createSample({ ...duplicate.draft, newPatient: false, subjectCode: patient.id, subjectName: patient.name, subjectNameEn: patient.nameEn || patient.name }, true) },
+    ]} />}
     {newOpen && <NewSampleCard t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>}
   </Page>
 }

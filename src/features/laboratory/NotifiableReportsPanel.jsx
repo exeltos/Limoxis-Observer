@@ -11,7 +11,8 @@ import { createClinicalNotificationReport, loadNotificationReports } from '../re
 import { deadlineStatusText, deadlineWords } from '../reporting/eodyCatalogue'
 import { NotifiableDialog, notifiableRows } from '../surveillance/forms/sections/notifiableSection'
 import { NewNotificationDialog } from '../surveillance/forms/sections/notifiablePicker'
-import { createPatient, loadPatients } from '../patients/patientsService'
+import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
+import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
 
 // A patient's name; one just registered here may carry only its last and first name.
 const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '') || patient?.name || [patient?.lastName, patient?.firstName].filter(Boolean).join(' ')
@@ -33,6 +34,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   const [busy, setBusy] = useState(false)
   // Patients registered here stay known even when a reload does not return them (the demo keeps none).
   const [added, setAdded] = useState([])
+  const [duplicate, setDuplicate] = useState(null)
 
   const reload = useCallback(() => {
     let alive = true
@@ -74,7 +76,11 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   }
 
   // «Δημιουργία δήλωσης»: a new patient is registered first, then the pending report is made and opened.
-  async function createReport({ entry, patient, newPatient }) {
+  async function createReport({ entry, patient, newPatient }, confirmed = false) {
+    // A «new» patient who is already registered: the notification goes to the existing one (or continue as new).
+    const found = newPatient && !confirmed ? findPatientMatches(known, newPatient) : []
+    if (found.length) return setDuplicate({ entry, newPatient, matches: found })
+    setDuplicate(null)
     setBusy(true)
     try {
       let target = patient
@@ -126,6 +132,9 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
         </div>
       </section>
       {creating && canCreate && <NewNotificationDialog patients={known} busy={busy} onSave={createReport} onClose={() => onCreatingChange?.(false)} />}
+      {duplicate && <DuplicatePatientDialog matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createReport(duplicate, true)} actions={[
+        { key: 'use', label: t('patientDuplicate.useExisting'), onClick: patient => createReport({ entry: duplicate.entry, patient }, true) },
+      ]} />}
       {openRow && <NotifiableDialog ctx={dialogCtx(openRow)} row={openRow} onClose={() => setOpenRow(null)} onSaved={() => { setOpenRow(null); reload() }} />}
     </>
   )
