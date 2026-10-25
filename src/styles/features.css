@@ -4009,3 +4009,7 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .status-chip.tone-danger strong{color:var(--lo-color-danger,#b42318)}
 .filter-active-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .filter-active-chip{display:inline-flex;align-items:center;gap:4px;min-height:26px;padding:2px 8px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font:inherit;font-size:11.5px;cursor:pointer}
+
+/* Sidebar: the entries inside an opened group wrap onto a second line instead of ending in «…». */
+.sidebar .sidebar-nav-children .nav-item>span{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25}
+.sidebar .sidebar-nav-children .nav-item{height:auto!important;min-height:34px;padding-top:6px!important;padding-bottom:6px!important}

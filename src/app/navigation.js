@@ -46,7 +46,7 @@ export const navigation=[
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   {to:'/training',key:'training',icon:GraduationCap,capability:CAPABILITIES.VIEW_TRAINING},
   // «Συνεδριάσεις & αποφάσεις»: committees, department meetings and the management review.
-  {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsDecisions',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
+  {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsShort',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
   // «Έγγραφα & Κανονισμοί»: documents, regulations and legislation.
   {to:'/documents',key:'documents',label:'sidebarNav.documentsRegulations',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
   // «Βιβλιοθήκη»: trusted sources (links, guidelines, clinical guides, news) for every role, staff users included.
