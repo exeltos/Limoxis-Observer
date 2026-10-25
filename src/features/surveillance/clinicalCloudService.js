@@ -390,6 +390,7 @@ function mapClinicalCase({
   return {
     id: caseRow.id,
     recordId: caseRow.id,
+    createdBy: caseRow.created_by || null,
     patientRecordId: caseRow.patient_id,
     patientId: patient?.patient_code || caseRow.patient_id,
     patient: `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim(),

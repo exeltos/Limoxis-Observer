@@ -62,6 +62,7 @@ import { statusTone } from './surveillanceOptions'
 import { buildSurveillanceReport } from './surveillanceReport'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import './surveillanceEpisode.css'
+import { canDeleteRecord } from '../../core/recycleBin/recycleBinService'
 export {
   timelineLabel,
   withCriteriaKeys,
@@ -81,7 +82,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const location = useLocation()
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
-  const { tenant, isDemo, role, membership, canAccessRecord } = useTenant()
+  const { tenant, isDemo, role, actualRole, membership, canAccessRecord } = useTenant()
   const { goBack, goTo, restored } = useContextualNavigation(patientMode ? '/surveillance?tab=registry' : '/surveillance')
   const repository = useMemo(
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
@@ -680,6 +681,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
+          onEpisodeDeleted={deleted => {
+            if (patientMode || String(deleted?.id) !== String(caseId)) return false
+            goBack()
+            return true
+          }}
           deviceBundles={deviceBundles}
           t={t}
           language={language}
@@ -721,7 +727,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
               has(CAPABILITIES.CLOSE_SURVEILLANCE),
             canEdit: has(CAPABILITIES.EDIT_SURVEILLANCE),
-            canDelete: has(CAPABILITIES.DELETE_SURVEILLANCE),
+            canDelete: record => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy }),
             canReopen: has(CAPABILITIES.REOPEN_SURVEILLANCE),
           }}
         />

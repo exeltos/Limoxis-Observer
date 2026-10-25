@@ -1,3 +1,4 @@
+import { binMemoryRow, binServerRecord, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { createDemoLabSample } from '../laboratory/laboratoryDemoData'
 import {
   clinicalCases,
@@ -168,5 +169,17 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     if(!isDemo){await voidClinicalCase(organizationId,record.recordId,reason);return true}
     return deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason})
   }
-  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase}
+  // «Delete»: the episode and everything under it go to the deleter's recycle bin.
+  async function deleteCase(record,reason){
+    const {label,detail}=describeDeleted('Επιτήρηση',{code:record.patientId,date:record.startedAt,department:record.department})
+    if(isDemo){
+      const before=clinicalCases[record.id]?{...clinicalCases[record.id]}:null
+      if(!deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason}))return false
+      await binMemoryRow(null,{module:'clinical',kind:'surveillance_cases',label,detail,store:'clinical_cases',row:before})
+      return true
+    }
+    await binServerRecord(organizationId,{table:'surveillance_cases',id:record.recordId,label,detail,reason})
+    return true
+  }
+  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase,deleteCase}
 }

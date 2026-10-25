@@ -42,6 +42,8 @@ export function SurveillanceWorkspace({
   canCreateSample,
   repository,
   onReload,
+  // The episode went to the recycle bin (the page may leave it, e.g. when it was opened from the list).
+  onEpisodeDeleted,
   t,
   language,
   fmtDate,
@@ -173,12 +175,13 @@ export function SurveillanceWorkspace({
   async function removeEpisode() {
     if (!detailRecord || !deleteReason.trim()) return
     try {
-      await repository.voidCase(detailRecord, deleteReason.trim())
+      await repository.deleteCase(detailRecord, deleteReason.trim())
       setDeleteOpen(false)
       setDeleteReason('')
       setDetailId('')
-      await onReload()
       notify(t('clinicalRecords.surveillanceDeleted'), 'success')
+      if (onEpisodeDeleted?.(detailRecord)) return
+      await onReload()
     } catch (error) {
       notify(error?.message || t('actionFailed'), 'danger')
     }
@@ -267,7 +270,7 @@ export function SurveillanceWorkspace({
                     : null,
                   
                   
-                  permissions.canDelete
+                  permissions.canDelete?.(detailRecord)
                     ? {
                         id: 'delete',
                         label: translate(
@@ -376,6 +379,9 @@ export function SurveillanceWorkspace({
               setDeleteReason('')
             }}
             onSave={removeEpisode}
+            saveLabel={t('moveToRecycleBin')}
+            note={t('moveToRecycleBinNote')}
+            danger
           />
         )}
       </div>
