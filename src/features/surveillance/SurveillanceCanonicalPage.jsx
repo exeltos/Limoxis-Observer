@@ -23,7 +23,6 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
-import { formatSurveillanceCultureCount } from '../../core/i18n/surveillanceCultureCount'
 import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -97,7 +96,10 @@ export function SurveillanceCanonicalPage() {
     setTenantByMembership,
     canAccessRecord,
     canSeeSensitiveEmployeeHealth,
+    uxPolicy,
   } = useTenant()
+  // A ward role sees only its own department: no department column or filter.
+  const ownDepartmentOnly = uxPolicy?.scope === 'department'
   const { t, language } = useLanguage(),
     { notify, notifyError } = useFeedback()
   const restored = location.state?.surveillanceView || {}
@@ -161,7 +163,6 @@ export function SurveillanceCanonicalPage() {
   const { employees: canEmployees, environment: canEnvironment } = surveillanceTabAccess({
     role,
     actualRole,
-    isDemo,
     canSeeSensitiveEmployeeHealth,
   })
   const load = useCallback(async () => {
@@ -467,7 +468,7 @@ export function SurveillanceCanonicalPage() {
       subtitle={t('surveillanceSubtitleV051')}
       actions={
         <div className="record-actions">
-            <ExportMenu onExcel={filtered.length ? () => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) })) : undefined} disabled={!filtered.length} />
+            <ExportMenu onExcel={() => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }))} disabled={!filtered.length} />
             {canCreate && (
             <Button variant="primary" onClick={() => startCreation(mode)}>
               <Plus size={15} aria-hidden="true" />
@@ -523,10 +524,10 @@ export function SurveillanceCanonicalPage() {
           }}
           advanced={
             <>
-              <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
+              {!ownDepartmentOnly && <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
                 <option value="all">{t('allDepartments')}</option>
                 {departmentNames.map(x => <option key={x} value={x}>{x}</option>)}
-              </FilterSelect>
+              </FilterSelect>}
               <FilterSelect label={t('status')} value={status} onChange={setStatus}>
                 <option value="all">{t('all')}</option>
                 <option value="active">{t('active')}</option>
@@ -567,7 +568,7 @@ export function SurveillanceCanonicalPage() {
             />
           )
         ) : loading ? <TableSkeleton /> : mode === 'patients' ? (
-          <PatientRows rows={rows} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
+          <PatientRows rows={rows} showDepartment={!ownDepartmentOnly} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
         ) : mode === 'employees' ? (
           <EmployeeRows rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} />
         ) : (
@@ -669,7 +670,7 @@ function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
+function PatientRows({ rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
     (x.episodes || [x])
       .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
@@ -680,7 +681,7 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
         bare
         columns={[
           { key: 'patient', label: t('patient') },
-          { key: 'department', label: t('department') },
+          ...(showDepartment ? [{ key: 'department', label: t('department') }] : []),
           { key: 'started', label: t('clinicalRecords.startedAt') },
           { key: 'micro', label: t('microbiology') },
           { key: 'status', label: t('status') },
@@ -702,12 +703,10 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
           <>
             <td>
               <strong>{language === 'el' ? x.patient : x.patientEn}</strong>
-              <small>
-                {x.patientId || '—'} · {formatSurveillanceCultureCount(x.sampleCount, language)}
-              </small>
+              <small>{x.patientId || '—'}</small>
               <ProtocolBadge entry={openRunOf(x)} t={t} language={language} />
             </td>
-            <td>{language === 'el' ? x.department : x.departmentEn}</td>
+            {showDepartment && <td>{language === 'el' ? x.department : x.departmentEn}</td>}
             <td>{fmt(x.startedAt)}</td>
             <td>
               <strong>{(x.episodes || [x]).map(latestOrganism).find(Boolean) || '—'}</strong>

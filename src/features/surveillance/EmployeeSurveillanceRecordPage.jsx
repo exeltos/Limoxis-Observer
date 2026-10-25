@@ -83,7 +83,7 @@ export function EmployeeSurveillanceRecordPage() {
   const recordRef = useRef(null)
   recordRef.current = record
   const organizationId = tenant?.id
-  const { employees: allowed } = surveillanceTabAccess({ role, actualRole, isDemo, canSeeSensitiveEmployeeHealth })
+  const { employees: allowed } = surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth })
   const has = capability => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManageFollowup = isDemo || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
   const canManageLab = !isDemo && has(CAPABILITIES.MANAGE_LAB_SAMPLES)
