@@ -108,6 +108,7 @@ function ScalesSection({ ctx }) {
         onContext={onContext}
         onChange={ctx.onScalesChanged}
         prefillItems={prefillItems}
+        canDelete={ctx.canDelete}
       />
     </FormSection>
   )

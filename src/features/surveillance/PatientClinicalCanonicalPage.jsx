@@ -63,6 +63,7 @@ import { buildSurveillanceReport } from './surveillanceReport'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import './surveillanceEpisode.css'
 import { canDeleteRecord } from '../../core/recycleBin/recycleBinService'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 export {
   timelineLabel,
   withCriteriaKeys,
@@ -137,6 +138,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const [protocolRequest, setProtocolRequest] = useState(null)
   const has = cap =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  const deleteItem = useRecordDelete()
   const patient = useMemo(
     () =>
       patientMode
@@ -364,6 +366,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     // The laboratory samples of this record: the episode's, the admission's, or those outside any admission.
     samples: formsSamples,
     patientMode,
+    // «Delete» of a record of a form section: the item for its «…» menu, or null when not allowed.
+    deleteItem,
+    canDelete: createdBy => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy }),
     scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
     returnPath: `${location.pathname}${location.search}`,
     // A scale saved or deleted in the forms tab refreshes the header chips at once.

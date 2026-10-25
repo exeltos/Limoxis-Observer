@@ -51,6 +51,13 @@ const newId = () =>
 
 // Demo lists that live only in memory, and how a row goes back into each.
 const MEMORY_STORES = {
+  notification_reports: () =>
+    import('../../features/reporting/notificationReportsService').then(m => row => m.restoreDemoNotificationReport(row)),
+  scale_assessments: () =>
+    import('../../features/clinical-scales/patientClinicalScalesService').then(m => row => {
+      const list = m.demoPatientScaleAssessments()
+      if (!list.some(item => String(item.id) === String(row.id))) list.unshift(row)
+    }),
   clinical_cases: () =>
     import('../../features/surveillance/clinicalDemoData').then(m => row => {
       m.clinicalCases[row.id] = row

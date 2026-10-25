@@ -22,7 +22,7 @@
 .episode-form-status .status-badge{margin:0}
 .episode-form-date b{font-weight:700;color:var(--lo-text-strong,#18364f)}
 .episode-form-none{color:var(--lo-text-secondary,#8a99a8)}
-.episode-form-action{display:flex;justify-content:flex-end}
+.episode-form-action{display:flex;justify-content:flex-end;align-items:center;gap:6px}
 .episode-form-action .button{min-height:32px;padding:0 12px;font-size:12.5px;white-space:nowrap}
 .episode-form-empty{margin:0;padding:2px 0 4px;font-size:12.5px;line-height:1.5;color:var(--lo-text-secondary,#718096)}
 .episode-prefilled{margin:0 0 12px}

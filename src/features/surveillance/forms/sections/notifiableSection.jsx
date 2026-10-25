@@ -10,7 +10,8 @@ import { useFeedback } from '../../../../core/feedback/FeedbackContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { notifiableFindings } from '../../../reporting/notifiableFindings'
-import { loadRecordNotificationReports, saveNotificationReport, updateNotificationReport, createClinicalNotificationReport } from '../../../reporting/notificationReportsService'
+import { loadRecordNotificationReports, removeDemoNotificationReport, saveNotificationReport, updateNotificationReport, createClinicalNotificationReport } from '../../../reporting/notificationReportsService'
+import { binMemoryRow } from '../../../../core/recycleBin/recycleBinService'
 import { deadlineStatusText, deadlineWords, eodyEntry, eodyEntryByName } from '../../../reporting/eodyCatalogue'
 import { NotifiablePicker } from './notifiablePicker'
 import { FormEmpty, FormRow, FormRows } from '../FormRow'
@@ -166,6 +167,21 @@ function NotifiableSection({ ctx, section, reload }) {
                 date={row.date ? fmtDate(row.date) : ''}
                 dateLabel={row.date ? t('episodeForms.notifiable.findingDate') : ''}
                 action={{ label: row.report ? t('episodeForms.open') : t('episodeForms.notifiable.submit'), onClick: () => setOpenRow(row) }}
+                menu={[
+                  row.report &&
+                    ctx.deleteItem?.({
+                      createdBy: row.report.updatedBy,
+                      table: 'notifiable_disease_reports',
+                      id: row.report.id,
+                      label: row.title,
+                      detail: t('episodeForms.notifiable.title'),
+                      demo: async () => {
+                        const removed = removeDemoNotificationReport(row.report.findingKey || row.report.id)
+                        if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'notifiable_disease_reports', label: row.title, detail: t('episodeForms.notifiable.title'), store: 'notification_reports', row: removed })
+                      },
+                      onDone: reload,
+                    }),
+                ]}
               />
             )
           })}
