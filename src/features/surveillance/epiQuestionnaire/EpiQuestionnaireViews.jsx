@@ -98,7 +98,8 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, o
   const [busy, setBusy] = useState(false)
   const counts = epiCounts(answers, shown)
   const form = useFormValidation(
-    EPI_CORE_KEYS.map(key => ({ key: `question:${key}`, label: epiText(questions.find(question => question.key === key)?.label, language), valid: Boolean(answerOf(answers, key)) })),
+    EPI_CORE_KEYS.map(key => ({ key: `question:${key}`, // The question's own «;» or «?» stays out of the «Συμπληρώστε: …» line.
+ label: String(epiText(questions.find(question => question.key === key)?.label, language) || '').replace(/\s*[;?]+\s*$/, ''), valid: Boolean(answerOf(answers, key)) })),
   )
   const patch = (key, change) => setAnswers(current => setEpiAnswer(current, key, change, suggestions[key]))
   async function save() {
