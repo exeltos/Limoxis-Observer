@@ -2,9 +2,6 @@ import { DueDate } from '../../design-system/DueDate'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
-  AlertTriangle,
-  ClipboardCheck,
-  Clock3,
   Microscope,
   Plus,
   Users,
@@ -17,7 +14,6 @@ import { Button } from '../../design-system/Button'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry, surveillanceListExport } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { MetricCard } from '../../design-system/MetricCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -245,6 +241,7 @@ export function SurveillanceCanonicalPage() {
       )
     if (mode === 'employees')
       return employeeRows
+        .filter(x => !quick || matchesEmployeeQuick(x, quick))
         .filter(x =>
           `${x.employeeName || ''} ${x.employeeNameEn || ''} ${x.employeeId || ''}`
             .toLowerCase()
@@ -258,6 +255,7 @@ export function SurveillanceCanonicalPage() {
         .filter(x => inPeriod(x.startedAt, period))
         .filter(x => status === 'all' || x.resultStatus === status || x.status === status)
     return environmentRows
+      .filter(x => !quick || matchesEnvironmentQuick(x, quick))
       .filter(x =>
         `${x.type || ''} ${x.source || ''} ${x.department || ''} ${x.organism || ''}`
           .toLowerCase()
@@ -312,6 +310,15 @@ export function SurveillanceCanonicalPage() {
     label: x.name,
     labelEn: x.nameEn || x.name,
   }))
+  // «Resample» is started from inside the environmental sample's record, which sends the sample here.
+  const resampleRequest = location.state?.resampleOf || null
+  useEffect(() => {
+    if (!resampleRequest || !canEnvironment || !environmentDepartmentOptions.length) return
+    setMode('environmental')
+    setResample(environmentalResampleInitial(resampleRequest, environmentDepartmentOptions))
+    setCreation('environmental')
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: { ...location.state, resampleOf: undefined } })
+  }, [resampleRequest, canEnvironment, environmentDepartmentOptions.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const saveView = () => ({ mode, page: safePage, pageSize, query, department, status, period })
   const openCase = item =>
     registry.openRecord(
@@ -465,7 +472,7 @@ export function SurveillanceCanonicalPage() {
     <Page
       fill
       title={t('clinicalRecords.surveillanceCenter')}
-      subtitle={t('surveillanceSubtitleV051')}
+      subtitle={t({ employees: 'svSubtitleEmployees', environmental: 'svSubtitleEnvironmental' }[mode] || 'surveillanceSubtitleV051')}
       actions={
         <div className="record-actions">
             <ExportMenu onExcel={() => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }))} disabled={!filtered.length} />
@@ -478,35 +485,33 @@ export function SurveillanceCanonicalPage() {
           </div>
       }
     >
-      <div className="workspace-summary surveillance-summary">
-        <div className="module-summary-strip">
+      <StatusChipsRow>
           {mode === 'employees' ? (
             <>
-              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive} quickKey="positive" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention} quickKey="intervention" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck} quickKey="recheck" quick={quick} onQuick={setQuick} />
             </>
           ) : mode === 'environmental' ? (
             <>
-              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentKpis.positive} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} quickKey="pending" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentKpis.positive} quickKey="positive" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} quickKey="critical" quick={quick} onQuick={setQuick} />
             </>
           ) : (
             <>
               {canReview && (
-                <SummaryMetric loading={awaitingReview.loading} icon={ClipboardCheck} label={worklistTexts(language).title} value={awaitingReview.rows.filter(canAccessRecord).length} quickKey="review" quick={quick} onQuick={setQuick} />
+                <SummaryMetric loading={awaitingReview.loading} label={worklistTexts(language).title} value={awaitingReview.rows.filter(canAccessRecord).length} quickKey="review" quick={quick} onQuick={setQuick} />
               )}
-              <SummaryMetric loading={loading} icon={Activity} label={t('activeSurveillance')} value={active} quickKey="active" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsReview')} value={due} quickKey="due" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation} quickKey="isolation" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant} quickKey="resistant" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('activeSurveillance')} value={active} quickKey="active" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.needsReview')} value={due} quickKey="due" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.activeIsolation')} value={isolation} quickKey="isolation" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} label={t('clinicalRecords.mdrXdr')} value={resistant} quickKey="resistant" quick={quick} onQuick={setQuick} />
             </>
           )}
-        </div>
-      </div>
+      </StatusChipsRow>
       {!section && (
         <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
       )}
@@ -580,10 +585,6 @@ export function SurveillanceCanonicalPage() {
             language={language}
             fmt={fmt}
             onOpenSample={id => registry.openRecord(navigate, `/surveillance/environment/${id}`, String(id), filtered.map(x => String(x.code || x.id)), { returnState: { surveillanceView: saveView() } })}
-            onResample={canEnvironment ? row => {
-              setResample(environmentalResampleInitial(row, environmentDepartmentOptions))
-              setCreation('environmental')
-            } : undefined}
             highlightId={registry.highlightId}
             scrollRef={registry.scrollRef}
           />
@@ -788,18 +789,34 @@ function EmployeeStatusBadge({ row, t }) {
   const state = employeeFollowupState(row)
   return <StatusBadge tone={statusTone(state)}>{state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}</StatusBadge>
 }
-function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick, loading = false }) {
+// One count of the row of chips above the list; with a quick key it filters the list, pressing it again shows everything.
+function SummaryMetric({ label, value, quickKey, quick, onQuick, loading = false }) {
+  const active = Boolean(quickKey) && quick === quickKey
   return (
-    <MetricCard
-      className="summary-metric"
-      loading={loading}
-      icon={Icon}
-      label={label}
-      value={value}
-      onClick={quickKey && onQuick ? () => onQuick(quick === quickKey ? null : quickKey) : undefined}
-      active={Boolean(quickKey) && quick === quickKey}
-    />
+    <button type="button" className={`status-chip ${active ? 'is-active' : ''} ${quickKey ? '' : 'is-static'}`.replace(/\s+/g, ' ').trim()} aria-pressed={quickKey ? active : undefined} disabled={!quickKey} onClick={quickKey && onQuick ? () => onQuick(quick === quickKey ? null : quickKey) : undefined}>
+      {label}
+      <strong>{loading ? '…' : value}</strong>
+    </button>
   )
+}
+function StatusChipsRow({ children }) {
+  return <div className="status-chips">{children}</div>
+}
+const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
+function matchesEmployeeQuick(row, quick) {
+  const today = new Date().toISOString().slice(0, 10)
+  if (quick === 'active') return row.status === 'active'
+  if (quick === 'positive') return row.resultStatus === 'positive'
+  if (quick === 'intervention') return ['required', 'in_progress'].includes(row.interventionStatus)
+  if (quick === 'recheck') return Boolean(row.recheckDue) && row.recheckDue <= today && row.status === 'active'
+  return true
+}
+function matchesEnvironmentQuick(row, quick) {
+  if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status)
+  if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status) && !row.result
+  if (quick === 'positive') return row.result === 'positive'
+  if (quick === 'critical') return Boolean(row.critical) || environmentalNeedsAction(row)
+  return true
 }
 function matchesQuick(x, quick) {
   const active = x.status === 'active'

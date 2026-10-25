@@ -1,8 +1,8 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
-import {Activity,BrainCircuit,CheckCircle2,ClipboardList,History,ListChecks,Plus,Radar,Sparkles,Users} from 'lucide-react'
+import {BrainCircuit,ClipboardList,History,ListChecks,Plus,Radar,Sparkles,Users} from 'lucide-react'
 import {useSearchParams} from 'react-router-dom'
 import {Button} from '../../design-system/Button'
-import {MetricCard} from '../../design-system/MetricCard'
+import {StatusChips} from '../../design-system/StatusChips'
 import {Page} from '../../design-system/Page'
 import {EntityRecordShell} from '../../design-system/EntityRecordShell'
 import {SectionTabsProvider} from '../../design-system/SectionTabs'
@@ -98,11 +98,11 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
   const newButton=canCreate?<Button disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={startNew}><Plus size={16}/>{en?'New investigation':'Νέα διερεύνηση'}</Button>:null
   const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
   const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
-  const summary=shell?<div className="workspace-summary surveillance-summary"><div className="module-summary-strip">
-   <MetricCard className="summary-metric" icon={Radar} label={en?'Possible clusters':'Πιθανές συρροές'} value={visibleClusters.length}/>
-   <MetricCard className="summary-metric" icon={Activity} label={en?'Open investigations':'Ανοιχτές διερευνήσεις'} value={openCount}/>
-   <MetricCard className="summary-metric" icon={CheckCircle2} label={en?'Closed investigations':'Κλειστές διερευνήσεις'} value={closedCount}/>
-  </div></div>:null
+  const summary=shell?<StatusChips label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} items={[
+   {key:'clusters',label:en?'Possible clusters':'Πιθανές συρροές',value:visibleClusters.length},
+   {key:'open',label:en?'Open investigations':'Ανοιχτές διερευνήσεις',value:openCount},
+   {key:'closed',label:en?'Closed investigations':'Κλειστές διερευνήσεις',value:closedCount},
+  ]}/>:null
   const toolbarButton=shell?null:newButton
   const body=<section className="outbreak-investigations">
    {(hasRows||hasClusters)

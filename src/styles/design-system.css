@@ -1252,3 +1252,7 @@ td>.lo-meter{margin-top:5px}
 /* The surveillance tree takes the height of its content when the «outside admissions» list follows it. */
 .entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel).surveillance-tree-section:has(+.record-tab-panel){flex:0 0 auto!important}
 .entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel).surveillance-tree-section:has(+.record-tab-panel)>:is(.record-tab-panel-body,#lo-record-tab-panel-body){flex:0 0 auto!important;overflow:visible!important}
+
+/* Attachment field with nothing attached: one line, the button on the right. */
+.attachment-empty-row{display:flex;align-items:center;gap:10px;padding:4px 2px;color:var(--lo-color-muted,#5f6f7c);font-size:13px}
+.attachment-empty-row>span{flex:1 1 auto}

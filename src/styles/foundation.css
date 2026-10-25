@@ -341,7 +341,7 @@
 
 /* v0.17.0 — environmental plates and CFU workflow */
 .batch-point-columns{display:grid;grid-template-columns:34px 1fr 1fr 34px;gap:7px;padding:6px 10px;background:#f7f9fb;border-bottom:1px solid #e1e8ed;color:#778a99;font-size:8px;font-weight:800;text-transform:uppercase}.batch-point-columns.plate{grid-template-columns:34px minmax(150px,1fr) minmax(150px,1fr) 70px 70px 34px}
-.environment-result-cell{display:flex;flex-direction:column;gap:2px}.environment-result-cell small{font-size:8.5px;color:#708493}.limit-ok{display:inline-flex;align-items:center;width:max-content;padding:3px 6px;border-radius:6px;background:#eaf7ef;color:#2e714d;font-size:8.5px}.limit-bad{display:inline-flex;align-items:center;width:max-content;padding:3px 6px;border-radius:6px;background:#fff0ee;color:#a34842;font-size:8.5px}
+.environment-result-cell{display:flex;flex-direction:column;gap:2px}.environment-result-cell small{font-size:8.5px;color:#708493}
 @media(max-width:900px){.batch-point-columns.plate,.batch-point-row.with-plate{grid-template-columns:28px 1fr 1fr 58px 58px 30px}}
 
 /* v0.17.2 — global smart-field UX */

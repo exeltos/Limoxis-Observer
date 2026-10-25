@@ -628,6 +628,12 @@ export function LaboratorySampleRecordFunctionalView() {
         renderTab={renderTab}
         onTabChange={setTab}
         headerActions={<>
+          {/* «Επαναδειγματοληψία»: an environmental point outside its limits is sampled again, from the surveillance list's create flow. */}
+          {isEnvironmental && (sample.microbiologyResults || []).some(item => item?.withinLimit === false) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && (
+            <Button variant="secondary" title={t('surveillanceList.resampleHelp')} onClick={() => navigate('/surveillance?tab=environmental', { state: { resampleOf: sample } })}>
+              <RotateCcw size={15} />{t('surveillanceList.resample')}
+            </Button>
+          )}
           {sampleDelete && <Button tone="danger" label={t('laboratoryRecords.deleteSample')} onClick={sampleDelete.onClick} />}
           {/* «Άνοιγμα επεισοδίου»: here only (not also in the menu) — a positive patient sample with no episode, for the infection-control roles. */}
           {canReviewSamples(role) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && sample.subjectType === 'patient' && !sample.surveillanceCase && sample.result === 'positive' && (

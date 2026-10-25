@@ -227,12 +227,13 @@ export function AttachmentField({
   const addReady=editor?.mode==='add'?(cloudMode?Boolean(editor.stagedAttachment):Boolean(editor.file)):true
 
   return <div className="attachment-field attachment-field-v2">
-    <div className="attachment-heading"><Paperclip size={16}/><strong>{employeeDocumentMode?(translate('copy.attachmentCopy.documentsCertifications',language==='en'?'en':'el')):t('attachments')}</strong><span>{files.length}</span></div>
+    {(files.length>0||cloudLoading)&&<div className="attachment-heading"><Paperclip size={16}/><strong>{employeeDocumentMode?(translate('copy.attachmentCopy.documentsCertifications',language==='en'?'en':'el')):t('attachments')}</strong><span>{files.length}</span></div>}
 
     {cloudMode&&cloudLoading&&<div className="inline-empty">{t('loading')||'…'}</div>}
     {cloudMode&&cloudError&&<div className="data-access-state error" role="alert">{t('loadFailed')||'Could not load attachments.'}</div>}
 
-    {!cloudLoading&&!cloudError&&files.length===0&&<div className="inline-empty">{t('noAttachments')}</div>}
+    {/* Nothing attached: one quiet line with the button beside it, not a heading, a count and a grey box. */}
+    {!cloudLoading&&!cloudError&&files.length===0&&<div className="attachment-empty-row"><Paperclip size={16} aria-hidden="true"/><span>{t('noAttachments')}</span>{!disabled&&<ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{employeeDocumentMode?(translate('copy.attachmentCopy.addDocument',language==='en'?'en':'el')):t('addAttachment')}</span></ActionButton>}</div>}
 
     {!cloudLoading&&files.length>0&&<div className="attachment-list">
       {files.map(file=><div key={file.id} className="attachment-row attachment-row-v2">
@@ -250,7 +251,7 @@ export function AttachmentField({
       </div>)}
     </div>}
 
-    {!disabled&&!cloudLoading&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{employeeDocumentMode?(translate('copy.attachmentCopy.addDocument',language==='en'?'en':'el')):t('addAttachment')}</span></ActionButton></div>}
+    {!disabled&&!cloudLoading&&files.length>0&&<div className="attachment-add-row"><ActionButton tone="neutral" label={t('addAttachment')} disabled={busy} onClick={beginAdd}><FilePlus2 size={15}/><span>{employeeDocumentMode?(translate('copy.attachmentCopy.addDocument',language==='en'?'en':'el')):t('addAttachment')}</span></ActionButton></div>}
 
     {editor&&<ObserverDialog
       eyebrow={employeeDocumentMode?(translate('copy.attachmentCopy.employeeDocuments',language==='en'?'en':'el')):t('attachments')}

@@ -35,14 +35,14 @@ function SampleRecord() {
   return <p>Καρτέλα δείγματος</p>
 }
 
-async function openCenter() {
+async function openCenter(entry = '/surveillance') {
   let api
   function Capture() {
     api = useTenant()
     return null
   }
   render(
-    <MemoryRouter initialEntries={['/surveillance']}>
+    <MemoryRouter initialEntries={[entry]}>
       <LanguageProvider>
         <FeedbackProvider>
           <TenantProvider>
@@ -78,7 +78,8 @@ const openTab = async name => {
 }
 const rowOf = text => screen.getByText(text).closest('tr')
 const statusCell = row => row.querySelector('td:last-child')
-const metric = label => screen.getByText(label).closest('.metric-card')
+// A count of the row of chips above the list.
+const metric = label => screen.getByText(label).closest('.status-chip')
 // The create button creates what the open tab lists.
 const openCreation = async subject => {
   const employee = String(subject).includes('Εργαζόμενος')
@@ -127,12 +128,13 @@ describe('Environment tab: results outside limits', () => {
     expect(metric('Κρίσιμα ευρήματα')).toHaveTextContent(String(needingAction))
   })
 
-  it('starts a re-sampling of the same point from the row, without opening the sample', async () => {
-    await openCenter()
+  it('starts a re-sampling of the same point from the record of the sample, which sends it here', async () => {
+    const { laboratorySamples } = await import('../src/features/laboratory/laboratoryDemoData')
+    const sample = laboratorySamples.find(item => item.id === 'ENV-260824-003')
+    await openCenter({ pathname: '/surveillance', state: { resampleOf: sample } })
+    // The list itself has no re-sample button any more.
     await openTab(/Περιβάλλον/)
-    const row = rowOf('ENV-260824-003')
-    fireEvent.click(within(row).getByRole('button', { name: /Επαναδειγματοληψία/ }))
-    expect(screen.queryByText('Καρτέλα δείγματος')).toBeNull()
+    expect(within(rowOf('ENV-260824-003')).queryByRole('button', { name: /Επαναδειγματοληψία/ })).toBeNull()
     expect(await screen.findByText('Επαναδειγματοληψία σημείου')).toBeInTheDocument()
     // Location, point and method are searchable lists that keep the earlier sample's values.
     expect(screen.getByRole('combobox', { name: 'Χώρος / περιοχή' })).toHaveValue('Παθολογική')
@@ -321,9 +323,7 @@ describe('English labels', () => {
     )
     await openTab(/Environment/)
     await waitFor(() => expect(rowOf('ENV-260824-003')).toHaveTextContent('Action needed'))
-    expect(
-      within(rowOf('ENV-260824-003')).getByRole('button', { name: /Re-sample/ }),
-    ).toBeInTheDocument()
+    expect(within(rowOf('ENV-260824-003')).queryByRole('button', { name: /Re-sample/ })).toBeNull()
     await openTab(/Employees/)
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument()
     await openTab(/Patients/)

@@ -51,6 +51,8 @@ const newId = () =>
 
 // Demo lists that live only in memory, and how a row goes back into each.
 const MEMORY_STORES = {
+  employee_surveillance: () =>
+    import('../../features/surveillance/employeeSurveillanceData').then(m => row => m.restoreDemoEmployeeSurveillance(row)),
   patients: () =>
     import('../../features/patients/patientsService').then(m => row => m.restoreDemoPatient(row)),
   protocol_runs: () =>

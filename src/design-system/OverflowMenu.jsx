@@ -66,7 +66,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   const popover=open&&position?<div ref={popoverRef} className="lo-overflow-popover lo-overflow-popover-portal" style={{position:'fixed',top:position.top,left:position.left,width:position.width,zIndex:2400}} role="menu" aria-label={resolvedLabel} onClick={event=>event.stopPropagation()}>
     {visibleItems.map((item,index)=>{
       const Icon=item.icon
-      return <div key={item.id||item.label||index} className={item.separatorBefore?'lo-overflow-separated':''}>
+      return <div key={item.id||item.label||index} className={item.separatorBefore&&index>0?'lo-overflow-separated':''}>
         <button type="button" role="menuitem" aria-current={item.current||undefined} className={`lo-overflow-item ${item.tone==='danger'?'lo-overflow-item-danger':''} ${item.current?'lo-overflow-item-current':''}`.trim()} disabled={item.disabled} onClick={()=>{if(item.disabled)return;setOpen(false);item.onClick?.()}}>
           {Icon&&<Icon size={15}/>}<span>{item.label}{item.description&&<small>{item.description}</small>}</span>
         </button>

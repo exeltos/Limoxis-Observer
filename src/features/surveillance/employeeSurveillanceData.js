@@ -146,6 +146,14 @@ export function createEmployeeSurveillanceBatch({employees,screeningTypes,starte
 function getEmployeeSurveillanceRecord(id){
   return employeeSurveillanceRecords.find(x=>x.id===id)||null
 }
+// Demo: the bin takes a screening out of the session list and puts it back on restore.
+export function removeDemoEmployeeSurveillance(id){
+  const index=employeeSurveillanceRecords.findIndex(item=>item.id===id)
+  return index<0?null:employeeSurveillanceRecords.splice(index,1)[0]
+}
+export function restoreDemoEmployeeSurveillance(row){
+  if(row&&!employeeSurveillanceRecords.some(item=>item.id===row.id))employeeSurveillanceRecords.unshift(row)
+}
 export function updateEmployeeSurveillanceRecord(id,patch){
   const record=getEmployeeSurveillanceRecord(id)
   if(!record)return null

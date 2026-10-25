@@ -6,7 +6,6 @@ import {
   ListChecks,
   MapPin,
   Plus,
-  RotateCcw,
   Trash2,
   Wind,
 } from 'lucide-react'
@@ -386,7 +385,6 @@ export function EnvironmentalRegistry({
   language,
   fmt,
   onOpenSample,
-  onResample,
   highlightId = '',
   scrollRef,
 }) {
@@ -445,23 +443,19 @@ export function EnvironmentalRegistry({
             <td>
               {row.result ? (
                 <span className="environment-result-cell">
-                  <strong>{t(row.result)}</strong>
-                  {row.microbiologyResults?.[0]?.cfuCount != null && (
-                    <small>{row.microbiologyResults[0].cfuCount} CFU</small>
-                  )}
-                  {row.microbiologyResults?.[0]?.withinLimit === true && (
-                    <b className="limit-ok">{t('withinLimits')}</b>
-                  )}
-                  {row.microbiologyResults?.[0]?.withinLimit === false && (
-                    <b className="limit-bad">{t('outsideLimits')}</b>
-                  )}
+                  <span className="environment-result-line">
+                    <strong>{t(row.result)}</strong>
+                    {row.microbiologyResults?.[0]?.withinLimit === true && <StatusBadge tone="success">{t('withinLimits')}</StatusBadge>}
+                    {row.microbiologyResults?.[0]?.withinLimit === false && <StatusBadge tone="danger">{t('outsideLimits')}</StatusBadge>}
+                  </span>
+                  {row.microbiologyResults?.[0]?.cfuCount != null && <small>{row.microbiologyResults[0].cfuCount} CFU</small>}
                 </span>
               ) : (
                 '—'
               )}
             </td>
             <td>
-              <EnvironmentalStatusCell row={row} t={t} onResample={onResample} />
+              <EnvironmentalStatusCell row={row} t={t} />
             </td>
           </>
         )}
@@ -471,27 +465,7 @@ export function EnvironmentalRegistry({
   )
 }
 
-function EnvironmentalStatusCell({ row, t, onResample }) {
+function EnvironmentalStatusCell({ row, t }) {
   const status = environmentalStatusDisplay(row, t)
-  const needsAction = environmentalNeedsAction(row)
-  return (
-    <span className="environment-status-cell">
-      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-      {needsAction && onResample && (
-        <Button
-          variant="secondary"
-          className="environment-resample-action"
-          title={t('surveillanceList.resampleHelp')}
-          onClick={event => {
-            event.stopPropagation()
-            onResample(row)
-          }}
-          onKeyDown={event => event.stopPropagation()}
-        >
-          <RotateCcw size={13} aria-hidden="true" />
-          {t('surveillanceList.resample')}
-        </Button>
-      )}
-    </span>
-  )
+  return <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
 }

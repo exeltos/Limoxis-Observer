@@ -3,11 +3,16 @@
 export function StatusChips({ items = [], label, loading = false }) {
   return (
     <div className="status-chips" role="group" aria-label={label}>
-      {items.map(item => (
+      {items.map(item => item.onToggle ? (
         <button key={item.key} type="button" className={`status-chip ${item.tone ? `tone-${item.tone}` : ''} ${item.active ? 'is-active' : ''}`.replace(/\s+/g, ' ').trim()} aria-pressed={item.active} onClick={item.onToggle}>
           {item.label}
           <strong>{loading ? '…' : item.value}</strong>
         </button>
+      ) : (
+        <span key={item.key} className="status-chip is-static">
+          {item.label}
+          <strong>{loading ? '…' : item.value}</strong>
+        </span>
       ))}
     </div>
   )
