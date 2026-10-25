@@ -137,7 +137,7 @@ function ExposureSectionBody({ record, department }) {
           prefillItems={[
             { label: t('episodeForms.exposure.employee'), value: [record.employeeId, name].filter(Boolean).join(' · ') },
             { label: t('episodeForms.exposure.department'), value: department },
-            { label: t('episodeForms.exposure.record'), value: [record.id, record.startedAt && fmt(record.startedAt)].filter(Boolean).join(' · ') },
+            { label: t('episodeForms.exposure.surveillanceRecord'), value: [record.id, record.startedAt && fmt(record.startedAt)].filter(Boolean).join(' · ') },
           ]}
           sourceCaseOptions={canLinkEpisode ? caseOptions : []}
         />
