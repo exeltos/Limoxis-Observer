@@ -493,10 +493,10 @@ export function EmployeeRecordPage({ selfMode = false }) {
       {!selfReadOnly && canOccupational && (
         <ActionButton
           tone="primary"
-          label={t('newSurveillance')}
+          label={t('newScreening')}
           onClick={() => setSurveillanceOpen(true)}
         >
-          <span>+ {t('newSurveillance')}</span>
+          <span>+ {t('newScreening')}</span>
         </ActionButton>
       )}
       <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />

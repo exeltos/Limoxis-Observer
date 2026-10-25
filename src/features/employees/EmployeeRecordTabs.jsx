@@ -168,9 +168,9 @@ export function EmployeeSurveillanceTab({
         }
         action={
           !readOnly && (
-            <ActionButton tone="primary" label={t('newSurveillance')} onClick={onNew}>
+            <ActionButton tone="primary" label={t('newScreening')} onClick={onNew}>
               <Plus size={15} />
-              <span>{t('newSurveillance')}</span>
+              <span>{t('newScreening')}</span>
             </ActionButton>
           )
         }
