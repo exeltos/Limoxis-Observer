@@ -76,6 +76,11 @@ export {
 const legacyTab = id => (id === 'clinicalScales' ? 'episodeForms' : id)
 const deepLinkTab = location => new URLSearchParams(location.search).get('tab')
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// /patients/:patientId carries the patient code, or the record id when the page is
+// reached from a surveillance row: both open the same patient.
+const isPatientKey = (row, key) => String(row.id) === String(key) || String(row.recordId) === String(key)
+
 export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
@@ -135,7 +140,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const patient = useMemo(
     () =>
       patientMode
-        ? patients.find(row => String(row.id) === String(patientId)) || null
+        ? patients.find(row => isPatientKey(row, patientId)) || null
         : patients.find(row => episodes.some(ep => episodeBelongsToPatient(ep, row))) || null,
     [patients, patientMode, patientId, episodes],
   )
@@ -261,10 +266,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       let roster = !cloud
         ? await loadPatients(tenant?.id, { isDemo })
         : patientMode
-          ? await loadPatientsByKeys(tenant.id, { codes: [patientId] })
+          ? await loadPatientsByKeys(tenant.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })
           : []
       const selectedPatient = patientMode
-        ? roster.find(row => String(row.id) === String(patientId))
+        ? roster.find(row => isPatientKey(row, patientId))
         : null
       let rows = []
       if (patientMode && selectedPatient) rows = await repository.loadForPatient(selectedPatient)
