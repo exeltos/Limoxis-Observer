@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -133,6 +133,16 @@ export function PatientsPage(){
 // A status chip filters the registry by its status; pressing it again shows everyone.
 function PatientStatusChip({label,value,filter,current,onFilter,loading=false}){const active=filter==='all'?current==='all':current===filter;return <button type="button" className={`patient-status-chip ${active?'is-active':''}`.trim()} aria-pressed={active} onClick={()=>onFilter(filter==='all'||active?'all':filter)}>{label}<strong>{loading?'…':value}</strong></button>}
 
+// The next patient code, from the most recent code that ends in a number (PT-260190 → PT-260191).
+export function suggestPatientCode(patients=[]){
+  const parts=patients.map(item=>/^(\D*)(\d+)$/.exec(String(item.id||item.patientCode||'').trim())).filter(Boolean)
+  if(!parts.length)return ''
+  const prefix=parts[0][1]
+  const same=parts.filter(part=>part[1]===prefix)
+  const top=same.reduce((best,part)=>Number(part[2])>Number(best[2])?part:best,same[0])
+  return `${prefix}${String(Number(top[2])+1).padStart(top[2].length,'0')}`
+}
+
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.
 export function usePatientForm({patient=null,departments=[],existingPatients=[]}){
@@ -143,7 +153,14 @@ export function usePatientForm({patient=null,departments=[],existingPatients=[]}
     dateOfBirth:patient?.dateOfBirth||'',birthWeightGrams:patient?.birthWeightGrams||'',gestationalAgeWeeks:patient?.gestationalAgeWeeks||'',sex:patient?.sex||'',departmentId:patient?.departmentId||'',department:patient?.department||'',departmentEn:patient?.departmentEn||patient?.department||'',
     admissionDate:patient?.admissionDate||'',status:patient?.status||'active',notes:patient?.notes||''
   }))
-  const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
+  // The code is suggested for a new patient until the person types their own.
+  const codeEdited=useRef(false)
+  const set=(key,value)=>{if(key==='patientCode')codeEdited.current=true;setDraft(d=>({...d,[key]:value}))}
+  useEffect(()=>{
+    if(editing||codeEdited.current)return
+    const next=suggestPatientCode(existingPatients)
+    if(next)setDraft(d=>(codeEdited.current||d.patientCode===next?d:{...d,patientCode:next}))
+  },[editing,existingPatients])
   function setDepartment(id){
     const item=departments.find(value=>value.id===id)
     setDraft(d=>({...d,departmentId:id,department:item?.name||'',departmentEn:item?.nameEn||item?.name||''}))
@@ -187,19 +204,21 @@ export function PatientFormFields({form,t,language,departments=[],className=''})
   // Optional fields with a wrong value: the message shows at once, not only after a submit.
   const optionalError=(key,invalid,message)=>invalid?{fieldKey:key,error:message}:{fieldKey:key}
   return <div ref={validation.scopeRef} className={`entry-grid patient-entry-grid ${className}`.trim()}>
-      <Field label={t('patientId')} {...validation.field('patientCode')} error={duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:validation.errorFor('patientCode')}><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/></Field>
-      <Field label={t('hospitalRecordNumber')}><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></Field>
-      <Field label={t('firstName')} {...validation.field('firstName')}><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></Field>
+      <h3 className="patient-form-group">{t('patientFormGroupPatient')}</h3>
+      <Field label={t('firstName')} {...validation.field('firstName')}><input autoFocus value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></Field>
       <Field label={t('lastName')} {...validation.field('lastName')}><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></Field>
       <Field label={t('fatherName')}><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></Field>
       <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)} hint={ageHint} {...optionalError('dateOfBirth',birthInvalid,t('invalidDateOfBirth'))}/>
+      <SearchableSelect label={t('sex')} value={draft.sex} options={['female','male','other'].map(value=>({value,label:t(value)}))} placeholder={t('select')} clearLabel="" onChange={v=>set('sex',v)} {...validation.field('sex')}/>
       {showNeonatal?<>
       <Field label={translate('copy.patientsCopy.birthWeightG',lang)} {...optionalError('birthWeightGrams',birthWeightInvalid,t('invalidBirthWeight'))}><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)}/></Field>
       <Field label={translate('copy.patientsCopy.gestationalAgeWeeks',lang)} {...optionalError('gestationalAgeWeeks',gestationInvalid,t('invalidGestationalAge'))}><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)}/></Field>
       </>:null}
+      <h3 className="patient-form-group">{editing?t('patientFormGroupRecord'):t('patientFormGroupAdmission')}</h3>
       {!editing&&<><SearchableSelect label={t('department')} value={draft.departmentId} options={departmentOptions(departments,language)} placeholder={t('select')} emptyLabel={listTexts(language).emptyLabel} clearLabel={listTexts(language).clearLabel} onChange={setDepartment}/>
       <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)} {...validation.field('admissionDate')}/></>}
-      <SearchableSelect label={t('sex')} value={draft.sex} options={['female','male','other'].map(value=>({value,label:t(value)}))} placeholder={t('select')} clearLabel="" onChange={v=>set('sex',v)} {...validation.field('sex')}/>
-      <Field label={t('notes')} className="entry-span-2"><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></Field>
+      <Field label={t('patientId')} {...validation.field('patientCode')} error={duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:validation.errorFor('patientCode')}><input disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/></Field>
+      <Field label={t('hospitalRecordNumber')}><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></Field>
+      <Field label={t('notes')} className="entry-span-2"><textarea rows={2} className="patient-notes-field" value={draft.notes} onChange={e=>set('notes',e.target.value)} onInput={event=>{event.target.style.height='auto';event.target.style.height=`${event.target.scrollHeight}px`}}/></Field>
     </div>
 }

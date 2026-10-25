@@ -1226,7 +1226,8 @@ td>.lo-meter{margin-top:5px}
 [data-invalid="true"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea,.multi-select-button){border-color:#c24a4a!important;box-shadow:0 0 0 3px rgba(194,74,74,.1)!important}
 [data-invalid="true"] .lo-choice-chips-list>button{border-color:#d99494}
 [data-invalid="true"]>.field-error{display:block;margin-top:2px;font-weight:650}
-.form-missing-summary{margin:0;flex:0 1 auto;min-width:0;text-align:right;font-size:11px;line-height:1.35;color:#8a3434}
+.form-missing-summary{margin:0;flex:0 1 auto;min-width:0;text-align:right;font-size:11px;line-height:1.35;color:var(--lo-color-muted,#5f6f7c)}
+.form-missing-summary.is-attempted{color:#8a3434}
 .form-missing-summary strong{font-weight:750}
 .button.is-blocked{opacity:.55;cursor:not-allowed}
 /* A read-only value in a form row (ReadOnlyField): as tall as an input, label above, helper below. */
