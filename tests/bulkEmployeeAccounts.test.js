@@ -1,4 +1,4 @@
-// N1 · Bulk creation of accounts from the employee roster (Platform Owner only):
+// N1 · Bulk creation of accounts from the employee roster (Platform Owner or the hospital's admin):
 // the server rules, the e-mails, the screen's model and the wiring of the Edge
 // Functions, the migration and both outbox drainers.
 import fs from 'node:fs'
@@ -176,6 +176,9 @@ describe('account e-mails', () => {
     expect(mail.html).toContain('IP40718')
     expect(mail.html).toContain('Απέτυχε')
     expect(mail.text).toContain('Ιωάννα Παππά · Χρήστης Τμήματος · ΜΕΘ · IP40718')
+    // Whoever ran it (the owner or the hospital's admin), the summary names no one wrongly.
+    expect(mail.text).not.toContain('Platform Owner')
+    expect(mail.text).toContain('από το μητρώο εργαζομένων')
   })
 })
 
