@@ -36,7 +36,7 @@ import { FormSubmit } from '../../design-system/FormValidation'
 import { SimpleDialog } from './ClinicalRecordDialogs'
 import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
 import { formatDay } from '../../core/i18n/formatDay'
-import { clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
+import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
@@ -333,7 +333,7 @@ export function CanonicalSummary({
   const isolationValue = record?.isolation
     ? record.isolation.status === 'active'
       ? badge(t('clinicalRecords.isolationInPlace'), 'temporary')
-      : badge(t(record.isolation.status))
+      : badge(t(ISOLATION_STATUS[record.isolation.status] || record.isolation.status))
     : t('no')
   const lifecycle = useAdmissionLifecycle({
     patient,

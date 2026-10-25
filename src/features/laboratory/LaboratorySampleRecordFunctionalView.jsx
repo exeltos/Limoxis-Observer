@@ -265,13 +265,7 @@ export function LaboratorySampleRecordFunctionalView() {
           : null,
     },
   ]
-  const steps = workflowStates(pending).map(step => ({
-    ...step,
-    hint:
-      step.action || step.state !== 'next'
-        ? step.hint
-        : `${step.hint} — ${tx('awaitingPermission')}`,
-  }))
+  const steps = workflowStates(pending)
   const closedNote = rejected ? (
     <>
       <AlertTriangle size={16} />

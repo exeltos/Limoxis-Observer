@@ -1074,18 +1074,15 @@ function ClinicalEntryDetail({
         </Button>
       )}
       {onDelete && (
-        <OverflowMenu
-          label={t('episodeForms.rowActions')}
-          items={[
-            {
-              ...onDelete,
-              onClick: () => {
-                onClose()
-                onDelete.onClick()
-              },
-            },
-          ]}
-        />
+        <Button
+          variant="secondary"
+          onClick={() => {
+            onClose()
+            onDelete.onClick()
+          }}
+        >
+          {onDelete.label}
+        </Button>
       )}
       {entry.kind === 'reassessment' && canManage && (
         <Button onClick={onEdit}>
