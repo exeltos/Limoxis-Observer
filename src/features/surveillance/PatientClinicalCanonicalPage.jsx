@@ -621,16 +621,19 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                     value: (
                       <>
                         {epiEntry.summary.status === 'done' ? riskWords(epiEntry.row, language, t) : t('epiQuestionnaire.riskPending')}{' '}
-                        <button
-                          type="button"
-                          className="record-summary-link"
-                          onClick={() => {
-                            setTab('episodeForms')
-                            setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
-                          }}
-                        >
-                          {t('epiQuestionnaire.link')}
-                        </button>
+                        {/* With a risk signal the «Needs attention» box already links to the questionnaire. */}
+                        {!epiEntry.summary.signal && (
+                          <button
+                            type="button"
+                            className="record-summary-link"
+                            onClick={() => {
+                              setTab('episodeForms')
+                              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+                            }}
+                          >
+                            {t('epiQuestionnaire.link')}
+                          </button>
+                        )}
                       </>
                     ),
                   },

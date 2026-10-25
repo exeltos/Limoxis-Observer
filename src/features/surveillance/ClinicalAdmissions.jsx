@@ -74,10 +74,11 @@ export function PatientDetailsSection({
   const canEditPatient = can(role, CAPABILITIES.EDIT_PATIENT, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   // One rule: «Edit» is the visible button; the «…» menu keeps only the other actions
   // (never a second «Edit patient»), and the missing-fields line has no second link.
+  // The record summary has a single «…» menu, with «Edit patient» first.
   const actions = editing ? null : (
     <>
       {leadingActions}
-      {canEditPatient && (
+      {canEditPatient && !compact && (
         <Button variant="secondary" onClick={() => setEditing(true)}>
           <Pencil size={15} />
           {t('edit')}
@@ -85,6 +86,7 @@ export function PatientDetailsSection({
       )}
       <PatientSummaryActions
         patient={patient}
+        onEdit={compact ? () => setEditing(true) : undefined}
         onDeleted={onDeleted}
         extraItems={extraMenuItems}
       />
@@ -473,7 +475,6 @@ export function CanonicalSummary({
           <section className="clinical-panel patient-summary-card record-summary-card">
             <SectionHeader
               title={t('clinicalRecords.currentSurveillance')}
-              actions={badge(t(record.status), record.status === 'active' ? 'active' : '')}
             />
             <DetailList
               sections={[

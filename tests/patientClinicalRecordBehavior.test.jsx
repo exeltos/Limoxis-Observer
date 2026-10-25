@@ -127,8 +127,9 @@ describe('admissions', () => {
     const items = patientMenu()
     expect(items).toEqual(expect.arrayContaining(['Μεταφορά σε άλλο τμήμα', 'Εξιτήριο', 'Διαγραφή ασθενούς']))
     expect(items).not.toContain('Νέα νοσηλεία')
-    expect(items.some(label => /^Επεξεργασία/.test(label))).toBe(false)
-    expect(screen.getAllByRole('button', { name: 'Επεξεργασία' })).toHaveLength(1)
+    // One «…» menu: «Edit patient» is its first item, with no separate button.
+    expect(items[0]).toBe('Επεξεργασία ασθενούς')
+    expect(screen.queryByRole('button', { name: 'Επεξεργασία' })).not.toBeInTheDocument()
   })
 
   it('shows the admissions under the patient name and readmits a discharged patient', async () => {
