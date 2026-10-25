@@ -78,8 +78,7 @@ const openTab = async name => {
 }
 const rowOf = text => screen.getByText(text).closest('tr')
 const statusCell = row => row.querySelector('td:last-child')
-// A count of the row of chips above the list.
-const metric = label => screen.getByText(label).closest('.status-chip')
+const metric = label => screen.getByText(label).closest('.metric-card')
 // The create button creates what the open tab lists.
 const openCreation = async subject => {
   const employee = String(subject).includes('Εργαζόμενος')

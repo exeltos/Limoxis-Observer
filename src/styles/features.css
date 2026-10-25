@@ -3995,25 +3995,15 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 /* A completed episode's top row holds only «Reopen»: at the right. */
 .clinical-data-heading>button:only-child{margin-left:auto}
 
-/* Registries: the status counts are one row of filter chips above the table (design-system/StatusChips). */
-.status-chips{display:flex;flex-wrap:wrap;gap:8px;flex:0 0 auto;margin-bottom:10px}
-.status-chip{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:4px 12px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-surface,#fff);color:var(--lo-color-text,#1d3445);font:inherit;font-size:12.5px;cursor:pointer}
-.status-chip strong{font-size:13px}
-.status-chip:hover{background:var(--lo-surface-hover,#f4f7fa)}
-.status-chip.is-active{border-color:var(--lo-color-primary,#1f6f9b);background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font-weight:700}
 
 /* Patient form: «Patient» and «Admission and record» are two groups of the same grid. */
 .patient-entry-grid>h3.patient-form-group{grid-column:1/-1;margin:6px 0 0;padding:0 0 4px;border-bottom:1px solid var(--lo-color-border,#e2e8ee);font-size:12px;font-weight:750;letter-spacing:.02em;color:var(--lo-color-muted,#5f6f7c)}
 .patient-entry-grid>h3.patient-form-group:first-child{margin-top:0}
 .patient-entry-grid .patient-notes-field:is(.patient-notes-field,.limoxis-expandable-textarea){min-height:0!important;height:58px}
-.status-chip.tone-danger strong{color:var(--lo-color-danger,#b42318)}
 .filter-active-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .filter-active-chip{display:inline-flex;align-items:center;gap:4px;min-height:26px;padding:2px 8px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font:inherit;font-size:11.5px;cursor:pointer}
 
 /* Sidebar: the entries inside an opened group wrap onto a second line instead of ending in «…». */
 .sidebar .sidebar-nav-children .nav-item>span{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25}
 .sidebar .sidebar-nav-children .nav-item{height:auto!important;min-height:34px;padding-top:6px!important;padding-bottom:6px!important}
-.status-chip.is-static{cursor:default}
-.status-chip.is-static:hover{background:var(--lo-color-surface,#fff)}
-button.status-chip:disabled{opacity:1;cursor:default}
 .environment-result-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
 import { isCultureSampleType } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
-import { FlaskConical, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
+import { AlertTriangle, Clock3, FlaskConical, Microscope, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -21,7 +21,7 @@ import { createPatient, loadPatients } from '../patients/patientsService'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { libraryOptions, useLibraries } from '../management/useLibraries'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { StatusChips } from '../../design-system/StatusChips'
+import { StatusCards } from '../../design-system/StatusCards'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -146,11 +146,11 @@ export function LaboratoryWorkspace() {
   }
 
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
-    <StatusChips label={t('laboratory')} loading={kpisLoading} items={[
-      { key: 'today', label: language === 'el' ? 'Σήμερα' : 'Today', value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
-      { key: 'pending', label: t('laboratoryRecords.pendingResults'), value: k.pending, active: quick === 'pending', onToggle: () => setQuick(quick === 'pending' ? 'all' : 'pending') },
-      { key: 'positive', label: t('laboratoryRecords.positiveResults'), value: k.positive, active: result === 'positive', onToggle: () => setResult(result === 'positive' ? 'all' : 'positive') },
-      { key: 'critical', label: t('laboratoryRecords.uncommunicatedCritical'), value: k.critical, tone: k.critical > 0 ? 'danger' : '', active: result === 'critical', onToggle: () => setResult(result === 'critical' ? 'all' : 'critical') },
+    <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
+      { key: 'today', icon: FlaskConical, label: language === 'el' ? 'Σήμερα' : 'Today', value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
+      { key: 'pending', icon: Clock3, label: t('laboratoryRecords.pendingResults'), value: k.pending, active: quick === 'pending', onToggle: () => setQuick(quick === 'pending' ? 'all' : 'pending') },
+      { key: 'positive', icon: Microscope, label: t('laboratoryRecords.positiveResults'), value: k.positive, active: result === 'positive', onToggle: () => setResult(result === 'positive' ? 'all' : 'positive') },
+      { key: 'critical', icon: AlertTriangle, label: t('laboratoryRecords.uncommunicatedCritical'), value: k.critical, tone: k.critical > 0 ? 'danger' : '', active: result === 'critical', onToggle: () => setResult(result === 'critical' ? 'all' : 'critical') },
     ]} />
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0) + (scope !== LAB_RESULT_SCOPES.ALL ? 1 : 0)} activeFilters={[scope !== LAB_RESULT_SCOPES.ALL && { key: 'scope', label: language === 'en' ? 'Positive only' : 'Μόνο θετικά', onRemove: () => setScope(LAB_RESULT_SCOPES.ALL) }, department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') }, status !== 'all' && { key: 'status', label: `${t('status')}: ${labStatusLabel(status, language)}`, onRemove: () => setStatus('all') }, result !== 'all' && { key: 'result', label: `${t('result')}: ${result === 'critical' ? t('criticalResult') : t(result)}`, onRemove: () => setResult('all') }, period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') }].filter(Boolean)} onClear={clearFilters} advanced={<>
