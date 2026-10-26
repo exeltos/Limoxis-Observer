@@ -240,6 +240,15 @@
 .control-editor-body .field > input:not([type='checkbox']) {
   height: 40px;
 }
+/* Every control in a row is 40px, and a checkbox without a label sits level with the neighbouring field. */
+.control-editor-body .multi-select .multi-select-button {
+  min-height: 40px;
+  height: 40px;
+  box-sizing: border-box;
+}
+.control-editor-grid > .lo-checkbox-field.lo-checkbox-field {
+  align-self: end;
+}
 @media (max-width: 700px) {
   .control-editor-grid.identity {
     grid-template-columns: minmax(0, 1fr);
