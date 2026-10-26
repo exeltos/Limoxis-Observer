@@ -233,7 +233,7 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   const subjectReady = subjectType === 'patient' ? Boolean(patientMode) : Boolean(subjectType)
   const subjectChoices = [
     ['patient', UserRound, en ? 'Patient' : 'Ασθενής', en ? 'Clinical specimen linked to a patient' : 'Κλινικό δείγμα συνδεδεμένο με ασθενή'],
-    ['employee', UsersRound, en ? 'Employee' : 'Εργαζόμενος', en ? 'Occupational screening specimen' : 'Δείγμα επιτήρησης εργαζομένου'],
+    ['employee', UsersRound, en ? 'Employee' : 'Εργαζόμενος', en ? 'Occupational screening specimen' : 'Προληπτικός έλεγχος εργαζομένου'],
     ['environment', Building2, en ? 'Environment' : 'Περιβάλλον', en ? 'Surface, equipment, water or air' : 'Επιφάνεια, εξοπλισμός, νερό ή αέρας'],
   ]
 
