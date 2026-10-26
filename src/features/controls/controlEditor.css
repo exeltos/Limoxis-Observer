@@ -295,3 +295,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Schedule per department: each department follows the control's schedule or has its own. */
+.control-department-schedules {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--lo-color-border, #dbe5ec);
+}
+.control-department-schedule {
+  display: grid;
+  grid-template-columns: minmax(110px, 160px) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+}
+.control-department-schedule-fields {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.control-department-times {
+  grid-column: 1 / -1;
+}

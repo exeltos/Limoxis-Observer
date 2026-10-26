@@ -7,7 +7,7 @@ import { downloadCsv } from '../../core/export/csvExport'
 import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { frequencyLabel } from './controlScheduling'
+import { frequencyLabel, linesFrequencyLabel } from './controlScheduling'
 import { ADHERENCE_PERIODS, adherenceTone, groupAdherenceLines, periodRange, programmeAdherence } from './controlAdherence'
 import { loadControlAdherenceCounts } from './controlCloudService'
 import './controlAdherence.css'
@@ -49,7 +49,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
     if (failed) { notify(loadFailedText, 'danger'); return }
     downloadCsv(`${en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon'}-${period}.csv`,
       [en ? 'Control' : 'Έλεγχος', en ? 'Department' : 'Τμήμα', en ? 'Frequency' : 'Συχνότητα', tx.expected, tx.performed, tx.onTime, tx.missed, tx.adherenceRate],
-      [...lines.map((line) => [title(line.item), line.department, frequencyLabel(line.item.frequency, language), line.expected, line.performed, line.onTime, line.missed, pct(line.rate)]),
+      [...lines.map((line) => [title(line.item), line.department, frequencyLabel(line.frequency || line.item.frequency, language), line.expected, line.performed, line.onTime, line.missed, pct(line.rate)]),
         [tx.total, '', '', totals.expected, totals.performed, totals.onTime, totals.missed, pct(totals.rate)]])
   }
   // The whole programme (every line, not the page on screen) on the shared document layout.
@@ -58,8 +58,8 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
     const { from, to } = periodRange(period)
     const numbers = (row) => [{ text: String(row.expected), className: 'rd-num' }, { text: String(row.performed), className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[adherenceTone(row.rate)] || ''}` }]
     const tableRows = groupAdherenceLines(lines).flatMap((group) => group.lines.length === 1
-      ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${group.item.category || ''}`)}</small>` }, frequencyLabel(group.item.frequency, language), ...numbers(group.lines[0])]]
-      : [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.item.category || ''} · ${en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}`)}</small>` }, frequencyLabel(group.item.frequency, language), ...numbers(group.totals)],
+      ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${group.item.category || ''}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.lines[0])]]
+      : [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.item.category || ''} · ${en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.totals)],
          ...group.lines.map((line) => [{ text: line.department, className: 'rd-sub-cell' }, '', ...numbers(line)])])
     const ok = printReport({
       language, orientation: 'landscape',
@@ -127,13 +127,13 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
       renderRow={(entry) => entry.kind === 'single'
         ? <tr className="control-adherence-single" onClick={() => onOpen?.(entry.group.item)}>
             <td><strong>{title(entry.group.item)}</strong><small>{entry.group.lines[0].department} · {entry.group.item.category}</small></td>
-            <td>{frequencyLabel(entry.group.item.frequency, language)}</td>
+            <td>{linesFrequencyLabel(entry.group.lines, entry.group.item, language)}</td>
             {numbers(entry.group.lines[0])}
           </tr>
         : entry.kind === 'group'
         ? <tr className="control-adherence-group" onClick={() => onOpen?.(entry.group.item)}>
             <td><strong>{title(entry.group.item)}</strong><small>{entry.group.item.category} · {en ? `${entry.group.lines.length} departments` : `${entry.group.lines.length} τμήματα`}</small></td>
-            <td>{frequencyLabel(entry.group.item.frequency, language)}</td>
+            <td>{linesFrequencyLabel(entry.group.lines, entry.group.item, language)}</td>
             {numbers(entry.group.totals)}
           </tr>
         : <tr className="control-adherence-member" onClick={() => onOpen?.(entry.line.item)}>

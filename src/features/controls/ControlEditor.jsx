@@ -15,6 +15,7 @@ import { Field } from '../../design-system/Field'
 import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { MoreSection } from '../../design-system/MoreSection'
+import { ControlDepartmentSchedules } from './ControlDepartmentSchedules'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { findLibraryItem,libraryOptions,useLibraries } from '../management/useLibraries'
 import { loadBundleLibrary } from '../management/bundleLibraryData'
@@ -54,7 +55,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const {libraries,departments:departmentRows,loading:departmentsLoading,error:departmentsError}=useLibraries()
  const {data:employees}=useEmployeesData()
  const bundleTemplates=useBundleTemplates()
- const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify(initial)):{title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
+ const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency]))})):{departmentFrequencies:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [advancedForced,setAdvancedForced]=useState(false)
  const [newAnswer,setNewAnswer]=useState('')
@@ -153,6 +154,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      </div>
      {draft.frequency.kind==='daily'&&<div className="control-editor-times"><span className="lo-field-label"><CalendarClock size={13}/> {en?'Execution times':'Ώρες εκτέλεσης'}</span><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
      {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Tolerance (minutes)':'Ανοχή (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={en?'Until the next time':'Έως την επόμενη ώρα'} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'Each time is due by the next execution time (the last by 23:59). A tolerance makes it due earlier: time + tolerance.':'Κάθε ώρα εκτέλεσης είναι εμπρόθεσμη έως την επόμενη (η τελευταία έως τις 23:59). Με ανοχή, έως την ώρα + ανοχή.'}</small></div>}
+     <ControlDepartmentSchedules departments={draft.departments} base={draft.frequency} value={draft.departmentFrequencies||{}} onChange={next=>set('departmentFrequencies',next)} en={en} kindLabels={freqLabel} selectText={selectText}/>
     </section>
 
     <MoreSection key={advancedForced?'forced':'folded'} defaultOpen={advancedOpenAtStart||advancedForced} className="control-editor-advanced" moreLabel={en?'Advanced':'Προχωρημένα'}>

@@ -28,7 +28,7 @@ import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
-import { assignmentProgress,assignmentStatus,frequencyLabel,getAssignment } from './controlScheduling'
+import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,scheduleVariants } from './controlScheduling'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
@@ -95,6 +95,8 @@ export function ControlRecordPage(){
  const department=pickControlDepartment(visibleDepartments,requestedDepartment,ownDepartment)
  const recordUrl=`/controls/${controlId}`
  const assignments=visibleDepartments.map(dep=>({department:dep,assignment:getAssignment(record,dep)}))
+ // Departments that run on different schedules show each one's own in the Departments tab.
+ const differentSchedules=scheduleVariants(record,visibleDepartments)>1
 
  const {canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
@@ -173,7 +175,7 @@ export function ControlRecordPage(){
 
  if(executing){
   if(!canExecute)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'This control is not available for execution right now.':'Ο έλεγχος δεν είναι διαθέσιμος για καταχώρηση αυτή τη στιγμή.'}</div></Page>
-  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(record.frequency,language)}`} tabs={[]} onBack={()=>navigate(recordUrl,{replace:true})}>
+  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} onBack={()=>navigate(recordUrl,{replace:true})}>
    <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
   </EntityRecordShell></Page>
  }
@@ -204,11 +206,11 @@ export function ControlRecordPage(){
      <SectionHeader title={en?'Responsibility and schedule':'Υπευθυνότητα και προγραμματισμός'}/>
      <DetailList sections={[{items:[
       {label:en?'Responsible':'Υπεύθυνος',value:ownerText(record,language)},
-      {label:en?'Frequency':'Συχνότητα',value:frequencyLabel(record.frequency,language)},
-      {label:en?'Execution times':'Ώρες εκτέλεσης',value:record.frequency.times?.join(' · ')},
+      {label:en?'Frequency':'Συχνότητα',value:controlFrequencyLabel(record,visibleDepartments,language)},
+      !differentSchedules&&{label:en?'Execution times':'Ώρες εκτέλεσης',value:assignmentFrequency(record,visibleDepartments[0]).times?.join(' · ')},
       {label:en?'Created by':'Δημιουργία από',value:<>{record.createdBy||sourceLabel}{record.createdBy&&<small>{sourceLabel}</small>}</>},
       {label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
-     ]}]}/>
+     ].filter(Boolean)}]}/>
     </section>
    </div>
    <section className="control-record-card control-record-guidance">
@@ -227,12 +229,13 @@ export function ControlRecordPage(){
     <SectionHeader title={en?'Departments of this control':'Τμήματα του ελέγχου'} subtitle={`${assignments.length} ${en?(assignments.length===1?'department':'departments'):(assignments.length===1?'τμήμα':'τμήματα')}`}/>
     <RegistryTable
      className="control-ov-department-table"
-     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
+     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
      rows={assignments}
      rowKey={row=>row.department}
      emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
      renderRow={({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr className={`control-ov-department ${state}`}>
       <td><strong>{dep}</strong>{personLabel(record.assignees?.[dep],language)&&<small>{personLabel(record.assignees[dep],language)}</small>}</td>
+      <td>{frequencyLabel(assignmentFrequency(record,dep),language)}{(assignmentFrequency(record,dep).times||[]).length>0&&<small>{assignmentFrequency(record,dep).times.join(' · ')}</small>}</td>
       <td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge><small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>

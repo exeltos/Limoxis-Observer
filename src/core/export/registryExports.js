@@ -49,7 +49,7 @@ export function controlsExport(rows,{en,frequencyLabel=()=>'' ,stateLabel=value=
    const assignment=item.assignments?.[department]||{}
    // Counted in the database (control_assignment_summary, voided entries left out).
    const summary=assignment.summary||{}
-   lines.push([item.id,item.title,item.category,department,frequencyLabel(item.frequency),criticalityLabel(criticality(item)),item.owner,summary.executions||0,summary.findings||0,day(assignment.lastCompletedAt,en),day(assignment.nextDueAt,en),stateLabel(assignment)])
+   lines.push([item.id,item.title,item.category,department,frequencyLabel(assignment.frequency||item.frequency),criticalityLabel(criticality(item)),item.owner,summary.executions||0,summary.findings||0,day(assignment.lastCompletedAt,en),day(assignment.nextDueAt,en),stateLabel(assignment)])
   }
  }
  return {

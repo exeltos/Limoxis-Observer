@@ -14,7 +14,7 @@ const ALL = 'all'
 export function scopeControlRows(rows = [], { department = ALL, frequency = ALL, category = ALL, criticality = ALL } = {}) {
   return rows
     .filter(({ item }) => category === ALL || item.category === category)
-    .filter(({ item }) => frequency === ALL || item.frequency?.kind === frequency)
+    .filter(({ item }) => frequency === ALL || [item.frequency, ...Object.values(item.assignments || {}).map((assignment) => assignment?.frequency)].some((f) => f?.kind === frequency))
     .filter(({ item }) => criticality === ALL || controlCriticality(item) === criticality)
     .map((row) => ({ ...row, departments: department === ALL ? row.departments : row.departments.filter((dep) => dep === department) }))
     .filter((row) => row.departments.length > 0)
@@ -23,7 +23,7 @@ export function scopeControlRows(rows = [], { department = ALL, frequency = ALL,
 // What the search box reads: the name, code, type, responsible, place and, since the
 // list has no filters for them, the frequency and criticality as the user reads them (both languages).
 export function controlSearchText(item) {
-  const labels = ['el', 'en'].flatMap((language) => [frequencyLabel(item.frequency, language), criticalityLabel(controlCriticality(item), language)])
+  const labels = ['el', 'en'].flatMap((language) => [...new Set([item.frequency, ...Object.values(item.assignments || {}).map((assignment) => assignment?.frequency)].filter(Boolean).map((f) => frequencyLabel(f, language))), criticalityLabel(controlCriticality(item), language)])
   return `${item.id} ${item.title} ${item.titleEn || ''} ${item.category} ${ownerText(item)} ${item.location || ''} ${item.equipment || ''} ${labels.join(' ')}`.toLowerCase()
 }
 

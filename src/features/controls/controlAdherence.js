@@ -65,9 +65,9 @@ export function programmeAdherence(rows, period, countsByAssignment = null) {
       const assignment = item.assignments?.[department]
       if (!assignment) continue
       const counts = countsByAssignment ? countsByAssignment.get(assignment.dbId) || { performed: 0, onTime: 0 } : null
-      const result = assignmentAdherence({ frequency: item.frequency, history: assignment.history || [], startedAt: assignment.createdAt || item.createdAt, counts }, period)
+      const result = assignmentAdherence({ frequency: assignment.frequency || item.frequency, history: assignment.history || [], startedAt: assignment.createdAt || item.createdAt, counts }, period)
       if (!result.expected && !result.performed) continue
-      lines.push({ item, department, ...result })
+      lines.push({ item, department, frequency: assignment.frequency || item.frequency, ...result })
     }
   }
   lines.sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || String(a.item.title).localeCompare(String(b.item.title), 'el'))

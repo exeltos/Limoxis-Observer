@@ -19,7 +19,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { SignalBadge } from '../../design-system/StatusBadge'
 import { useLibraries } from '../management/useLibraries'
-import { assignmentProgress,getAssignment,frequencyLabel } from './controlScheduling'
+import { assignmentFrequency,assignmentProgress,getAssignment,frequencyLabel } from './controlScheduling'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlActorFromAuth } from './controlActor'
 import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
@@ -196,7 +196,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
  return <div className="control-execution-page-editor">
   <dl className="control-exec-meta">
-   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(record.frequency,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
+   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(assignmentFrequency(record,department),language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
   </dl>
   {progress?.complete&&!extraReason&&<div className="governance-banner control-period-complete" role="status"><CheckCircle2 size={17}/><span><strong>{progressCompleteMessage(progress,language)}</strong> {en?'A further entry is possible only as an extra entry, with its reason.':'Νέα καταχώρηση γίνεται μόνο ως έκτακτη, με αιτιολογία.'}</span><Button variant="secondary" onClick={()=>setAskExtra(true)}>{en?'Extra entry':'Έκτακτη καταχώρηση'}</Button></div>}
   {extraReason&&<div className="governance-banner warning control-period-extra" role="status"><FileWarning size={17}/><span><strong>{en?'Extra entry':'Έκτακτη καταχώρηση'}</strong> · {extraReason}</span><Button variant="quiet" onClick={()=>setExtraReason('')}>{en?'Cancel':'Ακύρωση'}</Button></div>}
@@ -220,7 +220,7 @@ export function ControlExecutionModal({organizationId,record,department,onClose,
  const state=useControlExecution({organizationId,record,department,initialExecution})
  const {en,language,actor,structured,valid,payload,printDraft}=state
  const [confirmed,setConfirmed]=useState(false)
- return <ObserverDialog width={structured?'workspace':'wide'} className="control-execution-card" eyebrow={en?'Edit entry':'Επεξεργασία καταχώρησης'} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(record.frequency,language)} · ${en?'original entry':'αρχική καταχώρηση'} ${formatDateTime(initialExecution?.at,language)}`} onClose={onClose} footer={<>
+ return <ObserverDialog width={structured?'workspace':'wide'} className="control-execution-card" eyebrow={en?'Edit entry':'Επεξεργασία καταχώρησης'} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)} · ${en?'original entry':'αρχική καταχώρηση'} ${formatDateTime(initialExecution?.at,language)}`} onClose={onClose} footer={<>
   {structured&&<ExportMenu compact items={[{id:'form',kind:'print',label:en?'Entry form':'Έντυπο καταχώρησης',onClick:printDraft}]}/>}
   <ChoiceChips className="control-exec-confirm" options={[{value:'confirmed',label:en?'I confirm the corrections are accurate':'Επιβεβαιώνω ότι οι διορθώσεις είναι σωστές'}]} selected={confirmed?['confirmed']:[]} onToggle={()=>setConfirmed(x=>!x)}/>
   <DialogActions onCancel={onClose} onSave={()=>{if(valid&&confirmed)onSave(payload())}} disabled={!confirmed||!valid} saveLabel={en?'Save changes':'Αποθήκευση αλλαγών'}/>
