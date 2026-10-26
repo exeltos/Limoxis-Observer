@@ -36,3 +36,14 @@ commit;
 --  • Δίσκος ενηλίκου (FM-CTRL-0066): νέα τμήματα Ενδοσκοπικό, Χειρουργεία, Οφθαλμολογικό Χειρουργείο, Κέντρο Μαστού, IVF·
 --    ΜΕΘ, ΤΕΠ, Μονάδα Τεχνητού Νεφρού σε παύση (status='paused') γιατί ελέγχονται μέσα στο ΚΑΡΠΑ.
 -- Επαναφορά παύσης: update control_assignments set status='scheduled' where control_id=(select id from control_definitions where code='FM-CTRL-0066') and department_id in (select id from departments where name in ('ΜΕΘ','ΤΕΠ','Μονάδα Τεχνητού Νεφρού'));
+
+-- Τρίτη φάση (εφαρμόστηκε): διόρθωση μετά από απαντήσεις του ιδιοκτήτη και έλεγχο του FileMaker.
+--  • ΜΕΝΝ δεν έχει τροχήλατο: η ανάθεσή της στο FM-CTRL-0145 μπήκε σε παύση.
+--  • Ενδοσκοπικό, Χειρουργεία, Κέντρο Μαστού, IVF δεν έχουν δίσκο ενηλίκου: οι αναθέσεις τους στο FM-CTRL-0066 μπήκαν σε παύση.
+--  • Προστέθηκε «ΦΙΑΛΗ ΟΞΥΓΟΝΟΥ» (cat-trolley-52) στο FM-CTRL-0145 και FM-CTRL-1397, γιατί ο στόχος του ελέγχου στο FileMaker
+--    αναφέρει «καθώς και τη φιάλη Οξυγόνου».
+-- Αν θέλετε να σβηστούν οριστικά οι παύσεις (δεν έχουν καταχωρήσεις), τρέξτε στο SQL Editor:
+-- delete from control_assignments a using control_definitions d, departments dep
+--  where d.id=a.control_id and dep.id=a.department_id and a.status='paused'
+--    and ((d.code='FM-CTRL-0145' and dep.name='ΜΕΝΝ') or (d.code='FM-CTRL-0066' and dep.name in ('Ενδοσκοπικό','Χειρουργεία','Κέντρο Μαστού','IVF')))
+--    and not exists (select 1 from control_executions e where e.assignment_id=a.id);

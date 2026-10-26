@@ -160,9 +160,9 @@ describe('expected quantity and category of listed items', () => {
 
 describe('standard trolley and tray lists', () => {
   const byKey = key => CARPA_TEMPLATES.find(entry => entry.key === key).items
-  it('lists the 14 medicines and 37 supplies of the trolley form with expected quantities', () => {
+  it('lists the 14 medicines and 38 supplies (with the oxygen cylinder) of the trolley form with expected quantities', () => {
     expect(byKey('trolley').filter(entry => entry.category === 'medicine')).toHaveLength(14)
-    expect(byKey('trolley').filter(entry => entry.category === 'supply')).toHaveLength(37)
+    expect(byKey('trolley').filter(entry => entry.category === 'supply')).toHaveLength(38)
     expect(byKey('trolley').find(entry => entry.item === 'ADRENALINE amp')).toMatchObject({ quantity: '15', ingredient: 'Αδρεναλίνη' })
   })
   it('has the three intubation trays from the department forms', () => {
