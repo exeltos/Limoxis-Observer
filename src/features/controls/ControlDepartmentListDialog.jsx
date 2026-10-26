@@ -1,5 +1,4 @@
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { ActionButton } from '../../design-system/ActionButton'
 import { formatDay } from '../../core/i18n/formatDay'
 import { ITEM_CATEGORIES, noteText, prefilledExpiryRows, quantityShort } from './controlExpiry'
 import { categoryLabel } from './ControlExpiryEntry'
@@ -14,7 +13,7 @@ export function ControlDepartmentListDialog({ record, department, language = 'el
   const groups = order.map((key) => [key, rows.filter((row) => (ITEM_CATEGORIES.some(([k]) => k === row.category) ? row.category : '') === key)]).filter(([, entries]) => entries.length)
   const count = (key) => rows.filter((row) => row.category === key).length
   const subtitle = [record.title && (en ? record.titleEn || record.title : record.title), count('medicine') && `${count('medicine')} ${en ? 'medicines' : 'φάρμακα'}`, count('supply') && `${count('supply')} ${en ? 'supplies' : 'υλικά'}`].filter(Boolean).join(' · ')
-  return <ObserverDialog eyebrow={en ? 'Department list' : 'Λίστα τμήματος'} title={department} subtitle={subtitle} width="wide" onClose={onClose} footer={<ActionButton label={en ? 'Close' : 'Κλείσιμο'} tone="neutral" onClick={onClose}>{en ? 'Close' : 'Κλείσιμο'}</ActionButton>}>
+  return <ObserverDialog eyebrow={en ? 'Department list' : 'Λίστα τμήματος'} title={department} subtitle={subtitle} width="wide" onClose={onClose}>
     {!rows.length ? <div className="inline-empty">{en ? 'This department has no list yet.' : 'Το τμήμα δεν έχει ακόμη λίστα.'}</div>
       : <div className="control-department-list">{groups.map(([key, entries]) => <section key={key || 'other'}>
         {groups.length > 1 && <h4 className="control-expiry-group-title">{categoryLabel(key, language)} <small>{entries.length}</small></h4>}
