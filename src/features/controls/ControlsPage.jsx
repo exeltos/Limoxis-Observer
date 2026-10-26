@@ -28,7 +28,7 @@ import { progressText } from './controlProgress'
 import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
 import { removeExpiryItem } from './controlExpiryRemoval'
-import { loadControlCategories,loadControlProgramme,saveControlDefinition } from './controlCloudService'
+import { loadControlCategories,loadControlNames,loadControlProgramme,saveControlDefinition } from './controlCloudService'
 import { compareControlPriority,controlCriticality,criticalityLabel } from './controlCriticality'
 import './controlEvidence.css'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -141,10 +141,11 @@ export function ControlCreatePage(){
  const {notify,notifyError}=useFeedback()
  const navigate=useNavigate()
  const [categories,setCategories]=useState([])
+ const [existingControls,setExistingControls]=useState([])
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
  const isDepartmentManager=role===ROLES.DEPARTMENT_MANAGER
  const createdByScope=isDepartmentManager?'department':role===ROLES.PLATFORM_OWNER?'platform':role===ROLES.HOSPITAL_ADMIN?'hospital_admin':role===ROLES.QUALITY_MANAGER?'quality':'infection_control'
- useEffect(()=>{if(!tenant?.id)return;let active=true;loadControlCategories(tenant.id).then(rows=>{if(active)setCategories(rows)}).catch(()=>{});return()=>{active=false}},[tenant?.id])
+ useEffect(()=>{if(!tenant?.id)return;let active=true;loadControlCategories(tenant.id).then(rows=>{if(active)setCategories(rows)}).catch(()=>{});loadControlNames(tenant.id).then(rows=>{if(active)setExistingControls(rows)}).catch(()=>{});return()=>{active=false}},[tenant?.id])
  async function saveNew(draft){
   try{
    const scopedDraft=isDepartmentManager?{...draft,departments:[ownDepartment],createdByScope:'department',createdForDepartment:ownDepartment}:{...draft,createdByScope}
@@ -155,5 +156,5 @@ export function ControlCreatePage(){
  }
  const canCreate=can(role,CAPABILITIES.MANAGE_CONTROLS,membership?.capabilities??[],membership?.customCapabilities??[])||(isDepartmentManager&&Boolean(ownDepartment))
  if(!canCreate)return <Page title={language==='en'?'Controls':'Έλεγχοι'}><div className="inline-empty">{language==='en'?'You cannot create controls.':'Δεν έχετε δικαίωμα δημιουργίας ελέγχων.'}</div></Page>
- return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} usedCategories={categories} onCancel={()=>navigate('/controls')} onSave={saveNew}/>
+ return <ControlEditor departmentOnly={isDepartmentManager} fixedDepartment={isDepartmentManager?ownDepartment:''} usedCategories={categories} existingControls={existingControls} onCancel={()=>navigate('/controls')} onSave={saveNew}/>
 }

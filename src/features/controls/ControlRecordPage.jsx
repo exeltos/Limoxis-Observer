@@ -22,6 +22,7 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { ownerText,personLabel } from '../employees/peopleOptions'
 import { ControlEvidenceLinks } from './ControlEvidence'
 import { controlCriticality,criticalityLabel,deviationActions,requiresEvidence } from './controlCriticality'
+import { assignmentResponse,limitsText,responseVariants } from './controlResponse'
 import { ControlCancellationModal } from './ControlCancellationModal'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
 import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
@@ -97,6 +98,8 @@ export function ControlRecordPage(){
  const assignments=visibleDepartments.map(dep=>({department:dep,assignment:getAssignment(record,dep)}))
  // Departments that run on different schedules show each one's own in the Departments tab.
  const differentSchedules=scheduleVariants(record,visibleDepartments)>1
+ // Limits per department, when they are not the same everywhere.
+ const differentLimits=record.responseConfig?.mode==='numeric'&&responseVariants(record,visibleDepartments)>1
 
  const {canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
@@ -220,7 +223,7 @@ export function ControlRecordPage(){
      record.acceptanceCriteria&&{label:en?'Acceptance criteria':'Κριτήρια αποδοχής',value:record.acceptanceCriteria,wide:true},
      (record.description||!(record.goal||record.acceptanceCriteria||record.guideNotes))&&{label:en?'Instructions':'Οδηγίες',value:record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.'),wide:true},
      record.guideNotes&&{label:en?'Guidance notes':'Σημειώσεις καθοδήγησης',value:record.guideNotes,wide:true},
-     deviationActions(record)&&{label:en?'Actions on deviation':'Ενέργειες σε απόκλιση',value:deviationActions(record),wide:true},
+     deviationActions(record,visibleDepartments[0])&&{label:en?'Actions on deviation':'Ενέργειες σε απόκλιση',value:deviationActions(record,visibleDepartments[0]),wide:true},
     ].filter(Boolean)}]}/>
    </section>
   </div>}
@@ -229,13 +232,14 @@ export function ControlRecordPage(){
     <SectionHeader title={en?'Departments of this control':'Τμήματα του ελέγχου'} subtitle={`${assignments.length} ${en?(assignments.length===1?'department':'departments'):(assignments.length===1?'τμήμα':'τμήματα')}`}/>
     <RegistryTable
      className="control-ov-department-table"
-     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
+     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},...(differentLimits?[{key:'limits',label:en?'Limits':'Όρια'}]:[]),{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
      rows={assignments}
      rowKey={row=>row.department}
      emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
      renderRow={({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr className={`control-ov-department ${state}`}>
       <td><strong>{dep}</strong>{personLabel(record.assignees?.[dep],language)&&<small>{personLabel(record.assignees[dep],language)}</small>}</td>
       <td>{frequencyLabel(assignmentFrequency(record,dep),language)}{(assignmentFrequency(record,dep).times||[]).length>0&&<small>{assignmentFrequency(record,dep).times.join(' · ')}</small>}</td>
+      {differentLimits&&<td>{limitsText(assignmentResponse(record,dep))||'—'}</td>}
       <td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge><small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>

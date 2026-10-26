@@ -15,6 +15,9 @@ import { Field } from '../../design-system/Field'
 import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { MoreSection } from '../../design-system/MoreSection'
+import { Link } from 'react-router-dom'
+import { similarControls } from './controlSimilarity'
+import { ControlDepartmentResponses } from './ControlDepartmentResponses'
 import { ControlDepartmentSchedules } from './ControlDepartmentSchedules'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { findLibraryItem,libraryOptions,useLibraries } from '../management/useLibraries'
@@ -50,12 +53,12 @@ function useBundleTemplates(){
 // from the libraries (Management > Libraries): control types, units, status
 // answers, positions, people, locations and equipment; a value the library does
 // not have yet can still be typed.
-export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment='',usedCategories=[]}){
+export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixedDepartment='',usedCategories=[],existingControls=[]}){
  const {language}=useLanguage();const en=language==='en'
  const {libraries,departments:departmentRows,loading:departmentsLoading,error:departmentsError}=useLibraries()
  const {data:employees}=useEmployeesData()
  const bundleTemplates=useBundleTemplates()
- const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency]))})):{departmentFrequencies:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
+ const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [advancedForced,setAdvancedForced]=useState(false)
  const [newAnswer,setNewAnswer]=useState('')
@@ -72,6 +75,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  // without one (the FileMaker import) can still be edited and saved as they are.
  const ownerRequired=!initial?.dbId||Boolean(initial?.owner?.trim()||initial?.ownerPerson)
  const hasOwner=Boolean(draft.owner?.trim()||draft.ownerPerson)
+ const similar=useMemo(()=>similarControls(draft.title,existingControls,{selfId:initial?.id}),[draft.title,existingControls,initial?.id])
  const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&(hasOwner||!ownerRequired)&&(draft.frequency.kind!=='daily'||times.every(Boolean))&&(mode!=='checklist'||checklist.some(item=>String(item.el||'').trim()))&&(mode!=='choice'||options.length>=2)
  // The same rule as every form: what is missing is named beside Save once it is pressed, never before.
  const form=useFormValidation([
@@ -129,6 +133,10 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
       <SearchableSelect label={en?'Location':'Χώρος'} value={draft.location||''} options={[]} onChange={v=>set('location',v)} allowCustom placeholder={en?'Optional, e.g. Nurses station':'Προαιρετικό, π.χ. Σταθμός νοσηλευτών'} {...selectText}/>
       <SearchableSelect label={en?'Equipment / point':'Εξοπλισμός / σημείο'} value={draft.equipment||''} options={equipmentOptions} onChange={v=>set('equipment',v)} allowCustom placeholder={en?'Optional, e.g. Medication refrigerator':'Προαιρετικό, π.χ. Ψυγείο φαρμάκων'} {...selectText}/>
      </div>
+     {similar.length>0&&<div className="control-editor-similar" role="status">
+      <strong>{similar.some(item=>item.same)?(en?'A control with this name already exists.':'Υπάρχει ήδη έλεγχος με αυτή την ονομασία.'):(en?'A control with a very similar name exists.':'Υπάρχει έλεγχος με πολύ παρόμοια ονομασία.')}</strong>
+      <span>{en?'If it is the same check, add your department to it instead of creating a new one: ':'Αν είναι ο ίδιος έλεγχος, προσθέστε το τμήμα σας σε αυτόν αντί να δημιουργήσετε νέο: '}{similar.map(({control},index)=><span key={control.id}>{index>0&&', '}<Link to={`/controls/${control.id}`}>{control.title}</Link></span>)}</span>
+     </div>}
     </section>
 
     <section className="control-editor-card">
@@ -208,6 +216,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
       <YesNoField label={en?'Evidence on every entry':'Τεκμήριο σε κάθε καταχώρηση'} value={requiresEvidence(draft)} onChange={value=>setR('requiresEvidence',value)}/>
      </div>
      <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows="3" value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>
+     <ControlDepartmentResponses departments={draft.departments} base={response} numeric={mode==='numeric'} value={draft.departmentResponses||{}} onChange={next=>set('departmentResponses',next)} en={en} selectText={selectText}/>
     </section>
 
     <section className="control-editor-card">

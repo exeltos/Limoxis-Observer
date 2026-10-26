@@ -25,6 +25,7 @@ import { controlActorFromAuth } from './controlActor'
 import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
 import { deviationActions,requiresEvidence } from './controlCriticality'
+import { assignmentResponse } from './controlResponse'
 import { expiryState,expiryWindow,impliedFinding,isExpiryControl,prefilledExpiryRows,quantityShort } from './controlExpiry'
 import { answerLabel,canonicalAnswer,checklistSummary,choiceOptions,isFindingAnswer } from './controlVocabulary'
 import { ControlExpiryEntry } from './ControlExpiryEntry'
@@ -41,7 +42,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const {libraries}=useLibraries()
  const actor=useMemo(()=>controlActorFromAuth({profile,user}),[profile,user])
  const assignment=getAssignment(record,department)
- const response=record.responseConfig||{mode:'text',label:'Αποτέλεσμα'}
+ const response=assignmentResponse(record,department)||{mode:'text',label:'Αποτέλεσμα'}
  const mode=response.mode||'text'
  const expiryControl=isExpiryControl(record)
  const answers=libraries.controlAnswers||[]
@@ -162,7 +163,7 @@ function ExecutionFields({state,record,department}){
    <Field label={en?'Notes':'Σημειώσεις'}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="2" placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
    {!isEditing&&<ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>}
   </div>
-  {hasFinding&&<ControlDeviationActions text={deviationActions(record)} language={language}/>}
+  {hasFinding&&<ControlDeviationActions text={deviationActions(record,department)} language={language}/>}
  </>
 }
 

@@ -1,3 +1,4 @@
+import { cleanDepartmentResponse } from './controlResponse'
 import { supabase } from '../../core/supabase/client'
 import { firstDue,nextDueAfterExecution,periodBounds,periodProgress } from './controlDueRules'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
@@ -93,6 +94,8 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null
    status:assignment.status,
    // This department's own schedule, when it differs from the control's.
    frequency:assignment.frequency_config||null,
+   // This department's own limits and deviation text, when they differ from the control's.
+   responseOverride:assignment.response_override||null,
    // Only the executions this view asked for (recent ones, the expiry lists,
    // findings); counts come from summary.
    history,
@@ -377,12 +380,13 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   }
   for(const department of departments){
    const own=cleanDepartmentFrequency(draft.departmentFrequencies?.[department.name],draft.frequency)
+   const ownResponse=cleanDepartmentResponse(draft.departmentResponses?.[department.name],draft.responseConfig)
    const nextDue=firstDue(own||draft.frequency||{},now)
    const existingAssignment=assignments.find(a=>a.control_id===definition.id&&a.department_id===department.id)
    if(existingAssignment){
     if(JSON.stringify(existingAssignment.frequency_config||null)!==JSON.stringify(own))existingAssignment.next_due_at=nextDue
-    existingAssignment.status='scheduled';existingAssignment.frequency_config=own
-   }else assignments.push({id:demoId('ctrl-asg'),control_id:definition.id,organization_id:organizationId,department_id:department.id,department:{id:department.id,name:department.name},status:'scheduled',frequency_config:own,next_due_at:nextDue,last_completed_at:null})
+    existingAssignment.status='scheduled';existingAssignment.frequency_config=own;existingAssignment.response_override=ownResponse
+   }else assignments.push({id:demoId('ctrl-asg'),control_id:definition.id,organization_id:organizationId,department_id:department.id,department:{id:department.id,name:department.name},status:'scheduled',frequency_config:own,response_override:ownResponse,next_due_at:nextDue,last_completed_at:null})
   }
   saveControlDefinitionsLocal(definitions)
   saveControlAssignmentsLocal(assignments)
@@ -427,13 +431,24 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
  for(const department of departments){
   const previous=(existing||[]).find(x=>x.department_id===department.id)
   const own=cleanDepartmentFrequency(draft.departmentFrequencies?.[department.name],draft.frequency)
+  const ownResponse=cleanDepartmentResponse(draft.departmentResponses?.[department.name],draft.responseConfig)
   const nextDue=firstDue(own||draft.frequency||{},new Date())
   const changed=previous&&JSON.stringify(previous.frequency_config||null)!==JSON.stringify(own)
-  const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,assignee_id:draft.assignees?.[department.name]?.userId||null,status:'scheduled',frequency_config:own,next_due_at:(!changed&&previous?.next_due_at)||nextDue,last_completed_at:previous?.last_completed_at||null}
+  const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,assignee_id:draft.assignees?.[department.name]?.userId||null,status:'scheduled',frequency_config:own,response_override:ownResponse,next_due_at:(!changed&&previous?.next_due_at)||nextDue,last_completed_at:previous?.last_completed_at||null}
   const {error}=await supabase.from('control_assignments').upsert(row,{onConflict:'control_id,department_id'})
   if(error)throw error
  }
  return loadControlByCode(organizationId,definition.code)
+}
+
+// The names of the controls that already exist (code, title, status), for the warning about a new
+// control whose name is the same in essence as one of them.
+export async function loadControlNames(organizationId){
+ if(isDemoDataEnvironment())return (await loadControlProgramme(organizationId,{summary:false})).map(({id,title,status})=>({id,title,status}))
+ assertCloud(organizationId)
+ const {data,error}=await readPages(()=>supabase.from('control_definitions').select('code,title,status').eq('organization_id',organizationId).neq('status','archived').order('code'))
+ if(error)throw error
+ return (data||[]).map(row=>({id:row.code,title:row.title,status:row.status}))
 }
 
 export async function deleteControlDefinition(organizationId,record){

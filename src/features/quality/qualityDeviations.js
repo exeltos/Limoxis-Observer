@@ -4,6 +4,8 @@
 // staff cannot create CAPAs (quality RLS), so the quality manager turns each
 // one into a CAPA from this queue, prefilled.
 
+import { deviationActions } from '../controls/controlCriticality'
+
 const DAY=24*60*60*1000
 const PRIORITY_BY_CRITICALITY={high:'high',medium:'medium',low:'low'}
 
@@ -41,7 +43,7 @@ export function deviationQueue({controls=[],bundles=[],trainings=[],capas=[],now
      detail:execution.value?`${execution.value}${unit}`:'',
      notes:execution.notes||'',
      priority:PRIORITY_BY_CRITICALITY[control.responseConfig?.criticality]||'medium',
-     deviationActions:String(control.responseConfig?.deviationActions||'').trim(),
+     deviationActions:deviationActions(control,department),
     })
    }
   }
