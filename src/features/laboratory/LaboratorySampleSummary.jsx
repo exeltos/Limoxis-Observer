@@ -1,5 +1,6 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { Check, Minus } from 'lucide-react'
+import { OUTCOME_RESULTS } from './LaboratoryStatus'
 import { Button } from '../../design-system/Button'
 import { DetailList } from '../../design-system/DetailList'
 import { ENVIRONMENTAL_CATEGORIES, environmentalMethodLabel, sampleTypeLabel } from './laboratoryCloudService'
@@ -23,7 +24,21 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
     <SectionHeader title={en ? 'Sample details' : 'Στοιχεία δείγματος'} actions={menu}/>
     {banners}
     <DetailList sections={sampleSummarySections(fields, language)}/>
+    <DetailList sections={resultSummarySections(sample, t)}/>
   </section>
+}
+
+// The outcome at a glance (full detail stays on the Result tab): outcome, organism, count, critical communication.
+export function resultSummarySections(sample, t) {
+  if (!OUTCOME_RESULTS.includes(sample.result)) return []
+  const communicated = (sample.microbiologyResults || []).some(result => (result.communications || []).length > 0)
+  const items = [
+    { key: 'outcome', label: t('result'), value: t(sample.result) },
+    sample.organism && { key: 'organism', label: t('organism'), value: sample.organism },
+    sample.cfuCount != null && { key: 'cfu', label: 'CFU', value: sample.cfuLimit != null ? `${sample.cfuCount} / ${sample.cfuLimit}` : String(sample.cfuCount) },
+    sample.critical && { key: 'critical', label: t('criticalResult'), value: communicated ? t('communicated') : t('laboratoryRecords.uncommunicatedCritical') },
+  ].filter(Boolean)
+  return [{ key: 'result', title: t('result'), items }]
 }
 
 // The summary fields in two groups (Sampling · Receipt) for the shared DetailList.

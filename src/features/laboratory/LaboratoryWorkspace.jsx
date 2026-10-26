@@ -30,15 +30,15 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { StatusCards } from '../../design-system/StatusCards'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { Field } from '../../design-system/Field'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
-import { computeTurnaroundHours, formatTurnaround } from './model/laboratoryModel'
+import { computeTurnaroundHours, formatTurnaround, waitingHours } from './model/laboratoryModel'
 import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labStatusLabel } from './LaboratoryStatus'
+import { OUTCOME_RESULTS } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { environmentalPlateText } from '../surveillance/environmentalSamplingSheet'
@@ -177,7 +177,7 @@ export function LaboratoryWorkspace() {
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
     {tabs}
     <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
-      { key: 'today', icon: FlaskConical, label: language === 'el' ? 'Σήμερα' : 'Today', value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
+      { key: 'today', icon: FlaskConical, label: t('laboratoryRecords.samplesToday'), value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
       { key: 'pending', icon: Clock3, label: t('laboratoryRecords.pendingResults'), value: k.pending, active: quick === 'pending', onToggle: () => setQuick(quick === 'pending' ? 'all' : 'pending') },
       { key: 'positive', icon: Microscope, label: t('laboratoryRecords.positiveResults'), value: k.positive, active: result === 'positive', onToggle: () => setResult(result === 'positive' ? 'all' : 'positive') },
       { key: 'critical', icon: AlertTriangle, label: t('laboratoryRecords.uncommunicatedCritical'), value: k.critical, tone: k.critical > 0 ? 'danger' : '', active: result === 'critical', onToggle: () => setResult(result === 'critical' ? 'all' : 'critical') },
@@ -198,7 +198,7 @@ export function LaboratoryWorkspace() {
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}{environmentalPlateText(sample, t) && <small>{environmentalPlateText(sample, t)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
+        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !['rejected', 'cancelled'].includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
         <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status}/></td>
       </>}/>
       </div>
@@ -273,7 +273,7 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
     <div className="lab-flow-body" ref={form.scopeRef}>
       <section className="lab-flow-section" data-field-key="subjectType"><SubjectChoiceStep compact step={1} title={en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'} hint={en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'} choices={subjectChoices} value={subjectType} onChoose={switchSubject}/>{form.errorFor('subjectType') && <span className="field-error">{form.errorFor('subjectType')}</span>}</section>
 
-      {subjectType === 'patient' && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>2</span><div><strong>{en ? 'Patient' : 'Ασθενής'}</strong><small>{en ? 'Choose an existing patient or register a new one.' : 'Επιλέξτε υπάρχοντα ασθενή ή καταχωρήστε νέο.'}</small></div></div><div data-field-key="patientMode"><ModeSwitch ariaLabel={en ? 'Patient' : 'Ασθενής'} value={patientMode} onChange={choosePatientMode} options={[{ value: 'existing', label: t('existingPatient'), icon: UserRound }, { value: 'new', label: t('laboratoryRecords.newPatientInline'), icon: UserPlus }]}/>{form.errorFor('patientMode') && <span className="field-error">{form.errorFor('patientMode')}</span>}</div></section>}
+      {subjectType === 'patient' && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>2</span><div><strong>{en ? 'Patient' : 'Ασθενής'}</strong><small>{en ? 'Choose an existing patient or register a new one.' : 'Επιλέξτε υπάρχοντα ασθενή ή καταχωρήστε νέο.'}</small></div></div><div data-field-key="patientMode"><div className="subject-choice-cards is-compact" role="group" aria-label={en ? 'Patient' : 'Ασθενής'}>{[['existing', UserRound, t('existingPatient')], ['new', UserPlus, t('laboratoryRecords.newPatientInline')]].map(([id, Icon, label]) => <button key={id} type="button" aria-pressed={patientMode === id} className={`subject-choice-card ${patientMode === id ? 'active' : ''}`.trim()} onClick={() => choosePatientMode(id)}><Icon size={16} aria-hidden="true"/><strong>{label}</strong></button>)}</div>{form.errorFor('patientMode') && <span className="field-error">{form.errorFor('patientMode')}</span>}</div></section>}
 
       {subjectReady && <section className="lab-flow-section lab-flow-reveal"><div className="lab-flow-heading"><span>{subjectType === 'patient' ? '3' : '2'}</span><div><strong>{en ? 'Sample details' : 'Στοιχεία δείγματος'}</strong><small>{en ? 'Complete the required information.' : 'Συμπληρώστε τα απαραίτητα στοιχεία.'}</small></div></div><div className="entry-grid lab-flow-grid">
         {subjectType === 'patient' && patientMode === 'existing' && <div className="lab-flow-full"><SearchableSelect label={t('patient')} {...form.field('subjectCode')} value={draft.subjectCode} onChange={choosePatient} options={patientOptions} placeholder={t('surveillanceList.patientSearchPlaceholder')} emptyLabel={t('surveillanceList.noPatientsFound')} clearLabel={t('surveillanceList.clearSelection')}/></div>}

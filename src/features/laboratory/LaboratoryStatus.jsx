@@ -12,7 +12,7 @@ export function LaboratoryStatus({text,kind,tone}){
 
 // The list's status in plain words (what happens to the sample next), not codes.
 const STATUS_WORDS={
-  el:{requested:'Αναμένεται λήψη',collected:'Ελήφθη',received:'Παραλήφθηκε',processing:'Σε επεξεργασία',completed:'Ολοκληρώθηκε',rejected:'Απορρίφθηκε',cancelled:'Ακυρώθηκε'},
+  el:{requested:'Αναμένεται λήψη',collected:'Συλλέχθηκε',received:'Παραλήφθηκε',processing:'Σε επεξεργασία',completed:'Ολοκληρώθηκε',rejected:'Απορρίφθηκε',cancelled:'Ακυρώθηκε'},
   en:{requested:'Awaiting collection',collected:'Collected',received:'Received',processing:'In progress',completed:'Completed',rejected:'Rejected',cancelled:'Cancelled'},
 }
 export const labStatusLabel=(status,language='el')=>STATUS_WORDS[language==='en'?'en':'el'][status]||status

@@ -95,6 +95,13 @@ export function computeTurnaroundHours(sample) {
   return (endMs - startMs) / 3600000
 }
 
+// Hours a sample without an outcome has been waiting since collection (null when unknown).
+export function waitingHours(sample, now = Date.now()) {
+  const start = new Date(sample?.collectedAt ?? sample?.requestedAt ?? '').getTime()
+  if (!Number.isFinite(start) || start > now) return null
+  return (now - start) / 3600000
+}
+
 export function formatTurnaround(hours, language = 'el') {
   if (hours == null) return '—'
   if (hours < 24) return `${Math.round(hours)}${language === 'en' ? 'h' : 'ω'}`
