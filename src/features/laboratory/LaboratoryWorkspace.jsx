@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
 import { isCultureSampleType } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
-import { AlertTriangle, Clock3, FlaskConical, Megaphone, Microscope, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
+import { AlertTriangle, Clock3, FlaskConical, Megaphone, Microscope, PackageCheck, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { Button } from '../../design-system/Button'
 import { NotifiableReportsPanel } from './NotifiableReportsPanel'
+import { PlatesPanel } from './PlatesPanel'
 import { canSeeNotifiable } from '../surveillance/forms/sections/notifiableSection'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -52,7 +53,7 @@ export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo, role, actualRole, membership } = useTenant()
-  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, createSample: createRepositorySample } = useLaboratoryRegistry()
+  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, repository: labRepository, reload: reloadSamples, createSample: createRepositorySample } = useLaboratoryRegistry()
   const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
@@ -72,8 +73,9 @@ export function LaboratoryWorkspace() {
   // Two categories: the samples and the notifiable diseases (only for the roles that see notifications).
   const [searchParams, setSearchParams] = useSearchParams()
   const showNotifiable = canSeeNotifiable({ role: role || actualRole })
-  const tab = showNotifiable && searchParams.get('tab') === 'notifiable' ? 'notifiable' : 'samples'
-  const setTab = value => setSearchParams(current => { const next = new URLSearchParams(current); if (value === 'notifiable') next.set('tab', value); else next.delete('tab'); return next }, { replace: true })
+  const requestedTab = searchParams.get('tab')
+  const tab = requestedTab === 'plates' || (showNotifiable && requestedTab === 'notifiable') ? requestedTab : 'samples'
+  const setTab = value => setSearchParams(current => { const next = new URLSearchParams(current); if (value === 'samples') next.delete('tab'); else next.set('tab', value); return next }, { replace: true })
   const [notifiableNew, setNotifiableNew] = useState(false)
   const [duplicate, setDuplicate] = useState(null)
 
@@ -162,7 +164,11 @@ export function LaboratoryWorkspace() {
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
   }
 
-  const tabs = showNotifiable && <CanonicalTabs items={[{ value: 'samples', label: t('labNotifiable.samplesTab'), icon: FlaskConical }, { value: 'notifiable', label: t('labNotifiable.tab'), icon: Megaphone }]} value={tab} onChange={setTab} ariaLabel={t('labNotifiable.tabsLabel')} />
+  const tabs = <CanonicalTabs items={[{ value: 'samples', label: t('labNotifiable.samplesTab'), icon: FlaskConical }, { value: 'plates', label: t('labPlates.tab'), icon: PackageCheck }, ...(showNotifiable ? [{ value: 'notifiable', label: t('labNotifiable.tab'), icon: Megaphone }] : [])]} value={tab} onChange={setTab} ariaLabel={t('labNotifiable.tabsLabel')} />
+  if (tab === 'plates') return <Page fill title={t('laboratory')} subtitle={t('labPlates.subtitle')}>
+    {tabs}
+    <PlatesPanel samples={repositoryRows.filter(sample => canAccessRecord(sample))} loading={samplesLoading} canManage={canCreate} repository={labRepository} reload={reloadSamples} />
+  </Page>
   if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button>}>
     {tabs}
     <NotifiableReportsPanel organizationId={tenant?.id} isDemo={isDemo} samples={repositoryRows.filter(sample => canAccessRecord(sample))} canCreate creating={notifiableNew} onCreatingChange={setNotifiableNew} />

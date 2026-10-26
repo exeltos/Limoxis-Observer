@@ -23,3 +23,13 @@
 }
 
 .lab-critical-badge{margin-left:6px}
+
+/* Plates tab: the plate's positions side by side */
+.lab-plates-table td small { display: block; margin-top: 2px; color: #5f6f7c; font-size: 12px; }
+.plate-positions { width: 100%; border-collapse: collapse; }
+.plate-positions th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #5f6f7c; border-bottom: 1px solid #dbe5eb; }
+.plate-positions td { padding: 10px; border-bottom: 1px solid #edf1f4; vertical-align: top; }
+.plate-positions tbody tr { cursor: pointer; }
+.plate-positions tbody tr:hover, .plate-positions tbody tr:focus-visible { background: #f3f7fa; outline: none; }
+.plate-positions td small { display: block; margin-top: 2px; color: #5f6f7c; font-size: 12px; }
+.plate-positions .plate-no-result { color: #5f6f7c; }
