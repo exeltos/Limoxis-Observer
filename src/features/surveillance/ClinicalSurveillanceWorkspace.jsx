@@ -38,7 +38,6 @@ export function SurveillanceWorkspace({
   onCreate,
   onCreateFromSample,
   onCreateSample,
-  onClearTestData,
   canCreate,
   canCreateSample,
   repository,
@@ -394,12 +393,6 @@ export function SurveillanceWorkspace({
       className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
       actions={
         <>
-          {onClearTestData && (
-            <Button variant="ghost" onClick={onClearTestData}>
-              <Trash2 size={15} />
-              {translate('copy.clinicalRecordCopy.clearTestData', language === 'el' ? 'el' : 'en')}
-            </Button>
-          )}
           {canCreate && (
             <Button className="clinical-primary-action" onClick={onCreate}>
               <PlayCircle size={15} />{' '}

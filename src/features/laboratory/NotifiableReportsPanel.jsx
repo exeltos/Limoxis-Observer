@@ -12,6 +12,7 @@ import { deadlineStatusText, deadlineWords } from '../reporting/eodyCatalogue'
 import { NotifiableDialog, notifiableRows } from '../surveillance/forms/sections/notifiableSection'
 import { NewNotificationDialog } from '../surveillance/forms/sections/notifiablePicker'
 import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
 
 // A patient's name; one just registered here may carry only its last and first name.
@@ -24,6 +25,7 @@ const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '')
 export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], canCreate = false, creating = false, onCreatingChange }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
+  const deleteItem = useRecordDelete()
   const fmtDate = value => formatDay(value, language)
   const [reports, setReports] = useState([])
   const [patients, setPatients] = useState([])
@@ -72,7 +74,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
   const dialogCtx = row => {
     const sample = row.finding?.sample
     const patient = row.patient || (sample ? known.find(item => item.id === sample.patientId) || { id: sample.patientId, name: sample.patient, nameEn: sample.patientEn, recordId: sample.patientRecordId || null } : null)
-    return { organizationId, isDemo, language, t, fmtDate, patient, admission: null, record: null, samples }
+    return { organizationId, isDemo, language, t, fmtDate, patient, admission: null, record: null, samples, deleteItem }
   }
 
   // «Δημιουργία δήλωσης»: a new patient is registered first, then the pending report is made and opened.

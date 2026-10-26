@@ -53,6 +53,25 @@ export function notifiableRows(ctx, reports = []) {
   return rows
 }
 
+// «Διαγραφή» of a saved notification (to the recycle bin). A laboratory finding that has no report
+// yet is only a signal derived from a validated result: it has nothing to delete (it can be set to
+// «Δεν απαιτείται»). null when the person may not delete it.
+export function notifiableDeleteItem(ctx, row, t, onDone) {
+  if (!row?.report) return null
+  return ctx.deleteItem?.({
+    createdBy: row.report.updatedBy,
+    table: 'notifiable_disease_reports',
+    id: row.report.id,
+    label: row.title,
+    detail: t('episodeForms.notifiable.title'),
+    demo: async () => {
+      const removed = removeDemoNotificationReport(row.report.findingKey || row.report.id)
+      if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'notifiable_disease_reports', label: row.title, detail: t('episodeForms.notifiable.title'), store: 'notification_reports', row: removed })
+    },
+    onDone,
+  }) || null
+}
+
 export function NotifiableDialog({ ctx, row, onClose, onSaved }) {
   const { t } = useLanguage()
   const { notify } = useFeedback()
@@ -60,6 +79,7 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }) {
   const [busy, setBusy] = useState(false)
   const [demoForms, setDemoForms] = useState([])
   const base = episodeContext(ctx)
+  const removeItem = notifiableDeleteItem(ctx, row, t, onSaved)
   // The completed form hangs on the saved report (its id); the demo keeps it on the screen only.
   const reportId = row.report?.id
   async function save() {
@@ -82,7 +102,15 @@ export function NotifiableDialog({ ctx, row, onClose, onSaved }) {
       title={row.title}
       subtitle={t('episodeForms.notifiable.title')}
       onClose={onClose}
-      footer={<DialogActions onSave={save} disabled={busy} />}
+      footer={
+        <DialogActions onSave={save} disabled={busy}>
+          {removeItem && (
+            <Button variant="secondary" disabled={busy} onClick={removeItem.onClick}>
+              {removeItem.label}
+            </Button>
+          )}
+        </DialogActions>
+      }
     >
       <PrefilledList
         items={[
@@ -189,19 +217,7 @@ function NotifiableSection({ ctx, section, reload }) {
                 dateLabel={row.date ? t('episodeForms.notifiable.findingDate') : ''}
                 action={{ label: row.report ? t('episodeForms.open') : t('episodeForms.notifiable.submit'), onClick: () => setOpenRow(row) }}
                 menu={[
-                  row.report &&
-                    ctx.deleteItem?.({
-                      createdBy: row.report.updatedBy,
-                      table: 'notifiable_disease_reports',
-                      id: row.report.id,
-                      label: row.title,
-                      detail: t('episodeForms.notifiable.title'),
-                      demo: async () => {
-                        const removed = removeDemoNotificationReport(row.report.findingKey || row.report.id)
-                        if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'notifiable_disease_reports', label: row.title, detail: t('episodeForms.notifiable.title'), store: 'notification_reports', row: removed })
-                      },
-                      onDone: reload,
-                    }),
+                  notifiableDeleteItem(ctx, row, t, reload),
                 ]}
               />
             )

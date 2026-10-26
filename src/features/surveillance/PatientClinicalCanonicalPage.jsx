@@ -15,8 +15,6 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { Button } from '../../design-system/Button'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
 import { SectionHeader } from '../../design-system/SectionHeader'
@@ -124,7 +122,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     setSampleToLink(fromSample)
     setCreateOpen(true)
   }, [fromSample, loading, fromSampleOpened])
-  const [clearTestOpen, setClearTestOpen] = useState(false)
   // «New admission for the existing patient» (from a would-be duplicate patient) opens the new admission at once.
   const [newAdmissionOpen, setNewAdmissionOpen] = useState(() => Boolean(location.state?.openNewAdmission))
   // The header's NEWS2 / Braden / GCS chips (and ?tab=clinicalScales) open the scales
@@ -514,30 +511,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     return created
   }
 
-  async function clearOwnerClinicalTestData() {
-    if (role !== 'platform_owner' || !patient || !selectedAdmission) return
-    try {
-      for (const sample of admissionSamples)
-        await laboratory.repository.remove?.(sample.id || sample.recordId)
-      for (const ep of admissionEpisodes)
-        await repository.voidCase(ep, 'Platform Owner test data reset')
-      setSelectedEpisodeId('')
-      setSampleToLink(null)
-      await laboratory.reload()
-      await load()
-      setClearTestOpen(false)
-      notify(
-        translate(
-          'copy.clinicalRecordCopy.clinicalTestSurveillanceAndSamplesCleared',
-          language === 'el' ? 'el' : 'en',
-        ),
-        'success',
-      )
-    } catch (err) {
-      notify(err?.message || t('actionFailed'), 'error')
-    }
-  }
-
   async function createAdmissionSample(draft) {
     if (!patient || creatingAdmissionSampleRef.current) return null
     // Outside the patient route (/surveillance/:id) there is no selected admission:
@@ -695,9 +668,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             setCreateOpen(true)
           }}
           onCreateSample={patient ? createAdmissionSample : null}
-          onClearTestData={
-            patientMode && role === 'platform_owner' ? () => setClearTestOpen(true) : null
-          }
           canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
           repository={repository}
@@ -961,28 +931,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           </div>
         )}
         {renderTab(activeTab)}
-        {clearTestOpen && (
-          <ObserverDialog
-            title={translate(
-              'copy.clinicalRecordCopy.clearClinicalTestData',
-              language === 'el' ? 'el' : 'en',
-            )}
-            width="compact"
-            onClose={() => setClearTestOpen(false)}
-            footer={
-              <Button onClick={clearOwnerClinicalTestData}>
-                {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
-              </Button>
-            }
-          >
-            <p>
-              {translate(
-                'copy.clinicalRecordCopy.surveillanceEpisodesAndSamplesShownFor',
-                language === 'el' ? 'el' : 'en',
-              )}
-            </p>
-          </ObserverDialog>
-        )}
         {createOpen && (
           <NewSurveillanceFlow
             patient={patient}
