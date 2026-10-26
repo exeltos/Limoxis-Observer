@@ -62,7 +62,7 @@ set control_id = m.s_id,
       'max',  case when (m.dup_rc->'max')  is distinct from (m.s_rc->'max')  then coalesce(m.dup_rc->'max',  '""'::jsonb) end,
       'deviationActions', case when coalesce(m.dup_rc->>'deviationActions','') is distinct from coalesce(m.s_rc->>'deviationActions','')
                                then m.dup_rc->'deviationActions' end)), '{}'::jsonb),
-    frequency_config = case when m.dup_frequency is distinct from m.s_frequency then m.dup_frequency else a.frequency_config end
+    frequency_config = coalesce(a.frequency_config, case when m.dup_frequency is distinct from m.s_frequency then m.dup_frequency end)
 from merge_map m
 where a.control_id = m.dup_id;
 
