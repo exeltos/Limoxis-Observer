@@ -66,6 +66,8 @@ export function normalizeLaboratorySample(row = {}) {
     location: row.location ?? '',
     point: row.point ?? '',
     environmentalBatchId: row.environmentalBatchId ?? row.environmental_batch_id ?? null,
+    environmentalPlate: row.environmentalPlate ?? row.environmental_plate ?? '',
+    environmentalPosition: row.environmentalPosition ?? row.environmental_position ?? '',
     microbiologyResults,
     documentsReviewedAt: row.documentsReviewedAt ?? row.documents_reviewed_at ?? null,
     finalizedAt: row.finalizedAt ?? row.finalized_at ?? null,

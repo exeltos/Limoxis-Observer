@@ -10,6 +10,11 @@ import {
   Wind,
 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { Field } from '../../design-system/Field'
+import { reportExports } from '../../core/export/reportDocument'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { formatDay } from '../../core/i18n/formatDay'
+import { environmentalPlateText, environmentalSheetDocument } from './environmentalSamplingSheet'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import {
   FieldLabelText,
@@ -97,8 +102,13 @@ export function EnvironmentalSurveillanceFlow({
     [notes, setNotes] = useState(
       initial?.resampleOf ? `${t('surveillanceList.resampleOf')} ${initial.resampleOf}` : '',
     ),
-    [batchRows, setBatchRows] = useState([{ id: 1, location: '', point: '' }]),
+    [plate, setPlate] = useState(''),
+    [position, setPosition] = useState(''),
+    [batchRows, setBatchRows] = useState([{ id: 1, location: '', point: '', plate: '', position: '' }]),
+    [created, setCreated] = useState(null),
     [saving, setSaving] = useState(false)
+  // Surfaces, rooms and air are sampled on culture plates: the plate and the spot on it are required (water goes in a bottle).
+  const needsPlate = subjectType !== 'water'
   // Locations and points come from the central libraries; a new one can be typed.
   const { libraries } = useLibraries()
   const texts = listTexts(language)
@@ -115,7 +125,7 @@ export function EnvironmentalSurveillanceFlow({
       ? { department: dep.label, departmentEn: dep.labelEn || dep.label }
       : { departmentId: dep.value }
   }
-  function buildDraft(entryLocation, entryPoint, batchId) {
+  function buildDraft(entryLocation, entryPoint, batchId, entryPlate = '', entryPosition = '') {
     const subjectName = [entryLocation, entryPoint].filter(Boolean).join(' · ')
     return {
       subjectType: 'environment',
@@ -127,6 +137,8 @@ export function EnvironmentalSurveillanceFlow({
       location: entryLocation,
       point: entryPoint,
       environmentalBatchId: batchId || null,
+      environmentalPlate: entryPlate,
+      environmentalPosition: entryPosition,
       collectedAt: date,
       priority: 'routine',
       notes,
@@ -139,29 +151,32 @@ export function EnvironmentalSurveillanceFlow({
     try {
       if (mode === 'single') {
         if (!location.trim() && !point.trim()) return
-        await createSample({
+        const made = await createSample({
           patientRecordId: null,
-          draft: buildDraft(location.trim(), point.trim()),
+          draft: buildDraft(location.trim(), point.trim(), null, plate.trim(), position.trim()),
         })
         notify(t('clinicalRecords.environmentalSurveillanceCreated'), 'success')
         onCreated?.()
-        onClose()
+        setCreated({ code: made?.id || '', points: [{ location: location.trim(), point: point.trim(), plate: plate.trim(), position: position.trim(), code: made?.id || '' }] })
         return
       }
       const items = batchRows.filter(x => x.location.trim() || x.point.trim())
       if (!items.length) return
       const batchId = items.length > 1 ? `ENVB-${Date.now()}` : null
-      for (const item of items)
-        await createSample({
+      const points = []
+      for (const item of items) {
+        const made = await createSample({
           patientRecordId: null,
-          draft: buildDraft(item.location.trim(), item.point.trim(), batchId),
+          draft: buildDraft(item.location.trim(), item.point.trim(), batchId, item.plate.trim(), item.position.trim()),
         })
+        points.push({ location: item.location.trim(), point: item.point.trim(), plate: item.plate.trim(), position: item.position.trim(), code: made?.id || '' })
+      }
       notify(
         t('clinicalRecords.environmentalBatchCreated').replace('{count}', String(items.length)),
         'success',
       )
       onCreated?.()
-      onClose()
+      setCreated({ code: batchId || points[0]?.code || '', points })
     } catch (error) {
       notifyError(error, 'save', { operation: 'environmental_surveillance_create' })
     } finally {
@@ -182,7 +197,7 @@ export function EnvironmentalSurveillanceFlow({
     })
     if (ok) setBatchRows(rows => rows.filter(row => row.id !== id))
   }
-  const addRow = () => setBatchRows(rows => [...rows, { id: Date.now(), location: '', point: '' }]),
+  const addRow = () => setBatchRows(rows => [...rows, { id: Date.now(), location: '', point: '', plate: '', position: '' }]),
     sources = sourceByType[subjectType] || ['other']
   const form = useFormValidation([
     { key: 'department', label: t('department'), valid: Boolean(departmentValue) },
@@ -198,7 +213,40 @@ export function EnvironmentalSurveillanceFlow({
       label: t('samplingPoints'),
       valid: batchRows.some(x => x.location.trim() || x.point.trim()),
     },
+    mode === 'single' && needsPlate && { key: 'plate', label: t('clinicalRecords.envPlate'), valid: Boolean(plate.trim()) },
+    mode === 'single' && needsPlate && { key: 'position', label: t('clinicalRecords.envPosition'), valid: Boolean(position.trim()) },
+    ...(mode === 'batch' && needsPlate
+      ? batchRows.flatMap((row, index) =>
+          row.location.trim() || row.point.trim()
+            ? [
+                { key: `plate-${row.id}`, label: `${t('clinicalRecords.envPlate')} ${index + 1}`, valid: Boolean(row.plate.trim()) },
+                { key: `position-${row.id}`, label: `${t('clinicalRecords.envPosition')} ${index + 1}`, valid: Boolean(row.position.trim()) },
+              ]
+            : [],
+        )
+      : []),
   ])
+  // The points as typed so far, for the recording sheet (printed before saving too: the sampler takes it to the field).
+  const typedPoints = mode === 'single'
+    ? [{ location: location.trim(), point: point.trim(), plate: plate.trim(), position: position.trim() }].filter(item => item.location || item.point)
+    : batchRows.filter(row => row.location.trim() || row.point.trim()).map(row => ({ location: row.location.trim(), point: row.point.trim(), plate: row.plate.trim(), position: row.position.trim() }))
+  // The recording sheet is exported like every other document (Εξαγωγή: print, PDF, Word).
+  const sheetExports = (points, code = '') =>
+    reportExports(() => sheetFor(points, code), { word: true, onBlocked: () => notify(t('clinicalRecords.envPopupBlocked'), 'error') })
+  function sheetFor(points, code = '') {
+    const dep = departmentOptions.find(item => item.value === departmentValue)
+    return environmentalSheetDocument({
+      language,
+      t,
+      department: dep ? (language === 'el' ? dep.label : dep.labelEn || dep.label) : '',
+      date: formatDay(date, language),
+      typeLabel: sampleTypeLabel(subjectType, t),
+      methodLabel: environmentalMethodLabel(sourceCode, t),
+      points,
+      notes,
+      code,
+    })
+  }
   return (
     <ObserverDialog
       width="standard"
@@ -215,165 +263,227 @@ export function EnvironmentalSurveillanceFlow({
       }
       onClose={onClose}
       footer={
-        <FormSubmit form={form} icon={false} disabled={saving} onSubmit={save}>
-          {t('createSurveillance')}
-        </FormSubmit>
+        created ? (
+          <>
+            <ExportMenu {...sheetExports(created.points, created.code)} />
+            <Button onClick={onClose}>{t('close')}</Button>
+          </>
+        ) : (
+          <>
+            <ExportMenu {...sheetExports(typedPoints)} disabled={!typedPoints.length || saving} />
+            <FormSubmit form={form} icon={false} disabled={saving} onSubmit={save}>
+              {t('createSurveillance')}
+            </FormSubmit>
+          </>
+        )
       }
     >
-      <div className="environmental-type-grid">
-        {environmentalSubjectCatalog.map(item => {
-          const Icon = icons[item.id]
-          return (
-            <button
-              type="button"
-              key={item.id}
-              className={subjectType === item.id ? 'active' : ''}
-              onClick={() => chooseType(item.id)}
-            >
-              <Icon size={18} />
-              <strong>{sampleTypeLabel(item.id, t)}</strong>
-            </button>
-          )
-        })}
-      </div>
-      <ModeSwitch
-        ariaLabel={t('samplingPoints')}
-        value={mode}
-        onChange={setMode}
-        options={[
-          { value: 'single', label: t('clinicalRecords.singleSampling'), icon: MapPin },
-          { value: 'batch', label: t('clinicalRecords.bulkSampling'), icon: ListChecks },
-        ]}
-      />
-      <div className="entry-grid">
-        <SearchableSelect
-          label={t('department')}
-          {...form.field('department')}
-          value={departmentValue}
-          options={departmentOptions.map(item => ({
-            value: item.value,
-            label: language === 'el' ? item.label : item.labelEn || item.label,
-          }))}
-          placeholder={t('select')}
-          emptyLabel={texts.emptyLabel}
-          clearLabel={texts.clearLabel}
-          onChange={setDepartmentValue}
-        />
-        <ManualDateField
-          label={t('samplingDate')}
-          {...form.field('date')}
-          value={date}
-          onChange={setDate}
-        />
-        <SearchableSelect
-          label={t('samplingMethod')}
-          {...form.field('method')}
-          value={sourceCode}
-          options={sources.map(code => ({ value: code, label: environmentalMethodLabel(code, t) }))}
-          emptyLabel={texts.emptyLabel}
-          onChange={v => v && setSourceCode(v)}
-        />
-      </div>
-      {mode === 'single' ? (
-        <div className="entry-grid environmental-point-fields">
-          {/* Either one is enough; the examples go under the field, the placeholder is the same «Επιλέξτε» as every select. */}
-          <SearchableSelect
-            label={t('locationArea')}
-            {...form.field('location')}
-            value={location}
-            options={locationOptions}
-            allowCustom
-            customLabel={texts.customLabel}
-            placeholder={t('select')}
-            hint={t('clinicalRecords.locationAreaPlaceholder')}
-            emptyLabel=""
-            clearLabel={texts.clearLabel}
-            onChange={setLocation}
-          />
-          <SearchableSelect
-            label={t('samplingPoint')}
-            required
-            error={form.errorFor('location')}
-            hint={t('clinicalRecords.samplingPointPlaceholder')}
-            value={point}
-            options={pointOptions}
-            allowCustom
-            customLabel={texts.customLabel}
-            placeholder={t('select')}
-            emptyLabel=""
-            clearLabel={texts.clearLabel}
-            onChange={setPoint}
-          />
+      {created ? (
+        <div className="environmental-created" role="status">
+          <strong>{t('clinicalRecords.envCreatedTitle')}</strong>
+          <p>{t('clinicalRecords.envCreatedText')}</p>
         </div>
-      ) : (
-        <div
-          className="environmental-batch-points"
-          data-field-key="points"
-          data-invalid={form.errorFor('points') ? 'true' : undefined}
-        >
-          <div className="batch-point-head">
-            <strong>
-              <FieldLabelText label={t('samplingPoints')} required />
-            </strong>
-            <Button variant="secondary" onClick={addRow}>
-              <Plus size={14} />
-              {t('clinicalRecords.addPoint')}
-            </Button>
-          </div>
-          <div className="batch-point-columns">
-            <span>#</span>
-            <span>{t('locationArea')}</span>
-            <span>{t('samplingPoint')}</span>
-            <span></span>
-          </div>
-          {batchRows.map((row, index) => (
-            <div className="batch-point-row" key={row.id}>
+      ) : null}
+      {created ? (
+        <ul className="environmental-created-list" aria-label={t('clinicalRecords.envSheetPoints')}>
+          {created.points.map((item, index) => (
+            <li key={`${item.code}-${index}`}>
               <span>{String(index + 1).padStart(2, '0')}</span>
-              <SearchableSelect
-                hideLabel
-                label={t('locationArea')}
-                value={row.location}
-                options={locationOptions}
-                allowCustom
-                customLabel={texts.customLabel}
-                placeholder={t('locationArea')}
-                emptyLabel=""
-                onChange={v => updateRow(row.id, 'location', v)}
-              />
-              <SearchableSelect
-                hideLabel
-                label={t('samplingPoint')}
-                value={row.point}
-                options={pointOptions}
-                allowCustom
-                customLabel={texts.customLabel}
-                placeholder={t('samplingPoint')}
-                emptyLabel=""
-                onChange={v => updateRow(row.id, 'point', v)}
-              />
-              {batchRows.length > 1 && (
-                <button
-                  type="button"
-                  className="danger icon-action"
-                  aria-label={language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point'}
-                  title={language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point'}
-                  onClick={() => removeRow(row.id)}
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
+              <strong>{[item.location, item.point].filter(Boolean).join(' · ')}</strong>
+              <small>{environmentalPlateText({ environmentalPlate: item.plate, environmentalPosition: item.position }, t)}</small>
+              <code>{item.code}</code>
+            </li>
           ))}
-          <FieldMessage error={form.errorFor('points')} />
+        </ul>
+      ) : (
+        <>
+        <div className="environmental-type-grid">
+          {environmentalSubjectCatalog.map(item => {
+            const Icon = icons[item.id]
+            return (
+              <button
+                type="button"
+                key={item.id}
+                className={subjectType === item.id ? 'active' : ''}
+                onClick={() => chooseType(item.id)}
+              >
+                <Icon size={18} />
+                <strong>{sampleTypeLabel(item.id, t)}</strong>
+              </button>
+            )
+          })}
         </div>
+        <ModeSwitch
+          ariaLabel={t('samplingPoints')}
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'single', label: t('clinicalRecords.singleSampling'), icon: MapPin },
+            { value: 'batch', label: t('clinicalRecords.bulkSampling'), icon: ListChecks },
+          ]}
+        />
+        <div className="entry-grid">
+          <SearchableSelect
+            label={t('department')}
+            {...form.field('department')}
+            value={departmentValue}
+            options={departmentOptions.map(item => ({
+              value: item.value,
+              label: language === 'el' ? item.label : item.labelEn || item.label,
+            }))}
+            placeholder={t('select')}
+            emptyLabel={texts.emptyLabel}
+            clearLabel={texts.clearLabel}
+            onChange={setDepartmentValue}
+          />
+          <ManualDateField
+            label={t('samplingDate')}
+            {...form.field('date')}
+            value={date}
+            onChange={setDate}
+          />
+          <SearchableSelect
+            label={t('samplingMethod')}
+            {...form.field('method')}
+            value={sourceCode}
+            options={sources.map(code => ({ value: code, label: environmentalMethodLabel(code, t) }))}
+            emptyLabel={texts.emptyLabel}
+            onChange={v => v && setSourceCode(v)}
+          />
+        </div>
+        {mode === 'single' ? (
+          <div className="entry-grid environmental-point-fields">
+            {/* Either one is enough; the examples go under the field, the placeholder is the same «Επιλέξτε» as every select. */}
+            <SearchableSelect
+              label={t('locationArea')}
+              {...form.field('location')}
+              value={location}
+              options={locationOptions}
+              allowCustom
+              customLabel={texts.customLabel}
+              placeholder={t('clinicalRecords.envChooseOrType')}
+              hint={t('clinicalRecords.locationAreaPlaceholder')}
+              emptyLabel=""
+              clearLabel={texts.clearLabel}
+              onChange={setLocation}
+            />
+            <SearchableSelect
+              label={t('samplingPoint')}
+              required
+              error={form.errorFor('location')}
+              hint={t('clinicalRecords.samplingPointPlaceholder')}
+              value={point}
+              options={pointOptions}
+              allowCustom
+              customLabel={texts.customLabel}
+              placeholder={t('clinicalRecords.envChooseOrType')}
+              emptyLabel=""
+              clearLabel={texts.clearLabel}
+              onChange={setPoint}
+            />
+            {/* Where on which culture plate the specimen is: the laboratory reads the plate with it. */}
+            <Field label={t('clinicalRecords.envPlate')} {...(needsPlate ? form.field('plate') : {})}>
+              <input value={plate} placeholder={t('clinicalRecords.envPlateHint')} onChange={event => setPlate(event.target.value)} />
+            </Field>
+            <Field label={t('clinicalRecords.envPosition')} {...(needsPlate ? form.field('position') : {})}>
+              <input value={position} placeholder={t('clinicalRecords.envPositionHint')} onChange={event => setPosition(event.target.value)} />
+            </Field>
+          </div>
+        ) : (
+          <div
+            className="environmental-batch-points"
+            data-field-key="points"
+            data-invalid={form.errorFor('points') ? 'true' : undefined}
+          >
+            <div className="batch-point-head">
+              <strong>
+                <FieldLabelText label={t('samplingPoints')} required />
+              </strong>
+              <Button variant="secondary" onClick={addRow}>
+                <Plus size={14} />
+                {t('clinicalRecords.addPoint')}
+              </Button>
+            </div>
+            <div className="batch-point-columns plate">
+              <span>#</span>
+              <span>{t('locationArea')}</span>
+              <span>{t('samplingPoint')}</span>
+              <span>
+                {t('clinicalRecords.envPlate')}
+                {needsPlate && <i className="lo-required-mark" aria-hidden="true" />}
+              </span>
+              <span>
+                {t('clinicalRecords.envPosition')}
+                {needsPlate && <i className="lo-required-mark" aria-hidden="true" />}
+              </span>
+              <span></span>
+            </div>
+            {batchRows.map((row, index) => (
+              <div className="batch-point-row with-plate" key={row.id}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <SearchableSelect
+                  hideLabel
+                  label={t('locationArea')}
+                  value={row.location}
+                  options={locationOptions}
+                  allowCustom
+                  customLabel={texts.customLabel}
+                  placeholder={t('clinicalRecords.envChooseOrType')}
+                  emptyLabel=""
+                  onChange={v => updateRow(row.id, 'location', v)}
+                />
+                <SearchableSelect
+                  hideLabel
+                  label={t('samplingPoint')}
+                  value={row.point}
+                  options={pointOptions}
+                  allowCustom
+                  customLabel={texts.customLabel}
+                  placeholder={t('clinicalRecords.envChooseOrType')}
+                  emptyLabel=""
+                  onChange={v => updateRow(row.id, 'point', v)}
+                />
+                {['plate', 'position'].map(key => {
+                  const fieldKey = `${key}-${row.id}`
+                  const invalid = Boolean(form.errorFor(fieldKey))
+                  return (
+                    <input
+                      key={key}
+                      data-field-key={fieldKey}
+                      className={invalid ? 'is-invalid' : ''}
+                      aria-invalid={invalid || undefined}
+                      aria-label={t(key === 'plate' ? 'clinicalRecords.envPlate' : 'clinicalRecords.envPosition')}
+                      placeholder={t(key === 'plate' ? 'clinicalRecords.envPlateHint' : 'clinicalRecords.envPositionHint')}
+                      value={row[key]}
+                      onChange={event => updateRow(row.id, key, event.target.value)}
+                    />
+                  )
+                })}
+                {batchRows.length > 1 && (
+                  <button
+                    type="button"
+                    className="danger icon-action"
+                    aria-label={language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point'}
+                    title={language === 'el' ? 'Αφαίρεση σημείου' : 'Remove sampling point'}
+                    onClick={() => removeRow(row.id)}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
+            <FieldMessage error={form.errorFor('points')} />
+          </div>
+        )}
+        <label className="environmental-notes">
+          <span className="lo-field-label">{t('notes')}</span>
+          <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
+        </label>
+        <div className="source-truth-note">
+          {t('clinicalRecords.environmentalCreatesLabRequests')}
+        </div>
+        </>
       )}
-      <label className="environmental-notes">
-        <span className="lo-field-label">{t('notes')}</span>
-        <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} />
-      </label>
-      <div className="source-truth-note">
-        {t('clinicalRecords.environmentalCreatesLabRequests')}
-      </div>
     </ObserverDialog>
   )
 }
@@ -439,7 +549,10 @@ export function EnvironmentalRegistry({
               </small>
             </td>
             <td className="env-col-secondary">{departmentName(row)}</td>
-            <td>{[row.location, row.point].filter(Boolean).join(' · ') || '—'}</td>
+            <td>
+              {[row.location, row.point].filter(Boolean).join(' · ') || '—'}
+              {environmentalPlateText(row, t) && <small className="environment-type">{environmentalPlateText(row, t)}</small>}
+            </td>
             <td className="env-col-secondary">{fmt(row.collectedAt || row.requestedAt)}</td>
             <td className="env-col-secondary env-batch">{row.environmentalBatchId || '—'}</td>
             <td>

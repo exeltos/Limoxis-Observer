@@ -53,6 +53,9 @@ export function sampleSummaryFields({ sample, t, language, fmt }) {
     isEnvironmental
       ? { id: 'method', label: en ? 'Sampling method' : 'Μέθοδος δειγματοληψίας', value: environmentalMethodLabel(sample.environmentalMethod, t) || sample.source }
       : { id: 'source', label: t('clinicalSource'), value: sampleSourceLabel((en ? sample.sourceEn : sample.source) || sample.source, language) },
+    // The culture plate and the spot on it, to match the plate in hand with the point it was taken at.
+    { id: 'plate', label: t('clinicalRecords.envPlate'), value: sample.environmentalPlate, hidden: !sample.environmentalPlate },
+    { id: 'position', label: t('clinicalRecords.envPosition'), value: sample.environmentalPosition, hidden: !sample.environmentalPosition },
     { id: 'priority', label: t('priority'), value: sample.priority ? t(sample.priority) : '—' },
     { id: 'collected', label: t('collectedLabel'), value: fmt(sample.collectedAt) },
     { id: 'received', label: t('received'), value: fmt(sample.receivedAt) },

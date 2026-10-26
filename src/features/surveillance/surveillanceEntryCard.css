@@ -109,3 +109,17 @@
 .patient-simple-dialog .therapy-entry-card > .button {
   align-self: flex-start;
 }
+
+/* Environmental sampling: the plate («τρυβλίο») and spot («θέση») beside each point; the sheet/confirmation after saving */
+.environmental-surveillance-entry .batch-point-columns.plate,
+.environmental-surveillance-entry .batch-point-row.with-plate { grid-template-columns: 34px minmax(130px, 1fr) minmax(130px, 1fr) 64px 64px 34px; }
+.environmental-surveillance-entry .batch-point-row input.is-invalid { border-color: #b33a3a !important; box-shadow: 0 0 0 3px rgba(179, 58, 58, 0.14); }
+.environmental-surveillance-entry .batch-point-columns .lo-required-mark { font-style: normal; }
+.environmental-created { display: grid; gap: 6px; padding: 16px 18px; border: 1px solid #cfe3d6; border-radius: 12px; background: #f3faf5; }
+.environmental-created p { margin: 0; color: #46586a; font-size: 13px; line-height: 1.5; }
+.environmental-created-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; border: 1px solid #dbe5eb; border-radius: 12px; overflow: hidden; }
+.environmental-created-list li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #edf1f4; }
+.environmental-created-list li:last-child { border-bottom: 0; }
+.environmental-created-list li > span { font-size: 11px; font-weight: 800; color: #8ca0ae; }
+.environmental-created-list small { color: #5f6f7c; font-size: 12px; }
+.environmental-created-list code { font-size: 11px; color: #46586a; }

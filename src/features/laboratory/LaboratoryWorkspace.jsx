@@ -40,6 +40,7 @@ import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
 import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labStatusLabel } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ChoiceField } from '../../design-system/ChoiceField'
+import { environmentalPlateText } from '../surveillance/environmentalSamplingSheet'
 import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, reviewTag } from './sampleReviewModel'
 import { SampleReviewTag } from '../surveillance/SampleReviewWorklist'
 import './LaboratoryWorkspace.css'
@@ -189,7 +190,7 @@ export function LaboratoryWorkspace() {
       ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => { const rp = registry.rowProps(sample.id, () => openSample(sample)); return { ...rp, className: `${rp.className} clickable-row` } }} emptyTitle={empty.title} emptyText={empty.text} emptyFiltered={Boolean(empty.filtered)} onClearFilters={empty.onClear} emptyIcon={empty.icon} emptyAction={empty.action} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
-        <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
+        <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}{environmentalPlateText(sample, t) && <small>{environmentalPlateText(sample, t)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
         <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
         <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status}/></td>

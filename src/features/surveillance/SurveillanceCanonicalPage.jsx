@@ -625,9 +625,8 @@ export function SurveillanceCanonicalPage() {
             setCreation(null)
             setResample(null)
           }}
+          // The window stays open on its confirmation (print the recording sheet); «Close» closes it.
           onCreated={async () => {
-            setCreation(null)
-            setResample(null)
             await load()
             setMode('environmental')
           }}

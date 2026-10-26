@@ -95,6 +95,9 @@ function mapSample(row,patient,department,microbiology=[],specimenType=null){
     location:row.location||'',
     point:row.point||'',
     environmentalBatchId:row.environmental_batch_id||null,
+    // The plate («τρυβλίο», e.g. A) and the spot on it («θέση», e.g. 1) of an environmental specimen.
+    environmentalPlate:row.environmental_plate||'',
+    environmentalPosition:row.environmental_position||'',
     collectedAt:row.collected_at,
     requestedAt:row.requested_at,
     receivedAt:row.received_at,
@@ -278,6 +281,8 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
     location:draft.location||null,
     point:draft.point||null,
     environmental_batch_id:draft.environmentalBatchId||null,
+    environmental_plate:draft.environmentalPlate||null,
+    environmental_position:draft.environmentalPosition||null,
     collected_at:iso(draft.collectedAt),
     requested_at:iso(draft.requestedAt||new Date()),
     requested_by:actorId,
