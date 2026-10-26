@@ -1,9 +1,10 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CalendarX2,ClipboardCheck,Clock3,Gauge,ListChecks } from 'lucide-react'
+import { CalendarX2,ClipboardCheck,Gauge,LayoutGrid,ListChecks } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
-import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
+import { FilterBar } from '../../design-system/FilterBar'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -16,10 +17,11 @@ import { ControlEditor } from './ControlEditor'
 import { SignalBadge } from '../../design-system/StatusBadge'
 import { formatDateTime } from '../../core/i18n/formatDay'
 import { controlActorFromAuth } from './controlActor'
-import { MetricCard } from '../../design-system/MetricCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { ControlAdherencePanel,useAdherenceCounts,useControlAdherenceReport } from './ControlAdherencePanel'
+import { ControlAdherencePanel,RateMeter,useAdherenceCounts,useControlAdherenceReport } from './ControlAdherencePanel'
+import { ControlDepartmentCards } from './ControlDepartmentCards'
+import { controlRates,departmentCards } from './controlDepartmentCards'
 import { periodRange,programmeAdherence } from './controlAdherence'
 import { assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment } from './controlScheduling'
 import { dueState } from './controlDueRules'
@@ -48,10 +50,6 @@ function controlState(item,departments){
 function earliestNext(item,departments){
  return departments.map(dep=>getAssignment(item,dep)?.nextDueAt).filter(Boolean).sort((a,b)=>new Date(a)-new Date(b))[0]||null
 }
-// Counted in the database (control_assignment_summary): the list never reads the executions.
-function executionCount(item,departments){
- return departments.reduce((n,dep)=>n+(getAssignment(item,dep)?.summary?.executions||0),0)
-}
 function hasDraft(item,departments){
  return departments.some(dep=>Boolean(getAssignment(item,dep)?.hasDraft))
 }
@@ -62,14 +60,14 @@ export function ControlsPage(){
  const {t,language}=useLanguage();const tx=controlsText[language==='en'?'en':'el']
  const {confirm,notify,notifyError}=useFeedback()
  const navigate=useNavigate(),registry=useRegistryMemory('controls')
- const savedView=registry.loadViewState({query:'',department:'all',status:'all',view:'programme'})
+ const savedView=registry.loadViewState({query:'',department:'all',status:'all',view:'departments'})
  const [query,setQuery]=useState(savedView.query),[department,setDepartment]=useState(savedView.department),[status,setStatus]=useState(savedView.status)
  const [programme,setProgramme]=useState([]),[loading,setLoading]=useState(true)
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  // The planned and done executions are in the main calendar (filter «Controls»); an old calendar view or ?tab=calendar link opens it there.
  const calendarRequested=savedView.view==='calendar'||(typeof window!=='undefined'&&new URLSearchParams(window.location.search).get('tab')==='calendar')
  const [expiryExport,setExpiryExport]=useState(null)
- const [view,setView]=useState(savedView.view&&savedView.view!=='calendar'?savedView.view:'programme')
+ const [view,setView]=useState(savedView.view&&savedView.view!=='calendar'?savedView.view:'departments')
  useEffect(()=>{if(calendarRequested)navigate('/calendar?filter=controls',{replace:true})},[calendarRequested,navigate])
  const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[]
  const canManage=can(role,CAPABILITIES.MANAGE_CONTROLS,addOns,custom)
@@ -97,12 +95,18 @@ export function ControlsPage(){
  const kpiRows=useMemo(()=>scopeControlRows(scopedControls,{department}),[scopedControls,department])
  const rows=useMemo(()=>filterControlRows(scopedControls,{query,department,status}).map(row=>({...row,state:controlState(row.item,row.departments)})).sort(compareControlPriority),[scopedControls,query,department,status])
  useEffect(()=>{setPage(1)},[query,department,status,pageSize])
+ const {counts:monthCounts,failed:monthCountsFailed}=useAdherenceCounts(tenant?.id,'30d',programme)
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
  const fmt=v=>formatDateTime(v,language)
+ // A department with one department sees its list straight away: no cards to choose from.
+ const showCards=departments.length>1
+ const activeView=view==='departments'&&!showCards?'programme':view
+ const cards=useMemo(()=>departmentCards(scopedControls,monthCountsFailed?[]:programmeAdherence(scopedControls,periodRange('30d'),monthCounts).lines,new Date(),language),[scopedControls,monthCounts,monthCountsFailed,language])
+ const rates=useMemo(()=>controlRates(monthCountsFailed?[]:programmeAdherence(rows,periodRange('30d'),monthCounts).lines),[rows,monthCounts,monthCountsFailed])
+ function openDepartment(dep){setDepartment(dep);setStatus('all');setView('programme')}
  const overdue=kpiRows.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length
  const dueSoon=kpiRows.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
   const adherenceReport=useControlAdherenceReport(rows,tx,language,tenant?.id,programme)
- const {counts:monthCounts,failed:monthCountsFailed}=useAdherenceCounts(tenant?.id,'30d',programme)
  // A failed count shows no rate rather than a false 0%.
  const monthAdherence=useMemo(()=>monthCountsFailed?programmeAdherence([],periodRange('30d'),new Map()).totals:programmeAdherence(kpiRows,periodRange('30d'),monthCounts).totals,[kpiRows,monthCounts,monthCountsFailed])
 
@@ -114,22 +118,25 @@ export function ControlsPage(){
  function pageAction(action){if(action===UI_ACTIONS.CREATE&&canCreate){registry.saveViewState({query,department,status,view});navigate('/controls/new')}}
  function openControl(item){registry.saveViewState({query,department,status,view});registry.openRecord(navigate,`/controls/${item.id}`,item.id,rows.map(x=>x.item.id))}
 
- return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{view==='adherence'?<ExportMenu onPrint={()=>adherenceReport.exportPdf(false)} onPdf={()=>adherenceReport.exportPdf(true)} onExcel={adherenceReport.exportCsv} disabled={!adherenceReport.lines.length} pdfBusy={adherenceReport.exporting}/>:<ExportMenu disabled={!rows.length} onExcel={exportProgramme} items={view==='expiry'&&expiryExport?[expiryExport]:[]}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
-  <CanonicalTabs items={[{value:'programme',label:tx.programmeTab,icon:ListChecks},{value:'adherence',label:tx.adherenceTab,icon:Gauge},{value:'expiry',label:language==='en'?'Expiry':'Λήξεις',icon:CalendarX2}]} value={view} onChange={setView} ariaLabel={t('controls')}/>
-  <div className="workspace-summary"><div className="module-summary-strip"><Kpi loading={firstLoad} icon={AlertTriangle} label={tx.overdue} value={overdue} onClick={()=>setStatus(status==='overdue'?'all':'overdue')} active={status==='overdue'}/><Kpi loading={firstLoad} icon={Clock3} label={tx.dueSoon} value={dueSoon} onClick={()=>setStatus(status==='dueSoon'?'all':'dueSoon')} active={status==='dueSoon'}/><Kpi loading={firstLoad} icon={Gauge} label={`${tx.adherence} · 30 ${language==='en'?'days':'ημ.'}`} value={monthAdherence.rate==null?'—':`${monthAdherence.rate}%`}/></div></div>
+ return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{activeView==='adherence'?<ExportMenu onPrint={()=>adherenceReport.exportPdf(false)} onPdf={()=>adherenceReport.exportPdf(true)} onExcel={adherenceReport.exportCsv} disabled={!adherenceReport.lines.length} pdfBusy={adherenceReport.exporting}/>:<ExportMenu disabled={!rows.length} onExcel={exportProgramme} items={activeView==='expiry'&&expiryExport?[expiryExport]:[]}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
+  <CanonicalTabs items={[...(showCards?[{value:'departments',label:tx.departments,icon:LayoutGrid}]:[]),{value:'programme',label:tx.programmeTab,icon:ListChecks},{value:'adherence',label:tx.adherenceTab,icon:Gauge},{value:'expiry',label:language==='en'?'Expiry':'Λήξεις',icon:CalendarX2}]} value={activeView} onChange={setView} ariaLabel={t('controls')}/>
+  <p className="controls-summary-line" aria-live="polite">{firstLoad?<span>{language==='en'?'Loading…':'Φόρτωση…'}</span>:<>
+   <button type="button" className={overdue?'is-late':''} onClick={()=>{setStatus('overdue');setView('programme')}}><b>{overdue}</b> {tx.overdue.toLowerCase()}</button>
+   <button type="button" onClick={()=>{setStatus('dueSoon');setView('programme')}}><b>{dueSoon}</b> {tx.dueSoon.toLowerCase()}</button>
+   <span>{tx.adherence} · 30 {language==='en'?'days':'ημ.'}: <b>{monthAdherence.rate==null?'—':`${monthAdherence.rate}%`}</b></span>
+  </>}</p>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={view==='expiry'?tx.searchExpiry:tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')} onClear={clearFilters}>
-    <FilterSelect label={tx.department} value={department} onChange={setDepartment}><option value="all">{tx.allDepartments}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
-    <FilterSelect label={tx.status} value={status} onChange={setStatus}><option value="all">{tx.all}</option><option value="temporary">{tx.temporary}</option><option value="scheduled">{tx.scheduled}</option><option value="dueSoon">{tx.dueSoon}</option><option value="overdue">{tx.overdue}</option></FilterSelect>
+   {activeView==='departments'?<ControlDepartmentCards cards={cards} total={scopedControls.length} overdue={scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length} loading={firstLoad} language={language} onOpen={openDepartment}/>:<>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={activeView==='expiry'?tx.searchExpiry:tx.search} activeAdvancedCount={(department!=='all')+(status!=='all')} onClear={clearFilters} activeFilters={department!=='all'&&showCards?[{key:'department',label:`${tx.department}: ${department}`,onRemove:()=>setDepartment('all')}]:[]} end={activeView==='programme'&&<ChoiceChips className="controls-status-switch" label="" options={[{value:'overdue',label:tx.overdue},{value:'dueSoon',label:tx.dueSoon}]} selected={[status]} onToggle={value=>setStatus(status===value?'all':value)}/>}>
    </FilterBar>
-   {view==='expiry'?<ControlExpiryPanel actorName={actor.name} showControl onExportChange={setExpiryExport} query={query} sources={expirySources} canRemove={()=>canExecute} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} onOpenControl={openControl} language={language} locale={language==='en'?'en-GB':'el-GR'}/>:view==='adherence'?<ControlAdherencePanel report={adherenceReport} tx={tx} language={language} onOpen={openControl}/>:<>
-   <RegistryTable wrapperRef={registry.scrollRef} className="controls-table" columns={[{key:'control',label:tx.control},{key:'departments',label:tx.departments},{key:'frequency',label:tx.frequency},{key:'executions',label:tx.executions},{key:'next',label:tx.next},{key:'status',label:tx.status}]} rows={firstLoad?[]:pagedRows} loading={firstLoad} rowKey={row=>row.item.id} emptyTitle={loading?(language==='en'?'Loading controls…':'Φόρτωση ελέγχων…'):scopedControls.length?undefined:tx.emptyTitle} emptyText={loading?undefined:scopedControls.length?undefined:(language==='en'?`A control defines what is checked, where and how often; its executions build the adherence report.${canCreate?' Use «Create» at the top right to add the first one.':''}`:`Ένας έλεγχος ορίζει τι ελέγχεται, πού και πόσο συχνά· οι εκτελέσεις του δίνουν την τήρηση του προγράμματος.${canCreate?' Για να προσθέσετε τον πρώτο, πατήστε «Δημιουργία» πάνω δεξιά.':''}`)} emptyFiltered={!loading&&scopedControls.length>0} onClearFilters={clearFilters} emptyIcon={loading?undefined:ClipboardCheck} renderRow={({item,departments:deps})=>{const state=controlState(item,deps),draft=hasDraft(item,deps),depPreview=deps.slice(0,3).join(' · '),more=deps.length>3?' …':'',progress=deps.length===1?progressText(assignmentProgress(item,deps[0]),language):'',expiry=isExpiryControl(item)?expiryCounts(expiryItems(item,deps)):null;return <tr key={item.id} {...registry.rowProps(item.id)} onClick={()=>openControl(item)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openControl(item)}}}><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{[item.category,item.equipment||item.location].filter(Boolean).join(' · ')}{controlCriticality(item)==='high'&&<span className="control-criticality-badge">{criticalityLabel('high',language)} {language==='en'?'criticality':'κρισιμότητα'}</span>}{expiry?.expired>0&&<span className="control-criticality-badge signal">{expiry.expired} {language==='en'?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</span>}{expiry?.expiring>0&&<span className="control-criticality-badge is-strong">{expiry.expiring} {language==='en'?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</span>}</small></td><td>{deps.length===1?deps[0]:<><strong>{deps.length} {language==='en'?'departments':'τμήματα'}</strong><small>{depPreview}{more}</small></>}</td><td>{controlFrequencyLabel(item,deps,language)}</td><td>{executionCount(item,deps).toLocaleString(language==='en'?'en-GB':'el-GR')}</td><td>{fmt(earliestNext(item,deps))}</td><td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{tx.temporary}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</SignalBadge>{progress&&<small className="control-progress-text">{progress}</small>}</div></td></tr>}}/>
+   {activeView==='expiry'?<ControlExpiryPanel actorName={actor.name} showControl onExportChange={setExpiryExport} query={query} sources={expirySources} canRemove={()=>canExecute} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} onOpenControl={openControl} language={language} locale={language==='en'?'en-GB':'el-GR'}/>:activeView==='adherence'?<ControlAdherencePanel report={adherenceReport} tx={tx} language={language} onOpen={openControl}/>:<>
+   <RegistryTable wrapperRef={registry.scrollRef} className="controls-table" columns={[{key:'control',label:tx.control},{key:'departments',label:tx.departments},{key:'frequency',label:tx.frequency},{key:'rate',label:`${tx.adherenceRate} · 30 ${language==='en'?'days':'ημ.'}`},{key:'next',label:tx.next},{key:'status',label:tx.status}]} rows={firstLoad?[]:pagedRows} loading={firstLoad} rowKey={row=>row.item.id} emptyTitle={loading?(language==='en'?'Loading controls…':'Φόρτωση ελέγχων…'):scopedControls.length?undefined:tx.emptyTitle} emptyText={loading?undefined:scopedControls.length?undefined:(language==='en'?`A control defines what is checked, where and how often; its executions build the adherence report.${canCreate?' Use «Create» at the top right to add the first one.':''}`:`Ένας έλεγχος ορίζει τι ελέγχεται, πού και πόσο συχνά· οι εκτελέσεις του δίνουν την τήρηση του προγράμματος.${canCreate?' Για να προσθέσετε τον πρώτο, πατήστε «Δημιουργία» πάνω δεξιά.':''}`)} emptyFiltered={!loading&&scopedControls.length>0} onClearFilters={clearFilters} emptyIcon={loading?undefined:ClipboardCheck} renderRow={({item,departments:deps})=>{const state=controlState(item,deps),draft=hasDraft(item,deps),depPreview=deps.slice(0,3).join(' · '),more=deps.length>3?' …':'',progress=deps.length===1?progressText(assignmentProgress(item,deps[0]),language):'',expiry=isExpiryControl(item)?expiryCounts(expiryItems(item,deps)):null;return <tr key={item.id} {...registry.rowProps(item.id)} onClick={()=>openControl(item)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openControl(item)}}}><td><strong>{language==='el'?item.title:item.titleEn}</strong><small>{[item.category,item.equipment||item.location].filter(Boolean).join(' · ')}{controlCriticality(item)==='high'&&<span className="control-criticality-badge">{criticalityLabel('high',language)} {language==='en'?'criticality':'κρισιμότητα'}</span>}{expiry?.expired>0&&<span className="control-criticality-badge signal">{expiry.expired} {language==='en'?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</span>}{expiry?.expiring>0&&<span className="control-criticality-badge is-strong">{expiry.expiring} {language==='en'?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</span>}</small></td><td>{deps.length===1?deps[0]:<><strong>{deps.length} {language==='en'?'departments':'τμήματα'}</strong><small>{depPreview}{more}</small></>}</td><td>{controlFrequencyLabel(item,deps,language)}</td><td><RateMeter rate={rates.get(item.id)??null}/></td><td>{fmt(earliestNext(item,deps))}</td><td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{tx.temporary}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}</SignalBadge>{progress&&<small className="control-progress-text">{progress}</small>}</div></td></tr>}}/>
    {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
+   </>}
    </>}
   </section>
  </Page>
 }
-function Kpi({icon:Icon,label,value,onClick,active,loading=false}){return <MetricCard loading={loading} icon={Icon} value={value} label={label} onClick={onClick} active={active}/>}
 
 // New control (/controls/new): the editor on its own route, so ← and the
 // browser's back return to the registry where it was left.

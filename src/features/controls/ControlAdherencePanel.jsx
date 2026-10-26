@@ -78,7 +78,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
 }
 
 // One look for a rate: a bar with the figure beside it.
-function RateMeter({ rate }) {
+export function RateMeter({ rate }) {
   const tone = adherenceTone(rate)
   return <span className={`control-adherence-meter ${tone}`}>
     <i aria-hidden="true"><b style={{ width: `${rate ?? 0}%` }} /></i>
