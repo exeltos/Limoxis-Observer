@@ -980,7 +980,6 @@
 .surveillance-tree-sample>span:last-child{justify-self:stretch}
 .surveillance-sample-actions .sample-followup-action{margin-left:auto}
 .data-table td.nowrap-cell{white-space:nowrap}
-.data-table td strong.compliance-below-target{color:#b42318!important}.data-table td strong.compliance-on-target{color:#1d6b3a!important}
 .canonical-metric-card-interactive:hover{border-color:color-mix(in srgb,var(--lo-color-primary) 45%,var(--lo-color-border))!important}
 .canonical-metric-card-interactive[aria-pressed="true"]{border-color:var(--lo-color-primary)!important;box-shadow:inset 0 0 0 1px var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 6%,var(--lo-color-surface))!important}
 .management-tab-groups.canonical-module-tabs{margin-bottom:2px}

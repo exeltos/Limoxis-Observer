@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ClipboardCheck, Droplets, Recycle, ShieldCheck } from 'lucide-react'
+import { ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -7,6 +7,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { MetricCard } from '../../design-system/MetricCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -45,6 +46,12 @@ const fmtNumber = (value, language) =>
   new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(
     Number(value),
   )
+// Every prevention date as dd/mm/yyyy (two-digit day and month), like the other registries.
+const dayLabel = (value, language) => {
+  const text = String(value || '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDay(value, language)
+  return new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${text}T12:00:00`))
+}
 const fmtMonth = value => {
   const match = /^(\d{4})-(\d{2})$/.exec(String(value || ''))
   return match ? `${match[2]}/${match[1]}` : value || '—'
@@ -392,7 +399,7 @@ export function PreventionPage() {
   // WHO method: pooled compliant actions over all observed opportunities (not an average of session rates).
   const handOpportunities = handRows.reduce((sum, x) => sum + (Number(x.observations) || 0), 0),
     handCompliant = handRows.reduce((sum, x) => sum + (Number(x.compliant) || 0), 0)
-  const avg = handOpportunities ? (handCompliant / handOpportunities) * 100 : 0
+  const avg = handOpportunities ? (handCompliant / handOpportunities) * 100 : null
   const scoredBundles = bundleRows.filter(x => x.score != null),
     bundleAvg = scoredBundles.length
       ? scoredBundles.reduce((sum, x) => sum + Number(x.score), 0) / scoredBundles.length
@@ -401,7 +408,7 @@ export function PreventionPage() {
     new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', {
       maximumFractionDigits: 1,
     }).format(value)
-  const fmtDate = v => formatDay(v, language)
+  const fmtDate = v => dayLabel(v, language)
   const createLabel =
     tab === 'vaccinations'
       ? t('newVaccinationRecord')
@@ -447,6 +454,14 @@ export function PreventionPage() {
       selectedEmployee: employeeMap[row.employeeId] || null,
       readOnly: true,
     })
+  }
+  function clearFilters() {
+    setQuery('')
+    setDepartment('all')
+    setPeriod('all')
+    setProduct('all')
+    setMethod('all')
+    setStatus('all')
   }
   function createRecord() {
     if (!canCreateRecord) return
@@ -548,7 +563,7 @@ export function PreventionPage() {
             <Kpi
               loading={handLoading && !handRows.length}
               icon={ShieldCheck}
-              value={`${fmtOne(avg)}%`}
+              value={avg == null ? '—' : `${fmtOne(avg)}%`}
               label={t('whoCompliance')}
             />
           )}{' '}
@@ -589,14 +604,7 @@ export function PreventionPage() {
           query={query}
           onQueryChange={setQuery}
           placeholder={tab === 'vaccinations' ? t('searchEmployees') : t('searchPrevention')}
-          onClear={() => {
-            setQuery('')
-            setDepartment('all')
-            setPeriod('all')
-            setProduct('all')
-            setMethod('all')
-            setStatus('all')
-          }}
+          onClear={clearFilters}
           advanced={
             tab === 'antiseptics' ? (
               <>
@@ -716,6 +724,8 @@ export function PreventionPage() {
               tab={tab}
               filtered={filtered}
               createLabel={canCreateRecord ? createLabel : ''}
+              onCreate={createRecord}
+              onClearFilters={clearFilters}
             />
           )}
         </div>
@@ -759,20 +769,21 @@ const preventionEmptyTitleKeys = {
 }
 // The empty list says what to do next: the filters when they hide everything,
 // else the button that adds the first record.
-function PreventionEmpty({ t, tab, filtered, createLabel }) {
+function PreventionEmpty({ t, tab, filtered, createLabel, onCreate, onClearFilters }) {
+  const text = filtered
+    ? undefined
+    : createLabel
+      ? t('preventionEmptyCreateText').replace('{action}', createLabel)
+      : t('preventionEmptyGenericText')
   return (
-    <div className="registry-empty-state">
-      <strong>
-        {tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
-      </strong>
-      <span>
-        {filtered
-          ? t('preventionEmptyFilteredText')
-          : createLabel
-            ? t('preventionEmptyCreateText').replace('{action}', createLabel)
-            : t('preventionEmptyGenericText')}
-      </span>
-    </div>
+    <RegistryEmptyState
+      filtered={filtered}
+      onClearFilters={onClearFilters}
+      title={tab === 'vaccinations' ? t('noVaccinationRecords') : t(preventionEmptyTitleKeys[tab])}
+      text={text}
+      icon={tabIcons[tab]}
+      action={createLabel ? { label: createLabel, onClick: onCreate, icon: Plus } : undefined}
+    />
   )
 }
 function rowPropsWithOpen(registry, id, onOpen) {
@@ -803,12 +814,12 @@ function HandTable({ rows, t, language, fmtDate, onOpen, registry }) {
           <td>{x.observations}</td>
           <td>{x.compliant}</td>
           <td>
-            <strong
-              className={Number(x.rate) < 80 ? 'compliance-below-target' : 'compliance-on-target'}
+            <StatusBadge
+              tone={Number(x.rate) < 80 ? 'danger' : 'success'}
               title={Number(x.rate) < 80 ? t('belowWhoHandHygieneTarget') : undefined}
             >
               {fmtNumber(x.rate, language)}%
-            </strong>
+            </StatusBadge>
           </td>
           <td>{x.observer}</td>
         </>
@@ -826,7 +837,7 @@ function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
         { key: 'category', label: t('exportCategory') },
         { key: 'weight', label: t('weight') },
         { key: 'containers', label: t('containers') },
-        { key: 'indicator', label: t('indicator') },
+        { key: 'indicator', label: t('preventionIndexWaste') },
         { key: 'document', label: t('documentNumber') },
       ]}
       rows={rows}
@@ -851,7 +862,6 @@ function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
                   <strong>
                     {Number(x.indicator).toLocaleString(localeFromLanguage(language))}
                   </strong>
-                  <small className="table-cell-unit"> kg / 1.000</small>
                 </>
               ) : (
                 '—'
@@ -864,7 +874,11 @@ function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
     />
   )
 }
+// The usual source (direct measurement) is not repeated on every row: the column appears only
+// when some record has another one.
+const DEFAULT_SOURCE = 'direct_measurement'
 function AntisepticTable({ rows, t, language, onOpen, registry }) {
+  const showSource = rows.some(x => x.method !== DEFAULT_SOURCE)
   return (
     <RegistryTable
       bare
@@ -874,8 +888,8 @@ function AntisepticTable({ rows, t, language, onOpen, registry }) {
         { key: 'product', label: t('product') },
         { key: 'litres', label: t('consumptionLitres') },
         { key: 'patientDays', label: t('patientDays') },
-        { key: 'indicator', label: `${t('indicator')} ABHR` },
-        { key: 'source', label: t('dataSourceShort') },
+        { key: 'indicator', label: t('preventionIndexAbhr') },
+        ...(showSource ? [{ key: 'source', label: t('dataSourceShort') }] : []),
       ]}
       rows={rows}
       rowKey={x => x.id}
@@ -898,17 +912,22 @@ function AntisepticTable({ rows, t, language, onOpen, registry }) {
             {x.indicator != null ? (
               <>
                 <strong>{Number(x.indicator).toLocaleString(localeFromLanguage(language))}</strong>
-                <small className="table-cell-unit"> L / 1.000</small>
               </>
             ) : (
               '—'
             )}
           </td>
-          <td>
-            <span className={`antiseptic-method-badge ${x.method || 'other'}`}>
-              {antisepticMethodLabel(x.method, language)}
-            </span>
-          </td>
+          {showSource && (
+            <td>
+              {x.method === DEFAULT_SOURCE ? (
+                '—'
+              ) : (
+                <span className={`antiseptic-method-badge ${x.method || 'other'}`}>
+                  {antisepticMethodLabel(x.method, language)}
+                </span>
+              )}
+            </td>
+          )}
         </>
       )}
     />
@@ -932,7 +951,7 @@ function BundleTable({ rows, t, language, onOpen, registry }) {
       rowProps={x => rowPropsWithOpen(registry, x.id, onOpen)}
       renderRow={x => (
         <>
-          <td>{formatDay(x.date || x.period, language)}</td>
+          <td>{dayLabel(x.date || x.period, language)}</td>
           <td>
             <strong>
               {language === 'el'
