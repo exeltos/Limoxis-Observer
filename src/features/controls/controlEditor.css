@@ -180,8 +180,16 @@
   position: sticky;
   bottom: 0;
   z-index: 3;
-  padding: 12px 0 4px;
+  padding: 12px 0 8px;
   background: var(--lo-color-surface, #fff);
+}
+/* A solid bar with a soft edge, so the form scrolls under it instead of showing through. */
+.control-create-shell .control-editor-body > .control-editor-footer {
+  background: #fff !important;
+  border-top: 1px solid var(--lo-color-border, #dbe5ec);
+  box-shadow: 0 -10px 14px -12px rgba(23, 54, 80, 0.35);
+  margin: 0 -2px;
+  padding-inline: 2px;
 }
 /* «Advanced»: the optional cards, folded on a new control; open they use the same grid. */
 .control-editor-advanced {
