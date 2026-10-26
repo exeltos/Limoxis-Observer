@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ClipboardPaste,ListChecks,Plus,Trash2 } from 'lucide-react'
+import { ClipboardPaste,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
@@ -9,8 +9,8 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLibraries } from '../management/useLibraries'
 import { ExpiryBadge,formOptions,useItemOptions } from './ControlExpiryEntry'
-import { CARPA_TEMPLATE,CARPA_TEMPLATE_NAME } from './carpaTemplate'
-import { ITEM_CATEGORIES,catalogueItem,formKey,parseCatalogueLines } from './controlExpiry'
+import { CARPA_TEMPLATES } from './carpaTemplate'
+import { ITEM_CATEGORIES,catalogueItem,formKey,noteText,parseCatalogueLines } from './controlExpiry'
 
 // The medicines and supplies an expiry check goes through, one row each: name,
 // quantity, form (tablet, vial, …), expiry date, note and the departments that
@@ -28,7 +28,7 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
  const addRow=()=>setRows(current=>[...current,fresh()])
  const pastedRows=parseCatalogueLines(pasted)
  const addPasted=()=>{if(!pastedRows.length)return;setRows(current=>[...current.filter(row=>row.item.trim()),...pastedRows.map(row=>fresh(row))]);setPasted('');setPasteOpen(false)}
- const addTemplate=()=>setRows(current=>[...current.filter(row=>row.item.trim()),...CARPA_TEMPLATE.filter(entry=>!current.some(row=>row.item.trim().toLocaleLowerCase('el')===entry.item.toLocaleLowerCase('el'))).map(entry=>fresh(entry))])
+ const addTemplate=key=>{const template=CARPA_TEMPLATES.find(entry=>entry.key===key);if(!template)return;setRows(current=>[...current.filter(row=>row.item.trim()),...template.items.filter(entry=>!current.some(row=>row.item.trim().toLocaleLowerCase('el')===entry.item.toLocaleLowerCase('el'))).map(entry=>fresh(entry))])}
  const departmentOptions=departments.map(dep=>({value:dep,label:dep}))
  const filled=rows.filter(row=>String(row.item||'').trim())
  return <ObserverDialog
@@ -44,7 +44,7 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
   <div className="control-catalogue-toolbar">
    <Button variant="secondary" onClick={addRow}><Plus size={15}/>{en?' Add row':' Νέα γραμμή'}</Button>
    <Button variant={pasteOpen?'primary':'secondary'} onClick={()=>setPasteOpen(open=>!open)}><ClipboardPaste size={15}/>{en?' Paste from Excel':' Επικόλληση από Excel'}</Button>
-   <Button variant="secondary" onClick={addTemplate}><ListChecks size={15}/>{en?` Resuscitation trolley template (${CARPA_TEMPLATE_NAME})`:` Πρότυπο τροχήλατου ΚΑΡΠΑ (${CARPA_TEMPLATE_NAME})`}</Button>
+   <SearchableSelect className="control-catalogue-template" hideLabel label={en?'Add a standard list':'Προσθήκη πρότυπης λίστας'} value="" options={CARPA_TEMPLATES.map(entry=>({value:entry.key,label:en?entry.en:entry.el,description:`${entry.code} · ${entry.items.length} ${en?'items':'είδη'}`}))} onChange={v=>v&&addTemplate(v)} placeholder={en?'Standard list (trolley, trays)…':'Πρότυπη λίστα (τροχήλατο, δίσκοι)…'} emptyLabel={en?'No match':'Καμία αντιστοιχία'}/>
   </div>
   {pasteOpen&&<div className="control-catalogue-paste">
    <label className="field"><span className="lo-field-label">{en?'One item per line: name, expected quantity, form, expiry, note, type (medicine/supply), active substance (columns copied from Excel)':'Ένα υλικό ανά γραμμή: ονομασία, προβλεπόμενη ποσότητα, είδος, λήξη, παρατήρηση, κατηγορία (φάρμακο/υλικό), δραστική ουσία (στήλες αντιγραμμένες από Excel)'}</span><textarea autoFocus value={pasted} onChange={e=>setPasted(e.target.value)} placeholder={'Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\nΦυσιολογικός ορός 0,9% 500ml\t24\tΦιάλη\t30/06/2027'}/></label>
@@ -58,7 +58,7 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
    <td><SearchableSelect hideLabel label={en?'Form':'Είδος'} value={formKey(row.form)} options={forms} onChange={v=>update(row.id,{form:v})} placeholder="—" emptyLabel={en?'No match':'Καμία αντιστοιχία'} clearLabel={en?'Clear':'Καθαρισμός'}/></td>
    <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={value=>update(row.id,{expiry:value})}/></td>
    <td><ExpiryBadge row={row} window={window} language={language}/></td>
-   <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>update(row.id,{note:e.target.value})}/></td>
+   <td><input aria-label={en?'Note':'Παρατήρηση'} value={noteText(row,language)} onChange={e=>update(row.id,{note:e.target.value,noteEn:''})}/></td>
    <td><MultiSelect label={en?'Departments':'Τμήματα'} options={departmentOptions} selected={row.departments||[]} onChange={next=>update(row.id,{departments:next})} placeholder={en?'All departments':'Όλα τα τμήματα'} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} selectAllLabel={en?'Select all':'Επιλογή όλων'} clearAllLabel={en?'Clear all':'Αποεπιλογή όλων'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/></td>
    <td className="control-exec-action-col"><IconButton size="sm" tone="danger" label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>setRows(current=>current.length===1?[fresh()]:current.filter(x=>x.id!==row.id))}><Trash2 size={14}/></IconButton></td>
   </>}/>

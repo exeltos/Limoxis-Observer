@@ -10,7 +10,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { SignalBadge } from '../../design-system/StatusBadge'
 import { libraryOptions } from '../management/useLibraries'
-import { ITEM_CATEGORIES,ITEM_FORMS,expiryState,expiryWindow,formKey,formLabel,quantityShort } from './controlExpiry'
+import { ITEM_CATEGORIES,ITEM_FORMS,expiryState,expiryWindow,formKey,formLabel,noteText,quantityShort } from './controlExpiry'
 import { EXPIRY_FINDINGS,expiryFindingCode,expiryFindingLabel } from './controlVocabulary'
 
 // Options for the item name: the medicines & supplies library, plus what this
@@ -58,7 +58,7 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
      <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={v=>setRow(index,'expiry',v)}/></td>
      <td><ExpiryBadge row={row} window={window} language={language}/></td>
      <td>{findingField(row,index,true)}</td>
-     <td><input aria-label={en?'Note':'Παρατήρηση'} value={row.note||''} onChange={e=>setRow(index,'note',e.target.value)}/></td>
+     <td><input aria-label={en?'Note':'Παρατήρηση'} value={noteText(row,language)} onChange={e=>{setRow(index,'note',e.target.value);setRow(index,'noteEn','')}}/></td>
      <td className="control-exec-action-col">{row.fromCatalogue
       ?<IconButton size="sm" tone={row.removedAt?'primary':'neutral'} label={row.removedAt?(en?'Keep on the list':'Επαναφορά στη λίστα'):(en?'Removed from the list (used, withdrawn)':'Αφαίρεση από τη λίστα (χρησιμοποιήθηκε, αποσύρθηκε)')} onClick={()=>setRow(index,'removedAt',row.removedAt?'':new Date().toISOString())}>{row.removedAt?<Undo2 size={14}/>:<PackageX size={14}/>}</IconButton>
       :<IconButton size="sm" tone="danger" label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>removeRow(index)}><Trash2 size={14}/></IconButton>}</td>
@@ -86,7 +86,7 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
      <ManualDateField label={en?'Expiry date *':'Ημερομηνία λήξης *'} value={rows[0]?.expiry||''} onChange={v=>setRow(0,'expiry',v)}/>
      <div className="field"><span className="lo-field-label">{en?'Status':'Κατάσταση'}</span><div className="control-expiry-status-box"><ExpiryBadge row={rows[0]} window={window} language={language}/></div></div>
      {findingField(rows[0]||{},0,false)}
-     <Field label={en?'Note':'Παρατήρηση'}><input value={rows[0]?.note||''} onChange={e=>setRow(0,'note',e.target.value)}/></Field>
+     <Field label={en?'Note':'Παρατήρηση'}><input value={noteText(rows[0],language)} onChange={e=>{setRow(0,'note',e.target.value);setRow(0,'noteEn','')}}/></Field>
     </div>
    :<div className="control-expiry-groups">{groups.map(([key,entries])=><div key={key||'all'} className="control-expiry-group">
      {key&&<h4 className="control-expiry-group-title">{categoryLabel(key,language)} <small>{entries.length}</small></h4>}

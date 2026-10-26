@@ -80,7 +80,7 @@ export function expiryItems(record,departments,now=new Date()){
   }
   for(const entry of catalogueForDepartment(record,department)){
    if(recorded.has(itemKey(entry))||!hasItem(entry))continue
-   items.push({key:`${department}|list|${entry.id}`,department,execution:null,index:-1,row:{item:entry.item,quantity:entry.quantity||'',form:entry.form||'',expiry:entry.expiry,note:entry.note||'',lot:''},source:'list',...expiryState(entry.expiry,window,now)})
+   items.push({key:`${department}|list|${entry.id}`,department,execution:null,index:-1,row:{item:entry.item,quantity:entry.quantity||'',form:entry.form||'',expiry:entry.expiry,note:entry.note||'',noteEn:entry.noteEn||'',lot:''},source:'list',...expiryState(entry.expiry,window,now)})
   }
  }
  return items.sort((a,b)=>(a.days??Infinity)-(b.days??Infinity))
@@ -91,8 +91,8 @@ export function expiryItems(record,departments,now=new Date()){
 // empty departments list means every department of the control, quantity is the
 // expected quantity, category is 'medicine' | 'supply' and ingredient the active substance.
 export const ITEM_CATEGORIES=[['medicine','Φάρμακα','Medicines'],['supply','Υλικά','Supplies']]
-export function catalogueItem({item='',quantity='',form='',expiry='',note='',departments=[],category='',ingredient=''}={}){
- return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),departments:[...departments],category:String(category||''),ingredient:String(ingredient||'').trim()}
+export function catalogueItem({item='',quantity='',form='',expiry='',note='',noteEn='',departments=[],category='',ingredient=''}={}){
+ return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),noteEn:String(noteEn||''),departments:[...departments],category:String(category||''),ingredient:String(ingredient||'').trim()}
 }
 // Fewer than expected were found: both numbers are known and the count is short.
 export function quantityShort(row){
@@ -136,7 +136,7 @@ export function prefilledExpiryRows(record,department){
   const values={quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||'')}
   // previous: what the row held when the entry opened, for the change form.
   // expected: the list's quantity, which the found quantity is compared with.
-  return {item:base.item,form:base.form||last?.form||'',category:base.category||last?.category||'',ingredient:base.ingredient||last?.ingredient||'',expected:String(expected||''),...values,note:String(from.note||''),finding:'',findingOther:'',fromCatalogue:true,previous:values}
+  return {item:base.item,form:base.form||last?.form||'',category:base.category||last?.category||'',ingredient:base.ingredient||last?.ingredient||'',expected:String(expected||''),...values,note:String(from.note||''),noteEn:String(from.noteEn||''),finding:'',findingOther:'',fromCatalogue:true,previous:values}
  }
  return [...listed.map(entry=>toRow(entry,latest.get(itemKey(entry)),entry.quantity)),...added.map(row=>toRow(row,row,row.expected))]
 }
@@ -189,3 +189,7 @@ export function expiryAlerts(programme,{canSee=()=>true,language='el',now=new Da
  }
  return alerts
 }
+
+// A note in the screen's language: the standard template notes also carry an English text,
+// which stays until someone edits the note.
+export const noteText=(row,language)=>language==='en'&&row?.noteEn?row.noteEn:String(row?.note||'')

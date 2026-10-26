@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { CARPA_TEMPLATE } from '../src/features/controls/carpaTemplate'
-import { catalogueForDepartment, parseCatalogueLines, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved, quantityShort } from '../src/features/controls/controlExpiry'
+import { CARPA_TEMPLATES } from '../src/features/controls/carpaTemplate'
+import { catalogueForDepartment, parseCatalogueLines, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved, noteText, quantityShort } from '../src/features/controls/controlExpiry'
 
 const now = new Date(2026, 9, 15, 10, 0)
 const record = {
@@ -158,11 +158,28 @@ describe('expected quantity and category of listed items', () => {
   })
 })
 
-describe('resuscitation trolley template', () => {
-  it('lists the 14 medicines and 37 supplies of the form with expected quantities', () => {
-    expect(CARPA_TEMPLATE.filter(entry => entry.category === 'medicine')).toHaveLength(14)
-    expect(CARPA_TEMPLATE.filter(entry => entry.category === 'supply')).toHaveLength(37)
-    expect(CARPA_TEMPLATE.every(entry => Number(entry.quantity) > 0)).toBe(true)
-    expect(CARPA_TEMPLATE.find(entry => entry.item === 'ADRENALINE amp')).toMatchObject({ quantity: '15', ingredient: 'Αδρεναλίνη' })
+describe('standard trolley and tray lists', () => {
+  const byKey = key => CARPA_TEMPLATES.find(entry => entry.key === key).items
+  it('lists the 14 medicines and 37 supplies of the trolley form with expected quantities', () => {
+    expect(byKey('trolley').filter(entry => entry.category === 'medicine')).toHaveLength(14)
+    expect(byKey('trolley').filter(entry => entry.category === 'supply')).toHaveLength(37)
+    expect(byKey('trolley').find(entry => entry.item === 'ADRENALINE amp')).toMatchObject({ quantity: '15', ingredient: 'Αδρεναλίνη' })
+  })
+  it('has the three intubation trays from the department forms', () => {
+    expect(byKey('adult-tray')).toHaveLength(13)
+    expect(byKey('neonate-tray')).toHaveLength(15)
+    expect(byKey('maternity-neonate-tray')).toHaveLength(21)
+  })
+  it('gives every item a category, a positive quantity and an English note wherever there is a note', () => {
+    for (const { items } of CARPA_TEMPLATES) for (const entry of items) {
+      expect(['medicine', 'supply']).toContain(entry.category)
+      expect(Number(entry.quantity)).toBeGreaterThan(0)
+      expect(Boolean(entry.note)).toBe(Boolean(entry.noteEn))
+    }
+  })
+  it('shows the English note in English until the note is edited', () => {
+    expect(noteText({ note: 'ανά μέγεθος', noteEn: 'per size' }, 'en')).toBe('per size')
+    expect(noteText({ note: 'ανά μέγεθος', noteEn: 'per size' }, 'el')).toBe('ανά μέγεθος')
+    expect(noteText({ note: 'άλλο', noteEn: '' }, 'en')).toBe('άλλο')
   })
 })
