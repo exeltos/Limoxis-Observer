@@ -11,8 +11,9 @@ declare
   v_org constant uuid := '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd';
   v_total bigint; v_after bigint; v_changed bigint; v_dep_left bigint;
 begin
-  -- Μόνο διόρθωση ονόματος: χωρίς νέες «αναθεωρήσεις» καταγραφής και χωρίς επανυπολογισμό προθεσμιών
-  perform set_config('session_replication_role', 'replica', true);
+  -- Μόνο διόρθωση ονόματος: η καταγραφή δεν σημειώνεται ως «επεξεργασμένη» και δεν γράφεται αναθεώρηση.
+  -- Η παύση του trigger ισχύει μόνο μέσα σε αυτή τη συναλλαγή· ενεργοποιείται ξανά στο τέλος του μπλοκ.
+  alter table public.control_executions disable trigger trg_control_execution_revision;
   select count(*) into v_total from public.control_executions where organization_id = v_org;
 
   create temp table actor_map on commit drop as
@@ -86,6 +87,8 @@ begin
   from actor_map m
   where e.organization_id = v_org and e.department_id = m.department_id and e.response_data->>'actorName' = m.actor;
   get diagnostics v_changed = row_count;
+
+  alter table public.control_executions enable trigger trg_control_execution_revision;
 
   select count(*) into v_after from public.control_executions where organization_id = v_org;
   if v_after <> v_total then raise exception 'Άλλαξε το πλήθος των καταγραφών'; end if;
