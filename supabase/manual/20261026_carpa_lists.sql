@@ -28,3 +28,11 @@ commit;
 -- Επαναφορά (δεν τρέχει αυτόματα):
 -- update control_definitions set response_config = (response_config - 'template' - 'expiryBeforeDays' - 'expiryAfterDays' - 'expiryCatalogue') || jsonb_build_object('mode','choice','label','Κατάσταση')
 -- where organization_id='7972f286-e8b8-4bbf-aa97-cf9a3d1375bd' and code in ('FM-CTRL-0145','FM-CTRL-1397','FM-CTRL-0066','FM-CTRL-0067','FM-CTRL-1360');
+
+-- Δεύτερη φάση (εφαρμόστηκε στη βάση): δομή τμημάτων.
+-- Όπου υπάρχει τροχήλατο ΚΑΡΠΑ, ο δίσκος ελέγχεται μέσα στο ΚΑΡΠΑ (τα 9 υλικά του δίσκου, cat-trolley-43…51,
+-- περιορίζονται στα τμήματα με δίσκο ενηλίκου)· όπου δεν υπάρχει, μένει μόνο ο δίσκος.
+--  • ΚΑΡΠΑ (FM-CTRL-0145): νέα τμήματα Μονάδα Τεχνητού Νεφρού, ΜΕΝΝ, Ακτινοθεραπεία.
+--  • Δίσκος ενηλίκου (FM-CTRL-0066): νέα τμήματα Ενδοσκοπικό, Χειρουργεία, Οφθαλμολογικό Χειρουργείο, Κέντρο Μαστού, IVF·
+--    ΜΕΘ, ΤΕΠ, Μονάδα Τεχνητού Νεφρού σε παύση (status='paused') γιατί ελέγχονται μέσα στο ΚΑΡΠΑ.
+-- Επαναφορά παύσης: update control_assignments set status='scheduled' where control_id=(select id from control_definitions where code='FM-CTRL-0066') and department_id in (select id from departments where name in ('ΜΕΘ','ΤΕΠ','Μονάδα Τεχνητού Νεφρού'));
