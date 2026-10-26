@@ -6,7 +6,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { SaveButton } from '../../design-system/SaveButton'
+import { FormSubmit,useFormValidation } from '../../design-system/FormValidation'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
@@ -72,6 +72,16 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const ownerRequired=!initial?.dbId||Boolean(initial?.owner?.trim()||initial?.ownerPerson)
  const hasOwner=Boolean(draft.owner?.trim()||draft.ownerPerson)
  const valid=draft.title.trim()&&draft.category.trim()&&draft.departments.length>0&&(hasOwner||!ownerRequired)&&(draft.frequency.kind!=='daily'||times.every(Boolean))&&(mode!=='checklist'||checklist.some(item=>String(item.el||'').trim()))&&(mode!=='choice'||options.length>=2)
+ // The same rule as every form: what is missing is named beside Save once it is pressed, never before.
+ const form=useFormValidation([
+  {key:'title',label:en?'Control name':'Ονομασία ελέγχου',valid:Boolean(draft.title.trim())},
+  {key:'category',label:en?'Control type':'Είδος ελέγχου',valid:Boolean(draft.category.trim())},
+  {key:'departments',label:en?'Departments':'Τμήματα εφαρμογής',valid:draft.departments.length>0},
+  ownerRequired&&{key:'owner',label:en?'Responsible position or person':'Θέση ή πρόσωπο ευθύνης',valid:hasOwner},
+  draft.frequency.kind==='daily'&&{key:'times',label:en?'Execution times':'Ώρες εκτέλεσης',valid:times.every(Boolean)},
+  mode==='checklist'&&{key:'checklist',label:en?'Checklist items':'Λίστα ελέγχου',valid:checklist.some(item=>String(item.el||'').trim())},
+  mode==='choice'&&{key:'options',label:en?'At least two choices':'Τουλάχιστον δύο επιλογές',valid:options.length>=2},
+ ])
 
  // «Advanced» (how it is recorded, criticality, goal) stays folded on a new control; it opens by itself
  // when the control already uses it or when what it asks for is missing, so a blocked Save is never hidden.
@@ -104,16 +114,18 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const multiText={searchPlaceholder:en?'Search…':'Αναζήτηση…',emptyLabel:en?'No match':'Καμία αντιστοιχία',selectAllLabel:en?'Select all':'Επιλογή όλων',clearAllLabel:en?'Clear all':'Αποεπιλογή όλων'}
  const selectText={emptyLabel:en?'No match':'Καμία αντιστοιχία',clearLabel:en?'Clear':'Καθαρισμός',customLabel:text=>en?`Use «${text}»`:`Χρήση «${text}»`}
 
+ // «Head of Department» and «Shift manager» are always offered; the library's positions and any typed text follow.
+ const positionOptions=useMemo(()=>{const base=[{value:en?'Head of Department':'Προϊστάμενος/η Τμήματος',label:en?'Head of Department':'Προϊστάμενος/η Τμήματος'},{value:en?'Shift manager':'Υπεύθυνος/η βάρδιας',label:en?'Shift manager':'Υπεύθυνος/η βάρδιας'}];const extra=libraryOptions(libraries.positions||[],language).filter(option=>!base.some(item=>item.label===option.label));return [...base,...extra]},[en,language,libraries.positions])
  return <Page fill className="control-editor-page">
   <EntityRecordShell className="control-create-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'CONTROLS':'ΕΛΕΓΧΟΙ'} title={draft.title.trim()||title} subtitle={draft.title.trim()?title:(en?'Define what is checked, how it is recorded, where and when it runs.':'Ορίστε τι ελέγχεται, πώς καταχωρείται, πού εφαρμόζεται και πότε εκτελείται.')} tabs={[]} onBack={onCancel}>
-   <div className="record-section control-editor-body">
+   <div className="record-section control-editor-body" ref={form.scopeRef}>
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'What is checked':'Τι ελέγχεται'}</strong><span>{en?'Name, type and where it applies':'Ονομασία, είδος και πού εφαρμόζεται'}</span></header>
      <div className="control-editor-grid identity">
-      <Field label={en?'Control name *':'Ονομασία ελέγχου *'}><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></Field>
-      <SearchableSelect label={en?'Control type *':'Είδος ελέγχου *'} value={draft.category} options={typeOptions} onChange={changeCategory} allowCustom placeholder={en?'Choose or type':'Επιλέξτε ή γράψτε'} {...selectText}/>
-      <MultiSelect className="control-departments-select" label={en?'Departments *':'Τμήματα εφαρμογής *'} options={departments.map(d=>({value:d,label:d}))} selected={draft.departments} onChange={next=>set('departments',next)} disabled={departmentOnly||departmentsLoading||Boolean(departmentsError)} placeholder={departmentsLoading?(en?'Loading departments…':'Φόρτωση τμημάτων…'):departmentsError||(departments.length?(en?'Select departments':'Επιλέξτε τμήματα'):(en?'No active departments':'Δεν υπάρχουν ενεργά τμήματα'))} {...multiText} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/>
-      <SearchableSelect label={en?'Location':'Χώρος'} value={draft.location||''} options={libraryOptions(lib('environmentalLocations'),language)} onChange={v=>set('location',v)} allowCustom placeholder={en?'Optional, e.g. Nurses station':'Προαιρετικό, π.χ. Σταθμός νοσηλευτών'} {...selectText}/>
+      <Field label={en?'Control name':'Ονομασία ελέγχου'} {...form.field('title')}><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></Field>
+      <SearchableSelect label={en?'Control type':'Είδος ελέγχου'} {...form.field('category')} value={draft.category} options={typeOptions} onChange={changeCategory} allowCustom placeholder={en?'Choose or type':'Επιλέξτε ή γράψτε'} {...selectText}/>
+      <MultiSelect className="control-departments-select" label={en?'Departments':'Τμήματα εφαρμογής'} {...form.field('departments')} options={departments.map(d=>({value:d,label:d}))} selected={draft.departments} onChange={next=>set('departments',next)} disabled={departmentOnly||departmentsLoading||Boolean(departmentsError)} placeholder={departmentsLoading?(en?'Loading departments…':'Φόρτωση τμημάτων…'):departmentsError||(departments.length?(en?'Select departments':'Επιλέξτε τμήματα'):(en?'No active departments':'Δεν υπάρχουν ενεργά τμήματα'))} {...multiText} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/>
+      <SearchableSelect label={en?'Location':'Χώρος'} value={draft.location||''} options={[]} onChange={v=>set('location',v)} allowCustom placeholder={en?'Optional, e.g. Nurses station':'Προαιρετικό, π.χ. Σταθμός νοσηλευτών'} {...selectText}/>
       <SearchableSelect label={en?'Equipment / point':'Εξοπλισμός / σημείο'} value={draft.equipment||''} options={equipmentOptions} onChange={v=>set('equipment',v)} allowCustom placeholder={en?'Optional, e.g. Medication refrigerator':'Προαιρετικό, π.χ. Ψυγείο φαρμάκων'} {...selectText}/>
      </div>
     </section>
@@ -121,10 +133,10 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     <section className="control-editor-card">
      <header><strong>{en?'Responsibility':'Υπευθυνότητα'}</strong><span>{en?'A position, a person, or both':'Θέση, πρόσωπο ή και τα δύο'}</span></header>
      <div className="control-editor-grid two">
-      <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} value={draft.owner||''} options={libraryOptions(lib('positions'),language)} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
+      <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} {...form.field('owner')} required={false} value={draft.owner||''} options={positionOptions} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
       <SearchableSelect label={en?'Responsible person':'Υπεύθυνο πρόσωπο'} value={draft.ownerPerson?.employeeId||''} options={people.options} recentValues={people.near} recentLabel={en?'In the chosen departments':'Στα επιλεγμένα τμήματα'} onChange={id=>set('ownerPerson',personFromEmployee(employeeById(id)))} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/>
      </div>
-     {!hasOwner&&<small className="control-editor-hint">{ownerRequired?(en?'Choose a position or a person.':'Επιλέξτε θέση ή πρόσωπο.'):(en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.')}</small>}
+     {!hasOwner&&!ownerRequired&&<small className="control-editor-hint">{en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.'}</small>}
      {draft.departments.length>1&&<div className="control-editor-assignees">
       <span className="lo-field-label">{en?'Person per department (optional)':'Υπεύθυνος ανά τμήμα (προαιρετικό)'}</span>
       {draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);return <div key={dep} className="control-editor-assignee"><strong>{dep}</strong><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={draft.assignees?.[dep]?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>set('assignees',{...(draft.assignees||{}),[dep]:personFromEmployee(employeeById(id))})} placeholder={en?'Same as above':'Όπως παραπάνω'} {...selectText}/></div>})}
@@ -206,7 +218,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
 
     </MoreSection>
 
-    <div className="inline-edit-footer control-editor-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton disabled={!valid} onClick={submit}>{en?'Save':'Αποθήκευση'}</SaveButton></div>
+    <div className="inline-edit-footer control-editor-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><FormSubmit form={form} onSubmit={submit}>{en?'Save':'Αποθήκευση'}</FormSubmit></div>
    </div>
   </EntityRecordShell>
   {catalogueOpen&&<ControlExpiryCatalogueDialog items={expiryCatalogue(draft)} departments={departments} defaultDepartments={departmentOnly&&fixedDepartment?[fixedDepartment]:[]} window={expiryWindow(draft)} language={language} onClose={()=>setCatalogueOpen(false)} onSave={list=>setR('expiryCatalogue',list)}/>}

@@ -14,7 +14,9 @@ const row = (id, extra = {}) => ({
 
 describe('controls list: three cards, two filters (Ο7)', () => {
   it('shows only the cards that ask for action, and the adherence card opens no tab', () => {
-    const strip = page.slice(page.indexOf('<div className="module-summary-strip">'), page.indexOf('<CanonicalTabs'))
+    // The tabs come first, the cards under them.
+    expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<div className="module-summary-strip">'))
+    const strip = page.slice(page.indexOf('<div className="module-summary-strip">'), page.indexOf('<section className="surface registry-workspace'))
     expect((strip.match(/<Kpi /g) || []).length).toBe(3)
     expect(strip.indexOf('label={tx.overdue}')).toBeLessThan(strip.indexOf('label={tx.dueSoon}'))
     expect(strip.indexOf('label={tx.dueSoon}')).toBeLessThan(strip.indexOf('tx.adherence'))
@@ -66,7 +68,8 @@ describe('one place per action (Ο6)', () => {
 
   it('saves from the form footer only', () => {
     expect(editor).not.toContain('headerActions=')
-    expect((editor.match(/<SaveButton /g) || []).length).toBe(1)
+    expect((editor.match(/<FormSubmit /g) || []).length).toBe(1)
+    expect(editor).not.toContain('<SaveButton ')
     expect(editor).toContain('<div className="inline-edit-footer control-editor-footer">')
   })
 })

@@ -118,6 +118,7 @@ export function PharmacyPage() {
   return (
     <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
       actions={canRecord && consumption && <Button onClick={() => setDialog({ row: null })}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
+      {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
       {canRecord && consumption && (
         <div className="module-summary-strip">
           <MetricCard loading={firstLoad} icon={CalendarRange} value={filtered.length} label={en ? 'Dispensing records' : 'Καταχωρίσεις χορήγησης'} />
@@ -133,7 +134,6 @@ export function PharmacyPage() {
           <MetricCard loading={approvalCounts.loading} icon={XCircle} value={approvalCounts.rejected} label={en ? 'Rejected' : 'Απορρίφθηκαν'} />
         </div>
       )}
-      {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
       <section className={`surface registry-workspace workspace-column workspace-fill pharmacy-workspace pharmacy-tab-${tab}`}>
         {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} />}
         {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} />}

@@ -491,6 +491,9 @@ export function SurveillanceCanonicalPage() {
           </div>
       }
     >
+      {!section && (
+        <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
+      )}
       <div className="workspace-summary surveillance-summary">
         <div className="module-summary-strip">
           {mode === 'employees' ? (
@@ -520,9 +523,6 @@ export function SurveillanceCanonicalPage() {
           )}
         </div>
       </div>
-      {!section && (
-        <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
-      )}
       <div className="surface registry-workspace workspace-fill">
         <FilterBar
           query={query}

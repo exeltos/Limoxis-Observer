@@ -441,7 +441,6 @@
 @media(max-width:760px){.control-time-grid{grid-template-columns:1fr 1fr}}
 
 /* Controls role + quick execution v0.21.3 */
-.controls-table .control-action-col{width:52px;text-align:center;padding-left:6px!important;padding-right:10px!important}
 .control-execution-card header p{margin:4px 0 0;color:var(--text-muted,#748394);font-size:12px}
 
 /* Controls execution identity + cancellation v0.21.5 */
@@ -4557,7 +4556,6 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 /* Controls: keep the pencil transparent on hover, but preserve the subtle movement. */
 
 /* Control history follows the standard registry/table rhythm. */
-.control-record-shell .control-action-col{width:120px!important;text-align:right!important}
 
 /* Local Employee/Training pairs also occupy that exact KPI rail. */
 .canonical-detail-screen.record-general-tab-active > .entity-record-body:has(> .employee-record-facts) > .record-section:first-of-type > .record-section-header,

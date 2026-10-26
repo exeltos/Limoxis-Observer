@@ -207,7 +207,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
    <div className="control-execution-page-secondary-actions">
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
     {structured&&<ExportMenu items={[{id:'form',kind:'print',label:expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:printDraft}]}/>}
-    <Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>
+    {hasFinding&&<Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>}
     {draftSaved&&<SignalBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</SignalBadge>}
    </div>
    <SaveButton disabled={!valid||saving||blocked} onClick={submit}>{saving?(en?'Saving…':'Αποθήκευση…'):extraReason?(en?'Save extra entry':'Αποθήκευση έκτακτης'):(en?'Save entry':'Αποθήκευση')}</SaveButton>

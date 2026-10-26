@@ -969,8 +969,6 @@
 .controls-registry-page .controls-registry-workspace .controls-table td{vertical-align:middle}
 .controls-registry-page .controls-table td:first-child strong{display:block;color:var(--lo-text-strong,#173650);font-weight:800}
 .controls-registry-page .controls-table td:first-child small{display:block;margin-top:3px;color:var(--lo-text-muted,#718696)}
-.controls-registry-page .control-action-col{width:58px;text-align:center}
-.controls-registry-page .control-action-col .lo-icon-button{margin-inline:auto}
 .controls-registry-page .control-status-stack{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 
 

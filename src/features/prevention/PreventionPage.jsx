@@ -554,6 +554,12 @@ export function PreventionPage() {
         ) : null
       }
     >
+      <CanonicalTabs
+        items={visibleTabs.map(([id, key]) => ({ value: id, label: t(key), icon: tabIcons[id] }))}
+        value={tab}
+        onChange={changeTab}
+        ariaLabel={t('preventionCenter')}
+      />
       <div className="workspace-summary prevention-summary">
         <div className="module-summary-strip">
           {tabAccess.handHygiene && (
@@ -590,12 +596,6 @@ export function PreventionPage() {
           )}
         </div>
       </div>
-      <CanonicalTabs
-        items={visibleTabs.map(([id, key]) => ({ value: id, label: t(key), icon: tabIcons[id] }))}
-        value={tab}
-        onChange={changeTab}
-        ariaLabel={t('preventionCenter')}
-      />
       <div className="surface registry-workspace prevention-workspace workspace-fill">
         <FilterBar
           query={query}

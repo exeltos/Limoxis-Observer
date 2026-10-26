@@ -164,11 +164,24 @@
 .control-editor-required .lo-choice-chips-list > button {
   min-height: 34px !important;
 }
+.control-create-shell > .entity-record-body {
+  overflow-y: auto;
+}
+.control-create-shell .record-section.control-editor-body {
+  overflow: visible;
+}
+/* Save and Cancel stay in view at the bottom of the card, whatever the height of the form. */
 .control-editor-footer {
   grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 10px;
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding: 12px 0 4px;
+  background: var(--lo-color-surface, #fff);
 }
 /* «Advanced»: the optional cards, folded on a new control; open they use the same grid. */
 .control-editor-advanced {

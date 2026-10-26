@@ -51,6 +51,8 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const day=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${d}/${m}/${y}`:(value||'—')}
  const at=value=>value?new Intl.DateTimeFormat(locale,{day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date(value)):'—'
  const single=sources.length===1?expiryWindow(sources[0].record):null
+ // The control column only tells the rows apart when more than one control is listed.
+ const controlColumn=showControl&&new Set(sources.map(source=>source.record.id)).size>1
  const empty=!sources.length
   ? {title:en?'No expiry checks yet':'Δεν υπάρχουν έλεγχοι λήξεων',text:en?'Create a control in the «Medicines / Supplies» category and add its list of items.':'Δημιουργήστε έλεγχο με κατηγορία «Φάρμακα / Υλικά» και προσθέστε τη λίστα υλικών του.'}
   : searched.length
@@ -58,7 +60,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    : {title:en?'No items yet':'Δεν υπάρχουν υλικά',text:en?'Items appear here once they are on a control’s list or recorded with an expiry date.':'Τα υλικά εμφανίζονται εδώ μόλις μπουν στη λίστα ενός ελέγχου ή καταγραφούν με ημερομηνία λήξης.'}
  const columns=[
   {key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο'},
-  showControl&&{key:'control',label:en?'Control':'Έλεγχος'},
+  controlColumn&&{key:'control',label:en?'Control':'Έλεγχος'},
   {key:'department',label:en?'Department':'Τμήμα'},
   {key:'quantity',label:en?'Quantity':'Ποσότητα'},
   {key:'lot',label:en?'Lot':'Παρτίδα'},
@@ -89,7 +91,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    emptyText={empty.text}
    renderRow={item=><>
     <td><strong>{item.row.item}</strong><small>{[formLabel(item.row.form,language),item.row.note,rowFindingText(item.row,language)].filter(Boolean).join(' · ')}</small></td>
-    {showControl&&<td className="control-expiry-control-cell">{onOpenControl?<button type="button" className="control-expiry-control-link" title={language==='el'?item.record.title:item.record.titleEn||item.record.title} onClick={()=>onOpenControl(item.record)}>{language==='el'?item.record.title:item.record.titleEn||item.record.title}</button>:item.record.title}</td>}
+    {controlColumn&&<td className="control-expiry-control-cell">{onOpenControl?<button type="button" className="control-expiry-control-link" title={language==='el'?item.record.title:item.record.titleEn||item.record.title} onClick={()=>onOpenControl(item.record)}>{language==='el'?item.record.title:item.record.titleEn||item.record.title}</button>:item.record.title}</td>}
     <td>{item.department}</td>
     <td>{item.row.quantity||'—'}</td>
     <td>{item.row.lot||'—'}</td>
