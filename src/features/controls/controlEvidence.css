@@ -34,15 +34,16 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-catalogue-item>small{font-size:11px;color:var(--lo-color-text-muted,var(--lo-color-muted))}
 .control-catalogue-form{font-size:12.5px;color:var(--lo-color-text,var(--lo-color-text))}
 .control-expiry-entry .control-expiry-table{table-layout:fixed;width:100%}
-.control-expiry-entry .control-expiry-table th:nth-child(1){width:20%}
-.control-expiry-entry .control-expiry-table th:nth-child(2){width:8%}
-.control-expiry-entry .control-expiry-table th:nth-child(3){width:7%}
-.control-expiry-entry .control-expiry-table th:nth-child(4){width:8%}
-.control-expiry-entry .control-expiry-table th:nth-child(5){width:13%}
-.control-expiry-entry .control-expiry-table th:nth-child(6){width:11%}
-.control-expiry-entry .control-expiry-table th:nth-child(7){width:17%}
-.control-expiry-entry .control-expiry-table th:nth-child(8){width:13%}
-.control-expiry-entry .control-expiry-table th:nth-child(9){width:3%}
+.control-expiry-entry .control-expiry-table th:nth-child(1){width:17%}
+.control-expiry-entry .control-expiry-table th:nth-child(2){width:7%}
+.control-expiry-entry .control-expiry-table th:nth-child(3){width:6%}
+.control-expiry-entry .control-expiry-table th:nth-child(4){width:7%}
+.control-expiry-entry .control-expiry-table th:nth-child(5){width:8%}
+.control-expiry-entry .control-expiry-table th:nth-child(6){width:14%}
+.control-expiry-entry .control-expiry-table th:nth-child(7){width:10%}
+.control-expiry-entry .control-expiry-table th:nth-child(8){width:14%}
+.control-expiry-entry .control-expiry-table th:nth-child(9){width:14%}
+.control-expiry-entry .control-expiry-table th:nth-child(10){width:3%}
 .control-expiry-entry .control-expiry-table :is(input,select){width:100%;box-sizing:border-box}
 .control-expiry-control-link{display:block;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0;border:0;background:none;color:var(--lo-color-primary,var(--lo-color-primary));font:inherit;font-size:12.5px;font-weight:650;text-align:left;cursor:pointer}
 .control-expiry-control-link:hover{text-decoration:underline}
@@ -52,13 +53,16 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-entry .control-expiry-table tr.is-removed td{opacity:.55}
 .control-expiry-entry .control-expiry-table tr.is-removed .control-catalogue-item strong{text-decoration:line-through}
 .control-expiry-entry .control-expiry-table tr.is-removed td:last-child{opacity:1}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(1){width:30%}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(2){width:80px}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(3){width:130px}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(4){width:150px}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(5){width:110px}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(7){width:170px}
-.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(8){width:48px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(1){width:22%}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(2){width:120px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(3){width:120px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(4){width:100px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(5){width:120px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(6){width:135px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(7){width:100px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(8){width:130px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(9){width:150px}
+.control-expiry-catalogue-dialog .control-catalogue-table th:nth-child(10){width:48px}
 /* Expiry list toolbar: filters, department and the return form on one line,
    one height; wraps under the title on narrow screens. */
 .control-expiry-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
@@ -78,3 +82,8 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-control-cell{max-width:220px;min-width:140px}
 /* «3/4 σήμερα»: the current period's entries, beside a control's status. */
 .control-progress-text{font-size:11px;color:var(--lo-color-muted);white-space:nowrap}
+
+.control-expiry-entry .control-expiry-groups{display:grid;gap:16px}
+.control-expiry-entry .control-expiry-group-title{margin:0 0 6px;font-size:13px;font-weight:700;color:var(--lo-color-text)}
+.control-expiry-entry .control-expiry-group-title small{margin-left:6px;color:var(--lo-color-muted);font-weight:600}
+.control-expiry-entry .control-expiry-expected{text-align:center;font-weight:600}

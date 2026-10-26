@@ -87,10 +87,17 @@ export function expiryItems(record,departments,now=new Date()){
 }
 
 // The control's list of medicines and supplies:
-// [{id,item,quantity,form,expiry,note,departments}], where an empty departments
-// list means every department of the control.
-export function catalogueItem({item='',quantity='',form='',expiry='',note='',departments=[]}={}){
- return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),departments:[...departments]}
+// [{id,item,quantity,form,expiry,note,departments,category,ingredient}], where an
+// empty departments list means every department of the control, quantity is the
+// expected quantity, category is 'medicine' | 'supply' and ingredient the active substance.
+export const ITEM_CATEGORIES=[['medicine','Φάρμακα','Medicines'],['supply','Υλικά','Supplies']]
+export function catalogueItem({item='',quantity='',form='',expiry='',note='',departments=[],category='',ingredient=''}={}){
+ return {id:`cat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`,item:String(item).trim(),quantity:String(quantity??'').trim(),form:String(form||''),expiry:String(expiry||''),note:String(note||''),departments:[...departments],category:String(category||''),ingredient:String(ingredient||'').trim()}
+}
+// Fewer than expected were found: both numbers are known and the count is short.
+export function quantityShort(row){
+ const expected=Number(String(row?.expected??'').replace(',','.')),found=Number(String(row?.quantity??'').replace(',','.'))
+ return String(row?.expected??'').trim()!==''&&String(row?.quantity??'').trim()!==''&&Number.isFinite(expected)&&Number.isFinite(found)&&found<expected
 }
 export function expiryCatalogue(record){
  const list=record?.responseConfig?.expiryCatalogue
@@ -101,11 +108,13 @@ export function catalogueForDepartment(record,department){
 }
 
 // Lines pasted from a spreadsheet: name, quantity, form, expiry (dd/mm/yyyy or
-// yyyy-mm-dd) and note, separated by tabs or semicolons; only the name is needed.
+// yyyy-mm-dd), note, category (medicine / supply) and active substance,
+// separated by tabs or semicolons; only the name is needed.
 export function parseCatalogueLines(text){
  const toIso=value=>{const v=String(value||'').trim();const local=v.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);if(local)return `${local[3]}-${local[2].padStart(2,'0')}-${local[1].padStart(2,'0')}`;return /^\d{4}-\d{2}-\d{2}$/.test(v)?v:''}
  const toForm=value=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';const match=ITEM_FORMS.find(([key,el,en])=>[key,el.toLocaleLowerCase('el'),en.toLowerCase()].includes(v));return match?match[0]:'other'}
- return String(text||'').split(/\r?\n/).map(line=>line.split(/\t|;/).map(cell=>cell.trim())).filter(cells=>cells[0]).map(([item,quantity='',form='',expiry='',note=''])=>({item,quantity,form:toForm(form),expiry:toIso(expiry),note}))
+ const toCategory=value=>{const v=String(value||'').trim().toLocaleLowerCase('el');if(!v)return '';if(/^(φάρμακ|medicine|drug)/.test(v))return 'medicine';if(/^(υλικ|supply|supplies)/.test(v))return 'supply';return ''}
+ return String(text||'').split(/\r?\n/).map(line=>line.split(/\t|;/).map(cell=>cell.trim())).filter(cells=>cells[0]).map(([item,quantity='',form='',expiry='',note='',category='',ingredient=''])=>({item,quantity,form:toForm(form),expiry:toIso(expiry),note,category:toCategory(category),ingredient}))
 }
 
 // The rows a new entry starts with: the department's current list, i.e. every
@@ -122,13 +131,14 @@ export function prefilledExpiryRows(record,department){
  const listed=catalogueForDepartment(record,department)
  const listedKeys=new Set(listed.map(itemKey))
  const added=[...latest.values()].filter(row=>!row.removedAt&&!listedKeys.has(itemKey(row)))
- const toRow=(base,last)=>{
+ const toRow=(base,last,expected)=>{
   const from=last?(last.removedAt?{}:last):base
   const values={quantity:String(from.quantity||''),lot:String(from.lot||''),expiry:String(from.expiry||'')}
   // previous: what the row held when the entry opened, for the change form.
-  return {item:base.item,form:base.form||last?.form||'',...values,note:String(from.note||''),finding:'',findingOther:'',fromCatalogue:true,previous:values}
+  // expected: the list's quantity, which the found quantity is compared with.
+  return {item:base.item,form:base.form||last?.form||'',category:base.category||last?.category||'',ingredient:base.ingredient||last?.ingredient||'',expected:String(expected||''),...values,note:String(from.note||''),finding:'',findingOther:'',fromCatalogue:true,previous:values}
  }
- return [...listed.map(entry=>toRow(entry,latest.get(itemKey(entry)))),...added.map(row=>toRow(row,row))]
+ return [...listed.map(entry=>toRow(entry,latest.get(itemKey(entry)),entry.quantity)),...added.map(row=>toRow(row,row,row.expected))]
 }
 
 export function expiryCounts(items){
@@ -143,7 +153,9 @@ export function expiryCounts(items){
 // ('expired' | 'expiring'), shown in the screen's language (controlVocabulary).
 export function impliedFinding(row,window,now=new Date()){
  const {state}=expiryState(row?.expiry,window,now)
- if(state==='expired'||state==='expiring')return state
+ if(state==='expired')return state
+ if(quantityShort(row))return 'shortage'
+ if(state==='expiring')return state
  return ''
 }
 

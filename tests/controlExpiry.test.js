@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { catalogueForDepartment, parseCatalogueLines, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved } from '../src/features/controls/controlExpiry'
+import { CARPA_TEMPLATE } from '../src/features/controls/carpaTemplate'
+import { catalogueForDepartment, parseCatalogueLines, daysToExpiry, prefilledExpiryRows, expiryAlerts, expiryCounts, expiryItems, expiryState, expiryWindow, impliedFinding, isExpiryControl, markRowRemoved, quantityShort } from '../src/features/controls/controlExpiry'
 
 const now = new Date(2026, 9, 15, 10, 0)
 const record = {
@@ -101,8 +102,8 @@ describe('control expiry tracking', () => {
 
   it('reads rows pasted from a spreadsheet', () => {
     expect(parseCatalogueLines('Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\tΣτο τροχήλατο\nΣύριγγες 10ml;120;τεμάχιο\n\n')).toEqual([
-      { item: 'Adrenaline 1mg/ml', quantity: '10', form: 'ampoule', expiry: '2026-12-31', note: 'Στο τροχήλατο' },
-      { item: 'Σύριγγες 10ml', quantity: '120', form: 'piece', expiry: '', note: '' },
+      { item: 'Adrenaline 1mg/ml', quantity: '10', form: 'ampoule', expiry: '2026-12-31', note: 'Στο τροχήλατο', category: '', ingredient: '' },
+      { item: 'Σύριγγες 10ml', quantity: '120', form: 'piece', expiry: '', note: '', category: '', ingredient: '' },
     ])
   })
 
@@ -130,5 +131,38 @@ describe('control expiry tracking', () => {
     expect(expiryRowChange({ item: 'x', fromCatalogue: true, previous, ...previous })).toBe('unchanged')
     expect(expiryRowChange({ item: 'y', quantity: '1', expiry: '2028-01-01' })).toBe('new')
     expect(expiryRowChange({ item: 'x', fromCatalogue: true, previous, ...previous, removedAt: '2026-10-15' })).toBe('removed')
+  })
+})
+
+describe('expected quantity and category of listed items', () => {
+  const window = { before: 30, after: 7 }
+  it('flags a shortage only when both counts are known and fewer were found', () => {
+    expect(quantityShort({ expected: '5', quantity: '3' })).toBe(true)
+    expect(quantityShort({ expected: '5', quantity: '5' })).toBe(false)
+    expect(quantityShort({ expected: '', quantity: '3' })).toBe(false)
+    expect(quantityShort({ expected: '5', quantity: '' })).toBe(false)
+  })
+  it('implies expired first, then shortage, then near expiry', () => {
+    expect(impliedFinding({ expiry: '2026-10-01', expected: '5', quantity: '1' }, window, now)).toBe('expired')
+    expect(impliedFinding({ expiry: '2026-10-20', expected: '5', quantity: '1' }, window, now)).toBe('shortage')
+    expect(impliedFinding({ expiry: '2026-10-20', expected: '5', quantity: '5' }, window, now)).toBe('expiring')
+  })
+  it('keeps the list quantity as expected and the category on a new entry', () => {
+    const listed = { responseConfig: { mode: 'list', template: 'medication_expiry', expiryCatalogue: [{ id: 'c1', item: 'ADRENALINE amp', quantity: '15', category: 'medicine', ingredient: 'Αδρεναλίνη', departments: [] }] }, assignments: {} }
+    const [row] = prefilledExpiryRows(listed, 'ΤΕΠ')
+    expect(row).toMatchObject({ item: 'ADRENALINE amp', expected: '15', category: 'medicine', ingredient: 'Αδρεναλίνη' })
+  })
+  it('reads category and active substance from pasted lines', () => {
+    const [row] = parseCatalogueLines('ADRENALINE amp\t15\tΦύσιγγα\t\t\tΦάρμακο\tΑδρεναλίνη')
+    expect(row).toMatchObject({ item: 'ADRENALINE amp', quantity: '15', form: 'ampoule', category: 'medicine', ingredient: 'Αδρεναλίνη' })
+  })
+})
+
+describe('resuscitation trolley template', () => {
+  it('lists the 14 medicines and 37 supplies of the form with expected quantities', () => {
+    expect(CARPA_TEMPLATE.filter(entry => entry.category === 'medicine')).toHaveLength(14)
+    expect(CARPA_TEMPLATE.filter(entry => entry.category === 'supply')).toHaveLength(37)
+    expect(CARPA_TEMPLATE.every(entry => Number(entry.quantity) > 0)).toBe(true)
+    expect(CARPA_TEMPLATE.find(entry => entry.item === 'ADRENALINE amp')).toMatchObject({ quantity: '15', ingredient: 'Αδρεναλίνη' })
   })
 })

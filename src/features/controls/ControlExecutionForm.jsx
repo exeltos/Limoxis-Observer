@@ -25,7 +25,7 @@ import { controlActorFromAuth } from './controlActor'
 import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
 import { deviationActions,requiresEvidence } from './controlCriticality'
-import { expiryState,expiryWindow,impliedFinding,isExpiryControl,prefilledExpiryRows } from './controlExpiry'
+import { expiryState,expiryWindow,impliedFinding,isExpiryControl,prefilledExpiryRows,quantityShort } from './controlExpiry'
 import { answerLabel,canonicalAnswer,checklistSummary,choiceOptions,isFindingAnswer } from './controlVocabulary'
 import { ControlExpiryEntry } from './ControlExpiryEntry'
 import { ControlDeviationActions,ControlEvidenceLinks,ControlEvidencePicker } from './ControlEvidence'
@@ -67,7 +67,7 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const numeric=Number(String(value).replace(',','.'))
  const outOfRange=mode==='numeric'&&String(value).trim()!==''&&Number.isFinite(numeric)&&((response.min!==''&&response.min!=null&&numeric<Number(response.min))||(response.max!==''&&response.max!=null&&numeric>Number(response.max)))
  const choiceFinding=mode==='choice'&&isFindingAnswer(response,value,answers)
- const expiryRowAlerts=expiryControl&&rows.some(row=>!row.removedAt&&expiryState(row.expiry,expiryWindow(record)).alert)
+ const expiryRowAlerts=expiryControl&&rows.some(row=>!row.removedAt&&(expiryState(row.expiry,expiryWindow(record)).alert||quantityShort(row)))
  const structured=mode==='list'||mode==='checklist'
  const hasFinding=outOfRange||choiceFinding||(structured&&listHasFinding(rows))||expiryRowAlerts
  const expiryRowsValid=!expiryControl||rows.every(row=>row.fromCatalogue||!String(row.item||'').trim()||String(row.expiry||'').trim())

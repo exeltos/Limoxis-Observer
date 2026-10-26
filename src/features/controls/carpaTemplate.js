@@ -1,0 +1,63 @@
+// The standard contents of a resuscitation trolley (ΚΑΡΠΑ) and its intubation tray,
+// from the form Ε.Δ.ΝΥ.010.Θ-14/2 (16/7/2025). A control's list starts from it with
+// one click; the quantities are the expected ones and each department's head fills
+// in the expiry dates. «Per size / per type» quantities keep the count per
+// size or type in the note.
+const med=(item,ingredient,quantity,form='ampoule',note='')=>({item,ingredient,quantity:String(quantity),form,note,category:'medicine'})
+const sup=(item,quantity,note='')=>({item,ingredient:'',quantity:String(quantity),form:'piece',note,category:'supply'})
+
+export const CARPA_TEMPLATE_NAME='Ε.Δ.ΝΥ.010.Θ-14/2'
+
+export const CARPA_TEMPLATE=[
+ med('ADRENALINE amp','Αδρεναλίνη',15),
+ med('ATROPINE amp','Ατροπίνη',2),
+ med('EPHEDRINE amp','Εφεδρίνη',2),
+ med('METOPROLOL/BELOC amp','Metoprolol',2),
+ med('EFFORTIL amp','Etilefrin',2),
+ med('NORADRENALINE/NORADREN amp','Noradrenaline',2),
+ med('HYDROFLUX/LASIX amp','Furosemide',5),
+ med('XYLOCAINE 2%/XYLOZAN fl sprey','Lidocaine',1,'other'),
+ med('ESMERON fl','Rocuronium',2,'flacon'),
+ med('PROPOFOLE 1% 20ml/DIPRIVAN','Propofol',2,'vial'),
+ med('HYPNOMIDATE fl','Etomidate',2,'flacon'),
+ med('DORMICUM/DORMIXAL amp','Midazolam',1),
+ med('N/S 0,9% 10 cc amp','',10),
+ med('ΟΡΟΙ R/L, 0,9% 100ml, 250ml, 1000ml','',2,'bag','2 ανά είδος'),
+ sup('ΦΛΕΒΟΚΑΘΕΤΗΡΕΣ 18G',5),
+ sup('ΦΛΕΒΟΚΑΘΕΤΗΡΕΣ 20G',5),
+ sup('ΦΛΕΒΟΚΑΘΕΤΗΡΕΣ 22G',5),
+ sup('ΑΡΤΗΡΙΑΚΟ ABBOCATH LONG 20G',3),
+ sup('3 WAY',5),
+ sup('ΠΩΜΑΤΑ 3 WAY',5),
+ sup('TEGADERM 6X7cm',5),
+ sup('ΛΑΣΤΙΧΟ ΑΙΜΟΛΗΨΙΑΣ',1),
+ sup('ΑΠΟΣΤΕΙΡΩΜΕΝΕΣ ΓΑΖΕΣ',4),
+ sup('ΞΥΡΑΦΑΚΙΑ',1),
+ sup('ΡΑΜΜΑΤΑ No 2-0 VYKRIL',2),
+ sup('ΝΥΣΤΕΡΙ ΜΕ ΛΑΒΗ No 11',2),
+ sup('ΣΥΡΙΓΓΕΣ ΙΝΣΟΥΛΙΝΗΣ',5),
+ sup('ΣΥΡΙΓΓΕΣ 5CC',5),
+ sup('ΣΥΡΙΓΓΕΣ 10CC',5),
+ sup('ΣΥΡΙΓΓΕΣ 20CC',5),
+ sup('ΒΕΛΟΝΕΣ',5),
+ sup('ΜΑΣΚΕΣ ΟΞΥΓΟΝΟΥ ΑΠΛΕΣ',1),
+ sup('ΜΑΣΚΕΣ ΟΞΥΓΟΝΟΥ VENTURI',1),
+ sup('ΜΑΣΚΕΣ ΟΞΥΓΟΝΟΥ ΕΠΑΝΕΙΣΠΝΟΗΣ',1),
+ sup('ΣΥΝΔΕΤΙΚΑ ΑΝΑΡΡΟΦΗΣΗΣ',1),
+ sup('ΚΑΘΕΤΗΡΕΣ ΑΝΑΡΡΟΦΗΣΗΣ',2,'2 ανά μέγεθος'),
+ sup('ΗΛΕΚΤΡΟΔΙΑ pads ΗΚΓ',1),
+ sup('ΣΥΣΚΕΥΕΣ ΟΡΟΥ',2),
+ sup('3 WAY ΜΕ ΠΡΟΕΚΤΑΣΗ',2),
+ sup('ΣΕΤ ΑΛΛΑΓΗΣ',1),
+ sup('ΗΛΕΚΤΡΟΔΙΑ ΑΠΙΝΙΔΩΤΗ',1),
+ sup('3LUMEN ΚΑΘΕΤΗΡΑΣ ΚΕΝΤΡΙΚΗΣ ΓΡΑΜΜΗΣ',1),
+ sup('ΛΑΡΥΓΓΟΣΚΟΠΙΟ ΜΕ ΛΑΜΑ No3/No4/No5 (+ΜΠΑΤΑΡΙΕΣ)',1,'Δίσκος διασωλήνωσης · 1 ανά μέγεθος'),
+ sup('ΦΑΚΑΡΟΛΑ',1,'Δίσκος διασωλήνωσης'),
+ sup('ΕΝΔΟΤΡΑΧΕΙΑΚΟΙ ΚΑΘΕΤΗΡΕΣ ΣΤΟΝ ΔΙΣΚΟ ΔΙΑΣΩΛΗΝΩΣΗΣ No7, No8',2,'Δίσκος διασωλήνωσης · 2 ανά μέγεθος'),
+ sup('ΦΑΚΟΣ (+2 ΜΠΑΤΑΡΙΕΣ)',1,'Δίσκος διασωλήνωσης'),
+ sup('ΑΕΡΑΓΩΓΟΙ No2,3',1,'Δίσκος διασωλήνωσης · 1 ανά μέγεθος'),
+ sup('ΛΑΡΥΓΓΙΚΗ ΜΑΣΚΑ No 4/ No 5',1,'Δίσκος διασωλήνωσης · 1 ανά μέγεθος'),
+ sup('ΟΔΗΓΟΣ ΔΙΑΣΩΛΗΝΩΣΗΣ M & L',1,'Δίσκος διασωλήνωσης · 1 ανά μέγεθος'),
+ sup('ΣΥΡΙΓΓΕΣ 10CC (δίσκος διασωλήνωσης)',2,'Δίσκος διασωλήνωσης'),
+ sup('AMBU ΣΥΝΑΡΜΟΛΟΓΗΜΕΝΗ ΜΕ ΜΑΣΚΑ',1,'Δίσκος διασωλήνωσης'),
+]

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ClipboardPaste,Plus,Trash2 } from 'lucide-react'
+import { ClipboardPaste,ListChecks,Plus,Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { MultiSelect } from '../../design-system/MultiSelect'
@@ -9,7 +9,8 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLibraries } from '../management/useLibraries'
 import { ExpiryBadge,formOptions,useItemOptions } from './ControlExpiryEntry'
-import { catalogueItem,formKey,parseCatalogueLines } from './controlExpiry'
+import { CARPA_TEMPLATE,CARPA_TEMPLATE_NAME } from './carpaTemplate'
+import { ITEM_CATEGORIES,catalogueItem,formKey,parseCatalogueLines } from './controlExpiry'
 
 // The medicines and supplies an expiry check goes through, one row each: name,
 // quantity, form (tablet, vial, …), expiry date, note and the departments that
@@ -27,6 +28,7 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
  const addRow=()=>setRows(current=>[...current,fresh()])
  const pastedRows=parseCatalogueLines(pasted)
  const addPasted=()=>{if(!pastedRows.length)return;setRows(current=>[...current.filter(row=>row.item.trim()),...pastedRows.map(row=>fresh(row))]);setPasted('');setPasteOpen(false)}
+ const addTemplate=()=>setRows(current=>[...current.filter(row=>row.item.trim()),...CARPA_TEMPLATE.filter(entry=>!current.some(row=>row.item.trim().toLocaleLowerCase('el')===entry.item.toLocaleLowerCase('el'))).map(entry=>fresh(entry))])
  const departmentOptions=departments.map(dep=>({value:dep,label:dep}))
  const filled=rows.filter(row=>String(row.item||'').trim())
  return <ObserverDialog
@@ -42,14 +44,17 @@ export function ControlExpiryCatalogueDialog({items,departments,defaultDepartmen
   <div className="control-catalogue-toolbar">
    <Button variant="secondary" onClick={addRow}><Plus size={15}/>{en?' Add row':' Νέα γραμμή'}</Button>
    <Button variant={pasteOpen?'primary':'secondary'} onClick={()=>setPasteOpen(open=>!open)}><ClipboardPaste size={15}/>{en?' Paste from Excel':' Επικόλληση από Excel'}</Button>
+   <Button variant="secondary" onClick={addTemplate}><ListChecks size={15}/>{en?` Resuscitation trolley template (${CARPA_TEMPLATE_NAME})`:` Πρότυπο τροχήλατου ΚΑΡΠΑ (${CARPA_TEMPLATE_NAME})`}</Button>
   </div>
   {pasteOpen&&<div className="control-catalogue-paste">
-   <label className="field"><span className="lo-field-label">{en?'One item per line: name, quantity, form, expiry, note (columns copied from Excel)':'Ένα υλικό ανά γραμμή: ονομασία, ποσότητα, είδος, λήξη, παρατήρηση (στήλες αντιγραμμένες από Excel)'}</span><textarea autoFocus value={pasted} onChange={e=>setPasted(e.target.value)} placeholder={'Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\nΦυσιολογικός ορός 0,9% 500ml\t24\tΦιάλη\t30/06/2027'}/></label>
+   <label className="field"><span className="lo-field-label">{en?'One item per line: name, expected quantity, form, expiry, note, type (medicine/supply), active substance (columns copied from Excel)':'Ένα υλικό ανά γραμμή: ονομασία, προβλεπόμενη ποσότητα, είδος, λήξη, παρατήρηση, κατηγορία (φάρμακο/υλικό), δραστική ουσία (στήλες αντιγραμμένες από Excel)'}</span><textarea autoFocus value={pasted} onChange={e=>setPasted(e.target.value)} placeholder={'Adrenaline 1mg/ml\t10\tΦύσιγγα\t31/12/2026\nΦυσιολογικός ορός 0,9% 500ml\t24\tΦιάλη\t30/06/2027'}/></label>
    <Button variant="secondary" disabled={!pastedRows.length} onClick={addPasted}><Plus size={15}/>{en?` Add ${pastedRows.length||''} rows`:` Προσθήκη ${pastedRows.length||''} γραμμών`}</Button>
   </div>}
-  <RegistryTable className="control-exec-table control-catalogue-table" wrapperClassName="control-exec-table-wrap control-catalogue-wrap" columns={[{key:'item',label:en?'Name':'Ονομασία'},{key:'quantity',label:en?'Qty':'Ποσ.'},{key:'form',label:en?'Form':'Είδος'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'note',label:en?'Note':'Παρατήρηση'},{key:'departments',label:en?'Departments':'Τμήματα'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={row=>row.id} renderRow={row=><>
+  <RegistryTable className="control-exec-table control-catalogue-table" wrapperClassName="control-exec-table-wrap control-catalogue-wrap" columns={[{key:'item',label:en?'Name':'Ονομασία'},{key:'category',label:en?'Type':'Κατηγορία'},{key:'ingredient',label:en?'Active substance':'Δραστική ουσία'},{key:'quantity',label:en?'Expected qty':'Προβλεπ. ποσ.'},{key:'form',label:en?'Form':'Είδος'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'note',label:en?'Note':'Παρατήρηση'},{key:'departments',label:en?'Departments':'Τμήματα'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'}]} rows={rows} rowKey={row=>row.id} renderRow={row=><>
    <td><SearchableSelect hideLabel label={en?'Name':'Ονομασία'} value={row.item} options={itemOptions.options} onChange={v=>update(row.id,{item:v})} allowCustom placeholder={en?'Search the library or type':'Αναζήτηση στη βιβλιοθήκη ή πληκτρολόγηση'} emptyLabel={en?'No match':'Καμία αντιστοιχία'} customLabel={text=>en?`Use «${text}»`:`Χρήση «${text}»`}/></td>
-   <td><input type="number" min="0" inputMode="numeric" aria-label={en?'Quantity':'Ποσότητα'} value={row.quantity||''} onChange={e=>update(row.id,{quantity:e.target.value})}/></td>
+   <td><SearchableSelect hideLabel label={en?'Type':'Κατηγορία'} value={row.category||''} options={ITEM_CATEGORIES.map(([key,el,enLabel])=>({value:key,label:en?enLabel:el}))} onChange={v=>update(row.id,{category:v})} placeholder="—" emptyLabel={en?'No match':'Καμία αντιστοιχία'} clearLabel={en?'Clear':'Καθαρισμός'}/></td>
+   <td><input aria-label={en?'Active substance':'Δραστική ουσία'} value={row.ingredient||''} onChange={e=>update(row.id,{ingredient:e.target.value})}/></td>
+   <td><input type="number" min="0" inputMode="numeric" aria-label={en?'Expected quantity':'Προβλεπόμενη ποσότητα'} value={row.quantity||''} onChange={e=>update(row.id,{quantity:e.target.value})}/></td>
    <td><SearchableSelect hideLabel label={en?'Form':'Είδος'} value={formKey(row.form)} options={forms} onChange={v=>update(row.id,{form:v})} placeholder="—" emptyLabel={en?'No match':'Καμία αντιστοιχία'} clearLabel={en?'Clear':'Καθαρισμός'}/></td>
    <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={value=>update(row.id,{expiry:value})}/></td>
    <td><ExpiryBadge row={row} window={window} language={language}/></td>
