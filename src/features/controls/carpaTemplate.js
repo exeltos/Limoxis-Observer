@@ -1,5 +1,5 @@
 // Standard contents of the resuscitation trolley (ΚΑΡΠΑ) and of the intubation
-// trays, from the hospital's forms: Ε.Δ.ΝΥ.010.Θ-14/2 (trolley with its tray),
+// trays, from the hospital's forms: Ε.Δ.ΝΥ.010.Θ-14/2 (the trolley; its tray is a control of its own),
 // Ε.Δ.ΝΥ.010.Θ-15 (adult tray), Ε.Δ.ΝΥ.010.Θ-4 (neonate tray) and Ε.Δ.ΝΥ.110.Θ-29
 // (neonate tray of the maternity ward). A control's list starts from one of them
 // with one click; the quantities are the expected ones and each department's head
@@ -8,8 +8,6 @@ const med=(item,ingredient,quantity,form='ampoule',note=['',''])=>({item,ingredi
 const sup=(item,quantity,note=['',''])=>({item,ingredient:'',quantity:String(quantity),form:'piece',note:note[0],noteEn:note[1],category:'supply'})
 
 const PER_TYPE=['2 ανά είδος','2 per type']
-const TRAY=['Δίσκος διασωλήνωσης','Intubation tray']
-const trayNote=(extra=['',''])=>[`${TRAY[0]}${extra[0]?` · ${extra[0]}`:''}`,`${TRAY[1]}${extra[1]?` · ${extra[1]}`:''}`]
 
 const TROLLEY=[
  med('ADRENALINE amp','Αδρεναλίνη',15),
@@ -55,15 +53,6 @@ const TROLLEY=[
  sup('ΗΛΕΚΤΡΟΔΙΑ ΑΠΙΝΙΔΩΤΗ',1),
  sup('3LUMEN ΚΑΘΕΤΗΡΑΣ ΚΕΝΤΡΙΚΗΣ ΓΡΑΜΜΗΣ',1),
  sup('ΦΙΑΛΗ ΟΞΥΓΟΝΟΥ',1),
- sup('ΛΑΡΥΓΓΟΣΚΟΠΙΟ ΜΕ ΛΑΜΑ No3/No4/No5 (+ΜΠΑΤΑΡΙΕΣ)',1,trayNote(['1 ανά μέγεθος','1 per size'])),
- sup('ΦΑΚΑΡΟΛΑ',1,trayNote()),
- sup('ΕΝΔΟΤΡΑΧΕΙΑΚΟΙ ΚΑΘΕΤΗΡΕΣ ΣΤΟΝ ΔΙΣΚΟ ΔΙΑΣΩΛΗΝΩΣΗΣ No7, No8',2,trayNote(['2 ανά μέγεθος','2 per size'])),
- sup('ΦΑΚΟΣ (+2 ΜΠΑΤΑΡΙΕΣ)',1,trayNote()),
- sup('ΑΕΡΑΓΩΓΟΙ No2,3',1,trayNote(['1 ανά μέγεθος','1 per size'])),
- sup('ΛΑΡΥΓΓΙΚΗ ΜΑΣΚΑ No 4/ No 5',1,trayNote(['1 ανά μέγεθος','1 per size'])),
- sup('ΟΔΗΓΟΣ ΔΙΑΣΩΛΗΝΩΣΗΣ M & L',1,trayNote(['1 ανά μέγεθος','1 per size'])),
- sup('ΣΥΡΙΓΓΕΣ 10CC (δίσκος διασωλήνωσης)',2,trayNote()),
- sup('AMBU ΣΥΝΑΡΜΟΛΟΓΗΜΕΝΗ ΜΕ ΜΑΣΚΑ',1,trayNote()),
 ]
 
 const ADULT_TRAY=[
@@ -126,7 +115,7 @@ const MATERNITY_NEONATE_TRAY=[
 
 // key: stored nowhere, only picks the template; code: the form's number.
 export const CARPA_TEMPLATES=[
- {key:'trolley',code:'Ε.Δ.ΝΥ.010.Θ-14/2',el:'Τροχήλατο ΚΑΡΠΑ και δίσκος διασωλήνωσης',en:'Resuscitation trolley and intubation tray',items:TROLLEY},
+ {key:'trolley',code:'Ε.Δ.ΝΥ.010.Θ-14/2',el:'Τροχήλατο ΚΑΡΠΑ',en:'Resuscitation trolley',items:TROLLEY},
  {key:'adult-tray',code:'Ε.Δ.ΝΥ.010.Θ-15',el:'Δίσκος διασωλήνωσης ενηλίκων',en:'Adult intubation tray',items:ADULT_TRAY},
  {key:'neonate-tray',code:'Ε.Δ.ΝΥ.010.Θ-4',el:'Δίσκος διασωλήνωσης νεογνού',en:'Neonate intubation tray',items:NEONATE_TRAY},
  {key:'maternity-neonate-tray',code:'Ε.Δ.ΝΥ.110.Θ-29',el:'Δίσκος διασωλήνωσης νεογνού μαιευτικού τμήματος',en:'Neonate intubation tray, maternity ward',items:MATERNITY_NEONATE_TRAY},
