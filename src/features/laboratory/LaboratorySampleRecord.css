@@ -111,9 +111,8 @@
 .canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid){margin-top:0!important;padding:0!important}
 .canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid)>.detail-item{min-height:52px!important;padding:8px 16px!important}
 /* The result uses the same read-only info sheet as the sample details tab. */
-.laboratory-record-shell .lab-result-grid.lab-result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0!important;margin:0;padding:0;border:1px solid #e2e9ef;border-radius:11px;background:#fff;overflow:hidden}
-.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{min-width:0;min-height:52px;padding:8px 16px!important;border:0;border-right:1px solid #e9eef2;border-bottom:1px solid #edf1f4;border-radius:0;background:#fff;box-shadow:none}
-.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item:nth-child(3n){border-right:0}
+.laboratory-record-shell .lab-result-grid.lab-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px!important;margin:0;padding:0;border:0;border-radius:0;background:transparent;overflow:visible}
+.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{min-width:0;min-height:0;padding:11px 0!important;border:0;border-bottom:1px solid var(--lo-color-border);border-radius:0;background:transparent;box-shadow:none}
 .laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item>strong{display:block;margin:0;color:#173650;font-size:13px!important;font-weight:750!important}
 .laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item>strong .status-badge{display:inline-flex;width:auto}
 @media(max-width:720px){.laboratory-record-shell .lab-result-grid.lab-result-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{border-right:0}}

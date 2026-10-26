@@ -60,7 +60,7 @@ export function ResultCard({
               label: tx('organisms'),
               value: organisms.length ? organisms.join(', ') : null,
             },
-            { id: 'method', label: tx('method'), value: methodLabel(result.method, language) },
+            { id: 'method', label: tx('method'), value: methodLabel(result.method, language), hidden: !result.method },
             {
               id: 'status',
               label: tx('status'),

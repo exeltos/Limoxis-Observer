@@ -344,7 +344,7 @@ export function LaboratorySampleRecordFunctionalView() {
             t={t}
             language={language}
             fmt={fmt}
-            menu={<OverflowMenu items={sampleMenu} />}
+            menu={<OverflowMenu items={[...sampleMenu, sampleDelete].filter(Boolean)} />}
           />
         </div>
       )}
@@ -634,7 +634,6 @@ export function LaboratorySampleRecordFunctionalView() {
               <RotateCcw size={15} />{t('surveillanceList.resample')}
             </Button>
           )}
-          {sampleDelete && <Button tone="danger" label={t('laboratoryRecords.deleteSample')} onClick={sampleDelete.onClick} />}
           {/* «Άνοιγμα επεισοδίου»: here only (not also in the menu) — a positive patient sample with no episode, for the infection-control roles. */}
           {canReviewSamples(role) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && sample.subjectType === 'patient' && !sample.surveillanceCase && sample.result === 'positive' && (
             <Button variant="secondary" className="sample-open-episode" onClick={() => { const target = sampleEpisodeTarget(sample); navigate(target.path, { state: target.state }) }}>
@@ -669,6 +668,7 @@ export function LaboratorySampleRecordFunctionalView() {
           libraries={libraries}
           organisms={organisms}
           initialOrganism={String(dialog).slice(4)}
+          defaultVersion={result?.interpretationVersion || (result?.ast || []).map(row => row.version).find(Boolean) || ''}
           onClose={() => setDialog(null)}
           onSave={draft =>
             run(async () => {

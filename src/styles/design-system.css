@@ -254,6 +254,7 @@
 /* General-tab record actions are relocated by EntityRecordShell next to the first
    details-section heading. This is the one canonical position for edit/archive/delete. */
 .canonical-detail-screen>.entity-record-body{position:relative!important}
+.entity-record-body>.entity-record-general-actions{position:absolute;top:14px;right:14px;z-index:3;display:flex;align-items:center}
 
 /* Employee is the canonical record CRUD appearance. All record-level edit/destructive
    actions resolve to this exact geometry, color and placement. */

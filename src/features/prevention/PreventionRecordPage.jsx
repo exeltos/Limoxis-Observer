@@ -9,7 +9,6 @@ import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
-import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -49,6 +48,7 @@ import {
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { wasteCategoryTone } from './wasteVisuals'
+import { ActionButton } from '../../design-system/ActionButton'
 import { antisepticMethodLabel, isAbhrProduct } from './antisepticMethods'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -276,7 +276,7 @@ export function PreventionRecordPage() {
     recordType === 'handHygiene'
       ? en
         ? 'WHO 5 Moments · Prevention & Infection Control'
-        : 'WHO 5 Moments · Πρόληψη & Έλεγχος Λοιμώξεων'
+        : '5 Στιγμές του ΠΟΥ · Πρόληψη & Έλεγχος Λοιμώξεων'
       : recordType === 'waste'
         ? en
           ? 'Waste management · Prevention & Infection Control'
@@ -677,8 +677,8 @@ function HandHygieneDetails({ record, language }) {
             label: en ? 'Professionals' : 'Επαγγελματίες',
             value: stats.professionals,
           },
-          { id: 'hr', label: en ? 'Hand rub (HR)' : 'Αντισηπτικό (HR)', value: stats.handRub || 0 },
-          { id: 'hw', label: en ? 'Hand wash (HW)' : 'Πλύσιμο (HW)', value: stats.handWash || 0 },
+          { id: 'hr', label: en ? 'Hand rub' : 'Αντισηπτικό', value: stats.handRub || 0 },
+          { id: 'hw', label: en ? 'Hand wash' : 'Πλύσιμο', value: stats.handWash || 0 },
           {
             id: 'missed',
             tone: stats.missed ? 'danger' : undefined,
@@ -690,7 +690,7 @@ function HandHygieneDetails({ record, language }) {
       <section>
         <SectionHeader
           title={en ? 'Recorded opportunities' : 'Καταγεγραμμένες ευκαιρίες'}
-          subtitle={en ? 'WHO 5 Moments' : 'WHO 5 Στιγμές'}
+          subtitle={en ? 'WHO 5 Moments' : '5 Στιγμές του ΠΟΥ'}
           actions={<StatusBadge>{items.length}</StatusBadge>}
         />
         <RegistryTable
@@ -748,23 +748,11 @@ function HandHygieneDetails({ record, language }) {
 
 function AntisepticDetails({ record, language, locale }) {
   const en = language === 'en'
-  const eligible = record.indicatorEligible !== false && isAbhrProduct(record)
   return (
     <div className="record-view-stack">
       <section>
         <SectionHeader
           title={en ? 'Monthly consumption' : 'Μηνιαία κατανάλωση'}
-          actions={
-            <StatusBadge tone={eligible ? 'success' : 'neutral'}>
-              {eligible
-                ? en
-                  ? 'ABHR · Indicator active'
-                  : 'ABHR · Δείκτης ενεργός'
-                : en
-                  ? 'Outside ABHR indicator'
-                  : 'Εκτός δείκτη ABHR'}
-            </StatusBadge>
-          }
         />
         <RecordDetailsGrid
           fields={[
@@ -868,7 +856,7 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
     <div className="record-view-stack bundle-record-view">
       <section>
         <SectionHeader
-          title={`${record.templateName || template.name || record.bundle}${record.templateTitle || template.title ? ` · ${record.templateTitle || template.title}` : ''}`}
+          title={en ? record.templateName || template.name || record.bundle : record.templateTitle || template.title || record.templateName || template.name || record.bundle}
           subtitle={`${record.templateSource || template.source || ''} · v${record.templateVersion || template.version || '1.0'}`}
         />
         <RecordDetailsGrid
