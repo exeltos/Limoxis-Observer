@@ -18,3 +18,14 @@
 /* Long values (instructions, deviation actions) sit under their label, not far to the right of it. */
 .control-record-details .lo-detail-item.is-wide{grid-template-columns:minmax(0,1fr);row-gap:2px}
 .control-record-details{margin-bottom:6px}
+
+/* Details tab: the control in three cards, like the edit form (what is checked · who and when · goal and instructions). */
+.control-record-shell .control-record-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.control-record-shell .control-record-card{border:1px solid var(--lo-color-border,#dbe5ec);border-radius:12px;background:#fff;padding:14px 16px 10px}
+.control-record-shell .control-record-card .lo-section-header,.control-record-shell .control-record-card>header{margin-bottom:6px}
+.control-record-shell .control-record-guidance{margin-top:14px}
+.control-record-shell .control-record-dept-chips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 4px}
+.control-record-shell .control-dept-chip{display:inline-flex;align-items:center;padding:3px 10px;border:1px solid var(--lo-color-border,#dbe5ec);border-radius:999px;background:var(--lo-color-surface-muted,#f4f8fb);color:var(--lo-color-text,#173650);font-size:12px;font-weight:600}
+@media(max-width:900px){.control-record-shell .control-record-cards{grid-template-columns:1fr}}
+/* In the two narrow cards the values go one under the other, never squeezed in two columns. */
+.control-record-shell .control-record-cards .lo-detail-list{grid-template-columns:1fr}

@@ -188,23 +188,39 @@ export function ControlRecordPage(){
 
  return <Page fill><EntityRecordShell className="control-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={language==='el'?record.title:record.titleEn} subtitle={`${subtitle} · ${record.id}`} status={<div className="control-status-stack">{expiry.expired>0&&<SignalBadge tone="danger">{expiry.expired} {en?'expired':(expiry.expired===1?'ληγμένο':'ληγμένα')}</SignalBadge>}{expiry.expiring>0&&<SignalBadge tone="warning">{expiry.expiring} {en?'expiring':(expiry.expiring===1?'λήγει':'λήγουν')}</SignalBadge>}{hasDraft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}<SignalBadge tone={status==='overdue'?'danger':status==='dueSoon'?'warning':'success'}>{status==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):status==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge></div>} headerActions={headerActions} recordNavigation={recordNavigation} tabs={[{id:'details',label:en?'Control details':'Στοιχεία ελέγχου',icon:LockKeyhole},{id:'departments',label:en?'Departments':'Τμήματα',icon:Building2},expiryControl&&{id:'expiry',label:en?'Items & expiry':'Υλικά & λήξεις',icon:CalendarX2},{id:'history',label:en?'Executions':'Εκτελέσεις',icon:FileClock}].filter(Boolean)} activeTab={currentTab} onTabChange={next=>{setTab(next);if(next==='history')setHistoryPage(1)}}>
   {currentTab==='details'&&<div className="record-view-stack control-record-view workspace-fill">
-   <DetailList className="control-record-details" sections={[{collapseMissing:true,items:[
-     {label:en?'Control type':'Είδος ελέγχου',value:record.category},
-     {label:en?'Frequency':'Συχνότητα',value:frequencyLabel(record.frequency,language)},
-     {label:en?'Execution times':'Ώρες εκτέλεσης',value:record.frequency.times?.join(' · ')},
-     {label:en?'Responsible':'Υπεύθυνος',value:ownerText(record,language)},
-     record.location&&{label:en?'Location':'Χώρος',value:record.location},
-     record.equipment&&{label:en?'Equipment / point':'Εξοπλισμός / σημείο',value:record.equipment},
-     {label:en?'Criticality':'Κρισιμότητα',value:criticalityLabel(controlCriticality(record),language)},
-     {label:en?'Evidence':'Τεκμήριο',value:requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')},
-     {label:en?'Created by':'Δημιουργία από',value:<>{record.createdBy||sourceLabel}{record.createdBy&&<small>{sourceLabel}</small>}</>},
-     {label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
+   <div className="control-record-cards">
+    <section className="control-record-card">
+     <SectionHeader title={en?'What is checked':'Τι ελέγχεται'}/>
+     <DetailList className="control-record-details" sections={[{items:[
+      {label:en?'Control type':'Είδος ελέγχου',value:record.category},
+      record.location&&{label:en?'Location':'Χώρος',value:record.location},
+      record.equipment&&{label:en?'Equipment / point':'Εξοπλισμός / σημείο',value:record.equipment},
+      {label:en?'Criticality':'Κρισιμότητα',value:criticalityLabel(controlCriticality(record),language)},
+      {label:en?'Evidence':'Τεκμήριο',value:requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')},
+     ].filter(Boolean)}]}/>
+     {assignments.length>0&&<div className="control-record-dept-chips" aria-label={en?'Departments':'Τμήματα'}>{assignments.map(({department:dep})=><span key={dep} className="control-dept-chip">{dep}</span>)}</div>}
+    </section>
+    <section className="control-record-card">
+     <SectionHeader title={en?'Responsibility and schedule':'Υπευθυνότητα και προγραμματισμός'}/>
+     <DetailList sections={[{items:[
+      {label:en?'Responsible':'Υπεύθυνος',value:ownerText(record,language)},
+      {label:en?'Frequency':'Συχνότητα',value:frequencyLabel(record.frequency,language)},
+      {label:en?'Execution times':'Ώρες εκτέλεσης',value:record.frequency.times?.join(' · ')},
+      {label:en?'Created by':'Δημιουργία από',value:<>{record.createdBy||sourceLabel}{record.createdBy&&<small>{sourceLabel}</small>}</>},
+      {label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
+     ]}]}/>
+    </section>
+   </div>
+   <section className="control-record-card control-record-guidance">
+    <SectionHeader title={en?'Goal and instructions':'Στόχος και οδηγίες'}/>
+    <DetailList className="control-record-texts" sections={[{items:[
      record.goal&&{label:en?'Goal':'Στόχος',value:record.goal,wide:true},
      record.acceptanceCriteria&&{label:en?'Acceptance criteria':'Κριτήρια αποδοχής',value:record.acceptanceCriteria,wide:true},
      (record.description||!(record.goal||record.acceptanceCriteria||record.guideNotes))&&{label:en?'Instructions':'Οδηγίες',value:record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.'),wide:true},
      record.guideNotes&&{label:en?'Guidance notes':'Σημειώσεις καθοδήγησης',value:record.guideNotes,wide:true},
      deviationActions(record)&&{label:en?'Actions on deviation':'Ενέργειες σε απόκλιση',value:deviationActions(record),wide:true},
-    ]}]}/>
+    ].filter(Boolean)}]}/>
+   </section>
   </div>}
   {currentTab==='departments'&&<div className="record-view-stack control-record-view workspace-fill">
    <section className="control-record-departments">
