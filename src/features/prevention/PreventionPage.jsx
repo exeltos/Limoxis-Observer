@@ -25,7 +25,7 @@ import {
   updateVaccinationAsync,
 } from '../occupational-health/vaccinationService'
 import { StaffVaccinationEditor, EMPTY_VACCINATION } from './StaffVaccinationEditor'
-import { antisepticMethodLabel } from './antisepticMethods'
+import { antisepticMethodLabel, antisepticPeriodLabel } from './antisepticMethods'
 import { loadHandHygieneDepartments, loadHandHygieneSessions } from './handHygieneCloudService'
 import { loadAntisepticRecords, loadAntisepticSupportData } from './antisepticCloudService'
 import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudService'
@@ -52,10 +52,7 @@ const dayLabel = (value, language) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return formatDay(value, language)
   return new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${text}T12:00:00`))
 }
-const fmtMonth = value => {
-  const match = /^(\d{4})-(\d{2})$/.exec(String(value || ''))
-  return match ? `${match[2]}/${match[1]}` : value || '—'
-}
+const fmtMonth = value => antisepticPeriodLabel(value)
 const tabIcons = {
   handHygiene: ClipboardCheck,
   waste: Recycle,

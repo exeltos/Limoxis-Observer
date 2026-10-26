@@ -49,7 +49,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { wasteCategoryTone } from './wasteVisuals'
 import { ActionButton } from '../../design-system/ActionButton'
-import { antisepticMethodLabel, isAbhrProduct } from './antisepticMethods'
+import { antisepticMethodLabel, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
@@ -284,7 +284,7 @@ export function PreventionRecordPage() {
         : recordType === 'antiseptics'
           ? en
             ? 'Monthly antiseptic consumption · Prevention & Infection Control'
-            : 'Μηνιαία κατανάλωση αντισηπτικών · Πρόληψη & Έλεγχος Λοιμώξεων'
+            : 'Κατανάλωση αντισηπτικών ανά μήνα ή έτος · Πρόληψη & Έλεγχος Λοιμώξεων'
           : recordType === 'bundles'
             ? en
               ? 'Prevention bundle assessment · all-or-none compliance'
@@ -601,10 +601,7 @@ export function PreventionRecordPage() {
   )
 }
 
-const formatMonth = value =>
-  /^\d{4}-\d{2}$/.test(String(value || ''))
-    ? `${value.slice(5, 7)}/${value.slice(0, 4)}`
-    : value || ''
+const formatMonth = value => (value ? antisepticPeriodLabel(value) : '')
 
 // Prevention records share one layout: the context as a details sheet, the key
 // figures as a metric strip, then the record's own list under a section header.
@@ -752,7 +749,7 @@ function AntisepticDetails({ record, language, locale }) {
     <div className="record-view-stack">
       <section>
         <SectionHeader
-          title={en ? 'Monthly consumption' : 'Μηνιαία κατανάλωση'}
+          title={en ? 'Consumption' : 'Κατανάλωση'}
         />
         <RecordDetailsGrid
           fields={[
