@@ -3,43 +3,34 @@
 --   FM-CTRL-0123 «Έλεγχος ναρκωτικών · λήξεις» (12 τμήματα)
 --   FM-CTRL-0114 «Έλεγχος ναρκωτικών · ποσότητα» (Αιμοδυναμικό)
 -- Μαζί σβήνονται οι αντιστοιχίσεις, οι καταγραφές, οι διορθώσεις τους και τα πρόχειρα. Άλλοι έλεγχοι δεν αγγίζονται.
--- Αν οποιοσδήποτε έλεγχος αποτύχει, δεν αλλάζει τίποτα.
-
-begin;
-
-create temp table doomed on commit drop as
-select id, code from public.control_definitions
-where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd' and code in ('FM-CTRL-0123', 'FM-CTRL-0114');
-
-create temp table before_counts on commit drop as
-select (select count(*) from public.control_definitions where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd') as definitions,
-       (select count(*) from public.control_executions where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd') as executions,
-       (select count(*) from public.control_executions where control_id in (select id from doomed)) as doomed_executions;
+-- Όλο το αρχείο είναι ένα μπλοκ: αν οποιοσδήποτε έλεγχος αποτύχει, δεν αλλάζει τίποτα.
 
 do $$
-declare v bigint;
+declare
+  v_org constant uuid := '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd';
+  v_ids uuid[];
+  v_codes text[];
+  v_definitions bigint; v_executions bigint; v_doomed_executions bigint; v bigint;
 begin
-  select count(*) into v from doomed;
-  if v <> 2 then raise exception 'Βρέθηκαν % έλεγχοι ναρκωτικών αντί για 2', v; end if;
-  select count(*) into v from doomed d join public.control_definitions c on c.id = d.id where c.title not ilike '%ναρκωτικών%';
-  if v <> 0 then raise exception 'Ένας από τους ελέγχους δεν είναι έλεγχος ναρκωτικών'; end if;
+  select array_agg(id), array_agg(code) into v_ids, v_codes
+  from public.control_definitions
+  where organization_id = v_org and code in ('FM-CTRL-0123', 'FM-CTRL-0114') and title ilike '%ναρκωτικών%';
+  if coalesce(array_length(v_ids, 1), 0) <> 2 then
+    raise exception 'Βρέθηκαν % έλεγχοι ναρκωτικών αντί για 2', coalesce(array_length(v_ids, 1), 0);
+  end if;
+
+  select count(*) into v_definitions from public.control_definitions where organization_id = v_org;
+  select count(*) into v_executions from public.control_executions where organization_id = v_org;
+  select count(*) into v_doomed_executions from public.control_executions where control_id = any(v_ids);
+
+  delete from public.control_executions where control_id = any(v_ids);
+  delete from public.control_drafts where organization_id = v_org and control_id = any(v_codes);
+  delete from public.control_definitions where id = any(v_ids);
+
+  select count(*) into v from public.control_definitions where organization_id = v_org;
+  if v <> v_definitions - 2 then raise exception 'Έμειναν % έλεγχοι αντί για %', v, v_definitions - 2; end if;
+  select count(*) into v from public.control_executions where organization_id = v_org;
+  if v <> v_executions - v_doomed_executions then raise exception 'Σβήστηκαν λάθος καταγραφές'; end if;
+
+  raise notice 'Έγινε: έλεγχοι % → %, σβήστηκαν % καταγραφές', v_definitions, v_definitions - 2, v_doomed_executions;
 end $$;
-
-delete from public.control_executions where control_id in (select id from doomed);
-delete from public.control_drafts where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd' and control_id in (select code from doomed);
-delete from public.control_definitions where id in (select id from doomed);
-
-do $$
-declare v_before record; v bigint;
-begin
-  select * into v_before from before_counts;
-  select count(*) into v from public.control_definitions where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd';
-  if v <> v_before.definitions - 2 then raise exception 'Έμειναν % έλεγχοι αντί για %', v, v_before.definitions - 2; end if;
-  select count(*) into v from public.control_executions where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd';
-  if v <> v_before.executions - v_before.doomed_executions then raise exception 'Σβήστηκαν λάθος καταγραφές'; end if;
-end $$;
-
-select (select definitions from before_counts) as ελεγχοι_πριν,
-       (select count(*) from public.control_definitions where organization_id = '7972f286-e8b8-4bbf-aa97-cf9a3d1375bd') as ελεγχοι_μετα,
-       (select doomed_executions from before_counts) as καταγραφες_που_σβηστηκαν;
-commit;
