@@ -52,7 +52,7 @@ export function PharmacyIndicators({ organizationId, en }) {
         <tbody>{state.rows.map(row => { const badge = STATUS[row.status] || STATUS.context; return <tr key={row.definitionId || row.id} className={row.definitionId ? 'clickable-row' : ''} onClick={row.definitionId ? () => navigate(`/indicators/${row.definitionId}`, { state: { indicatorPeriod: { from, to, departmentId: null } } }) : undefined}>
           <td><strong>{title(row)}</strong><small>{fmtDay(from)} – {fmtDay(to)} · {row.source}</small></td>
           <td><strong>{fmtNumber(row.value, en)}</strong> {en ? row.unitEn : row.unit}</td>
-          <td>{row.evidence}</td>
+          <td>{row.evidence === 'manual' ? row.evidence : `${fmtNumber(row.numerator, en)}${row.denominator == null ? '' : ` / ${fmtNumber(row.denominator, en)}`}`}</td>
           <td>{row.target == null ? '—' : `${row.direction === 'lower' ? '≤ ' : row.direction === 'higher' ? '≥ ' : ''}${fmtNumber(row.target, en)}`}</td>
           <td><StatusBadge tone={badge[2]}>{badge[en ? 1 : 0]}</StatusBadge></td>
         </tr> })}</tbody>

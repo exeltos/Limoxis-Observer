@@ -44,10 +44,13 @@ export function awareCategoryFor(antibioticName) {
 }
 
 const CATEGORY_LABELS = {
-  access: ['Access', 'Access'],
-  watch: ['Watch', 'Watch'],
-  reserve: ['Reserve', 'Reserve'],
+  access: ['Πρόσβαση', 'Access'],
+  watch: ['Επιτήρηση', 'Watch'],
+  reserve: ['Εφεδρικά', 'Reserve'],
 }
+
+// The WHO's own (English) name of the category, for the tooltip of the Greek label.
+export const awareCategoryWhoName = category => CATEGORY_LABELS[category]?.[1] || ''
 
 export function awareCategoryLabel(category, language = 'el') {
   return CATEGORY_LABELS[category]?.[language === 'en' ? 1 : 0] || '—'

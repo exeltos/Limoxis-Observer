@@ -64,11 +64,12 @@ export async function saveAntibioticDispensingRecord(organizationId,record,{exis
  if(!hospitalScope&&!department)throw new Error('Selected department is not available for this organization.')
  const product=support.products.find(x=>x.id===record.antibioticItemId||x.el===record.product)
  if(!product)throw new Error('Selected antibiotic is not available in the central library.')
+ const keepRange=record.periodKind==='range'&&record.periodStart&&record.periodEnd
  const [year,month]=String(record.period||'').slice(0,7).split('-').map(Number)
- if(!year||!month)throw new Error('A valid month is required.')
- const periodStart=`${year}-${String(month).padStart(2,'0')}-01`
+ if(!keepRange&&(!year||!month))throw new Error('A valid month is required.')
+ const periodStart=keepRange?record.periodStart:`${year}-${String(month).padStart(2,'0')}-01`
  const lastDay=new Date(year,month,0).getDate()
- const periodEnd=`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
+ const periodEnd=keepRange?record.periodEnd:`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
  const payload={organization_id:organizationId,department_id:department?.id||null,period_start:periodStart,period_end:periodEnd,antibiotic_item_id:product.id,quantity_grams:Number(record.quantityGrams)||0,source:record.method||'manual',source_reference:record.referenceNumber||null,responsible_name:record.responsible||null,notes:record.notes||null,updated_by:userId,updated_at:new Date().toISOString()}
  let saved
  if(existingId){const {data,error}=await supabase.from('antibiotic_dispensing_periods').update(payload).eq('organization_id',organizationId).eq('id',existingId).select('*').single();if(error)throw error;saved=data}

@@ -16,7 +16,7 @@ const fmtDay = value => { const [y, m, d] = String(value || '').slice(0, 10).spl
 
 // «Εγκρίσεις αντιβιοτικών»: the restricted antimicrobial therapies waiting for (or given) stewardship approval,
 // the same approvals the surveillance record decides. Approve / reject only with the therapy capability.
-export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord }) {
+export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord, onCounts }) {
   const navigate = useNavigate()
   const actor = useAuditActor()
   const { notify, notifyError } = useFeedback()
@@ -51,6 +51,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)), safePage = Math.min(page, totalPages)
   const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
   const counts = rows.reduce((acc, row) => ({ ...acc, [row.approvalStatus]: (acc[row.approvalStatus] || 0) + 1 }), {})
+  useEffect(() => { onCounts?.({ loading: loading && !rows.length, pending: counts.pending || 0, approved: counts.approved || 0, rejected: counts.rejected || 0 }) }, [onCounts, loading, rows.length, counts.pending, counts.approved, counts.rejected])
   const clear = () => { setQuery(''); setStatus('pending') }
 
   return <>
@@ -67,7 +68,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
       <table className="data-table sticky-table">
         <thead><tr><th>{en ? 'Started' : 'Έναρξη'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'Dose / route' : 'Δόση / οδός'}</th><th>{en ? 'Indication' : 'Ένδειξη'}</th><th>{en ? 'Patient' : 'Ασθενής'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Approval' : 'Έγκριση'}</th>{canDecide && <th />}</tr></thead>
         <tbody>{paged.map(row => { const badge = STATUS[row.approvalStatus] || STATUS.pending; return <tr key={row.id} className={canOpenRecord && row.caseId ? 'clickable-row' : ''} onClick={canOpenRecord && row.caseId ? () => navigate(`/surveillance/${row.caseId}`) : undefined}>
-          <td>{fmtDay(row.startedAt)}</td><td><strong>{row.antimicrobial}</strong></td><td>{[row.dose, row.route].filter(Boolean).join(' · ') || '—'}</td><td>{row.indication || '—'}</td><td>{row.patientCode || '—'}</td><td>{(en ? row.departmentEn : row.department) || '—'}</td>
+          <td>{fmtDay(row.startedAt)}</td><td><strong>{row.antimicrobial}</strong></td><td>{[row.dose, row.route].filter(Boolean).join(' · ') || '—'}</td><td>{row.indication || '—'}</td><td style={{ whiteSpace: 'nowrap' }}>{row.patientCode || '—'}</td><td>{(en ? row.departmentEn : row.department) || '—'}</td>
           <td><StatusBadge tone={badge[2]}>{badge[en ? 1 : 0]}</StatusBadge></td>
           {canDecide && <td onClick={event => event.stopPropagation()}>{row.approvalStatus === 'pending' && <div className="row-actions">
             <Button variant="secondary" disabled={busyId === row.id} onClick={() => decide(row, 'approved')}><Check size={15} />{en ? 'Approve' : 'Έγκριση'}</Button>
