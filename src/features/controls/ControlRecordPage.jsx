@@ -9,6 +9,7 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { FilterSelect } from '../../design-system/FilterBar'
 import { DetailList } from '../../design-system/DetailList'
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -59,6 +60,7 @@ export function ControlRecordPage(){
  const [loading,setLoading]=useState(true)
  const [historyPage,setHistoryPage]=useState(1)
  const [historyPageSize,setHistoryPageSize]=useState(15)
+ const [historyDepartment,setHistoryDepartment]=useState('all')
  // Moving to another control starts on its own tab and on the first page of its history.
  if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'');setHistoryPage(1)}
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
@@ -78,7 +80,8 @@ export function ControlRecordPage(){
  // The executions tab reads one page at a time from the database (a control
  // done daily for years has thousands of entries); it reloads with the record.
  const [historyData,setHistoryData]=useState({key:'',rows:[],total:0})
- const historyAssignmentIds=useMemo(()=>record?record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null})).map(dep=>record.assignments?.[dep]?.dbId).filter(Boolean):[],[record,canAccessRecord])
+ // One department or all of them (the «Department» choice above the table).
+ const historyAssignmentIds=useMemo(()=>record?record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null})).filter(dep=>historyDepartment==='all'||dep===historyDepartment).map(dep=>record.assignments?.[dep]?.dbId).filter(Boolean):[],[record,canAccessRecord,historyDepartment])
  const historyKey=`${historyAssignmentIds.join(',')}|${historyPage}|${historyPageSize}`
  const historyOpen=tab==='history'
  useEffect(()=>{
@@ -253,7 +256,7 @@ export function ControlRecordPage(){
    {listDepartment&&<ControlDepartmentListDialog record={record} department={listDepartment} language={language} onClose={()=>setListDepartment(null)}/>}
   </div>}
   {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} onExportChange={setExpiryExport} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
-  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="record-tab-panel-body"><RegistryTable
+  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill">{assignments.length>1&&<div className="control-history-toolbar"><FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect></div>}<div className="record-tab-panel-body"><RegistryTable
     wrapperClassName="scroll-table"
     className="control-history-table"
     columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα'},{key:'department',label:en?'Department':'Τμήμα'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}

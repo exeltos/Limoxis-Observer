@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { PackageX } from 'lucide-react'
 
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -16,13 +16,13 @@ import { rowFindingText } from './controlVocabulary'
 const normalize=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
 
 // The medicines and supplies on the departments' lists, soonest expiry first,
-// with a filter for those that expire soon or have expired. One control (its
+// with two buttons for those that have expired or expire soon (none: all). One control (its
 // record tab) or every expiry control at once (the Controls page, with a
 // «Control» column). «Removed / replaced» takes an item off the list.
 // sources: [{record,departments}]
 export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,showControl=false,query='',actorName='',language,locale,onExportChange}){
  const en=language==='en'
- const [filter,setFilterValue]=useState('alerting')
+ const [filter,setFilterValue]=useState('all')
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const setFilter=value=>{setFilterValue(value);setPage(1)}
  const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort((a,b)=>(a.days??Infinity)-(b.days??Infinity)),[sources])
@@ -33,7 +33,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const scoped=department==='all'?items:items.filter(item=>item.department===department)
  const searched=needle?scoped.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):scoped
  const counts=expiryCounts(searched)
- const shown=filter==='expiring'?searched.filter(item=>item.state==='expiring'):filter==='expired'?searched.filter(item=>item.state==='expired'):filter==='alerting'?searched.filter(item=>item.state==='expiring'||item.state==='expired'):searched
+ const shown=filter==='expiring'?searched.filter(item=>item.state==='expiring'):filter==='expired'?searched.filter(item=>item.state==='expired'):searched
  // The return form lists what has expired or expires soon in the current search.
  const returnItems=searched.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
  const printReturnForm=()=>printHtml(expiryReturnFormHtml({title:sources.length===1?sources[0].record.title:(en?'All expiry checks':'Όλοι οι έλεγχοι λήξεων'),items:returnItems,actorName}))
@@ -56,7 +56,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const empty=!sources.length
   ? {title:en?'No expiry checks yet':'Δεν υπάρχουν έλεγχοι λήξεων',text:en?'Create a control in the «Medicines / Supplies» category and add its list of items.':'Δημιουργήστε έλεγχο με κατηγορία «Φάρμακα / Υλικά» και προσθέστε τη λίστα υλικών του.'}
   : searched.length
-   ? {title:en?'No items in this view':'Κανένα υλικό σε αυτή την προβολή',text:en?'Choose «All» to see every item on the list.':'Επιλέξτε «Όλα» για να δείτε όλα τα υλικά της λίστας.'}
+   ? {title:en?'No items in this view':'Κανένα υλικό σε αυτή την προβολή',text:en?'Press the highlighted button again to see every item on the list.':'Πατήστε ξανά το επιλεγμένο κουμπί για να δείτε όλα τα υλικά της λίστας.'}
    : {title:en?'No items yet':'Δεν υπάρχουν υλικά',text:en?'Items appear here once they are on a control’s list or recorded with an expiry date.':'Τα υλικά εμφανίζονται εδώ μόλις μπουν στη λίστα ενός ελέγχου ή καταγραφούν με ημερομηνία λήξης.'}
  const columns=[
   {key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο'},
@@ -73,12 +73,10 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
   className="control-expiry-panel workspace-fill"
   title={showControl?(en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'):(en?'Items & expiry':'Υλικά & λήξεις')}
   subtitle={single?(en?`Alert ${single.before} days before and up to ${single.after} days after expiry`:`Ειδοποίηση ${single.before} ημέρες πριν και έως ${single.after} ημέρες μετά τη λήξη`):(en?`${sources.length} expiry checks`:`${sources.length} ${sources.length===1?'έλεγχος':'έλεγχοι'} λήξεων`)}
-  actions={<div className="control-expiry-tools"><SearchableSelect hideLabel className="control-expiry-filter" label={en?'Show':'Προβολή'} value={filter} onChange={next=>next&&(setFilter)(next)} options={[
-   {value:'alerting',label:`${en?'Need attention':'Χρειάζονται ενέργεια'} (${counts.expired+counts.expiring})`},
-   {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
+  actions={<div className="control-expiry-tools"><ChoiceChips className="control-expiry-filter" label="" options={[
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},
-   {value:'all',label:`${en?'All':'Όλα'} (${searched.length})`},
-  ]}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}{!onExportChange&&<ExportMenu disabled={!returnItems.length} items={[{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,onClick:printReturnForm}]}/>}</div>}
+   {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
+  ]} selected={[filter]} onToggle={value=>setFilter(filter===value?'all':value)}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}{!onExportChange&&<ExportMenu disabled={!returnItems.length} items={[{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,onClick:printReturnForm}]}/>}</div>}
   footer={shown.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
  >
   <RegistryTable

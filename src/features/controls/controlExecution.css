@@ -184,36 +184,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.control-exec-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  margin: 0;
-  border: 1px solid var(--lo-color-border);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.control-exec-meta > div {
-  flex: 1 1 150px;
-  min-width: 0;
-  padding: 8px 12px;
-  border-right: 1px solid var(--lo-color-border);
-}
-.control-exec-meta > div:last-child {
-  border-right: 0;
-}
-.control-exec-meta dt {
-  font-size: 10px;
-  font-weight: 650;
-  color: var(--lo-color-muted);
-}
-.control-exec-meta dd {
-  margin: 2px 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--lo-color-text);
-  overflow-wrap: anywhere;
-}
 /* The actions stay in reach while the form scrolls (laptop, tablet). */
 .control-execution-page-tools {
   position: sticky;
@@ -322,3 +292,6 @@
   flex: 1;
   min-width: 0;
 }
+/* The entry's facts on one line under the header. */
+.control-exec-meta-line{display:flex;flex-wrap:wrap;gap:4px 22px;margin:0 0 12px;font-size:13px;color:var(--lo-color-muted)}
+.control-exec-meta-line strong{color:var(--lo-color-text);font-weight:700}

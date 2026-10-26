@@ -158,8 +158,9 @@ function ExecutionFields({state,record,department}){
    :mode==='list'?<FindingsList state={state}/>
    :<ResultField state={state}/>}
   <div className="control-exec-bottom">
-   <Field label={en?'Result details':'Αναλυτικό αποτέλεσμα'}><textarea value={resultText} onChange={e=>setResultText(e.target.value)} rows="2" placeholder={en?'Optional, the result in words…':'Προαιρετικό, το αποτέλεσμα αναλυτικά…'}/></Field>
-   <Field label={en?'Points checked':'Σημεία ελέγχου'}><textarea value={checkedPoints} onChange={e=>setCheckedPoints(e.target.value)} rows="2" placeholder={en?'Optional, which points were checked…':'Προαιρετικό, ποια σημεία ελέγχθηκαν…'}/></Field>
+   {/* A medicines/supplies check records each item in its table: no result or points boxes. */}
+   {!expiryControl&&<Field label={en?'Result details':'Αναλυτικό αποτέλεσμα'}><textarea value={resultText} onChange={e=>setResultText(e.target.value)} rows="2" placeholder={en?'Optional, the result in words…':'Προαιρετικό, το αποτέλεσμα αναλυτικά…'}/></Field>}
+   {!expiryControl&&<Field label={en?'Points checked':'Σημεία ελέγχου'}><textarea value={checkedPoints} onChange={e=>setCheckedPoints(e.target.value)} rows="2" placeholder={en?'Optional, which points were checked…':'Προαιρετικό, ποια σημεία ελέγχθηκαν…'}/></Field>}
    <Field label={en?'Notes':'Σημειώσεις'}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="2" placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
    {!isEditing&&<ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>}
   </div>
@@ -196,9 +197,8 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  }
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
  return <div className="control-execution-page-editor">
-  <dl className="control-exec-meta">
-   {[[en?'Department':'Τμήμα',department],[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],[en?'Frequency':'Συχνότητα',frequencyLabel(assignmentFrequency(record,department),language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'—'}</dd></div>)}
-  </dl>
+  {/* One line: the department and the frequency are already under the title. */}
+  <p className="control-exec-meta-line">{[[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><span key={label}>{label}: <strong>{value||'—'}</strong></span>)}</p>
   {progress?.complete&&!extraReason&&<div className="governance-banner control-period-complete" role="status"><CheckCircle2 size={17}/><span><strong>{progressCompleteMessage(progress,language)}</strong> {en?'A further entry is possible only as an extra entry, with its reason.':'Νέα καταχώρηση γίνεται μόνο ως έκτακτη, με αιτιολογία.'}</span><Button variant="secondary" onClick={()=>setAskExtra(true)}>{en?'Extra entry':'Έκτακτη καταχώρηση'}</Button></div>}
   {extraReason&&<div className="governance-banner warning control-period-extra" role="status"><FileWarning size={17}/><span><strong>{en?'Extra entry':'Έκτακτη καταχώρηση'}</strong> · {extraReason}</span><Button variant="quiet" onClick={()=>setExtraReason('')}>{en?'Cancel':'Ακύρωση'}</Button></div>}
   {askExtra&&<ControlExtraEntryDialog language={language} progress={progress} onClose={()=>setAskExtra(false)} onConfirm={reason=>{setExtraReason(reason);setAskExtra(false)}}/>}
