@@ -77,7 +77,6 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
  .control-expiry-panel .record-tab-panel-header:is(div,#lo-control-form){flex-wrap:wrap!important}
  .control-expiry-panel .record-tab-panel-header .lo-section-header-actions:is(div,#lo-control-form){flex:1 1 100%!important;min-width:0!important;max-width:100%!important}
 }
-.control-expiry-control-cell{max-width:220px;min-width:140px}
 /* «3/4 σήμερα»: the current period's entries, beside a control's status. */
 .control-progress-text{font-size:11px;color:var(--lo-color-muted);white-space:nowrap}
 
@@ -141,3 +140,35 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .controls-record-cell{width:130px;text-align:right}
 .controls-record-now{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:4px 10px;border:0;border-radius:8px;background:var(--lo-color-primary);color:#fff;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
 .controls-record-now:hover,.controls-record-now:focus-visible{background:var(--lo-color-primary-hover,var(--lo-color-primary));outline:0}
+/* «Expiry»: a card per department; a card opens its whole list in a dialog. */
+.control-expiry-departments{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:12px;padding:16px;overflow:auto;flex:1 1 auto;min-height:0}
+.control-expiry-department{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;font:inherit;text-align:left;color:var(--lo-color-text);background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border);border-radius:14px;cursor:pointer}
+.control-expiry-department>strong{display:flex;align-items:center;gap:8px;font-size:15px}
+.control-expiry-department>strong svg:last-child{margin-left:auto;color:var(--lo-color-muted)}
+.control-expiry-department.is-all{border-left-color:var(--lo-color-primary);background:var(--lo-color-primary-soft,var(--lo-color-surface))}
+.control-expiry-department.is-all>strong svg:first-child{color:var(--lo-color-primary)}
+.control-expiry-department.has-expired{border-left-color:var(--lo-status-danger-fg)}
+.control-expiry-department:hover,.control-expiry-department:focus-visible{border-color:var(--lo-color-primary);box-shadow:0 4px 14px rgba(16,40,70,.08);outline:0}
+.control-expiry-department-numbers{display:flex;gap:18px;font-size:12px;color:var(--lo-color-muted)}
+.control-expiry-department-numbers>span{display:flex;flex-direction:column}
+.control-expiry-department-numbers b{font-size:20px;line-height:1.2;color:var(--lo-color-text)}
+.control-expiry-department-numbers .is-late b{color:var(--lo-status-danger-fg)}
+.control-expiry-department-numbers .is-soon b{color:var(--lo-status-warning-fg)}
+.control-expiry-totals{font-size:13px;color:var(--lo-color-muted)}
+.control-expiry-inline{overflow:auto;flex:1 1 auto;min-height:0;padding:8px 16px 16px}
+.control-expiry-group{border:1px solid var(--lo-color-border);border-radius:12px;margin-top:10px;overflow:hidden}
+.control-expiry-group-head{display:flex;align-items:center;gap:7px;width:100%;padding:9px 12px;font:inherit;font-size:13.5px;text-align:left;color:var(--lo-color-text);background:var(--lo-color-surface-muted);border:0;cursor:pointer}
+.control-expiry-group-head small{padding:1px 8px;border-radius:999px;background:var(--lo-color-surface);border:1px solid var(--lo-color-border);font-size:11.5px;color:var(--lo-color-muted)}
+.control-expiry-group.expired .control-expiry-group-head strong{color:var(--lo-status-danger-fg)}
+.control-expiry-group.expiring .control-expiry-group-head strong{color:var(--lo-status-warning-fg)}
+.control-expiry-items{list-style:none;margin:0;padding:0}
+.control-expiry-item{display:grid;grid-template-columns:minmax(0,1fr) 96px 130px 136px;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--lo-color-border);font-size:13px}
+.control-expiry-item-name{display:flex;flex-direction:column;min-width:0}
+.control-expiry-item-name small{font-size:11.5px;color:var(--lo-color-muted)}
+.control-expiry-item-date{font-weight:700}
+.control-expiry-item-action{text-align:right}
+.control-expiry-item-action small{font-size:11.5px;color:var(--lo-color-muted)}
+.control-expiry-card-clear{margin:0;padding:10px 14px;font-size:12.5px;color:var(--lo-color-muted)}
+.control-expiry-empty{display:flex;flex-direction:column;gap:4px;margin:16px}
+@media(max-width:760px){.control-expiry-item{grid-template-columns:minmax(0,1fr) auto}.control-expiry-item-action{grid-column:1/-1;text-align:left}}
+.control-expiry-remove{min-height:30px!important;padding:0 10px!important;font-size:12.5px!important;gap:5px}

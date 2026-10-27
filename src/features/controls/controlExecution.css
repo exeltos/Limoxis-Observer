@@ -295,3 +295,8 @@
 /* The entry's facts on one line under the header. */
 .control-exec-meta-line{display:flex;flex-wrap:wrap;gap:4px 22px;margin:0 0 12px;font-size:13px;color:var(--lo-color-muted)}
 .control-exec-meta-line strong{color:var(--lo-color-text);font-weight:700}
+/* A medicines/supplies check: «All in order» or the items. */
+.control-expiry-outcome{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:4px 0 12px}
+.control-expiry-outcome>small{font-size:12px;color:var(--lo-color-muted)}
+.governance-banner.control-expiry-all-ok{border-color:var(--lo-status-success-border,var(--lo-color-border));background:var(--lo-status-success-bg,var(--lo-color-surface-muted))}
+.governance-banner.control-expiry-all-ok svg{color:var(--lo-status-success-fg)}

@@ -1,6 +1,6 @@
 import { useMemo,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { CheckCircle2, FileWarning, History, Plus, Save, Trash2 } from 'lucide-react'
+import { CheckCircle2, FileWarning, History, ListChecks, Plus, Save, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -12,6 +12,7 @@ import { ChecklistAnswers } from '../../design-system/ChecklistAnswers'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { Field } from '../../design-system/Field'
 import { IconButton } from '../../design-system/IconButton'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -61,6 +62,8 @@ function useControlExecution({organizationId,record,department,initialExecution,
   const listed=expiryControl?prefilledExpiryRows(record,department):[]
   return listed.length?listed:[emptyStructuredRow(response.template)]
  })
+ // A medicines/supplies check with nothing expired or short: «All in order», saved without filling the items.
+ const [allOk,setAllOk]=useState(()=>expiryControl&&(initialExecution?.structuredData?.allOk===true||savedDraft?.allOk===true))
  const [draftSaved,setDraftSaved]=useState(Boolean(savedDraft))
  const [draftSaving,setDraftSaving]=useState(false)
  const [evidence,setEvidence]=useState([])
@@ -70,8 +73,8 @@ function useControlExecution({organizationId,record,department,initialExecution,
  const choiceFinding=mode==='choice'&&isFindingAnswer(response,value,answers)
  const expiryRowAlerts=expiryControl&&rows.some(row=>!row.removedAt&&(expiryState(row.expiry,expiryWindow(record)).alert||quantityShort(row)))
  const structured=mode==='list'||mode==='checklist'
- const hasFinding=outOfRange||choiceFinding||(structured&&listHasFinding(rows))||expiryRowAlerts
- const expiryRowsValid=!expiryControl||rows.every(row=>row.fromCatalogue||!String(row.item||'').trim()||String(row.expiry||'').trim())
+ const hasFinding=!(expiryControl&&allOk)&&(outOfRange||choiceFinding||(structured&&listHasFinding(rows))||expiryRowAlerts)
+ const expiryRowsValid=!expiryControl||allOk||rows.every(row=>row.fromCatalogue||!String(row.item||'').trim()||String(row.expiry||'').trim())
  const checklistValid=mode!=='checklist'||rows.every(row=>row.required===false||row.answer)
  const valid=(structured?true:String(value).trim().length>0)&&expiryRowsValid&&checklistValid&&(!evidenceRequired||evidence.length>0)
  // Earlier entries of this department, latest first: what was recorded last.
@@ -86,18 +89,20 @@ function useControlExecution({organizationId,record,department,initialExecution,
  async function persistDraft(){
   if(draftSaving)return null
   setDraftSaving(true)
-  try{const draft=await saveControlDraft(organizationId,record,department,{value,notes,resultText,checkedPoints,rows});setDraftSaved(true);onDraftSaved?.(draft);notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success');return draft}
+  try{const draft=await saveControlDraft(organizationId,record,department,{value,notes,resultText,checkedPoints,rows,...(allOk?{allOk:true}:{})});setDraftSaved(true);onDraftSaved?.(draft);notify(en?'Draft saved.':'Η προσωρινή καταχώρηση αποθηκεύτηκε.','success');return draft}
   catch{notify(en?'The draft could not be saved.':'Δεν ήταν δυνατή η προσωρινή αποθήκευση.','error');return null}
   finally{setDraftSaving(false)}
  }
  const template=mode==='checklist'?'checklist':response.template
  function payload(){
+  // «All in order»: the list as it stands (its items stay listed), no finding.
+  if(expiryControl&&allOk)return {value:en?'Full compliance':'Πλήρης συμμόρφωση',resultText,checkedPoints,notes,structuredData:{template,rows:rows.filter(r=>r.fromCatalogue),allOk:true},hasFinding:false,actor,evidenceFiles:evidence}
   const cleanRows=mode==='checklist'?rows:mode==='list'?rows.filter(r=>Object.values(r||{}).some(v=>String(v??'').trim())).map(r=>expiryControl&&!r.finding?{...r,finding:impliedFinding(r,expiryWindow(record))}:r):null
   const storedValue=mode==='checklist'?checklistSummary(rows):value
   return {value:storedValue,resultText,checkedPoints,notes,structuredData:structured?{template,rows:cleanRows}:null,hasFinding,actor,evidenceFiles:evidence}
  }
  const printDraft=()=>printControlForm({record,department,execution:{at:initialExecution?.at||new Date().toISOString(),value,resultText,checkedPoints,notes,structuredData:structured?{template,rows}:null,by:actor.name},actorName:actor.name})
- return {en,language,actor,assignment,response,mode,answers,libraries,expiryControl,structured,isEditing,value,setValue,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,rows,setRows,setRow,addRow,removeRow,evidence,setEvidence,evidenceRequired,outOfRange,hasFinding,valid,history,draftSaved,draftSaving,persistDraft,payload,printDraft}
+ return {en,language,actor,assignment,response,mode,answers,libraries,expiryControl,allOk,setAllOk,structured,isEditing,value,setValue,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,rows,setRows,setRow,addRow,removeRow,evidence,setEvidence,evidenceRequired,outOfRange,hasFinding,valid,history,draftSaved,draftSaving,persistDraft,payload,printDraft}
 }
 
 function LastEntry({state,record}){
@@ -147,12 +152,15 @@ function FindingsList({state}){
 }
 
 function ExecutionFields({state,record,department}){
- const {en,language,mode,expiryControl,rows,setRow,addRow,removeRow,setRows,libraries,history,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,hasFinding,isEditing,evidence,setEvidence,evidenceRequired}=state
+ const {en,language,mode,expiryControl,allOk,setAllOk,rows,setRow,addRow,removeRow,setRows,libraries,history,notes,setNotes,resultText,setResultText,checkedPoints,setCheckedPoints,hasFinding,isEditing,evidence,setEvidence,evidenceRequired}=state
  const guidance=[[en?'Goal':'Στόχος',record.goal],[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description],[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes]].filter(([,text])=>text)
  return <>
   {guidance.map(([label,text])=><div key={label} className="control-exec-instructions"><span className="lo-field-label">{label}</span><p>{text}</p></div>)}
   <LastEntry state={state} record={record}/>
-  {expiryControl
+  {expiryControl&&<div className="control-expiry-outcome"><ModeSwitch ariaLabel={en?'Result':'Αποτέλεσμα'} value={allOk?'ok':'items'} onChange={value=>setAllOk(value==='ok')} options={[{value:'ok',label:en?'All in order':'Όλα εντάξει',icon:CheckCircle2},{value:'items',label:en?'Record items':'Καταγραφή υλικών',icon:ListChecks}]}/><small>{en?'«All in order»: nothing expired, expiring or missing. Record items only when something must be noted.':'«Όλα εντάξει»: δεν βρέθηκε ληγμένο, κοντόληκτο ή ελλιπές υλικό. Καταγραφή υλικών μόνο όταν κάτι πρέπει να σημειωθεί.'}</small></div>}
+  {expiryControl&&allOk
+   ?<div className="governance-banner control-expiry-all-ok" role="status"><CheckCircle2 size={17}/><span><strong>{en?'Full compliance':'Πλήρης συμμόρφωση'}</strong> · {en?'No expired, expiring or missing item. Save the entry; print the list from «Export» to sign it.':'Κανένα ληγμένο, κοντόληκτο ή ελλιπές υλικό. Πατήστε «Αποθήκευση»· τη λίστα για υπογραφές την τυπώνετε από την «Εξαγωγή».'}</span></div>
+   :expiryControl
    ?<ControlExpiryEntry record={record} rows={rows} setRow={setRow} addRow={addRow} removeRow={removeRow} keepFirstRow={()=>setRows(current=>current.slice(0,1))} libraries={libraries} history={history} department={department} language={language}/>
    :mode==='checklist'?<ChecklistEntry state={state}/>
    :mode==='list'?<FindingsList state={state}/>
