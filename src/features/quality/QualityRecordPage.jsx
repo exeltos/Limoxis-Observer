@@ -16,6 +16,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { can, CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { DetailList } from '../../design-system/DetailList'
+import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { incidentDetailFacts } from './incidentDetails'
 import { roleTitleText } from '../../core/i18n/roleTitles'
@@ -366,7 +367,7 @@ function sourceRecordPath(id){
   if(id.startsWith('INC-'))return `/quality/incidents/${id}`
   return '/quality'
 }
-function QualityHistory({record,t,language}){const rows=useMemo(()=>[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)),[record.history]);return <div className="record-section"><div className="record-section-header"><h3>{t('history')}</h3></div>{rows.length?<div className="lab-history-list">{rows.map((x,i)=><div className="lab-history-row" key={`${x.at}-${i}`}><time>{formatDateTime(x.at,language)}</time><strong>{t(x.action)}</strong><span>{x.actor||'—'}</span></div>)}</div>:<div className="inline-empty">{t('noData')}</div>}</div>}
+function QualityHistory({record,t,language}){const en=language==='en';const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:t(x.action),meta:[x.actor]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={events} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
 function Detail({label,value}){if(!value&&value!==0)return null;return <div className="detail-item"><span className="lo-field-label">{label}</span><strong>{value||'—'}</strong></div>}
 function EditText({editing,label,value,onChange}){return editing?<div className="detail-item editable"><Field label={label}><input value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>:<Detail label={label} value={value}/>}
 function EditDate({editing,label,value,onChange,language}){return editing?<div className="detail-item editable"><ManualDateField label={label} value={value||''} onChange={onChange}/></div>:<Detail label={label} value={formatDay(value,language)}/>}

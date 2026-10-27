@@ -227,9 +227,7 @@
 @media print{.surveillance-final-report{border:0!important;padding:0!important}}
 
 /* v0.11.0 laboratory shared registry + full sample record */
-.laboratory-record-shell .entity-record-avatar{background:#e9f5f6;color:#247078}
-.lab-history-list{border-left:1px solid #cfdae3;margin-left:7px;padding-left:15px}.lab-history-row{position:relative;display:grid;grid-template-columns:150px 180px minmax(0,1fr);gap:10px;padding:0 0 14px;font-size:11px}.lab-history-row:before{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:#6093b3;left:-19px;top:4px}.lab-history-row time{color:#788a99}.lab-history-row strong{color:#2e5068}.lab-history-row span{color:#617689}.entry-span-2{grid-column:1/-1}
-@media(max-width:720px){.lab-history-row{grid-template-columns:1fr}}
+.laboratory-record-shell .entity-record-avatar{background:#e9f5f6;color:#247078}.entry-span-2{grid-column:1/-1}
 
 
 
