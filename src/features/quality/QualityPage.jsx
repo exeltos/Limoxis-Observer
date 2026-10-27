@@ -89,7 +89,7 @@ export function QualityPage(){
  const suppliersOn=moduleEnabled('suppliers')
  const navigate=useNavigate()
  const {goTo}=useContextualNavigation('/quality')
- const [initial]=useState(()=>qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:'overview',view:null})
+ const [initial]=useState(()=>qualityTabOf(new URLSearchParams(window.location.search).get('tab'))||qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:'overview',view:null})
  useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])
  const [tab,setTab]=useState(initial.tab)
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'indicators')
