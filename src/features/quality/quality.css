@@ -255,6 +255,18 @@
 .quality-finding-next>button{width:auto}
 .quality-summary-line>span.is-late{color:var(--lo-status-danger-fg);font-weight:700}
 .quality-record-line{margin:0 0 14px;padding:0}
-.quality-detail-group{grid-column:1/-1;margin:6px 0 0;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
 .quality-sentinel-banner button{margin-left:auto;flex:0 0 auto}
 .governance-banner.warning.quality-sentinel-banner button svg{color:#fff!important}
+
+/* A record being edited: three columns, the footer at the end of the form (not floating over the fields). */
+.quality-record-shell .quality-record-details.is-editing .quality-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px 16px!important}
+.quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide,.quality-record-details.is-editing .quality-detail-grid>.quality-detail-owner,.quality-record-details.is-editing .quality-detail-grid>.quality-edit-note{grid-column:1/-1}
+.quality-record-details.is-editing .quality-edit-note{margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+.quality-record-details.is-editing .quality-edit-note strong{color:var(--lo-color-text)}
+.quality-record-shell .quality-record-details.is-editing .inline-edit-footer{position:static!important;margin:16px 0 0!important;padding:12px 0 0!important;box-shadow:none!important;background:none!important}
+.quality-record-details.is-editing .quality-investigation-grid textarea{min-height:64px}
+.quality-record-shell:has(.quality-record-details.is-editing) .quality-next-step{display:none}
+.quality-record-shell .quality-record-details.is-editing .lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]{width:20px!important;min-width:20px!important;height:20px!important;min-height:20px!important;padding:0!important;border-radius:5px!important}
+.quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide.detail-item{min-height:0;padding:0}
+.quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide .lo-checkbox-field{min-height:28px!important}
+.quality-record-shell .quality-record-details.is-editing .quality-detail-grid{padding-bottom:6px!important}
