@@ -38,14 +38,14 @@ export function QualityCapaProgress({ record, setRecord, canManage, finalized, o
 
   return <div className="record-section quality-capa-progress">
     <div className="record-section-header"><div><h3>{en ? 'Progress' : 'Πρόοδος'}</h3><p>{en ? 'Dated notes on how the action is going: what was done, what is holding it up.' : 'Σημειώσεις με ημερομηνία για την πορεία της ενέργειας: τι έγινε, τι την καθυστερεί.'}</p></div></div>
-    <RegistryTable bare className="quality-steps-table" rows={entries} rowKey={entry => entry.id}
+    {entries.length > 0 && <RegistryTable bare className="quality-steps-table" rows={entries} rowKey={entry => entry.id}
       columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'note', label: en ? 'Note' : 'Σημείωση' }, { key: 'author', label: en ? 'By' : 'Από' }, { key: 'menu', label: '', className: 'quality-step-menu-col' }]}
       renderRow={entry => <tr>
         <td>{formatDay(entry.date, language)}</td>
         <td>{entry.note}</td>
         <td>{entry.author || '—'}</td>
         <td className="quality-step-menu-col">{editable && <IconButton size="sm" tone="danger" label={en ? 'Remove note' : 'Αφαίρεση σημείωσης'} disabled={saving} onClick={() => remove(entry)}><Trash2 size={14} /></IconButton>}</td>
-      </tr>} />
+      </tr>} />}
     {!entries.length && <div className="inline-empty">{en ? 'No progress notes yet.' : 'Δεν υπάρχουν ακόμη σημειώσεις προόδου.'}</div>}
     {editable && <div className="quality-step-add">
       <ManualDateField value={draft.date} onChange={value => setDraft(current => ({ ...current, date: value }))} />

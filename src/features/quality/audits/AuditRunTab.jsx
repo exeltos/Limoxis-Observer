@@ -9,7 +9,7 @@ import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { SectionHeader } from '../../../design-system/SectionHeader'
 import { StatusBadge } from '../../../design-system/StatusBadge'
-import { RecordMetricStrip } from '../../../design-system/RecordMetricStrip'
+import { MoreSection } from '../../../design-system/MoreSection'
 import { AttachmentField } from '../../../design-system/AttachmentField'
 import { meterTone } from '../../../design-system/MiniCharts'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
@@ -123,19 +123,20 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   if (!rows.length && !editable) return <div className="record-section"><SectionHeader title={L(en, 'Ερωτηματολόγιο', 'Questionnaire')} /><div className="inline-empty">{L(en, 'Η επιθεώρηση δεν έχει ερωτήσεις.', 'This audit has no questions.')}</div></div>
   const area = record.department ? departmentArea(record.department) : ''
   return <div className="record-section audit-run">
-    <RecordMetricStrip items={[
-      { id: 'rate', label: L(en, 'Συμμόρφωση (σταθμισμένη)', 'Compliance (weighted)'), value: score.overall.rate == null ? '—' : `${score.overall.rate}%`, meter: score.overall.rate, tone: score.overall.rate == null ? undefined : meterTone(score.overall.rate), primary: true },
-      { id: 'answered', label: L(en, 'Απαντήθηκαν', 'Answered'), value: `${score.overall.answered}/${score.overall.total}` },
-      { id: 'partial', label: L(en, 'Μερική', 'Partial'), value: score.overall.partial, tone: score.overall.partial ? 'warning' : undefined },
-      { id: 'no', label: L(en, 'Μη συμμόρφωση', 'Nonconformity'), value: score.overall.no, tone: score.overall.no ? 'danger' : undefined },
-      { id: 'na', label: L(en, 'Δεν εφαρμόζεται', 'Not applicable'), value: score.overall.na },
-      { id: 'critical', label: L(en, 'Κρίσιμες σε μη συμμόρφωση', 'Critical not met'), value: score.criticalFailed, tone: score.criticalFailed ? 'danger' : undefined },
-    ]} />
+    <p className="quality-summary-line quality-record-line">
+      <span className={score.overall.rate != null && score.overall.rate < 70 ? 'is-late' : undefined}>{L(en, 'Συμμόρφωση', 'Compliance')} <b>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</b></span>
+      <span><b>{score.overall.answered}/{score.overall.total}</b> {L(en, 'απαντήθηκαν', 'answered')}</span>
+      <span><b>{score.overall.partial}</b> {L(en, 'μερική', 'partial')}</span>
+      <span className={score.overall.no ? 'is-late' : undefined}><b>{score.overall.no}</b> {L(en, 'μη συμμόρφωση', 'nonconformity')}</span>
+      <span><b>{score.overall.na}</b> {L(en, 'δεν εφαρμόζεται', 'not applicable')}</span>
+      {score.criticalFailed > 0 && <span className="is-late"><b>{score.criticalFailed}</b> {L(en, 'κρίσιμες σε μη συμμόρφωση', 'critical not met')}</span>}
+    </p>
     {chapters.length > 1 && <div className="audit-chapter-strip" role="group" aria-label={L(en, 'Κεφάλαια', 'Chapters')}>
       <button type="button" className={chapter === 'all' ? 'is-active' : ''} onClick={() => setChapter('all')}><strong>{L(en, 'Όλα', 'All')}</strong><small>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</small></button>
       {chapters.map(item => <button type="button" key={item.ref || 'none'} className={`${chapter === item.ref ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.ref)}><strong>{item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
     </div>}
 
+    <MoreSection moreLabel={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} lessLabel={L(en, 'Λιγότερα', 'Less')} defaultOpen={Boolean(meetings.opening.date || meetings.opening.attendees || meetings.representative)}>
     <FormCard wide title={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} icon={Users}>
       <FormGrid columns={3}>
         <ManualDateField label={L(en, 'Ημερομηνία', 'Date')} value={meetings.opening.date} onChange={date => setMeetings(current => ({ ...current, opening: { ...current.opening, date } }))} disabled={!editable} />
@@ -143,6 +144,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
         <Field label={L(en, 'Παρόντες', 'Attendees')}><input value={meetings.opening.attendees} disabled={!editable} onChange={event => setMeetings(current => ({ ...current, opening: { ...current.opening, attendees: event.target.value } }))} placeholder={L(en, 'Ονόματα, χωρισμένα με κόμμα', 'Names, separated by commas')} /></Field>
       </FormGrid>
     </FormCard>
+    </MoreSection>
 
     <SectionHeader title={L(en, `Ερωτηματολόγιο${record.templateTitle ? ` · ${record.templateTitle}` : ''}`, `Questionnaire${record.templateTitle ? ` · ${record.templateTitle}` : ''}`)}
       subtitle={!stored.length && template ? L(en, `${rows.length} ερωτήσεις για ${area ? `την περιοχή «${areaLabel(area, language)}»` : 'όλο τον οργανισμό'}${record.clausesScope?.length ? ` και τα κεφάλαια ${record.clausesScope.join(', ')}` : ''}. Αποθηκεύονται με την πρώτη αποθήκευση.`, `${rows.length} questions for ${area ? `the «${areaLabel(area, language)}» area` : 'the whole organization'}${record.clausesScope?.length ? ` and chapters ${record.clausesScope.join(', ')}` : ''}. Kept on the first save.`) : undefined}

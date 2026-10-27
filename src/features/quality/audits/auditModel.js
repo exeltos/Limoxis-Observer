@@ -232,6 +232,9 @@ export function competenceWarnings(team = [], { certificates = [], assignments =
 
 export const nextAuditDate = (lastDate, riskLevel) => (lastDate ? addMonths(lastDate, riskMonths(riskLevel)) : '')
 
+// Without a planned next audit: the completed one's date plus its frequency (6 months unless set).
+export const followingAuditDate = audit => (audit.status === 'completed' && audit.completedDate ? addMonths(audit.completedDate, audit.frequencyMonths || 6) : '')
+
 // A department is audited twice a year (every 6 months unless its audit says
 // otherwise) and always has its next audit planned. The database does the same
 // when an audit is completed (quality_schedule_next_audit).

@@ -141,8 +141,28 @@ export function capaSummary(record,{language}){
   return items
 }
 
+// An audit «at a glance» as one line under the title.
+export function auditSummary(record,{language,linked=[]}){
+  const en=language==='en'
+  const score=auditCompliance(record)
+  const total=(record.checklist||[]).length
+  const items=[]
+  if(score.rate!=null)items.push({text:en?`compliance ${score.rate}% (${score.yes} yes · ${score.no} no)`:`συμμόρφωση ${score.rate}% (${score.yes} ναι · ${score.no} όχι)`,tone:score.rate<70?'danger':undefined})
+  else items.push({text:total?(en?`${total} questions, none answered`:`${total} ερωτήσεις, καμία δεν απαντήθηκε`):(en?'no questionnaire answers yet':'χωρίς απαντήσεις ερωτηματολογίου')})
+  const open=linked.filter(row=>!isClosed(row)).length
+  items.push(linked.length?{text:en?`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} open)`:`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} ανοιχτά)`,tone:open?'danger':undefined}:{text:en?'no findings':'χωρίς ευρήματα'})
+  if(record.completedDate)items.push({text:en?`completed ${formatDay(record.completedDate,language)}`:`ολοκληρώθηκε ${formatDay(record.completedDate,language)}`})
+  else{
+    const until=daysUntil(record.plannedDate)
+    const when=record.plannedMonthOnly?String(record.plannedDate||'').slice(0,7):formatDay(record.plannedDate,language)
+    if(until!=null)items.push(until<0&&!record.plannedMonthOnly?{text:en?`planned ${when} (${-until} ${plural(-until,en,'ημέρα','ημέρες','day','days')} late)`:`προγραμματισμένη ${when} (εκπρόθεσμη ${-until} ${plural(-until,en,'ημέρα','ημέρες','day','days')})`,tone:'danger'}:{text:en?`planned ${when}`:`προγραμματισμένη ${when}`})
+  }
+  return items
+}
+
 export function QualityGlance({recordType,record,language,t,linked}){
   if(recordType==='capas')return <p className="quality-summary-line quality-record-line">{capaSummary(record,{language}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
+  if(recordType==='audits')return <p className="quality-summary-line quality-record-line">{auditSummary(record,{language,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='findings')return <p className="quality-summary-line quality-record-line">{findingSummary(record,{language,t,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='incidents')return <p className="quality-summary-line quality-record-line">{incidentSummary(record,{language,t}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   const items=glanceItems(recordType,record,{language,t,linked})

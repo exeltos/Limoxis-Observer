@@ -97,3 +97,4 @@
 @media (max-width:760px){
   .audit-trend{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
+.audit-plan-actions{display:flex;justify-content:flex-end}

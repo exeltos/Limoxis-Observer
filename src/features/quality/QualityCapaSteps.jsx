@@ -60,7 +60,7 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
  return <div className="record-section quality-capa-steps">
   <div className="record-section-header"><div><h3>{en?'Steps':'Βήματα'}</h3><p>{total?(en?`${done} of ${total} done`:`${done} από ${total} ολοκληρώθηκαν`):(en?'Break the action into steps with an owner and a due date.':'Χωρίστε την ενέργεια σε βήματα με υπεύθυνο και προθεσμία.')}{overdue.size>0&&<strong className="quality-steps-overdue"> · {en?`${overdue.size} overdue`:`${overdue.size} εκπρόθεσμα`}</strong>}</p></div>
    {total>0&&<span className="quality-steps-progress" aria-hidden="true"><span style={{width:`${Math.round(done/total*100)}%`}}/></span>}</div>
-  <RegistryTable bare className="quality-steps-table" rows={steps} rowKey={step=>step.id}
+  {total>0&&<RegistryTable bare className="quality-steps-table" rows={steps} rowKey={step=>step.id}
    columns={[{key:'done',label:'',ariaLabel:en?'Done':'Ολοκληρώθηκε',className:'quality-step-check-col'},{key:'step',label:en?'Step':'Βήμα'},{key:'owner',label:t2(en,'Owner','Υπεύθυνος')},{key:'due',label:t2(en,'Due date','Προθεσμία')},{key:'completed',label:t2(en,'Completed','Ολοκλήρωση')},{key:'menu',label:'',className:'quality-step-menu-col'}]}
    renderRow={step=>editingId===step.id
     ? <tr className="quality-step-editing"><td></td><td><input value={editDraft.title} onChange={e=>setEditDraft(d=>({...d,title:e.target.value}))} aria-label={t2(en,'Step','Βήμα')}/></td><td>{ownerField(editDraft.owner,v=>setEditDraft(d=>({...d,owner:v})))}</td><td><ManualDateField value={editDraft.dueDate||''} onChange={v=>setEditDraft(d=>({...d,dueDate:v}))}/></td><td colSpan={2}><div className="row-actions"><Button variant="secondary" disabled={saving} onClick={()=>{setEditingId(null);setEditDraft(null)}}>{t2(en,'Cancel','Άκυρο')}</Button><Button disabled={saving||!editDraft.title.trim()} onClick={saveEdit}>{t2(en,'Save','Αποθήκευση')}</Button></div></td></tr>
@@ -74,7 +74,7 @@ export function QualityCapaSteps({record,setRecord,canManage,finalized,organizat
       {id:'edit',label:t2(en,'Edit','Επεξεργασία'),icon:Pencil,onClick:()=>{setEditingId(step.id);setEditDraft({...step})}},
       {id:'remove',label:t2(en,'Remove step','Αφαίρεση βήματος'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(step)},
      ]}/>}</td>
-    </tr>}/>
+    </tr>}/>}
   {!total&&<div className="inline-empty">{t2(en,'No steps yet.','Δεν υπάρχουν ακόμη βήματα.')}</div>}
   {editable&&<div className="quality-step-add">
    <input value={draft.title} onChange={e=>setDraft(d=>({...d,title:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void add()}}} placeholder={t2(en,'New step, e.g. Retrain night shift on fridge checks','Νέο βήμα, π.χ. Επανεκπαίδευση νυχτερινής βάρδιας στον έλεγχο ψυγείου')} aria-label={t2(en,'New step','Νέο βήμα')}/>

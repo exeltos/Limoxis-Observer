@@ -283,3 +283,6 @@
 .quality-record-stack{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:auto}
 .quality-record-stack>.record-section{flex:0 0 auto;overflow:visible;height:auto}
 .rca-empty{margin:0 0 12px;color:var(--muted)}
+.quality-record-stack>.record-section{border:0;box-shadow:none;background:none;padding:0 2px}
+.quality-record-stack>.record-section+.record-section{padding-top:16px;border-top:1px solid var(--lo-color-border)}
+.quality-step-add>.button{height:40px!important;min-height:40px!important}

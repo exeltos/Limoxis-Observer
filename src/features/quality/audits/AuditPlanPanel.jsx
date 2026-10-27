@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CalendarDays, ChevronRight } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
-import { RecordDetailsGrid } from '../../../design-system/RecordDetailsGrid'
-import { SectionHeader } from '../../../design-system/SectionHeader'
+import { DetailList } from '../../../design-system/DetailList'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { saveQualityRecord } from '../qualityService'
+import { loadQualityRecords, saveQualityRecord } from '../qualityService'
 import { AUDIT_KINDS, RISK_LEVELS, TEAM_ROLES, standardLabel } from './auditStandards'
-import { competenceWarnings, independenceBlocks, independenceIssues, nextAuditDate } from './auditModel'
+import { competenceWarnings, independenceBlocks, independenceIssues, followingAuditDate } from './auditModel'
+import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { AuditPlanFields } from './AuditPlanFields'
 import { useAuditTemplates, useAuditorCompetence } from './useAuditTemplates'
 import './audits.css'
@@ -17,6 +17,24 @@ import './audits.css'
 const L = (en, el, english) => (en ? english : el)
 const label = (list, value, en) => list.find(item => item.value === value)?.label[en ? 1 : 0] || ''
 const monthText = (value, language) => (value ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(value).slice(0, 7)}-15T12:00:00Z`)) : '')
+
+// The department's next audit for the same standard: the earliest one still open after this audit.
+function useNextAudit(record, organizationId) {
+  const [next, setNext] = useState(null)
+  useEffect(() => {
+    let active = true
+    loadQualityRecords('audits', organizationId).then(list => {
+      if (!active) return
+      const after = String(record.completedDate || record.plannedDate || '')
+      const found = list
+        .filter(item => item.id !== record.id && item.department === record.department && (item.standard || '') === (record.standard || '') && ['planned', 'inProgress', 'in_progress'].includes(item.status) && item.lifecycleStatus !== 'voided' && String(item.plannedDate || '') >= after)
+        .sort((a, b) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
+      setNext(found || null)
+    }).catch(() => { if (active) setNext(null) })
+    return () => { active = false }
+  }, [organizationId, record.id, record.department, record.standard, record.completedDate, record.plannedDate])
+  return next
+}
 
 // The audit's planning on its record: standard and questionnaire, the chapters
 // in scope, kind, date (or month), risk and frequency, the team with its
@@ -31,6 +49,7 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
   const [draft, setDraft] = useState(null)
   const [saving, setSaving] = useState(false)
   const department = { id: record.departmentId, name: record.department }
+  const nextAudit = useNextAudit(record, organizationId)
   const issues = independenceIssues(record.team || [], department)
   const untrained = competenceWarnings(record.team || [], competence)
   async function save() {
@@ -47,17 +66,21 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
     } finally { setSaving(false) }
   }
   const team = record.team || []
-  const next = record.status === 'completed' ? nextAuditDate(record.completedDate, record.riskLevel) : ''
+  const next = followingAuditDate(record)
+  const nextLink = nextAudit
+    ? <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${nextAudit.id}`, { tab: 'details' })}>{nextAudit.plannedMonthOnly ? monthText(nextAudit.plannedDate, language) : formatDay(nextAudit.plannedDate, language)} · {nextAudit.displayId || nextAudit.id}<ChevronRight size={13} /></button>
+    : (next ? formatDay(next, language) : '')
+  const items = [
+    { label: L(en, 'Πρότυπο', 'Standard'), value: standardLabel(record.standard, language) },
+    { label: L(en, 'Ερωτηματολόγιο', 'Questionnaire'), value: record.templateTitle ? `${record.templateTitle}${record.templateVersion ? ` · ${L(en, 'έκδοση', 'version')} ${record.templateVersion}` : ''}` : '' },
+    { label: L(en, 'Κεφάλαια στο πεδίο', 'Chapters in scope'), value: record.clausesScope?.length ? record.clausesScope.join(', ') : L(en, 'Όλο το ερωτηματολόγιο', 'The whole questionnaire') },
+    { label: L(en, 'Είδος', 'Kind'), value: label(AUDIT_KINDS, record.auditType || 'internal', en) },
+    { label: L(en, 'Προγραμματισμός', 'Planned'), value: record.plannedMonthOnly ? `${monthText(record.plannedDate, language)} · ${L(en, 'η ημέρα θα οριστεί', 'day to be fixed')}` : formatDay(record.plannedDate, language) },
+    { label: L(en, 'Κίνδυνος / συχνότητα', 'Risk / frequency'), value: record.riskLevel ? label(RISK_LEVELS, record.riskLevel, en) : '' },
+    { label: L(en, 'Επόμενη επιθεώρηση', 'Next audit'), value: nextLink },
+  ].filter(item => item.value)
   return <section className="audit-plan-panel">
-    <SectionHeader title={L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning')} actions={canManage && !finalized && <Button variant="secondary" onClick={() => setDraft(structuredClone(record))}><CalendarDays size={15} /> {L(en, 'Σχεδιασμός', 'Planning')}</Button>} />
-    <RecordDetailsGrid fields={[
-      { id: 'standard', label: L(en, 'Πρότυπο', 'Standard'), value: standardLabel(record.standard, language) },
-      { id: 'template', label: L(en, 'Ερωτηματολόγιο', 'Questionnaire'), value: record.templateTitle, meta: record.templateVersion ? `${L(en, 'έκδοση', 'version')} ${record.templateVersion}` : undefined },
-      { id: 'scope', label: L(en, 'Κεφάλαια στο πεδίο', 'Chapters in scope'), value: record.clausesScope?.length ? record.clausesScope.join(', ') : L(en, 'Όλο το ερωτηματολόγιο', 'The whole questionnaire') },
-      { id: 'kind', label: L(en, 'Είδος', 'Kind'), value: label(AUDIT_KINDS, record.auditType || 'internal', en) },
-      { id: 'planned', label: L(en, 'Προγραμματισμός', 'Planned'), value: record.plannedMonthOnly ? monthText(record.plannedDate, language) : formatDay(record.plannedDate, language), meta: record.plannedMonthOnly ? L(en, 'η ημέρα θα οριστεί', 'day to be fixed') : undefined },
-      { id: 'risk', label: L(en, 'Κίνδυνος / συχνότητα', 'Risk / frequency'), value: record.riskLevel ? label(RISK_LEVELS, record.riskLevel, en) : '', meta: next ? `${L(en, 'Επόμενη', 'Next')}: ${formatDay(next, language)}` : undefined },
-    ]} />
+    <DetailList sections={[{ title: L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning'), items }]} />
     <div className="audit-plan-team">
       <span className="lo-field-label">{L(en, 'Ομάδα επιθεώρησης', 'Audit team')}</span>
       {team.length ? <ul className="audit-team-list is-read">{team.map(member => <li key={member.id || member.name}>
@@ -66,8 +89,9 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
           {issues.find(issue => issue.member === member) && <StatusBadge tone={issues.find(issue => issue.member === member).level === 'block' ? 'danger' : 'warning'}>{L(en, 'Ίδιο τμήμα', 'Own department')}</StatusBadge>}
           {untrained.includes(member) && <StatusBadge tone="warning">{L(en, 'Χωρίς πιστοποίηση επιθεωρητή', 'No auditor certificate')}</StatusBadge>}
         </span>
-      </li>)}</ul> : <strong>{record.leadAuditor || '—'}</strong>}
+      </li>)}</ul> : <strong>{roleTitleText(record.leadAuditor, language) || '—'}</strong>}
     </div>
+    {canManage && !finalized && <div className="audit-plan-actions"><Button variant="secondary" onClick={() => setDraft(structuredClone(record))}><CalendarDays size={15} /> {L(en, 'Σχεδιασμός', 'Planning')}</Button></div>}
     {record.followUpOf && <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${record.followUpOf}`, { tab: 'details' })}>{L(en, 'Επαναληπτική της', 'Follow-up of')} {record.followUpOf}<ChevronRight size={13} /></button>}
     {draft && <ObserverDialog width="wide" fixedHeight title={L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning')} subtitle={record.displayId || record.id} onClose={() => setDraft(null)}
       footer={<DialogActions onSave={save} disabled={saving || independenceBlocks(draft.team || [], { id: draft.departmentId, name: draft.department })} />}>
