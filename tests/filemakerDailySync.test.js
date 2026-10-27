@@ -4,14 +4,20 @@ import { readFileSync } from 'node:fs'
 const read = (name) => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8')
 const controls = read('20261211130000_filemaker_hourly_sync.sql')
 const areas = read('20261211140000_filemaker_hourly_sync_areas.sql')
+const daily = read('20261211150000_filemaker_daily_sync_indicators.sql')
 
-describe('FileMaker hourly sync', () => {
-  it('runs every hour: the tables are read again at :05 and added at :35', () => {
-    expect(controls).toContain("cron.schedule('limoxis-filemaker-requeue', '5 * * * *'")
-    expect(controls).toContain("cron.schedule('limoxis-filemaker-sync', '35 * * * *'")
+describe('FileMaker daily sync', () => {
+  it('runs once a day (owner, 27/10/2026): read again at 01:05 UTC, added at 01:35 UTC', () => {
+    expect(daily).toContain("cron.schedule('limoxis-filemaker-requeue', '5 1 * * *'")
+    expect(daily).toContain("cron.schedule('limoxis-filemaker-sync', '35 1 * * *'")
+  })
+  it('adds the new days of the monthly department indicators once each', () => {
+    for (const table of ['Indicators TEP', 'Indicators Α.Τ', 'Indicators Ενδοσκοπικό', 'Indicators eyelab']) expect(daily).toContain(`private.fm_sync_counts('${table}'`)
+    expect(daily).toContain("'indicators', private.fm_sync_indicators()")
+    expect(daily).not.toMatch(/\bdelete\s+from\b/i)
   })
   it('only adds records from 19/10/2026 on, each linked so it is never added twice', () => {
-    for (const sql of [controls, areas]) {
+    for (const sql of [controls, areas, daily]) {
       expect(sql).not.toMatch(/\bdelete\s+from\b/i)
       expect(sql).not.toMatch(/\bdrop\s+(table|function)\b/i)
       expect(sql).not.toMatch(/\bupdate\s+public\.(employees|control_executions|training_programs|training_assignments|quality_incidents|committee_meetings|committee_decisions|quality_department_meetings)\b/i)
