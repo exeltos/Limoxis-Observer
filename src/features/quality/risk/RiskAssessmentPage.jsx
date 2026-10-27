@@ -155,7 +155,7 @@ export function RiskAssessmentPage(){
  const nextStep=statusItems.find(item=>item.id===(assessment.status==='draft'?'review':assessment.status==='under_review'?'approve':assessment.status==='approved'?'archive':''))||null
  // «Εξαγωγή» in the header of the record; «⋯» at the top right of the card, as on every record.
  const exportMenu=<ExportMenu onPrint={print} onPdf={print} items={[{id:'register',kind:'excel',label:L(en,'Excel: μητρώο κινδύνων','Excel: risk register'),onClick:exportCsv}]}/>
- const moreMenu=menuItems.length>0?<span className="risk-tabs-menu"><OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} items={menuItems}/></span>:null
+ const moreMenu=menuItems.length>0?<span className="risk-tabs-menu"><OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} size="md" width={280} trigger={<><span>{L(en,'Ενέργειες','Actions')}</span></>} items={menuItems}/></span>:null
 
  const tabs=[
   {id:'register',label:L(en,`Μητρώο (${risks.length})`,`Register (${risks.length})`),icon:ClipboardList},
