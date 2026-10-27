@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { AlertOctagon,AlertTriangle,ClipboardList,Gauge,ShieldAlert,TrendingDown } from 'lucide-react'
-import { MetricCard } from '../../../design-system/MetricCard'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
@@ -63,14 +61,14 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>
  const kpis=<div className="risk-analysis-head">
-  <div className="module-summary-strip risk-kpi-strip risk-analysis-kpis">
-   <MetricCard icon={ClipboardList} value={summary.total} label={L(en,'Κίνδυνοι','Risks')}/>
-   <MetricCard icon={AlertOctagon} value={summary.levels.residual.very_high} label={L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)')}/>
-   <MetricCard icon={AlertTriangle} value={summary.levels.residual.high} label={L(en,'Υψηλοί (υπολ.)','High (residual)')}/>
-   <MetricCard icon={Gauge} value={num(summary.averages.residual,en)} label={L(en,'Μέσος υπολειπόμενος','Average residual')}/>
-   <MetricCard icon={TrendingDown} value={summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'} label={L(en,'Μέση μείωση από τον εγγενή','Average reduction')}/>
-   <MetricCard icon={ShieldAlert} value={summary.withoutPlan.length} label={L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without a plan')}/>
-  </div>
+  <p className="quality-summary-line risk-summary-line">
+   <span><b>{summary.total}</b> {L(en,'κίνδυνοι','risks')}</span>
+   <span className={summary.levels.residual.very_high?'is-late':undefined}><b>{summary.levels.residual.very_high}</b> {L(en,'πολύ υψηλοί (υπολ.)','very high (residual)')}</span>
+   <span><b>{summary.levels.residual.high}</b> {L(en,'υψηλοί (υπολ.)','high (residual)')}</span>
+   <span><b>{num(summary.averages.residual,en)}</b> {L(en,'μέσος υπολειπόμενος','average residual')}</span>
+   <span><b>{summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'}</b> {L(en,'μέση μείωση από τον εγγενή','average reduction')}</span>
+   <span className={summary.withoutPlan.length?'is-late':undefined}><b>{summary.withoutPlan.length}</b> {L(en,'υψηλοί χωρίς σχέδιο δράσης','high without a plan')}</span>
+  </p>
   {actions}
  </div>
  return frame(kpis,<div className="risk-analysis">

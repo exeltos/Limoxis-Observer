@@ -219,6 +219,7 @@ export function QualityPage(){
   reports:[],
   incidents:[],
   deviations:[],
+  risks:[],
  })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'&&measureView==='surveys'?tabFigures.surveys:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
  const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='resources'?`resources:${resourceView}`:tab
@@ -274,6 +275,7 @@ export function QualityPage(){
   {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
   {tab==='audits'&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null} onRound={canManage?()=>setRoundOpen(true):null}/>}
   {roundOpen&&<AuditRoundDialog audits={records.data.audits} language={language} saving={fillingProgramme} onClose={()=>setRoundOpen(false)} onApply={applyRound}/>}
+  {tab==='risks'&&(tabFigures.risks||[]).length>0&&<p className="quality-summary-line" aria-live="polite">{tabFigures.risks.map(figure=><span key={figure.key} className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined}><b>{figure.value}</b> {figure.label.toLowerCase()}</span>)}</p>}
   {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language} onOrphans={()=>goDeviations('withoutCapa')}/>}
   <section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}

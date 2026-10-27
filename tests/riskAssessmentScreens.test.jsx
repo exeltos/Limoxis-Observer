@@ -66,7 +66,7 @@ describe('risk assessment screens', () => {
     expect(screen.queryByRole('button', { name: 'Πρότυπα πλατφόρμας' })).not.toBeInTheDocument()
   })
 
-  it('opens an assessment with its register, analysis, comparison and method', async () => {
+  it('opens an assessment with its register, analysis (with the comparison) and details (with the method)', async () => {
     const year = new Date(Date.now() - 7 * 86400000).getFullYear()
     await open(`/quality/risks/RSA-DEMO-${year}`)
     expect(await screen.findByRole('tab', { name: 'Μητρώο (14)' })).toBeInTheDocument()
@@ -74,12 +74,13 @@ describe('risk assessment screens', () => {
     expect(register().getByText('R001')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Ανάλυση' }))
     expect(await screen.findByText('Χάρτες κινδύνου')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: 'Σύγκριση περιόδων' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Σύγκριση περιόδων' }))
     expect(await screen.findByText('Μεταβολή ανά κίνδυνο')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Βελτιώθηκε/ })).toBeInTheDocument()
     // Three years of Demo data: the course over the periods is drawn.
     expect(document.querySelectorAll('.risk-trend-chart .dot-avg')).toHaveLength(3)
-    fireEvent.click(screen.getByRole('tab', { name: 'Μεθοδολογία' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Στοιχεία' }))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Μεθοδολογία' }))
     expect(await screen.findByText(/A risk matrix for risk managers/)).toBeInTheDocument()
     // A JCI chapter of the method opens the register on its risks.
     const chapter = within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')
@@ -92,7 +93,7 @@ describe('risk assessment screens', () => {
     // «Πίσω» returns to the method, with the chapter marked.
     expect(screen.getAllByRole('button', { name: 'Πίσω σε «Μεθοδολογία»' })).toHaveLength(2)
     fireEvent.click(document.querySelector('.risk-origin-back'))
-    await screen.findByRole('tab', { name: 'Μεθοδολογία', selected: true })
+    await screen.findByRole('radio', { name: 'Μεθοδολογία', checked: true })
     expect(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button')).toHaveClass('registry-row-returned')
     expect(document.querySelector('.risk-tab-scroll').scrollTop).toBe(240)
     // The browser's back button also returns to the same spot.
@@ -100,7 +101,7 @@ describe('risk assessment screens', () => {
     fireEvent.click(within(document.querySelector('.risk-jci-grid')).getByText('IPSG.5').closest('button'))
     await screen.findByRole('tab', { name: 'Μητρώο (14)', selected: true })
     act(() => historyBack())
-    await screen.findByRole('tab', { name: 'Μεθοδολογία', selected: true })
+    await screen.findByRole('radio', { name: 'Μεθοδολογία', checked: true })
     expect(document.querySelector('.risk-tab-scroll').scrollTop).toBe(120)
   })
 

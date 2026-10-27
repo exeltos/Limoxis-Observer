@@ -1,8 +1,7 @@
 import { useMemo,useState } from 'react'
-import { ChevronRight,ClipboardX,Hourglass,Lightbulb,Plus,TrendingUp } from 'lucide-react'
+import { ChevronRight,Plus } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { ActionButton } from '../../../design-system/ActionButton'
-import { MetricCard } from '../../../design-system/MetricCard'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,opportunityCode,parseMeasures } from './riskModel'
@@ -36,12 +35,13 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
  })
  const active=(rating!=='all')+(effect!=='all')+(owner!=='all')
  const {items:pageRows,pager}=usePaged(rows,{en,resetOn:JSON.stringify([query,rating,effect,owner,quick]),startIndex:rows.findIndex(x=>String(x.item.id)===returned)})
- const kpis=<div className="module-summary-strip risk-kpi-strip">
-   <MetricCard icon={Lightbulb} value={all.length} label={L(en,'Ευκαιρίες','Opportunities')} onClick={()=>setQuick(null)} active={!quick}/>
-   <MetricCard icon={TrendingUp} value={counts.high} label={L(en,'Υψηλής απόδοσης','High yield')} onClick={()=>toggleQuick('high')} active={quick==='high'}/>
-   <MetricCard icon={ClipboardX} value={counts.noPlan} label={L(en,'Χωρίς σχέδιο δράσης','Without an action plan')} onClick={()=>toggleQuick('noPlan')} active={quick==='noPlan'}/>
-   <MetricCard icon={Hourglass} value={counts.unassessed} label={L(en,'Χωρίς αξιολόγηση αποτελεσματικότητας','Effectiveness not assessed')} onClick={()=>toggleQuick('unassessed')} active={quick==='unassessed'}/>
- </div>
+ const line=(id,value,label,late=false)=><button key={id} type="button" className={`${late&&value?'is-late':''}${quick===id?' is-active':''}`.trim()} onClick={()=>toggleQuick(id)}><b>{value}</b> {label}</button>
+ const kpis=<p className="quality-summary-line risk-summary-line">
+   <button type="button" className={!quick?'is-active':undefined} onClick={()=>setQuick(null)}><b>{all.length}</b> {L(en,'ευκαιρίες','opportunities')}</button>
+   {line('high',counts.high,L(en,'υψηλής απόδοσης','high yield'))}
+   {line('noPlan',counts.noPlan,L(en,'χωρίς σχέδιο δράσης','without an action plan'),true)}
+   {line('unassessed',counts.unassessed,L(en,'χωρίς αξιολόγηση αποτελεσματικότητας','effectiveness not assessed'),true)}
+ </p>
  return frame(kpis,<>
   <div className="risk-toolbar">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση ευκαιρίας, σχεδίου δράσης, υπευθύνου…','Search opportunity, action plan, owner…')} activeAdvancedCount={active+(quick?1:0)} onClear={()=>{setQuery('');setRating('all');setEffect('all');setOwner('all');setQuick(null)}}>

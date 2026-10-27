@@ -259,9 +259,6 @@
 .risk-kpi-delta.down{background:#e7f5ec;color:#1d6b3a}
 .risk-kpi-delta.same{background:#eef2f5;color:#566775}
 /* Register: KPI cards as filters, section headings, the score path, wide search. */
-.risk-kpi-row .module-summary-strip.risk-register-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
-.risk-register-kpis>*{min-height:64px}
-@media(max-width:1100px){.risk-kpi-row .module-summary-strip.risk-register-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 :is(.risk-register,.risk-opportunities) .risk-toolbar>.filter-system{flex:1 1 420px!important;min-width:0;max-width:none!important}
 :is(.risk-register,.risk-opportunities) .filter-primary-row{width:100%}
 :is(.risk-register,.risk-opportunities) .filter-system .filter-search{flex:1 1 auto!important;width:auto!important;max-width:620px!important}
@@ -319,8 +316,6 @@
 /* Analysis: KPI strip with the menu, decisions first, counts under each map, one breakdown table. */
 .risk-analysis-head{display:flex;align-items:flex-start;gap:10px}
 .risk-analysis-head>.module-summary-strip{flex:1 1 auto}
-.risk-kpi-row .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}
-.risk-analysis-kpis>*{min-height:64px}
 .risk-analysis-side{display:flex;flex-direction:column;gap:12px;min-width:0}
 .risk-level-counts{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0 22px;padding:0;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
 .risk-level-counts li{display:inline-flex;align-items:center;gap:5px}
@@ -328,7 +323,6 @@
 .risk-segmented{display:inline-flex;padding:2px;border:1px solid var(--lo-color-border);border-radius:9px;background:#f6f8fa}
 .risk-segmented button{padding:4px 12px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:12px;font-weight:650;color:var(--lo-color-muted);cursor:pointer}
 .risk-segmented button.active{background:#fff;color:var(--lo-color-text);box-shadow:0 1px 2px rgba(15,40,60,.12)}
-@media(max-width:1100px){.risk-kpi-row .module-summary-strip.risk-analysis-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 /* Tables inside the risk pages are not scroll traps: the wheel over a table
    scrolls the page once the table itself has nothing left to scroll. */
 .risk-tab-scroll .scroll-table,.risk-editor .scroll-table{overscroll-behavior:auto!important;overscroll-behavior-inline:auto!important}
@@ -459,3 +453,8 @@
 .risk-period-picks{margin:0 0 8px}
 .risk-trend-panel .risk-trend{min-width:0!important;width:100%;table-layout:auto!important}
 .risk-trend-panel .risk-trend th,.risk-trend-panel .risk-trend td{padding-left:8px!important;padding-right:8px!important;white-space:nowrap}
+.risk-subswitch{display:flex;justify-content:flex-start;padding:10px 14px 0}
+.risk-hazard-meta{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:3px;font-size:11.5px;color:var(--lo-color-muted)}
+.risk-evidence{font-weight:600;color:var(--lo-status-warning-fg)}
+.risk-summary-line{margin:0 0 10px}
+.risk-table .risk-hazard small.risk-hazard-meta{display:flex}
