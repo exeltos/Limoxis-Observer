@@ -90,10 +90,15 @@ describe('the page period', () => {
     expect(periodRange('today', now).from.toISOString()).toBe('2026-10-26T22:00:00.000Z')
     expect(periodShort('6m')).toBe('6 μήνες')
   })
-  it('counts today as the entries done of those the day asks for', () => {
+  it('counts today only what is already due: a set time still to come is not missed', () => {
+    // 12:30 Athens: 08:00 is due (done at 08:10), 16:00 not yet.
     const { lines, totals } = periodAdherence([row(daily2, [{ at: '2026-10-27T05:10:00Z' }])], 'today', null, now)
     expect(lines).toHaveLength(1)
-    expect(totals).toMatchObject({ expected: 2, performed: 1, rate: 50 })
+    expect(totals).toMatchObject({ expected: 1, performed: 1, missed: 0, rate: 100 })
+    // Nothing done: 08:00 is missed, 16:00 still to come.
+    const none = periodAdherence([row(daily2, [])], 'today', null, now)
+    expect(none.totals).toMatchObject({ expected: 1, performed: 0, missed: 1, rate: 0 })
+    expect(none.lines[0].missedDays).toEqual([{ day: '2026-10-27', missing: 1, times: ['08:00'] }])
   })
   it('asks nothing today of weekly controls, paused ones or weekdays-only ones at the weekend', () => {
     const sunday = new Date('2026-10-25T10:00:00Z')

@@ -6,7 +6,7 @@
 // on time follow the due rules (controlDueRules.executionMarks): the first N
 // entries of a day by their slot deadline; otherwise by the deadline the
 // previous entry set. Extra entries never count.
-import { executionMarks, isWeekdaysOnly, periodUnit, requiredPerPeriod, slotStarts, zonedInstant, zonedParts } from './controlDueRules'
+import { executionMarks, isWeekdaysOnly, periodUnit, requiredPerPeriod, slotDeadline, slotStarts, zonedInstant, zonedParts } from './controlDueRules'
 import { assignmentProgress } from './controlScheduling'
 
 const HOUR = 3600000, DAY = 24 * HOUR
@@ -133,9 +133,20 @@ export function todayAdherence(rows, countsByAssignment = null, now = new Date()
       const assignment = item.assignments[department]
       const frequency = assignment.frequency || item.frequency
       const counts = countsByAssignment ? countsByAssignment.get(assignment.dbId) || { performed: 0, onTime: 0 } : countAdherence(assignment.history || [], frequency, from, now)
-      const performed = progress.done, expected = progress.required
+      // Today asks only what is already due: a set time whose deadline has not
+      // come yet is neither missed nor counted against the day.
+      const p = zonedParts(now), day = { year: p.year, month: p.month, day: p.day }
+      const deadlines = Array.from({ length: progress.required }, (_, index) => slotDeadline(frequency, day, index))
+      const passed = deadlines.filter((deadline) => deadline < now).length
+      const performed = progress.done
+      const expected = Math.max(passed, Math.min(performed, progress.required))
+      const missed = Math.max(0, passed - performed)
       const onTime = Math.min(counts.onTime, performed)
-      lines.push({ item, department, frequency, expected, performed, onTime, late: performed - onTime, missed: Math.max(0, expected - performed), rate: Math.round((Math.min(performed, expected) / expected) * 100), onTimeRate: performed ? Math.round((onTime / performed) * 100) : null })
+      const today = isoDay(p)
+      const minutes = entryDaysFromHistory(assignment.history || []).get(today) || []
+      const dueTimes = slotStarts(frequency).slice(0, passed)
+      const times = missed ? uncoveredTimes({ ...frequency, times: dueTimes.map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`) }, minutes) : []
+      lines.push({ item, department, frequency, expected, performed, onTime, late: performed - onTime, missed, missedDays: missed ? [{ day: today, missing: missed, times: times.length === missed ? times : [] }] : [], rate: expected ? Math.round((Math.min(performed, expected) / expected) * 100) : null, onTimeRate: performed ? Math.round((onTime / performed) * 100) : null })
     }
   }
   return { lines, totals: adherenceTotals(lines) }
