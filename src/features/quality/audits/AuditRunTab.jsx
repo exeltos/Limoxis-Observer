@@ -23,6 +23,7 @@ import './audits.css'
 
 const L = (en, el, english) => (en ? english : el)
 const pick = (pair, en) => pair[en ? 1 : 0]
+const RESULT_SHORT = { yes: ['Ναι', 'Yes'], partial: ['Μερική', 'Partial'], no: ['Όχι', 'No'], na: ['Δ.Ε.', 'N/A'] }
 const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
 
 // Running an audit: the opening meeting, the questionnaire by chapter (one
@@ -44,6 +45,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const [chapter, setChapter] = useState('all')
   const [openOnly, setOpenOnly] = useState(false)
   const [attachmentsOf, setAttachmentsOf] = useState(null)
+  const [notesOpen, setNotesOpen] = useState(() => new Set())
   const [adHoc, setAdHoc] = useState('')
   const [saving, setSaving] = useState(false)
   const [findingFor, setFindingFor] = useState(null)
@@ -150,6 +152,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       subtitle={!stored.length && template ? L(en, `${rows.length} ερωτήσεις για ${area ? `την περιοχή «${areaLabel(area, language)}»` : 'όλο τον οργανισμό'}${record.clausesScope?.length ? ` και τα κεφάλαια ${record.clausesScope.join(', ')}` : ''}. Αποθηκεύονται με την πρώτη αποθήκευση.`, `${rows.length} questions for ${area ? `the «${areaLabel(area, language)}» area` : 'the whole organization'}${record.clausesScope?.length ? ` and chapters ${record.clausesScope.join(', ')}` : ''}. Kept on the first save.`) : undefined}
       actions={<div className="audit-run-filters">
         {!stored.length && template && area && <CheckboxField label={L(en, 'Και οι ερωτήσεις άλλων περιοχών', 'Include other areas')} checked={allAreas} onChange={setAllAreas} />}
+        <Button variant="secondary" onClick={() => document.querySelector('.audit-question.is-open')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>{L(en, 'Επόμενη αναπάντητη', 'Next unanswered')}</Button>
         <CheckboxField label={L(en, 'Μόνο ό,τι εκκρεμεί', 'Only what is open')} checked={openOnly} onChange={setOpenOnly} />
       </div>} />
     {!rows.length && <div className="inline-empty">{template ? L(en, 'Καμία ερώτηση για αυτό το πεδίο.', 'No question for this scope.') : L(en, 'Η επιθεώρηση δεν έχει ερωτηματολόγιο· ορίστε το στον «Σχεδιασμό» ή προσθέστε ερωτήσεις εδώ.', 'This audit has no questionnaire; set one in «Planning» or add questions here.')}</div>}
@@ -167,18 +170,26 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
             {Number(row.weight) > 1 && <StatusBadge tone="info">{L(en, `βάρος ${row.weight}`, `weight ${row.weight}`)}</StatusBadge>}
           </div>
           {(row.guidance || row.evidenceRequired) && <p className="audit-question-guide">{row.guidance && <span>{row.guidance}</span>}{row.evidenceRequired && <span><b>{L(en, 'Τεκμήρια:', 'Evidence:')}</b> {row.evidenceRequired}</span>}</p>}
-          <FormGrid columns={3} className="audit-answer-grid">
-            <ChoiceField label={L(en, 'Αποτέλεσμα', 'Result')} value={row.answer || ''} disabled={!editable} placeholder={L(en, 'Επιλέξτε', 'Choose')} options={AUDIT_RESULTS.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={answer => setRow(index, { answer })} />
+          <div className="audit-answer-buttons" role="radiogroup" aria-label={L(en, 'Αποτέλεσμα', 'Result')}>
+            {AUDIT_RESULTS.map(item => <button key={item.value} type="button" role="radio" aria-checked={row.answer === item.value} className={`is-${item.tone}${row.answer === item.value ? ' is-on' : ''}`} disabled={!editable} title={pick(item.label, en)}
+              onClick={() => setRow(index, { answer: row.answer === item.value ? '' : item.value })}>{pick(RESULT_SHORT[item.value], en)}</button>)}
+          </div>
+          {(needsClass(row) || row.findingClass || row.findingId) && <FormGrid columns={3} className="audit-answer-grid">
             <ChoiceField label={needsClass(row) ? L(en, 'Κατάταξη ευρήματος *', 'Finding class *') : L(en, 'Κατάταξη (προαιρετικά)', 'Class (optional)')} value={row.findingClass || ''} disabled={!editable || !classes.length || Boolean(row.findingId)} placeholder={classes.length ? L(en, 'Επιλέξτε', 'Choose') : '—'} options={FINDING_CLASSES.filter(item => classes.includes(item.value)).map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={findingClass => setRow(index, { findingClass })} />
             <div className="audit-answer-actions">
               {row.findingId
                 ? <button type="button" className="quality-audit-finding-link" disabled={dirty} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}>{L(en, 'Εύρημα', 'Finding')} {row.findingId}<ChevronRight size={13} /></button>
                 : editable && row.findingClass && <Button variant="secondary" disabled={dirty || saving || !isSavedRow(row, organizationId)} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => setFindingFor(row)}><SearchCheck size={15} /> {L(en, 'Εύρημα / CAPA', 'Finding / CAPA')}</Button>}
-              <Button variant="secondary" onClick={() => setAttachmentsOf(attachmentsOf === row.id ? null : row.id)} aria-expanded={attachmentsOf === row.id}><Paperclip size={15} /> {L(en, 'Συνημμένα', 'Attachments')}{row.attachments?.length ? ` ${row.attachments.length}` : ''}</Button>
             </div>
+          </FormGrid>}
+          {(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <FormGrid columns={2} className="audit-answer-grid">
             <Field label={needsClass(row) ? L(en, 'Διαπίστωση *', 'What was found *') : L(en, 'Σχόλιο', 'Comment')}><textarea rows={2} value={row.note || ''} disabled={!editable} onChange={event => setRow(index, { note: event.target.value })} /></Field>
             <Field label={L(en, 'Τεκμήρια που εξετάστηκαν', 'Evidence examined')}><textarea rows={2} value={row.evidence || ''} disabled={!editable} onChange={event => setRow(index, { evidence: event.target.value })} placeholder={row.evidenceRequired || ''} /></Field>
-          </FormGrid>
+          </FormGrid>}
+          <div className="audit-answer-tools">
+            {!(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <button type="button" className="audit-answer-link" onClick={() => setNotesOpen(current => new Set(current).add(row.id))}>+ {L(en, 'Σχόλιο / τεκμήρια', 'Comment / evidence')}</button>}
+            <button type="button" className="audit-answer-link" onClick={() => setAttachmentsOf(attachmentsOf === row.id ? null : row.id)} aria-expanded={attachmentsOf === row.id}><Paperclip size={13} /> {L(en, 'Συνημμένα', 'Attachments')}{row.attachments?.length ? ` ${row.attachments.length}` : ''}</button>
+          </div>
           {attachmentsOf === row.id && <div className="audit-question-attachments">
             {isSavedRow(row, organizationId)
               ? <AttachmentField disabled={!editable} value={row.attachments || []} onChange={attachments => setRow(index, { attachments })} organizationId={organizationId} entityType="quality_audit_answer" entityId={row.id} accept="image/*,application/pdf" />

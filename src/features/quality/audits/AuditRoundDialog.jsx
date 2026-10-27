@@ -19,7 +19,7 @@ export function AuditRoundDialog({ audits, language, saving = false, onClose, on
   const perDay = plan.days.map(day => ({ day, list: plan.assignments.filter(item => item.plannedDate === day) }))
   return <ObserverDialog width="standard" title={L(en, 'Κύκλος επιθεώρησης', 'Audit round')} subtitle={L(en, 'Οι επιθεωρήσεις του μήνα μοιράζονται στις ημέρες του κύκλου.', 'The month\'s audits are spread over the days of the round.')} onClose={onClose}
     footer={<DialogActions onSave={() => onApply(start, Number(days))} saveLabel={L(en, 'Μοίρασμα στις ημέρες', 'Spread over the days')} disabled={saving || !plan.assignments.length} />}>
-    <FormGrid columns={2}>
+    <FormGrid columns={2} className="audit-round-fields">
       <ManualDateField label={L(en, 'Πρώτη ημέρα του κύκλου', 'First day of the round')} value={start} onChange={setStart} />
       <ChoiceField label={L(en, 'Εργάσιμες ημέρες', 'Working days')} value={days} options={['1', '2', '3', '4', '5'].map(value => ({ value, label: value }))} onChange={setDays} />
     </FormGrid>
