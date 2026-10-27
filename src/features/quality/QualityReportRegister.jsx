@@ -202,7 +202,7 @@ const PERIOD_DAYS={today:0,'7d':7,'30d':30}
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
 // summary line and the usual filter popover instead of boxes and extra columns.
-export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false}){
+export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false}){
  const en=language==='en'
  const {filters,set}=view
  const quick=inbox?filters.quick:null
@@ -220,7 +220,9 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
  const columns=inbox
   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
-  :null
+  :compact
+   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:t('owner')}]
+   :null
  const inboxSelects=<>
    <FilterSelect label={en?'Period':'Περίοδος'} value={filters.period} onChange={value=>set('period',value)}><option value="all">{en?'All':'Όλες'}</option><option value="today">{en?'Today':'Σήμερα'}</option><option value="7d">{en?'Last 7 days':'Τελευταίες 7 ημέρες'}</option><option value="30d">{en?'Last 30 days':'Τελευταίες 30 ημέρες'}</option></FilterSelect>
    <FilterSelect label={en?'Wait':'Αναμονή'} value={quick==='waiting'||quick==='new'?quick:'all'} onChange={value=>set('quick',value==='all'?null:value)}><option value="all">{en?'All':'Όλες'}</option><option value="waiting">{en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`}</option><option value="new">{en?'New':'Νέες'}</option></FilterSelect>
@@ -239,6 +241,10 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    <button type="button" className={longWaiting?'is-late':''} onClick={()=>set('quick',quick==='waiting'?null:'waiting')}><b>{longWaiting}</b> {en?`waiting over ${WAITING_DAYS} days`:`αναμένουν πάνω από ${WAITING_DAYS} ημέρες`}</button>
    {oldest>0&&<span>{en?'Oldest waiting':'Παλαιότερη αναμονή'}: <b>{oldest}</b> {dayWord(oldest)}</span>}
   </>}</p>}
+  {compact&&<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   {INCIDENT_STAGES.filter(stage=>view.counts.stages?.[stage]).map(stage=><button key={stage} type="button" className={filters.quick===stage?'is-active':''} onClick={()=>set('quick',filters.quick===stage?null:stage)}><b>{view.counts.stages[stage]}</b> {(stage==='closed'?(en?'closed':'κλειστά'):stageLabel(stage,language)).toLowerCase()}</button>)}
+   {view.counts.sentinel>0&&<button type="button" className={`is-late${filters.quick==='sentinel'?' is-active':''}`} onClick={()=>set('quick',filters.quick==='sentinel'?null:'sentinel')}><b>{view.counts.sentinel}</b> {en?(view.counts.sentinel===1?'sentinel event':'sentinel events'):(view.counts.sentinel===1?'συμβάν-φρουρός':'συμβάντα-φρουροί')}</button>}
+  </>}</p>}
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear}>
    {popover}
   </FilterBar>
@@ -249,8 +255,8 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
     rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,items)})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
-     <td>{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
-     {!inbox&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
+     <td>{compact&&<span className="quality-title-kind" title={kindText(row.kind,language)}><Icon size={14} aria-hidden="true"/></span>}{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
+     {!inbox&&!compact&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
      <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage} language={language}/>}</td>

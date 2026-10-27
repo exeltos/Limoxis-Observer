@@ -251,3 +251,5 @@
 .quality-summary-line>button:hover,.quality-summary-line>button:focus-visible{color:var(--lo-color-primary);text-decoration:underline}
 .quality-summary-line b{font-size:14px;color:var(--lo-color-text)}
 .quality-summary-line .is-late b{color:var(--lo-status-danger-fg)}
+.quality-summary-line>button.is-active{color:var(--lo-color-primary);text-decoration:underline}
+.quality-title-kind{display:inline-flex;vertical-align:-2px;margin-right:6px;color:var(--lo-color-muted)}

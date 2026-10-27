@@ -20,7 +20,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
 import { loadQualityRecords } from './qualityService'
-import { DeviationQueue,ReportRegister,deviationsExport,reportRegisterExport,stageLabel,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
+import { DeviationQueue,ReportRegister,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { QualityOverview } from './QualityOverview'
 import { ActionsList,AuditsList,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
 import { capaSourceFor } from './qualityDeviations'
@@ -51,7 +51,6 @@ const TABS=[
  {value:'indicators',icon:Target,label:['Δείκτες & Στόχοι','Indicators & objectives']},
  {value:'resources',icon:Stethoscope,label:['Πόροι','Resources']},
 ]
-const STAGE_ICON={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:Scale,toClose:CheckCircle2}
 const INDICATOR_OPTIONS=[
  {value:'indicators',icon:Gauge,label:['Δείκτες','Indicators']},
  {value:'registers',icon:ClipboardList,label:['Μητρώα','Registers']},
@@ -205,12 +204,10 @@ export function QualityPage(){
    {key:'closing',icon:CalendarClock,value:count.closing,label:L('Λήγουν σε 14 ημέρες','Close within 14 days'),tone:count.closing?'warning':'neutral',active:surveyFilters.quick==='closing',go:()=>toggleSurvey('closing')},
    {key:'draft',icon:Clock3,value:count.drafts,label:L('Προσχέδια','Drafts'),active:surveyFilters.quick==='draft',go:()=>toggleSurvey('draft')} ]})(),
  }
- const incidentFigures=view=>[...['toAssess','investigating','action','effectiveness','toClose'].map(stage=>({key:stage,icon:STAGE_ICON[stage],value:view.counts.stages?.[stage]??0,label:stageLabel(stage,language),active:view.filters.quick===stage,go:()=>toggle(view,'quick',stage)})),
-  {key:'sentinel',icon:AlertOctagon,value:view.counts.sentinel,label:L('Συμβάντα-φρουροί','Sentinel events'),tone:view.counts.sentinel?'danger':'neutral',active:view.filters.quick==='sentinel',go:()=>toggle(view,'quick','sentinel')}]
  const figures=({
   overview:centerFigures,
   reports:[],
-  incidents:incidentFigures(incidents),
+  incidents:[],
   deviations:[
    {key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Σύνολο αποκλίσεων','Total deviations'),active:deviations.filters.scope==='registry'&&deviations.filters.status==='all'&&!deviations.filters.quick,go:()=>{deviations.clear();deviations.set('scope','registry')}},
    {key:'progress',icon:Wrench,value:deviations.counts.inProgress,label:L('Σε εξέλιξη','In progress'),active:deviations.filters.status==='inProgress',go:()=>{deviations.set('scope','registry');deviations.set('quick',null);deviations.set('status',deviations.filters.status==='inProgress'?'all':'inProgress')}},
@@ -270,7 +267,7 @@ export function QualityPage(){
   </div>:<section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
-   {tab==='incidents'&&<ReportRegister view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
+   {tab==='incidents'&&<ReportRegister compact view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='deviations'&&canManage&&<DeviationQueue view={deviations} loading={queue.loading} language={language} t={t}
     onCreateCapa={prefill=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:prefill}})}}/>}
