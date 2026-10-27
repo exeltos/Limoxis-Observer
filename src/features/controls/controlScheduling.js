@@ -1,4 +1,5 @@
 import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotDeadline,slotOpens,slotStarts,slotWindowMinutes,zonedParts } from './controlDueRules'
+import { ROLES } from '../../core/permissions/roles'
 
 export function frequencyLabel(f={},language='el'){
  const en=language==='en'
@@ -71,6 +72,10 @@ export function isControlDue(item,department,now=new Date()){
  if(assignmentProgress(item,department,now)?.complete)return false
  return new Date(assignment.nextDueAt)<periodBounds(assignmentFrequency(item,department),now).end
 }
+
+// Who records at any time, outside the window of the control's time: only the
+// hospital administrator and the platform owner (the database holds the same rule).
+export function canRecordAnytime(role){return role===ROLES.HOSPITAL_ADMIN||role===ROLES.PLATFORM_OWNER}
 
 // When a department may record a daily control with set times: only inside
 // the window of one of its times (the on-time window: 1 hour before to the

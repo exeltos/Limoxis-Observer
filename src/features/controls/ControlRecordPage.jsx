@@ -31,7 +31,7 @@ import { expiryCounts,expiryItems,isExpiryControl,prefilledExpiryRows,recordsFin
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
-import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,recordWindow,scheduleVariants,timesWithWindows } from './controlScheduling'
+import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,canRecordAnytime,getAssignment,recordWindow,scheduleVariants,timesWithWindows } from './controlScheduling'
 import { zonedParts } from './controlDueRules'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
@@ -109,15 +109,15 @@ export function ControlRecordPage(){
  // Limits per department, when they are not the same everywhere.
  const differentLimits=record.responseConfig?.mode==='numeric'&&responseVariants(record,visibleDepartments)>1
 
- const {canManageControls,canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
+ const {canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
  // A department records a daily control with set times only inside its window (1 hour before to its margin after);
- // the control managers record at any time.
- const windowOf=dep=>canManageControls?{gated:false}:recordWindow(record,dep)
+ // only the hospital administrator and the platform owner record at any time.
+ const windowOf=dep=>canRecordAnytime(role)?{gated:false}:recordWindow(record,dep)
  const heldBack=dep=>{const win=windowOf(dep);return win.gated&&win.state!=='open'}
  const clock=d=>d?`${String(zonedParts(d).hour).padStart(2,'0')}:${String(zonedParts(d).minute).padStart(2,'0')}`:''
  const heldText=dep=>{const win=windowOf(dep);return win.state==='before'?(en?`From ${clock(win.opens)}`:`Από ${clock(win.opens)}`):(en?'Closed':'Έκλεισε')}
- const heldHint=dep=>{const win=windowOf(dep);return win.state==='before'?(en?`The entry opens at ${clock(win.opens)} (1 hour before its time). For anything else, contact the infection control team.`:`Η καταχώρηση ανοίγει στις ${clock(win.opens)} (1 ώρα πριν την ώρα του ελέγχου). Για οτιδήποτε άλλο, επικοινωνήστε με τον Υπεύθυνο Λοιμώξεων.`):(en?'The time of this control has passed. Contact the infection control team.':'Η ώρα του ελέγχου πέρασε. Επικοινωνήστε με τον Υπεύθυνο Λοιμώξεων.')}
+ const heldHint=dep=>{const win=windowOf(dep);return win.state==='before'?(en?`The entry opens at ${clock(win.opens)} (1 hour before its time). For anything else, contact the hospital administrator.`:`Η καταχώρηση ανοίγει στις ${clock(win.opens)} (1 ώρα πριν την ώρα του ελέγχου). Για οτιδήποτε άλλο, επικοινωνήστε με τον Διαχειριστή.`):(en?'The time of this control has passed. Contact the hospital administrator.':'Η ώρα του ελέγχου πέρασε. Επικοινωνήστε με τον Διαχειριστή.')}
  const fmt=v=>formatDateTime(v,language)
  const status=controlOverallStatus(record,visibleDepartments)
  const hasDraft=assignments.some(x=>Boolean(x.assignment?.hasDraft))
@@ -162,6 +162,7 @@ export function ControlRecordPage(){
   }catch(error){
    // Someone else completed the period meanwhile: say so and show the new count.
    if(error?.code==='control_period_complete'){await reload();notify(progressCompleteMessage(error.progress||assignmentProgress(record,department),language),'warning');return}
+   if(/control_outside_window/.test(String(error?.message||''))){await reload();notify(en?'This control can be recorded only inside the window of its time. Contact the hospital administrator.':'Ο έλεγχος καταχωρείται μόνο μέσα στο παράθυρο της ώρας του. Επικοινωνήστε με τον Διαχειριστή.','warning');return}
    notifyError(error,'save',{operation:'control_execution_create'});throw error
   }
  }

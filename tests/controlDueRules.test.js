@@ -246,3 +246,22 @@ describe('a department records inside the window of the control time', () => {
     expect(recordWindow(item([], []), 'ΜΕΘ', at('2026-10-27T04:30:00Z'))).toEqual({ gated: false })
   })
 })
+
+describe('who records outside the window', () => {
+  it('only the hospital administrator and the platform owner', async () => {
+    const { canRecordAnytime } = await import('../src/features/controls/controlScheduling')
+    const { ROLES } = await import('../src/core/permissions/roles')
+    expect(canRecordAnytime(ROLES.HOSPITAL_ADMIN)).toBe(true)
+    expect(canRecordAnytime(ROLES.PLATFORM_OWNER)).toBe(true)
+    expect(canRecordAnytime(ROLES.INFECTION_CONTROL_LEAD)).toBe(false)
+    expect(canRecordAnytime(ROLES.DEPARTMENT_MANAGER)).toBe(false)
+  })
+  it('the database holds the same rule for a signed-in department user', async () => {
+    const { readFileSync } = await import('node:fs')
+    const sql = readFileSync('supabase/migrations/20261211200000_control_entry_window_guard.sql', 'utf8')
+    expect(sql).toContain("array['hospital_admin']::public.app_role[]")
+    expect(sql).toContain('public.current_user_is_platform_owner()')
+    expect(sql).toContain("raise exception 'control_outside_window'")
+    expect(sql).toContain('if auth.uid() is null then return new; end if;')
+  })
+})
