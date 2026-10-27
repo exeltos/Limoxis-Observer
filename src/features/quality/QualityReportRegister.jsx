@@ -225,7 +225,13 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
   :null
  const toggleDepartment=value=>set('departments',filters.departments.includes(value)?filters.departments.filter(item=>item!==value):[...filters.departments,value])
  const group=(label,chips)=><span className="quality-chip-group"><small>{label}</small>{chips}</span>
- const popover=inbox?null:<>
+ const inboxGroups=<div className="quality-chip-groups">
+   {group(en?'Period':'Περίοδος',<ChoiceChips className="quality-status-switch" label="" options={[{value:'today',label:en?'Today':'Σήμερα'},{value:'7d',label:en?'7 days':'7 ημέρες'},{value:'30d',label:en?'30 days':'30 ημέρες'}]} selected={filters.period==='all'?[]:[filters.period]} onToggle={value=>set('period',filters.period===value?'all':value)}/>)}
+   {group(en?'Wait':'Αναμονή',<ChoiceChips className="quality-status-switch" label="" options={[{value:'waiting',label:en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`},{value:'new',label:en?'New':'Νέες'}]} selected={quick==='waiting'||quick==='new'?[quick]:[]} onToggle={value=>set('quick',quick===value?null:value)}/>)}
+   {group(en?'Reported by':'Αναφέρων',<ChoiceChips className="quality-status-switch" label="" options={[{value:'named',label:en?'Named':'Ονομαστικές'},{value:'anonymous',label:en?'Anonymous':'Ανώνυμες'}]} selected={filters.origin==='all'?[]:[filters.origin]} onToggle={value=>set('origin',filters.origin===value?'all':value)}/>)}
+   {view.departments.length>1&&group(t('department'),<ChoiceChips className="quality-status-switch" label="" options={view.departments.map(value=>({value,label:value}))} selected={filters.departments} onToggle={toggleDepartment}/>)}
+  </div>
+ const popover=inbox?inboxGroups:<>
    <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
    <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
@@ -240,13 +246,6 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear}>
    {popover}
   </FilterBar>
-  {inbox&&<div className="quality-chip-groups">
-   {group(en?'Period':'Περίοδος',<ChoiceChips className="quality-status-switch" label="" options={[{value:'today',label:en?'Today':'Σήμερα'},{value:'7d',label:en?'7 days':'7 ημέρες'},{value:'30d',label:en?'30 days':'30 ημέρες'}]} selected={filters.period==='all'?[]:[filters.period]} onToggle={value=>set('period',filters.period===value?'all':value)}/>)}
-   {group(en?'Wait':'Αναμονή',<ChoiceChips className="quality-status-switch" label="" options={[{value:'waiting',label:en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`},{value:'new',label:en?'New':'Νέες'}]} selected={quick==='waiting'||quick==='new'?[quick]:[]} onToggle={value=>set('quick',quick===value?null:value)}/>)}
-   {group(en?'Reported by':'Αναφέρων',<ChoiceChips className="quality-status-switch" label="" options={[{value:'named',label:en?'Named':'Ονομαστικές'},{value:'anonymous',label:en?'Anonymous':'Ανώνυμες'}]} selected={filters.origin==='all'?[]:[filters.origin]} onToggle={value=>set('origin',filters.origin===value?'all':value)}/>)}
-   {view.departments.length>1&&group(t('department'),<ChoiceChips className="quality-status-switch" label="" options={view.departments.map(value=>({value,label:value}))} selected={filters.departments} onToggle={toggleDepartment}/>)}
-   {inboxFilters>0&&<button type="button" className="quality-chip-clear" onClick={()=>view.clear()}>{en?'Clear filters':'Καθαρισμός φίλτρων'}</button>}
-  </div>}
   <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={columns||[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}

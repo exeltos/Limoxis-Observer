@@ -19,10 +19,10 @@ describe('reports inbox', () => {
     expect(filterRegister(rows, { query: 'μαρία' }).map(row => row.id)).toEqual(['A'])
   })
 
-  it('shows the filters as labelled chips with no filter popover, and sends the reminder to the bell once a day', () => {
+  it('keeps the filters closed in one «Filters» popover, as labelled chips, and sends the reminder to the bell once a day', () => {
     const view = fs.readFileSync('src/features/quality/QualityReportRegister.jsx', 'utf8')
     expect(view).toContain('<div className="quality-chip-groups">')
-    expect(view).toContain("const popover=inbox?null:<>")
+    expect(view).toContain("const popover=inbox?inboxGroups:<>")
     const bell = fs.readFileSync('src/core/notifications/NotificationContext.jsx', 'utf8')
     expect(bell).toContain('`reports-waiting:${new Date(clock).toISOString().slice(0,10)}:${staleReportCount}`')
     expect(bell).toContain("const REPORT_REMINDER_ROLES=['hospital_admin','quality_manager']")
