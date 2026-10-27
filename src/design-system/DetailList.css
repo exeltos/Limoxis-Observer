@@ -18,3 +18,5 @@
 @media print{.lo-detail-item{break-inside:avoid}}
 /* The two columns of the record summary: one list each. */
 .record-summary-card .lo-detail-list{grid-template-columns:1fr}
+.lo-detail-item dd.is-clamped{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:7;line-clamp:7;overflow:hidden}
+.lo-detail-more{justify-self:start;margin:2px 0 0;padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--lo-color-primary,#1f5f8b);cursor:pointer}
