@@ -281,6 +281,23 @@ export async function loadControlAdherenceCounts(organizationId,{from,to}){
  return new Map((data||[]).map(row=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
 }
 
+// The regular entries of each assignment per local day of a period
+// (control_entry_days), to name the days a control was missed:
+// Map(assignment id → Map('YYYY-MM-DD' → entries)). The demo returns null:
+// its local history is read directly.
+export async function loadControlEntryDays(organizationId,{from,to}){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.rpc('control_entry_days',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
+ if(error)throw error
+ const byAssignment=new Map()
+ for(const row of data||[]){
+  if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,new Map())
+  byAssignment.get(row.assignment_id).set(String(row.day),Number(row.entries)||0)
+ }
+ return byAssignment
+}
+
 // The latest regular entry of the hospital's controls: the reports end on its
 // day while the entries are still recorded elsewhere (controlAdherence.reportEnd).
 // The demo returns null: its history runs up to today.

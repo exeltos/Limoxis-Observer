@@ -6,7 +6,7 @@
 // on time follow the due rules (controlDueRules.executionMarks): the first N
 // entries of a day by their slot deadline; otherwise by the deadline the
 // previous entry set. Extra entries never count.
-import { executionMarks, isWeekdaysOnly, periodUnit, zonedInstant, zonedParts } from './controlDueRules'
+import { executionMarks, isWeekdaysOnly, periodUnit, requiredPerPeriod, zonedInstant, zonedParts } from './controlDueRules'
 import { assignmentProgress } from './controlScheduling'
 
 const HOUR = 3600000, DAY = 24 * HOUR
@@ -183,10 +183,21 @@ export const adherenceTone = (rate) => (rate == null ? 'neutral' : rate >= 90 ? 
 // The adherence rows grouped by control (worst first): each group carries the
 // control's totals across its departments, counted like the programme totals.
 export function groupAdherenceLines(lines = []) {
+  return groupLinesBy(lines, (line) => line.item.id, (line) => ({ item: line.item }))
+}
+
+// The same rows grouped by department (worst first): each group carries the
+// department's totals and its controls.
+export function groupAdherenceByDepartment(lines = []) {
+  return groupLinesBy(lines, (line) => line.department, (line) => ({ department: line.department, item: { id: line.department, title: line.department } }))
+}
+
+function groupLinesBy(lines, keyOf, headOf) {
   const groups = new Map()
   for (const line of lines) {
-    if (!groups.has(line.item.id)) groups.set(line.item.id, { item: line.item, lines: [] })
-    groups.get(line.item.id).lines.push(line)
+    const key = keyOf(line)
+    if (!groups.has(key)) groups.set(key, { ...headOf(line), key, lines: [] })
+    groups.get(key).lines.push(line)
   }
   return [...groups.values()].map((group) => {
     const expected = group.lines.reduce((sum, line) => sum + line.expected, 0)
@@ -202,7 +213,69 @@ export function groupAdherenceLines(lines = []) {
         late: performed - onTime,
         missed: group.lines.reduce((sum, line) => sum + line.missed, 0),
         rate: expected ? Math.round((counted / expected) * 100) : null,
+        onTimeRate: performed ? Math.round((onTime / performed) * 100) : null,
       },
     }
   }).sort((a, b) => (a.totals.rate ?? 101) - (b.totals.rate ?? 101) || String(a.item.title).localeCompare(String(b.item.title), 'el'))
+}
+
+const isoDay = (d) => `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`
+const nextDay = (d) => { const n = new Date(Date.UTC(d.year, d.month - 1, d.day + 1)); return { year: n.getUTCFullYear(), month: n.getUTCMonth() + 1, day: n.getUTCDate() } }
+
+// The regular entries of a history per local day (Athens): Map('YYYY-MM-DD' → entries).
+export function entryDaysFromHistory(history = []) {
+  const days = new Map()
+  for (const row of history) {
+    if (!row?.at || row.status === 'cancelled' || row.cancelledAt || row.isExtra || row.responseData?.isExtra) continue
+    const key = isoDay(zonedParts(row.at))
+    days.set(key, (days.get(key) || 0) + 1)
+  }
+  return days
+}
+
+// The days of a period a daily control was short of its entries, and the
+// weeks a weekly one had none: [{ day: 'YYYY-MM-DD', missing }], oldest first.
+// Only whole days (weeks) that have ended count; monthly and yearly controls
+// name no days.
+export function missedDays(frequency = {}, entryDays = new Map(), { from, to }, startedAt = null) {
+  const unit = periodUnit(frequency)
+  if (unit !== 'day' && unit !== 'week') return []
+  const start = new Date(Math.max(new Date(from).getTime(), startedAt ? new Date(startedAt).getTime() : -Infinity))
+  const end = new Date(to).getTime()
+  const required = unit === 'day' ? requiredPerPeriod(frequency) : 1
+  const length = unit === 'day' ? 1 : 7
+  const out = []
+  let d = zonedParts(start)
+  d = { year: d.year, month: d.month, day: d.day }
+  if (unit === 'week') { const weekday = (new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay() + 6) % 7; if (weekday) for (let i = weekday; i < 7; i += 1) d = nextDay(d) }
+  else if (zonedInstant(d.year, d.month, d.day, 0) < start) d = nextDay(d)
+  for (;;) {
+    let e = d
+    for (let i = 0; i < length; i += 1) e = nextDay(e)
+    if (zonedInstant(e.year, e.month, e.day, 0).getTime() > end) break
+    const weekday = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay()
+    if (!(unit === 'day' && isWeekdaysOnly(frequency) && (weekday === 0 || weekday === 6))) {
+      let entries = 0
+      for (let x = d, i = 0; i < length; i += 1, x = nextDay(x)) entries += entryDays.get(isoDay(x)) || 0
+      if (entries < required) out.push({ day: isoDay(d), missing: required - entries })
+    }
+    d = e
+  }
+  return out
+}
+
+// The months of a 6- or 12-month period, oldest first, each clipped to the period.
+export function monthRanges(period, now = new Date()) {
+  if (period !== '6m' && period !== '12m') return []
+  const { from, to } = periodRange(period, now)
+  const months = []
+  const p = zonedParts(from)
+  for (let year = p.year, month = p.month; ; month += 1) {
+    if (month > 12) { month = 1; year += 1 }
+    const start = zonedInstant(year, month, 1, 0)
+    if (start > to) break
+    const next = month === 12 ? zonedInstant(year + 1, 1, 1, 0) : zonedInstant(year, month + 1, 1, 0)
+    months.push({ key: `${year}-${String(month).padStart(2, '0')}`, from: new Date(Math.max(start.getTime(), from.getTime())), to: new Date(Math.min(next.getTime() - 1000, to.getTime())), now: to })
+  }
+  return months
 }

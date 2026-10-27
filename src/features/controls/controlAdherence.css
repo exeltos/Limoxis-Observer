@@ -15,8 +15,6 @@
 .control-adherence-meter.good>i>b{background:var(--lo-status-success-fg)}.control-adherence-meter.good>strong{color:var(--lo-status-success-fg)}
 .control-adherence-meter.fair>i>b{background:var(--lo-color-warning)}.control-adherence-meter.fair>strong{color:var(--lo-status-warning-fg)}
 .control-adherence-meter.low>i>b{background:var(--lo-status-danger-fg)}.control-adherence-meter.low>strong{color:var(--lo-status-danger-fg)}
-.control-adherence-total{font-size:15px}
-.control-adherence-total.good{color:var(--lo-status-success-fg)!important}.control-adherence-total.fair{color:var(--lo-status-warning-fg)!important}.control-adherence-total.low{color:var(--lo-status-danger-fg)!important}
 /* Rows grouped by control, like the calendar. */
 .control-adherence-table tbody tr{cursor:pointer}
 .control-adherence-table tr.control-adherence-group td{background:var(--lo-color-surface-muted)!important;border-top:1px solid var(--lo-color-border)}
@@ -41,3 +39,20 @@
 .control-time-fit-same{color:var(--lo-color-muted)}
 /* «Up to 18/10/2026»: the reports end on the last day with entries. */
 .control-until-note{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;background:var(--lo-status-warning-bg,var(--lo-color-surface-muted));color:var(--lo-status-warning-fg);font-size:12px;font-weight:700;white-space:nowrap}
+/* «Adherence»: per department or per control, the missed days under the count, and the months. */
+.control-adherence-mode{flex:0 0 auto}
+.control-adherence-mode button{min-height:30px!important;height:30px!important;padding:0 11px!important;font-size:12.5px!important}
+.control-adherence-summary strong{font-size:14px}
+.control-adherence-table td small.control-adherence-days{display:block;font-weight:500;font-size:11.5px;color:var(--lo-color-muted)}
+.control-adherence-table td.control-adherence-department small{display:block;font-weight:500;color:var(--lo-color-muted)}
+.control-adherence-trend{display:flex;align-items:flex-end;gap:8px;padding:10px 14px 8px;border-bottom:1px solid var(--lo-color-border)}
+.control-adherence-trend-month{flex:1 1 0;max-width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;color:var(--lo-color-muted)}
+.control-adherence-trend-month>strong{font-size:11.5px;color:var(--lo-color-text)}
+.control-adherence-trend-month>i{display:flex;align-items:flex-end;width:22px;height:46px;background:var(--lo-color-surface-muted);border-radius:4px 4px 0 0}
+.control-adherence-trend-month>i>b{display:block;width:100%;border-radius:4px 4px 0 0;background:var(--lo-color-muted)}
+.control-adherence-trend-month.good>i>b{background:var(--lo-status-success-fg)}
+.control-adherence-trend-month.fair>i>b{background:var(--lo-color-warning)}
+.control-adherence-trend-month.low>i>b{background:var(--lo-status-danger-fg)}
+.control-adherence-table td.control-adherence-done{white-space:nowrap}
+.control-adherence-table tr.is-department td:first-child strong{display:inline-flex;align-items:center;gap:6px}
+.control-adherence-table tr.is-department td:first-child small{padding-left:21px}
