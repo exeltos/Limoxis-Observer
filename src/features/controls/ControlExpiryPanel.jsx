@@ -9,7 +9,7 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { FilterSelect } from '../../design-system/FilterBar'
 import { ExpiryBadge } from './ControlExpiryEntry'
-import { expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
+import { compareExpiryItems,expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
 import { expiryReturnFormHtml,printHtml } from './controlExpiryPrint'
 import { rowFindingText } from './controlVocabulary'
 
@@ -25,7 +25,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const [filter,setFilterValue]=useState('all')
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(15)
  const setFilter=value=>{setFilterValue(value);setPage(1)}
- const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort((a,b)=>(a.days??Infinity)-(b.days??Infinity)),[sources])
+ const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort(compareExpiryItems),[sources])
  const [department,setDepartmentValue]=useState('all')
  const departmentOptions=[...new Set(items.map(item=>item.department))].sort((a,b)=>a.localeCompare(b,'el'))
  const setDepartment=value=>{setDepartmentValue(value);setPage(1)}
@@ -33,7 +33,8 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
  const scoped=department==='all'?items:items.filter(item=>item.department===department)
  const searched=needle?scoped.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):scoped
  const counts=expiryCounts(searched)
- const shown=filter==='expiring'?searched.filter(item=>item.state==='expiring'):filter==='expired'?searched.filter(item=>item.state==='expired'):searched
+ const findingCount=searched.filter(item=>item.state==='finding').length
+ const shown=['expiring','expired','finding'].includes(filter)?searched.filter(item=>item.state===filter):searched
  // The return form lists what has expired or expires soon in the current search.
  const returnItems=searched.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
  const printReturnForm=()=>printHtml(expiryReturnFormHtml({title:sources.length===1?sources[0].record.title:(en?'All expiry checks':'Όλοι οι έλεγχοι λήξεων'),items:returnItems,actorName}))
@@ -76,6 +77,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
   actions={<div className="control-expiry-tools"><ChoiceChips className="control-expiry-filter" label="" options={[
    {value:'expired',label:`${en?'Expired':'Ληγμένα'} (${counts.expired})`},
    {value:'expiring',label:`${en?'Expiring':'Λήγουν'} (${counts.expiring})`},
+   ...(findingCount?[{value:'finding',label:`${en?'Findings of checks':'Ευρήματα ελέγχων'} (${findingCount})`}]:[]),
   ]} selected={[filter]} onToggle={value=>setFilter(filter===value?'all':value)}/>{!showControl&&departmentOptions.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{departmentOptions.map(dep=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}{!onExportChange&&<ExportMenu disabled={!returnItems.length} items={[{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,onClick:printReturnForm}]}/>}</div>}
   footer={shown.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>}
  >
@@ -88,15 +90,15 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,sho
    emptyTitle={empty.title}
    emptyText={empty.text}
    renderRow={item=><>
-    <td><strong>{item.row.item}</strong><small>{[formLabel(item.row.form,language),item.row.note,rowFindingText(item.row,language)].filter(Boolean).join(' · ')}</small></td>
+    <td><strong>{item.row.item}</strong><small>{[formLabel(item.row.form,language),item.row.note,item.state!=='finding'&&rowFindingText(item.row,language)].filter(Boolean).join(' · ')}</small></td>
     {controlColumn&&<td className="control-expiry-control-cell">{onOpenControl?<button type="button" className="control-expiry-control-link" title={language==='el'?item.record.title:item.record.titleEn||item.record.title} onClick={()=>onOpenControl(item.record)}>{language==='el'?item.record.title:item.record.titleEn||item.record.title}</button>:item.record.title}</td>}
     <td>{item.department}</td>
     <td>{item.row.quantity||'—'}</td>
     <td>{item.row.lot||'—'}</td>
     <td><strong>{day(item.row.expiry)}</strong></td>
-    <td><ExpiryBadge row={item.row} window={item.window} language={language}/></td>
+    <td>{item.state==='finding'?<span className="control-expiry-finding">{rowFindingText(item.row,language)||(en?'Finding':'Εύρημα')}</span>:<ExpiryBadge row={item.row} window={item.window} language={language}/>}</td>
     <td>{item.execution?<>{at(item.execution.at)}<small>{item.execution.by||''}</small></>:<span className="control-expiry-from-list">{en?'From the list':'Από τη λίστα'}</span>}</td>
-    <td className="open-record-cell control-history-menu-col">{item.execution&&canRemove?.(item.record,item.department)&&<OverflowMenu label={en?'Item actions':'Ενέργειες υλικού'} align="end" items={[{id:'remove',label:en?'Removed / replaced':'Αφαιρέθηκε / Αντικαταστάθηκε',icon:PackageX,onClick:()=>onRemove(item)}]}/>}</td>
+    <td className="open-record-cell control-history-menu-col">{item.execution&&item.state!=='finding'&&canRemove?.(item.record,item.department)&&<OverflowMenu label={en?'Item actions':'Ενέργειες υλικού'} align="end" items={[{id:'remove',label:en?'Removed / replaced':'Αφαιρέθηκε / Αντικαταστάθηκε',icon:PackageX,onClick:()=>onRemove(item)}]}/>}</td>
    </>}
   />
  </RecordTabPanel>

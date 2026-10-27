@@ -27,7 +27,7 @@ import { assignmentResponse,limitsText,responseVariants } from './controlRespons
 import { ControlCancellationModal } from './ControlCancellationModal'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
 import { ControlDepartmentListDialog } from './ControlDepartmentListDialog'
-import { expiryCounts,expiryItems,isExpiryControl,prefilledExpiryRows } from './controlExpiry'
+import { expiryCounts,expiryItems,isExpiryControl,prefilledExpiryRows,recordsFindingsOnly } from './controlExpiry'
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
@@ -237,7 +237,7 @@ export function ControlRecordPage(){
     <SectionHeader title={en?'Departments of this control':'Τμήματα του ελέγχου'} subtitle={`${assignments.length} ${en?(assignments.length===1?'department':'departments'):(assignments.length===1?'τμήμα':'τμήματα')}`}/>
     <RegistryTable
      className="control-ov-department-table"
-     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},...(differentLimits?[{key:'limits',label:en?'Limits':'Όρια'}]:[]),{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},...(expiryControl?[{key:'list',label:en?'Department list':'Λίστα τμήματος'}]:[]),{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
+     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},...(differentLimits?[{key:'limits',label:en?'Limits':'Όρια'}]:[]),{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},...(expiryControl&&assignments.some(({department:dep})=>!recordsFindingsOnly(record,dep))?[{key:'list',label:en?'Department list':'Λίστα τμήματος'}]:[]),{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
      rows={assignments}
      rowKey={row=>row.department}
      emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
@@ -248,7 +248,7 @@ export function ControlRecordPage(){
       <td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge><small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>
-      {expiryControl&&<td><ActionButton label={en?`List of ${dep}`:`Λίστα: ${dep}`} tone="neutral" onClick={()=>setListDepartment(dep)}><ListChecks size={15}/><span>{en?'List':'Λίστα'} ({prefilledExpiryRows(record,dep).length})</span></ActionButton></td>}
+      {expiryControl&&assignments.some(({department:d})=>!recordsFindingsOnly(record,d))&&<td>{!recordsFindingsOnly(record,dep)&&<ActionButton label={en?`List of ${dep}`:`Λίστα: ${dep}`} tone="neutral" onClick={()=>setListDepartment(dep)}><ListChecks size={15}/><span>{en?'List':'Λίστα'} ({prefilledExpiryRows(record,dep).length})</span></ActionButton>}</td>}
       <td className="control-ov-action-col">{allowed&&assignments.length>1&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
      </tr>}}
     />

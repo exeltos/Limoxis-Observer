@@ -63,11 +63,25 @@ export function formLabel(form,language='el'){
 // entry replaces the earlier ones (a check re-records every item it covers); an
 // item stays until someone marks it as removed or replaced. Listed items that no
 // entry has recorded yet show with the expiry the list gives them.
+// A department without a list records only what each check found (expired or
+// short-dated items): those rows are findings of that day, listed check by check
+// (state 'finding'). They are not stock on a list: they never count as expired or
+// expiring, never alert, and the next check does not start from them.
 export function expiryItems(record,departments,now=new Date()){
  const window=expiryWindow(record)
  const items=[]
  for(const department of departments||[]){
   const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
+  if(recordsFindingsOnly(record,department)){
+   for(const execution of history){
+    if(execution.status==='cancelled')continue
+    ;(execution.structuredData?.rows||[]).forEach((row,index)=>{
+     if(!String(row?.item||'').trim())return
+     items.push({key:`${department}|${execution.id}|${index}`,department,execution,index,row,source:'finding',state:'finding',days:daysToExpiry(row.expiry,now),alert:false})
+    })
+   }
+   continue
+  }
   const recorded=new Set()
   for(const execution of history){
    if(execution.status==='cancelled')continue
@@ -83,7 +97,13 @@ export function expiryItems(record,departments,now=new Date()){
    items.push({key:`${department}|list|${entry.id}`,department,execution:null,index:-1,row:{item:entry.item,quantity:entry.quantity||'',form:entry.form||'',expiry:entry.expiry,note:entry.note||'',noteEn:entry.noteEn||'',lot:''},source:'list',...expiryState(entry.expiry,window,now)})
   }
  }
- return items.sort((a,b)=>(a.days??Infinity)-(b.days??Infinity))
+ return items.sort(compareExpiryItems)
+}
+
+// Items on lists first, soonest expiry first; then the findings, latest check first.
+export function compareExpiryItems(a,b){
+ const finding=x=>x.state==='finding'?1:0
+ return finding(a)-finding(b)||(finding(a)?new Date(b.execution?.at||0)-new Date(a.execution?.at||0):(a.days??Infinity)-(b.days??Infinity))
 }
 
 // The control's list of medicines and supplies:
@@ -106,6 +126,8 @@ export function expiryCatalogue(record){
 export function catalogueForDepartment(record,department){
  return expiryCatalogue(record).filter(entry=>!entry.departments?.length||entry.departments.includes(department))
 }
+// No list for this department: its checks record findings only (see expiryItems).
+export const recordsFindingsOnly=(record,department)=>catalogueForDepartment(record,department).length===0
 
 // Lines pasted from a spreadsheet: name, quantity, form, expiry (dd/mm/yyyy or
 // yyyy-mm-dd), note, category (medicine / supply) and active substance,
@@ -122,6 +144,8 @@ export function parseCatalogueLines(text){
 // their latest entry recorded (or, before any entry, what the list gives).
 // Each check therefore updates the list the next check opens with.
 export function prefilledExpiryRows(record,department){
+ // Without a list each check starts empty: the last check's findings are not carried over.
+ if(recordsFindingsOnly(record,department))return []
  const latest=new Map()
  const history=[...(record?.assignments?.[department]?.history||[])].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0))
  for(const execution of history){

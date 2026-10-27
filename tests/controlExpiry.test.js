@@ -6,7 +6,8 @@ const now = new Date(2026, 9, 15, 10, 0)
 const record = {
   id: 'CTRL-1',
   departments: ['ΜΕΘ', 'ΤΕΠ'],
-  responseConfig: { mode: 'list', template: 'medication_expiry', expiryBeforeDays: 30, expiryAfterDays: 7 },
+  // A list (one listed item without a date): the departments keep stock, not findings.
+  responseConfig: { mode: 'list', template: 'medication_expiry', expiryBeforeDays: 30, expiryAfterDays: 7, expiryCatalogue: [{ item: 'Adrenaline', quantity: '1' }] },
   assignments: {
     'ΜΕΘ': { history: [
       { id: 'e2', status: 'completed', structuredData: { rows: [{ item: 'Adrenaline', expiry: '2026-10-20' }, { item: 'Atropine', expiry: '2026-10-05', removedAt: '2026-10-14' }] } },
@@ -181,5 +182,16 @@ describe('standard trolley and tray lists', () => {
     expect(noteText({ note: 'ανά μέγεθος', noteEn: 'per size' }, 'en')).toBe('per size')
     expect(noteText({ note: 'ανά μέγεθος', noteEn: 'per size' }, 'el')).toBe('ανά μέγεθος')
     expect(noteText({ note: 'άλλο', noteEn: '' }, 'en')).toBe('άλλο')
+  })
+
+  it('treats a department without a list as findings of each check: not counted, not carried to the next check', () => {
+    const findings = { ...record, responseConfig: { ...record.responseConfig, expiryCatalogue: [] } }
+    const items = expiryItems(findings, ['ΜΕΘ'], now)
+    // Every row of every check that was not voided, latest check first (even a removed one: it was found).
+    expect(items.map(item => item.row.item)).toEqual(['Adrenaline', 'Atropine', 'Heparin', 'Saline'])
+    expect(items.every(item => item.state === 'finding' && !item.alert)).toBe(true)
+    expect(expiryCounts(items)).toEqual({ expired: 0, expiring: 0, alerting: 0 })
+    expect(expiryAlerts([findings], { now })).toHaveLength(0)
+    expect(prefilledExpiryRows(findings, 'ΜΕΘ')).toEqual([])
   })
 })
