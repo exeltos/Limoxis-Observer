@@ -126,7 +126,23 @@ export function findingSummary(record,{language,t,linked=[]}){
   return items
 }
 
+// A corrective action «at a glance» as one line under the title.
+export function capaSummary(record,{language}){
+  const en=language==='en'
+  const open=!isClosed(record)
+  const steps=subActionProgress(record.subActions||[])
+  const causes=analysisProgress(record.rootCauseAnalysis)
+  const items=[{text:steps.total?(en?`${steps.done}/${steps.total} steps`:`${steps.done}/${steps.total} βήματα`):(en?'no steps':'χωρίς βήματα')}]
+  const left=daysUntil(record.dueDate)
+  if(!open)items.push({text:en?'done':'ολοκληρώθηκε'})
+  else if(left!=null)items.push(left<0?{text:en?`${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')} overdue`:`εκπρόθεσμη ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')}`,tone:'danger'}:{text:en?`due ${formatDay(record.dueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`:`προθεσμία ${formatDay(record.dueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`,tone:left<=7?'danger':undefined})
+  items.push({text:`${en?'causes':'αιτίες'}: ${causes.concluded?(en?'documented':'τεκμηριώθηκαν'):causes.started?(en?'in progress':'σε εξέλιξη'):(en?'pending':'εκκρεμούν')}`})
+  items.push({text:`${en?'effectiveness':'αποτελεσματικότητα'}: ${vocabularyLabel(EFFECTIVENESS,record.effectivenessStatus||'pending',language).toLowerCase()}${record.effectivenessDue?` (${en?'by':'έως'} ${formatDay(record.effectivenessDue,language)})`:''}`})
+  return items
+}
+
 export function QualityGlance({recordType,record,language,t,linked}){
+  if(recordType==='capas')return <p className="quality-summary-line quality-record-line">{capaSummary(record,{language}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='findings')return <p className="quality-summary-line quality-record-line">{findingSummary(record,{language,t,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='incidents')return <p className="quality-summary-line quality-record-line">{incidentSummary(record,{language,t}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   const items=glanceItems(recordType,record,{language,t,linked})

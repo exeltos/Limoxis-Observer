@@ -280,3 +280,6 @@
 .quality-report-form .lo-form-grid :is(input:not([type="checkbox"]),select,button.searchable-select-trigger){height:40px!important;min-height:40px!important;box-sizing:border-box}
 .quality-report-form .lo-form-grid .time-field-control{margin-top:1px}
 .quality-report-pair.lo-form-grid>*:first-child>label{display:block;height:24px;padding-bottom:5px;box-sizing:border-box}
+.quality-record-stack{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:auto}
+.quality-record-stack>.record-section{flex:0 0 auto;overflow:visible;height:auto}
+.rca-empty{margin:0 0 12px;color:var(--muted)}

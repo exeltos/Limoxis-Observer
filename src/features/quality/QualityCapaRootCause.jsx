@@ -68,6 +68,8 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
    {editing?<textarea rows={2} value={draft.problem} onChange={e=>setDraft(current=>({...current,problem:e.target.value}))} placeholder={en?'What happened, where and how often':'Τι συνέβη, πού και πόσο συχνά'}/>:<p>{saved.problem||record.description||'—'}</p>}
   </div>
 
+  {!progress.started&&!editing&&<p className="rca-empty">{en?'The analysis has not started. Press «Start analysis» to fill in the 5 Whys, the root cause and the Ishikawa diagram.':'Δεν έχει ξεκινήσει η ανάλυση αιτίων. Πατήστε «Έναρξη ανάλυσης» για να συμπληρώσετε τα 5 Γιατί, τη βασική αιτία και το διάγραμμα Ishikawa.'}</p>}
+  {(progress.started||editing)&&<>
   <div className="rca-columns">
    <div className="rca-whys">
     <h4>{en?'5 Whys':'5 Γιατί'}</h4>
@@ -89,6 +91,8 @@ export function QualityCapaRootCause({record,setRecord,canManage,finalized,organ
    <div className="rca-head">{(editing?draft.problem:saved.problem)||record.title||(en?'Problem':'Πρόβλημα')}</div>
    <div className="rca-bones bottom">{ISHIKAWA_CATEGORIES.slice(3).map(bone)}</div>
   </div>
+
+  </>}
 
   {saved.updatedAt&&!editing&&<p className="rca-meta">{en?'Last updated':'Τελευταία ενημέρωση'} {formatDateTime(saved.updatedAt,language)}{saved.updatedBy?` · ${saved.updatedBy}`:''}</p>}
   {editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft(saved);setEditing(false)}} disabled={saving}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={saving} disabled={saving} onClick={()=>void save()}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}
