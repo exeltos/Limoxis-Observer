@@ -26,18 +26,19 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }) {
   const name = (item) => (en ? item.titleEn || item.title : item.title)
   const total = shown.reduce((sum, line) => sum + line.missed, 0)
   const head = (line) => `${name(line.item)} · ${line.department}`
-  function print() {
+  // All the controls of the window, or one of them.
+  function print(list = shown) {
     const ok = printReport({
       language, kind: en ? 'Controls' : 'Έλεγχοι',
-      title: `${en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} · ${title}`,
-      meta: [[en ? 'Missed' : 'Χάθηκαν', String(total)]],
-      sections: shown.map((line) => ({ title: `${head(line)} (${line.missed})`, table: { columns: [en ? 'Date' : 'Ημερομηνία', en ? 'Missed times' : 'Ώρες που χάθηκαν'], rows: (line.missedDays || []).map((miss) => { const text = missedText(miss, language); return [text.when, text.times] }), empty: en ? 'No dates for this frequency.' : 'Χωρίς ημερομηνίες για αυτή τη συχνότητα.' } })),
+      title: `${en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} · ${list.length === 1 && shown.length > 1 ? head(list[0]) : title}`,
+      meta: [[en ? 'Missed' : 'Χάθηκαν', String(list.reduce((sum, line) => sum + line.missed, 0))]],
+      sections: list.map((line) => ({ title: `${head(line)} (${line.missed})`, table: { columns: [en ? 'Date' : 'Ημερομηνία', en ? 'Missed times' : 'Ώρες που χάθηκαν'], rows: (line.missedDays || []).map((miss) => { const text = missedText(miss, language); return [text.when, text.times] }), empty: en ? 'No dates for this frequency.' : 'Χωρίς ημερομηνίες για αυτή τη συχνότητα.' } })),
       signatures: [en ? 'Head of department' : 'Προϊστάμενος/η τμήματος', en ? 'Infection control' : 'Υπεύθυνος/η λοιμώξεων'],
       filename: en ? 'missed-controls' : 'xamenoi-elegxoi',
     })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
-  return <ObserverDialog width="wide" className="control-missed-dialog" eyebrow={en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} title={title} subtitle={en ? `${total} missed` : `${total} ${total === 1 ? 'χαμένος' : 'χαμένοι'}`} onClose={onClose} footer={<DialogActions><ExportMenu disabled={!shown.length} items={[{ id: 'missed', kind: 'print', label: en ? 'Missed controls' : 'Χαμένοι έλεγχοι', onClick: print }]} /></DialogActions>}>
+  return <ObserverDialog width="wide" className="control-missed-dialog" eyebrow={en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} title={title} subtitle={en ? `${total} missed` : `${total} ${total === 1 ? 'χαμένος' : 'χαμένοι'}`} onClose={onClose} footer={<DialogActions><ExportMenu menuWidth={380} disabled={!shown.length} items={[{ id: 'missed', kind: 'print', label: en ? `All (${total})` : `Όλοι (${total})`, onClick: () => print() }, ...(shown.length > 1 ? shown.map((line) => ({ id: `line-${line.item.id}-${line.department}`, kind: 'print', label: `${en ? 'Only' : 'Μόνο'}: ${head(line)} (${line.missed})`, onClick: () => print([line]) })) : [])]} /></DialogActions>}>
     {shown.map((line) => <section key={`${line.item.id}|${line.department}`} className="control-missed-section">
       <header><strong>{head(line)}</strong><small>{frequencyLabel(line.frequency || line.item.frequency, language)} · {en ? `${line.missed} missed` : `χάθηκαν ${line.missed}`}</small></header>
       {(line.missedDays || []).length

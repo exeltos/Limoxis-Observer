@@ -101,16 +101,16 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
   return()=>onExportChange(null)
  },[onExportChange,returnCount,listCount,en])
  const placeName=place=>place==='all'?(en?'All departments':'Όλα τα τμήματα'):place
- // The whole list of a department on the shared document layout, to sign.
- function printList(place,list){
+ const groupName=(head,place)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${head.execution?.by?` · ${head.execution.by}`:''}${place==='all'?` · ${head.department}`:''}`
+ // The list of a department (all its groups, or one) on the shared document layout, to sign.
+ function printList(place,list,part=''){
   const columns=[en?'Item / Medicine':'Υλικό / Φάρμακο',...(place==='all'?[en?'Department':'Τμήμα']:[]),...(manyControls?[en?'Control':'Έλεγχος']:[]),en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση']
-  const groupName=head=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${place==='all'?` · ${head.department}`:''}`
   const c=expiryCounts(list)
   const ok=printReport({
    language,kind:en?'Controls':'Έλεγχοι',
-   title:`${en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'} · ${placeName(place)}`,
+   title:`${en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'} · ${placeName(place)}${part?` · ${part}`:''}`,
    meta:[[en?'Department':'Τμήμα',placeName(place)],[en?'Expired':'Ληγμένα',String(c.expired)],[en?'Expiring':'Λήγουν',String(c.expiring)],[en?'Items':'Υλικά',String(list.length)]],
-   sections:expiryGroups(list).map(group=>({title:`${groupName(group.head)} (${group.items.length})`,table:{columns,rows:group.items.map(item=>[item.row.item,...(place==='all'?[item.department]:[]),...(manyControls?[controlTitle(item.record,language)]:[]),item.row.quantity||'—',item.row.lot||'—',day(item.row.expiry),statusText(item,language)])}})),
+   sections:expiryGroups(list).map(group=>({title:`${groupName(group.head,place)} (${group.items.length})`,table:{columns,rows:group.items.map(item=>[item.row.item,...(place==='all'?[item.department]:[]),...(manyControls?[controlTitle(item.record,language)]:[]),item.row.quantity||'—',item.row.lot||'—',day(item.row.expiry),statusText(item,language)])}})),
    signatures:[en?'Checked by':'Ελέγχθηκε από',en?'Head of department':'Προϊστάμενος/η τμήματος'],
    filename:en?'expiry-list':'lixeis',
   })
@@ -135,7 +135,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
   </div>
   :<div className="control-expiry-inline"><ExpiryGroupList items={searched} showDepartment={false} {...listProps}/></div>}
   {dialog!=null&&<ObserverDialog width="workspace" className="control-expiry-dialog" eyebrow={en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'} title={placeName(dialog)} subtitle={(()=>{const c=expiryCounts(dialogItems);return en?`${c.expired} expired · ${c.expiring} expiring · ${dialogItems.length} items`:`${c.expired} ληγμένα · ${c.expiring} λήγουν · ${dialogItems.length} υλικά`})()} onClose={()=>setDialog(null)} footer={<DialogActions>
-   <ExportMenu items={[{id:'list',kind:'print',label:en?'Expiry list':'Λίστα λήξεων',onClick:()=>printList(dialog,dialogItems)},{id:'return',kind:'print',label:en?`Return & replacement form (${returnOf(dialogItems).length})`:`Έντυπο επιστροφής (${returnOf(dialogItems).length})`,disabled:!returnOf(dialogItems).length,onClick:()=>printReturnForm(returnOf(dialogItems))}]}/>
+   <ExportMenu menuWidth={380} items={[{id:'list',kind:'print',label:en?`Whole list (${dialogItems.length})`:`Όλη η λίστα (${dialogItems.length})`,onClick:()=>printList(dialog,dialogItems)},...expiryGroups(dialogItems).map(group=>({id:`group-${group.key}`,kind:'print',label:`${en?'Only':'Μόνο'}: ${groupName(group.head,dialog)} (${group.items.length})`,onClick:()=>printList(dialog,group.items,groupName(group.head,dialog))})),{id:'return',kind:'print',label:en?`Return & replacement form (${returnOf(dialogItems).length})`:`Έντυπο επιστροφής (${returnOf(dialogItems).length})`,disabled:!returnOf(dialogItems).length,onClick:()=>printReturnForm(returnOf(dialogItems))}]}/>
   </DialogActions>}>
    <ExpiryGroupList items={dialogItems} showDepartment={dialog==='all'} {...listProps}/>
   </ObserverDialog>}

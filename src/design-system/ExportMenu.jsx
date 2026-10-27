@@ -40,6 +40,8 @@ export function ExportMenu({
   language,
   className = '',
   compact = false,
+  // A wider menu for long item names (one print per group of a list).
+  menuWidth = 220,
 }) {
   const context = useOptionalLanguage()
   const rawData = canExportRawData(useContext(tenantContext())?.role)
@@ -124,7 +126,7 @@ export function ExportMenu({
     <span className={`lo-export-menu ${className}`.trim()} data-pdf-ignore="">
       <OverflowMenu
         label={label}
-        width={220}
+        width={menuWidth}
         trigger={
           <>
             <Printer size={15} aria-hidden="true" />
