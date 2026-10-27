@@ -1,5 +1,5 @@
 import { ChevronRight, ListChecks } from 'lucide-react'
-import { formatDateTime } from '../../core/i18n/formatDay'
+import { formatDay } from '../../core/i18n/formatDay'
 import { RateMeter } from './ControlAdherencePanel'
 
 // The «Departments» tab: a card per department (more departments simply add
@@ -26,7 +26,7 @@ export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, loa
         <span><b>{card.dueToday}</b>{en ? 'due today' : 'για σήμερα'}</span>
       </span>
       <span className="control-department-card-rate"><span>{en ? 'Adherence · 30 days' : 'Τήρηση · 30 ημ.'}</span><RateMeter rate={card.rate} /></span>
-      <span className="control-department-card-foot">{card.lastAt ? `${en ? 'Last entry' : 'Τελευταία καταγραφή'}: ${formatDateTime(card.lastAt, language)}` : en ? 'No entry yet' : 'Καμία καταγραφή ακόμη'}</span>
+      <span className="control-department-card-foot">{card.lastAt ? `${en ? 'Last entry' : 'Τελευταία καταγραφή'}: ${formatDay(card.lastAt, language)}` : en ? 'No entry yet' : 'Καμία καταγραφή ακόμη'}</span>
     </button>)}
     {!cards.length && <div className="inline-empty">{en ? 'No departments with controls.' : 'Δεν υπάρχουν τμήματα με ελέγχους.'}</div>}
   </div>
