@@ -56,3 +56,14 @@
 .control-adherence-table td.control-adherence-done{white-space:nowrap}
 .control-adherence-table tr.is-department td:first-child strong{display:inline-flex;align-items:center;gap:6px}
 .control-adherence-table tr.is-department td:first-child small{padding-left:21px}
+.control-adherence-missed-link,.control-missed-link{padding:0;font:inherit;font-weight:800;color:var(--lo-status-danger-fg);background:none;border:0;text-decoration:underline;cursor:pointer}
+.control-missed-link{display:block;margin-top:2px;font-size:11.5px;font-weight:700}
+/* The missed executions of a control: per department, date and times. */
+.control-missed-section{border:1px solid var(--lo-color-border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.control-missed-section>header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:9px 12px;background:var(--lo-color-surface-muted)}
+.control-missed-section>header small{font-size:12px;color:var(--lo-color-muted)}
+.control-missed-section ul{list-style:none;margin:0;padding:0;columns:2;column-gap:0}
+.control-missed-section li{display:flex;justify-content:space-between;gap:12px;padding:6px 12px;border-top:1px solid var(--lo-color-border);font-size:13px;break-inside:avoid}
+.control-missed-section li strong{color:var(--lo-status-danger-fg)}
+.control-missed-section p{margin:0;padding:8px 12px;font-size:12.5px;color:var(--lo-color-muted)}
+@media(max-width:760px){.control-missed-section ul{columns:1}}

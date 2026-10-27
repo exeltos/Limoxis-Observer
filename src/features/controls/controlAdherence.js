@@ -6,7 +6,7 @@
 // on time follow the due rules (controlDueRules.executionMarks): the first N
 // entries of a day by their slot deadline; otherwise by the deadline the
 // previous entry set. Extra entries never count.
-import { executionMarks, isWeekdaysOnly, periodUnit, requiredPerPeriod, zonedInstant, zonedParts } from './controlDueRules'
+import { executionMarks, isWeekdaysOnly, periodUnit, requiredPerPeriod, slotStarts, zonedInstant, zonedParts } from './controlDueRules'
 import { assignmentProgress } from './controlScheduling'
 
 const HOUR = 3600000, DAY = 24 * HOUR
@@ -222,21 +222,46 @@ function groupLinesBy(lines, keyOf, headOf) {
 const isoDay = (d) => `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}`
 const nextDay = (d) => { const n = new Date(Date.UTC(d.year, d.month - 1, d.day + 1)); return { year: n.getUTCFullYear(), month: n.getUTCMonth() + 1, day: n.getUTCDate() } }
 
-// The regular entries of a history per local day (Athens): Map('YYYY-MM-DD' → entries).
+// The regular entries of a history per local day (Athens): Map('YYYY-MM-DD' →
+// minutes after midnight of each entry).
 export function entryDaysFromHistory(history = []) {
   const days = new Map()
   for (const row of history) {
     if (!row?.at || row.status === 'cancelled' || row.cancelledAt || row.isExtra || row.responseData?.isExtra) continue
-    const key = isoDay(zonedParts(row.at))
-    days.set(key, (days.get(key) || 0) + 1)
+    const p = zonedParts(row.at)
+    const key = isoDay(p)
+    if (!days.has(key)) days.set(key, [])
+    days.get(key).push(p.hour * 60 + p.minute)
   }
+  for (const list of days.values()) list.sort((a, b) => a - b)
   return days
 }
 
-// The days of a period a daily control was short of its entries, and the
-// weeks a weekly one had none: [{ day: 'YYYY-MM-DD', missing }], oldest first.
-// Only whole days (weeks) that have ended count; monthly and yearly controls
-// name no days.
+const hhmm = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+
+// The set times a day's entries did not cover: each entry is paired with the
+// nearest free set time; the set times left over were missed.
+export function uncoveredTimes(frequency = {}, minutes = []) {
+  const slots = slotStarts(frequency).map((at) => ({ at, taken: false }))
+  const pairs = []
+  for (const entry of minutes) for (const slot of slots) pairs.push({ entry, slot, distance: Math.abs(entry - slot.at) })
+  pairs.sort((a, b) => a.distance - b.distance)
+  const used = new Set()
+  for (const pair of pairs) {
+    if (pair.slot.taken || used.has(pair.entry)) continue
+    pair.slot.taken = true
+    used.add(pair.entry)
+  }
+  return slots.filter((slot) => !slot.taken).map((slot) => hhmm(slot.at))
+}
+
+const entriesOf = (value) => (Array.isArray(value) ? value.length : Number(value) || 0)
+
+// The days of a period a daily control was short of its entries, with the
+// set times missed, and the weeks a weekly one had none:
+// [{ day: 'YYYY-MM-DD', missing, times?, week? }], oldest first. Only whole
+// days (weeks) that have ended count; monthly and yearly controls name no days.
+// entryDays: Map(day → minutes[] or a count).
 export function missedDays(frequency = {}, entryDays = new Map(), { from, to }, startedAt = null) {
   const unit = periodUnit(frequency)
   if (unit !== 'day' && unit !== 'week') return []
@@ -256,8 +281,15 @@ export function missedDays(frequency = {}, entryDays = new Map(), { from, to }, 
     const weekday = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay()
     if (!(unit === 'day' && isWeekdaysOnly(frequency) && (weekday === 0 || weekday === 6))) {
       let entries = 0
-      for (let x = d, i = 0; i < length; i += 1, x = nextDay(x)) entries += entryDays.get(isoDay(x)) || 0
-      if (entries < required) out.push({ day: isoDay(d), missing: required - entries })
+      for (let x = d, i = 0; i < length; i += 1, x = nextDay(x)) entries += entriesOf(entryDays.get(isoDay(x)))
+      if (entries < required) {
+        if (unit === 'week') out.push({ day: isoDay(d), missing: 1, week: true })
+        else {
+          const value = entryDays.get(isoDay(d))
+          const times = Array.isArray(value) || !value ? uncoveredTimes(frequency, value || []) : []
+          out.push({ day: isoDay(d), missing: required - entries, times: times.length === required - entries ? times : [] })
+        }
+      }
     }
     d = e
   }

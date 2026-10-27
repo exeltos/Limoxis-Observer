@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { groupAdherenceByDepartment, missedDays, monthRanges } from '../src/features/controls/controlAdherence'
+import { groupAdherenceByDepartment, missedDays, monthRanges, uncoveredTimes } from '../src/features/controls/controlAdherence'
 
 describe('adherence: missed days, months and departments', () => {
   const days = new Map([['2026-10-20', 2], ['2026-10-21', 1], ['2026-10-23', 2]])
   it('names the whole days a daily control was short of its entries', () => {
     const f = { kind: 'daily', times: ['09:00', '17:00'] }
     // 20 done, 21 one short, 22 none, 23 done; 24 has not ended.
-    expect(missedDays(f, days, { from: new Date('2026-10-19T22:00:00Z'), to: new Date('2026-10-24T12:00:00Z') })).toEqual([{ day: '2026-10-21', missing: 1 }, { day: '2026-10-22', missing: 2 }])
+    expect(missedDays(f, days, { from: new Date('2026-10-19T22:00:00Z'), to: new Date('2026-10-24T12:00:00Z') }).map(({ day, missing }) => ({ day, missing }))).toEqual([{ day: '2026-10-21', missing: 1 }, { day: '2026-10-22', missing: 2 }])
+  })
+  it('names the set times missed from the times of the entries', () => {
+    const f = { kind: 'daily', times: ['09:00', '17:00'] }
+    // 21/10 one entry at 09:20: 17:00 was missed; 22/10 none: both.
+    const times = new Map([['2026-10-20', [540, 1030]], ['2026-10-21', [560]]])
+    const out = missedDays(f, times, { from: new Date('2026-10-19T22:00:00Z'), to: new Date('2026-10-23T12:00:00Z') })
+    expect(out).toEqual([{ day: '2026-10-21', missing: 1, times: ['17:00'] }, { day: '2026-10-22', missing: 2, times: ['09:00', '17:00'] }])
+    expect(uncoveredTimes(f, [1000])).toEqual(['09:00'])
   })
   it('skips the weekend of a weekdays-only control and days before it started', () => {
     const f = { kind: 'daily', times: ['09:00'], weekdaysOnly: true }
@@ -33,5 +41,13 @@ describe('adherence: missed days, months and departments', () => {
     ])
     expect(groups.map((g) => g.department)).toEqual(['ΤΕΠ', 'ΜΕΘ'])
     expect(groups[0].totals).toMatchObject({ expected: 20, performed: 15, missed: 5, rate: 75, onTimeRate: 93 })
+  })
+})
+
+describe('the missed controls dialog', () => {
+  it('reads a missed day with its weekday and times, a weekly one as its week', async () => {
+    const { missedText } = await import('../src/features/controls/ControlMissedDialog')
+    expect(missedText({ day: '2026-10-21', missing: 1, times: ['17:00'] })).toEqual({ when: 'Τετ 21/10/2026', times: '17:00' })
+    expect(missedText({ day: '2026-10-12', missing: 1, week: true }).when).toBe('Εβδομάδα 12/10/2026 – 18/10/2026')
   })
 })

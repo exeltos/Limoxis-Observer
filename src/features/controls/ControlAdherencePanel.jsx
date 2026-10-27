@@ -9,8 +9,9 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel, linesFrequencyLabel } from './controlScheduling'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { adherenceTone, entryDaysFromHistory, groupAdherenceByDepartment, groupAdherenceLines, missedDays, monthRanges, periodAdherence, periodRange, programmeAdherence } from './controlAdherence'
-import { loadControlAdherenceCounts, loadControlEntryDays } from './controlCloudService'
+import { loadControlAdherenceCounts, loadControlEntryTimes } from './controlCloudService'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { ControlMissedDialog } from './ControlMissedDialog'
 import './controlAdherence.css'
 
 const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -43,7 +44,7 @@ function useEntryDays(organizationId, period, refreshKey, now) {
   useEffect(() => {
     if (!organizationId || period === 'today') return undefined
     let active = true
-    loadControlEntryDays(organizationId, periodRange(period, nowIso ? new Date(nowIso) : new Date()))
+    loadControlEntryTimes(organizationId, periodRange(period, nowIso ? new Date(nowIso) : new Date()))
       .then((days) => { if (active) setState({ key, days }) })
       .catch(() => { if (active) setState({ key, days: null }) })
     return () => { active = false }
@@ -162,13 +163,13 @@ function AdherenceTrend({ months, language }) {
   </div>
 }
 
-// «Missed: 3» and the days: the latest three, the rest counted.
-function MissedCell({ row, language }) {
+// «Missed: 3» and the days: the latest three, the rest counted; the count opens them all.
+function MissedCell({ row, language, onShow }) {
   const en = language === 'en'
   const days = row.missedDays || []
   const latest = days.slice(-3).map((x) => shortDay(x.day))
   return <td className={row.missed ? 'control-adherence-missed' : ''}>
-    {row.missed}
+    {row.missed && onShow ? <button type="button" className="control-adherence-missed-link" title={en ? 'Dates and times' : 'Ημερομηνίες και ώρες'} onClick={(event) => { event.stopPropagation(); onShow() }}>{row.missed}</button> : row.missed}
     {latest.length > 0 && <small className="control-adherence-days" title={days.map((x) => shortDay(x.day)).join(', ')}>{latest.join(', ')}{days.length > 3 ? (en ? ` +${days.length - 3} more` : ` +${days.length - 3} ακόμα`) : ''}</small>}
   </td>
 }
@@ -178,6 +179,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const { lines, totals, trend = [], reportRef, failed, loadFailedText, until } = report
   const departments = useMemo(() => new Set(lines.map((line) => line.department)).size, [lines])
   const [mode, setMode] = useState('')
+  const [missed, setMissed] = useState(null)
   // Per department, a department opens to its controls on a click.
   const [open, setOpen] = useState(() => new Set())
   const toggle = (key) => setOpen((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
@@ -190,10 +192,10 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const totalPages = Math.max(1, Math.ceil(groups.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const shown = groups.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const numbers = (row) => <>
+  const numbers = (row, rowLines, label) => <>
     <td className="control-adherence-done"><b>{row.performed}</b> {en ? 'of' : 'από'} {row.expected}</td>
     <td>{pct(row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null))}{row.late > 0 && <small>{en ? `${row.late} late` : `${row.late} με καθυστέρηση`}</small>}</td>
-    <MissedCell row={row} language={language} />
+    <MissedCell row={row} language={language} onShow={() => setMissed({ lines: rowLines, title: label })} />
     <td><RateMeter rate={row.rate} /></td>
   </>
   const frequencyOf = (line) => frequencyLabel(line.frequency || line.item.frequency, language)
@@ -223,18 +225,19 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
       renderRow={(entry) => entry.kind === 'single'
         ? <tr className="control-adherence-single" onClick={() => onOpen?.(entry.group.item)}>
             <td><strong>{title(entry.group.item)}</strong><small>{entry.group.lines[0].department} · {linesFrequencyLabel(entry.group.lines, entry.group.item, language)}</small></td>
-            {numbers(entry.group.lines[0])}
+            {numbers(entry.group.lines[0], entry.group.lines, `${title(entry.group.item)} · ${entry.group.lines[0].department}`)}
           </tr>
         : entry.kind === 'group'
         ? <tr className={`control-adherence-group${byDepartment ? ' is-department' : ''}`} onClick={byDepartment ? () => toggle(entry.group.key) : () => onOpen?.(entry.group.item)} aria-expanded={byDepartment ? open.has(entry.group.key) : undefined}>
             <td><strong>{byDepartment && (open.has(entry.group.key) ? <ChevronDown size={15} aria-hidden="true" /> : <ChevronRight size={15} aria-hidden="true" />)}{byDepartment ? entry.group.department : title(entry.group.item)}</strong><small>{byDepartment ? (en ? `${entry.group.lines.length} controls` : `${entry.group.lines.length} έλεγχοι`) : `${linesFrequencyLabel(entry.group.lines, entry.group.item, language)} · ${en ? `${entry.group.lines.length} departments` : `${entry.group.lines.length} τμήματα`}`}</small></td>
-            {numbers(entry.group.totals)}
+            {numbers(entry.group.totals, entry.group.lines, byDepartment ? entry.group.department : title(entry.group.item))}
           </tr>
         : <tr className="control-adherence-member" onClick={() => onOpen?.(entry.line.item)}>
             <td className="control-adherence-department">{byDepartment ? <>{title(entry.line.item)}<small>{frequencyOf(entry.line)}</small></> : entry.line.department}</td>
-            {numbers(entry.line)}
+            {numbers(entry.line, [entry.line], `${title(entry.line.item)} · ${entry.line.department}`)}
           </tr>}
     />
+    {missed && <ControlMissedDialog lines={missed.lines} title={missed.title} language={language} onClose={() => setMissed(null)} />}
     {groups.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
   </div>
 }
