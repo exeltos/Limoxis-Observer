@@ -2826,7 +2826,7 @@
   flex:1 1 auto;
   min-height:0;
   overflow:auto;
-  scrollbar-gutter:stable;
+  scrollbar-gutter:auto;
 }
 .quality-record-shell .record-section{
   width:100%;
