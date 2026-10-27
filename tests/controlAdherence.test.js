@@ -24,16 +24,16 @@ describe('control programme adherence', () => {
       { at: ago(5), status: 'cancelled' },                          // cancelled: not counted
       { at: ago(40) },                                              // outside the period
     ]
-    const result = assignmentAdherence({ frequency: { kind: 'daily', times: ['09:00'] }, history }, { from: ago(10), to: now, now })
+    const result = assignmentAdherence({ frequency: { kind: 'daily', timesPerDay: 1 }, history }, { from: ago(10), to: now, now })
     expect(result).toMatchObject({ expected: 10, performed: 3, onTime: 3, late: 0, missed: 7, rate: 30, onTimeRate: 100 })
   })
 
-  it('marks a slot late once its deadline (the next slot, in Athens time) has passed', () => {
-    // 08:00 and 16:00: the first is due by 16:00, the second by 23:59:59 (Athens, UTC+3 in October).
+  it('marks a slot late once its window (±1 hour, in Athens time) has passed', () => {
+    // 08:00 and 16:00: on time 07:00–09:00 and 15:00–17:00 (Athens, UTC+3 in October).
     const history = [
       { at: '2026-10-05T04:00:00Z' }, { at: '2026-10-05T12:30:00Z' },  // 07:00 and 15:30: both on time
-      { at: '2026-10-06T14:00:00Z' },                                  // 17:00: the morning slot, late
-      { at: '2026-10-06T20:30:00Z' },                                  // 23:30: the second slot, on time
+      { at: '2026-10-06T07:30:00Z' },                                  // 10:30: the morning slot, late
+      { at: '2026-10-06T13:45:00Z' },                                  // 16:45: the second slot, on time
     ]
     const result = assignmentAdherence({ frequency: { kind: 'daily', times: ['08:00', '16:00'] }, history }, { from: '2026-10-04T21:00:00Z', to: '2026-10-06T21:00:00Z', now })
     expect(result).toMatchObject({ expected: 4, performed: 4, onTime: 3, late: 1, missed: 0, rate: 100 })

@@ -28,6 +28,7 @@ import { ControlExpiryCatalogueDialog } from './ControlExpiryCatalogueDialog'
 import { CRITICALITY_LEVELS,controlCriticality,criticalityLabel,requiresEvidence } from './controlCriticality'
 import { answerLabel,categoryPreset,choiceOptions } from './controlVocabulary'
 import { employeeOptions,personFromEmployee } from '../employees/peopleOptions'
+import { slotMargin } from './controlDueRules'
 import './controlEditor.css'
 
 const pickPolicy=config=>Object.fromEntries(['criticality','requiresEvidence','deviationActions'].filter(key=>config?.[key]!==undefined).map(key=>[key,config[key]]))
@@ -156,7 +157,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
        :<Field label={`${en?'Every':'Κάθε'} (${intervalUnit}) *`}><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></Field>}
      </div>
      {draft.frequency.kind==='daily'&&<div className="control-editor-times"><span className="lo-field-label"><CalendarClock size={13}/> {en?'Execution times':'Ώρες εκτέλεσης'}</span><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
-     {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Tolerance (minutes)':'Ανοχή (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={en?'Until the next time':'Έως την επόμενη ώρα'} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'Each time is due by the next execution time (the last by 23:59). A tolerance makes it due earlier: time + tolerance.':'Κάθε ώρα εκτέλεσης είναι εμπρόθεσμη έως την επόμενη (η τελευταία έως τις 23:59). Με ανοχή, έως την ώρα + ανοχή.'}</small></div>}
+     {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Margin after the time (minutes)':'Περιθώριο μετά την ώρα (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={String(slotMargin({...draft.frequency,toleranceMinutes:null})||'')} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'On time from 1 hour before each time to 2 hours after it when once a day, 1 hour after when more often. Afterwards it is overdue. Fill in only to change the margin after.':'Στην ώρα του από 1 ώρα πριν έως 2 ώρες μετά όταν γίνεται μία φορά την ημέρα, έως 1 ώρα μετά όταν γίνεται συχνότερα. Μετά γίνεται εκπρόθεσμος. Συμπληρώστε μόνο για να αλλάξετε το περιθώριο μετά.'}</small></div>}
     </section>
 
     <section className="control-editor-card control-editor-wide">

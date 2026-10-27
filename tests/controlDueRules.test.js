@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
-  dueState, executionMarks, firstDue, nextDeadlineAfter, nextDueAfterExecution, periodBounds, periodProgress, requiredPerPeriod, slotStarts, zonedInstant, zonedParts,
+  dueState, executionMarks, firstDue, nextDeadlineAfter, nextDueAfterExecution, periodBounds, periodProgress, requiredPerPeriod, slotMargin, slotStarts, zonedInstant, zonedParts,
 } from '../src/features/controls/controlDueRules'
 import { assignmentProgress, assignmentStatus, isControlDue } from '../src/features/controls/controlScheduling'
 import { filterControlRows, scopeControlRows } from '../src/features/controls/controlFilters'
@@ -32,23 +32,30 @@ describe('time zone helpers (Europe/Athens)', () => {
 })
 
 describe('due rules per frequency', () => {
-  it('daily: an entry just before 09:00 makes it due by the end of the next day, not at 09:00', () => {
-    // The old rule set next_due_at to "the next time after now", 09:00 the same
-    // morning, and the control was overdue a few minutes after it was done.
+  it('once a day: due 2 hours after its time; an entry just before 09:00 makes it due tomorrow at 11:00', () => {
     const at = new Date('2026-10-19T05:55:00Z') // 08:55 Athens
-    expect(nextDueAfterExecution(daily1, at, 1)).toBe('2026-10-20T20:59:59.000Z')
-    // Nothing yet today: due by 23:59:59 today.
-    expect(nextDueAfterExecution(daily1, at, 0)).toBe('2026-10-19T20:59:59.000Z')
+    expect(slotMargin(daily1)).toBe(120)
+    expect(nextDueAfterExecution(daily1, at, 1)).toBe('2026-10-20T08:00:00.000Z') // tomorrow 11:00
+    // Nothing yet today: due by 11:00 today.
+    expect(nextDueAfterExecution(daily1, at, 0)).toBe('2026-10-19T08:00:00.000Z')
   })
-  it('N times a day: slot i by the next slot, the last by the end of the day', () => {
+  it('N times a day: each time 1 hour after it', () => {
     const morning = new Date('2026-10-19T04:30:00Z') // 07:30 Athens
     expect(slotStarts(daily2)).toEqual([480, 960])
     expect(requiredPerPeriod(daily2)).toBe(2)
-    expect(nextDueAfterExecution(daily2, morning, 0)).toBe('2026-10-19T13:00:00.000Z') // 16:00
-    expect(nextDueAfterExecution(daily2, morning, 1)).toBe('2026-10-19T20:59:59.000Z') // 23:59:59
-    expect(nextDueAfterExecution(daily2, morning, 2)).toBe('2026-10-20T13:00:00.000Z') // tomorrow 16:00
+    expect(slotMargin(daily2)).toBe(60)
+    expect(nextDueAfterExecution(daily2, morning, 0)).toBe('2026-10-19T06:00:00.000Z') // 09:00
+    expect(nextDueAfterExecution(daily2, morning, 1)).toBe('2026-10-19T14:00:00.000Z') // 17:00
+    expect(nextDueAfterExecution(daily2, morning, 2)).toBe('2026-10-20T06:00:00.000Z') // tomorrow 09:00
+    // 23:00 + 1 hour stops at the end of the day.
+    expect(nextDueAfterExecution({ kind: 'daily', times: ['08:00', '14:00', '23:00'] }, morning, 2)).toBe('2026-10-19T20:59:59.000Z')
   })
-  it('a tolerance shortens a slot to its time plus the tolerance', () => {
+  it('the day split evenly without times keeps the old rule: by the next slot', () => {
+    const even = { kind: 'daily', timesPerDay: 2, times: [] }
+    expect(slotMargin(even)).toBe(0)
+    expect(nextDueAfterExecution(even, new Date('2026-10-19T04:30:00Z'), 0)).toBe('2026-10-19T09:00:00.000Z') // 12:00
+  })
+  it('a control\'s own margin replaces the default', () => {
     const f = { kind: 'daily', times: ['07:00', '15:00', '23:00'], toleranceMinutes: 90 }
     const at = new Date('2026-10-19T05:00:00Z')
     expect(nextDueAfterExecution(f, at, 0)).toBe('2026-10-19T05:30:00.000Z') // 08:30
@@ -64,8 +71,8 @@ describe('due rules per frequency', () => {
     expect(periodBounds(daily1, afterMidnight).start.toISOString()).toBe('2026-10-19T21:00:00.000Z')
   })
   it('across the October change: due by 23:59:59 local in winter time', () => {
-    expect(nextDueAfterExecution(daily1, new Date('2026-10-25T00:30:00Z'), 1)).toBe('2026-10-26T21:59:59.000Z')
-    expect(nextDueAfterExecution(daily4, new Date('2026-10-25T00:30:00Z'), 0)).toBe('2026-10-25T09:00:00.000Z') // 11:00 EET
+    expect(nextDueAfterExecution(daily1, new Date('2026-10-25T00:30:00Z'), 1)).toBe('2026-10-26T09:00:00.000Z') // 11:00 EET
+    expect(nextDueAfterExecution(daily4, new Date('2026-10-25T00:30:00Z'), 0)).toBe('2026-10-25T06:00:00.000Z') // 08:00 EET
   })
   it('weekly: by Sunday of the next week; every two weeks, the week after', () => {
     const saturday = new Date('2026-10-24T08:00:00Z')
@@ -82,7 +89,7 @@ describe('due rules per frequency', () => {
     expect(nextDueAfterExecution({ kind: 'custom', interval: 15 }, new Date('2026-10-19T05:55:00Z'))).toBe('2026-11-03T21:59:59.000Z')
   })
   it('steps a schedule from deadline to deadline and starts a new one in the current period', () => {
-    expect(nextDeadlineAfter(daily2, new Date('2026-10-19T13:00:00Z'))).toBe('2026-10-19T20:59:59.000Z')
+    expect(nextDeadlineAfter(daily2, new Date('2026-10-19T13:00:00Z'))).toBe('2026-10-19T14:00:00.000Z') // 17:00
     expect(nextDeadlineAfter({ kind: 'monthly', interval: 1 }, new Date('2026-10-31T21:59:59Z'))).toBe('2026-11-30T21:59:59.000Z')
     expect(firstDue({ kind: 'monthly', interval: 1 }, new Date('2026-10-19T10:00:00Z'))).toBe('2026-10-31T21:59:59.000Z')
   })
@@ -114,6 +121,20 @@ describe('period progress and marks', () => {
   it('marks only the first N entries of a day as counted', () => {
     const marks = executionMarks([{ at: '2026-10-19T05:00:00Z' }, { at: '2026-10-19T06:00:00Z' }, { at: '2026-10-19T07:00:00Z' }], daily2)
     expect(marks.map((m) => m.counted)).toEqual([true, true, false])
+  })
+  it('is on time from 1 hour before to the margin after; later the same day it is late', () => {
+    const at = (time) => ({ at: new Date(zonedInstant(2026, 10, 19, Number(time.slice(0, 2)) * 60 + Number(time.slice(3)))).toISOString() })
+    const onTime = (rows, f) => executionMarks(rows, f).map((m) => m.onTime)
+    // Once a day at 08:00: 07:00–10:00.
+    const once = { kind: 'daily', times: ['08:00'] }
+    expect(onTime([at('06:59')], once)).toEqual([false])
+    expect(onTime([at('07:00')], once)).toEqual([true])
+    expect(onTime([at('10:00')], once)).toEqual([true])
+    expect(onTime([at('10:01')], once)).toEqual([false])
+    // Three times (08:00, 14:00, 23:00): ±1 hour each.
+    const three = { kind: 'daily', times: ['08:00', '14:00', '23:00'] }
+    expect(onTime([at('08:30'), at('13:10'), at('23:45')], three)).toEqual([true, true, true])
+    expect(onTime([at('08:30'), at('16:00'), at('21:00')], three)).toEqual([true, false, false])
   })
   it('uses the database count for the current period and the history once the period moved on', () => {
     const record = { frequency: daily4, assignments: { ΜΕΘ: { nextDueAt: '2026-10-19T16:00:00Z', progress: { start: '2026-10-18T21:00:00.000Z', required: 4, done: 4, extra: 0 }, history: [] } } }
@@ -175,8 +196,8 @@ describe('over-entry guard', () => {
     await completeControlExecution('demo-hospital', after, 'Παθολογική', { value: 'Συμμορφώνεται' })
     const done = await loadControlByCode('demo-hospital', 'CTRL-DEMO-0005')
     expect(assignmentProgress(done, 'Παθολογική')).toMatchObject({ done: 4, complete: true })
-    // Next due: tomorrow's first slot (by 11:00 Athens).
-    expect(zonedParts(done.assignments.Παθολογική.nextDueAt)).toMatchObject({ hour: 11, minute: 0 })
+    // Next due: tomorrow's first slot, 07:00 + 1 hour (by 08:00 Athens).
+    expect(zonedParts(done.assignments.Παθολογική.nextDueAt)).toMatchObject({ hour: 8, minute: 0 })
   })
 
   it('is enforced by the database too, for new entries of the current period only', () => {
