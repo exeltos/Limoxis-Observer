@@ -107,7 +107,20 @@ function dueText(row,en){
  return en?`in ${days} ${days===1?'day':'days'}`:`σε ${days} ${days===1?'ημέρα':'ημέρες'}`
 }
 
-export function ActionsList({rows,counts,view,loading,language,t,registry,onOpen,onOrphans}){
+export function ActionsSummary({counts,view,loading,language,onOrphans}){
+ const en=language==='en'
+ const {filters,set}=view
+ const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
+ return<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   {figure('open',counts.open,en?'open':'ανοιχτές')}
+   {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
+   {figure('dueSoon',counts.dueSoon,en?'due in 14 days':'λήγουν σε 14 ημέρες')}
+   {figure('verification',counts.verification,en?'effectiveness check':'έλεγχος αποτελεσματικότητας')}
+   {counts.orphans>0&&<button type="button" className="is-late" onClick={onOrphans}><b>{counts.orphans}</b> {en?'deviations without an action':'αποκλίσεις χωρίς ενέργεια'}</button>}
+  </>}</p>
+}
+
+export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
  const en=language==='en'
  const {filters,set,clear}=view
  // Findings that still wait for an action are listed under Deviations.
@@ -117,15 +130,7 @@ export function ActionsList({rows,counts,view,loading,language,t,registry,onOpen
  const statuses=[...new Set(actions.map(row=>row.status).filter(Boolean))]
  const departments=[...new Set(actions.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
  const advanced=['status','department'].filter(key=>filters[key]!=='all').length
- const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
  return <>
-  <p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   {figure('open',counts.open,en?'open':'ανοιχτές')}
-   {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
-   {figure('dueSoon',counts.dueSoon,en?'due in 14 days':'λήγουν σε 14 ημέρες')}
-   {figure('verification',counts.verification,en?'effectiveness check':'έλεγχος αποτελεσματικότητας')}
-   {counts.orphans>0&&<button type="button" className="is-late" onClick={onOrphans}><b>{counts.orphans}</b> {en?'deviations without an action':'αποκλίσεις χωρίς ενέργεια'}</button>}
-  </>}</p>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search actions or their source…':'Αναζήτηση ενέργειας ή πηγής…'} activeAdvancedCount={advanced} onClear={clear}>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>

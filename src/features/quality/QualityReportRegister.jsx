@@ -199,6 +199,26 @@ const WAITING_DAYS=7
 const waitingDays=row=>{const days=-daysUntil(row.date);return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
 const PERIOD_DAYS={today:0,'7d':7,'30d':30}
 
+// The line above a register, outside its card (as in Controls): what waits, in figures that filter the list.
+export function ReportSummary({view,loading,language,inbox=false}){
+ const en=language==='en'
+ const {filters,set}=view
+ const quick=filters.quick
+ const stageCount=view.counts.stages
+ const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
+ const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
+ const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
+ if(inbox)return <p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+  <button type="button" className={waits.length?'is-late':''} onClick={()=>view.clear()}><b>{waits.length}</b> {en?'to assess':'προς αξιολόγηση'}</button>
+  <button type="button" className={longWaiting?'is-late':''} onClick={()=>set('quick',quick==='waiting'?null:'waiting')}><b>{longWaiting}</b> {en?`waiting over ${WAITING_DAYS} days`:`αναμένουν πάνω από ${WAITING_DAYS} ημέρες`}</button>
+  {oldest>0&&<span>{en?'Oldest waiting':'Παλαιότερη αναμονή'}: <b>{oldest}</b> {dayWord(oldest)}</span>}
+ </>}</p>
+ return <p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+  {INCIDENT_STAGES.filter(stage=>stageCount?.[stage]).map(stage=><button key={stage} type="button" className={quick===stage?'is-active':''} onClick={()=>set('quick',quick===stage?null:stage)}><b>{stageCount[stage]}</b> {(stage==='closed'?(en?'closed':'κλειστά'):stageLabel(stage,language)).toLowerCase()}</button>)}
+  {view.counts.sentinel>0&&<button type="button" className={`is-late${quick==='sentinel'?' is-active':''}`} onClick={()=>set('quick',quick==='sentinel'?null:'sentinel')}><b>{view.counts.sentinel}</b> {en?(view.counts.sentinel===1?'sentinel event':'sentinel events'):(view.counts.sentinel===1?'συμβάν-φρουρός':'συμβάντα-φρουροί')}</button>}
+ </>}</p>
+}
+
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
 // summary line and the usual filter popover instead of boxes and extra columns.
 export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false}){
@@ -214,9 +234,6 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const paging=usePage(items,JSON.stringify(filters))
  const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
  const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
- const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
- const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
- const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
  const columns=inbox
   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
   :compact
@@ -235,15 +252,6 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </>
  return <>
-  {inbox&&<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   <button type="button" className={waits.length?'is-late':''} onClick={()=>view.clear()}><b>{waits.length}</b> {en?'to assess':'προς αξιολόγηση'}</button>
-   <button type="button" className={longWaiting?'is-late':''} onClick={()=>set('quick',quick==='waiting'?null:'waiting')}><b>{longWaiting}</b> {en?`waiting over ${WAITING_DAYS} days`:`αναμένουν πάνω από ${WAITING_DAYS} ημέρες`}</button>
-   {oldest>0&&<span>{en?'Oldest waiting':'Παλαιότερη αναμονή'}: <b>{oldest}</b> {dayWord(oldest)}</span>}
-  </>}</p>}
-  {compact&&<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   {INCIDENT_STAGES.filter(stage=>view.counts.stages?.[stage]).map(stage=><button key={stage} type="button" className={filters.quick===stage?'is-active':''} onClick={()=>set('quick',filters.quick===stage?null:stage)}><b>{view.counts.stages[stage]}</b> {(stage==='closed'?(en?'closed':'κλειστά'):stageLabel(stage,language)).toLowerCase()}</button>)}
-   {view.counts.sentinel>0&&<button type="button" className={`is-late${filters.quick==='sentinel'?' is-active':''}`} onClick={()=>set('quick',filters.quick==='sentinel'?null:'sentinel')}><b>{view.counts.sentinel}</b> {en?(view.counts.sentinel===1?'sentinel event':'sentinel events'):(view.counts.sentinel===1?'συμβάν-φρουρός':'συμβάντα-φρουροί')}</button>}
-  </>}</p>}
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear}>
    {popover}
   </FilterBar>
@@ -266,6 +274,22 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  </>
 }
 
+export function DeviationSummary({view,language}){
+ const en=language==='en'
+ const {filters,set}=view
+ const counts=view.counts
+ const pendingView=filters.scope==='pending'
+ const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
+ const figure=(key,count,label,onClick,active,late=false)=><button key={key} type="button" className={`${late?'is-late':''}${active?' is-active':''}`.trim()} onClick={onClick}><b>{count}</b> {label}</button>
+ return<p className="quality-summary-line" aria-live="polite">{view.loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   {figure('all',counts.total,en?'deviations':'αποκλίσεις',()=>showRegistry({}),!pendingView&&filters.status==='all'&&!filters.quick)}
+   {figure('progress',counts.inProgress,en?'in progress':'σε εξέλιξη',()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'}),!pendingView&&filters.status==='inProgress')}
+   {figure('closed',counts.closed,en?'closed':'κλειστές',()=>showRegistry({status:filters.status==='closed'?'all':'closed'}),!pendingView&&filters.status==='closed')}
+   {figure('withoutCapa',counts.withoutCapa,en?'without corrective action':'χωρίς διορθωτική ενέργεια',()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'}),!pendingView&&filters.quick==='withoutCapa',counts.withoutCapa>0)}
+   {figure('pending',counts.pending,en?'new to assess':'νέες προς αξιολόγηση',()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')},pendingView,counts.pending>0)}
+  </>}</p>
+}
+
 export function DeviationQueue({view,loading,language,t,onCreateCapa,onCreateFindingCapa}){
  const en=language==='en'
  const {goTo}=useContextualNavigation('/quality')
@@ -276,19 +300,9 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa,onCreateFin
  const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
  const openRow=row=>row.type==='finding'?goTo(`/quality/findings/${row.id}`,{returnTo:'/quality',returnTab:'deviations'}):goTo(row.item.path,{returnTo:'/quality',returnTab:'deviations'})
  const pendingView=filters.scope==='pending'
- const counts=view.counts
  const needsAction=row=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
  const showActions=pendingView||items.some(needsAction)
- const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
- const figure=(key,count,label,onClick,active,late=false)=><button key={key} type="button" className={`${late?'is-late':''}${active?' is-active':''}`.trim()} onClick={onClick}><b>{count}</b> {label}</button>
  return <>
-  <p className="quality-summary-line" aria-live="polite">{view.loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   {figure('all',counts.total,en?'deviations':'αποκλίσεις',()=>showRegistry({}),!pendingView&&filters.status==='all'&&!filters.quick)}
-   {figure('progress',counts.inProgress,en?'in progress':'σε εξέλιξη',()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'}),!pendingView&&filters.status==='inProgress')}
-   {figure('closed',counts.closed,en?'closed':'κλειστές',()=>showRegistry({status:filters.status==='closed'?'all':'closed'}),!pendingView&&filters.status==='closed')}
-   {figure('withoutCapa',counts.withoutCapa,en?'without corrective action':'χωρίς διορθωτική ενέργεια',()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'}),!pendingView&&filters.quick==='withoutCapa',counts.withoutCapa>0)}
-   {figure('pending',counts.pending,en?'new to assess':'νέες προς αξιολόγηση',()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')},pendingView,counts.pending>0)}
-  </>}</p>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear}>
    <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={value=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={value=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
