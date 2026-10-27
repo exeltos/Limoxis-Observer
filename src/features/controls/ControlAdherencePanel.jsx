@@ -82,7 +82,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
   const { notify } = useFeedback()
   const reportRef = useRef(null)
   const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey, now)
-  const { lines: periodLines, totals } = useMemo(() => (failed ? periodAdherence([], period, new Map(), now || new Date()) : periodAdherence(rows, period, counts, now || new Date())), [rows, period, counts, failed, now])
+  const { lines: periodLines, totals: periodTotals } = useMemo(() => (failed ? periodAdherence([], period, new Map(), now || new Date()) : periodAdherence(rows, period, counts, now || new Date())), [rows, period, counts, failed, now])
   const entryDays = useEntryDays(organizationId, period, refreshKey, now)
   // The days each line missed (daily controls) or the weeks (weekly ones).
   const lines = useMemo(() => {
@@ -91,9 +91,18 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
     return periodLines.map((line) => {
       const assignment = line.item.assignments?.[line.department] || {}
       const days = entryDays === null ? (organizationId && !isDemoData() ? null : entryDaysFromHistory(assignment.history || [])) : entryDays.get(assignment.dbId) || new Map()
-      return days ? { ...line, missedDays: line.missed ? missedDays(line.frequency || line.item.frequency, days, range, assignment.createdAt || line.item.createdAt) : [] } : line
+      if (!days) return line
+      // Daily and weekly controls: «missed» is what the ended days (weeks)
+      // missed, the same the dates show; not the nominal count of the period.
+      const frequency = line.frequency || line.item.frequency
+      const missed = missedDays(frequency, days, range, assignment.createdAt || line.item.createdAt)
+      const named = ['daily', 'weekly'].includes(frequency?.kind)
+      const count = named ? missed.reduce((sum, miss) => sum + miss.missing, 0) : line.missed
+      // A rate rounded up to 100% never sits beside a missed execution.
+      return { ...line, missedDays: missed, missed: count, rate: count && line.rate === 100 ? 99 : line.rate }
     })
   }, [periodLines, period, now, entryDays, organizationId])
+  const totals = useMemo(() => ({ ...periodTotals, missed: lines.reduce((sum, line) => sum + line.missed, 0) }), [periodTotals, lines])
   const trend = useMonthlyTrend(rows, organizationId, period, refreshKey, now)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)

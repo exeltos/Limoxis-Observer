@@ -27,8 +27,6 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }) {
   const name = (item) => (en ? item.titleEn || item.title : item.title)
   const total = shown.reduce((sum, line) => sum + line.missed, 0)
   const head = (line) => `${name(line.item)} · ${line.department}`
-  // The count is the period's nominal one; the dates are the whole days (weeks) that ended.
-  const unnamed = (line) => line.missed - (line.missedDays || []).reduce((sum, miss) => sum + miss.missing, 0)
   function print() {
     const ok = printReport({
       language, kind: en ? 'Controls' : 'Έλεγχοι',
@@ -49,7 +47,6 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }) {
       {(line.missedDays || []).length
         ? <ul>{line.missedDays.slice().reverse().map((miss) => { const text = missedText(miss, language); return <li key={miss.day}><span>{text.when}</span><strong>{text.times}</strong></li> })}</ul>
         : <p>{en ? 'The dates are named for daily and weekly controls.' : 'Οι ημερομηνίες φαίνονται για τους ημερήσιους και εβδομαδιαίους ελέγχους.'}</p>}
-      {(line.missedDays || []).length > 0 && unnamed(line) > 0 && <p>{en ? `${unnamed(line)} more fall on a day that has not ended or that the period only partly covers.` : `${unnamed(line)} ακόμα αφορούν ημέρα που δεν έχει κλείσει ή που η περίοδος πιάνει μόνο εν μέρει.`}</p>}
     </section>)}
   </ObserverDialog>
 }
