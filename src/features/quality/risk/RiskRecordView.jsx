@@ -19,7 +19,7 @@ const STAGES=[['inherent','Εγγενής','Inherent'],['residual','Υπολει
 // One risk as a record: a summary line and its values (no form), what happened
 // in practice, the corrective actions opened from it and its course over the
 // periods. Editing opens the form from the record's «⋯».
-export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indicatorValues=null,onBack,onEdit,onDelete,onCreateCapa}){
+export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indicatorValues=null,onBack,onEdit,onDelete,onCreateCapa,onMove=null}){
  const language=en?'en':'el'
  const {t}=useLanguage()
  const {goTo}=useContextualNavigation('/quality')
@@ -37,7 +37,11 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
  const lineage=useMemo(()=>riskLineage(assessments.length?assessments:[{...assessment}],risk.lineageKey),[assessments,assessment,risk.lineageKey])
  const warnings=riskWarnings(risk).filter(w=>w.tone!=='info')
  const indicators=risk.indicatorKeys||[]
- const path=STAGES.map(([kind])=>s[kind].score??'—').join(' → ')
+ const path=STAGES.map(([kind])=>s[kind].score).filter(Boolean).join(' → ')
+ // ‹ › through the assessment's risks, in the register's order.
+ const keys=useMemo(()=>[...(assessment.risks||[])].sort((a,b)=>(a.position??0)-(b.position??0)).map(item=>item.lineageKey),[assessment.risks])
+ const index=keys.indexOf(risk.lineageKey)
+ const recordNavigation=onMove&&index>=0&&keys.length>1?{position:index+1,total:keys.length,hasPrevious:index>0,hasNext:index<keys.length-1,previous:()=>index>0&&onMove(keys[index-1]),next:()=>index<keys.length-1&&onMove(keys[index+1])}:null
  const measures=value=>{const list=parseMeasures(value);return list.length?<ol className="risk-view-measures">{list.map((item,index)=><li key={index}>{item}</li>)}</ol>:''}
  const axes=kind=>s[kind].score?`${s[kind].l} × ${s[kind].c} · ${likelihoodLabel(s[kind].l,en)} / ${consequenceLabel(s[kind].c,en)}`:''
  const open=(type,row)=>goTo(`/quality/${type}/${row.id}`,{returnTo:`/quality/risks/${assessment.code}/${risk.lineageKey}`})
@@ -48,7 +52,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
   {id:'history',label:L(en,'Ιστορικό','History'),icon:History},
  ]
  const line=<p className="quality-summary-line quality-record-line">
-  <span className={['high','very_high'].includes(s.residual.level)?'is-late':undefined}>{L(en,'Εγγενής','Inherent')} {s.inherent.score??'—'} → {L(en,'Υπολειπόμενος','Residual')} {s.residual.score??'—'} → {L(en,'Στόχος','Target')} {s.target.score??'—'}{s.residual.level?` · ${levelLabel(s.residual.level,en).toLowerCase()}`:''}</span>
+  <span className={['high','very_high'].includes(s.residual.level)?'is-late':undefined}>{L(en,'Εγγενής','Inherent')} {s.inherent.score??'—'} → {L(en,'Υπολειπόμενος','Residual')} {s.residual.score??'—'}{s.target.score?` → ${L(en,'Στόχος','Target')} ${s.target.score}`:''}{s.residual.level?` · ${levelLabel(s.residual.level,en).toLowerCase()}`:''}</span>
   {(evidence.incidents.length+evidence.findings.length)>0&&<span>{L(en,'12μ','12m')}: {[evidence.incidents.length&&L(en,`${evidence.incidents.length} συμβάντα`,`${evidence.incidents.length} incidents`),evidence.findings.length&&L(en,`${evidence.findings.length} ευρήματα`,`${evidence.findings.length} findings`)].filter(Boolean).join(' · ')}</span>}
   <span>{indicators.length?L(en,`δείκτες: ${indicators.length}`,`indicators: ${indicators.length}`):L(en,'χωρίς δείκτη','no indicator')}</span>
   {capas.length>0&&<span>{L(en,`${capas.length} διορθωτικές ενέργειες`,`${capas.length} corrective actions`)}</span>}
@@ -110,6 +114,7 @@ export function RiskRecordView({risk,assessment,organizationId,en,canEdit,indica
   title={txt(risk,'hazard',en)} subtitle={[txt(risk,'process',en),txt(risk,'scope',en)].filter(Boolean).join(' · ')||undefined}
   status={<span className="risk-editor-path" title={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{path}</span>}
   headerActions={recordActions({en,canEdit,editing:false,isNew:false,onEdit,onDelete})}
+  recordNavigation={recordNavigation}
   tabs={tabs} activeTab={tab} onTabChange={setTab} renderTab={id=>content[id]}
   onBack={onBack} backLabel={L(en,'Πίσω στην εκτίμηση','Back to the assessment')}>
   {content[tab]}
