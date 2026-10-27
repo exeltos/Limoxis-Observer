@@ -4,10 +4,13 @@ import { ClipboardList,Pencil,Target } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { DetailList } from '../../../design-system/DetailList'
+import { ExportMenu } from '../../../design-system/ExportMenu'
 import { IconButton } from '../../../design-system/IconButton'
 import { Meter } from '../../../design-system/MiniCharts'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { RouteLoading } from '../../../design-system/RouteLoading'
+import { printReport } from '../../../core/export/reportDocument'
+import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
@@ -23,7 +26,7 @@ const tone=state=>({met:'success',missed:'danger'})[state]||'info'
 
 // /quality/objectives/:objectiveId — one objective on its own page: where it stands today, what it is measured by, who owns it and by when.
 export function ObjectiveRecordPage(){
- const {objectiveId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,role,membership}=useTenant()
+ const {objectiveId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,role,membership}=useTenant(),{notify}=useFeedback()
  const {objectives,registers,loading,reload}=useObjectives(tenant?.id)
  const [editing,setEditing]=useState(false)
  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
@@ -46,8 +49,15 @@ export function ObjectiveRecordPage(){
    {label:en?'Due':'Προθεσμία',value:formatDay(objective.dueDate,language)},
   ]},
  ]
+ // The objective as a printed sheet.
+ const printObjective=pdf=>{
+  const ok=printReport({language,kind:en?'Quality objective':'Στόχος ποιότητας',code:objective.code,title:objectiveTitle(objective,language),subtitle:String(objective.year),
+   meta:[[en?'Value today':'Τιμή σήμερα',value],[en?'Target':'Στόχος',target],[en?'Status':'Κατάσταση',objectiveStateLabel(state,en)],...detail.flatMap(section=>section.items.filter(item=>item.value!=null&&item.value!=='').map(item=>[item.label,String(item.value)]))],
+   filename:`${objective.code}_${objective.year}`},{pdf:pdf===true})
+  if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
+ }
  return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${objective.year} · ${en?'ISO 9001 §6.2':'ISO 9001 §6.2'}`} status={<StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>} onBack={back}
-  headerActions={<>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}</>}>
+  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}</>}>
   <section className="record-section">
    <p className="quality-summary-line"><span><b>{value}</b> {en?'today':'σήμερα'}</span><span>{en?'target':'στόχος'} <b>{target}</b></span><span className={state==='missed'?'is-late':undefined}><b>{reach==null?'—':`${Math.round(reach)}%`}</b> {en?'of the target':'του στόχου'}</span><span>{objectiveStateLabel(state,en).toLowerCase()}</span></p>
    <Meter value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
