@@ -6,7 +6,6 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
-import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadBundleAssessments } from '../prevention/bundleCloudService'
@@ -290,15 +289,13 @@ export function DeviationSummary({view,language}){
   </>}</p>
 }
 
-export function DeviationQueue({view,loading,language,t,onCreateCapa,onCreateFindingCapa}){
+export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}){
  const en=language==='en'
- const {goTo}=useContextualNavigation('/quality')
  const {filters,set}=view
  const items=view.filtered
  const paging=usePage(items,`${JSON.stringify(filters)}:${view.days}`)
  const advanced=['source','department','priority','status'].filter(key=>filters[key]!=='all').length+(view.days!==90?1:0)
  const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
- const openRow=row=>row.type==='finding'?goTo(`/quality/findings/${row.id}`,{returnTo:'/quality',returnTab:'deviations'}):goTo(row.item.path,{returnTo:'/quality',returnTab:'deviations'})
  const pendingView=filters.scope==='pending'
  const needsAction=row=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
  const showActions=pendingView||items.some(needsAction)
@@ -310,11 +307,11 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa,onCreateFin
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
    {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
-  <div className="scroll-table">
+  <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])]}
     emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “New to assess” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στις «Νέες προς αξιολόγηση» μέχρι να τις εξετάσει η Ποιότητα.'}
-    rowProps={row=>({className:'quality-register-deviation',onClick:()=>openRow(row)})}
+    rowProps={row=>({...(registry?.rowProps(row.type==='finding'?row.id:row.key)||{}),onClick:()=>onOpenRow(row,items)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
      <td><strong>{row.code}</strong></td>
      <td>{en?row.titleEn:row.title}{row.type==='finding'&&!row.hasCapa&&row.status!=='closed'&&<small>{en?'No corrective action linked':'Χωρίς συνδεδεμένη διορθωτική ενέργεια'}</small>}{row.type==='deviation'&&row.item.notes&&<small>{row.item.notes}</small>}</td>

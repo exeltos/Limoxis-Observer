@@ -59,7 +59,7 @@ export function surveysExport(surveys, language) {
   }
 }
 
-export function SurveysList({ list, filters, setFilters, onOpen, filterEnd = null }) {
+export function SurveysList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const [page, setPage] = useState(1)
@@ -74,11 +74,11 @@ export function SurveysList({ list, filters, setFilters, onOpen, filterEnd = nul
       <FilterSelect label={en ? 'Asks' : 'Απευθύνεται σε'} value={filters.audience} onChange={value => set('audience', value)}><option value="all">{t('all')}</option>{SURVEY_AUDIENCES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option>{SURVEY_STATUSES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
-    <div className="scroll-table">
+    <div className="scroll-table" ref={registry?.scrollRef}>
       <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={survey => survey.id} empty={!list.loading && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'survey', label: en ? 'Survey' : 'Έρευνα' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'responses', label: en ? 'Responses' : 'Απαντήσεις' }, { key: 'status', label: t('status') }]}
         emptyTitle={en ? 'No surveys yet' : 'Δεν υπάρχουν έρευνες'} emptyText={en ? 'Start one from a template: inpatients, outpatients and emergency, or staff.' : 'Ξεκινήστε από πρότυπο: νοσηλευόμενοι, εξωτερικοί ασθενείς και ΤΕΠ, ή προσωπικό.'}
-        rowProps={survey => ({ className: 'registry-row-clickable', onClick: () => onOpen(survey) })}
+        rowProps={survey => ({ ...(registry?.rowProps(survey.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(survey) })}
         renderRow={survey => { const closing = surveyClosingSoon(survey); return <>
           <td><strong>{survey.code || '—'}</strong><small>{audienceLabel(survey.audience, language)}</small></td>
           <td>{en ? survey.titleEn || survey.title : survey.title}<small>{survey.questions?.length || 0} {en ? 'questions' : 'ερωτήσεις'}</small></td>

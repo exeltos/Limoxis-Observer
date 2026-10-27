@@ -62,7 +62,7 @@ export function useResources(enabled = true) {
 
 const NEXT_LABEL = (row, language) => row.next ? `${eventKindLabel(row.next.kind, language)} · ${formatDay(row.next.nextDue, language)}` : '—'
 
-export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }) {
+export function EquipmentList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const [page, setPage] = useState(1)
@@ -80,11 +80,11 @@ export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = n
       <FilterSelect label={en ? 'Programme' : 'Πρόγραμμα'} value={filters.due} onChange={value => set('due', value)}><option value="all">{t('all')}</option>{DUE_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
-    <div className="scroll-table">
+    <div className="scroll-table" ref={registry?.scrollRef}>
       <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.equipment.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }]}
         emptyTitle={en ? 'No equipment' : 'Δεν υπάρχει εξοπλισμός'} emptyText={en ? 'Register the devices whose maintenance and calibration you follow.' : 'Καταχωρίστε τον εξοπλισμό του οποίου παρακολουθείτε τη συντήρηση και τη διακρίβωση.'}
-        rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen(row, rows) })}
+        rowProps={row => ({ ...(registry?.rowProps(row.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(row, rows) })}
         renderRow={row => <>
           <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
           <td>{row.name}<small>{[row.manufacturer, row.model, row.serialNumber && `S/N ${row.serialNumber}`].filter(Boolean).join(' · ') || '—'}</small></td>
@@ -98,7 +98,7 @@ export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = n
   </>
 }
 
-export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = null }) {
+export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -121,11 +121,11 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="active">{en ? 'Active' : 'Ενεργοί'}</option><option value="inactive">{en ? 'Inactive' : 'Ανενεργοί'}</option><option value="all">{t('all')}</option></FilterSelect>
     </FilterBar>
-    <div className="scroll-table">
+    <div className="scroll-table" ref={registry?.scrollRef}>
       <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.suppliers.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }]}
         emptyTitle={en ? 'No suppliers' : 'Δεν υπάρχουν προμηθευτές'} emptyText={en ? 'Register the external providers whose products and services affect care.' : 'Καταχωρίστε τους εξωτερικούς παρόχους των οποίων τα προϊόντα και οι υπηρεσίες επηρεάζουν τη φροντίδα.'}
-        rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen(row, rows) })}
+        rowProps={row => ({ ...(registry?.rowProps(row.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(row, rows) })}
         renderRow={row => { const notes = supplierNotes(row, language); return <>
           <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
           <td>{row.name}<small>{supplierCategoryLabel(row.category, language)}</small></td>
