@@ -1,4 +1,8 @@
 import { useEffect,useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { DetailList } from '../../design-system/DetailList'
+import { loadRiskAssessments } from '../quality/risk/riskService'
+import { levelLabel,scored } from '../quality/risk/riskModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadIndicatorSnapshots,loadOperationalIndicatorDefinitions } from './indicatorCloudService'
 
 const monthStart=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`}
@@ -14,7 +18,16 @@ const SNAPSHOT_STATUS={approved:['Εγκρίθηκε','Approved'],reviewed:['Ε�
 export function IndicatorResultPanel({organizationId,record,period,language}){
  const el=language!=='en'
  const from=period?.from||monthStart(),to=period?.to||today(),departmentId=period?.departmentId||null
+ const navigate=useNavigate()
  const [state,setState]=useState({loading:true,result:null,history:[],error:false})
+ // The risks of the latest assessment that name this indicator as their measure.
+ const [risks,setRisks]=useState({assessment:null,list:[]})
+ useEffect(()=>{
+  let active=true
+  if(!organizationId||!record?.id)return()=>{active=false}
+  loadRiskAssessments(organizationId).then(all=>{if(!active)return;const latest=(all||[]).find(a=>a.status!=='archived')||(all||[])[0];setRisks({assessment:latest||null,list:(latest?.risks||[]).filter(r=>(r.indicatorKeys||[]).includes(record.id))})}).catch(()=>{if(active)setRisks({assessment:null,list:[]})})
+  return()=>{active=false}
+ },[organizationId,record?.id])
  useEffect(()=>{
   let active=true
   if(!organizationId||!record)return()=>{active=false}
@@ -39,13 +52,17 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
    {state.loading?<div className="inline-empty">{el?'Υπολογισμός…':'Calculating…'}</div>
     :state.error?<div className="data-access-state error" role="alert">{el?'Δεν ήταν δυνατός ο υπολογισμός του δείκτη.':'Could not calculate the indicator.'}</div>
     :!result?<div className="inline-empty">{el?'Ο δείκτης δεν είναι ενεργός για αυτή την περίοδο.':'The indicator is not active for this period.'}</div>
-    :<div className="indicator-result-cards">
-     <div className="indicator-result-value"><span>{el?'Αποτέλεσμα':'Result'}</span><strong>{fmtNumber(result.value,el)}</strong><small>{unit}</small></div>
-     <div><span>{el?'Αριθμητής / παρονομαστής':'Numerator / denominator'}</span><strong>{result.evidence}</strong></div>
-     <div><span>{el?'Στόχος':'Target'}</span><strong>{target}</strong></div>
-     <div><span>{el?'Κατάσταση':'Status'}</span><strong><span className={`status-badge ${status[2]}`}>{status[el?0:1]}</span></strong></div>
-    </div>}
+    :<>
+     <p className="quality-summary-line"><span><b>{fmtNumber(result.value,el)}</b> {unit}</span><span className={result.status==='attention'?'is-late':undefined}>{status[el?0:1].toLowerCase()}</span><span>{el?'στόχος':'target'} <b>{target}</b></span><span><b>{state.history.filter(h=>h.status==='approved').length}</b> {el?'εγκεκριμένα αποτελέσματα':'approved results'}</span><span><b>{risks.list.length}</b> {el?'κίνδυνοι':'risks'}</span></p>
+     <DetailList sections={[{title:el?'Υπολογισμός':'Calculation',items:[{label:el?'Αριθμητής / παρονομαστής':'Numerator / denominator',value:result.evidence},{label:el?'Μονάδα':'Unit',value:unit}]}]}/>
+    </>}
   </section>
+  {risks.list.length>0&&<section className="record-section">
+   <div className="record-section-header"><div><h3>{el?'Κίνδυνοι που παρακολουθεί ο δείκτης':'Risks this indicator monitors'}</h3><p>{risks.assessment?.periodLabel||''}</p></div></div>
+   <div className="scroll-table"><table className="data-table"><thead><tr><th>{el?'Κίνδυνος':'Risk'}</th><th>{el?'Υπολειπόμενος':'Residual'}</th></tr></thead><tbody>
+    {risks.list.map(r=><tr key={r.lineageKey} className="is-clickable" tabIndex={0} onClick={()=>navigate(`/quality/risks/${risks.assessment.code}/${r.lineageKey}`)} onKeyDown={e=>{if(e.key==='Enter')navigate(`/quality/risks/${risks.assessment.code}/${r.lineageKey}`)}}><td><strong>{r.hazard}</strong><small>{[r.process,r.scope].filter(Boolean).join(' · ')}</small></td><td>{levelLabel(scored(r).residual.level,!el)}</td></tr>)}
+   </tbody></table></div>
+  </section>}
   <section className="record-section">
    <div className="record-section-header"><div><h3>{el?'Εγκεκριμένα αποτελέσματα':'Approved results'}</h3><p>{el?'Τα αποτελέσματα που αποθηκεύτηκαν και εγκρίθηκαν από τη λίστα δεικτών, ανά περίοδο.':'Results saved and approved from the indicators list, by period.'}</p></div></div>
    {state.history.length?<div className="scroll-table"><table className="data-table"><thead><tr><th>{el?'Περίοδος':'Period'}</th><th>{el?'Αποτέλεσμα':'Result'}</th><th>{el?'Αριθμητής / παρονομαστής':'Numerator / denominator'}</th><th>{el?'Στόχος':'Target'}</th><th>{el?'Κατάσταση':'Status'}</th></tr></thead><tbody>
