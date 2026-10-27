@@ -26,6 +26,7 @@ function stepNote(id, status, { record, capas, language, t }) {
   if (id === 'reported') return [formatDay(record.date, language), record.anonymous ? (en ? 'Anonymous' : 'Ανώνυμα') : record.reportedBy].filter(Boolean).join(' · ')
   if (id === 'assessment') return status === 'done' ? [t(record.severity), record.sentinel ? 'Sentinel' : ''].filter(Boolean).join(' · ') : en ? 'Severity, harm, root cause' : 'Σοβαρότητα, βλάβη, βασική αιτία'
   if (id === 'capa') return capas.length ? (en ? `${capas.filter(isDone).length}/${capas.length} completed` : `${capas.filter(isDone).length}/${capas.length} ολοκληρώθηκαν`) : record.sentinel ? (en ? 'Root cause analysis required' : 'Απαιτείται ανάλυση ριζικής αιτίας') : (en ? 'If the assessment calls for one' : 'Αν η αξιολόγηση το ζητά')
+  if (id === 'effectiveness' && status !== 'done' && capas.some(capa => !isDone(capa))) return en ? 'After the action is completed' : 'Μετά την ολοκλήρωση της ενέργειας'
   if (id === 'effectiveness') return status === 'done' ? (en ? 'Effective' : 'Αποτελεσματική') : capas.length ? vocabularyLabel(EFFECTIVENESS, capas[0].effectivenessStatus || 'pending', language) : ''
   if (id === 'closed') return status === 'done' ? (en ? 'The incident is closed' : 'Το συμβάν έκλεισε') : ''
   return ''

@@ -90,7 +90,31 @@ export function glanceItems(recordType,record,{language,t,linked=[]}){
   return []
 }
 
+// An incident «at a glance» as one line under the title (the figures of the other records are still boxes).
+export function incidentSummary(record,{language,t}){
+  const en=language==='en'
+  const kind=reportKindOf(record)
+  const open=!isClosed(record)
+  const items=[]
+  if(['clinical','nonClinical'].includes(kind)){
+    const harmful=record.incidentClass==='harmful'
+    items.push({text:harmful?`${vocabularyLabel(IMPACTS,harmLevel(record.impact),language)} (WHO)`:vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?'danger':undefined})
+  }
+  items.push({text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined})
+  if(record.sentinel)items.push({text:'Sentinel',tone:'danger'})
+  const since=-daysUntil(record.date)
+  if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτό ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστό')})
+  if(record.sentinel&&open&&record.rcaDueDate){
+    const left=daysUntil(record.rcaDueDate)
+    items.push(left<0
+      ?{text:en?`root cause analysis ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')} late`:`ανάλυση αιτίας: εκπρόθεσμη ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')}`,tone:'danger'}
+      :{text:en?`root cause analysis by ${formatDay(record.rcaDueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`:`ανάλυση αιτίας έως ${formatDay(record.rcaDueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`,tone:left<=7?'danger':undefined})
+  }
+  return items
+}
+
 export function QualityGlance({recordType,record,language,t,linked}){
+  if(recordType==='incidents')return <p className="quality-summary-line quality-record-line">{incidentSummary(record,{language,t}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   const items=glanceItems(recordType,record,{language,t,linked})
   if(!items.length)return null
   return <RecordMetricStrip className="quality-glance" items={items}/>
