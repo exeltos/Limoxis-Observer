@@ -259,7 +259,7 @@ export function visibleAssessments(list=[]){
 // What happened in practice in the last twelve months for a risk: the incidents
 // of the departments its scope names and the audit findings of its JCI chapter.
 const plain=value=>String(value||'').toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim()
-export function riskEvidence(risk,{incidents=[],findings=[]}={},on=new Date().toISOString().slice(0,10)){
+export function riskEvidenceRows(risk,{incidents=[],findings=[]}={},on=new Date().toISOString().slice(0,10)){
  const since=`${Number(on.slice(0,4))-1}${on.slice(4,10)}`
  const scope=plain(`${risk.scope||''} ${risk.process||''}`)
  const parts=scope.split(/[,;/]| και /).map(part=>part.trim()).filter(part=>part.length>=3)
@@ -267,8 +267,20 @@ export function riskEvidence(risk,{incidents=[],findings=[]}={},on=new Date().to
  const inYear=date=>String(date||'').slice(0,10)>=since&&String(date||'').slice(0,10)<=on
  const live=row=>row.lifecycleStatus!=='voided'
  const chapter=String(risk.jci||'').split('.')[0]
+ const byDate=(a,b)=>String(b.date||'').localeCompare(String(a.date||''))
  return {
-  incidents:incidents.filter(row=>live(row)&&inYear(row.date)&&named(row.department)).length,
-  findings:chapter?findings.filter(row=>live(row)&&inYear(row.date)&&row.standard==='jci'&&String(row.clauseRef||'').toUpperCase().startsWith(chapter.toUpperCase())).length:0,
+  incidents:incidents.filter(row=>live(row)&&inYear(row.date)&&named(row.department)).sort(byDate),
+  findings:chapter?findings.filter(row=>live(row)&&inYear(row.date)&&row.standard==='jci'&&String(row.clauseRef||'').toUpperCase().startsWith(chapter.toUpperCase())).sort(byDate):[],
  }
+}
+export function riskEvidence(risk,practice={},on=new Date().toISOString().slice(0,10)){
+ const rows=riskEvidenceRows(risk,practice,on)
+ return {incidents:rows.incidents.length,findings:rows.findings.length}
+}
+
+// The same risk (its lineage key) in every assessment, oldest first: its three scores per period.
+export function riskLineage(assessments=[],lineageKey){
+ return assessments.map(assessment=>({assessment,risk:(assessment.risks||[]).find(item=>item.lineageKey===lineageKey)})).filter(entry=>entry.risk)
+  .sort((a,b)=>String(a.assessment.assessedOn||'').localeCompare(String(b.assessment.assessedOn||'')))
+  .map(({assessment,risk})=>({code:assessment.code,period:assessment.periodLabel,assessedOn:assessment.assessedOn,status:assessment.status,...scored(risk)}))
 }

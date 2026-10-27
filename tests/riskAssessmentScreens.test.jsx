@@ -124,20 +124,22 @@ describe('risk assessment screens', () => {
     await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const register=()=>within(document.querySelector('.risk-register'))
     fireEvent.click(register().getByText('R007'))
-    // The risk opens as a page: the measures are lists, in the order of the assessment.
-    const residual = (await screen.findAllByRole('combobox', { name: /Πιθανότητα \(L\)/ }))[1]
-    expect(screen.getByText('Προληπτικά μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
-    expect(residual).toBeDisabled()
-    expect(screen.queryByRole('button', { name: /Αποθήκευση κινδύνου/ })).toBeNull()
+    // The risk opens as a record (its values, no form); «Επεξεργασία» opens the form.
+    expect(await screen.findByText('Μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: /Πιθανότητα \(L\)/ })).toBeNull()
+    expect(screen.getByRole('tab', { name: /Στην πράξη/ })).toBeInTheDocument()
     await startEditing()
+    const residual = (await screen.findAllByRole('combobox', { name: /Πιθανότητα \(L\)/ }))[1]
     expect(residual).toBeEnabled()
-    // «Ακύρωση» drops the edits, the measure lists included.
+    expect(screen.getByText('Προληπτικά μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
+    // «Ακύρωση» drops the edits, the measure lists included, and returns to the record.
     const measure = () => document.querySelector('.risk-measures textarea')
     const before = measure().value
     fireEvent.change(measure(), { target: { value: 'Ακυρωμένο μέτρο' } })
     fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))
-    expect(measure().value).toBe(before)
+    expect(await screen.findByText('Μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
     await startEditing()
+    expect(measure().value).toBe(before)
     // L is a searchable pick: typing 4 and Enter chooses «4 · …».
     const likelihood = screen.getAllByRole('combobox', { name: /Πιθανότητα \(L\)/ })[1]
     fireEvent.change(likelihood, { target: { value: '4' } })
@@ -145,6 +147,9 @@ describe('risk assessment screens', () => {
     // 4 × 3 = 12: the residual risk becomes High and needs an action plan.
     expect(screen.getByText('Υψηλός υπολειπόμενος χωρίς πρόσθετα μέτρα')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Αποθήκευση κινδύνου/ }))
+    // Saved, the risk stays open as a record with its new level; «Πίσω» returns to the register.
+    expect(await screen.findByText('Μέτρα που ήδη λαμβάνονται')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Πίσω στην εκτίμηση' })[0])
     await screen.findByRole('tab', { name: 'Μητρώο (14)' })
     const row = register().getByText('R007').closest('tr')
     expect(within(row).getByText('Υψηλός')).toBeInTheDocument()

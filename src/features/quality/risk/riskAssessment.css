@@ -458,3 +458,15 @@
 .risk-evidence{font-weight:600;color:var(--lo-status-warning-fg)}
 .risk-summary-line{margin:0 0 10px}
 .risk-table .risk-hazard small.risk-hazard-meta{display:flex}
+.risk-view{display:flex;flex-direction:column;gap:10px}
+.risk-view .record-section-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.risk-view-score{display:inline-flex;align-items:center;gap:10px}
+.risk-view-score small{font-weight:500;color:var(--lo-color-muted)}
+.risk-view-measures{margin:0;padding-left:18px;font-weight:500}
+.risk-view-heading{margin:8px 0 2px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.risk-view-list{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+.risk-view-list button{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;align-items:center;width:100%;padding:7px 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.risk-view-list button:hover{border-color:var(--lo-color-primary)}
+.risk-view-list small{color:var(--lo-color-muted)}
+.risk-view-history th small{display:block;font-weight:500;color:var(--lo-color-muted)}
+.risk-view-history tr.is-current{background:var(--lo-color-primary-soft)}

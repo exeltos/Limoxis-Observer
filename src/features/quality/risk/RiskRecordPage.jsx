@@ -10,6 +10,7 @@ import { deleteRisk,loadRiskAssessment,nextLineageKey,saveRisk } from './riskSer
 import { levelLabel,scored,suggestJci } from './riskModel'
 import { loadIndicatorValues } from './riskIndicators'
 import { RiskEditor } from './RiskEditor'
+import { RiskRecordView } from './RiskRecordView'
 import { DeleteConfirm,L,txt } from './riskUi'
 import './riskAssessment.css'
 
@@ -30,6 +31,7 @@ export function RiskRecordPage(){
  const [loading,setLoading]=useState(true)
  const [saving,setSaving]=useState(false)
  const [confirming,setConfirming]=useState(false)
+ const [editing,setEditing]=useState(false)
  const {goTo}=useContextualNavigation('/quality')
  const [indicatorValues,setIndicatorValues]=useState(null)
  useEffect(()=>{let active=true;setLoading(true);loadRiskAssessment(organizationId,assessmentCode).then(a=>{if(active)setAssessment(a)}).catch(()=>{if(active)setAssessment(null)}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[organizationId,assessmentCode])
@@ -49,7 +51,8 @@ export function RiskRecordPage(){
   setSaving(true)
   try{
    await saveRisk(organizationId,assessment.id,{...draft,lineageKey:draft.lineageKey||nextLineageKey(risks),position:draft.position??risks.length,jci:draft.jci||suggestJci(draft.hazard,draft.process)})
-   notify(L(en,'Ο κίνδυνος αποθηκεύτηκε.','The risk was saved.'),'success');back()
+   notify(L(en,'Ο κίνδυνος αποθηκεύτηκε.','The risk was saved.'),'success')
+   if(isNew)back();else{setAssessment(await loadRiskAssessment(organizationId,assessmentCode));setEditing(false)}
   }catch{notify(L(en,'Δεν ήταν δυνατή η αποθήκευση του κινδύνου.','Could not save the risk.'),'error')}finally{setSaving(false)}
  }
  async function remove(){
@@ -63,7 +66,8 @@ export function RiskRecordPage(){
   goTo('/quality/capas/new',{registry:'quality.capas',state:{qualitySource:{source:'other',sourceId:`RISK:${assessment.code}:${r.lineageKey}`,title:L(en,`Μείωση κινδύνου: ${txt(r,'hazard',en)}`,`Risk reduction: ${txt(r,'hazard',en)}`),description:[`${assessment.periodLabel} · ${r.lineageKey} · ${txt(r,'process',en)}`,`${L(en,'Υπολειπόμενος κίνδυνος','Residual risk')}: ${s.residual.score??'—'} (${levelLabel(s.residual.level,en)})`,txt(r,'additionalMeasures',en)].filter(Boolean).join('\n'),priority:s.residual.level==='very_high'?'critical':s.residual.level==='high'?'high':'medium',dueDate:r.dueDate||undefined}}})
  }
  return <Page fill>
-  <RiskEditor key={riskKey} risk={risk} processes={processes} en={en} readOnly={!canEdit} saving={saving} indicatorValues={indicatorValues} assessmentLabel={assessment.periodLabel} onClose={back} onSave={save} onDelete={()=>setConfirming(true)} onCreateCapa={createCapa}/>
+  {!isNew&&!editing?<RiskRecordView key={riskKey} risk={risk} assessment={assessment} organizationId={organizationId} en={en} canEdit={canEdit} indicatorValues={indicatorValues} onBack={back} onEdit={()=>setEditing(true)} onDelete={()=>setConfirming(true)} onCreateCapa={canManage?createCapa:null}/>
+  :<RiskEditor key={riskKey} startEditing={editing} onCancel={()=>setEditing(false)} risk={risk} processes={processes} en={en} readOnly={!canEdit} saving={saving} indicatorValues={indicatorValues} assessmentLabel={assessment.periodLabel} onClose={back} onSave={save} onDelete={()=>setConfirming(true)} onCreateCapa={createCapa}/>}
   {confirming&&<DeleteConfirm en={en} title={L(en,'Διαγραφή κινδύνου','Delete risk')} text={`${risk.lineageKey} · ${txt(risk,'hazard',en)}`} onClose={()=>setConfirming(false)} onConfirm={remove}/>}
  </Page>
 }
