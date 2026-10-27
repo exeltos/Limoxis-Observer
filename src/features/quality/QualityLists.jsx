@@ -1,6 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,Grid3X3,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,Plus,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
-import { ActionButton } from '../../design-system/ActionButton'
+import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,Grid3X3,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { SubTabs } from '../../design-system/SubTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -108,36 +107,42 @@ function dueText(row,en){
  return en?`in ${days} ${days===1?'day':'days'}`:`σε ${days} ${days===1?'ημέρα':'ημέρες'}`
 }
 
-export function ActionsList({rows,view,loading,language,t,registry,onOpen,onCreateCapa=null}){
+export function ActionsList({rows,counts,view,loading,language,t,registry,onOpen,onOrphans}){
  const en=language==='en'
  const {filters,set,clear}=view
- const filtered=useMemo(()=>filterActions(rows,filters,en),[rows,filters,en])
+ // Findings that still wait for an action are listed under Deviations.
+ const actions=useMemo(()=>rows.filter(row=>row.kind==='capa'),[rows])
+ const filtered=useMemo(()=>filterActions(actions,filters,en),[actions,filters,en])
  const paging=usePaging(filtered,JSON.stringify(filters))
- const statuses=[...new Set(rows.filter(row=>row.kind==='capa').map(row=>row.status).filter(Boolean))]
- const departments=[...new Set(rows.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
- const advanced=['kind','status','department'].filter(key=>filters[key]!=='all').length
+ const statuses=[...new Set(actions.map(row=>row.status).filter(Boolean))]
+ const departments=[...new Set(actions.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
+ const advanced=['status','department'].filter(key=>filters[key]!=='all').length
+ const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search actions, findings or their source…':'Αναζήτηση ενέργειας, ευρήματος ή πηγής…'} activeAdvancedCount={advanced} onClear={clear}>
-   <FilterSelect label={en?'Kind':'Είδος'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλα'}</option><option value="capa">{en?'Corrective / preventive action':'Διορθωτική / προληπτική ενέργεια'}</option><option value="finding">{en?'Finding without an action':'Εύρημα χωρίς ενέργεια'}</option></FilterSelect>
+  <p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   {figure('open',counts.open,en?'open':'ανοιχτές')}
+   {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
+   {figure('dueSoon',counts.dueSoon,en?'due in 14 days':'λήγουν σε 14 ημέρες')}
+   {figure('verification',counts.verification,en?'effectiveness check':'έλεγχος αποτελεσματικότητας')}
+   {counts.orphans>0&&<button type="button" className="is-late" onClick={onOrphans}><b>{counts.orphans}</b> {en?'deviations without an action':'αποκλίσεις χωρίς ενέργεια'}</button>}
+  </>}</p>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search actions or their source…':'Αναζήτηση ενέργειας ή πηγής…'} activeAdvancedCount={advanced} onClear={clear}>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
   <div className="scroll-table" ref={registry.scrollRef}>
-   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={clear}
+   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length} emptyFiltered={actions.length>0} onClearFilters={clear}
     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Came from':'Προέλευση'},{key:'department',label:t('department')},{key:'date',label:en?'Due':'Προθεσμία'},{key:'owner',label:t('owner')},{key:'status',label:t('status')}]}
-    emptyTitle={en?'No actions':'Δεν υπάρχουν ενέργειες'} emptyText={en?'Corrective actions from reports, findings, deviations, risks and reviews appear here, with the findings still waiting for one.':'Εδώ εμφανίζονται οι διορθωτικές ενέργειες από αναφορές, ευρήματα, αποκλίσεις, κινδύνους και ανασκοπήσεις, μαζί με τα ευρήματα που ακόμη περιμένουν ενέργεια.'}
-    rowProps={row=>({...registry.rowProps(row.id),className:`${registry.rowProps(row.id).className}${row.kind==='finding'&&isOpenRecord(row)?' quality-register-deviation':''}`,onClick:()=>onOpen(row,filtered.filter(item=>item.kind===row.kind))})}
-    renderRow={row=>{const Icon=SOURCE_ICON[row.sourceKind]||CheckSquare2;const overdue=isOverdueAction(row);const finding=row.kind==='finding';return <>
-     <td><strong>{qualityCode(row,language)}</strong><small>{finding?(en?'Finding':'Εύρημα'):vocabularyLabel(CAPA_TYPES,row.actionType||'corrective',language)}</small></td>
-     <td>{titleOf(row,en)}{!finding&&row.subActions?.length>0&&(({done,total})=><><small>{en?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`}</small><Meter value={done*100/total} tone={done===total?'success':'neutral'} label={en?`${done}/${total} steps done`:`${done}/${total} βήματα`}/></>)(subActionProgress(row.subActions))}</td>
+    emptyTitle={en?'No actions':'Δεν υπάρχουν ενέργειες'} emptyText={en?'Corrective actions from reports, findings, deviations, risks and reviews appear here.':'Εδώ εμφανίζονται οι διορθωτικές ενέργειες από αναφορές, ευρήματα, αποκλίσεις, κινδύνους και ανασκοπήσεις.'}
+    rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,filtered)})}
+    renderRow={row=>{const Icon=SOURCE_ICON[row.sourceKind]||CheckSquare2;const overdue=isOverdueAction(row);return <>
+     <td><strong>{qualityCode(row,language)}</strong><small>{vocabularyLabel(CAPA_TYPES,row.actionType||'corrective',language)}</small></td>
+     <td>{titleOf(row,en)}{row.subActions?.length>0&&(({done,total})=><><small>{en?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`}</small><Meter value={done*100/total} tone={done===total?'success':'neutral'} label={en?`${done}/${total} steps done`:`${done}/${total} βήματα`}/></>)(subActionProgress(row.subActions))}</td>
      <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{(SOURCE_KINDS[row.sourceKind]||SOURCE_KINDS.manual)[en?1:0]}</span>{row.sourceCode&&<small>{row.sourceCode}</small>}{(en?row.sourceTitleEn:row.sourceTitle)&&<small>{en?row.sourceTitleEn:row.sourceTitle}</small>}</td>
      <td>{departmentOf(row,en)||'—'}</td>
-     <td className={`nowrap-cell${overdue?' quality-overdue':''}`}>{finding?<>{formatDay(row.date,language)||'—'}<small>{en?'Found':'Εντοπίστηκε'}</small></>:<>{formatDay(row.dueDate,language)||'—'}{dueText(row,en)&&<small>{dueText(row,en)}</small>}</>}</td>
+     <td className={`nowrap-cell${overdue?' quality-overdue':''}`}>{formatDay(row.dueDate,language)||'—'}{dueText(row,en)&&<small>{dueText(row,en)}</small>}</td>
      <td>{recordOwners(row).map(name=>roleTitleText(name,language)).join(', ')||'—'}</td>
-     <td>{finding&&isOpenRecord(row)?<div className="row-actions quality-register-actions">
-      <StatusBadge tone="warning">{en?'Without CAPA':'Χωρίς ενέργεια'}</StatusBadge>
-      {onCreateCapa&&<ActionButton tone="primary" label={en?'Create CAPA':'Δημιουργία διορθωτικής ενέργειας'} onClick={event=>{event.stopPropagation();onCreateCapa(row)}}><Plus size={15}/><span>{en?'CAPA':'Ενέργεια'}</span></ActionButton>}
-     </div>:<><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge>{!finding&&isVerificationAction(row)&&<small>{en?'Check effectiveness':'Έλεγχος αποτελεσματικότητας'}</small>}</>}</td>
+     <td><StatusBadge tone={qualityStatusTone(row.status)}>{t(row.status)}</StatusBadge>{isVerificationAction(row)&&<small>{en?'Check effectiveness':'Έλεγχος αποτελεσματικότητας'}</small>}</td>
     </>}}/>
   </div>
   {filtered.length>0&&<RegistryPagination language={language} {...paging.props}/>}

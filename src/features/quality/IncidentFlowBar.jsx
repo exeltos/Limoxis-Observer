@@ -63,7 +63,7 @@ export function IncidentFlowPanel({ steps = [], record, capas = [], language = '
           {next.hint && <small>{next.hint}</small>}
         </div>}
       </section>
-      <section className="risk-panel quality-panel">
+      {capas.length > 0 && <section className="risk-panel quality-panel">
         <header><h3>{en ? 'Corrective actions' : 'Διορθωτικές ενέργειες'}{capas.length > 0 && <span className="quality-panel-count">{capas.length}</span>}</h3></header>
         {capas.length ? <ul className="quality-capa-cards">{capas.map(capa => {
           const progress = subActionProgress(capa.subActions || [])
@@ -74,8 +74,8 @@ export function IncidentFlowPanel({ steps = [], record, capas = [], language = '
             </span>
             <StatusBadge tone={qualityStatusTone(capa.status)}>{t(capa.status)}</StatusBadge><ChevronRight size={15} aria-hidden="true" />
           </button></li>
-        })}</ul> : <p className="risk-empty-note">{en ? 'No corrective action yet.' : 'Καμία διορθωτική ενέργεια ακόμη.'}</p>}
-      </section>
+        })}</ul> : null}
+      </section>}
     </aside>
   )
 }

@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -160,11 +160,6 @@ export function QualityPage(){
  const latestRisks=latestAssessment?summarizeRisks(latestAssessment.risks||[]):null
  const quickFigure=(view,key,icon,value,label,tone)=>({key,icon,value,label,tone,active:view.filters.quick===key,go:()=>toggle(view,'quick',key)})
  const tabFigures={
-  actions:[quickFigure(actionView,'open',CheckSquare2,actionCount.open,L('Ανοιχτές ενέργειες','Open actions')),
-   quickFigure(actionView,'overdue',AlertTriangle,actionCount.overdue,L('Εκπρόθεσμες','Overdue'),actionCount.overdue?'danger':'neutral'),
-   quickFigure(actionView,'dueSoon',CalendarClock,actionCount.dueSoon,L('Λήγουν σε 14 ημέρες','Due in 14 days')),
-   quickFigure(actionView,'verification',Scale,actionCount.verification,L('Έλεγχος αποτελεσματικότητας','Effectiveness check')),
-   quickFigure(actionView,'orphans',SearchCheck,actionCount.orphans,L('Αποκλίσεις χωρίς ενέργεια','Deviations without an action'),actionCount.orphans?'warning':'neutral')],
   audits:[quickFigure(auditView,'planned',CalendarDays,auditCount.planned,L('Μένουν φέτος','Left this year')),
    quickFigure(auditView,'month',CalendarClock,auditCount.month,L('Αυτόν τον μήνα','This month')),
    quickFigure(auditView,'overdue',AlertTriangle,auditCount.overdue,L('Εκπρόθεσμες','Overdue'),auditCount.overdue?'danger':'neutral'),
@@ -264,8 +259,9 @@ export function QualityPage(){
    {tab==='incidents'&&<ReportRegister compact view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='deviations'&&canManage&&<DeviationQueue view={deviations} loading={queue.loading} language={language} t={t}
+    onCreateFindingCapa={finding=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}}
     onCreateCapa={prefill=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:prefill}})}}/>}
-   {tab==='actions'&&<ActionsList rows={actions} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
+   {tab==='actions'&&<ActionsList rows={actions} counts={actionCount} onOrphans={()=>goDeviations('withoutCapa')} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>} 
    {tab==='audits'&&<AuditsList rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}

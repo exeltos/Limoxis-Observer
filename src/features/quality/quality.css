@@ -253,3 +253,5 @@
 .quality-summary-line .is-late b{color:var(--lo-status-danger-fg)}
 .quality-summary-line>button.is-active{color:var(--lo-color-primary);text-decoration:underline}
 .quality-title-kind{display:inline-flex;vertical-align:-2px;margin-right:6px;color:var(--lo-color-muted)}
+.quality-finding-next{display:flex;align-items:center;gap:12px;border-top:0;padding:4px 0 12px}
+.quality-finding-next>button{width:auto}

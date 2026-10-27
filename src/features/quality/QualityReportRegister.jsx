@@ -266,7 +266,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  </>
 }
 
-export function DeviationQueue({view,loading,language,t,onCreateCapa}){
+export function DeviationQueue({view,loading,language,t,onCreateCapa,onCreateFindingCapa}){
  const en=language==='en'
  const {goTo}=useContextualNavigation('/quality')
  const {filters,set}=view
@@ -277,6 +277,8 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
  const openRow=row=>row.type==='finding'?goTo(`/quality/findings/${row.id}`,{returnTo:'/quality',returnTab:'deviations'}):goTo(row.item.path,{returnTo:'/quality',returnTab:'deviations'})
  const pendingView=filters.scope==='pending'
  const counts=view.counts
+ const needsAction=row=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
+ const showActions=pendingView||items.some(needsAction)
  const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
  const figure=(key,count,label,onClick,active,late=false)=><button key={key} type="button" className={`${late?'is-late':''}${active?' is-active':''}`.trim()} onClick={onClick}><b>{count}</b> {label}</button>
  return <>
@@ -296,7 +298,7 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
   </FilterBar>
   <div className="scroll-table">
    <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(pendingView?[{key:'actions',label:''}]:[])]}
+    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])]}
     emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “New to assess” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στις «Νέες προς αξιολόγηση» μέχρι να τις εξετάσει η Ποιότητα.'}
     rowProps={row=>({className:'quality-register-deviation',onClick:()=>openRow(row)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
@@ -307,8 +309,9 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}</td>
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
      <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity)}</StatusBadge></td>
-     {pendingView&&<td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
+     {showActions&&<td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
       {row.type==='deviation'&&<ActionButton tone="primary" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(row.item,language))}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
+      {needsAction(row)&&<ActionButton tone="primary" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateFindingCapa(row.item)}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
      </div></td>}
     </>}}/>
   </div>
