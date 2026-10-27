@@ -282,20 +282,16 @@ export async function loadControlAdherenceCounts(organizationId,{from,to}){
 }
 
 // The regular entries of each assignment per local day of a period, as
-// minutes after midnight (control_entry_times), to name the date and time of
-// each missed execution: Map(assignment id → Map('YYYY-MM-DD' → minutes[])).
-// The demo returns null: its local history is read directly.
+// minutes after midnight (control_entry_day_times, one row per assignment, read
+// in pages), to name the date and time of each missed execution:
+// Map(assignment id → Map('YYYY-MM-DD' → minutes[])). The demo returns null:
+// its local history is read directly.
 export async function loadControlEntryTimes(organizationId,{from,to}){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)
- const {data,error}=await supabase.rpc('control_entry_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
+ const {data,error}=await readPages(()=>supabase.rpc('control_entry_day_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()}).order('assignment_id'))
  if(error)throw error
- const byAssignment=new Map()
- for(const row of data||[]){
-  if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,new Map())
-  byAssignment.get(row.assignment_id).set(String(row.day),(row.minutes||[]).map(Number))
- }
- return byAssignment
+ return new Map((data||[]).map(row=>[row.assignment_id,new Map(Object.entries(row.days||{}).map(([day,minutes])=>[day,(minutes||[]).map(Number)]))]))
 }
 
 // The latest regular entry of the hospital's controls: the reports end on its

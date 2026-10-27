@@ -3,13 +3,12 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { RateMeter } from './ControlAdherencePanel'
 import { periodShort } from './controlAdherence'
 
-// The numbers a card shows under its head: today's entries done of those due,
-// the adherence of the chosen period and how many entries it missed.
+// The adherence a card shows under its numbers: of the chosen period, or done today.
+// The missed executions, with their dates, are in «Adherence».
 function CardFigures({ figures, period, language }) {
   const en = language === 'en'
   return <>
     <span className="control-department-card-rate"><span>{period === 'today' ? (en ? 'Done today' : 'Έγιναν σήμερα') : `${en ? 'Adherence' : 'Τήρηση'} · ${periodShort(period, language)}`}</span><RateMeter rate={figures.rate} /></span>
-    {period !== 'today' && figures.expected > 0 && <span className={`control-department-card-missed${figures.missed ? ' is-late' : ''}`}>{en ? `Missed: ${figures.missed} of ${figures.expected}` : `Χάθηκαν: ${figures.missed} από ${figures.expected}`}</span>}
   </>
 }
 

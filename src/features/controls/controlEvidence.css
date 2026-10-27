@@ -96,7 +96,7 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .controls-period-switch button{min-height:30px!important;height:30px!important;padding:0 11px!important;font-size:12.5px!important}
 /* «Departments» tab: a card per department; more departments add rows. */
 .control-department-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));grid-auto-rows:auto;gap:14px;padding:16px;overflow:auto;align-content:start;flex:1 1 auto;min-height:0}
-.control-department-card{display:flex;flex-direction:column;gap:9px;height:auto;min-height:150px;white-space:normal;overflow:visible;padding:14px 16px;text-align:left;font:inherit;color:var(--lo-color-text);background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border);border-radius:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.control-department-card{display:flex;flex-direction:column;gap:9px;height:auto!important;min-height:150px;max-height:none!important;white-space:normal;overflow:visible;padding:14px 16px;text-align:left;font:inherit;color:var(--lo-color-text);background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border);border-radius:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .control-department-card:hover,.control-department-card:focus-visible{border-color:var(--lo-color-primary);box-shadow:0 4px 14px rgba(16,40,70,.08);outline:0}
 .control-department-card.has-late{border-left-color:var(--lo-status-danger-fg)}
 .control-department-card.is-all{border-left-color:var(--lo-color-primary);background:var(--lo-color-primary-soft,var(--lo-color-surface))}
@@ -117,8 +117,6 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-department-list-table td small{display:block;color:var(--lo-color-muted);font-size:12px}
 .control-department-list-table td.control-department-list-short{color:var(--lo-status-danger-fg);font-weight:700}
 .control-department-card-rate>span:first-child{white-space:nowrap}
-.control-department-card-missed{margin-top:-4px;font-size:12px;color:var(--lo-color-muted)}
-.control-department-card-missed.is-late{color:var(--lo-status-danger-fg)}
 /* A department manager's own card above the list: one row, not a link. */
 .control-department-card.is-single{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px 28px;min-height:0;margin:0 0 12px;cursor:default}
 .control-department-card.is-single:hover{border-color:var(--lo-color-border);box-shadow:none}
