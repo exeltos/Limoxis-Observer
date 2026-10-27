@@ -133,6 +133,8 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null
   createdAt:row.created_at,
   updatedAt:row.updated_at,
   departments:activeAssignments.map(a=>a.department?.name).filter(Boolean),
+  // Departments where the control is paused (kept with their history; added back from the editor).
+  pausedDepartments:assignments.filter(a=>a.control_id===row.id&&a.status==='paused').map(a=>a.department?.name).filter(Boolean),
   // Department-scoped roles are checked by department id (roleUxPolicy).
   departmentIdByName:Object.fromEntries(activeAssignments.filter(a=>a.department?.name).map(a=>[a.department.name,a.department_id||a.department?.id||null])),
   assignments:assignmentMap,

@@ -345,11 +345,25 @@
 .control-editor-similar a {
   font-weight: 650;
 }
-/* «Departments» tab: one row per department; a cell opens its own fields when the department differs. */
+/* «Departments» tab: one row per department; «Same for all» unless it differs, then its fields full width under the row. */
+.control-editor-departments .control-departments-select{max-width:520px;margin-bottom:12px}
 .control-editor-department-table{width:100%;table-layout:fixed}
 .control-editor-department-table th:first-child{width:18%}
-.control-editor-department-table tbody td:is(td,#lo-control-editor){vertical-align:top!important;padding-top:10px;padding-bottom:10px}
-.control-editor-department-table td>strong{display:block;padding-top:9px}
-.control-department-schedules.is-compact,.control-department-responses.is-compact{display:block;margin:0;padding:0;border:0}
-.control-department-schedules.is-compact .control-department-schedule,.control-department-responses.is-compact .control-department-response{display:block;padding:0;border:0}
-.control-department-schedules.is-compact .control-department-schedule-fields,.control-department-responses.is-compact .control-department-response-fields{margin-top:8px}
+.control-editor-department-table th:last-child:empty{width:110px}
+.control-editor-department-table tbody td:is(td,#lo-control-editor){vertical-align:middle!important;padding-top:8px;padding-bottom:8px}
+.control-editor-department-table tr.has-own-fields td{border-bottom:0}
+.control-department-cell{display:flex;align-items:center;gap:10px;min-width:0;color:var(--lo-color-muted);font-size:13px}
+.control-department-cell>span,.control-department-cell>strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.control-department-cell.is-own>strong{color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg);border-radius:6px;padding:2px 8px;font-weight:700}
+.control-department-cell.is-own .searchable-select{flex:1 1 auto;min-width:0}
+.control-department-cell-action{flex:0 0 auto;border:0;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:600;color:var(--lo-color-primary);cursor:pointer}
+.control-department-cell-action:hover,.control-department-cell-action:focus-visible{text-decoration:underline}
+.control-editor-department-fields>td{background:var(--lo-color-surface-soft,var(--lo-color-surface));padding:10px 14px 14px!important}
+.control-editor-department-fields .control-department-schedules.is-compact,.control-editor-department-fields .control-department-responses.is-compact{display:block;margin:0;padding:0;border:0}
+.control-editor-department-fields .control-department-schedule,.control-editor-department-fields .control-department-response{display:block;padding:0;border:0}
+.control-editor-department-fields .control-department-schedule-fields,.control-editor-department-fields .control-department-response-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 8px}
+.control-editor-department-fields .control-department-times,.control-editor-department-fields .control-department-response-actions{grid-column:1/-1}
+.control-editor-department-pause{text-align:right}
+.control-editor-paused{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lo-color-muted)}
+.control-editor-paused-chip{border:1px dashed var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);padding:4px 11px;font:inherit;font-size:12.5px;color:var(--lo-color-text);cursor:pointer}
+.control-editor-paused-chip:hover,.control-editor-paused-chip:focus-visible{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}

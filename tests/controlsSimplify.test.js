@@ -97,6 +97,7 @@ describe('control form: three tabs, one row per department', () => {
     expect(details).toBeGreaterThan(0)
     expect(details).toBeLessThan(departments)
     expect(departments).toBeLessThan(instructions)
+    expect(editor.indexOf('<MultiSelect className="control-departments-select"')).toBeGreaterThan(departments)
     for (const required of ["What is checked", "en?'Schedule':'Προγραμματισμός'", "How it is recorded"]) {
       const at = editor.indexOf(required)
       expect(at).toBeGreaterThan(details)
@@ -106,11 +107,16 @@ describe('control form: three tabs, one row per department', () => {
     expect(editor).not.toContain('<MoreSection')
   })
 
-  it('shows one table row per department and returns to «Details» when Save finds something missing', () => {
+  it('shows one table row per department, pauses and resumes departments, and opens the tab with what Save finds missing', () => {
     expect(editor).toContain('<table className="data-table control-editor-department-table">')
     expect(editor).toContain('<ControlDepartmentSchedules compact departments={[dep]}')
     expect(editor).toContain('<ControlDepartmentResponses compact departments={[dep]}')
-    expect(editor).toContain("onClickCapture={()=>{if(!form.valid)setTab('details')}}")
+    // A department's own schedule or limits open full width under its row.
+    expect(editor).toContain('<ControlDepartmentSchedules compact part="fields" departments={[dep]}')
+    expect(editor).toContain("onClickCapture={()=>{if(!form.valid)setTab(draft.departments.length?'details':'departments')}}")
+    // Pausing keeps the department's history; a paused department comes back with «Resume».
+    expect(editor).toContain("onClick={()=>set('departments',draft.departments.filter(x=>x!==dep))}")
+    expect(editor).toContain("onClick={()=>set('departments',[...draft.departments,dep])}")
     expect(editor.indexOf('inline-edit-footer control-editor-footer')).toBeGreaterThan(editor.indexOf("{tab==='instructions'&&<>"))
   })
 })

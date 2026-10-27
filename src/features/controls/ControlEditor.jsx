@@ -1,5 +1,5 @@
-import { useEffect,useMemo,useState } from 'react'
-import { Building2,CalendarClock,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,LockKeyhole,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
+import { Fragment,useEffect,useMemo,useState } from 'react'
+import { Building2,CalendarClock,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,LockKeyhole,PauseCircle,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
 import { TimeField } from '../../design-system/TimeField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -60,8 +60,11 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [tab,setTab]=useState('details')
+ const [editingPerson,setEditingPerson]=useState(null)
  const [newAnswer,setNewAnswer]=useState('')
  const lib=key=>libraries[key]||[]
+// Departments where the control is paused: those saved so, and those paused now (their history stays).
+ const pausedDepartments=useMemo(()=>[...new Set([...(initial?.pausedDepartments||[]),...(initial?.departments||[])])].filter(dep=>!draft.departments.includes(dep)),[initial,draft.departments])
  const departments=useMemo(()=>departmentOnly&&fixedDepartment?[fixedDepartment]:departmentRows.map(x=>x.name).filter(Boolean),[departmentRows,departmentOnly,fixedDepartment])
  const set=(k,v)=>setDraft(d=>({...d,[k]:v})),setF=(k,v)=>setDraft(d=>({...d,frequency:{...d.frequency,[k]:v}})),setR=(k,v)=>setDraft(d=>({...d,responseConfig:{...(d.responseConfig||{mode:'text',label:'Αποτέλεσμα'}),[k]:v}}))
  const response=draft.responseConfig||{mode:'text'}
@@ -126,7 +129,6 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <div className="control-editor-grid identity">
       <Field label={en?'Control name':'Ονομασία ελέγχου'} {...form.field('title')}><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></Field>
       <SearchableSelect label={en?'Control type':'Είδος ελέγχου'} {...form.field('category')} value={draft.category} options={typeOptions} onChange={changeCategory} allowCustom placeholder={en?'Choose or type':'Επιλέξτε ή γράψτε'} {...selectText}/>
-      <MultiSelect className="control-departments-select" label={en?'Departments':'Τμήματα εφαρμογής'} {...form.field('departments')} options={departments.map(d=>({value:d,label:d}))} selected={draft.departments} onChange={next=>set('departments',next)} disabled={departmentOnly||departmentsLoading||Boolean(departmentsError)} placeholder={departmentsLoading?(en?'Loading departments…':'Φόρτωση τμημάτων…'):departmentsError||(departments.length?(en?'Select departments':'Επιλέξτε τμήματα'):(en?'No active departments':'Δεν υπάρχουν ενεργά τμήματα'))} {...multiText} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/>
       <SearchableSelect label={en?'Location':'Χώρος'} value={draft.location||''} options={[]} onChange={v=>set('location',v)} allowCustom placeholder={en?'Optional, e.g. Nurses station':'Προαιρετικό, π.χ. Σταθμός νοσηλευτών'} {...selectText}/>
       <SearchableSelect label={en?'Equipment / point':'Εξοπλισμός / σημείο'} value={draft.equipment||''} options={equipmentOptions} onChange={v=>set('equipment',v)} allowCustom placeholder={en?'Optional, e.g. Medication refrigerator':'Προαιρετικό, π.χ. Ψυγείο φαρμάκων'} {...selectText}/>
      </div>
@@ -211,17 +213,25 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     </>}
     {tab==='departments'&&<>
     <section className="control-editor-card control-editor-wide control-editor-departments">
-     <header><strong>{en?'What differs per department':'Ό,τι διαφέρει ανά τμήμα'}</strong><span>{en?'Fill in only what a department does differently; the rest follows «Details».':'Συμπληρώνετε μόνο ό,τι κάνει διαφορετικά ένα τμήμα· τα υπόλοιπα ακολουθούν τα «Στοιχεία».'}</span></header>
-     {draft.departments.length<2?<div className="inline-empty">{en?'The control has one department: everything is set in «Details».':'Ο έλεγχος έχει ένα τμήμα: όλα ορίζονται στα «Στοιχεία».'}</div>
-     :<table className="data-table control-editor-department-table">
-      <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Responsible person':'Υπεύθυνος'}</th><th>{en?'Schedule':'Πρόγραμμα'}</th><th>{mode==='numeric'?(en?'Limits / actions':'Όρια / ενέργειες'):(en?'Actions on deviation':'Ενέργειες σε απόκλιση')}</th></tr></thead>
-      <tbody>{draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);return <tr key={dep}>
+     <header><strong>{en?'Departments of the control':'Τμήματα του ελέγχου'}</strong><span>{en?'Fill in only what a department does differently; the rest follows «Details».':'Συμπληρώνετε μόνο ό,τι κάνει διαφορετικά ένα τμήμα· τα υπόλοιπα ακολουθούν τα «Στοιχεία».'}</span></header>
+     <MultiSelect className="control-departments-select" label={en?'Departments':'Τμήματα εφαρμογής'} {...form.field('departments')} options={departments.map(d=>({value:d,label:d}))} selected={draft.departments} onChange={next=>set('departments',next)} disabled={departmentOnly||departmentsLoading||Boolean(departmentsError)} placeholder={departmentsLoading?(en?'Loading departments…':'Φόρτωση τμημάτων…'):departmentsError||(departments.length?(en?'Select departments':'Επιλέξτε τμήματα'):(en?'No active departments':'Δεν υπάρχουν ενεργά τμήματα'))} {...multiText} searchPlaceholder={en?'Search department…':'Αναζήτηση τμήματος…'} emptyLabel={en?'No department matches':'Κανένα τμήμα δεν ταιριάζει'} countLabel={n=>en?`${n} departments`:`${n} τμήματα`}/>
+     {draft.departments.length>0&&<table className="data-table control-editor-department-table">
+      <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Responsible person':'Υπεύθυνος'}</th><th>{en?'Schedule':'Πρόγραμμα'}</th><th>{mode==='numeric'?(en?'Limits / actions':'Όρια / ενέργειες'):(en?'Actions on deviation':'Ενέργειες σε απόκλιση')}</th>{!departmentOnly&&<th aria-label={en?'Actions':'Ενέργειες'}/>}</tr></thead>
+      <tbody>{draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);const person=draft.assignees?.[dep];const setPerson=next=>set('assignees',{...(draft.assignees||{}),[dep]:next});const ownFields=Boolean(draft.departmentFrequencies?.[dep]||draft.departmentResponses?.[dep]);return <Fragment key={dep}><tr className={ownFields?'has-own-fields':''}>
        <td><strong>{dep}</strong></td>
-       <td><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={draft.assignees?.[dep]?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>set('assignees',{...(draft.assignees||{}),[dep]:personFromEmployee(employeeById(id))})} placeholder={en?'Same for all':'Όπως όλα'} {...selectText}/></td>
+       <td>{person?.employeeId||editingPerson===dep?<div className="control-department-cell is-own"><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={person?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>{setPerson(personFromEmployee(employeeById(id)));setEditingPerson(null)}} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/><button type="button" className="control-department-cell-action" onClick={()=>{setPerson(null);setEditingPerson(null)}}>{en?'Same for all':'Όπως όλα'}</button></div>
+        :<div className="control-department-cell"><span>{en?'Same for all':'Όπως όλα'}</span><button type="button" className="control-department-cell-action" onClick={()=>setEditingPerson(dep)}>{en?'Change':'Αλλαγή'}</button></div>}</td>
        <td><ControlDepartmentSchedules compact departments={[dep]} base={draft.frequency} value={draft.departmentFrequencies||{}} onChange={next=>set('departmentFrequencies',next)} en={en} kindLabels={freqLabel} selectText={selectText}/></td>
        <td><ControlDepartmentResponses compact departments={[dep]} base={response} numeric={mode==='numeric'} value={draft.departmentResponses||{}} onChange={next=>set('departmentResponses',next)} en={en} selectText={selectText}/></td>
-      </tr>})}</tbody>
+       {!departmentOnly&&<td className="control-editor-department-pause"><Button variant="quiet" onClick={()=>set('departments',draft.departments.filter(x=>x!==dep))}><PauseCircle size={15}/> {en?'Pause':'Παύση'}</Button></td>}
+      </tr>
+      {ownFields&&<tr className="control-editor-department-fields"><td colSpan={departmentOnly?4:5}>
+       <ControlDepartmentSchedules compact part="fields" departments={[dep]} base={draft.frequency} value={draft.departmentFrequencies||{}} onChange={next=>set('departmentFrequencies',next)} en={en} kindLabels={freqLabel} selectText={selectText}/>
+       <ControlDepartmentResponses compact part="fields" departments={[dep]} base={response} numeric={mode==='numeric'} value={draft.departmentResponses||{}} onChange={next=>set('departmentResponses',next)} en={en} selectText={selectText}/>
+      </td></tr>}
+      </Fragment>})}</tbody>
      </table>}
+     {pausedDepartments.length>0&&<div className="control-editor-paused" role="status"><span>{en?'Paused (history kept):':'Σε παύση (το ιστορικό μένει):'}</span>{pausedDepartments.map(dep=><button key={dep} type="button" className="control-editor-paused-chip" onClick={()=>set('departments',[...draft.departments,dep])}>{dep} · {en?'Resume':'Επαναφορά'}</button>)}</div>}
     </section>
     </>}
     {tab==='instructions'&&<>
@@ -236,7 +246,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
 
     </>}
 
-    <div className="inline-edit-footer control-editor-footer" onClickCapture={()=>{if(!form.valid)setTab('details')}}><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><FormSubmit form={form} onSubmit={submit}>{en?'Save':'Αποθήκευση'}</FormSubmit></div>
+    <div className="inline-edit-footer control-editor-footer" onClickCapture={()=>{if(!form.valid)setTab(draft.departments.length?'details':'departments')}}><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><FormSubmit form={form} onSubmit={submit}>{en?'Save':'Αποθήκευση'}</FormSubmit></div>
    </div>
   </EntityRecordShell>
   {catalogueOpen&&<ControlExpiryCatalogueDialog items={expiryCatalogue(draft)} departments={departments} defaultDepartments={departmentOnly&&fixedDepartment?[fixedDepartment]:[]} window={expiryWindow(draft)} language={language} onClose={()=>setCatalogueOpen(false)} onSave={list=>setR('expiryCatalogue',list)}/>}

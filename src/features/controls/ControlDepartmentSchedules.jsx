@@ -8,8 +8,10 @@ const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
 
 // «Schedule per department» of a control that several departments share: by default every department
 // follows the control's schedule; a department can have its own (frequency and exact times).
-// compact: one department's cell in the editor's «Departments» table (no heading, no name).
-export function ControlDepartmentSchedules({ departments = [], base, value = {}, onChange, en, kindLabels, selectText, compact = false }) {
+// compact: one department in the editor's «Departments» table, in two parts:
+// part 'summary' is the cell («Same for all» + «Change», or its own schedule + «Same for all»),
+// part 'fields' the schedule's fields, shown full width under the department's row.
+export function ControlDepartmentSchedules({ departments = [], base, value = {}, onChange, en, kindLabels, selectText, compact = false, part = 'summary' }) {
   if (departments.length < 2 && !compact) return null
   const own = department => value[department] || null
   const startOwn = department => onChange({ ...value, [department]: { ...base, times: [...(base.times || [])] } })
@@ -19,6 +21,14 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
     onChange(next)
   }
   const patch = (department, changes) => onChange({ ...value, [department]: { ...own(department), ...changes } })
+  if (compact && part === 'summary') {
+    const department = departments[0]
+    const frequency = own(department)
+    return frequency
+      ? <div className="control-department-cell is-own"><strong>{frequencyLabel(frequency, en ? 'en' : 'el')}</strong><button type="button" className="control-department-cell-action" onClick={() => stopOwn(department)}>{en ? 'Same for all' : 'Όπως όλα'}</button></div>
+      : <div className="control-department-cell"><span>{en ? 'Same for all' : 'Όπως όλα'} ({frequencyLabel(base, en ? 'en' : 'el')})</span><button type="button" className="control-department-cell-action" onClick={() => startOwn(department)}>{en ? 'Change' : 'Αλλαγή'}</button></div>
+  }
+  if (compact && !own(departments[0])) return null
   return (
     <div className={`control-department-schedules${compact ? ' is-compact' : ''}`}>
       {!compact && <span className="lo-field-label">{en ? 'Schedule per department (optional)' : 'Πρόγραμμα ανά τμήμα (προαιρετικό)'}</span>}
@@ -29,7 +39,7 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
         return (
           <div key={department} className="control-department-schedule">
             {!compact && <strong>{department}</strong>}
-            <ChoiceField
+            {!compact && <ChoiceField
               hideLabel
               label={en ? `Schedule: ${department}` : `Πρόγραμμα: ${department}`}
               value={frequency ? 'own' : 'same'}
@@ -40,7 +50,7 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
               ]}
               {...selectText}
               clearLabel=""
-            />
+            />}
             {frequency && (
               <div className="control-department-schedule-fields">
                 <ChoiceField
