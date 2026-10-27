@@ -6,7 +6,6 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { MetricCard } from '../../design-system/MetricCard'
 import { PageSkeleton } from '../../design-system/LoadingSkeleton'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -262,9 +261,7 @@ export function QualityPage(){
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
   <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:item.value==='reports'?register.counts.open:item.value==='incidents'?incidents.counts.open:item.value==='deviations'?deviations.counts.total:item.value==='actions'?overdueActions:0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
-  {figures.length>0&&<div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{'--quality-kpis':figures.length}}>
-   {figures.map(figure=><MetricCard key={figure.key} loading={(records.loading||deviations.loading)&&typeof figure.value==='number'} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active}/>)}
-  </div></div>}
+  {figures.length>0&&<p className="quality-summary-line" aria-live="polite">{figures.map(figure=><button key={figure.key} type="button" className={`${figure.tone==='danger'&&Number(figure.value)>0?'is-late':''}${figure.active?' is-active':''}`.trim()||undefined} onClick={figure.go}><b>{(records.loading||deviations.loading)&&typeof figure.value==='number'?'—':figure.value}</b> {String(figure.label).toLowerCase()}</button>)}</p>}
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
    <p className="quality-summary-line" aria-live="polite">{centerFigures.map(figure=><button key={figure.key} type="button" className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined} onClick={figure.go}><b>{figure.value}</b> {figure.label.toLowerCase()}</button>)}</p>
    {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} findings={records.data.findings} objectives={objectives.objectives} onMeetings={()=>navigate('/meetings?tab=departments')} language={language} categories={categories}
@@ -295,8 +292,7 @@ export function QualityPage(){
     onOpenFinding={finding=>openRecord('findings',finding.id,[finding.id])}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='indicators'&&<>
-    <div className="section-toolbar"><div><strong>{L('Υπολογισμός έτους έως σήμερα','Year-to-date calculation')}</strong><small>{L('Οι ετήσιες κλινοημέρες χρησιμοποιούνται μαζί με τα διαθέσιμα δεδομένα από 1/1 έως σήμερα.','Annual patient-days are used with the available data from Jan 1 to today.')}</small></div>{measureSwitch}</div>
-    <PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators"/></PageEmbedProvider>
+    <PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" filterEnd={measureSwitch}/></PageEmbedProvider>
    </>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>

@@ -1352,7 +1352,6 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 /* v0.26.24 LIRA Briefing calm hierarchy */
 
 /* v0.26.25 Indicators */
-.indicator-summary-strip{margin-bottom:10px}
 .indicator-registry{min-height:0}.indicator-result-cell strong{display:block;font-size:13px}.indicator-result-cell small,.indicator-table-surface td small{display:block;font-size:8.5px;color:var(--muted);margin-top:2px}.indicator-status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:8.5px;font-weight:750;background:#eef2f5;color:#566775}.indicator-status.onTarget{background:#eaf6ef;color:#28754b}.indicator-status.attention{background:#fbefef;color:#a13d3d}.indicator-approval-pending{display:inline-flex;align-items:center;font-size:8.5px;font-weight:650;color:var(--muted)}.indicator-approval-approved{display:inline-flex;align-items:center;gap:4px;font-size:8.5px;font-weight:750;color:#28754b}
 
 /* v0.26.26 Indicator builder + simplified record */
