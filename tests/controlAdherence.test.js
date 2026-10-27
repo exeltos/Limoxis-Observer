@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assignmentAdherence, expectedOccurrences, periodRange, programmeAdherence, slotLength } from '../src/features/controls/controlAdherence'
+import { ADHERENCE_PERIODS, assignmentAdherence, expectedOccurrences, periodAdherence, periodRange, periodShort, programmeAdherence, slotLength, todayProgress } from '../src/features/controls/controlAdherence'
 
 const day = 86400000
 const now = new Date('2026-10-08T12:00:00Z')
@@ -78,5 +78,27 @@ describe('reports end on the last day with entries', () => {
     expect(reportEnd('2026-10-26T18:00:00Z', now).toISOString()).toBe(now.toISOString())
     expect(reportEnd('2026-10-18T21:01:15Z', now).toISOString()).toBe('2026-10-19T20:59:59.000Z') // 19/10 23:59:59 Athens
     expect(reportEnd(null, now).toISOString()).toBe(now.toISOString())
+  })
+})
+
+describe('the page period', () => {
+  const now = new Date('2026-10-27T10:30:00Z') // Tuesday, 12:30 Athens
+  const daily2 = { kind: 'daily', timesPerDay: 2, times: ['08:00', '16:00'] }
+  const row = (frequency, history, extra = {}) => ({ item: { id: 'A', title: 'A', frequency, assignments: { ΜΕΘ: { frequency, history, ...extra } } }, departments: ['ΜΕΘ'] })
+  it('starts «today» at midnight in Athens and offers today, 30 and 60 days, 6 and 12 months', () => {
+    expect(ADHERENCE_PERIODS).toEqual(['today', '30d', '60d', '6m', '12m'])
+    expect(periodRange('today', now).from.toISOString()).toBe('2026-10-26T22:00:00.000Z')
+    expect(periodShort('6m')).toBe('6 μήνες')
+  })
+  it('counts today as the entries done of those the day asks for', () => {
+    const { lines, totals } = periodAdherence([row(daily2, [{ at: '2026-10-27T05:10:00Z' }])], 'today', null, now)
+    expect(lines).toHaveLength(1)
+    expect(totals).toMatchObject({ expected: 2, performed: 1, rate: 50 })
+  })
+  it('asks nothing today of weekly controls, paused ones or weekdays-only ones at the weekend', () => {
+    const sunday = new Date('2026-10-25T10:00:00Z')
+    expect(todayProgress(row({ kind: 'weekly', interval: 1 }, []).item, 'ΜΕΘ', now)).toBeNull()
+    expect(todayProgress(row(daily2, [], { status: 'paused' }).item, 'ΜΕΘ', now)).toBeNull()
+    expect(todayProgress(row({ ...daily2, weekdaysOnly: true }, []).item, 'ΜΕΘ', sunday)).toBeNull()
   })
 })

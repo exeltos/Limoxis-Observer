@@ -6,7 +6,8 @@
 // on time follow the due rules (controlDueRules.executionMarks): the first N
 // entries of a day by their slot deadline; otherwise by the deadline the
 // previous entry set. Extra entries never count.
-import { executionMarks, isWeekdaysOnly, zonedInstant, zonedParts } from './controlDueRules'
+import { executionMarks, isWeekdaysOnly, periodUnit, zonedInstant, zonedParts } from './controlDueRules'
+import { assignmentProgress } from './controlScheduling'
 
 const HOUR = 3600000, DAY = 24 * HOUR
 
@@ -85,25 +86,73 @@ export function programmeAdherence(rows, period, countsByAssignment = null) {
       lines.push({ item, department, frequency: assignment.frequency || item.frequency, ...result })
     }
   }
+  return { lines, totals: adherenceTotals(lines) }
+}
+
+// The totals of adherence lines (worst line first).
+function adherenceTotals(lines) {
   lines.sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || String(a.item.title).localeCompare(String(b.item.title), 'el'))
   const expected = lines.reduce((sum, line) => sum + line.expected, 0)
   const counted = lines.reduce((sum, line) => sum + Math.min(line.performed, line.expected), 0)
   const performed = lines.reduce((sum, line) => sum + line.performed, 0)
   const onTime = lines.reduce((sum, line) => sum + line.onTime, 0)
   return {
-    lines,
-    totals: {
-      expected,
-      performed,
-      onTime,
-      missed: lines.reduce((sum, line) => sum + line.missed, 0),
-      rate: expected ? Math.round((counted / expected) * 100) : null,
-      onTimeRate: performed ? Math.round((onTime / performed) * 100) : null,
-    },
+    expected,
+    performed,
+    onTime,
+    missed: lines.reduce((sum, line) => sum + line.missed, 0),
+    rate: expected ? Math.round((counted / expected) * 100) : null,
+    onTimeRate: performed ? Math.round((onTime / performed) * 100) : null,
   }
 }
 
-export const ADHERENCE_PERIODS = ['30d', '90d', '12m', 'year']
+// Today: the entries a daily control asks for today and how many are done
+// (weekly, monthly and yearly controls have no share of a day; a weekdays-only
+// control asks nothing at the weekend). null when the day asks nothing.
+export function todayProgress(item, department, now = new Date()) {
+  const assignment = item.assignments?.[department]
+  if (!assignment || assignment.status === 'paused') return null
+  const frequency = assignment.frequency || item.frequency || {}
+  if (periodUnit(frequency) !== 'day') return null
+  const p = zonedParts(now)
+  const weekday = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()
+  if (isWeekdaysOnly(frequency) && (weekday === 0 || weekday === 6)) return null
+  const progress = assignmentProgress(item, department, now)
+  return progress?.required ? { required: progress.required, done: progress.done } : null
+}
+
+// «Today» in the adherence lines: due = what the day asks, done = what is
+// recorded so far, on time from the day's counts.
+export function todayAdherence(rows, countsByAssignment = null, now = new Date()) {
+  const lines = []
+  const from = periodRange('today', now).from
+  for (const { item, departments } of rows || []) {
+    for (const department of departments) {
+      const progress = todayProgress(item, department, now)
+      if (!progress) continue
+      const assignment = item.assignments[department]
+      const frequency = assignment.frequency || item.frequency
+      const counts = countsByAssignment ? countsByAssignment.get(assignment.dbId) || { performed: 0, onTime: 0 } : countAdherence(assignment.history || [], frequency, from, now)
+      const performed = progress.done, expected = progress.required
+      const onTime = Math.min(counts.onTime, performed)
+      lines.push({ item, department, frequency, expected, performed, onTime, late: performed - onTime, missed: Math.max(0, expected - performed), rate: Math.round((Math.min(performed, expected) / expected) * 100), onTimeRate: performed ? Math.round((onTime / performed) * 100) : null })
+    }
+  }
+  return { lines, totals: adherenceTotals(lines) }
+}
+
+// The adherence of any period the page offers.
+export function periodAdherence(rows, period, countsByAssignment = null, now = new Date()) {
+  return period === 'today' ? todayAdherence(rows, countsByAssignment, now) : programmeAdherence(rows, periodRange(period, now), countsByAssignment)
+}
+
+export const ADHERENCE_PERIODS = ['today', '30d', '60d', '6m', '12m']
+
+// The short name of a period, for the chips and the column headings.
+export const periodShort = (key, language = 'el') => ({
+  el: { today: 'Σήμερα', '30d': '30 ημ.', '60d': '60 ημ.', '6m': '6 μήνες', '12m': '12 μήνες', '90d': '90 ημ.', year: 'Έτος' },
+  en: { today: 'Today', '30d': '30 days', '60d': '60 days', '6m': '6 months', '12m': '12 months', '90d': '90 days', year: 'Year' },
+})[language === 'en' ? 'en' : 'el'][key] || key
 
 // Where the reports end: today, or, while the entries are still kept elsewhere
 // (an import that stops on a day more than 2 days ago), the end of that day,
@@ -119,7 +168,10 @@ export function reportEnd(lastEntryAt, now = new Date()) {
 export function periodRange(key, now = new Date()) {
   const to = new Date(now)
   const from = new Date(now)
-  if (key === '90d') from.setDate(from.getDate() - 90)
+  if (key === 'today') { const p = zonedParts(now); return { from: zonedInstant(p.year, p.month, p.day, 0), to, now } }
+  if (key === '60d') from.setDate(from.getDate() - 60)
+  else if (key === '6m') from.setMonth(from.getMonth() - 6)
+  else if (key === '90d') from.setDate(from.getDate() - 90)
   else if (key === '12m') from.setFullYear(from.getFullYear() - 1)
   else if (key === 'year') { from.setMonth(0, 1); from.setHours(0, 0, 0, 0) }
   else from.setDate(from.getDate() - 30)

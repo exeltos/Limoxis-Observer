@@ -28,7 +28,7 @@ describe('controls list: department cards, a summary line, no filter popover', (
     expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
     expect(bar).toContain('<ChoiceChips className="controls-status-switch"')
     expect(page).toContain('registry.loadViewState({query:')
-    expect(page).toContain("registry.saveViewState({query,department,status,view})")
+    expect(page).toContain("registry.saveViewState({query,department,status,view,period})")
   })
 
   it('finds frequency, type and criticality through the search box, in both languages', () => {

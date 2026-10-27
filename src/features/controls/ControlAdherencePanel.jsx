@@ -2,13 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { FilterSelect } from '../../design-system/FilterBar'
 import { downloadCsv } from '../../core/export/csvExport'
 import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel, linesFrequencyLabel } from './controlScheduling'
-import { ADHERENCE_PERIODS, adherenceTone, groupAdherenceLines, periodRange, programmeAdherence } from './controlAdherence'
+import { adherenceTone, groupAdherenceLines, periodAdherence, periodRange } from './controlAdherence'
 import { loadControlAdherenceCounts } from './controlCloudService'
 import './controlAdherence.css'
 
@@ -34,14 +33,13 @@ export function useAdherenceCounts(organizationId, period, refreshKey, now = nul
 
 // Programme adherence: due vs done vs on time per control and department.
 // The page owns the report (period + downloads) so its Download button sits
-// in the page header like every other list.
-export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null) {
+// in the page header like every other list; the period is the page's.
+export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null, period = '30d') {
   const en = language === 'en'
   const { notify } = useFeedback()
-  const [period, setPeriod] = useState('30d')
   const reportRef = useRef(null)
   const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey, now)
-  const { lines, totals } = useMemo(() => (failed ? programmeAdherence([], periodRange(period, now || new Date()), new Map()) : programmeAdherence(rows, periodRange(period, now || new Date()), counts)), [rows, period, counts, failed, now])
+  const { lines, totals } = useMemo(() => (failed ? periodAdherence([], period, new Map(), now || new Date()) : periodAdherence(rows, period, counts, now || new Date())), [rows, period, counts, failed, now])
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)
 
@@ -75,7 +73,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
-  return { period, setPeriod, lines, totals, reportRef, exporting: false, exportCsv, exportPdf, failed, loadFailedText, until: now }
+  return { period, lines, totals, reportRef, exporting: false, exportCsv, exportPdf, failed, loadFailedText, until: now }
 }
 
 // «Up to 18/10/2026»: the reports end on the last day with entries.
@@ -96,7 +94,7 @@ export function RateMeter({ rate }) {
 
 export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const en = language === 'en'
-  const { period, setPeriod, lines, totals, reportRef, failed, loadFailedText, until } = report
+  const { lines, totals, reportRef, failed, loadFailedText, until } = report
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
@@ -116,7 +114,6 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   </>
   return <div className="control-adherence" ref={reportRef}>
     <div className="control-adherence-toolbar">
-      <FilterSelect label={tx.period} value={period} onChange={(value) => { setPeriod(value); setPage(1) }}>{ADHERENCE_PERIODS.map((key) => <option key={key} value={key}>{tx[`p${key}`]}</option>)}</FilterSelect>
       <div className="control-adherence-summary">
         <span><strong className={`control-adherence-total ${adherenceTone(totals.rate)}`}>{pct(totals.rate)}</strong>{tx.adherence}</span>
         <span><strong>{totals.performed} / {totals.expected}</strong>{tx.performed.toLowerCase()}</span>
