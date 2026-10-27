@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, ListChecks, Plus } from 'lucide-react'
-import { Meter } from '../../design-system/MiniCharts'
+import { ListChecks, Plus } from 'lucide-react'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { useDepartments } from '../management/useLibraries'
 import { ChoiceField } from '../../design-system/ChoiceField'
@@ -10,7 +9,6 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { formatDay } from '../../core/i18n/formatDay'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditMatrix, checklistTemplates } from './qualityAudit'
-import { qualityCode } from './qualityVocabulary'
 import { standardShort } from './audits/auditStandards'
 
 // The controls that are checklists, offered as audit checklists.
@@ -67,42 +65,59 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null })
   const rows = scope === 'all' ? matrix.rows : matrix.rows.filter(row => row.covered)
   const done = matrix.totals.done, active = matrix.total - matrix.totals.cancelled
   const plan = (row, month) => onPlan?.({ department: row.name, departmentEn: row.nameEn, departmentId: row.id, plannedDate: `${year}-${String(month + 1).padStart(2, '0')}-15` })
+  const byDepartment = useMemo(() => {
+    const map = new Map()
+    audits.forEach(audit => { const key = String(audit.department || '').trim(); if (key) map.set(key, [...(map.get(key) || []), audit]) })
+    return map
+  }, [audits])
+  const detail = row => {
+    const list = (byDepartment.get(row.key) || []).filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
+    const last = list.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))[0]
+    const next = list.filter(audit => ['planned', 'in_progress', 'inProgress'].includes(audit.status)).sort((a, b) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
+    return { last, next, inYear: row.months.flat().filter(cell => cell.state !== 'cancelled').length }
+  }
+  const when = audit => (audit.plannedMonthOnly ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(audit.plannedDate).slice(0, 7)}-15T12:00:00Z`)) : formatDay(audit.plannedDate, language))
   return <div className="quality-programme">
-    <div className="quality-programme-head">
-     <div className="quality-programme-title"><CalendarDays size={16} aria-hidden="true" /><strong>{en ? 'Audit programme' : 'Πρόγραμμα επιθεωρήσεων'}</strong></div>
+    <div className="quality-programme-summary">
      {/* Back to any earlier year; forward up to next year, to plan it. */}
      <PeriodStepper label={year} onPrevious={() => setYear(String(Number(year) - 1))} onNext={() => setYear(String(Number(year) + 1))} nextDisabled={Number(year) >= now.getFullYear() + 1} />
-    </div>
-    <div className="quality-programme-summary">
-     <div className="quality-programme-progress">
-      <span><strong>{done}</strong> {en ? `of ${active} completed` : `από ${active} ολοκληρώθηκαν`}</span>
-      <Meter value={active ? done * 100 / active : 0} tone={done === active && active ? 'success' : 'neutral'} label={en ? `${done} of ${active} audits completed` : `${done} από ${active} επιθεωρήσεις ολοκληρώθηκαν`} />
-     </div>
-     <ul className="quality-programme-legend">{STATE_ORDER.map(state => <li key={state}><span className={`quality-programme-dot is-${state}`} aria-hidden="true" />{STATE_LABELS[state][en ? 1 : 0]}<strong>{matrix.totals[state]}</strong></li>)}</ul>
+     <span className="quality-programme-progress"><strong>{done}</strong> {en ? `of ${active} completed` : `από ${active} ολοκληρώθηκαν`}</span>
+     <ul className="quality-programme-legend">{STATE_ORDER.filter(state => matrix.totals[state] > 0).map(state => <li key={state}><span className={`quality-programme-dot is-${state}`} aria-hidden="true" />{STATE_LABELS[state][en ? 1 : 0]}<strong>{matrix.totals[state]}</strong></li>)}</ul>
      {departments.length > 0 && <button type="button" className={`quality-programme-coverage${uncovered.length ? ' is-gap' : ''}`} onClick={() => setScope(scope === 'all' ? 'audited' : 'all')} aria-pressed={scope === 'all'}>
       {uncovered.length ? (en ? `${uncovered.length} departments without an audit in ${year}` : `${uncovered.length} τμήματα χωρίς επιθεώρηση το ${year}`) : (en ? `Every department has an audit in ${year}` : `Όλα τα τμήματα έχουν επιθεώρηση το ${year}`)}
       <small>{scope === 'all' ? (en ? 'Show audited only' : 'Μόνο με επιθεώρηση') : (en ? 'Show all departments' : 'Όλα τα τμήματα')}</small>
      </button>}
     </div>
     <div className="quality-programme-scroll">
-     <table className="quality-programme-grid">
-      <thead><tr><th scope="col">{en ? 'Department' : 'Τμήμα'}</th>{Array.from({ length: 12 }, (_, month) => <th key={month} scope="col" className={month === currentMonth ? 'is-now' : ''} title={monthName(month, 'long')}>{monthName(month, 'short').replace('.', '')}</th>)}</tr></thead>
+     <table className="quality-programme-table">
+      <thead><tr>
+       <th scope="col">{en ? 'Department' : 'Τμήμα'}</th>
+       <th scope="col">{en ? 'Standard' : 'Πρότυπο'}</th>
+       <th scope="col">{en ? 'Last audit' : 'Τελευταία'}</th>
+       <th scope="col">{en ? 'Next audit' : 'Επόμενη'}</th>
+       <th scope="col">{year}</th>
+       <th scope="col">{en ? 'Months' : 'Μήνες'}</th>
+       <th scope="col">{en ? 'Lead auditor' : 'Επικεφαλής'}</th>
+      </tr></thead>
       <tbody>
-       {rows.map(row => <tr key={row.key || 'org'} className={row.key && !row.covered ? 'is-gap' : ''}>
-        <th scope="row"><span>{row.key ? (en ? row.nameEn : row.name) : (en ? 'Whole organization' : 'Όλος ο οργανισμός')}</span><small>{row.covered ? (en ? `${row.count} ${row.count === 1 ? 'audit' : 'audits'}` : `${row.count} ${row.count === 1 ? 'επιθεώρηση' : 'επιθεωρήσεις'}`) : (en ? 'No audit this year' : 'Καμία φέτος')}</small></th>
-        {row.months.map((cell, month) => <td key={month} className={month === currentMonth ? 'is-now' : ''}>
-         {cell.map(({ audit, state }) => { const score = auditCompliance(audit); const title = en ? audit.titleEn || audit.title : audit.title
-          return <button type="button" key={audit.id} className={`quality-programme-chip is-${state}`} onClick={() => onOpen?.(audit)} title={[qualityCode(audit, language), audit.standard && standardShort(audit.standard), title, audit.plannedMonthOnly ? (en ? 'day to be fixed' : 'η ημέρα θα οριστεί') : formatDay(audit.plannedDate, language), STATE_LABELS[state][en ? 1 : 0], score.rate != null && `${score.rate}%`].filter(Boolean).join(' · ')} aria-label={`${qualityCode(audit, language)} · ${title}`}>
-           {/* A narrow cell holds the day (or the compliance) and the standard or code; the title is in the tooltip. */}
-           <strong>{state === 'done' && score.rate != null ? `${score.rate}%` : audit.plannedMonthOnly ? (en ? 'month' : 'μήνας') : String(audit.plannedDate || '').slice(8, 10).replace(/^0/, '')}</strong><span className="quality-programme-code">{audit.standard ? standardShort(audit.standard) : qualityCode(audit, language)}</span>
-          </button> })}
-         {!cell.length && onPlan && row.key && <button type="button" className="quality-programme-add" onClick={() => plan(row, month)} aria-label={en ? `Plan an audit: ${row.nameEn}, ${monthName(month, 'long')}` : `Προγραμματισμός επιθεώρησης: ${row.name}, ${monthName(month, 'long')}`}><Plus size={13} aria-hidden="true" /></button>}
-        </td>)}
-       </tr>)}
-       {!rows.length && <tr><td colSpan={13} className="quality-programme-empty">{en ? `No audit in ${year} yet.` : `Καμία επιθεώρηση το ${year} ακόμη.`}{onPlan && (en ? ' Show all departments to plan one.' : ' Δείτε όλα τα τμήματα για να προγραμματίσετε.')}</td></tr>}
+       {rows.map(row => {
+        const { last, next, inYear } = detail(row)
+        const open = next || last
+        const late = next && !next.plannedMonthOnly && next.plannedDate < todayIso
+        const score = last ? auditCompliance(last) : null
+        return <tr key={row.key || 'org'} className={`${row.key && !row.covered ? 'is-gap' : ''}${open ? ' is-clickable' : ''}`.trim()} onClick={open ? () => onOpen?.(open) : undefined}>
+         <th scope="row"><span>{row.key ? (en ? row.nameEn : row.name) : (en ? 'Whole organization' : 'Όλος ο οργανισμός')}</span></th>
+         <td className="nowrap-cell">{(open && open.standard) ? standardShort(open.standard) : '—'}</td>
+         <td className="nowrap-cell">{last ? <>{formatDay(last.completedDate || last.plannedDate, language)}{score?.rate != null && <small>{score.rate}%</small>}</> : '—'}</td>
+         <td className={`nowrap-cell${late ? ' quality-overdue' : ''}`}>{next ? <>{when(next)}{late && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</> : (onPlan && row.key ? <button type="button" className="quality-programme-plan" onClick={event => { event.stopPropagation(); plan(row, Number(year) === now.getFullYear() ? Math.min(11, now.getMonth() + 1) : 0) }}><Plus size={13} aria-hidden="true" />{en ? 'Plan' : 'Προγραμματισμός'}</button> : <span className="quality-overdue-text">{en ? 'none planned' : 'δεν υπάρχει'}</span>)}</td>
+         <td className={inYear >= 2 ? '' : 'quality-overdue-text'}><strong>{inYear}/2</strong></td>
+         <td><span className="quality-programme-months" aria-hidden="true">{row.months.map((cell, month) => <span key={month} className={`quality-programme-dot${cell.length ? ` is-${cell[0].state}` : ' is-empty'}${month === currentMonth ? ' is-now' : ''}`} title={`${monthName(month, 'long')}${cell.length ? ` · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : ''}`} />)}</span></td>
+         <td>{open?.leadAuditor || '—'}</td>
+        </tr>
+       })}
+       {!rows.length && <tr><td colSpan={7} className="quality-programme-empty">{en ? `No audit in ${year} yet.` : `Καμία επιθεώρηση το ${year} ακόμη.`}{onPlan && (en ? ' Show all departments to plan one.' : ' Δείτε όλα τα τμήματα για να προγραμματίσετε.')}</td></tr>}
       </tbody>
      </table>
     </div>
-    <p className="quality-programme-hint">{en ? 'The number on a chip is the planned day; on a completed audit, its compliance. Select an empty cell to plan an audit for that department and month.' : 'Ο αριθμός είναι η ημέρα της επιθεώρησης· σε ολοκληρωμένη, η συμμόρφωσή της. Επιλέξτε κενό κελί για να προγραμματίσετε επιθεώρηση στο τμήμα και τον μήνα.'}</p>
   </div>
 }

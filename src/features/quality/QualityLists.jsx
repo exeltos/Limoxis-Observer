@@ -1,7 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,Grid3X3,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { SubTabs } from '../../design-system/SubTabs'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -222,8 +222,8 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
  const advanced=['status','type','department','standard'].filter(key=>filters[key]&&filters[key]!=='all').length
  const mode=AUDIT_VIEWS.some(item=>item.id===filters.mode)?filters.mode:'programme'
  return <>
-  <SubTabs className="audit-view-tabs" ariaLabel={en?'View':'Προβολή'} activeId={mode} onChange={value=>set('mode',value)} tabs={AUDIT_VIEWS.map(item=>({id:item.id,icon:item.icon,label:item.label[en?1:0]}))}/>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}
+   end={<ModeSwitch ariaLabel={en?'View':'Προβολή'} value={mode} onChange={value=>set('mode',value)} options={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))}/>}>
    <FilterSelect label={en?'Standard':'Πρότυπο'} value={filters.standard||'all'} onChange={value=>set('standard',value)}><option value="all">{t('all')}</option>{AUDIT_STANDARDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>

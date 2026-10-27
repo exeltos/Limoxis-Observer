@@ -13,7 +13,7 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useEmployeesData } from '../../employees/useEmployeesData'
 import { employeeName, employeeOptions } from '../../employees/peopleOptions'
 import { QualityDepartmentField, departmentRef } from '../QualityFields'
-import { AUDIT_KINDS, AUDIT_STANDARDS, RISK_LEVELS, TEAM_ROLES, areaLabel, departmentArea, riskMonths, standardShort } from './auditStandards'
+import { AUDIT_BODIES, AUDIT_KINDS, AUDIT_STANDARDS, RISK_LEVELS, TEAM_ROLES, areaLabel, departmentArea, riskMonths, standardShort } from './auditStandards'
 import { competenceWarnings, independenceIssues, templateChapters } from './auditModel'
 
 const L = (en, el, english) => (en ? english : el)
@@ -61,6 +61,15 @@ export function AuditPlanFields({ draft, setDraft, templates = [], competence, l
           : <ManualDateField label={L(en, 'Προγραμματισμένη ημερομηνία', 'Planned date')} value={draft.plannedDate || ''} onChange={value => patch({ plannedDate: value })} />}
         <ChoiceField label={L(en, 'Κίνδυνος (συχνότητα)', 'Risk (frequency)')} value={draft.riskLevel || 'medium'} options={RISK_LEVELS.map(item => ({ value: item.value, label: `${pick(item.label, en)} · ${L(en, `κάθε ${item.months} μήνες`, `every ${item.months} months`)}` }))} onChange={value => patch({ riskLevel: value, frequencyMonths: riskMonths(value) })} />
         <CheckboxField label={L(en, 'Μόνο μήνας (η ημέρα ορίζεται αργότερα)', 'Month only (day fixed later)')} checked={Boolean(draft.plannedMonthOnly)} onChange={value => patch({ plannedMonthOnly: value, plannedDate: value && draft.plannedDate ? `${String(draft.plannedDate).slice(0, 7)}-01` : draft.plannedDate })} />
+      </FormGrid>
+    </FormCard>
+    <FormCard title={L(en, 'Εκτέλεση και αναφορά', 'Execution and report')} icon={ClipboardCheck}>
+      <FormGrid columns={3}>
+        <ChoiceField label={L(en, 'Φορέας', 'Carried out by')} value={draft.auditBody || ''} placeholder={L(en, 'Επιλέξτε', 'Choose')} options={AUDIT_BODIES.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={value => patch({ auditBody: value })} />
+        <Field label={L(en, 'Διάρκεια (ημέρες)', 'Duration (days)')}><input type="number" min="0" max="60" value={draft.durationDays ?? ''} onChange={event => patch({ durationDays: event.target.value === '' ? null : Number(event.target.value) })} /></Field>
+        <ManualDateField label={L(en, 'Η αναφορά στάλθηκε στο τμήμα', 'Report sent to the department')} value={draft.reportSentOn || ''} onChange={value => patch({ reportSentOn: value })} />
+        <ManualDateField label={L(en, 'Προθεσμία διορθώσεων', 'Deadline for corrections')} value={draft.correctionsDueOn || ''} onChange={value => patch({ correctionsDueOn: value })} />
+        <Field label={L(en, 'Σημειώσεις', 'Notes')}><textarea rows={2} value={draft.notes || ''} onChange={event => patch({ notes: event.target.value })} /></Field>
       </FormGrid>
     </FormCard>
     <AuditTeamField team={draft.team || []} department={{ id: draft.departmentId, name: draft.department }} competence={competence} language={language} onChange={team => patch({ team, leadAuditor: team.find(member => member.role === 'lead')?.name || '' })} />

@@ -1,6 +1,5 @@
 /* Audit programme: views, coverage, dashboard, running an audit, team, questionnaires. */
 
-.audit-view-tabs{margin:2px 14px 0}
 .audit-view{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
 .audit-view-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 .audit-view-head .lo-period-stepper{margin-left:auto}

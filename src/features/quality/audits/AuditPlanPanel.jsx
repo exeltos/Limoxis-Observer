@@ -7,7 +7,7 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { loadQualityRecords, saveQualityRecord } from '../qualityService'
-import { AUDIT_KINDS, RISK_LEVELS, TEAM_ROLES, standardLabel } from './auditStandards'
+import { AUDIT_BODIES, AUDIT_KINDS, RISK_LEVELS, TEAM_ROLES, standardLabel } from './auditStandards'
 import { competenceWarnings, independenceBlocks, independenceIssues, followingAuditDate } from './auditModel'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { AuditPlanFields } from './AuditPlanFields'
@@ -79,8 +79,15 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
     { label: L(en, 'Κίνδυνος / συχνότητα', 'Risk / frequency'), value: record.riskLevel ? label(RISK_LEVELS, record.riskLevel, en) : '' },
     { label: L(en, 'Επόμενη επιθεώρηση', 'Next audit'), value: nextLink },
   ].filter(item => item.value)
+  const executionItems = [
+    { label: L(en, 'Φορέας', 'Carried out by'), value: label(AUDIT_BODIES, record.auditBody, en) },
+    { label: L(en, 'Διάρκεια', 'Duration'), value: record.durationDays ? `${record.durationDays} ${record.durationDays === 1 ? L(en, 'ημέρα', 'day') : L(en, 'ημέρες', 'days')}` : '' },
+    { label: L(en, 'Η αναφορά στάλθηκε', 'Report sent'), value: record.reportSentOn ? formatDay(record.reportSentOn, language) : '' },
+    { label: L(en, 'Προθεσμία διορθώσεων', 'Corrections due'), value: record.correctionsDueOn ? formatDay(record.correctionsDueOn, language) : '' },
+    { label: L(en, 'Σημειώσεις', 'Notes'), value: record.notes, wide: true },
+  ].filter(item => item.value)
   return <section className="audit-plan-panel">
-    <DetailList sections={[{ title: L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning'), items }]} />
+    <DetailList sections={[{ title: L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning'), items }, executionItems.length ? { title: L(en, 'Εκτέλεση και αναφορά', 'Execution and report'), items: executionItems } : null]} />
     <div className="audit-plan-team">
       <span className="lo-field-label">{L(en, 'Ομάδα επιθεώρησης', 'Audit team')}</span>
       {team.length ? <ul className="audit-team-list is-read">{team.map(member => <li key={member.id || member.name}>
