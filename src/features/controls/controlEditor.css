@@ -113,8 +113,23 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  align-self: center;
+  height: 42px;
   justify-self: start;
+}
+/* On the same line as «Frequency»: same label gap and field height. */
+.control-editor-times {
+  gap: 8px;
+}
+.control-editor-times > .lo-field-label:is(span,#lo-form-row#lo-control-form) {
+  margin-bottom: 0 !important;
+}
+.control-editor-times .control-time-grid:is(div) {
+  margin-top: 0;
+}
+.control-editor-times .time-field-control:is(div,#lo-form-row#lo-control-form),
+.control-editor-times .time-field-control input:is(input,#lo-form-row#lo-control-form) {
+  height: 42px !important;
+  min-height: 42px !important;
 }
 .control-editor-choices {
   display: grid;
