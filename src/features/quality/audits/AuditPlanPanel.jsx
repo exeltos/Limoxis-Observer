@@ -71,7 +71,7 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
     ? <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${nextAudit.id}`, { tab: 'details' })}>{nextAudit.plannedMonthOnly ? monthText(nextAudit.plannedDate, language) : formatDay(nextAudit.plannedDate, language)} · {nextAudit.displayId || nextAudit.id}<ChevronRight size={13} /></button>
     : (next ? formatDay(next, language) : '')
   const items = [
-    { label: L(en, 'Πρότυπο', 'Standard'), value: standardLabel(record.standard, language) },
+    { label: (record.standards || []).length ? L(en, 'Πρότυπα', 'Standards') : L(en, 'Πρότυπο', 'Standard'), value: [record.standard, ...(record.standards || []).filter(value => value !== record.standard)].map(value => standardLabel(value, language)).filter(Boolean).join(' + ') },
     { label: L(en, 'Ερωτηματολόγιο', 'Questionnaire'), value: record.templateTitle ? `${record.templateTitle}${record.templateVersion ? ` · ${L(en, 'έκδοση', 'version')} ${record.templateVersion}` : ''}` : '' },
     { label: L(en, 'Κεφάλαια στο πεδίο', 'Chapters in scope'), value: record.clausesScope?.length ? record.clausesScope.join(', ') : L(en, 'Όλο το ερωτηματολόγιο', 'The whole questionnaire') },
     { label: L(en, 'Είδος', 'Kind'), value: label(AUDIT_KINDS, record.auditType || 'internal', en) },

@@ -41,6 +41,20 @@ export function questionsForAudit(template, { department = '', scope = [], allAr
     .map((question, index) => answerRow(question, index))
 }
 
+// An audit that covers several standards: the questions of each standard's
+// questionnaire one after the other, each row tagged with its standard.
+export function questionsForStandards(templates = [], options = {}) {
+  const rows = []
+  for (const template of templates.filter(Boolean)) {
+    for (const row of questionsForAudit(template, options)) rows.push({ ...row, id: `q-${template.standard}-${row.templateQuestionId || rows.length + 1}`, standard: template.standard || '', position: rows.length + 1 })
+  }
+  return rows
+}
+
+// The key of a question's chapter: its standard and chapter (the same chapter
+// number means different things in two standards).
+export const chapterKey = row => `${row.standard || ''}|${row.chapterRef || row.clauseRef?.split('.')[0] || ''}`
+
 export function answerRow(question, index = 0) {
   return {
     id: `q-${question.id || index + 1}`,
@@ -108,14 +122,19 @@ function tally(rows) {
 
 export function auditScore(rows = []) {
   const chapters = new Map()
+  const standards = new Map()
   for (const row of rows) {
-    const key = row.chapterRef || row.clauseRef?.split('.')[0] || ''
-    if (!chapters.has(key)) chapters.set(key, { ref: key, title: row.chapterTitle || '', rows: [] })
+    const key = chapterKey(row)
+    if (!chapters.has(key)) chapters.set(key, { key, ref: row.chapterRef || row.clauseRef?.split('.')[0] || '', title: row.chapterTitle || '', standard: row.standard || '', rows: [] })
     chapters.get(key).rows.push(row)
+    const standard = row.standard || ''
+    if (!standards.has(standard)) standards.set(standard, [])
+    standards.get(standard).push(row)
   }
   return {
     overall: tally(rows),
-    chapters: [...chapters.values()].map(chapter => ({ ref: chapter.ref, title: chapter.title, ...tally(chapter.rows) })),
+    chapters: [...chapters.values()].map(chapter => ({ key: chapter.key, ref: chapter.ref, title: chapter.title, standard: chapter.standard, ...tally(chapter.rows) })),
+    standards: [...standards.entries()].map(([standard, list]) => ({ standard, ...tally(list) })),
     criticalFailed: rows.filter(row => row.critical && row.answer === 'no').length,
   }
 }
@@ -168,7 +187,7 @@ export function findingDraftFromAnswer(audit, row, { language = 'el', owner = ''
     sourceId: audit.id,
     auditItemId: row.dbId || row.id,
     clauseRef: row.clauseRef || '',
-    standard: audit.standard || '',
+    standard: row.standard || audit.standard || '',
     owners: owner ? [owner] : [],
     owner,
     dueDate: dueDate || addDays(date, cls.days),
@@ -435,4 +454,50 @@ export function spreadAuditRound(audits = [], start, count = 3) {
     .filter(audit => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && (audit.auditType || 'internal') === 'internal' && audit.department && String(audit.plannedDate || '').slice(0, 7) === monthOf)
     .sort((a, b) => String(a.department).localeCompare(String(b.department), 'el'))
   return { days, assignments: open.map((audit, index) => ({ audit, plannedDate: days[Math.min(days.length - 1, Math.floor(index * days.length / open.length))] })) }
+}
+
+// Readiness: for every standard, the compliance of each department's latest
+// completed audit that covered it (one audit may cover several standards), how
+// many departments were audited for it this year, its open findings and its
+// weakest chapters; and what is still missing across all standards.
+export const READINESS_ORDER = ['iso9001', 'iso15224', 'jci', 'temos', 'iso15189', 'haccp']
+export function auditReadiness(audits = [], findings = [], on = today()) {
+  const year = on.slice(0, 4)
+  const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled')
+  const completed = live.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))
+  const standardsOf = audit => {
+    const tagged = new Set((audit.checklist || []).map(row => row.standard).filter(Boolean))
+    return tagged.size ? [...tagged] : [audit.standard, ...(audit.standards || [])].filter(Boolean)
+  }
+  const found = new Set(live.flatMap(standardsOf))
+  const standards = [...READINESS_ORDER.filter(value => found.has(value)), ...[...found].filter(value => !READINESS_ORDER.includes(value))]
+  const openFindings = findings.filter(finding => finding.lifecycleStatus !== 'voided' && finding.status !== 'closed' && (finding.source === 'audit' || finding.sourceId?.startsWith?.('AUD-')))
+  const rows = standards.map(standard => {
+    const latest = new Map()
+    for (const audit of completed) {
+      if (!standardsOf(audit).includes(standard)) continue
+      const key = audit.department || ''
+      if (!latest.has(key)) latest.set(key, audit)
+    }
+    const answers = [...latest.values()].flatMap(audit => (audit.checklist || []).filter(row => (row.standard || audit.standard) === standard))
+    const score = auditScore(answers)
+    const departments = [...latest.keys()]
+    const thisYear = [...latest.values()].filter(audit => String(audit.completedDate || audit.plannedDate || '').startsWith(year)).length
+    const own = openFindings.filter(finding => (finding.standard || '') === standard)
+    const weakest = score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).sort((a, b) => a.rate - b.rate).slice(0, 3)
+    return { standard, rate: score.overall.rate, departments: departments.length, thisYear, open: own.length, major: own.filter(finding => finding.findingClass === 'major').length, weakest, last: [...latest.values()][0]?.completedDate || '' }
+  })
+  const coverage = auditCoverage(live, year)
+  const lateAudits = live.filter(audit => audit.status === 'planned' && !audit.plannedMonthOnly && audit.plannedDate && audit.plannedDate < on)
+  const lateFindings = openFindings.filter(finding => finding.dueDate && finding.dueDate < on)
+  return {
+    rows,
+    missing: {
+      major: openFindings.filter(finding => finding.findingClass === 'major'),
+      lateFindings,
+      noAuditThisYear: coverage.rows.filter(row => row.inYear === 0).map(row => row.department),
+      noNext: coverage.rows.filter(row => !row.hasNext).map(row => row.department),
+      lateAudits,
+    },
+  }
 }

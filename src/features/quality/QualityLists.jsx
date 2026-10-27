@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,Grid3X3,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
+import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -13,7 +13,7 @@ import { recordOwners } from './qualityRecordRules'
 import { subActionProgress } from './qualityDeviations'
 import { AuditProgramme } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
-import { AuditCoverage,AuditDashboard } from './audits/AuditViews'
+import { AuditReadiness } from './audits/AuditViews'
 import { AUDIT_KINDS,AUDIT_STANDARDS,standardShort } from './audits/auditStandards'
 import { auditCoverage } from './audits/auditModel'
 import { roleTitleText } from '../../core/i18n/roleTitles'
@@ -210,10 +210,9 @@ export function AuditsSummary({rows,counts,view,loading,language,onFill=null,fil
 const AUDIT_VIEWS=[
  {id:'programme',icon:CalendarDays,label:['Πρόγραμμα','Programme']},
  {id:'list',icon:ListChecks,label:['Λίστα','List']},
- {id:'coverage',icon:Grid3X3,label:['Κάλυψη άρθρων','Clause coverage']},
- {id:'dashboard',icon:BarChart3,label:['Πίνακας','Dashboard']},
+ {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[]}){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
@@ -231,8 +230,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
   {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan}/>}
-  {mode==='coverage'&&<AuditCoverage audits={filtered} language={language}/>}
-  {mode==='dashboard'&&<AuditDashboard audits={filtered} findings={findings} language={language}/>}
+  {mode==='readiness'&&<AuditReadiness audits={filtered} findings={findings} language={language} onOpenAudit={audit=>onOpen(audit,filtered)} onOpenFinding={onOpenFinding}/>}
   {mode==='list'&&<>
    <div className="scroll-table" ref={registry.scrollRef}>
     <RegistryTable bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={()=>clear()}

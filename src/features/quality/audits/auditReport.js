@@ -2,7 +2,7 @@
 // team, meetings, the result per chapter, the answers that were not
 // «Συμμορφώνεται», the findings, the conclusion and the signatures of the lead
 // auditor and the auditee; and the answers as an Excel (.csv) file. Pure.
-import { AUDIT_KINDS, TEAM_ROLES, findingClassLabel, resultLabel, riskMonths, standardLabel } from './auditStandards'
+import { AUDIT_KINDS, TEAM_ROLES, findingClassLabel, resultLabel, riskMonths, standardLabel, standardShort } from './auditStandards'
 import { auditScore } from './auditModel'
 
 const day = value => {
@@ -28,7 +28,7 @@ export function auditReportDocument(audit, findings = [], { language = 'el' } = 
     kind: L('Έκθεση επιθεώρησης', 'Audit report'),
     title: en ? audit.titleEn || audit.title : audit.title,
     code: audit.displayId || audit.id,
-    subtitle: [standardLabel(audit.standard, language), audit.templateTitle && `${audit.templateTitle}${audit.templateVersion ? ` · ${L('έκδοση', 'version')} ${audit.templateVersion}` : ''}`].filter(Boolean).join(' · '),
+    subtitle: [[audit.standard, ...(audit.standards || []).filter(value => value !== audit.standard)].map(value => standardLabel(value, language)).filter(Boolean).join(' + '), audit.templateTitle && `${audit.templateTitle}${audit.templateVersion ? ` · ${L('έκδοση', 'version')} ${audit.templateVersion}` : ''}`].filter(Boolean).join(' · '),
     meta: [
       [L('Τμήμα', 'Department'), (en ? audit.departmentEn : audit.department) || L('Όλος ο οργανισμός', 'Whole organization')],
       [L('Είδος', 'Kind'), label(AUDIT_KINDS, audit.auditType || 'internal', en)],
@@ -49,11 +49,15 @@ export function auditReportDocument(audit, findings = [], { language = 'el' } = 
         title: L('Συσκέψεις', 'Meetings'),
         table: { columns: [L('Σύσκεψη', 'Meeting'), L('Ημερομηνία', 'Date'), L('Παρόντες', 'Attendees')], rows: [[L('Εναρκτήρια', 'Opening'), day(audit.openingMeeting?.date), audit.openingMeeting?.attendees || '—'], [L('Καταληκτική', 'Closing'), day(audit.closingMeeting?.date), audit.closingMeeting?.attendees || '—']] },
       },
+      ...(score.standards.length > 1 ? [{
+        title: L('Αποτελέσματα ανά πρότυπο', 'Results by standard'),
+        table: { columns: [L('Πρότυπο', 'Standard'), { text: L('Ερωτήσεις', 'Questions'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }], rows: score.standards.map(item => [standardLabel(item.standard, language) || '—', { text: String(item.total), align: 'right' }, { text: String(item.no), align: 'right' }, { text: pct(item.rate), align: 'right' }]) },
+      }] : []),
       {
         title: L('Αποτελέσματα ανά κεφάλαιο', 'Results by chapter'),
         table: {
           columns: [L('Κεφάλαιο', 'Chapter'), { text: L('Ερωτήσεις', 'Questions'), align: 'right' }, { text: L('Συμμ.', 'Conf.'), align: 'right' }, { text: L('Μερική', 'Partial'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Δ/Ε', 'N/A'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }],
-          rows: score.chapters.map(chapter => [[chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—', { text: String(chapter.total), align: 'right' }, { text: String(chapter.yes), align: 'right' }, { text: String(chapter.partial), align: 'right' }, { text: String(chapter.no), align: 'right' }, { text: String(chapter.na), align: 'right' }, { text: pct(chapter.rate), align: 'right' }]),
+          rows: score.chapters.map(chapter => [[score.standards.length > 1 && chapter.standard ? standardShort(chapter.standard) : '', chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—', { text: String(chapter.total), align: 'right' }, { text: String(chapter.yes), align: 'right' }, { text: String(chapter.partial), align: 'right' }, { text: String(chapter.no), align: 'right' }, { text: String(chapter.na), align: 'right' }, { text: pct(chapter.rate), align: 'right' }]),
           foot: [L('Σύνολο (σταθμισμένο)', 'Total (weighted)'), { text: String(score.overall.total), align: 'right' }, { text: String(score.overall.yes), align: 'right' }, { text: String(score.overall.partial), align: 'right' }, { text: String(score.overall.no), align: 'right' }, { text: String(score.overall.na), align: 'right' }, { text: pct(score.overall.rate), align: 'right' }],
           empty: L('Δεν υπάρχουν απαντήσεις.', 'No answers.'),
         },

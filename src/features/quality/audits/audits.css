@@ -113,3 +113,15 @@
 .audit-round-days li{grid-template-columns:110px 96px minmax(0,1fr);align-items:baseline}
 .audit-round-days li>span{text-align:right}
 .audit-round-fields{align-items:end}
+.audit-readiness{display:flex;flex-direction:column;gap:14px}
+.audit-readiness-rate{min-width:150px}
+.audit-readiness-rate strong{display:inline-block;min-width:44px}
+.audit-readiness-chapter{display:block}
+.audit-readiness-missing h4{margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.audit-readiness-missing ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.audit-readiness-missing li{padding:7px 10px;border-left:3px solid var(--lo-color-border);border-radius:0 8px 8px 0;background:var(--lo-color-surface-subtle,#f6f8fa);font-size:13px}
+.audit-readiness-missing li.is-danger{border-left-color:var(--lo-status-danger-fg)}
+.audit-readiness-missing li.is-warning{border-left-color:var(--lo-status-warning-fg)}
+.audit-readiness-missing button{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.audit-readiness-missing button:hover{text-decoration:underline}
+.audit-readiness-missing p{margin:0;font-size:13px;color:var(--lo-color-muted)}

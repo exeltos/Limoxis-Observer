@@ -157,6 +157,7 @@ export function mapRow(section,row){
     templateTitle:row.template_title||'',
     templateVersion:row.template_version||null,
     standard:row.standard||'',
+    standards:row.standards||[],
     clausesScope:row.clauses_scope||[],
     plannedMonthOnly:Boolean(row.planned_month_only),
     riskLevel:row.risk_level||'',
@@ -320,6 +321,7 @@ function auditProgrammePayload(record){
     template_title:record.templateTitle||null,
     template_version:Number(record.templateVersion)||null,
     standard:STANDARD_VALUES.includes(record.standard)?record.standard:null,
+    standards:(record.standards||[]).filter(value=>STANDARD_VALUES.includes(value)&&value!==record.standard),
     clauses_scope:Array.isArray(record.clausesScope)?record.clausesScope:[],
     planned_month_only:Boolean(record.plannedMonthOnly),
     risk_level:['low','medium','high'].includes(record.riskLevel)?record.riskLevel:null,
@@ -350,7 +352,7 @@ function findingAuditPayload(record){
     verification_note:record.verificationNote||null,
   }
 }
-const AUDIT_PROGRAMME_DEFAULTS=draft=>({templateId:draft.templateId||null,templateTitle:draft.templateTitle||'',templateVersion:draft.templateVersion||null,standard:draft.standard||'',clausesScope:draft.clausesScope||[],plannedMonthOnly:Boolean(draft.plannedMonthOnly),riskLevel:draft.riskLevel||'',frequencyMonths:draft.frequencyMonths||null,openingMeeting:draft.openingMeeting||{date:'',attendees:''},closingMeeting:draft.closingMeeting||{date:'',attendees:''},auditeeRepresentative:draft.auditeeRepresentative||'',conclusion:draft.conclusion||'',followUpOf:draft.followUpOf||'',origin:'app',durationDays:draft.durationDays??null,auditBody:draft.auditBody||'',notes:draft.notes||'',reportSentOn:draft.reportSentOn||'',correctionsDueOn:draft.correctionsDueOn||'',team:draft.team||[]})
+const AUDIT_PROGRAMME_DEFAULTS=draft=>({templateId:draft.templateId||null,templateTitle:draft.templateTitle||'',templateVersion:draft.templateVersion||null,standard:draft.standard||'',standards:draft.standards||[],clausesScope:draft.clausesScope||[],plannedMonthOnly:Boolean(draft.plannedMonthOnly),riskLevel:draft.riskLevel||'',frequencyMonths:draft.frequencyMonths||null,openingMeeting:draft.openingMeeting||{date:'',attendees:''},closingMeeting:draft.closingMeeting||{date:'',attendees:''},auditeeRepresentative:draft.auditeeRepresentative||'',conclusion:draft.conclusion||'',followUpOf:draft.followUpOf||'',origin:'app',durationDays:draft.durationDays??null,auditBody:draft.auditBody||'',notes:draft.notes||'',reportSentOn:draft.reportSentOn||'',correctionsDueOn:draft.correctionsDueOn||'',team:draft.team||[]})
 const AUDIT_FINDING_DEFAULTS=draft=>({findingClass:draft.findingClass||'',auditItemId:draft.auditItemId||null,clauseRef:draft.clauseRef||'',standard:draft.standard||'',dueDate:draft.dueDate||'',verificationStatus:draft.verificationStatus||'pending',verifiedOn:'',verifiedBy:'',verificationNote:'',followUpAuditId:draft.followUpAuditId||''})
 
 // A code from the time to the second; several records made in the same second

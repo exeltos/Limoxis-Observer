@@ -41,3 +41,38 @@ describe('audit round: the month\'s audits spread over three working days', () =
     expect(assignments.find(item => item.audit.department === 'Άλλο μήνα')).toBeUndefined()
   })
 })
+
+describe('one audit for several standards', () => {
+  it('joins the questionnaires, tags each answer with its standard and scores each standard', async () => {
+    const { questionsForStandards, auditScore } = await import('../src/features/quality/audits/auditModel')
+    const q = (id, chapterRef) => ({ id, question: `Ερώτηση ${id}`, chapterRef, clauseRef: `${chapterRef}.1`, position: Number(id.slice(1)) })
+    const rows = questionsForStandards([{ standard: 'iso9001', questions: [q('a1', '7'), q('a2', '8')] }, { standard: 'iso15224', questions: [q('b1', '7')] }])
+    expect(rows.map(row => row.standard)).toEqual(['iso9001', 'iso9001', 'iso15224'])
+    expect(new Set(rows.map(row => row.id)).size).toBe(3)
+    const score = auditScore(rows.map((row, index) => ({ ...row, answer: index === 2 ? 'no' : 'yes' })))
+    expect(score.chapters).toHaveLength(3)
+    expect(score.standards.find(item => item.standard === 'iso9001').rate).toBe(100)
+    expect(score.standards.find(item => item.standard === 'iso15224').rate).toBe(0)
+  })
+})
+
+describe('readiness across standards', () => {
+  it('scores each standard from each department\'s latest audit and lists what is missing', async () => {
+    const { auditReadiness } = await import('../src/features/quality/audits/auditModel')
+    const rows = (standard, answers) => answers.map((answer, index) => ({ id: `${standard}-${index}`, standard, chapterRef: '7', answer }))
+    const audits = [
+      { ...audit('ΜΕΘ', 'completed', '2025-05-10'), checklist: rows('iso9001', ['no', 'no']) },
+      { ...audit('ΜΕΘ', 'completed', '2026-05-10'), standards: ['iso15224'], checklist: [...rows('iso9001', ['yes', 'yes']), ...rows('iso15224', ['yes', 'no'])] },
+      { ...audit('Παθολογική', 'completed', '2025-11-10'), checklist: rows('iso9001', ['yes', 'no']) },
+    ]
+    const result = auditReadiness(audits, [{ id: 'f', source: 'audit', status: 'open', standard: 'iso9001', findingClass: 'major', dueDate: '2026-01-01' }], '2026-10-27')
+    const iso = result.rows.find(row => row.standard === 'iso9001')
+    expect(iso.departments).toBe(2)
+    expect(iso.rate).toBe(75)
+    expect(iso.thisYear).toBe(1)
+    expect(result.rows.find(row => row.standard === 'iso15224').rate).toBe(50)
+    expect(result.missing.major).toHaveLength(1)
+    expect(result.missing.lateFindings).toHaveLength(1)
+    expect(result.missing.noAuditThisYear).toEqual(['Παθολογική'])
+  })
+})

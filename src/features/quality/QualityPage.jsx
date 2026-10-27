@@ -289,7 +289,8 @@ export function QualityPage(){
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>} 
    {tab==='audits'&&<AuditsList rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}
-    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} findings={records.data.findings}/>}
+    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} findings={records.data.findings}
+    onOpenFinding={finding=>openRecord('findings',finding.id,[finding.id])}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='indicators'&&<>
     <div className="section-toolbar"><div><strong>{L('Υπολογισμός έτους έως σήμερα','Year-to-date calculation')}</strong><small>{L('Οι ετήσιες κλινοημέρες χρησιμοποιούνται μαζί με τα διαθέσιμα δεδομένα από 1/1 έως σήμερα.','Annual patient-days are used with the available data from Jan 1 to today.')}</small></div>{measureSwitch}</div>

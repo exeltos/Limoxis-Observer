@@ -15,8 +15,8 @@ import { meterTone } from '../../../design-system/MiniCharts'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { createQualityRecord, saveQualityRecord } from '../qualityService'
-import { AUDIT_RESULTS, FINDING_CLASSES, areaLabel, departmentArea, findingClassLabel } from './auditStandards'
-import { adHocRow, auditScore, awaitingFinding, capaDraftFromFinding, classesFor, findingDraftFromAnswer, needsClass, questionsForAudit, unclassified } from './auditModel'
+import { AUDIT_RESULTS, FINDING_CLASSES, areaLabel, departmentArea, findingClassLabel, standardShort } from './auditStandards'
+import { adHocRow, auditScore, awaitingFinding, capaDraftFromFinding, chapterKey, classesFor, findingDraftFromAnswer, needsClass, questionsForStandards, unclassified } from './auditModel'
 import { useAuditTemplates } from './useAuditTemplates'
 import { AuditFindingDialog } from './AuditFindingDialog'
 import './audits.css'
@@ -36,13 +36,16 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const { goTo } = useContextualNavigation('/quality')
   const { templates } = useAuditTemplates(organizationId)
   const template = templates.find(item => item.id === record.templateId) || null
+  // The other standards of the same audit: each one's questionnaire (the hospital's copy, else the library's).
+  const others = useMemo(() => (record.standards || []).filter(value => value !== record.standard).map(standard => templates.find(item => item.standard === standard && !item.isSystem && item.active !== false) || templates.find(item => item.standard === standard)).filter(Boolean), [record.standards, record.standard, templates])
   const [allAreas, setAllAreas] = useState(false)
   const stored = useMemo(() => record.checklist || [], [record.checklist])
   // A planned audit opens with its questionnaire for the department and the chapters in scope.
-  const initial = useMemo(() => (stored.length || !template ? stored : questionsForAudit(template, { department: record.department, scope: record.clausesScope, allAreas })), [stored, template, record.department, record.clausesScope, allAreas])
+  const initial = useMemo(() => (stored.length || (!template && !others.length) ? stored : questionsForStandards([template, ...others], { department: record.department, scope: record.clausesScope, allAreas })), [stored, template, others, record.department, record.clausesScope, allAreas])
   const [rows, setRows] = useState(initial)
   const [meetings, setMeetings] = useState(() => meetingState(record))
   const [chapter, setChapter] = useState('all')
+  const [standardView, setStandardView] = useState('all')
   const [openOnly, setOpenOnly] = useState(false)
   const [attachmentsOf, setAttachmentsOf] = useState(null)
   const [notesOpen, setNotesOpen] = useState(() => new Set())
@@ -57,7 +60,8 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const toClassify = unclassified(rows)
   const toRaise = awaitingFinding(rows)
   const chapters = score.chapters
-  const visible = rows.map((row, index) => ({ row, index })).filter(({ row }) => (chapter === 'all' || (row.chapterRef || '') === chapter) && (!openOnly || !row.answer || (needsClass(row) && (!row.findingClass || !row.findingId))))
+  const shownChapters = standardView === 'all' && score.standards.length > 1 ? [] : chapters.filter(item => standardView === 'all' || item.standard === standardView)
+  const visible = rows.map((row, index) => ({ row, index })).filter(({ row }) => (standardView === 'all' || (row.standard || '') === standardView) && (chapter === 'all' || chapterKey(row) === chapter) && (!openOnly || !row.answer || (needsClass(row) && (!row.findingClass || !row.findingId))))
   const setRow = (index, next) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next, ...(next.answer !== undefined && !classesFor(next.answer).includes(row.findingClass) ? { findingClass: '' } : {}) } : row)))
   const complete = rows.length > 0 && score.overall.unanswered === 0 && toClassify.length === 0
 
@@ -81,8 +85,9 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const addQuestion = () => {
     const text = adHoc.trim()
     if (!text) return
-    const ref = chapter !== 'all' ? chapter : ''
-    setRows(current => [...current, adHocRow(text, { chapterRef: ref, clauseRef: ref, chapterTitle: chapters.find(item => item.ref === ref)?.title || '', position: current.length + 1 })])
+    const picked = chapters.find(item => item.key === chapter)
+    const ref = picked?.ref || ''
+    setRows(current => [...current, { ...adHocRow(text, { chapterRef: ref, clauseRef: ref, chapterTitle: picked?.title || '', position: current.length + 1 }), standard: picked?.standard || (standardView !== 'all' ? standardView : record.standard || '') }])
     setAdHoc('')
   }
 
@@ -133,9 +138,13 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       <span><b>{score.overall.na}</b> {L(en, 'δεν εφαρμόζεται', 'not applicable')}</span>
       {score.criticalFailed > 0 && <span className="is-late"><b>{score.criticalFailed}</b> {L(en, 'κρίσιμες σε μη συμμόρφωση', 'critical not met')}</span>}
     </p>
-    {chapters.length > 1 && <div className="audit-chapter-strip" role="group" aria-label={L(en, 'Κεφάλαια', 'Chapters')}>
+    {score.standards.length > 1 && <div className="audit-chapter-strip audit-standard-strip" role="group" aria-label={L(en, 'Πρότυπα', 'Standards')}>
+      <button type="button" className={standardView === 'all' ? 'is-active' : ''} onClick={() => { setStandardView('all'); setChapter('all') }}><strong>{L(en, 'Όλα τα πρότυπα', 'All standards')}</strong><small>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</small></button>
+      {score.standards.map(item => <button type="button" key={item.standard || 'none'} className={`${standardView === item.standard ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} onClick={() => { setStandardView(item.standard); setChapter('all') }}><strong>{standardShort(item.standard) || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
+    </div>}
+    {shownChapters.length > 1 && <div className="audit-chapter-strip" role="group" aria-label={L(en, 'Κεφάλαια', 'Chapters')}>
       <button type="button" className={chapter === 'all' ? 'is-active' : ''} onClick={() => setChapter('all')}><strong>{L(en, 'Όλα', 'All')}</strong><small>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</small></button>
-      {chapters.map(item => <button type="button" key={item.ref || 'none'} className={`${chapter === item.ref ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.ref)}><strong>{item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
+      {shownChapters.map(item => <button type="button" key={item.key} className={`${chapter === item.key ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.key)}><strong>{item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
     </div>}
 
     <MoreSection moreLabel={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} lessLabel={L(en, 'Λιγότερα', 'Less')} defaultOpen={Boolean(meetings.opening.date || meetings.opening.attendees || meetings.representative)}>
@@ -159,9 +168,9 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     <ol className="audit-questions">
       {visible.map(({ row, index }) => {
         const classes = classesFor(row.answer)
-        const first = index === 0 || rows[index - 1].chapterRef !== row.chapterRef
+        const first = index === 0 || chapterKey(rows[index - 1]) !== chapterKey(row)
         return <li key={row.id || index} className={`audit-question is-${row.answer || 'open'}`}>
-          {first && chapter === 'all' && row.chapterRef && <h4 className="audit-chapter-title">{row.chapterRef}{row.chapterTitle ? ` · ${row.chapterTitle}` : ''}</h4>}
+          {first && chapter === 'all' && row.chapterRef && <h4 className="audit-chapter-title">{score.standards.length > 1 && row.standard ? `${standardShort(row.standard)} · ` : ''}{row.chapterRef}{row.chapterTitle ? ` · ${row.chapterTitle}` : ''}</h4>}
           <div className="audit-question-head">
             <span className="audit-clause">{row.clauseRef || '—'}</span>
             <strong>{en ? row.itemEn || row.item : row.item}</strong>
