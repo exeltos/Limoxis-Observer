@@ -9,7 +9,7 @@
 .quality-step-menu-col{width:44px;text-align:right}
 .quality-step-done td strong{color:var(--lo-color-muted);text-decoration:line-through}
 .data-table td.quality-step-overdue{color:#b42318;font-weight:700}
-.quality-step-add{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) 170px auto;gap:8px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
+.quality-step-add{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) 170px auto;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
 .quality-step-add>input{height:38px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:12px}
 @media(max-width:900px){.quality-step-add{grid-template-columns:1fr}}
 /* Steps a CAPA starts with (from a control's deviation actions or a training). */

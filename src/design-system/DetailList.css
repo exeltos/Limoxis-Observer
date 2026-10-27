@@ -4,7 +4,7 @@
 .lo-detail-heading{margin:0;padding:0 0 4px;font-size:10.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:#6b7e91;border-bottom:1px solid #d7e0e8}
 .lo-detail-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;margin:0;padding:0}
 .lo-detail-item{display:grid;grid-template-columns:minmax(110px,40%) minmax(0,1fr);column-gap:12px;align-items:baseline;min-width:0;margin:0;padding:6px 0 7px;border-bottom:1px solid #edf1f5}
-.lo-detail-item.is-wide{grid-column:1/-1}
+.lo-detail-item.is-wide{grid-column:1/-1;grid-template-columns:minmax(0,1fr);row-gap:3px}
 .lo-detail-item dt{margin:0;font-size:11.5px;font-weight:600;line-height:1.3;color:#566776}
 .lo-detail-item dd{margin:0;font-size:13px;font-weight:600;line-height:1.35;color:#18364f;overflow-wrap:anywhere;white-space:normal}
 .lo-detail-item.is-wide dd{font-weight:500;white-space:pre-wrap}
