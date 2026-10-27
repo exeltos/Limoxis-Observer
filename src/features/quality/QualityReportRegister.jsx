@@ -5,7 +5,6 @@ import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -71,7 +70,7 @@ export function useDeviationQueue(organizationId,enabled=true){
  return {sources,loading}
 }
 
-const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,departments:[],period:'all',origin:'all'}
+const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,period:'all',origin:'all'}
 const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',quick:null}
 const departmentsOf=(rows,language)=>[...new Set(rows.map(row=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
@@ -202,20 +201,19 @@ const waitingDays=row=>{const days=-daysUntil(row.date);return row.stage==='clos
 const PERIOD_DAYS={today:0,'7d':7,'30d':30}
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
-// summary line and labelled chips instead of boxes, columns and a filter popover.
+// summary line and the usual filter popover instead of boxes and extra columns.
 export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false}){
  const en=language==='en'
  const {filters,set}=view
  const quick=inbox?filters.quick:null
  const items=useMemo(()=>inbox?view.filtered.filter(row=>{
-  const age=-daysUntil(row.date),days=waitingDays(row),dep=en?row.departmentEn:row.department
+  const age=-daysUntil(row.date),days=waitingDays(row)
   return (!quick||(days!=null&&(quick==='waiting'?days>=WAITING_DAYS:quick==='new'?days<WAITING_DAYS:true)))
    &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
    &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
-   &&(!filters.departments.length||filters.departments.includes(dep))
- }):view.filtered,[view.filtered,inbox,quick,filters.period,filters.origin,filters.departments,en])
+ }):view.filtered,[view.filtered,inbox,quick,filters.period,filters.origin])
  const paging=usePage(items,JSON.stringify(filters))
- const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+filters.departments.length
+ const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
  const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
  const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
  const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
@@ -223,15 +221,13 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const columns=inbox
   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
   :null
- const toggleDepartment=value=>set('departments',filters.departments.includes(value)?filters.departments.filter(item=>item!==value):[...filters.departments,value])
- const group=(label,chips)=><span className="quality-chip-group"><small>{label}</small>{chips}</span>
- const inboxGroups=<div className="quality-chip-groups">
-   {group(en?'Period':'Περίοδος',<ChoiceChips className="quality-status-switch" label="" options={[{value:'today',label:en?'Today':'Σήμερα'},{value:'7d',label:en?'7 days':'7 ημέρες'},{value:'30d',label:en?'30 days':'30 ημέρες'}]} selected={filters.period==='all'?[]:[filters.period]} onToggle={value=>set('period',filters.period===value?'all':value)}/>)}
-   {group(en?'Wait':'Αναμονή',<ChoiceChips className="quality-status-switch" label="" options={[{value:'waiting',label:en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`},{value:'new',label:en?'New':'Νέες'}]} selected={quick==='waiting'||quick==='new'?[quick]:[]} onToggle={value=>set('quick',quick===value?null:value)}/>)}
-   {group(en?'Reported by':'Αναφέρων',<ChoiceChips className="quality-status-switch" label="" options={[{value:'named',label:en?'Named':'Ονομαστικές'},{value:'anonymous',label:en?'Anonymous':'Ανώνυμες'}]} selected={filters.origin==='all'?[]:[filters.origin]} onToggle={value=>set('origin',filters.origin===value?'all':value)}/>)}
-   {view.departments.length>1&&group(t('department'),<ChoiceChips className="quality-status-switch" label="" options={view.departments.map(value=>({value,label:value}))} selected={filters.departments} onToggle={toggleDepartment}/>)}
-  </div>
- const popover=inbox?inboxGroups:<>
+ const inboxSelects=<>
+   <FilterSelect label={en?'Period':'Περίοδος'} value={filters.period} onChange={value=>set('period',value)}><option value="all">{en?'All':'Όλες'}</option><option value="today">{en?'Today':'Σήμερα'}</option><option value="7d">{en?'Last 7 days':'Τελευταίες 7 ημέρες'}</option><option value="30d">{en?'Last 30 days':'Τελευταίες 30 ημέρες'}</option></FilterSelect>
+   <FilterSelect label={en?'Wait':'Αναμονή'} value={quick==='waiting'||quick==='new'?quick:'all'} onChange={value=>set('quick',value==='all'?null:value)}><option value="all">{en?'All':'Όλες'}</option><option value="waiting">{en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`}</option><option value="new">{en?'New':'Νέες'}</option></FilterSelect>
+   <FilterSelect label={en?'Reported by':'Αναφέρων'} value={filters.origin} onChange={value=>set('origin',value)}><option value="all">{en?'All':'Όλοι'}</option><option value="named">{en?'Named':'Ονομαστικές'}</option><option value="anonymous">{en?'Anonymous':'Ανώνυμες'}</option></FilterSelect>
+   <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+  </>
+ const popover=inbox?inboxSelects:<>
    <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
    <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
