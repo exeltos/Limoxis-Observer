@@ -393,7 +393,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   if(section==='incidents'&&draft.anonymous){
     must(await supabase.from(config.table).insert(payload))
     await writeIncidentDetails(organizationId,id,draft,{creating:true})
-    return {id:code,code,displayId:compactCode(code),anonymous:true}
+    return {id:code,code,dbId:id,displayId:compactCode(code),anonymous:true}
   }
   must(await supabase.from(config.table).insert(payload))
   await writeDetails(section,organizationId,id,{...draft,rootCauseAnalysis:undefined},{creating:true})

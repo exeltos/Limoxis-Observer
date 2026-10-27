@@ -270,3 +270,9 @@
 .quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide.detail-item{min-height:0;padding:0}
 .quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide .lo-checkbox-field{min-height:28px!important}
 .quality-record-shell .quality-record-details.is-editing .quality-detail-grid{padding-bottom:6px!important}
+.quality-report-files{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
+.quality-report-files li{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:8px;font-size:13px}
+.quality-report-files li>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quality-report-files li>small{color:var(--lo-color-muted)}
+.quality-report-files li>button{border:0;background:none;cursor:pointer;color:var(--lo-color-muted);display:grid;place-items:center}
+.quality-report-wide{grid-column:1/-1}
