@@ -4,8 +4,9 @@ import { limitsText } from './controlResponse'
 
 // «Limits and actions per department» of a control that several departments share: by default every
 // department follows the control's limits and deviation text; a department can have its own.
-export function ControlDepartmentResponses({ departments = [], base = {}, numeric = false, value = {}, onChange, en, selectText }) {
-  if (departments.length < 2) return null
+// compact: one department's cell in the editor's «Departments» table (no heading, no name).
+export function ControlDepartmentResponses({ departments = [], base = {}, numeric = false, value = {}, onChange, en, selectText, compact = false }) {
+  if (departments.length < 2 && !compact) return null
   const own = department => value[department] || null
   const startOwn = department => onChange({
     ...value,
@@ -17,19 +18,19 @@ export function ControlDepartmentResponses({ departments = [], base = {}, numeri
     onChange(next)
   }
   const patch = (department, changes) => onChange({ ...value, [department]: { ...own(department), ...changes } })
-  const sameLabel = en ? 'Same as above' : 'Όπως παραπάνω'
+  const sameLabel = compact ? (en ? 'Same for all' : 'Όπως όλα') : (en ? 'Same as above' : 'Όπως παραπάνω')
   const baseSummary = [numeric && limitsText(base), base.deviationActions && (en ? 'with the actions above' : 'με τις ενέργειες παραπάνω')].filter(Boolean).join(' · ')
   return (
-    <div className="control-department-responses">
-      <span className="lo-field-label">{numeric ? (en ? 'Limits and actions per department (optional)' : 'Όρια και ενέργειες ανά τμήμα (προαιρετικό)') : (en ? 'Actions per department (optional)' : 'Ενέργειες ανά τμήμα (προαιρετικό)')}</span>
+    <div className={`control-department-responses${compact ? ' is-compact' : ''}`}>
+      {!compact && <span className="lo-field-label">{numeric ? (en ? 'Limits and actions per department (optional)' : 'Όρια και ενέργειες ανά τμήμα (προαιρετικό)') : (en ? 'Actions per department (optional)' : 'Ενέργειες ανά τμήμα (προαιρετικό)')}</span>}
       {departments.map(department => {
         const response = own(department)
         return (
           <div key={department} className="control-department-response">
-            <strong>{department}</strong>
+            {!compact && <strong>{department}</strong>}
             <ChoiceField
               hideLabel
-              label={en ? 'Limits and actions' : 'Όρια και ενέργειες'}
+              label={en ? `Limits and actions: ${department}` : `Όρια και ενέργειες: ${department}`}
               value={response ? 'own' : 'same'}
               onChange={choice => (choice === 'own' ? startOwn(department) : stopOwn(department))}
               options={[

@@ -8,8 +8,9 @@ const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
 
 // «Schedule per department» of a control that several departments share: by default every department
 // follows the control's schedule; a department can have its own (frequency and exact times).
-export function ControlDepartmentSchedules({ departments = [], base, value = {}, onChange, en, kindLabels, selectText }) {
-  if (departments.length < 2) return null
+// compact: one department's cell in the editor's «Departments» table (no heading, no name).
+export function ControlDepartmentSchedules({ departments = [], base, value = {}, onChange, en, kindLabels, selectText, compact = false }) {
+  if (departments.length < 2 && !compact) return null
   const own = department => value[department] || null
   const startOwn = department => onChange({ ...value, [department]: { ...base, times: [...(base.times || [])] } })
   const stopOwn = department => {
@@ -19,22 +20,22 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
   }
   const patch = (department, changes) => onChange({ ...value, [department]: { ...own(department), ...changes } })
   return (
-    <div className="control-department-schedules">
-      <span className="lo-field-label">{en ? 'Schedule per department (optional)' : 'Πρόγραμμα ανά τμήμα (προαιρετικό)'}</span>
+    <div className={`control-department-schedules${compact ? ' is-compact' : ''}`}>
+      {!compact && <span className="lo-field-label">{en ? 'Schedule per department (optional)' : 'Πρόγραμμα ανά τμήμα (προαιρετικό)'}</span>}
       {departments.map(department => {
         const frequency = own(department)
         const count = Math.max(1, Number(frequency?.timesPerDay) || 1)
         const times = Array.from({ length: count }, (_, index) => frequency?.times?.[index] || `${String(Math.min(23, 8 + index * 4)).padStart(2, '0')}:00`)
         return (
           <div key={department} className="control-department-schedule">
-            <strong>{department}</strong>
+            {!compact && <strong>{department}</strong>}
             <ChoiceField
               hideLabel
-              label={en ? 'Schedule' : 'Πρόγραμμα'}
+              label={en ? `Schedule: ${department}` : `Πρόγραμμα: ${department}`}
               value={frequency ? 'own' : 'same'}
               onChange={choice => (choice === 'own' ? startOwn(department) : stopOwn(department))}
               options={[
-                { value: 'same', label: en ? `Same as above (${frequencyLabel(base, en ? 'en' : 'el')})` : `Όπως παραπάνω (${frequencyLabel(base, 'el')})` },
+                { value: 'same', label: en ? `${compact ? 'Same for all' : 'Same as above'} (${frequencyLabel(base, en ? 'en' : 'el')})` : `${compact ? 'Όπως όλα' : 'Όπως παραπάνω'} (${frequencyLabel(base, 'el')})` },
                 { value: 'own', label: en ? 'Its own schedule' : 'Δικό του πρόγραμμα' },
               ]}
               {...selectText}

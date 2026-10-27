@@ -84,22 +84,6 @@
   font-size: 11px;
   color: var(--lo-status-warning-fg);
 }
-.control-editor-assignees {
-  display: grid;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--lo-color-border);
-}
-.control-editor-assignee {
-  display: grid;
-  grid-template-columns: minmax(110px, 0.6fr) minmax(0, 1.4fr);
-  align-items: center;
-  gap: 10px;
-}
-.control-editor-assignee > strong {
-  font-size: 12.5px;
-  color: var(--lo-color-text);
-}
 .control-editor-times {
   display: grid;
   gap: 6px;
@@ -192,15 +176,6 @@
   padding-inline: 2px;
 }
 /* «Advanced»: the optional cards, folded on a new control; open they use the same grid. */
-.control-editor-advanced {
-  grid-column: 1 / -1;
-  margin-top: 0;
-}
-.control-editor-advanced > .lo-more-section-body:not([hidden]) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
 /* Tablet portrait and narrow laptop windows: one column. */
 @media (max-width: 1100px) {
   .control-editor-body,
@@ -370,3 +345,11 @@
 .control-editor-similar a {
   font-weight: 650;
 }
+/* «Departments» tab: one row per department; a cell opens its own fields when the department differs. */
+.control-editor-department-table{width:100%;table-layout:fixed}
+.control-editor-department-table th:first-child{width:18%}
+.control-editor-department-table tbody td:is(td,#lo-control-editor){vertical-align:top!important;padding-top:10px;padding-bottom:10px}
+.control-editor-department-table td>strong{display:block;padding-top:9px}
+.control-department-schedules.is-compact,.control-department-responses.is-compact{display:block;margin:0;padding:0;border:0}
+.control-department-schedules.is-compact .control-department-schedule,.control-department-responses.is-compact .control-department-response{display:block;padding:0;border:0}
+.control-department-schedules.is-compact .control-department-schedule-fields,.control-department-responses.is-compact .control-department-response-fields{margin-top:8px}

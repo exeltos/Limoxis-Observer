@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { CalendarClock,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
+import { Building2,CalendarClock,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,LockKeyhole,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
 import { TimeField } from '../../design-system/TimeField'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -14,7 +14,6 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { Field } from '../../design-system/Field'
 import { YesNoField } from '../../design-system/YesNoField'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
-import { MoreSection } from '../../design-system/MoreSection'
 import { Link } from 'react-router-dom'
 import { similarControls } from './controlSimilarity'
 import { ControlDepartmentResponses } from './ControlDepartmentResponses'
@@ -60,7 +59,7 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const bundleTemplates=useBundleTemplates()
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
- const [advancedForced,setAdvancedForced]=useState(false)
+ const [tab,setTab]=useState('details')
  const [newAnswer,setNewAnswer]=useState('')
  const lib=key=>libraries[key]||[]
  const departments=useMemo(()=>departmentOnly&&fixedDepartment?[fixedDepartment]:departmentRows.map(x=>x.name).filter(Boolean),[departmentRows,departmentOnly,fixedDepartment])
@@ -88,11 +87,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
   mode==='choice'&&{key:'options',label:en?'At least two choices':'Τουλάχιστον δύο επιλογές',valid:options.length>=2},
  ])
 
- // «Advanced» (how it is recorded, criticality, goal) stays folded on a new control; it opens by itself
- // when the control already uses it or when what it asks for is missing, so a blocked Save is never hidden.
- const advancedOpenAtStart=Boolean(initial&&(mode!=='text'||response.deviationActions||initial.goal||initial.acceptanceCriteria||initial.description||initial.guideNotes))
- const advancedMissing=(mode==='checklist'&&!checklist.some(item=>String(item.el||'').trim()))||(mode==='choice'&&options.length<2)
- useEffect(()=>{if(advancedMissing)setAdvancedForced(true)},[advancedMissing])
+ // Three tabs: «Details» (all that a new control needs), «Departments» (what differs
+ // per department) and «Instructions». Every required field is on «Details».
 
  // Control types: the library first, then types already in use that it lacks.
  const typeOptions=useMemo(()=>{
@@ -122,8 +118,9 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  // «Head of Department» and «Shift manager» are always offered; the library's positions and any typed text follow.
  const positionOptions=useMemo(()=>{const base=[{value:en?'Head of Department':'Προϊστάμενος/η Τμήματος',label:en?'Head of Department':'Προϊστάμενος/η Τμήματος'},{value:en?'Shift manager':'Υπεύθυνος/η βάρδιας',label:en?'Shift manager':'Υπεύθυνος/η βάρδιας'}];const extra=libraryOptions(libraries.positions||[],language).filter(option=>!base.some(item=>item.label===option.label));return [...base,...extra]},[en,language,libraries.positions])
  return <Page fill className="control-editor-page">
-  <EntityRecordShell className="control-create-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'CONTROLS':'ΕΛΕΓΧΟΙ'} title={draft.title.trim()||title} subtitle={draft.title.trim()?title:(en?'Define what is checked, how it is recorded, where and when it runs.':'Ορίστε τι ελέγχεται, πώς καταχωρείται, πού εφαρμόζεται και πότε εκτελείται.')} tabs={[]} onBack={onCancel}>
+  <EntityRecordShell className="control-create-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'CONTROLS':'ΕΛΕΓΧΟΙ'} title={draft.title.trim()||title} subtitle={draft.title.trim()?title:(en?'Define what is checked, how it is recorded, where and when it runs.':'Ορίστε τι ελέγχεται, πώς καταχωρείται, πού εφαρμόζεται και πότε εκτελείται.')} tabs={[{id:'details',label:en?'Details':'Στοιχεία',icon:LockKeyhole},{id:'departments',label:`${en?'Departments':'Τμήματα'} (${draft.departments.length})`,icon:Building2},{id:'instructions',label:en?'Instructions':'Οδηγίες',icon:FileText}]} activeTab={tab} onTabChange={setTab} onBack={onCancel}>
    <div className="record-section control-editor-body" ref={form.scopeRef}>
+    {tab==='details'&&<>
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'What is checked':'Τι ελέγχεται'}</strong><span>{en?'Name, type and where it applies':'Ονομασία, είδος και πού εφαρμόζεται'}</span></header>
      <div className="control-editor-grid identity">
@@ -146,10 +143,6 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
       <SearchableSelect label={en?'Responsible person':'Υπεύθυνο πρόσωπο'} value={draft.ownerPerson?.employeeId||''} options={people.options} recentValues={people.near} recentLabel={en?'In the chosen departments':'Στα επιλεγμένα τμήματα'} onChange={id=>set('ownerPerson',personFromEmployee(employeeById(id)))} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/>
      </div>
      {!hasOwner&&!ownerRequired&&<small className="control-editor-hint">{en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.'}</small>}
-     {draft.departments.length>1&&<div className="control-editor-assignees">
-      <span className="lo-field-label">{en?'Person per department (optional)':'Υπεύθυνος ανά τμήμα (προαιρετικό)'}</span>
-      {draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);return <div key={dep} className="control-editor-assignee"><strong>{dep}</strong><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={draft.assignees?.[dep]?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>set('assignees',{...(draft.assignees||{}),[dep]:personFromEmployee(employeeById(id))})} placeholder={en?'Same as above':'Όπως παραπάνω'} {...selectText}/></div>})}
-     </div>}
     </section>
 
     <section className="control-editor-card">
@@ -162,10 +155,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      </div>
      {draft.frequency.kind==='daily'&&<div className="control-editor-times"><span className="lo-field-label"><CalendarClock size={13}/> {en?'Execution times':'Ώρες εκτέλεσης'}</span><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
      {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Tolerance (minutes)':'Ανοχή (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={en?'Until the next time':'Έως την επόμενη ώρα'} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'Each time is due by the next execution time (the last by 23:59). A tolerance makes it due earlier: time + tolerance.':'Κάθε ώρα εκτέλεσης είναι εμπρόθεσμη έως την επόμενη (η τελευταία έως τις 23:59). Με ανοχή, έως την ώρα + ανοχή.'}</small></div>}
-     <ControlDepartmentSchedules departments={draft.departments} base={draft.frequency} value={draft.departmentFrequencies||{}} onChange={next=>set('departmentFrequencies',next)} en={en} kindLabels={freqLabel} selectText={selectText}/>
     </section>
 
-    <MoreSection key={advancedForced?'forced':'folded'} defaultOpen={advancedOpenAtStart||advancedForced} className="control-editor-advanced" moreLabel={en?'Advanced':'Προχωρημένα'}>
     <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'How it is recorded':'Τρόπος καταχώρησης'}</strong><span>{en?'What the person recording fills in':'Τι συμπληρώνει όποιος καταχωρεί'}</span></header>
      <SearchableSelect className="control-editor-modes" label={en?'Result format':'Μορφή αποτελέσματος'} value={mode} onChange={next=>next&&(changeMode)(next)} options={[
@@ -210,26 +201,42 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
     </section>
 
     <section className="control-editor-card">
-     <header><strong>{en?'Criticality & deviations':'Κρισιμότητα & αποκλίσεις'}</strong><span>{en?'Priority, proof and what to do on a deviation':'Προτεραιότητα, τεκμήριο και τι γίνεται σε απόκλιση'}</span></header>
+     <header><strong>{en?'Criticality':'Κρισιμότητα'}</strong><span>{en?'Priority and proof':'Προτεραιότητα και τεκμήριο'}</span></header>
      <div className="control-editor-grid two">
       <SearchableSelect label={en?'Criticality':'Κρισιμότητα'} value={controlCriticality(draft)} onChange={v=>v&&setR('criticality',v)} options={CRITICALITY_LEVELS.map(level=>({value:level,label:criticalityLabel(level,language)}))}/>
       <YesNoField label={en?'Evidence on every entry':'Τεκμήριο σε κάθε καταχώρηση'} value={requiresEvidence(draft)} onChange={value=>setR('requiresEvidence',value)}/>
      </div>
-     <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows="3" value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>
-     <ControlDepartmentResponses departments={draft.departments} base={response} numeric={mode==='numeric'} value={draft.departmentResponses||{}} onChange={next=>set('departmentResponses',next)} en={en} selectText={selectText}/>
     </section>
 
-    <section className="control-editor-card">
-     <header><strong><FileText size={14}/> {en?'Goal & instructions':'Στόχος & οδηγίες'}</strong><span>{en?'Shown during execution':'Εμφανίζονται κατά την εκτέλεση'}</span></header>
+    </>}
+    {tab==='departments'&&<>
+    <section className="control-editor-card control-editor-wide control-editor-departments">
+     <header><strong>{en?'What differs per department':'Ό,τι διαφέρει ανά τμήμα'}</strong><span>{en?'Fill in only what a department does differently; the rest follows «Details».':'Συμπληρώνετε μόνο ό,τι κάνει διαφορετικά ένα τμήμα· τα υπόλοιπα ακολουθούν τα «Στοιχεία».'}</span></header>
+     {draft.departments.length<2?<div className="inline-empty">{en?'The control has one department: everything is set in «Details».':'Ο έλεγχος έχει ένα τμήμα: όλα ορίζονται στα «Στοιχεία».'}</div>
+     :<table className="data-table control-editor-department-table">
+      <thead><tr><th>{en?'Department':'Τμήμα'}</th><th>{en?'Responsible person':'Υπεύθυνος'}</th><th>{en?'Schedule':'Πρόγραμμα'}</th><th>{mode==='numeric'?(en?'Limits / actions':'Όρια / ενέργειες'):(en?'Actions on deviation':'Ενέργειες σε απόκλιση')}</th></tr></thead>
+      <tbody>{draft.departments.map(dep=>{const {options:depOptions,near}=employeeOptions(employees,language,[dep]);return <tr key={dep}>
+       <td><strong>{dep}</strong></td>
+       <td><SearchableSelect hideLabel label={`${en?'Person for':'Υπεύθυνος για'} ${dep}`} value={draft.assignees?.[dep]?.employeeId||''} options={depOptions} recentValues={near} recentLabel={dep} onChange={id=>set('assignees',{...(draft.assignees||{}),[dep]:personFromEmployee(employeeById(id))})} placeholder={en?'Same for all':'Όπως όλα'} {...selectText}/></td>
+       <td><ControlDepartmentSchedules compact departments={[dep]} base={draft.frequency} value={draft.departmentFrequencies||{}} onChange={next=>set('departmentFrequencies',next)} en={en} kindLabels={freqLabel} selectText={selectText}/></td>
+       <td><ControlDepartmentResponses compact departments={[dep]} base={response} numeric={mode==='numeric'} value={draft.departmentResponses||{}} onChange={next=>set('departmentResponses',next)} en={en} selectText={selectText}/></td>
+      </tr>})}</tbody>
+     </table>}
+    </section>
+    </>}
+    {tab==='instructions'&&<>
+    <section className="control-editor-card control-editor-wide">
+     <header><strong><FileText size={14}/> {en?'Goal & instructions':'Στόχος & οδηγίες'}</strong><span>{en?'Shown to whoever records':'Εμφανίζονται σε όποιον καταχωρεί'}</span></header>
+     <Field label={en?'Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea rows="3" value={response.deviationActions||''} onChange={e=>setR('deviationActions',e.target.value)} placeholder={en?'Shown to the person recording when the result deviates, e.g. move vaccines to the backup fridge, inform the pharmacy.':'Εμφανίζεται σε όποιον καταχωρεί όταν το αποτέλεσμα αποκλίνει, π.χ. μεταφορά εμβολίων στο εφεδρικό ψυγείο, ενημέρωση φαρμακείου.'}/></Field>
      <Field label={en?'Goal':'Στόχος'}><textarea rows="3" value={draft.goal||''} onChange={e=>set('goal',e.target.value)} placeholder={en?'What the control is for…':'Τι εξασφαλίζει ο έλεγχος…'}/></Field>
      <Field label={en?'Acceptance criteria':'Κριτήρια αποδοχής'}><textarea rows="3" value={draft.acceptanceCriteria||''} onChange={e=>set('acceptanceCriteria',e.target.value)} placeholder={en?'When the result is acceptable…':'Πότε το αποτέλεσμα είναι αποδεκτό…'}/></Field>
      <Field label={en?'Instructions':'Οδηγίες'}><textarea rows="4" value={draft.description||''} onChange={e=>set('description',e.target.value)} placeholder={en?'Optional instructions…':'Προαιρετικές οδηγίες…'}/></Field>
      <Field label={en?'Guidance notes':'Σημειώσεις καθοδήγησης'}><textarea rows="3" value={draft.guideNotes||''} onChange={e=>set('guideNotes',e.target.value)} placeholder={en?'Optional notes for whoever records…':'Προαιρετικές σημειώσεις για όποιον καταχωρεί…'}/></Field>
     </section>
 
-    </MoreSection>
+    </>}
 
-    <div className="inline-edit-footer control-editor-footer"><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><FormSubmit form={form} onSubmit={submit}>{en?'Save':'Αποθήκευση'}</FormSubmit></div>
+    <div className="inline-edit-footer control-editor-footer" onClickCapture={()=>{if(!form.valid)setTab('details')}}><Button variant="secondary" onClick={onCancel}>{en?'Cancel':'Ακύρωση'}</Button><FormSubmit form={form} onSubmit={submit}>{en?'Save':'Αποθήκευση'}</FormSubmit></div>
    </div>
   </EntityRecordShell>
   {catalogueOpen&&<ControlExpiryCatalogueDialog items={expiryCatalogue(draft)} departments={departments} defaultDepartments={departmentOnly&&fixedDepartment?[fixedDepartment]:[]} window={expiryWindow(draft)} language={language} onClose={()=>setCatalogueOpen(false)} onSave={list=>setR('expiryCatalogue',list)}/>}

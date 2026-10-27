@@ -68,7 +68,7 @@ describe('one place per action (Ο6)', () => {
     expect(editor).not.toContain('headerActions=')
     expect((editor.match(/<FormSubmit /g) || []).length).toBe(1)
     expect(editor).not.toContain('<SaveButton ')
-    expect(editor).toContain('<div className="inline-edit-footer control-editor-footer">')
+    expect(editor).toContain('<div className="inline-edit-footer control-editor-footer"')
   })
 })
 
@@ -88,21 +88,29 @@ describe('control record page (Ο5)', () => {
   })
 })
 
-describe('new control form (Ο8)', () => {
-  it('folds the optional parts in a collapsed «Προχωρημένα» section', () => {
-    const advanced = editor.indexOf('<MoreSection')
-    expect(advanced).toBeGreaterThan(0)
-    expect(editor).toContain("defaultOpen={advancedOpenAtStart||advancedForced}")
-    expect(editor).toContain("moreLabel={en?'Advanced':'Προχωρημένα'}")
-    expect(editor.indexOf("How it is recorded")).toBeGreaterThan(advanced)
-    expect(editor.indexOf("Actions on deviation")).toBeGreaterThan(advanced)
-    expect(editor.indexOf("What is checked")).toBeLessThan(advanced)
-    expect(editor.indexOf("en?'Schedule':'Προγραμματισμός'")).toBeLessThan(advanced)
-    expect(editor.indexOf('inline-edit-footer control-editor-footer')).toBeGreaterThan(editor.indexOf('</MoreSection>'))
+describe('control form: three tabs, one row per department', () => {
+  it('puts every required field on «Details», per-department differences and instructions on their own tabs', () => {
+    expect(editor).toContain("activeTab={tab} onTabChange={setTab}")
+    const details = editor.indexOf("{tab==='details'&&<>")
+    const departments = editor.indexOf("{tab==='departments'&&<>")
+    const instructions = editor.indexOf("{tab==='instructions'&&<>")
+    expect(details).toBeGreaterThan(0)
+    expect(details).toBeLessThan(departments)
+    expect(departments).toBeLessThan(instructions)
+    for (const required of ["What is checked", "en?'Schedule':'Προγραμματισμός'", "How it is recorded"]) {
+      const at = editor.indexOf(required)
+      expect(at).toBeGreaterThan(details)
+      expect(at).toBeLessThan(departments)
+    }
+    expect(editor.indexOf("Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea")).toBeGreaterThan(instructions)
+    expect(editor).not.toContain('<MoreSection')
   })
 
-  it('opens the section by itself when a checklist or choice list is still missing', () => {
-    expect(editor).toContain("const advancedMissing=")
-    expect(editor).toContain('if(advancedMissing)setAdvancedForced(true)')
+  it('shows one table row per department and returns to «Details» when Save finds something missing', () => {
+    expect(editor).toContain('<table className="data-table control-editor-department-table">')
+    expect(editor).toContain('<ControlDepartmentSchedules compact departments={[dep]}')
+    expect(editor).toContain('<ControlDepartmentResponses compact departments={[dep]}')
+    expect(editor).toContain("onClickCapture={()=>{if(!form.valid)setTab('details')}}")
+    expect(editor.indexOf('inline-edit-footer control-editor-footer')).toBeGreaterThan(editor.indexOf("{tab==='instructions'&&<>"))
   })
 })
