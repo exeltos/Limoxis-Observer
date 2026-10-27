@@ -185,6 +185,8 @@
 }
 @media (max-width: 700px) {
   .control-editor-grid.two,
+  .control-editor-grid.schedule,
+  .control-editor-grid.identity,
   .control-editor-choices,
   .control-editor-checklist-tools,
   .control-editor-assignee,
@@ -208,7 +210,7 @@
   box-shadow: none !important;
 }
 .control-editor-grid.identity {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .control-editor-grid.identity > .field:first-child {
   grid-column: span 2;
@@ -367,3 +369,24 @@
 .control-editor-paused{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--lo-color-muted)}
 .control-editor-paused-chip{border:1px dashed var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);padding:4px 11px;font:inherit;font-size:12.5px;color:var(--lo-color-text);cursor:pointer}
 .control-editor-paused-chip:hover,.control-editor-paused-chip:focus-visible{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
+/* The schedule on one row: frequency, times a day, the times, working days only. */
+.control-editor-grid.schedule {
+  grid-template-columns: minmax(160px, 1fr) minmax(120px, 0.6fr) minmax(0, 2fr) minmax(0, 1.6fr);
+  align-items: end;
+}
+/* The margin after a time opens from a link: rarely changed. */
+.control-editor-link {
+  justify-self: start;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--lo-color-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.control-editor-link:hover,
+.control-editor-link:focus-visible {
+  text-decoration: underline;
+}

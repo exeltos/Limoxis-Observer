@@ -31,7 +31,7 @@ import { expiryCounts,expiryItems,isExpiryControl,prefilledExpiryRows,recordsFin
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
-import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,scheduleVariants } from './controlScheduling'
+import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,scheduleVariants,timesWithWindows } from './controlScheduling'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
@@ -218,7 +218,7 @@ export function ControlRecordPage(){
      <DetailList sections={[{items:[
       {label:en?'Responsible':'Υπεύθυνος',value:ownerText(record,language)},
       {label:en?'Frequency':'Συχνότητα',value:controlFrequencyLabel(record,visibleDepartments,language)},
-      !differentSchedules&&{label:en?'Execution times':'Ώρες εκτέλεσης',value:assignmentFrequency(record,visibleDepartments[0]).times?.join(' · ')},
+      !differentSchedules&&{label:en?'Execution times':'Ώρες εκτέλεσης',value:timesWithWindows(assignmentFrequency(record,visibleDepartments[0]))},
       {label:en?'Created by':'Δημιουργία από',value:<>{record.createdBy||sourceLabel}{record.createdBy&&<small>{sourceLabel}</small>}</>},
       {label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
      ].filter(Boolean)}]}/>
@@ -246,7 +246,7 @@ export function ControlRecordPage(){
      emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
      renderRow={({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr className={`control-ov-department ${state}`}>
       <td><strong>{dep}</strong>{personLabel(record.assignees?.[dep],language)&&<small>{personLabel(record.assignees[dep],language)}</small>}</td>
-      <td>{frequencyLabel(assignmentFrequency(record,dep),language)}{(assignmentFrequency(record,dep).times||[]).length>0&&<small>{assignmentFrequency(record,dep).times.join(' · ')}</small>}</td>
+      <td>{frequencyLabel(assignmentFrequency(record,dep),language)}{(assignmentFrequency(record,dep).times||[]).length>0&&<small>{timesWithWindows(assignmentFrequency(record,dep))}</small>}</td>
       {differentLimits&&<td>{limitsText(assignmentResponse(record,dep))||'—'}</td>}
       <td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge><small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>

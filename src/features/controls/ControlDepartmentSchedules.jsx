@@ -3,7 +3,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { TimeField } from '../../design-system/TimeField'
 import { YesNoField } from '../../design-system/YesNoField'
-import { frequencyLabel } from './controlScheduling'
+import { frequencyLabel, scheduleSummary } from './controlScheduling'
 
 const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
 
@@ -26,8 +26,8 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
     const department = departments[0]
     const frequency = own(department)
     return frequency
-      ? <div className="control-department-cell is-own"><strong>{frequencyLabel(frequency, en ? 'en' : 'el')}</strong><button type="button" className="control-department-cell-action" onClick={() => stopOwn(department)}>{en ? 'Same for all' : 'Όπως όλα'}</button></div>
-      : <div className="control-department-cell"><span>{en ? 'Same for all' : 'Όπως όλα'} ({frequencyLabel(base, en ? 'en' : 'el')})</span><button type="button" className="control-department-cell-action" onClick={() => startOwn(department)}>{en ? 'Change' : 'Αλλαγή'}</button></div>
+      ? <div className="control-department-cell is-own"><strong>{scheduleSummary(frequency, en ? 'en' : 'el')}</strong><button type="button" className="control-department-cell-action" onClick={() => stopOwn(department)}>{en ? 'Same for all' : 'Όπως όλα'}</button></div>
+      : <div className="control-department-cell"><span>{en ? 'Same for all' : 'Όπως όλα'} ({scheduleSummary(base, en ? 'en' : 'el')})</span><button type="button" className="control-department-cell-action" onClick={() => startOwn(department)}>{en ? 'Change' : 'Αλλαγή'}</button></div>
   }
   if (compact && !own(departments[0])) return null
   return (

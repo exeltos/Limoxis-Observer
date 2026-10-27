@@ -61,6 +61,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
  const [draft,setDraft]=useState(()=>initial?JSON.parse(JSON.stringify({...initial,departmentFrequencies:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.frequency).map(([department,a])=>[department,a.frequency])),departmentResponses:Object.fromEntries(Object.entries(initial.assignments||{}).filter(([,a])=>a?.responseOverride).map(([department,a])=>[department,a.responseOverride]))})):{departmentFrequencies:{},departmentResponses:{},title:'',category:'',departments:departmentOnly&&fixedDepartment?[fixedDepartment]:[],owner:'',ownerPerson:null,assignees:{},location:'',equipment:'',description:'',goal:'',acceptanceCriteria:'',guideNotes:'',createdByScope:departmentOnly?'department':'infection_control',lastCompletedAt:null,responseConfig:{mode:'text',label:'Αποτέλεσμα'},frequency:{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}})
  const [catalogueOpen,setCatalogueOpen]=useState(false)
  const [tab,setTab]=useState('details')
+ // The margin after a time is rarely changed: its field opens from a link.
+ const [showMargin,setShowMargin]=useState(false)
  const [editingPerson,setEditingPerson]=useState(null)
  const [newAnswer,setNewAnswer]=useState('')
  const lib=key=>libraries[key]||[]
@@ -126,39 +128,35 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
    <div className="record-section control-editor-body" ref={form.scopeRef}>
     {tab==='details'&&<>
     <section className="control-editor-card control-editor-wide">
-     <header><strong>{en?'What is checked':'Τι ελέγχεται'}</strong><span>{en?'Name, type and where it applies':'Ονομασία, είδος και πού εφαρμόζεται'}</span></header>
+     <header><strong>{en?'What is checked':'Τι ελέγχεται'}</strong><span>{en?'Name, type, where it applies and who is responsible':'Ονομασία, είδος, πού εφαρμόζεται και ποιος είναι υπεύθυνος'}</span></header>
      <div className="control-editor-grid identity">
       <Field label={en?'Control name':'Ονομασία ελέγχου'} {...form.field('title')}><input autoFocus value={draft.title} onChange={e=>set('title',e.target.value)} placeholder={en?'e.g. Medication refrigerator temperature':'π.χ. Θερμοκρασία ψυγείου φαρμάκων'}/></Field>
       <SearchableSelect label={en?'Control type':'Είδος ελέγχου'} {...form.field('category')} value={draft.category} options={typeOptions} onChange={changeCategory} allowCustom placeholder={en?'Choose or type':'Επιλέξτε ή γράψτε'} {...selectText}/>
       <SearchableSelect label={en?'Location':'Χώρος'} value={draft.location||''} options={[]} onChange={v=>set('location',v)} allowCustom placeholder={en?'Optional, e.g. Nurses station':'Προαιρετικό, π.χ. Σταθμός νοσηλευτών'} {...selectText}/>
       <SearchableSelect label={en?'Equipment / point':'Εξοπλισμός / σημείο'} value={draft.equipment||''} options={equipmentOptions} onChange={v=>set('equipment',v)} allowCustom placeholder={en?'Optional, e.g. Medication refrigerator':'Προαιρετικό, π.χ. Ψυγείο φαρμάκων'} {...selectText}/>
+      <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} {...form.field('owner')} required={false} value={draft.owner||''} options={positionOptions} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
+      <SearchableSelect label={en?'Responsible person':'Υπεύθυνο πρόσωπο'} value={draft.ownerPerson?.employeeId||''} options={people.options} recentValues={people.near} recentLabel={en?'In the chosen departments':'Στα επιλεγμένα τμήματα'} onChange={id=>set('ownerPerson',personFromEmployee(employeeById(id)))} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/>
      </div>
+     {!hasOwner&&!ownerRequired&&<small className="control-editor-hint">{en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.'}</small>}
      {similar.length>0&&<div className="control-editor-similar" role="status">
       <strong>{similar.some(item=>item.same)?(en?'A control with this name already exists.':'Υπάρχει ήδη έλεγχος με αυτή την ονομασία.'):(en?'A control with a very similar name exists.':'Υπάρχει έλεγχος με πολύ παρόμοια ονομασία.')}</strong>
       <span>{en?'If it is the same check, add your department to it instead of creating a new one: ':'Αν είναι ο ίδιος έλεγχος, προσθέστε το τμήμα σας σε αυτόν αντί να δημιουργήσετε νέο: '}{similar.map(({control},index)=><span key={control.id}>{index>0&&', '}<Link to={`/controls/${control.id}`}>{control.title}</Link></span>)}</span>
      </div>}
     </section>
 
-    <section className="control-editor-card">
-     <header><strong>{en?'Responsibility':'Υπευθυνότητα'}</strong><span>{en?'A position, a person, or both':'Θέση, πρόσωπο ή και τα δύο'}</span></header>
-     <div className="control-editor-grid two">
-      <SearchableSelect label={en?'Responsible position':'Θέση ευθύνης'} {...form.field('owner')} required={false} value={draft.owner||''} options={positionOptions} onChange={v=>set('owner',v)} allowCustom placeholder={en?'e.g. Head of Department':'π.χ. Προϊστάμενος/η Τμήματος'} {...selectText}/>
-      <SearchableSelect label={en?'Responsible person':'Υπεύθυνο πρόσωπο'} value={draft.ownerPerson?.employeeId||''} options={people.options} recentValues={people.near} recentLabel={en?'In the chosen departments':'Στα επιλεγμένα τμήματα'} onChange={id=>set('ownerPerson',personFromEmployee(employeeById(id)))} placeholder={en?'Search staff…':'Αναζήτηση προσωπικού…'} {...selectText}/>
-     </div>
-     {!hasOwner&&!ownerRequired&&<small className="control-editor-hint">{en?'No one is responsible yet: choose a position or a person when you know it.':'Δεν έχει οριστεί υπεύθυνος: επιλέξτε θέση ή πρόσωπο όταν είναι γνωστό.'}</small>}
-    </section>
 
-    <section className="control-editor-card">
+    <section className="control-editor-card control-editor-wide">
      <header><strong>{en?'Schedule':'Προγραμματισμός'}</strong><span>{en?'Frequency and exact times':'Συχνότητα και ακριβείς ώρες'}</span></header>
-     <div className="control-editor-grid two">
+     <div className="control-editor-grid schedule">
       <SearchableSelect label={en?'Frequency *':'Συχνότητα *'} value={draft.frequency.kind} options={FREQUENCIES.map(kind=>({value:kind,label:freqLabel[kind]}))} onChange={v=>v&&setF('kind',v)} {...selectText} clearLabel=""/>
       {draft.frequency.kind==='daily'
        ?<Field label={en?'Times per day *':'Φορές ανά ημέρα *'}><input type="number" min="1" max="12" value={count} onChange={e=>setF('timesPerDay',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></Field>
        :<Field label={`${en?'Every':'Κάθε'} (${intervalUnit}) *`}><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></Field>}
-     </div>
      {draft.frequency.kind==='daily'&&<div className="control-editor-times"><span className="lo-field-label"><CalendarClock size={13}/> {en?'Execution times':'Ώρες εκτέλεσης'}</span><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
      {draft.frequency.kind==='daily'&&<YesNoField label={en?'Working days only (Monday–Friday)':'Μόνο εργάσιμες (Δευτέρα–Παρασκευή)'} hint={en?'Saturday and Sunday are not due and do not count as missed.':'Σάββατο και Κυριακή δεν ζητείται και δεν μετρά ως «χάθηκε».'} value={draft.frequency.weekdaysOnly===true} onChange={value=>setF('weekdaysOnly',value?true:undefined)}/>}
-     {draft.frequency.kind==='daily'&&<div className="control-editor-grid two"><Field label={en?'Margin after the time (minutes)':'Περιθώριο μετά την ώρα (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={String(slotMargin({...draft.frequency,toleranceMinutes:null})||'')} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'On time from 1 hour before each time to 2 hours after it when once a day, 1 hour after when more often. Afterwards it is overdue. Fill in only to change the margin after.':'Στην ώρα του από 1 ώρα πριν έως 2 ώρες μετά όταν γίνεται μία φορά την ημέρα, έως 1 ώρα μετά όταν γίνεται συχνότερα. Μετά γίνεται εκπρόθεσμος. Συμπληρώστε μόνο για να αλλάξετε το περιθώριο μετά.'}</small></div>}
+     </div>
+     {draft.frequency.kind==='daily'&&!showMargin&&draft.frequency.toleranceMinutes==null&&<button type="button" className="control-editor-link" onClick={()=>setShowMargin(true)}>{en?'Change the margin':'Αλλαγή περιθωρίου'}</button>}
+     {draft.frequency.kind==='daily'&&(showMargin||draft.frequency.toleranceMinutes!=null)&&<div className="control-editor-grid two"><Field label={en?'Margin after the time (minutes)':'Περιθώριο μετά την ώρα (λεπτά)'}><input type="number" min="0" step="15" value={draft.frequency.toleranceMinutes??''} placeholder={String(slotMargin({...draft.frequency,toleranceMinutes:null})||'')} onChange={e=>setF('toleranceMinutes',e.target.value===''?null:Math.max(0,Number(e.target.value)||0))}/></Field><small className="control-editor-hint">{en?'Empty: 2 hours when once a day, 1 hour when more often.':'Χωρίς τιμή: 2 ώρες όταν γίνεται μία φορά την ημέρα, 1 ώρα όταν γίνεται συχνότερα.'}</small></div>}
     </section>
 
     <section className="control-editor-card control-editor-wide">

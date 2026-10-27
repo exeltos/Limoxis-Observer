@@ -1,4 +1,4 @@
-import { dueState,nextDeadlineAfter,periodBounds,periodProgress } from './controlDueRules'
+import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotWindowMinutes } from './controlDueRules'
 
 export function frequencyLabel(f={},language='el'){
  const en=language==='en'
@@ -7,6 +7,20 @@ export function frequencyLabel(f={},language='el'){
  if(f.kind==='monthly')return Number(f.interval||1)===1?(en?'Monthly':'Μηνιαία'):(en?`Every ${f.interval} months`:`Κάθε ${f.interval} μήνες`)
  if(f.kind==='yearly')return Number(f.interval||1)===1?(en?'Yearly':'Ετήσια'):(en?`Every ${f.interval} years`:`Κάθε ${f.interval} έτη`)
  return en?`Every ${f.interval||1} days`:`Κάθε ${f.interval||1} ημέρες`
+}
+
+const hhmm=minutes=>minutes>=1440?'23:59':`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`
+// A daily control's times with the window each counts as on time: «09:00 (08:00–11:00)».
+export function timesWithWindows(f={}){
+ const times=(f.times||[]).filter(Boolean)
+ if(f.kind!=='daily'||!times.length)return times.join(' · ')
+ return times.map((time,index)=>{const {open,close}=slotWindowMinutes(f,index);return `${time} (${hhmm(open)}–${hhmm(close)})`}).join(' · ')
+}
+// A schedule in a few words: a daily one by its times («07:00, 15:00 · Δευ–Παρ»), any other by its frequency.
+export function scheduleSummary(f={},language='el'){
+ const times=f.kind==='daily'?(f.times||[]).filter(Boolean):[]
+ if(!times.length)return frequencyLabel(f,language)
+ return `${times.join(', ')}${f.weekdaysOnly===true?(language==='en'?' · Mon–Fri':' · Δευ–Παρ'):''}`
 }
 
 // The schedule that applies in one department: its own when it has one, else the control's.
