@@ -1,7 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertOctagon,ExternalLink,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
+import { AlertOctagon,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
-import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -273,25 +272,31 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
  const {filters,set}=view
  const items=view.filtered
  const paging=usePage(items,`${JSON.stringify(filters)}:${view.days}`)
- const advanced=['scope','source','department','priority','status'].filter(key=>filters[key]!=='all'&&!(key==='scope'&&filters.scope==='registry')).length+(view.days!==90?1:0)
+ const advanced=['source','department','priority','status'].filter(key=>filters[key]!=='all').length+(view.days!==90?1:0)
  const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
  const openRow=row=>row.type==='finding'?goTo(`/quality/findings/${row.id}`,{returnTo:'/quality',returnTab:'deviations'}):goTo(row.item.path,{returnTo:'/quality',returnTab:'deviations'})
+ const pendingView=filters.scope==='pending'
+ const counts=view.counts
+ const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
+ const figure=(key,count,label,onClick,active,late=false)=><button key={key} type="button" className={`${late?'is-late':''}${active?' is-active':''}`.trim()} onClick={onClick}><b>{count}</b> {label}</button>
  return <>
+  <p className="quality-summary-line" aria-live="polite">{view.loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   {figure('all',counts.total,en?'deviations':'αποκλίσεις',()=>showRegistry({}),!pendingView&&filters.status==='all'&&!filters.quick)}
+   {figure('progress',counts.inProgress,en?'in progress':'σε εξέλιξη',()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'}),!pendingView&&filters.status==='inProgress')}
+   {figure('closed',counts.closed,en?'closed':'κλειστές',()=>showRegistry({status:filters.status==='closed'?'all':'closed'}),!pendingView&&filters.status==='closed')}
+   {figure('withoutCapa',counts.withoutCapa,en?'without corrective action':'χωρίς διορθωτική ενέργεια',()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'}),!pendingView&&filters.quick==='withoutCapa',counts.withoutCapa>0)}
+   {figure('pending',counts.pending,en?'new to assess':'νέες προς αξιολόγηση',()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')},pendingView,counts.pending>0)}
+  </>}</p>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear}>
-   <FilterSelect label={en?'View':'Προβολή'} value={filters.scope} onChange={value=>set('scope',value)}>
-    <option value="registry">{en?'Deviation register':'Μητρώο αποκλίσεων'}</option>
-    <option value="pending">{en?`New to assess (${view.counts.pending})`:`Νέες προς αξιολόγηση (${view.counts.pending})`}</option>
-    <option value="all">{en?'All':'Όλα'}</option>
-   </FilterSelect>
    <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={value=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={value=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
    <FilterSelect label={t('priority')} value={filters.priority} onChange={value=>set('priority',value)}><option value="all">{t('all')}</option>{['critical','high','medium','low'].map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
-   {(filters.scope==='pending'||filters.scope==='all')&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
+   {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
   <div className="scroll-table">
    <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},{key:'actions',label:''}]}
+    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(pendingView?[{key:'actions',label:''}]:[])]}
     emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “New to assess” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στις «Νέες προς αξιολόγηση» μέχρι να τις εξετάσει η Ποιότητα.'}
     rowProps={row=>({className:'quality-register-deviation',onClick:()=>openRow(row)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
@@ -302,10 +307,9 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}</td>
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
      <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity)}</StatusBadge></td>
-     <td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
-      <IconButton size="sm" label={row.type==='finding'?(en?'Open deviation':'Άνοιγμα απόκλισης'):(en?'Open source record':'Άνοιγμα εγγραφής προέλευσης')} onClick={()=>openRow(row)}><ExternalLink size={15}/></IconButton>
+     {pendingView&&<td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
       {row.type==='deviation'&&<ActionButton tone="primary" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(row.item,language))}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
-     </div></td>
+     </div></td>}
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}

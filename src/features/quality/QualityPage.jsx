@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users,Wrench } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -208,13 +208,7 @@ export function QualityPage(){
   overview:centerFigures,
   reports:[],
   incidents:[],
-  deviations:[
-   {key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Σύνολο αποκλίσεων','Total deviations'),active:deviations.filters.scope==='registry'&&deviations.filters.status==='all'&&!deviations.filters.quick,go:()=>{deviations.clear();deviations.set('scope','registry')}},
-   {key:'progress',icon:Wrench,value:deviations.counts.inProgress,label:L('Σε εξέλιξη','In progress'),active:deviations.filters.status==='inProgress',go:()=>{deviations.set('scope','registry');deviations.set('quick',null);deviations.set('status',deviations.filters.status==='inProgress'?'all':'inProgress')}},
-   {key:'closed',icon:CheckCircle2,value:deviations.counts.closed,label:L('Κλειστές','Closed'),active:deviations.filters.status==='closed',go:()=>{deviations.set('scope','registry');deviations.set('quick',null);deviations.set('status',deviations.filters.status==='closed'?'all':'closed')}},
-   {key:'withoutCapa',icon:SearchCheck,value:deviations.counts.withoutCapa,label:L('Χωρίς διορθωτική ενέργεια','Without corrective action'),tone:deviations.counts.withoutCapa?'warning':'neutral',active:deviations.filters.quick==='withoutCapa',go:()=>{deviations.set('scope','registry');deviations.set('status','all');deviations.set('quick',deviations.filters.quick==='withoutCapa'?null:'withoutCapa')}},
-   {key:'pending',icon:Clock3,value:deviations.counts.pending,label:L('Νέες προς αξιολόγηση','New to assess'),tone:deviations.counts.pending?'warning':'neutral',active:deviations.filters.scope==='pending',go:()=>{deviations.set('quick',null);deviations.set('status','all');deviations.set('scope',deviations.filters.scope==='pending'?'registry':'pending')}},
-  ],
+  deviations:[],
  })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'&&measureView==='surveys'?tabFigures.surveys:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
  const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='resources'?`resources:${resourceView}`:tab
