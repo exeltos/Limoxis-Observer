@@ -49,8 +49,8 @@ describe('one place per action (Ο6)', () => {
   })
 
   it('records from the header only for one department, otherwise only from the department rows', () => {
-    expect(record).toContain('{canExecute&&visibleDepartments.length===1&&<ActionButton')
-    expect(record).toContain('{allowed&&assignments.length>1&&<ActionButton')
+    expect(record).toContain('{canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton')
+    expect(record).toContain('{allowed&&assignments.length>1&&!heldBack(dep)&&<ActionButton')
   })
 
   it('has one export per tab: the expiry panel hands its form to the page menu', () => {

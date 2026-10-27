@@ -229,17 +229,20 @@ describe('working days only (Monday–Friday)', () => {
   })
 })
 
-describe('the entry opens 1 hour before its time', () => {
-  it('waits until an hour before the next set time of the day, then stays open (late too)', async () => {
-    const { recordOpensAt } = await import('../src/features/controls/controlScheduling')
-    const item = (history) => ({ id: 'A', frequency: { kind: 'daily', times: ['09:00', '17:00'] }, assignments: { ΜΕΘ: { nextDueAt: '2026-10-27T08:00:00Z', history } } })
-    // 06:30 Athens, nothing done: 09:00 opens at 08:00.
-    expect(recordOpensAt(item([]), 'ΜΕΘ', new Date('2026-10-27T04:30:00Z'))?.toISOString()).toBe('2026-10-27T06:00:00.000Z')
-    // 08:30 Athens: open.
-    expect(recordOpensAt(item([]), 'ΜΕΘ', new Date('2026-10-27T06:30:00Z'))).toBeNull()
-    // 09:00 done at 09:10; 12:00 Athens: 17:00 opens at 16:00.
-    expect(recordOpensAt(item([{ at: '2026-10-27T07:10:00Z' }]), 'ΜΕΘ', new Date('2026-10-27T10:00:00Z'))?.toISOString()).toBe('2026-10-27T14:00:00.000Z')
-    // A weekly control is never held back.
-    expect(recordOpensAt({ frequency: { kind: 'weekly', interval: 1 }, assignments: { ΜΕΘ: {} } }, 'ΜΕΘ')).toBeNull()
+describe('a department records inside the window of the control time', () => {
+  it('opens 1 hour before a set time and closes at its margin; outside, the entry is not offered', async () => {
+    const { recordWindow } = await import('../src/features/controls/controlScheduling')
+    const item = (history, times = ['09:00', '17:00']) => ({ id: 'A', frequency: { kind: 'daily', times }, assignments: { ΜΕΘ: { nextDueAt: '2026-10-27T08:00:00Z', history } } })
+    const at = (iso) => new Date(iso)
+    // 09:00 and 17:00 Athens (UTC+2 on 27/10): 09:00 opens 08:00 and closes 10:00 (1 hour margin with two times).
+    expect(recordWindow(item([]), 'ΜΕΘ', at('2026-10-27T04:30:00Z'))).toMatchObject({ gated: true, state: 'before', opens: at('2026-10-27T06:00:00Z') })
+    expect(recordWindow(item([]), 'ΜΕΘ', at('2026-10-27T06:30:00Z'))).toMatchObject({ gated: true, state: 'open' })
+    // 09:00 done; at 12:30 the next is 17:00 (opens 16:00 Athens).
+    expect(recordWindow(item([{ at: '2026-10-27T06:10:00Z' }]), 'ΜΕΘ', at('2026-10-27T09:30:00Z'))).toMatchObject({ gated: true, state: 'before', opens: at('2026-10-27T14:00:00Z') })
+    // Nothing done and 17:00 passed too: closed.
+    expect(recordWindow(item([]), 'ΜΕΘ', at('2026-10-27T18:00:00Z'))).toMatchObject({ gated: true, state: 'closed' })
+    // Weekly controls and controls without set times are not held to a window.
+    expect(recordWindow({ frequency: { kind: 'weekly', interval: 1 }, assignments: { ΜΕΘ: {} } }, 'ΜΕΘ')).toEqual({ gated: false })
+    expect(recordWindow(item([], []), 'ΜΕΘ', at('2026-10-27T04:30:00Z'))).toEqual({ gated: false })
   })
 })

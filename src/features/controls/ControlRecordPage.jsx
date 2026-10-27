@@ -31,7 +31,8 @@ import { expiryCounts,expiryItems,isExpiryControl,prefilledExpiryRows,recordsFin
 import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
-import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,scheduleVariants,timesWithWindows } from './controlScheduling'
+import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,recordWindow,scheduleVariants,timesWithWindows } from './controlScheduling'
+import { zonedParts } from './controlDueRules'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
@@ -108,8 +109,15 @@ export function ControlRecordPage(){
  // Limits per department, when they are not the same everywhere.
  const differentLimits=record.responseConfig?.mode==='numeric'&&responseVariants(record,visibleDepartments)>1
 
- const {canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
+ const {canManageControls,canModifyDefinition,editsOwnDepartmentOnly,canDeleteDraft,canRemoveDefinition,canExecuteDepartment,canCancelHistory,canDeleteHistory,canEditHistory}=controlRecordPermissions({role,membership,record,actorId:actor.id,allDepartmentsVisible:record.departments.length>0&&visibleDepartments.length===record.departments.length})
  const canExecute=Boolean(department)&&canExecuteDepartment(department)
+ // A department records a daily control with set times only inside its window (1 hour before to its margin after);
+ // the control managers record at any time.
+ const windowOf=dep=>canManageControls?{gated:false}:recordWindow(record,dep)
+ const heldBack=dep=>{const win=windowOf(dep);return win.gated&&win.state!=='open'}
+ const clock=d=>d?`${String(zonedParts(d).hour).padStart(2,'0')}:${String(zonedParts(d).minute).padStart(2,'0')}`:''
+ const heldText=dep=>{const win=windowOf(dep);return win.state==='before'?(en?`From ${clock(win.opens)}`:`Από ${clock(win.opens)}`):(en?'Closed':'Έκλεισε')}
+ const heldHint=dep=>{const win=windowOf(dep);return win.state==='before'?(en?`The entry opens at ${clock(win.opens)} (1 hour before its time). For anything else, contact the infection control team.`:`Η καταχώρηση ανοίγει στις ${clock(win.opens)} (1 ώρα πριν την ώρα του ελέγχου). Για οτιδήποτε άλλο, επικοινωνήστε με τον Υπεύθυνο Λοιμώξεων.`):(en?'The time of this control has passed. Contact the infection control team.':'Η ώρα του ελέγχου πέρασε. Επικοινωνήστε με τον Υπεύθυνο Λοιμώξεων.')}
  const fmt=v=>formatDateTime(v,language)
  const status=controlOverallStatus(record,visibleDepartments)
  const hasDraft=assignments.some(x=>Boolean(x.assignment?.hasDraft))
@@ -185,6 +193,7 @@ export function ControlRecordPage(){
  if(editing&&canModifyDefinition)return <ControlEditor initial={record} departmentOnly={editsOwnDepartmentOnly} fixedDepartment={editsOwnDepartmentOnly?(record.createdForDepartment||visibleDepartments[0]||''):''} onCancel={()=>navigate(recordUrl,{replace:true})} onSave={saveDefinition}/>
 
  if(executing){
+  if(canExecute&&heldBack(department))return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty"><strong>{heldText(department)}</strong><span>{heldHint(department)}</span></div></Page>
   if(!canExecute)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'This control is not available for execution right now.':'Ο έλεγχος δεν είναι διαθέσιμος για καταχώρηση αυτή τη στιγμή.'}</div></Page>
   return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} onBack={()=>navigate(returnTo||recordUrl,{replace:true})}>
    <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
@@ -192,7 +201,8 @@ export function ControlRecordPage(){
  }
 
  const headerActions=<>
-  {canExecute&&visibleDepartments.length===1&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
+  {canExecute&&visibleDepartments.length===1&&heldBack(department)&&<ActionButton label={heldHint(department)} title={heldHint(department)} tone="primary" disabled onClick={()=>{}}><PlayCircle size={15}/><span>{heldText(department)}</span></ActionButton>}
+  {canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
   <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
@@ -252,7 +262,7 @@ export function ControlRecordPage(){
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>
       {expiryControl&&assignments.some(({department:d})=>!recordsFindingsOnly(record,d))&&<td>{!recordsFindingsOnly(record,dep)&&<ActionButton label={en?`List of ${dep}`:`Λίστα: ${dep}`} tone="neutral" onClick={()=>setListDepartment(dep)}><ListChecks size={15}/><span>{en?'List':'Λίστα'} ({prefilledExpiryRows(record,dep).length})</span></ActionButton>}</td>}
-      <td className="control-ov-action-col">{allowed&&assignments.length>1&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
+      <td className="control-ov-action-col">{allowed&&assignments.length>1&&heldBack(dep)&&<ActionButton label={heldHint(dep)} title={heldHint(dep)} tone="primary" disabled onClick={()=>{}}><PlayCircle size={15}/><span>{heldText(dep)}</span></ActionButton>}{allowed&&assignments.length>1&&!heldBack(dep)&&<ActionButton label={draft?(en?'Continue draft entry':'Συνέχιση προσωρινής καταχώρησης'):(en?'Record control':'Καταχώρηση ελέγχου')} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(dep)}&execute=1`)}><PlayCircle size={15}/><span>{draft?(en?'Continue':'Συνέχιση'):(en?'Record':'Καταχώρηση')}</span></ActionButton>}</td>
      </tr>}}
     />
    </section>

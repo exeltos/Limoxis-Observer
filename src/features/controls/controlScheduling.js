@@ -1,4 +1,4 @@
-import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotOpens,slotWindowMinutes,zonedParts } from './controlDueRules'
+import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotDeadline,slotOpens,slotStarts,slotWindowMinutes,zonedParts } from './controlDueRules'
 
 export function frequencyLabel(f={},language='el'){
  const en=language==='en'
@@ -72,17 +72,28 @@ export function isControlDue(item,department,now=new Date()){
  return new Date(assignment.nextDueAt)<periodBounds(assignmentFrequency(item,department),now).end
 }
 
-// When the next entry of a daily control with set times opens (1 hour before
-// its time): a Date while it is still to come, otherwise null (it can be
-// recorded now; a late one too).
-export function recordOpensAt(item,department,now=new Date()){
+// When a department may record a daily control with set times: only inside
+// the window of one of its times (the on-time window: 1 hour before to the
+// control's margin after, as slotOpens / slotDeadline). Outside it the entry
+// is not offered: the department asks the infection control team. Other
+// frequencies, and controls without set times, are not held to a window.
+// → { gated:false } | { gated:true, state:'open'|'before'|'closed', opens, closes }
+export function recordWindow(item,department,now=new Date()){
  const frequency=assignmentFrequency(item,department)
- if(frequency?.kind!=='daily'||!(frequency.times||[]).some(Boolean))return null
+ if(frequency?.kind!=='daily'||!(frequency.times||[]).some(Boolean))return {gated:false}
  const progress=assignmentProgress(item,department,now)
- if(!progress||progress.complete)return null
+ if(!progress||progress.complete)return {gated:false}
  const p=zonedParts(periodBounds(frequency,now).start)
- const opens=slotOpens(frequency,{year:p.year,month:p.month,day:p.day},progress.done)
- return new Date(now)<opens?opens:null
+ const day={year:p.year,month:p.month,day:p.day}
+ const at=new Date(now)
+ let next=null
+ // The times already recorded are behind it: look at the rest of the day's.
+ for(let index=progress.done;index<slotStarts(frequency).length;index+=1){
+  const opens=slotOpens(frequency,day,index),closes=slotDeadline(frequency,day,index)
+  if(at>=opens&&at<=closes)return {gated:true,state:'open',opens,closes}
+  if(at<opens&&!next)next={opens,closes}
+ }
+ return next?{gated:true,state:'before',...next}:{gated:true,state:'closed',opens:null,closes:null}
 }
 
 // The current period's progress for one department: { required, done, extra,
