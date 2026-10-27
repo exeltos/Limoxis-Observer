@@ -19,10 +19,10 @@ import { formatDateTime } from '../../core/i18n/formatDay'
 import { controlActorFromAuth } from './controlActor'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { ControlAdherencePanel,RateMeter,useAdherenceCounts,useControlAdherenceReport } from './ControlAdherencePanel'
+import { ControlAdherencePanel,RateMeter,UntilNote,useAdherenceCounts,useControlAdherenceReport } from './ControlAdherencePanel'
 import { ControlDepartmentCards } from './ControlDepartmentCards'
 import { controlRates,departmentCards } from './controlDepartmentCards'
-import { periodRange,programmeAdherence } from './controlAdherence'
+import { periodRange,programmeAdherence,reportEnd } from './controlAdherence'
 import { assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,getAssignment,isControlDue } from './controlScheduling'
 import { dueState } from './controlDueRules'
 import { filterControlRows,scopeControlRows } from './controlFilters'
@@ -31,7 +31,7 @@ import { expiryCounts,expiryItems,isExpiryControl } from './controlExpiry'
 import { ControlExpiryPanel } from './ControlExpiryPanel'
 import { ControlTimeFitPanel,useControlTimeFitReport } from './ControlTimeFitPanel'
 import { removeExpiryItem } from './controlExpiryRemoval'
-import { loadControlCategories,loadControlNames,loadControlProgramme,saveControlDefinition } from './controlCloudService'
+import { loadControlCategories,loadControlLastEntryAt,loadControlNames,loadControlProgramme,saveControlDefinition } from './controlCloudService'
 import { compareControlPriority,controlCriticality,criticalityLabel } from './controlCriticality'
 import './controlEvidence.css'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -98,7 +98,12 @@ export function ControlsPage(){
  const kpiRows=useMemo(()=>scopeControlRows(scopedControls,{department}),[scopedControls,department])
  const rows=useMemo(()=>filterControlRows(scopedControls,{query,department,status}).map(row=>({...row,state:controlState(row.item,row.departments),due:row.departments.some(dep=>isControlDue(row.item,dep))})).sort((a,b)=>(b.due-a.due)||compareControlPriority(a,b)),[scopedControls,query,department,status])
  useEffect(()=>{setPage(1)},[query,department,status,pageSize])
- const {counts:monthCounts,failed:monthCountsFailed}=useAdherenceCounts(tenant?.id,'30d',programme)
+ // While the entries are still kept elsewhere, every rate ends on the last day with entries.
+ const [lastEntryAt,setLastEntryAt]=useState(null)
+ useEffect(()=>{if(!tenant?.id)return undefined;let active=true;loadControlLastEntryAt(tenant.id).then(at=>{if(active)setLastEntryAt(at)}).catch(()=>{});return()=>{active=false}},[tenant?.id,programme])
+ const until=useMemo(()=>{if(!lastEntryAt)return null;const end=reportEnd(lastEntryAt);return Date.now()-end>86400000?end:null},[lastEntryAt])
+ const range30=useMemo(()=>periodRange('30d',until||new Date()),[until])
+ const {counts:monthCounts,failed:monthCountsFailed}=useAdherenceCounts(tenant?.id,'30d',programme,until)
  const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));const safePage=Math.min(page,totalPages);const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
  const fmt=v=>formatDateTime(v,language)
  // A department with one department sees its list straight away: no cards to choose from.
@@ -106,17 +111,17 @@ export function ControlsPage(){
  // «Times»: the set times of the daily controls against when they are really done (central roles).
  const showTimes=canManage&&!isDepartmentManager
  const activeView=(view==='departments'&&!showCards)||(view==='times'&&!showTimes)?'programme':view
- const cards=useMemo(()=>departmentCards(scopedControls,monthCountsFailed?[]:programmeAdherence(scopedControls,periodRange('30d'),monthCounts).lines,new Date(),language),[scopedControls,monthCounts,monthCountsFailed,language])
- const rates=useMemo(()=>controlRates(monthCountsFailed?[]:programmeAdherence(rows,periodRange('30d'),monthCounts).lines),[rows,monthCounts,monthCountsFailed])
+ const cards=useMemo(()=>departmentCards(scopedControls,monthCountsFailed?[]:programmeAdherence(scopedControls,range30,monthCounts).lines,new Date(),language),[scopedControls,monthCounts,monthCountsFailed,language,range30])
+ const rates=useMemo(()=>controlRates(monthCountsFailed?[]:programmeAdherence(rows,range30,monthCounts).lines),[rows,monthCounts,monthCountsFailed,range30])
  // A column for «Record» when a department can record from the list (its own controls).
  const recordColumn=canExecute&&rows.some(({item,departments:deps})=>deps.length===1&&isControlDue(item,deps[0]))
  function openDepartment(dep){setDepartment(dep);setStatus('all');setView('programme')}
  const overdue=kpiRows.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length
  const dueSoon=kpiRows.filter(({item,departments:deps})=>controlState(item,deps)==='dueSoon').length
-  const adherenceReport=useControlAdherenceReport(rows,tx,language,tenant?.id,programme)
- const timeFitReport=useControlTimeFitReport(showTimes&&view==='times'?rows:[],showTimes&&view==='times'?tenant?.id:null,language,programme)
+  const adherenceReport=useControlAdherenceReport(rows,tx,language,tenant?.id,programme,until)
+ const timeFitReport=useControlTimeFitReport(showTimes&&view==='times'?rows:[],showTimes&&view==='times'?tenant?.id:null,language,programme,until)
  // A failed count shows no rate rather than a false 0%.
- const monthAdherence=useMemo(()=>monthCountsFailed?programmeAdherence([],periodRange('30d'),new Map()).totals:programmeAdherence(kpiRows,periodRange('30d'),monthCounts).totals,[kpiRows,monthCounts,monthCountsFailed])
+ const monthAdherence=useMemo(()=>monthCountsFailed?programmeAdherence([],range30,new Map()).totals:programmeAdherence(kpiRows,range30,monthCounts).totals,[kpiRows,monthCounts,monthCountsFailed,range30])
 
  function exportProgramme(){
   const stateText=assignment=>{if(assignment?.status==='paused')return language==='en'?'Paused':'Σε παύση';if(!assignment?.nextDueAt)return '—';const state=dueState(assignment.nextDueAt);return state==='overdue'?tx.overdue:state==='dueSoon'?tx.dueSoon:tx.within}
@@ -132,6 +137,7 @@ export function ControlsPage(){
    <button type="button" className={overdue?'is-late':''} onClick={()=>{setStatus('overdue');setView('programme')}}><b>{overdue}</b> {tx.overdue.toLowerCase()}</button>
    <button type="button" onClick={()=>{setStatus('dueSoon');setView('programme')}}><b>{dueSoon}</b> {tx.dueSoon.toLowerCase()}</button>
    <span>{tx.adherence} · 30 {language==='en'?'days':'ημ.'}: <b>{monthAdherence.rate==null?'—':`${monthAdherence.rate}%`}</b></span>
+   {until&&<UntilNote until={until} language={language}/>}
   </>}</p>
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
    {activeView==='departments'?<ControlDepartmentCards cards={cards} total={scopedControls.length} overdue={scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length} loading={firstLoad} language={language} onOpen={openDepartment}/>:<>

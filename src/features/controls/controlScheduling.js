@@ -2,7 +2,7 @@ import { dueState,nextDeadlineAfter,periodBounds,periodProgress } from './contro
 
 export function frequencyLabel(f={},language='el'){
  const en=language==='en'
- if(f.kind==='daily')return Number(f.timesPerDay||1)>1?(en?`${f.timesPerDay} times / day`:`${f.timesPerDay} φορές / ημέρα`):(en?'Daily':'Καθημερινά')
+ if(f.kind==='daily'){const label=Number(f.timesPerDay||1)>1?(en?`${f.timesPerDay} times / day`:`${f.timesPerDay} φορές / ημέρα`):(en?'Daily':'Καθημερινά');return f.weekdaysOnly===true?`${label} ${en?'(Mon–Fri)':'(Δευ–Παρ)'}`:label}
  if(f.kind==='weekly')return Number(f.interval||1)===1?(en?'Weekly':'Εβδομαδιαία'):(en?`Every ${f.interval} weeks`:`Κάθε ${f.interval} εβδομάδες`)
  if(f.kind==='monthly')return Number(f.interval||1)===1?(en?'Monthly':'Μηνιαία'):(en?`Every ${f.interval} months`:`Κάθε ${f.interval} μήνες`)
  if(f.kind==='yearly')return Number(f.interval||1)===1?(en?'Yearly':'Ετήσια'):(en?`Every ${f.interval} years`:`Κάθε ${f.interval} έτη`)

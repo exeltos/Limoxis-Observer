@@ -209,3 +209,22 @@ describe('over-entry guard', () => {
     expect(sql).not.toMatch(/create temp(orary)? table/i)
   })
 })
+
+describe('working days only (Monday–Friday)', () => {
+  const f = { kind: 'daily', times: ['08:00'], weekdaysOnly: true }
+  it('skips the weekend: after Friday or at the weekend, due on Monday', () => {
+    expect(nextDueAfterExecution(f, new Date('2026-10-16T05:00:00Z'), 1)).toBe('2026-10-19T07:00:00.000Z') // Fri → Mon 10:00
+    expect(nextDueAfterExecution(f, new Date('2026-10-17T05:00:00Z'), 1)).toBe('2026-10-19T07:00:00.000Z') // Sat → Mon 10:00
+    expect(nextDueAfterExecution({ ...f, weekdaysOnly: undefined }, new Date('2026-10-16T05:00:00Z'), 1)).toBe('2026-10-17T07:00:00.000Z')
+    expect(nextDeadlineAfter(f, new Date('2026-10-16T08:00:00Z'))).toBe('2026-10-19T07:00:00.000Z')
+  })
+  it('expects no entry at the weekend', () => {
+    // Monday 12 to Monday 19 October: five working days.
+    expect(programmeAdherence([{ item: { id: 'W', frequency: f, assignments: { Ενδοσκοπικό: { history: [] } } }, departments: ['Ενδοσκοπικό'] }], { from: new Date('2026-10-11T21:00:00Z'), to: new Date('2026-10-18T21:00:00Z'), now: new Date('2026-10-18T21:00:00Z') }).totals.expected).toBe(5)
+  })
+  it('is mirrored by the database', () => {
+    const sql = readFileSync(new URL('../supabase/migrations/20261211120000_control_weekdays_only.sql', import.meta.url), 'utf8')
+    expect(sql).toContain("p_frequency ->> 'weekdaysOnly'")
+    expect(sql).toContain('private.control_working_day(p_frequency, v_local::date + 1)')
+  })
+})

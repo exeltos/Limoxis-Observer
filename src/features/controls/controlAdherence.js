@@ -6,7 +6,7 @@
 // on time follow the due rules (controlDueRules.executionMarks): the first N
 // entries of a day by their slot deadline; otherwise by the deadline the
 // previous entry set. Extra entries never count.
-import { executionMarks } from './controlDueRules'
+import { executionMarks, isWeekdaysOnly, zonedInstant, zonedParts } from './controlDueRules'
 
 const HOUR = 3600000, DAY = 24 * HOUR
 
@@ -26,7 +26,22 @@ export function slotLength(frequency = {}) {
 export function expectedOccurrences(frequency, from, to) {
   const span = new Date(to) - new Date(from)
   if (!(span > 0)) return 0
+  if (isWeekdaysOnly(frequency)) return Math.floor(weekdayTime(from, to) / slotLength(frequency))
   return Math.floor(span / slotLength(frequency))
+}
+
+// The part of [from, to] that falls on Monday to Friday (Athens), in milliseconds.
+function weekdayTime(from, to) {
+  const end = new Date(to).getTime()
+  let total = 0
+  for (let t = new Date(from).getTime(); t < end;) {
+    const p = zonedParts(t)
+    const next = Math.min(end, zonedInstant(p.year, p.month, p.day + 1, 0).getTime())
+    const weekday = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()
+    if (weekday !== 0 && weekday !== 6) total += next - t
+    t = next
+  }
+  return total
 }
 
 // Counted and on-time executions of one assignment's history within [start, end].
@@ -89,6 +104,17 @@ export function programmeAdherence(rows, period, countsByAssignment = null) {
 }
 
 export const ADHERENCE_PERIODS = ['30d', '90d', '12m', 'year']
+
+// Where the reports end: today, or, while the entries are still kept elsewhere
+// (an import that stops on a day more than 2 days ago), the end of that day,
+// so the rates do not fall day by day for want of data.
+export function reportEnd(lastEntryAt, now = new Date()) {
+  if (!lastEntryAt) return new Date(now)
+  const last = new Date(lastEntryAt)
+  if (now - last <= 2 * DAY) return new Date(now)
+  const p = zonedParts(last)
+  return new Date(zonedInstant(p.year, p.month, p.day + 1, 0).getTime() - 1000)
+}
 
 export function periodRange(key, now = new Date()) {
   const to = new Date(now)

@@ -2,6 +2,7 @@ import { CalendarClock } from 'lucide-react'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { TimeField } from '../../design-system/TimeField'
+import { YesNoField } from '../../design-system/YesNoField'
 import { frequencyLabel } from './controlScheduling'
 
 const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
@@ -89,6 +90,9 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
                       ))}
                     </div>
                   </div>
+                )}
+                {frequency.kind === 'daily' && (
+                  <YesNoField label={en ? 'Working days only (Monday–Friday)' : 'Μόνο εργάσιμες (Δευτέρα–Παρασκευή)'} value={frequency.weekdaysOnly === true} onChange={value => patch(department, { weekdaysOnly: value ? true : undefined })} />
                 )}
               </div>
             )}

@@ -281,6 +281,17 @@ export async function loadControlAdherenceCounts(organizationId,{from,to}){
  return new Map((data||[]).map(row=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
 }
 
+// The latest regular entry of the hospital's controls: the reports end on its
+// day while the entries are still recorded elsewhere (controlAdherence.reportEnd).
+// The demo returns null: its history runs up to today.
+export async function loadControlLastEntryAt(organizationId){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.from('control_executions').select('performed_at').eq('organization_id',organizationId).neq('status','cancelled').is('cancelled_at',null).order('performed_at',{ascending:false}).limit(1)
+ if(error)throw error
+ return data?.[0]?.performed_at||null
+}
+
 // When each department really records its daily controls: per assignment, the
 // minutes after midnight (Athens) of the entries of a period, one list per
 // slot (the k-th entry of a day is slot k), read by control_execution_times.

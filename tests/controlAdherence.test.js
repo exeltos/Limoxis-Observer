@@ -70,3 +70,13 @@ describe('control programme adherence', () => {
     expect(totals).toMatchObject({ expected: 4, performed: 3, onTime: 2, missed: 1, rate: 75 })
   })
 })
+
+describe('reports end on the last day with entries', () => {
+  it('ends today when entries are recent, else at the end of the last day with entries', async () => {
+    const { reportEnd } = await import('../src/features/controls/controlAdherence')
+    const now = new Date('2026-10-27T10:00:00Z')
+    expect(reportEnd('2026-10-26T18:00:00Z', now).toISOString()).toBe(now.toISOString())
+    expect(reportEnd('2026-10-18T21:01:15Z', now).toISOString()).toBe('2026-10-19T20:59:59.000Z') // 19/10 23:59:59 Athens
+    expect(reportEnd(null, now).toISOString()).toBe(now.toISOString())
+  })
+})

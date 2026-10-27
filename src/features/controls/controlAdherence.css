@@ -39,3 +39,5 @@
 .control-time-fit .control-adherence-meter>i{width:60px}
 .control-time-fit-table td:not(:first-child){white-space:nowrap}
 .control-time-fit-same{color:var(--lo-color-muted)}
+/* «Up to 18/10/2026»: the reports end on the last day with entries. */
+.control-until-note{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;background:var(--lo-status-warning-bg,var(--lo-color-surface-muted));color:var(--lo-status-warning-fg);font-size:12px;font-weight:700;white-space:nowrap}

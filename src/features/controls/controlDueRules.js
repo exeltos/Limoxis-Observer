@@ -14,6 +14,9 @@
 //                          slot, the last by 23:59:59. The k-th entry of a day
 //                          covers slot k: in its window it is on time, later
 //                          the same day it is late, none is a missed slot.
+//                          Weekdays only (frequency.weekdaysOnly): Saturday
+//                          and Sunday hold no slots; Friday's last slot is
+//                          followed by Monday's first.
 //   every N days           due by 23:59:59 on the N-th day after the last entry.
 //   weekly / every N weeks due by Sunday 23:59:59 of the N-th week after the
 //                          week of the last entry (weeks run Monday–Sunday).
@@ -80,6 +83,12 @@ export function slotStarts(frequency = {}) {
 }
 
 export const isDailyFrequency = (frequency = {}) => frequency.kind === 'daily'
+
+// A daily control of the working days only (Monday to Friday).
+export const isWeekdaysOnly = (frequency = {}) => isDailyFrequency(frequency) && frequency.weekdaysOnly === true
+const isWeekend = (d) => { const weekday = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay(); return weekday === 0 || weekday === 6 }
+// The first day from `d` on that holds slots.
+const workingDay = (frequency, d) => { let day = d; while (isWeekdaysOnly(frequency) && isWeekend(day)) day = addDays(day, 1); return day }
 
 // Entries a period requires: the slots of a day, otherwise one.
 export function requiredPerPeriod(frequency = {}) {
@@ -172,8 +181,9 @@ export function nextDueAfterExecution(frequency = {}, at = new Date(), doneInPer
   if (!isDailyFrequency(frequency)) return periodDeadlineAfter(frequency, at, timeZone).toISOString()
   const d = localDay(at, timeZone)
   const done = Math.max(0, Math.floor(Number(doneInPeriod) || 0))
+  if (isWeekdaysOnly(frequency) && isWeekend(d)) return slotDeadline(frequency, workingDay(frequency, d), 0, timeZone).toISOString()
   if (done < requiredPerPeriod(frequency)) return slotDeadline(frequency, d, done, timeZone).toISOString()
-  return slotDeadline(frequency, addDays(d, 1), 0, timeZone).toISOString()
+  return slotDeadline(frequency, workingDay(frequency, addDays(d, 1)), 0, timeZone).toISOString()
 }
 
 // The next deadline strictly after `from` (stepping a schedule forward).
@@ -181,13 +191,14 @@ export function nextDeadlineAfter(frequency = {}, from = new Date(), timeZone = 
   if (!isDailyFrequency(frequency)) return periodDeadlineAfter(frequency, from, timeZone).toISOString()
   const t = new Date(from).getTime()
   const today = localDay(from, timeZone)
-  for (const d of [addDays(today, -1), today, addDays(today, 1)]) {
+  for (const d of [-1, 0, 1, 2, 3].map((n) => addDays(today, n))) {
+    if (isWeekdaysOnly(frequency) && isWeekend(d)) continue
     for (let i = 0; i < requiredPerPeriod(frequency); i += 1) {
       const deadline = slotDeadline(frequency, d, i, timeZone)
       if (deadline.getTime() > t) return deadline.toISOString()
     }
   }
-  return slotDeadline(frequency, addDays(today, 2), 0, timeZone).toISOString()
+  return slotDeadline(frequency, workingDay(frequency, addDays(today, 4)), 0, timeZone).toISOString()
 }
 
 // The first deadline of a new assignment: the open slot of today, or the end of

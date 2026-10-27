@@ -8,7 +8,7 @@ import { Button } from '../../design-system/Button'
 import { downloadCsv } from '../../core/export/csvExport'
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { RateMeter } from './ControlAdherencePanel'
+import { RateMeter, UntilNote } from './ControlAdherencePanel'
 import { periodRange } from './controlAdherence'
 import { TIME_FIT_DAYS, timeFitLines } from './controlTimeFit'
 import { loadControlExecutionTimes, saveDepartmentTimes } from './controlCloudService'
@@ -19,21 +19,22 @@ const timesText = (times) => times.join(', ')
 // The «Times» report (owner and central roles): per department, the set times
 // of each daily control, when it is really recorded and the times that would
 // fit; «Change» moves that department to the proposal.
-export function useControlTimeFitReport(rows, organizationId, language, refreshKey) {
+export function useControlTimeFitReport(rows, organizationId, language, refreshKey, now = null) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [state, setState] = useState({ key: '', times: null, failed: false, loaded: false })
-  const key = `${organizationId || ''}`
+  const nowIso = now ? new Date(now).toISOString() : ''
+  const key = `${organizationId || ''}|${nowIso}`
   useEffect(() => {
     if (!organizationId) return undefined
     let active = true
-    loadControlExecutionTimes(organizationId, periodRange('30d'))
+    loadControlExecutionTimes(organizationId, periodRange('30d', nowIso ? new Date(nowIso) : new Date()))
       .then((times) => { if (active) setState({ key, times, failed: false, loaded: true }) })
       .catch(() => { if (active) setState({ key, times: null, failed: true, loaded: true }) })
     return () => { active = false }
-  }, [organizationId, key, refreshKey])
+  }, [organizationId, key, nowIso, refreshKey])
   const current = state.key === key ? state : { times: null, failed: false, loaded: false }
-  const lines = useMemo(() => (current.failed || !current.loaded ? [] : timeFitLines(rows, current.times, periodRange('30d'))), [rows, current.times, current.failed, current.loaded])
+  const lines = useMemo(() => (current.failed || !current.loaded ? [] : timeFitLines(rows, current.times, periodRange('30d', now || new Date()))), [rows, current.times, current.failed, current.loaded, now])
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)
   const columns = [en ? 'Department' : 'Τμήμα', en ? 'Control' : 'Έλεγχος', en ? 'Set times' : 'Ώρες τώρα', en ? 'Usually done' : 'Γίνεται συνήθως', en ? 'Proposal' : 'Πρόταση', en ? 'On time now' : 'Στην ώρα τους τώρα', en ? 'With the proposal' : 'Με την πρόταση']
@@ -52,7 +53,7 @@ export function useControlTimeFitReport(rows, organizationId, language, refreshK
     })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
-  return { lines, loading: !current.loaded, failed: current.failed, exportCsv, exportPrint }
+  return { lines, loading: !current.loaded, failed: current.failed, exportCsv, exportPrint, until: now }
 }
 
 export const timeFitNote = (language) => language === 'en'
@@ -62,7 +63,7 @@ export const timeFitNote = (language) => language === 'en'
 export function ControlTimeFitPanel({ report, organizationId, language, canChange, onChanged, onOpen }) {
   const en = language === 'en'
   const { confirm, notify, notifyError } = useFeedback()
-  const { lines, loading, failed } = report
+  const { lines, loading, failed, until } = report
   const [onlyChanges, setOnlyChanges] = useState(true)
   const [department, setDepartment] = useState('all')
   const [page, setPage] = useState(1), [pageSize, setPageSize] = useState(15)
@@ -101,6 +102,7 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
         <span>{en ? 'With the proposals' : 'Με τις προτάσεις'} <RateMeter rate={rate('rateProposed')} /></span>
       </div>
       <ChoiceChips className="control-time-fit-filter" label="" options={[{ value: 'changes', label: `${en ? 'Only proposals' : 'Μόνο με πρόταση'} (${changes.length})` }]} selected={onlyChanges ? ['changes'] : []} onToggle={() => { setOnlyChanges(!onlyChanges); setPage(1) }} />
+      {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={timeFitNote(language)} aria-label={timeFitNote(language)}><Info size={15} aria-hidden="true" /></span>
     </div>
     <RegistryTable

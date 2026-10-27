@@ -16,31 +16,32 @@ const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).pa
 
 // Done and on-time counts per assignment for a period, counted in the database.
 // null until loaded, and in the demo (whose history is complete and counted locally).
-export function useAdherenceCounts(organizationId, period, refreshKey) {
+export function useAdherenceCounts(organizationId, period, refreshKey, now = null) {
   const [state, setState] = useState({ key: '', counts: null, failed: false })
-  const key = `${organizationId || ''}|${period}`
+  const nowIso = now ? new Date(now).toISOString() : ''
+  const key = `${organizationId || ''}|${period}|${nowIso}`
   useEffect(() => {
     if (!organizationId) return undefined
     let active = true
-    loadControlAdherenceCounts(organizationId, periodRange(period))
+    loadControlAdherenceCounts(organizationId, periodRange(period, nowIso ? new Date(nowIso) : new Date()))
       .then((counts) => { if (active) setState({ key, counts, failed: false }) })
       // A failed read is not a period with nothing done: the report says it could not load.
       .catch(() => { if (active) setState({ key, counts: null, failed: true }) })
     return () => { active = false }
-  }, [organizationId, period, key, refreshKey])
+  }, [organizationId, period, key, nowIso, refreshKey])
   return state.key === key ? state : { counts: null, failed: false }
 }
 
 // Programme adherence: due vs done vs on time per control and department.
 // The page owns the report (period + downloads) so its Download button sits
 // in the page header like every other list.
-export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey) {
+export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [period, setPeriod] = useState('30d')
   const reportRef = useRef(null)
-  const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey)
-  const { lines, totals } = useMemo(() => (failed ? programmeAdherence([], periodRange(period), new Map()) : programmeAdherence(rows, periodRange(period), counts)), [rows, period, counts, failed])
+  const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey, now)
+  const { lines, totals } = useMemo(() => (failed ? programmeAdherence([], periodRange(period, now || new Date()), new Map()) : programmeAdherence(rows, periodRange(period, now || new Date()), counts)), [rows, period, counts, failed, now])
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)
 
@@ -55,7 +56,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
   // The whole programme (every line, not the page on screen) on the shared document layout.
   function exportPdf(pdf) {
     if (failed) { notify(loadFailedText, 'danger'); return }
-    const { from, to } = periodRange(period)
+    const { from, to } = periodRange(period, now || new Date())
     const numbers = (row) => [{ text: String(row.expected), className: 'rd-num' }, { text: String(row.performed), className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[adherenceTone(row.rate)] || ''}` }]
     const tableRows = groupAdherenceLines(lines).flatMap((group) => group.lines.length === 1
       ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${group.item.category || ''}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.lines[0])]]
@@ -74,7 +75,14 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
 
-  return { period, setPeriod, lines, totals, reportRef, exporting: false, exportCsv, exportPdf, failed, loadFailedText }
+  return { period, setPeriod, lines, totals, reportRef, exporting: false, exportCsv, exportPdf, failed, loadFailedText, until: now }
+}
+
+// «Up to 18/10/2026»: the reports end on the last day with entries.
+export function UntilNote({ until, language }) {
+  const en = language === 'en'
+  const day = formatDay(dayKey(new Date(until)), language)
+  return <span className="control-until-note" title={en ? 'The controls are still recorded elsewhere: the figures end on the last day with entries.' : 'Οι έλεγχοι καταγράφονται ακόμα αλλού: τα στοιχεία σταματούν στην τελευταία ημέρα με καταγραφές.'}>{en ? `Up to ${day}` : `Έως ${day}`}</span>
 }
 
 // One look for a rate: a bar with the figure beside it.
@@ -88,7 +96,7 @@ export function RateMeter({ rate }) {
 
 export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const en = language === 'en'
-  const { period, setPeriod, lines, totals, reportRef, failed, loadFailedText } = report
+  const { period, setPeriod, lines, totals, reportRef, failed, loadFailedText, until } = report
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
@@ -115,6 +123,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
         <span><strong>{pct(totals.onTimeRate)}</strong>{tx.onTime.toLowerCase()}</span>
         <span><strong className={totals.missed ? 'missed' : ''}>{totals.missed}</strong>{tx.missed.toLowerCase()}</span>
       </div>
+      {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={tx.adherenceNote} aria-label={tx.adherenceNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
     <RegistryTable
