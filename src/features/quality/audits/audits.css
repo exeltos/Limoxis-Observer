@@ -97,3 +97,6 @@
   .audit-trend{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
 .audit-plan-actions{display:flex;justify-content:flex-end}
+.audit-round-days{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+.audit-round-days li{display:grid;grid-template-columns:110px 110px minmax(0,1fr);gap:6px 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--lo-color-border)}
+.audit-round-days small{color:var(--lo-color-muted)}

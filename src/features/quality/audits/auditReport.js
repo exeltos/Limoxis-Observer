@@ -83,3 +83,49 @@ export function auditAnswersExport(audit, language = 'el') {
     rows: (audit.checklist || []).map((row, index) => [index + 1, [row.chapterRef, row.chapterTitle].filter(Boolean).join(' · '), row.clauseRef || '', row.item, row.weight || 1, row.critical ? (en ? 'Yes' : 'Ναι') : '', resultLabel(row.answer, language), findingClassLabel(row.findingClass, language), row.note || '', row.evidence || '', row.findingId || '']),
   }
 }
+
+// The report of an audit round: every department audited in the period, day by
+// day, with its compliance and findings, and the totals. For the Quality
+// manager to hand over after the round; each department's own report is on its audit.
+export function auditRoundReportDocument(audits = [], findings = [], { language = 'el', from = '', to = '' } = {}) {
+  const en = language === 'en'
+  const L = (el, english) => (en ? english : el)
+  const inRound = audits.filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided' && !audit.plannedMonthOnly && (!from || String(audit.completedDate || audit.plannedDate) >= from) && (!to || String(audit.completedDate || audit.plannedDate) <= to))
+  const dayOf = audit => String(audit.completedDate || audit.plannedDate || '').slice(0, 10)
+  const days = [...new Set(inRound.map(dayOf))].sort()
+  const scored = inRound.map(audit => ({ audit, score: auditScore(audit.checklist || []) }))
+  const rates = scored.map(item => item.score.overall.rate).filter(rate => rate != null)
+  const average = rates.length ? Math.round(rates.reduce((sum, rate) => sum + rate, 0) / rates.length) : null
+  const ids = new Set(inRound.map(audit => audit.id))
+  const own = findings.filter(finding => ids.has(finding.sourceId))
+  const byClass = ['major', 'minor', 'observation', 'opportunity'].map(value => [findingClassLabel(value, language), own.filter(finding => finding.findingClass === value).length])
+  return {
+    language,
+    kind: L('Έκθεση κύκλου επιθεώρησης', 'Audit round report'),
+    title: `${day(from || days[0])} – ${day(to || days[days.length - 1])}`,
+    code: '',
+    subtitle: L('Εσωτερικές επιθεωρήσεις τμημάτων', 'Internal department audits'),
+    meta: [
+      [L('Επιθεωρήσεις', 'Audits'), String(inRound.length)],
+      [L('Ολοκληρωμένες', 'Completed'), String(inRound.filter(audit => audit.status === 'completed').length)],
+      [L('Μέση συμμόρφωση', 'Average compliance'), pct(average)],
+      [L('Ευρήματα', 'Findings'), String(own.length)],
+    ],
+    sections: [
+      { title: L('Ευρήματα ανά κατάταξη', 'Findings by class'), table: { columns: [L('Κατάταξη', 'Class'), { text: L('Πλήθος', 'Count'), align: 'right' }], rows: byClass.map(([name, count]) => [name, { text: String(count), align: 'right' }]) } },
+      ...days.map(date => ({
+        title: day(date),
+        table: {
+          columns: [L('Τμήμα', 'Department'), L('Πρότυπο', 'Standard'), { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }, { text: L('Ευρήματα', 'Findings'), align: 'right' }, L('Επικεφαλής', 'Lead auditor'), L('Κατάσταση', 'Status')],
+          rows: scored.filter(item => dayOf(item.audit) === date).map(({ audit, score }) => [
+            (en ? audit.departmentEn : audit.department) || '—', standardLabel(audit.standard, language) || '—', { text: pct(score.overall.rate), align: 'right' },
+            { text: String(own.filter(finding => finding.sourceId === audit.id).length), align: 'right' }, audit.leadAuditor || '—', audit.status === 'completed' ? L('Ολοκληρώθηκε', 'Completed') : L('Προγραμματισμένη', 'Planned'),
+          ]),
+          empty: L('Καμία επιθεώρηση.', 'No audits.'),
+        },
+      })),
+    ],
+    signatures: [{ role: L('Υπεύθυνος Ποιότητας', 'Quality manager'), name: '' }],
+    filename: `${en ? 'audit-round-report' : 'ekthesi-kyklou-epitheorisis'}_${from || days[0] || ''}`,
+  }
+}

@@ -2,7 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { selectAllPages } from '../../core/data/inChunks'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadQualityLocal, saveQualityLocal } from './qualityStore'
-import { missingNextAudits } from './audits/auditModel'
+import { missingNextAudits, spreadAuditRound } from './audits/auditModel'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { DETAIL_TABLES, INCIDENT_DETAIL_SELECT, incidentDetailRows, incidentDetailsFromRow, keptDetails } from './incidentDetails'
 import { CHECKLIST_FIELDS, CHECKLIST_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, teamFromRows, teamRows, SUB_ACTION_FIELDS, analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, newRowId, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from './qualityRelations'
@@ -537,6 +537,22 @@ export async function fillAuditProgramme(organizationId,audits=[],userId=null){
   }
   assertReady(organizationId)
   const {data,error}=await supabase.rpc('quality_fill_audit_programme',{p_organization_id:organizationId})
+  if(error)throw error
+  return Number(data)||0
+}
+
+// An audit round: the month's planned audits spread over a few working days from
+// `start`. The database does it in production; the demo on its own copy.
+// Returns how many audits got a day.
+export async function planAuditRound(organizationId,audits=[],start,days=3){
+  if(isDemoDataEnvironment()){
+    const {assignments}=spreadAuditRound(audits,start,days)
+    const ids=new Map(assignments.map(item=>[item.audit.id,item.plannedDate]))
+    saveQualityLocal('audits',loadQualityLocal('audits').map(row=>ids.has(row.id)?{...row,plannedDate:ids.get(row.id),plannedMonthOnly:false}:row))
+    return assignments.length
+  }
+  assertReady(organizationId)
+  const {data,error}=await supabase.rpc('quality_plan_audit_round',{p_organization_id:organizationId,p_start:start,p_days:days})
   if(error)throw error
   return Number(data)||0
 }

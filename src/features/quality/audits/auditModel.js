@@ -412,3 +412,27 @@ export function fmQuestionClause(question) {
 export function fmQuestionText(question) {
   return text(question).replace(/Γγνωρίζει/g, 'Γνωρίζει').replace(/σύφωνα/g, 'σύμφωνα').replace(/\s+/g, ' ')
 }
+
+// An audit round: the department audits of one month spread over a few working
+// days (three by default), as even as possible, in the departments' order, so
+// that not every department is audited on the same day. Returns the working days
+// and, for each open audit of the round's month, the day it gets. The database
+// does the same (quality_plan_audit_round).
+export function workingDays(start, count = 3) {
+  const days = []
+  const date = new Date(`${String(start).slice(0, 10)}T12:00:00Z`)
+  while (days.length < Math.max(1, count)) {
+    const weekday = date.getUTCDay()
+    if (weekday !== 0 && weekday !== 6) days.push(date.toISOString().slice(0, 10))
+    date.setUTCDate(date.getUTCDate() + 1)
+  }
+  return days
+}
+export function spreadAuditRound(audits = [], start, count = 3) {
+  const days = workingDays(start, count)
+  const monthOf = String(start).slice(0, 7)
+  const open = audits
+    .filter(audit => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && (audit.auditType || 'internal') === 'internal' && audit.department && String(audit.plannedDate || '').slice(0, 7) === monthOf)
+    .sort((a, b) => String(a.department).localeCompare(String(b.department), 'el'))
+  return { days, assignments: open.map((audit, index) => ({ audit, plannedDate: days[Math.min(days.length - 1, Math.floor(index * days.length / open.length))] })) }
+}

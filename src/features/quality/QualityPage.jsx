@@ -21,8 +21,11 @@ import { readSessionValue,writeSessionJson,writeSessionValue } from '../../core/
 import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
-import { fillAuditProgramme,loadQualityRecords } from './qualityService'
+import { fillAuditProgramme,loadQualityRecords,planAuditRound } from './qualityService'
 import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
+import { printReport } from '../../core/export/reportDocument'
+import { auditRoundReportDocument } from './audits/auditReport'
+import { AuditRoundDialog } from './audits/AuditRoundDialog'
 import { QualityOverview } from './QualityOverview'
 import { ActionsList,ActionsSummary,AuditsList,AuditsSummary,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
 import { capaSourceFor } from './qualityDeviations'
@@ -111,6 +114,13 @@ export function QualityPage(){
 
  const records=useQualityRecords(tenant?.id)
  const [fillingProgramme,setFillingProgramme]=useState(false)
+ const [roundOpen,setRoundOpen]=useState(false)
+ const applyRound=async(start,days)=>{
+  setFillingProgramme(true)
+  try{const count=await planAuditRound(tenant?.id,records.data.audits,start,days);records.reload();setRoundOpen(false);notify(L(`${count} επιθεωρήσεις μοιράστηκαν σε ${days} ημέρες.`,`${count} audits spread over ${days} days.`),'success')}
+  catch{notify(L('Δεν ήταν δυνατός ο προγραμματισμός του κύκλου.','The round could not be planned.'),'error')}
+  finally{setFillingProgramme(false)}
+ }
  const fillProgramme=async()=>{
   setFillingProgramme(true)
   try{const count=await fillAuditProgramme(tenant?.id,records.data.audits,user?.id||null);records.reload();notify(count?L(`Προγραμματίστηκαν ${count} επιθεωρήσεις.`,`${count} audits planned.`):L('Όλα τα τμήματα έχουν επόμενη επιθεώρηση.','Every department has a next audit.'),'success')}
@@ -235,7 +245,7 @@ export function QualityPage(){
   reports:<ExportMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>,
   incidents:<ExportMenu disabled={!incidents.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(incidents.filtered,{language,t,categories}))}/>,
   actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu items={[{id:'findings',label:L('Αποκλίσεις (.csv)','Deviations (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
-  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <ExportMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
+  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);const round=pdf=>{const days=[...new Set(records.data.audits.filter(audit=>!audit.plannedMonthOnly&&audit.status!=='cancelled').map(audit=>String(audit.completedDate||audit.plannedDate).slice(0,10)))].sort();const last=[...days].reverse().find(day=>day<=todayIso)||days[0];if(!last)return;const shift=(day,by)=>{const date=new Date(`${day}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+by);return date.toISOString().slice(0,10)};if(!printReport(auditRoundReportDocument(records.data.audits,records.data.findings,{language,from:shift(last,-4),to:last}),{pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')};return <ExportMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))} onPrint={()=>round(false)} onPdf={()=>round(true)}/>})(),
   risks:<ExportMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
   indicators:measureView==='indicators'?null:measureView==='surveys'?<ExportMenu disabled={!visibleSurveys.length} onExcel={()=>exportRegistry(surveysExport(visibleSurveys,language))}/>:measureView==='registers'?<ExportMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<ExportMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
   resources:resourceView==='equipment'?<ExportMenu disabled={!visibleEquipment.length} onExcel={()=>exportRegistry(equipmentExport(visibleEquipment,language))}/>:<ExportMenu disabled={!visibleSuppliers.length} onExcel={()=>exportRegistry(suppliersExport(visibleSuppliers,language))}/>,
@@ -262,7 +272,8 @@ export function QualityPage(){
   {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
   {tab==='incidents'&&<ReportSummary view={incidents} loading={records.loading} language={language}/>}
   {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
-  {tab==='audits'&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
+  {tab==='audits'&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null} onRound={canManage?()=>setRoundOpen(true):null}/>}
+  {roundOpen&&<AuditRoundDialog audits={records.data.audits} language={language} saving={fillingProgramme} onClose={()=>setRoundOpen(false)} onApply={applyRound}/>}
   {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language} onOrphans={()=>goDeviations('withoutCapa')}/>}
   <section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}

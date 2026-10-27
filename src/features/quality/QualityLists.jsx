@@ -189,7 +189,7 @@ export function auditCounts(rows){
 // the late ones, those with open deviations, the compliance, how many departments
 // have their two audits of the year, and the departments with no next audit,
 // with the button that plans them.
-export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false}){
+export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false,onRound=null}){
  const en=language==='en'
  const {filters,set}=view
  const coverage=useMemo(()=>auditCoverage(rows),[rows])
@@ -201,6 +201,7 @@ export function AuditsSummary({rows,counts,view,loading,language,onFill=null,fil
    {counts.compliance!=null&&<span><b>{counts.compliance}%</b> {en?'compliance':'συμμόρφωση'}</span>}
    {coverage.rows.length>0&&<span title={en?'Departments by audits this year (target 2)':'Τμήματα ανά επιθεωρήσεις φέτος (στόχος 2)'}>{en?'This year':'Φέτος'}: <b>{coverage.full}</b> {en?'with 2/2':'με 2/2'} · <b>{coverage.half}</b> {en?'with 1/2':'με 1/2'} · <b>{coverage.none}</b> {en?'with none':'χωρίς'}</span>}
    {coverage.noNext>0&&(onFill?<button type="button" className="is-late" disabled={filling} onClick={onFill}><b>{coverage.noNext}</b> {en?'departments without a next audit — plan them':'τμήματα χωρίς επόμενη επιθεώρηση — προγραμματισμός'}</button>:<span className="is-late"><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</span>)}
+   {onRound&&<button type="button" onClick={onRound}>{en?'Plan an audit round':'Κύκλος επιθεώρησης'}</button>}
   </>}</p>
 }
 

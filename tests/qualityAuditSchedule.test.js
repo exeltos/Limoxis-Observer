@@ -26,3 +26,18 @@ describe('audit programme: two a year per department, the next always planned', 
     expect(byDepartment['ΜΕΘ']).toBeUndefined()
   })
 })
+
+describe('audit round: the month\'s audits spread over three working days', () => {
+  it('skips the weekend and splits the audits evenly in the departments\' order', async () => {
+    const { spreadAuditRound, workingDays } = await import('../src/features/quality/audits/auditModel')
+    expect(workingDays('2026-11-13', 3)).toEqual(['2026-11-13', '2026-11-16', '2026-11-17'])
+    const rows = ['Α', 'Β', 'Γ', 'Δ', 'Ε', 'ΣΤ', 'Ζ'].map(name => audit(name, 'planned', '2026-11-15', { plannedMonthOnly: true }))
+    rows.push(audit('Άλλο μήνα', 'planned', '2026-12-15'))
+    const { days, assignments } = spreadAuditRound(rows, '2026-11-10', 3)
+    expect(assignments).toHaveLength(7)
+    const perDay = days.map(day => assignments.filter(item => item.plannedDate === day).length)
+    expect(perDay.reduce((a, b) => a + b, 0)).toBe(7)
+    expect(Math.max(...perDay) - Math.min(...perDay)).toBeLessThanOrEqual(1)
+    expect(assignments.find(item => item.audit.department === 'Άλλο μήνα')).toBeUndefined()
+  })
+})
