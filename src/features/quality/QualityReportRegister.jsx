@@ -213,7 +213,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
  const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
  const columns=inbox
-  ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:en?'Responsible':'Υπεύθυνος'}]
+  ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
   :null
  const chipDepartments=inbox&&view.departments.length>1&&view.departments.length<=6
  const popover=inbox&&(chipDepartments||view.departments.length<2)?null:<>
@@ -247,7 +247,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
      <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage} language={language}/>}</td>
-     <td>{roleTitleText(row.owner,language)||'—'}</td>
+     <td>{inbox?(row.anonymous?(en?'Anonymous':'Ανώνυμη'):row.reporter||'—'):roleTitleText(row.owner,language)||'—'}</td>
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}
