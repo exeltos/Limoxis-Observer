@@ -32,7 +32,11 @@ import { removeExpiryItem } from './controlExpiryRemoval'
 import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
 import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,canRecordAnytime,getAssignment,recordWindow,scheduleVariants,timesWithWindows } from './controlScheduling'
-import { zonedParts } from './controlDueRules'
+import { slotStarts,slotWindowMinutes,zonedInstant,zonedParts } from './controlDueRules'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
+import { RateMeter,useAdherenceLines } from './ControlAdherencePanel'
+import { ControlMissedDialog,missedText } from './ControlMissedDialog'
+import { periodRange,periodShort } from './controlAdherence'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
@@ -64,6 +68,10 @@ export function ControlRecordPage(){
  const [historyPage,setHistoryPage]=useState(1)
  const [historyPageSize,setHistoryPageSize]=useState(15)
  const [historyDepartment,setHistoryDepartment]=useState('all')
+ // The period of this control's rates and of its executions list (the same choices as the Controls page).
+ const [period,setPeriod]=useState('30d')
+ const [withMissed,setWithMissed]=useState(false)
+ const [missedOf,setMissedOf]=useState(null)
  // Moving to another control starts on its own tab and on the first page of its history.
  if(tabFor!==controlId){setTabFor(controlId);setTab(searchParams.get('tab')||'');setHistoryPage(1)}
  const ownDepartment=membership?.previewDepartment||membership?.departmentName||membership?.department||''
@@ -85,16 +93,20 @@ export function ControlRecordPage(){
  const [historyData,setHistoryData]=useState({key:'',rows:[],total:0})
  // One department or all of them (the «Department» choice above the table).
  const historyAssignmentIds=useMemo(()=>record?record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null})).filter(dep=>historyDepartment==='all'||dep===historyDepartment).map(dep=>record.assignments?.[dep]?.dbId).filter(Boolean):[],[record,canAccessRecord,historyDepartment])
- const historyKey=`${historyAssignmentIds.join(',')}|${historyPage}|${historyPageSize}`
+ const historyFrom=useMemo(()=>periodRange(period,new Date()).from.toISOString().slice(0,13),[period])
+ const historyKey=`${historyAssignmentIds.join(',')}|${historyPage}|${historyPageSize}|${historyFrom}`
  const historyOpen=tab==='history'
  useEffect(()=>{
   if(!tenant?.id||!historyOpen||!historyAssignmentIds.length)return undefined
   let active=true
-  loadControlHistoryPage(tenant.id,historyAssignmentIds,{page:historyPage,pageSize:historyPageSize})
+  loadControlHistoryPage(tenant.id,historyAssignmentIds,{page:historyPage,pageSize:historyPageSize,from:periodRange(period,new Date()).from})
    .then(result=>{if(active)setHistoryData({key:historyKey,...result})})
    .catch(error=>{if(active){setHistoryData({key:historyKey,rows:[],total:0});notifyError(error,'load',{operation:'control_history_load'})}})
   return()=>{active=false}
- },[tenant?.id,historyOpen,historyAssignmentIds,historyPage,historyPageSize,historyKey,record,notifyError])
+ },[tenant?.id,historyOpen,historyAssignmentIds,historyPage,historyPageSize,historyKey,period,record,notifyError])
+ // The rates and the missed executions per department, read only for the two tabs that show them.
+ const adherenceRows=useMemo(()=>record?[{item:record,departments:record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null}))}]:[],[record,canAccessRecord])
+ const adherence=useAdherenceLines(adherenceRows,tab==='departments'||tab==='history'?tenant?.id:null,period,record,null)
 
  if(loading)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Loading control…':'Φόρτωση ελέγχου…'}</div></Page>
  if(!record)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Control not found.':'Δεν βρέθηκε ο έλεγχος.'}</div></Page>
@@ -128,6 +140,28 @@ export function ControlRecordPage(){
  const historyTotalPages=Math.max(1,Math.ceil(historyTotal/historyPageSize))
  const historySafePage=Math.min(historyPage,historyTotalPages)
  const pagedHistory=historyRows
+ const periodChips=<ChoiceChips className="control-record-period" label="" options={['today','30d','60d','6m','12m'].map(key=>({value:key,label:periodShort(key,language)}))} selected={[period]} onToggle={setPeriod}/>
+ const lineOf=dep=>adherence.lines.find(line=>line.department===dep)
+ const hhmm=minutes=>`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`
+ // The set time an entry belongs to (the nearest) and whether it fell inside that time's window.
+ const timeOfEntry=h=>{
+  const f=assignmentFrequency(record,h.department)
+  if(f?.kind!=='daily'||!(f.times||[]).some(Boolean))return null
+  const starts=slotStarts(f),p=zonedParts(h.at),m=p.hour*60+p.minute
+  let index=0,best=Infinity
+  starts.forEach((start,k)=>{const d=Math.abs(m-start);if(d<best){best=d;index=k}})
+  const window=slotWindowMinutes(f,index)
+  return {time:hhmm(starts[index]),onTime:m>=window.open&&m<=window.close}
+ }
+ // The missed executions as rows between the entries of the page, newest first.
+ const missedRows=withMissed&&historyLoaded?adherence.lines.filter(line=>historyDepartment==='all'||line.department===historyDepartment).flatMap(line=>(line.missedDays||[]).flatMap(miss=>{
+  const [y,mo,d]=miss.day.split('-').map(Number)
+  const times=miss.times?.length?miss.times:[null]
+  return times.map(time=>{const minutes=time?Number(time.slice(0,2))*60+Number(time.slice(3,5)):23*60+59;return {id:`missed|${line.department}|${miss.day}|${time||''}`,missed:true,department:line.department,at:zonedInstant(y,mo,d,minutes).toISOString(),miss:{...miss,times:time?[time]:[]}}})
+ })):[]
+ const upper=historySafePage===1?Infinity:new Date(pagedHistory[0]?.at||0).getTime()
+ const lower=historySafePage>=historyTotalPages?-Infinity:new Date(pagedHistory[pagedHistory.length-1]?.at||0).getTime()
+ const shownHistory=withMissed?[...pagedHistory,...missedRows.filter(row=>{const t=new Date(row.at).getTime();return t<=upper&&t>lower})].sort((a,b)=>new Date(b.at)-new Date(a.at)):pagedHistory
  const expiryControl=isExpiryControl(record)
  const expiry=expiryControl?expiryCounts(expiryItems(record,visibleDepartments)):{expired:0,expiring:0,alerting:0}
  // A control opens on its details; links from the expiry lists and alerts ask for ?tab=expiry.
@@ -248,18 +282,20 @@ export function ControlRecordPage(){
   </div>}
   {currentTab==='departments'&&<div className="record-view-stack control-record-view workspace-fill">
    <section className="control-record-departments">
-    <SectionHeader title={en?'Departments of this control':'Τμήματα του ελέγχου'} subtitle={`${assignments.length} ${en?(assignments.length===1?'department':'departments'):(assignments.length===1?'τμήμα':'τμήματα')}`}/>
+    <SectionHeader title={en?'Departments of this control':'Τμήματα του ελέγχου'} subtitle={`${assignments.length} ${en?(assignments.length===1?'department':'departments'):(assignments.length===1?'τμήμα':'τμήματα')}`} actions={periodChips}/>
     <RegistryTable
      className="control-ov-department-table"
-     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},...(differentLimits?[{key:'limits',label:en?'Limits':'Όρια'}]:[]),{key:'status',label:en?'Status':'Κατάσταση'},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},...(expiryControl&&assignments.some(({department:dep})=>!recordsFindingsOnly(record,dep))?[{key:'list',label:en?'Department list':'Λίστα τμήματος'}]:[]),{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
+     columns={[{key:'department',label:en?'Department':'Τμήμα'},{key:'responsible',label:en?'Responsible':'Υπεύθυνος'},{key:'schedule',label:en?'Schedule':'Πρόγραμμα'},...(differentLimits?[{key:'limits',label:en?'Limits':'Όρια'}]:[]),{key:'status',label:en?'Status':'Κατάσταση'},{key:'rate',label:`${en?'Adherence':'Τήρηση'} · ${periodShort(period,language).toLowerCase()}`},{key:'next',label:en?'Next entry':'Επόμενη καταχώρηση'},{key:'last',label:en?'Last entry':'Τελευταία καταχώρηση'},...(expiryControl&&assignments.some(({department:dep})=>!recordsFindingsOnly(record,dep))?[{key:'list',label:en?'Department list':'Λίστα τμήματος'}]:[]),{key:'action',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-ov-action-col'}]}
      rows={assignments}
      rowKey={row=>row.department}
      emptyTitle={en?'No departments':'Δεν υπάρχουν τμήματα'}
      renderRow={({department:dep,assignment:current})=>{const state=assignmentStatus(record,dep),draft=Boolean(current?.hasDraft),allowed=canExecuteDepartment(dep);return <tr className={`control-ov-department ${state}`}>
-      <td><strong>{dep}</strong>{personLabel(record.assignees?.[dep],language)&&<small>{personLabel(record.assignees[dep],language)}</small>}</td>
+      <td><strong>{dep}</strong></td>
+      <td>{personLabel(record.assignees?.[dep],language)||ownerText(record,language)||'—'}</td>
       <td>{frequencyLabel(assignmentFrequency(record,dep),language)}{(assignmentFrequency(record,dep).times||[]).length>0&&<small>{timesWithWindows(assignmentFrequency(record,dep))}</small>}</td>
       {differentLimits&&<td>{limitsText(assignmentResponse(record,dep))||'—'}</td>}
-      <td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge><small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
+      <td><div className="control-status-stack">{draft&&<SignalBadge tone="info">{en?'Draft':'Προσωρινή'}</SignalBadge>}{!(state==='overdue'&&heldBack(dep)&&windowOf(dep).state==='closed')&&<SignalBadge tone={state==='overdue'?'danger':state==='dueSoon'?'warning':'success'}>{state==='overdue'?(en?'Overdue':'Εκπρόθεσμος'):state==='dueSoon'?(en?'Due soon':'Πλησιάζει'):(en?'On schedule':'Εντός προγράμματος')}</SignalBadge>}<small className="control-progress-text">{progressText(assignmentProgress(record,dep),language)}</small></div></td>
+      <td>{lineOf(dep)?<><RateMeter rate={lineOf(dep).rate}/>{lineOf(dep).missed>0&&<button type="button" className="control-missed-link" onClick={()=>setMissedOf({lines:[lineOf(dep)],title:`${language==='el'?record.title:record.titleEn||record.title} · ${dep}`})}>{en?`${lineOf(dep).missed} missed`:`${lineOf(dep).missed} ${lineOf(dep).missed===1?'χαμένος':'χαμένοι'}`}</button>}</>:'—'}</td>
       <td className={state==='overdue'?'control-ov-late':''}>{fmt(current?.nextDueAt)}</td>
       <td>{fmt(current?.lastCompletedAt)}</td>
       {expiryControl&&assignments.some(({department:d})=>!recordsFindingsOnly(record,d))&&<td>{!recordsFindingsOnly(record,dep)&&<ActionButton label={en?`List of ${dep}`:`Λίστα: ${dep}`} tone="neutral" onClick={()=>setListDepartment(dep)}><ListChecks size={15}/><span>{en?'List':'Λίστα'} ({prefilledExpiryRows(record,dep).length})</span></ActionButton>}</td>}
@@ -270,18 +306,19 @@ export function ControlRecordPage(){
    {listDepartment&&<ControlDepartmentListDialog record={record} department={listDepartment} language={language} onClose={()=>setListDepartment(null)}/>}
   </div>}
   {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} onExportChange={setExpiryExport} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
-  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill">{assignments.length>1&&<div className="control-history-toolbar"><FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect></div>}<div className="record-tab-panel-body"><RegistryTable
+  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar">{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}{periodChips}<ChoiceChips className="control-history-missed-switch" label="" options={[{value:'missed',label:en?'With the missed':'Με τα χαμένα'}]} selected={withMissed?['missed']:[]} onToggle={()=>setWithMissed(value=>!value)}/></div><div className="record-tab-panel-body"><RegistryTable
     wrapperClassName="scroll-table"
     className="control-history-table"
-    columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα'},{key:'department',label:en?'Department':'Τμήμα'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}
-    rows={pagedHistory}
+    columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα'},{key:'department',label:en?'Department':'Τμήμα'},{key:'slot',label:en?'Control time':'Ώρα ελέγχου'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}
+    rows={shownHistory}
     rowKey={h=>h.id}
     emptyTitle={historyLoaded?(en?'No executions yet':'Δεν υπάρχουν ακόμη εκτελέσεις'):(en?'Loading executions…':'Φόρτωση εκτελέσεων…')}
     emptyText={historyLoaded?(en?'Entries appear here once the control is recorded.':'Οι καταχωρήσεις εμφανίζονται εδώ μόλις καταχωρηθεί ο έλεγχος.'):undefined}
-    rowProps={h=>({className:h.status==='cancelled'?'control-history-cancelled':''})}
-    renderRow={h=>{const deleted=isDeletedExecution(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.isExtra&&h.status!=='cancelled'&&<><SignalBadge tone="warning">{en?'Extra entry':'Έκτακτη'}</SignalBadge><small>{h.extraReason}</small></>}{h.status==='cancelled'?<SignalBadge tone="danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</SignalBadge>:<><SignalBadge tone={h.hasFinding?'danger':'success'}>{structuredSummary(h,{record,language})}</SignalBadge>{h.resultText&&<small>{en?'Result details':'Αναλυτικό αποτέλεσμα'}: {h.resultText}</small>}{h.checkedPoints&&<small>{en?'Points checked':'Σημεία ελέγχου'}: {h.checkedPoints}</small>}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td><strong>{h.by||'—'}</strong><small>{h.email||''}</small>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col"><OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
+    rowProps={h=>({className:h.missed?'control-history-missed':h.status==='cancelled'?'control-history-cancelled':''})}
+    renderRow={h=>{if(h.missed){const text=missedText(h.miss,language);return <><td><strong>{text.when}</strong></td><td>{h.department}</td><td>{text.times}</td><td><SignalBadge tone="danger">{en?'Missed':'Χάθηκε'}</SignalBadge></td><td>—</td><td>—</td><td/></>}const deleted=isDeletedExecution(h);const slot=timeOfEntry(h);return <><td><strong>{fmt(h.at)}</strong>{h.editedAt&&<small>{en?'Edited':'Επεξεργάστηκε'} {fmt(h.editedAt)}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')} {fmt(h.cancelledAt)}</small>}</td><td>{h.department}</td><td>{h.isExtra?<SignalBadge tone="warning">{en?'Extra':'Έκτακτη'}</SignalBadge>:slot?<><strong>{slot.time}</strong><small>{slot.onTime?(en?'On time':'Στην ώρα'):(en?'Late':'Με καθυστέρηση')}</small></>:'—'}</td><td>{h.isExtra&&h.status!=='cancelled'&&<><SignalBadge tone="warning">{en?'Extra entry':'Έκτακτη'}</SignalBadge><small>{h.extraReason}</small></>}{h.status==='cancelled'?<SignalBadge tone="danger">{deleted?(en?'Deleted':'Διαγράφηκε'):(en?'Voided':'Ακυρώθηκε')}</SignalBadge>:<><SignalBadge tone={h.hasFinding?'danger':'success'}>{structuredSummary(h,{record,language})}</SignalBadge>{h.resultText&&<small>{en?'Result details':'Αναλυτικό αποτέλεσμα'}: {h.resultText}</small>}{h.checkedPoints&&<small>{en?'Points checked':'Σημεία ελέγχου'}: {h.checkedPoints}</small>}<ControlEvidenceLinks evidence={h.evidence} language={language}/></>}</td><td title={h.email||undefined}><strong>{h.by||'—'}</strong>{h.editedBy&&<small>{en?'Last change':'Τελευταία αλλαγή'}: {h.editedBy}</small>}{h.status==='cancelled'&&<small>{deleted?(en?'Deleted by':'Διαγραφή από'):(en?'Voided by':'Αναίρεση')}: {h.cancelledBy||'—'}</small>}</td><td>{h.status==='cancelled'?cancellationText(h):(h.notes||'—')}</td><td className="open-record-cell control-history-menu-col"><OverflowMenu items={historyActions(h)} label={en?'Entry actions':'Ενέργειες καταχώρησης'} align="end"/></td></>}}
   /></div>{historyTotal>0&&<RegistryPagination language={language} page={historySafePage} totalPages={historyTotalPages} totalItems={historyTotal} pageSize={historyPageSize} onPageChange={setHistoryPage} onPageSizeChange={size=>{setHistoryPageSize(size);setHistoryPage(1)}}/>}</section>}
  </EntityRecordShell>
+ {missedOf&&<ControlMissedDialog lines={missedOf.lines} title={missedOf.title} language={language} onClose={()=>setMissedOf(null)}/>}
  {editExecution&&<ControlExecutionModal organizationId={tenant.id} record={record} department={editExecution.department||department} initialExecution={editExecution} onClose={()=>setEditExecution(null)} onSave={editExistingExecution}/>} 
  {cancelExecution&&<ControlCancellationModal execution={cancelExecution} onClose={()=>setCancelExecution(null)} onConfirm={voidExecution}/>} 
  {deleteExecution&&<ControlCancellationModal mode="delete" execution={deleteExecution} onClose={()=>setDeleteExecution(null)} onConfirm={deleteExecutionEntry}/>} 

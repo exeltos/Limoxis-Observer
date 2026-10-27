@@ -77,10 +77,10 @@ function useMonthlyTrend(rows, organizationId, period, refreshKey, now) {
 // Programme adherence: due vs done vs on time per control and department.
 // The page owns the report (period + downloads) so its Download button sits
 // in the page header like every other list; the period is the page's.
-export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null, period = '30d') {
-  const en = language === 'en'
-  const { notify } = useFeedback()
-  const reportRef = useRef(null)
+// The adherence lines of a period (control × department), each with the
+// executions missed and their dates and times: one place for the report and for a
+// control's own page. rows: [{ item, departments }].
+export function useAdherenceLines(rows, organizationId, period, refreshKey, now = null) {
   const { counts, failed } = useAdherenceCounts(organizationId, period, refreshKey, now)
   const { lines: periodLines, totals: periodTotals } = useMemo(() => (failed ? periodAdherence([], period, new Map(), now || new Date()) : periodAdherence(rows, period, counts, now || new Date())), [rows, period, counts, failed, now])
   const entryDays = useEntryDays(organizationId, period, refreshKey, now)
@@ -103,6 +103,14 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
     })
   }, [periodLines, period, now, entryDays, organizationId])
   const totals = useMemo(() => ({ ...periodTotals, missed: lines.reduce((sum, line) => sum + line.missed, 0) }), [periodTotals, lines])
+  return { lines, totals, failed }
+}
+
+export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null, period = '30d') {
+  const en = language === 'en'
+  const { notify } = useFeedback()
+  const reportRef = useRef(null)
+  const { lines, totals, failed } = useAdherenceLines(rows, organizationId, period, refreshKey, now)
   const trend = useMonthlyTrend(rows, organizationId, period, refreshKey, now)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)

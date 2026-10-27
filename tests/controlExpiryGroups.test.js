@@ -23,3 +23,18 @@ describe('expiry: groups, department cards and «All in order»', () => {
     expect(form).toContain("const hasFinding=!(expiryControl&&allOk)&&")
   })
 })
+
+describe('the page of a control: rates, missed executions and the time of each entry', () => {
+  const record = readFileSync('src/features/controls/ControlRecordPage.jsx', 'utf8')
+  it('shows the responsible, the adherence of the period and the missed executions per department', () => {
+    expect(record).toContain("{key:'responsible'")
+    expect(record).toContain('useAdherenceLines(')
+    expect(record).toContain('<ControlMissedDialog')
+  })
+  it('lists the executions of a period with the control time, no email and the missed ones on request', () => {
+    expect(record).toContain("{key:'slot',label:en?'Control time':'Ώρα ελέγχου'}")
+    expect(record).toContain('from:periodRange(period,new Date()).from')
+    expect(record).toContain("className=\"control-history-missed-switch\"")
+    expect(record).not.toContain("<small>{h.email||''}</small>")
+  })
+})
