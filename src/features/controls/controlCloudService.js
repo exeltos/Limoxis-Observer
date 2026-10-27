@@ -281,6 +281,46 @@ export async function loadControlAdherenceCounts(organizationId,{from,to}){
  return new Map((data||[]).map(row=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
 }
 
+// When each department really records its daily controls: per assignment, the
+// minutes after midnight (Athens) of the entries of a period, one list per
+// slot (the k-th entry of a day is slot k), read by control_execution_times.
+// The demo returns null: its local history is read directly.
+export async function loadControlExecutionTimes(organizationId,{from,to}){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.rpc('control_execution_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
+ if(error)throw error
+ const byAssignment=new Map()
+ for(const row of data||[]){
+  if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,[])
+  byAssignment.get(row.assignment_id)[Math.max(0,Number(row.slot)-1)]=(row.minutes||[]).map(Number)
+ }
+ return byAssignment
+}
+
+// New execution times for one department of a control (the «Times» report):
+// its own schedule, or the control's when they are the same; next_due_at
+// follows the new times from today's progress.
+export async function saveDepartmentTimes(organizationId,item,department,times){
+ const assignment=item.assignments?.[department]
+ if(!assignment)throw new Error('Assignment not found.')
+ const frequency={...(assignment.frequency||item.frequency||{}),times:[...times].filter(Boolean).sort()}
+ const own=cleanDepartmentFrequency(frequency,item.frequency)
+ const done=assignment.progress?.done??periodProgress(frequency,assignment.history||[]).done
+ const nextDue=nextDueAfterExecution(frequency,new Date(),done)
+ if(isDemoDataEnvironment()){
+  const assignments=loadControlAssignmentsLocal()
+  const row=assignments.find(a=>a.id===assignment.dbId)
+  if(!row)throw new Error('Assignment not found.')
+  row.frequency_config=own;row.next_due_at=nextDue
+  saveControlAssignmentsLocal(assignments)
+  return
+ }
+ assertCloud(organizationId)
+ const {error}=await supabase.from('control_assignments').update({frequency_config:own,next_due_at:nextDue}).eq('organization_id',organizationId).eq('id',assignment.dbId)
+ if(error)throw error
+}
+
 // Per assignment, the twelve months of a year: done, late, and the days for
 // infrequent controls (control_calendar_months, in the viewer's time zone).
 export async function loadControlCalendarMonths(organizationId,year){

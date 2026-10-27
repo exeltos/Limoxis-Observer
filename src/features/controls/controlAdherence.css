@@ -34,3 +34,8 @@
 .control-adherence-table td.control-adherence-department::before{content:'↳';margin-right:7px;color:var(--lo-color-muted)}
 .control-adherence-toolbar .filter-field{flex-direction:row;align-items:center;gap:8px}
 .control-adherence-toolbar .filter-field select{min-width:180px}
+/* The «Times» report: one line per row, the toolbar on one row. */
+.control-time-fit .control-adherence-toolbar{flex-wrap:nowrap}
+.control-time-fit .control-adherence-meter>i{width:60px}
+.control-time-fit-table td:not(:first-child){white-space:nowrap}
+.control-time-fit-same{color:var(--lo-color-muted)}

@@ -263,7 +263,7 @@ export const guideContent = {
       what: l('Έλεγχοι που ανατίθενται σε τμήματα και εκτελούνται με αποτέλεσμα και τεκμηρίωση.', 'Controls assigned to departments and performed with a result and documentation.'),
       users: l('Υπεύθυνος, Προϊστάμενοι και Χρήστες Τμήματος.', 'Lead, Department Managers and Department Users.'),
       needs: null,
-      analysis: l('Καρτέλα «Έλεγχοι»: εκτελέσεις, ποσοστό με εύρημα, εκπρόθεσμοι έλεγχοι, εκτελέσεις και ευρήματα ανά τμήμα.', 'Tab “Controls”: executions, share with findings, overdue controls, executions and findings per department.'),
+      analysis: l('Καρτέλα «Έλεγχοι»: εκτελέσεις, ποσοστό με εύρημα, εκπρόθεσμοι έλεγχοι, εκτελέσεις και ευρήματα ανά τμήμα. Στους Ελέγχους, η καρτέλα «Ώρες» δείχνει ανά τμήμα πότε γίνεται στην πράξη κάθε ημερήσιος έλεγχος και ποιες ώρες θα ταίριαζαν.', 'Tab “Controls”: executions, share with findings, overdue controls, executions and findings per department. In Controls, the “Times” tab shows per department when each daily control is really done and which times would fit.'),
       start: l('Ορίστε έναν έλεγχο και αναθέστε τον σε ένα τμήμα. Οι προγραμματισμένες και οι εκτελεσμένες εκτελέσεις φαίνονται στο Ημερολόγιο του μενού, φίλτρο «Έλεγχοι».', 'Define a control and assign it to a department. Planned and performed executions are in the Calendar in the menu, filter “Controls”.'),
     },
     quality: {

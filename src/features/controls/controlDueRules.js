@@ -146,6 +146,16 @@ export function slotOpens(frequency, d, index, timeZone = CONTROL_TIME_ZONE) {
   return zonedInstant(d.year, d.month, d.day, minutes, timeZone)
 }
 
+// The on-time window of slot `index` in minutes after midnight: [open, close]
+// (close 1440 is the end of the day), as slotOpens and slotDeadline.
+export function slotWindowMinutes(frequency = {}, index = 0) {
+  const starts = slotStarts(frequency)
+  const i = Math.min(Math.max(0, index), starts.length - 1)
+  const boundary = i < starts.length - 1 ? starts[i + 1] : DAY_MINUTES
+  const margin = slotMargin(frequency)
+  return { open: setTimes(frequency).length ? Math.max(0, starts[i] - SLOT_EARLY_MINUTES) : 0, close: margin > 0 ? Math.min(starts[i] + margin, boundary) : boundary }
+}
+
 // End (last second) of the period `interval` units after the one holding `at`.
 function periodDeadlineAfter(frequency, at, timeZone) {
   const k = positive(frequency.interval)
