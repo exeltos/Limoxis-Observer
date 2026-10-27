@@ -113,7 +113,21 @@ export function incidentSummary(record,{language,t}){
   return items
 }
 
+// A finding «at a glance» as one line under the title.
+export function findingSummary(record,{language,t,linked=[]}){
+  const en=language==='en'
+  const open=!isClosed(record)
+  const items=[{text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined}]
+  const since=-daysUntil(record.date)
+  if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτή ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστή')})
+  const done=linked.filter(isClosed).length
+  items.push(linked.length?{text:en?`${done}/${linked.length} corrective actions done`:`${done}/${linked.length} διορθωτικές ενέργειες ολοκληρώθηκαν`}:{text:en?'no corrective action yet':'χωρίς διορθωτική ενέργεια',tone:open?'danger':undefined})
+  items.push({text:`${en?'Source':'Πηγή'}: ${vocabularyLabel(FINDING_SOURCES,record.source||'manual',language)}${record.sourceId?` ${record.sourceId}`:''}`})
+  return items
+}
+
 export function QualityGlance({recordType,record,language,t,linked}){
+  if(recordType==='findings')return <p className="quality-summary-line quality-record-line">{findingSummary(record,{language,t,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   if(recordType==='incidents')return <p className="quality-summary-line quality-record-line">{incidentSummary(record,{language,t}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   const items=glanceItems(recordType,record,{language,t,linked})
   if(!items.length)return null
