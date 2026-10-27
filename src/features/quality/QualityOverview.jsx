@@ -1,4 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo,useState } from 'react'
+import { MoreSection } from '../../design-system/MoreSection'
+import { auditReadiness } from './audits/auditModel'
+import { standardShort } from './audits/auditStandards'
 import { formatDay } from '../../core/i18n/formatDay'
 import { daysUntil } from './QualityGlance'
 import { isOpenRecord } from './QualityLists'
@@ -11,7 +14,8 @@ import { roleTitleText } from '../../core/i18n/roleTitles'
 // «Analysis»: what needs a decision first, what falls due next, then the
 // reports of the last twelve months by month, category, department and harm.
 
-const SOON_DAYS=14
+const SOON_DAYS=30
+const FIRST=5
 const L=(en,el,enText)=>en?enText:el
 const titleOf=(row,en)=>(en?row.titleEn:row.title)||row.title||''
 const departmentOf=(row,en)=>(en?row.departmentEn:row.department)||row.department||''
@@ -70,7 +74,7 @@ function grouped(rows,keyOf,labelOf,limit=6){
  return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit).map(([key,value])=>({key,label:labelOf(key),value,share:total?Math.round(value*100/total):null}))
 }
 
-export function QualityOverview({reports,capas,audits,objectives,language,categories,onOpen,onGo}){
+export function QualityOverview({reports,capas,audits,findings=[],objectives,language,categories,onOpen,onGo,onMeetings}){
  const en=language==='en'
  const locale=en?'en-GB':'el-GR'
  const data=useMemo(()=>{
@@ -83,11 +87,11 @@ export function QualityOverview({reports,capas,audits,objectives,language,catego
   const overdue=openCapas.filter(row=>row.dueDate&&daysUntil(row.dueDate)<0).map(row=>{const late=-daysUntil(row.dueDate);return {key:`c:${row.id}`,type:'capas',id:row.id,rank:-late,code:qualityCode(row,language),title:titleOf(row,en),chip:{value:late,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'},meta:[L(en,'Εκπρόθεσμη διορθωτική ενέργεια','Overdue corrective action'),departmentOf(row,en),(row.owners?.length?row.owners:[row.owner]).filter(Boolean).map(name=>roleTitleText(name,language)).join(', ')]}})
   const toAssess=openReports.filter(row=>row.stage==='toAssess'&&!row.sentinel).map(row=>{const age=Math.max(0,-(daysUntil(row.date)??0));return {key:`r:${row.id}`,type:'incidents',id:row.id,rank:1000-age,code:row.code,title:titleOf(row,en),chip:{value:age,unit:plural(age,'ημέρα','ημέρες','day','days'),tone:age>7?'warning':'neutral',title:L(en,'Από την αναφορά','Since reported')},meta:[L(en,'Προς αξιολόγηση','To assess'),vocabularyLabel(REPORT_KINDS,row.kind,language),departmentOf(row,en)]}})
   const decide=[...sentinel,...overdue,...toAssess].sort((a,b)=>a.rank-b.rank)
-  const dueSoon=openCapas.filter(row=>{const days=daysUntil(row.dueDate);return days!=null&&days>=0&&days<=SOON_DAYS}).sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate))).map(row=>{const days=daysUntil(row.dueDate);return {key:`d:${row.id}`,type:'capas',id:row.id,code:qualityCode(row,language),title:titleOf(row,en),chip:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.dueDate,language),departmentOf(row,en)]}})
+  const dueSoon=openCapas.filter(row=>{const days=daysUntil(row.dueDate);return days!=null&&days>=0&&days<=SOON_DAYS}).sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate))).map(row=>{const days=daysUntil(row.dueDate);return {key:`d:${row.id}`,type:'capas',id:row.id,days,kind:L(en,'Λήξη ενέργειας','Action due'),code:qualityCode(row,language),title:titleOf(row,en),chip:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.dueDate,language),departmentOf(row,en)]}})
   // CAPAs whose effectiveness is to be checked: in verification, or due for the check and still pending.
-  const effectiveness=capas.filter(row=>row.lifecycleStatus!=='voided'&&(row.effectivenessStatus||'pending')==='pending'&&(row.status==='verification'||(row.effectivenessDue&&daysUntil(row.effectivenessDue)<=SOON_DAYS))).map(row=>{const days=daysUntil(row.effectivenessDue);return {key:`e:${row.id}`,type:'capas',id:row.id,code:qualityCode(row,language),title:titleOf(row,en),chip:days==null?{value:'✓?',tone:'warning'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days,unit:plural(days,'ημέρα','ημέρες','day','days'),tone:'warning'},meta:[row.status==='verification'?L(en,'Σε επαλήθευση','In verification'):L(en,'Έλεγχος έως','Check by')+' '+formatDay(row.effectivenessDue,language),departmentOf(row,en)]}})
-  const auditsDue=audits.filter(row=>!['completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'&&row.plannedDate&&daysUntil(row.plannedDate)<=31).sort((a,b)=>String(a.plannedDate).localeCompare(String(b.plannedDate))).map(row=>{const days=daysUntil(row.plannedDate);return {key:`a:${row.id}`,type:'audits',id:row.id,code:qualityCode(row,language),title:titleOf(row,en),chip:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.plannedDate,language),departmentOf(row,en),roleTitleText(row.leadAuditor,language)]}})
-  const missed=objectives.filter(item=>(item.status||'active')==='active'&&item.current?.status==='missed').map(item=>({key:`o:${item.id}`,type:'objectives',id:item.id,code:item.code,title:(language==='en'&&item.titleEn)||item.title,chip:{value:'↓',tone:'danger'},meta:[roleTitleText(item.ownerLabel,language),item.dueDate&&formatDay(item.dueDate,language)]}))
+  const effectiveness=capas.filter(row=>row.lifecycleStatus!=='voided'&&(row.effectivenessStatus||'pending')==='pending'&&(row.status==='verification'||(row.effectivenessDue&&daysUntil(row.effectivenessDue)<=SOON_DAYS))).map(row=>{const days=daysUntil(row.effectivenessDue);return {key:`e:${row.id}`,type:'capas',id:row.id,days:days??0,kind:L(en,'Έλεγχος αποτελεσματικότητας','Effectiveness check'),code:qualityCode(row,language),title:titleOf(row,en),chip:days==null?{value:'✓?',tone:'warning'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days,unit:plural(days,'ημέρα','ημέρες','day','days'),tone:'warning'},meta:[row.status==='verification'?L(en,'Σε επαλήθευση','In verification'):L(en,'Έλεγχος έως','Check by')+' '+formatDay(row.effectivenessDue,language),departmentOf(row,en)]}})
+  const auditsDue=audits.filter(row=>!['completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'&&row.plannedDate&&daysUntil(row.plannedDate)<=SOON_DAYS).sort((a,b)=>String(a.plannedDate).localeCompare(String(b.plannedDate))).map(row=>{const days=daysUntil(row.plannedDate);return {key:`a:${row.id}`,type:'audits',id:row.id,days,kind:L(en,'Επιθεώρηση','Audit'),code:qualityCode(row,language),title:titleOf(row,en),chip:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.plannedDate,language),departmentOf(row,en),roleTitleText(row.leadAuditor,language)]}})
+  const missed=objectives.filter(item=>(item.status||'active')==='active'&&item.current?.status==='missed').map(item=>({key:`o:${item.id}`,type:'objectives',id:item.id,days:-1,kind:L(en,'Στόχος εκτός πορείας','Objective off track'),code:item.code,title:(language==='en'&&item.titleEn)||item.title,chip:{value:'↓',tone:'danger'},meta:[roleTitleText(item.ownerLabel,language),item.dueDate&&formatDay(item.dueDate,language)]}))
 
   // The last twelve months of reports.
   const months=lastMonths(12,locale)
@@ -104,41 +108,41 @@ export function QualityOverview({reports,capas,audits,objectives,language,catego
   const outcomeLabel=key=>INCIDENT_CLASSES.some(item=>item.value===key)?vocabularyLabel(INCIDENT_CLASSES,key,language):`${L(en,'Βλάβη','Harm')}: ${vocabularyLabel(IMPACTS,key,language)}`
   const ORDER=['nearMiss','noHarm','mild','moderate','severe','death']
   const byOutcome=grouped(patientIncidents,outcomeOf,outcomeLabel,ORDER.length).sort((a,b)=>ORDER.indexOf(a.key)-ORDER.indexOf(b.key))
-  return {decide,dueSoon,effectiveness,auditsDue,missed,byMonth,byCategory,byDepartment,byKind,byOutcome,recent:recent.length,patient:patientIncidents.length}
- },[reports,capas,audits,objectives,language,en,locale,categories])
+  const next=[...dueSoon,...effectiveness,...auditsDue,...missed].sort((a,b)=>(a.days??0)-(b.days??0)).map(item=>({...item,meta:[item.kind,...item.meta]}))
+  const readiness=auditReadiness(audits,findings).rows.filter(row=>row.rate!=null)
+  return {decide,next,readiness,byMonth,byCategory,byDepartment,byKind,byOutcome,recent:recent.length,patient:patientIncidents.length}
+ },[reports,capas,audits,findings,objectives,language,en,locale,categories])
 
  const open=item=>item.type==='objectives'?onGo('objectives'):onOpen(item.type,item.id)
- const all=L(en,'Όλα στη λίστα','All in the list')
+ const [allDecide,setAllDecide]=useState(false)
+ const [allNext,setAllNext]=useState(false)
+ const more=(count,shown,toggle)=>count>FIRST&&<button type="button" className="quality-panel-all" onClick={toggle}>{shown?L(en,'Λιγότερα','Less'):L(en,`Όλα (${count})`,`All (${count})`)}</button>
  return <div className="risk-analysis quality-overview">
+  {(data.readiness.length>0||onMeetings)&&<p className="quality-summary-line quality-overview-links">
+   {data.readiness.length>0&&<button type="button" onClick={()=>onGo('readiness')}>{L(en,'Ετοιμότητα επιθεωρήσεων','Audit readiness')}: {data.readiness.map(row=><span key={row.standard} className={row.rate<80?'is-late':undefined}> {standardShort(row.standard)} <b>{row.rate}%</b></span>)}</button>}
+   {onMeetings&&<button type="button" onClick={onMeetings}>{L(en,'Συνεδριάσεις & αποφάσεις','Meetings & decisions')} →</button>}
+  </p>}
   <div className="risk-two-columns risk-analysis-decide">
    <Panel title={L(en,'Θέλει απόφαση τώρα','Needs a decision now')} caption={L(en,'Συμβάντα-φρουροί, εκπρόθεσμες ενέργειες, αναφορές προς αξιολόγηση','Sentinel events, overdue actions, reports to assess')} count={data.decide.length}>
-    <AttentionList items={data.decide.slice(0,14)} onOpen={open} empty={L(en,'Τίποτα δεν περιμένει απόφαση.','Nothing is waiting for a decision.')}/>
-    {data.decide.length>14&&<p className="risk-hint">{L(en,`Και ${data.decide.length-14} ακόμη.`,`And ${data.decide.length-14} more.`)}</p>}
+    <AttentionList items={allDecide?data.decide:data.decide.slice(0,FIRST)} onOpen={open} empty={L(en,'Τίποτα δεν περιμένει απόφαση.','Nothing is waiting for a decision.')}/>
+    {more(data.decide.length,allDecide,()=>setAllDecide(!allDecide))}
    </Panel>
-   <div className="risk-analysis-side">
-    <Panel title={L(en,`Λήγουν σε ${SOON_DAYS} ημέρες`,`Due in ${SOON_DAYS} days`)} caption={L(en,'Διορθωτικές ενέργειες','Corrective actions')} count={data.dueSoon.length} onAll={()=>onGo('actions')} allLabel={all}>
-     <AttentionList items={data.dueSoon.slice(0,6)} onOpen={open} empty={L(en,'Καμία ενέργεια δεν λήγει σύντομα.','No action falls due soon.')}/>
-    </Panel>
-    <Panel title={L(en,'Έλεγχος αποτελεσματικότητας','Effectiveness checks')} caption={L(en,'Άλλαξε κάτι μετά την ενέργεια;','Did the action change anything?')} count={data.effectiveness.length}>
-     <AttentionList items={data.effectiveness.slice(0,6)} onOpen={open} empty={L(en,'Κανένας έλεγχος δεν οφείλεται.','No check is due.')}/>
-    </Panel>
-    <Panel title={L(en,'Επιθεωρήσεις','Audits')} caption={L(en,'Εκπρόθεσμες και του επόμενου μήνα','Overdue and next month')} count={data.auditsDue.length} onAll={()=>onGo('audits')} allLabel={all}>
-     <AttentionList items={data.auditsDue.slice(0,6)} onOpen={open} empty={L(en,'Καμία επιθεώρηση τον επόμενο μήνα.','No audit next month.')}/>
-    </Panel>
-    {data.missed.length>0&&<Panel title={L(en,'Στόχοι εκτός πορείας','Objectives off track')} caption={L(en,'Ενεργοί στόχοι που δεν επιτυγχάνονται','Active objectives not met')} count={data.missed.length} onAll={()=>onGo('objectives')} allLabel={all}>
-     <AttentionList items={data.missed.slice(0,6)} onOpen={open} empty=""/>
-    </Panel>}
-   </div>
+   <Panel title={L(en,`Επόμενες ${SOON_DAYS} ημέρες`,`Next ${SOON_DAYS} days`)} caption={L(en,'Λήξεις ενεργειών, έλεγχοι αποτελεσματικότητας, επιθεωρήσεις, στόχοι','Actions due, effectiveness checks, audits, objectives')} count={data.next.length}>
+    <AttentionList items={allNext?data.next:data.next.slice(0,FIRST)} onOpen={open} empty={L(en,'Τίποτα τις επόμενες ημέρες.','Nothing in the coming days.')}/>
+    {more(data.next.length,allNext,()=>setAllNext(!allNext))}
+   </Panel>
   </div>
   <section className="risk-panel quality-panel">
    <header><h3>{L(en,'Αναφορές ανά μήνα','Reports by month')}</h3><small>{L(en,`${data.recent} τους τελευταίους 12 μήνες`,`${data.recent} in the last 12 months`)}</small></header>
    <MonthColumns months={data.byMonth} en={en}/>
   </section>
+  <MoreSection moreLabel={L(en,'Περισσότερα: κατηγορία, τμήμα, είδος, έκβαση','More: category, department, kind, outcome')} lessLabel={L(en,'Λιγότερα','Less')}>
   <div className="quality-breakdowns">
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Ανά κατηγορία','By category')}</h3><small>{L(en,'12 μήνες','12 months')}</small></header><BarList rows={data.byCategory} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Ανά τμήμα','By department')}</h3><small>{L(en,'Τα 6 με τις περισσότερες','Top 6')}</small></header><BarList rows={data.byDepartment} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Είδος αναφοράς','Kind of report')}</h3><small>{L(en,'12 μήνες','12 months')}</small></header><BarList rows={data.byKind} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Έκβαση για τον ασθενή','Outcome for the patient')}</h3><small>{L(en,`WHO · ${data.patient} συμβάντα`,`WHO · ${data.patient} incidents`)}</small></header><BarList rows={data.byOutcome} empty={L(en,'Κανένα κλινικό ή μη κλινικό συμβάν.','No clinical or non-clinical incident.')}/></section>
   </div>
+  </MoreSection>
  </div>
 }

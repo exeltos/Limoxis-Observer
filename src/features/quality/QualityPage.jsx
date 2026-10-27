@@ -215,7 +215,7 @@ export function QualityPage(){
    {key:'draft',icon:Clock3,value:count.drafts,label:L('Προσχέδια','Drafts'),active:surveyFilters.quick==='draft',go:()=>toggleSurvey('draft')} ]})(),
  }
  const figures=({
-  overview:centerFigures,
+  overview:[],
   reports:[],
   incidents:[],
   deviations:[],
@@ -257,7 +257,6 @@ export function QualityPage(){
  return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and deviation to corrective action, objectives and management review.')}
   actions={<div className="row-actions">
    {download}
-   {tab==='overview'&&<ActionButton label={t('sidebarNav.openMeetingsSection')} tone="neutral" onClick={()=>navigate('/meetings?tab=departments')}><Users size={17}/><span>{t('sidebarNav.openMeetingsSection')}</span></ActionButton>}
    {tab==='audits'&&<ActionButton label={L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires')} tone="neutral" onClick={()=>{remember();goTo('/quality/audit-questionnaires')}}><ListChecks size={17}/><span>{L('Ερωτηματολόγια','Questionnaires')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
@@ -266,8 +265,9 @@ export function QualityPage(){
    {figures.map(figure=><MetricCard key={figure.key} loading={(records.loading||deviations.loading)&&typeof figure.value==='number'} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active}/>)}
   </div></div>}
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
-   {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} objectives={objectives.objectives} language={language} categories={categories}
-    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
+   <p className="quality-summary-line" aria-live="polite">{centerFigures.map(figure=><button key={figure.key} type="button" className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined} onClick={figure.go}><b>{figure.value}</b> {figure.label.toLowerCase()}</button>)}</p>
+   {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} findings={records.data.findings} objectives={objectives.objectives} onMeetings={()=>navigate('/meetings?tab=departments')} language={language} categories={categories}
+    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='readiness'?(auditView.set('mode','readiness'),setTab('audits')):target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
   </div>:<>
   {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
   {tab==='incidents'&&<ReportSummary view={incidents} loading={records.loading} language={language}/>}
