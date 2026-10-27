@@ -1,4 +1,4 @@
-import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotWindowMinutes } from './controlDueRules'
+import { dueState,nextDeadlineAfter,periodBounds,periodProgress,slotOpens,slotWindowMinutes,zonedParts } from './controlDueRules'
 
 export function frequencyLabel(f={},language='el'){
  const en=language==='en'
@@ -70,6 +70,19 @@ export function isControlDue(item,department,now=new Date()){
  if(!assignment?.nextDueAt||item?.status==='inactive')return false
  if(assignmentProgress(item,department,now)?.complete)return false
  return new Date(assignment.nextDueAt)<periodBounds(assignmentFrequency(item,department),now).end
+}
+
+// When the next entry of a daily control with set times opens (1 hour before
+// its time): a Date while it is still to come, otherwise null (it can be
+// recorded now; a late one too).
+export function recordOpensAt(item,department,now=new Date()){
+ const frequency=assignmentFrequency(item,department)
+ if(frequency?.kind!=='daily'||!(frequency.times||[]).some(Boolean))return null
+ const progress=assignmentProgress(item,department,now)
+ if(!progress||progress.complete)return null
+ const p=zonedParts(periodBounds(frequency,now).start)
+ const opens=slotOpens(frequency,{year:p.year,month:p.month,day:p.day},progress.done)
+ return new Date(now)<opens?opens:null
 }
 
 // The current period's progress for one department: { required, done, extra,

@@ -228,3 +228,18 @@ describe('working days only (Monday–Friday)', () => {
     expect(sql).toContain('private.control_working_day(p_frequency, v_local::date + 1)')
   })
 })
+
+describe('the entry opens 1 hour before its time', () => {
+  it('waits until an hour before the next set time of the day, then stays open (late too)', async () => {
+    const { recordOpensAt } = await import('../src/features/controls/controlScheduling')
+    const item = (history) => ({ id: 'A', frequency: { kind: 'daily', times: ['09:00', '17:00'] }, assignments: { ΜΕΘ: { nextDueAt: '2026-10-27T08:00:00Z', history } } })
+    // 06:30 Athens, nothing done: 09:00 opens at 08:00.
+    expect(recordOpensAt(item([]), 'ΜΕΘ', new Date('2026-10-27T04:30:00Z'))?.toISOString()).toBe('2026-10-27T06:00:00.000Z')
+    // 08:30 Athens: open.
+    expect(recordOpensAt(item([]), 'ΜΕΘ', new Date('2026-10-27T06:30:00Z'))).toBeNull()
+    // 09:00 done at 09:10; 12:00 Athens: 17:00 opens at 16:00.
+    expect(recordOpensAt(item([{ at: '2026-10-27T07:10:00Z' }]), 'ΜΕΘ', new Date('2026-10-27T10:00:00Z'))?.toISOString()).toBe('2026-10-27T14:00:00.000Z')
+    // A weekly control is never held back.
+    expect(recordOpensAt({ frequency: { kind: 'weekly', interval: 1 }, assignments: { ΜΕΘ: {} } }, 'ΜΕΘ')).toBeNull()
+  })
+})
