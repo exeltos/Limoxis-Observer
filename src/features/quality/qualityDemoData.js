@@ -95,6 +95,14 @@ qualityAudits.push(
 qualityIncidents.push(
  {id:'INC-260905-022',title:'Αντισηπτικό χεριών στην είσοδο κάθε θαλάμου',titleEn:'Hand rub at every room entrance',department:'Παθολογική',departmentEn:'Internal Medicine',date:'2026-09-05',severity:'low',status:'reported',reportKind:'suggestion',incidentClass:'nearMiss',reachedPatient:false,harmOccurred:false,impact:'none',category:'other',reportedBy:'Demo Link Nurse',owner:'',description:'Πρόταση: δοσομετρητής αλκοολούχου διαλύματος δίπλα σε κάθε πόρτα θαλάμου, όχι μόνο στον διάδρομο.',descriptionEn:'Idea: an alcohol rub dispenser next to every room door, not only in the corridor.',attachments:[],history:[{at:'2026-09-05T10:00:00+03:00',action:'incidentReported',actor:'Demo Link Nurse'}]},
 )
+// The inbox: neutral staff reports Quality has not classified yet.
+const inboxReport=(id,date,department,departmentEn,title,titleEn,description,descriptionEn,reportedBy)=>({id,title,titleEn,department,departmentEn,date,severity:'low',status:'reported',reportKind:'report',incidentClass:'',reachedPatient:false,harmOccurred:false,impact:'none',category:'other',reportedBy,owner:'',description,descriptionEn,attachments:[],history:[{at:`${date}T09:00:00+03:00`,action:'incidentReported',actor:reportedBy}]})
+qualityIncidents.push(
+ inboxReport('INC-260905-023','2026-09-05','Παθολογική','Internal Medicine','Έλλειψη γαντιών μεγέθους S στο φαρμακείο του ορόφου','No size S gloves in the ward pharmacy','Από το πρωί δεν υπάρχουν γάντια S στο φαρμακείο του ορόφου.','No size S gloves in the ward pharmacy since this morning.','Demo Link Nurse'),
+ inboxReport('INC-260904-024','2026-09-04','ΤΕΠ','ER','Ο ασθενής περίμενε 3 ώρες χωρίς ενημέρωση','Patient waited 3 hours without information','Συγγενής παραπονέθηκε ότι δεν ενημερώθηκε για την αναμονή.','A relative complained about not being told about the wait.','Demo Department Manager'),
+ inboxReport('INC-260827-025','2026-08-27','Χειρουργική','Surgery','Ο σωλήνας αναρρόφησης δεν ήταν στη θέση του στην αίθουσα 2','Suction tube missing in operating room 2','Βρέθηκε κενή η θέση του σωλήνα πριν την έναρξη της επέμβασης.','The tube holder was empty before the operation started.','Demo Link Nurse'),
+ inboxReport('INC-260814-026','2026-08-14','Καρδιολογική','Cardiology','Ο πίνακας δοσολογίας στο γραφείο νοσηλευτών είναι αδιάβαστος','The dosing chart at the nurses station is unreadable','Το εκτυπωμένο φύλλο έχει ξεθωριάσει και δεν διαβάζονται οι δόσεις.','The printed sheet has faded and the doses cannot be read.','Demo Department Manager'),
+)
 // Phase 3: audits carry their checklist; each «No» has its finding, and the
 // year has a programme of audits.
 const auditRow=(id,item,itemEn,answer='',note='',findingId)=>({id,item,itemEn,required:true,answer,note,...(findingId?{findingId}:{})})

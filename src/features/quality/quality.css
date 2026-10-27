@@ -244,3 +244,11 @@
 .quality-english-more .lo-more-section-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin-bottom:8px}
 @media (max-width:760px){.quality-english-more .lo-more-section-body{grid-template-columns:minmax(0,1fr)}}
 .quality-english-more .lo-more-section-body[hidden]{display:none}
+
+/* The reports inbox: one summary line and two chips instead of boxes (as in Controls). */
+.quality-summary-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;margin:0;padding:12px 18px 0;font-size:13px;color:var(--lo-color-muted)}
+.quality-summary-line>button{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer}
+.quality-summary-line>button:hover,.quality-summary-line>button:focus-visible{color:var(--lo-color-primary);text-decoration:underline}
+.quality-summary-line b{font-size:14px;color:var(--lo-color-text)}
+.quality-summary-line .is-late b{color:var(--lo-status-danger-fg)}
+.quality-status-switch{flex:0 0 auto}

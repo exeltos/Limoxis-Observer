@@ -5,6 +5,7 @@ import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -196,31 +197,56 @@ function ageText(row,language){
  return language==='en'?`${days} ${days===1?'day':'days'} open`:`${days} ${days===1?'ημέρα':'ημέρες'} ανοιχτή`
 }
 
-export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport}){
+const WAITING_DAYS=7
+const waitingDays=row=>{const days=-daysUntil(row.date);return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
+
+// The inbox (`inbox`): staff reports Quality has not classified yet, as one
+// summary line and two chips instead of boxes, columns and a filter popover.
+export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false}){
  const en=language==='en'
  const {filters,set}=view
- const items=view.filtered
+ const quick=inbox?filters.quick:null
+ const items=useMemo(()=>inbox&&(quick==='waiting'||quick==='new')?view.filtered.filter(row=>{const days=waitingDays(row);return days!=null&&(quick==='waiting'?days>=WAITING_DAYS:days<WAITING_DAYS)}):view.filtered,[view.filtered,inbox,quick])
  const paging=usePage(items,JSON.stringify(filters))
- const advanced=['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
- return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search…':'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={view.clear}>
+ const advanced=inbox?(filters.department!=='all')+(quick==='waiting'||quick==='new'?1:0):['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
+ const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
+ const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
+ const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
+ const columns=inbox
+  ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:en?'Responsible':'Υπεύθυνος'}]
+  :null
+ const chipDepartments=inbox&&view.departments.length>1&&view.departments.length<=6
+ const popover=inbox&&(chipDepartments||view.departments.length<2)?null:<>
    <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
    <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   </>
+ return <>
+  {inbox&&<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   <button type="button" className={waits.length?'is-late':''} onClick={()=>set('quick',null)}><b>{waits.length}</b> {en?'to assess':'προς αξιολόγηση'}</button>
+   <button type="button" className={longWaiting?'is-late':''} onClick={()=>set('quick',quick==='waiting'?null:'waiting')}><b>{longWaiting}</b> {en?`waiting over ${WAITING_DAYS} days`:`αναμένουν πάνω από ${WAITING_DAYS} ημέρες`}</button>
+   {oldest>0&&<span>{en?'Oldest waiting':'Παλαιότερη αναμονή'}: <b>{oldest}</b> {dayWord(oldest)}</span>}
+  </>}</p>}
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search…':'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={view.clear}
+   end={inbox&&<>
+    <ChoiceChips className="quality-status-switch" label="" options={[{value:'waiting',label:en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`},{value:'new',label:en?'New this week':'Νέες αυτή την εβδομάδα'}]} selected={quick==='waiting'||quick==='new'?[quick]:[]} onToggle={value=>set('quick',quick===value?null:value)}/>
+    {chipDepartments&&<ChoiceChips className="quality-status-switch" label="" options={view.departments.map(value=>({value,label:value}))} selected={filters.department==='all'?[]:[filters.department]} onToggle={value=>set('department',filters.department===value?'all':value)}/>}
+   </>}>
+   {popover}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}
+    columns={columns||[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}
     emptyTitle={en?'No records':'Δεν υπάρχουν εγγραφές'} emptyText={en?'Reports appear in the inbox first; after Quality classifies them they move to the incident register.':'Οι νέες αναφορές εμφανίζονται πρώτα στο inbox· μετά την ταξινόμηση από την Ποιότητα μεταφέρονται στο μητρώο Συμβάντων.'}
     rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,items)})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
      <td>{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
-     <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>
+     {!inbox&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
-     <td><StageTrack stage={row.stage} language={language}/></td>
+     <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage} language={language}/>}</td>
      <td>{roleTitleText(row.owner,language)||'—'}</td>
     </>}}/>
   </div>

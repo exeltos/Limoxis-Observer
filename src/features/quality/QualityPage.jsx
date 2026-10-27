@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,UserRound,Users,Wrench } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users,Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -209,7 +209,7 @@ export function QualityPage(){
   {key:'sentinel',icon:AlertOctagon,value:view.counts.sentinel,label:L('Συμβάντα-φρουροί','Sentinel events'),tone:view.counts.sentinel?'danger':'neutral',active:view.filters.quick==='sentinel',go:()=>toggle(view,'quick','sentinel')}]
  const figures=({
   overview:centerFigures,
-  reports:incidentFigures(register),
+  reports:[],
   incidents:incidentFigures(incidents),
   deviations:[
    {key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Σύνολο αποκλίσεων','Total deviations'),active:deviations.filters.scope==='registry'&&deviations.filters.status==='all'&&!deviations.filters.quick,go:()=>{deviations.clear();deviations.set('scope','registry')}},
@@ -258,7 +258,6 @@ export function QualityPage(){
    {download}
    {tab==='overview'&&<ActionButton label={t('sidebarNav.openMeetingsSection')} tone="neutral" onClick={()=>navigate('/meetings?tab=departments')}><Users size={17}/><span>{t('sidebarNav.openMeetingsSection')}</span></ActionButton>}
    {tab==='audits'&&<ActionButton label={L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires')} tone="neutral" onClick={()=>{remember();goTo('/quality/audit-questionnaires')}}><ListChecks size={17}/><span>{L('Ερωτηματολόγια','Questionnaires')}</span></ActionButton>}
-   {tab==='reports'&&canReportIncident&&<ActionButton label={L('Οι αναφορές μου','My reports')} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{L('Οι αναφορές μου','My reports')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
   <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:item.value==='reports'?register.counts.open:item.value==='incidents'?incidents.counts.open:item.value==='deviations'?deviations.counts.total:item.value==='actions'?overdueActions:0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
@@ -269,7 +268,7 @@ export function QualityPage(){
    {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} objectives={objectives.objectives} language={language} categories={categories}
     onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
   </div>:<section className="surface registry-workspace workspace-column workspace-fill">
-   {tab==='reports'&&<ReportRegister view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
+   {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='incidents'&&<ReportRegister view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
