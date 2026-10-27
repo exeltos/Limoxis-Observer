@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -46,7 +47,7 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }) {
   }
   return <ObserverDialog width="wide" className="control-missed-dialog" eyebrow={en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} title={title} subtitle={en ? `${total} missed` : `${total} ${total === 1 ? 'χαμένος' : 'χαμένοι'}`} onClose={onClose} footer={<DialogActions><ExportMenu menuWidth={300} disabled={!shown.length} items={[{ id: 'missed', kind: 'print', label: en ? `All (${total})` : `Όλοι (${total})`, onClick: () => print() }, ...(shown.length > 1 ? [{ id: 'picked', kind: 'print', label: en ? `Ticked (${chosen.length})` : `Επιλεγμένοι (${chosen.length})`, disabled: !chosen.length, onClick: () => print(chosen) }] : [])]} /></DialogActions>}>
     {shown.map((line) => <section key={`${line.item.id}|${line.department}`} className="control-missed-section">
-      <header>{shown.length > 1 && <input type="checkbox" className="control-expiry-group-pick" aria-label={en ? `Print «${head(line)}»` : `Εκτύπωση «${head(line)}»`} checked={picked.has(keyOf(line))} onChange={() => pick(keyOf(line))} />}<strong>{head(line)}</strong><small>{frequencyLabel(line.frequency || line.item.frequency, language)} · {en ? `${line.missed} missed` : `χάθηκαν ${line.missed}`}</small></header>
+      <header>{shown.length > 1 && <CheckboxField className="control-expiry-group-pick" label="" ariaLabel={en ? `Print «${head(line)}»` : `Εκτύπωση «${head(line)}»`} checked={picked.has(keyOf(line))} onChange={() => pick(keyOf(line))} />}<strong>{head(line)}</strong><small>{frequencyLabel(line.frequency || line.item.frequency, language)} · {en ? `${line.missed} missed` : `χάθηκαν ${line.missed}`}</small></header>
       {(line.missedDays || []).length
         ? <ul>{line.missedDays.slice().reverse().map((miss) => { const text = missedText(miss, language); return <li key={miss.day}><span>{text.when}</span><strong>{text.times}</strong></li> })}</ul>
         : <p>{en ? 'The dates are named for daily and weekly controls.' : 'Οι ημερομηνίες φαίνονται για τους ημερήσιους και εβδομαδιαίους ελέγχους.'}</p>}

@@ -2,6 +2,7 @@ import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { ChevronDown,ChevronRight,ListChecks,PackageX } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { printReport } from '../../core/export/reportDocument'
@@ -55,7 +56,7 @@ function ExpiryGroupList({items,canRemove,onRemove,showControl,showDepartment,la
   const open=closed?opened.has(group.key):!opened.has(group.key)
   return <section key={group.key} className={`control-expiry-group ${group.head.kind}`}>
    <div className="control-expiry-group-bar">
-    {picked&&<input type="checkbox" className="control-expiry-group-pick" aria-label={en?`Print «${title(group.head)}»`:`Εκτύπωση «${title(group.head)}»`} checked={picked.has(group.key)} onChange={()=>onPick?.(group.key)}/>}
+    {picked&&<CheckboxField className="control-expiry-group-pick" label="" ariaLabel={en?`Print «${title(group.head)}»`:`Εκτύπωση «${title(group.head)}»`} checked={picked.has(group.key)} onChange={()=>onPick?.(group.key)}/>}
     <button type="button" className="control-expiry-group-head" aria-expanded={open} onClick={()=>toggle(group.key)}>{open?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>}<strong>{title(group.head)}</strong><small>{group.items.length}</small></button>
    </div>
    {open&&<ul className="control-expiry-items">{group.items.map(item=><li key={item.key} className={`control-expiry-item ${item.state}`}>

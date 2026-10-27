@@ -156,7 +156,8 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-inline{overflow:auto;flex:1 1 auto;min-height:0;padding:8px 16px 16px}
 .control-expiry-group{border:1px solid var(--lo-color-border);border-radius:12px;margin-top:10px;overflow:hidden}
 .control-expiry-group-bar{display:flex;align-items:center;gap:4px;padding-left:10px;background:var(--lo-color-surface-muted)}
-.control-expiry-group-pick{width:16px;height:16px;margin:0;flex:0 0 auto;cursor:pointer;accent-color:var(--lo-color-primary)}
+.lo-checkbox-field.control-expiry-group-pick{flex:0 0 auto;width:auto;min-height:0;height:auto;margin:0;gap:0}
+.lo-checkbox-field.control-expiry-group-pick .lo-checkbox-label:empty{display:none}
 .control-expiry-group-head{display:flex;align-items:center;gap:7px;width:100%;padding:9px 12px;font:inherit;font-size:13.5px;text-align:left;color:var(--lo-color-text);background:var(--lo-color-surface-muted);border:0;cursor:pointer}
 .control-expiry-group-head small{padding:1px 8px;border-radius:999px;background:var(--lo-color-surface);border:1px solid var(--lo-color-border);font-size:11.5px;color:var(--lo-color-muted)}
 .control-expiry-group.expired .control-expiry-group-head strong{color:var(--lo-status-danger-fg)}
