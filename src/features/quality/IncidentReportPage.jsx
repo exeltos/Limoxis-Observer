@@ -111,6 +111,8 @@ export function IncidentReportPage() {
     })
   }, [departments, self])
 
+  const reporterName = auditActorFromAuth({ profile, user }).name
+  const reporterLine = [reporterName, en ? self?.positionEn || self?.position : self?.position, draft.department || self?.department].filter(Boolean).join(' · ')
   const titleKey = en ? 'titleEn' : 'title'
   const descriptionKey = en ? 'descriptionEn' : 'description'
   const actionsKey = en ? 'immediateActionsEn' : 'immediateActions'
@@ -144,7 +146,7 @@ export function IncidentReportPage() {
         description: draft.description || draft.descriptionEn,
         descriptionEn: draft.descriptionEn || draft.description,
         immediateActions: draft.immediateActions || draft.immediateActionsEn,
-        reportedByLabel: draft.anonymous ? '' : actor.name,
+        reportedByLabel: draft.anonymous ? '' : [actor.name, self?.position].filter(Boolean).join(' · '),
         history: [auditEvent('recordCreated', { actor })],
       }, profile?.id || user?.id)
       const recordId = created?.dbId
@@ -208,9 +210,9 @@ export function IncidentReportPage() {
         {files.length > 0 && <ul className="quality-report-files">{files.map((file, index) => <li key={`${file.name}-${index}`}><Paperclip size={14} aria-hidden="true" /><span>{file.name}</span><small>{fileSize(file.size)}</small><button type="button" aria-label={en ? `Remove ${file.name}` : `Αφαίρεση ${file.name}`} onClick={() => setFiles(current => current.filter((_, at) => at !== index))}><X size={14} /></button></li>)}</ul>}
         <div><Button variant="secondary" disabled={!attachmentsOn || files.length >= MAX_FILES || saving} onClick={() => fileInput.current?.click()}><Plus size={15} />{en ? 'Add files' : 'Προσθήκη αρχείων'}</Button></div>
       </FormCard>
-      <div className="quality-report-wide"><CheckboxField label={en ? 'Anonymous report' : 'Ανώνυμη αναφορά'} hint={draft.anonymous ? (en ? 'Your name is not stored anywhere. Quality cannot ask you for details.' : 'Το όνομά σας δεν καταγράφεται πουθενά και η Ποιότητα δεν θα μπορεί να σας ζητήσει διευκρινίσεις.') : (en ? 'Otherwise you can follow the report in «My reports».' : 'Αλλιώς θα παρακολουθείτε την αναφορά στις «Αναφορές μου».')} checked={draft.anonymous} onChange={value => { set('anonymous', value); if (value) setFiles([]) }} /></div>
+      <div className="quality-report-wide"><CheckboxField label={en ? 'Anonymous report' : 'Ανώνυμη αναφορά'} hint={draft.anonymous ? (en ? 'Your name is not stored anywhere. Quality cannot ask you for details.' : 'Το όνομά σας δεν καταγράφεται πουθενά και η Ποιότητα δεν θα μπορεί να σας ζητήσει διευκρινίσεις.') : (en ? `The report is recorded with your details: ${reporterLine}. You can follow it in «My reports».` : `Η αναφορά καταγράφεται με τα στοιχεία σας: ${reporterLine}. Την παρακολουθείτε στις «Αναφορές μου».`)} checked={draft.anonymous} onChange={value => { set('anonymous', value); if (value) setFiles([]) }} /></div>
       {canManage && <div className="quality-report-wide"><MoreSection moreLabel={en ? 'For Quality' : 'Για την Ποιότητα'} lessLabel={en ? 'Less' : 'Λιγότερα'}>
-        <FormGrid columns={2}>
+        <FormGrid columns={2} className="quality-report-pair">
           <ChoiceField label={t('severity')} value={draft.severity} options={severityOptions(t)} onChange={value => set('severity', value)} />
           <QualityOwnerField record={draft} onChange={patch} />
         </FormGrid>

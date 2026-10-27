@@ -272,3 +272,11 @@
 .quality-report-files li>small{color:var(--lo-color-muted)}
 .quality-report-files li>button{border:0;background:none;cursor:pointer;color:var(--lo-color-muted);display:grid;place-items:center}
 .quality-report-wide{grid-column:1/-1}
+/* The report form: labels and fields of one row share one line (department, date, time; severity, owner). */
+.quality-report-form .lo-form-grid{align-items:start!important}
+.quality-report-form .lo-form-grid>*{display:flex;flex-direction:column;gap:0;margin:0!important}
+.record-section.quality-report-form .lo-form-grid.cols-3>*>label{display:block!important;box-sizing:border-box;height:28px!important;line-height:16px!important;padding:0 0 12px!important}
+.record-section.quality-report-form .lo-form-grid.cols-3.lo-form-grid>*>span.lo-field-label{display:block!important;height:16px!important;line-height:16px!important;padding:0!important;box-sizing:border-box}
+.quality-report-form .lo-form-grid :is(input:not([type="checkbox"]),select,button.searchable-select-trigger){height:40px!important;min-height:40px!important;box-sizing:border-box}
+.quality-report-form .lo-form-grid .time-field-control{margin-top:1px}
+.quality-report-pair.lo-form-grid>*:first-child>label{display:block;height:24px;padding-bottom:5px;box-sizing:border-box}
