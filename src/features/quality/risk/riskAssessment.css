@@ -472,3 +472,5 @@
 .risk-view-history tr.is-current{background:var(--lo-color-primary-soft)}
 .risk-tabs{position:relative}
 .risk-tabs-menu{position:absolute;top:50%;right:10px;transform:translateY(-50%)}
+.risk-view-none{margin:0;font-size:13px;color:var(--lo-color-muted)}
+.risk-view-indicators{display:flex;flex-wrap:wrap;gap:6px}
