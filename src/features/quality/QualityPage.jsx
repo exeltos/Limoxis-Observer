@@ -1,5 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -12,6 +12,8 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useAuth } from '../../core/auth/AuthContext'
 import { can,CAPABILITIES,ROLES } from '../../core/permissions/roles'
 import { registryStorageKey,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -19,10 +21,10 @@ import { readSessionValue,writeSessionJson,writeSessionValue } from '../../core/
 import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
-import { loadQualityRecords } from './qualityService'
+import { fillAuditProgramme,loadQualityRecords } from './qualityService'
 import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { QualityOverview } from './QualityOverview'
-import { ActionsList,ActionsSummary,AuditsList,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
+import { ActionsList,ActionsSummary,AuditsList,AuditsSummary,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
 import { capaSourceFor } from './qualityDeviations'
 import { useLibraries } from '../management/useLibraries'
 import { RiskAssessmentsPanel } from './risk/RiskAssessmentsPanel'
@@ -68,6 +70,7 @@ const STALE_DAYS=45
 function useQualityRecords(organizationId){
  const [data,setData]=useState({incidents:[],findings:[],capas:[],audits:[]})
  const [loading,setLoading]=useState(true)
+ const [version,setVersion]=useState(0)
  useEffect(()=>{
   let active=true
   setLoading(true)
@@ -76,8 +79,8 @@ function useQualityRecords(organizationId){
    .then(lists=>{if(active)setData(Object.fromEntries(sections.map((section,index)=>[section,lists[index]])))})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
- },[organizationId])
- return {data,loading}
+ },[organizationId,version])
+ return {data,loading,reload:()=>setVersion(value=>value+1)}
 }
 
 export function QualityPage(){
@@ -85,6 +88,8 @@ export function QualityPage(){
  const en=language==='en'
  const L=(el,enText)=>en?enText:el
  const {role,membership,tenant,actualRole,isRolePreview,moduleEnabled}=useTenant()
+ const {notify}=useFeedback()
+ const {user}=useAuth()
  const suppliersOn=moduleEnabled('suppliers')
  const navigate=useNavigate()
  const {goTo}=useContextualNavigation('/quality')
@@ -105,6 +110,13 @@ export function QualityPage(){
  const canReportIncident=ownerFullAccess||can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
 
  const records=useQualityRecords(tenant?.id)
+ const [fillingProgramme,setFillingProgramme]=useState(false)
+ const fillProgramme=async()=>{
+  setFillingProgramme(true)
+  try{const count=await fillAuditProgramme(tenant?.id,records.data.audits,user?.id||null);records.reload();notify(count?L(`Προγραμματίστηκαν ${count} επιθεωρήσεις.`,`${count} audits planned.`):L('Όλα τα τμήματα έχουν επόμενη επιθεώρηση.','Every department has a next audit.'),'success')}
+  catch{notify(L('Δεν ήταν δυνατός ο προγραμματισμός. Δοκιμάστε ξανά.','The audits could not be planned. Try again.'),'error')}
+  finally{setFillingProgramme(false)}
+ }
  const queue=useDeviationQueue(tenant?.id,canManage)
  const {libraries}=useLibraries()
  const categories=libraries.incidentCategories||[]
@@ -137,7 +149,6 @@ export function QualityPage(){
 
  const overdueActions=actions.filter(isOverdueAction).length
  const missedObjectives=objectives.objectives.filter(isMissed).length
- const toggle=(view,key,value)=>view.set(key,view.filters[key]===value?null:value)
  const goReports=quick=>{setTab('reports');register.clear();register.set('quick',quick)}
  const goIncidents=quick=>{setTab('incidents');incidents.clear();if(quick)incidents.set('quick',quick)}
  const goActions=quick=>{setTab('actions');actionView.set('quick',quick)}
@@ -158,13 +169,7 @@ export function QualityPage(){
  const staleRegisters=registerList.registers.filter(isStaleRegister).length
  const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
  const latestRisks=latestAssessment?summarizeRisks(latestAssessment.risks||[]):null
- const quickFigure=(view,key,icon,value,label,tone)=>({key,icon,value,label,tone,active:view.filters.quick===key,go:()=>toggle(view,'quick',key)})
  const tabFigures={
-  audits:[quickFigure(auditView,'planned',CalendarDays,auditCount.planned,L('Μένουν φέτος','Left this year')),
-   quickFigure(auditView,'month',CalendarClock,auditCount.month,L('Αυτόν τον μήνα','This month')),
-   quickFigure(auditView,'overdue',AlertTriangle,auditCount.overdue,L('Εκπρόθεσμες','Overdue'),auditCount.overdue?'danger':'neutral'),
-   quickFigure(auditView,'withFindings',SearchCheck,auditCount.withFindings,L('Με ανοιχτές αποκλίσεις','With open deviations'),auditCount.withFindings?'warning':'neutral'),
-   {...quickFigure(auditView,'completed',Gauge,auditCount.compliance==null?'—':`${auditCount.compliance}%`,L('Μέση συμμόρφωση φέτος','Average compliance this year'))}],
   risks:latestRisks?[
    {key:'assessments',icon:ShieldAlert,value:riskList.items.length,label:L('Εκτιμήσεις κινδύνου','Risk assessments')},
    {key:'risks',icon:ClipboardList,value:latestRisks.total,label:L(`Κίνδυνοι · ${latestAssessment.periodLabel}`,`Risks · ${latestAssessment.periodLabel}`)},
@@ -257,6 +262,7 @@ export function QualityPage(){
   {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
   {tab==='incidents'&&<ReportSummary view={incidents} loading={records.loading} language={language}/>}
   {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
+  {tab==='audits'&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
   {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language} onOrphans={()=>goDeviations('withoutCapa')}/>}
   <section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}

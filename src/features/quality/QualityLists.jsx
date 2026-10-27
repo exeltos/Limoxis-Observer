@@ -15,6 +15,7 @@ import { AuditProgramme } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
 import { AuditCoverage,AuditDashboard } from './audits/AuditViews'
 import { AUDIT_KINDS,AUDIT_STANDARDS,standardShort } from './audits/auditStandards'
+import { auditCoverage } from './audits/auditModel'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 
 // The two record lists of the Quality Center that are not the reports register:
@@ -182,6 +183,25 @@ export function filterAudits(rows,filters,en){
 export function auditCounts(rows){
  const done=rows.filter(AUDIT_QUICK.completed).map(auditCompliance).filter(score=>score.rate!=null)
  return {...Object.fromEntries(Object.entries(AUDIT_QUICK).map(([id,test])=>[id,rows.filter(test).length])),compliance:done.length?Math.round(done.reduce((sum,score)=>sum+score.rate,0)/done.length):null}
+}
+
+// The audit figures in one line (as the other lists): what is left this year,
+// the late ones, those with open deviations, the compliance, how many departments
+// have their two audits of the year, and the departments with no next audit,
+// with the button that plans them.
+export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false}){
+ const en=language==='en'
+ const {filters,set}=view
+ const coverage=useMemo(()=>auditCoverage(rows),[rows])
+ const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
+ return<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+   {figure('planned',counts.planned,en?'left this year':'μένουν φέτος')}
+   {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
+   {figure('withFindings',counts.withFindings,en?'with open deviations':'με ανοιχτές αποκλίσεις')}
+   {counts.compliance!=null&&<span><b>{counts.compliance}%</b> {en?'compliance':'συμμόρφωση'}</span>}
+   {coverage.rows.length>0&&<span title={en?'Departments by audits this year (target 2)':'Τμήματα ανά επιθεωρήσεις φέτος (στόχος 2)'}>{en?'This year':'Φέτος'}: <b>{coverage.full}</b> {en?'with 2/2':'με 2/2'} · <b>{coverage.half}</b> {en?'with 1/2':'με 1/2'} · <b>{coverage.none}</b> {en?'with none':'χωρίς'}</span>}
+   {coverage.noNext>0&&(onFill?<button type="button" className="is-late" disabled={filling} onClick={onFill}><b>{coverage.noNext}</b> {en?'departments without a next audit — plan them':'τμήματα χωρίς επόμενη επιθεώρηση — προγραμματισμός'}</button>:<span className="is-late"><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</span>)}
+  </>}</p>
 }
 
 // The audits as the year's programme (departments × months), a list, the

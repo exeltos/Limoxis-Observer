@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { selectAllPages } from '../../core/data/inChunks'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadQualityLocal, saveQualityLocal } from './qualityStore'
+import { missingNextAudits } from './audits/auditModel'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { DETAIL_TABLES, INCIDENT_DETAIL_SELECT, incidentDetailRows, incidentDetailsFromRow, keptDetails } from './incidentDetails'
 import { CHECKLIST_FIELDS, CHECKLIST_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, teamFromRows, teamRows, SUB_ACTION_FIELDS, analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, newRowId, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from './qualityRelations'
@@ -514,3 +515,18 @@ export async function removeCapaProgress(organizationId,record,entryId){
   return reloadById('capas',organizationId,record.dbId)
 }
 
+
+// The next audit of every department that has none planned. In production the
+// database plans them (the same rule runs when an audit is completed); the demo
+// plans them on its own copy. Returns how many were planned.
+export async function fillAuditProgramme(organizationId,audits=[],userId=null){
+  if(isDemoDataEnvironment()){
+    const planned=missingNextAudits(audits)
+    for(const audit of planned)await createQualityRecord('audits',organizationId,{...audit,id:undefined,code:undefined},userId)
+    return planned.length
+  }
+  assertReady(organizationId)
+  const {data,error}=await supabase.rpc('quality_fill_audit_programme',{p_organization_id:organizationId})
+  if(error)throw error
+  return Number(data)||0
+}

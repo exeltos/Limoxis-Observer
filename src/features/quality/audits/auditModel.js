@@ -232,6 +232,44 @@ export function competenceWarnings(team = [], { certificates = [], assignments =
 
 export const nextAuditDate = (lastDate, riskLevel) => (lastDate ? addMonths(lastDate, riskMonths(riskLevel)) : '')
 
+// A department is audited twice a year (every 6 months unless its audit says
+// otherwise) and always has its next audit planned. The database does the same
+// when an audit is completed (quality_schedule_next_audit).
+const isLiveInternal = audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && (audit.auditType || 'internal') === 'internal' && Boolean(audit.department)
+const isOpenAudit = audit => audit.status === 'planned' || audit.status === 'in_progress'
+
+// Per department: audits of the year (done or planned) and whether one is still planned.
+export function auditCoverage(audits = [], year = today().slice(0, 4)) {
+  const byDepartment = new Map()
+  audits.filter(isLiveInternal).forEach(audit => {
+    const entry = byDepartment.get(audit.department) || { department: audit.department, inYear: 0, hasNext: false }
+    if (String(audit.completedDate || audit.plannedDate || '').startsWith(String(year))) entry.inYear += 1
+    if (isOpenAudit(audit)) entry.hasNext = true
+    byDepartment.set(audit.department, entry)
+  })
+  const rows = [...byDepartment.values()]
+  return { rows, full: rows.filter(row => row.inYear >= 2).length, half: rows.filter(row => row.inYear === 1).length, none: rows.filter(row => row.inYear === 0).length, noNext: rows.filter(row => !row.hasNext).length }
+}
+
+// The next audit of every department that has none open: its last audit's
+// standard, questionnaire and lead auditor, a month (the 15th), never in the past.
+export function missingNextAudits(audits = [], on = today()) {
+  const latest = new Map()
+  audits.filter(isLiveInternal).forEach(audit => {
+    const key = `${audit.department}|${audit.standard || ''}`
+    const when = audit.completedDate || audit.plannedDate || ''
+    if (!latest.has(key) || when > (latest.get(key).completedDate || latest.get(key).plannedDate || '')) latest.set(key, audit)
+  })
+  const open = new Set(audits.filter(audit => isLiveInternal(audit) && isOpenAudit(audit)).map(audit => `${audit.department}|${audit.standard || ''}`))
+  return [...latest.entries()].filter(([key]) => !open.has(key)).map(([, last]) => {
+    const months = last.frequencyMonths || 6
+    const base = String(last.completedDate || last.plannedDate || on).slice(0, 7)
+    let due = `${addMonths(`${base}-15`, months).slice(0, 7)}-15`
+    if (due < on) due = `${addMonths(`${on.slice(0, 7)}-15`, 1).slice(0, 7)}-15`
+    return { ...last, plannedDate: due, completedDate: null, status: 'planned', plannedMonthOnly: true, frequencyMonths: months, findingIds: [], history: [], checklist: [], checklistSource: '' }
+  })
+}
+
 // The year's planned audits as plans: one per department and month, or the
 // month alone when the day is not fixed yet.
 export const plannedDay = (year, month, day = 1) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
