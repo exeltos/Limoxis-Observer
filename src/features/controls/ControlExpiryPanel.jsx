@@ -2,7 +2,7 @@ import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { ChevronDown,ChevronRight,ListChecks,PackageX } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -134,10 +134,9 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
    {departmentOptions.map(dep=>{const list=searched.filter(item=>item.department===dep);if(!list.length)return null;return <button key={dep} type="button" className={`control-expiry-department${expiryCounts(list).expired?' has-expired':''}`} onClick={()=>setDialog(dep)}><strong>{dep}<ChevronRight size={17} aria-hidden="true"/></strong>{numbers(list)}</button>})}
   </div>
   :<div className="control-expiry-inline"><ExpiryGroupList items={searched} showDepartment={false} {...listProps}/></div>}
-  {dialog!=null&&<ObserverDialog width="workspace" className="control-expiry-dialog" eyebrow={en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'} title={placeName(dialog)} subtitle={(()=>{const c=expiryCounts(dialogItems);return en?`${c.expired} expired · ${c.expiring} expiring · ${dialogItems.length} items`:`${c.expired} ληγμένα · ${c.expiring} λήγουν · ${dialogItems.length} υλικά`})()} onClose={()=>setDialog(null)} footer={<>
+  {dialog!=null&&<ObserverDialog width="workspace" className="control-expiry-dialog" eyebrow={en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'} title={placeName(dialog)} subtitle={(()=>{const c=expiryCounts(dialogItems);return en?`${c.expired} expired · ${c.expiring} expiring · ${dialogItems.length} items`:`${c.expired} ληγμένα · ${c.expiring} λήγουν · ${dialogItems.length} υλικά`})()} onClose={()=>setDialog(null)} footer={<DialogActions>
    <ExportMenu items={[{id:'list',kind:'print',label:en?'Expiry list':'Λίστα λήξεων',onClick:()=>printList(dialog,dialogItems)},{id:'return',kind:'print',label:en?`Return & replacement form (${returnOf(dialogItems).length})`:`Έντυπο επιστροφής (${returnOf(dialogItems).length})`,disabled:!returnOf(dialogItems).length,onClick:()=>printReturnForm(returnOf(dialogItems))}]}/>
-   <Button onClick={()=>setDialog(null)}>{en?'Close':'Κλείσιμο'}</Button>
-  </>}>
+  </DialogActions>}>
    <ExpiryGroupList items={dialogItems} showDepartment={dialog==='all'} {...listProps}/>
   </ObserverDialog>}
  </RecordTabPanel>

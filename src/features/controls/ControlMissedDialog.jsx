@@ -1,6 +1,5 @@
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { Button } from '../../design-system/Button'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel } from './controlScheduling'
@@ -38,10 +37,7 @@ export function ControlMissedDialog({ lines = [], title, language, onClose }) {
     })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
-  return <ObserverDialog width="wide" className="control-missed-dialog" eyebrow={en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} title={title} subtitle={en ? `${total} missed` : `${total} ${total === 1 ? 'χαμένος' : 'χαμένοι'}`} onClose={onClose} footer={<>
-    <ExportMenu disabled={!shown.length} items={[{ id: 'missed', kind: 'print', label: en ? 'Missed controls' : 'Χαμένοι έλεγχοι', onClick: print }]} />
-    <Button onClick={onClose}>{en ? 'Close' : 'Κλείσιμο'}</Button>
-  </>}>
+  return <ObserverDialog width="wide" className="control-missed-dialog" eyebrow={en ? 'Missed controls' : 'Χαμένοι έλεγχοι'} title={title} subtitle={en ? `${total} missed` : `${total} ${total === 1 ? 'χαμένος' : 'χαμένοι'}`} onClose={onClose} footer={<DialogActions><ExportMenu disabled={!shown.length} items={[{ id: 'missed', kind: 'print', label: en ? 'Missed controls' : 'Χαμένοι έλεγχοι', onClick: print }]} /></DialogActions>}>
     {shown.map((line) => <section key={`${line.item.id}|${line.department}`} className="control-missed-section">
       <header><strong>{head(line)}</strong><small>{frequencyLabel(line.frequency || line.item.frequency, language)} · {en ? `${line.missed} missed` : `χάθηκαν ${line.missed}`}</small></header>
       {(line.missedDays || []).length
