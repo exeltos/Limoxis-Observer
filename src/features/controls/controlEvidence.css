@@ -125,3 +125,6 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-history-toolbar .filter-field select{height:34px;min-width:200px}
 /* A check's finding (department without a list): what was found, not a live expiry. */
 .control-expiry-finding{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+/* Record straight from the list (a department's control due today). */
+.controls-record-now{display:inline-flex;align-items:center;gap:5px;margin-top:4px;padding:4px 10px;border:0;border-radius:8px;background:var(--lo-color-primary);color:#fff;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+.controls-record-now:hover,.controls-record-now:focus-visible{background:var(--lo-color-primary-hover,var(--lo-color-primary));outline:0}

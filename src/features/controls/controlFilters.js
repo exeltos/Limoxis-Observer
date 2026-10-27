@@ -3,7 +3,7 @@
 // the calendar and every export count the same assignments. (A control kept
 // for one department used to bring all its departments into adherence, the
 // calendar and the exports.)
-import { assignmentStatus, frequencyLabel } from './controlScheduling'
+import { assignmentStatus, frequencyLabel, isControlDue } from './controlScheduling'
 import { controlCriticality, criticalityLabel } from './controlCriticality'
 import { ownerText } from '../employees/peopleOptions'
 
@@ -35,6 +35,8 @@ export function filterControlRows(rows = [], { query = '', status = ALL, now = n
     .map((row) => {
       if (status === ALL) return row
       if (status === 'temporary') return { ...row, departments: row.departments.filter((dep) => Boolean(row.item.assignments?.[dep]?.hasDraft)) }
+      // «Due today»: the department still owes an entry in the current period, or is overdue.
+      if (status === 'today') return { ...row, departments: row.departments.filter((dep) => isControlDue(row.item, dep, now)) }
       return { ...row, departments: row.departments.filter((dep) => assignmentStatus(row.item, dep, now) === status) }
     })
     .filter((row) => row.departments.length > 0)

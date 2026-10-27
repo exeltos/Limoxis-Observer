@@ -49,6 +49,7 @@ const TASKS = {
     ],
   ],
   department_manager: [
+    ['controlsDueToday', 'Έλεγχοι για σήμερα', 'Controls due today', '/controls?due=today'],
     ['overdueControls', 'Εκπρόθεσμοι έλεγχοι τμήματος', 'Overdue department controls', '/controls'],
     ['pendingSamples', 'Εκκρεμή δείγματα τμήματος', 'Pending department samples', '/laboratory'],
   ],

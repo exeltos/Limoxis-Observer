@@ -20,7 +20,7 @@ import { SectionHeader } from '../../design-system/SectionHeader'
 import { SignalBadge } from '../../design-system/StatusBadge'
 import { useLibraries } from '../management/useLibraries'
 import { assignmentFrequency,assignmentProgress,getAssignment,frequencyLabel } from './controlScheduling'
-import { progressCompleteMessage,progressText } from './controlProgress'
+import { progressCompleteMessage,progressText,deadlineText } from './controlProgress'
 import { controlActorFromAuth } from './controlActor'
 import { checklistRows,emptyStructuredRow,listHasFinding,printControlForm } from './controlStructured'
 import { saveControlDraft } from './controlCloudService'
@@ -198,7 +198,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
  return <div className="control-execution-page-editor">
   {/* One line: the department and the frequency are already under the title. */}
-  <p className="control-exec-meta-line">{[[en?'Scheduled':'Προγραμματισμένος',formatDateTime(assignment?.nextDueAt,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><span key={label}>{label}: <strong>{value||'—'}</strong></span>)}</p>
+  <p className="control-exec-meta-line">{[[en?'Deadline':'Προθεσμία',deadlineText(assignment?.nextDueAt,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><span key={label}>{label}: <strong>{value||'—'}</strong></span>)}</p>
   {progress?.complete&&!extraReason&&<div className="governance-banner control-period-complete" role="status"><CheckCircle2 size={17}/><span><strong>{progressCompleteMessage(progress,language)}</strong> {en?'A further entry is possible only as an extra entry, with its reason.':'Νέα καταχώρηση γίνεται μόνο ως έκτακτη, με αιτιολογία.'}</span><Button variant="secondary" onClick={()=>setAskExtra(true)}>{en?'Extra entry':'Έκτακτη καταχώρηση'}</Button></div>}
   {extraReason&&<div className="governance-banner warning control-period-extra" role="status"><FileWarning size={17}/><span><strong>{en?'Extra entry':'Έκτακτη καταχώρηση'}</strong> · {extraReason}</span><Button variant="quiet" onClick={()=>setExtraReason('')}>{en?'Cancel':'Ακύρωση'}</Button></div>}
   {askExtra&&<ControlExtraEntryDialog language={language} progress={progress} onClose={()=>setAskExtra(false)} onConfirm={reason=>{setExtraReason(reason);setAskExtra(false)}}/>}

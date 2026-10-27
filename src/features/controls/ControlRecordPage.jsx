@@ -1,6 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { Building2, CalendarX2, ClipboardCheck, FileClock, ListChecks, LockKeyhole, PlayCircle, Pencil, FileText, RotateCcw, Trash2 } from 'lucide-react'
-import { useNavigate,useParams,useSearchParams } from 'react-router-dom'
+import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -42,6 +42,8 @@ export function ControlRecordPage(){
  const {controlId}=useParams()
  const [searchParams]=useSearchParams()
  const navigate=useNavigate()
+ // Where an entry started from the list or the home page returns to after saving.
+ const location=useLocation(),returnTo=location.state?.returnTo||null
  const {confirm,notify,notifyError}=useFeedback()
  const {language,locale}=useLanguage();const en=language==='en'
  const {role,membership,tenant,canAccessRecord}=useTenant()
@@ -147,7 +149,8 @@ export function ControlRecordPage(){
    setTab('history')
    setHistoryPage(1)
    notify(en?'Control recorded.':'Ο έλεγχος καταχωρήθηκε.','success')
-   navigate(recordUrl,{replace:true})
+   // Back to where the entry started (the list or the home page), else to the control.
+   navigate(returnTo||recordUrl,{replace:true})
   }catch(error){
    // Someone else completed the period meanwhile: say so and show the new count.
    if(error?.code==='control_period_complete'){await reload();notify(progressCompleteMessage(error.progress||assignmentProgress(record,department),language),'warning');return}
@@ -183,7 +186,7 @@ export function ControlRecordPage(){
 
  if(executing){
   if(!canExecute)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'This control is not available for execution right now.':'Ο έλεγχος δεν είναι διαθέσιμος για καταχώρηση αυτή τη στιγμή.'}</div></Page>
-  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} onBack={()=>navigate(recordUrl,{replace:true})}>
+  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} onBack={()=>navigate(returnTo||recordUrl,{replace:true})}>
    <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
   </EntityRecordShell></Page>
  }

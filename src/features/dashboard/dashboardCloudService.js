@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { hasSupabaseConfig } from '../../core/config/env'
+import { periodBounds } from '../controls/controlDueRules'
 
 const countOf=async query=>{
   const {count,error}=await query
@@ -32,11 +33,20 @@ export function loadDashboardMetrics(organizationId,{departmentIds=null}={}){
 // One call (dashboard_metrics, 20261127100000) returns every count; the
 // separate counts below are kept for a database without it yet.
 async function readDashboardMetrics(organizationId,departmentIds){
+  const [metrics,dueToday]=await Promise.all([readAllMetrics(organizationId,departmentIds),departmentIds?.length?countControlsDueToday(organizationId,departmentIds):null])
+  return dueToday===null?metrics:{...metrics,controlsDueToday:dueToday}
+}
+async function readAllMetrics(organizationId,departmentIds){
   if(typeof supabase.rpc==='function'){
     const {data,error}=await supabase.rpc('dashboard_metrics',{p_organization_id:organizationId,p_department_ids:departmentIds?.length?departmentIds:null})
     if(!error&&data&&typeof data==='object')return Object.fromEntries(Object.entries(data).map(([key,value])=>[key,Number(value||0)]))
   }
   return readDashboardCounts(organizationId,departmentIds)
+}
+// A department's controls to record today: due by the end of today (Athens), overdue ones included, paused ones not.
+function countControlsDueToday(organizationId,departmentIds){
+  const end=periodBounds({kind:'daily'},new Date()).end.toISOString()
+  return countOf(supabase.from('control_assignments').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).in('department_id',departmentIds).eq('status','scheduled').lt('next_due_at',end))
 }
 
 async function readDashboardCounts(organizationId,departmentIds){

@@ -6,6 +6,7 @@ import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { clinicalCases, demoSurveillanceList } from '../surveillance/clinicalDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { loadControlAssignmentsLocal } from '../controls/controlStore'
+import { periodBounds } from '../controls/controlDueRules'
 import { loadQualityLocal } from '../quality/qualityStore'
 import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
@@ -37,6 +38,10 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     row =>
       inDepartment(row) && isOpen(row.status) && row.next_due_at && new Date(row.next_due_at) < now,
   ).length
+  const endOfToday = periodBounds({ kind: 'daily' }, now).end
+  const controlsDueToday = loadControlAssignmentsLocal().filter(
+    row => inDepartment(row) && row.status === 'scheduled' && row.next_due_at && new Date(row.next_due_at) < endOfToday,
+  ).length
   const pendingSamples = laboratorySamples.filter(
     row =>
       inDepartment(row) &&
@@ -63,6 +68,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
       item => item.status === 'active' && item.nextReview && item.nextReview <= today,
     ).length,
     overdueControls,
+    controlsDueToday,
     pendingSamples,
     newSamplesToday: s.dashboard?.newSamplesToday ?? 0,
     positiveLab: m.totalPositive,
