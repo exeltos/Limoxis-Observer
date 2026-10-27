@@ -84,11 +84,16 @@ begin
 end;
 $$;
 
-create trigger trg_quality_audits_schedule_next
-  after update of status on public.quality_audits
-  for each row
-  when (new.status = 'completed' and old.status is distinct from 'completed')
-  execute function public.quality_audits_schedule_next();
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_quality_audits_schedule_next' and tgrelid = 'public.quality_audits'::regclass) then
+    create trigger trg_quality_audits_schedule_next
+      after update of status on public.quality_audits
+      for each row
+      when (new.status = 'completed' and old.status is distinct from 'completed')
+      execute function public.quality_audits_schedule_next();
+  end if;
+end $$;
 
 create or replace function public.quality_fill_audit_programme(p_organization_id uuid)
 returns integer
