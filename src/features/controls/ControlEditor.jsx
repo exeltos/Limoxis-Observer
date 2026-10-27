@@ -1,6 +1,5 @@
 import { Fragment,useEffect,useMemo,useState } from 'react'
-import { Building2,CalendarClock,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,LockKeyhole,PauseCircle,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
-import { TimeField } from '../../design-system/TimeField'
+import { Building2,ClipboardCheck,FileText,Hash,ListChecks,ListTodo,LockKeyhole,PauseCircle,Pencil,Plus,ToggleLeft,Trash2,Type } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { Page } from '../../design-system/Page'
@@ -18,6 +17,7 @@ import { Link } from 'react-router-dom'
 import { similarControls } from './controlSimilarity'
 import { ControlDepartmentResponses } from './ControlDepartmentResponses'
 import { ControlDepartmentSchedules } from './ControlDepartmentSchedules'
+import { ControlTimesList } from './ControlTimesList'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { findLibraryItem,libraryOptions,useLibraries } from '../management/useLibraries'
 import { loadBundleLibrary } from '../management/bundleLibraryData'
@@ -150,9 +150,8 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      <div className="control-editor-grid schedule">
       <SearchableSelect label={en?'Frequency *':'Συχνότητα *'} value={draft.frequency.kind} options={FREQUENCIES.map(kind=>({value:kind,label:freqLabel[kind]}))} onChange={v=>v&&setF('kind',v)} {...selectText} clearLabel=""/>
       {draft.frequency.kind==='daily'
-       ?<Field label={en?'Times per day *':'Φορές ανά ημέρα *'}><input type="number" min="1" max="12" value={count} onChange={e=>setF('timesPerDay',Math.max(1,Math.min(12,Number(e.target.value)||1)))}/></Field>
+       ?<ControlTimesList times={times} language={language} onChange={next=>setDraft(d=>({...d,frequency:{...d.frequency,times:next,timesPerDay:next.length}}))}/>
        :<Field label={`${en?'Every':'Κάθε'} (${intervalUnit}) *`}><input type="number" min="1" value={draft.frequency.interval||1} onChange={e=>setF('interval',Math.max(1,Number(e.target.value)||1))}/></Field>}
-     {draft.frequency.kind==='daily'&&<div className="control-editor-times"><span className="lo-field-label"><CalendarClock size={13}/> {en?'Execution times':'Ώρες εκτέλεσης'}</span><div className="control-time-grid">{times.map((time,i)=><TimeField key={i} className="control-time-field" label={count>1?(en?`Execution ${i+1}`:`${i+1}η εκτέλεση`):''} value={time} onChange={v=>{const next=[...times];next[i]=v;setF('times',next)}}/>)}</div></div>}
      {draft.frequency.kind==='daily'&&<YesNoField label={en?'Working days only (Monday–Friday)':'Μόνο εργάσιμες (Δευτέρα–Παρασκευή)'} hint={en?'Saturday and Sunday are not due and do not count as missed.':'Σάββατο και Κυριακή δεν ζητείται και δεν μετρά ως «χάθηκε».'} value={draft.frequency.weekdaysOnly===true} onChange={value=>setF('weekdaysOnly',value?true:undefined)}/>}
      </div>
      {draft.frequency.kind==='daily'&&!showMargin&&draft.frequency.toleranceMinutes==null&&<button type="button" className="control-editor-link" onClick={()=>setShowMargin(true)}>{en?'Change the margin':'Αλλαγή περιθωρίου'}</button>}

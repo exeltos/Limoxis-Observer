@@ -94,9 +94,27 @@
   gap: 5px;
 }
 .control-editor-times .control-time-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+/* Each time with its ✕, then «+ Time»: the number per day follows from the list. */
+.control-time-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.control-time-item > .control-time-field {
+  width: 104px;
+}
+.control-time-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  align-self: center;
+  justify-self: start;
 }
 .control-editor-choices {
   display: grid;
@@ -371,8 +389,8 @@
 .control-editor-paused-chip:hover,.control-editor-paused-chip:focus-visible{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
 /* The schedule on one row: frequency, times a day, the times, working days only. */
 .control-editor-grid.schedule {
-  grid-template-columns: minmax(160px, 1fr) minmax(120px, 0.6fr) minmax(0, 2fr) minmax(0, 1.6fr);
-  align-items: end;
+  grid-template-columns: minmax(160px, 1fr) minmax(0, 2.6fr) minmax(0, 1.6fr);
+  align-items: start;
 }
 /* The margin after a time opens from a link: rarely changed. */
 .control-editor-link {

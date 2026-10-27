@@ -1,9 +1,8 @@
-import { CalendarClock } from 'lucide-react'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
-import { TimeField } from '../../design-system/TimeField'
 import { YesNoField } from '../../design-system/YesNoField'
 import { frequencyLabel, scheduleSummary } from './controlScheduling'
+import { ControlTimesList } from './ControlTimesList'
 
 const KINDS = ['daily', 'weekly', 'monthly', 'yearly', 'custom']
 
@@ -63,33 +62,11 @@ export function ControlDepartmentSchedules({ departments = [], base, value = {},
                   clearLabel=""
                 />
                 {frequency.kind === 'daily' ? (
-                  <Field label={en ? 'Times per day' : 'Φορές ανά ημέρα'}>
-                    <input type="number" min="1" max="12" value={count} onChange={event => patch(department, { timesPerDay: Math.max(1, Math.min(12, Number(event.target.value) || 1)) })} />
-                  </Field>
+                  <ControlTimesList className="control-department-times" times={times} language={en ? 'en' : 'el'} onChange={next => patch(department, { times: next, timesPerDay: next.length })} />
                 ) : (
                   <Field label={en ? 'Every (units)' : 'Κάθε (μονάδες)'}>
                     <input type="number" min="1" value={frequency.interval || 1} onChange={event => patch(department, { interval: Math.max(1, Number(event.target.value) || 1) })} />
                   </Field>
-                )}
-                {frequency.kind === 'daily' && (
-                  <div className="control-department-times">
-                    <span className="lo-field-label"><CalendarClock size={13} /> {en ? 'Execution times' : 'Ώρες εκτέλεσης'}</span>
-                    <div className="control-time-grid">
-                      {times.map((time, index) => (
-                        <TimeField
-                          key={index}
-                          className="control-time-field"
-                          label={count > 1 ? (en ? `Execution ${index + 1}` : `${index + 1}η εκτέλεση`) : ''}
-                          value={time}
-                          onChange={next => {
-                            const updated = [...times]
-                            updated[index] = next
-                            patch(department, { times: updated })
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
                 )}
                 {frequency.kind === 'daily' && (
                   <YesNoField label={en ? 'Working days only (Monday–Friday)' : 'Μόνο εργάσιμες (Δευτέρα–Παρασκευή)'} value={frequency.weekdaysOnly === true} onChange={value => patch(department, { weekdaysOnly: value ? true : undefined })} />
