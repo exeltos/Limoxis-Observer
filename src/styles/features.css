@@ -1003,7 +1003,7 @@
 
 .committee-overview-grid .committee-governance-watch{
   align-self:start;
-  margin-top:66px;
+  margin-top:0;
 }
 
 /* Committee creation: larger controls without wasting a full row per field. */

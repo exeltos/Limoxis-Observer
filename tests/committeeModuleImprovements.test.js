@@ -30,7 +30,7 @@ describe('committees list: overdue-action filter and sortable columns', () => {
   it('makes the overdue-actions metric a dedicated filter instead of only counting', () => {
     expect(listPage).toContain('overdueOnly')
     expect(listPage).toContain('isOverdue')
-    expect(listPage).toContain('onClick={()=>setOverdueOnly(v=>!v)}')
+    expect(listPage).toContain('go:()=>setOverdueOnly(v=>!v)')
   })
 
   it('sorts every column', () => {

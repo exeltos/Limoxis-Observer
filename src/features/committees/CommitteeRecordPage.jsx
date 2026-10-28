@@ -644,6 +644,7 @@ export function CommitteeRecordPage() {
   return (
     <Page fill>
       <EntityRecordShell
+        className="committee-record-shell"
         avatar={<Users size={19} />}
         eyebrow={record.id}
         title={record.name}
