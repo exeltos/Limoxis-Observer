@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { AlertOctagon, CalendarClock, CheckSquare2, ClipboardList, History, Plus, Stethoscope, Trash2, Wrench } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
+import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
@@ -93,10 +94,12 @@ export function EquipmentRecordPage() {
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList },
   ]
   const headerActions = !isNew && <div className="row-actions">
-    {canRecord && row.state !== 'retired' && <Button variant="secondary" onClick={() => setEvent(newEvent('maintenance'))}><Wrench size={15} />{en ? 'Record a check' : 'Καταγραφή ελέγχου'}</Button>}
-    {canRecord && row.state === 'in_service' && <Button variant="secondary" onClick={() => setEvent(newEvent('failure'))}><AlertOctagon size={15} />{en ? 'Report a failure' : 'Δήλωση βλάβης'}</Button>}
-    {canRecord && row.state === 'out_of_service' && <Button onClick={() => setEvent(newEvent('repair'))}><Wrench size={15} />{en ? 'Record the repair' : 'Καταγραφή επισκευής'}</Button>}
-    {access.canManage && row.state === 'out_of_service' && <Button variant="secondary" onClick={() => openCapa(row.downEvent)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}
+    {/* One «Record» menu (check, failure or repair); the corrective action sits in the out-of-service notice below. */}
+    {canRecord && row.state !== 'retired' && <OverflowMenu label={en ? 'Record' : 'Καταγραφή'} width={240} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'Record' : 'Καταγραφή'}</>} items={[
+      { id: 'maintenance', label: en ? 'Record a check' : 'Καταγραφή ελέγχου', icon: Wrench, onClick: () => setEvent(newEvent('maintenance')) },
+      row.state === 'in_service' && { id: 'failure', label: en ? 'Report a failure' : 'Δήλωση βλάβης', icon: AlertOctagon, onClick: () => setEvent(newEvent('failure')) },
+      row.state === 'out_of_service' && { id: 'repair', label: en ? 'Record the repair' : 'Καταγραφή επισκευής', icon: Wrench, onClick: () => setEvent(newEvent('repair')) },
+    ].filter(Boolean)} />}
     {access.canManage && <IconButton tone="danger" label={en ? 'Delete device' : 'Διαγραφή εξοπλισμού'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
   const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Register device' : 'Καταχώριση εξοπλισμού') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>

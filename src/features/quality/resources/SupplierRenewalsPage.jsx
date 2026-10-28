@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BellRing, CheckCircle2, Clock3, FileCheck2, FileText, Lock, MailCheck, RefreshCw, Send, X } from 'lucide-react'
+import { BellRing, CheckCircle2, FileText, Lock, RefreshCw, Send, X } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { BackButton } from '../../../design-system/BackButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -9,7 +9,6 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { ExportMenu } from '../../../design-system/ExportMenu'
 import { Button } from '../../../design-system/Button'
 import { IconButton } from '../../../design-system/IconButton'
-import { MetricCard } from '../../../design-system/MetricCard'
 import { CheckboxField } from '../../../design-system/CheckboxField'
 import { SectionHeader } from '../../../design-system/SectionHeader'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
@@ -105,13 +104,13 @@ export function SupplierRenewalsPage() {
     subtitle={en ? 'Expired supplier certificates, by supplier. After approval each supplier gets one e-mail with a personal link listing all its certificates to replace; you then accept each one and it replaces the old one.' : 'Τα ληγμένα πιστοποιητικά, ανά προμηθευτή. Μετά την έγκριση κάθε προμηθευτής λαμβάνει ένα email με προσωπικό σύνδεσμο για όλα τα πιστοποιητικά του· όταν αποδεχθείτε το καθένα, αντικαθιστά το παλιό.'}
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={exportQueue} />
       {selectedRows.length > 0 && <Button onClick={() => setSending(selectedRows)}><Send size={15} />{perms.send ? (en ? `Approve & send (${selectedSuppliers} e-mails)` : `Έγκριση & αποστολή (${selectedSuppliers} email)`) : (en ? `Propose (${selectedRows.length})` : `Πρόταση για αποστολή (${selectedRows.length})`)}</Button>}</div>}>
-    <div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{ '--quality-kpis': 5 }}>
-      <MetricCard icon={AlertTriangle} value={list.loading ? '—' : counts.expired} label={en ? `Expired certificates · ${counts.suppliers} suppliers` : `Ληγμένα πιστοποιητικά · ${counts.suppliers} προμηθευτές`} tone={counts.expired ? 'danger' : 'neutral'} active={filters.state === 'expired' && filters.request === 'all'} onClick={() => setFilters({ ...NO_FILTERS })} />
-      <MetricCard icon={Send} value={list.loading ? '—' : counts.toSend} label={en ? 'Suppliers ready to send' : 'Προμηθευτές για αποστολή'} active={filters.request === 'none'} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'none' }))} />
-      <MetricCard icon={MailCheck} value={loading ? '—' : counts.sent} label={en ? 'Awaiting the supplier' : 'Αναμένεται ο προμηθευτής'} active={filters.request === 'sent'} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'sent' }))} />
-      <MetricCard icon={Clock3} value={loading ? '—' : counts.noResponse} label={en ? 'No answer (7+ days)' : 'Χωρίς απάντηση (7+ ημέρες)'} tone={counts.noResponse ? 'warning' : 'neutral'} active={filters.request === 'no_response'} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'no_response' }))} />
-      <MetricCard icon={FileCheck2} value={loading ? '—' : counts.submitted} label={en ? 'Submitted, to review' : 'Υποβλήθηκαν, προς έλεγχο'} tone={counts.submitted ? 'warning' : 'neutral'} />
-    </div></div>
+    <p className="quality-summary-line" aria-live="polite">
+      <button type="button" className={`${counts.expired ? 'is-late' : ''}${filters.state === 'expired' && filters.request === 'all' ? ' is-active' : ''}`.trim() || undefined} onClick={() => setFilters({ ...NO_FILTERS })}><b>{list.loading ? '—' : counts.expired}</b> {en ? `expired certificates · ${counts.suppliers} suppliers` : `ληγμένα πιστοποιητικά · ${counts.suppliers} προμηθευτές`}</button>
+      <button type="button" className={filters.request === 'none' ? 'is-active' : undefined} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'none' }))}><b>{list.loading ? '—' : counts.toSend}</b> {en ? 'suppliers ready to send' : 'προμηθευτές για αποστολή'}</button>
+      <button type="button" className={filters.request === 'sent' ? 'is-active' : undefined} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'sent' }))}><b>{loading ? '—' : counts.sent}</b> {en ? 'awaiting the supplier' : 'αναμένεται ο προμηθευτής'}</button>
+      <button type="button" className={`${counts.noResponse ? 'is-late' : ''}${filters.request === 'no_response' ? ' is-active' : ''}`.trim() || undefined} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'no_response' }))}><b>{loading ? '—' : counts.noResponse}</b> {en ? 'no answer (7+ days)' : 'χωρίς απάντηση (7+ ημέρες)'}</button>
+      <span><b>{loading ? '—' : counts.submitted}</b> {en ? 'submitted, to review' : 'υποβλήθηκαν, προς έλεγχο'}</span>
+    </p>
     <section className="surface registry-workspace workspace-column workspace-fill">
       {!perms.send && <p className="supplier-renewal-locked-note"><Lock size={14} /><span>{en ? `Sending and reminders: ${lockedText.toLowerCase()}. You can propose requests for approval.` : `Αποστολή και υπενθυμίσεις: ${lockedText}. Μπορείτε να προτείνετε αιτήματα για έγκριση.`}</span></p>}
       {submitted.length > 0 && <div className="supplier-renewal-review">
