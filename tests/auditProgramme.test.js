@@ -10,6 +10,7 @@ import { auditCompliance, pendingFindings } from '../src/features/quality/qualit
 import { sectionFacts } from '../src/features/quality/review/reviewTemplate'
 
 const migration = fs.readFileSync('supabase/migrations/20261124100000_quality_audit_programme.sql', 'utf8')
+const wardMigration = fs.readFileSync('supabase/migrations/20261214110000_quality_audit_ward_checklist_seed.sql', 'utf8')
 const demoMigration = fs.readFileSync('supabase/migrations/20261124100100_quality_audit_programme_demo.sql', 'utf8')
 const template = key => SYSTEM_TEMPLATES.find(item => item.key === key)
 const row = (answer, extra = {}) => ({ id: `r-${Math.random()}`, item: 'Q', chapterRef: '7', clauseRef: '7.1', weight: 1, answer, ...extra })
@@ -17,7 +18,7 @@ const row = (answer, extra = {}) => ({ id: `r-${Math.random()}`, item: 'Q', chap
 describe('questionnaire library', () => {
   it('seeds one questionnaire per chosen standard with good coverage', () => {
     const counts = Object.fromEntries(SYSTEM_TEMPLATES.map(item => [item.standard, item.questions.length]))
-    expect(Object.keys(counts).sort()).toEqual(['haccp', 'iso15189', 'iso15224', 'iso9001', 'jci', 'temos'])
+    expect(Object.keys(counts).sort()).toEqual(['haccp', 'iso15189', 'iso15224', 'iso9001', 'jci', 'other', 'temos'])
     for (const [standard, count] of Object.entries(counts)) expect(count, standard).toBeGreaterThanOrEqual(30)
     expect(counts.iso9001).toBeGreaterThan(70)
     expect(counts.jci).toBeGreaterThanOrEqual(90)
@@ -35,7 +36,7 @@ describe('questionnaire library', () => {
 
   it('writes audit questions with a clause reference and says it is not the standard text', () => {
     for (const item of SYSTEM_TEMPLATES) {
-      expect(item.description).toContain('Δεν αποτελεί το κείμενο του προτύπου')
+      if (item.key !== 'ward') expect(item.description).toContain('Δεν αποτελεί το κείμενο του προτύπου')
       expect(item.isSystem).toBe(true)
       for (const question of item.questions) {
         expect(question.clauseRef, question.question).toBeTruthy()
@@ -46,7 +47,7 @@ describe('questionnaire library', () => {
 
   it('seeds the database library from the same files', () => {
     for (const seed of QUESTIONNAIRE_SEEDS) {
-      const match = migration.match(new RegExp(`'(\\{"k":"${seed.key}".*?\\})'::jsonb j\\)`, 's'))
+      const match = (migration + wardMigration).match(new RegExp(`'(\\{"k":"${seed.key}".*?\\})'::jsonb j\\)`, 's'))
       expect(match, seed.key).toBeTruthy()
       const stored = JSON.parse(match[1].replace(/''/g, "'"))
       expect(stored.ch.flatMap(chapter => chapter.q.map(question => question[1]))).toEqual(seed.chapters.flatMap(chapter => chapter.questions.map(question => question[1])))

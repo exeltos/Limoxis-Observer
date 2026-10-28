@@ -267,11 +267,11 @@ export const guideContent = {
       start: l('Ορίστε έναν έλεγχο και αναθέστε τον σε ένα τμήμα. Οι προγραμματισμένες και οι εκτελεσμένες εκτελέσεις φαίνονται στο Ημερολόγιο του μενού, φίλτρο «Έλεγχοι».', 'Define a control and assign it to a department. Planned and performed executions are in the Calendar in the menu, filter “Controls”.'),
     },
     quality: {
-      what: l('Συμβάντα, επιθεωρήσεις, ευρήματα και διορθωτικές και προληπτικές ενέργειες σε ελεγχόμενη ροή.', 'Incidents, audits, findings and CAPA (corrective and preventive actions) in a controlled flow.'),
+      what: l('Συμβάντα, επιθεωρήσεις, αυτοαξιολογήσεις τμημάτων, ευρήματα και διορθωτικές και προληπτικές ενέργειες σε ελεγχόμενη ροή.', 'Incidents, audits, department self-assessments, findings and CAPA (corrective and preventive actions) in a controlled flow.'),
       users: l('Υπεύθυνος Ποιότητας, Ομάδα Ελέγχου Λοιμώξεων, κάθε εργαζόμενος για αναφορά συμβάντος.', 'Quality Manager, Infection Control team, any employee to report an incident.'),
       needs: null,
       analysis: l('Καρτέλα «Ποιότητα»: συμβάντα, συμβάντα με βλάβη, ανοιχτές και εκπρόθεσμες διορθωτικές ενέργειες, σοβαρότητα και κατάσταση.', 'Tab “Quality”: incidents, incidents with harm, open and overdue CAPA, severity and status.'),
-      start: l('Αναφέρετε ένα συμβάν και ανοίξτε διορθωτική ενέργεια με υπεύθυνο και προθεσμία.', 'Report an incident and open a CAPA with an owner and due date.'),
+      start: l('Αναφέρετε ένα συμβάν και ανοίξτε διορθωτική ενέργεια με υπεύθυνο και προθεσμία. Για την προετοιμασία επιθεώρησης: Επιθεωρήσεις › Αυτοαξιολόγηση, επιλέξτε ερωτηματολόγιο και τμήματα και ενεργοποιήστε την για να τη δουν τα τμήματα.', 'Report an incident and open a CAPA with an owner and due date. To prepare for an audit: Audits › Self-assessment, choose a questionnaire and departments and release it for the departments to see.'),
     },
     training: {
       what: l('Εκπαιδευτικά προγράμματα, συμμετέχοντες, ολοκληρώσεις, αξιολογήσεις και πιστοποιητικά.', 'Training programmes, participants, completions, assessments and certificates.'),

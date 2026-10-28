@@ -533,6 +533,11 @@
       "authenticated": true,
       "reason": "Switches the nightly e-mailing of suppliers with expired certificates on or off for a hospital (and its reminder days); only whoever may send the requests (Platform Owner, Hospital Admin, Quality Manager, designated sender)."
     },
+    "quality_self_assessment_save": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "A department answers (or submits) the self-assessment released to it, and the Quality team may too before it closes: only the answers, notes and evidence of existing rows are merged, never the questions; progress and score are recomputed."
+    },
     "review_laboratory_sample": {
       "category": "rpc",
       "authenticated": true,

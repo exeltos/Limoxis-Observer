@@ -15,6 +15,7 @@ import { subActionProgress } from './qualityDeviations'
 import { AuditProgramme } from './QualityAuditParts'
 import { auditCompliance } from './qualityAudit'
 import { AuditReadiness } from './audits/AuditViews'
+import { SelfAssessmentPanel } from './selfAssessment/SelfAssessmentPanel'
 import { AUDIT_KINDS,AUDIT_STANDARDS,standardShort } from './audits/auditStandards'
 import { auditCoverage } from './audits/auditModel'
 import { roleTitleText } from '../../core/i18n/roleTitles'
@@ -209,8 +210,9 @@ const AUDIT_VIEWS=[
  {id:'programme',icon:CalendarDays,label:['Πρόγραμμα','Programme']},
  {id:'list',icon:ListChecks,label:['Λίστα','List']},
  {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
+ {id:'self',icon:ClipboardCheck,label:['Αυτοαξιολόγηση','Self-assessment']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null,onRound=null}){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null,onRound=null,canManageSelf=false}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
@@ -228,6 +230,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
   {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan}/>}
+  {mode==='self'&&<SelfAssessmentPanel query={filters.query} canManage={canManageSelf}/>}
   {mode==='readiness'&&<AuditReadiness audits={filtered} findings={findings} language={language} onOpenAudit={audit=>onOpen(audit,filtered)} onOpenFinding={onOpenFinding}/>}
   {mode==='list'&&<>
    <div className="scroll-table" ref={registry.scrollRef}>
