@@ -1,13 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { readSessionJson, readSessionValue, removeSessionValue, writeSessionJson, writeSessionValue } from '../../core/storage/browserStorage'
-import { DemoGuideDialog, OVERALL_RATING } from './DemoGuideDialog'
-import { DemoApplicationDialog } from './DemoApplicationDialog'
-import { DemoActiveScenario, DemoScenarioRating } from './DemoScenarioCards'
-import { DemoStepSpotlight } from './DemoStepSpotlight'
-import { DemoGuidedTour } from './DemoGuidedTour'
-import { DemoWelcome } from './DemoWelcome'
-import { DEMO_TOURS, demoTourStops, hasDemoTour } from './demoTours'
+import { lazyPage } from '../../core/errors/chunkRecovery'
 import { DEMO_ALL_SCENARIOS, demoScenarioDoneCount, demoScenariosForRole, demoStepsComplete } from './demoScenarios'
 import { DEMO_SCENARIO_EVENT, DEMO_STEP_EVENT, demoScenarioForPath, nextDemoScenario } from './demoScenarioSignals'
 import { hasExtendedDemoSchema, loadMyDemoApplicationRequests, loadMyDemoProgress, loadMyDemoRatings, rateDemoEvaluationStep, requestDemoApplication, setDemoEvaluationStep, submitDemoScenarioFeedback } from './demoEvaluationService'
@@ -16,7 +10,17 @@ const ACTIVE_KEY='lo.demo.activeScenario'
 const STEPS_KEY='lo.demo.scenarioSteps'
 const STARTED_KEY='lo.demo.scenarioStarted' // { scenario: started at (ms) }, for the time it took
 const TOUR_KEY='lo.demo.tour' // the scenario whose guided tour is on
-const OVERALL=OVERALL_RATING
+// The evaluation's windows and the tours load when a Demo evaluation is on, never for a hospital.
+// Each window has its own boundary: one that is still loading must not hide the others.
+const alone=Lazy=>function Alone(props){return <Suspense fallback={null}><Lazy {...props}/></Suspense>}
+const DemoGuideDialog=alone(lazyPage(()=>import('./DemoGuideDialog'),'DemoGuideDialog'))
+const DemoApplicationDialog=alone(lazyPage(()=>import('./DemoApplicationDialog'),'DemoApplicationDialog'))
+const DemoActiveScenario=alone(lazyPage(()=>import('./DemoScenarioCards'),'DemoActiveScenario'))
+const DemoScenarioRating=alone(lazyPage(()=>import('./DemoScenarioCards'),'DemoScenarioRating'))
+const DemoStepSpotlight=alone(lazyPage(()=>import('./DemoStepSpotlight'),'DemoStepSpotlight'))
+const DemoGuidedTour=alone(lazyPage(()=>import('./DemoGuidedTour'),'DemoGuidedTour'))
+const DemoWelcome=alone(lazyPage(()=>import('./DemoWelcome'),'DemoWelcome'))
+const OVERALL='guide_opened' // as OVERALL_RATING in DemoGuideDialog
 const scenarioByKey=key=>DEMO_ALL_SCENARIOS.find(scenario=>scenario.key===key)||null
 
 const errorText=(error,en)=>/Too many requests/i.test(String(error?.message||''))
@@ -42,6 +46,10 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   const flow=Boolean(enabled&&organizationId&&userId)
   const tracks=flow&&!isPlatformOwner
   const trial=flow&&Boolean(isPlatformOwner)
+  // The guided tours (their stops are a large table) load once a Demo evaluation runs.
+  const [tours,setTours]=useState(null)
+  useEffect(()=>{if(!flow||tours)return undefined;let active=true;import('./demoTours').then(module=>{if(active)setTours(module)}).catch(()=>{});return()=>{active=false}},[flow,tours])
+  const hasDemoTour=useCallback(key=>Boolean(tours?.hasDemoTour(key)),[tours])
   const [progress,setProgress]=useState({})
   const [guideOpen,setGuideOpen]=useState(false)
   const [welcomeOpen,setWelcomeOpen]=useState(false)
@@ -79,7 +87,7 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
 
   const setActive=useCallback(key=>{setActiveKey(key);if(key)writeSessionValue(ACTIVE_KEY,key);else removeSessionValue(ACTIVE_KEY)},[])
   const setTourKey=useCallback(key=>{setTourKeyState(key);if(key)writeSessionValue(TOUR_KEY,key);else removeSessionValue(TOUR_KEY)},[])
-  const openScenario=useCallback((scenario)=>{setGuideOpen(false);setWelcomeOpen(false);setRatingFor(null);if(flow){setActive(scenario.key);setTourKey(hasDemoTour(scenario.key)?scenario.key:null);const started=readSessionJson(STARTED_KEY,{})||{};if(!started[scenario.key])writeSessionJson(STARTED_KEY,{...started,[scenario.key]:Date.now()})}navigate(scenario.to)},[navigate,flow,setActive,setTourKey])
+  const openScenario=useCallback((scenario)=>{setGuideOpen(false);setWelcomeOpen(false);setRatingFor(null);if(flow){setActive(scenario.key);setTourKey(scenario.key);const started=readSessionJson(STARTED_KEY,{})||{};if(!started[scenario.key])writeSessionJson(STARTED_KEY,{...started,[scenario.key]:Date.now()})}navigate(scenario.to)},[navigate,flow,setActive,setTourKey])
 
   // A scenario is completed: mark it and ask for its rating (once).
   const complete=useCallback(async(key)=>{
@@ -127,7 +135,7 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
   // The next step not yet done is outlined on screen, when the screen marks it.
   const nextStep=activeScenario?.steps?.find(step=>!stepsDone[activeScenario.key]?.[step.id])||null
   // The guided tour of the active scenario, over the steps not yet done.
-  const tourStops=activeScenario&&tourKey===activeScenario.key?demoTourStops(activeScenario.key,stepsDone[activeScenario.key]||{}):[]
+  const tourStops=tours&&activeScenario&&tourKey===activeScenario.key?tours.demoTourStops(activeScenario.key,stepsDone[activeScenario.key]||{}):[]
   const touring=tourStops.length>0&&!guideOpen
   const tourStepIndex=activeScenario?.steps?.findIndex(step=>step.id===tourStops[0]?.step)??-1
   const spotlight=activeScenario&&nextStep?.target&&!guideOpen&&!touring?`${activeScenario.key}:${nextStep.id}`:null
@@ -137,7 +145,7 @@ export function useDemoEvaluation({enabled,organizationId,organizationName,userI
     {guideOpen&&<DemoGuideDialog language={language} scenarios={scenarios} progress={progress} ratings={ratings} stepsDone={stepsDone} activeKey={activeKey} onRate={flow?key=>{setGuideOpen(false);setRatingFor(key)}:null} onOpenScenario={openScenario} onClose={()=>setGuideOpen(false)}/>}
     {welcomeOpen&&<DemoWelcome language={language} organizationName={organizationName} scenarios={scenarios} onTour={openScenario} onScenarios={()=>{setWelcomeOpen(false);setGuideOpen(true)}}/>}
     <DemoStepSpotlight target={spotlight}/>
-    {touring&&<DemoGuidedTour key={`${activeScenario.key}:${tourStops.length}`} scenario={activeScenario} stops={tourStops} totalStops={DEMO_TOURS[activeScenario.key].length} stepNumber={tourStepIndex+1} stepTotal={tourStepIndex>=0?activeScenario.steps.length:0} language={language} onClose={()=>setTourKey(null)} onFinish={()=>setTourKey(null)}/>}
+    {touring&&<DemoGuidedTour key={`${activeScenario.key}:${tourStops.length}`} scenario={activeScenario} stops={tourStops} totalStops={tours.DEMO_TOURS[activeScenario.key].length} stepNumber={tourStepIndex+1} stepTotal={tourStepIndex>=0?activeScenario.steps.length:0} language={language} onClose={()=>setTourKey(null)} onFinish={()=>setTourKey(null)}/>}
     {activeScenario&&!guideOpen&&!touring&&<DemoActiveScenario scenario={activeScenario} scenarios={scenarios} stepsDone={stepsDone[activeScenario.key]||{}} language={language} trial={trial} working={working} onDone={()=>void complete(activeScenario.key)} onClose={()=>setActive(null)} onTour={hasDemoTour(activeScenario.key)?()=>setTourKey(activeScenario.key):null}/>}
     {flow&&ratingFor&&!guideOpen&&!applicationOpen&&<DemoScenarioRating key={ratingFor} scenario={ratingScenario} next={nextScenario} language={language} trial={trial} working={working} canRequest={tracks&&!requested}
       onSubmit={submitRating} onLater={closeRating} onNext={scenario=>{setRatingFor(null);openScenario(scenario)}} onRequestApplication={()=>{setRatingFor(null);setSentAt(null);setError('');setApplicationOpen(true)}}/>}

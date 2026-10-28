@@ -3,7 +3,7 @@
 // each role sees its own scenarios, and a scenario with steps is done once its
 // screens have checked off every step.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { DEMO_ROLE_SCENARIOS, DEMO_SCENARIOS, demoScenariosForRole, demoStepsComplete } from '../src/features/demo/demoScenarios'
@@ -13,6 +13,9 @@ import { DemoActiveScenario } from '../src/features/demo/DemoScenarioCards'
 import { useDemoEvaluation } from '../src/features/demo/useDemoEvaluation'
 import { DemoStepSpotlight } from '../src/features/demo/DemoStepSpotlight'
 import { LanguageProvider } from '../src/core/i18n/LanguageContext'
+
+// The evaluation's windows and tours load on demand (dynamic imports): give them time in a test run.
+configure({ asyncUtilTimeout: 8000 })
 
 vi.mock('../src/features/demo/demoEvaluationService', () => ({
   loadMyDemoProgress: vi.fn(async () => ({})), loadMyDemoApplicationRequests: vi.fn(async () => []), loadMyDemoRatings: vi.fn(async () => ({})),
