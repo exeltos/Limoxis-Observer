@@ -182,3 +182,4 @@
 @media(max-width:640px){.outbreak-clusters li{flex-direction:column;align-items:flex-start}}
 /* The tab above already names the panel: its own title stays for screen readers only. */
 .management-shell .section-toolbar>div>h2{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.outbreak-clusters .outbreak-show-all{margin-top:8px}

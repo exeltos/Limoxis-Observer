@@ -42,6 +42,12 @@ const classificationLabel=(c,en)=>({suspected:en?'Suspected':'Πιθανό',prob
 const fmtDay=(value,en)=>value?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(value).slice(0,10)}T12:00:00`)):'—'
 // Count and dates describe the same densest window: «13 cases in 14 days (25/5 → 7/6/2025)».
 export function clusterWindowText(c,en){const loc=en?'en-GB':'el-GR',d=v=>new Date(`${String(v).slice(0,10)}T12:00:00`),first=c.firstDate&&d(c.firstDate),last=c.lastDate&&d(c.lastDate);const range=first&&last?` (${first.getFullYear()===last.getFullYear()?new Intl.DateTimeFormat(loc,{day:'numeric',month:'numeric'}).format(first):fmtDay(c.firstDate,en)} → ${fmtDay(c.lastDate,en)})`:'';return en?`${c.count} cases in ${c.windowDays} days${range}`:`${c.count} περιστατικά σε ${c.windowDays} ημέρες${range}`}
+export function clusterRangeText(c,en){const t=clusterWindowText(c,en),m=t.match(/\((.*)\)$/);return m?m[1]:''}
+// «5 patients · 12 samples»: a cluster is told in patients, the samples behind it second.
+export function clusterPatientsText(c,en){const patients=c.patientCount||c.count,samples=c.sampleCount||c.count;return en?`${patients} patient${patients===1?'':'s'} · ${samples} sample${samples===1?'':'s'} in ${c.windowDays} days`:`${patients} ${patients===1?'ασθενής':'ασθενείς'} · ${samples} ${samples===1?'δείγμα':'δείγματα'} σε ${c.windowDays} ημέρες`}
+// The most serious first: more patients, then more resistance markers, then the most recent.
+const clusterWeight=c=>c.patientCount||c.count
+const bySeriousness=(a,b)=>clusterWeight(b)-clusterWeight(a)||(b.resistanceLabels?.length||0)-(a.resistanceLabels?.length||0)||String(b.lastDate).localeCompare(String(a.lastDate))
 const statusTone=s=>s==='active'?'active':s==='closed'?'neutral':'temporary'
 // The tabs of an open investigation, and where each LIRA suggestion leads.
 const RECORD_TABS=['summary','cases','actions','history']
@@ -95,7 +101,7 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
  async function saveAction(){if(!selected||!actionForm.title.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{const action=await createOutbreakAction(tenant.id,selected.id,actionForm);await appendOutbreakInvestigationEvent(tenant.id,selected.id,'decision',{action:'capa_created',capaId:action.id,title:action.title});setActions(await loadOutbreakActions(tenant.id,selected.id));setAddingAction(false);setActionForm({title:'',owner:'',dueDate:'',priority:'medium',actionType:'corrective',description:''});notify(en?'IPC/CAPA action created.':'Η διορθωτική ενέργεια IPC δημιουργήθηκε.','success')}catch(e){notify(e.message,'error')}}
  async function changeActionStatus(action,status){if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await updateOutbreakActionStatus(tenant.id,action.id,status);await appendOutbreakInvestigationEvent(tenant.id,selected.id,'decision',{action:'capa_status',capaId:action.id,status});setActions(await loadOutbreakActions(tenant.id,selected.id));setEvents(await loadOutbreakInvestigationEvents(selected.id))}catch(e){notify(e.message,'error')}}
  async function addEvidence(type){if(!note.trim())return;if(isDemo){notify(en?'The demo keeps only new investigations on this screen; evidence is recorded in the hospital workspace.':'Το demo κρατά μόνο τις νέες διερευνήσεις σε αυτή την οθόνη· η τεκμηρίωση καταγράφεται στο περιβάλλον του νοσοκομείου.','info');return}try{await appendOutbreakInvestigationEvent(tenant.id,selected.id,type,{text:note.trim()});setNote('');setEvents(await loadOutbreakInvestigationEvents(selected.id));notify(en?'Recorded.':'Καταγράφηκε.','success')}catch(e){notify(e.message,'error')}}
-  const visibleClusters=useMemo(()=>clusters.filter(c=>!rows.some(r=>r.status!=='closed'&&sameOrganism(r.organism,c.organism))),[clusters,rows])
+  const visibleClusters=useMemo(()=>clusters.filter(c=>!rows.some(r=>r.status!=='closed'&&sameOrganism(r.organism,c.organism))).sort(bySeriousness),[clusters,rows]),[showAllClusters,setShowAllClusters]=useState(false)
   function startNew(){setForm(EMPTY_FORM);setCreating(true)}
   function startFromCluster(cluster){setForm(investigationFormFromCluster(cluster));setCreating(true)}
   function closeCreate(){setCreating(false);setForm(EMPTY_FORM);validation.reset()}
@@ -104,9 +110,9 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
   const loading=!rowsLoaded||!clustersLoaded
   const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
   const summary=shell?<StatusCards label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} loading={loading} items={[
-   {key:'clusters',icon:Radar,label:en?'Possible clusters':'Πιθανές συρροές',value:visibleClusters.length},
-   {key:'open',icon:Activity,label:en?'Open investigations':'Ανοιχτές διερευνήσεις',value:openCount},
-   {key:'closed',icon:CheckCircle2,label:en?'Closed investigations':'Κλειστές διερευνήσεις',value:closedCount},
+   {key:'clusters',icon:Radar,label:en?'Need review':'Χρειάζονται έλεγχο',value:visibleClusters.length},
+   {key:'open',icon:Activity,label:en?'Under investigation':'Σε διερεύνηση',value:openCount},
+   {key:'closed',icon:CheckCircle2,label:en?'Completed':'Ολοκληρωμένες',value:closedCount},
   ]}/>:null
   const toolbarButton=shell?null:newButton
   const body=<section className="outbreak-investigations">
@@ -117,10 +123,12 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
    {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={toolbarButton}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
    {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
     <h3>{en?'Possible clusters':'Πιθανές συρροές'}</h3>
-    <ul>{visibleClusters.slice(0,5).map(c=><li key={clusterAlertId(c)}>
-     <div><strong>{c.organism}</strong><span>{c.department} · {clusterWindowText(c,en)}{c.resistanceLabels?.length?` · ${c.resistanceLabels.join(', ')}`:''}</span>{c.skinFloraRule&&<small className="outbreak-cluster-rule">{skinFloraRuleNote(en)}</small>}</div>
+    <p className="outbreak-cluster-note">{en?'We flag 3 or more positive results of the same organism in the same department within 14 days. Start an investigation for the ones that worry you.':'Εντοπίζουμε 3 ή περισσότερα θετικά αποτελέσματα του ίδιου μικροοργανισμού στο ίδιο τμήμα μέσα σε 14 ημέρες. Ξεκινάς διερεύνηση για όσα σε προβληματίζουν.'}</p>
+    <ul>{(showAllClusters?visibleClusters:visibleClusters.slice(0,5)).map(c=><li key={clusterAlertId(c)}>
+     <div><strong>{c.organism}</strong><span>{c.department} · {clusterPatientsText(c,en)}{clusterRangeText(c,en)?` · ${clusterRangeText(c,en)}`:''}{c.resistanceLabels?.length?` · ${c.resistanceLabels.join(', ')}`:''}</span>{c.skinFloraRule&&<small className="outbreak-cluster-rule">{skinFloraRuleNote(en)}</small>}</div>
      {canCreate&&<Button variant="secondary" className="outbreak-start" disabled={Boolean(blockedReason)} title={blockedReason||undefined} onClick={()=>startFromCluster(c)}>{en?'Start investigation':'Έναρξη διερεύνησης'}</Button>}
     </li>)}</ul>
+    {visibleClusters.length>5&&<Button variant="secondary" className="outbreak-show-all" onClick={()=>setShowAllClusters(v=>!v)}>{showAllClusters?(en?'Show fewer':'Εμφάνιση λιγότερων'):(en?`Show all ${visibleClusters.length}`:`Εμφάνιση όλων (${visibleClusters.length})`)}</Button>}
    </section>}
    {hasRows&&<h3 className="outbreak-section-title">{en?'Investigations':'Διερευνήσεις'}</h3>}
    {hasRows&&<RegistryTable

@@ -58,6 +58,7 @@ import {
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import { statusTone } from './surveillanceOptions'
+import { printSurveillanceReport } from './clinicalRecordLabels'
 import { buildSurveillanceReport } from './surveillanceReport'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import './surveillanceEpisode.css'
@@ -723,7 +724,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           }}
         />
       )}
-      {tabId === 'surveillanceJourney' && selectedAdmission && outsideSection}
       {tabId === 'episodeForms' && <EpisodeFormsTab ctx={formsCtx} forms={forms} openRequest={formsOpenRequest} />}
       {/* Documents belong to the surveillance when there is one, else to the
           admission itself, so they can be added before any surveillance. */}
@@ -757,7 +757,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       )}
       {tabId === 'history' && record && (
         <Timeline
-          record={record}
+          record={{ ...record, timeline: [...(record.timeline || []), ...outsideTimeline] }}
           title=""
           t={t}
           language={language}
@@ -768,7 +768,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       )}
       {tabId === 'history' && !record && selectedAdmission && (
         <Timeline
-          record={{ timeline: admissionTimeline }}
+          record={{ timeline: [...admissionTimeline, ...outsideTimeline] }}
           title=""
           subtitle={t('clinicalRecords.admissionHistoryHint')}
           t={t}
@@ -790,9 +790,19 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           )}
         />
       )}
-      {tabId === 'history' && selectedAdmission && outsideSection}
     </>
   )
+  // The report window of the open episode, from the single Export menu in the header.
+  const printEpisodeReport = () => {
+    if (!record) return
+    if (!printSurveillanceReport(record, { language, fmtDate, fmtDateTime, t, libraries: clinicalLibraries }))
+      notify(
+        language === 'el'
+          ? 'Το πρόγραμμα περιήγησης εμπόδισε το άνοιγμα της αναφοράς. Επιτρέψτε τα αναδυόμενα παράθυρα για το Limoxis Observer.'
+          : 'The browser blocked the report window. Allow pop-ups for Limoxis Observer.',
+        'error',
+      )
+  }
   // The printed report (EntityRecordShell printReport): a document built from what this user can see.
   const printReport = () =>
     buildSurveillanceReport({
@@ -869,7 +879,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         headerActions={
           selectedAdmission || !patientMode ? (
             <>
-            <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() =>
+            <ExportMenu onPrint={()=>window.print()} items={[...(record ? [{id:'episode-report',kind:'print',label:language === 'en' ? 'Episode report' : 'Αναφορά επεισοδίου',onClick:printEpisodeReport}] : []),{id:'json',kind:'data',label:'JSON',onClick:() =>
                 downloadRecordJson(
                   {
                     patient,

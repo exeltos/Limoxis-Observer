@@ -1,5 +1,4 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
-import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
 import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
@@ -22,7 +21,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { RESISTANCE_ALERT, printSurveillanceReport, episodeTypeLabel } from './clinicalRecordLabels'
+import { RESISTANCE_ALERT, episodeTypeLabel } from './clinicalRecordLabels'
 import { CanonicalJourney } from './ClinicalJourney'
 import { SimpleDialog, SampleRequestDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { SAMPLE_TONES } from './ClinicalRecordViews'
@@ -75,24 +74,6 @@ export function SurveillanceWorkspace({
       reason: '',
       suspectedSource: '',
     })
-  // The surveillance report window serves Print and PDF (save as PDF).
-  const printDetailReport = () => {
-                      if (
-                        !printSurveillanceReport(detailRecord, {
-                          language,
-                          fmtDate,
-                          fmtDateTime,
-                          t,
-                          libraries,
-                        })
-                      )
-                        notify(
-                          language === 'el'
-                            ? 'Το πρόγραμμα περιήγησης εμπόδισε το άνοιγμα της αναφοράς. Επιτρέψτε τα αναδυόμενα παράθυρα για το Limoxis Observer.'
-                            : 'The browser blocked the report window. Allow pop-ups for Limoxis Observer.',
-                          'error',
-                        )
-                    }
   const deleteItem = useRecordDelete()
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
   const episodeKey = episodes.map(ep => ep.id).join(',')
@@ -252,7 +233,7 @@ export function SurveillanceWorkspace({
                   </Button>
                 </span>
               )}
-              <ExportMenu onPrint={printDetailReport} onPdf={printDetailReport} /><OverflowMenu
+              <OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',
                   language === 'el' ? 'el' : 'en',
