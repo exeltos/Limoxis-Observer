@@ -4,7 +4,18 @@
 // Work with nothing pending is left out.
 
 // Roles whose home counts only their own department.
-export const DEPARTMENT_ROLES = new Set(['department_manager', 'department_user'])
+export const DEPARTMENT_ROLES = new Set(['department_manager', 'department_user', 'link_nurse'])
+
+// The capability each task screen asks for (the route gates of App.jsx): a task
+// whose screen the user cannot open is left out, so it never leads to «no access».
+const SCREEN_CAPABILITY = {
+  '/controls': 'view_controls',
+  '/laboratory': 'view_lab',
+  '/quality': 'view_quality',
+  '/pharmacy': 'view_pharmacy',
+  '/occupational-health': 'view_occupational_health',
+  '/employees': 'view_staff',
+}
 
 // The hospital administrator's "Pending actions" tile is the sum of these.
 export const PENDING_ACTION_KEYS = [
@@ -97,11 +108,21 @@ const TASKS = {
 }
 TASKS.infection_control_member = TASKS.infection_control_lead
 TASKS.department_user = TASKS.department_manager
+TASKS.link_nurse = [
+  ['controlsDueToday', 'Έλεγχοι για σήμερα', 'Controls due today', '/controls?due=today'],
+  ['overdueControls', 'Εκπρόθεσμοι έλεγχοι τμήματος', 'Overdue department controls', '/controls'],
+  ['isolationReviewsDue', 'Επανεκτιμήσεις απομόνωσης', 'Isolation reassessments', '/surveillance'],
+]
 
-export function dashboardTasks(role, metrics = {}, language = 'el') {
+// `canUse(capability)`: whether the user holds a capability (role, add-ons, custom).
+export function dashboardTasks(role, metrics = {}, language = 'el', { canUse = null } = {}) {
   const en = language === 'en'
+  const opens = to => {
+    const capability = SCREEN_CAPABILITY[String(to).split('?')[0]]
+    return !canUse || !capability || canUse(capability)
+  }
   return (TASKS[role] || [])
-    .filter(([key]) => Number(metrics[key]) > 0)
+    .filter(([key, , , to]) => Number(metrics[key]) > 0 && opens(to))
     .map(([key, el, enText, to]) => ({
       id: `LIVE-${role}-${key}`,
       title: en ? enText : el,
