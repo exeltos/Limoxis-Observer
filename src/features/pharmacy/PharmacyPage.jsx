@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
-import { Activity, CalendarRange, CheckCircle2, Clock3, Building2, Info, Pill, Plus, ShieldCheck, XCircle } from 'lucide-react'
+import { Activity, AlertTriangle, CheckCircle2, Clock3, Building2, Info, Pill, Plus, ShieldCheck, XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
+import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
 import { MonthField } from '../../design-system/MonthField'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -16,13 +17,14 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
-import { loadAntibioticDispensingRecords, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
+import { loadAntibioticDispensingRecords, loadDddReference, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
 import { awareCategoryFor, awareCategoryLabel, awareCategoryWhoName } from './whoAwareClassification'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
 import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { PharmacyApprovals } from './PharmacyApprovals'
 import { therapyAccess } from './pharmacyAccess'
 import { PharmacyIndicators } from './PharmacyIndicators'
+import { ACCESS_TARGET, pharmacyConsumptionKpis } from './pharmacyKpis'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 // '2026-09' → 'Σεπτέμβριος 2026' / 'September 2026'
@@ -59,6 +61,7 @@ export function PharmacyPage() {
   const setTab = next => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
   const [rows, setRows] = useState([])
   const [support, setSupport] = useState({ departments: [], products: [] })
+  const [ddd, setDdd] = useState({})
   // True until the first read ends: placeholders, not «no periods» and 0 figures.
   const [loading, setLoading] = useState(true)
   // false = closed · { row: null } = a new period · { row } = an existing one, to correct or delete.
@@ -74,9 +77,11 @@ export function PharmacyPage() {
     if (!tenant?.id || !canRecord) { setRows([]); setSupport({ departments: [], products: [] }); setLoading(false); return }
     setLoading(true)
     try {
-      const [records, supportData] = await Promise.all([loadAntibioticDispensingRecords(tenant.id), loadPharmacySupportData(tenant.id)])
+      // Without DDD references the shares fall back to grams: a missing reference is not an error.
+      const [records, supportData, dddReference] = await Promise.all([loadAntibioticDispensingRecords(tenant.id), loadPharmacySupportData(tenant.id), loadDddReference(tenant.id).catch(() => ({}))])
       setRows(records)
       setSupport(supportData)
+      setDdd(dddReference)
     } catch (error) {
       notifyError(error, 'load', { operation: 'antibiotic_dispensing_load' })
     } finally {
@@ -114,18 +119,36 @@ export function PharmacyPage() {
   const clearFilters = () => setFilters(noFilters())
   const activeFilters = (filters.from ? 1 : 0) + (filters.to ? 1 : 0) + (filters.department ? 1 : 0)
   const consumption = tab === 'consumption'
+  // The key figures follow the filters: the latest month of the filtered rows against the month before.
+  const kpis = useMemo(() => pharmacyConsumptionKpis(filtered, { ddd }), [filtered, ddd])
+  const byDdd = kpis.current?.basis === 'ddd'
+  const sameBasis = kpis.before?.basis === kpis.current?.basis
+  const kpiPeriod = kpis.month ? formatPeriod(kpis.month, en, 'short') : null
+  const number = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
+  const grams = value => number(value >= 1000 ? value / 1000 : value)
+  const gramUnit = value => (value >= 1000 ? 'kg' : 'g')
+  const change = (now, before, { lowerIsBetter = false, points = false, percent = false } = {}) => {
+    if (now == null || before == null) return null
+    const diff = Math.round((now - before) * 10) / 10
+    const amount = percent ? (before ? Math.round((diff / before) * 1000) / 10 : null) : diff
+    if (amount == null) return null
+    const good = diff === 0 ? null : lowerIsBetter ? diff < 0 : diff > 0
+    const sign = amount > 0 ? '+' : ''
+    const text = `${sign}${number(amount)}${percent ? '%' : points ? (en ? ' pts' : ' μον.') : ''} ${good == null ? (en ? 'unchanged' : 'σταθερό') : good ? (en ? 'better' : 'βελτίωση') : (en ? 'worse' : 'επιδείνωση')}`
+    return { text, trend: diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat', good, title: en ? 'Against the month before' : 'Έναντι του προηγούμενου μήνα' }
+  }
 
   return (
     <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
       actions={canRecord && consumption && <Button onClick={() => setDialog({ row: null })}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
       {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
       {canRecord && consumption && (
-        <div className="module-summary-strip">
-          <MetricCard loading={firstLoad} icon={CalendarRange} value={filtered.length} label={en ? 'Dispensing records' : 'Καταχωρίσεις χορήγησης'} />
-          <MetricCard loading={firstLoad} icon={Pill} value={new Set(filtered.map(row => row.productEn || row.product).filter(Boolean)).size} label={en ? 'Antibiotics' : 'Αντιβιοτικά'} />
-          <MetricCard loading={firstLoad} icon={Building2} value={new Set(filtered.map(row => row.departmentEl).filter(Boolean)).size} label={en ? 'Departments' : 'Τμήματα'} />
-          <MetricCard loading={firstLoad} icon={Clock3} value={formatPeriod(rows.reduce((latest, row) => (row.period > latest ? row.period : latest), ''), en, 'short')} label={en ? 'Latest period' : 'Τελευταία περίοδος'} />
-        </div>
+        <KpiStrip label={en ? 'Consumption figures' : 'Δείκτες κατανάλωσης'}>
+          <KpiCard loading={firstLoad} icon={Pill} label={en ? 'Consumption' : 'Κατανάλωση'} period={kpiPeriod} value={kpis.current ? grams(kpis.current.grams) : null} unit={kpis.current ? gramUnit(kpis.current.grams) : ''} hint={kpis.before ? `${en ? 'previous month' : 'προηγ. μήνας'}: ${grams(kpis.before.grams)} ${gramUnit(kpis.before.grams)}` : null} delta={change(kpis.current?.grams, kpis.before?.grams, { lowerIsBetter: true, percent: true })} />
+          <KpiCard loading={firstLoad} icon={ShieldCheck} label={en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης'} period={kpiPeriod} value={kpis.current?.access == null ? null : number(kpis.current.access)} unit="%" status={kpis.current?.access == null || !byDdd ? null : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'} target={en ? `WHO target ≥ ${ACCESS_TARGET}%` : `στόχος ΠΟΥ ≥ ${ACCESS_TARGET}%`} hint={kpis.current && !byDdd ? (en ? 'of grams: DDD reference missing for some antibiotics' : 'επί γραμμαρίων: λείπει DDD για κάποια αντιβιοτικά') : null} meter={kpis.current?.access} meterTarget={ACCESS_TARGET} delta={sameBasis ? change(kpis.current?.access, kpis.before?.access, { points: true }) : null} />
+          <KpiCard loading={firstLoad} icon={AlertTriangle} label={en ? 'Reserve antibiotics' : 'Εφεδρικά αντιβιοτικά'} period={kpiPeriod} value={kpis.current?.reserve == null ? null : number(kpis.current.reserve)} unit="%" hint={byDdd ? (en ? 'share of consumption (DDD)' : 'μερίδιο κατανάλωσης (DDD)') : (en ? 'share of consumption (g)' : 'μερίδιο κατανάλωσης (g)')} delta={sameBasis ? change(kpis.current?.reserve, kpis.before?.reserve, { lowerIsBetter: true, points: true }) : null} />
+          <KpiCard loading={firstLoad} icon={Building2} label={en ? 'Departments recorded' : 'Τμήματα με καταγραφή'} period={kpiPeriod} value={kpis.current ? `${kpis.current.departments}/${kpis.allDepartments}` : null} status={kpis.current ? (kpis.current.departments >= kpis.allDepartments ? 'good' : 'warning') : null} target={en ? 'every department, every month' : 'όλα τα τμήματα, κάθε μήνα'} />
+        </KpiStrip>
       )}
       {canApprovals && tab === 'approvals' && (
         <div className="module-summary-strip">

@@ -1,6 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { pharmacyDepartments, antibioticLibrary } from './pharmacyDemoData'
+import { pharmacyDepartments, antibioticLibrary, dddReferenceLibrary } from './pharmacyDemoData'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
 import { selectAllPages } from '../../core/data/inChunks'
 
@@ -37,6 +37,16 @@ export async function loadPharmacySupportData(organizationId){
  if(departmentsResult.error)throw departmentsResult.error
  if(productsResult.error)throw productsResult.error
  return {departments:(departmentsResult.data||[]).map(x=>({id:x.id,el:x.name,en:x.name})),products:(productsResult.data||[]).map(x=>({id:x.id,el:x.name_el,en:x.name_en||x.name_el,code:x.code}))}
+}
+
+// DDD per antibiotic code (WHO ATC/DDD, as the pharmacy verified it): the hospital's own value wins over the shared one.
+export async function loadDddReference(organizationId){
+ if(isDemoDataEnvironment())return {...dddReferenceLibrary}
+ assertCloud(organizationId)
+ const {data,error}=await supabase.from('who_ddd_reference').select('antibiotic_code,ddd_grams,organization_id').or(`organization_id.is.null,organization_id.eq.${organizationId}`)
+ if(error)throw error
+ const shared=(data||[]).filter(row=>!row.organization_id),own=(data||[]).filter(row=>row.organization_id)
+ return Object.fromEntries([...shared,...own].map(row=>[row.antibiotic_code,Number(row.ddd_grams)]).filter(([,grams])=>grams>0))
 }
 
 export async function loadAntibioticDispensingRecords(organizationId){
