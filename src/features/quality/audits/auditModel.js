@@ -294,7 +294,6 @@ export function missingNextAudits(audits = [], on = today()) {
 
 // The year's planned audits as plans: one per department and month, or the
 // month alone when the day is not fixed yet.
-export const plannedDay = (year, month, day = 1) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
 // Clause coverage of a standard in a year: for each chapter of its
 // questionnaire and each department audited for it, whether the chapter was

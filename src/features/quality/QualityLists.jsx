@@ -144,7 +144,7 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
     renderRow={row=>{const Icon=SOURCE_ICON[row.sourceKind]||CheckSquare2;const overdue=isOverdueAction(row);return <>
      <td><strong>{qualityCode(row,language)}</strong><small>{vocabularyLabel(CAPA_TYPES,row.actionType||'corrective',language)}</small></td>
      <td>{titleOf(row,en)}{row.subActions?.length>0&&(({done,total})=><><small>{en?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`}</small><Meter value={done*100/total} tone={done===total?'success':'neutral'} label={en?`${done}/${total} steps done`:`${done}/${total} βήματα`}/></>)(subActionProgress(row.subActions))}</td>
-     <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{(SOURCE_KINDS[row.sourceKind]||SOURCE_KINDS.manual)[en?1:0]}</span>{row.sourceCode&&<small>{row.sourceCode}</small>}{(en?row.sourceTitleEn:row.sourceTitle)&&<small>{en?row.sourceTitleEn:row.sourceTitle}</small>}</td>
+     <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{(SOURCE_KINDS[row.sourceKind]||SOURCE_KINDS.manual)[en?1:0]}</span>{row.sourceCode&&<small>{row.sourceCode}</small>}</td>
      <td>{departmentOf(row,en)||'—'}</td>
      <td className={`nowrap-cell${overdue?' quality-overdue':''}`}>{formatDay(row.dueDate,language)||'—'}{dueText(row,en)&&<small>{dueText(row,en)}</small>}</td>
      <td>{recordOwners(row).map(name=>roleTitleText(name,language)).join(', ')||'—'}</td>

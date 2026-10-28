@@ -132,11 +132,11 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
     {more(data.next.length,allNext,()=>setAllNext(!allNext))}
    </Panel>
   </div>
+  <MoreSection moreLabel={L(en,'Περισσότερα: αναφορές ανά μήνα, κατηγορία, τμήμα, είδος, έκβαση','More: reports by month, category, department, kind, outcome')} lessLabel={L(en,'Λιγότερα','Less')}>
   <section className="risk-panel quality-panel">
    <header><h3>{L(en,'Αναφορές ανά μήνα','Reports by month')}</h3><small>{L(en,`${data.recent} τους τελευταίους 12 μήνες`,`${data.recent} in the last 12 months`)}</small></header>
    <MonthColumns months={data.byMonth} en={en}/>
   </section>
-  <MoreSection moreLabel={L(en,'Περισσότερα: κατηγορία, τμήμα, είδος, έκβαση','More: category, department, kind, outcome')} lessLabel={L(en,'Λιγότερα','Less')}>
   <div className="quality-breakdowns">
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Ανά κατηγορία','By category')}</h3><small>{L(en,'12 μήνες','12 months')}</small></header><BarList rows={data.byCategory} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Ανά τμήμα','By department')}</h3><small>{L(en,'Τα 6 με τις περισσότερες','Top 6')}</small></header><BarList rows={data.byDepartment} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>

@@ -321,8 +321,8 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
      <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity)}</StatusBadge></td>
      {showActions&&<td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
-      {row.type==='deviation'&&<ActionButton tone="primary" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(row.item,language))}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
-      {needsAction(row)&&<ActionButton tone="primary" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateFindingCapa(row.item)}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
+      {row.type==='deviation'&&<ActionButton tone="neutral" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(row.item,language))}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
+      {needsAction(row)&&<ActionButton tone="neutral" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateFindingCapa(row.item)}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
      </div></td>}
     </>}}/>
   </div>
