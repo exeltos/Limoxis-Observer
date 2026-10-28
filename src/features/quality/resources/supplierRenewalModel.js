@@ -37,7 +37,7 @@ export const isOpenItem = item => OPEN_ITEM_STATUSES.includes(item?.status)
 
 // A sent request with nothing submitted after this many days has no answer yet.
 export const NO_RESPONSE_DAYS = 7
-export const SENDER_ONLY_HINT = ['Μόνο ο Ιδιοκτήτης πλατφόρμας ή όσοι έχει ορίσει', 'Only the Platform Owner or the people they designate']
+export const SENDER_ONLY_HINT = ['Μόνο ο διαχειριστής, ο υπεύθυνος ποιότητας ή όσοι έχει ορίσει ο Ιδιοκτήτης', 'Only the administrator, the quality manager or the people the Platform Owner designates']
 export const senderOnlyHint = language => SENDER_ONLY_HINT[language === 'en' ? 1 : 0]
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024
@@ -197,7 +197,7 @@ export function sendGroups(rows = [], selected = []) {
   return [...map.values()]
 }
 
-// Who may e-mail suppliers: the Platform Owner, or a member with the add-on
+// Who may e-mail suppliers: the Platform Owner, Hospital Admin, Quality Manager, or a member with the add-on
 // supplier_renewal_sender (capability send_supplier_renewals); everyone else in
 // Quality may only propose.
 export function renewalPermissions({ owner = false, canSend = false, canManage = false, canView = false } = {}) {

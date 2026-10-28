@@ -105,9 +105,10 @@ describe('Supplier certificate renewal: the queue by supplier', () => {
 })
 
 describe('Supplier certificate renewal: who may send', () => {
-  it('only the Platform Owner and members with the add-on send; Quality proposes and reviews', () => {
+  it('the Platform Owner, Hospital Admin, Quality Manager and members with the add-on send; others propose', () => {
     expect(can(ROLES.PLATFORM_OWNER, CAPABILITIES.SEND_SUPPLIER_RENEWALS)).toBe(true)
-    for (const role of [ROLES.HOSPITAL_ADMIN, ROLES.QUALITY_MANAGER, ROLES.INFECTION_CONTROL_LEAD, ROLES.HOSPITAL_DIRECTOR]) expect(can(role, CAPABILITIES.SEND_SUPPLIER_RENEWALS)).toBe(false)
+    for (const role of [ROLES.HOSPITAL_ADMIN, ROLES.QUALITY_MANAGER]) expect(can(role, CAPABILITIES.SEND_SUPPLIER_RENEWALS)).toBe(true)
+    for (const role of [ROLES.INFECTION_CONTROL_LEAD, ROLES.HOSPITAL_DIRECTOR]) expect(can(role, CAPABILITIES.SEND_SUPPLIER_RENEWALS)).toBe(false)
     expect(can(ROLES.QUALITY_MANAGER, CAPABILITIES.SEND_SUPPLIER_RENEWALS, [ADD_ON_CAPABILITIES.SUPPLIER_RENEWAL_SENDER])).toBe(true)
     expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.SEND_SUPPLIER_RENEWALS, [ADD_ON_CAPABILITIES.SUPPLIER_RENEWAL_SENDER])).toBe(true)
     expect(isCustomRoleEligible(CAPABILITIES.SEND_SUPPLIER_RENEWALS)).toBe(false)
@@ -115,13 +116,16 @@ describe('Supplier certificate renewal: who may send', () => {
     expect(renewalPermissions({ canView: true })).toEqual({ send: false, review: false, propose: true, cancel: false })
     expect(renewalPermissions({ canSend: true, canView: true })).toMatchObject({ send: true, propose: true, cancel: true })
     expect(renewalPermissions({ owner: true })).toEqual({ send: true, review: true, propose: true, cancel: true })
-    expect(senderOnlyHint('el')).toBe('Μόνο ο Ιδιοκτήτης πλατφόρμας ή όσοι έχει ορίσει')
+    expect(senderOnlyHint('el')).toBe('Μόνο ο διαχειριστής, ο υπεύθυνος ποιότητας ή όσοι έχει ορίσει ο Ιδιοκτήτης')
   })
 
   it('the database checks the same: Platform Owner or the add-on, granted by the Platform Owner only', () => {
     const sql = read('supabase/migrations/20261129100000_quality_supplier_certificate_request_items.sql')
-    expect(sql).toContain("select public.current_user_is_platform_owner() or exists (")
-    expect(sql).toContain("and c.capability = 'supplier_renewal_sender' and c.effect = 'grant');")
+    const later = read('supabase/migrations/20261213100000_quality_supplier_renewals_auto.sql')
+    expect(later).toContain("m.role = any (array['hospital_admin', 'quality_manager']::public.app_role[])")
+    expect(later).toContain("and c.capability = 'supplier_renewal_sender' and c.effect = 'grant');")
+    expect(later).toContain("auth.uid() is null and coalesce(current_setting('limoxis.supplier_renewal_auto', true), '') = 'on'")
+    expect(later).toContain('auto_enabled boolean not null default false')
     expect(sql).toMatch(/if v_send then\s+if not private\.quality_supplier_renewal_can_send\(p_organization_id\)/)
     expect(sql).toMatch(/if p_action in \('approve', 'resend', 'remind'\) then\s+if not private\.quality_supplier_renewal_can_send\(v_row\.organization_id\)/)
     expect(sql).toMatch(/if coalesce\(p_resend, false\) then\s+if not private\.quality_supplier_renewal_can_send\(v_item\.organization_id\)/)

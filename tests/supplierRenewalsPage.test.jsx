@@ -57,8 +57,8 @@ describe('Certificates to renew', () => {
     expect(within(row).getByText('Χωρίς απάντηση (10 ημέρες)')).toBeInTheDocument()
     const remind = within(row).getByRole('button', { name: /Υπενθύμιση/ })
     expect(remind).toBeDisabled()
-    expect(remind.parentElement).toHaveAttribute('title', 'Μόνο ο Ιδιοκτήτης πλατφόρμας ή όσοι έχει ορίσει')
-    expect(screen.getByText(/Αποστολή και υπενθυμίσεις: Μόνο ο Ιδιοκτήτης πλατφόρμας ή όσοι έχει ορίσει/)).toBeInTheDocument()
+    expect(remind.parentElement).toHaveAttribute('title', 'Μόνο ο διαχειριστής, ο υπεύθυνος ποιότητας ή όσοι έχει ορίσει ο Ιδιοκτήτης')
+    expect(screen.getByText(/Αποστολή και υπενθυμίσεις: Μόνο ο διαχειριστής, ο υπεύθυνος ποιότητας ή όσοι έχει ορίσει ο Ιδιοκτήτης/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /χωρίς απάντηση \(7\+ ημέρες\)/ }))
     await waitFor(() => expect(rowOf('Υγειονομικά Αναλώσιμα Κεντρικής Ελλάδας')).toBeUndefined()) // still listed in the review above
     expect(rowOf('Γαλακτοκομικά Κάμπου Α.Ε.')).toBeTruthy()

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FigureCards } from '../../../design-system/FigureCards'
-import { BellRing, CheckCircle2, FileText, Lock, RefreshCw, Send, X } from 'lucide-react'
+import { BellRing, CheckCircle2, FileText, Lock, Moon, RefreshCw, Send, X } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { BackButton } from '../../../design-system/BackButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -25,7 +25,7 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useResources, useResourceAccess } from './ResourcesPanel'
 import { certificationStateLabel, certificationStateTone } from './resourceModel'
 import { filterRenewals, isEmail, isOpenItem, itemStatusLabel, itemStatusTone, renewalCounts, renewalGroups, renewalPermissions, renewalQueue, requestItems, requestStatusLabel, requestStatusTone, sendGroups, sendItems, senderOnlyHint } from './supplierRenewalModel'
-import { certificateItemAction, certificateRequestAction, createCertificateRequests, loadCertificateRequests } from './supplierRenewalService'
+import { certificateItemAction, certificateRequestAction, createCertificateRequests, DEFAULT_RENEWAL_SETTINGS, loadCertificateRequests, loadRenewalSettings, saveRenewalSettings } from './supplierRenewalService'
 import '../quality.css'
 import './resources.css'
 
@@ -71,6 +71,7 @@ export function SupplierRenewalsPage() {
   const [selected, setSelected] = useState([])
   const [sending, setSending] = useState(null)
   const [reviewing, setReviewing] = useState(null)
+  const [autoOpen, setAutoOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const queue = useMemo(() => renewalQueue(list.suppliers, requests, { expiring: true }), [list.suppliers, requests])
@@ -99,11 +100,16 @@ export function SupplierRenewalsPage() {
   })
   const selectedRows = queue.filter(row => selected.includes(row.key) && row.selectable)
   const selectedSuppliers = new Set(selectedRows.map(row => row.supplierId)).size
+  // «Send to all»: every expired certificate with nothing open, of a supplier with an e-mail.
+  const allExpired = queue.filter(row => row.state === 'expired' && row.selectable && row.recipients.length > 0)
+  const allSuppliers = new Set(allExpired.map(row => row.supplierId)).size
 
   return <Page fill className="supplier-renewals-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
     title={en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}
     subtitle={en ? 'Expired supplier certificates, by supplier. After approval each supplier gets one e-mail with a personal link listing all its certificates to replace; you then accept each one and it replaces the old one.' : 'Τα ληγμένα πιστοποιητικά, ανά προμηθευτή. Μετά την έγκριση κάθε προμηθευτής λαμβάνει ένα email με προσωπικό σύνδεσμο για όλα τα πιστοποιητικά του· όταν αποδεχθείτε το καθένα, αντικαθιστά το παλιό.'}
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={exportQueue} />
+      {perms.send && <Button variant="secondary" onClick={() => setAutoOpen(true)}><Moon size={15} />{en ? 'Automatic' : 'Αυτόματα'}</Button>}
+      {perms.send && allExpired.length > 0 && !selectedRows.length && <Button onClick={() => setSending(allExpired)}><Send size={15} />{en ? `Send to all expired (${allSuppliers})` : `Αποστολή σε όλους τους ληγμένους (${allSuppliers})`}</Button>}
       {selectedRows.length > 0 && <Button onClick={() => setSending(selectedRows)}><Send size={15} />{perms.send ? (en ? `Approve & send (${selectedSuppliers} e-mails)` : `Έγκριση & αποστολή (${selectedSuppliers} email)`) : (en ? `Propose (${selectedRows.length})` : `Πρόταση για αποστολή (${selectedRows.length})`)}</Button>}</div>}>
     <FigureCards className="quality-summary-line">
       <button type="button" className={`${counts.expired ? 'is-late' : ''}${filters.state === 'expired' && filters.request === 'all' ? ' is-active' : ''}`.trim() || undefined} onClick={() => setFilters({ ...NO_FILTERS })}><b>{list.loading ? '—' : counts.expired}</b> {en ? `expired certificates · ${counts.suppliers} suppliers` : `ληγμένα πιστοποιητικά · ${counts.suppliers} προμηθευτές`}</button>
@@ -158,9 +164,42 @@ export function SupplierRenewalsPage() {
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
     </section>
+    {autoOpen && <RenewalAutoDialog organizationId={tenant?.id} onClose={() => setAutoOpen(false)} />}
     {sending && <RenewalSendDialog rows={sending} canSend={perms.send} onClose={() => setSending(null)} onDone={async () => { setSending(null); await refresh() }} />}
     {reviewing && <RenewalReviewDialog item={reviewing.item} row={reviewing.row} canManage={perms.review} canSend={perms.send} onClose={() => setReviewing(null)} onDone={async () => { setReviewing(null); await refresh() }} />}
   </Page>
+}
+
+// The nightly automatic e-mailing of this hospital (off by default): requests for the
+// expired certificates, a reminder after a few days, and a note to the Platform Owner
+// when suppliers submit.
+export function RenewalAutoDialog({ organizationId, onClose }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const { notify } = useFeedback()
+  const [settings, setSettings] = useState(DEFAULT_RENEWAL_SETTINGS)
+  const [loaded, setLoaded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { loadRenewalSettings(organizationId).then(setSettings).catch(error => console.error(error)).finally(() => setLoaded(true)) }, [organizationId])
+  const set = (key, value) => setSettings(current => ({ ...current, [key]: value }))
+  async function save() {
+    if (busy) return
+    setBusy(true)
+    try { await saveRenewalSettings(organizationId, settings); notify(en ? 'Saved.' : 'Αποθηκεύτηκε.', 'success'); onClose() } catch (error) { console.error(error); notify(en ? 'It could not be saved.' : 'Δεν αποθηκεύτηκε.', 'error') } finally { setBusy(false) }
+  }
+  const last = settings.lastRunAt ? formatDay(settings.lastRunAt.slice(0, 10), language) : ''
+  return <ObserverDialog title={en ? 'Automatic e-mails to suppliers' : 'Αυτόματα email στους προμηθευτές'}
+    subtitle={isDemoDataEnvironment() ? (en ? 'Demo: nothing is actually e-mailed.' : 'Demo: δεν στέλνεται πραγματικό email.') : (en ? 'Every night the platform checks the supplier certificates.' : 'Κάθε βράδυ η πλατφόρμα ελέγχει τα πιστοποιητικά των προμηθευτών.')}
+    onClose={onClose} footer={<DialogActions onSave={save} disabled={busy || !loaded} saveLabel={en ? 'Save' : 'Αποθήκευση'} />}>
+    <div className="supplier-renewal-send">
+      <CheckboxField label={en ? 'E-mail suppliers with expired certificates automatically' : 'Αυτόματη αποστολή email στους προμηθευτές με ληγμένα πιστοποιητικά'} checked={settings.autoEnabled} disabled={!loaded} onChange={value => set('autoEnabled', value)} />
+      <small>{en ? 'Each supplier gets one e-mail with the link to the form. Suppliers without an e-mail, with a request in progress or asked in the last 30 days are skipped.' : 'Κάθε προμηθευτής παίρνει ένα email με τον σύνδεσμο της φόρμας. Παραλείπονται όσοι δεν έχουν email, έχουν ανοιχτό αίτημα ή τους ζητήθηκε τις τελευταίες 30 ημέρες.'}</small>
+      <Field label={en ? 'Remind after (days)' : 'Υπενθύμιση μετά από (ημέρες)'}><input type="number" min="3" max="30" value={settings.remindAfterDays} disabled={!settings.autoEnabled} onChange={e => set('remindAfterDays', e.target.value)} /></Field>
+      <Field label={en ? 'Reminders at most' : 'Το πολύ υπενθυμίσεις'}><input type="number" min="0" max="5" value={settings.maxReminders} disabled={!settings.autoEnabled} onChange={e => set('maxReminders', e.target.value)} /></Field>
+      <small>{en ? 'The Platform Owner is notified by e-mail when suppliers submit new certificates.' : 'Ο Ιδιοκτήτης πλατφόρμας ειδοποιείται με email όταν οι προμηθευτές υποβάλλουν νέα πιστοποιητικά.'}</small>
+      {last && <small>{en ? `Last check: ${last}` : `Τελευταίος έλεγχος: ${last}`}{settings.lastResult?.ok === false ? (en ? ' · failed' : ' · απέτυχε') : ''}</small>}
+    </div>
+  </ObserverDialog>
 }
 
 // The approval: the selected certificates by supplier, with the address of each

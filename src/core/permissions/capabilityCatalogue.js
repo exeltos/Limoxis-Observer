@@ -10,8 +10,8 @@ export const CAPABILITIES = Object.freeze({
   CREATE_PATIENT: 'create_patient', EDIT_PATIENT: 'edit_patient', DELETE_PATIENT: 'delete_patient', CREATE_SURVEILLANCE: 'create_surveillance', EDIT_SURVEILLANCE: 'edit_surveillance', DELETE_SURVEILLANCE: 'delete_surveillance', RECORD_HAND_HYGIENE: 'record_hand_hygiene', RECORD_WASTE: 'record_waste', RECORD_ANTISEPTIC: 'record_antiseptic', RECORD_PREVENTION_BUNDLE: 'record_prevention_bundle', RECORD_PHARMACY_CONSUMPTION: 'record_pharmacy', MANAGE_HOSPITAL_STRUCTURE: 'manage_hospital_structure', RECORD_PREVALENCE_SURVEY: 'record_prevalence_survey',
   VIEW_KITCHEN: 'view_kitchen', RECORD_KITCHEN: 'record_kitchen', MANAGE_KITCHEN: 'manage_kitchen',
   VIEW_EXECUTIVE_DASHBOARD: 'view_executive_dashboard', VIEW_INTERVIEWS: 'view_interviews', MANAGE_INTERVIEWS: 'manage_interviews',
-  // E-mailing suppliers for their expired certificates: only the Platform Owner and the
-  // members it designates (add-on supplier_renewal_sender), never by role.
+  // E-mailing suppliers for their expired certificates: the Platform Owner, Hospital Admin
+  // and Quality Manager, and the members designated (add-on supplier_renewal_sender).
   SEND_SUPPLIER_RENEWALS: 'send_supplier_renewals',
 })
 

@@ -526,7 +526,12 @@
     "quality_supplier_certificate_requests_create": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner, Hospital Admin, Quality Manager or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+    },
+    "quality_supplier_renewal_settings_set": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Switches the nightly e-mailing of suppliers with expired certificates on or off for a hospital (and its reminder days); only whoever may send the requests (Platform Owner, Hospital Admin, Quality Manager, designated sender)."
     },
     "review_laboratory_sample": {
       "category": "rpc",
