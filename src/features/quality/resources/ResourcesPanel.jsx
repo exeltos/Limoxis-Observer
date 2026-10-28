@@ -52,7 +52,8 @@ export function useResources(enabled = true) {
     const names = new Map(departments.map(item => [item.id || item.name, item]))
     const own = new Set(ownKey.split('|').filter(Boolean))
     const equipment = scoped ? data.equipment.filter(item => own.has(item.departmentId)) : data.equipment
-    const suppliers = access.canViewAll ? data.suppliers : []
+    // A department reads the suppliers assigned to it (the database returns only those; the demo filters here).
+    const suppliers = access.canViewAll ? data.suppliers : data.suppliers.filter(item => (item.departmentIds || []).some(id => own.has(id)))
     const supplierNames = new Map(data.suppliers.map(item => [item.id, item.name]))
     const devices = withEquipmentStatus(equipment, data.events).map(item => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
     return { equipment: devices, suppliers: withSupplierStatus(suppliers, equipment, undefined, data.templates || []), events: data.events, templates: data.templates || [] }

@@ -20,6 +20,7 @@ import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
+import { MultiSelect } from '../../../design-system/MultiSelect'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry } from '../../../core/export/registryExports'
 import { reportExports } from '../../../core/export/reportDocument'
@@ -238,6 +239,7 @@ function SupplierRecord({ supplierId }) {
             <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={draft.status} disabled={locked} options={[{ value: 'active', label: en ? 'Active' : 'Ενεργός' }, { value: 'inactive', label: en ? 'Inactive' : 'Ανενεργός' }]} onChange={value => set({ status: value })} />
           </FormGrid>
           <Field label={en ? 'Products / services' : 'Προϊόντα / υπηρεσίες'}><textarea rows={2} value={draft.products} disabled={locked} onChange={e => set({ products: e.target.value })} /></Field>
+          <MultiSelect label={en ? 'Departments that use this supplier' : 'Τμήματα που χρησιμοποιούν τον προμηθευτή'} tags disabled={locked} selected={draft.departmentIds || []} options={(list.departments || []).map(item => ({ value: item.id || item.name, label: en ? item.nameEn || item.name : item.name }))} onChange={value => set({ departmentIds: value })} placeholder={en ? 'Every department sees only its own suppliers' : 'Κάθε τμήμα βλέπει μόνο τους δικούς του προμηθευτές'} searchPlaceholder={en ? 'Search department' : 'Αναζήτηση τμήματος'} selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'} clearAllLabel={en ? 'Clear' : 'Καθαρισμός'} />
           <FormGrid columns={3}>
             <ChoiceField label={en ? 'Recorded approval' : 'Καταχωρισμένη έγκριση'} value={draft.approvalStatus || 'none'} disabled={locked} options={[{ value: 'none', label: en ? 'From the latest evaluation' : 'Από την τελευταία αξιολόγηση' }, ...APPROVALS.filter(item => item.value !== 'unevaluated').map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))]} onChange={value => set({ approvalStatus: value === 'none' ? '' : value })} />
             <Field label={en ? 'Evaluate every (months)' : 'Αξιολόγηση κάθε (μήνες)'}><input type="number" min="1" max="60" value={draft.evaluationMonths ?? ''} disabled={locked} placeholder={own ? String(own.frequencyMonths) : '12'} onChange={e => set({ evaluationMonths: e.target.value })} /></Field>

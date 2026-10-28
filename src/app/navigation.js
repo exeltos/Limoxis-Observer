@@ -1,4 +1,4 @@
-import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -38,6 +38,8 @@ export const navigation=[
   // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
   {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The suppliers the Quality team assigned to the department (read only).
+  {to:'/my-department/suppliers',key:'departmentSuppliers',label:'sidebarNav.departmentSuppliers',icon:Truck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
