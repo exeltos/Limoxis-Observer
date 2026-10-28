@@ -1,6 +1,4 @@
 /* Deviations queue, CAPA steps and prefilled steps on CAPA creation. */
-.quality-capa-steps .record-section-header p{margin:2px 0 0;font-size:11.5px;color:var(--lo-color-muted)}
-.quality-steps-overdue{color:#b42318}
 .quality-steps-progress{display:block;width:160px;height:7px;border-radius:999px;background:#e8eef3;overflow:hidden}
 .quality-steps-progress span{display:block;height:100%;background:#2f8a57}
 .quality-steps-table{margin-top:8px}
@@ -9,9 +7,6 @@
 .quality-step-menu-col{width:44px;text-align:right}
 .quality-step-done td strong{color:var(--lo-color-muted);text-decoration:line-through}
 .data-table td.quality-step-overdue{color:#b42318;font-weight:700}
-.quality-step-add{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) 170px auto;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
-.quality-step-add>input{height:38px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:12px}
-@media(max-width:900px){.quality-step-add{grid-template-columns:1fr}}
 /* Steps a CAPA starts with (from a control's deviation actions or a training). */
 .quality-prefill-steps{display:grid;gap:4px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
 /* New incident report (IncidentReportPage.jsx): three steps, the footer in reach. */
@@ -257,7 +252,6 @@
 .rca-empty{margin:0 0 12px;color:var(--muted)}
 .quality-record-stack>.record-section{border:0;box-shadow:none;background:none;padding:0 2px}
 .quality-record-stack>.record-section+.record-section{padding-top:16px;border-top:1px solid var(--lo-color-border)}
-.quality-step-add>.button{height:40px!important;min-height:40px!important}
 
 .quality-programme-summary{align-items:center}
 .quality-programme-progress{display:inline;min-width:0;font-size:12.5px;color:var(--lo-color-muted)}
