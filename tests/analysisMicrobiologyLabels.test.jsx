@@ -148,7 +148,7 @@ describe('cloud status and type codes on the other Δείκτες tabs read in G
     expect(chart('quality', 'Κατάσταση συμβάντων').rows).toEqual([['Υπό διερεύνηση', 4], ['Αναφέρθηκε', 179]])
   })
   it('HAI types keep their acronym, while the bundles of the same name read as bundles', () => {
-    expect(chart('surveillance', 'Τύπος λοίμωξης (HAI)').rows.map(row => row[0])).toEqual(['CLABSI', 'VAP'])
+    expect(chart('surveillance', 'Τύπος λοίμωξης (ΛΣΦΥ)').rows.map(row => row[0])).toEqual(['CLABSI', 'VAP'])
     expect(chart('prevention', 'Συμμόρφωση ανά δέσμη').rows.map(row => row[0])).toEqual(['Δέσμη CLABSI', 'Δέσμη PIV (περιφερικός φλεβικός καθετήρας)', 'Δέσμη HD (αιμοκάθαρση)'])
   })
 })

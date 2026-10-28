@@ -13,7 +13,7 @@ export const guideContent = {
       'Limoxis Observer brings a hospital’s day-to-day infection prevention and control work into one environment: patients, laboratory, surveillance, prevention, controls, quality, training, committees and documents. Each hospital uses only the modules it has been given and each user sees only what their role allows.'
     ),
     audience: l(
-      'Ο οδηγός απευθύνεται σε τρεις ανθρώπους: τον Ιδιοκτήτη Πλατφόρμας (Platform Owner), που δημιουργεί το νοσοκομείο και επιλέγει τι θα βλέπει· τον Διαχειριστή Νοσοκομείου, που το στήνει· και τους χρήστες του νοσοκομείου, που το χρησιμοποιούν καθημερινά.',
+      'Ο οδηγός απευθύνεται σε τρεις ανθρώπους: τον Ιδιοκτήτη πλατφόρμας, που δημιουργεί το νοσοκομείο και επιλέγει τι θα βλέπει· τον Διαχειριστή Νοσοκομείου, που το στήνει· και τους χρήστες του νοσοκομείου, που το χρησιμοποιούν καθημερινά.',
       'The guide is for three people: the Platform Owner, who creates the hospital and chooses what it sees; the Hospital Admin, who sets it up; and the hospital users, who use it every day.'
     ),
     howToRead: l(
@@ -24,20 +24,20 @@ export const guideContent = {
 
   // Chapter 2: situation -> what to do now.
   whereAmI: [
-    [l('Δεν έχει δημιουργηθεί ακόμη το νοσοκομείο στην πλατφόρμα.', 'The hospital does not exist on the platform yet.'), l('Στάδιο 2: δημιουργήστε τον οργανισμό (Platform Owner).', 'Stage 2: create the organization (Platform Owner).')],
-    [l('Ο οργανισμός υπάρχει αλλά δεν έχει επιλεγεί πακέτο ή ενότητες.', 'The organization exists but no package or modules have been chosen.'), l('Στάδιο 3: ορίστε το Προφίλ λειτουργίας (Platform Owner).', 'Stage 3: set the Operating profile (Platform Owner).')],
+    [l('Δεν έχει δημιουργηθεί ακόμη το νοσοκομείο στην πλατφόρμα.', 'The hospital does not exist on the platform yet.'), l('Στάδιο 2: δημιουργήστε τον οργανισμό (Ιδιοκτήτης πλατφόρμας).', 'Stage 2: create the organization (Platform Owner).')],
+    [l('Ο οργανισμός υπάρχει αλλά δεν έχει επιλεγεί πακέτο ή ενότητες.', 'The organization exists but no package or modules have been chosen.'), l('Στάδιο 3: ορίστε το Προφίλ λειτουργίας (Ιδιοκτήτης πλατφόρμας).', 'Stage 3: set the Operating profile (Platform Owner).')],
     [l('Ο Διαχειριστής Νοσοκομείου δεν έχει μπει ποτέ.', 'The Hospital Admin has never signed in.'), l('Στάδιο 4: ενεργοποίηση λογαριασμού· αν δεν ήρθε email, επαναποστολή πρόσκλησης.', 'Stage 4: account activation; if no email arrived, resend the invitation.')],
     [l('Ο Διαχειριστής μπήκε αλλά δεν υπάρχουν τμήματα ή χρήστες.', 'The admin is in, but there are no departments or users.'), l('Στάδιο 5: στήσιμο νοσοκομείου (τμήματα → χρήστες → βιβλιοθήκες).', 'Stage 5: set up the hospital (departments → users → libraries).')],
     [l('Όλα είναι έτοιμα και ξεκινά η πραγματική χρήση.', 'Everything is ready and real use starts.'), l('Στάδιο 6: ακολουθήστε τα βήματα του πακέτου σας (Κεφάλαιο 4).', 'Stage 6: follow the steps of your package (Chapter 4).')],
     [l('Δεν βλέπω μια ενότητα ή μια ενέργεια που περίμενα.', 'I cannot see a module or action I expected.'), l('Κεφάλαιο 8, «Δεν βλέπω μια ενότητα».', 'Chapter 8, “I cannot see a module”.')],
-    [l('Θέλω να προσθέσω ή να αφαιρέσω ενότητα αργότερα.', 'I want to add or remove a module later.'), l('Στάδιο 9: αλλαγή πακέτου ή ενοτήτων (Platform Owner).', 'Stage 9: change the package or modules (Platform Owner).')],
+    [l('Θέλω να προσθέσω ή να αφαιρέσω ενότητα αργότερα.', 'I want to add or remove a module later.'), l('Στάδιο 9: αλλαγή πακέτου ή ενοτήτων (Ιδιοκτήτης πλατφόρμας).', 'Stage 9: change the package or modules (Platform Owner).')],
     [l('Χρειάζομαι αναφορά για τη διοίκηση ή τον ΕΟΔΥ.', 'I need a report for management or ΕΟΔΥ.'), l('Στάδιο 8: Αναλύσεις και εκτύπωση/PDF.', 'Stage 8: Analysis and print/PDF.')],
   ],
 
   // Chapter 1: the nine stages, in order.
   journey: [
     {
-      id: 'prepare', who: l('Υπεύθυνος έργου / Platform Owner', 'Project lead / Platform Owner'), where: l('Εκτός εφαρμογής', 'Outside the application'),
+      id: 'prepare', who: l('Υπεύθυνος έργου / Ιδιοκτήτης πλατφόρμας', 'Project lead / Platform Owner'), where: l('Εκτός εφαρμογής', 'Outside the application'),
       title: l('Προετοιμασία', 'Preparation'),
       steps: [
         l('Συγκεντρώστε τα στοιχεία του νοσοκομείου: ονομασία, κωδικό, πόλη και περιφέρεια, αριθμό κλινών, email επικοινωνίας.', 'Gather the hospital’s details: name, code, city and region, bed count, contact email.'),
@@ -75,9 +75,9 @@ export const guideContent = {
       title: l('Ενεργοποίηση του λογαριασμού του διαχειριστή', 'Activate the admin’s account'),
       steps: [
         l('Ανοίξτε το email πρόσκλησης και πατήστε τον σύνδεσμο.', 'Open the invitation email and follow the link.'),
-        l('Ορίστε προσωπικό κωδικό πρόσβασης. Τον κωδικό τον ορίζετε μόνο εσείς: ούτε ο Platform Owner ούτε άλλος διαχειριστής τον βλέπει.', 'Set a personal password. Only you set it: neither the Platform Owner nor another admin can see it.'),
+        l('Ορίστε προσωπικό κωδικό πρόσβασης. Τον κωδικό τον ορίζετε μόνο εσείς: ούτε ο Ιδιοκτήτης πλατφόρμας ούτε άλλος διαχειριστής τον βλέπει.', 'Set a personal password. Only you set it: neither the Platform Owner nor another admin can see it.'),
         l('Πατήστε «Μετάβαση στη σύνδεση» και συνδεθείτε με το όνομα χρήστη που εμφανίζεται.', 'Select “Go to sign in” and sign in with the username shown.'),
-        l('Αν δεν ήρθε email: ο Platform Owner ανοίγει την καρτέλα του οργανισμού, βρίσκει τον Hospital Admin και πατά «Επαναποστολή πρόσκλησης».', 'If no email arrived: the Platform Owner opens the organization record, finds the Hospital Admin and selects “Resend invitation”.'),
+        l('Αν δεν ήρθε email: ο Ιδιοκτήτης πλατφόρμας ανοίγει την καρτέλα του οργανισμού, βρίσκει τον Διαχειριστή Νοσοκομείου και πατά «Επαναποστολή πρόσκλησης».', 'If no email arrived: the Platform Owner opens the organization record, finds the Hospital Admin and selects “Resend invitation”.'),
       ],
       done: l('Ο Διαχειριστής συνδέεται και στην καρτέλα του οργανισμού φαίνεται «Ενεργός».', 'The admin signs in and the organization record shows “Active”.'),
     },
@@ -87,7 +87,7 @@ export const guideContent = {
       steps: [
         l('Λίστες & ρυθμίσεις › Τμήματα: δημιουργήστε πρώτα όλα τα τμήματα. Οι χρήστες συνδέονται με τμήμα.', 'Lists & settings › Departments: create all departments first. Users are linked to a department.'),
         l('Χρήστες & Ρόλοι: δημιουργήστε τους χρήστες, δώστε ρόλο και τμήμα. Κάθε χρήστης παίρνει πρόσκληση και ορίζει μόνος τον κωδικό του.', 'Users & Roles: create the users, give each a role and department. Each user receives an invitation and sets their own password.'),
-        l('Λίστες & ρυθμίσεις: ελέγξτε τα μικρόβια, τα αντιβιοτικά και τις λοιπές κοινές τιμές. Τα βασικά (core) στοιχεία δεν διαγράφονται· κρύβονται ή παρακάμπτονται.', 'Lists & settings: review microorganisms, antibiotics and other shared values. Core items are not deleted; they are hidden or overridden.'),
+        l('Λίστες & ρυθμίσεις: ελέγξτε τα μικρόβια, τα αντιβιοτικά και τις λοιπές κοινές τιμές. Τα βασικά στοιχεία δεν διαγράφονται· κρύβονται ή παρακάμπτονται.', 'Lists & settings: review microorganisms, antibiotics and other shared values. Core items are not deleted; they are hidden or overridden.'),
         l('Κλινοημέρες: καταχωρίστε τις (αν υπάρχουν Δείκτες ή Επιτήρηση). Είναι ο παρονομαστής των δεικτών.', 'Patient-days: enter them (if Indicators or Surveillance exist). They are the denominator of the indicators.'),
         l('Δομικοί δείκτες: συμπληρώστε τα δομικά στοιχεία του νοσοκομείου όπου ζητούνται.', 'Structural indicators: fill in the hospital’s structural items where requested.'),
       ],
@@ -159,23 +159,23 @@ export const guideContent = {
     {
       id: 'surveillance',
       forWhom: l('Νοσοκομείο που θέλει εργαστηριακή καταγραφή, αναφορές ΕΟΔΥ/EARS-Net και επιτήρηση λοιμώξεων με δείκτες, χωρίς το πλήρες πρόγραμμα ελέγχου.', 'A hospital that wants laboratory records, ΕΟΔΥ/EARS-Net reports and infection surveillance with indicators, without the full control programme.'),
-      goal: l('Κάθε θετική καλλιέργεια να καταλήγει σε επεισόδιο επιτήρησης με ταξινόμηση HAI, αγωγή, απομόνωση και έκβαση, και οι δείκτες να βγαίνουν αυτόματα.', 'Every positive culture ends up in a surveillance episode with HAI classification, therapy, isolation and outcome, and indicators are produced automatically.'),
+      goal: l('Κάθε θετική καλλιέργεια να καταλήγει σε επεισόδιο επιτήρησης με ταξινόμηση ΛΣΦΥ, αγωγή, απομόνωση και έκβαση, και οι δείκτες να βγαίνουν αυτόματα.', 'Every positive culture ends up in a surveillance episode with HAI classification, therapy, isolation and outcome, and indicators are produced automatically.'),
       steps: [
         { title: l('Επιλογή πακέτου', 'Choose the package'), who: l('Platform Owner', 'Platform Owner'), text: l('Επιλέξτε «Εργαστήριο & Επιτήρηση λοιμώξεων» και αποθηκεύστε.', 'Choose “Laboratory & infection surveillance” and save.') },
         { title: l('Τμήματα και χρήστες', 'Departments and users'), who: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), text: l('Δημιουργήστε τα τμήματα και μετά τους χρήστες: Εργαστήριο (για δείγματα και αποτελέσματα), Υπεύθυνο και Μέλη Ελέγχου Λοιμώξεων (για επιτήρηση).', 'Create the departments and then the users: Laboratory (samples and results), Infection Control Lead and Members (surveillance).') },
         { title: l('Κλινοημέρες', 'Patient-days'), who: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), text: l('Κέντρο Διαχείρισης › Κλινοημέρες: καταχωρίστε τις ανά τμήμα και περίοδο. Χωρίς αυτές οι δείκτες δεν έχουν παρονομαστή.', 'Management Center › Patient-days: enter them per department and period. Without them, indicators have no denominator.') },
         { title: l('Δείγμα και αποτέλεσμα', 'Sample and result'), who: l('Εργαστήριο', 'Laboratory'), text: l('Εργαστήριο: ανοίξτε την ουρά εκκρεμών, επιλέξτε δείγμα, καταχωρίστε και επικυρώστε αποτέλεσμα και AST. Το δείγμα συνδέεται με τον ασθενή, χωρίς δεύτερη εγγραφή.', 'Laboratory: open the pending queue, choose a sample, enter and validate the result and AST. The sample is linked to the patient with no second entry.') },
         { title: l('Κρίσιμα αποτελέσματα', 'Critical results'), who: l('Εργαστήριο', 'Laboratory'), text: l('Για κρίσιμο αποτέλεσμα, τεκμηριώστε την επικοινωνία: ποιος ενημερώθηκε και πότε.', 'For a critical result, document the communication: who was informed and when.') },
-        { title: l('Επεισόδιο επιτήρησης', 'Surveillance episode'), who: l('Ομάδα Ελέγχου Λοιμώξεων', 'Infection Control team'), text: l('Επιτήρηση: ανοίξτε το ενεργό επεισόδιο του ασθενή. Συμπληρώστε κλινική αξιολόγηση και ταξινόμηση HAI. Η μικροβιολογία έρχεται από το Εργαστήριο.', 'Surveillance: open the patient’s active episode. Fill in the clinical assessment and HAI classification. Microbiology comes from the Laboratory.') },
+        { title: l('Επεισόδιο επιτήρησης', 'Surveillance episode'), who: l('Ομάδα Ελέγχου Λοιμώξεων', 'Infection Control team'), text: l('Επιτήρηση: ανοίξτε το ενεργό επεισόδιο του ασθενή. Συμπληρώστε κλινική αξιολόγηση και ταξινόμηση ΛΣΦΥ. Η μικροβιολογία έρχεται από το Εργαστήριο.', 'Surveillance: open the patient’s active episode. Fill in the clinical assessment and HAI classification. Microbiology comes from the Laboratory.') },
         { title: l('Αγωγή, απομόνωση, έκβαση', 'Therapy, isolation, outcome'), who: l('Ομάδα Ελέγχου Λοιμώξεων', 'Infection Control team'), text: l('Στο ίδιο επεισόδιο καταχωρίστε αγωγή, μέτρα απομόνωσης και επανεκτιμήσεις. Κλείστε το με έκβαση μόνο όταν ολοκληρωθεί.', 'In the same episode record therapy, isolation measures and reassessments. Close it with an outcome only when complete.') },
-        { title: l('Δείκτες και Αναλύσεις', 'Indicators and Analysis'), who: l('Ομάδα Ελέγχου Λοιμώξεων', 'Infection Control team'), text: l('Δείκτες: ελέγξτε αριθμητή και παρονομαστή. Αναλύσεις: δείτε Επιτήρηση & HAI, Μικροβιολογία, AMR και Εθνική Επιτήρηση.', 'Indicators: check numerator and denominator. Analysis: see Surveillance & HAI, Microbiology, AMR and National surveillance.') },
+        { title: l('Δείκτες και Αναλύσεις', 'Indicators and Analysis'), who: l('Ομάδα Ελέγχου Λοιμώξεων', 'Infection Control team'), text: l('Δείκτες: ελέγξτε αριθμητή και παρονομαστή. Αναλύσεις: δείτε Επιτήρηση & ΛΣΦΥ, Μικροβιολογία, AMR και Εθνική Επιτήρηση.', 'Indicators: check numerator and denominator. Analysis: see Surveillance & HAI, Microbiology, AMR and National surveillance.') },
       ],
       firstWeek: [
         l('Υπάρχουν κλινοημέρες για την τρέχουσα περίοδο.', 'Patient-days exist for the current period.'),
         l('Τουλάχιστον ένα δείγμα έχει φτάσει από το Εργαστήριο στην Επιτήρηση χωρίς διπλοκαταχώριση.', 'At least one sample has gone from the Laboratory to Surveillance without double entry.'),
         l('Τα ενεργά επεισόδια έχουν επανεκτίμηση απομόνωσης που δεν έχει λήξει.', 'Active episodes have an isolation review that is not overdue.'),
       ],
-      success: l('Ο Υπεύθυνος βλέπει στις Αναλύσεις τα HAI και την αντοχή της περιόδου χωρίς χειροκίνητη επεξεργασία.', 'The Lead sees the period’s HAI and resistance in Analysis without manual processing.'),
+      success: l('Ο Υπεύθυνος βλέπει στις Αναλύσεις τα ΛΣΦΥ και την αντοχή της περιόδου χωρίς χειροκίνητη επεξεργασία.', 'The Lead sees the period’s HAI and resistance in Analysis without manual processing.'),
     },
     {
       id: 'full',
@@ -207,7 +207,7 @@ export const guideContent = {
       title: l('Εργαστηριακή καταγραφή (Βασική + Εργαστήριο + ΕΟΔΥ/EARS-Net)', 'Laboratory records (Basic + Laboratory + ΕΟΔΥ/EARS-Net)'),
       when: l('Όταν το νοσοκομείο θέλει εργαστήριο, μικροβιολογία/AMR και αναφορές ΕΟΔΥ & EARS-Net, αλλά όχι επιτήρηση λοιμώξεων.', 'When the hospital wants the laboratory, microbiology/AMR and ΕΟΔΥ & EARS-Net reports, but not infection surveillance.'),
       steps: [
-        l('Platform Owner: επιλέξτε «Βασική καταγραφή» και ξεκλειδώστε «Εργαστήριο & μικροβιολογία/AMR» και «Αναφορές ΕΟΔΥ & EARS-Net». Η κάρτα εμφανίζει «Προσαρμοσμένο». Αποθηκεύστε.', 'Platform Owner: choose “Basic records” and unlock “Laboratory & microbiology/AMR” and “ΕΟΔΥ & EARS-Net reports”. The card shows “Custom”. Save.'),
+        l('Ιδιοκτήτης πλατφόρμας: επιλέξτε «Βασική καταγραφή» και ξεκλειδώστε «Εργαστήριο & μικροβιολογία/AMR» και «Αναφορές ΕΟΔΥ & EARS-Net». Η κάρτα εμφανίζει «Προσαρμοσμένο». Αποθηκεύστε.', 'Platform Owner: choose “Basic records” and unlock “Laboratory & microbiology/AMR” and “ΕΟΔΥ & EARS-Net reports”. The card shows “Custom”. Save.'),
         l('Διαχειριστής: δημιουργήστε τα τμήματα και έναν χρήστη με ρόλο Εργαστήριο.', 'Admin: create the departments and a user with the Laboratory role.'),
         l('Εργαστήριο: ουρά εκκρεμών → δείγμα → αποτέλεσμα και AST → κρίσιμη επικοινωνία όπου χρειάζεται.', 'Laboratory: pending queue → sample → result and AST → critical communication where needed.'),
         l('Αναλύσεις: Μικροβιολογία & AMR και Αναφορές & ποιότητα δεδομένων (ποιότητα δεδομένων, ειδοποιήσεις ΕΟΔΥ, εξαγωγή EARS-Net).', 'Analysis: Microbiology & AMR and Reporting & data quality (data quality, ΕΟΔΥ notifications, EARS-Net export).'),
@@ -239,10 +239,10 @@ export const guideContent = {
       start: l('Ανοίξτε «Αναφορές & ποιότητα δεδομένων» και διορθώστε πρώτα τις ελλείψεις.', 'Open “Reporting & data quality” and fix the gaps first.'),
     },
     surveillance: {
-      what: l('Ο φάκελος επιτήρησης λοίμωξης (ένα επεισόδιο έχει πολλά δείγματα· τα περισσότερα δείγματα δεν γίνονται ποτέ επεισόδιο): το «Προς έλεγχο» δείχνει τα νέα θετικά δείγματα χωρίς επεισόδιο, για άνοιγμα επεισοδίου ή «Δεν χρειάζεται επιτήρηση». Κλινική αξιολόγηση, ταξινόμηση HAI, μικροβιολογία, αγωγή, απομόνωση, συσκευές, επανεκτιμήσεις και έκβαση, σε ενιαίο χρονολόγιο.', 'The infection surveillance record (one episode has many samples; most samples never become an episode): “To review” shows new positive samples with no episode, to open an episode or mark “No surveillance needed”. Clinical assessment, HAI classification, microbiology, therapy, isolation, devices, reassessments and outcome, in one timeline.'),
+      what: l('Ο φάκελος επιτήρησης λοίμωξης (ένα επεισόδιο έχει πολλά δείγματα· τα περισσότερα δείγματα δεν γίνονται ποτέ επεισόδιο): το «Προς έλεγχο» δείχνει τα νέα θετικά δείγματα χωρίς επεισόδιο, για άνοιγμα επεισοδίου ή «Δεν χρειάζεται επιτήρηση». Κλινική αξιολόγηση, ταξινόμηση ΛΣΦΥ, μικροβιολογία, αγωγή, απομόνωση, συσκευές, επανεκτιμήσεις και έκβαση, σε ενιαίο χρονολόγιο.', 'The infection surveillance record (one episode has many samples; most samples never become an episode): “To review” shows new positive samples with no episode, to open an episode or mark “No surveillance needed”. Clinical assessment, HAI classification, microbiology, therapy, isolation, devices, reassessments and outcome, in one timeline.'),
       users: l('Ομάδα Ελέγχου Λοιμώξεων, Ιατρός Αξιολογητής, Link Nurse.', 'Infection Control team, Doctor Reviewer, Link Nurse.'),
       needs: ['laboratory'],
-      analysis: l('Καρτέλες «Επιτήρηση & HAI» και «Αντιμικροβιακά»: επεισόδια, επιβεβαιωμένα και πιθανά HAI, ενεργές απομονώσεις, επεμβατικές συσκευές, έκβαση, χρήση αντιμικροβιακών.', 'Tabs “Surveillance & HAI” and “Antimicrobials”: episodes, confirmed and probable HAI, active isolations, invasive devices, outcome, antimicrobial use.'),
+      analysis: l('Καρτέλες «Επιτήρηση & ΛΣΦΥ» και «Αντιμικροβιακά»: επεισόδια, επιβεβαιωμένα και πιθανά ΛΣΦΥ, ενεργές απομονώσεις, επεμβατικές συσκευές, έκβαση, χρήση αντιμικροβιακών.', 'Tabs “Surveillance & HAI” and “Antimicrobials”: episodes, confirmed and probable HAI, active isolations, invasive devices, outcome, antimicrobial use.'),
       start: l('Ανοίξτε το ενεργό επεισόδιο ενός ασθενή και συμπληρώστε την κλινική αξιολόγηση.', 'Open a patient’s active episode and fill in the clinical assessment.'),
     },
     indicators: {
@@ -337,14 +337,14 @@ export const guideContent = {
       start: l('Δείτε τις εκκρεμείς εγκρίσεις αντιβιοτικών.', 'Review the pending antibiotic approvals.'),
     },
     prevalence_survey: {
-      what: l('Περιοδικές μελέτες επιπολασμού (PPS): πόσοι ασθενείς έχουν HAI και πόσοι λαμβάνουν αντιβιοτικά σε μία ημέρα.', 'Periodic point prevalence surveys (PPS): how many patients have HAI and how many receive antibiotics on a given day.'),
+      what: l('Περιοδικές μελέτες επιπολασμού (PPS): πόσοι ασθενείς έχουν ΛΣΦΥ και πόσοι λαμβάνουν αντιβιοτικά σε μία ημέρα.', 'Periodic point prevalence surveys (PPS): how many patients have HAI and how many receive antibiotics on a given day.'),
       users: l('Ομάδα Ελέγχου Λοιμώξεων.', 'Infection Control team.'),
       needs: null,
-      analysis: l('Καρτέλα «Μελέτη επιπολασμού»: επιπολασμός HAI, χρήση αντιβιοτικών και σύγκριση με την προηγούμενη μέτρηση, τάση ανά μέτρηση.', 'Tab “Prevalence survey”: HAI prevalence, antibiotic use and comparison with the previous survey, trend per survey.'),
+      analysis: l('Καρτέλα «Μελέτη επιπολασμού»: επιπολασμός ΛΣΦΥ, χρήση αντιβιοτικών και σύγκριση με την προηγούμενη μέτρηση, τάση ανά μέτρηση.', 'Tab “Prevalence survey”: HAI prevalence, antibiotic use and comparison with the previous survey, trend per survey.'),
       start: l('Κέντρο Διαχείρισης › Επιπολασμός λοιμώξεων (PPS): καταχωρίστε την πρώτη μέτρηση.', 'Management Center › Prevalence survey (PPS): enter the first survey.'),
     },
     lira: {
-      what: l('Ο βοηθός LIRA και οι διερευνήσεις εξάρσεων (outbreaks). Χωρίς πάροχο AI, η LIRA λειτουργεί με τους ενσωματωμένους κανόνες της. Λειτουργεί μόνο πάνω σε δεδομένα που ο χρήστης δικαιούται ήδη να δει.', 'The LIRA assistant and outbreak investigations. Without an AI provider, LIRA works with its built-in rules. It works only on data the user is already entitled to see.'),
+      what: l('Ο βοηθός LIRA και οι διερευνήσεις εξάρσεων. Χωρίς πάροχο AI, η LIRA λειτουργεί με τους ενσωματωμένους κανόνες της. Λειτουργεί μόνο πάνω σε δεδομένα που ο χρήστης δικαιούται ήδη να δει.', 'The LIRA assistant and outbreak investigations. Without an AI provider, LIRA works with its built-in rules. It works only on data the user is already entitled to see.'),
       users: l('Ομάδα Ελέγχου Λοιμώξεων, Διαχειριστής Νοσοκομείου (σύνδεση παρόχου).', 'Infection Control team, Hospital Admin (provider connection).'),
       needs: null,
       analysis: l('Καρτέλα «LIRA & AI»: διερευνήσεις (ενεργές, κλειστές, μέσος χρόνος ολοκλήρωσης), ενεργές συρροές, κατανομή ανά μικροοργανισμό και μήνα.', 'Tab “LIRA & AI”: investigations (active, closed, average time to close), active clusters, distribution per organism and month.'),
@@ -381,7 +381,7 @@ export const guideContent = {
     { term: l('Οργανισμός', 'Organization'), def: l('Ένα νοσοκομείο ή μια κλινική στην πλατφόρμα, με δικούς του χρήστες και δεδομένα.', 'A hospital or clinic on the platform, with its own users and data.') },
     { term: l('Platform Owner', 'Platform Owner'), def: l('Ο ιδιοκτήτης της πλατφόρμας. Δημιουργεί οργανισμούς και ορίζει τι βλέπει ο καθένας, χωρίς πρόσβαση σε κλινικά δεδομένα.', 'The platform owner. Creates organizations and sets what each one sees, without access to clinical data.') },
     { term: l('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), def: l('Ο υπεύθυνος που στήνει και διαχειρίζεται έναν οργανισμό.', 'The person who sets up and manages one organization.') },
-    { term: l('Προφίλ λειτουργίας', 'Operating profile'), def: l('Η επιλογή του Platform Owner για το τι χρησιμοποιεί ένα νοσοκομείο: πακέτο, ενότητες και πρόσθετα.', 'The Platform Owner’s choice of what a hospital uses: package, modules and add-ons.') },
+    { term: l('Προφίλ λειτουργίας', 'Operating profile'), def: l('Η επιλογή του Ιδιοκτήτη πλατφόρμας για το τι χρησιμοποιεί ένα νοσοκομείο: πακέτο, ενότητες και πρόσθετα.', 'The Platform Owner’s choice of what a hospital uses: package, modules and add-ons.') },
     { term: l('Πακέτο', 'Package'), def: l('Έτοιμος συνδυασμός ενοτήτων: Βασική καταγραφή, Εργαστήριο & Επιτήρηση, Πλήρες πρόγραμμα. Είναι συντόμευση, όχι περιορισμός.', 'A ready-made combination of modules: Basic records, Laboratory & surveillance, Full programme. It is a shortcut, not a limit.') },
     { term: l('Ενότητα (module)', 'Module'), def: l('Ένα τμήμα της πλατφόρμας, π.χ. Εργαστήριο ή Έλεγχοι, που ανοίγει ή κλείνει ανεξάρτητα.', 'A part of the platform, e.g. Laboratory or Controls, switched on or off independently.') },
     { term: l('Πρόσθετο (add-on)', 'Add-on'), def: l('Ενότητα εκτός πακέτου: Υγεία εργαζομένων, Φαρμακείο, Μελέτη επιπολασμού, LIRA & AI.', 'A module outside the packages: Occupational health, Pharmacy, Prevalence survey, LIRA & AI.') },
@@ -392,7 +392,7 @@ export const guideContent = {
     { term: l('Εύρος (scope)', 'Scope'), def: l('Το σύνολο των δεδομένων που ένας χρήστης δικαιούται να δει: ο οργανισμός και τα τμήματά του.', 'The set of data a user is entitled to see: the organization and its departments.') },
     { term: l('Δικαίωμα (capability)', 'Capability'), def: l('Μία συγκεκριμένη ενέργεια που επιτρέπεται, π.χ. «δημιουργία επιτήρησης». Οι ρόλοι είναι σύνολα δικαιωμάτων.', 'One specific permitted action, e.g. “create surveillance”. Roles are sets of capabilities.') },
     { term: l('Επεισόδιο επιτήρησης', 'Surveillance episode'), def: l('Ο ενιαίος φάκελος μιας πιθανής λοίμωξης, από την αξιολόγηση έως την έκβαση.', 'The single record of a possible infection, from assessment to outcome.') },
-    { term: l('Δέσμη μέτρων (bundle)', 'Bundle'), def: l('Ομάδα πρακτικών πρόληψης που αξιολογείται με Ναι/Όχι/Δ.Ε., π.χ. CLABSI, CAUTI.', 'A group of prevention practices assessed Yes/No/N/A, e.g. CLABSI, CAUTI.') },
+    { term: l('Δέσμη μέτρων', 'Bundle'), def: l('Ομάδα πρακτικών πρόληψης που αξιολογείται με Ναι/Όχι/Δ.Ε., π.χ. CLABSI, CAUTI.', 'A group of prevention practices assessed Yes/No/N/A, e.g. CLABSI, CAUTI.') },
     { term: l('Διορθωτική / προληπτική ενέργεια', 'CAPA'), def: l('Διορθωτική και προληπτική ενέργεια, με υπεύθυνο και προθεσμία, που ανοίγει από ένα εύρημα ή συμβάν.', 'Corrective and preventive action, with an owner and due date, opened from a finding or incident.') },
     { term: l('Κλινοημέρες', 'Patient-days'), def: l('Ο αριθμός ημερών νοσηλείας. Είναι ο παρονομαστής των περισσότερων δεικτών.', 'The number of days of hospital stay. The denominator of most indicators.') },
     { term: l('Κρίσιμο αποτέλεσμα', 'Critical result'), def: l('Εργαστηριακό αποτέλεσμα που απαιτεί άμεση ενημέρωση. Η ενημέρωση καταγράφεται με χρόνο και υπεύθυνο.', 'A laboratory result that requires immediate notification. The notification is recorded with time and person.') },
@@ -406,7 +406,7 @@ export const guideContent = {
     {
       q: l('Δεν βλέπω μια ενότητα ή μια ενέργεια.', 'I cannot see a module or action.'),
       a: [
-        l('Ελέγξτε πρώτα αν η ενότητα είναι ξεκλείδωτη για το νοσοκομείο (ρωτήστε τον Platform Owner): αν είναι κλειδωμένη δεν τη βλέπει κανείς.', 'First check whether the module is unlocked for the hospital (ask the Platform Owner): if locked, nobody sees it.'),
+        l('Ελέγξτε πρώτα αν η ενότητα είναι ξεκλείδωτη για το νοσοκομείο (ρωτήστε τον Ιδιοκτήτη πλατφόρμας): αν είναι κλειδωμένη δεν τη βλέπει κανείς.', 'First check whether the module is unlocked for the hospital (ask the Platform Owner): if locked, nobody sees it.'),
         l('Αν είναι ξεκλείδωτη, ελέγξτε τον ρόλο και τα δικαιώματά σας στο Κέντρο Διαχείρισης › Χρήστες & Ρόλοι.', 'If unlocked, check your role and permissions in Management Center › Users & Roles.'),
         l('Ανανεώστε τη σελίδα αν η αλλαγή έγινε μόλις τώρα.', 'Refresh the page if the change was made just now.'),
       ],
@@ -415,14 +415,14 @@ export const guideContent = {
       q: l('Ο χρήστης δεν έλαβε την πρόσκληση.', 'The user did not receive the invitation.'),
       a: [
         l('Ελέγξτε τον φάκελο ανεπιθύμητων και ότι το email είναι σωστό.', 'Check the spam folder and that the email address is correct.'),
-        l('Κέντρο Διαχείρισης › Χρήστες & Ρόλοι: ανοίξτε τον χρήστη (διάλογος «Πρόσβαση χρήστη») και επιλέξτε επαναποστολή πρόσκλησης. Για τον ίδιο τον Διαχειριστή Νοσοκομείου, το κάνει ο Platform Owner από την καρτέλα του οργανισμού.', 'Management Center › Users & Roles: open the user (“User access” dialog) and choose to resend the invitation. For the Hospital Admin themselves, the Platform Owner does it from the organization record.'),
+        l('Κέντρο Διαχείρισης › Χρήστες & Ρόλοι: ανοίξτε τον χρήστη (διάλογος «Πρόσβαση χρήστη») και επιλέξτε επαναποστολή πρόσκλησης. Για τον ίδιο τον Διαχειριστή Νοσοκομείου, το κάνει ο Ιδιοκτήτης πλατφόρμας από την καρτέλα του οργανισμού.', 'Management Center › Users & Roles: open the user (“User access” dialog) and choose to resend the invitation. For the Hospital Admin themselves, the Platform Owner does it from the organization record.'),
       ],
     },
     {
       q: l('Ξέχασα τον κωδικό μου.', 'I forgot my password.'),
       a: [
         l('Από τη σελίδα σύνδεσης χρησιμοποιήστε τον σύνδεσμο ανάκτησης πρόσβασης: οι οδηγίες στέλνονται μόνο στο email που είναι δηλωμένο στον λογαριασμό σας.', 'On the sign-in page use the account recovery link: instructions are sent only to the email registered to your account.'),
-        l('Εναλλακτικά, ο Διαχειριστής Νοσοκομείου επαναφέρει τον κωδικό σας από Χρήστες & Ρόλοι › «Πρόσβαση χρήστη». Για τον διαχειριστή, το κάνει ο Platform Owner.', 'Alternatively, the Hospital Admin resets your password from Users & Roles › “User access”. For the admin, the Platform Owner does it.'),
+        l('Εναλλακτικά, ο Διαχειριστής Νοσοκομείου επαναφέρει τον κωδικό σας από Χρήστες & Ρόλοι › «Πρόσβαση χρήστη». Για τον διαχειριστή, το κάνει ο Ιδιοκτήτης πλατφόρμας.', 'Alternatively, the Hospital Admin resets your password from Users & Roles › “User access”. For the admin, the Platform Owner does it.'),
       ],
     },
     {
@@ -447,7 +447,7 @@ export const guideContent = {
     {
       q: l('Θέλω να δοκιμάσω την πλατφόρμα χωρίς πραγματικούς ασθενείς.', 'I want to try the platform without real patients.'),
       a: [
-        l('Ζητήστε από τον Platform Owner ένα Demo: έχει αποκλειστικά συνθετικά δεδομένα και λήγει αυτόματα. Η προεπισκόπηση στο Κέντρο Βοήθειας δείχνει επίσης τις πραγματικές οθόνες με δεδομένα demo.', 'Ask the Platform Owner for a Demo: it has synthetic data only and expires automatically. The preview in the Help Center also shows the real screens with demo data.'),
+        l('Ζητήστε από τον Ιδιοκτήτη πλατφόρμας ένα Demo: έχει αποκλειστικά συνθετικά δεδομένα και λήγει αυτόματα. Η προεπισκόπηση στο Κέντρο Βοήθειας δείχνει επίσης τις πραγματικές οθόνες με δεδομένα demo.', 'Ask the Platform Owner for a Demo: it has synthetic data only and expires automatically. The preview in the Help Center also shows the real screens with demo data.'),
       ],
     },
   ],

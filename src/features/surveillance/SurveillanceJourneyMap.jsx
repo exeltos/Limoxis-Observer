@@ -134,7 +134,7 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
         : 'Initial assessment pending'
       : validatedSamples.length
         ? language === 'el'
-          ? 'Έλεγχος κριτηρίων HAI'
+          ? 'Έλεγχος κριτηρίων ΛΣΦΥ'
           : 'HAI criteria review'
         : language === 'el'
           ? 'Αναμονή μικροβιολογίας'

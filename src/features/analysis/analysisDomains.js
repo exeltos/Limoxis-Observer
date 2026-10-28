@@ -191,7 +191,7 @@ export function collectDemoQualityFood(range = {}, today = new Date().toISOStrin
 export { mergeDomainMetrics } from './analysisDomainMerge'
 
 const LABELS = {
-  confirmed: ['Επιβεβαιωμένη', 'Confirmed'], probable: ['Πιθανή', 'Probable'], suspected: ['Υπό διερεύνηση', 'Suspected'], notHai: ['Όχι HAI', 'Not HAI'], excluded: ['Αποκλείστηκε', 'Excluded'],
+  confirmed: ['Επιβεβαιωμένη', 'Confirmed'], probable: ['Πιθανή', 'Probable'], suspected: ['Υπό διερεύνηση', 'Suspected'], notHai: ['Όχι ΛΣΦΥ', 'Not HAI'], excluded: ['Αποκλείστηκε', 'Excluded'],
   high: ['Υψηλή', 'High'], medium: ['Μέτρια', 'Medium'], low: ['Χαμηλή', 'Low'], critical: ['Κρίσιμη', 'Critical'],
   reported: ['Αναφέρθηκε', 'Reported'], underReview: ['Υπό διερεύνηση', 'Under review'], under_review: ['Υπό διερεύνηση', 'Under review'], inProgress: ['Σε εξέλιξη', 'In progress'], open: ['Ανοιχτό', 'Open'], closed: ['Κλειστό', 'Closed'], resolved: ['Επιλύθηκε', 'Resolved'],
   pending: ['Σε αναμονή', 'Pending'], approved: ['Εγκρίθηκε', 'Approved'], rejected: ['Απορρίφθηκε', 'Rejected'], not_required: ['Δεν απαιτείται έγκριση', 'No approval needed'],
@@ -244,7 +244,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'overview': return {
       kpis: [
         [tx('Ενεργές επιτηρήσεις', 'Active surveillance'), s.active ?? 0, tx(`${s.total ?? 0} στην περίοδο`, `${s.total ?? 0} in period`)],
-        [tx('Επιβεβαιωμένες HAI', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), (s.haiConfirmed ? 'warning' : '')],
+        [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), (s.haiConfirmed ? 'warning' : '')],
         [tx('Θετικές καλλιέργειες', 'Positive cultures'), micro.totalPositive ?? 0, tx(`${mdro} MDR/XDR/PDR`, `${mdro} MDR/XDR/PDR`), (mdro ? 'danger' : '')],
         [tx('Συμμόρφωση υγιεινής χεριών', 'Hand hygiene compliance'), fmtPct(hhRate), tx(`${hh.observations ?? 0} ευκαιρίες`, `${hh.observations ?? 0} opportunities`), hhRate != null && hhRate < 80 ? 'warning' : 'good'],
         [tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good'],
@@ -259,7 +259,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
           { key: 'hand', label: tx('Υγιεινή χεριών', 'Hand hygiene'), shade: false, format: value => fmtPct(value) },
           { key: 'bundles', label: tx('Δέσμες μέτρων', 'Bundles'), shade: false, format: value => fmtPct(value) },
         ] },
-        { type: 'donut', title: tx('Ταξινόμηση HAI', 'HAI classification'), subtitle: tx('Τελευταία ταξινόμηση κάθε επεισοδίου.', 'Latest classification per episode.'), rows: named(s.byCaseStatus), center: tx('επεισόδια', 'episodes') },
+        { type: 'donut', title: tx('Ταξινόμηση ΛΣΦΥ', 'HAI classification'), subtitle: tx('Τελευταία ταξινόμηση κάθε επεισοδίου.', 'Latest classification per episode.'), rows: named(s.byCaseStatus), center: tx('επεισόδια', 'episodes') },
         { type: 'bars', title: tx('Τι χρειάζεται ενέργεια', 'What needs action'), subtitle: tx('Εκκρεμότητες όλων των ενοτήτων αυτή τη στιγμή.', 'Open items across all areas right now.'), rows: [
           [tx('Εκπρόθεσμες επανεκτιμήσεις απομόνωσης', 'Overdue isolation reviews'), s.isolationReviewOverdue ?? 0],
           [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0],
@@ -272,17 +272,17 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'surveillance': return {
       kpis: [
         [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
-        [tx('Επιβεβαιωμένες HAI', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), s.haiConfirmed ? 'warning' : ''],
+        [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), s.haiConfirmed ? 'warning' : ''],
         [tx('Ενεργές απομονώσεις', 'Active isolations'), s.isolationActive ?? 0, s.isolationReviewOverdue ? tx(`${s.isolationReviewOverdue} με εκπρόθεσμη επανεκτίμηση`, `${s.isolationReviewOverdue} with overdue review`) : tx('Χωρίς εκπρόθεσμες επανεκτιμήσεις', 'No overdue reviews'), s.isolationReviewOverdue ? 'danger' : ''],
         [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
-        { type: 'matrix', wide: true, title: tx('HAI ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
-        { type: 'bars', title: tx('Τύπος λοίμωξης (HAI)', 'Infection type (HAI)'), subtitle: tx('Από την ταξινόμηση HAI κάθε επεισοδίου.', 'From each episode’s HAI classification.'), rows: named(s.byHaiType) },
+        { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
+        { type: 'bars', title: tx('Τύπος λοίμωξης (ΛΣΦΥ)', 'Infection type (HAI)'), subtitle: tx('Από την ταξινόμηση ΛΣΦΥ κάθε επεισοδίου.', 'From each episode’s HAI classification.'), rows: named(s.byHaiType) },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
         { type: 'matrix', title: tx('Λοιμώξεις από συσκευές', 'Device-associated infections'), subtitle: tx('CLABSI, CAUTI και VAP ανά τμήμα.', 'CLABSI, CAUTI and VAP by department.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.deviceAssociated },
-        { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο HAI', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
+        { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
         { type: 'bars', title: tx('Επεμβατικές συσκευές', 'Invasive devices'), subtitle: tx('Ενεργές συσκευές ανά τύπο.', 'Active devices by type.'), rows: s.byDevice },
       ],
     }
@@ -394,13 +394,13 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       const haiNow = rate(last, 2), haiBefore = rate(prev, 2), abxNow = rate(last, 3), abxBefore = rate(prev, 3)
       return {
       kpis: [
-        [tx('Επιπολασμός HAI', 'HAI prevalence'), fmtPct(haiNow), delta(haiNow, haiBefore), haiNow != null && haiBefore != null && haiNow > haiBefore ? 'warning' : ''],
+        [tx('Επιπολασμός ΛΣΦΥ', 'HAI prevalence'), fmtPct(haiNow), delta(haiNow, haiBefore), haiNow != null && haiBefore != null && haiNow > haiBefore ? 'warning' : ''],
         [tx('Χρήση αντιβιοτικών', 'Antibiotic use'), fmtPct(abxNow), delta(abxNow, abxBefore), abxNow != null && abxBefore != null && abxNow > abxBefore ? 'warning' : ''],
         [tx('Μελέτες στην περίοδο', 'Surveys in the period'), p.surveys ?? 0, tx(`${p.patients ?? 0} ασθενείς συνολικά`, `${p.patients ?? 0} patients in total`)],
-        [tx('Ασθενείς με HAI', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
+        [tx('Ασθενείς με ΛΣΦΥ', 'Patients with HAI'), p.withHai ?? 0, tx(`${fmtPct(pct(p.withHai, p.patients))} του συνόλου`, `${fmtPct(pct(p.withHai, p.patients))} of the total`)],
       ],
       charts: [
-        { type: 'trend', wide: true, sparse: true, title: tx('Επιπολασμός HAI ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με HAI προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
+        { type: 'trend', wide: true, sparse: true, title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
         { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
         { type: 'bars', title: tx('Ασθενείς που μετρήθηκαν', 'Patients surveyed'), subtitle: tx('Πλήθος ασθενών ανά μέτρηση.', 'Patients per survey.'), rows: months.map(([key, total]) => [key, total]) },
       ],

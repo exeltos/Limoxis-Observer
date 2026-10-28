@@ -30,7 +30,7 @@ function episodeBlocks(record, ctx, { libraries = {} } = {}) {
   const items = []
   const hai = record.haiClassification
   if (hai) items.push({
-    title: L('Ταξινόμηση λοίμωξης (HAI)', 'Infection classification (HAI)'),
+    title: L('Ταξινόμηση λοίμωξης (ΛΣΦΥ)', 'Infection classification (HAI)'),
     pairs: [
       [L('Τύπος', 'Type'), hai.type && termLabel(hai.type, t, language)],
       [L('Κατάσταση ταξινόμησης', 'Classification status'), hai.status && t(hai.status)],

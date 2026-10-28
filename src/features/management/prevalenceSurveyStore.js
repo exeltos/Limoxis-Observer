@@ -10,7 +10,7 @@ const seed = [
   { id: 'PPS-2511', surveyDate: '2025-11-12', departmentId: '', departmentEl: '', patientsTotal: 175, patientsWithHai: 12, patientsOnAntibiotics: 48, responsibleName: 'ΕΝΛ', notes: 'Έναρξη δέσμης μέτρων πρόληψης CLABSI/CAUTI στη ΜΕΘ.', createdAt: '2025-11-12T10:00:00', createdById: 'demo-user' },
   { id: 'PPS-2602', surveyDate: '2026-02-11', departmentId: '', departmentEl: '', patientsTotal: 178, patientsWithHai: 11, patientsOnAntibiotics: 47, responsibleName: 'ΕΝΛ', notes: '', createdAt: '2026-02-11T10:00:00', createdById: 'demo-user' },
   { id: 'PPS-2605', surveyDate: '2026-05-13', departmentId: '', departmentEl: '', patientsTotal: 183, patientsWithHai: 10, patientsOnAntibiotics: 47, responsibleName: 'ΕΝΛ', notes: '', createdAt: '2026-05-13T10:00:00', createdById: 'demo-user' },
-  { id: 'PPS-2608', surveyDate: '2026-08-12', departmentId: '', departmentEl: '', patientsTotal: 180, patientsWithHai: 9, patientsOnAntibiotics: 46, responsibleName: 'ΕΝΛ', notes: 'Συνεχιζόμενη πτωτική τάση επιπολασμού HAI.', createdAt: '2026-08-12T10:00:00', createdById: 'demo-user' },
+  { id: 'PPS-2608', surveyDate: '2026-08-12', departmentId: '', departmentEl: '', patientsTotal: 180, patientsWithHai: 9, patientsOnAntibiotics: 46, responsibleName: 'ΕΝΛ', notes: 'Συνεχιζόμενη πτωτική τάση επιπολασμού ΛΣΦΥ.', createdAt: '2026-08-12T10:00:00', createdById: 'demo-user' },
 ]
 shiftDemoDatesInPlace([seed])
 

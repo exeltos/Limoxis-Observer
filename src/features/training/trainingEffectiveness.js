@@ -11,7 +11,7 @@ const EFFECTIVENESS_DELAY_MONTHS=3
 
 export const EFFECTIVENESS_METHODS=[
  ['observation','Παρατήρηση στην πράξη','Observation in practice'],
- ['audit','Επιθεώρηση / bundle','Audit / bundle'],
+ ['audit','Επιθεώρηση / δέσμη μέτρων','Audit / bundle'],
  ['indicator','Δείκτης (π.χ. συμμόρφωση, λοιμώξεις)','Indicator (e.g. compliance, infections)'],
  ['retest','Επανέλεγχος γνώσεων','Knowledge re-test'],
  ['supervisor','Αξιολόγηση από προϊστάμενο','Supervisor assessment'],

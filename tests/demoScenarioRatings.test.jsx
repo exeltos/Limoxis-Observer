@@ -72,6 +72,6 @@ describe('Demo scenario rating card', () => {
   })
   it('marks the Platform Owner\'s trial run as not saved', () => {
     render(<DemoScenarioRating scenario={scenario} language="el" trial onSubmit={vi.fn()} onLater={() => {}} />)
-    expect(screen.getByText('Δοκιμή ως Platform Owner: δεν αποθηκεύεται.')).toBeTruthy()
+    expect(screen.getByText('Δοκιμή ως Ιδιοκτήτης πλατφόρμας: δεν αποθηκεύεται.')).toBeTruthy()
   })
 })

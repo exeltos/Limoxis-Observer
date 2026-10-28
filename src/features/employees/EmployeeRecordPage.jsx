@@ -689,7 +689,7 @@ function UnlinkedProfileTab({ tab, platformOwner, language }) {
   const message = platformOwner
     ? en
       ? 'This Platform Owner account is not a hospital employee identity. This tab remains visible for a consistent profile structure, but employee data does not apply to this account.'
-      : 'Ο λογαριασμός Platform Owner δεν αποτελεί ταυτότητα εργαζομένου νοσοκομείου. Η καρτέλα παραμένει ορατή για σταθερή δομή του προφίλ, αλλά τα δεδομένα εργαζομένου δεν εφαρμόζονται σε αυτόν τον λογαριασμό.'
+      : 'Ο λογαριασμός Ιδιοκτήτη πλατφόρμας δεν αποτελεί ταυτότητα εργαζομένου νοσοκομείου. Η καρτέλα παραμένει ορατή για σταθερή δομή του προφίλ, αλλά τα δεδομένα εργαζομένου δεν εφαρμόζονται σε αυτόν τον λογαριασμό.'
     : en
       ? 'No employee record is linked to this account yet. Link the user from Organization → Users to load the real personal data in this tab.'
       : 'Δεν έχει συνδεθεί ακόμη καρτέλα εργαζομένου με αυτόν τον λογαριασμό. Συνδέστε τον χρήστη από Οργανισμός → Χρήστες για να φορτωθούν εδώ τα πραγματικά προσωπικά δεδομένα.'

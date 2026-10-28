@@ -13,7 +13,7 @@ describe('LIRA: organisms in a department',()=>{
  })
  it('names evidence by source and count, without record ids',()=>{
   const text=evidenceSummary([{source:'surveillance_cases',id:'a'},{source:'surveillance_cases',id:'b'},{source:'quality_incidents',id:'c'},{source:'hai_classifications'}],false)
-  expect(text).toBe('Περιστατικά επιτήρησης (2) · Συμβάντα ποιότητας (1) · Ταξινομήσεις HAI')
+  expect(text).toBe('Περιστατικά επιτήρησης (2) · Συμβάντα ποιότητας (1) · Ταξινομήσεις ΛΣΦΥ')
   expect(text).not.toMatch(/#/)
  })
 })

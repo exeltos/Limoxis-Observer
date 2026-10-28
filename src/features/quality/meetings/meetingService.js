@@ -30,7 +30,7 @@ function demoMeetings() {
       decisions: [{ id: 'dmd-3', position: 0, title: 'Πρόγραμμα στήριξης θηλασμού με τη μαία του τμήματος', ownerLabel: 'Προϊσταμένη ΜΕΝΝ', dueDate: addDays(first, 40), status: 'open', capaId: '', carriedFrom: `DM-${first.slice(0, 4)}-01` }],
       participants: team.map((person, position) => ({ ...person, id: `dmp-2-${position}`, position })) },
     { id: 'dm-demo-3', code: `DM-${icuDay.slice(0, 4)}-01`, ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: icuDay, periodMonth: previousMonth(icuDay), agenda: 'Δείκτες λοιμώξεων\nΣυμβάντα', minutes: 'Η συμμόρφωση στην υγιεινή χεριών παραμένει κάτω από τον στόχο.', nextMeetingDate: addDays(icuDay, 30), status: 'final', finalizedAt: `${icuDay}T13:00:00Z`, finalizedByLabel: 'Διευθυντής ΜΕΘ',
-      decisions: [{ id: 'dmd-4', position: 0, title: 'Επανεκπαίδευση στα 5 Moments για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
+      decisions: [{ id: 'dmd-4', position: 0, title: 'Επανεκπαίδευση στις 5 Στιγμές για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
       participants: [{ id: 'dmp-3-0', position: 0, name: 'Διευθυντής ΜΕΘ', role: 'Διευθυντής', attended: true }, { id: 'dmp-3-1', position: 1, name: 'Link Nurse ΜΕΘ', role: 'Link Nurse', attended: true }] },
   ]
 }

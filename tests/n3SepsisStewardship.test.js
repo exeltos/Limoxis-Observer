@@ -67,7 +67,7 @@ describe('protocols are data-driven and timed against the hour', () => {
       expect(stringsEl.sepsis.protocols[protocol.key].name).toBeTruthy()
       expect(stringsEn.sepsis.protocols[protocol.key].name).toBeTruthy()
     }
-    expect(stringsEl.sepsis.protocols.sepsis_hour1.name).toBe('Bundle Σήψης 1ης ώρας')
+    expect(stringsEl.sepsis.protocols.sepsis_hour1.name).toBe('Δέσμη σήψης 1ης ώρας')
     expect(stringsEl.sepsis.protocols.septic_shock.name).toBe('Σηπτικό shock')
     expect(protocolByKey('septic_shock').steps.find(step => step.key === 'vasopressor').emphasis).toBe(true)
   })

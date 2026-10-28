@@ -91,7 +91,7 @@ export function capaPrefill(item,language='el'){
    ?(en?`Control deviation in ${item.department}: ${item.detail||'non-compliant'}.`:`Απόκλιση ελέγχου στο τμήμα ${item.department}: ${item.detail||'μη συμμόρφωση'}.`)
    :item.kind==='training'
    ?(en?`Training evaluated as ${item.detail==='partial'?'partly effective':'not effective'}.`:`Η εκπαίδευση αξιολογήθηκε ως ${item.detail==='partial'?'μερικώς αποτελεσματική':'μη αποτελεσματική'}.`)
-   :(en?`Bundle assessment in ${item.department}: ${item.detail} criteria not met.`:`Αξιολόγηση bundle στο τμήμα ${item.department}: ${item.detail} κριτήρια δεν τηρήθηκαν.`),
+   :(en?`Bundle assessment in ${item.department}: ${item.detail} criteria not met.`:`Αξιολόγηση δέσμης μέτρων στο τμήμα ${item.department}: ${item.detail} κριτήρια δεν τηρήθηκαν.`),
   item.notes&&(en?`Notes: ${item.notes}`:`Σημειώσεις: ${item.notes}`),
  ].filter(Boolean)
  // A training that did not change practice starts from the same three steps as in Training.

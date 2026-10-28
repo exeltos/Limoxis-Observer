@@ -8,7 +8,7 @@ const l=(el,en)=>({el,en})
 // Who each hospital role is and what it does. What it sees is its menu, read
 // from the navigation itself, so the table never drifts from the app.
 export const ROLE_GUIDE=Object.freeze({
-  hospital_admin:{who:l('Ο διαχειριστής του νοσοκομείου, που ορίζει ο Platform Owner.','The hospital administrator, named by the Platform Owner.'),
+  hospital_admin:{who:l('Ο διαχειριστής του νοσοκομείου, που ορίζει ο Ιδιοκτήτης πλατφόρμας.','The hospital administrator, named by the Platform Owner.'),
     does:l('Χρήστες, ρόλοι και προσαρμοσμένοι ρόλοι, τμήματα, βιβλιοθήκες, κλινοημέρες και ρυθμίσεις του οργανισμού. Βλέπει όλες τις ενότητες του νοσοκομείου.','Users, roles and custom roles, departments, libraries, patient days and organization settings. Sees every area of the hospital.')},
   infection_control_lead:{who:l('Ο επικεφαλής της Ομάδας Ελέγχου Λοιμώξεων.','The head of the Infection Control team.'),
     does:l('Επιτήρηση και ταξινόμηση λοιμώξεων, MDRO, πρόληψη, έλεγχοι, δείκτες, επιτροπή λοιμώξεων και αναφορές.','Infection surveillance and classification, MDRO, prevention, inspections, indicators, the infection committee and reports.')},

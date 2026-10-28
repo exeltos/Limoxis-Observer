@@ -37,7 +37,7 @@ export const isOpenItem = item => OPEN_ITEM_STATUSES.includes(item?.status)
 
 // A sent request with nothing submitted after this many days has no answer yet.
 export const NO_RESPONSE_DAYS = 7
-export const SENDER_ONLY_HINT = ['Μόνο ο Platform Owner ή όσοι έχει ορίσει', 'Only the Platform Owner or the people they designate']
+export const SENDER_ONLY_HINT = ['Μόνο ο Ιδιοκτήτης πλατφόρμας ή όσοι έχει ορίσει', 'Only the Platform Owner or the people they designate']
 export const senderOnlyHint = language => SENDER_ONLY_HINT[language === 'en' ? 1 : 0]
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024

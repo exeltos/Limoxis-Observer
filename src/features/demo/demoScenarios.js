@@ -14,7 +14,7 @@ export const DEMO_SCENARIOS = Object.freeze([
     textEn: 'Open a surveillance case in the ICU and review the infection classification against the ECDC criteria and its reassessments.',
     steps: [
       { id: 'open', route: true, labelEl: 'Ανοίξτε ένα περιστατικό επιτήρησης', labelEn: 'Open a surveillance case' },
-      { id: 'hai', target: true, labelEl: 'Δείτε την ταξινόμηση HAI / AMR', labelEn: 'Review the HAI / AMR classification' },
+      { id: 'hai', target: true, labelEl: 'Δείτε την ταξινόμηση ΛΣΦΥ / AMR', labelEn: 'Review the HAI / AMR classification' },
       { id: 'reassessment', target: true, labelEl: 'Δείτε την πορεία με τις επανεκτιμήσεις', labelEn: 'Review the reassessments' },
     ] },
   { key: 'microbiology_mdro', to: '/laboratory',

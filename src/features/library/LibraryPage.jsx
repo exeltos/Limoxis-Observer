@@ -280,7 +280,7 @@ function NewsTab({ news, sources, loading, language, canManage, onAdd, onEdit })
         {activeSources.length > 0 ? <div className="lib-feeds">{activeSources.map(source => { const state = sourceState(source); return <div key={source.id}><span><i className={`lib-dot is-${state}`} aria-hidden="true" />{source.name}</span><span>{sourceStateLabel(source, language)}</span></div> })}</div>
           : <p>{L('Δεν έχουν οριστεί πηγές.', 'No sources have been set.')}</p>}
       </div>
-      <div className="lib-callout"><Info size={16} aria-hidden="true" /><div>{L('Τα νέα δεν αλλάζουν τίποτα στο Limoxis. Αν μια ανακοίνωση αφορά οδηγία, ο Platform Owner την προσθέτει στις «Κατευθυντήριες οδηγίες».', 'News changes nothing in Limoxis. If an announcement concerns a guideline, the Platform Owner adds it to «Guidelines».')}</div></div>
+      <div className="lib-callout"><Info size={16} aria-hidden="true" /><div>{L('Τα νέα δεν αλλάζουν τίποτα στο Limoxis. Αν μια ανακοίνωση αφορά οδηγία, ο Ιδιοκτήτης πλατφόρμας την προσθέτει στις «Κατευθυντήριες οδηγίες».', 'News changes nothing in Limoxis. If an announcement concerns a guideline, the Platform Owner adds it to «Guidelines».')}</div></div>
     </aside>
   </div>
 }

@@ -188,7 +188,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
             <div className="audit-answer-actions">
               {row.findingId
                 ? <button type="button" className="quality-audit-finding-link" disabled={dirty} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}>{L(en, 'Εύρημα', 'Finding')} {row.findingId}<ChevronRight size={13} /></button>
-                : editable && row.findingClass && <Button variant="secondary" disabled={dirty || saving || !isSavedRow(row, organizationId)} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => setFindingFor(row)}><SearchCheck size={15} /> {L(en, 'Εύρημα / CAPA', 'Finding / CAPA')}</Button>}
+                : editable && row.findingClass && <Button variant="secondary" disabled={dirty || saving || !isSavedRow(row, organizationId)} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => setFindingFor(row)}><SearchCheck size={15} /> {L(en, 'Εύρημα / διορθωτική ενέργεια', 'Finding / CAPA')}</Button>}
             </div>
           </FormGrid>}
           {(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <FormGrid columns={2} className="audit-answer-grid">

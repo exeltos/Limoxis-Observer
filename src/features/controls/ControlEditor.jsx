@@ -188,10 +188,10 @@ export function ControlEditor({initial,onCancel,onSave,departmentOnly=false,fixe
      </div>}
      {mode==='checklist'&&<div className="control-editor-checklist">
       <div className="control-editor-checklist-tools">
-       <SearchableSelect label={en?'Start from a bundle template':'Εισαγωγή από πρότυπο bundle'} value="" options={bundleTemplates.map(x=>({value:String(x.id),label:en?x.titleEn||x.name:x.titleEl||x.name,description:`${(x.elements||[]).length} ${en?'items':'σημεία'}`}))} onChange={importBundle} placeholder={en?'Optional':'Προαιρετικό'} {...selectText}/>
+       <SearchableSelect label={en?'Start from a bundle template':'Εισαγωγή από πρότυπο δέσμης μέτρων'} value="" options={bundleTemplates.map(x=>({value:String(x.id),label:en?x.titleEn||x.name:x.titleEl||x.name,description:`${(x.elements||[]).length} ${en?'items':'σημεία'}`}))} onChange={importBundle} placeholder={en?'Optional':'Προαιρετικό'} {...selectText}/>
        <Button variant="secondary" onClick={()=>setChecklist([...checklist,{id:newItemId(),el:'',en:'',required:true}])}><Plus size={15}/> {en?'Add item':'Προσθήκη σημείου'}</Button>
       </div>
-      {checklist.length===0&&<div className="inline-empty"><strong>{en?'No items yet':'Δεν υπάρχουν σημεία'}</strong><span>{en?'Add the items to check one by one, or start from a bundle template.':'Προσθέστε τα σημεία ελέγχου ένα-ένα ή ξεκινήστε από πρότυπο bundle.'}</span></div>}
+      {checklist.length===0&&<div className="inline-empty"><strong>{en?'No items yet':'Δεν υπάρχουν σημεία'}</strong><span>{en?'Add the items to check one by one, or start from a bundle template.':'Προσθέστε τα σημεία ελέγχου ένα-ένα ή ξεκινήστε από πρότυπο δέσμης μέτρων.'}</span></div>}
       <ol className="control-editor-checklist-items">{checklist.map((item,index)=><li key={item.id||index}>
        <span className="control-editor-checklist-number">{index+1}</span>
        <input aria-label={`${en?'Item':'Σημείο'} ${index+1}`} value={en?item.en||item.el:item.el} onChange={e=>setChecklist(checklist.map(x=>x===item?{...x,[en?'en':'el']:e.target.value,...(!en||!x.el?{el:x.el||e.target.value}:{})}:x))} placeholder={en?'e.g. Hand rub available at the point of care':'π.χ. Διαθέσιμο αντισηπτικό στο σημείο φροντίδας'}/>

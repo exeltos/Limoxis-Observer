@@ -115,7 +115,7 @@ describe('Supplier certificate renewal: who may send', () => {
     expect(renewalPermissions({ canView: true })).toEqual({ send: false, review: false, propose: true, cancel: false })
     expect(renewalPermissions({ canSend: true, canView: true })).toMatchObject({ send: true, propose: true, cancel: true })
     expect(renewalPermissions({ owner: true })).toEqual({ send: true, review: true, propose: true, cancel: true })
-    expect(senderOnlyHint('el')).toBe('Μόνο ο Platform Owner ή όσοι έχει ορίσει')
+    expect(senderOnlyHint('el')).toBe('Μόνο ο Ιδιοκτήτης πλατφόρμας ή όσοι έχει ορίσει')
   })
 
   it('the database checks the same: Platform Owner or the add-on, granted by the Platform Owner only', () => {

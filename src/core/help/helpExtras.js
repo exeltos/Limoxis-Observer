@@ -41,7 +41,7 @@ export const helpExtras={
  },
  '/quality':{
   checks:{el:['Ελέγξτε υπεύθυνο, προθεσμία και κατάσταση κάθε διορθωτικής ενέργειας.','Συνδέστε εύρημα και διορθωτική ενέργεια όπου υπάρχει σχέση.','Τεκμηριώστε την αποτελεσματικότητα πριν το τελικό κλείσιμο.'],en:['Review owner, due date and status for every CAPA.','Link findings to corrective actions where relevant.','Document effectiveness before final closure.']},
-  tip:{el:'Σε governed records προτιμάται διόρθωση/αρχειοθέτηση/void αντί για φυσική διαγραφή ιστορικού.',en:'For governed records, prefer correction, archiving or voiding rather than physically deleting history.'},
+  tip:{el:'Σε ελεγχόμενες εγγραφές προτιμάται διόρθωση/αρχειοθέτηση/ακύρωση αντί για φυσική διαγραφή ιστορικού.',en:'For governed records, prefer correction, archiving or voiding rather than physically deleting history.'},
   related:['/controls','/indicators','/documents']
  },
  '/indicators':{
@@ -100,7 +100,7 @@ export const helpExtras={
   related:['/surveillance','/quality','/indicators']
  },
  '/management':{
-  checks:{el:['Ελέγξτε οργανισμό και εύρος πριν από αλλαγή.','Για βασικό (core) περιεχόμενο χρησιμοποιήστε παράκαμψη/απόκρυψη όπου προβλέπεται.','Επιβεβαιώστε ότι ρόλοι και δικαιώματα συμφωνούν με την πραγματική λειτουργία.'],en:['Verify organization and scope before making a change.','Use override/hide patterns for core content where applicable.','Confirm roles and permissions match the intended operational workflow.']},
+  checks:{el:['Ελέγξτε οργανισμό και εύρος πριν από αλλαγή.','Για βασικό περιεχόμενο χρησιμοποιήστε παράκαμψη/απόκρυψη όπου προβλέπεται.','Επιβεβαιώστε ότι ρόλοι και δικαιώματα συμφωνούν με την πραγματική λειτουργία.'],en:['Verify organization and scope before making a change.','Use override/hide patterns for core content where applicable.','Confirm roles and permissions match the intended operational workflow.']},
   tip:{el:'Οι κεντρικές ρυθμίσεις πρέπει να μειώνουν τις ασυνέπειες στην εφαρμογή, όχι να δημιουργούν διαφορετικούς κανόνες ανά οθόνη.',en:'Central configuration should reduce inconsistency across the application, not create different rules for each screen.'},
   related:['/employees','/documents','/indicators']
  }

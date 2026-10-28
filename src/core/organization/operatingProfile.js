@@ -17,13 +17,13 @@ const DEFAULT_PROFILE = 'full'
 
 export const PROFILE_LABELS = Object.freeze({
   basic: { el: 'Βασική καταγραφή', en: 'Basic records', hintEl: 'Μόνο η καταγραφή ασθενών. Το Εργαστήριο και οι αναφορές ΕΟΔΥ & EARS-Net ξεκλειδώνονται όπου χρειάζονται.', hintEn: 'Patient records only. Laboratory and ΕΟΔΥ & EARS-Net reports can be unlocked where needed.' },
-  surveillance: { el: 'Εργαστήριο & Επιτήρηση λοιμώξεων', en: 'Laboratory & infection surveillance', hintEl: 'Εργαστηριακή καταγραφή και αναφορές ΕΟΔΥ & EARS-Net, μαζί με επιτήρηση (HAI, απομόνωση, αγωγή, έκβαση) και δείκτες.', hintEn: 'Laboratory records and ΕΟΔΥ & EARS-Net reports, plus surveillance (HAI, isolation, therapy, outcome) and indicators.' },
+  surveillance: { el: 'Εργαστήριο & Επιτήρηση λοιμώξεων', en: 'Laboratory & infection surveillance', hintEl: 'Εργαστηριακή καταγραφή και αναφορές ΕΟΔΥ & EARS-Net, μαζί με επιτήρηση (ΛΣΦΥ, απομόνωση, αγωγή, έκβαση) και δείκτες.', hintEn: 'Laboratory records and ΕΟΔΥ & EARS-Net reports, plus surveillance (HAI, isolation, therapy, outcome) and indicators.' },
   full: { el: 'Πλήρες πρόγραμμα Ελέγχου Λοιμώξεων', en: 'Full infection control programme', hintEl: 'Ό,τι η επιτήρηση, μαζί με Πρόληψη, Ελέγχους, Ποιότητα, Εκπαίδευση, Επιτροπές και Έγγραφα.', hintEn: 'Surveillance plus Prevention, Controls, Quality, Training, Committees and Documents.' },
 })
 export const ADDON_LABELS = Object.freeze({
   occupational_health: { el: 'Υγεία εργαζομένων (Ιατρός Εργασίας)', en: 'Occupational health', hintEl: 'Εμβολιασμοί, επισκέψεις Ιατρού Εργασίας και επανέλεγχοι προσωπικού.', hintEn: 'Staff vaccination, occupational physician visits and follow-ups.' },
   pharmacy: { el: 'Φαρμακείο (κατανάλωση αντιμικροβιακών)', en: 'Pharmacy (antimicrobial consumption)', hintEl: 'Κατανάλωση και χορηγήσεις αντιμικροβιακών από το φαρμακείο.', hintEn: 'Antimicrobial consumption and dispensing from the pharmacy.' },
-  prevalence_survey: { el: 'Μελέτη επιπολασμού (PPS)', en: 'Point prevalence survey (PPS)', hintEl: 'Περιοδικές μετρήσεις επιπολασμού HAI και χρήσης αντιβιοτικών.', hintEn: 'Periodic HAI prevalence and antibiotic use measurements.' },
+  prevalence_survey: { el: 'Μελέτη επιπολασμού (PPS)', en: 'Point prevalence survey (PPS)', hintEl: 'Περιοδικές μετρήσεις επιπολασμού ΛΣΦΥ και χρήσης αντιβιοτικών.', hintEn: 'Periodic HAI prevalence and antibiotic use measurements.' },
   lira: { el: 'LIRA & AI', en: 'LIRA & AI', hintEl: 'Βοηθός LIRA, διερευνήσεις συρροών και σύνδεση παρόχου AI.', hintEn: 'LIRA assistant, outbreak investigations and AI provider connection.' },
 })
 
@@ -33,7 +33,7 @@ export const MODULES = Object.freeze({
   patients: { el: 'Ασθενείς', en: 'Patients', from: 'basic', analysis: false },
   laboratory: { el: 'Εργαστήριο & μικροβιολογία/AMR', en: 'Laboratory & microbiology/AMR', from: 'surveillance', analysis: true },
   national: { el: 'Αναφορές ΕΟΔΥ & EARS-Net', en: 'ΕΟΔΥ & EARS-Net reports', from: 'surveillance', analysis: true },
-  surveillance: { el: 'Επιτήρηση λοιμώξεων (HAI, απομόνωση, αγωγή, έκβαση)', en: 'Infection surveillance (HAI, isolation, therapy, outcome)', from: 'surveillance', analysis: true },
+  surveillance: { el: 'Επιτήρηση λοιμώξεων (ΛΣΦΥ, απομόνωση, αγωγή, έκβαση)', en: 'Infection surveillance (HAI, isolation, therapy, outcome)', from: 'surveillance', analysis: true },
   indicators: { el: 'Δείκτες', en: 'Indicators', from: 'surveillance', analysis: false },
   prevention: { el: 'Πρόληψη & υγιεινή χεριών', en: 'Prevention & hand hygiene', from: 'full', analysis: true },
   controls: { el: 'Έλεγχοι', en: 'Controls', from: 'full', analysis: true },
