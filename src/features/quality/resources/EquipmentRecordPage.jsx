@@ -95,7 +95,7 @@ export function EquipmentRecordPage() {
   ]
   const headerActions = !isNew && <div className="row-actions">
     {/* One «Record» menu (check, failure or repair); the corrective action sits in the out-of-service notice below. */}
-    {canRecord && row.state !== 'retired' && <OverflowMenu label={en ? 'Record' : 'Καταγραφή'} width={240} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'Record' : 'Καταγραφή'}</>} items={[
+    {canRecord && row.state !== 'retired' && <OverflowMenu utility label={en ? 'Record' : 'Καταγραφή'} width={240} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'Record' : 'Καταγραφή'}</>} items={[
       { id: 'maintenance', label: en ? 'Record a check' : 'Καταγραφή ελέγχου', icon: Wrench, onClick: () => setEvent(newEvent('maintenance')) },
       row.state === 'in_service' && { id: 'failure', label: en ? 'Report a failure' : 'Δήλωση βλάβης', icon: AlertOctagon, onClick: () => setEvent(newEvent('failure')) },
       row.state === 'out_of_service' && { id: 'repair', label: en ? 'Record the repair' : 'Καταγραφή επισκευής', icon: Wrench, onClick: () => setEvent(newEvent('repair')) },
