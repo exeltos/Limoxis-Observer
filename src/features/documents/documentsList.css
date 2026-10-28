@@ -1,0 +1,9 @@
+/* The documents list: one line per document (the description in the title's tooltip;
+   owner and department cut with «…», the whole text in their tooltip). */
+.data-table td.documents-title-cell{max-width:250px}
+.data-table td.documents-title-cell strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.data-table td.documents-clip-cell{max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Document record: the record card is the body itself, so its sections sit on it without a
+   second frame (as in the other records). !important only to undo the framed .record-section
+   of foundation.css. */
+.document-record-shell .entity-record-body .document-record-workspace>.record-section:is(section,#lo-document-record),.document-record-shell .entity-record-body>.record-section:is(section,#lo-document-record){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}

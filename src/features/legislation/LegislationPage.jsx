@@ -8,7 +8,7 @@ import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { MetricCard } from '../../design-system/MetricCard'
+import { KpiFigures } from '../../design-system/KpiCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -20,7 +20,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { formatDay } from '../../core/i18n/formatDay'
-import { exportRegistry } from '../../core/export/registryExports'
+import { exportRegistry, printRegistry } from '../../core/export/registryExports'
 import { useLegislationAccess } from './legislationAccess'
 import { checkSourcesNow, loadCandidates, loadLibrary, loadRegister, loadSources, removeSource, saveSource, setCandidate } from './legislationService'
 import { KINDS, NO_FILTERS, REGISTER_STATES, TOPICS, buildRegister, candidateStatusLabel, candidateStatusTone, filterRegister, hasUnpublished, kindLabel, registerCounts, registerExport, registerStateLabel, registerStateTone, sourceHealth, sourceHealthLabel, sourceHealthTone, textStatusLabel, textStatusTone, unpublishedChanges } from './legislationModel'
@@ -67,27 +67,25 @@ export function LegislationPage() {
   const failing = sources.items.filter(item => sourceHealth(item) === 'failing')
   const visible = useMemo(() => filterRegister(entries, filters), [entries, filters])
   const quick = key => setFilters(current => ({ ...current, quick: current.quick === key ? null : key }))
-  const dash = value => (register.loading ? '—' : value)
+  const loading = register.loading
+  const { notify } = useFeedback()
 
+  // At most four cards: the applicable texts and the updates to review are notes on them.
   const figures = tab === 'register' ? [
-    { key: 'applicable', icon: Scale, value: dash(counts.applicable), label: en ? 'Texts that apply' : 'Κείμενα που αφορούν', active: filters.quick === 'applicable', go: () => quick('applicable') },
-    { key: 'percent', icon: Gauge, value: dash(counts.percent == null ? '—' : `${counts.percent}%`), label: en ? 'Average compliance' : 'Μέση συμμόρφωση' },
-    { key: 'new', icon: Sparkles, value: dash(counts.newTexts), label: en ? 'New: decide if they apply' : 'Νέα: απόφαση αν αφορούν', tone: counts.newTexts ? 'info' : 'neutral', active: filters.quick === 'new', go: () => quick('new') },
-    { key: 'updates', icon: RefreshCw, value: dash(counts.updates), label: en ? 'Updates to review' : 'Ενημερώσεις προς επανεξέταση', tone: counts.updates ? 'warning' : 'neutral', active: filters.quick === 'updates', go: () => quick('updates') },
-    { key: 'nonCompliant', icon: AlertOctagon, value: dash(counts.nonCompliant), label: en ? 'With non-compliance' : 'Με μη συμμόρφωση', tone: counts.nonCompliant ? 'danger' : 'neutral', active: filters.quick === 'nonCompliant', go: () => quick('nonCompliant') },
-    { key: 'reviewLate', icon: CalendarClock, value: dash(counts.reviewLate), label: en ? 'Review overdue' : 'Εκπρόθεσμη επανεξέταση', tone: counts.reviewLate ? 'warning' : 'neutral', active: filters.quick === 'reviewLate', go: () => quick('reviewLate') },
+    { key: 'percent', icon: Gauge, value: counts.percent == null ? null : counts.percent, unit: '%', loading, label: en ? 'Average compliance' : 'Μέση συμμόρφωση', status: counts.percent == null ? null : counts.percent >= 90 ? 'good' : counts.percent >= 75 ? 'warning' : 'danger', target: en ? 'target ≥ 90%' : 'στόχος ≥ 90%', hint: en ? `of ${counts.applicable} texts` : `σε ${counts.applicable} κείμενα`, active: filters.quick === 'applicable', go: () => quick('applicable') },
+    { key: 'new', icon: Sparkles, value: counts.newTexts, loading, label: en ? 'New texts to decide on' : 'Νέα κείμενα προς απόφαση', tone: 'warning', hint: counts.updates ? (en ? `+${counts.updates} to review` : `+${counts.updates} για επανεξέταση`) : null, active: filters.quick === 'new', go: () => quick('new') },
+    { key: 'nonCompliant', icon: AlertOctagon, value: counts.nonCompliant, loading, label: en ? 'With non-compliance' : 'Με μη συμμόρφωση', status: counts.nonCompliant ? 'danger' : 'good', target: en ? 'target: 0' : 'στόχος: 0', active: filters.quick === 'nonCompliant', go: () => quick('nonCompliant') },
+    { key: 'reviewLate', icon: CalendarClock, value: counts.reviewLate, loading, label: en ? 'Review overdue' : 'Εκπρόθεσμη επανεξέταση', status: counts.reviewLate ? 'danger' : 'good', target: en ? 'target: 0' : 'στόχος: 0', active: filters.quick === 'reviewLate', go: () => quick('reviewLate') },
   ] : []
 
   const actions = <div className="row-actions">
-    {tab === 'register' && <ExportMenu disabled={!visible.length} onExcel={() => exportRegistry(registerExport(visible, language))} />}
+    {tab === 'register' && <ExportMenu disabled={!visible.length} onPrint={() => { if (!printRegistry(registerExport(visible, language), { language, kind: en ? 'Legislation' : 'Νομοθεσία', title: en ? 'Legislation that applies' : 'Νομοθεσία που αφορά' })) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') }} onExcel={() => exportRegistry(registerExport(visible, language))} />}
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 
   return <Page fill className="registry-fill-page" title={en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>
     {tabs.length > 1 && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
-    {figures.length > 0 && <div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{ '--quality-kpis': figures.length }}>
-      {figures.map(figure => <MetricCard key={figure.key} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active} />)}
-    </div></div>}
+    <KpiFigures label={en ? 'Legislation' : 'Νομοθεσία'} figures={figures} />
     <section className="surface registry-workspace workspace-column workspace-fill">
       {tab === 'register' && <RegisterList entries={visible} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}
       {tab === 'library' && access.isPlatformOwner && <LibraryList library={library} language={language} onOpen={item => navigate(`${base}/library/${item.id}`)} />}

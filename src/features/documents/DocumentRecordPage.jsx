@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Archive, BookOpenCheck, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
+import './documentsList.css'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -32,7 +33,7 @@ import {
   getDocumentFamily,
   groupDocumentFamilies,
 } from './documentService'
-import { DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentForm'
+import { DocumentDetails, DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentForm'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { RouteLoading } from '../../design-system/RouteLoading'
@@ -387,6 +388,7 @@ export function DocumentRecordPage() {
   </>
 
   return <Page fill><EntityRecordShell
+    className="document-record-shell"
     avatar={<BookOpenCheck size={19} />}
     eyebrow={record.id}
     title={record.title}
@@ -403,11 +405,9 @@ export function DocumentRecordPage() {
       {!editing && <ProtocolReviewPanel record={record} suggestions={protocolSuggestions.data} organizationId={organizationId} actor={actor} canDecide={canManage || canSupersede} canRevise={record.status === 'published' && canSupersede} language={language} onStartRevision={startSuggestedRevision} onChanged={async (revision) => { await protocolSuggestions.reload(); if (revision) navigate(`/documents/${revision.id}`) }} />}
       <section className="record-section">
         <div className="record-section-header"><div>
-          <span className="eyebrow">{en ? 'Document' : 'Έγγραφο'}</span>
           <h3>{en ? 'Document details' : 'Στοιχεία εγγράφου'}</h3>
-          <p>{en ? 'Core metadata and scope for this controlled document.' : 'Βασικά στοιχεία και πεδίο εφαρμογής του ελεγχόμενου εγγράφου.'}</p>
         </div></div>
-        <DocumentForm value={draft} onChange={setDraft} language={language} departments={departments} ownerName={ownerName} readOnly={!editing} />
+        {editing ? <DocumentForm value={draft} onChange={setDraft} language={language} departments={departments} ownerName={ownerName} /> : <DocumentDetails value={record} language={language} departments={departments} ownerName={ownerName} />}
         {editing && <div className="inline-edit-footer">
           <Button variant="secondary" onClick={cancelEdit} disabled={busy}>{en ? 'Cancel' : 'Ακύρωση'}</Button>
           <SaveButton loading={busy} disabled={!documentDraftIsValid(draft) || busy} onClick={saveEdit}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>
@@ -416,9 +416,7 @@ export function DocumentRecordPage() {
 
       {!editing && <section className="record-section">
         <div className="record-section-header"><div>
-          <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
           <h3>{en ? 'Controlled version' : 'Ελεγχόμενη έκδοση'}</h3>
-          <p>{en ? 'Ownership, approval and publication evidence for this version.' : 'Υπευθυνότητα και στοιχεία έγκρισης/δημοσίευσης για την έκδοση.'}</p>
         </div></div>
         <div className="document-version-history-events">
           <div className="timeline-line"><strong>{en ? 'Document owner' : 'Υπεύθυνος εγγράφου'}</strong><span>{ownerName || '—'}</span></div>
@@ -431,7 +429,6 @@ export function DocumentRecordPage() {
 
       {!editing && <section className="record-section document-lifecycle-section">
         <div className="record-section-header"><div>
-          <span className="eyebrow">{en ? 'Workflow' : 'Ροή έγκρισης'}</span>
           <h3>{en ? 'Next action' : 'Επόμενη ενέργεια'}</h3>
           <p>{record.status === 'draft'
             ? (en ? 'The document is editable and can be submitted for review.' : 'Το έγγραφο είναι επεξεργάσιμο και μπορεί να υποβληθεί για έλεγχο.')
