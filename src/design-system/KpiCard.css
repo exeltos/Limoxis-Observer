@@ -44,7 +44,25 @@ button.lo-kpi:focus-visible{outline:2px solid var(--lo-field-focus,#5f93ad);outl
 @media (max-width:1100px){.lo-kpi-strip{grid-template-columns:repeat(var(--kpi-columns-md,3),minmax(0,1fr))}}
 @media (max-width:820px){.lo-kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.lo-kpi-strip{grid-template-columns:1fr}}
-@media print{.lo-kpi{break-inside:avoid;min-height:0}.lo-kpi-skeleton{display:none}}
 /* KpiFigures: the card whose filter is on. */
 .lo-kpi.is-active{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary)}
-.lo-kpi-figures .lo-kpi{min-height:96px}
+/* One low height for every card on every screen, so the list under them keeps its room:
+   the value with its bar on one row, then status, target, change and note on one row
+   (cut with «…», the whole text in the tooltip). */
+.lo-kpi{height:92px;min-height:0;gap:5px;padding:10px 12px 10px 14px}
+.lo-kpi>*{flex-shrink:0}
+.lo-kpi .lo-kpi-icon{width:20px;height:20px;border-radius:6px}
+.lo-kpi .lo-kpi-icon svg{width:12px;height:12px}
+.lo-kpi-label,.lo-kpi-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.lo-kpi-main{display:flex;align-items:center;gap:12px;width:100%;min-width:0}
+.lo-kpi-main .lo-kpi-value{flex:none;font-size:22px}
+.lo-kpi-main .lo-kpi-meter{flex:1;min-width:40px;width:auto}
+.lo-kpi-main .lo-kpi-trend{position:static;margin-left:auto}
+.lo-kpi-line{flex-wrap:nowrap;width:100%;overflow:hidden;white-space:nowrap}
+.lo-kpi-line>*{flex:none}
+.lo-kpi-line .lo-kpi-delta{margin-top:0}
+/* The target stays whole; the change and the note give way. */
+.lo-kpi-line>.lo-kpi-delta,.lo-kpi-line>.lo-kpi-hint{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.lo-kpi-line>.lo-kpi-delta{display:block;white-space:nowrap}
+.lo-kpi-line>.lo-kpi-delta>svg{display:inline-block;vertical-align:-2px;margin-right:3px}
+@media print{.lo-kpi{break-inside:avoid;min-height:0;height:auto}.lo-kpi-skeleton{display:none}}

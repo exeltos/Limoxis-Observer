@@ -23,16 +23,22 @@ export function KpiCard({icon:Icon,label,value,unit='',period,status,statusLabel
   const shown=value==null||value===''?'—':value
   const DeltaIcon=TRENDS[delta?.trend]||Minus
   const body=<>
-    <span className="lo-kpi-head">{Icon&&<span className="lo-kpi-icon" aria-hidden="true"><Icon/></span>}<span className="lo-kpi-label">{label}</span>{period&&<em className="lo-kpi-period">{period}</em>}</span>
+    <span className="lo-kpi-head">{Icon&&<span className="lo-kpi-icon" aria-hidden="true"><Icon/></span>}<span className="lo-kpi-label" title={typeof label==='string'?label:undefined}>{label}</span>{period&&<em className="lo-kpi-period">{period}</em>}</span>
     {loading?<span className="lo-kpi-skeleton" aria-hidden="true"><i/><i/></span>
       :error?<small className="lo-kpi-error">{typeof error==='string'?error:en?'Not loaded':'Δεν φορτώθηκε'}</small>
       :<>
-        <strong className="lo-kpi-value">{shown}{unit&&shown!=='—'&&<small>{unit}</small>}</strong>
-        {meter!=null&&<span className="lo-kpi-meter"><Meter value={meter} tone={meterTone||'neutral'} label={`${label}: ${Math.round(meter)}%`}/>{meterTarget!=null&&<b style={{left:`${Math.max(0,Math.min(100,meterTarget))}%`}} aria-hidden="true"/>}</span>}
-        {trend&&<span className="lo-kpi-trend"><Sparkline points={trend} label={label} width={88} height={26}/></span>}
-        {(StatusIcon&&shown!=='—'||target)&&<span className="lo-kpi-line">{StatusIcon&&shown!=='—'&&<span className={`lo-kpi-status is-${status}`}><StatusIcon aria-hidden="true"/>{statusLabel||(en?enLabel:el)}</span>}{target&&<span>{target}</span>}</span>}
-        {hint&&<small className="lo-kpi-hint">{hint}</small>}
-        {delta&&<span className={`lo-kpi-delta ${delta.good==null?'is-flat':delta.good?'is-better':'is-worse'}`} title={delta.title}><DeltaIcon aria-hidden="true"/>{delta.text}</span>}
+        {/* Compact: the value with its bar on one row, then one row for status, target, note and change. */}
+        <span className="lo-kpi-main">
+          <strong className="lo-kpi-value">{shown}{unit&&shown!=='—'&&<small>{unit}</small>}</strong>
+          {meter!=null&&<span className="lo-kpi-meter"><Meter value={meter} tone={meterTone||'neutral'} label={`${label}: ${Math.round(meter)}%`}/>{meterTarget!=null&&<b style={{left:`${Math.max(0,Math.min(100,meterTarget))}%`}} aria-hidden="true"/>}</span>}
+          {trend&&<span className="lo-kpi-trend"><Sparkline points={trend} label={label} width={88} height={26}/></span>}
+        </span>
+        {(StatusIcon&&shown!=='—'||target||hint||delta)&&<span className="lo-kpi-line">
+          {StatusIcon&&shown!=='—'&&<span className={`lo-kpi-status is-${status}`}><StatusIcon aria-hidden="true"/>{statusLabel||(en?enLabel:el)}</span>}
+          {target&&<span className="lo-kpi-target">{target}</span>}
+          {delta&&<span className={`lo-kpi-delta ${delta.good==null?'is-flat':delta.good?'is-better':'is-worse'}`} title={delta.title||delta.text}><DeltaIcon aria-hidden="true"/>{delta.text}</span>}
+          {hint&&<small className="lo-kpi-hint" title={typeof hint==='string'?hint:undefined}>{hint}</small>}
+        </span>}
       </>}
   </>
   const classes=`lo-kpi tone-${tone} ${className}`.trim()

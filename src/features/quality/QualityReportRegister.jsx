@@ -288,7 +288,7 @@ export function DeviationSummary({view,language}){
   {key:'all',icon:FileWarning,value:counts.total,label:en?'Deviations':'Αποκλίσεις',hint:en?`${counts.closed} closed`:`${counts.closed} κλειστές`,active:!pendingView&&filters.status==='all'&&!filters.quick,go:()=>showRegistry({})},
   {key:'progress',icon:Wrench,value:counts.inProgress,label:en?'In progress':'Σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',go:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
   {key:'withoutCapa',icon:AlertOctagon,value:counts.withoutCapa,label:en?'Without corrective action':'Χωρίς διορθωτική ενέργεια',status:counts.withoutCapa?'danger':'good',target:en?'target: 0':'στόχος: 0',active:!pendingView&&filters.quick==='withoutCapa',go:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
-  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Signals from other modules, to assess':'Σήματα από άλλες ενότητες, προς αξιολόγηση',tone:'warning',hint:en?'e.g. results out of limits':'π.χ. αποτελέσματα εκτός ορίων',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
+  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Signals to assess':'Σήματα προς αξιολόγηση',tone:'warning',hint:en?'from other modules, e.g. out of limits':'από άλλες ενότητες, π.χ. εκτός ορίων',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
  ]}/>
 }
 
