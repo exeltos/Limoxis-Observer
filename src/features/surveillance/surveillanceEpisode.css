@@ -9,12 +9,6 @@ html body .surveillance-episode-page .episode-detail-scroll.progressive-surveill
 html body .surveillance-episode-page .clinical-data-hub{display:flex;flex-direction:column;gap:12px;max-width:none!important}
 
 /* Attention: a short list, one row per item, each opening the relevant step. */
-html body :is(.surveillance-episode-page,.patient-summary-layout) .journey-guidance.compact-guidance{display:grid!important;gap:6px!important;margin:0!important;padding:10px 12px!important}
-html body :is(.surveillance-episode-page,.patient-summary-layout) .journey-guidance-title{margin:0!important}
-html body :is(.surveillance-episode-page,.patient-summary-layout) .journey-guidance-items{display:grid!important;grid-template-columns:minmax(0,1fr)!important;justify-items:stretch!important;gap:5px!important}
-html body :is(.surveillance-episode-page,.patient-summary-layout) .journey-guidance-items>.record-summary-link{justify-self:start!important}
-html body :is(.surveillance-episode-page,.patient-summary-layout) .guidance-cue{min-height:32px!important;height:auto!important;padding:6px 12px!important;border-radius:8px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;width:100%!important;text-align:left!important;cursor:pointer!important}
-html body :is(.surveillance-episode-page,.patient-summary-layout) .guidance-cue strong{font-size:12.5px!important;white-space:normal!important}
 
 /* ECDC review uses the full width; stage navigation wraps into two rows so labels are never cut. */
 html body .surveillance-episode-page .episode-workspace-map{margin:0!important}
@@ -167,14 +161,7 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 /* The scales opened from a header chip: the scales panel (a record-tab layout that
    fills its parent) gets a body tall enough for its table and pager. */
 /* The record summary (ClinicalAdmissions CanonicalSummary): attention list, then two columns. */
-.record-summary-attention{border:1px solid var(--lo-status-warning-border);background:#fffbf0;border-radius:10px;padding:8px 12px}
-.record-summary-attention-title{display:flex;align-items:center;gap:6px;margin-bottom:2px;color:var(--lo-status-warning-fg);font-size:12.5px}
-.record-summary-attention-title span{min-width:18px;padding:0 6px;border-radius:999px;background:var(--lo-status-warning-border);text-align:center;font-size:11px;font-weight:700}
 .record-summary-attention ul,.record-summary-events ul{margin:0;padding:0;list-style:none}
-.record-summary-attention li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px dashed var(--lo-status-warning-border);font-size:12.5px;color:#172033}
-.record-summary-attention li:first-child{border-top:0}
-.record-summary-attention li>span::before{content:'';display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--lo-status-warning-fg);vertical-align:1px}
-.record-summary-attention li.tone-danger>span::before{background:var(--lo-status-danger-fg)}
 .record-summary-link{padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:650;color:#1d4f7a;white-space:nowrap;cursor:pointer}
 .record-summary-link:hover{color:#123a5b;text-decoration:underline}
 .record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start}
@@ -184,3 +171,24 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 .record-summary-events li{display:flex;gap:8px;padding:3px 0;font-size:12px;color:#172033}
 .record-summary-events li b{flex:none;font-weight:650}
 @media (max-width:1000px){.record-summary-grid{grid-template-columns:1fr}}
+/* The episode's sections on a desktop: one row in one frame (owner, 28/10: tabs and cards never break into a
+   second row; no box in a box). A long label ends in «…», its full text is the button's title.
+   !important only because the older episode-map rules above and in features.css set these with it. */
+@media (min-width:1101px){
+  html body .journey-map.episode-workspace-map{border:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs{display:grid!important;grid-auto-flow:column!important;grid-template-columns:none!important;grid-auto-columns:minmax(0,1fr)!important;gap:4px!important;overflow:visible!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab{min-width:0!important;min-height:52px!important;padding:6px 8px!important;gap:6px!important;border-color:transparent!important;background:transparent!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.active{border-color:var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 7%,#fff)!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>span{min-width:0!important;overflow:hidden!important}
+  /* A running protocol (sepsis) keeps its alert in the colour of its name, not in a frame of its own. */
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab:not(.active){border-color:transparent!important;background:transparent!important;outline:0!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab strong{color:var(--lo-status-danger-fg)!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>svg:first-child{display:none!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal!important;overflow:hidden!important;line-height:1.2!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+}
+/* A small laptop: the name of each section only (the second line hides), so it fits. */
+@media (min-width:1101px) and (max-width:1320px){
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:none!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{font-size:11px!important}
+}

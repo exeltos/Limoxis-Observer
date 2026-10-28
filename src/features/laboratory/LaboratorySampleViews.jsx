@@ -1,7 +1,7 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { AlertTriangle } from 'lucide-react'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { DetailList } from '../../design-system/DetailList'
 import { methodLabel } from './laboratorySampleFormat'
 import { LaboratoryStatus } from './LaboratoryStatus'
 
@@ -40,9 +40,7 @@ export function ResultCard({
         </div>
       )}
       {emptyState && !(result?.result || organisms.length) ? emptyState : result ? (
-        <RecordDetailsGrid
-          className="laboratory-summary-grid lab-result-grid"
-          fields={[
+        <DetailList className="lab-result-details" sections={[{ items: [
             {
               id: 'result',
               label: t('result'),
@@ -87,7 +85,7 @@ export function ResultCard({
                     ? tx('outside')
                     : tx('noLimit'),
             },
-          ].filter(Boolean)}
+          ].filter(field => field && !field.hidden).map(field => ({ label: field.label, value: field.meta ? <>{field.value}{' '}{field.meta}</> : field.value })) }]}
         />
       ) : (
         <div className="lab-table-empty lab-result-empty">{tx('noResult')}</div>

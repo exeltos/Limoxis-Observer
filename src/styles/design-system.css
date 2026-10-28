@@ -1033,11 +1033,11 @@
    body is already the card: the panel fills it, the header is one row, the
    content scrolls inside and the footer stays at the bottom. */
 .entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel),:is(.record-tab-panel,#lo-record-tab-panel){flex:1 1 auto!important;min-height:0!important;min-width:0!important;display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
-.record-tab-panel>:is(.record-tab-panel-header,#lo-record-tab-panel){flex:0 0 auto;margin:0!important;padding:14px 20px 12px!important;min-height:64px;box-sizing:border-box}
+.record-tab-panel>:is(.record-tab-panel-header,#lo-record-tab-panel){flex:0 0 auto;margin:0!important;padding:14px 13px 12px!important;min-height:64px;box-sizing:border-box}
 .record-tab-panel-body{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:auto}
 .record-tab-panel-body>.inline-empty,.record-tab-panel-body>.scroll-table>.inline-empty{margin:0;padding:28px 20px;border:0;border-radius:0;background:transparent;text-align:center}
-.record-tab-panel-body>.patient-history-list{max-height:none;flex:0 0 auto;padding:10px 20px 18px}
-.record-tab-panel-body>:is(.sv-tree,#lo-record-tab-panel){padding:14px 20px 18px!important}
+.record-tab-panel-body>.patient-history-list{max-height:none;flex:0 0 auto;padding:10px 13px 18px}
+.record-tab-panel-body>:is(.sv-tree,#lo-record-tab-panel){padding:14px 13px 18px!important}
 .entity-record-body:has(>.record-tab-panel){padding:0!important;gap:0!important}
 /* MonthField: month and year selects side by side. */
 .month-field-controls{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px}

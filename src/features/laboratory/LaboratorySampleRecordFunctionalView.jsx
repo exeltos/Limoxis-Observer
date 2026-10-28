@@ -88,6 +88,9 @@ export function LaboratorySampleRecordFunctionalView() {
   }, [sampleId, repository]) // eslint-disable-line react-hooks/exhaustive-deps
   const isEnvironmental =
     sample?.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample?.type)
+  // Same rule as the environmental surveillance list (environmentalNeedsAction): a result outside its limits on a sample that is not closed.
+  const environmentNeedsAction =
+    isEnvironmental && !['cancelled', 'rejected', 'voided'].includes(sample?.status) && (sample?.microbiologyResults || []).some(item => item?.withinLimit === false)
   useEffect(() => {
     if (isEnvironmental)
       repository
@@ -616,10 +619,13 @@ export function LaboratorySampleRecordFunctionalView() {
         subtitle={`${sample.subjectName || sample.patient || '—'}${sample.subjectCode || sample.patientId ? ` · ${sample.subjectCode || sample.patientId}` : ''} · ${sample.department || '—'}`}
         status={
           <>
-            <Status
-              text={rejected ? t('rejected') : finalized ? t('completed') : t(sample.status)}
-              kind={rejected ? 'rejected' : finalized ? 'completed' : sample.status}
-            />
+            {/* An environmental point outside its limits needs action whatever the laboratory status says: the header reads as the surveillance list does. */}
+            {environmentNeedsAction
+              ? <StatusBadge tone="warning">{t('surveillanceList.actionNeeded')}</StatusBadge>
+              : <Status
+                text={rejected ? t('rejected') : finalized ? t('completed') : t(sample.status)}
+                kind={rejected ? 'rejected' : finalized ? 'completed' : sample.status}
+              />}
             {reviewTag(sample, language) && <StatusBadge tone="neutral">{reviewTag(sample, language)}</StatusBadge>}
           </>
         }
@@ -629,7 +635,7 @@ export function LaboratorySampleRecordFunctionalView() {
         onTabChange={setTab}
         headerActions={<>
           {/* «Επαναδειγματοληψία»: an environmental point outside its limits is sampled again, from the surveillance list's create flow. */}
-          {isEnvironmental && (sample.microbiologyResults || []).some(item => item?.withinLimit === false) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && (
+          {environmentNeedsAction && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && (
             <Button variant="secondary" title={t('surveillanceList.resampleHelp')} onClick={() => navigate('/surveillance?tab=environmental', { state: { resampleOf: sample } })}>
               <RotateCcw size={15} />{t('surveillanceList.resample')}
             </Button>

@@ -10,7 +10,7 @@ import {
   Syringe,
   Stethoscope,
 } from 'lucide-react'
-import { useState } from 'react'
+import { AttentionList } from '../../design-system/AttentionList'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const icons = {
@@ -196,7 +196,6 @@ export function SurveillanceJourneyGuidance({
   extraCues = [],
 }) {
   // A short list: the first three, the rest behind «and N more».
-  const [showAll, setShowAll] = useState(false)
   const cues = [...extraCues],
     samples = record?.samples || [],
     pendingSamples = samples.filter(sample => !sample.organism)
@@ -226,31 +225,13 @@ export function SurveillanceJourneyGuidance({
       </div>
     )
   return (
-    <div className="journey-guidance compact-guidance">
-      <div className="journey-guidance-title">
-        <AlertTriangle size={15} />
-        <strong>{t('clinicalRecords.attentionNeeded')}</strong>
-        <span>{cues.length}</span>
-      </div>
-      <div className="journey-guidance-items">
-        {(showAll ? cues : cues.slice(0, 3)).map((cue, index) => (
-          <button
-            type="button"
-            key={`${cue.id}-${index}`}
-            className={`guidance-cue ${cue.tone}`}
-            onClick={() => onSelect?.(cue.id)}
-          >
-            <strong>{cue.title}</strong>
-            <span aria-hidden="true">→</span>
-          </button>
-        ))}
-        {!showAll && cues.length > 3 && (
-          <button type="button" className="record-summary-link" onClick={() => setShowAll(true)}>
-            {String(t('clinicalRecords.attentionMore')).replace('{count}', String(cues.length - 3))}
-          </button>
-        )}
-      </div>
-    </div>
+    <AttentionList
+      className="journey-attention"
+      title={t('clinicalRecords.attentionNeeded')}
+      limit={3}
+      moreLabel={count => String(t('clinicalRecords.attentionMore')).replace('{count}', String(count))}
+      items={cues.map(cue => ({ id: cue.id, text: cue.title, tone: cue.tone === 'danger' ? 'danger' : cue.tone === 'warning' || cue.tone === 'due' ? 'warning' : 'info', onClick: onSelect ? () => onSelect(cue.id) : null }))}
+    />
   )
 }
 

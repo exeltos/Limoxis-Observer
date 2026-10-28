@@ -1,8 +1,8 @@
 import { DueDate } from '../../design-system/DueDate'
+import { AttentionList } from '../../design-system/AttentionList'
 import { Fragment, useState } from 'react'
 import { stayDays } from './patientRecordScope'
 import {
-  AlertTriangle,
   ArrowRightLeft,
   CalendarDays,
   Check,
@@ -429,30 +429,10 @@ export function CanonicalSummary({
   // the patient and the stay on the left, the current surveillance on the right; one screen.
   return (
     <div className="patient-summary-layout record-summary">
-      {attention.length > 0 && (
-        <div
-          className="record-summary-attention"
-          role={attention.some(item => item.tone === 'danger') ? 'alert' : 'status'}
-        >
-          <div className="record-summary-attention-title">
-            <AlertTriangle size={15} aria-hidden="true" />
-            <strong>{t('clinicalRecords.attentionNeeded')}</strong>
-            <span>{attention.length}</span>
-          </div>
-          <ul>
-            {attention.map(item => (
-              <li key={item.id} className={`tone-${item.tone === 'warning' ? 'warning' : 'danger'}`}>
-                <span>{item.text}</span>
-                {onOpenStage && item.action && (
-                  <button type="button" className="record-summary-link" aria-label={`${item.action}: ${item.text}`} onClick={() => onOpenStage(item.stage)}>
-                    {item.action} →
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <AttentionList
+        title={t('clinicalRecords.attentionNeeded')}
+        items={attention.map(item => ({ id: item.id, text: item.text, tone: item.tone === 'warning' ? 'warning' : 'danger', action: onOpenStage && item.action ? item.action : null, onClick: onOpenStage && item.action ? () => onOpenStage(item.stage) : null }))}
+      />
       <div className="record-summary-grid">
         {patient ? (
           <PatientDetailsSection

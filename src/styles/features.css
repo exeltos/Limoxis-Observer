@@ -3326,8 +3326,8 @@ button{letter-spacing:0}
 
 .patient-record-shell{
   --pr-gap:12px;
-  --pr-pad-x:20px;
-  --pr-pad-y:16px;
+  --pr-pad-x:13px;
+  --pr-pad-y:13px;
 }
 .patient-record-shell>.entity-record-body{
   min-height:0!important;
@@ -3340,7 +3340,7 @@ button{letter-spacing:0}
   flex-direction:column!important;
   overflow:hidden!important;
 }
-.patient-record-shell>.entity-record-body>:is(.patient-summary-layout,.patient-home-layout,.record-section,.surveillance-workspace,.clinical-data-hub,.timeline-panel-clean){
+.patient-record-shell>.entity-record-body>:is(.patient-summary-layout,.patient-home-layout,.record-section,.surveillance-workspace,.clinical-data-hub,.timeline-panel-clean,.documents-workspace){
   width:100%!important;
   max-width:none!important;
   margin:0!important;
@@ -3432,32 +3432,6 @@ button{letter-spacing:0}
   padding:8px 10px!important;
   border-radius:9px!important;
 }
-.patient-surveillance-clean .journey-guidance-title{
-  min-height:26px!important;
-}
-.patient-surveillance-clean .journey-guidance-items{
-  display:grid!important;
-  grid-template-columns:repeat(3,minmax(0,1fr))!important;
-  gap:6px!important;
-}
-.patient-surveillance-clean .guidance-cue{
-  min-height:50px!important;
-  padding:7px 9px!important;
-  border-radius:8px!important;
-}
-.patient-surveillance-clean .guidance-cue strong{
-  font-size:10px!important;
-  line-height:1.25!important;
-}
-.patient-surveillance-clean .guidance-cue small{
-  margin-top:2px!important;
-  font-size:8.75px!important;
-  line-height:1.25!important;
-  display:-webkit-box!important;
-  -webkit-line-clamp:2!important;
-  -webkit-box-orient:vertical!important;
-  overflow:hidden!important;
-}
 .patient-surveillance-clean .journey-map{
   margin:0 0 10px!important;
 }
@@ -3477,10 +3451,6 @@ button{letter-spacing:0}
 .patient-record-shell .episode-detail-header h2,
 .patient-record-shell .episode-report-group:nth-child(3)>strong,
 .patient-record-shell .final-report-footer>strong{display:none!important}
-
-@media(max-width:1050px){
-  .patient-surveillance-clean .journey-guidance-items{grid-template-columns:1fr!important}
-}
 @media(max-width:680px){
   .patient-record-shell{--pr-pad-x:12px;--pr-pad-y:12px}
   .patient-surveillance-clean{padding:10px!important}
@@ -3495,8 +3465,6 @@ button{letter-spacing:0}
 .episode-detail-actions{display:flex!important;align-items:center!important}
 .episode-detail-card .clinical-data-hub{padding:14px 16px 18px!important;gap:10px!important}
 .episode-detail-card .journey-guidance{margin:0!important;padding:7px 9px!important;border-radius:9px!important}
-.episode-detail-card .journey-guidance-items{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important}
-.episode-detail-card .guidance-cue{min-height:44px!important;padding:7px 9px!important}
 .episode-detail-card .journey-map{margin:0!important;padding:10px!important;border:1px solid #e5ebf0!important;border-radius:11px!important;background:#fbfcfd!important}
 .episode-detail-card .clinical-data-grid>.clinical-panel{padding:12px 14px!important}
 .episode-detail-card .clinical-data-grid>.clinical-panel>.record-section-header{align-items:center!important;margin-bottom:8px!important}
@@ -3600,10 +3568,8 @@ html body button.clinical-risk-flag.risk-tone-active{border-color:#bfe3cc!import
 html body button.clinical-risk-flag.risk-tone-warning{border-color:#f5d7a8!important;background:#fff4e5!important;color:#9a5b00!important}
 html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!important;background:#fdeceb!important;color:#b42318!important}
 
-/* Documents tab: open exactly like the other records' documents tabs
-   (Quality/Laboratory) instead of the patient shell's edge-to-edge section. */
-.patient-record-shell>.entity-record-body>.record-section.documents-workspace{width:calc(100% - 26px)!important;margin:13px!important;padding:12px!important;border:1px solid #dbe2e8!important;border-radius:9px!important;background:#fff!important}
-.patient-record-shell .documents-workspace>.record-section-header{padding:0 0 7px!important;margin:0 0 18px!important}
+/* Forms tab: its sections keep the same inset as the other tabs of the record. */
+.patient-record-shell .episode-forms-panel>.record-tab-panel-body{padding:4px var(--pr-pad-x) 0}
 .patient-record-shell .documents-workspace .attachment-field{padding:12px 13px!important;border:1px dashed #ced9e3!important;border-radius:11px!important;background:#fbfcfd!important}
 /* History and Surveillance & Samples tabs: the same inset card as Documents. */
 .patient-record-shell>.entity-record-body>.patient-surveillance-clean{padding:13px!important}
@@ -3691,7 +3657,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .episode-section-tab strong{font-size:11.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .episode-section-tab small{font-size:9.5px!important;color:#8093a3!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 .episode-tab-check{margin-left:auto!important;flex:none!important;color:#368d61!important}
-.episode-detail-card .journey-guidance.compact-guidance{margin-bottom:10px!important;border-radius:10px!important}
 .episode-detail-card .clinical-data-grid{display:block!important}
 .episode-detail-card .clinical-panel{border:1px solid #dce7f0!important;border-radius:12px!important;box-shadow:none!important;background:#fff!important}
 .episode-detail-card .clinical-panel.full-panel{min-height:220px!important}
