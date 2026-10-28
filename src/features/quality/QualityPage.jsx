@@ -277,7 +277,8 @@ export function QualityPage(){
   {roundOpen&&<AuditRoundDialog audits={records.data.audits} language={language} saving={fillingProgramme} onClose={()=>setRoundOpen(false)} onApply={applyRound}/>}
   {tab==='risks'&&(tabFigures.risks||[]).length>0&&<p className="quality-summary-line" aria-live="polite">{tabFigures.risks.map(figure=><span key={figure.key} className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined}><b>{figure.value}</b> {figure.label.toLowerCase()}</span>)}</p>}
   {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language} onOrphans={()=>goDeviations('withoutCapa')}/>}
-  <section className="surface registry-workspace workspace-column workspace-fill">
+  {tab==='indicators'&&measureView==='indicators'&&<PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" filterEnd={measureSwitch}/></PageEmbedProvider>}
+  {!(tab==='indicators'&&measureView==='indicators')&&<section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='incidents'&&<ReportRegister compact view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
@@ -294,9 +295,6 @@ export function QualityPage(){
     onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} findings={records.data.findings}
     onOpenFinding={finding=>openRecord('findings',finding.id,[finding.id])}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
-   {tab==='indicators'&&measureView==='indicators'&&<>
-    <PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" filterEnd={measureSwitch}/></PageEmbedProvider>
-   </>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
     <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={measureSwitch}>
@@ -307,7 +305,7 @@ export function QualityPage(){
    {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} registry={registry} filters={surveyFilters} setFilters={setSurveyFilters} filterEnd={measureSwitch} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');registry.openRecord(navigate,`/quality/surveys/${survey.id}`,survey.id)}}/>}
    {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} registry={registry} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');registry.openRecord(navigate,`/quality/equipment/${row.id}`,row.id)}}/>}
    {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&<SuppliersList list={resources} registry={registry} filters={supplierFilters} setFilters={setSupplierFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');registry.openRecord(navigate,`/quality/suppliers/${row.id}`,row.id)}}/>}
-  </section></>}
+  </section>}</>}
   {editingObjective&&<ObjectiveDialog objective={editingObjective} registers={objectives.registers} onClose={()=>setEditingObjective(null)} onSaved={()=>{setEditingObjective(null);void objectives.reload()}}/>}
  </Page>
 }

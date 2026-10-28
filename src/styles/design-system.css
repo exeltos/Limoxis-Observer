@@ -723,6 +723,7 @@
   background:var(--lo-color-surface)!important;
 }
 
+.indicators-page>.registry-workspace>.scroll-table,
 .page-fill>.registry-workspace>.scroll-table,
 .page-fill>.patient-registry-shell>.scroll-table,
 .page>.platform-registry-shell .scroll-table,

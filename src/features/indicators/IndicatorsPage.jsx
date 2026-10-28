@@ -84,7 +84,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',f
  const moreMenu=<OverflowMenu label={t('indicatorsRecords.moreActions')} items={[{id:'recalculate',label:t('recalculate'),icon:RefreshCcw,disabled:loading,onClick:calculate}]}/>
  const line=(key,count,label,tone)=><button key={key} type="button" className={`${tone==='warning'&&count?'is-late':''}${kpi===key||(key==='all'&&kpi==='all'&&category==='all'&&!query)?' is-active':''}`.trim()} onClick={()=>key==='all'?setKpi('all'):toggleKpi(key)}><b>{firstLoad?'—':count}</b> {label}</button>
  const summary=<p className="quality-summary-line" aria-live="polite">{line('all',definitions.length,t('indicatorsRecords.activeDefinitions').toLowerCase())}{line('onTarget',onTarget,t('indicatorsRecords.onTargetStatus').toLowerCase())}{line('attention',attention,t('indicatorsRecords.needAttentionLabel').toLowerCase(),'warning')}{line('approved',approvedCount,t('indicatorsRecords.approvedResults').toLowerCase())}</p>
- return <Page fill title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={filterEnd?null:<div className="row-actions">{exportMenu}{newButton}{moreMenu}</div>}>
+ return <Page fill className="indicators-page" title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={filterEnd?null:<div className="row-actions">{exportMenu}{newButton}{moreMenu}</div>}>
   {summary}
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">

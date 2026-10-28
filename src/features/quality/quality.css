@@ -280,3 +280,7 @@
 .quality-programme-dot.is-planned{background:var(--lo-color-surface);border:1px solid var(--lo-color-primary)}
 .quality-programme-dot.is-cancelled{background:var(--lo-color-surface-muted);color:var(--lo-color-muted)}
 .quality-programme-dot.is-done,.quality-programme-dot.is-late,.quality-programme-dot.is-running,.quality-programme-dot.is-cancelled{border:1px solid currentColor}
+.page-embedded.indicators-page{flex:1 1 auto;overflow:hidden}
+/* The steps and the progress notes: two panels one under the other, each as tall as its content. */
+.quality-record-stack>.quality-capa-panel{flex:0 0 auto!important;height:auto!important;min-height:auto!important}
+.quality-capa-panel>.record-tab-panel-body{flex:0 0 auto;overflow:visible}
