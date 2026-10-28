@@ -30,7 +30,9 @@ import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
 
 // The registry shows the patient first, as the episodes do, and the status as a badge.
-const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral'}
+const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral',noAdmission:'neutral'}
+// A patient with no admission is not «active»: the laboratory imports can create the person alone.
+const effectiveStatus=p=>p.hasAdmission===false?'noAdmission':p.status
 
 export function PatientsPage(){
   const {t,language}=useLanguage()
@@ -53,7 +55,7 @@ export function PatientsPage(){
   const [infectionFlags,setInfectionFlags]=useState({})
   useEffect(()=>{
     let alive=true
-    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(isDemo?list.map(item=>({...item,hasAdmission:Boolean(item.admissionDate)})):list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
     loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}).catch(()=>{})
     loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}).catch(()=>{})
     return ()=>{alive=false}
@@ -66,7 +68,7 @@ export function PatientsPage(){
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>inPeriod(p.admissionDate,period))
-    .filter(p=>status==='all'||(status==='isolation'?isolated(p):p.status===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
+    .filter(p=>status==='all'||(status==='isolation'?isolated(p):effectiveStatus(p)===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
   const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
@@ -80,8 +82,8 @@ export function PatientsPage(){
   const scopedPatients=patients.filter(p=>canAccessRecord(p))
   const patientSummary={
     total:scopedPatients.length,
-    active:scopedPatients.filter(p=>p.status==='active').length,
-    discharged:scopedPatients.filter(p=>p.status==='discharged').length,
+    active:scopedPatients.filter(p=>effectiveStatus(p)==='active').length,
+    discharged:scopedPatients.filter(p=>effectiveStatus(p)==='discharged').length,
     // In production a transfer between departments keeps the patient active, so the card counts isolations in place.
     isolation:scopedPatients.filter(p=>isolated(p)).length,
   }
@@ -90,7 +92,7 @@ export function PatientsPage(){
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('patientsCountDischarged')}</option><option value="transferred">{t('transferred')}</option><option value="noAdmission">{t('patientNoAdmission')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
       <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </FilterBar>
       <RegistryTable
@@ -101,13 +103,13 @@ export function PatientsPage(){
         loading={loading}
         rowKey={patient=>patient.id}
         rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[patient.status]||'neutral'}>{t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
+        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}
         onClearFilters={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}
         emptyIcon={UsersRound}
-        emptyAction={canCreate?{label:t('create'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
+        emptyAction={canCreate?{label:t('newPatient'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
       />
       {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>

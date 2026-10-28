@@ -57,7 +57,12 @@ export async function loadPatients(organizationId, {isDemo=false,includeArchived
   if(!organizationId || !supabase) return []
   // Reports need archived patients too: their past isolates still count.
   const data=await selectAllPages(()=>{let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId);if(!includeArchived)query=query.is('archived_at',null);return query.order('admission_date',{ascending:false}).order('id',{ascending:true})})
-  return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
+  // Which patients have an admission at all (a patient born of a laboratory import may have none), and the latest one's date.
+  // Unknown (the read failed) is never shown as «no admission».
+  const admissions=await selectAllPages(()=>supabase.from('patient_admissions').select('patient_id,admission_date').eq('organization_id',organizationId).order('id',{ascending:true})).catch(()=>null)
+  const latest=new Map()
+  for(const row of admissions||[]){const seen=latest.get(row.patient_id);if(!seen||String(row.admission_date||'')>seen)latest.set(row.patient_id,String(row.admission_date||''))}
+  return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null,hasAdmission:admissions?latest.has(row.id):undefined,lastAdmissionDate:latest.get(row.id)||null}))
 }
 
 // Only the patients a record opens (by patient code or record id), in the
