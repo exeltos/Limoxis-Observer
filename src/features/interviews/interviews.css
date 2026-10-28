@@ -1,8 +1,5 @@
 /* Συνεντεύξεις: only what the shared Observer primitives do not cover. */
-.interviews-pipeline{flex-wrap:wrap}
-/* The hiring pipeline stays one row on a desktop: its stages are steps of one flow. */
-@media (min-width:1101px){.workspace-summary .module-summary-strip.interviews-pipeline{grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}}
-.interviews-upcoming{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;margin-bottom:10px}
+.interviews-upcoming{flex:none;min-height:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;margin-bottom:10px}
 .interviews-upcoming>strong{font-size:13px;margin-right:4px}
 .interviews-upcoming-item{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--color-border,#e2e8f0);border-radius:999px;background:var(--color-surface,#fff);padding:4px 12px;font-size:13px;cursor:pointer}
 .interviews-upcoming-item small{color:var(--color-text-secondary,#64748b)}

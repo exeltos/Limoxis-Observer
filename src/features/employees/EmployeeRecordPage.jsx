@@ -863,7 +863,6 @@ function Details({
     <section className="record-section committee-overview employee-details-overview">
       <div className="record-section-header">
         <div>
-          <span className="eyebrow">{t('employeesRecords.employeeAdministrativeData')}</span>
           <h3>{t('employeesRecords.basicDetails')}</h3>
         </div>
         {actions.length > 0 && (

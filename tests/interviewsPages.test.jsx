@@ -27,11 +27,13 @@ describe('Interviews screens (demo)', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); configureDataEnvironment({ mode: 'demo', demoAccountId: `interviews-ui-${Math.random()}` }) })
   afterEach(cleanup)
 
-  it('shows the pipeline counters, the open applications and filters by a counter', async () => {
+  it('shows the pipeline cards, the open applications and filters by status', async () => {
     renderAt('/interviews')
     expect(await screen.findByText('Κωνσταντίνου Δήμητρα')).toBeInTheDocument()
     expect(screen.queryByText('Παππά Χριστίνα')).not.toBeInTheDocument()
-    fireEvent.click(screen.getAllByText('Απορρίφθηκε')[0].closest('[role="button"]'))
+    // The closed applications are one choice of «Filters» (the cards show the steps that ask for something).
+    fireEvent.click(screen.getByRole('button', { name: /Φίλτρα/ }))
+    fireEvent.change(screen.getByLabelText('Κατάσταση'), { target: { value: 'rejected' } })
     expect(await screen.findByText('Παππά Χριστίνα')).toBeInTheDocument()
     expect(screen.getByText('Επόμενες συνεντεύξεις')).toBeInTheDocument()
   })
