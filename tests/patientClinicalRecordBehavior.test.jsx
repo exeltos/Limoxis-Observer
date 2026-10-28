@@ -274,7 +274,7 @@ describe('surveillance tree and samples', () => {
   it('requests a sample from the episode: the laboratory records the collection and the result', async () => {
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Δείγμα / Εργαστήριο')
+    const panel = await openStage('Δείγματα')
     fireEvent.click(within(panel).getByRole('button', { name: /Αίτημα δείγματος/ }))
     const dialog = screen.getByRole('dialog', { name: 'Αίτημα δείγματος' })
     expect(within(dialog).queryByPlaceholderText('ηη/μμ/εεεε')).toBeNull()
@@ -287,7 +287,7 @@ describe('surveillance episode journey', () => {
   it('shows assessment signs, risk factors and classification through the library labels', async () => {
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Κλινική αξιολόγηση')
+    const panel = await openStage('Αξιολόγηση')
     for (const label of ['Λοίμωξη', 'Πυρετός >38°C', 'Υπόταση', 'Κεντρικός φλεβικός καθετήρας']) expect(within(panel).getByText(label)).toBeInTheDocument()
   })
 
@@ -297,10 +297,10 @@ describe('surveillance episode journey', () => {
     window.addEventListener(DEMO_STEP_EVENT, listener)
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('ΛΣΦΥ / AMR')
+    const panel = await openStage('ΛΣΦΥ / Αντοχή')
     window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(steps).toContain('clabsi_classification/hai')
-    expect(document.querySelector('[data-demo-step="clabsi_classification:hai"]')).toHaveTextContent(/ΛΣΦΥ \/ AMR/)
+    expect(document.querySelector('[data-demo-step="clabsi_classification:hai"]')).toHaveTextContent(/ΛΣΦΥ \/ Αντοχή/)
     expect(within(panel).getByText('Παράγεται από επικυρωμένα μικροβιολογικά/AST δεδομένα.')).toBeInTheDocument()
     expect(within(panel).getAllByRole('button').map(button => button.textContent.trim())).toEqual(['Νέα αξιολόγηση ΛΣΦΥ'])
   })
@@ -309,7 +309,7 @@ describe('surveillance episode journey', () => {
     criteriaSets = { custom_bsi: { labelEl: 'Τοπικός ορισμός BSI', labelEn: 'Local BSI definition', source: 'Local' } }
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('ΛΣΦΥ / AMR')
+    const panel = await openStage('ΛΣΦΥ / Αντοχή')
     fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ }))
     await waitFor(() => expect(loadHaiCriteriaSets).toHaveBeenCalledWith('demo-hospital'))
     await waitFor(() => expect(within(screen.getByRole('dialog')).getAllByRole('combobox').some(select => optionsOf(select).some(text => /Τοπικός ορισμός BSI/.test(text)))).toBe(true))
@@ -321,7 +321,7 @@ describe('surveillance episode journey', () => {
     await openTab('Επιτήρηση & Δείγματα')
     fireEvent.click(document.querySelector('.sv-episode-head'))
     await screen.findByRole('button', { name: /Ενέργειες επιτήρησης/ })
-    const panel = await openStage('ΛΣΦΥ / AMR')
+    const panel = await openStage('ΛΣΦΥ / Αντοχή')
     fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ }))
     const definitions = await waitFor(() => {
       const select = within(screen.getByRole('dialog')).getAllByRole('combobox').find(item => optionsOf(item).some(text => text.startsWith('CLABSI')))
@@ -339,7 +339,7 @@ describe('surveillance episode journey', () => {
     clinicalCases['SUR-260041'].therapy.push({ id: 'TX-PENDING', antimicrobial: 'Colistin', dose: '9 MU', route: 'IV', startedAt: '2026-08-27', status: 'active', approvalStatus: 'pending' })
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Αντιμικροβιακή αγωγή')
+    const panel = await openStage('Αγωγή')
     fireEvent.click(within(panel).getByText('Ceftazidime/avibactam'))
     expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Καταγραφή χορήγησης' })).toBeInTheDocument()
     fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: /Κλείσιμο/ })[0])

@@ -3640,14 +3640,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 
 /* Episode details navigation and ECDC review block. */
 .episode-workspace-map{display:flex!important;flex-direction:column!important;gap:12px!important;margin-bottom:12px!important}
-.episode-workspace-topline{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(320px,420px)!important;gap:12px!important;align-items:stretch!important}
-.ecdc-review-card{display:flex!important;flex-direction:column!important;gap:4px!important;padding:12px 14px!important;border:1px solid #d9e6f0!important;border-left:4px solid #6e9fbd!important;border-radius:12px!important;background:#fff!important}
-.ecdc-review-card>span{font-size:10.5px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.04em!important;color:#688096!important}
-.ecdc-review-card strong{font-size:13px!important;color:#173956!important}
-.ecdc-review-card small{font-size:11.5px!important;line-height:1.4!important;color:#667e92!important}
-.ecdc-review-card.warning{border-left-color:#d79b2b!important;background:#fffdf8!important}
-.ecdc-review-card.info{border-left-color:#4c91c9!important;background:#f9fcff!important}
-.ecdc-review-card.complete{border-left-color:#3d9b68!important;background:#f8fdf9!important}
 .episode-section-tabs{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:7px!important;padding:8px!important;border:1px solid #dce7f0!important;border-radius:12px!important;background:#fff!important}
 .episode-section-tab{position:relative!important;display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;min-height:54px!important;padding:8px 9px!important;border:1px solid transparent!important;border-radius:9px!important;background:transparent!important;color:#49667d!important;cursor:pointer!important;text-align:left!important}
 .episode-section-tab:hover:not(:disabled){background:#f4f9fd!important}
@@ -3672,7 +3664,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
   .patient-surveillance-clean>.record-section>.record-section-header{align-items:flex-start!important;gap:10px!important}
   .episode-overlay.new-surveillance-flow-overlay{padding:8px!important}
   .episode-detail-card.new-surveillance-flow-card{width:calc(100vw - 16px)!important;height:calc(100vh - 16px)!important;max-height:calc(100vh - 16px)!important;border-radius:12px!important}
-  .episode-workspace-topline{grid-template-columns:1fr!important}
   .episode-section-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .patient-surveillance-clean .record-table th:nth-child(4),.patient-surveillance-clean .record-table td:nth-child(4){display:none!important}
   .new-surveillance-flow-card .flow-step-actions{flex-wrap:wrap!important}

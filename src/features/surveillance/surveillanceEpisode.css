@@ -12,11 +12,8 @@ html body .surveillance-episode-page .clinical-data-hub{display:flex;flex-direct
 
 /* ECDC review uses the full width; stage navigation wraps into two rows so labels are never cut. */
 html body .surveillance-episode-page .episode-workspace-map{margin:0!important}
-html body .surveillance-episode-page .episode-workspace-topline{display:block!important;width:100%!important;align-self:stretch!important}
-html body .surveillance-episode-page .ecdc-review-card{width:100%!important;max-width:none!important;margin:0!important}
 /* Compact head: the ECDC assessment is one line and the eight sections one row,
    so the selected section's content shows without scrolling. */
-html body .surveillance-episode-page .ecdc-review-card{display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:baseline!important;column-gap:10px!important;row-gap:2px!important;padding:8px 12px!important}
 html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important;padding:4px!important}
 html body .surveillance-episode-page .episode-section-tab{min-width:0!important;min-height:46px!important;padding:7px 9px!important;gap:7px!important}
 html body .surveillance-episode-page .episode-section-tab>svg{flex:none!important}
@@ -185,7 +182,7 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
   html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab:not(.active){border-color:transparent!important;background:transparent!important;outline:0!important}
   html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab strong{color:var(--lo-status-danger-fg)!important}
   html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>svg:first-child{display:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal!important;overflow:hidden!important;line-height:1.2!important;overflow-wrap:anywhere!important;word-break:normal!important}
+  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:1;white-space:normal!important;overflow:hidden!important;line-height:1.2!important;overflow-wrap:anywhere!important;word-break:normal!important}
   html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 }
 /* A small laptop: the name of each section only (the second line hides), so it fits. */
