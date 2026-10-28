@@ -13,6 +13,7 @@ import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { demoPatientDayPeriods } from '../management/managementData'
 import { pendingActionsOf } from './dashboardTasks'
+import { loadSnapshot } from '../../core/data/repository'
 import { isCommunicated } from '../surveillance/recordAttention'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { interviewsDemoState } from '../interviews/interviewsDemoData'
@@ -59,6 +60,9 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   const metrics = {
     activeUsers: 3,
     activeDepartments: m.departmentCount,
+    selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', []) || []).filter(
+      item => item.status === 'released' && (!department || item.departmentName === department),
+    ).length,
     patientDayPeriods: demoPatientDayPeriods.length,
     inpatients: cases.length,
     activeSurveillance: demoSurveillanceList().filter(

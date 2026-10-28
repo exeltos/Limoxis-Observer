@@ -33,8 +33,13 @@ export function loadDashboardMetrics(organizationId,{departmentIds=null}={}){
 // One call (dashboard_metrics, 20261127100000) returns every count; the
 // separate counts below are kept for a database without it yet.
 async function readDashboardMetrics(organizationId,departmentIds){
-  const [metrics,dueToday]=await Promise.all([readAllMetrics(organizationId,departmentIds),departmentIds?.length?countControlsDueToday(organizationId,departmentIds):null])
-  return dueToday===null?metrics:{...metrics,controlsDueToday:dueToday}
+  const [metrics,dueToday,selfAssessments]=await Promise.all([readAllMetrics(organizationId,departmentIds),departmentIds?.length?countControlsDueToday(organizationId,departmentIds):null,departmentIds?.length?countSelfAssessmentsOpen(organizationId,departmentIds):null])
+  const withDue=dueToday===null?metrics:{...metrics,controlsDueToday:dueToday}
+  return selfAssessments===null?withDue:{...withDue,selfAssessmentsOpen:selfAssessments}
+}
+// A department's self-assessments released and not yet submitted (quality_self_assessments, 20261214100000).
+function countSelfAssessmentsOpen(organizationId,departmentIds){
+  return countOf(supabase.from('quality_self_assessments').select('id',{count:'exact',head:true}).eq('organization_id',organizationId).in('department_id',departmentIds).eq('status','released'))
 }
 async function readAllMetrics(organizationId,departmentIds){
   if(typeof supabase.rpc==='function'){

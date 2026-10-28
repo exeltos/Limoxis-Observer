@@ -60,11 +60,11 @@ describe('dashboard counts', () => {
     expect(first).toEqual(second)
     const perRead = countQueries
     expect(perRead).toBeGreaterThan(10)
-    // A department's home also counts its controls due today: one more count.
+    // A department's home also counts its controls due today and its self-assessments to complete: two more counts.
     await loadDashboardMetrics('org-1', { departmentIds: ['dep-1'] })
-    expect(countQueries).toBe(perRead * 2 + 1)
+    expect(countQueries).toBe(perRead * 2 + 2)
     vi.advanceTimersByTime(31 * 1000)
     await loadDashboardMetrics('org-1')
-    expect(countQueries).toBe(perRead * 3 + 1)
+    expect(countQueries).toBe(perRead * 3 + 2)
   })
 })

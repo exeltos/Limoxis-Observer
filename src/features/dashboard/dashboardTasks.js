@@ -15,6 +15,7 @@ const SCREEN_CAPABILITY = {
   '/pharmacy': 'view_pharmacy',
   '/occupational-health': 'view_occupational_health',
   '/employees': 'view_staff',
+  '/my-department/self-assessment': 'view_my_department',
 }
 
 // The hospital administrator's "Pending actions" tile is the sum of these.
@@ -63,6 +64,7 @@ const TASKS = {
     ['controlsDueToday', 'Έλεγχοι για σήμερα', 'Controls due today', '/controls?due=today'],
     ['overdueControls', 'Εκπρόθεσμοι έλεγχοι τμήματος', 'Overdue department controls', '/controls'],
     ['pendingSamples', 'Εκκρεμή δείγματα τμήματος', 'Pending department samples', '/laboratory'],
+    ['selfAssessmentsOpen', 'Αυτοαξιολογήσεις προς συμπλήρωση', 'Self-assessments to complete', '/my-department/self-assessment'],
   ],
   occupational_physician: [
     ['ohFollowupsDue', 'Επανέλεγχοι εργαζομένων', 'Employee follow-ups', '/occupational-health'],
@@ -112,6 +114,7 @@ TASKS.link_nurse = [
   ['controlsDueToday', 'Έλεγχοι για σήμερα', 'Controls due today', '/controls?due=today'],
   ['overdueControls', 'Εκπρόθεσμοι έλεγχοι τμήματος', 'Overdue department controls', '/controls'],
   ['isolationReviewsDue', 'Επανεκτιμήσεις απομόνωσης', 'Isolation reassessments', '/surveillance'],
+  ['selfAssessmentsOpen', 'Αυτοαξιολογήσεις προς συμπλήρωση', 'Self-assessments to complete', '/my-department/self-assessment'],
 ]
 
 // `canUse(capability)`: whether the user holds a capability (role, add-ons, custom).
