@@ -608,7 +608,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                       <>
                         {/* Pending: one word that opens the questionnaire. Done: the risk factors, then the link
                             (with a risk signal the «Needs attention» box already links to it). */}
-                        {epiEntry.summary.status === 'done' && <>{riskWords(epiEntry.row, language, t)} </>}
+                        {epiEntry.summary.status === 'done' && <>{riskWords(epiEntry.row, language, t)}{!epiEntry.summary.signal ? ' · ' : ' '}</>}
                         {(epiEntry.summary.status !== 'done' || !epiEntry.summary.signal) && (
                           <button
                             type="button"

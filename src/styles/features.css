@@ -3348,20 +3348,20 @@ button{letter-spacing:0}
   padding:var(--pr-pad-y) var(--pr-pad-x) 22px!important;
 }
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading){
-  display:flex!important;
-  align-items:flex-start!important;
-  justify-content:space-between!important;
-  gap:14px!important;
-  min-height:0!important;
-  margin:0 0 12px!important;
-  padding:0!important;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  min-height:0;
+  margin:0 0 12px;
+  padding:0;
 }
-.patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) .eyebrow{display:none!important}
+.patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) .eyebrow{display:none}
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar,.clinical-data-heading) h3{
-  margin:0!important;color:#172b40!important;font-size:17px!important;font-weight:800!important;line-height:1.25!important;
+  margin:0;color:#172b40;font-size:17px;font-weight:800;line-height:1.25;
 }
 .patient-record-shell :is(.record-section-header,.surveillance-workspace-toolbar) p{
-  margin:4px 0 0!important;color:#667484!important;font-size:11px!important;line-height:1.4!important;
+  margin:4px 0 0;color:#667484;font-size:11px;line-height:1.4;
 }
 
 /* Patient root: compact identity overview + admission registry. */

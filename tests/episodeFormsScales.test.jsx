@@ -42,7 +42,7 @@ describe('scales section', () => {
     fmtDateTime: value => `${fmtDate(value)} 08:30`,
     startProtocol: () => {},
   }
-  it('lists the latest score per scale with one «Νέα» action each and keeps the full history behind a link', async () => {
+  it('lists the latest score per scale with one «Νέα βαθμολόγηση» action each and keeps the full history behind a link', async () => {
     const Section = scalesSection.Component
     render(
       <MemoryRouter>
@@ -58,7 +58,7 @@ describe('scales section', () => {
     expect(screen.getByRole('heading', { name: 'Κλίμακες' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Νέα αξιολόγηση/ })).toBeInTheDocument()
     const list = await screen.findByRole('list', { name: 'Κλίμακες' })
-    expect(within(list).getAllByRole('button', { name: 'Νέα' }).length).toBeGreaterThan(0)
+    expect(within(list).getAllByRole('button', { name: 'Νέα βαθμολόγηση' }).length).toBeGreaterThan(0)
     // «Νέα αξιολόγηση» opens the panel's own picker, prefilled flow and sepsis prompt included.
     fireEvent.click(screen.getByRole('button', { name: /Νέα αξιολόγηση/ }))
     expect(await screen.findByRole('dialog', { name: 'Επιλογή αξιολόγησης' })).toBeInTheDocument()

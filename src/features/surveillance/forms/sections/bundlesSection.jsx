@@ -22,7 +22,9 @@ export function bundleRowsFor(ctx, assessments, today = athensToday()) {
     .filter(row => row.info.bundleKeys.length > 0)
 }
 
-const keyLabel = info => info.bundleKeys[0]
+// The bundle is named by the infection it prevents in the Greek UI (never the English code).
+const BUNDLE_NAMES_EL = { CLABSI: 'λοίμωξη κεντρικού καθετήρα', CAUTI: 'λοίμωξη ουροκαθετήρα', VAP: 'πνευμονία αναπνευστήρα' }
+const keyLabel = (info, language) => (language === 'en' ? info.bundleKeys[0] : BUNDLE_NAMES_EL[info.bundleKeys[0]] || info.bundleKeys[0])
 export function deviceTitle(device, language) {
   return (language === 'en' ? device.nameEn || device.name : device.name) || '—'
 }
@@ -34,7 +36,7 @@ function BundleHistory({ row, ctx, onClose, reload }) {
     <ObserverDialog
       width="standard"
       title={t('episodeForms.bundles.history')}
-      subtitle={`${deviceTitle(row.device, language)} · ${keyLabel(row.info)}`}
+      subtitle={`${deviceTitle(row.device, language)} · ${keyLabel(row.info, language)}`}
       onClose={onClose}
     >
       {row.info.history.length === 0 ? (
@@ -60,7 +62,7 @@ function BundleHistory({ row, ctx, onClose, reload }) {
                   createdBy: check.createdById,
                   table: 'prevention_bundle_assessments',
                   id: check.id,
-                  label: `${deviceTitle(row.device, language)} · ${keyLabel(row.info)}`,
+                  label: `${deviceTitle(row.device, language)} · ${keyLabel(row.info, language)}`,
                   detail: fmtDate(check.date),
                   demo: () => deleteBundleAssessment(ctx.organizationId, check.id),
                   onDone: async () => {
@@ -106,7 +108,7 @@ function BundlesSection({ ctx, section, reload }) {
                   : `${t('episodeForms.bundles.dueOn')} ${fmtDate(info.dueOn)}`
           const detail = [
             info.deviceDay && `${t('episodeForms.bundles.day')} ${info.deviceDay}`,
-            keyLabel(info),
+            keyLabel(info, language),
             info.compliance != null && `${t('episodeForms.bundles.compliance')} ${info.compliance}%${info.applicable ? ` (${info.yes}/${info.applicable})` : ''}`,
             ctx.episodes.length > 1 && episode.id,
           ].filter(Boolean).join(' · ')
@@ -150,7 +152,7 @@ export const bundlesSection = {
       list: rows.map(({ device, info }) =>
         [
           deviceTitle(device, language),
-          keyLabel(info),
+          keyLabel(info, language),
           info.deviceDay && `${t('episodeForms.bundles.day')} ${info.deviceDay}`,
           t(`episodeForms.status.${info.status}`),
           info.lastDate && `${t('episodeForms.bundles.lastCheck')} ${fmtDate(info.lastDate)}`,

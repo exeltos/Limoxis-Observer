@@ -565,7 +565,7 @@ export function EnvironmentalRegistry({
                   ) : limitAssessment(row.microbiologyResults?.[0]) === false ? (
                     <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>
                   ) : (
-                    <strong>{t(row.result)}</strong>
+                    <StatusBadge tone="neutral">{t(row.result)}</StatusBadge>
                   )}
                   <small>{[limitAssessment(row.microbiologyResults?.[0]) != null && t(row.result), row.microbiologyResults?.[0]?.cfuCount != null && `${row.microbiologyResults[0].cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
                 </span>
