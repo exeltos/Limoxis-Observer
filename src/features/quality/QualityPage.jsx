@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
+import { STALE_DAYS,isStaleRegister as isStale } from '../registers/registerFigures'
 import { FigureCards } from '../../design-system/FigureCards'
 import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -68,7 +69,6 @@ const RESOURCE_OPTIONS=[
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
 const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',mode:'programme',quick:null}
-const STALE_DAYS=45
 
 function useQualityRecords(organizationId){
  const [data,setData]=useState({incidents:[],findings:[],capas:[],audits:[]})
@@ -175,7 +175,7 @@ export function QualityPage(){
  const auditCount=auditCounts(audits)
  const objectiveState=state=>{setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:current.state===state&&measureView==='objectives'?'all':state}))}
  const activeObjectives=objectives.objectives.filter(item=>(item.status||'active')==='active')
- const isStaleRegister=useCallback(item=>item.status!=='archived'&&(!item.lastEntry||(Date.parse(todayIso)-Date.parse(item.lastEntry))/86400000>STALE_DAYS),[todayIso])
+ const isStaleRegister=useCallback(item=>isStale(item,todayIso),[todayIso])
  const staleRegisters=registerList.registers.filter(isStaleRegister).length
  const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
  const latestRisks=latestAssessment?summarizeRisks(latestAssessment.risks||[]):null
