@@ -62,3 +62,5 @@
 /* Analysis inside the Executive dashboard: the page scrolls, the period is the dashboard's. */
 .analysis-workspace.analysis-embedded{height:auto;min-height:0;overflow:visible;margin:0}
 .analysis-embedded .analysis-scroll{overflow:visible}
+/* Inside the Indicators screen the report lines up with the filters above it (the page already has its margins). */
+.analysis-workspace.analysis-embedded .analysis-scroll{padding:12px 0 0!important}

@@ -3,7 +3,7 @@ import { useEffect,useMemo,useState } from 'react'
 import { Activity, ArrowRight, Award, Gauge, Gavel, LayoutGrid, Beaker, BedDouble, Bell, Building2, CalendarDays, CheckCheck, ClipboardCheck, Clock, FileText, FlaskConical, ListChecks, Megaphone, PieChart, Pill, ShieldAlert, Stethoscope, Syringe, TestTube, TriangleAlert, UserPlus, Users } from 'lucide-react'
 import { Card, CardHeader } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
-import { MetricCard } from '../../design-system/MetricCard'
+import { KpiCard,KpiStrip } from '../../design-system/KpiCard'
 import { navigationFor } from '../../app/navigation'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
@@ -49,7 +49,7 @@ function roleKpiRows(role,m,english,unread){
       return [[tr('Ενεργοί χρήστες','Active users'),n(m.activeUsers),undefined,'activeUsers'],[tr('Ενεργά τμήματα','Active departments'),n(m.activeDepartments),undefined,'activeDepartments'],[tr('Εκκρεμείς ενέργειες','Pending actions'),pending,undefined,'pendingActions'],[tr('Μη αναγνωσμένες ειδοποιήσεις','Unread notifications'),n(unread),undefined,'unread']]
     }
     case ROLES.INFECTION_CONTROL_LEAD:
-      return [[tr('Νέα MDR/XDR/PDR · 30ημ.','New MDR/XDR/PDR · 30d'),n(m.recentMdro),undefined,'recentMdro'],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE,'isolationReviewsDue'],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS,'overdueControls'],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated),undefined,'criticalUncommunicated']]
+      return [[tr('Νέα MDR/XDR/PDR','New MDR/XDR/PDR'),n(m.recentMdro),undefined,'recentMdro'],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE,'isolationReviewsDue'],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS,'overdueControls'],[tr('Κρίσιμα εργαστηρίου','Critical lab alerts'),n(m.criticalUncommunicated),undefined,'criticalUncommunicated']]
     case ROLES.INFECTION_CONTROL_MEMBER:
       return [[tr('Ενεργές επιτηρήσεις','Active surveillance'),n(m.activeSurveillance),CAPABILITIES.VIEW_SURVEILLANCE,'activeSurveillance'],[tr('Θετικά εργαστηρίου','Positive laboratory results'),n(m.positiveLab),undefined,'positiveLab'],[tr('Επανεκτιμήσεις απομόνωσης','Isolation reviews'),n(m.isolationReviewsDue),CAPABILITIES.VIEW_SURVEILLANCE,'isolationReviewsDue'],[tr('Εκπρόθεσμοι έλεγχοι','Overdue controls'),n(m.overdueControls),CAPABILITIES.VIEW_CONTROLS,'overdueControls']]
     case ROLES.DEPARTMENT_MANAGER:
@@ -61,7 +61,7 @@ function roleKpiRows(role,m,english,unread){
     case ROLES.COMMITTEE_SECRETARIAT:
       return [[tr('Επόμενες συνεδριάσεις','Upcoming meetings'),n(m.upcomingMeetings),CAPABILITIES.VIEW_COMMITTEES,'upcomingMeetings'],[tr('Πρακτικά εκκρεμή','Minutes pending'),n(m.pendingMinutes),CAPABILITIES.VIEW_COMMITTEES,'pendingMinutes'],[tr('Αποφάσεις ανοικτές','Open decisions'),n(m.openDecisions),CAPABILITIES.VIEW_COMMITTEES,'openDecisions']]
     case ROLES.HR_OFFICE:
-      return [[tr('Ενεργοί εργαζόμενοι','Active employees'),n(m.activeEmployees),undefined,'activeEmployees'],[tr('Νέες εγγραφές · 30ημ.','New records · 30d'),n(m.newEmployees30d),undefined,'newEmployees30d']]
+      return [[tr('Ενεργοί εργαζόμενοι','Active employees'),n(m.activeEmployees),undefined,'activeEmployees'],[tr('Νέες εγγραφές','New records'),n(m.newEmployees30d),undefined,'newEmployees30d'],[tr('Εργαζόμενοι χωρίς τμήμα','Employees without a department'),n(m.employeesWithoutDepartment),undefined,'employeesWithoutDepartment']]
     case ROLES.OCCUPATIONAL_PHYSICIAN:
       return [[tr('Επισκέψεις σήμερα','Visits today'),n(m.ohVisitsToday),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,'ohVisitsToday'],[tr('Επανέλεγχοι σε εκκρεμότητα','Follow-ups due'),n(m.ohFollowupsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,'ohFollowupsDue'],[tr('Εμβολιασμοί προς ανανέωση','Vaccinations due'),n(m.vaccinationsDue),CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,'vaccinationsDue']]
     case ROLES.PHARMACY:
@@ -83,13 +83,19 @@ const TILES={
   overdueControls:[ClipboardCheck,'/controls'],positiveLab:[FlaskConical,'/laboratory'],pendingSamples:[Beaker,'/laboratory'],
   newSamplesToday:[TestTube,'/laboratory'],criticalUncommunicated:[TriangleAlert,'/laboratory'],inpatients:[BedDouble,'/surveillance?tab=registry'],
   antimicrobialTherapies:[Pill,'/pharmacy'],administrations:[Pill,'/pharmacy'],pendingApprovals:[CheckCheck,'/pharmacy'],
-  activeEmployees:[Users,'/employees'],newEmployees30d:[UserPlus,'/employees'],ohVisitsToday:[Stethoscope,'/occupational-health'],
+  activeEmployees:[Users,'/employees'],newEmployees30d:[UserPlus,'/employees'],employeesWithoutDepartment:[Building2,'/employees'],ohVisitsToday:[Stethoscope,'/occupational-health'],
   ohFollowupsDue:[Clock,'/occupational-health'],vaccinationsDue:[Syringe,'/occupational-health'],upcomingMeetings:[CalendarDays,'/meetings'],
   pendingMinutes:[FileText,'/meetings'],openDecisions:[ListChecks,'/meetings'],openIncidents:[Award,'/quality'],
   severeOpenIncidents:[TriangleAlert,'/quality'],overdueCapa:[Clock,'/quality'],controlsDueToday:[CalendarDays,'/controls?due=today'],
 }
 // A role that reaches the same records from another screen: the Doctor Reviewer approves therapies in the patient's surveillance.
 const ROLE_TILE_SCREENS={[ROLES.DOCTOR_REVIEWER]:{pendingApprovals:'/surveillance',antimicrobialTherapies:'/surveillance'}}
+
+// How a tile's count reads against its target: work that should be at zero
+// (danger: off target while above it; warning: needs attention), and the period it counts.
+const TILE_TARGETS={overdueControls:'danger',criticalUncommunicated:'danger',overdueCapa:'danger',severeOpenIncidents:'danger',isolationReviewsDue:'warning',employeesWithoutDepartment:'warning',pendingApprovals:'warning',pendingMinutes:'warning',ohFollowupsDue:'warning',vaccinationsDue:'warning',pendingActions:'warning'}
+const TILE_PERIODS={recentMdro:['30 ημ.','30 d'],newEmployees30d:['30 ημ.','30 d'],newSamplesToday:['Σήμερα','Today'],ohVisitsToday:['Σήμερα','Today'],controlsDueToday:['Σήμερα','Today']}
+const tileStatus=(key,value)=>{const tone=TILE_TARGETS[key];if(!tone||!Number.isFinite(Number(value)))return null;return Number(value)>0?tone:'good'}
 
 // The clinical charts belong to the clinical homes; the administrator's home shows
 // what needs a decision and a status line per module instead.
@@ -112,12 +118,15 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const navigate=useNavigate()
   const menuPaths=useMemo(()=>new Set(navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)}).map(item=>item.to)),[role,membership])
   const [metrics,setMetrics]=useState({})
+  // 'loading' until the first read ends; 'error' when it failed, so a failed read never shows as «—».
+  const [metricsState,setMetricsState]=useState('loading')
   const [liveSnapshot,setLiveSnapshot]=useState(null)
   const showCharts=showKpis&&CHART_ROLES.has(role)
   useEffect(()=>{
     let active=true
-    if(isDemo||!tenant?.id){setMetrics({});return()=>{active=false}}
-    loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(role)?membership?.departmentIds:null}).then(data=>{if(active)setMetrics(data)}).catch(()=>{if(active)setMetrics({})})
+    if(isDemo||!tenant?.id){setMetrics({});setMetricsState('ready');return()=>{active=false}}
+    setMetricsState('loading')
+    loadDashboardMetrics(tenant.id,{departmentIds:DEPARTMENT_ROLES.has(role)?membership?.departmentIds:null}).then(data=>{if(active){setMetrics(data);setMetricsState('ready')}}).catch(()=>{if(active){setMetrics({});setMetricsState('error')}})
     return()=>{active=false}
   },[tenant?.id,isDemo,role,membership?.departmentIds])
   useEffect(()=>{
@@ -152,7 +161,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
   const setupSteps=role===ROLES.HOSPITAL_ADMIN&&showKpis&&!tenant?.is_demo?firstSteps(values,{needsPatientDays:moduleEnabled('surveillance')||moduleEnabled('indicators')}):null
 
   return <Page className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
-    {showKpis&&kpis.length > 0 && <div className="kpi-grid role-kpis">{kpis.map(([label,value,,key])=>{const [Icon=Activity,tileTo]=TILES[key]||[];const to=ROLE_TILE_SCREENS[role]?.[key]??tileTo;const open=to&&canOpen(to);return <MetricCard key={label} className="summary-metric" icon={Icon} label={label} value={value} onClick={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</div>}
+    {showKpis&&kpis.length > 0 && <KpiStrip className="role-kpis" label={tr('Βασικοί δείκτες','Key figures')} columns={kpis.length}>{kpis.map(([label,value,,key])=>{const [Icon=Activity,tileTo]=TILES[key]||[];const to=ROLE_TILE_SCREENS[role]?.[key]??tileTo;const open=to&&canOpen(to);const status=tileStatus(key,value);const period=TILE_PERIODS[key];return <KpiCard key={label} icon={Icon} label={label} value={value==='—'?null:value} period={period?tr(...period):null} status={status} target={TILE_TARGETS[key]==='danger'&&status?tr('στόχος: 0','target: 0'):null} loading={metricsState==='loading'&&!isDemo} error={metricsState==='error'} onOpen={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</KpiStrip>}
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate}/>
     {reviewCard&&<Card className="dashboard-card dashboard-executive-link dashboard-review-link"><CardHeader icon={ReviewIcon} title={`${tr('Προς έλεγχο','To review')} (${awaitingReview.loading?'…':awaitingReview.rows.length})`} subtitle={awaitingReview.rows.length?tr('Νέα θετικά δείγματα χωρίς επεισόδιο: ανοίξτε επεισόδιο ή σημειώστε ότι δεν χρειάζεται επιτήρηση.','New positive samples with no episode: open an episode or mark that no surveillance is needed.'):tr('Κανένα νέο θετικό δείγμα δεν περιμένει απόφαση.','No new positive sample is waiting for a decision.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/surveillance?tab=episodes&review=1')}>{tr('Προβολή λίστας','View list')}<ArrowRight size={14}/></button>}/></Card>}
     {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Δείκτες','Indicators')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
