@@ -29,7 +29,7 @@ import {
   resolveEnvironmentalStandard,
   sampleTypeLabel,
 } from './laboratoryCloudService'
-import { LaboratoryStatus as Status } from './LaboratoryStatus'
+import { LaboratoryStatus as Status, labSampleStatus } from './LaboratoryStatus'
 import { LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
 import { useLaboratoryRepository } from './hooks/useLaboratoryRepository'
 import { useLibraries } from '../management/useLibraries'
@@ -623,10 +623,9 @@ export function LaboratorySampleRecordFunctionalView() {
             {/* An environmental point outside its limits needs action whatever the laboratory status says: the header reads as the surveillance list does. */}
             {environmentNeedsAction
               ? <StatusBadge tone="warning">{t('surveillanceList.actionNeeded')}</StatusBadge>
-              : <Status
-                text={rejected ? t('rejected') : finalized ? t('completed') : t(sample.status)}
-                kind={rejected ? 'rejected' : finalized ? 'completed' : sample.status}
-              />}
+              : rejected || finalized
+                ? <Status text={rejected ? t('rejected') : t('completed')} kind={rejected ? 'rejected' : 'completed'} />
+                : <Status {...labSampleStatus(sample, language)} />}
             {reviewTag(sample, language) && <StatusBadge tone="neutral">{reviewTag(sample, language)}</StatusBadge>}
           </>
         }

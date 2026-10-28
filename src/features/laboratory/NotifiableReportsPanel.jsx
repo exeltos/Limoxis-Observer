@@ -8,7 +8,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { createClinicalNotificationReport, loadNotificationReports } from '../reporting/notificationReportsService'
-import { deadlineStatusText, deadlineWords } from '../reporting/eodyCatalogue'
+import { deadlineDueAt, deadlineStatusText, deadlineWords } from '../reporting/eodyCatalogue'
 import { NotifiableDialog, notifiableRows } from '../surveillance/forms/sections/notifiableSection'
 import { NewNotificationDialog } from '../surveillance/forms/sections/notifiablePicker'
 import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
@@ -22,6 +22,15 @@ const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '')
 // notifiable laboratory findings (with or without a report yet) and the clinical notifications.
 // A row opens the same notification window as the patient's record; «Νέα δήλωση» picks the
 // disease, then an existing patient or a new one.
+// The deadline as a date and time when the rule sets one (24 hours, a week), the rule itself
+// («immediately»), or «no deadline · national plan» for findings reported through the national plan.
+function NotificationDeadline({ row, language, t }) {
+  const due = row.status === 'pending' && row.entry ? deadlineDueAt(row.entry.deadline, row.start) : null
+  const when = due ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Athens' }).format(due) : ''
+  const text = due ? `${language === 'en' ? 'by' : 'έως'} ${when}` : row.entry ? deadlineWords(row.entry.deadline, language) : row.finding?.rule.nationalPlan ? t('labNotifiable.noDeadlineNationalPlan') : '—'
+  return <>{text}{row.waitingText && <small>{row.waitingText}</small>}</>
+}
+
 export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], canCreate = false, creating = false, onCreatingChange }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
@@ -127,7 +136,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
             <td><strong>{row.title}</strong><small>{row.finding ? [t('labNotifiable.fromLab'), row.sample, row.organism].filter(Boolean).join(' · ') : t('labNotifiable.clinical')}</small></td>
             <td><strong>{row.patientName || '—'}</strong>{row.patientCode && <small>{row.patientCode}</small>}</td>
             <td>{row.date ? fmtDate(row.date) : '—'}</td>
-            <td>{row.entry ? deadlineWords(row.entry.deadline, language) : row.finding?.rule.nationalPlan ? t('episodeForms.notifiable.nationalPlan') : '—'}{row.waitingText && <small>{row.waitingText}</small>}</td>
+            <td><NotificationDeadline row={row} language={language} t={t} /></td>
             <td><StatusBadge tone={row.overdue ? 'danger' : row.status === 'notified' ? 'success' : row.status === 'pending' ? 'warning' : 'neutral'}>{row.overdue ? t('episodeForms.status.overdue') : statusLabel(row)}</StatusBadge></td>
             <td>{row.report?.reference || '—'}</td>
           </>} />

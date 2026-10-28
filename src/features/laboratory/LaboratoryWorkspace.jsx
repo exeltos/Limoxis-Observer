@@ -37,7 +37,7 @@ import { Field } from '../../design-system/Field'
 import { getLaboratoryKpis, sampleTypeLabel } from './laboratoryCloudService'
 import { computeTurnaroundHours, formatTurnaround, waitingHours } from './model/laboratoryModel'
 import { useLaboratoryRegistry } from './hooks/useLaboratoryRegistry'
-import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labStatusLabel } from './LaboratoryStatus'
+import { LAB_STATUS_ORDER, LaboratoryStatus, labResultLabel, labSampleStatus, labStatusLabel } from './LaboratoryStatus'
 import { OUTCOME_RESULTS } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ChoiceField } from '../../design-system/ChoiceField'
@@ -179,7 +179,7 @@ export function LaboratoryWorkspace() {
     <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
       { key: 'today', icon: FlaskConical, label: t('laboratoryRecords.samplesToday'), value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
       { key: 'pending', icon: Clock3, label: t('laboratoryRecords.pendingResults'), value: k.pending, active: quick === 'pending', onToggle: () => setQuick(quick === 'pending' ? 'all' : 'pending') },
-      { key: 'positive', icon: Microscope, label: t('laboratoryRecords.positiveResults'), value: k.positive, active: result === 'positive', onToggle: () => setResult(result === 'positive' ? 'all' : 'positive') },
+      { key: 'positive', icon: Microscope, label: t('laboratoryRecords.positiveResults30'), value: k.positive30, active: result === 'positive' && period === '30', onToggle: () => { const on = !(result === 'positive' && period === '30'); setResult(on ? 'positive' : 'all'); setPeriod(on ? '30' : 'all') } },
       { key: 'critical', icon: AlertTriangle, label: t('laboratoryRecords.uncommunicatedCritical'), value: k.critical, tone: k.critical > 0 ? 'danger' : '', active: result === 'critical', onToggle: () => setResult(result === 'critical' ? 'all' : 'critical') },
     ]} />
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
@@ -199,7 +199,7 @@ export function LaboratoryWorkspace() {
         <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}{environmentalPlateText(sample, t) && <small>{environmentalPlateText(sample, t)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
         <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !['rejected', 'cancelled'].includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
-        <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status}/></td>
+        <td><LaboratoryStatus {...labSampleStatus(sample, language)}/></td>
       </>}/>
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}

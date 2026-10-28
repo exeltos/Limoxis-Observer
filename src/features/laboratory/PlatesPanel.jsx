@@ -11,13 +11,22 @@ import { StatusCards } from '../../design-system/StatusCards'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { LaboratoryStatus, labStatusLabel } from './LaboratoryStatus'
+import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
 import { groupPlates, receivePlate } from './laboratoryPlates'
 
 // «Τρυβλία» of the laboratory: the environmental samples grouped by culture plate. A plate is read
 // and received as one thing (every position at once), while each position keeps its own sample,
 // result and CFU count; a row opens the plate with all its positions side by side.
 const STATUS_TONE = { awaiting: 'warning', processing: 'info', completed: 'success', rejected: 'neutral' }
+
+// A plate's results at a glance: how many points are outside their limits; once it is done,
+// «all within limits», or «no limit» when no point had one to be assessed against.
+function PlateResults({ plate, t }) {
+  if (plate.counts.outside) return <StatusBadge tone="danger">{t('labPlates.outsideN').replace('{n}', String(plate.counts.outside))}</StatusBadge>
+  if (plate.status !== 'completed') return '—'
+  const assessed = plate.samples.some(sample => (sample.microbiologyResults || []).some(result => limitAssessment(result) != null))
+  return assessed ? <StatusBadge tone="success">{t('labPlates.allWithin')}</StatusBadge> : <StatusBadge tone="neutral">{t('labPlates.noLimitShort')}</StatusBadge>
+}
 
 export function PlatesPanel({ samples = [], loading = false, canManage = false, repository, reload }) {
   const { t, language } = useLanguage()
@@ -74,7 +83,7 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
             <td>{positionsText(plate)}<small>{plate.samples.map(sample => sample.environmentalPosition).filter(Boolean).join(', ')}</small></td>
             <td>{plate.collectedAt ? formatDay(plate.collectedAt, language) : '—'}</td>
             <td><StatusBadge tone={STATUS_TONE[plate.status]}>{t(`labPlates.status${plate.status[0].toUpperCase()}${plate.status.slice(1)}`)}</StatusBadge>{plate.status === 'awaiting' && <small>{`${plate.counts.awaiting}/${plate.counts.total}`}</small>}</td>
-            <td>{plate.counts.outside ? <StatusBadge tone="danger">{t('labPlates.outsideN').replace('{n}', String(plate.counts.outside))}</StatusBadge> : '—'}</td>
+            <td><PlateResults plate={plate} t={t} /></td>
           </>} />
         </div>
       </section>
@@ -134,7 +143,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
               <tr key={sample.id} tabIndex={0} aria-label={`${t('labPlates.openSample')} ${sample.id}`} onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)} onKeyDown={event => { if (event.key === 'Enter') navigate(`/laboratory/${encodeURIComponent(sample.id)}`) }}>
                 <td><strong>{sample.environmentalPosition || '—'}</strong></td>
                 <td>{[sample.location, sample.point].filter(Boolean).join(' · ') || '—'}<small>{sample.id}</small></td>
-                <td><LaboratoryStatus text={labStatusLabel(sample.status, language)} kind={sample.status} /></td>
+                <td><LaboratoryStatus {...labSampleStatus(sample, language)} /></td>
                 <td>
                   {result ? (
                     <>

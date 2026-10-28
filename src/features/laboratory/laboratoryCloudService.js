@@ -455,6 +455,8 @@ export function getLaboratoryKpis(rows){
     today:(rows||[]).filter(row=>String(row.requestedAt||row.collectedAt||'').slice(0,10)===today).length,
     pending:(rows||[]).filter(row=>['requested','collected','received','processing'].includes(row.status)).length,
     positive:(rows||[]).filter(row=>row.result==='positive').length,
+    // Positives of the last 30 days: what is happening now, beside «today» and «pending».
+    positive30:(rows||[]).filter(row=>row.result==='positive'&&Date.now()-new Date(row.collectedAt||row.requestedAt||0).getTime()<=30*86400000).length,
     amr:(rows||[]).filter(row=>Boolean(row.resistance)).length,
     critical:(rows||[]).filter(row=>row.critical&&!(row.microbiologyResults||[]).some(result=>result.communications?.length)).length,
     avgTatHours:turnaroundHours.length?turnaroundHours.reduce((sum,hours)=>sum+hours,0)/turnaroundHours.length:null,
