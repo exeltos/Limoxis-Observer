@@ -41,12 +41,12 @@ describe('Platform Owner UI audit',()=>{
   })
 
   it('marks the organization user record as an owner-shell so its Edit/Save/Delete header actions render directly, not folded into a generic overflow menu',()=>{
-    const source=read('src/features/platform/PlatformOrganizationRecord.jsx')
+    const source=read('src/features/platform/PlatformOrganizationUserRecord.jsx')
     expect(source).toContain('className="platform-owner-record-shell platform-user-record-shell workspace-fill"')
   })
 
   it('uses shared record actions and localized role management in the Platform Owner workspace',()=>{
-    const source=read('src/features/platform/PlatformOrganizationRecord.jsx')
+    const source=read('src/features/platform/PlatformOrganizationRecord.jsx')+read('src/features/platform/PlatformOrganizationDetailsTab.jsx')+read('src/features/platform/PlatformOrganizationUserRecord.jsx')
     expect(source).toContain('platform-form-shell')
   })
 

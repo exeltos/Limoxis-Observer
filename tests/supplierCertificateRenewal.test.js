@@ -131,7 +131,7 @@ describe('Supplier certificate renewal: who may send', () => {
     expect(sql).toMatch(/if coalesce\(p_resend, false\) then\s+if not private\.quality_supplier_renewal_can_send\(v_item\.organization_id\)/)
     expect(sql).toMatch(/set_member_supplier_renewal_sender[\s\S]*if auth\.uid\(\) is null or not public\.current_user_is_platform_owner\(\) then/)
     expect(read('src/features/management/ManagementUsersPanel.jsx')).toContain('ownerTools={isPlatformOwner&&!isRolePreview}')
-    expect(read('src/features/platform/PlatformOrganizationRecord.jsx')).toContain('<SupplierRenewalSenderField')
+    expect(read('src/features/platform/PlatformOrganizationUserRecord.jsx')).toContain('<SupplierRenewalSenderField')
   })
 })
 
