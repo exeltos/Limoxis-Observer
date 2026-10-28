@@ -12,6 +12,7 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { useDepartments } from '../../management/useLibraries'
+import { rememberQualitySection } from '../qualityReturnSection'
 import { loadResources } from './resourceService'
 import { formatPercent } from './supplierTemplates'
 import { APPROVALS, CRITICALITY, DUE_STATES, EQUIPMENT_STATES, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentStateLabel, equipmentStateTone, eventKindLabel, filterEquipment, filterSuppliers, supplierCategoryLabel, withEquipmentStatus, withSupplierStatus } from './resourceModel'
@@ -107,7 +108,7 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
   // The evaluation templates by supplier category and the expired certificates to
   // renew by e-mail: Quality manages them.
   const expired = list.suppliers.filter(item => item.status !== 'inactive' && item.expiredCertificates > 0).length
-  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/renewals')}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/templates')}><ListChecks size={15} />{en ? 'Evaluation templates' : 'Πρότυπα αξιολόγησης'}</Button>}{filterEnd}</>
+  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => { rememberQualitySection('resources:suppliers'); navigate('/quality/suppliers/renewals') }}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{access.canViewAll && <Button variant="secondary" onClick={() => { rememberQualitySection('resources:suppliers'); navigate('/quality/suppliers/templates') }}><ListChecks size={15} />{en ? 'Evaluation templates' : 'Πρότυπα αξιολόγησης'}</Button>}{filterEnd}</>
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))

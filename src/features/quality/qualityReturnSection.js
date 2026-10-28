@@ -7,7 +7,7 @@ export const rememberQualitySection = (section) => writeSessionValue(QUALITY_RET
 // The Center's «indicators» tab holds the calculated indicators first, then
 // registers, objectives and satisfaction surveys. «resources» holds equipment
 // and suppliers.
-export const QUALITY_TABS = ['overview', 'reports', 'deviations', 'actions', 'audits', 'risks', 'indicators', 'resources']
+export const QUALITY_TABS = ['overview', 'reports', 'incidents', 'deviations', 'actions', 'audits', 'risks', 'indicators', 'resources']
 export const INDICATOR_VIEWS = ['indicators', 'registers', 'objectives', 'surveys']
 export const RESOURCE_VIEWS = ['equipment', 'suppliers']
 

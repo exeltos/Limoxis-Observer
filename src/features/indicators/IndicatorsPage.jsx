@@ -20,6 +20,7 @@ import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { printReport } from '../../core/export/reportDocument'
 import { loadRiskAssessments } from '../quality/risk/riskService'
+import { rememberQualitySection } from '../quality/qualityReturnSection'
 import { approveIndicatorSnapshot,collectCloudIndicatorMetrics,calculateCloudDefinition,loadOperationalIndicatorDefinitions,loadIndicatorSnapshots,visibleForDepartment } from './indicatorCloudService'
 
 const today=()=>new Date().toISOString().slice(0,10)
@@ -60,7 +61,8 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',f
  function clearFilters(){setQuery('');setCategory('all');setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
  // A card narrows the list to its rows (like Employees and Controls); clicking it again shows them all.
  function toggleKpi(next){setKpi(current=>current===next?'all':next)}
- function openIndicator(row){if(!row.definitionId)return;registry.openRecord(navigate,`/indicators/${row.definitionId}`,row.definitionId,sequenceIds,{state:{indicatorPeriod:{from,to,departmentId:effectiveDepartment||null}}})}
+ // Opened from the Quality Center, the back arrow returns to its Indicators view.
+ function openIndicator(row){if(!row.definitionId)return;const fromQuality=registryKey==='quality.indicators';if(fromQuality)rememberQualitySection('indicators:indicators');registry.openRecord(navigate,`/indicators/${row.definitionId}`,row.definitionId,sequenceIds,{state:{indicatorPeriod:{from,to,departmentId:effectiveDepartment||null},fromQuality}})}
  const departmentLabel=effectiveDepartment?(allowedDepartments.find(d=>d.id===effectiveDepartment)?.name||effectiveDepartment):t('indicatorsRecords.wholeHospital')
  // The list as a report on the shared document layout: real text and tables, the hospital band and page numbers.
  function exportPdf(pdf){

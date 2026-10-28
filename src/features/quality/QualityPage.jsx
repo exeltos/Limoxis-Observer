@@ -136,7 +136,7 @@ export function QualityPage(){
  const audits=useMemo(()=>auditRows(records.data.audits,records.data.findings),[records.data.audits,records.data.findings])
  const actionView=useListFilters('quality.actions',ACTION_DEFAULTS)
  const auditView=useListFilters('quality.audits',AUDIT_DEFAULTS)
- const riskList=useRiskAssessmentList(tenant?.id,tab==='risks')
+ const riskList=useRiskAssessmentList(tenant?.id,true)
  const [riskCreating,setRiskCreating]=useState(false)
  const riskFile=useRef(null)
  const [riskRows,setRiskRows]=useState([])
@@ -221,6 +221,9 @@ export function QualityPage(){
   risks:[],
  })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'&&measureView==='surveys'?tabFigures.surveys:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
+ // What each tab asks for: reports and incidents still open, deviations, overdue actions and audits, the high residual risks of the latest assessment, objectives not met and registers gone quiet, equipment and suppliers that need attention.
+ const resourcesAttention=(()=>{const equipmentNow=equipmentCounts(resources.equipment),suppliersNow=supplierCounts(resources.suppliers);return equipmentNow.overdue+equipmentNow.down+suppliersNow.attention+suppliersNow.certificates})()
+ const tabCounts={reports:register.counts.open,incidents:incidents.counts.open,deviations:deviations.counts.total,actions:overdueActions,audits:auditCount.overdue,risks:latestRisks?(latestRisks.levels.residual.very_high||0)+(latestRisks.levels.residual.high||0):0,indicators:missedObjectives+staleRegisters,resources:resourcesAttention}
  const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='resources'?`resources:${resourceView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
  const create=path=>()=>{remember();goTo(path,{registry:`quality.${tab}`})}
@@ -260,7 +263,7 @@ export function QualityPage(){
    {tab==='audits'&&<ActionButton label={L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires')} tone="neutral" onClick={()=>{remember();goTo('/quality/audit-questionnaires')}}><ListChecks size={17}/><span>{L('Ερωτηματολόγια','Questionnaires')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
-  <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:item.value==='reports'?register.counts.open:item.value==='incidents'?incidents.counts.open:item.value==='deviations'?deviations.counts.total:item.value==='actions'?overdueActions:0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
+  <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
   {figures.length>0&&<p className="quality-summary-line" aria-live="polite">{figures.map(figure=><button key={figure.key} type="button" className={`${figure.tone==='danger'&&Number(figure.value)>0?'is-late':''}${figure.active?' is-active':''}`.trim()||undefined} onClick={figure.go}><b>{(records.loading||deviations.loading)&&typeof figure.value==='number'?'—':figure.value}</b> {String(figure.label).toLowerCase()}</button>)}</p>}
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
    <p className="quality-summary-line" aria-live="polite">{centerFigures.map(figure=><button key={figure.key} type="button" className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined} onClick={figure.go}><b>{figure.value}</b> {figure.label.toLowerCase()}</button>)}</p>

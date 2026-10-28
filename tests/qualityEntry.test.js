@@ -16,7 +16,7 @@ describe('Quality center entry and tabs', () => {
 
   it('maps remembered sections, old and new, to the five tabs', () => {
     expect(qualityTabOf('')).toBe(null)
-    expect(qualityTabOf('incidents')).toEqual({ tab: 'reports', view: null })
+    expect(qualityTabOf('incidents')).toEqual({ tab: 'incidents', view: null })
     expect(qualityTabOf('capas')).toEqual({ tab: 'actions', view: null })
     expect(qualityTabOf('findings')).toEqual({ tab: 'actions', view: null })
     expect(qualityTabOf('risks')).toEqual({ tab: 'risks', view: null })

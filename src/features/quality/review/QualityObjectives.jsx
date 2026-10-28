@@ -95,7 +95,7 @@ export function ObjectivesTable({ rows, loading, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
   return <RegistryTable className="quality-table" rows={rows} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με' }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'state', label: en ? 'Status' : 'Κατάσταση' }]}
-    rowProps={objective => ({ onClick: () => onOpen?.(objective) })}
+    rowProps={objective => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(objective) })}
     renderRow={objective => <>
       <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
       <td>{objectiveTitle(objective, language)}</td>
