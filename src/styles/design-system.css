@@ -1128,7 +1128,7 @@ td>.lo-meter{margin-top:5px}
 /* Prevention record view: no card inside the record card; the record «…» menu
    keeps a right gutter so the sections, sheet and figures share one width. */
 .prevention-record-shell .prevention-record-card:not(.prevention-page-editor-card):is(div,#lo-record-sheet){border:0!important;box-shadow:none!important;background:transparent!important;border-radius:0!important}
-.prevention-record-shell .prevention-record-card>.record-view-stack:is(div,#lo-record-sheet){padding:0 44px 0 0!important}
+.prevention-record-shell .prevention-record-card>.record-view-stack:is(div,#lo-record-sheet){padding:0!important}
 .prevention-record-shell .record-view-stack>section:is(section,#lo-record-sheet){margin-right:0!important}
 .record-view-stack .record-details-grid>.detail-item:is(div,#lo-record-sheet){border-radius:0!important;box-shadow:none!important;margin:0!important}
 .record-view-stack .record-details-grid.record-details-cols-5:is(.detail-grid,#lo-record-sheet){grid-template-columns:repeat(5,minmax(0,1fr))!important}

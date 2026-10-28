@@ -63,3 +63,12 @@ export function DetailList({ sections = [], className = '' }) {
     </div>
   )
 }
+
+// The same list from RecordDetailsGrid-style fields ({ id, label, value, meta, hidden }),
+// so a record can move to the one look without reshaping its fields.
+export function DetailFields({ fields = [], className = '' }) {
+  const items = fields
+    .filter(field => field && field.hidden !== true)
+    .map(field => ({ label: field.label, value: field.meta ? <>{field.value === 0 ? 0 : field.value || '—'} <small className="lo-detail-meta">{field.meta}</small></> : field.value }))
+  return <DetailList className={className} sections={[{ items }]} />
+}

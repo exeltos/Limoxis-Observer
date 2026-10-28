@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
+import { Activity, AlertTriangle, Building2, ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
-import { MetricCard } from '../../design-system/MetricCard'
+import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
+import { kpiDelta } from '../../design-system/kpiDelta'
+import { ABHR_TARGET, HAND_HYGIENE_TARGET, antisepticKpis, bundleKpis, handHygieneKpis, wasteKpis } from './preventionKpis'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useLanguage } from '../../core/i18n/LanguageContext'
+import { translate, useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
@@ -31,7 +33,7 @@ import { loadAntisepticRecords, loadAntisepticSupportData } from './antisepticCl
 import { loadBundleAssessments, loadBundleSupportData } from './bundleCloudService'
 import { loadWasteMeasurements, loadWasteSupportData } from './wasteCloudService'
 import { readRegistryViewState, useRegistryMemory } from '../../core/navigation/useRegistryMemory'
-import { wasteCategoryTone } from './wasteVisuals'
+import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
 
 const tabs = [
   ['handHygiene', 'handHygiene'],
@@ -219,7 +221,8 @@ export function PreventionPage() {
         .filter(x => product === 'all' || x.product === product)
         .filter(x => method === 'all' || x.method === method)
         // Newest first, as the database returns them; demo/local rows arrive in seed order.
-        .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+        // Monthly records (antiseptics) have a period, not a date.
+        .sort((a, b) => String(b.date || b.periodStart || b.period || '').localeCompare(String(a.date || a.periodStart || a.period || '')))
     )
   }, [
     tab,
@@ -393,18 +396,6 @@ export function PreventionPage() {
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)),
     safePage = Math.min(page, totalPages),
     pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  // WHO method: pooled compliant actions over all observed opportunities (not an average of session rates).
-  const handOpportunities = handRows.reduce((sum, x) => sum + (Number(x.observations) || 0), 0),
-    handCompliant = handRows.reduce((sum, x) => sum + (Number(x.compliant) || 0), 0)
-  const avg = handOpportunities ? (handCompliant / handOpportunities) * 100 : null
-  const scoredBundles = bundleRows.filter(x => x.score != null),
-    bundleAvg = scoredBundles.length
-      ? scoredBundles.reduce((sum, x) => sum + Number(x.score), 0) / scoredBundles.length
-      : null
-  const fmtOne = value =>
-    new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', {
-      maximumFractionDigits: 1,
-    }).format(value)
   const fmtDate = v => dayLabel(v, language)
   const createLabel =
     tab === 'vaccinations'
@@ -560,42 +551,14 @@ export function PreventionPage() {
         onChange={changeTab}
         ariaLabel={t('preventionCenter')}
       />
-      <div className="workspace-summary prevention-summary">
-        <div className="module-summary-strip">
-          {tabAccess.handHygiene && (
-            <Kpi
-              loading={handLoading && !handRows.length}
-              icon={ShieldCheck}
-              value={avg == null ? '—' : `${fmtOne(avg)}%`}
-              label={t('whoCompliance')}
-            />
-          )}{' '}
-          {tabAccess.bundles && (
-            <Kpi
-              loading={bundleLoading && !bundleRows.length}
-              icon={ClipboardCheck}
-              value={bundleAvg == null ? '—' : `${fmtOne(bundleAvg)}%`}
-              label={t('bundleComplianceKpi')}
-            />
-          )}{' '}
-          {tabAccess.waste && (
-            <Kpi
-              loading={wasteLoading && !wasteRows.length}
-              icon={Recycle}
-              value={`${fmtOne(wasteRows.reduce((s, x) => s + x.weight, 0))} kg`}
-              label={t('wasteRecorded')}
-            />
-          )}{' '}
-          {tabAccess.antiseptics && (
-            <Kpi
-              loading={antisepticLoading && !antisepticRows.length}
-              icon={Droplets}
-              value={`${fmtOne(antisepticRows.reduce((s, x) => s + x.litres, 0))} L`}
-              label={t('antisepticRecorded')}
-            />
-          )}
-        </div>
-      </div>
+      <PreventionKpis
+        tab={tab}
+        language={language}
+        hand={{ rows: handRows, loading: handLoading && !handRows.length }}
+        waste={{ rows: wasteRows, loading: wasteLoading && !wasteRows.length }}
+        antiseptic={{ rows: antisepticRows, loading: antisepticLoading && !antisepticRows.length }}
+        bundle={{ rows: bundleRows, loading: bundleLoading && !bundleRows.length }}
+      />
       <div className="surface registry-workspace prevention-workspace workspace-fill">
         <FilterBar
           query={query}
@@ -755,8 +718,48 @@ export function PreventionPage() {
     </Page>
   )
 }
-function Kpi({ icon: Icon, value, label, loading = false }) {
-  return <MetricCard loading={loading} icon={Icon} value={value} label={label} />
+// The key figures of the open tab, with their period and target (preventionKpis.js).
+function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
+  const en = language === 'en'
+  const tr = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value), translate(`preventionKpis.${key}`, language))
+  const fmt = value => (value == null ? null : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value))
+  const days30 = tr('days30')
+  if (tab === 'handHygiene') {
+    const k = handHygieneKpis(hand.rows)
+    return <KpiStrip label={tr('handHygiene')} columns={3}>
+      <KpiCard loading={hand.loading} icon={ShieldCheck} label={tr('whoCompliance')} period={days30} value={fmt(k.rate)} unit="%" status={k.rate == null ? null : k.rate >= HAND_HYGIENE_TARGET ? 'good' : 'danger'} target={tr('handTarget', { value: HAND_HYGIENE_TARGET })} meter={k.rate} meterTarget={HAND_HYGIENE_TARGET} />
+      <KpiCard loading={hand.loading} icon={ClipboardCheck} label={tr('opportunities')} period={days30} value={k.opportunities} hint={tr('handHint', { sessions: k.sessions, departments: k.departments })} />
+      <KpiCard loading={hand.loading} icon={AlertTriangle} label={tr('belowTarget')} period={days30} value={k.below} status={k.departments ? (k.below ? 'warning' : 'good') : null} target={tr('ofObserved', { departments: k.departments })} />
+    </KpiStrip>
+  }
+  if (tab === 'waste') {
+    const k = wasteKpis(waste.rows)
+    const period = k.month ? fmtMonth(k.month) : null
+    return <KpiStrip label={tr('waste')} columns={3}>
+      <KpiCard loading={waste.loading} icon={Recycle} label={tr('wasteMonth')} period={period} value={fmt(k.current?.total)} unit="kg" delta={kpiDelta(k.current?.total, k.before?.total, { lowerIsBetter: true, percent: true, language })} />
+      <KpiCard loading={waste.loading} icon={Activity} label={tr('perThousand')} period={period} value={fmt(k.current?.perThousand)} unit="kg" delta={kpiDelta(k.current?.perThousand, k.before?.perThousand, { lowerIsBetter: true, percent: true, language })} />
+      <KpiCard loading={waste.loading} icon={Building2} label={tr('departmentsRecorded')} period={period} value={k.current ? `${k.current.departments}/${k.allDepartments}` : null} status={k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null} target={tr('everyDepartment')} />
+    </KpiStrip>
+  }
+  if (tab === 'antiseptics') {
+    const k = antisepticKpis(antiseptic.rows)
+    const period = k.month ? fmtMonth(k.month) : null
+    const value = k.current?.perThousand
+    return <KpiStrip label={tr('antiseptics')} columns={3}>
+      <KpiCard loading={antiseptic.loading} icon={Droplets} label={tr('abhr')} period={period} value={fmt(value)} unit={tr('abhrUnit')} status={value == null ? null : value >= ABHR_TARGET ? 'good' : 'danger'} target={tr('abhrTarget', { value: ABHR_TARGET })} delta={kpiDelta(value, k.before?.perThousand, { percent: true, language })} />
+      <KpiCard loading={antiseptic.loading} icon={Droplets} label={tr('useMonth')} period={period} value={fmt(k.current?.total)} unit="L" delta={kpiDelta(k.current?.total, k.before?.total, { percent: true, language })} />
+      <KpiCard loading={antiseptic.loading} icon={Building2} label={tr('departmentsRecorded')} period={period} value={k.current ? `${k.current.departments}/${k.allDepartments}` : null} status={k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null} target={tr('everyDepartment')} />
+    </KpiStrip>
+  }
+  if (tab === 'bundles') {
+    const k = bundleKpis(bundle.rows)
+    return <KpiStrip label={tr('bundles')} columns={3}>
+      <KpiCard loading={bundle.loading} icon={ClipboardCheck} label={tr('fullCompliance')} period={days30} value={fmt(k.rate)} unit="%" status={k.rate == null ? null : k.rate >= 95 ? 'good' : k.rate >= 80 ? 'warning' : 'danger'} target={tr('allOrNone')} meter={k.rate} />
+      <KpiCard loading={bundle.loading} icon={ShieldCheck} label={tr('assessments')} period={days30} value={k.assessments} />
+      <KpiCard loading={bundle.loading} icon={AlertTriangle} label={tr('deviations')} period={days30} value={k.deviations} status={k.assessments ? (k.deviations ? 'danger' : 'good') : null} target={tr('zeroTarget')} />
+    </KpiStrip>
+  }
+  return null
 }
 const preventionEmptyTitleKeys = {
   handHygiene: 'preventionEmptyHandHygieneTitle',
@@ -829,7 +832,7 @@ function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
     <RegistryTable
       bare
       columns={[
-        { key: 'date', label: t('date') },
+        { key: 'period', label: t('period') },
         { key: 'department', label: t('department') },
         { key: 'category', label: t('exportCategory') },
         { key: 'weight', label: t('weight') },
@@ -844,7 +847,7 @@ function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
         const category = x.wasteType || x.type
         return (
           <>
-            <td>{fmtDate(x.date)}</td>
+            <td>{wastePeriodLabel(x, fmtDate)}</td>
             <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
             <td>
               <span className={`waste-category-badge ${wasteCategoryTone(category)}`}>

@@ -1,12 +1,16 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { ABHR_TARGET, HAND_HYGIENE_TARGET } from './preventionKpis'
+import { DetailFields } from '../../design-system/DetailList'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useEffect, useState } from 'react'
-import { ClipboardCheck, Droplets, Pencil, Recycle, ShieldCheck, Trash2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ClipboardCheck, ClipboardList, Droplets, FileClock, FolderOpen, Pencil, Recycle, ShieldCheck, Trash2 } from 'lucide-react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
+import { HistoryTimeline } from '../../design-system/HistoryTimeline'
+import { formatDayTime } from '../../core/i18n/formatDay'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
@@ -47,7 +51,7 @@ import {
 } from './bundleCloudService'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
-import { wasteCategoryTone } from './wasteVisuals'
+import { wasteCategoryTone, wastePeriodLabel } from './wasteVisuals'
 import { ActionButton } from '../../design-system/ActionButton'
 import { antisepticMethodLabel, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -90,7 +94,9 @@ export function PreventionRecordPage() {
   const { locale, language } = useLanguage()
   const en = language === 'en'
   const { notifyError, notify, confirm } = useFeedback()
-  const { canAccessRecord, tenant, role, membership } = useTenant()
+  const { canAccessRecord, tenant, role, membership, isDemo } = useTenant()
+  // Every record has its documents and history, as in the other modules.
+  const [recordTab, setRecordTab] = useState('details')
   const supportsPageEditor = ['handHygiene', 'waste', 'antiseptics', 'bundles'].includes(recordType)
   const creating = supportsPageEditor && recordId === 'new'
   const editing = supportsPageEditor && !creating && searchParams.get('edit') === '1'
@@ -259,7 +265,7 @@ export function PreventionRecordPage() {
             : 'Νέα παρατήρηση Υγιεινής Χεριών WHO'
     : editing
       ? recordType === 'waste'
-        ? `${en ? 'Edit waste measurement' : 'Επεξεργασία μέτρησης αποβλήτων'} · ${fmtDate(record?.date)}`
+        ? `${en ? 'Edit waste measurement' : 'Επεξεργασία μέτρησης αποβλήτων'} · ${wastePeriodLabel(record, fmtDate)}`
         : recordType === 'antiseptics'
           ? `${en ? 'Edit antiseptic consumption' : 'Επεξεργασία κατανάλωσης αντισηπτικού'} · ${formatMonth(record?.period)}`
           : recordType === 'bundles'
@@ -268,7 +274,7 @@ export function PreventionRecordPage() {
       : recordType === 'handHygiene'
         ? `${en ? 'WHO hand hygiene observation' : 'Παρατήρηση Υγιεινής Χεριών WHO'} · ${fmtDate(record?.date)}`
         : recordType === 'waste'
-          ? `${en ? 'Waste measurement' : 'Μέτρηση αποβλήτων'} · ${fmtDate(record?.date)}`
+          ? `${en ? 'Waste measurement' : 'Μέτρηση αποβλήτων'} · ${wastePeriodLabel(record, fmtDate)}`
           : recordType === 'antiseptics'
             ? `${en ? 'Antiseptic consumption' : 'Κατανάλωση αντισηπτικού'} · ${formatMonth(record?.period)}`
             : `${en ? record?.templateName || record?.bundle : record?.templateTitle || record?.templateName || record?.bundle} · ${fmtDate(record?.date || record?.period)}`
@@ -308,13 +314,15 @@ export function PreventionRecordPage() {
     </StatusBadge>
   ) : recordType === 'bundles' ? (
     <StatusBadge tone={record.allOrNone ? 'success' : 'danger'}>
+      {/* An icon, not «✕», which reads as a close button. */}
+      {record.allOrNone ? <CheckCircle2 size={12} aria-hidden="true" /> : <AlertTriangle size={12} aria-hidden="true" />}{' '}
       {record.allOrNone
         ? en
-          ? 'All-or-none ✓'
-          : 'Πλήρης συμμόρφωση ✓'
+          ? 'Full compliance'
+          : 'Πλήρης συμμόρφωση'
         : en
-          ? 'All-or-none ✕'
-          : 'Ελλιπής συμμόρφωση ✕'}
+          ? 'Incomplete compliance'
+          : 'Ελλιπής συμμόρφωση'}
     </StatusBadge>
   ) : null
 
@@ -548,6 +556,17 @@ export function PreventionRecordPage() {
       />
     )
 
+  const recordTabs = [
+    { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList },
+    { id: 'attachments', label: en ? 'Documents' : 'Έγγραφα', icon: FolderOpen },
+    { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
+  ]
+  const recordHistory = [
+    record?.createdAt && { at: record.createdAt, title: en ? 'Recorded' : 'Καταγραφή', detail: record.createdByName || record.responsible || record.observer || '' },
+    record?.updatedAt && record.updatedAt !== record.createdAt && { at: record.updatedAt, title: en ? 'Last change' : 'Τελευταία αλλαγή', detail: record.updatedByName || '' },
+    ...Object.values(record?.followUps || {}).map(item => item?.at && { at: item.at, title: en ? 'Re-check recorded' : 'Καταγραφή επανελέγχου', detail: item.note || '' }),
+  ].filter(Boolean).sort((a, b) => new Date(b.at) - new Date(a.at))
+
   return (
     <Page fill>
       <EntityRecordShell
@@ -558,10 +577,29 @@ export function PreventionRecordPage() {
         status={recordStatus}
         recordNavigation={creating || editing ? null : recordNavigation}
         headerActions={recordActions}
-        tabs={[]}
+        tabs={creating || editing ? [] : recordTabs}
+        activeTab={recordTab}
+        onTabChange={setRecordTab}
         onBack={creating ? backToList : editing ? backToRecord : backToList}
       >
-        {creating || editing ? (
+        {!creating && !editing && recordTab === 'attachments' ? (
+          <DocumentsWorkspace
+            title={en ? 'Documents' : 'Έγγραφα'}
+            disabled={!canEditRecord}
+            organizationId={isDemo ? null : tenant?.id}
+            entityType={`prevention_${recordType}`}
+            entityId={record?.id}
+          />
+        ) : !creating && !editing && recordTab === 'history' ? (
+          <HistoryTimeline
+            card
+            title={en ? 'History' : 'Ιστορικό'}
+            subtitle={en ? 'When the record was made and changed.' : 'Πότε καταγράφηκε και πότε άλλαξε η εγγραφή.'}
+            events={recordHistory}
+            when={value => formatDayTime(value, language)}
+            emptyText={en ? 'No history yet.' : 'Δεν υπάρχει ιστορικό ακόμη.'}
+          />
+        ) : creating || editing ? (
           <div className="record-section prevention-record-card prevention-page-editor-card">
             {editor}
           </div>
@@ -630,7 +668,7 @@ function HandHygieneDetails({ record, language }) {
     <div className="record-view-stack">
       <section>
         <SectionHeader title={en ? 'Observation session' : 'Στοιχεία παρατήρησης'} />
-        <RecordDetailsGrid
+        <DetailFields
           fields={[
             {
               id: 'date',
@@ -662,7 +700,9 @@ function HandHygieneDetails({ record, language }) {
             primary: true,
             label: en ? 'WHO compliance' : 'Συμμόρφωση WHO',
             value: `${stats.compliance}%`,
-            note: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'}`,
+            // Coloured against the target, as in the list.
+            tone: stats.opportunities ? (Number(stats.compliance) >= HAND_HYGIENE_TARGET ? 'success' : 'danger') : undefined,
+            note: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'} · ${en ? 'target' : 'στόχος'} ≥ ${HAND_HYGIENE_TARGET}%`,
           },
           {
             id: 'opportunities',
@@ -751,7 +791,7 @@ function AntisepticDetails({ record, language, locale }) {
         <SectionHeader
           title={en ? 'Consumption' : 'Κατανάλωση'}
         />
-        <RecordDetailsGrid
+        <DetailFields
           fields={[
             { id: 'period', label: en ? 'Period' : 'Περίοδος', value: formatMonth(record.period) },
             { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },
@@ -803,7 +843,8 @@ function AntisepticDetails({ record, language, locale }) {
             primary: true,
             label: en ? 'ABHR indicator' : 'Δείκτης ABHR',
             value: record.indicator != null ? Number(record.indicator).toLocaleString(locale) : '—',
-            note: en ? 'L / 1,000 patient-days' : 'L / 1.000 νοσηλευτικές ημέρες',
+            tone: record.indicator == null ? undefined : Number(record.indicator) >= ABHR_TARGET ? 'success' : 'danger',
+            note: `${en ? 'L / 1,000 patient-days' : 'L / 1.000 νοσηλευτικές ημέρες'} · ${en ? 'target' : 'στόχος'} ≥ ${ABHR_TARGET}`,
           },
         ]}
       />
@@ -856,7 +897,7 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
           title={en ? record.templateName || template.name || record.bundle : record.templateTitle || template.title || record.templateName || template.name || record.bundle}
           subtitle={`${record.templateSource || template.source || ''} · v${record.templateVersion || template.version || '1.0'}`}
         />
-        <RecordDetailsGrid
+        <DetailFields
           className="record-details-cols-6"
           fields={[
             {
@@ -886,6 +927,9 @@ function BundleDetails({ record, language, canEdit, onFollowUp }) {
             primary: true,
             label: en ? 'Score' : 'Βαθμολογία',
             value: record.score == null ? '—' : `${record.score}%`,
+            // All or none: anything short of every applicable element is not compliant.
+            tone: record.score == null ? undefined : record.allOrNone ? 'success' : 'danger',
+            note: en ? 'all or none' : 'όλα ή τίποτα',
           },
           {
             id: 'applicable',

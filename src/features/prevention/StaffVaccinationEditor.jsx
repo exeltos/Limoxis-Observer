@@ -1,5 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { DetailFields } from '../../design-system/DetailList'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { Pencil, Trash2, UserRoundCheck, Users } from 'lucide-react'
@@ -132,7 +132,7 @@ export function StaffVaccinationEditor({
                 </>
               }
             />
-            <RecordDetailsGrid
+            <DetailFields
               className="record-details-cols-5"
               fields={[
                 { id: 'vaccine', label: en ? 'Vaccine' : 'Εμβόλιο', value: draft.vaccine },

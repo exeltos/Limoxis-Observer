@@ -2717,7 +2717,7 @@
 
 /* WHO record detail — wide balanced layout refinement */
 @media(min-width:1280px){
- .prevention-record-shell .prevention-record-card{padding-left:16px!important;padding-right:16px!important}
+ .prevention-record-shell .prevention-record-card{padding-left:0!important;padding-right:0!important}
 }
 
 /* Saved waste record — align with compact Prevention record pattern */
@@ -2756,7 +2756,7 @@
 @media(max-width:640px){.prevention-record-shell .antiseptic-detail-context,.prevention-record-shell .antiseptic-detail-kpis,.prevention-record-shell .antiseptic-detail-trace>div{grid-template-columns:1fr}.prevention-record-shell .antiseptic-detail-product{grid-column:auto}.prevention-record-shell .antiseptic-detail-context>div,.prevention-record-shell .antiseptic-detail-kpis>div,.prevention-record-shell .antiseptic-detail-trace section{border-right:0;border-bottom:1px solid #edf1f4}.observer-dialog.antiseptic-entry-card .observer-dialog-body{padding:12px!important}.antiseptic-entry-card .entry-grid{grid-template-columns:1fr!important}.antiseptic-entry-card .entry-span-2{grid-column:1!important}.antiseptic-entry-card .antiseptic-form-section{padding:15px!important}.prevention-record-shell .antiseptic-page-editor>.prevention-editor-page-actions{justify-content:flex-end!important;flex-wrap:wrap!important}}
 
 /* WHO saved record — fixed summary, full-width list, list rows are the only scroll area. */
-.prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card{height:100%!important;min-height:0!important;overflow:auto!important;scrollbar-gutter:stable!important}
+.prevention-record-shell.workspace-fill>.entity-record-body>.prevention-record-card{height:100%!important;min-height:0!important;overflow:auto!important}
 .prevention-record-shell .prevention-record-card:has(.who-record-compact){display:flex!important;flex-direction:column!important}
 
 /* WHO is the only Prevention saved record with its own list scroller. */
