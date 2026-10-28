@@ -28,7 +28,7 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useResources, useResourceAccess, supplierNotes } from './ResourcesPanel'
 import { removeSupplier, saveSupplier } from './resourceService'
 import { APPROVALS, CERTIFICATION_TYPES, CRITERIA, CRITICALITY, DOCUMENT_KINDS, NONCONFORMITY_SEVERITIES, SCORE_STEPS, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, certificationState, certificationStateLabel, certificationStateTone, criticalityLabel, criticalityTone, documentKindLabel, equipmentStateLabel, equipmentStateTone, evaluationApproval, evaluationPercent, newCertification, newContact, newEvaluation, newNonconformity, newSupplier, severityLabel, severityTone, supplierCapaSource, supplierCategoryLabel, supplierCategoryOf, supplierProblems } from './resourceModel'
-import { applyTemplate, everyCriterionScored, evaluationFromTemplate, formatPercent, isTemplateEvaluation, resultFor, templateFor, templatesFor, weightedScore } from './supplierTemplates'
+import { applyTemplate, everyCriterionScored, evaluationFromTemplate, evaluationTemplates, formatPercent, isTemplateEvaluation, resultFor, templateFor, weightedScore } from './supplierTemplates'
 import { supplierEvaluationDocument } from './supplierEvaluationReport'
 import { SupplierTemplatesPage } from './SupplierTemplatesPage'
 import { RenewalSendDialog, SupplierRenewalsPage, canRequestRenewal, useCertificateRequests } from './SupplierRenewalsPage'
@@ -112,7 +112,7 @@ function SupplierRecord({ supplierId }) {
   }
   const openCapa = item => navigate('/quality/capas/new', { state: { qualitySource: supplierCapaSource(row, item, language) } })
   // A new evaluation starts on the template of the supplier's category (else the earlier six criteria).
-  const startEvaluation = () => { const template = templateFor(templates, supplierCategoryOf(draft.category)); return template ? evaluationFromTemplate(template) : newEvaluation() }
+  const startEvaluation = () => { const template = evaluationTemplates(templates, supplierCategoryOf(draft.category))[0] || templateFor(templates, supplierCategoryOf(draft.category)); return template ? evaluationFromTemplate(template) : newEvaluation() }
 
   const evaluations = [...(draft.evaluations || [])].sort(byNewest('evaluatedOn'))
   const certifications = draft.certifications || []
@@ -335,17 +335,18 @@ const scoreOptions = (scale, en) => (Number(scale) === 10
 function TemplateEvaluationForm({ item, set, templates, category, language }) {
   const en = language === 'en'
   const recorded = !item.criteriaScores || item.criteriaScores === 'complete'
-  const choices = templatesFor(templates, category)
-  const options = (choices.length ? choices : templates.filter(template => template.active !== false))
+  // Kitchen: its own template, chosen for the supplier. Others: the evaluator picks among the non-kitchen templates.
+  const kitchen = category === 'kitchen'
+  const options = evaluationTemplates(templates, category)
   const known = options.some(template => template.id === item.templateId)
   const score = recorded ? weightedScore(item.criteria, item.scoreScale) : item.totalScore
   const result = resultFor(score, item.passThreshold, item.conditionalThreshold)
   const scored = (item.criteria || []).filter(criterion => criterion.score !== '' && criterion.score != null).length
   return <div className="resource-evaluation">
     <FormGrid columns={3}>
-      {recorded && options.length > 0
-        ? <ChoiceField label={en ? 'Template' : 'Πρότυπο'} value={known ? item.templateId : ''} placeholder={item.templateName} options={options.map(template => ({ value: template.id, label: template.name }))} onChange={value => { const template = templates.find(entry => entry.id === value); if (template) set(applyTemplate(item, template)) }} />
-        : <Field label={en ? 'Template' : 'Πρότυπο'}><input value={`${item.templateName || ''}${item.templateVersion ? ` · v${item.templateVersion}` : ''}`} disabled /></Field>}
+      {recorded && !kitchen && options.length > 0
+        ? <ChoiceField label={en ? 'Evaluation template' : 'Πρότυπο αξιολόγησης'} value={known ? item.templateId : ''} placeholder={item.templateName} options={options.map(template => ({ value: template.id, label: template.name }))} onChange={value => { const template = templates.find(entry => entry.id === value); if (template) set(applyTemplate(item, template)) }} />
+        : <Field label={kitchen ? (en ? 'Template (automatic for the kitchen)' : 'Πρότυπο (αυτόματα για την κουζίνα)') : (en ? 'Template' : 'Πρότυπο')}><input value={`${item.templateName || ''}${item.templateVersion ? ` · v${item.templateVersion}` : ''}`} disabled /></Field>}
       <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={item.evaluatedOn} onChange={value => set({ evaluatedOn: value })} />
       <Field label={en ? 'Evaluated by' : 'Αξιολογητής'}><input value={item.evaluator || ''} onChange={e => set({ evaluator: e.target.value })} /></Field>
     </FormGrid>

@@ -67,6 +67,18 @@ export function templatesFor(templates = [], category) {
 }
 export const templateFor = (templates = [], category) => templatesFor(templates, category)[0] || null
 
+// The kitchen has its own evaluation: a kitchen supplier is always evaluated on
+// the kitchen template (chosen for it); any other supplier is evaluated on the
+// template the evaluator picks among the non-kitchen ones (products, services,
+// laboratory…), the one of its category first.
+export const isKitchenTemplate = template => (template?.categories || []).includes('kitchen')
+export function evaluationTemplates(templates = [], category) {
+  const active = templates.filter(item => item.active !== false)
+  if (category === 'kitchen') return active.filter(isKitchenTemplate)
+  const others = active.filter(item => !isKitchenTemplate(item))
+  return [...others].sort((a, b) => Number(!(a.categories || []).includes(category)) - Number(!(b.categories || []).includes(category)) || String(a.name).localeCompare(String(b.name), 'el'))
+}
+
 // The weighted result as % of the scale: Σ(score / scale × weight) / Σ(weight of
 // the scored criteria). A criterion not scored does not count; nothing scored: null.
 export function weightedScore(criteria = [], scale = 5) {

@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { applyTemplate, evaluationFromTemplate, evaluationMonths, evaluationResult, evaluationSheetRows, evaluationTotal, everyCriterionScored, formatPercent, moveCriterion, newTemplate, presetTemplates, resultFor, templateFor, templateProblems, templatesFor, weightTotal, weightedScore } from '../src/features/quality/resources/supplierTemplates'
+import { applyTemplate, evaluationFromTemplate, evaluationTemplates, evaluationMonths, evaluationResult, evaluationSheetRows, evaluationTotal, everyCriterionScored, formatPercent, moveCriterion, newTemplate, presetTemplates, resultFor, templateFor, templateProblems, templatesFor, weightTotal, weightedScore } from '../src/features/quality/resources/supplierTemplates'
 import { evaluationApproval, evaluationPercent, supplierCategoryLabel, supplierStatus, withSupplierStatus } from '../src/features/quality/resources/resourceModel'
 import { criterionRows, evaluationFromRow, evaluationRows, scoreRows, templateChanged, templateFromRow } from '../src/features/quality/resources/supplierRelations'
 import { supplierEvaluationDocument } from '../src/features/quality/resources/supplierEvaluationReport'
@@ -12,6 +12,16 @@ const KITCHEN = presetTemplates('t').find(item => item.id === 't-kitchen')
 const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 
 describe('Supplier evaluation templates', () => {
+  it('evaluates a kitchen supplier on the kitchen template only, and lets the evaluator pick among the others for any other supplier', () => {
+    const presets = presetTemplates('t')
+    expect(evaluationTemplates(presets, 'kitchen').map(item => item.name)).toEqual(['Προμηθευτής Κουζίνας'])
+    const others = evaluationTemplates(presets, 'consumables').map(item => item.name)
+    expect(others).toHaveLength(3)
+    expect(others).not.toContain('Προμηθευτής Κουζίνας')
+    expect(others[0]).toBe('Προμηθευτής Προϊόντων')
+    expect(evaluationTemplates(presets, 'services')[0].name).toBe('Προμηθευτής Υπηρεσιών/Υπεργολάβος')
+  })
+
   it('ships the three FileMaker templates and a laboratory one, each with weights adding up to 1', () => {
     const presets = presetTemplates('t')
     expect(presets.map(item => item.name)).toEqual(['Προμηθευτής Προϊόντων', 'Προμηθευτής Υπηρεσιών/Υπεργολάβος', 'Προμηθευτής Κουζίνας', 'Προμηθευτής Εργαστηρίου'])
