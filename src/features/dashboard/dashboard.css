@@ -1,4 +1,4 @@
-/* Role home: KPI row, tasks + announcements, then charts. */
+/* Role home: KPI row, tasks + announcements (+ module status), then charts. The page itself does not scroll: the lists do. */
 .dashboard-page .role-kpis{margin-bottom:14px}
 .dashboard-workspace-v2,.dashboard-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
 .dashboard-charts{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
@@ -54,3 +54,12 @@
 .dashboard-module-figures b{color:#1d3a52}
 .dashboard-module-figures .tone-warning b{color:#8a5a00}
 .dashboard-module-figures .tone-danger b{color:#a32121}
+
+.dashboard-page.page-fill>*{flex:none;margin-bottom:0}
+.dashboard-page.page-fill>.dashboard-workspace-v2{flex:1 1 0;min-height:200px;grid-template-rows:minmax(0,1fr);margin-bottom:0}
+.dashboard-page.page-fill>.dashboard-charts{margin-bottom:0}
+.dashboard-workspace-v2.has-modules{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dashboard-workspace-v2>.dashboard-card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.dashboard-workspace-v2>.dashboard-card .task-list,.dashboard-workspace-v2>.dashboard-card .dashboard-announcements,.dashboard-workspace-v2>.dashboard-card .dashboard-module-rows{flex:1 1 0;min-height:0;overflow:auto;align-content:start}
+@media(max-width:1180px){.dashboard-workspace-v2.has-modules{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-height:720px),(max-width:900px){.dashboard-page.page-fill{overflow:auto!important}.dashboard-page.page-fill>.dashboard-workspace-v2{flex:none}.dashboard-workspace-v2>.dashboard-card .task-list,.dashboard-workspace-v2>.dashboard-card .dashboard-announcements,.dashboard-workspace-v2>.dashboard-card .dashboard-module-rows{overflow:visible}}
