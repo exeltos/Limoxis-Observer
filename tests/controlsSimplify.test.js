@@ -12,19 +12,21 @@ const row = (id, extra = {}) => ({
   departments: ['ΜΕΘ'],
 })
 
-describe('controls list: department cards, a summary line, no filter popover', () => {
-  it('opens on the department cards and keeps one summary line instead of three cards', () => {
+describe('controls list: department cards, key figures per tab, no filter popover', () => {
+  it('opens on the department cards, with the key figures of the open tab under the tabs', () => {
     expect(page).toContain("value:'departments',label:tx.departments,icon:LayoutGrid")
     expect(page).toContain('<ControlDepartmentCards cards={cards}')
     expect(page).toContain('function openDepartment(dep){setDepartment(dep);setStatus(\'all\');setView(\'programme\')}')
-    expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<FigureCards className="controls-summary-line"'))
+    expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<ControlsKpis view={activeView}'))
     expect(page).not.toContain('module-summary-strip')
     expect(page).not.toContain('<Kpi ')
   })
 
   it('has no filter popover: the department is a chip and the status two toggle chips', () => {
     const bar = page.slice(page.indexOf('<FilterBar'), page.indexOf('</FilterBar>'))
+    // The only select beside the search is the period of the rates.
     expect(bar).not.toContain('<FilterSelect ')
+    expect(page).toContain('const periodSelect=<FilterSelect className="controls-period-select" label={tx.period}')
     expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
     expect(bar).toContain('<ChoiceChips className="controls-status-switch"')
     expect(page).toContain('registry.loadViewState({query:')

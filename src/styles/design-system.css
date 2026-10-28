@@ -1155,7 +1155,6 @@ td>.lo-meter{margin-top:5px}
 .control-record-shell .control-record-view:is(div,#lo-record-sheet){flex:1;min-height:0;overflow:auto}
 .control-record-shell .control-record-departments:is(section,#lo-record-sheet){flex:none}
 .control-record-shell .control-record-departments>.scroll-table:is(div,#lo-record-sheet){flex:none;min-height:0;overflow:visible;border:0;border-radius:0;background:transparent}
-.control-record-shell .control-record-view:is(div,#lo-record-sheet){padding-right:44px!important}
 .control-record-shell>.entity-record-body:is(section,#lo-record-sheet){display:flex;flex-direction:column}
 /* Expiry entry: one item on one row; the status sits in a box as tall as the inputs. */
 .control-expiry-entry .control-expiry-single:is(.entry-grid,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1.8fr) minmax(0,.8fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)!important;gap:12px!important;align-items:end}

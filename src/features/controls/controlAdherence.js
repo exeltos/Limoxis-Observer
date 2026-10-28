@@ -63,6 +63,7 @@ export function assignmentAdherence({ frequency, history = [], startedAt = null,
   return {
     expected,
     performed,
+    counted,
     onTime,
     late: performed - onTime,
     missed: Math.max(0, expected - performed),
@@ -99,6 +100,7 @@ function adherenceTotals(lines) {
   return {
     expected,
     performed,
+    counted,
     onTime,
     missed: lines.reduce((sum, line) => sum + line.missed, 0),
     rate: expected ? Math.round((counted / expected) * 100) : null,
@@ -146,7 +148,7 @@ export function todayAdherence(rows, countsByAssignment = null, now = new Date()
       const minutes = entryDaysFromHistory(assignment.history || []).get(today) || []
       const dueTimes = slotStarts(frequency).slice(0, passed)
       const times = missed ? uncoveredTimes({ ...frequency, times: dueTimes.map((m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`) }, minutes) : []
-      lines.push({ item, department, frequency, expected, performed, onTime, late: performed - onTime, missed, missedDays: missed ? [{ day: today, missing: missed, times: times.length === missed ? times : [] }] : [], rate: expected ? Math.round((Math.min(performed, expected) / expected) * 100) : null, onTimeRate: performed ? Math.round((onTime / performed) * 100) : null })
+      lines.push({ item, department, frequency, expected, performed, counted: Math.min(performed, expected), onTime, late: performed - onTime, missed, missedDays: missed ? [{ day: today, missing: missed, times: times.length === missed ? times : [] }] : [], rate: expected ? Math.round((Math.min(performed, expected) / expected) * 100) : null, onTimeRate: performed ? Math.round((onTime / performed) * 100) : null })
     }
   }
   return { lines, totals: adherenceTotals(lines) }
@@ -220,6 +222,7 @@ function groupLinesBy(lines, keyOf, headOf) {
       totals: {
         expected,
         performed,
+        counted,
         onTime,
         late: performed - onTime,
         missed: group.lines.reduce((sum, line) => sum + line.missed, 0),

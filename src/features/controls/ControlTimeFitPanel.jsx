@@ -75,8 +75,6 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   const totalPages = Math.max(1, Math.ceil(shown.length / pageSize)), safePage = Math.min(page, totalPages)
   const paged = shown.slice((safePage - 1) * pageSize, safePage * pageSize)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
-  const entries = scoped.reduce((sum, line) => sum + line.entries, 0)
-  const rate = (key) => entries ? Math.round(scoped.reduce((sum, line) => sum + ((line[key] ?? 0) * line.entries) / 100, 0) / entries * 100) : null
   async function change(line) {
     const ok = await confirm({
       title: en ? 'Change the times' : 'Αλλαγή ωρών',
@@ -96,11 +94,6 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   return <div className="control-adherence control-time-fit">
     <div className="control-adherence-toolbar">
       {departments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={department} onChange={(value) => { setDepartment(value); setPage(1) }}><option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>{departments.map((dep) => <option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}
-      <div className="control-adherence-summary">
-        <span><strong>{changes.length}</strong>{en ? 'with a proposal' : 'με πρόταση αλλαγής'}</span>
-        <span>{en ? 'On time now' : 'Στην ώρα τους τώρα'} <RateMeter rate={rate('rateNow')} /></span>
-        <span>{en ? 'With the proposals' : 'Με τις προτάσεις'} <RateMeter rate={rate('rateProposed')} /></span>
-      </div>
       <ChoiceChips className="control-time-fit-filter" label="" options={[{ value: 'changes', label: `${en ? 'Only proposals' : 'Μόνο με πρόταση'} (${changes.length})` }]} selected={onlyChanges ? ['changes'] : []} onToggle={() => { setOnlyChanges(!onlyChanges); setPage(1) }} />
       {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={timeFitNote(language)} aria-label={timeFitNote(language)}><Info size={15} aria-hidden="true" /></span>

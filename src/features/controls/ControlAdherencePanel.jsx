@@ -14,6 +14,11 @@ import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { ControlMissedDialog } from './ControlMissedDialog'
 import './controlAdherence.css'
 
+// What covered the programme (never more than was due), and the entries beyond it on their own.
+export const doneOf = (row) => row.counted ?? Math.min(row.performed, row.expected)
+export const extraOf = (row) => Math.max(0, row.performed - doneOf(row))
+const extraText = (row, en) => (extraOf(row) ? (en ? `+${extraOf(row)} extra` : `+${extraOf(row)} επιπλέον`) : '')
+
 const dayKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 // Done and on-time counts per assignment for a period, counted in the database.
@@ -127,7 +132,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
   function exportPdf(pdf) {
     if (failed) { notify(loadFailedText, 'danger'); return }
     const { from, to } = periodRange(period, now || new Date())
-    const numbers = (row) => [{ text: String(row.expected), className: 'rd-num' }, { text: String(row.performed), className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[adherenceTone(row.rate)] || ''}` }]
+    const numbers = (row) => [{ text: String(row.expected), className: 'rd-num' }, { text: `${doneOf(row)}${extraOf(row) ? ` (${extraText(row, en)})` : ''}`, className: 'rd-num' }, { text: `${row.onTime}${row.late ? ` (${en ? `${row.late} late` : `${row.late} με καθυστέρηση`})` : ''}`, className: 'rd-num' }, { text: String(row.missed), className: row.missed ? 'rd-num rd-bad' : 'rd-num' }, { text: pct(row.rate), className: `rd-num ${{ good: 'rd-good', fair: 'rd-warn', low: 'rd-bad' }[adherenceTone(row.rate)] || ''}` }]
     const tableRows = groupAdherenceLines(lines).flatMap((group) => group.lines.length === 1
       ? [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.lines[0].department} · ${group.item.category || ''}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.lines[0])]]
       : [[{ html: `<strong>${escapeHtml(title(group.item))}</strong><small>${escapeHtml(`${group.item.category || ''} · ${en ? `${group.lines.length} departments` : `${group.lines.length} τμήματα`}`)}</small>` }, linesFrequencyLabel(group.lines, group.item, language), ...numbers(group.totals)],
@@ -137,7 +142,7 @@ export function useControlAdherenceReport(rows, tx, language, organizationId, re
       kind: en ? 'Controls' : 'Έλεγχοι',
       code: tx[`p${period}`],
       title: en ? 'Control programme adherence' : 'Τήρηση προγράμματος ελέγχων',
-      meta: [[tx.period, `${tx[`p${period}`]} (${formatDay(dayKey(from), language)} – ${formatDay(dayKey(to), language)})`], [tx.adherence, pct(totals.rate)], [tx.performed, `${totals.performed} / ${totals.expected}`], [tx.onTime, pct(totals.onTimeRate)], [tx.missed, String(totals.missed)], [en ? 'Controls' : 'Έλεγχοι', String(lines.length)]],
+      meta: [[tx.period, `${tx[`p${period}`]} (${formatDay(dayKey(from), language)} – ${formatDay(dayKey(to), language)})`], [tx.adherence, pct(totals.rate)], [tx.performed, `${doneOf(totals)} / ${totals.expected}${extraOf(totals) ? ` (${extraText(totals, en)})` : ''}`], [tx.onTime, pct(totals.onTimeRate)], [tx.missed, String(totals.missed)], [en ? 'Controls' : 'Έλεγχοι', String(lines.length)]],
       sections: [{ title: en ? 'Adherence per control and department' : 'Τήρηση ανά έλεγχο και τμήμα', note: tx.adherenceNote, table: { columns: [en ? 'Control / department' : 'Έλεγχος / τμήμα', en ? 'Frequency' : 'Συχνότητα', tx.expected, tx.performed, tx.onTime, tx.missed, tx.adherenceRate], rows: tableRows, foot: [tx.total, '', ...numbers(totals)], empty: tx.noAdherence } }],
       signatures: [en ? 'Prepared by' : 'Συντάχθηκε', en ? 'Reviewed by' : 'Ελέγχθηκε'],
       filename: en ? 'control-programme-adherence' : 'tirisi-programmatos-elegxon',
@@ -172,7 +177,7 @@ function AdherenceTrend({ months, language }) {
   const en = language === 'en'
   if (!months.length) return null
   return <div className="control-adherence-trend" role="img" aria-label={en ? 'Adherence per month' : 'Τήρηση ανά μήνα'}>
-    {months.map((month) => <div key={month.key} className={`control-adherence-trend-month ${adherenceTone(month.rate)}`} title={`${MONTHS[en ? 'en' : 'el'][Number(month.key.slice(5, 7)) - 1]} ${month.key.slice(0, 4)}: ${month.rate == null ? '—' : `${month.rate}%`} · ${en ? `${month.performed} of ${month.expected} done` : `έγιναν ${month.performed} από ${month.expected}`}`}>
+    {months.map((month) => <div key={month.key} className={`control-adherence-trend-month ${adherenceTone(month.rate)}`} title={`${MONTHS[en ? 'en' : 'el'][Number(month.key.slice(5, 7)) - 1]} ${month.key.slice(0, 4)}: ${month.rate == null ? '—' : `${month.rate}%`} · ${en ? `${doneOf(month)} of ${month.expected} done` : `έγιναν ${doneOf(month)} από ${month.expected}`}`}>
       <strong>{month.rate == null ? '—' : `${month.rate}%`}</strong>
       <i><b style={{ height: `${month.rate ?? 0}%` }} /></i>
       <span>{MONTHS[en ? 'en' : 'el'][Number(month.key.slice(5, 7)) - 1]}</span>
@@ -193,7 +198,7 @@ function MissedCell({ row, language, onShow }) {
 
 export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const en = language === 'en'
-  const { lines, totals, trend = [], reportRef, failed, loadFailedText, until } = report
+  const { lines, trend = [], reportRef, failed, loadFailedText, until } = report
   const departments = useMemo(() => new Set(lines.map((line) => line.department)).size, [lines])
   const [mode, setMode] = useState('')
   const [missed, setMissed] = useState(null)
@@ -210,7 +215,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const safePage = Math.min(page, totalPages)
   const shown = groups.slice((safePage - 1) * pageSize, safePage * pageSize)
   const numbers = (row, rowLines, label) => <>
-    <td className="control-adherence-done"><b>{row.performed}</b> {en ? 'of' : 'από'} {row.expected}</td>
+    <td className="control-adherence-done"><b>{doneOf(row)}</b> {en ? 'of' : 'από'} {row.expected}{extraOf(row) > 0 && <small>{extraText(row, en)}</small>}</td>
     <td>{pct(row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null))}{row.late > 0 && <small>{en ? `${row.late} late` : `${row.late} με καθυστέρηση`}</small>}</td>
     <MissedCell row={row} language={language} onShow={() => setMissed({ lines: rowLines, title: label })} />
     <td><RateMeter rate={row.rate} /></td>
@@ -223,11 +228,6 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   return <div className="control-adherence" ref={reportRef}>
     <div className="control-adherence-toolbar">
       {departments > 1 && <ChoiceChips className="control-adherence-mode" label="" options={[{ value: 'department', label: en ? 'Per department' : 'Ανά τμήμα' }, { value: 'control', label: en ? 'Per control' : 'Ανά έλεγχο' }]} selected={[byDepartment ? 'department' : 'control']} onToggle={(value) => { setMode(value); setPage(1) }} />}
-      <div className="control-adherence-summary">
-        <span>{en ? 'Done' : 'Έγιναν'} <strong>{totals.performed}</strong> {en ? 'of' : 'από'} <strong>{totals.expected}</strong></span>
-        <span>{tx.onTime} <strong>{pct(totals.onTimeRate)}</strong></span>
-        <span>{tx.missed} <strong className={totals.missed ? 'missed' : ''}>{totals.missed}</strong></span>
-      </div>
       {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={tx.adherenceNote} aria-label={tx.adherenceNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>

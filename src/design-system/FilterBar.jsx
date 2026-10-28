@@ -85,5 +85,5 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
   </div>
 }
 
-export function FilterSelect({label,value,onChange,children}){return <label className="filter-field"><span className="lo-field-label">{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>}
+export function FilterSelect({label,value,onChange,children,className=''}){return <label className={`filter-field ${className}`.trim()}><span className="lo-field-label">{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>}
 export function FilterDate({label,value,onChange}){return <ManualDateField className="filter-field" label={label} value={value} onChange={onChange}/>}

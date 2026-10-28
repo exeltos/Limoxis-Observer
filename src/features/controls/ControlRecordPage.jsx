@@ -265,7 +265,7 @@ export function ControlRecordPage(){
       {label:en?'Frequency':'Συχνότητα',value:controlFrequencyLabel(record,visibleDepartments,language)},
       !differentSchedules&&{label:en?'Execution times':'Ώρες εκτέλεσης',value:timesWithWindows(assignmentFrequency(record,visibleDepartments[0]))},
       {label:en?'Created by':'Δημιουργία από',value:<>{record.createdBy||sourceLabel}{record.createdBy&&<small>{sourceLabel}</small>}</>},
-      {label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
+      record.updatedBy&&{label:en?'Last changed by':'Τελευταία αλλαγή από',value:record.updatedBy},
      ].filter(Boolean)}]}/>
     </section>
    </div>
