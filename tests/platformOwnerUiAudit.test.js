@@ -61,7 +61,7 @@ describe('Platform Owner UI audit',()=>{
     expect(analysis).toContain('className="analysis-filter-group analysis-filter-scope"')
     expect(analysis).toContain('analysis-filter-group analysis-filter-compare')
     expect(analysis).toContain('analysis-tabs')
-    expect(analysis).toContain('className="analysis-kpis"')
+    expect(analysis).toContain('className="analysis-kpi-strip"')
     expect(analysis).toContain("tx('Περιφέρεια','Region')")
     expect(analysis).toContain("tx('Νοσοκομείο','Hospital')")
     expect(analysis).not.toContain('platform-back-button')

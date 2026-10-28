@@ -1,0 +1,48 @@
+import { AlertOctagon, AlertTriangle, ArrowDownRight, ArrowUpRight, CheckCircle2, Minus } from 'lucide-react'
+import { useLanguage } from '../core/i18n/LanguageContext'
+import { Meter, Sparkline } from './MiniCharts'
+import './KpiCard.css'
+
+// The one key-figure card of every screen (role homes, Indicators, Pharmacy,
+// Kitchen, Quality): a label with its period, the value with its unit, how it
+// stands against its target and how it moved since the previous period.
+// The counts above a list that filter it stay on MetricCard / StatusCards.
+//
+// status: 'good' | 'warning' | 'danger' (against the target) · target: «στόχος ≥ 80%»
+// delta: { text, trend: 'up'|'down'|'flat', good: true|false|null, title }
+// meter: 0–100 (a thin bar, `meterTarget` marks the target) · trend: numbers for a sparkline
+// loading: the value is not known yet · error: it could not be read (never shown as «—»)
+const STATUS={good:[CheckCircle2,'Εντός στόχου','On target','success'],warning:[AlertTriangle,'Προσοχή','Watch','warning'],danger:[AlertOctagon,'Εκτός στόχου','Off target','danger']}
+const TRENDS={up:ArrowUpRight,down:ArrowDownRight,flat:Minus}
+
+export function KpiCard({icon:Icon,label,value,unit='',period,status,statusLabel,target,delta,hint,meter,meterTarget,trend,loading=false,error=false,onOpen,className=''}){
+  const {language}=useLanguage()
+  const en=language==='en'
+  const [StatusIcon,el,enLabel,meterTone]=STATUS[status]||[]
+  const tone=loading||error?'neutral':status||'neutral'
+  const shown=value==null||value===''?'—':value
+  const DeltaIcon=TRENDS[delta?.trend]||Minus
+  const body=<>
+    <span className="lo-kpi-head">{Icon&&<span className="lo-kpi-icon" aria-hidden="true"><Icon/></span>}<span className="lo-kpi-label">{label}</span>{period&&<em className="lo-kpi-period">{period}</em>}</span>
+    {loading?<span className="lo-kpi-skeleton" aria-hidden="true"><i/><i/></span>
+      :error?<small className="lo-kpi-error">{typeof error==='string'?error:en?'Not loaded':'Δεν φορτώθηκε'}</small>
+      :<>
+        <strong className="lo-kpi-value">{shown}{unit&&shown!=='—'&&<small>{unit}</small>}</strong>
+        {meter!=null&&<span className="lo-kpi-meter"><Meter value={meter} tone={meterTone||'neutral'} label={`${label}: ${Math.round(meter)}%`}/>{meterTarget!=null&&<b style={{left:`${Math.max(0,Math.min(100,meterTarget))}%`}} aria-hidden="true"/>}</span>}
+        {trend&&<span className="lo-kpi-trend"><Sparkline points={trend} label={label} width={88} height={26}/></span>}
+        {(StatusIcon&&shown!=='—'||target)&&<span className="lo-kpi-line">{StatusIcon&&shown!=='—'&&<span className={`lo-kpi-status is-${status}`}><StatusIcon aria-hidden="true"/>{statusLabel||(en?enLabel:el)}</span>}{target&&<span>{target}</span>}</span>}
+        {hint&&<small className="lo-kpi-hint">{hint}</small>}
+        {delta&&<span className={`lo-kpi-delta ${delta.good==null?'is-flat':delta.good?'is-better':'is-worse'}`} title={delta.title}><DeltaIcon aria-hidden="true"/>{delta.text}</span>}
+      </>}
+  </>
+  const classes=`lo-kpi tone-${tone} ${className}`.trim()
+  return onOpen
+    ?<button type="button" className={classes} onClick={onOpen} aria-busy={loading||undefined}>{body}</button>
+    :<article className={classes} aria-busy={loading||undefined}>{body}</article>
+}
+
+// A row of key-figure cards: `columns` (default 4) across on a wide screen, at most 3 on a small
+// laptop, 2 on a tablet, 1 on a phone.
+export function KpiStrip({children,label,className='',columns}){
+  return <div className={`lo-kpi-strip ${className}`.trim()} role="group" aria-label={label} style={columns?{'--kpi-columns':columns,'--kpi-columns-md':Math.min(columns,3)}:undefined}>{children}</div>
+}

@@ -582,8 +582,7 @@
   .analysis-workspace,.analysis-scroll{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
   .analysis-report{max-width:none!important;margin:0!important;padding:0!important}
   .analysis-section-title{margin-bottom:14px!important;padding-bottom:8px!important;border-bottom:1px solid #d9e0e7!important}
-  .analysis-kpis{grid-template-columns:repeat(3,1fr)!important}
-  .analysis-kpis article,.analysis-chart-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important}
+  .analysis-chart-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important}
   .analysis-chart-grid{break-inside:auto}
 }
 
@@ -674,9 +673,8 @@
   }
   .platform-analysis-page .analysis-report *{visibility:visible!important}
   .platform-analysis-page .analysis-section-title{display:block!important}
-  .platform-analysis-page .analysis-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
   .platform-analysis-page .analysis-chart-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
-  .platform-analysis-page .analysis-chart-card,.platform-analysis-page .analysis-kpis article{
+  .platform-analysis-page .analysis-chart-card{
     display:block!important;break-inside:avoid!important;page-break-inside:avoid!important;
     border:1px solid #d9e0e7!important;background:#fff!important;box-shadow:none!important;
   }

@@ -1,6 +1,7 @@
 // Presentational pieces of the Analysis page: filters, KPI strip, charts,
 // the microbiology line list and cluster alerts.
 import { ExportMenu } from '../../design-system/ExportMenu'
+import { KpiCard,KpiStrip as SharedKpiStrip } from '../../design-system/KpiCard'
 import { useState } from 'react'
 import { ShieldAlert } from 'lucide-react'
 
@@ -15,8 +16,8 @@ import { FINDING_CATEGORIES,categoryCounts,findingCategory,isIdentified,organism
 export function AnalysisSelect({label,value,onChange,children}){return <label className="analysis-filter-field"><span>{label}</span><select value={value} onChange={onChange}>{children}</select></label>}
 // KPI tile: [label, value, hint, tone] — tone is good / warning / danger.
 const KPI_TONES=new Set(['good','warning','danger'])
-// period: the short period next to each measure («2026 · έτος»).
-export function KpiStrip({rows,period=''}){return <div className="analysis-kpis">{rows.map(([label,value,hint,tone])=><article key={label} className={KPI_TONES.has(tone)?`kpi-${tone}`:''}><span>{label}{period&&<em className="analysis-kpi-period">{period}</em>}</span><strong>{value}</strong>{hint&&hint!=='—'&&<small>{hint}</small>}</article>)}</div>}
+// period: the short period next to each measure («2026 · έτος»). The shared KpiCard, up to 6 across.
+export function KpiStrip({rows,period=''}){return <SharedKpiStrip className="analysis-kpi-strip" columns={Math.min(Math.max(rows.length,1),6)}>{rows.map(([label,value,hint,tone])=><KpiCard key={label} label={label} period={period} value={value} hint={hint&&hint!=='—'?hint:null} status={KPI_TONES.has(tone)?tone:null}/>)}</SharedKpiStrip>}
 // A cross-tabulation or trend the data source does not provide is left out.
 export function SectionCharts({charts,en}){return <div className="analysis-chart-grid">{charts.filter(chart=>chart.type==='matrix'?Array.isArray(chart.cells):chart.type==='trend'?Array.isArray(chart.points):true).map(chart=><ChartCard key={chart.title} wide={chart.wide} title={chart.title} subtitle={chart.subtitle}>{chart.type==='trend'?<TrendChart points={chart.sparse?chart.points:continuousMonths(chart.points)} en={en} label={chart.title}/>:chart.type==='donut'?<DonutChart rows={chart.rows} en={en} centerLabel={chart.center}/>:chart.type==='rate'?<BarList rows={chart.rows} en={en} scale={100} suffix="%" max={12}/>:chart.type==='matrix'?<MatrixTable cells={chart.cells} rowLabel={chart.rowLabel} en={en}/>:chart.type==='scoreboard'?<Scoreboard rows={chart.rows} columns={chart.columns} rowLabel={chart.rowLabel} en={en}/>:<BarList rows={chart.rows} en={en} max={12}/>}</ChartCard>)}</div>}
 export function MetricBars({rows,tx}){return <BarList rows={rows} en={chartLanguage(tx)} max={12}/>}
