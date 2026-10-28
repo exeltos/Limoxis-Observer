@@ -20,14 +20,15 @@ export function useMeetings(enabled = true) {
   const access = useMemo(() => meetingAccess(registerAccess, canManage), [registerAccess, canManage])
   const [meetings, setMeetings] = useState([])
   const [loading, setLoading] = useState(enabled)
+  const [error, setError] = useState(false)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return }
     setLoading(true)
-    loadMeetings(tenant?.id).then(setMeetings).catch(() => setMeetings([])).finally(() => setLoading(false))
+    loadMeetings(tenant?.id).then(rows => { setMeetings(rows); setError(false) }).catch(() => { setMeetings([]); setError(true) }).finally(() => setLoading(false))
   }, [tenant?.id, enabled])
   useEffect(() => { reload() }, [reload])
   const visible = useMemo(() => meetings.filter(access.canSee), [meetings, access])
-  return { meetings: visible, all: meetings, loading, reload, access, canManage, seesAll: registerAccess.seesAll }
+  return { meetings: visible, all: meetings, loading, error, reload, access, canManage, seesAll: registerAccess.seesAll }
 }
 
 const departmentOf = (meeting, en) => (en ? meeting.departmentEn : meeting.department) || meeting.department || '—'
@@ -72,7 +73,7 @@ export function MeetingsList({ list, filters, setFilters, onOpen, filterEnd = nu
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option><option value="draft">{meetingStatusLabel('draft', language)}</option><option value="final">{meetingStatusLabel('final', language)}</option></FilterSelect>
     </FilterBar>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={meeting => meeting.id} empty={!list.loading && !rows.length} emptyFiltered={list.meetings.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', status: 'all', quick: null }))}
+      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={meeting => meeting.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.meetings.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', status: 'all', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'department', label: t('department') }, { key: 'date', label: t('date') }, { key: 'period', label: en ? 'Indicators of' : 'Δείκτες του' }, { key: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next meeting' : 'Επόμενη' }, { key: 'status', label: t('status') }]}
         emptyTitle={en ? 'No department meetings' : 'Δεν υπάρχουν συναντήσεις τμημάτων'} emptyText={en ? 'A department records its meetings here: the month’s indicators, what was discussed and what was decided.' : 'Εδώ το τμήμα καταγράφει τις συναντήσεις του: τους δείκτες του μήνα, τι συζητήθηκε και τι αποφασίστηκε.'}
         rowProps={meeting => ({ className: 'registry-row-clickable', onClick: () => onOpen(meeting) })}

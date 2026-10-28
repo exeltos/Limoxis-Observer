@@ -29,7 +29,7 @@ export function DepartmentSelfAssessmentsPage() {
     <section className="surface registry-workspace workspace-column workspace-fill">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en, 'Αναζήτηση…', 'Search…')} />
       <div className="scroll-table">
-        <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} loading={list.loading} empty={!list.loading && !rows.length} emptyFiltered={list.items.length > 0}
+        <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} loading={list.loading} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.items.length > 0}
           emptyIcon={ClipboardCheck} emptyTitle={L(en, 'Δεν υπάρχει αυτοαξιολόγηση για το τμήμα σας', 'No self-assessment for your department')} emptyText={L(en, 'Όταν το Γραφείο Ποιότητας ενεργοποιήσει μία για εσάς, θα εμφανιστεί εδώ.', 'When the Quality Office releases one to you it will appear here.')}
           columns={[{ key: 'title', label: L(en, 'Αυτοαξιολόγηση', 'Self-assessment') }, { key: 'progress', label: L(en, 'Πρόοδος', 'Progress') }, { key: 'due', label: L(en, 'Προθεσμία', 'Due') }, { key: 'status', label: L(en, 'Κατάσταση', 'Status') }]}
           rowProps={item => ({ onClick: () => navigate(`/my-department/self-assessment/${item.id}`) })}

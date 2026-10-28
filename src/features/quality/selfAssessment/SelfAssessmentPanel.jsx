@@ -64,13 +64,13 @@ export function SelfAssessmentPanel({ query = '', canManage = false }) {
     try { await removeSelfAssessment(tenant?.id, item); await list.reload() } catch (error) { console.error(error); notify(L(en, 'Δεν ήταν δυνατή η διαγραφή.', 'It could not be deleted.'), 'error') }
   }
   return <>
-    <KpiFigures label={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} figures={figures} loading={list.loading} />
+    <KpiFigures label={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} figures={figures} loading={list.loading} error={list.error} />
     <div className="self-toolbar row-actions">
       <ExportMenu disabled={!rows.length} onExcel={() => exportRegistry(selfExport(rows, language))} />
       {canManage && <Button onClick={() => setCreating(true)}><Plus size={15} />{L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')}</Button>}
     </div>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} empty={!list.loading && !rows.length} emptyFiltered={list.items.length > 0} loading={list.loading}
+      <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.items.length > 0} loading={list.loading} error={list.error} onRetry={list.reload}
         emptyTitle={L(en, 'Δεν υπάρχουν αυτοαξιολογήσεις', 'No self-assessments')}
         emptyText={L(en, 'Επιλέξτε ερωτηματολόγιο και τμήματα· όταν την ενεργοποιήσετε, το τμήμα τη βλέπει και τη συμπληρώνει ως προετοιμασία για την επιθεώρηση.', 'Choose a questionnaire and departments; once you release it the department sees and answers it as a preparation for the audit.')}
         columns={[{ key: 'title', label: L(en, 'Αυτοαξιολόγηση', 'Self-assessment') }, { key: 'progress', label: L(en, 'Πρόοδος', 'Progress') }, { key: 'score', label: L(en, 'Βαθμός', 'Score') }, { key: 'due', label: L(en, 'Προθεσμία', 'Due') }, { key: 'status', label: L(en, 'Κατάσταση', 'Status') }, { key: 'actions', label: '', ariaLabel: L(en, 'Ενέργειες', 'Actions') }]}

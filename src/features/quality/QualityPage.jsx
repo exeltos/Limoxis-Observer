@@ -37,6 +37,7 @@ import { summarizeRisks } from './risk/riskModel'
 import { IndicatorsPage } from '../indicators/IndicatorsPage'
 import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { ObjectiveDialog,ObjectivesTable,newObjective,objectivesExport,useObjectives } from './review/QualityObjectives'
 import { SurveysList,filterSurveys,surveyCounts,surveysExport,useSurveys } from './surveys/SurveysPanel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
@@ -73,17 +74,19 @@ const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department
 function useQualityRecords(organizationId){
  const [data,setData]=useState({incidents:[],findings:[],capas:[],audits:[]})
  const [loading,setLoading]=useState(true)
+ const [error,setError]=useState(false)
  const [version,setVersion]=useState(0)
  useEffect(()=>{
   let active=true
   setLoading(true)
   const sections=['incidents','findings','capas','audits']
-  Promise.all(sections.map(section=>loadQualityRecords(section,organizationId).catch(()=>[])))
-   .then(lists=>{if(active)setData(Object.fromEntries(sections.map((section,index)=>[section,lists[index]])))})
+  let failed=false
+  Promise.all(sections.map(section=>loadQualityRecords(section,organizationId).catch(()=>{failed=true;return []})))
+   .then(lists=>{if(active){setData(Object.fromEntries(sections.map((section,index)=>[section,lists[index]])));setError(failed)}})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
  },[organizationId,version])
- return {data,loading,reload:()=>setVersion(value=>value+1)}
+ return {data,loading,error,reload:()=>setVersion(value=>value+1)}
 }
 
 export function QualityPage(){
@@ -270,7 +273,8 @@ export function QualityPage(){
   {tab==='indicators'&&<CanonicalTabs className="lo-subtabs" items={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={measureView} onChange={setMeasureView} ariaLabel={L('Δείκτες & Στόχοι','Indicators & objectives')}/>}
   <KpiFigures className="quality-kpis" label={t('quality')} figures={figures}/>
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
-   <KpiFigures className="quality-kpis" label={L('Επισκόπηση','Overview')} loading={records.loading} figures={centerFigures}/>
+   <KpiFigures className="quality-kpis" label={L('Επισκόπηση','Overview')} loading={records.loading} error={records.error} figures={centerFigures}/>
+   {records.error&&!records.loading&&<RegistryEmptyState error onRetry={records.reload}/>}
    {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} findings={records.data.findings} objectives={objectives.objectives} onMeetings={()=>navigate('/meetings?tab=departments')} language={language} categories={categories}
     onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='readiness'?(auditView.set('mode','readiness'),setTab('audits')):target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
   </div>:<>
@@ -304,7 +308,7 @@ export function QualityPage(){
     <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={null}>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>
     </FilterBar>
-    <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} onOpen={objective=>openRecord('objectives',objective.id,visibleObjectives.map(item=>item.id))}/>
+    <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} error={objectives.error} onRetry={objectives.reload} onOpen={objective=>openRecord('objectives',objective.id,visibleObjectives.map(item=>item.id))}/>
    </>}
    {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} registry={registry} filters={surveyFilters} setFilters={setSurveyFilters} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');registry.openRecord(navigate,`/quality/surveys/${survey.id}`,survey.id)}}/>}
    {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} registry={registry} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');registry.openRecord(navigate,`/quality/equipment/${row.id}`,row.id)}}/>}

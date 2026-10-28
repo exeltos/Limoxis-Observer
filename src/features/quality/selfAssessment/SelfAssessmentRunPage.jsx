@@ -62,7 +62,7 @@ export function SelfAssessmentRunPage({ backTo = '/quality' }) {
   }
   const gapsExport = () => ({ name: en ? 'self-assessment-gaps' : 'aftoaxiologisi-kena', headers: en ? ['Clause', 'Question', 'Answer', 'Critical', 'Note'] : ['Ρήτρα', 'Ερώτηση', 'Απάντηση', 'Κρίσιμη', 'Σημείωση'], rows: gaps.map(row => [row.clauseRef, row.item, resultLabel(row.answer, language), row.critical ? (en ? 'Yes' : 'Ναι') : '', row.note || '']) })
   if (!item) return <Page fill title={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} navigation={<BackButton onClick={goBack} label={L(en, 'Πίσω', 'Back')} />}>
-    {list.loading ? null : <RegistryEmptyState icon={ClipboardCheck} title={L(en, 'Δεν βρέθηκε η αυτοαξιολόγηση', 'Self-assessment not found')} text={L(en, 'Μπορεί να έχει αποσυρθεί ή να μην έχει ενεργοποιηθεί ακόμα για το τμήμα σας.', 'It may have been withdrawn or not yet released to your department.')} />}
+    {list.loading ? null : list.error ? <RegistryEmptyState error onRetry={list.reload} /> : <RegistryEmptyState icon={ClipboardCheck} title={L(en, 'Δεν βρέθηκε η αυτοαξιολόγηση', 'Self-assessment not found')} text={L(en, 'Μπορεί να έχει αποσυρθεί ή να μην έχει ενεργοποιηθεί ακόμα για το τμήμα σας.', 'It may have been withdrawn or not yet released to your department.')} />}
   </Page>
   const cards = [
     { key: 'answered', icon: ClipboardCheck, value: `${figures.answered}/${figures.total}`, label: L(en, 'Απαντήθηκαν', 'Answered'), hint: `${figures.pct}%` },

@@ -27,9 +27,11 @@ export function useObjectives(organizationId) {
   const [objectives, setObjectives] = useState([])
   const [registers, setRegisters] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const reload = useCallback(async () => {
     setLoading(true)
     try {
+      setError(false)
       const [rows, allRegisters] = await Promise.all([loadObjectives(organizationId), loadRegisters(organizationId).catch(() => [])])
       setRegisters(allRegisters)
       // The registers the objectives read, together.
@@ -41,10 +43,10 @@ export function useObjectives(organizationId) {
         const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value : toNumber(objective.reportedValue)
         return { ...objective, register, indicator, current: { value, status: objectiveState(objective, value) } }
       }))
-    } catch (error) { console.error(error); setObjectives([]) } finally { setLoading(false) }
+    } catch (failure) { console.error(failure); setObjectives([]); setError(true) } finally { setLoading(false) }
   }, [organizationId])
   useEffect(() => { void reload() }, [reload])
-  return { objectives, registers, loading, reload }
+  return { objectives, registers, loading, error, reload }
 }
 
 export function useReviews(organizationId) {
@@ -91,10 +93,10 @@ export function reviewsExport(rows, language) {
 }
 
 // The year's quality objectives with their value today (Quality Center > Measurement & review).
-export function ObjectivesTable({ rows, loading, onOpen }) {
+export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  return <RegistryTable className="quality-table" rows={rows} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με' }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'state', label: en ? 'Status' : 'Κατάσταση' }]}
+  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με' }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'state', label: en ? 'Status' : 'Κατάσταση' }]}
     rowProps={objective => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(objective) })}
     renderRow={objective => <>
       <td><strong>{objective.code}</strong><small>{objective.year}</small></td>

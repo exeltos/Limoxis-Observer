@@ -23,6 +23,9 @@ export function RegistryTable({
   bare=false,
   // loading: the first load has not finished: placeholder lines, never the empty state.
   loading=false,
+  // error: the read failed: say so (with «Try again» when onRetry is given), never the empty state.
+  error=false,
+  onRetry,
 }){
   const tableClass=`data-table sticky-table ${className}`.trim()
   const hasRows=Array.isArray(rows)&&rows.length>0
@@ -44,7 +47,7 @@ export function RegistryTable({
   // would end up with an extra, textless box whenever rows is empty.
   const loadingRows=loading&&!hasRows
   const richEmpty=emptyFiltered||Boolean(emptyAction)||Boolean(emptyIcon)
-  const emptyState=loadingRows?<TableSkeleton/>:(Boolean(emptyTitle)||richEmpty)&&(!hasRows||empty)&&(richEmpty
+  const emptyState=loadingRows?<TableSkeleton/>:error&&!hasRows?<RegistryEmptyState error={error} onRetry={onRetry}/>:(Boolean(emptyTitle)||richEmpty)&&(!hasRows||empty)&&(richEmpty
     ?<RegistryEmptyState filtered={emptyFiltered} onClearFilters={onClearFilters} title={emptyFiltered?undefined:emptyTitle} text={emptyFiltered?undefined:emptyText} icon={emptyIcon} action={emptyAction}/>
     :<div className="inline-empty" role="status"><strong>{emptyTitle}</strong>{emptyText&&<span>{emptyText}</span>}</div>)
   // bare: caller already owns the scroll wrapper (e.g. one shared wrapper

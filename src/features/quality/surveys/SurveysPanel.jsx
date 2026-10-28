@@ -15,13 +15,14 @@ export function useSurveys(enabled = true) {
   const { tenant } = useTenant()
   const [surveys, setSurveys] = useState([])
   const [loading, setLoading] = useState(enabled)
+  const [error, setError] = useState(false)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return }
     setLoading(true)
-    loadSurveys(tenant?.id).then(setSurveys).catch(() => setSurveys([])).finally(() => setLoading(false))
+    loadSurveys(tenant?.id).then(rows => { setSurveys(rows); setError(false) }).catch(() => { setSurveys([]); setError(true) }).finally(() => setLoading(false))
   }, [tenant?.id, enabled])
   useEffect(() => { reload() }, [reload])
-  return { surveys, loading, reload }
+  return { surveys, loading, error, reload }
 }
 
 const SOON_DAYS = 14
@@ -75,7 +76,7 @@ export function SurveysList({ list, registry = null, filters, setFilters, onOpen
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option>{SURVEY_STATUSES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
     <div className="scroll-table" ref={registry?.scrollRef}>
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={survey => survey.id} empty={!list.loading && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
+      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={survey => survey.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
         columns={[{ key: 'code', label: t('code') }, { key: 'survey', label: en ? 'Survey' : 'Έρευνα' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'responses', label: en ? 'Responses' : 'Απαντήσεις' }, { key: 'status', label: t('status') }]}
         emptyTitle={en ? 'No surveys yet' : 'Δεν υπάρχουν έρευνες'} emptyText={en ? 'Start one from a template: inpatients, outpatients and emergency, or staff.' : 'Ξεκινήστε από πρότυπο: νοσηλευόμενοι, εξωτερικοί ασθενείς και ΤΕΠ, ή προσωπικό.'}
         rowProps={survey => ({ ...(registry?.rowProps(survey.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(survey) })}
