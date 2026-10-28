@@ -796,12 +796,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const printEpisodeReport = () => {
     if (!record) return
     if (!printSurveillanceReport(record, { language, fmtDate, fmtDateTime, t, libraries: clinicalLibraries }))
-      notify(
-        language === 'el'
-          ? 'Το πρόγραμμα περιήγησης εμπόδισε το άνοιγμα της αναφοράς. Επιτρέψτε τα αναδυόμενα παράθυρα για το Limoxis Observer.'
-          : 'The browser blocked the report window. Allow pop-ups for Limoxis Observer.',
-        'error',
-      )
+      notify(t('clinicalRecords.reportPopupBlocked'), 'error')
   }
   // The printed report (EntityRecordShell printReport): a document built from what this user can see.
   const printReport = () =>
@@ -879,7 +874,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         headerActions={
           selectedAdmission || !patientMode ? (
             <>
-            <ExportMenu onPrint={()=>window.print()} items={[...(record ? [{id:'episode-report',kind:'print',label:language === 'en' ? 'Episode report' : 'Αναφορά επεισοδίου',onClick:printEpisodeReport}] : []),{id:'json',kind:'data',label:'JSON',onClick:() =>
+            <ExportMenu onPrint={()=>window.print()} items={[...(record ? [{id:'episode-report',kind:'print',label:t('clinicalRecords.episodeReport'),onClick:printEpisodeReport}] : []),{id:'json',kind:'data',label:'JSON',onClick:() =>
                 downloadRecordJson(
                   {
                     patient,
