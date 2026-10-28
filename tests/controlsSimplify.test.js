@@ -22,10 +22,10 @@ describe('controls list: department cards, key figures per tab, no filter popove
     expect(page).not.toContain('<Kpi ')
   })
 
-  it('has no filter popover: the department is a chip and the status two toggle chips', () => {
+  it('period and status sit inside the «Filters» popover beside the search; the department is a chip', () => {
     const bar = page.slice(page.indexOf('<FilterBar'), page.indexOf('</FilterBar>'))
-    // The only select beside the search is the period of the rates.
-    expect(bar).not.toContain('<FilterSelect ')
+    // The period of the rates and the status are inside the popover, not beside the search.
+    expect(bar).not.toContain(' end={')
     expect(page).toContain('const periodSelect=<FilterSelect className="controls-period-select" label={tx.period}')
     expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
     expect(bar).toContain('<ChoiceChips className="controls-status-switch"')
