@@ -13,3 +13,8 @@
 .lo-tabs-more-menu button>span{flex:1}
 .lo-tabs-more-menu button:hover,.lo-tabs-more-menu button:focus-visible{background:#f2f7fb;outline:none}
 .lo-tabs-more-menu button[aria-current="true"]{font-weight:700;color:#0b6097}
+/* A second, lighter row of tabs under a group's tabs (Κέντρο Διαχείρισης): same look, smaller, no bar of its own.
+   !important only because the one tab design (responsive.css, tabs-unified) sets these with it. */
+html:not(#lo-unified-tabs) body nav.canonical-tabs.lo-subtabs{margin-top:-6px!important;padding:0 6px!important;background:transparent!important;border-bottom:1px solid #e6ebf0!important}
+html:not(#lo-unified-tabs) body nav.canonical-tabs.lo-subtabs>button.canonical-tab{height:36px!important;min-height:36px!important;font-size:12.5px!important}
+html:not(#lo-unified-tabs) body nav.canonical-tabs.lo-subtabs>button.canonical-tab svg{width:14px!important;height:14px!important}
