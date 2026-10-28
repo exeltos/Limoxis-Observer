@@ -220,8 +220,6 @@
 
 /* v0.10.6 final completed-surveillance report */
 .surveillance-final-report{max-width:1040px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px 30px;color:#263f55}
-.course-timeline{margin-left:36px;border-left:1px solid #cad8e2;padding-left:15px}.course-event{position:relative;padding:0 0 12px 4px;display:grid;grid-template-columns:120px 190px 140px minmax(0,1fr);gap:8px;align-items:start;font-size:11px}.course-event:before{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:#6093b3;left:-19px;top:4px}.course-event time{color:#708394}.course-event span{color:#385b73;font-weight:700}.course-event strong{color:#2f4659}.course-event p{margin:0!important;color:#5d7284;font-size:inherit!important;line-height:inherit!important}
-@media(max-width:900px){.course-event{grid-template-columns:1fr}}
 @media print{.surveillance-final-report{border:0!important;padding:0!important}}
 
 /* v0.11.0 laboratory shared registry + full sample record */

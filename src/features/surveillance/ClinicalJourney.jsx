@@ -149,7 +149,6 @@ export function CanonicalJourney({
           record={record}
           t={t}
           fmtDate={fmtDate}
-          fmtDateTime={fmtDateTime}
           language={language}
           libraries={libraries}
         />

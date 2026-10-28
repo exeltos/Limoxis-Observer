@@ -6,7 +6,6 @@ import {
   Activity,
   AlertTriangle,
   BedDouble,
-  FileClock,
   Microscope,
   Pill,
   RefreshCcw,
@@ -19,7 +18,6 @@ import {
   episodeTypeLabel,
   clinicalTerm,
   libraryLabel,
-  clinicalValueLabel,
   timelineLabel,
   ISOLATION_STATUS,
   termLabel,
@@ -99,7 +97,6 @@ export function CompletedReport({
   record,
   t,
   fmtDate,
-  fmtDateTime,
   language = 'el',
   libraries = {},
 }) {
@@ -366,22 +363,6 @@ export function CompletedReport({
             </>
           ) : (
             <Empty text={t('clinicalRecords.notDocumented')} />
-          )}
-        </Section>
-        <Section icon={FileClock} title={t('clinicalRecords.courseSummary')} wide>
-          {(record.timeline || []).length ? (
-            <div className="course-timeline">
-              {record.timeline.map((x, i) => (
-                <div key={`${x.at}-${i}`} className="course-event">
-                  <time>{fmtDateTime(x.at)}</time>
-                  <span>{timelineLabel(x.type, language, t)}</span>
-                  <strong>{personLabel(x)}</strong>
-                  <p>{x.detail ? clinicalValueLabel(x.detail, language, t) : ''}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty text={t('finalReport.noEvents')} />
           )}
         </Section>
       </div>

@@ -33,6 +33,7 @@ import {buildOutbreakClosureReadiness} from '../lira/liraOutbreakClosure'
 import {buildInvestigationCopilot} from '../lira/liraInvestigationCopilot'
 import {buildOutbreakLineList,buildOutbreakTimeline,evaluateOutbreakCaseDefinition} from '../lira/liraOutbreakInvestigation'
 import {listOutbreakInvestigations,createOutbreakInvestigation,updateOutbreakInvestigation,appendOutbreakInvestigationEvent,loadOutbreakInvestigationEvents,loadOutbreakCaseReviews,createOutbreakCaseReview,loadOutbreakActions,createOutbreakAction,updateOutbreakActionStatus} from '../lira/liraOutbreakWorkspace'
+import './outbreakInvestigations.css'
 const statusLabel=(s,en)=>({draft:en?'Draft':'Πρόχειρη',active:en?'Active':'Ενεργή',closed:en?'Closed':'Κλειστή'}[s]||s)
 const caseDefinitionLabel=en=>en?'Case definition':'Ορισμός περιστατικού'
 const actionStatusLabel=(s,en)=>({open:en?'Open':'Ανοικτή',in_progress:en?'In progress':'Σε εξέλιξη',verification:en?'Verification':'Σε επαλήθευση',closed:en?'Closed':'Κλειστή'}[s]||s)
