@@ -1,6 +1,6 @@
 # Limoxis Observer — οδηγίες για τον Claude
 
-Πλατφόρμα πρόληψης λοιμώξεων και ποιότητας νοσοκομείων. React 18 + React Router 7 + Vite, Supabase (Postgres, RLS, Edge Functions στο Deno, Storage). Το UI είναι ελληνικό με πλήρη αγγλική ισοτιμία. Περισσότερα στο `README.md` και στο `docs/` (`ARCHITECTURE.md`, `AUTHORIZATION_MODEL.md`, `DATA_MODEL.md`, `CSS_ARCHITECTURE.md`, `PLATFORM_FLOW.md`).
+Πλατφόρμα πρόληψης λοιμώξεων και ποιότητας νοσοκομείων. React 18 + React Router 7 + Vite, Supabase (Postgres, RLS, Edge Functions στο Deno, Storage). Το UI είναι ελληνικό με πλήρη αγγλική ισοτιμία. Περισσότερα στο `README.md` και στο `docs/` (`ARCHITECTURE.md`, `AUTHORIZATION_MODEL.md`, `DATA_MODEL.md`, `CSS_ARCHITECTURE.md`, `PLATFORM_FLOW.md`). **Εκκρεμότητες και σημείο συνέχειας: `docs/PENDING.md` — διάβασέ το πρώτο σε νέα συνεδρία.**
 
 ## Δομή
 - `src/app` — router, κέλυφος (AppShell, πάνω μπάρα), μενού (`navigation.js`, `SidebarNavigation.jsx`), `routePreload.js`.
