@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { limitAssessment } from './environmentalLimit'
 import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
@@ -137,10 +138,10 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                 <td>
                   {result ? (
                     <>
-                      {result.withinLimit === true && <StatusBadge tone="success">{t('clinicalRecords.withinLimitsShort')}</StatusBadge>}
-                      {result.withinLimit === false && <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>}
-                      {result.withinLimit == null && <strong>{t(result.result)}</strong>}
-                      <small>{[result.withinLimit != null && t(result.result), result.organism, result.cfuCount != null && `${result.cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
+                      {limitAssessment(result) === true && <StatusBadge tone="success">{t('clinicalRecords.withinLimitsShort')}</StatusBadge>}
+                      {limitAssessment(result) === false && <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>}
+                      {limitAssessment(result) == null && <strong>{t(result.result)}</strong>}
+                      <small>{[limitAssessment(result) != null && t(result.result), result.organism, result.cfuCount != null && `${result.cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (
                     <span className="plate-no-result">{t('labPlates.noResult')}</span>

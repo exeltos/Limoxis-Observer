@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isOutsideLimit, limitAssessment } from '../laboratory/environmentalLimit'
 import {
   Building2,
   Droplets,
@@ -50,7 +51,7 @@ const closedStatuses = ['cancelled', 'rejected', 'voided']
 // (remediation and a new sampling), whatever the laboratory status says.
 export const environmentalNeedsAction = row =>
   !closedStatuses.includes(row?.status) &&
-  (row?.microbiologyResults || []).some(result => result?.withinLimit === false)
+  (row?.microbiologyResults || []).some(result => isOutsideLimit(result))
 
 // The registry status shown for an environmental sample, with its badge tone.
 export function environmentalStatusDisplay(row, t) {
@@ -559,14 +560,14 @@ export function EnvironmentalRegistry({
               {row.result ? (
                 // The limits decide what the point needs, so they lead; the result and CFU follow, small.
                 <span className="environment-result-cell">
-                  {row.microbiologyResults?.[0]?.withinLimit === true ? (
+                  {limitAssessment(row.microbiologyResults?.[0]) === true ? (
                     <StatusBadge tone="success">{t('clinicalRecords.withinLimitsShort')}</StatusBadge>
-                  ) : row.microbiologyResults?.[0]?.withinLimit === false ? (
+                  ) : limitAssessment(row.microbiologyResults?.[0]) === false ? (
                     <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>
                   ) : (
                     <strong>{t(row.result)}</strong>
                   )}
-                  <small>{[row.microbiologyResults?.[0]?.withinLimit != null && t(row.result), row.microbiologyResults?.[0]?.cfuCount != null && `${row.microbiologyResults[0].cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
+                  <small>{[limitAssessment(row.microbiologyResults?.[0]) != null && t(row.result), row.microbiologyResults?.[0]?.cfuCount != null && `${row.microbiologyResults[0].cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
                 </span>
               ) : (
                 '—'

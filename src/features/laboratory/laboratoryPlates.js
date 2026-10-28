@@ -3,6 +3,7 @@
 // department and plate letter) are read and received together: the plate groups them by position.
 // Pure: the plates tab and the tests read it.
 import { sampleProgress } from './laboratorySampleProgress'
+import { isOutsideLimit } from './environmentalLimit'
 
 const CLOSED_STATUSES = ['cancelled', 'rejected', 'voided']
 const clean = value => String(value ?? '').trim()
@@ -27,7 +28,7 @@ const byPosition = (a, b) => {
   return clean(a.environmentalPosition).localeCompare(clean(b.environmentalPosition), 'el', { numeric: true })
 }
 
-export const isOutsideLimits = sample => (sample?.microbiologyResults || []).some(result => result?.withinLimit === false)
+export const isOutsideLimits = sample => (sample?.microbiologyResults || []).some(result => isOutsideLimit(result))
 
 // status: 'awaiting' (something still to receive) · 'processing' · 'completed' (every open position done) · 'rejected'.
 export function groupPlates(samples = []) {

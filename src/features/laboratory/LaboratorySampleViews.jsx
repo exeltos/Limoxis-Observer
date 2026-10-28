@@ -1,4 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
+import { limitAssessment, resultLimit } from './environmentalLimit'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { AlertTriangle } from 'lucide-react'
 import { DetailList } from '../../design-system/DetailList'
@@ -18,7 +19,9 @@ export function ResultCard({
   menu,
   emptyState = null,
 }) {
-  const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
+  // The limit the result was assessed with, or the protocol's: a result without either has no assessment.
+  const limit = resultLimit(result, standard)
+  const hasLimit = limit != null
   const title = isEnvironmental
     ? t('laboratoryRecords.environmentalResult')
     : t('laboratoryRecords.resultAndOrganism')
@@ -28,11 +31,11 @@ export function ResultCard({
       {isEnvironmental && (
         <div className={`smart-protocol-strip ${hasLimit ? 'configured' : 'missing'}`}>
           <div>
-            <strong>{standard?.protocolCode || tx('noProtocol')}</strong>
+            <strong>{standard?.protocolCode || (hasLimit ? tx('assessedLimit') : tx('noProtocol'))}</strong>
             {hasLimit && (
               <span>
                 {' '}
-                · {standard.limitCfu} {standard.unit || 'CFU'}
+                · {limit} {standard?.unit || 'CFU'}
               </span>
             )}
           </div>
@@ -79,9 +82,9 @@ export function ResultCard({
               id: 'assessment',
               label: tx('assessment'),
               value:
-                result.withinLimit === true
+                limitAssessment(result, standard) === true
                   ? tx('within')
-                  : result.withinLimit === false
+                  : limitAssessment(result, standard) === false
                     ? tx('outside')
                     : tx('noLimit'),
             },

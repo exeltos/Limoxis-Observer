@@ -1,4 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
+import { isOutsideLimit } from './environmentalLimit'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
@@ -90,7 +91,7 @@ export function LaboratorySampleRecordFunctionalView() {
     sample?.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample?.type)
   // Same rule as the environmental surveillance list (environmentalNeedsAction): a result outside its limits on a sample that is not closed.
   const environmentNeedsAction =
-    isEnvironmental && !['cancelled', 'rejected', 'voided'].includes(sample?.status) && (sample?.microbiologyResults || []).some(item => item?.withinLimit === false)
+    isEnvironmental && !['cancelled', 'rejected', 'voided'].includes(sample?.status) && (sample?.microbiologyResults || []).some(item => isOutsideLimit(item))
   useEffect(() => {
     if (isEnvironmental)
       repository

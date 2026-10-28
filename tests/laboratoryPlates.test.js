@@ -32,7 +32,7 @@ describe('culture plates in the laboratory', () => {
   })
 
   it('counts the positions outside the limits', () => {
-    const plate = groupPlates([sample('a', { microbiologyResults: [{ withinLimit: false }] }), sample('b', { microbiologyResults: [{ withinLimit: true }] })])[0]
+    const plate = groupPlates([sample('a', { microbiologyResults: [{ withinLimit: false, cfuLimit: 5 }] }), sample('b', { microbiologyResults: [{ withinLimit: true, cfuLimit: 5 }] })])[0]
     expect(plate.counts.outside).toBe(1)
     expect(plate.outside.map(s => s.id)).toEqual(['a'])
   })
