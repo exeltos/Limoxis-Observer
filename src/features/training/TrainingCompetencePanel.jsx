@@ -1,4 +1,4 @@
-import { useEffect,useMemo,useState } from 'react'
+import { useEffect,useMemo,useRef,useState } from 'react'
 import { AlertTriangle,CheckCircle2,Clock3,Pencil,Plus,Trash2,XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -19,7 +19,8 @@ const stateText=(state,en)=>({valid:en?'Valid':'Σε ισχύ',expiring:en?'Expi
 // "Competence" view of Training: which staff need which training (by
 // professional category and department), who is covered, and who has to be
 // trained and by when.
-export function TrainingCompetencePanel({state,employees=[],departments=[],language,locale,canManage,busy,onSaveRequirement,onDeleteRequirement}){
+// onSummaryChange: the figures for the page's cards; onExportChange: its «Export» items for the page's top bar.
+export function TrainingCompetencePanel({state,employees=[],departments=[],language,locale,canManage,busy,onSaveRequirement,onDeleteRequirement,onSummaryChange,onExportChange}){
  const en=language==='en'
  const {tenant,isDemo}=useTenant()
  const [positionOptions,setPositionOptions]=useState([])
@@ -50,15 +51,16 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
    rows:plan.map(item=>[fmt(item.due),name(item.employee),item.employee.department,item.employee.profession,item.requirement.title,stateText(item.state,en),fmt(item.validUntil)])})
  }
 
+ const exportItems=[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]
+ const exportRef=useRef(exportItems);exportRef.current=exportItems
+ const summaryKey=`${matrix.rate}|${matrix.counts.missing}|${matrix.counts.expired}|${matrix.counts.expiring}|${matrix.rows.length}|${plan.length}|${department}`
+ useEffect(()=>{onSummaryChange?.({rate:matrix.rate,...matrix.counts,people:matrix.rows.length,plan:plan.length,department})},[summaryKey]) // eslint-disable-line react-hooks/exhaustive-deps
+ useEffect(()=>{if(!onExportChange)return undefined;onExportChange(exportRef.current.map(item=>({...item,onClick:()=>exportRef.current.find(x=>x.id===item.id)?.onClick()})));return()=>onExportChange(null)},[onExportChange,matrix.rows.length,plan.length,en])
  return <div className="training-competence">
   <div className="training-competence-summary">
-   <span><strong className={`training-competence-rate ${matrix.rate==null?'':matrix.rate>=90?'good':matrix.rate>=70?'fair':'low'}`}>{matrix.rate==null?'—':`${matrix.rate}%`}</strong>{en?'covered':'κάλυψη'}</span>
-   <span><strong>{matrix.counts.missing}</strong>{en?'missing':'λείπουν'}</span>
-   <span><strong className="danger">{matrix.counts.expired}</strong>{en?'expired':'έληξαν'}</span>
-   <span><strong className="warning">{matrix.counts.expiring}</strong>{en?`expire within 60 days`:'λήγουν σε 60 ημέρες'}</span>
    <div className="training-competence-tools">
     <label><span>{en?'Department':'Τμήμα'}</span><select value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All':'Όλα'}</option>{departmentNames.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
-    <ExportMenu items={[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]}/>
+    {!onExportChange&&<ExportMenu items={exportItems}/>}
    </div>
   </div>
   <SubTabs activeId={view} onChange={setView} ariaLabel={en?'Competence view':'Προβολή επάρκειας'} tabs={[{id:'matrix',label:en?'Matrix':'Πίνακας'},{id:'plan',label:en?'Who needs training':'Ποιοι χρειάζονται εκπαίδευση',count:plan.length},{id:'rules',label:en?'Requirements':'Απαιτήσεις',count:matrix.requirements.length}]}/>

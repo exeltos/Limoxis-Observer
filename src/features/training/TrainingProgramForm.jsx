@@ -1,3 +1,4 @@
+import { DetailFields } from '../../design-system/DetailList'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
@@ -39,4 +40,29 @@ export function TrainingProgramForm({value,onChange,language='el',readOnly=false
   {v.requiresAssessment&&<label><span>{en?'Pass score (%)':'Όριο επιτυχίας (%)'}</span><input disabled={readOnly} type="number" min="0" max="100" value={v.passScore} onChange={e=>set('passScore',e.target.value)}/></label>}
   <label className="entry-span-2"><span>{en?'Purpose / description':'Σκοπός / περιγραφή'}</span><textarea disabled={readOnly} rows="4" value={v.description} onChange={e=>set('description',e.target.value)}/></label>
  </div>
+}
+
+// The programme as read (Overview): the filled fields only; «Edit» in «⋯» opens the form.
+const STATUS_LABELS={planned:['Προγραμματισμένο','Planned'],active:['Ενεργό','Active'],completed:['Ολοκληρωμένο','Completed'],cancelled:['Ακυρώθηκε','Cancelled']}
+export function TrainingProgramDetails({value,language='el'}){
+ const en=language==='en',v=normalizeTrainingProgramDraft(value)
+ const day=iso=>iso?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(iso).slice(0,10)}T12:00:00`)):''
+ const present=x=>x!==''&&x!=null
+ return <DetailFields fields={[
+  {label:en?'Category':'Κατηγορία',value:trainingCategoryLabel(v.category,language)},
+  {label:en?'Status':'Κατάσταση',value:STATUS_LABELS[v.status]?.[en?1:0]||v.status},
+  {label:en?'Method':'Τρόπος',value:trainingMethodLabel(v.method,language)},
+  {label:en?'Training type':'Είδος εκπαίδευσης',value:v.deliveryKind?trainingDeliveryKindLabel(v.deliveryKind,language):'',hidden:!v.deliveryKind},
+  {label:en?'Organizer / owner':'Υπεύθυνος / διοργανωτής',value:v.owner},
+  {label:en?'Instructor':'Εκπαιδευτής',value:v.trainer},
+  {label:en?'Audience':'Κοινό',value:v.audience},
+  {label:en?'Period':'Περίοδος',value:v.startDate?`${day(v.startDate)} – ${day(v.dueDate)}`:`${en?'by':'έως'} ${day(v.dueDate)}`},
+  {label:en?'Start time':'Ώρα έναρξης',value:v.startTime,hidden:!v.startTime},
+  {label:en?'Duration':'Διάρκεια',value:`${v.durationHours} ${en?'h':'ώρες'}`,hidden:!present(v.durationHours)},
+  {label:en?'Location':'Τόπος',value:v.location,hidden:!v.location},
+  {label:en?'Cost':'Κόστος',value:`${v.cost} €`,hidden:!present(v.cost)},
+  {label:en?'Competency validity':'Ισχύς επάρκειας',value:`${v.validMonths} ${en?'months':'μήνες'}`,hidden:!present(v.validMonths)},
+  {label:en?'Knowledge assessment':'Αξιολόγηση γνώσεων',value:v.requiresAssessment?(en?`Yes · pass ≥ ${v.passScore}%`:`Ναι · επιτυχία ≥ ${v.passScore}%`):(en?'No':'Όχι')},
+  {label:en?'Purpose / description':'Σκοπός / περιγραφή',value:v.description,hidden:!v.description},
+ ]}/>
 }
