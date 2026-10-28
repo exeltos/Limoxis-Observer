@@ -21,8 +21,8 @@ export function RiskKpis({summary,en}){
  const high=summary.levels.residual.high+summary.levels.residual.very_high
  const items=[
   [L(en,'Κίνδυνοι','Risks'),summary.total,''],
-  [L(en,'Πολύ υψηλοί (υπολειπόμενοι)','Very high (residual)'),summary.levels.residual.very_high,'very_high'],
-  [L(en,'Υψηλοί (υπολειπόμενοι)','High (residual)'),summary.levels.residual.high,'high'],
+  [L(en,'Πολύ υψηλοί (υπολειπόμενοι)','Very high (after measures)'),summary.levels.residual.very_high,'very_high'],
+  [L(en,'Υψηλοί (υπολειπόμενοι)','High (after measures)'),summary.levels.residual.high,'high'],
   [L(en,'Μέσος υπολειπόμενος βαθμός','Average residual score'),summary.averages.residual??'—',summary.averages.residual?levelForScore(Math.round(summary.averages.residual)):''],
   [L(en,'Μέση μείωση από τον εγγενή','Average reduction from inherent'),summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—',''],
   [L(en,'Υψηλοί χωρίς σχέδιο δράσης','High without an action plan'),summary.withoutPlan.length,summary.withoutPlan.length?'very_high':''],
@@ -64,8 +64,8 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
  const kpis=<div className="risk-analysis-head">
   <FigureCards className="quality-summary-line risk-summary-line">
    <span><b>{summary.total}</b> {L(en,'κίνδυνοι','risks')}</span>
-   <span className={summary.levels.residual.very_high?'is-late':undefined}><b>{summary.levels.residual.very_high}</b> {L(en,'πολύ υψηλοί (υπολ.)','very high (residual)')}</span>
-   <span><b>{summary.levels.residual.high}</b> {L(en,'υψηλοί (υπολ.)','high (residual)')}</span>
+   <span className={summary.levels.residual.very_high?'is-late':undefined}><b>{summary.levels.residual.very_high}</b> {L(en,'πολύ υψηλοί (μετά τα μέτρα)','very high (after measures)')}</span>
+   <span><b>{summary.levels.residual.high}</b> {L(en,'υψηλοί (μετά τα μέτρα)','high (after measures)')}</span>
    <span><b>{num(summary.averages.residual,en)}</b> {L(en,'μέσος υπολειπόμενος','average residual')}</span>
    <span><b>{summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'}</b> {L(en,'μέση μείωση από τον εγγενή','average reduction')}</span>
    <span className={summary.withoutPlan.length?'is-late':undefined}><b>{summary.withoutPlan.length}</b> {L(en,'υψηλοί χωρίς σχέδιο δράσης','high without a plan')}</span>

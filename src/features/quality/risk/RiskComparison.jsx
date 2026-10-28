@@ -87,8 +87,8 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const kpis=<div className="risk-compare-head">
   <div className="module-summary-strip risk-kpi-strip">
    {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
-   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
-   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
+   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (μετά τα μέτρα)','Very high (after measures)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
+   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (μετά τα μέτρα)','High (after measures)'),cur.levels.residual.high-prev.levels.residual.high)}
    {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
   </div>
   {actions}

@@ -32,9 +32,9 @@ describe('Quality center entry and tabs', () => {
     expect(qualityTabOf('measure:registers')).toEqual({ tab: 'indicators', view: 'registers' })
   })
 
-  it('uses the shared module frame: canonical tabs, one summary line, create top right', () => {
+  it('uses the shared module frame: canonical tabs, key-figure cards, create top right', () => {
     expect(page).toContain('<CanonicalTabs')
-    expect(page).toContain('quality-summary-line')
+    expect(page).toContain('<KpiFigures className="quality-kpis"')
     expect(page).toContain('<CreateAction')
     expect(page).not.toContain('quality-tabs')
   })

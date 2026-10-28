@@ -56,8 +56,8 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
  const figure=(id,value,label,late=false)=><button key={id} type="button" className={`${late&&value?'is-late':''}${quick===id?' is-active':''}`.trim()} onClick={()=>toggleQuick(id)}><b>{value}</b> {label}</button>
  const kpis=<FigureCards className="quality-summary-line risk-summary-line">
    <button type="button" className={!quick?'is-active':undefined} onClick={()=>setQuick(null)}><b>{all.length}</b> {L(en,'κίνδυνοι','risks')}</button>
-   {figure('veryHigh',counts.veryHigh,L(en,'πολύ υψηλοί (υπολ.)','very high (residual)'),true)}
-   {figure('high',counts.high,L(en,'υψηλοί (υπολ.)','high (residual)'))}
+   {figure('veryHigh',counts.veryHigh,L(en,'πολύ υψηλοί (μετά τα μέτρα)','very high (after measures)'),true)}
+   {figure('high',counts.high,L(en,'υψηλοί (μετά τα μέτρα)','high (after measures)'))}
    {figure('noPlan',counts.noPlan,L(en,'υψηλοί χωρίς σχέδιο δράσης','high without an action plan'),true)}
    {figure('noTarget',counts.noTarget,L(en,'χωρίς κίνδυνο-στόχο','without a target'),true)}
    {figure('noIndicator',counts.noIndicator,L(en,'χωρίς δείκτη','without an indicator'),true)}

@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
-import { FigureCards } from '../../design-system/FigureCards'
-import { AlertOctagon,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
+import { KpiFigures } from '../../design-system/KpiCard'
+import { AlertOctagon,AlertTriangle,CalendarClock,Clock3,SearchCheck,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -208,15 +208,19 @@ export function ReportSummary({view,loading,language,inbox=false}){
  const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
  const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
  const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
- if(inbox)return <FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-  <button type="button" className={waits.length?'is-late':''} onClick={()=>view.clear()}><b>{waits.length}</b> {en?'to assess':'προς αξιολόγηση'}</button>
-  <button type="button" className={longWaiting?'is-late':''} onClick={()=>set('quick',quick==='waiting'?null:'waiting')}><b>{longWaiting}</b> {en?`waiting over ${WAITING_DAYS} days`:`αναμένουν πάνω από ${WAITING_DAYS} ημέρες`}</button>
-  {oldest>0&&<span>{en?'Oldest waiting':'Παλαιότερη αναμονή'}: <b>{oldest}</b> {dayWord(oldest)}</span>}
- </>}</FigureCards>
- return <FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-  {INCIDENT_STAGES.filter(stage=>stageCount?.[stage]).map(stage=><button key={stage} type="button" className={quick===stage?'is-active':''} onClick={()=>set('quick',quick===stage?null:stage)}><b>{stageCount[stage]}</b> {(stage==='closed'?(en?'closed':'κλειστά'):stageLabel(stage,language)).toLowerCase()}</button>)}
-  {view.counts.sentinel>0&&<button type="button" className={`is-late${quick==='sentinel'?' is-active':''}`} onClick={()=>set('quick',quick==='sentinel'?null:'sentinel')}><b>{view.counts.sentinel}</b> {en?(view.counts.sentinel===1?'sentinel event':'sentinel events'):(view.counts.sentinel===1?'συμβάν-φρουρός':'συμβάντα-φρουροί')}</button>}
- </>}</FigureCards>
+ const toggle=key=>()=>set('quick',quick===key?null:key)
+ if(inbox)return <KpiFigures className="quality-kpis" label={en?'Reports':'Αναφορές'} loading={loading} figures={[
+  {key:'toAssess',icon:Clock3,value:waits.length,label:en?'To assess':'Προς αξιολόγηση',tone:'warning',active:!quick,go:()=>view.clear()},
+  {key:'waiting',icon:AlertTriangle,value:longWaiting,label:en?`Waiting over ${WAITING_DAYS} days`:`Αναμένουν πάνω από ${WAITING_DAYS} ημέρες`,status:longWaiting?'danger':'good',target:en?'target: 0':'στόχος: 0',active:quick==='waiting',go:toggle('waiting')},
+  {key:'oldest',icon:CalendarClock,value:waits.length?oldest:null,unit:dayWord(oldest),label:en?'Oldest waiting':'Παλαιότερη αναμονή',status:waits.length?(oldest>WAITING_DAYS?'danger':'good'):null,target:en?`target ≤ ${WAITING_DAYS} days`:`στόχος ≤ ${WAITING_DAYS} ημέρες`},
+ ]}/>
+ // The open stages (closed ones are a filter), then the sentinel events.
+ const stageIcons={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:ShieldCheck,toClose:ClipboardCheck}
+ const open=INCIDENT_STAGES.filter(stage=>stage!=='closed'&&stageCount?.[stage])
+ return <KpiFigures className="quality-kpis" label={en?'Incidents':'Συμβάντα'} loading={loading} figures={[
+  ...open.slice(0,3).map(stage=>({key:stage,icon:stageIcons[stage],value:stageCount[stage],label:stageLabel(stage,language),active:quick===stage,go:toggle(stage)})),
+  {key:'sentinel',icon:AlertOctagon,value:view.counts.sentinel,label:en?'Sentinel events':'Συμβάντα-φρουροί',status:view.counts.sentinel?'danger':'good',target:en?'target: 0':'στόχος: 0',active:quick==='sentinel',go:toggle('sentinel')},
+ ]}/>
 }
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
@@ -280,14 +284,12 @@ export function DeviationSummary({view,language}){
  const counts=view.counts
  const pendingView=filters.scope==='pending'
  const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
- const figure=(key,count,label,onClick,active,late=false)=><button key={key} type="button" className={`${late?'is-late':''}${active?' is-active':''}`.trim()} onClick={onClick}><b>{count}</b> {label}</button>
- return<FigureCards className="quality-summary-line">{view.loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   {figure('all',counts.total,en?'deviations':'αποκλίσεις',()=>showRegistry({}),!pendingView&&filters.status==='all'&&!filters.quick)}
-   {figure('progress',counts.inProgress,en?'in progress':'σε εξέλιξη',()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'}),!pendingView&&filters.status==='inProgress')}
-   {figure('closed',counts.closed,en?'closed':'κλειστές',()=>showRegistry({status:filters.status==='closed'?'all':'closed'}),!pendingView&&filters.status==='closed')}
-   {figure('withoutCapa',counts.withoutCapa,en?'without corrective action':'χωρίς διορθωτική ενέργεια',()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'}),!pendingView&&filters.quick==='withoutCapa',counts.withoutCapa>0)}
-   {figure('pending',counts.pending,en?'new to assess':'νέες προς αξιολόγηση',()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')},pendingView,counts.pending>0)}
-  </>}</FigureCards>
+ return <KpiFigures className="quality-kpis" label={en?'Deviations':'Αποκλίσεις'} loading={view.loading} figures={[
+  {key:'all',icon:FileWarning,value:counts.total,label:en?'Deviations':'Αποκλίσεις',hint:en?`${counts.closed} closed`:`${counts.closed} κλειστές`,active:!pendingView&&filters.status==='all'&&!filters.quick,go:()=>showRegistry({})},
+  {key:'progress',icon:Wrench,value:counts.inProgress,label:en?'In progress':'Σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',go:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
+  {key:'withoutCapa',icon:AlertOctagon,value:counts.withoutCapa,label:en?'Without corrective action':'Χωρίς διορθωτική ενέργεια',status:counts.withoutCapa?'danger':'good',target:en?'target: 0':'στόχος: 0',active:!pendingView&&filters.quick==='withoutCapa',go:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
+  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Signals from other modules, to assess':'Σήματα από άλλες ενότητες, προς αξιολόγηση',tone:'warning',hint:en?'e.g. results out of limits':'π.χ. αποτελέσματα εκτός ορίων',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
+ ]}/>
 }
 
 export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}){
@@ -311,7 +313,7 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
   <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])]}
-    emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “New to assess” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στις «Νέες προς αξιολόγηση» μέχρι να τις εξετάσει η Ποιότητα.'}
+    emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “Signals from other modules” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στα «Σήματα από άλλες ενότητες» μέχρι να τις εξετάσει η Ποιότητα.'}
     rowProps={row=>({...(registry?.rowProps(row.type==='finding'?row.id:row.key)||{}),onClick:()=>onOpenRow(row,items)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
      <td><strong>{row.code}</strong></td>

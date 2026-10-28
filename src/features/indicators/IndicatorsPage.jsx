@@ -1,7 +1,8 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { FigureCards } from '../../design-system/FigureCards'
+import { createPortal } from 'react-dom'
+import { KpiFigures } from '../../design-system/KpiCard'
 import { useNavigate } from 'react-router-dom'
-import { Activity,ClipboardCheck,Database,Plus,RefreshCcw } from 'lucide-react'
+import { Activity,AlertTriangle,CheckCircle2,ClipboardCheck,Database,Plus,RefreshCcw } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -32,7 +33,9 @@ const statusText=(status,t)=>status==='onTarget'?t('indicatorsRecords.onTargetSt
 
 function fmtIndicatorDay(value){const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:(value||'—')}
 function fmtIndicatorValue(value,el){if(value==null||value==='')return '—';const n=Number(value);return Number.isFinite(n)?new Intl.NumberFormat(el?'el-GR':'en-GB',{maximumFractionDigits:2}).format(n):String(value)}
-export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',filterEnd=null}={}){
+// actionsSlot: inside another page (Quality Center), the element of that page's top bar
+// where «Export» and «⋯» go; that page's «Create» offers the new indicator.
+export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',actionsSlot=null}={}){
  const navigate=useNavigate();const registry=useRegistryMemory(registryKey);const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify}=useFeedback();const el=language==='el'
  const addOns=membership?.capabilities||[],customCapabilities=membership?.customCapabilities||[];const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,customCapabilities)
  const indicatorScope=scopeFor(CAPABILITIES.VIEW_INDICATORS,{role,scopeOverrides:membership?.scopeOverrides||{}})
@@ -83,13 +86,19 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',f
  const exportMenu=<ExportMenu disabled={loading||to<from||!filtered.length} onPrint={()=>exportPdf(false)} onPdf={()=>exportPdf(true)}/>
  const newButton=canManage?<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>:null
  const moreMenu=<OverflowMenu label={t('indicatorsRecords.moreActions')} items={[{id:'recalculate',label:t('recalculate'),icon:RefreshCcw,disabled:loading,onClick:calculate}]}/>
- const line=(key,count,label,tone)=><button key={key} type="button" className={`${tone==='warning'&&count?'is-late':''}${kpi===key||(key==='all'&&kpi==='all'&&category==='all'&&!query)?' is-active':''}`.trim()} onClick={()=>key==='all'?setKpi('all'):toggleKpi(key)}><b>{firstLoad?'—':count}</b> {label}</button>
- const summary=<FigureCards className="quality-summary-line">{line('all',definitions.length,t('indicatorsRecords.activeDefinitions').toLowerCase())}{line('onTarget',onTarget,t('indicatorsRecords.onTargetStatus').toLowerCase())}{line('attention',attention,t('indicatorsRecords.needAttentionLabel').toLowerCase(),'warning')}{line('approved',approvedCount,t('indicatorsRecords.approvedResults').toLowerCase())}</FigureCards>
- return <Page fill className="indicators-page" title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={filterEnd?null:<div className="row-actions">{exportMenu}{newButton}{moreMenu}</div>}>
+ const toggle=key=>()=>key==='all'?setKpi('all'):toggleKpi(key)
+ const summary=<KpiFigures label={t('indicators')} loading={firstLoad} figures={[
+  {key:'all',icon:Activity,value:definitions.length,label:t('indicatorsRecords.activeDefinitions'),active:kpi==='all'&&category==='all'&&!query,go:toggle('all')},
+  {key:'onTarget',icon:CheckCircle2,value:onTarget,label:t('indicatorsRecords.onTargetStatus'),active:kpi==='onTarget',go:toggle('onTarget')},
+  {key:'attention',icon:AlertTriangle,value:attention,label:t('indicatorsRecords.needAttentionLabel'),tone:'warning',active:kpi==='attention',go:toggle('attention')},
+  {key:'approved',icon:ClipboardCheck,value:approvedCount,label:t('indicatorsRecords.approvedResults'),active:kpi==='approved',go:toggle('approved')},
+ ]}/>
+ return <Page fill className="indicators-page" title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={actionsSlot?null:<div className="row-actions">{exportMenu}{newButton}{moreMenu}</div>}>
+  {actionsSlot&&createPortal(<>{exportMenu}{moreMenu}</>,actionsSlot)}
   {summary}
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={activeFilterCount} onClear={clearFilters} end={filterEnd?<div className="row-actions">{exportMenu}{newButton}{moreMenu}{filterEnd}</div>:null} advanced={<><FilterDate label={t('indicatorsRecords.fromDate')} value={from} onChange={setFrom}/><FilterDate label={t('indicatorsRecords.toDate')} value={to} onChange={setTo}/></>}><FilterSelect label={t('category')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{[...new Set(rows.map(r=>r.category))].map(x=><option key={x} value={x}>{categoryLabel(x,t)}</option>)}</FilterSelect><FilterSelect label={t('department')} value={effectiveDepartment} onChange={setDepartment}>{!departmentScoped&&<option value="">{t('indicatorsRecords.wholeHospital')}</option>}{allowedDepartments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</FilterSelect></FilterBar>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={activeFilterCount} onClear={clearFilters} end={null} advanced={<><FilterDate label={t('indicatorsRecords.fromDate')} value={from} onChange={setFrom}/><FilterDate label={t('indicatorsRecords.toDate')} value={to} onChange={setTo}/></>}><FilterSelect label={t('category')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{[...new Set(rows.map(r=>r.category))].map(x=><option key={x} value={x}>{categoryLabel(x,t)}</option>)}</FilterSelect><FilterSelect label={t('department')} value={effectiveDepartment} onChange={setDepartment}>{!departmentScoped&&<option value="">{t('indicatorsRecords.wholeHospital')}</option>}{allowedDepartments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</FilterSelect></FilterBar>
    {to<from&&<div className="inline-empty">{t('indicatorsRecords.endDateAfterStart')}</div>}
    {firstLoad?<TableSkeleton/>:loading&&<div className="inline-empty">{t('indicatorsRecords.calculatingEllipsis')}</div>}
    <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table indicator-click-table"><thead><tr><th>{t('indicatorsRecords.tableIndicator')}</th><th>{t('indicatorsRecords.tableResult')}</th><th>{t('status')}</th><th>{t('indicatorsRecords.approvalLabel')}</th></tr></thead><tbody>{pagedRows.map(r=>{const snapshot=snapshotFor(r);return <tr key={r.definitionId||r.id} {...registry.rowProps(r.definitionId,()=>openIndicator(r))}><td><strong>{el?r.titleEl:r.titleEn}</strong><small>{[categoryLabel(r.category,t),[r.source,r.version].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</small><small>{fmtIndicatorDay(from)} – {fmtIndicatorDay(to)}{r.calculation==='manual'?(translate('copy.indicatorsCopy.manual',el?'el':'en')):''}{riskCounts.get(r.id)?` · ${t('indicatorsRecords.risksLabel')}: ${riskCounts.get(r.id)}`:''}</small></td><td className={`indicator-result-cell ${r.status}`}><strong>{fmtIndicatorValue(r.value,el)}</strong><small>{r.calculation==='manual'?(translate('copy.indicatorsCopy.enterInsideIndicator',el?'el':'en')):[el?r.unit:(r.unitEn||r.unit),r.evidence].filter(Boolean).join(' · ')}</small>{r.target!=null&&<small className="indicator-target">{t('indicatorsRecords.targetLabel')} {r.direction==='higher'?'≥':r.direction==='lower'?'≤':''} {fmtIndicatorValue(Number(r.target),el)}</small>}</td><td><span className={`indicator-status ${r.status}`}>{statusText(r.status,t)}</span></td><td onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}>{(()=>{

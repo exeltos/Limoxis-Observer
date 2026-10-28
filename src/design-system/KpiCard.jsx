@@ -46,3 +46,16 @@ export function KpiCard({icon:Icon,label,value,unit='',period,status,statusLabel
 export function KpiStrip({children,label,className='',columns}){
   return <div className={`lo-kpi-strip ${className}`.trim()} role="group" aria-label={label} style={columns?{'--kpi-columns':columns,'--kpi-columns-md':Math.min(columns,3)}:undefined}>{children}</div>
 }
+
+// The figures above a list that filter it, on the same card: at most four, each a
+// button that filters (`active` while its filter is on). A count that needs attention
+// takes its tone (`tone`: 'danger' | 'warning') once it is above 0.
+// figure: { key, icon, value, unit, label, tone, status, statusLabel, target, hint, period, active, go }
+export function KpiFigures({figures,label,loading=false,className=''}){
+  const shown=figures.filter(Boolean).slice(0,4)
+  if(!shown.length)return null
+  return <KpiStrip label={label} columns={shown.length} className={`lo-kpi-figures ${className}`.trim()}>
+    {shown.map(figure=>{const count=Number(figure.value);const status=figure.status!==undefined?figure.status:figure.tone&&count>0?figure.tone:null
+      return <KpiCard key={figure.key} loading={loading||figure.loading} icon={figure.icon} label={figure.label} value={figure.value} unit={figure.unit} period={figure.period} status={status} statusLabel={figure.statusLabel} target={figure.target} hint={figure.hint} className={figure.active?'is-active':''} onOpen={figure.go}/>})}
+  </KpiStrip>
+}

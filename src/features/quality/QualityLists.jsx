@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
-import { FigureCards } from '../../design-system/FigureCards'
-import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
+import { KpiFigures } from '../../design-system/KpiCard'
+import { AlertOctagon,AlertTriangle,BarChart3,Building2,FileWarning,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -112,14 +112,13 @@ function dueText(row,en){
 export function ActionsSummary({counts,view,loading,language,onOrphans}){
  const en=language==='en'
  const {filters,set}=view
- const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
- return<FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   {figure('open',counts.open,en?'open':'ανοιχτές')}
-   {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
-   {figure('dueSoon',counts.dueSoon,en?'due in 14 days':'λήγουν σε 14 ημέρες')}
-   {figure('verification',counts.verification,en?'effectiveness check':'έλεγχος αποτελεσματικότητας')}
-   {counts.orphans>0&&<button type="button" className="is-late" onClick={onOrphans}><b>{counts.orphans}</b> {en?'deviations without an action':'αποκλίσεις χωρίς ενέργεια'}</button>}
-  </>}</FigureCards>
+ const toggle=key=>()=>set('quick',filters.quick===key?null:key)
+ return <KpiFigures className="quality-kpis" label={en?'Actions':'Ενέργειες'} loading={loading} figures={[
+  {key:'open',icon:CheckSquare2,value:counts.open,label:en?'Open':'Ανοιχτές',active:filters.quick==='open',go:toggle('open')},
+  {key:'overdue',icon:AlertOctagon,value:counts.overdue,label:en?'Overdue':'Εκπρόθεσμες',status:counts.overdue?'danger':'good',target:en?'target: 0':'στόχος: 0',active:filters.quick==='overdue',go:toggle('overdue')},
+  {key:'dueSoon',icon:CalendarDays,value:counts.dueSoon,label:en?'Due in 14 days':'Λήγουν σε 14 ημέρες',tone:'warning',active:filters.quick==='dueSoon',go:toggle('dueSoon')},
+  {key:'orphans',icon:FileWarning,value:counts.orphans,label:en?'Deviations without an action':'Αποκλίσεις χωρίς ενέργεια',status:counts.orphans?'danger':'good',target:en?'target: 0':'στόχος: 0',go:onOrphans},
+ ]}/>
 }
 
 export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
@@ -190,20 +189,18 @@ export function auditCounts(rows){
 // the late ones, those with open deviations, the compliance, how many departments
 // have their two audits of the year, and the departments with no next audit,
 // with the button that plans them.
-export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false,onRound=null}){
+export function AuditsSummary({rows,counts,view,loading,language,onFill=null,filling=false}){
  const en=language==='en'
  const {filters,set}=view
  const coverage=useMemo(()=>auditCoverage(rows),[rows])
- const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
- return<FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
-   {figure('planned',counts.planned,en?'left this year':'μένουν φέτος')}
-   {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
-   {figure('withFindings',counts.withFindings,en?'with open deviations':'με ανοιχτές αποκλίσεις')}
-   {counts.compliance!=null&&<span><b>{counts.compliance}%</b> {en?'compliance':'συμμόρφωση'}</span>}
-   {coverage.rows.length>0&&<span title={en?`Departments by audits this year (target 2): ${coverage.full} with 2/2 · ${coverage.half} with 1/2 · ${coverage.none} with none`:`Τμήματα ανά επιθεωρήσεις φέτος (στόχος 2): ${coverage.full} με 2/2 · ${coverage.half} με 1/2 · ${coverage.none} χωρίς`}><b>{coverage.full}/{coverage.full+coverage.half+coverage.none}</b> {en?'departments with 2/2 this year':'τμήματα με 2/2 φέτος'}</span>}
-   {coverage.noNext>0&&(onFill?<button type="button" className="is-late" disabled={filling} onClick={onFill} title={en?'Plan them':'Προγραμματισμός'}><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</button>:<span className="is-late"><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</span>)}
-   {onRound&&<button type="button" className="text-button" onClick={onRound}>{en?'Plan an audit round':'Κύκλος επιθεώρησης'}</button>}
-  </>}</FigureCards>
+ const toggle=key=>()=>set('quick',filters.quick===key?null:key)
+ const departments=coverage.full+coverage.half+coverage.none
+ return <KpiFigures className="quality-kpis" label={en?'Audits':'Επιθεωρήσεις'} loading={loading} figures={[
+  {key:'overdue',icon:AlertOctagon,value:counts.overdue,label:en?'Overdue':'Εκπρόθεσμες',status:counts.overdue?'danger':'good',target:en?'target: 0':'στόχος: 0',active:filters.quick==='overdue',go:toggle('overdue')},
+  {key:'planned',icon:CalendarDays,value:counts.planned,label:en?'Left this year':'Μένουν φέτος',hint:counts.withFindings?(en?`${counts.withFindings} with open deviations`:`${counts.withFindings} με ανοιχτές αποκλίσεις`):null,active:filters.quick==='planned',go:toggle('planned')},
+  {key:'compliance',icon:ShieldCheck,value:counts.compliance,unit:'%',label:en?'Compliance':'Συμμόρφωση',status:counts.compliance==null?null:counts.compliance>=90?'good':counts.compliance>=75?'warning':'danger',target:en?'target ≥ 90%':'στόχος ≥ 90%'},
+  {key:'coverage',icon:Building2,value:departments?`${coverage.full}/${departments}`:null,label:en?'Departments with 2/2 this year':'Τμήματα με 2/2 φέτος',status:departments?(coverage.full>=departments?'good':'warning'):null,hint:coverage.noNext?(en?`${coverage.noNext} without a next audit${onFill?' · plan them':''}`:`${coverage.noNext} χωρίς επόμενη επιθεώρηση${onFill?' · προγραμματισμός':''}`):null,go:coverage.noNext&&onFill&&!filling?onFill:undefined},
+ ]}/>
 }
 
 // The audits as the year's programme (departments × months), a list, the
@@ -213,7 +210,7 @@ const AUDIT_VIEWS=[
  {id:'list',icon:ListChecks,label:['Λίστα','List']},
  {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null}){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null,onRound=null}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
@@ -224,7 +221,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
  const mode=AUDIT_VIEWS.some(item=>item.id===filters.mode)?filters.mode:'programme'
  return <>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}
-   end={<ModeSwitch ariaLabel={en?'View':'Προβολή'} value={mode} onChange={value=>set('mode',value)} options={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))}/>}>
+   end={<>{onRound&&<button type="button" className="text-button quality-round-link" onClick={onRound}>{en?'Plan an audit round':'Κύκλος επιθεώρησης'}</button>}<ModeSwitch ariaLabel={en?'View':'Προβολή'} value={mode} onChange={value=>set('mode',value)} options={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))}/></>}>
    <FilterSelect label={en?'Standard':'Πρότυπο'} value={filters.standard||'all'} onChange={value=>set('standard',value)}><option value="all">{t('all')}</option>{AUDIT_STANDARDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>

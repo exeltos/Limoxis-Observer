@@ -30,7 +30,7 @@ export function RiskMethodology({en,risks=[],actions=null,onJci,onPickFmea,retur
      </tbody></table>
      <span className="risk-heatmap-axis risk-heatmap-axis-l">{L(en,'Πιθανότητα (L) →','Likelihood (L) →')}</span>
     </figure>
-    <table className="data-table risk-level-table"><thead><tr><th>{L(en,'Επίπεδο','Level')}</th><th>{L(en,'Βαθμός','Score')}</th><th>{L(en,'Απαιτούμενη ενέργεια','Required response')}</th><th>{L(en,'Κίνδυνοι (υπολ.)','Risks (residual)')}</th></tr></thead><tbody>
+    <table className="data-table risk-level-table"><thead><tr><th>{L(en,'Επίπεδο','Level')}</th><th>{L(en,'Βαθμός','Score')}</th><th>{L(en,'Απαιτούμενη ενέργεια','Required response')}</th><th>{L(en,'Κίνδυνοι (μετά τα μέτρα)','Risks (after measures)')}</th></tr></thead><tbody>
      {[...LEVELS].reverse().map(x=><tr key={x.id}><td><span className="risk-level-name"><span className={`risk-swatch risk-cell-${x.id}`}/><strong>{en?x.en:x.el}</strong></span></td><td>{x.range}</td><td>{en?x.responseEn:x.responseEl}</td><td><strong>{perLevel[x.id]}</strong></td></tr>)}
     </tbody></table>
    </div>
