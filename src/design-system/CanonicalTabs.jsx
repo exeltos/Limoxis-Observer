@@ -68,8 +68,9 @@ function MoreTabs({items,value,onChange}){
   }
   // The trigger names the active tab with its own count; otherwise it sums what the folded tabs hold.
   const count=active?active.count||0:items.reduce((sum,item)=>sum+(item.count>0?item.count:0),0)
-  return <div ref={rootRef} className="lo-tabs-more" onKeyDown={onKey}>
-    <button ref={triggerRef} type="button" className={`lo-tabs-more-trigger${active?' active':''}`} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
+  // Inside the tablist the trigger is itself a tab (selected while the open tab is folded in it).
+  return <div ref={rootRef} className="lo-tabs-more" role="presentation" onKeyDown={onKey}>
+    <button ref={triggerRef} type="button" role="tab" aria-selected={Boolean(active)} className={`lo-tabs-more-trigger${active?' active':''}`} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
       {active?.icon?<active.icon aria-hidden="true"/>:<MoreHorizontal aria-hidden="true"/>}<span>{active?active.label:label}</span>{count>0&&<b className="canonical-tab-count">{count}</b>}<ChevronDown className="lo-tabs-more-chevron" aria-hidden="true"/>
     </button>
     {open&&<div className="lo-tabs-more-menu" role="menu" aria-label={label}>{items.map(item=>{const Icon=item.icon;return <button key={item.value} type="button" role="menuitem" tabIndex={-1} aria-current={item.value===value?'true':undefined} onClick={()=>{setOpen(false);onChange(item.value)}}>{Icon&&<Icon aria-hidden="true"/>}<span>{item.label}</span>{item.count>0&&<b className="canonical-tab-count">{item.count}</b>}</button>})}</div>}

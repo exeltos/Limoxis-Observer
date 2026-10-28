@@ -15,8 +15,10 @@ describe('CanonicalTabs', () => {
   it('folds the seldom used tabs under «Περισσότερα» and opens them from its menu', () => {
     let chosen = ''
     render(<LanguageProvider><CanonicalTabs items={items} moreItems={more} value="a" onChange={value => { chosen = value }} ariaLabel="Ενότητες" /></LanguageProvider>)
-    expect(screen.getAllByRole('tab')).toHaveLength(2)
-    const trigger = screen.getByRole('button', { name: /Περισσότερα/ })
+    // Two tabs and the «More» trigger, itself a tab of the tablist (WCAG: a tablist owns tabs only).
+    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    const trigger = screen.getByRole('tab', { name: /Περισσότερα/ })
+    expect(trigger).toHaveAttribute('aria-selected', 'false')
     expect(trigger).toHaveTextContent('2')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: /LIRA/ }))
@@ -25,7 +27,8 @@ describe('CanonicalTabs', () => {
 
   it('names the active tab on the trigger while it is folded', () => {
     render(<LanguageProvider><CanonicalTabs items={items} moreItems={more} value="c" onChange={() => {}} ariaLabel="Ενότητες" /></LanguageProvider>)
-    const trigger = screen.getByRole('button', { name: /Επιπολασμός/ })
+    const trigger = screen.getByRole('tab', { name: /Επιπολασμός/ })
     expect(trigger.className).toContain('active')
+    expect(trigger).toHaveAttribute('aria-selected', 'true')
   })
 })
