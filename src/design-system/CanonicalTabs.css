@@ -1,0 +1,15 @@
+/* «Περισσότερα ▾» at the end of a tab bar whose tabs do not fit on one line (desktop). */
+.lo-tabs-more{position:relative;flex:0 0 auto;align-self:stretch;display:flex;align-items:flex-end}
+.lo-tabs-more-trigger{display:inline-flex;align-items:center;gap:5px;height:40px;margin:0 0 -1px;padding:0 10px;border:0;border-bottom:2px solid transparent;background:transparent;color:#65788d;font:inherit;font-size:13px;font-weight:600;line-height:1;white-space:nowrap;cursor:pointer}
+.lo-tabs-more-trigger svg{width:16px;height:16px;flex:0 0 auto}
+.lo-tabs-more-trigger .lo-tabs-more-chevron{width:13px;height:13px}
+.lo-tabs-more-trigger:hover{color:#3a5065;background:#f5f8fb}
+.lo-tabs-more-trigger.active{color:#0b6097;font-weight:700;border-bottom-color:#2582bd}
+.lo-tabs-more-trigger:focus-visible{outline:2px solid var(--lo-field-focus,#5f93ad);outline-offset:-2px}
+.lo-tabs-more .canonical-tab-count{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:2px;padding:0 5px;border-radius:999px;background:#fdeceb;color:#b42318;font-size:10px;font-weight:800;line-height:1}
+.lo-tabs-more-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:40;display:grid;gap:2px;min-width:220px;padding:6px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff;box-shadow:0 10px 28px rgba(16,35,59,.16)}
+.lo-tabs-more-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#24364a;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.lo-tabs-more-menu button svg{width:15px;height:15px;flex:0 0 auto}
+.lo-tabs-more-menu button>span{flex:1}
+.lo-tabs-more-menu button:hover,.lo-tabs-more-menu button:focus-visible{background:#f2f7fb;outline:none}
+.lo-tabs-more-menu button[aria-current="true"]{font-weight:700;color:#0b6097}

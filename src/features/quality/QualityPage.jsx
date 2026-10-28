@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
+import { FigureCards } from '../../design-system/FigureCards'
 import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
@@ -264,9 +265,9 @@ export function QualityPage(){
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
   <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
-  {figures.length>0&&<p className="quality-summary-line" aria-live="polite">{figures.map(figure=><button key={figure.key} type="button" className={`${figure.tone==='danger'&&Number(figure.value)>0?'is-late':''}${figure.active?' is-active':''}`.trim()||undefined} onClick={figure.go}><b>{(records.loading||deviations.loading)&&typeof figure.value==='number'?'—':figure.value}</b> {String(figure.label).toLowerCase()}</button>)}</p>}
+  {figures.length>0&&<FigureCards className="quality-summary-line">{figures.map(figure=><button key={figure.key} type="button" className={`${figure.tone==='danger'&&Number(figure.value)>0?'is-late':''}${figure.active?' is-active':''}`.trim()||undefined} onClick={figure.go}><b>{(records.loading||deviations.loading)&&typeof figure.value==='number'?'—':figure.value}</b> {String(figure.label).toLowerCase()}</button>)}</FigureCards>}
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
-   <p className="quality-summary-line" aria-live="polite">{centerFigures.map(figure=><button key={figure.key} type="button" className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined} onClick={figure.go}><b>{figure.value}</b> {figure.label.toLowerCase()}</button>)}</p>
+   <FigureCards className="quality-summary-line">{centerFigures.map(figure=><button key={figure.key} type="button" className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined} onClick={figure.go}><b>{figure.value}</b> {figure.label.toLowerCase()}</button>)}</FigureCards>
    {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} findings={records.data.findings} objectives={objectives.objectives} onMeetings={()=>navigate('/meetings?tab=departments')} language={language} categories={categories}
     onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='readiness'?(auditView.set('mode','readiness'),setTab('audits')):target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
   </div>:<>
@@ -275,7 +276,7 @@ export function QualityPage(){
   {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
   {tab==='audits'&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null} onRound={canManage?()=>setRoundOpen(true):null}/>}
   {roundOpen&&<AuditRoundDialog audits={records.data.audits} language={language} saving={fillingProgramme} onClose={()=>setRoundOpen(false)} onApply={applyRound}/>}
-  {tab==='risks'&&(tabFigures.risks||[]).length>0&&<p className="quality-summary-line" aria-live="polite">{tabFigures.risks.map(figure=><span key={figure.key} className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined}><b>{figure.value}</b> {figure.label.toLowerCase()}</span>)}</p>}
+  {tab==='risks'&&(tabFigures.risks||[]).length>0&&<FigureCards className="quality-summary-line">{tabFigures.risks.map(figure=><span key={figure.key} className={figure.tone==='danger'&&Number(figure.value)>0?'is-late':undefined}><b>{figure.value}</b> {figure.label.toLowerCase()}</span>)}</FigureCards>}
   {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language} onOrphans={()=>goDeviations('withoutCapa')}/>}
   {tab==='indicators'&&measureView==='indicators'&&<PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" filterEnd={measureSwitch}/></PageEmbedProvider>}
   {!(tab==='indicators'&&measureView==='indicators')&&<section className="surface registry-workspace workspace-column workspace-fill">

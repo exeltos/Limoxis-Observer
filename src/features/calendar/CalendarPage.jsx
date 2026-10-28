@@ -5,7 +5,7 @@ import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { MetricCard } from '../../design-system/MetricCard'
-import { ModuleTabs } from '../../design-system/ModuleTabs'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
@@ -152,13 +152,13 @@ export function CalendarPage(){
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
  const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
  return <Page fill className="calendar-page" title={en?'Calendar':'Ημερολόγιο'} subtitle={en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.'} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
+  <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:en?'To do':'Εκκρεμότητες',icon:ListChecks}]}/>
   <div className="module-summary-strip">
    <MetricCard icon={AlertTriangle} value={overdue.length} label={en?'Overdue':'Εκπρόθεσμα'} tone={overdue.length?'warning':'neutral'} onClick={()=>setView('list')}/>
    <MetricCard icon={ClipboardCheck} value={thisWeek.length} label={en?'Next 7 days':'Επόμενες 7 ημέρες'} onClick={()=>setView('list')}/>
    <MetricCard icon={CalendarDays} value={monthEvents.length} label={en?`In ${monthTitle}`:`Τον μήνα (${monthTitle})`} onClick={()=>setView('month')}/>
   </div>
   <section className="surface registry-workspace workspace-column workspace-fill calendar-workspace">
-   <ModuleTabs activeId={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} tabs={[{id:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{id:'list',label:en?'To do':'Εκκρεμότητες',icon:ListChecks}]}/>
    <div className="calendar-toolbar">
     <div className="calendar-kinds" role="group" aria-label={en?'Show':'Εμφάνιση'}>{filterKinds.map(filter=><button key={filter} type="button" className={`calendar-kind-toggle filter-${filter} ${isOn(filter)?'':'off'}`} aria-pressed={isOn(filter)} onClick={()=>toggleFilter(filter)}><span className="calendar-dot"/>{calendarFilterLabel(filter,language)}</button>)}</div>
     <div className="calendar-department"><FilterSelect label={en?'Department':'Τμήμα'} value={department} onChange={setDepartment}><option value="all">{en?'All':'Όλα'}</option>{departments.map(d=><option key={d} value={d}>{d}</option>)}</FilterSelect></div>

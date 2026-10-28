@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
+import { FigureCards } from '../../design-system/FigureCards'
 import { CalendarX2,ClipboardCheck,Clock,Gauge,LayoutGrid,ListChecks,PlayCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -141,13 +142,13 @@ export function ControlsPage(){
 
  return <Page fill className="registry-fill-page controls-registry-page" title={t('controls')} subtitle={canManage&&!isDepartmentManager?tx.centralSubtitle:tx.departmentSubtitle} actions={<div className="row-actions">{activeView==='times'?<ExportMenu onPrint={timeFitReport.exportPrint} onExcel={timeFitReport.exportCsv} disabled={!timeFitReport.lines.length}/>:activeView==='adherence'?<ExportMenu onPrint={()=>adherenceReport.exportPdf(false)} onPdf={()=>adherenceReport.exportPdf(true)} onExcel={adherenceReport.exportCsv} disabled={!adherenceReport.lines.length} pdfBusy={adherenceReport.exporting}/>:<ExportMenu disabled={!rows.length} onExcel={exportProgramme} items={activeView==='expiry'&&expiryExport?expiryExport:[]}/>}{canCreate&&<RecordActions actions={[UI_ACTIONS.CREATE]} onAction={pageAction}/>}</div>}>
   <CanonicalTabs items={[...(showCards?[{value:'departments',label:tx.departments,icon:LayoutGrid}]:[]),{value:'programme',label:tx.programmeTab,icon:ListChecks},{value:'adherence',label:tx.adherenceTab,icon:Gauge},{value:'expiry',label:language==='en'?'Expiry':'Λήξεις',icon:CalendarX2},...(showTimes?[{value:'times',label:language==='en'?'Times':'Ώρες',icon:Clock}]:[])]} value={activeView} onChange={setView} ariaLabel={t('controls')}/>
-  <p className="controls-summary-line" aria-live="polite">{firstLoad?<span>{language==='en'?'Loading…':'Φόρτωση…'}</span>:<>
+  <FigureCards className="controls-summary-line">{firstLoad?<span>{language==='en'?'Loading…':'Φόρτωση…'}</span>:<>
    <button type="button" className={overdue?'is-late':''} onClick={()=>{setStatus('overdue');setView('programme')}}><b>{overdue}</b> {tx.overdue.toLowerCase()}</button>
    <button type="button" onClick={()=>{setStatus('dueSoon');setView('programme')}}><b>{dueSoon}</b> {tx.dueSoon.toLowerCase()}</button>
-   <span>{tx.adherence} · {periodShort(period,language).toLowerCase()}: <b>{periodTotals.rate==null?'—':`${periodTotals.rate}%`}</b></span>
+   <span>{tx.adherence} · {periodShort(period,language).toLowerCase()} <b>{periodTotals.rate==null?'—':`${periodTotals.rate}%`}</b></span>
    {periodEnd&&<UntilNote until={periodEnd} language={language}/>}
    {['departments','programme','adherence'].includes(activeView)&&<ChoiceChips className="controls-period-switch" label="" options={ADHERENCE_PERIODS.map(key=>({value:key,label:periodShort(key,language)}))} selected={[period]} onToggle={setPeriod}/>}
-  </>}</p>
+  </>}</FigureCards>
   {activeView==='programme'&&!showCards&&!firstLoad&&<ControlDepartmentCards single cards={cards} period={period} language={language}/>}
   <section className="surface registry-workspace workspace-column workspace-fill controls-registry-workspace">
    {activeView==='departments'?<ControlDepartmentCards cards={cards} total={scopedControls.length} overdue={scopedControls.filter(({item,departments:deps})=>controlState(item,deps)==='overdue').length} totals={scopedAdherence.totals} period={period} loading={firstLoad} language={language} onOpen={openDepartment}/>:<>

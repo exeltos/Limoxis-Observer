@@ -1,4 +1,5 @@
 import { useMemo,useState } from 'react'
+import { FigureCards } from '../../../design-system/FigureCards'
 import { ChevronRight,Plus } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { ActionButton } from '../../../design-system/ActionButton'
@@ -36,12 +37,12 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
  const active=(rating!=='all')+(effect!=='all')+(owner!=='all')
  const {items:pageRows,pager}=usePaged(rows,{en,resetOn:JSON.stringify([query,rating,effect,owner,quick]),startIndex:rows.findIndex(x=>String(x.item.id)===returned)})
  const line=(id,value,label,late=false)=><button key={id} type="button" className={`${late&&value?'is-late':''}${quick===id?' is-active':''}`.trim()} onClick={()=>toggleQuick(id)}><b>{value}</b> {label}</button>
- const kpis=<p className="quality-summary-line risk-summary-line">
+ const kpis=<FigureCards className="quality-summary-line risk-summary-line">
    <button type="button" className={!quick?'is-active':undefined} onClick={()=>setQuick(null)}><b>{all.length}</b> {L(en,'ευκαιρίες','opportunities')}</button>
    {line('high',counts.high,L(en,'υψηλής απόδοσης','high yield'))}
    {line('noPlan',counts.noPlan,L(en,'χωρίς σχέδιο δράσης','without an action plan'),true)}
    {line('unassessed',counts.unassessed,L(en,'χωρίς αξιολόγηση αποτελεσματικότητας','effectiveness not assessed'),true)}
- </p>
+ </FigureCards>
  return frame(kpis,<>
   <div className="risk-toolbar">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση ευκαιρίας, σχεδίου δράσης, υπευθύνου…','Search opportunity, action plan, owner…')} activeAdvancedCount={active+(quick?1:0)} onClear={()=>{setQuery('');setRating('all');setEffect('all');setOwner('all');setQuick(null)}}>

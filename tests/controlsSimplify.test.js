@@ -17,7 +17,7 @@ describe('controls list: department cards, a summary line, no filter popover', (
     expect(page).toContain("value:'departments',label:tx.departments,icon:LayoutGrid")
     expect(page).toContain('<ControlDepartmentCards cards={cards}')
     expect(page).toContain('function openDepartment(dep){setDepartment(dep);setStatus(\'all\');setView(\'programme\')}')
-    expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<p className="controls-summary-line"'))
+    expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<FigureCards className="controls-summary-line"'))
     expect(page).not.toContain('module-summary-strip')
     expect(page).not.toContain('<Kpi ')
   })

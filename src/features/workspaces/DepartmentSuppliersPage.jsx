@@ -1,4 +1,5 @@
 import { useMemo,useState } from 'react'
+import { FigureCards } from '../../design-system/FigureCards'
 import { Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
@@ -22,7 +23,7 @@ export function DepartmentSuppliersPage(){
  const dueNow=rows.filter(row=>row.evaluationDue).length
  const expiring=rows.filter(row=>row.expiredCertificates||row.expiringCertificates).length
  return <Page fill title={en?'Department suppliers':'Προμηθευτές τμήματος'} subtitle={en?'The suppliers assigned to your department, with their evaluations and certificates.':'Οι προμηθευτές που έχουν ανατεθεί στο τμήμα σας, με τις αξιολογήσεις και τα πιστοποιητικά τους.'}>
-  <p className="quality-summary-line" aria-live="polite"><span><b>{list.loading?'—':rows.length}</b> {en?'suppliers':'προμηθευτές'}</span><span className={attention?'is-late':undefined}><b>{list.loading?'—':attention}</b> {en?'need attention':'χρειάζονται προσοχή'}</span><span><b>{list.loading?'—':dueNow}</b> {en?'evaluation due':'προς αξιολόγηση'}</span><span className={expiring?'is-late':undefined}><b>{list.loading?'—':expiring}</b> {en?'with certificates expiring':'με πιστοποιητικά που λήγουν'}</span></p>
+  <FigureCards className="quality-summary-line"><span><b>{list.loading?'—':rows.length}</b> {en?'suppliers':'προμηθευτές'}</span><span className={attention?'is-late':undefined}><b>{list.loading?'—':attention}</b> {en?'need attention':'χρειάζονται προσοχή'}</span><span><b>{list.loading?'—':dueNow}</b> {en?'evaluation due':'προς αξιολόγηση'}</span><span className={expiring?'is-late':undefined}><b>{list.loading?'—':expiring}</b> {en?'with certificates expiring':'με πιστοποιητικά που λήγουν'}</span></FigureCards>
   <section className="surface registry-workspace workspace-column workspace-fill">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search supplier…':'Αναζήτηση προμηθευτή…'}/>
    {list.loading?<TableSkeleton/>:<div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{en?'Supplier':'Προμηθευτής'}</th><th>{en?'Last evaluation':'Τελευταία αξιολόγηση'}</th><th>{en?'Next evaluation':'Επόμενη αξιολόγηση'}</th><th>{en?'Certificates':'Πιστοποιητικά'}</th></tr></thead><tbody>

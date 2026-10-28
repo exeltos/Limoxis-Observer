@@ -1315,7 +1315,6 @@
  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;
  border:0!important;background:transparent!important;overflow:visible!important;margin-bottom:10px!important;
 }
-@media(max-width:1200px){.module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 
 /* Shared mobile self-service flow surface (QR, acknowledgements, lightweight external forms). */
 body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-flow-page{min-height:100vh;padding:28px 16px;display:grid;place-items:start center}.public-flow-shell{width:min(720px,100%);margin:auto}.public-flow-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:14px}.public-flow-card h1{font-size:22px;margin:0;color:#16273a}.public-flow-card>p{margin:0;color:var(--muted);line-height:1.6}.public-flow-wide{gap:18px}.public-flow-section{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:12px}.public-flow-section h2{display:flex;align-items:center;gap:8px;font-size:15px;margin:0;color:#2d4358}.public-flow-section>p{margin:0;color:var(--muted);font-size:12px}.public-flow-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #edf0f4;font-size:12px}.public-flow-row span{color:var(--muted)}.public-flow-question{border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;display:flex;flex-direction:column;gap:9px}.public-flow-question legend{padding:0 6px;font-size:12.5px;font-weight:750;color:#34495e}.public-flow-status{text-align:center;align-items:center;padding:38px 24px}.public-flow-status svg{color:var(--accent)}@media(max-width:640px){.public-flow-page{padding:16px 10px}.public-flow-card{padding:16px}.public-flow-card h1{font-size:19px}.public-flow-row{align-items:flex-start;flex-direction:column;gap:3px}}
@@ -2951,7 +2950,7 @@ input[type="time"].announcement-control::-webkit-calendar-picker-indicator,
 .canonical-metric-card.tone-active .canonical-metric-icon{background:var(--lo-status-success-bg,#edf7f1)!important;color:var(--lo-status-success-fg,#2d7650)!important}
 .canonical-metric-card.tone-danger .canonical-metric-icon{background:var(--lo-status-danger-bg,#fff0f0)!important;color:var(--lo-status-danger-fg,#a33f3f)!important}
 .canonical-metric-card.tone-warning .canonical-metric-icon{background:var(--lo-status-warning-bg,#fff7e8)!important;color:var(--lo-status-warning-fg,#8a641d)!important}
-:is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important;gap:10px!important;align-items:stretch!important}
+:is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;gap:10px!important;align-items:stretch!important}
 @media(max-width:620px){:is(.kpi-grid,.module-summary-strip,.employee-kpis,.lab-kpis,.clinical-kpis,.patient-summary-strip){grid-template-columns:1fr!important}}
 
 
@@ -3874,8 +3873,6 @@ button:disabled,
 
 @media(max-width:1200px){
   .content{padding-top:14px}.page{margin-top:-12px}
-  .patient-summary-strip,
-  .workspace-summary>.module-summary-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   .registry-workspace .scroll-table,
   .patient-registry-shell .scroll-table,
   .laboratory-registry-page .lab-registry-shell .scroll-table{max-height:calc(100vh - 340px)}
@@ -4561,7 +4558,7 @@ html:not(#lo-employee-details) body .employee-details-overview>.employee-full-gr
 
 @media (max-width:1179px){
   .workspace-summary > :is(.module-summary-strip,.lab-kpis),
-  .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip,.module-summary-strip){grid-template-columns:repeat(auto-fit,minmax(210px,1fr))!important}
+  .canonical-detail-screen :is(.employee-record-facts,.record-facts,.record-summary-strip,.record-kpi-strip,.module-summary-strip){grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important}
 }
 
 @media (max-width:760px){

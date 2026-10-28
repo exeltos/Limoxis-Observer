@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
+import { FigureCards } from '../../design-system/FigureCards'
 import { AlertTriangle,BarChart3,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
@@ -112,13 +113,13 @@ export function ActionsSummary({counts,view,loading,language,onOrphans}){
  const en=language==='en'
  const {filters,set}=view
  const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
- return<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+ return<FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
    {figure('open',counts.open,en?'open':'ανοιχτές')}
    {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
    {figure('dueSoon',counts.dueSoon,en?'due in 14 days':'λήγουν σε 14 ημέρες')}
    {figure('verification',counts.verification,en?'effectiveness check':'έλεγχος αποτελεσματικότητας')}
    {counts.orphans>0&&<button type="button" className="is-late" onClick={onOrphans}><b>{counts.orphans}</b> {en?'deviations without an action':'αποκλίσεις χωρίς ενέργεια'}</button>}
-  </>}</p>
+  </>}</FigureCards>
 }
 
 export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
@@ -194,15 +195,15 @@ export function AuditsSummary({rows,counts,view,loading,language,onFill=null,fil
  const {filters,set}=view
  const coverage=useMemo(()=>auditCoverage(rows),[rows])
  const figure=(key,count,label,late=false)=><button key={key} type="button" className={`${late&&count?'is-late':''}${filters.quick===key?' is-active':''}`.trim()} onClick={()=>set('quick',filters.quick===key?null:key)}><b>{count}</b> {label}</button>
- return<p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+ return<FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
    {figure('planned',counts.planned,en?'left this year':'μένουν φέτος')}
    {figure('overdue',counts.overdue,en?'overdue':'εκπρόθεσμες',true)}
    {figure('withFindings',counts.withFindings,en?'with open deviations':'με ανοιχτές αποκλίσεις')}
    {counts.compliance!=null&&<span><b>{counts.compliance}%</b> {en?'compliance':'συμμόρφωση'}</span>}
-   {coverage.rows.length>0&&<span title={en?'Departments by audits this year (target 2)':'Τμήματα ανά επιθεωρήσεις φέτος (στόχος 2)'}>{en?'This year':'Φέτος'}: <b>{coverage.full}</b> {en?'with 2/2':'με 2/2'} · <b>{coverage.half}</b> {en?'with 1/2':'με 1/2'} · <b>{coverage.none}</b> {en?'with none':'χωρίς'}</span>}
-   {coverage.noNext>0&&(onFill?<button type="button" className="is-late" disabled={filling} onClick={onFill}><b>{coverage.noNext}</b> {en?'departments without a next audit — plan them':'τμήματα χωρίς επόμενη επιθεώρηση — προγραμματισμός'}</button>:<span className="is-late"><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</span>)}
-   {onRound&&<button type="button" onClick={onRound}>{en?'Plan an audit round':'Κύκλος επιθεώρησης'}</button>}
-  </>}</p>
+   {coverage.rows.length>0&&<span title={en?`Departments by audits this year (target 2): ${coverage.full} with 2/2 · ${coverage.half} with 1/2 · ${coverage.none} with none`:`Τμήματα ανά επιθεωρήσεις φέτος (στόχος 2): ${coverage.full} με 2/2 · ${coverage.half} με 1/2 · ${coverage.none} χωρίς`}><b>{coverage.full}/{coverage.full+coverage.half+coverage.none}</b> {en?'departments with 2/2 this year':'τμήματα με 2/2 φέτος'}</span>}
+   {coverage.noNext>0&&(onFill?<button type="button" className="is-late" disabled={filling} onClick={onFill} title={en?'Plan them':'Προγραμματισμός'}><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</button>:<span className="is-late"><b>{coverage.noNext}</b> {en?'departments without a next audit':'τμήματα χωρίς επόμενη επιθεώρηση'}</span>)}
+   {onRound&&<button type="button" className="text-button" onClick={onRound}>{en?'Plan an audit round':'Κύκλος επιθεώρησης'}</button>}
+  </>}</FigureCards>
 }
 
 // The audits as the year's programme (departments × months), a list, the

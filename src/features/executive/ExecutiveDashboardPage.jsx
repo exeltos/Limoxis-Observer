@@ -1,13 +1,13 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useLocation,useNavigate } from 'react-router-dom'
-import { Activity,AlertOctagon,AlertTriangle,ArrowRight,BookOpen,BriefcaseMedical,ChefHat,ChevronDown,ChevronUp,ClipboardCheck,FlaskConical,GraduationCap,MoreHorizontal,ShieldCheck,TriangleAlert } from 'lucide-react'
+import { Activity,AlertOctagon,AlertTriangle,ArrowRight,BookOpen,BriefcaseMedical,ChefHat,ChevronDown,ChevronUp,ClipboardCheck,FlaskConical,GraduationCap,ShieldCheck,TriangleAlert } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Card,CardHeader } from '../../design-system/Card'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { KpiCard,KpiStrip } from '../../design-system/KpiCard'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { ModuleTabs } from '../../design-system/ModuleTabs'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { printElement } from '../../design-system/printElement'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -78,18 +78,6 @@ function SectionCard({id,icon,title,subtitle,loading,error,onOpen,tx,figures,chi
  </Card>
 }
 const FLAGS_FOLDED=5
-// «Περισσότερα» at the end of the one row of tabs: the prevalence survey, reporting and LIRA.
-function MoreTabs({tabs,activeId,onChange,tx,en}){
- const [open,setOpen]=useState(false)
- const rootRef=useRef(null),triggerRef=useRef(null)
- useEffect(()=>{if(!open)return undefined;rootRef.current?.querySelector('[role="menuitem"]')?.focus();const onPointer=event=>{if(!rootRef.current?.contains(event.target))setOpen(false)};document.addEventListener('mousedown',onPointer);return()=>document.removeEventListener('mousedown',onPointer)},[open])
- const active=tabs.find(([id])=>id===activeId)
- const onKey=event=>{const items=[...(rootRef.current?.querySelectorAll('[role="menuitem"]')??[])];const index=items.indexOf(document.activeElement);if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();items[(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus()}else if(event.key==='Escape'){event.preventDefault();setOpen(false);triggerRef.current?.focus()}}
- return <div ref={rootRef} className="exec-more-tabs" onKeyDown={onKey}>
-  <button ref={triggerRef} type="button" className={`tab exec-more-trigger${active?' active':''}`} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><MoreHorizontal size={15} aria-hidden="true"/><span>{active?(en?active[2]:active[1]):tx('Περισσότερα','More')}</span><ChevronDown size={13} aria-hidden="true"/></button>
-  {open&&<div className="exec-more-menu" role="menu" aria-label={tx('Περισσότερα','More')}>{tabs.map(([id,elLabel,enLabel,Icon])=><button key={id} type="button" role="menuitem" tabIndex={-1} aria-current={id===activeId?'true':undefined} onClick={()=>{setOpen(false);onChange(id)}}><Icon size={15} aria-hidden="true"/><span>{en?enLabel:elLabel}</span></button>)}</div>}
- </div>
-}
 function RankList({title,rows,tx,en}){return <div className="exec-rank"><strong>{title}</strong>{rows.length?<ol>{rows.map(row=><li key={row.name}><span>{row.name}</span><b>{formatValue(row.rate,'%',en)}</b><small>{tx(`${row.findings}/${row.executions} με εύρημα`,`${row.findings}/${row.executions} with finding`)}</small></li>)}</ol>:<p className="inline-empty">{tx('Δεν υπάρχουν αρκετές εκτελέσεις.','Not enough executions.')}</p>}</div>}
 
 export function ExecutiveDashboardPage(){
@@ -191,7 +179,7 @@ export function ExecutiveDashboardPage(){
  const analysisCompare=previous&&compareOf[compareMode]?{range:previous,departmentId:previousDepartment,...compareOf[compareMode]}:null
  const against=compareMode==='departments'?tx('Διαφορά έναντι όλου του νοσοκομείου','Difference against the whole hospital'):''
  return <Page className="exec-page" title={title} subtitle={hospital}>
-  {mainTabs.length+moreTabs.length>1&&<div className="exec-tabs-row"><ModuleTabs className="exec-view-tabs" activeId={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} tabs={mainTabs.map(([id,elLabel,enLabel,icon])=>({id,label:en?enLabel:elLabel,icon}))}/>{moreTabs.length>0&&<MoreTabs tabs={moreTabs} activeId={activeTab[0]} onChange={setPageTab} tx={tx} en={en}/>}</div>}
+  {mainTabs.length+moreTabs.length>1&&<CanonicalTabs className="exec-view-tabs" value={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} items={mainTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))} moreItems={moreTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))}/>}
   <div className="exec-filters" role="group" aria-label={tx('Φίλτρα','Filters')}>
    <AnalysisSelect label={tx('Περίοδος','Period')} value={filters.period} onChange={event=>setFilters({period:event.target.value,...(event.target.value==='custom'?{from:range.from,to:range.to}:{})})}>{Object.entries(presetLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</AnalysisSelect>
    {filters.period==='custom'&&<><ManualDateField label={tx('Από','From')} value={range.from} onChange={value=>value&&setFilters({from:value,to:range.to})}/><ManualDateField label={tx('Έως','To')} value={range.to} onChange={value=>value&&setFilters({from:range.from,to:value})}/></>}

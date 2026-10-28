@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FigureCards } from '../../../design-system/FigureCards'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
@@ -61,14 +62,14 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>
  const kpis=<div className="risk-analysis-head">
-  <p className="quality-summary-line risk-summary-line">
+  <FigureCards className="quality-summary-line risk-summary-line">
    <span><b>{summary.total}</b> {L(en,'κίνδυνοι','risks')}</span>
    <span className={summary.levels.residual.very_high?'is-late':undefined}><b>{summary.levels.residual.very_high}</b> {L(en,'πολύ υψηλοί (υπολ.)','very high (residual)')}</span>
    <span><b>{summary.levels.residual.high}</b> {L(en,'υψηλοί (υπολ.)','high (residual)')}</span>
    <span><b>{num(summary.averages.residual,en)}</b> {L(en,'μέσος υπολειπόμενος','average residual')}</span>
    <span><b>{summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'}</b> {L(en,'μέση μείωση από τον εγγενή','average reduction')}</span>
    <span className={summary.withoutPlan.length?'is-late':undefined}><b>{summary.withoutPlan.length}</b> {L(en,'υψηλοί χωρίς σχέδιο δράσης','high without a plan')}</span>
-  </p>
+  </FigureCards>
   {actions}
  </div>
  return frame(kpis,<div className="risk-analysis">

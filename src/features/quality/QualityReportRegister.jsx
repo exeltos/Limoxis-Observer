@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
+import { FigureCards } from '../../design-system/FigureCards'
 import { AlertOctagon,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -207,15 +208,15 @@ export function ReportSummary({view,loading,language,inbox=false}){
  const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
  const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
  const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
- if(inbox)return <p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+ if(inbox)return <FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
   <button type="button" className={waits.length?'is-late':''} onClick={()=>view.clear()}><b>{waits.length}</b> {en?'to assess':'προς αξιολόγηση'}</button>
   <button type="button" className={longWaiting?'is-late':''} onClick={()=>set('quick',quick==='waiting'?null:'waiting')}><b>{longWaiting}</b> {en?`waiting over ${WAITING_DAYS} days`:`αναμένουν πάνω από ${WAITING_DAYS} ημέρες`}</button>
   {oldest>0&&<span>{en?'Oldest waiting':'Παλαιότερη αναμονή'}: <b>{oldest}</b> {dayWord(oldest)}</span>}
- </>}</p>
- return <p className="quality-summary-line" aria-live="polite">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+ </>}</FigureCards>
+ return <FigureCards className="quality-summary-line">{loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
   {INCIDENT_STAGES.filter(stage=>stageCount?.[stage]).map(stage=><button key={stage} type="button" className={quick===stage?'is-active':''} onClick={()=>set('quick',quick===stage?null:stage)}><b>{stageCount[stage]}</b> {(stage==='closed'?(en?'closed':'κλειστά'):stageLabel(stage,language)).toLowerCase()}</button>)}
   {view.counts.sentinel>0&&<button type="button" className={`is-late${quick==='sentinel'?' is-active':''}`} onClick={()=>set('quick',quick==='sentinel'?null:'sentinel')}><b>{view.counts.sentinel}</b> {en?(view.counts.sentinel===1?'sentinel event':'sentinel events'):(view.counts.sentinel===1?'συμβάν-φρουρός':'συμβάντα-φρουροί')}</button>}
- </>}</p>
+ </>}</FigureCards>
 }
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
@@ -280,13 +281,13 @@ export function DeviationSummary({view,language}){
  const pendingView=filters.scope==='pending'
  const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
  const figure=(key,count,label,onClick,active,late=false)=><button key={key} type="button" className={`${late?'is-late':''}${active?' is-active':''}`.trim()} onClick={onClick}><b>{count}</b> {label}</button>
- return<p className="quality-summary-line" aria-live="polite">{view.loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
+ return<FigureCards className="quality-summary-line">{view.loading?<span>{en?'Loading…':'Φόρτωση…'}</span>:<>
    {figure('all',counts.total,en?'deviations':'αποκλίσεις',()=>showRegistry({}),!pendingView&&filters.status==='all'&&!filters.quick)}
    {figure('progress',counts.inProgress,en?'in progress':'σε εξέλιξη',()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'}),!pendingView&&filters.status==='inProgress')}
    {figure('closed',counts.closed,en?'closed':'κλειστές',()=>showRegistry({status:filters.status==='closed'?'all':'closed'}),!pendingView&&filters.status==='closed')}
    {figure('withoutCapa',counts.withoutCapa,en?'without corrective action':'χωρίς διορθωτική ενέργεια',()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'}),!pendingView&&filters.quick==='withoutCapa',counts.withoutCapa>0)}
    {figure('pending',counts.pending,en?'new to assess':'νέες προς αξιολόγηση',()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')},pendingView,counts.pending>0)}
-  </>}</p>
+  </>}</FigureCards>
 }
 
 export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}){

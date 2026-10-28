@@ -1,4 +1,5 @@
 import { useMemo,useState } from 'react'
+import { FigureCards } from '../../../design-system/FigureCards'
 import { AlertTriangle,ChevronRight,Plus,Star } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { ActionButton } from '../../../design-system/ActionButton'
@@ -53,14 +54,14 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
  const tableRows=groups.flatMap(({section:g,rows:list})=>[{heading:g},...list])
  const active=(section!=='all')+(process!=='all')+(level!=='all')+(jci!=='all')+(flag!=='all')
  const figure=(id,value,label,late=false)=><button key={id} type="button" className={`${late&&value?'is-late':''}${quick===id?' is-active':''}`.trim()} onClick={()=>toggleQuick(id)}><b>{value}</b> {label}</button>
- const kpis=<p className="quality-summary-line risk-summary-line" aria-live="polite">
+ const kpis=<FigureCards className="quality-summary-line risk-summary-line">
    <button type="button" className={!quick?'is-active':undefined} onClick={()=>setQuick(null)}><b>{all.length}</b> {L(en,'κίνδυνοι','risks')}</button>
    {figure('veryHigh',counts.veryHigh,L(en,'πολύ υψηλοί (υπολ.)','very high (residual)'),true)}
    {figure('high',counts.high,L(en,'υψηλοί (υπολ.)','high (residual)'))}
    {figure('noPlan',counts.noPlan,L(en,'υψηλοί χωρίς σχέδιο δράσης','high without an action plan'),true)}
    {figure('noTarget',counts.noTarget,L(en,'χωρίς κίνδυνο-στόχο','without a target'),true)}
    {figure('noIndicator',counts.noIndicator,L(en,'χωρίς δείκτη','without an indicator'),true)}
- </p>
+ </FigureCards>
  return frame(kpis,<>
   <div className="risk-toolbar">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση κινδύνου, διεργασίας, τμήματος…','Search risk, process, department…')} activeAdvancedCount={active+(quick?1:0)} onClear={()=>{setQuery('');setSection('all');setProcess('all');setLevel('all');setJci('all');setFlag('all');setQuick(null);onClearCell?.()}}>
