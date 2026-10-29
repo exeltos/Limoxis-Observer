@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Pill } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { EmptyState } from '../../design-system/EmptyState'
 import { MonthField } from '../../design-system/MonthField'
 import { RouteLoading } from '../../design-system/RouteLoading'
+import { downloadRecordJson } from '../../core/export/recordExport'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -89,7 +91,8 @@ export function DispensingRecordPage() {
       <EntityRecordShell className="workspace-fill" avatar={<Pill size={19} />} eyebrow={en ? 'Pharmacy' : 'Φαρμακείο'}
         title={initial ? (en ? 'Dispensing period' : 'Περίοδος χορήγησης') : (en ? 'New dispensing period' : 'Νέα περίοδος χορήγησης')}
         subtitle={en ? 'Monthly antibiotic quantity for the consumption indicator (DDD).' : 'Μηνιαία ποσότητα αντιβιοτικού για τον δείκτη κατανάλωσης (DDD).'}
-        tabs={[]} activeTab="" onTabChange={() => {}} onBack={() => navigate(BACK)}>
+        tabs={[]} activeTab="" onTabChange={() => {}} onBack={() => navigate(BACK)}
+        headerActions={initial ? <ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(initial, { filename: initial.id }) }]} /> : null}>
         <section className="record-section">
           <div className="entry-grid">
             {draft.periodKind === 'range'
