@@ -1,5 +1,5 @@
--- ΙΑΣΩ Θεσσαλίας — εφαρμογή του πίνακα public.rebuild_stage (ασθενείς, νοσηλείες, δείγματα, μικρόβια).
--- Δεν περιέχει δεδομένα ασθενών: τα δεδομένα βρίσκονται στον πίνακα rebuild_stage (όχι στο git).
+-- ΙΑΣΩ Θεσσαλίας — εφαρμογή του πίνακα public.rebuild_stage (μέσω της προβολής rebuild_stage_u που αφαιρεί διπλές γραμμές) (ασθενείς, νοσηλείες, δείγματα, μικρόβια).
+-- Δεν περιέχει δεδομένα ασθενών: τα δεδομένα βρίσκονται στον πίνακα rebuild_stage_u (όχι στο git).
 -- Μόνο ΕΓΓΡΑΦΕΣ και ενημερώσεις· καμία διαγραφή. Δοκιμή: v_dry := true (ακυρώνεται με εξαίρεση που δείχνει την αναφορά).
 -- Πραγματική εκτέλεση: v_dry := false.
 do $$
@@ -26,21 +26,21 @@ begin
    ('Υγρό ρινοφάρυγγα','SAMPLE-NASOPHARYNGEAL','respiratorySample'),('Ρινικό','SAMPLE-NASAL-SWAB','respiratorySample'),
    ('Ε.Ν.Υ.','SAMPLE-CSF','specimen'),('Αμνιακό υγρό','SAMPLE-AMNIOTIC-FLUID','specimen'),
    ('Σπερματικό υγρό','SAMPLE-SEMEN','specimen');
-  if exists (select 1 from rebuild_stage s where not exists (select 1 from _spec p where p.raw = s.specimen_raw)) then
-    raise exception 'Άγνωστο είδος δείγματος: %', (select string_agg(distinct specimen_raw, ', ') from rebuild_stage s where not exists (select 1 from _spec p where p.raw = s.specimen_raw));
+  if exists (select 1 from rebuild_stage_u s where not exists (select 1 from _spec p where p.raw = s.specimen_raw)) then
+    raise exception 'Άγνωστο είδος δείγματος: %', (select string_agg(distinct specimen_raw, ', ') from rebuild_stage_u s where not exists (select 1 from _spec p where p.raw = s.specimen_raw));
   end if;
   create temporary table _lib on commit drop as
     select m.code, m.id, m.name_el from master_library_items m where m.organization_id = v_org and m.code like 'SAMPLE-%' and m.is_active;
   if exists (select 1 from _spec p where not exists (select 1 from _lib l where l.code = p.code)) then raise exception 'Λείπει είδος δείγματος από τη βιβλιοθήκη'; end if;
   create temporary table _dep on commit drop as select id, name from departments where organization_id = v_org;
-  if exists (select 1 from rebuild_stage s where not exists (select 1 from _dep d where d.name = s.dept_name)) then raise exception 'Άγνωστο τμήμα στο stage'; end if;
+  if exists (select 1 from rebuild_stage_u s where not exists (select 1 from _dep d where d.name = s.dept_name)) then raise exception 'Άγνωστο τμήμα στο stage'; end if;
 
   -- Ένας ασθενής = ένας αριθμός φακέλου (his). Πρώτα ταύτιση με υπάρχοντα (μη αρχειοθετημένος προτιμάται).
   create temporary table _pat on commit drop as
     select s.his, (array_agg(s.patient_name order by s.ts))[1] pname, (array_agg(s.gender order by s.ts))[1] gender,
            max(s.age) age, (array_agg(s.dept_name order by s.ts desc))[1] dept_name, min(s.ts) first_ts, max(s.ts) last_ts,
            null::uuid patient_id, false existing, false was_archived
-    from rebuild_stage s group by s.his;
+    from rebuild_stage_u s group by s.his;
   update _pat p set patient_id = x.id, existing = true, was_archived = x.archived_at is not null
     from (select distinct on (hospital_record_number) id, hospital_record_number, archived_at
           from patients where organization_id = v_org and hospital_record_number is not null
@@ -87,7 +87,7 @@ begin
   create temporary table _smp on commit drop as
     select gen_random_uuid() id, s.id stage_id, p.patient_id, d.id dept_id, sp.stype, l.id lib_id, l.name_el lib_name, sp.code lib_code,
            'LIS-' || s.y || '-' || s.seq code, (s.ts at time zone 'Europe/Athens') ts, s
-    from rebuild_stage s join _pat p on p.his = s.his join _spec sp on sp.raw = s.specimen_raw
+    from rebuild_stage_u s join _pat p on p.his = s.his join _spec sp on sp.raw = s.specimen_raw
          join _lib l on l.code = sp.code join _dep d on d.name = s.dept_name
     where not exists (select 1 from laboratory_samples e where e.patient_id = p.patient_id and e.specimen_type_id = l.id
                         and (e.collected_at at time zone 'Europe/Athens')::date = s.ts::date)
@@ -113,19 +113,19 @@ begin
          updated_at = now()
   from (select distinct on (e2.id) e2.id, l.id lib_id, l.name_el lib_name, sp.stype, sp.raw, sp.code
         from laboratory_samples e2 join _pat p on p.patient_id = e2.patient_id
-             join rebuild_stage s on s.his = p.his and (e2.collected_at at time zone 'Europe/Athens')::date = s.ts::date
+             join rebuild_stage_u s on s.his = p.his and (e2.collected_at at time zone 'Europe/Athens')::date = s.ts::date
              join _spec sp on sp.raw = s.specimen_raw join _lib l on l.code = sp.code
         where e2.specimen_type_id is null and e2.organization_id = v_org order by e2.id) sub
   where sub.id = e.id;
   get diagnostics n_fix = row_count;
 
   v_report := jsonb_build_object(
-    'stage_rows', (select count(*) from rebuild_stage), 'stage_patients', (select count(*) from _pat),
+    'stage_rows', (select count(*) from rebuild_stage_u), 'stage_patients', (select count(*) from _pat),
     'patients_existing', (select count(*) from _pat where existing), 'patients_unarchived', n_unarch, 'patients_new', n_new_pat,
     'patients_department_filled', n_dept, 'admissions_created', n_adm, 'samples_created', n_smp, 'results_created', n_res,
     'existing_samples_specimen_filled', n_fix,
     'organism_rows_created', (select count(*) from microbiology_result_organisms o join microbiology_results r on r.id = o.microbiology_result_id join _smp m on m.id = r.sample_id),
-    'stage_samples_skipped_as_duplicates', (select count(*) from rebuild_stage) - n_smp,
+    'stage_samples_skipped_as_duplicates', (select count(*) from rebuild_stage_u) - n_smp,
     'selected_without_admission', (select count(*) from _pat p where not exists (select 1 from patient_admissions a where a.patient_id = p.patient_id)),
     'selected_without_department', (select count(*) from _pat p join patients pt on pt.id = p.patient_id where pt.department_id is null),
     'selected_without_sample', (select count(*) from _pat p where not exists (select 1 from laboratory_samples s where s.patient_id = p.patient_id)),
