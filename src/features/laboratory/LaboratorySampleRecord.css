@@ -56,9 +56,9 @@
 .laboratory-record-shell .lab-amr-strip small{display:block;margin-top:3px;font-size:12px;color:var(--lo-color-muted)}
 .laboratory-record-shell .lab-ast-scroll{border:1px solid var(--lo-color-border);border-radius:10px;overflow:auto}
 .laboratory-record-shell .lab-sir-badge{display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800}
-.laboratory-record-shell .lab-sir-badge.sir-s{background:color-mix(in srgb,#16a34a 14%,white)!important;color:#166534!important}
-.laboratory-record-shell .lab-sir-badge.sir-i{background:color-mix(in srgb,#d97706 16%,white)!important;color:#92400e!important}
-.laboratory-record-shell .lab-sir-badge.sir-r{background:color-mix(in srgb,#dc2626 13%,white)!important;color:#991b1b!important}
+.laboratory-record-shell .lab-sir-badge.sir-s{background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
+.laboratory-record-shell .lab-sir-badge.sir-i{background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
+.laboratory-record-shell .lab-sir-badge.sir-r{background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
 
 /* Critical communication */
 .laboratory-record-shell .lab-communication-list{display:flex;flex-direction:column}
@@ -92,10 +92,10 @@
 /* S/I/R keeps its colours on the shared switch (ModeSwitch.css forces the active
    look, so these must too). */
 .lab-sir-choice .lo-mode-switch>button{min-width:56px;justify-content:center}
-/* !important: the shared mode switch sets its active colours with !important (ModeSwitch.css). */
-.lab-sir-choice .lo-mode-switch>button.active:nth-child(1){background:color-mix(in srgb,#16a34a 14%,white)!important;color:#166534!important}
-.lab-sir-choice .lo-mode-switch>button.active:nth-child(2){background:color-mix(in srgb,#d97706 16%,white)!important;color:#92400e!important}
-.lab-sir-choice .lo-mode-switch>button.active:nth-child(3){background:color-mix(in srgb,#dc2626 13%,white)!important;color:#991b1b!important}
+/* : the shared mode switch sets its active colours with  (ModeSwitch.css). */
+.lab-sir-choice .lo-mode-switch>button.active:nth-child(1){background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
+.lab-sir-choice .lo-mode-switch>button.active:nth-child(2){background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
+.lab-sir-choice .lo-mode-switch>button.active:nth-child(3){background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
 
 @media(max-width:1250px){.laboratory-record-shell .lab-workflow-steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible;padding:12px}.laboratory-record-shell .lab-workflow-steps,.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-workflow-next,.laboratory-record-shell .lab-inline-action,.laboratory-record-shell .lab-communication-row{flex-direction:column;align-items:stretch}.lab-dialog-form{grid-template-columns:1fr}}

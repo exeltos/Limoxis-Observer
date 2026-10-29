@@ -3741,7 +3741,7 @@ button:disabled,
 }
 .registry-workspace .sticky-table,
 .patient-registry-shell .sticky-table,
-.laboratory-registry-page .lab-registry-shell .sticky-table{margin:0!important}
+.laboratory-registry-page .lab-registry-shell .sticky-table{margin:0}
 .registry-workspace .sticky-table thead th,
 .patient-registry-shell .sticky-table thead th,
 .laboratory-registry-page .lab-registry-shell .sticky-table thead th{
@@ -3767,7 +3767,7 @@ button:disabled,
 }
 .registry-workspace:has(.registry-empty-state) .data-table,
 .patient-registry-shell:has(.registry-empty-state) .data-table,
-.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{margin-bottom:0!important}
+.laboratory-registry-page .lab-registry-shell:has(.registry-empty-state) .data-table{margin-bottom:0}
 
 /* Stable tabbed registries override compact empty-state behavior.
    Loading, empty and populated tabs keep the exact same outer height from the first render. */

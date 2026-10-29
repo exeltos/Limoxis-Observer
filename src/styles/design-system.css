@@ -1064,10 +1064,10 @@
 .prevention-record-shell .who-choice-block:is(div,#lo-prevention-form){padding-top:8px!important}
 /* Aligned form rows: in every form grid, fields sit on one baseline and every
    control (text, select, date, time) is the same height, so the boxes line up. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):is(div,#lo-form-row){align-items:end!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px!important;min-height:40px!important;box-sizing:border-box!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):is(div,#lo-form-row){align-items:end}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.manual-date-native),select):is(input,select,#lo-form-row){height:40px;min-height:40px;box-sizing:border-box}
 :is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field,label,.field)>span:first-child:is(span,#lo-form-row){min-height:13px}
-:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px!important;min-height:40px!important;margin:0!important}
+:is(.entry-grid,.who-session-strip,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-control,.time-field-control):is(div,#lo-form-row){height:40px;min-height:40px;margin:0}
 /* Side panels start level with the form beside them. */
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail,.who-insight-rail):is(aside,#lo-form-row){align-self:start!important;margin-top:0!important;padding-top:0!important;top:0!important}
 .prevention-record-shell :is(.antiseptic-entry-rail,.waste-smart-rail)>section:first-child:is(section,#lo-form-row){margin-top:0!important}
@@ -1075,11 +1075,11 @@
 .prevention-record-shell .waste-smart-measurement-grid>div:is(div,#lo-form-row){align-self:end!important}
 /* One label-to-box spacing (the title's own 6px margin) and the date field's
    hidden native picker out of the flow, so every box starts at the same line. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field)>span:first-child:is(span,#lo-form-row){margin-bottom:6px!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) .manual-date-native:is(input,#lo-form-row){position:absolute!important;bottom:0;left:0}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field):is(label,div,#lo-form-row){gap:0}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(label,.field,.manual-date-field,.time-field)>span:first-child:is(span,#lo-form-row){margin-bottom:6px}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) .manual-date-native:is(input,#lo-form-row){position:absolute;bottom:0;left:0}
 .manual-date-field{position:relative}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex!important;flex-direction:column!important;grid-template-rows:none!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid) :is(.manual-date-field,.time-field):is(label,div,#lo-form-row){display:flex;flex-direction:column;grid-template-rows:none}
 /* ==== record view (RecordMetricStrip + RecordDetailsGrid sheet) ==== */
 .record-view-stack{display:flex;flex-direction:column;gap:16px;min-width:0}
 .record-view-stack>section{display:flex;flex-direction:column;min-width:0}
@@ -1208,8 +1208,8 @@ td>.lo-meter{margin-top:5px}
 /* A form grid with helper or error text under some fields: every field starts at
    the top of its row (not at its bottom), so a message under one field does not
    push its label and box above the others of the row. */
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint):is(div,#lo-form-row){align-items:start!important}
-:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint)>:not(.lo-checkbox-field):is(div,label,#lo-form-row){align-self:start!important}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint):is(div,#lo-form-row){align-items:start}
+:is(.entry-grid,.who-session-strip,.who-professional-row,.vaccination-fields,.bundle-page-grid,.lab-flow-grid,.patient-entry-grid,.control-schedule-row,.control-time-grid):has(.field-error,.field-hint)>:not(.lo-checkbox-field):is(div,label,#lo-form-row){align-self:start}
 :is(.field-with-message,.searchable-select,.lo-choice-chips)>:is(.field-error,.field-hint){display:block;margin-top:4px}
 /* A field with a message under it: the <label> holds the name and the control, the message follows it. */
 .field-with-message{display:flex;flex-direction:column;gap:4px;min-width:0}
