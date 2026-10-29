@@ -1115,14 +1115,6 @@
  display:flex;flex-direction:column;gap:1px;margin:1px 0 3px 15px;padding-left:9px;
  border-left:1px solid rgba(255,255,255,.14);
 }
-/* «+ Incident report» at the foot of the sidebar (SidebarIncidentReport); its menu opens upwards */
-.sidebar-incident{position:relative;padding:6px 10px 2px}
-.sidebar-incident-trigger{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:36px;padding:7px 10px;border:1px solid rgba(255,255,255,.3);border-radius:9px;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
-.sidebar-incident-trigger:hover,.sidebar-incident.open .sidebar-incident-trigger{background:rgba(255,255,255,.18)}
-.sidebar-incident-trigger:focus-visible{outline:2px solid #8cc4ff;outline-offset:2px}
-.sidebar-incident-menu{position:absolute;left:10px;right:10px;bottom:calc(100% - 2px);z-index:30;display:flex;flex-direction:column;gap:2px;padding:5px;border:1px solid #d6dee6;border-radius:10px;background:#fff;box-shadow:0 10px 28px rgba(15,35,55,.22)}
-.sidebar-incident-menu button{display:flex;align-items:center;gap:8px;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#1d3446;font:inherit;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer}
-.sidebar-incident-menu button:hover,.sidebar-incident-menu button:focus-visible{background:#eef4f9;outline:none}
 
 /* v0.24.3 — laboratory step navigation + sidebar auto-collapse */
 

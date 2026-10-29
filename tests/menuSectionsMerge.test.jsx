@@ -7,7 +7,6 @@ import { CAPABILITIES, ROLES } from '../src/core/permissions/roles'
 import { SECTION_TABS, resolveSectionTab, sectionCapabilities, sectionTabPath, sectionTabsFor } from '../src/core/navigation/sectionTabs'
 import { navigationFor } from '../src/app/navigation'
 import { SidebarNavigation } from '../src/app/SidebarNavigation'
-import { SidebarIncidentReport } from '../src/app/SidebarIncidentReport'
 import { calendarFilterOf, calendarFiltersFor, controlExecutionEvents, parseCalendarFilter } from '../src/features/calendar/calendarEvents'
 
 const read = path => fs.readFileSync(path, 'utf8')
@@ -134,17 +133,10 @@ describe('one calendar', () => {
 
 describe('incident report button and indicators', () => {
   afterEach(cleanup)
-  it('pins «+ Incident report» at the foot of the sidebar for whoever may report, with a new report and my reports', () => {
+  it('has no incident report button at the foot of the sidebar any more (owner decision 29/10)', () => {
     const shell = read('src/app/AppShell.jsx')
-    expect(shell).toContain('const canReportIncident=!platformMode&&can(role,CAPABILITIES.REPORT_INCIDENT,')
-    expect(shell.indexOf('<SidebarIncidentReport')).toBeLessThan(shell.indexOf('<div className="sidebar-footer">'))
-    render(<MemoryRouter><SidebarIncidentReport t={key => key} /></MemoryRouter>)
-    const trigger = screen.getByRole('button', { name: 'sidebarNav.reportIncident' })
-    expect(trigger.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.click(trigger)
-    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual(['sidebarNav.newIncidentReport', 'sidebarNav.myIncidentReports'])
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('menu')).toBe(null)
+    expect(shell).not.toContain('SidebarIncidentReport')
+    expect(shell).not.toContain('canReportIncident')
   })
 
   it('sends old /indicators links of the leadership to the Management tab (or the dashboard) and keeps the list for the others', () => {

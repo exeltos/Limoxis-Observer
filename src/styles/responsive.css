@@ -356,21 +356,13 @@ html:not(#lo-unified-tabs) body nav.canonical-tabs>button.canonical-tab>b.canoni
 .sidebar-rail .sidebar:not(.sidebar-open) .nav-section-heading{display:none}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section.collapsed .sidebar-nav-section-items{display:flex}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section+.sidebar-nav-section{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.1)}
-.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-incident{padding:6px 8px 2px}
-.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-incident-trigger{padding:7px 0}
-.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-incident-trigger>span{display:none}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-bin{align-self:center;margin:4px auto 2px;padding:2px}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-bin-label{display:none}
 @media (max-width:1100px){
   .sidebar:not(.sidebar-open) .nav-section-heading{display:none}
   .sidebar:not(.sidebar-open) .sidebar-nav-section.collapsed .sidebar-nav-section-items{display:flex}
-  .sidebar:not(.sidebar-open) .sidebar-incident{padding:6px 8px 2px}
-  .sidebar:not(.sidebar-open) .sidebar-incident-trigger{padding:7px 0}
-  .sidebar:not(.sidebar-open) .sidebar-incident-trigger>span{display:none}
-  .sidebar:not(.sidebar-open) .sidebar-incident-menu{right:auto;width:210px}
 }
 @media (max-width:780px){.sidebar nav .nav-item>span{white-space:nowrap}}
-@media (max-width:640px){.sidebar .sidebar-incident-menu{top:100%;bottom:auto}}
 @media (max-width:640px){
   .sidebar .sidebar-nav-section,.sidebar:not(.sidebar-open) .sidebar-nav-section.collapsed .sidebar-nav-section-items,.sidebar .sidebar-nav-section-items{display:contents}
 }
