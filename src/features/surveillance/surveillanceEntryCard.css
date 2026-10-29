@@ -35,7 +35,7 @@
   }
 }
 .patient-surveillance-entry .inline-patient-create {
-  padding: 12px !important;
+  padding: 12px ;
 }
 /* Clinical assessment: wide window, symptoms and risk factors side by side, the
    questionnaire as compact rows in two columns (no card inside the card), each
@@ -46,24 +46,24 @@
   gap: 14px 16px;
 }
 .assessment-dialog .screening-questionnaire {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: none !important;
+  margin: 0 ;
+  padding: 0 ;
+  border: 0 ;
+  background: none ;
 }
 .assessment-dialog .questionnaire-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 6px 10px !important;
-  margin-top: 0 !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) ;
+  gap: 6px 10px ;
+  margin-top: 0 ;
 }
 .assessment-dialog .questionnaire-item {
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  min-height: 0 !important;
-  padding: 4px 4px 4px 10px !important;
+  grid-template-columns: minmax(0, 1fr) auto ;
+  min-height: 0 ;
+  padding: 4px 4px 4px 10px ;
 }
 .assessment-dialog .questionnaire-item > span {
-  font-size: 11.5px !important;
-  line-height: 1.3 !important;
+  font-size: 11.5px ;
+  line-height: 1.3 ;
 }
 .assessment-dialog .questionnaire-item .lo-mode-switch {
   flex-wrap: nowrap;
@@ -71,16 +71,16 @@
   margin: 0;
 }
 .assessment-dialog .questionnaire-item .lo-mode-switch > button {
-  min-height: 30px !important;
-  padding: 4px 9px !important;
-  font-size: 11.5px !important;
+  min-height: 30px ;
+  padding: 4px 9px ;
+  font-size: 11.5px ;
 }
 .assessment-dialog textarea {
-  min-height: 64px !important;
+  min-height: 64px ;
 }
 @media (max-width: 900px) {
   .assessment-dialog .questionnaire-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr ;
   }
 }
 /* HAI criteria: each criterion is a toggle chip on its own row (long sentences). */
@@ -91,8 +91,8 @@
 }
 .hai-criteria-group .lo-choice-chips-list > button {
   justify-content: flex-start;
-  min-height: 34px !important;
-  padding: 7px 12px !important;
+  min-height: 34px ;
+  padding: 7px 12px ;
   text-align: left;
   white-space: normal;
   line-height: 1.35;
@@ -113,7 +113,7 @@
 /* Environmental sampling: the plate («τρυβλίο») and spot («θέση») beside each point; the sheet/confirmation after saving */
 .environmental-surveillance-entry .batch-point-columns.plate,
 .environmental-surveillance-entry .batch-point-row.with-plate { grid-template-columns: 34px minmax(130px, 1fr) minmax(130px, 1fr) 64px 64px 34px; }
-.environmental-surveillance-entry .batch-point-row input.is-invalid { border-color: #b33a3a !important; box-shadow: 0 0 0 3px rgba(179, 58, 58, 0.14); }
+.environmental-surveillance-entry .batch-point-row input.is-invalid { border-color: #b33a3a ; box-shadow: 0 0 0 3px rgba(179, 58, 58, 0.14); }
 .environmental-surveillance-entry .batch-point-columns .lo-required-mark { font-style: normal; }
 .environmental-created { display: grid; gap: 6px; padding: 16px 18px; border: 1px solid #cfe3d6; border-radius: 12px; background: #f3faf5; }
 .environmental-created p { margin: 0; color: #46586a; font-size: 13px; line-height: 1.5; }

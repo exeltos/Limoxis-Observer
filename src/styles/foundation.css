@@ -212,15 +212,15 @@
    applies only while the card is on screen: unscoped, it blanked every other print. */
 @media print{
   body:has(.episode-detail-card) *{visibility:hidden}
-  .episode-detail-card,.episode-detail-card *{visibility:visible!important}
-  .episode-overlay{position:absolute!important;inset:0!important;background:#fff!important;padding:0!important}
-  .episode-detail-card{position:absolute;left:0;top:0;width:100%!important;height:auto!important;max-height:none!important;border:0!important;box-shadow:none!important}
-  .episode-detail-actions{display:none!important}.episode-detail-scroll{overflow:visible!important;padding:0!important}
+  .episode-detail-card,.episode-detail-card *{visibility:visible}
+  .episode-overlay{position:absolute;inset:0;background:#fff;padding:0}
+  .episode-detail-card{position:absolute;left:0;top:0;width:100%;height:auto;max-height:none;border:0;box-shadow:none}
+  .episode-detail-actions{display:none}.episode-detail-scroll{overflow:visible;padding:0}
 }
 
 /* v0.10.6 final completed-surveillance report */
 .surveillance-final-report{max-width:1040px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px 30px;color:#263f55}
-@media print{.surveillance-final-report{border:0!important;padding:0!important}}
+@media print{.surveillance-final-report{border:0;padding:0}}
 
 /* v0.11.0 laboratory shared registry + full sample record */
 .laboratory-record-shell .entity-record-avatar{background:#e9f5f6;color:#247078}.entry-span-2{grid-column:1/-1}
@@ -1030,8 +1030,7 @@
 /* v0.23.8 — unified module registry language: Surveillance + Quality */
 .module-summary-strip{border-radius:11px;
 }
-.surveillance-workspace{border-radius:11px!important}
-.surveillance-domain-tabs{padding:4px!important}
+.surveillance-domain-tabs{padding:4px}
 @media(max-width:1100px){.module-summary-strip{grid-template-columns:repeat(2,1fr)}}
 
 /* v0.23.9 — KPI sizing alignment + surveillance live counts */
@@ -1100,7 +1099,7 @@
  color:#194a74!important;
 }
 /* neutralize older module-specific tab rules */
-.surveillance-domain-tabs.canonical-module-tabs{align-self:stretch!important}
+.surveillance-domain-tabs.canonical-module-tabs{align-self:stretch}
 
 /* v0.24.1 — governed lifecycle + role audit */
 
@@ -3665,7 +3664,7 @@ button:disabled,
 /* Canonical registry vertical rhythm: page header -> KPI strip -> registry/tabs panel. */
 .workspace-summary,
 .patient-summary-strip,
-.surveillance-summary{margin:0 0 8px!important}
+.surveillance-summary{margin:0 0 8px}
 .workspace-summary>*{margin:0!important}
 .patient-summary-strip,
 .workspace-summary>.module-summary-strip{
