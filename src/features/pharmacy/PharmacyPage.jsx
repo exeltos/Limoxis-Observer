@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { Activity, AlertTriangle, CheckCircle2, Clock3, Building2, Info, Pill, Plus, ShieldCheck, XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -7,7 +7,6 @@ import { IconButton } from '../../design-system/IconButton'
 import { StatusCards } from '../../design-system/StatusCards'
 import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
 import { kpiDelta } from '../../design-system/kpiDelta'
-import { MonthField } from '../../design-system/MonthField'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -15,25 +14,20 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
-import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
-import { loadAntibioticDispensingRecords, loadDddReference, loadPharmacySupportData, saveAntibioticDispensingRecord } from './pharmacyCloudService'
+import { loadAntibioticDispensingRecords, loadDddReference } from './pharmacyCloudService'
 import { awareCategoryFor, awareCategoryLabel, awareCategoryWhoName } from './whoAwareClassification'
-import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
-import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { PharmacyApprovals } from './PharmacyApprovals'
 import { therapyAccess } from './pharmacyAccess'
 import { PharmacyIndicators } from './PharmacyIndicators'
 import { ACCESS_TARGET, pharmacyConsumptionKpis } from './pharmacyKpis'
-import { signalDemoStep } from '../demo/demoScenarioSignals'
 
 // '2026-09' → 'Σεπτέμβριος 2026' / 'September 2026'
 const formatPeriod = (period, en, month = 'long') => /^\d{4}-\d{2}$/.test(String(period || '')) ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month, year: 'numeric' }).format(new Date(`${period}-15T12:00:00`)) : (period || '—')
 
-const monthNow = () => new Date().toISOString().slice(0, 7)
 const monthOf = row => String(row.periodStart || row.period || '').slice(0, 7)
 const noFilters = () => ({ query: '', from: '', to: '', department: '' })
 
@@ -42,7 +36,7 @@ const noFilters = () => ({ query: '', from: '', to: '', department: '' })
 export function PharmacyPage() {
   const { language, t } = useLanguage()
   const en = language === 'en'
-  const { notify, notifyError } = useFeedback()
+  const { notifyError } = useFeedback()
   const { role, membership, tenant, isDemo } = useTenant()
   const addOns = useMemo(() => membership?.capabilities ?? [], [membership?.capabilities])
   const custom = useMemo(() => membership?.customCapabilities ?? [], [membership?.customCapabilities])
@@ -59,33 +53,29 @@ export function PharmacyPage() {
     canApprovals && { value: 'approvals', label: en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών', icon: ShieldCheck },
     canIndicators && { value: 'indicators', label: en ? 'Indicators' : 'Δείκτες', icon: Activity },
   ].filter(Boolean)
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const tab = tabs.some(item => item.value === params.get('tab')) ? params.get('tab') : 'consumption'
   const setTab = next => setParams(current => { const copy = new URLSearchParams(current); copy.set('tab', next); return copy }, { replace: true })
   const [rows, setRows] = useState([])
-  const [support, setSupport] = useState({ departments: [], products: [] })
   const [ddd, setDdd] = useState({})
   // True until the first read ends: placeholders, not «no periods» and 0 figures.
   const [loading, setLoading] = useState(true)
-  // false = closed · { row: null } = a new period · { row } = an existing one, to correct or delete.
-  const [dialog, setDialog] = useState(false)
   const [showNote, setShowNote] = useState(false)
   const [approvalCounts, setApprovalCounts] = useState({ loading: true, pending: 0, approved: 0, rejected: 0 })
   const [approvalStatus, setApprovalStatus] = useState('pending')
   const [indicatorFigures, setIndicatorFigures] = useState({ loading: true, rows: [], from: '', to: '' })
-  const deleteItem = useRecordDelete()
   const [filters, setFilters] = useState(noFilters)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
 
   const reload = useCallback(async () => {
-    if (!tenant?.id || !canRecord) { setRows([]); setSupport({ departments: [], products: [] }); setLoading(false); return }
+    if (!tenant?.id || !canRecord) { setRows([]); setLoading(false); return }
     setLoading(true)
     try {
       // Without DDD references the shares fall back to grams: a missing reference is not an error.
-      const [records, supportData, dddReference] = await Promise.all([loadAntibioticDispensingRecords(tenant.id), loadPharmacySupportData(tenant.id), loadDddReference(tenant.id).catch(() => ({}))])
+      const [records, dddReference] = await Promise.all([loadAntibioticDispensingRecords(tenant.id), loadDddReference(tenant.id).catch(() => ({}))])
       setRows(records)
-      setSupport(supportData)
       setDdd(dddReference)
     } catch (error) {
       notifyError(error, 'load', { operation: 'antibiotic_dispensing_load' })
@@ -96,18 +86,6 @@ export function PharmacyPage() {
 
   useEffect(() => { void reload() }, [reload])
   const firstLoad = loading && !rows.length
-
-  async function save(draft) {
-    try {
-      await saveAntibioticDispensingRecord(tenant.id, draft, { existingId: dialog?.row?.id || null })
-      signalDemoStep('antimicrobial_consumption', 'save')
-      setDialog(false)
-      await reload()
-      notify(en ? 'Dispensing period saved.' : 'Η περίοδος χορήγησης αποθηκεύτηκε.', 'success')
-    } catch (error) {
-      notifyError(error, 'save', { operation: 'antibiotic_dispensing_save' })
-    }
-  }
 
   // «Κατανάλωση»: period (from / to month) and department filters, a page of rows at a time.
   const periods = useMemo(() => [...new Set(rows.map(monthOf).filter(Boolean))].sort().reverse(), [rows])
@@ -145,7 +123,7 @@ export function PharmacyPage() {
 
   return (
     <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
-      actions={canRecord && consumption && <Button onClick={() => setDialog({ row: null })}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
+      actions={canRecord && consumption && <Button onClick={() => navigate('/pharmacy/dispensing/new')}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
       {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
       {canRecord && consumption && (
         <KpiStrip label={en ? 'Consumption figures' : 'Δείκτες κατανάλωσης'}>
@@ -196,7 +174,7 @@ export function PharmacyPage() {
               language={language}
               title={en ? 'No dispensing periods recorded yet.' : 'Δεν έχουν καταχωριστεί περίοδοι χορήγησης.'}
               text={en ? 'Record the first period to start the consumption indicator.' : 'Καταχωρίστε την πρώτη περίοδο για να ξεκινήσει ο δείκτης κατανάλωσης.'}
-              action={{ label: en ? 'Dispensing period' : 'Περίοδος χορήγησης', icon: Plus, onClick: () => setDialog({ row: null }) }}
+              action={{ label: en ? 'Dispensing period' : 'Περίοδος χορήγησης', icon: Plus, onClick: () => navigate('/pharmacy/dispensing/new') }}
             />
           )}
           {!firstLoad && Boolean(rows.length) && (
@@ -212,7 +190,7 @@ export function PharmacyPage() {
                 ]}
                 rows={paged}
                 rowKey={row => row.id}
-                rowProps={row => ({ className: 'clickable-row', tabIndex: 0, onClick: () => setDialog({ row }), onKeyDown: event => { if (event.key === 'Enter') setDialog({ row }) } })}
+                rowProps={row => ({ className: 'clickable-row', tabIndex: 0, onClick: () => navigate(`/pharmacy/dispensing/${row.id}`), onKeyDown: event => { if (event.key === 'Enter') navigate(`/pharmacy/dispensing/${row.id}`) } })}
                 renderRow={row => { const category = awareCategoryFor(row.productEn || row.product); return <><td>{formatPeriod(row.period, en)}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`} title={language === 'el' ? `WHO AWaRe: ${awareCategoryWhoName(category)}` : undefined}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></> }} />
               {!filtered.length && <RegistryEmptyState filtered onClearFilters={clearFilters} language={language} />}
             </div>
@@ -220,39 +198,6 @@ export function PharmacyPage() {
           <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </>}
       </section>
-      {dialog && <DispensingDialog en={en} support={support} initial={dialog.row} onClose={() => setDialog(false)} onSave={save} deleteItem={dialog.row ? deleteItem({
-        createdBy: dialog.row.createdById,
-        table: 'antibiotic_dispensing_periods',
-        id: dialog.row.id,
-        label: dialog.row.product,
-        detail: formatPeriod(dialog.row.period, en),
-        demo: async () => { saveAntibioticDispensingLocal(loadAntibioticDispensingLocal().filter(item => item.id !== dialog.row.id)) },
-        onDone: async () => { setDialog(false); await reload() },
-      }) : null} />}
     </Page>
-  )
-}
-
-function DispensingDialog({ en, support, initial = null, deleteItem = null, onClose, onSave }) {
-  const [draft, setDraft] = useState(() => initial ? { ...initial, periodKind: /^\d{4}-\d{2}$/.test(String(initial.period || '')) ? 'month' : 'range' } : { period: monthNow(), departmentScope: 'hospital', departmentEl: '', antibioticItemId: support.products[0]?.id || '', product: support.products[0]?.el || '', quantityGrams: '', method: 'manual', referenceNumber: '', responsible: '', notes: '' })
-  const [busy, setBusy] = useState(false)
-  const chooseProduct = id => { const item = support.products.find(x => x.id === id); setDraft(d => ({ ...d, antibioticItemId: id, product: item?.el || '' })) }
-  const chooseDepartment = value => { if (value === '') { setDraft(d => ({ ...d, departmentScope: 'hospital', departmentEl: '' })); return } setDraft(d => ({ ...d, departmentScope: 'department', departmentEl: value })) }
-  const disabled = !draft.period || !draft.antibioticItemId || !draft.quantityGrams
-  return (
-    <ObserverDialog width="standard" title={initial ? (en ? 'Dispensing period' : 'Περίοδος χορήγησης') : (en ? 'New dispensing period' : 'Νέα περίοδος χορήγησης')} subtitle={en ? 'Monthly antibiotic quantity for the consumption indicator (DDD).' : 'Μηνιαία ποσότητα αντιβιοτικού για τον δείκτη κατανάλωσης (DDD).'} onClose={onClose}
-      footer={<DialogActions onSave={() => onSave(draft)} disabled={disabled}>{deleteItem && <Button variant="secondary" disabled={busy} onClick={async () => { setBusy(true); try { await deleteItem.onClick() } finally { setBusy(false) } }}>{deleteItem.label}</Button>}</DialogActions>}>
-        <div className="entry-grid">
-          {draft.periodKind === 'range'
-            ? <label><span>{en ? 'Period' : 'Περίοδος'}</span><input disabled value={`${formatPeriod(String(draft.periodStart || '').slice(0, 7), en)} – ${formatPeriod(String(draft.periodEnd || '').slice(0, 7), en)}`} /></label>
-            : <MonthField label={en ? 'Month' : 'Μήνας'} required value={draft.period} onChange={value => setDraft(d => ({ ...d, period: value }))} />}
-          <label><span>{en ? 'Department' : 'Τμήμα'}</span><select value={draft.departmentEl} onChange={e => chooseDepartment(e.target.value)}><option value="">{en ? 'Whole hospital' : 'Όλο το νοσοκομείο'}</option>{support.departments.map(x => <option key={x.id} value={x.el}>{en ? x.en : x.el}</option>)}</select></label>
-          <label><span>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</span><select value={draft.antibioticItemId} onChange={e => chooseProduct(e.target.value)}>{support.products.map(x => <option key={x.id} value={x.id}>{en ? (x.en || x.el) : x.el}</option>)}</select></label>
-          <label><span>{en ? 'Quantity (grams)' : 'Ποσότητα (γραμμάρια)'}</span><input type="number" min="0" step="0.01" value={draft.quantityGrams} onChange={e => setDraft(d => ({ ...d, quantityGrams: e.target.value }))} /></label>
-          <label><span>{en ? 'Responsible' : 'Υπεύθυνος'}</span><input value={draft.responsible} onChange={e => setDraft(d => ({ ...d, responsible: e.target.value }))} /></label>
-          <label><span>{en ? 'Reference number' : 'Αριθμός αναφοράς'}</span><input value={draft.referenceNumber} onChange={e => setDraft(d => ({ ...d, referenceNumber: e.target.value }))} /></label>
-          <label className="entry-span-2"><span>{en ? 'Notes' : 'Σημειώσεις'}</span><textarea rows={3} value={draft.notes} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} /></label>
-        </div>
-    </ObserverDialog>
   )
 }

@@ -1,5 +1,6 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
+import { loadAccessDddTotal } from '../pharmacy/pharmacyCloudService'
 import { collectIndicatorMetrics } from './indicatorEngine'
 import { loadIndicatorDefinitionsLocal, loadIndicatorSnapshotsLocal, saveIndicatorSnapshotsLocal } from './indicatorStore'
 
@@ -11,7 +12,10 @@ export async function collectCloudIndicatorMetrics(organizationId,{from,to,depar
  assertCloud(organizationId)
  const {data,error}=await supabase.rpc('get_indicator_metric_snapshot',{p_organization_id:organizationId,p_from:from,p_to:to,p_department_id:departmentId||null})
  if(error)throw error
- return data||{}
+ // The database snapshot has no WHO AWaRe split: the Access DDD comes from the dispensing records.
+ const metrics=data||{}
+ if(metrics.aware_access_ddd_total==null)metrics.aware_access_ddd_total=await loadAccessDddTotal(organizationId,{from,to}).catch(()=>0)
+ return metrics
 }
 
 function mapOperationalDefinition(r){

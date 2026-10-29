@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { pharmacyDepartments, antibioticLibrary, dddReferenceLibrary } from './pharmacyDemoData'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
+import { awareCategoryFor } from './whoAwareClassification'
 import { selectAllPages } from '../../core/data/inChunks'
 
 const assertCloud=organizationId=>{
@@ -55,6 +56,14 @@ export async function loadAntibioticDispensingRecords(organizationId){
  // Read page by page: a single response stops at 1000 rows.
  const data=await selectAllPages(()=>supabase.from('antibiotic_dispensing_periods').select('*,department:departments(id,name),antibiotic_item:master_library_items(id,name_el,name_en,code)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false}).order('id',{ascending:true}))
  return data.map(mapRow)
+}
+
+// DDD of the WHO AWaRe «Access» antibiotics dispensed in the period (rows without a DDD reference are left out,
+// like the total DDD of the database does): the numerator of the Access share indicator.
+export async function loadAccessDddTotal(organizationId,{from,to}={}){
+ const [rows,ddd]=await Promise.all([loadAntibioticDispensingRecords(organizationId),loadDddReference(organizationId)])
+ const inPeriod=row=>(!to||String(row.periodStart||'')<=to)&&(!from||String(row.periodEnd||row.periodStart||'')>=from)
+ return Math.round(rows.filter(inPeriod).filter(row=>awareCategoryFor(row.productEn||row.product)==='access'&&Number(ddd[row.productCode])>0).reduce((sum,row)=>sum+(Number(row.quantityGrams)||0)/Number(ddd[row.productCode]),0)*100)/100
 }
 
 export async function saveAntibioticDispensingRecord(organizationId,record,{existingId=null}={}){

@@ -89,6 +89,7 @@ const EmployeeRecordPage = lazyNamed(() => import('../features/employees/Employe
 const KitchenPage = lazyNamed(() => import('../features/kitchen/KitchenPage'), 'KitchenPage')
 const KitchenReceiptRecordPage = lazyNamed(() => import('../features/kitchen/KitchenReceiptRecordPage'), 'KitchenReceiptRecordPage')
 const KitchenDayRecordPage = lazyNamed(() => import('../features/kitchen/KitchenDayRecordPage'), 'KitchenDayRecordPage')
+const DispensingRecordPage = lazyNamed(() => import('../features/pharmacy/DispensingRecordPage'), 'DispensingRecordPage')
 const PharmacyPage = lazyNamed(() => import('../features/pharmacy/PharmacyPage'), 'PharmacyPage')
 const OccupationalHealthPage = lazyNamed(() => import('../features/occupational-health/OccupationalHealthPage'), 'OccupationalHealthPage')
 const ManagementPage = lazyNamed(() => import('../features/management/ManagementPage'), 'ManagementPage')
@@ -135,7 +136,7 @@ registerRoutePreload('/documents', DocumentsSectionPage, DocumentsPage, Document
 registerRoutePreload('/regulations', RegulationsPage, RegulationPage)
 registerRoutePreload('/legislation', LegislationPage, LegislationRecordPage)
 registerRoutePreload('/kitchen', KitchenPage, KitchenReceiptRecordPage, KitchenDayRecordPage)
-registerRoutePreload('/pharmacy', PharmacyPage)
+registerRoutePreload('/pharmacy', PharmacyPage, DispensingRecordPage)
 registerRoutePreload('/occupational-health', OccupationalHealthPage)
 registerRoutePreload('/calendar', CalendarPage)
 registerRoutePreload('/library', LibraryPage)
@@ -164,6 +165,6 @@ export function App(){return <><GlobalTextareaExpander/><PlatformMaintenanceBann
   <Route path="patients" element={<SectionRedirect sectionId="surveillance" tab="registry"/>}/><Route path="patients/new" element={gate(CAPABILITIES.CREATE_PATIENT,<PatientCreatePage/>)}/><Route path="patients/:patientId" element={gate(CAPABILITIES.VIEW_PATIENTS,<PatientClinicalRecordRoute patientMode/>)}/>
   <Route path="employees" element={gate(CAPABILITIES.VIEW_STAFF,<EmployeesPage/>)}/><Route path="employees/new" element={gate(CAPABILITIES.MANAGE_STAFF_ADMIN,<EmployeeCreatePage/>)}/><Route path="employees/:employeeId" element={gate(CAPABILITIES.VIEW_STAFF,<EmployeeRecordPage/>)}/><Route path="interviews" element={gate(CAPABILITIES.VIEW_INTERVIEWS,<InterviewsPage/>)}/><Route path="interviews/:candidateId" element={gate(CAPABILITIES.VIEW_INTERVIEWS,<InterviewRecordPage/>)}/>
   <Route path="kitchen" element={gateAny(KITCHEN_CAPABILITIES,<KitchenPage/>)}/><Route path="kitchen/receipts/:receiptId" element={gateAny(KITCHEN_CAPABILITIES,<KitchenReceiptRecordPage/>)}/><Route path="kitchen/days/:productionId" element={gateAny(KITCHEN_CAPABILITIES,<KitchenDayRecordPage/>)}/>
-  <Route path="pharmacy" element={gate(CAPABILITIES.VIEW_PHARMACY,<PharmacyPage/>)}/><Route path="occupational-health" element={gate(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,<OccupationalHealthPage/>)}/><Route path="management" element={gateAny(MANAGEMENT_CAPABILITIES,<ManagementPage/>)}/><Route path="recycle-bin" element={<RecycleBinPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/>
+  <Route path="pharmacy" element={gate(CAPABILITIES.VIEW_PHARMACY,<PharmacyPage/>)}/><Route path="pharmacy/dispensing/:recordId" element={gate(CAPABILITIES.VIEW_PHARMACY,<DispensingRecordPage/>)}/><Route path="occupational-health" element={gate(CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,<OccupationalHealthPage/>)}/><Route path="management" element={gateAny(MANAGEMENT_CAPABILITIES,<ManagementPage/>)}/><Route path="recycle-bin" element={<RecycleBinPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/>
  </Route></Route>
  </Routes></>}
