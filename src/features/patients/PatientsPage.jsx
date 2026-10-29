@@ -18,6 +18,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry, patientsListExport } from '../../core/export/registryExports'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -69,9 +70,11 @@ export function PatientsPage(){
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>inPeriod(p.admissionDate,period))
     .filter(p=>status==='all'||(status==='isolation'?isolated(p):effectiveStatus(p)===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
+  const {sorted:sortedRows,sort,onSort}=useTableSort(rows,{name:p=>language==='el'?p.name:(p.nameEn||p.name),department:p=>language==='el'?p.department:p.departmentEn,admission:p=>p.lastAdmissionDate||p.admissionDate,status:p=>effectiveStatus(p)},{key:'admission',dir:'desc'})
+  useEffect(()=>{setPage(1)},[sort])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
-  const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
+  const pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize)
   const fmt=value=>formatDay(value,language)
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   const canCreate=can(role,CAPABILITIES.CREATE_PATIENT,membership?.capabilities??[],membership?.customCapabilities??[])
@@ -87,7 +90,7 @@ export function PatientsPage(){
     // In production a transfer between departments keeps the patient active, so the card counts isolations in place.
     isolation:scopedPatients.filter(p=>isolated(p)).length,
   }
-  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(rows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
+  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(sortedRows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
     <StatusCards label={t('patientRegistry')} loading={loading} items={[['all',UsersRound,'patientsCountAll',patientSummary.total],['active',Activity,'patientsCountActive',patientSummary.active],['discharged',LogOut,'patientsCountDischarged',patientSummary.discharged],['isolation',ShieldAlert,'patientsCountIsolation',patientSummary.isolation]].map(([filter,icon,key,value])=>{const active=filter!=='all'&&status===filter;return {key:filter,icon,label:t(key),value,active,onToggle:()=>setStatus(filter==='all'||active?'all':filter)}})}/>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
@@ -98,11 +101,13 @@ export function PatientsPage(){
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
-        columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
+        sort={sort}
+        onSort={onSort}
+        columns={[{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true},{key:'admission',label:t('admissionDate'),sortable:true},{key:'status',label:t('status'),sortable:true},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
         rows={pagedRows}
         loading={loading}
         rowKey={patient=>patient.id}
-        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
+        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,sortedRows.map(x=>x.id))})}
         renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}

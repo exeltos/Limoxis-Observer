@@ -1,5 +1,6 @@
 import { RegistryEmptyState } from './RegistryEmptyState'
 import { TableSkeleton } from './LoadingSkeleton'
+import './RegistryTable.css'
 
 export function RegistryTable({
   columns=[],
@@ -26,11 +27,14 @@ export function RegistryTable({
   // error: the read failed: say so (with «Try again» when onRetry is given), never the empty state.
   error=false,
   onRetry,
+  // sort / onSort: a column with sortable:true gets a header button with ▲▼ arrows (see useTableSort).
+  sort,
+  onSort,
 }){
   const tableClass=`data-table sticky-table ${className}`.trim()
   const hasRows=Array.isArray(rows)&&rows.length>0
   const table=<table className={tableClass} {...tableProps}>
-    <thead><tr>{columns.map((column,index)=><th key={column.key??index} className={column.className} style={column.style} aria-label={column.ariaLabel}>{column.label}</th>)}</tr></thead>
+    <thead><tr>{columns.map((column,index)=><th key={column.key??index} className={column.className} style={column.style} aria-label={column.ariaLabel} aria-sort={column.sortable&&onSort?(sort?.key===column.key?(sort.dir==='desc'?'descending':'ascending'):'none'):undefined}>{column.sortable&&onSort?<button type="button" className="registry-sort" onClick={()=>onSort(column.key)}>{column.label}<span className="registry-sort-arrows" aria-hidden="true"><i className={sort?.key===column.key&&sort.dir==='asc'?'on':''}>▲</i><i className={sort?.key===column.key&&sort.dir==='desc'?'on':''}>▼</i></span></button>:column.label}</th>)}</tr></thead>
     <tbody>{rows.map((row,index)=>{
       const supplied=typeof rowProps==='function'?(rowProps(row,index)||{}):{}
       const rendered=renderRow?.(row,index)
