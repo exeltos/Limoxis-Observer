@@ -1,8 +1,8 @@
 /* Surveillance Center registry: environmental status cell and its re-sampling action. */
 .environmental-registry .status-badge.info {
-  background: var(--lo-status-info-bg) ;
-  color: var(--lo-status-info-fg) ;
-  border-color: var(--lo-status-info-border) ;
+  background: var(--lo-status-info-bg) !important;
+  color: var(--lo-status-info-fg) !important;
+  border-color: var(--lo-status-info-border) !important;
 }
 
 /* Environmental list: the second line of the code cell holds date, department and batch
