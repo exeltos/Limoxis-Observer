@@ -137,19 +137,6 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 /* Not yet its time: the entry opens 1 hour before the set time. */
 .controls-record-now.is-waiting,.controls-record-now.is-waiting:hover{background:var(--lo-color-surface-muted);color:var(--lo-color-muted);cursor:not-allowed}
 /* «Expiry»: a card per department; a card opens its whole list in a dialog. */
-.control-expiry-departments{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:12px;padding:16px;overflow:auto;flex:1 1 auto;min-height:0}
-.control-expiry-department{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;font:inherit;text-align:left;color:var(--lo-color-text);background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border);border-radius:14px;cursor:pointer}
-.control-expiry-department>strong{display:flex;align-items:center;gap:8px;font-size:15px}
-.control-expiry-department>strong svg:last-child{margin-left:auto;color:var(--lo-color-muted)}
-.control-expiry-department.is-all{border-left-color:var(--lo-color-primary);background:var(--lo-color-primary-soft,var(--lo-color-surface))}
-.control-expiry-department.is-all>strong svg:first-child{color:var(--lo-color-primary)}
-.control-expiry-department.has-expired{border-left-color:var(--lo-status-danger-fg)}
-.control-expiry-department:hover,.control-expiry-department:focus-visible{border-color:var(--lo-color-primary);box-shadow:0 4px 14px rgba(16,40,70,.08);outline:0}
-.control-expiry-department-numbers{display:flex;gap:18px;font-size:12px;color:var(--lo-color-muted)}
-.control-expiry-department-numbers>span{display:flex;flex-direction:column}
-.control-expiry-department-numbers b{font-size:20px;line-height:1.2;color:var(--lo-color-text)}
-.control-expiry-department-numbers .is-late b{color:var(--lo-status-danger-fg)}
-.control-expiry-department-numbers .is-soon b{color:var(--lo-status-warning-fg)}
 .control-expiry-totals{font-size:13px;color:var(--lo-color-muted)}
 .control-expiry-inline{overflow:auto;flex:1 1 auto;min-height:0;padding:8px 16px 16px}
 .control-expiry-group{border:1px solid var(--lo-color-border);border-radius:12px;margin-top:10px;overflow:hidden}

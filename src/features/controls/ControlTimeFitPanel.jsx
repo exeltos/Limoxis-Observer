@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useTableSort } from '../../design-system/useTableSort'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
-import { FilterSelect } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
 import { downloadCsv } from '../../core/export/csvExport'
 import { printReport } from '../../core/export/reportDocument'
@@ -66,11 +64,10 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   const { confirm, notify, notifyError } = useFeedback()
   const { lines, loading, failed, until } = report
   const [onlyChanges, setOnlyChanges] = useState(true)
-  const [department, setDepartment] = useState('all')
   const [page, setPage] = useState(1), [pageSize, setPageSize] = useState(15)
   const [busy, setBusy] = useState('')
-  const departments = [...new Set(lines.map((line) => line.department))]
-  const scoped = department === 'all' ? lines : lines.filter((line) => line.department === department)
+  // The department is the page's own filter («Filters»): the report already holds only its lines.
+  const scoped = lines
   const changes = scoped.filter((line) => line.changed)
   const shown = onlyChanges ? changes : scoped
   const title = (item) => (en ? item.titleEn || item.title : item.title)
@@ -104,14 +101,15 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   }
   return <div className="control-adherence control-time-fit">
     <div className="control-adherence-toolbar">
-      {departments.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={department} onChange={(value) => { setDepartment(value); setPage(1) }}><option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>{departments.map((dep) => <option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}
       <ChoiceChips className="control-time-fit-filter" label="" options={[{ value: 'changes', label: `${en ? 'Only proposals' : 'Μόνο με πρόταση'} (${changes.length})` }]} selected={onlyChanges ? ['changes'] : []} onToggle={() => { setOnlyChanges(!onlyChanges); setPage(1) }} />
       {until && <UntilNote until={until} language={language} />}
-      <span className="control-info-tip" tabIndex={0} title={timeFitNote(language)} aria-label={timeFitNote(language)}><Info size={15} aria-hidden="true" /></span>
     </div>
+    <p className="control-time-fit-intro">{en
+      ? 'Compares the set times of each daily control with the times it is really done (last 30 days). When they differ, a new time is proposed; «Change» applies it to the department.'
+      : 'Συγκρίνει τις ώρες που ορίστηκαν για κάθε ημερήσιο έλεγχο με τις ώρες που γίνεται πράγματι (τελευταίες 30 ημέρες). Όταν διαφέρουν, προτείνει νέα ώρα· το «Αλλαγή» την εφαρμόζει στο τμήμα.'}</p>
     <RegistryTable sort={sort} onSort={onSort}
       className="control-adherence-table control-time-fit-table"
-      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα', sortable: true }, { key: 'current', label: en ? 'Set times' : 'Ώρες τώρα', sortable: true }, { key: 'typical', label: en ? 'Usually done' : 'Γίνεται συνήθως', sortable: true }, { key: 'proposed', label: en ? 'Proposal' : 'Πρόταση', sortable: true }, { key: 'now', label: en ? 'On time now' : 'Στην ώρα τους τώρα', sortable: true }, { key: 'after', label: en ? 'With the proposal' : 'Με την πρόταση', sortable: true }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
+      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα', sortable: true }, { key: 'current', label: en ? 'Set time' : 'Ορισμένη ώρα', sortable: true }, { key: 'typical', label: en ? 'Really done' : 'Πράγματι γίνεται', sortable: true }, { key: 'proposed', label: en ? 'Proposed time' : 'Προτεινόμενη ώρα', sortable: true }, { key: 'now', label: en ? 'On time (set time)' : 'Στην ώρα (ορισμένη)', sortable: true }, { key: 'after', label: en ? 'On time (proposed)' : 'Στην ώρα (πρότ.)', sortable: true }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
       rows={paged}
       loading={loading}
       rowKey={(line) => `${line.item.id}|${line.department}`}

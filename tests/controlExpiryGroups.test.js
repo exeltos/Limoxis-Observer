@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest'
 const panel = readFileSync('src/features/controls/ControlExpiryPanel.jsx', 'utf8')
 const form = readFileSync('src/features/controls/ControlExecutionForm.jsx', 'utf8')
 
-describe('expiry: groups, department cards and «All in order»', () => {
-  it('opens a department from its card in a dialog, grouped and printable', () => {
-    expect(panel).toContain('className="control-expiry-departments"')
-    expect(panel).toContain('<ObserverDialog width="workspace" className="control-expiry-dialog"')
-    expect(panel).toContain('onClick:()=>printList(dialog,dialogItems)}')
+describe('expiry: groups and «All in order»', () => {
+  it('shows the list of items straight away, grouped, with the department in each line and printable', () => {
+    expect(panel).toContain('<ExpiryGroupList items={searched} showDepartment={several}')
+    expect(panel).not.toContain('control-expiry-departments')
+    expect(panel).not.toContain('ObserverDialog')
     expect(panel).not.toContain('RegistryPagination')
   })
   it('groups expired, expiring soon, findings check by check, and keeps in-date items closed', () => {

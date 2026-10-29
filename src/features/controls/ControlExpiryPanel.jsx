@@ -1,9 +1,8 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { ChevronDown,ChevronRight,ListChecks,PackageX } from 'lucide-react'
+import { ChevronDown,ChevronRight,PackageX } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { CheckboxField } from '../../design-system/CheckboxField'
-import { DialogActions,ObserverDialog } from '../../design-system/ObserverDialog'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -82,15 +81,8 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
  const needle=normalize(query)
  const searched=needle?items.filter(item=>normalize(`${item.row.item} ${item.department} ${item.record.title} ${item.row.lot||''}`).includes(needle)):items
  const counts=expiryCounts(searched)
- const findings=list=>list.filter(item=>item.state==='finding').length
  const several=departmentOptions.length>1
  const manyControls=new Set(sources.map(source=>source.record.id)).size>1
- const [dialog,setDialogValue]=useState(null)
- // The groups ticked in the dialog, to print only those.
- const [picked,setPicked]=useState(()=>new Set())
- const setDialog=value=>{setDialogValue(value);setPicked(new Set())}
- const pick=key=>setPicked(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})
- const dialogItems=dialog==null?[]:dialog==='all'?searched:searched.filter(item=>item.department===dialog)
  // The return form lists what has expired or expires soon (of the open department, or all).
  const returnOf=list=>list.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
  const returnItems=returnOf(searched)
@@ -129,7 +121,6 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
   ? {title:en?'No expiry checks yet':'Δεν υπάρχουν έλεγχοι λήξεων',text:en?'Create a control in the «Medicines / Supplies» category and add its list of items.':'Δημιουργήστε έλεγχο με κατηγορία «Φάρμακα / Υλικά» και προσθέστε τη λίστα υλικών του.'}
   : {title:en?'No items yet':'Δεν υπάρχουν υλικά',text:en?'Items appear here once they are on a control’s list or recorded with an expiry date.':'Τα υλικά εμφανίζονται εδώ μόλις μπουν στη λίστα ενός ελέγχου ή καταγραφούν με ημερομηνία λήξης.'}
  const single=sources.length===1?expiryWindow(sources[0].record):null
- const numbers=(list)=>{const c=expiryCounts(list),f=findings(list);return <span className="control-expiry-department-numbers"><span className={c.expired?'is-late':''}><b>{c.expired}</b>{en?'expired':'ληγμένα'}</span><span className={c.expiring?'is-soon':''}><b>{c.expiring}</b>{en?'expiring':'λήγουν'}</span>{f>0&&<span><b>{f}</b>{en?'findings':'ευρήματα'}</span>}</span>}
  const listProps={canRemove,onRemove,showControl:manyControls,language,locale}
  return <RecordTabPanel
   className="control-expiry-panel workspace-fill"
@@ -138,15 +129,6 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
   actions={<div className="control-expiry-tools">{!onExportChange&&<span className="control-expiry-totals">{en?`${counts.expired} expired · ${counts.expiring} expiring`:`${counts.expired} ληγμένα · ${counts.expiring} λήγουν`}</span>}{!onExportChange&&<ExportMenu disabled={!searched.length} items={[{id:'list',kind:'print',label:en?`Expiry list (${searched.length})`:`Λίστα λήξεων (${searched.length})`,onClick:()=>printRef.current.list()},{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,disabled:!returnItems.length,onClick:()=>printReturnForm()}]}/>}</div>}
  >
   {!searched.length?<div className="inline-empty control-expiry-empty"><strong>{empty.title}</strong><span>{empty.text}</span></div>
-  :several?<div className="control-expiry-departments" role="group" aria-label={en?'Departments':'Τμήματα'}>
-   <button type="button" className="control-expiry-department is-all" onClick={()=>setDialog('all')}><strong><ListChecks size={17} aria-hidden="true"/>{en?'All departments':'Όλα τα τμήματα'}<ChevronRight size={17} aria-hidden="true"/></strong>{numbers(searched)}</button>
-   {departmentOptions.map(dep=>{const list=searched.filter(item=>item.department===dep);if(!list.length)return null;return <button key={dep} type="button" className={`control-expiry-department${expiryCounts(list).expired?' has-expired':''}`} onClick={()=>setDialog(dep)}><strong>{dep}<ChevronRight size={17} aria-hidden="true"/></strong>{numbers(list)}</button>})}
-  </div>
-  :<div className="control-expiry-inline"><ExpiryGroupList items={searched} showDepartment={false} {...listProps}/></div>}
-  {dialog!=null&&<ObserverDialog width="workspace" className="control-expiry-dialog" eyebrow={en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'} title={placeName(dialog)} subtitle={(()=>{const c=expiryCounts(dialogItems);return en?`${c.expired} expired · ${c.expiring} expiring · ${dialogItems.length} items`:`${c.expired} ληγμένα · ${c.expiring} λήγουν · ${dialogItems.length} υλικά`})()} onClose={()=>setDialog(null)} footer={<DialogActions>
-   <ExportMenu menuWidth={300} items={[{id:'list',kind:'print',label:en?`Whole list (${dialogItems.length})`:`Όλη η λίστα (${dialogItems.length})`,onClick:()=>printList(dialog,dialogItems)},(()=>{const chosen=expiryGroups(dialogItems).filter(group=>picked.has(group.key)),list=chosen.flatMap(group=>group.items);return {id:'picked',kind:'print',label:en?`Ticked groups (${chosen.length})`:`Επιλεγμένες ομάδες (${chosen.length})`,disabled:!chosen.length,onClick:()=>printList(dialog,list,chosen.length===1?groupName(chosen[0].head,dialog):'')}})(),{id:'return',kind:'print',label:en?`Return & replacement form (${returnOf(dialogItems).length})`:`Έντυπο επιστροφής (${returnOf(dialogItems).length})`,disabled:!returnOf(dialogItems).length,onClick:()=>printReturnForm(returnOf(dialogItems))}]}/>
-  </DialogActions>}>
-   <ExpiryGroupList items={dialogItems} showDepartment={dialog==='all'} picked={picked} onPick={pick} {...listProps}/>
-  </ObserverDialog>}
+  :<div className="control-expiry-inline"><ExpiryGroupList items={searched} showDepartment={several} {...listProps}/></div>}
  </RecordTabPanel>
 }

@@ -31,7 +31,8 @@
 /* The «Times» report: one line per row, the toolbar on one row. */
 .control-time-fit .control-adherence-toolbar{flex-wrap:nowrap}
 .control-time-fit .control-adherence-meter>i{width:60px}
-.control-time-fit-table td:not(:first-child){white-space:nowrap}
+.control-time-fit-table td:nth-child(n+5){white-space:nowrap}
+.control-time-fit-intro{margin:0;padding:10px 16px 12px;max-width:none;font-size:12.5px;line-height:1.5;color:var(--lo-color-muted)}
 .control-time-fit-same{color:var(--lo-color-muted)}
 /* «Up to 18/10/2026»: the reports end on the last day with entries. */
 .control-until-note{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;background:var(--lo-status-warning-bg,var(--lo-color-surface-muted));color:var(--lo-status-warning-fg);font-size:12px;font-weight:700;white-space:nowrap}

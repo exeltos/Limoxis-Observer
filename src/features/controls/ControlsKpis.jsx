@@ -38,16 +38,16 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, period
   }
   if (view === 'times') {
     const days = tr('30 ημ.', '30 days')
-    return <KpiStrip label={tr('Ώρες', 'Times')} columns={3}>
-      <KpiCard loading={timeFit.loading} icon={ListChecks} label={tr('Προτάσεις αλλαγής ώρας', 'Time change proposals')} period={days} value={timeFit.lines ? timeFit.changes : null} hint={tr(`από ${timeFit.lines} ημερήσιους ελέγχους ανά τμήμα`, `of ${timeFit.lines} daily controls per department`)} />
-      <KpiCard loading={timeFit.loading} icon={Clock} label={tr('Στην ώρα τους τώρα', 'On time now')} period={days} value={pct(timeFit.rateNow)} unit="%" status={adherenceStatus(timeFit.rateNow)} meter={timeFit.rateNow} meterTarget={ADHERENCE_TARGET} target={tr(`στόχος ≥ ${ADHERENCE_TARGET}%`, `target ≥ ${ADHERENCE_TARGET}%`)} />
-      <KpiCard loading={timeFit.loading} icon={CheckCircle2} label={tr('Με τις προτάσεις', 'With the proposals')} period={days} value={pct(timeFit.rateProposed)} unit="%" status={adherenceStatus(timeFit.rateProposed)} meter={timeFit.rateProposed} meterTarget={ADHERENCE_TARGET} hint={untilHint} />
+    return <KpiStrip label={tr('Ώρες εκτέλεσης', 'Execution times')} columns={3}>
+      <KpiCard loading={timeFit.loading} icon={ListChecks} label={tr('Προτάσεις αλλαγής ώρας', 'Time change proposals')} period={days} value={timeFit.lines ? timeFit.changes : null} hint={tr(`από ${timeFit.lines} ελέγχους`, `of ${timeFit.lines} controls`)} />
+      <KpiCard loading={timeFit.loading} icon={Clock} label={tr('Στην ώρα με τις ορισμένες ώρες', 'On time with the set times')} period={days} value={pct(timeFit.rateNow)} unit="%" status={adherenceStatus(timeFit.rateNow)} meter={timeFit.rateNow} meterTarget={ADHERENCE_TARGET} target={tr(`στόχος ≥ ${ADHERENCE_TARGET}%`, `target ≥ ${ADHERENCE_TARGET}%`)} />
+      <KpiCard loading={timeFit.loading} icon={CheckCircle2} label={tr('Στην ώρα με τις προτεινόμενες', 'On time with the proposed times')} period={days} value={pct(timeFit.rateProposed)} unit="%" status={adherenceStatus(timeFit.rateProposed)} meter={timeFit.rateProposed} meterTarget={ADHERENCE_TARGET} hint={untilHint} />
     </KpiStrip>
   }
   // «Departments» and «Programme»: what is late, what is due soon and the adherence.
   return <KpiStrip label={tr('Έλεγχοι', 'Controls')} columns={3}>
-    <KpiCard loading={loading} icon={AlertOctagon} label={tr('Εκπρόθεσμοι', 'Overdue')} value={overdue} status={overdue ? 'danger' : 'good'} statusLabel={overdue ? tr('Χρειάζονται ενέργεια', 'Need action') : undefined} target={tr('στόχος: 0', 'target: 0')} className={status === 'overdue' ? 'is-active' : ''} onOpen={() => onStatus('overdue')} />
-    <KpiCard loading={loading} icon={AlertTriangle} label={tr('Πλησιάζουν', 'Due soon')} value={dueSoon} status={dueSoon ? 'warning' : null} statusLabel={dueSoon ? tr('Προγραμματίστε', 'Plan them') : undefined} hint={tr('η προθεσμία τους είναι κοντά', 'their deadline is near')} className={status === 'dueSoon' ? 'is-active' : ''} onOpen={() => onStatus('dueSoon')} />
+    <KpiCard loading={loading} icon={AlertOctagon} label={tr('Εκπρόθεσμοι', 'Overdue')} period={untilHint} value={overdue} status={overdue ? 'danger' : 'good'} statusLabel={overdue ? tr('Χρειάζονται ενέργεια', 'Need action') : undefined} target={tr('στόχος: 0', 'target: 0')} className={status === 'overdue' ? 'is-active' : ''} onOpen={() => onStatus('overdue')} />
+    <KpiCard loading={loading} icon={AlertTriangle} label={tr('Πλησιάζουν', 'Due soon')} period={untilHint} value={dueSoon} status={dueSoon ? 'warning' : null} statusLabel={dueSoon ? tr('Προγραμματίστε', 'Plan them') : undefined} hint={tr('η προθεσμία τους είναι κοντά', 'their deadline is near')} className={status === 'dueSoon' ? 'is-active' : ''} onOpen={() => onStatus('dueSoon')} />
     {rateCard}
   </KpiStrip>
 }
