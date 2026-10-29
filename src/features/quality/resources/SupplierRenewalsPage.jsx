@@ -122,7 +122,7 @@ export function SupplierRenewalsPage() {
       {!perms.send && <p className="supplier-renewal-locked-note"><Lock size={14} /><span>{en ? `Sending and reminders: ${lockedText.toLowerCase()}. You can propose requests for approval.` : `Αποστολή και υπενθυμίσεις: ${lockedText}. Μπορείτε να προτείνετε αιτήματα για έγκριση.`}</span></p>}
       {submitted.length > 0 && <div className="supplier-renewal-review">
         <SectionHeader title={en ? `Submitted certificates to review ${submitted.length}` : `Υποβολές προς έλεγχο ${submitted.length}`} subtitle={en ? 'Accept to replace the old certificate (its values are kept), or reject with a comment.' : 'Με την αποδοχή αντικαθίσταται το παλιό πιστοποιητικό (οι προηγούμενες τιμές κρατούνται)· ή απορρίψτε με σχόλιο.'} />
-        <RegistryTable className="quality-table" rows={submitted} rowKey={item => item.id}
+        <RegistryTable sortable={false} className="quality-table" rows={submitted} rowKey={item => item.id}
           columns={[{ key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'certificate', label: en ? 'New certificate' : 'Νέο πιστοποιητικό' }, { key: 'expires', label: en ? 'New expiry' : 'Νέα λήξη' }, { key: 'submitted', label: en ? 'Submitted' : 'Υποβλήθηκε' }, { key: 'actions', label: '' }]}
           renderRow={item => { const row = byCertificate.get(item.certificationId); return <>
             <td><strong>{row?.supplierName || '—'}</strong><small>{item.request.recipientEmail}</small></td>
@@ -137,7 +137,7 @@ export function SupplierRenewalsPage() {
         <FilterSelect label={en ? 'Request' : 'Αίτημα'} value={filters.request} onChange={value => set('request', value)}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="none">{en ? 'Something to send' : 'Με πιστοποιητικά προς αποστολή'}</option><option value="proposed">{requestStatusLabel('proposed', language)}</option><option value="sent">{requestStatusLabel('sent', language)}</option><option value="no_response">{en ? 'No answer' : 'Χωρίς απάντηση'}</option><option value="submitted">{en ? 'Submitted, to review' : 'Υποβλήθηκαν, προς έλεγχο'}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table">
-        <RegistryTable bare className="quality-table quality-register-table supplier-renewal-table" rows={visible} rowKey={group => group.key} empty={!list.loading && !rows.length} emptyFiltered={groups.length > 0} onClearFilters={() => setFilters({ ...NO_FILTERS })}
+        <RegistryTable sortable={false} bare className="quality-table quality-register-table supplier-renewal-table" rows={visible} rowKey={group => group.key} empty={!list.loading && !rows.length} emptyFiltered={groups.length > 0} onClearFilters={() => setFilters({ ...NO_FILTERS })}
           columns={[{ key: 'select', label: <CheckboxField label="" ariaLabel={en ? 'Select all' : 'Επιλογή όλων'} checked={allVisible} disabled={!selectableVisible.length} onChange={on => toggle(selectableVisible, on)} /> }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'certificates', label: en ? 'Certificates' : 'Πιστοποιητικά' }, { key: 'email', label: 'Email' }, { key: 'request', label: en ? 'Request' : 'Αίτημα' }, { key: 'actions', label: '' }]}
           emptyTitle={en ? 'No certificates to renew' : 'Δεν υπάρχουν πιστοποιητικά προς ανανέωση'} emptyText={en ? 'Every supplier certificate is in date.' : 'Όλα τα πιστοποιητικά των προμηθευτών είναι σε ισχύ.'}
           renderRow={group => { const request = group.request; const keys = group.selectable.map(row => row.key); return <>

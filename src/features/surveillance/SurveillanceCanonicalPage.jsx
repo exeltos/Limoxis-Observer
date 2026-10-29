@@ -20,6 +20,7 @@ import { exportRegistry, surveillanceListExport } from '../../core/export/regist
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -281,9 +282,26 @@ export function SurveillanceCanonicalPage() {
     canAccessRecord,
     quick,
   ])
+  // The arrows in the headers sort the whole filtered list; the page is cut afterwards.
+  const { sorted: sortedRows, sort, onSort } = useTableSort(filtered, {
+    patient: x => (language === 'el' ? x.patient : x.patientEn),
+    name: x => (language === 'en' ? x.employeeNameEn : x.employeeName),
+    department: x => (language === 'el' ? x.department : x.departmentEn),
+    started: x => x.startedAt,
+    date: x => (mode === 'environment' ? x.collectedAt || x.requestedAt : x.startedAt),
+    micro: x => (x.episodes || [x]).map(latestOrganism).find(Boolean),
+    status: x => x.status,
+    review: x => (x.status === 'active' ? x.groupReviewDue ?? x.reviewDue : null),
+    screening: x => (x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', '),
+    result: x => (mode === 'environment' ? x.result : x.resultStatus),
+    surveillance: x => x.code || x.id,
+    point: x => [x.location, x.point].filter(Boolean).join(' · '),
+    batch: x => x.environmentalBatchId,
+  })
+  useEffect(() => { setPage(1) }, [sort])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)),
     safePage = Math.min(page, totalPages),
-    rows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+    rows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const departmentNames = useMemo(
     () =>
       unique(
@@ -581,9 +599,9 @@ export function SurveillanceCanonicalPage() {
             />
           )
         ) : mode === 'patients' ? (
-          <PatientRows loading={loading} rows={rows} showDepartment={!ownDepartmentOnly} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
+          <PatientRows loading={loading} rows={rows} showDepartment={!ownDepartmentOnly} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} sort={sort} onSort={onSort} />
         ) : mode === 'employees' ? (
-          <EmployeeRows loading={loading} rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} />
+          <EmployeeRows loading={loading} rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} sort={sort} onSort={onSort} />
         ) : (
           <EnvironmentalRegistry
             loading={loading}
@@ -596,6 +614,8 @@ export function SurveillanceCanonicalPage() {
             onOpenSample={id => registry.openRecord(navigate, `/surveillance/environment/${id}`, String(id), filtered.map(x => String(x.code || x.id)), { returnState: { surveillanceView: saveView() } })}
             highlightId={registry.highlightId}
             scrollRef={registry.scrollRef}
+            sort={sort}
+            onSort={onSort}
           />
         )}
         {filtered.length > 0 && !showWorklist && (
@@ -679,7 +699,7 @@ function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-function PatientRows({ loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
+function PatientRows({ sort, onSort, loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
     (x.episodes || [x])
       .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
@@ -689,13 +709,15 @@ function PatientRows({ loading = false, rows, showDepartment = true, openRuns = 
       <RegistryTable
         bare
         loading={loading}
+        sort={sort}
+        onSort={onSort}
         columns={[
-          { key: 'patient', label: t('patient') },
-          ...(showDepartment ? [{ key: 'department', label: t('department') }] : []),
-          { key: 'started', label: t('clinicalRecords.startedAt') },
-          { key: 'micro', label: t('microbiology') },
-          { key: 'status', label: t('status') },
-          { key: 'review', label: t('reassessment') },
+          { key: 'patient', label: t('patient'), sortable: true },
+          ...(showDepartment ? [{ key: 'department', label: t('department'), sortable: true }] : []),
+          { key: 'started', label: t('clinicalRecords.startedAt'), sortable: true },
+          { key: 'micro', label: t('microbiology'), sortable: true },
+          { key: 'status', label: t('status'), sortable: true },
+          { key: 'review', label: t('reassessment'), sortable: true },
         ]}
         rows={rows}
         emptyTitle={empty?.title}
@@ -735,20 +757,22 @@ function PatientRows({ loading = false, rows, showDepartment = true, openRuns = 
     </div>
   )
 }
-function EmployeeRows({ loading = false, rows, empty, registry, language, fmt, t, onOpen }) {
+function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, language, fmt, t, onOpen }) {
   const rowId = x => String(x.recordId || x.id)
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
         bare
         loading={loading}
+        sort={sort}
+        onSort={onSort}
         columns={[
-          { key: 'name', label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el') },
-          { key: 'department', label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el') },
-          { key: 'date', label: translate('copy.surveillanceCopy.started', language === 'en' ? 'en' : 'el') },
-          { key: 'screening', label: translate('copy.surveillanceCopy.screening', language === 'en' ? 'en' : 'el') },
-          { key: 'result', label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el') },
-          { key: 'status', label: t('status') },
+          { key: 'name', label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'department', label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'date', label: translate('copy.surveillanceCopy.started', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'screening', label: translate('copy.surveillanceCopy.screening', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'result', label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'status', label: t('status'), sortable: true },
         ]}
         rows={rows}
         emptyTitle={empty?.title}

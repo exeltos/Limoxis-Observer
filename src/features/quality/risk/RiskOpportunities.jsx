@@ -55,7 +55,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
     {actions}
    </div>
   </div>
-  <RegistryTable wrapperClassName="scroll-table risk-table-wrap" className="risk-table risk-opportunity-table" rows={pageRows} rowKey={({item})=>item.id}
+  <RegistryTable sortable={false} wrapperClassName="scroll-table risk-table-wrap" className="risk-table risk-opportunity-table" rows={pageRows} rowKey={({item})=>item.id}
    columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'opportunity',label:L(en,'Ευκαιρία','Opportunity')},{key:'rating',label:L(en,'Απόδοση','Yield')},{key:'plan',label:L(en,'Σχέδιο δράσης','Action plan')},{key:'effect',label:L(en,'Αποτελεσματικότητα','Effectiveness')},{key:'open',label:''}]}
    rowProps={({item})=>({className:`risk-row-clickable${returnedClass(returned,item.id)}`,onClick:()=>onOpen(item)})}
    emptyTitle={all.length?L(en,'Καμία ευκαιρία με αυτά τα φίλτρα.','No opportunity matches these filters.'):L(en,'Δεν έχουν καταγραφεί ευκαιρίες','No opportunities recorded')} emptyText={all.length?'':L(en,'Καταγράψτε τις ευκαιρίες που μπορεί να αξιοποιήσει ο οργανισμός, με το σχέδιο δράσης και την αποτελεσματικότητά του.','Record the opportunities the organization can seize, with their action plan and its effectiveness.')}

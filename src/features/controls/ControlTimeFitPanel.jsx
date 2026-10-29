@@ -98,7 +98,7 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
       {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={timeFitNote(language)} aria-label={timeFitNote(language)}><Info size={15} aria-hidden="true" /></span>
     </div>
-    <RegistryTable
+    <RegistryTable sortable={false}
       className="control-adherence-table control-time-fit-table"
       columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα' }, { key: 'current', label: en ? 'Set times' : 'Ώρες τώρα' }, { key: 'typical', label: en ? 'Usually done' : 'Γίνεται συνήθως' }, { key: 'proposed', label: en ? 'Proposal' : 'Πρόταση' }, { key: 'now', label: en ? 'On time now' : 'Στην ώρα τους τώρα' }, { key: 'after', label: en ? 'With the proposal' : 'Με την πρόταση' }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
       rows={paged}

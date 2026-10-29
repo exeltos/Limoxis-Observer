@@ -147,7 +147,7 @@ export function SurveyRecordPage() {
       actions={<div className="row-actions"><ExportMenu onExcel={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
       footer={shown.length > pageSize && <RegistryPagination language={language} page={safePage} totalPages={pages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />}>
       {filterBar}
-      <RegistryTable className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}
+      <RegistryTable sortable={false} className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}
         columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'department', label: en ? 'Department' : 'Τμήμα' }, { key: 'channel', label: en ? 'Channel' : 'Τρόπος' }, { key: 'overall', label: overall ? textOf(overall, language) : '—' }, { key: 'comment', label: en ? 'Comment' : 'Σχόλιο' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No responses' : 'Δεν υπάρχουν απαντήσεις'} emptyText={en ? 'Answers come in through the link or QR posters; paper forms are entered here.' : 'Οι απαντήσεις έρχονται από τον σύνδεσμο ή τις αφίσες QR· τα έντυπα καταχωρίζονται εδώ.'}
         renderRow={row => <>

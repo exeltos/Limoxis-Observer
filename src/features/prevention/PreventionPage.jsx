@@ -792,7 +792,7 @@ function rowPropsWithOpen(registry, id, onOpen) {
 }
 function HandTable({ rows, t, language, fmtDate, onOpen, registry }) {
   return (
-    <RegistryTable
+    <RegistryTable sortable={false}
       bare
       columns={[
         { key: 'date', label: t('date') },
@@ -829,7 +829,7 @@ function HandTable({ rows, t, language, fmtDate, onOpen, registry }) {
 }
 function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
   return (
-    <RegistryTable
+    <RegistryTable sortable={false}
       bare
       columns={[
         { key: 'period', label: t('period') },
@@ -880,7 +880,7 @@ const DEFAULT_SOURCE = 'direct_measurement'
 function AntisepticTable({ rows, t, language, onOpen, registry }) {
   const showSource = rows.some(x => x.method !== DEFAULT_SOURCE)
   return (
-    <RegistryTable
+    <RegistryTable sortable={false}
       bare
       columns={[
         { key: 'period', label: t('period') },
@@ -935,7 +935,7 @@ function AntisepticTable({ rows, t, language, onOpen, registry }) {
 }
 function BundleTable({ rows, t, language, onOpen, registry }) {
   return (
-    <RegistryTable
+    <RegistryTable sortable={false}
       bare
       columns={[
         { key: 'date', label: t('date') },
@@ -992,7 +992,7 @@ function VaccinationTable({ rows, t, language, fmtDate, employeeMap, onOpen, reg
         ? `${e.lastName} ${e.firstName}`
         : `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
   return (
-    <RegistryTable
+    <RegistryTable sortable={false}
       bare
       columns={[
         { key: 'employee', label: t('employee') },

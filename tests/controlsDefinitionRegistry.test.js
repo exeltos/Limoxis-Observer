@@ -7,7 +7,7 @@ const editor=fs.readFileSync('src/features/controls/ControlEditor.jsx','utf8')
 
 describe('controls definition-centric workflow',()=>{
  it('shows one registry row per control definition using the canonical registry layout',()=>{
-  expect(registry).toContain('<RegistryTable wrapperRef={registry.scrollRef}')
+  expect(registry).toContain('<RegistryTable sortable={false} wrapperRef={registry.scrollRef}')
   expect(registry).toContain('renderRow={({item,departments:deps})=>')
   expect(registry).toContain('<tr key={item.id}')
   expect(registry).toContain('registry.openRecord(navigate,`/controls/${item.id}`')

@@ -59,7 +59,7 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
  return <>
   <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση εκτίμησης ή περιόδου','Search assessment or period')} onClear={()=>setQuery('')}/>
-  <RegistryTable wrapperClassName="scroll-table risk-assessments-table" className="risk-table" rows={pageRows} rowKey={({a})=>a.id}
+  <RegistryTable sortable={false} wrapperClassName="scroll-table risk-assessments-table" className="risk-table" rows={pageRows} rowKey={({a})=>a.id}
    columns={[{key:'period',label:L(en,'Περίοδος','Period')},{key:'title',label:L(en,'Εκτίμηση','Assessment')},{key:'date',label:L(en,'Ημερομηνία','Date')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'veryHigh',label:L(en,'Πολύ υψηλοί','Very high')},{key:'high',label:L(en,'Υψηλοί','High')},{key:'residual',label:L(en,'Μέσος υπολειπόμενος','Avg. residual')},{key:'status',label:L(en,'Κατάσταση','Status')}]}
    rowProps={({a})=>({className:`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`,onClick:()=>open(a.code)})}
    emptyTitle={loading?undefined:L(en,'Δεν υπάρχουν εκτιμήσεις κινδύνου','No risk assessments yet')} emptyText={L(en,'Δημιουργήστε την πρώτη εκτίμηση ή εισαγάγετε το υπάρχον μητρώο σας από Excel.','Create the first assessment or import your existing register from Excel.')}

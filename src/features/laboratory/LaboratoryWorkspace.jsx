@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTableSort } from '../../design-system/useTableSort'
 import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
 import { isCultureSampleType } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
 import { AlertTriangle, Clock3, FlaskConical, Megaphone, Microscope, PackageCheck, Plus, UserPlus, UserRound, UsersRound, Building2 } from 'lucide-react'
@@ -127,9 +128,19 @@ export function LaboratoryWorkspace() {
     : recorded.length ? { title: t('svEmptyFiltered'), text: t('svEmptyFilteredHint'), filtered: true, onClear: clearFilters }
     : { title: language === 'el' ? 'Δεν υπάρχουν εργαστηριακά δείγματα' : 'No laboratory samples', text: canCreate ? (language === 'el' ? 'Καταχωρίστε το πρώτο δείγμα για να ξεκινήσει η εργαστηριακή ροή.' : 'Register the first sample to start the laboratory flow.') : '', icon: FlaskConical, action: canCreate ? { label: registerLabel, icon: Plus, onClick: () => setNewOpen(true) } : null }
   useEffect(() => setPage(1), [query, status, result, department, period, scope, quick, pageSize])
+  // The newest sample first by default; the arrows in the headers sort the whole list, then the page is cut.
+  const { sorted: sortedRows, sort, onSort } = useTableSort(rows, {
+    sample: sample => sample.collectedAt,
+    subject: sample => language === 'el' ? sample.patient : sample.patientEn,
+    type: sample => sampleTypeLabel(sample, t, language),
+    source: sample => sourceLabel(sample),
+    result: sample => labResultLabel(sample, t, language),
+    status: sample => LAB_STATUS_ORDER.indexOf(sample.status),
+  }, { key: 'sample', dir: 'desc' })
+  useEffect(() => { setPage(1) }, [sort])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
-  const pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
 
   async function createSample(draft, confirmed = false) {
     // A «new» patient who is already registered: use the existing one instead (or continue as new).
@@ -210,8 +221,8 @@ export function LaboratoryWorkspace() {
         <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days => <option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </>}/>
       <div className="scroll-table" ref={registry.scrollRef}>
-      <RegistryTable bare className="lab-table" columns={[
-        {key:'sample',label:t('sampleCode')},{key:'subject',label:t('laboratoryRecords.subject')},{key:'type',label:t('sampleType')},{key:'source',label:t('clinicalSource'),className:'lab-col-secondary'},{key:'result',label:t('result')},{key:'status',label:t('status')}
+      <RegistryTable bare className="lab-table" sort={sort} onSort={onSort} columns={[
+        {key:'sample',label:t('sampleCode'),sortable:true},{key:'subject',label:t('laboratoryRecords.subject'),sortable:true},{key:'type',label:t('sampleType'),sortable:true},{key:'source',label:t('clinicalSource'),className:'lab-col-secondary',sortable:true},{key:'result',label:t('result'),sortable:true},{key:'status',label:t('status'),sortable:true}
       ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => { const rp = registry.rowProps(sample.id, () => openSample(sample)); return { ...rp, className: `${rp.className} clickable-row` } }} emptyTitle={empty.title} emptyText={empty.text} emptyFiltered={Boolean(empty.filtered)} onClearFilters={empty.onClear} emptyIcon={empty.icon} emptyAction={empty.action} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
         <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>

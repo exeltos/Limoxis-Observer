@@ -116,7 +116,7 @@ function RegisterList({ entries, loading, filters, setFilters, language, onOpen 
       <FilterSelect label={en ? 'State' : 'Κατάσταση'} value={filters.state} onChange={value => set('state', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{REGISTER_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={entry => entry.text.id} empty={!loading && !entries.length}
+      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={entry => entry.text.id} empty={!loading && !entries.length}
         columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'text', label: en ? 'Text' : 'Κείμενο' }, { key: 'compliance', label: en ? 'Compliance' : 'Συμμόρφωση' }, { key: 'review', label: en ? 'Next review' : 'Επανεξέταση' }, { key: 'state', label: en ? 'State' : 'Κατάσταση' }]}
         emptyTitle={en ? 'No legislation yet' : 'Δεν υπάρχει ακόμη νομοθεσία'} emptyText={en ? 'Texts appear here when the platform publishes them.' : 'Τα κείμενα εμφανίζονται εδώ όταν τα δημοσιεύει η πλατφόρμα.'}
         rowProps={entry => ({ className: 'registry-row-clickable', onClick: () => onOpen(entry) })}
@@ -150,7 +150,7 @@ function LibraryList({ library, language, onOpen }) {
   return <>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search the library…' : 'Αναζήτηση στη βιβλιοθήκη…'} onClear={() => setQuery('')} />
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!library.loading && !rows.length}
+      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!library.loading && !rows.length}
         columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'text', label: en ? 'Text' : 'Κείμενο' }, { key: 'requirements', label: en ? 'Requirements' : 'Απαιτήσεις' }, { key: 'published', label: en ? 'Published' : 'Δημοσίευση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
         emptyTitle={en ? 'The library is empty' : 'Η βιβλιοθήκη είναι κενή'} emptyText={en ? 'Add the texts that apply to hospitals, or start from what the automatic check found.' : 'Προσθέστε τα κείμενα που αφορούν τα νοσοκομεία, ή ξεκινήστε από όσα βρήκε ο αυτόματος έλεγχος.'}
         rowProps={item => ({ className: 'registry-row-clickable', onClick: () => onOpen(item) })}
@@ -181,7 +181,7 @@ function ReviewList({ candidates, texts, language, onChanged, base }) {
     <div className="leg-sources-head"><p className="leg-note">{en ? 'Found by the automatic check of the sources (every 2 hours). Nothing reaches the hospitals until you publish it from the library; you get a morning e-mail when something new is found.' : 'Ό,τι βρήκε ο αυτόματος έλεγχος των πηγών (κάθε 2 ώρες). Τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε από τη βιβλιοθήκη· όταν βρεθεί κάτι νέο, σας έρχεται email το πρωί.'}</p>
       <SearchableSelect hideLabel className="leg-status-filter" label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={next=>next&&(setStatus)(next)} options={[{ value: 'pending', label: en ? 'To review' : 'Προς έλεγχο' }, { value: 'linked', label: en ? 'Added' : 'Καταχωρίστηκαν' }, { value: 'dismissed', label: en ? 'Dismissed' : 'Απορρίφθηκαν' }, { value: 'all', label: en ? 'All' : 'Όλα' }]}/></div>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!candidates.loading && !rows.length}
+      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={item => item.id} empty={!candidates.loading && !rows.length}
         columns={[{ key: 'found', label: en ? 'Found' : 'Βρέθηκε' }, { key: 'item', label: en ? 'Item' : 'Εύρημα' }, { key: 'keywords', label: en ? 'Matched' : 'Λέξεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
         emptyTitle={status === 'pending' ? (en ? 'Nothing to review' : 'Δεν υπάρχει κάτι προς έλεγχο') : (en ? 'Nothing here' : 'Δεν υπάρχουν εγγραφές')} emptyText={en ? 'New items from the sources appear here.' : 'Τα νέα ευρήματα από τις πηγές εμφανίζονται εδώ.'}
         renderRow={item => <>
@@ -233,7 +233,7 @@ function SourcesList({ sources, language, onChanged }) {
       <div className="row-actions"><Button variant="secondary" disabled={busy} onClick={checkNow}><RefreshCw size={15} />{en ? 'Check now' : 'Έλεγχος τώρα'}</Button><Button onClick={() => setEditing({ name: '', url: '', kind: 'rss', keywordsText: '', active: true })}><Plus size={15} />{en ? 'Source' : 'Πηγή'}</Button></div>
     </div>
     <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={sources.items} rowKey={item => item.id} empty={!sources.loading && !sources.items.length}
+      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={sources.items} rowKey={item => item.id} empty={!sources.loading && !sources.items.length}
         columns={[{ key: 'source', label: en ? 'Source' : 'Πηγή' }, { key: 'keywords', label: en ? 'Keywords' : 'Λέξεις-κλειδιά' }, { key: 'checked', label: en ? 'Last check' : 'Τελευταίος έλεγχος' }, { key: 'health', label: en ? 'State' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No sources' : 'Δεν υπάρχουν πηγές'}
         renderRow={item => { const health = sourceHealth(item); return <>

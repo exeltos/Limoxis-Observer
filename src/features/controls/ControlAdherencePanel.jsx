@@ -232,7 +232,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
       <span className="control-info-tip" tabIndex={0} title={tx.adherenceNote} aria-label={tx.adherenceNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
     <AdherenceTrend months={trend} language={language} />
-    <RegistryTable
+    <RegistryTable sortable={false}
       className="control-adherence-table"
       columns={[{ key: 'control', label: byDepartment ? (en ? 'Department / control' : 'Τμήμα / έλεγχος') : (en ? 'Control / department' : 'Έλεγχος / τμήμα') }, { key: 'performed', label: tx.performed }, { key: 'onTime', label: tx.onTime }, { key: 'missed', label: tx.missed }, { key: 'rate', label: tx.adherenceRate }]}
       rows={shown.flatMap(rowsOf)}

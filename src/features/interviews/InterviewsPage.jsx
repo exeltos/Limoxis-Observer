@@ -69,7 +69,7 @@ export function InterviewsPage() {
         <FilterSelect label={en ? 'Position' : 'Θέση'} value={position} onChange={setPosition}><option value="all">{en ? 'All positions' : 'Όλες οι θέσεις'}</option>{positions.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <RegistryTable bare rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={item => item.id}
+        <RegistryTable sortable={false} bare rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={item => item.id}
           columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'name', label: en ? 'Candidate' : 'Υποψήφιος' }, { key: 'position', label: en ? 'Position' : 'Θέση' }, { key: 'applied', label: en ? 'Applied' : 'Αίτηση' }, { key: 'interview', label: en ? 'Interview' : 'Συνέντευξη' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
           rowProps={item => ({ ...registry.rowProps(item.id), onClick: () => open(item), onKeyDown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(item) } } })}
           empty={!rows.length} emptyFiltered={candidates.length > 0} onClearFilters={clear} emptyIcon={Inbox}

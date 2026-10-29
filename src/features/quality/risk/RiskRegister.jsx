@@ -77,7 +77,7 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
    </div>
   </div>
   {cell&&<div className="risk-cell-filter"><span>{L(en,'Φίλτρο από τον χάρτη','Filter from the heat map')}: L{cell.l} × C{cell.c}</span><button type="button" onClick={onClearCell}>{L(en,'Καθαρισμός','Clear')}</button></div>}
-  <RegistryTable wrapperClassName="scroll-table risk-table-wrap" className="risk-table" rows={tableRows} rowKey={row=>row.heading?`section-${row.heading.id}`:row.risk.id||row.risk.lineageKey}
+  <RegistryTable sortable={false} wrapperClassName="scroll-table risk-table-wrap" className="risk-table" rows={tableRows} rowKey={row=>row.heading?`section-${row.heading.id}`:row.risk.id||row.risk.lineageKey}
    columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'process',label:L(en,'Διεργασία / τμήμα','Process / department')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'inherent',label:L(en,'Εγγενής','Inherent')},{key:'residual',label:L(en,'Υπολειπόμενος','Residual'),className:'risk-step'},{key:'target',label:L(en,'Στόχος','Target'),className:'risk-step'},{key:'owner',label:L(en,'Υπεύθυνος','Owner')},{key:'open',label:''}]}
    rowProps={row=>row.heading?{}:{className:`risk-row-clickable${returnedClass(returned,row.risk.lineageKey)}`,onClick:()=>onOpen(row.risk)}}
    emptyTitle={risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')} emptyText={risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}

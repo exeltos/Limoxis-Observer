@@ -499,17 +499,19 @@ export function EnvironmentalRegistry({
   onOpenSample,
   highlightId = '',
   scrollRef,
+  sort,
+  onSort,
 }) {
   // Date, department and batch are the secondary columns: on a narrow screen (tablet)
   // they move under the sample code, so the list never scrolls sideways.
   const columns = [
-    { key: 'surveillance', label: t('surveillance') },
-    { key: 'department', label: t('department'), className: 'env-col-secondary' },
-    { key: 'point', label: t('samplingPoint') },
-    { key: 'date', label: t('samplingDate'), className: 'env-col-secondary' },
-    { key: 'batch', label: t('batch'), className: 'env-col-secondary' },
-    { key: 'result', label: t('result') },
-    { key: 'status', label: t('status') },
+    { key: 'surveillance', label: t('surveillance'), sortable: true },
+    { key: 'department', label: t('department'), className: 'env-col-secondary', sortable: true },
+    { key: 'point', label: t('samplingPoint'), sortable: true },
+    { key: 'date', label: t('samplingDate'), className: 'env-col-secondary', sortable: true },
+    { key: 'batch', label: t('batch'), className: 'env-col-secondary', sortable: true },
+    { key: 'result', label: t('result'), sortable: true },
+    { key: 'status', label: t('status'), sortable: true },
   ]
   const departmentName = row => (language === 'el' ? row.department : row.departmentEn)
   return (
@@ -519,6 +521,8 @@ export function EnvironmentalRegistry({
         loading={loading}
         bare
         className="environment-table"
+        sort={sort}
+        onSort={onSort}
         columns={columns}
         rows={rows}
         rowKey={row => row.code || row.id}

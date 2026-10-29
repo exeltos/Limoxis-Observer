@@ -162,7 +162,7 @@ export function ControlCalendarPanel({ report, language, onOpen }) {
       </ul>
       <span className="control-info-tip" tabIndex={0} title={`${tx.legendCount}: 9/10. ${tx.calendarNote}`} aria-label={tx.calendarNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
-    <RegistryTable
+    <RegistryTable sortable={false}
       className="control-calendar-table"
       columns={[{ key: 'name', label: en ? 'Control' : 'Έλεγχος', className: 'control-calendar-name' }, ...months.map((label, month) => ({ key: label, label, className: isCurrent(month) ? 'current' : undefined })), { key: 'total', label: year, className: 'control-calendar-total' }]}
       rows={shownGroups.flatMap((group) => group.lines.length === 1 ? [{ key: group.item.id, line: group.lines[0], member: false }] : [{ key: `${group.item.id}-group`, group }, ...group.lines.map((line) => ({ key: `${line.item.id}-${line.department}`, line, member: true }))])}
