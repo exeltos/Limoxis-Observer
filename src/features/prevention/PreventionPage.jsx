@@ -21,13 +21,7 @@ import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
-import {
-  createVaccinationsBulkAsync,
-  deleteVaccinationAsync,
-  loadAllVaccinationsAsync,
-  updateVaccinationAsync,
-} from '../occupational-health/vaccinationService'
-import { StaffVaccinationEditor, EMPTY_VACCINATION } from './StaffVaccinationEditor'
+import { loadAllVaccinationsAsync } from '../occupational-health/vaccinationService'
 import { antisepticMethodLabel, antisepticPeriodLabel } from './antisepticMethods'
 import { loadHandHygieneDepartments, loadHandHygieneSessions } from './handHygieneCloudService'
 import { loadAntisepticRecords, loadAntisepticSupportData } from './antisepticCloudService'
@@ -92,7 +86,7 @@ export function PreventionPage() {
   const { t, language } = useLanguage()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { notify, notifyError, confirm } = useFeedback()
+  const { notifyError } = useFeedback()
   const { role, membership, canAccessRecord, tenant } = useTenant()
   const { data: employeeRows } = useEmployeesData()
   const addOns = useMemo(() => membership?.capabilities ?? [], [membership?.capabilities])
@@ -145,8 +139,7 @@ export function PreventionPage() {
     [bundleSupport, setBundleSupport] = useState({ departments: [], templates: [] }),
     [bundleLoading, setBundleLoading] = useState(true)
   const [vaccinationRows, setVaccinationRows] = useState([]),
-    [vaccinationLoading, setVaccinationLoading] = useState(true),
-    [vaccinationEditor, setVaccinationEditor] = useState(null)
+    [vaccinationLoading, setVaccinationLoading] = useState(true)
   const employeeMap = useMemo(() => {
     const out = {}
     for (const x of employeeRows) {
@@ -460,22 +453,8 @@ export function PreventionPage() {
     )
   }
   function openVaccinationRecord(row) {
-    registry.saveViewState({
-      tab: 'vaccinations',
-      query,
-      department,
-      period,
-      product,
-      method,
-      status,
-    })
-    setVaccinationEditor({
-      mode: 'record',
-      draft: { ...row },
-      selectedEmployeeIds: [row.employeeId],
-      selectedEmployee: employeeMap[row.employeeId] || null,
-      readOnly: true,
-    })
+    registry.saveViewState({ tab: 'vaccinations', query, department, period, product, method, status })
+    registry.openRecord(navigate, `/prevention/vaccinations/${row.id}?fromTab=vaccinations`, row.id, rows.map(x => x.id), { returnState: { tab: 'vaccinations' } })
   }
   function clearFilters() {
     setQuery('')
@@ -488,65 +467,13 @@ export function PreventionPage() {
   function createRecord() {
     if (!canCreateRecord) return
     if (tab === 'vaccinations') {
-      setVaccinationEditor({
-        mode: 'individual',
-        draft: { ...EMPTY_VACCINATION },
-        selectedEmployeeIds: [],
-      })
+      navigate('/prevention/vaccinations/new?fromTab=vaccinations')
       return
     }
     navigate(`/prevention/${tab}/new?fromTab=${tab}`)
   }
   function pageAction(action) {
     if (action === UI_ACTIONS.CREATE) createRecord()
-  }
-  async function saveVaccination(payload) {
-    try {
-      if (payload.mode === 'edit') {
-        await updateVaccinationAsync(tenant.id, payload.draft.id, payload.draft)
-        notify(language === 'en' ? 'Vaccination updated.' : t('vaccinationUpdated'), 'success')
-      } else {
-        const selected = employeeRows.filter(x => payload.selectedEmployeeIds.includes(x.id))
-        await createVaccinationsBulkAsync(tenant.id, selected, payload.draft)
-        notify(
-          t(
-            selected.length === 1
-              ? 'copy.preventionCopy.vaccinationSavedOne'
-              : 'copy.preventionCopy.vaccinationSavedMany',
-          ).replace('{count}', selected.length),
-          'success',
-        )
-      }
-      setVaccinationEditor(null)
-      await reloadVaccinations()
-    } catch (error) {
-      notifyError(error, 'save', {
-        operation:
-          payload.mode === 'edit' ? 'staff_vaccinations_update' : 'staff_vaccinations_create',
-      })
-    }
-  }
-  async function deleteVaccination(payload) {
-    if (
-      !(await confirm({
-        title: language === 'en' ? 'Delete vaccination' : t('delete'),
-        message:
-          language === 'en'
-            ? 'Delete this vaccination record? This action cannot be undone.'
-            : t('vaccinationDeleteConfirm'),
-        confirmLabel: language === 'en' ? 'Delete' : t('delete'),
-        danger: true,
-      }))
-    )
-      return
-    try {
-      await deleteVaccinationAsync(tenant.id, payload.draft.id)
-      notify(language === 'en' ? 'Vaccination deleted.' : t('vaccinationDeleted'), 'success')
-      setVaccinationEditor(null)
-      await reloadVaccinations()
-    } catch (error) {
-      notifyError(error, 'delete', { operation: 'staff_vaccinations_delete' })
-    }
   }
   // Placeholders only until the tab's first read ends: a reload after a save keeps the rows.
   const loading =
@@ -745,20 +672,6 @@ export function PreventionPage() {
           />
         )}
       </div>
-      {vaccinationEditor && (
-        <StaffVaccinationEditor
-          language={language}
-          employees={employeeRows.filter(
-            x => x.employmentStatus === 'active' && canAccessRecord(x),
-          )}
-          value={vaccinationEditor}
-          canManage={canCreateRecord}
-          onChange={setVaccinationEditor}
-          onClose={() => setVaccinationEditor(null)}
-          onSave={saveVaccination}
-          onDelete={deleteVaccination}
-        />
-      )}
     </Page>
   )
 }
