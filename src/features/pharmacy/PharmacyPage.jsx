@@ -4,13 +4,15 @@ import { Page } from '../../design-system/Page'
 import { Activity, AlertTriangle, CheckCircle2, Clock3, Building2, Info, Pill, Plus, ShieldCheck, XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { MetricCard } from '../../design-system/MetricCard'
+import { StatusCards } from '../../design-system/StatusCards'
 import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
 import { kpiDelta } from '../../design-system/kpiDelta'
 import { MonthField } from '../../design-system/MonthField'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { DialogActions, ObserverDialog } from '../../design-system/ObserverDialog'
@@ -69,6 +71,8 @@ export function PharmacyPage() {
   const [dialog, setDialog] = useState(false)
   const [showNote, setShowNote] = useState(false)
   const [approvalCounts, setApprovalCounts] = useState({ loading: true, pending: 0, approved: 0, rejected: 0 })
+  const [approvalStatus, setApprovalStatus] = useState('pending')
+  const [indicatorFigures, setIndicatorFigures] = useState({ loading: true, rows: [], from: '', to: '' })
   const deleteItem = useRecordDelete()
   const [filters, setFilters] = useState(noFilters)
   const [page, setPage] = useState(1)
@@ -113,9 +117,18 @@ export function PharmacyPage() {
     return rows.filter(row => (!filters.from || monthOf(row) >= filters.from) && (!filters.to || monthOf(row) <= filters.to) && (!filters.department || row.departmentEl === filters.department) && (!needle || `${row.product} ${row.productEn} ${row.responsible} ${row.referenceNumber}`.toLowerCase().includes(needle)))
       .sort((a, b) => String(b.periodStart || b.period || '').localeCompare(String(a.periodStart || a.period || '')))
   }, [rows, filters])
-  useEffect(() => setPage(1), [filters, pageSize])
+  // The arrows in the headers sort the whole filtered list (newest period first); then the page is cut.
+  const { sorted: sortedRows, sort, onSort } = useTableSort(filtered, {
+    period: row => row.periodStart || row.period,
+    department: row => (en ? row.departmentEn : row.departmentEl),
+    product: row => (en ? (row.productEn || row.product) : row.product),
+    aware: row => awareCategoryFor(row.productEn || row.product) || '',
+    quantity: row => Number(row.quantityGrams),
+    responsible: row => row.responsible,
+  }, { key: 'period', dir: 'desc' })
+  useEffect(() => setPage(1), [filters, pageSize, sort])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)), safePage = Math.min(page, totalPages)
-  const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const paged = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const setFilter = key => value => setFilters(current => ({ ...current, [key]: value }))
   const clearFilters = () => setFilters(noFilters())
   const activeFilters = (filters.from ? 1 : 0) + (filters.to ? 1 : 0) + (filters.department ? 1 : 0)
@@ -136,22 +149,32 @@ export function PharmacyPage() {
       {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
       {canRecord && consumption && (
         <KpiStrip label={en ? 'Consumption figures' : 'Δείκτες κατανάλωσης'}>
-          <KpiCard loading={firstLoad} icon={Pill} label={en ? 'Consumption' : 'Κατανάλωση'} period={kpiPeriod} value={kpis.current ? grams(kpis.current.grams) : null} unit={kpis.current ? gramUnit(kpis.current.grams) : ''} hint={kpis.before ? `${en ? 'previous month' : 'προηγ. μήνας'}: ${grams(kpis.before.grams)} ${gramUnit(kpis.before.grams)}` : null} delta={change(kpis.current?.grams, kpis.before?.grams, { lowerIsBetter: true, percent: true })} />
-          <KpiCard loading={firstLoad} icon={ShieldCheck} label={en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης'} period={kpiPeriod} value={kpis.current?.access == null ? null : number(kpis.current.access)} unit="%" status={kpis.current?.access == null || !byDdd ? null : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'} target={en ? `WHO target ≥ ${ACCESS_TARGET}%` : `στόχος ΠΟΥ ≥ ${ACCESS_TARGET}%`} hint={kpis.current && !byDdd ? (en ? 'of grams: DDD reference missing for some antibiotics' : 'επί γραμμαρίων: λείπει DDD για κάποια αντιβιοτικά') : null} meter={kpis.current?.access} meterTarget={ACCESS_TARGET} delta={sameBasis ? change(kpis.current?.access, kpis.before?.access, { points: true }) : null} />
-          <KpiCard loading={firstLoad} icon={AlertTriangle} label={en ? 'Reserve antibiotics' : 'Εφεδρικά αντιβιοτικά'} period={kpiPeriod} value={kpis.current?.reserve == null ? null : number(kpis.current.reserve)} unit="%" hint={byDdd ? (en ? 'share of consumption (DDD)' : 'μερίδιο κατανάλωσης (DDD)') : (en ? 'share of consumption (g)' : 'μερίδιο κατανάλωσης (g)')} delta={sameBasis ? change(kpis.current?.reserve, kpis.before?.reserve, { lowerIsBetter: true, points: true }) : null} />
-          <KpiCard loading={firstLoad} icon={Building2} label={en ? 'Departments recorded' : 'Τμήματα με καταγραφή'} period={kpiPeriod} value={kpis.current ? `${kpis.current.departments}/${kpis.allDepartments}` : null} status={kpis.current ? (kpis.current.departments >= kpis.allDepartments ? 'good' : 'warning') : null} target={en ? 'every department, every month' : 'όλα τα τμήματα, κάθε μήνα'} />
+          <KpiCard loading={firstLoad} icon={Pill} label={en ? 'Consumption' : 'Κατανάλωση'} period={kpiPeriod} value={kpis.current ? grams(kpis.current.grams) : null} unit={kpis.current ? gramUnit(kpis.current.grams) : ''} delta={change(kpis.current?.grams, kpis.before?.grams, { lowerIsBetter: true, percent: true })} />
+          <KpiCard loading={firstLoad} icon={ShieldCheck} label={en ? 'Access' : 'Πρόσβασης'} period={kpiPeriod} value={kpis.current?.access == null ? null : number(kpis.current.access)} unit="%" status={kpis.current?.access == null || !byDdd ? null : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'} target={en ? `WHO target ≥ ${ACCESS_TARGET}%` : `στόχος ΠΟΥ ≥ ${ACCESS_TARGET}%`} hint={kpis.current && !byDdd ? (en ? 'of grams (no DDD)' : 'επί g (χωρίς DDD)') : null} meter={kpis.current?.access} meterTarget={ACCESS_TARGET} delta={sameBasis ? change(kpis.current?.access, kpis.before?.access, { points: true }) : null} />
+          <KpiCard loading={firstLoad} icon={AlertTriangle} label={en ? 'Reserve' : 'Εφεδρικά'} period={kpiPeriod} value={kpis.current?.reserve == null ? null : number(kpis.current.reserve)} unit="%" hint={byDdd ? (en ? 'share (DDD)' : 'μερίδιο (DDD)') : (en ? 'share (g)' : 'μερίδιο (g)')} delta={sameBasis ? change(kpis.current?.reserve, kpis.before?.reserve, { lowerIsBetter: true, points: true }) : null} />
+          <KpiCard loading={firstLoad} icon={Building2} label={en ? 'Departments' : 'Τμήματα'} hint={en ? 'with a record' : 'με καταγραφή'} period={kpiPeriod} value={kpis.current ? `${kpis.current.departments}/${kpis.allDepartments}` : null} status={kpis.current ? (kpis.current.departments >= kpis.allDepartments ? 'good' : 'warning') : null} target={en ? 'every department, every month' : 'όλα τα τμήματα, κάθε μήνα'} />
+        </KpiStrip>
+      )}
+      {canIndicators && tab === 'indicators' && indicatorFigures.rows.length > 0 && (
+        <KpiStrip label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'} columns={Math.min(indicatorFigures.rows.length, 3)}>
+          {indicatorFigures.rows.slice(0, 3).map(row => {
+            const key = String(row.id || '')
+            const short = key.includes('aware-access') ? (en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης') : key.includes('ddd-per-100') ? (en ? 'DDD / 100 patient-days' : 'DDD / 100 ασθενοημέρες') : (en ? row.titleEn || row.titleEl : row.titleEl)
+            const target = row.target == null ? null : `${en ? 'target' : 'στόχος'} ${row.direction === 'lower' ? '≤' : row.direction === 'higher' ? '≥' : ''} ${number(row.target)}`
+            return <KpiCard key={key} loading={indicatorFigures.loading} icon={Activity} label={short} period={en ? 'year to date' : 'από αρχή έτους'} value={row.value == null ? null : number(row.value)} unit={(en ? row.unitEn : row.unit) === 'DDD/100 ασθενοημέρες' ? '' : (en ? row.unitEn : row.unit)} status={row.status === 'onTarget' ? 'good' : row.status === 'attention' ? 'danger' : null} target={target} />
+          })}
         </KpiStrip>
       )}
       {canApprovals && tab === 'approvals' && (
-        <div className="module-summary-strip">
-          <MetricCard loading={approvalCounts.loading} icon={Clock3} value={approvalCounts.pending} label={en ? 'Pending' : 'Σε αναμονή'} />
-          <MetricCard loading={approvalCounts.loading} icon={CheckCircle2} value={approvalCounts.approved} label={en ? 'Approved' : 'Εγκρίθηκαν'} />
-          <MetricCard loading={approvalCounts.loading} icon={XCircle} value={approvalCounts.rejected} label={en ? 'Rejected' : 'Απορρίφθηκαν'} />
-        </div>
+        <StatusCards label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'} loading={approvalCounts.loading} items={[
+          { key: 'pending', icon: Clock3, label: en ? 'Pending' : 'Σε αναμονή', value: approvalCounts.pending, tone: approvalCounts.pending > 0 ? 'warning' : '', active: approvalStatus === 'pending', onToggle: () => setApprovalStatus(approvalStatus === 'pending' ? 'all' : 'pending') },
+          { key: 'approved', icon: CheckCircle2, label: en ? 'Approved' : 'Εγκρίθηκαν', value: approvalCounts.approved, active: approvalStatus === 'approved', onToggle: () => setApprovalStatus(approvalStatus === 'approved' ? 'all' : 'approved') },
+          { key: 'rejected', icon: XCircle, label: en ? 'Rejected' : 'Απορρίφθηκαν', value: approvalCounts.rejected, active: approvalStatus === 'rejected', onToggle: () => setApprovalStatus(approvalStatus === 'rejected' ? 'all' : 'rejected') },
+        ]} />
       )}
       <section className={`surface registry-workspace workspace-column workspace-fill pharmacy-workspace pharmacy-tab-${tab}`}>
-        {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} />}
-        {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} />}
+        {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} status={approvalStatus} onStatusChange={setApprovalStatus} />}
+        {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} onRows={setIndicatorFigures} />}
         {consumption && !canRecord && <div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div>}
         {consumption && canRecord && <>
           <FilterBar end={<IconButton label={en ? 'About this indicator' : 'Σχετικά με τον δείκτη'} onClick={() => setShowNote(value => !value)}><Info size={16} /></IconButton>} query={filters.query} onQueryChange={setFilter('query')} placeholder={en ? 'Antibiotic, responsible, reference…' : 'Αντιβιοτικό, υπεύθυνος, αριθμός αναφοράς…'} activeAdvancedCount={activeFilters} onClear={clearFilters}>
@@ -178,10 +201,19 @@ export function PharmacyPage() {
           )}
           {!firstLoad && Boolean(rows.length) && (
             <div className="scroll-table" tabIndex={0} role="region" aria-label={t('pharmacy')}>
-              <table className="data-table sticky-table">
-                <thead><tr><th>{en ? 'Period' : 'Περίοδος'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'WHO AWaRe' : 'WHO AWaRe'}</th><th>{en ? 'Quantity' : 'Ποσότητα'}</th><th>{en ? 'Responsible' : 'Υπεύθυνος'}</th></tr></thead>
-                <tbody>{paged.map(row => { const category = awareCategoryFor(row.productEn || row.product); return <tr key={row.id} className="clickable-row" tabIndex={0} onClick={() => setDialog({ row })} onKeyDown={event => { if (event.key === 'Enter') setDialog({ row }) }}><td>{formatPeriod(row.period, en)}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`} title={language === 'el' ? `WHO AWaRe: ${awareCategoryWhoName(category)}` : undefined}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></tr> })}</tbody>
-              </table>
+              <RegistryTable bare sort={sort} onSort={onSort}
+                columns={[
+                  { key: 'period', label: en ? 'Period' : 'Περίοδος', sortable: true },
+                  { key: 'department', label: en ? 'Department' : 'Τμήμα', sortable: true },
+                  { key: 'product', label: en ? 'Antibiotic' : 'Αντιβιοτικό', sortable: true },
+                  { key: 'aware', label: 'WHO AWaRe', sortable: true },
+                  { key: 'quantity', label: en ? 'Quantity' : 'Ποσότητα', sortable: true },
+                  { key: 'responsible', label: en ? 'Responsible' : 'Υπεύθυνος', sortable: true },
+                ]}
+                rows={paged}
+                rowKey={row => row.id}
+                rowProps={row => ({ className: 'clickable-row', tabIndex: 0, onClick: () => setDialog({ row }), onKeyDown: event => { if (event.key === 'Enter') setDialog({ row }) } })}
+                renderRow={row => { const category = awareCategoryFor(row.productEn || row.product); return <><td>{formatPeriod(row.period, en)}</td><td>{en ? row.departmentEn : row.departmentEl}</td><td>{en ? (row.productEn || row.product) : row.product}</td><td>{category ? <span className={`status-badge aware-${category}`} title={language === 'el' ? `WHO AWaRe: ${awareCategoryWhoName(category)}` : undefined}>{awareCategoryLabel(category, language)}</span> : '—'}</td><td>{row.quantityGrams} g</td><td>{row.responsible || '—'}</td></> }} />
               {!filtered.length && <RegistryEmptyState filtered onClearFilters={clearFilters} language={language} />}
             </div>
           )}
