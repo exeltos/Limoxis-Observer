@@ -15,7 +15,7 @@ with pp as (
 select pp.id from pp
 where not (
       -- 1. ασθενείς των Excel (με νοσηλεία· ένα διπλότυπο χωρίς νοσηλεία δεν κρατιέται)
-         (pp.hospital_record_number in (select his from public.rebuild_stage_u) and pp.has_adm)
+         (coalesce(pp.hospital_record_number in (select his from public.rebuild_stage_u), false) and pp.has_adm)
       -- 2. ασθενείς με δηλωτέο νόσημα
       or exists (select 1 from public.notifiable_disease_reports n where n.patient_id = pp.id)
       -- 3. MDR μόνο όταν έχουν τμήμα και νοσηλεία (οι εξωτερικοί MDR χωρίς τμήμα σβήνονται)
