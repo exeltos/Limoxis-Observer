@@ -24,7 +24,7 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, period
     const extra = extraOf(adherence)
     return <KpiStrip label={tr('Τήρηση', 'Adherence')} columns={4}>
       {rateCard}
-      <KpiCard loading={loading} icon={CheckCircle2} label={tr('Έγιναν', 'Done')} period={span} value={adherence.expected ? `${doneOf(adherence)}/${adherence.expected}` : null} hint={extra ? tr(`+${extra} επιπλέον, εκτός προγράμματος`, `+${extra} extra, beyond the programme`) : tr('όσες ζητούσε το πρόγραμμα', 'of those the programme asked for')} />
+      <KpiCard loading={loading} icon={CheckCircle2} label={tr('Έγιναν', 'Done')} period={span} value={adherence.expected ? `${doneOf(adherence)}/${adherence.expected}` : null} hint={extra ? tr(`+${extra} επιπλέον`, `+${extra} extra`) : tr('όσες ζητούσε το πρόγραμμα', 'of those the programme asked for')} />
       <KpiCard loading={loading} icon={Clock} label={tr('Στην ώρα τους', 'On time')} period={span} value={pct(adherence.onTimeRate)} unit="%" meter={adherence.onTimeRate} />
       <KpiCard loading={loading} icon={AlertOctagon} label={tr('Χάθηκαν', 'Missed')} period={span} value={adherence.expected ? adherence.missed : null} status={adherence.expected ? (adherence.missed ? 'danger' : 'good') : null} target={tr('στόχος: 0', 'target: 0')} />
     </KpiStrip>

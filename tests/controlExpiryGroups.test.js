@@ -34,7 +34,9 @@ describe('the page of a control: rates, missed executions and the time of each e
   it('lists the executions of a period with the control time, no email and the missed ones on request', () => {
     expect(record).toContain("{key:'slot',label:en?'Control time':'Ώρα ελέγχου'}")
     expect(record).toContain('from:periodRange(period,new Date()).from')
-    expect(record).toContain("className=\"control-history-missed-switch\"")
+    // The period, the department and the missed ones are selects of one «Filters» button; the date column sorts the whole list.
+    expect(record).toContain("label={en?'Executions':'Εκτελέσεις'}")
+    expect(record).toContain("sort={{key:'at',dir:historyOrder}}")
     expect(record).not.toContain("<small>{h.email||''}</small>")
   })
 })

@@ -18,7 +18,7 @@
   "src/features/committees/minutesApproval.css": 2,
   "src/features/controls/controlAdherence.css": 15,
   "src/features/controls/controlEditor.css": 14,
-  "src/features/controls/controlRecord.css": 10,
+  "src/features/controls/controlRecord.css": 5,
   "src/features/dashboard/dashboard.css": 13,
   "src/features/demo/demoEvaluation.css": 5,
   "src/features/documents/documentForm.css": 5,

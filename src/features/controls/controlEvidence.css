@@ -125,9 +125,6 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-department-list-table th:nth-child(1){width:38%}.control-department-list-table th:nth-child(2),.control-department-list-table th:nth-child(3){width:13%}.control-department-list-table th:nth-child(4){width:14%}
 /* Executions tab: one department or all. */
 .control-history-toolbar{display:flex;justify-content:flex-start;padding:10px 14px;border-bottom:1px solid var(--lo-color-border)}
-.control-history-toolbar label.filter-field{display:inline-flex;flex-direction:row;align-items:center;gap:8px;margin:0}
-.control-history-toolbar label.filter-field>span{white-space:nowrap}
-.control-history-toolbar .filter-field select{height:34px;min-width:200px}
 /* A check's finding (department without a list): what was found, not a live expiry. */
 .control-expiry-finding{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
 /* Record straight from the list (a department's control due today). */

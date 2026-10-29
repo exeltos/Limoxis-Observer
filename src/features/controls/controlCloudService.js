@@ -253,19 +253,19 @@ export async function loadControlByCode(organizationId,code){
 
 // One page of a control's executions (its departments' assignments), latest
 // first, with the total, optionally within [from, to).
-export async function loadControlHistoryPage(organizationId,assignmentIds=[],{page=1,pageSize=15,from=null,to=null}={}){
+export async function loadControlHistoryPage(organizationId,assignmentIds=[],{page=1,pageSize=15,from=null,to=null,order='desc'}={}){
  const ids=[...new Set(assignmentIds.filter(Boolean))]
  if(!ids.length)return {rows:[],total:0}
  const start=(Math.max(1,page)-1)*pageSize
  if(isDemoDataEnvironment()){
-  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>new Date(b.at)-new Date(a.at))
+  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>(order==='asc'?-1:1)*(new Date(b.at)-new Date(a.at)))
   return {rows:rows.slice(start,start+pageSize),total:rows.length}
  }
  assertCloud(organizationId)
  let query=supabase.from('control_executions').select('*',{count:'exact'}).eq('organization_id',organizationId).in('assignment_id',ids)
  if(from)query=query.gte('performed_at',new Date(from).toISOString())
  if(to)query=query.lt('performed_at',new Date(to).toISOString())
- const {data,error,count}=await query.order('performed_at',{ascending:false}).order('id',{ascending:false}).range(start,start+pageSize-1)
+ const {data,error,count}=await query.order('performed_at',{ascending:order==='asc'}).order('id',{ascending:order==='asc'}).range(start,start+pageSize-1)
  if(error)throw error
  return {rows:(data||[]).map(mapExecution),total:count??(data||[]).length}
 }

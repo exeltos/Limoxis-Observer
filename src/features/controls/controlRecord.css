@@ -31,11 +31,7 @@
 /* In the two narrow cards the values go one under the other, never squeezed in two columns. */
 .control-record-shell .control-record-cards .lo-detail-list{grid-template-columns:1fr}
 
-/* A control's own page: the period choice and the missed executions among the entries. */
-.control-record-period button,.control-history-missed-switch button{min-height:30px!important;height:30px!important;padding:0 11px!important;font-size:12.5px!important}
+/* A control's own page: the filters (period, department, missed ones) sit in the «Filters» button. */
 .control-history-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
-.control-history-toolbar .control-record-period{margin-left:auto}
 .control-history-table tr.control-history-missed td{background:var(--lo-status-danger-bg,#fdf1f1)!important}
 .control-history-table tr.control-history-missed td:nth-child(4){color:var(--lo-status-danger-fg)}
-.control-history-missed-switch{flex:0 0 auto}
-.control-history-missed-switch button{white-space:nowrap;width:auto!important;min-width:max-content}
