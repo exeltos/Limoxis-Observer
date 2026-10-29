@@ -159,7 +159,7 @@ describe('List pattern of the Surveillance tabs', () => {
     expect(read('src/features/surveillance/EnvironmentalSurveillanceFlow.jsx')).toContain('<StatusBadge tone={status.tone}>')
     const patients = read('src/features/patients/PatientsPage.jsx')
     expect(patients).toContain("<StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>")
-    expect(patients).toContain("columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')}")
+    expect(patients).toContain("columns={[{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true}")
     // The clinical safety signals (isolation / MDR) keep their badge component.
     expect(patients).toContain('<PatientInfectionFlags')
     expect(patients).toContain('<ClinicalRiskText')
