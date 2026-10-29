@@ -103,3 +103,14 @@
    the shared read-only info sheet, made a little shorter here. The body keeps
    overflow:auto, so longer content still scrolls. */
 /* The result uses the same read-only info sheet as the sample details tab. */
+/* Σχετικά δείγματα: ίδια λήψη και άλλα σημεία του ίδιου τρυβλίου */
+.lab-related-group+.lab-related-group{margin-top:14px;padding-top:14px;border-top:1px solid var(--lo-color-border,#edf1f5)}
+.lab-related-hint{display:block;margin:-4px 0 8px;color:var(--lo-color-text-muted,#5f6f7c);font-size:11.5px}
+.lab-related-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px;margin:0;padding:0;list-style:none}
+.lab-related-list li{display:flex;align-items:baseline;gap:10px;min-width:0;font-size:12.5px}
+.lab-related-list li strong{font-size:12.5px}
+.lab-related-list li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--lo-color-text-muted,#5f6f7c)}
+.lab-related-list li small{margin-left:auto;color:var(--lo-color-text-muted,#5f6f7c)}
+.lab-related-list a{flex:none;white-space:nowrap;text-decoration:none;color:var(--lo-color-primary,#176b9a)}
+.lab-related-list a:hover{text-decoration:underline}
+.lab-related-list{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}

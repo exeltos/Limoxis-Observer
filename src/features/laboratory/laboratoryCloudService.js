@@ -71,6 +71,7 @@ function mapSample(row,patient,department,microbiology=[],specimenType=null){
     recordId:row.id,
     // Who entered the sample: only they (and the admin / infection control lead) may delete it.
     createdBy:row.created_by||null,
+    requestedBy:row.requested_by||null,
     organizationId:row.organization_id,
     patientRecordId:row.patient_id,
     patientId:patient?.patient_code||subjectCode||row.patient_id,
@@ -461,4 +462,11 @@ export function getLaboratoryKpis(rows){
     critical:(rows||[]).filter(row=>row.critical&&!(row.microbiologyResults||[]).some(result=>result.communications?.length)).length,
     avgTatHours:turnaroundHours.length?turnaroundHours.reduce((sum,hours)=>sum+hours,0)/turnaroundHours.length:null,
   }
+}
+
+// The name of who entered a sample (empty when the profile is not readable by the viewer).
+export async function loadSampleRequesterName(userId){
+  if(!userId||!supabase)return ''
+  const {data,error}=await supabase.from('profiles').select('full_name').eq('id',userId).maybeSingle()
+  return error?'':(data?.full_name||'')
 }

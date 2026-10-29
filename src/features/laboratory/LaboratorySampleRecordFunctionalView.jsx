@@ -27,10 +27,12 @@ import { downloadRecordJson } from '../../core/export/recordExport'
 import {
   ENVIRONMENTAL_CATEGORIES,
   resolveEnvironmentalStandard,
+  loadSampleRequesterName,
   sampleTypeLabel,
 } from './laboratoryCloudService'
 import { LaboratoryStatus as Status, labSampleStatus } from './LaboratoryStatus'
-import { LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
+import { LaboratoryRelatedSamples, LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
+import { loadAdmissions } from '../patients/patientsService'
 import { useLaboratoryRepository } from './hooks/useLaboratoryRepository'
 import { useLibraries } from '../management/useLibraries'
 import { sampleProgress, workflowStates } from './laboratorySampleProgress'
@@ -46,7 +48,7 @@ export function LaboratorySampleRecordFunctionalView() {
   const { t, language } = useLanguage()
   const tx = key => copy[language]?.[key] || copy.en[key] || key
   const { notify } = useFeedback()
-  const { role, membership, tenant, canAccessRecord } = useTenant()
+  const { role, membership, tenant, canAccessRecord, isDemo } = useTenant()
   const { libraries } = useLibraries()
   const repository = useLaboratoryRepository()
   // An environmental sample opened from the Surveillance Center stays there:
@@ -87,6 +89,34 @@ export function LaboratorySampleRecordFunctionalView() {
   useEffect(() => {
     reload()
   }, [sampleId, repository]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Samples that belong together, the admission the sample falls in, and who entered it (read-only extras of the card).
+  const [related, setRelated] = useState({ visit: [], plate: [] })
+  const [extras, setExtras] = useState({})
+  useEffect(() => {
+    if (!sample) return undefined
+    let alive = true
+    const isPatient = sample.subjectType !== 'environment' && Boolean(sample.patientId)
+    const hasPlate = Boolean(sample.environmentalPlate)
+    const read = isPatient || hasPlate ? repository.list(isPatient && sample.patientRecordId ? { patientRecordId: sample.patientRecordId } : undefined) : Promise.resolve({ data: [] })
+    read.then(result => {
+      if (!alive) return
+      const rows = (result?.data || []).filter(item => item.id !== sample.id)
+      setRelated({
+        visit: isPatient && sample.collectedAt ? rows.filter(item => item.patientId === sample.patientId && item.collectedAt === sample.collectedAt) : [],
+        plate: hasPlate ? rows.filter(item => item.environmentalBatchId === sample.environmentalBatchId && item.environmentalPlate === sample.environmentalPlate && item.departmentId === sample.departmentId) : [],
+      })
+    }).catch(() => { if (alive) setRelated({ visit: [], plate: [] }) })
+    if (!isDemo) {
+      loadSampleRequesterName(sample.requestedBy).then(name => { if (alive) setExtras(current => ({ ...current, requesterName: name })) }).catch(() => {})
+      if (isPatient && sample.patientRecordId)
+        loadAdmissions(sample.patientRecordId).then(admissions => {
+          const day = String(sample.collectedAt || '').slice(0, 10)
+          const own = [...admissions].filter(item => item.admissionDate && String(item.admissionDate).slice(0, 10) <= day).sort((a, b) => String(b.admissionDate).localeCompare(String(a.admissionDate)))[0]
+          if (alive) setExtras(current => ({ ...current, mdrOnAdmission: Boolean(own?.mdrOnAdmission), mdrOnAdmissionDate: own?.mdrOnAdmissionDate || null }))
+        }).catch(() => {})
+    }
+    return () => { alive = false }
+  }, [sample, repository, isDemo])
   const isEnvironmental =
     sample?.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample?.type)
   // Same rule as the environmental surveillance list (environmentalNeedsAction): a result outside its limits on a sample that is not closed.
@@ -349,7 +379,9 @@ export function LaboratorySampleRecordFunctionalView() {
             language={language}
             fmt={fmt}
             menu={<OverflowMenu items={[...sampleMenu, sampleDelete].filter(Boolean)} />}
+            extras={extras}
           />
+          <LaboratoryRelatedSamples related={related} sample={sample} t={t} language={language} hrefFor={item => (inSurveillance ? `/surveillance/environment/${item.id}` : `/laboratory/${item.id}`)} />
         </div>
       )}
       {tabId === 'result' && (
