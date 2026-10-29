@@ -294,6 +294,7 @@ export function CanonicalSummary({
         [t('admissionDate'), fmtDate(admission.admissionDate)],
         [t('department'), admission.department || '—'],
         [t('clinicalRecords.lengthOfStay'), daysLabel],
+        ...(admission.mdrOnAdmission ? [[t('labSampleFlow.mdrOnAdmission'), admission.mdrOnAdmissionDate ? fmtDate(admission.mdrOnAdmissionDate) : t('yes')]] : []),
       ]
     : [
         [

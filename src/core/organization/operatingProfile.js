@@ -58,7 +58,7 @@ export function profileModules(profile) {
 // Capabilities that belong to each switchable module. Everything not listed here
 // (patients, employees registry, management) is always on.
 const MODULE_CAPABILITIES = Object.freeze({
-  laboratory: [C.VIEW_LAB, C.MANAGE_LAB_SAMPLES, C.VALIDATE_LAB_RESULTS, C.REOPEN_LAB_RECORD],
+  laboratory: [C.VIEW_LAB, C.MANAGE_LAB_SAMPLES, C.REQUEST_LAB_SAMPLES, C.VALIDATE_LAB_RESULTS, C.REOPEN_LAB_RECORD],
   national: [], // ΕΟΔΥ & EARS-Net reports live in Analysis; gated there
   surveillance: [
     C.VIEW_SURVEILLANCE, C.CREATE_SURVEILLANCE, C.EDIT_SURVEILLANCE, C.DELETE_SURVEILLANCE, C.CLOSE_SURVEILLANCE,

@@ -175,6 +175,9 @@ function mapAdmission(row, departmentLabel, departmentType){
     // Where the patient came from (home, other_hospital, ltcf, other): prefills the questionnaire's transfer question.
     admissionSource: row.admission_source || null,
     sourceFacility: row.source_facility || '',
+    // The patient arrived already carrying a multidrug-resistant organism (admission screening, or a resistant result within 2 days).
+    mdrOnAdmission: Boolean(row.mdr_on_admission),
+    mdrOnAdmissionDate: row.mdr_on_admission_date || null,
   }
 }
 
