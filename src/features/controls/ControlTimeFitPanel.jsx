@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
 import { FilterSelect } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
@@ -72,9 +73,19 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
   const scoped = department === 'all' ? lines : lines.filter((line) => line.department === department)
   const changes = scoped.filter((line) => line.changed)
   const shown = onlyChanges ? changes : scoped
-  const totalPages = Math.max(1, Math.ceil(shown.length / pageSize)), safePage = Math.min(page, totalPages)
-  const paged = shown.slice((safePage - 1) * pageSize, safePage * pageSize)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
+  // The arrows in the headers sort the whole list; then the page is cut.
+  const { sorted: sortedLines, sort, onSort } = useTableSort(shown, {
+    control: (line) => title(line.item),
+    current: (line) => timesText(line.current),
+    typical: (line) => line.typical.map((t) => t || '').join(', '),
+    proposed: (line) => (line.changed ? timesText(line.proposed) : null),
+    now: (line) => line.rateNow,
+    after: (line) => line.rateProposed,
+  })
+  useEffect(() => setPage(1), [sort])
+  const totalPages = Math.max(1, Math.ceil(shown.length / pageSize)), safePage = Math.min(page, totalPages)
+  const paged = sortedLines.slice((safePage - 1) * pageSize, safePage * pageSize)
   async function change(line) {
     const ok = await confirm({
       title: en ? 'Change the times' : 'Αλλαγή ωρών',
@@ -98,9 +109,9 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
       {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={timeFitNote(language)} aria-label={timeFitNote(language)}><Info size={15} aria-hidden="true" /></span>
     </div>
-    <RegistryTable sortable={false}
+    <RegistryTable sort={sort} onSort={onSort}
       className="control-adherence-table control-time-fit-table"
-      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα' }, { key: 'current', label: en ? 'Set times' : 'Ώρες τώρα' }, { key: 'typical', label: en ? 'Usually done' : 'Γίνεται συνήθως' }, { key: 'proposed', label: en ? 'Proposal' : 'Πρόταση' }, { key: 'now', label: en ? 'On time now' : 'Στην ώρα τους τώρα' }, { key: 'after', label: en ? 'With the proposal' : 'Με την πρόταση' }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
+      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα', sortable: true }, { key: 'current', label: en ? 'Set times' : 'Ώρες τώρα', sortable: true }, { key: 'typical', label: en ? 'Usually done' : 'Γίνεται συνήθως', sortable: true }, { key: 'proposed', label: en ? 'Proposal' : 'Πρόταση', sortable: true }, { key: 'now', label: en ? 'On time now' : 'Στην ώρα τους τώρα', sortable: true }, { key: 'after', label: en ? 'With the proposal' : 'Με την πρόταση', sortable: true }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
       rows={paged}
       loading={loading}
       rowKey={(line) => `${line.item.id}|${line.department}`}

@@ -12,7 +12,7 @@ const isoDay = (date) => { const d = new Date(date); return `${d.getFullYear()}-
 
 // The key figures of the open tab of «Controls», each with its period and target.
 // expiry: { expired, expiring, departments, withExpired } · timeFit: { changes, rateNow, rateProposed, lines }
-export function ControlsKpis({ view, language, loading, overdue, dueSoon, period, until, adherence, expiry, timeFit, onStatus }) {
+export function ControlsKpis({ view, language, loading, overdue, dueSoon, period, until, adherence, expiry, timeFit, status, onStatus }) {
   const en = language === 'en'
   const tr = (el, english) => (en ? english : el)
   const pct = (value) => (value == null ? null : value)
@@ -46,8 +46,8 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, period
   }
   // «Departments» and «Programme»: what is late, what is due soon and the adherence.
   return <KpiStrip label={tr('Έλεγχοι', 'Controls')} columns={3}>
-    <KpiCard loading={loading} icon={AlertOctagon} label={tr('Εκπρόθεσμοι', 'Overdue')} value={overdue} status={overdue ? 'danger' : 'good'} statusLabel={overdue ? tr('Χρειάζονται ενέργεια', 'Need action') : undefined} target={tr('στόχος: 0', 'target: 0')} onOpen={() => onStatus('overdue')} />
-    <KpiCard loading={loading} icon={AlertTriangle} label={tr('Πλησιάζουν', 'Due soon')} value={dueSoon} status={dueSoon ? 'warning' : null} statusLabel={dueSoon ? tr('Προγραμματίστε', 'Plan them') : undefined} hint={tr('η προθεσμία τους είναι κοντά', 'their deadline is near')} onOpen={() => onStatus('dueSoon')} />
+    <KpiCard loading={loading} icon={AlertOctagon} label={tr('Εκπρόθεσμοι', 'Overdue')} value={overdue} status={overdue ? 'danger' : 'good'} statusLabel={overdue ? tr('Χρειάζονται ενέργεια', 'Need action') : undefined} target={tr('στόχος: 0', 'target: 0')} className={status === 'overdue' ? 'is-active' : ''} onOpen={() => onStatus('overdue')} />
+    <KpiCard loading={loading} icon={AlertTriangle} label={tr('Πλησιάζουν', 'Due soon')} value={dueSoon} status={dueSoon ? 'warning' : null} statusLabel={dueSoon ? tr('Προγραμματίστε', 'Plan them') : undefined} hint={tr('η προθεσμία τους είναι κοντά', 'their deadline is near')} className={status === 'dueSoon' ? 'is-active' : ''} onOpen={() => onStatus('dueSoon')} />
     {rateCard}
   </KpiStrip>
 }

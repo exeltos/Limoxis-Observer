@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, Info } from 'lucide-react'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { downloadCsv } from '../../core/export/csvExport'
 import { escapeHtml, printReport } from '../../core/export/reportDocument'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -211,9 +212,19 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const title = (item) => (en ? item.titleEn || item.title : item.title)
   const pct = (value) => (value == null ? '—' : `${value}%`)
   const groups = useMemo(() => (byDepartment ? groupAdherenceByDepartment(lines) : groupAdherenceLines(lines)), [lines, byDepartment])
+  // The arrows in the headers sort the whole list of groups (worst first by default); then the page is cut.
+  const figures = (group) => group.totals || group.lines[0]
+  const { sorted: sortedGroups, sort, onSort } = useTableSort(groups, {
+    control: (group) => (byDepartment ? group.department : title(group.item)),
+    performed: (group) => doneOf(figures(group)),
+    onTime: (group) => { const row = figures(group); return row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null) },
+    missed: (group) => figures(group).missed,
+    rate: (group) => figures(group).rate,
+  }, { key: null, dir: 'asc' }, byDepartment)
+  useEffect(() => setPage(1), [sort])
   const totalPages = Math.max(1, Math.ceil(groups.length / pageSize))
   const safePage = Math.min(page, totalPages)
-  const shown = groups.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const shown = sortedGroups.slice((safePage - 1) * pageSize, safePage * pageSize)
   const numbers = (row, rowLines, label) => <>
     <td className="control-adherence-done"><b>{doneOf(row)}</b> {en ? 'of' : 'από'} {row.expected}{extraOf(row) > 0 && <small>{extraText(row, en)}</small>}</td>
     <td>{pct(row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null))}{row.late > 0 && <small>{en ? `${row.late} late` : `${row.late} με καθυστέρηση`}</small>}</td>
@@ -232,9 +243,9 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
       <span className="control-info-tip" tabIndex={0} title={tx.adherenceNote} aria-label={tx.adherenceNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
     <AdherenceTrend months={trend} language={language} />
-    <RegistryTable sortable={false}
+    <RegistryTable sort={sort} onSort={onSort}
       className="control-adherence-table"
-      columns={[{ key: 'control', label: byDepartment ? (en ? 'Department / control' : 'Τμήμα / έλεγχος') : (en ? 'Control / department' : 'Έλεγχος / τμήμα') }, { key: 'performed', label: tx.performed }, { key: 'onTime', label: tx.onTime }, { key: 'missed', label: tx.missed }, { key: 'rate', label: tx.adherenceRate }]}
+      columns={[{ key: 'control', label: byDepartment ? (en ? 'Department / control' : 'Τμήμα / έλεγχος') : (en ? 'Control / department' : 'Έλεγχος / τμήμα'), sortable: true }, { key: 'performed', label: tx.performed, sortable: true }, { key: 'onTime', label: tx.onTime, sortable: true }, { key: 'missed', label: tx.missed, sortable: true }, { key: 'rate', label: tx.adherenceRate, sortable: true }]}
       rows={shown.flatMap(rowsOf)}
       rowKey={(entry) => entry.key}
       emptyTitle={failed ? loadFailedText : lines.length ? undefined : tx.noAdherence}
