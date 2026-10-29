@@ -13,7 +13,9 @@ describe('prevention key figures', () => {
       { date: '2026-10-10', departmentEl: 'ΤΕΠ', observations: 10, compliant: 6 },
       { date: '2026-08-01', departmentEl: 'ΤΕΠ', observations: 50, compliant: 0 },
     ], { now })
-    expect(k).toEqual({ rate: 75, opportunities: 20, sessions: 2, departments: 2, below: 1 })
+    expect(k).toEqual({ rate: 75, opportunities: 20, sessions: 2, departments: 2, below: 1, latest: '2026-10-20' })
+    const empty = handHygieneKpis([{ date: '2026-08-01', departmentEl: 'ΤΕΠ', observations: 5, compliant: 4 }], { now })
+    expect(empty).toMatchObject({ rate: null, sessions: 0, below: 0, latest: '2026-08-01' })
   })
 
   it('compares the latest month of waste and antiseptics with the month before, per 1.000 patient days', () => {

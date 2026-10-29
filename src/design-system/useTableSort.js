@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const collator = new Intl.Collator(['el', 'en'], { numeric: true, sensitivity: 'base' })
 const isEmpty = value => value == null || value === ''
@@ -15,8 +15,12 @@ export function sortRowsBy(rows, read, dir = 'asc') {
 
 // Sorting for a registry whose rows are paged by the caller: sort the full list first, then slice the page.
 // accessors maps a column key to a function returning the value to compare. Click cycles ascending → descending.
-export function useTableSort(rows, accessors, initial = { key: null, dir: 'asc' }) {
+// resetKey: when it changes (another tab of the same screen) the sort goes back to `initial`.
+export function useTableSort(rows, accessors, initial = { key: null, dir: 'asc' }, resetKey = null) {
   const [sort, setSort] = useState(initial)
+  const initialRef = useRef(initial)
+  initialRef.current = initial
+  useEffect(() => { setSort(initialRef.current) }, [resetKey])
   const accessorsRef = useRef(accessors)
   accessorsRef.current = accessors
   const onSort = useCallback(key => setSort(current => current.key === key ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }), [])

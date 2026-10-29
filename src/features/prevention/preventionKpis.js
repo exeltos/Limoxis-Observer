@@ -31,7 +31,9 @@ export function handHygieneKpis(rows = [], { now = Date.now() } = {}) {
     const value = rate(list)
     return value != null && value < HAND_HYGIENE_TARGET
   }).length
-  return { rate: rate(recent), opportunities: sum(recent, 'observations'), sessions: recent.length, departments: byDepartment.size, below }
+  // latest: the newest observation of all, so an empty window can say when the last one was.
+  const latest = rows.map(row => String(row.date || '').slice(0, 10)).filter(Boolean).sort().at(-1) || null
+  return { rate: rate(recent), opportunities: sum(recent, 'observations'), sessions: recent.length, departments: byDepartment.size, below, latest }
 }
 
 // The latest month with records against the month before: total and per 1.000 patient days.

@@ -5,6 +5,7 @@ import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { useTableSort } from '../../design-system/useTableSort'
 import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
 import { kpiDelta } from '../../design-system/kpiDelta'
 import { ABHR_TARGET, HAND_HYGIENE_TARGET, antisepticKpis, bundleKpis, handHygieneKpis, wasteKpis } from './preventionKpis'
@@ -393,9 +394,42 @@ export function PreventionPage() {
     reloadBundles,
     reloadVaccinations,
   ])
+  // The arrows in the headers sort the whole filtered list of the tab; the page is cut afterwards.
+  const departmentOf = x => (language === 'el' ? x.departmentEl : x.departmentEn)
+  const sortAccessors = {
+    date: x => x.date || x.period,
+    department: departmentOf,
+    profession: x => (x.profession ? t(x.profession) : ''),
+    observations: x => Number(x.observations),
+    compliant: x => Number(x.compliant),
+    compliance: x => Number(x.rate),
+    observer: x => x.observer,
+    period: x => x.period || x.date,
+    category: x => x.wasteType || x.type,
+    weight: x => Number(x.weight),
+    containers: x => Number(x.containers),
+    indicator: x => (x.indicator == null ? null : Number(x.indicator)),
+    document: x => x.documentNumber,
+    product: x => (language === 'el' ? x.product : x.productEn || x.product),
+    litres: x => Number(x.litres),
+    patientDays: x => Number(x.patientDays),
+    source: x => x.method,
+    bundle: x => x.templateName || x.bundle,
+    context: x => x.shift,
+    score: x => (x.score == null ? null : Number(x.score)),
+    allOrNone: x => (x.allOrNone ? 1 : 0),
+    deviations: x => x.failedCount ?? x.findings?.length ?? 0,
+    employee: x => { const e = employeeMap[x.employeeId]; return e ? `${e.lastName ?? ''} ${e.firstName ?? ''}` : '' },
+    vaccine: x => x.vaccine,
+    dose: x => x.dose,
+    validUntil: x => x.validUntil,
+    status: x => x.status,
+  }
+  const { sorted: sortedRows, sort, onSort } = useTableSort(rows, sortAccessors, { key: null, dir: 'asc' }, tab)
+  useEffect(() => { setPage(1) }, [sort])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)),
     safePage = Math.min(page, totalPages),
-    pagedRows = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
+    pagedRows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const fmtDate = v => dayLabel(v, language)
   const createLabel =
     tab === 'vaccinations'
@@ -632,6 +666,8 @@ export function PreventionPage() {
           {tab === 'handHygiene' && !loading && (
             <HandTable
               rows={pagedRows}
+              sort={sort}
+              onSort={onSort}
               t={t}
               language={language}
               fmtDate={fmtDate}
@@ -642,6 +678,8 @@ export function PreventionPage() {
           {tab === 'waste' && !loading && (
             <WasteTable
               rows={pagedRows}
+              sort={sort}
+              onSort={onSort}
               t={t}
               language={language}
               fmtDate={fmtDate}
@@ -652,6 +690,8 @@ export function PreventionPage() {
           {tab === 'antiseptics' && !loading && (
             <AntisepticTable
               rows={pagedRows}
+              sort={sort}
+              onSort={onSort}
               t={t}
               language={language}
               onOpen={id => openPreventionRecord(id, 'antiseptics')}
@@ -661,6 +701,8 @@ export function PreventionPage() {
           {tab === 'bundles' && !loading && (
             <BundleTable
               rows={pagedRows}
+              sort={sort}
+              onSort={onSort}
               t={t}
               language={language}
               onOpen={id => openPreventionRecord(id, 'bundles')}
@@ -670,6 +712,8 @@ export function PreventionPage() {
           {tab === 'vaccinations' && !loading && (
             <VaccinationTable
               rows={pagedRows}
+              sort={sort}
+              onSort={onSort}
               t={t}
               language={language}
               fmtDate={fmtDate}
@@ -728,7 +772,7 @@ function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
     const k = handHygieneKpis(hand.rows)
     return <KpiStrip label={tr('handHygiene')} columns={3}>
       <KpiCard loading={hand.loading} icon={ShieldCheck} label={tr('whoCompliance')} period={days30} value={fmt(k.rate)} unit="%" status={k.rate == null ? null : k.rate >= HAND_HYGIENE_TARGET ? 'good' : 'danger'} target={tr('handTarget', { value: HAND_HYGIENE_TARGET })} meter={k.rate} meterTarget={HAND_HYGIENE_TARGET} />
-      <KpiCard loading={hand.loading} icon={ClipboardCheck} label={tr('opportunities')} period={days30} value={k.opportunities} hint={tr('handHint', { sessions: k.sessions, departments: k.departments })} />
+      <KpiCard loading={hand.loading} icon={ClipboardCheck} label={tr('opportunities')} period={days30} value={k.opportunities} hint={k.sessions ? tr('handHint', { sessions: k.sessions }) : k.latest ? tr('handNone', { date: dayLabel(k.latest, language) }) : undefined} />
       <KpiCard loading={hand.loading} icon={AlertTriangle} label={tr('belowTarget')} period={days30} value={k.below} status={k.departments ? (k.below ? 'warning' : 'good') : null} target={tr('ofObserved', { departments: k.departments })} />
     </KpiStrip>
   }
@@ -790,18 +834,20 @@ function rowPropsWithOpen(registry, id, onOpen) {
   const rp = registry.rowProps(id)
   return { ...rp, className: `${rp.className} clickable-row`, onClick: () => onOpen(id) }
 }
-function HandTable({ rows, t, language, fmtDate, onOpen, registry }) {
+function HandTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }) {
   return (
-    <RegistryTable sortable={false}
+    <RegistryTable
       bare
+      sort={sort}
+      onSort={onSort}
       columns={[
-        { key: 'date', label: t('date') },
-        { key: 'department', label: t('department') },
-        { key: 'profession', label: t('professionalCategory') },
-        { key: 'observations', label: t('observations') },
-        { key: 'compliant', label: t('compliant') },
-        { key: 'compliance', label: t('compliance') },
-        { key: 'observer', label: t('observer') },
+        { key: 'date', label: t('date'), sortable: true },
+        { key: 'department', label: t('department'), sortable: true },
+        { key: 'profession', label: t('professionalCategory'), sortable: true },
+        { key: 'observations', label: t('observations'), sortable: true },
+        { key: 'compliant', label: t('compliant'), sortable: true },
+        { key: 'compliance', label: t('compliance'), sortable: true },
+        { key: 'observer', label: t('observer'), sortable: true },
       ]}
       rows={rows}
       rowKey={x => x.id}
@@ -827,18 +873,20 @@ function HandTable({ rows, t, language, fmtDate, onOpen, registry }) {
     />
   )
 }
-function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
+function WasteTable({ sort, onSort, rows, t, language, fmtDate, onOpen, registry }) {
   return (
-    <RegistryTable sortable={false}
+    <RegistryTable
       bare
+      sort={sort}
+      onSort={onSort}
       columns={[
-        { key: 'period', label: t('period') },
-        { key: 'department', label: t('department') },
-        { key: 'category', label: t('exportCategory') },
-        { key: 'weight', label: t('weight') },
-        { key: 'containers', label: t('containers') },
-        { key: 'indicator', label: t('preventionIndexWaste') },
-        { key: 'document', label: t('documentNumber') },
+        { key: 'period', label: t('period'), sortable: true },
+        { key: 'department', label: t('department'), sortable: true },
+        { key: 'category', label: t('exportCategory'), sortable: true },
+        { key: 'weight', label: t('weight'), sortable: true },
+        { key: 'containers', label: t('containers'), sortable: true },
+        { key: 'indicator', label: t('preventionIndexWaste'), sortable: true },
+        { key: 'document', label: t('documentNumber'), sortable: true },
       ]}
       rows={rows}
       rowKey={x => x.id}
@@ -877,19 +925,21 @@ function WasteTable({ rows, t, language, fmtDate, onOpen, registry }) {
 // The usual source (direct measurement) is not repeated on every row: the column appears only
 // when some record has another one.
 const DEFAULT_SOURCE = 'direct_measurement'
-function AntisepticTable({ rows, t, language, onOpen, registry }) {
+function AntisepticTable({ sort, onSort, rows, t, language, onOpen, registry }) {
   const showSource = rows.some(x => x.method !== DEFAULT_SOURCE)
   return (
-    <RegistryTable sortable={false}
+    <RegistryTable
       bare
+      sort={sort}
+      onSort={onSort}
       columns={[
-        { key: 'period', label: t('period') },
-        { key: 'department', label: t('department') },
-        { key: 'product', label: t('product') },
-        { key: 'litres', label: t('consumptionLitres') },
-        { key: 'patientDays', label: t('patientDays') },
-        { key: 'indicator', label: t('preventionIndexAbhr') },
-        ...(showSource ? [{ key: 'source', label: t('dataSourceShort') }] : []),
+        { key: 'period', label: t('period'), sortable: true },
+        { key: 'department', label: t('department'), sortable: true },
+        { key: 'product', label: t('product'), sortable: true },
+        { key: 'litres', label: t('consumptionLitres'), sortable: true },
+        { key: 'patientDays', label: t('patientDays'), sortable: true },
+        { key: 'indicator', label: t('preventionIndexAbhr'), sortable: true },
+        ...(showSource ? [{ key: 'source', label: t('dataSourceShort'), sortable: true }] : []),
       ]}
       rows={rows}
       rowKey={x => x.id}
@@ -933,18 +983,20 @@ function AntisepticTable({ rows, t, language, onOpen, registry }) {
     />
   )
 }
-function BundleTable({ rows, t, language, onOpen, registry }) {
+function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
   return (
-    <RegistryTable sortable={false}
+    <RegistryTable
       bare
+      sort={sort}
+      onSort={onSort}
       columns={[
-        { key: 'date', label: t('date') },
-        { key: 'bundle', label: t('bundle') },
-        { key: 'department', label: t('department') },
-        { key: 'context', label: t('context') },
-        { key: 'score', label: t('score') },
-        { key: 'allOrNone', label: t('allOrNone') },
-        { key: 'deviations', label: t('deviations') },
+        { key: 'date', label: t('date'), sortable: true },
+        { key: 'bundle', label: t('bundle'), sortable: true },
+        { key: 'department', label: t('department'), sortable: true },
+        { key: 'context', label: t('context'), sortable: true },
+        { key: 'score', label: t('score'), sortable: true },
+        { key: 'allOrNone', label: t('allOrNone'), sortable: true },
+        { key: 'deviations', label: t('deviations'), sortable: true },
       ]}
       rows={rows}
       rowKey={x => x.id}
@@ -984,7 +1036,7 @@ function BundleTable({ rows, t, language, onOpen, registry }) {
     />
   )
 }
-function VaccinationTable({ rows, t, language, fmtDate, employeeMap, onOpen, registry }) {
+function VaccinationTable({ sort, onSort, rows, t, language, fmtDate, employeeMap, onOpen, registry }) {
   const name = e =>
     !e
       ? '—'
@@ -992,15 +1044,17 @@ function VaccinationTable({ rows, t, language, fmtDate, employeeMap, onOpen, reg
         ? `${e.lastName} ${e.firstName}`
         : `${e.firstNameEn || e.firstName} ${e.lastNameEn || e.lastName}`
   return (
-    <RegistryTable sortable={false}
+    <RegistryTable
       bare
+      sort={sort}
+      onSort={onSort}
       columns={[
-        { key: 'employee', label: t('employee') },
-        { key: 'vaccine', label: t('vaccine') },
-        { key: 'dose', label: t('dose') },
-        { key: 'date', label: t('date') },
-        { key: 'validUntil', label: t('validUntil') },
-        { key: 'status', label: t('status') },
+        { key: 'employee', label: t('employee'), sortable: true },
+        { key: 'vaccine', label: t('vaccine'), sortable: true },
+        { key: 'dose', label: t('dose'), sortable: true },
+        { key: 'date', label: t('date'), sortable: true },
+        { key: 'validUntil', label: t('validUntil'), sortable: true },
+        { key: 'status', label: t('status'), sortable: true },
       ]}
       rows={rows}
       rowKey={x => x.id}
