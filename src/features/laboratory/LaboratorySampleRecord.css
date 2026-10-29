@@ -33,7 +33,7 @@
 .laboratory-record-shell .lab-workflow-next.is-closed span{display:inline;font-size:13px;letter-spacing:0;text-transform:none;color:inherit}
 
 /* Result: the same detail grid as the sample details, the outcome coloured. */
-.laboratory-record-shell .lab-result-value{font-size:inherit!important;font-weight:inherit!important}
+.laboratory-record-shell .lab-result-value{font-size:inherit;font-weight:inherit}
 .laboratory-record-shell .lab-result-value.is-positive{color:#b42318}
 .laboratory-record-shell .lab-result-value.is-negative{color:#166534}
 .laboratory-record-shell .lab-result-critical{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:2px 8px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:11px;font-weight:700}
@@ -56,9 +56,9 @@
 .laboratory-record-shell .lab-amr-strip small{display:block;margin-top:3px;font-size:12px;color:var(--lo-color-muted)}
 .laboratory-record-shell .lab-ast-scroll{border:1px solid var(--lo-color-border);border-radius:10px;overflow:auto}
 .laboratory-record-shell .lab-sir-badge{display:inline-grid;place-items:center;min-width:34px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:800}
-.laboratory-record-shell .lab-sir-badge.sir-s{background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
-.laboratory-record-shell .lab-sir-badge.sir-i{background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
-.laboratory-record-shell .lab-sir-badge.sir-r{background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
+.laboratory-record-shell .lab-sir-badge.sir-s{background:color-mix(in srgb,#16a34a 14%,white)!important;color:#166534!important}
+.laboratory-record-shell .lab-sir-badge.sir-i{background:color-mix(in srgb,#d97706 16%,white)!important;color:#92400e!important}
+.laboratory-record-shell .lab-sir-badge.sir-r{background:color-mix(in srgb,#dc2626 13%,white)!important;color:#991b1b!important}
 
 /* Critical communication */
 .laboratory-record-shell .lab-communication-list{display:flex;flex-direction:column}
@@ -92,6 +92,7 @@
 /* S/I/R keeps its colours on the shared switch (ModeSwitch.css forces the active
    look, so these must too). */
 .lab-sir-choice .lo-mode-switch>button{min-width:56px;justify-content:center}
+/* !important: the shared mode switch sets its active colours with !important (ModeSwitch.css). */
 .lab-sir-choice .lo-mode-switch>button.active:nth-child(1){background:color-mix(in srgb,#16a34a 14%,white)!important;color:#166534!important}
 .lab-sir-choice .lo-mode-switch>button.active:nth-child(2){background:color-mix(in srgb,#d97706 16%,white)!important;color:#92400e!important}
 .lab-sir-choice .lo-mode-switch>button.active:nth-child(3){background:color-mix(in srgb,#dc2626 13%,white)!important;color:#991b1b!important}

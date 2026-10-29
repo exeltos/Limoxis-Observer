@@ -1,5 +1,5 @@
 /* New sample dialog (ObserverDialog, fixed height): numbered steps. */
-.lab-flow-body{padding:0 2px}.lab-flow-section{padding:14px 0;border-bottom:1px solid var(--lo-color-border)}.lab-flow-section:first-child{padding-top:2px}.lab-flow-section:last-child{border-bottom:0}.lab-flow-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px}.lab-flow-heading>span{width:25px;height:25px;flex:0 0 25px;border-radius:50%;display:grid;place-items:center;background:var(--lo-color-primary-soft,#eaf4fb);color:var(--lo-color-primary,#176b9a);font-size:12px;font-weight:800}.lab-flow-heading>div{display:flex;flex-direction:column;gap:2px}.lab-flow-heading strong{font-size:13px;color:var(--lo-color-text)}.lab-flow-heading small{font-size:11px;color:var(--lo-color-text-muted)}.lab-flow-grid{padding:0!important}.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 14px!important}.lab-flow-full{grid-column:1/-1}.lab-collected-pair{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:end}@media(max-width:720px){.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:1fr!important}}.lab-flow-reveal{animation:labFlowReveal .16s ease-out}@keyframes labFlowReveal{from{opacity:.35;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.lab-flow-body{padding:0 2px}.lab-flow-section{padding:14px 0;border-bottom:1px solid var(--lo-color-border)}.lab-flow-section:first-child{padding-top:2px}.lab-flow-section:last-child{border-bottom:0}.lab-flow-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px}.lab-flow-heading>span{width:25px;height:25px;flex:0 0 25px;border-radius:50%;display:grid;place-items:center;background:var(--lo-color-primary-soft,#eaf4fb);color:var(--lo-color-primary,#176b9a);font-size:12px;font-weight:800}.lab-flow-heading>div{display:flex;flex-direction:column;gap:2px}.lab-flow-heading strong{font-size:13px;color:var(--lo-color-text)}.lab-flow-heading small{font-size:11px;color:var(--lo-color-text-muted)}.lab-flow-grid{padding:0}.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px}.lab-flow-full{grid-column:1/-1}.lab-collected-pair{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:end}@media(max-width:720px){.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:1fr}}.lab-flow-reveal{animation:labFlowReveal .16s ease-out}@keyframes labFlowReveal{from{opacity:.35;transform:translateY(-3px)}to{opacity:1;transform:none}}
 
 
 /* Laboratory registry — canonical module pattern */
@@ -15,10 +15,10 @@
 
 /* Registry: the source column is the secondary one; on a narrow screen (tablet)
    it moves under the sample type, so the list never scrolls sideways. */
-.laboratory-registry .lab-table td small.lab-inline-secondary{display:none!important}
+.laboratory-registry .lab-table td small.lab-inline-secondary{display:none}
 @media(max-width:1100px){
 .laboratory-registry .lab-col-secondary{display:none}
-.laboratory-registry .lab-table td small.lab-inline-secondary{display:block!important}
+.laboratory-registry .lab-table td small.lab-inline-secondary{display:block}
 .laboratory-registry .lab-table td:nth-child(n){min-width:0}
 }
 
