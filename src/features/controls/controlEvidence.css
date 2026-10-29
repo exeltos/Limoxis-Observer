@@ -84,11 +84,9 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-entry .control-expiry-group-title{margin:0 0 6px;font-size:13px;font-weight:700;color:var(--lo-color-text)}
 .control-expiry-entry .control-expiry-group-title small{margin-left:6px;color:var(--lo-color-muted);font-weight:600}
 .control-expiry-entry .control-expiry-expected{text-align:center;font-weight:600}
-.controls-status-switch{flex:0 0 auto}
 /* The state of a control in the list: one coloured label on one line, whatever the state. */
 .control-state-badge{white-space:nowrap}
 /* The period of every rate on the page: beside the search, or above the department cards. */
-.controls-period-bar{display:flex;justify-content:flex-end;padding:12px 16px 0}
 .controls-registry-page .controls-period-select{flex:0 0 auto;flex-direction:row;align-items:center;gap:8px}
 .controls-registry-page .controls-period-select .lo-field-label{margin:0}
 .controls-registry-page .controls-period-select select{height:36px;min-height:36px;min-width:120px}
