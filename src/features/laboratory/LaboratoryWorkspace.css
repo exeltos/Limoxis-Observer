@@ -33,3 +33,12 @@
 .plate-positions tbody tr:hover, .plate-positions tbody tr:focus-visible { background: #f3f7fa; outline: none; }
 .plate-positions td small { display: block; margin-top: 2px; color: #5f6f7c; font-size: 12px; }
 .plate-positions .plate-no-result { color: #5f6f7c; }
+/* Δείγματα προς το εργαστήριο: μία γραμμή ανά δείγμα (τύπος, πηγή, θέση), ίδιος ασθενής και ώρα λήψης. */
+.lab-samples .lab-sample-row{display:grid;grid-template-columns:64px minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 150px;gap:10px 14px;align-items:end;padding:8px 0;border-top:1px solid var(--lo-color-border,#edf1f5)}
+.lab-samples .lab-sample-row:first-of-type{border-top:0;padding-top:0}
+.lab-sample-n{align-self:center;padding-top:20px;font-size:12px;font-weight:750;color:var(--lo-color-text-muted,#5f6f7c)}
+.lab-sample-remove{align-self:end}
+.lab-sample-add{margin-top:8px}
+.lab-create-flow .epi-q-mini{padding-top:16px}
+@media(max-width:900px){.lab-samples .lab-sample-row{grid-template-columns:1fr}.lab-sample-n{padding-top:0}}
+.lab-create-shell .lab-create-flow{max-width:1180px;width:100%;margin:0 auto;padding:4px 0 24px}

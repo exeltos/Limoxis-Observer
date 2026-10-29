@@ -9,6 +9,7 @@ import { NotifiableReportsPanel } from './NotifiableReportsPanel'
 import { PlatesPanel } from './PlatesPanel'
 import { canSeeNotifiable } from '../surveillance/forms/sections/notifiableSection'
 import { Page } from '../../design-system/Page'
+import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -29,7 +30,6 @@ import { libraryOptions, useLibraries } from '../management/useLibraries'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { StatusCards } from '../../design-system/StatusCards'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
@@ -153,9 +153,18 @@ export function LaboratoryWorkspace() {
           setPatients(created.list)
         }
       }
-      await createRepositorySample({ patientRecordId: patient?.recordId || null, draft: { ...draft, patient: draft.subjectName, patientEn: draft.subjectNameEn, patientId: draft.subjectCode } })
+      const { extraSamples = [], ...baseDraft } = draft
+      const shared = { patient: baseDraft.subjectName, patientEn: baseDraft.subjectNameEn, patientId: baseDraft.subjectCode }
+      await createRepositorySample({ patientRecordId: patient?.recordId || null, draft: { ...baseDraft, ...shared } })
+      // The other samples of the same visit share the patient, department, time and priority; the questions follow only the cultures.
+      for (const extra of extraSamples) {
+        const fields = { ...extra }
+        delete fields.choice; delete fields.id
+        const { clinicalContext, ...withoutContext } = baseDraft
+        await createRepositorySample({ patientRecordId: patient?.recordId || null, draft: { ...withoutContext, ...fields, ...shared, ...(isCultureSampleType(fields.type) && clinicalContext ? { clinicalContext } : {}) } })
+      }
       setNewOpen(false)
-      notify(t('laboratoryRecords.sampleCreated'), 'success')
+      notify(extraSamples.length ? t('labSampleFlow.createdMany').replace('{n}', String(extraSamples.length + 1)) : t('laboratoryRecords.sampleCreated'), 'success')
     } catch (error) { notify(error?.message || t('actionFailed'), 'error') }
   }
 
@@ -174,6 +183,13 @@ export function LaboratoryWorkspace() {
     <NotifiableReportsPanel organizationId={tenant?.id} isDemo={isDemo} samples={repositoryRows.filter(sample => canAccessRecord(sample))} canCreate creating={notifiableNew} onCreatingChange={setNotifiableNew} />
   </Page>
 
+  const duplicateDialog = duplicate && <DuplicatePatientDialog matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createSample(duplicate.draft, true)} actions={[
+    { key: 'use', label: t('patientDuplicate.useExisting'), onClick: patient => createSample({ ...duplicate.draft, newPatient: false, subjectCode: patient.id, subjectName: patient.name, subjectNameEn: patient.nameEn || patient.name }, true) },
+  ]} />
+  if (newOpen) return <>
+    <NewSampleCard t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>
+    {duplicateDialog}
+  </>
   return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
     {tabs}
     <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
@@ -204,10 +220,7 @@ export function LaboratoryWorkspace() {
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
     </section>
-    {duplicate && <DuplicatePatientDialog matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createSample(duplicate.draft, true)} actions={[
-      { key: 'use', label: t('patientDuplicate.useExisting'), onClick: patient => createSample({ ...duplicate.draft, newPatient: false, subjectCode: patient.id, subjectName: patient.name, subjectNameEn: patient.nameEn || patient.name }, true) },
-    ]} />}
-    {newOpen && <NewSampleCard t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>}
+    {duplicateDialog}
   </Page>
 }
 
@@ -220,14 +233,19 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   const [patientMode, setPatientMode] = useState('')
   const emptyDraft = type => ({ subjectType: type, subjectName: '', subjectNameEn: '', subjectCode: '', newPatient: false, departmentId: '', department: '', departmentEn: '', type: '', specimenTypeId: '', source: '', sourceEn: '', sourceCode: '', environmentType: '', anatomicalSite: '', collectedAt: '', priority: '' })
   const [draft, setDraft] = useState(emptyDraft(''))
+  const [extras, setExtras] = useState([])
   const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
-  function switchSubject(type) { setSubjectType(type); setPatientMode(''); setDraft(emptyDraft(type)) }
+  function switchSubject(type) { setSubjectType(type); setPatientMode(''); setExtras([]); setDraft(emptyDraft(type)) }
   function setDepartment(id) { const item = departments.find(value => value.id === id); setDraft(current => ({ ...current, departmentId: id, department: item?.name || '', departmentEn: item?.nameEn || item?.name || '' })) }
   function choosePatient(id) { const patient = patients.find(item => item.id === id); if (patient) setDraft(current => ({ ...current, subjectName: patient.name, subjectNameEn: patient.nameEn, subjectCode: patient.id, departmentId: patient.departmentId || '', department: patient.department || '', departmentEn: patient.departmentEn || '', newPatient: false })) }
   function chooseEmployee(id) { const employee = employees.find(item => item.id === id); if (employee) setDraft(current => ({ ...current, subjectName: `${employee.lastName} ${employee.firstName}`, subjectNameEn: `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`, subjectCode: employee.id, departmentId: employee.departmentId || '', department: employee.department || '', departmentEn: employee.departmentEn || '' })) }
   const sourceFields = code => { const source = code ? sampleSourceCatalog[code] || { el: code, en: code } : null; return { sourceCode: code || '', source: source?.el || '', sourceEn: source?.en || '' } }
   function setType(value) { const option = typeOptions.find(item => item.value === value); setTypeChoice(option ? value : ''); setDraft(current => ({ ...current, type: option?.type || '', specimenTypeId: option?.specimenTypeId || '', ...sourceFields(option?.source), anatomicalSite: option?.type === current.type ? current.anatomicalSite : '' })) }
   function setSource(code) { setDraft(current => ({ ...current, ...sourceFields(code) })) }
+  const patchExtra = (id, patch) => setExtras(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
+  const addExtra = () => setExtras(current => [...current, { id: `extra-${Date.now()}-${current.length}`, choice: '', type: '', specimenTypeId: '', sourceCode: '', source: '', sourceEn: '', anatomicalSite: '' }])
+  const removeExtra = id => setExtras(current => current.filter(item => item.id !== id))
+  function setExtraType(id, value) { const option = typeOptions.find(item => item.value === value); patchExtra(id, { choice: option ? value : '', type: option?.type || '', specimenTypeId: option?.specimenTypeId || '', ...sourceFields(option?.source), anatomicalSite: '' }) }
   function setEnvType(code) { const item = ENVIRONMENTAL_SAMPLE_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, environmentType: code || '', type: code ? 'environmental' : '', specimenTypeId: '', source: item?.el || '', sourceEn: item?.en || '' })) }
   function setEmployeeSource(code) { const item = EMPLOYEE_SCREENING_TYPES.find(value => value.id === code); setDraft(current => ({ ...current, type: code ? 'surveillance' : '', specimenTypeId: '', sourceCode: code || '', source: item?.el || '', sourceEn: item?.en || '' })) }
   const subjectReady = subjectType === 'patient' ? Boolean(patientMode) : Boolean(subjectType)
@@ -241,7 +259,7 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   const setCollected = (date, time) => set('collectedAt', date ? `${date}T${time || '00:00'}` : '')
   const patientOptions = patients.filter(item => item.status === 'active').map(patient => ({ value: patient.id, label: language === 'el' ? patient.name : patient.nameEn || patient.name, description: [patient.id, language === 'el' ? patient.department : patient.departmentEn || patient.department].filter(Boolean).join(' · ') }))
   const employeeOptions = employees.filter(item => item.employmentStatus === 'active').map(employee => ({ value: employee.id, label: language === 'el' ? `${employee.lastName} ${employee.firstName}` : `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}`, description: [employee.id, language === 'el' ? employee.department : employee.departmentEn || employee.department].filter(Boolean).join(' · ') }))
-  function choosePatientMode(mode) { setPatientMode(mode); setTypeChoice(''); setDraft(current => ({ ...emptyDraft('patient'), newPatient: mode === 'new', collectedAt: current.collectedAt, priority: current.priority })) }
+  function choosePatientMode(mode) { setPatientMode(mode); setTypeChoice(''); setExtras([]); setDraft(current => ({ ...emptyDraft('patient'), newPatient: mode === 'new', collectedAt: current.collectedAt, priority: current.priority })) }
   const typeOptions = useMemo(() => patientSampleTypeOptions(libraries.sampleTypes, language, t), [libraries.sampleTypes, language, t])
   const departmentChoices = departments.map(item => ({ value: item.id, label: en ? item.nameEn || item.name : item.name, description: item.nameEn && item.nameEn !== item.name ? (en ? item.name : item.nameEn) : undefined, keywords: `${item.name} ${item.nameEn || ''}` }))
   const recentDepartments = [...new Set([...recentSamples].sort((a, b) => String(b.collectedAt || '').localeCompare(String(a.collectedAt || ''))).map(sample => sample.department).filter(Boolean))].map(name => departments.find(item => item.name === name)?.id).filter(Boolean)
@@ -249,7 +267,7 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
   const selectText = { emptyLabel: en ? 'No match' : 'Καμία αντιστοιχία', clearLabel: t('surveillanceList.clearSelection') }
   const selectablePatientSources = patientSampleSources(draft.type)
   const sourceLockedBySpecimen = Boolean(draft.sourceCode) && !selectablePatientSources.includes(draft.sourceCode)
-  const miniOn = subjectType === 'patient' && Boolean(patientMode) && isCultureSampleType(draft.type)
+  const miniOn = subjectType === 'patient' && Boolean(patientMode) && (isCultureSampleType(draft.type) || extras.some(item => isCultureSampleType(item.type)))
   const mini = useEpiMini({ enabled: true })
   const form = useFormValidation([
     ...(miniOn ? mini.rules : []),
@@ -264,12 +282,17 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
     subjectReady && { key: 'departmentId', label: t('department'), valid: Boolean(draft.departmentId) },
     subjectType === 'patient' && patientMode && { key: 'type', label: t('sampleType'), valid: Boolean(draft.type && draft.specimenTypeId) },
     subjectType === 'patient' && patientMode && selectablePatientSources.length > 0 && !sourceLockedBySpecimen && { key: 'sourceCode', label: t('collectionSource'), valid: Boolean(draft.sourceCode) },
+    ...(subjectType === 'patient' && patientMode ? extras.flatMap(item => [
+      { key: `${item.id}-type`, label: t('sampleType'), valid: Boolean(item.type && item.specimenTypeId) },
+      patientSampleSources(item.type).length > 0 && !(Boolean(item.sourceCode) && !patientSampleSources(item.type).includes(item.sourceCode)) && { key: `${item.id}-source`, label: t('collectionSource'), valid: Boolean(item.sourceCode) },
+    ]) : []),
     subjectType === 'employee' && { key: 'sourceCode', label: en ? 'Screening type' : 'Τύπος ελέγχου', valid: Boolean(draft.sourceCode) },
     subjectReady && { key: 'priority', label: t('priority'), valid: Boolean(draft.priority) },
     subjectReady && { key: 'collectedDate', label: t('clinicalRecords.collectionDate'), valid: Boolean(draft.collectedAt) },
   ])
 
-  return <ObserverDialog width="standard" className="lab-create-flow" eyebrow={en ? 'NEW LABORATORY SAMPLE' : 'ΝΕΟ ΕΡΓΑΣΤΗΡΙΑΚΟ ΔΕΙΓΜΑ'} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} onClose={onClose} footer={<FormSubmit form={form} onSubmit={() => onSave(miniOn ? { ...draft, clinicalContext: mini.context() } : draft)}>{t('save')}</FormSubmit>}>
+  // «New sample» is a page of its own, like «New patient»: Back returns to the list, the flow runs top to bottom.
+  return <Page fill><EntityRecordShell className="lab-create-shell workspace-fill" avatar={<FlaskConical size={19}/>} eyebrow={t('laboratory')} title={en ? 'Sample registration' : 'Καταχώρηση δείγματος'} subtitle={t('labSampleFlow.pageHelp')} tabs={[]} activeTab="" onTabChange={() => {}} onBack={onClose}><section className="record-section lab-create-flow">
     <div className="lab-flow-body" ref={form.scopeRef}>
       <section className="lab-flow-section" data-field-key="subjectType"><SubjectChoiceStep compact step={1} title={en ? 'Where does the sample come from?' : 'Από πού προέρχεται το δείγμα;'} hint={en ? 'Choose one category to continue.' : 'Επιλέξτε μία κατηγορία για να συνεχίσετε.'} choices={subjectChoices} value={subjectType} onChoose={switchSubject}/>{form.errorFor('subjectType') && <span className="field-error">{form.errorFor('subjectType')}</span>}</section>
 
@@ -281,12 +304,16 @@ function NewSampleCard({ t, language, patients, employees, recentSamples, onClos
         {subjectType === 'employee' && <div className="lab-flow-full"><SearchableSelect label={en ? 'Employee' : 'Εργαζόμενος'} {...form.field('subjectCode')} value={draft.subjectCode} onChange={chooseEmployee} options={employeeOptions} placeholder={en ? 'Search by name or code…' : 'Αναζήτηση με όνομα ή κωδικό…'} emptyLabel={en ? 'No employees found' : 'Δεν βρέθηκαν εργαζόμενοι'} clearLabel={t('surveillanceList.clearSelection')}/></div>}
         {subjectType === 'environment' && <><SearchableSelect label={en ? 'Environmental sample type' : 'Τύπος περιβαλλοντικού δείγματος'} {...form.field('environmentType')} value={draft.environmentType} onChange={setEnvType} options={referenceOptions(ENVIRONMENTAL_SAMPLE_TYPES, language)} placeholder={en ? 'Select type' : 'Επιλέξτε τύπο'} {...selectText}/><SearchableSelect label={draft.environmentType === 'water' ? (en ? 'Sampling point' : 'Σημείο υδροληψίας') : (en ? 'Sampling point / location' : 'Σημείο / χώρος δειγματοληψίας')} {...form.field('subjectName')} value={draft.subjectName} onChange={value => setDraft(current => ({ ...current, subjectName: value || '', subjectNameEn: value || '' }))} options={pointOptions} allowCustom customLabel={text => en ? `Use «${text}»` : `Χρήση «${text}»`} placeholder={en ? 'Search or type a point' : 'Αναζήτηση ή νέο σημείο'} {...selectText}/></>}
         <SearchableSelect label={t('department')} {...form.field('departmentId')} value={draft.departmentId} onChange={setDepartment} options={departmentChoices} recentValues={recentDepartments} recentLabel={en ? 'Recent samples' : 'Πρόσφατα δείγματα'} placeholder={en ? 'Select department' : 'Επιλέξτε τμήμα'} {...selectText}/>
-        {subjectType === 'patient' && <><SearchableSelect label={t('sampleType')} {...form.field('type')} value={draft.type ? typeChoice : ''} onChange={setType} options={typeOptions} placeholder={en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'} {...selectText}/>{selectablePatientSources.length > 0 && !sourceLockedBySpecimen && <SearchableSelect label={t('collectionSource')} {...form.field('sourceCode')} value={draft.sourceCode} disabled={!draft.type} onChange={setSource} options={selectablePatientSources.map(code => ({ value: code, label: t(sampleSourceCatalog[code]?.label || code) }))} placeholder={en ? 'Select source' : 'Επιλέξτε πηγή'} {...selectText}/>}<Field label={t('anatomicalSite')}><input value={draft.anatomicalSite} onChange={event => set('anatomicalSite', event.target.value)}/></Field></>}
         {subjectType === 'employee' && <SearchableSelect label={en ? 'Screening type' : 'Τύπος ελέγχου'} {...form.field('sourceCode')} value={draft.sourceCode} onChange={setEmployeeSource} options={referenceOptions(EMPLOYEE_SCREENING_TYPES, language)} placeholder={en ? 'Select screening type' : 'Επιλέξτε τύπο ελέγχου'} {...selectText}/>}
         <ChoiceField className="lab-flow-priority" label={t('priority')} {...form.field('priority')} placeholder={en ? 'Select priority' : 'Επιλέξτε προτεραιότητα'} value={draft.priority} onChange={value => set('priority', value)} options={LAB_PRIORITIES.map(id => ({ value: id, label: t(id) }))}/>
         <div className="lab-collected-pair"><ManualDateField label={t('clinicalRecords.collectionDate')} {...form.field('collectedDate')} value={collectedDate} onChange={value => setCollected(value, collectedTime)}/><TimeField label={t('copy.clinicalRecordCopy.collectionTime')} value={collectedTime} onChange={value => setCollected(collectedDate, value)} disabled={!collectedDate}/></div>
       </div></section>}
+      {subjectType === 'patient' && patientMode && <section className="lab-flow-section lab-flow-reveal lab-samples"><div className="lab-flow-heading"><span>4</span><div><strong>{t('labSampleFlow.samplesTitle')}</strong><small>{t('labSampleFlow.samplesHint')}</small></div></div>
+        <div className="lab-sample-row"><b className="lab-sample-n">{t('labSampleFlow.sampleN').replace('{n}', '1')}</b><SearchableSelect label={t('sampleType')} {...form.field('type')} value={draft.type ? typeChoice : ''} onChange={setType} options={typeOptions} placeholder={en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'} {...selectText}/>{selectablePatientSources.length > 0 && !sourceLockedBySpecimen ? <SearchableSelect label={t('collectionSource')} {...form.field('sourceCode')} value={draft.sourceCode} disabled={!draft.type} onChange={setSource} options={selectablePatientSources.map(code => ({ value: code, label: t(sampleSourceCatalog[code]?.label || code) }))} placeholder={en ? 'Select source' : 'Επιλέξτε πηγή'} {...selectText}/> : <span/>}<Field label={t('anatomicalSite')}><input value={draft.anatomicalSite} onChange={event => set('anatomicalSite', event.target.value)}/></Field><span/></div>
+        {extras.map((item, index) => { const sources = patientSampleSources(item.type), locked = Boolean(item.sourceCode) && !sources.includes(item.sourceCode); return <div className="lab-sample-row" key={item.id}><b className="lab-sample-n">{t('labSampleFlow.sampleN').replace('{n}', String(index + 2))}</b><SearchableSelect label={t('sampleType')} {...form.field(`${item.id}-type`)} value={item.type ? item.choice : ''} onChange={value => setExtraType(item.id, value)} options={typeOptions} placeholder={en ? 'Select sample type' : 'Επιλέξτε τύπο δείγματος'} {...selectText}/>{sources.length > 0 && !locked ? <SearchableSelect label={t('collectionSource')} {...form.field(`${item.id}-source`)} value={item.sourceCode} disabled={!item.type} onChange={code => patchExtra(item.id, sourceFields(code))} options={sources.map(code => ({ value: code, label: t(sampleSourceCatalog[code]?.label || code) }))} placeholder={en ? 'Select source' : 'Επιλέξτε πηγή'} {...selectText}/> : <span/>}<Field label={t('anatomicalSite')}><input value={item.anatomicalSite} onChange={event => patchExtra(item.id, { anatomicalSite: event.target.value })}/></Field><Button variant="secondary" type="button" className="lab-sample-remove" onClick={() => removeExtra(item.id)} aria-label={t('labSampleFlow.removeSample')}>{t('labSampleFlow.removeSample')}</Button></div> })}
+        <Button variant="secondary" type="button" className="lab-sample-add" onClick={addExtra}><Plus size={14} aria-hidden="true"/>{t('labSampleFlow.addSample')}</Button></section>}
       {miniOn && <EpiMiniQuestions mini={mini} form={form}/>}
     </div>
-  </ObserverDialog>
+    <div className="inline-edit-footer"><FormSubmit form={form} onSubmit={() => onSave({ ...(miniOn ? { ...draft, clinicalContext: mini.context() } : draft), extraSamples: extras })}>{t('save')}</FormSubmit></div>
+  </section></EntityRecordShell></Page>
 }
