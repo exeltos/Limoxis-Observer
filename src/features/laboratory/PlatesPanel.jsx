@@ -68,12 +68,12 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
         <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} />
         <div className="scroll-table">
           <RegistryTable bare className="lab-table lab-plates-table" columns={[
-            { key: 'plate', label: t('labPlates.colPlate') },
-            { key: 'department', label: t('labPlates.colDepartment') },
-            { key: 'positions', label: t('labPlates.colPositions') },
-            { key: 'sampled', label: t('labPlates.colSampled') },
-            { key: 'status', label: t('labPlates.colStatus') },
-            { key: 'results', label: t('labPlates.colResults') },
+            { key: 'plate', label: t('labPlates.colPlate'), sortValue: plate => plate.collectedAt || plate.plate },
+            { key: 'department', label: t('labPlates.colDepartment'), sortValue: plate => departmentOf(plate) },
+            { key: 'positions', label: t('labPlates.colPositions'), sortValue: plate => plate.samples.length },
+            { key: 'sampled', label: t('labPlates.colSampled'), sortValue: plate => plate.collectedAt },
+            { key: 'status', label: t('labPlates.colStatus'), sortValue: plate => plate.status },
+            { key: 'results', label: t('labPlates.colResults'), sortValue: plate => plate.counts.outside },
           ]} rows={shown} loading={loading} rowKey={plate => plate.key}
           rowProps={plate => ({ className: 'clickable-row', tabIndex: 0, onClick: () => setOpenKey(plate.key), onKeyDown: event => { if (event.key === 'Enter') setOpenKey(plate.key) } })}
           emptyTitle={plates.length ? t('svEmptyFiltered') : t('labPlates.empty')} emptyText={plates.length ? t('svEmptyFilteredHint') : t('labPlates.emptyText')} emptyFiltered={plates.length > 0} onClearFilters={clear} emptyIcon={PackageCheck}

@@ -123,12 +123,12 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
         <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={() => { setQuery(''); setQuick('all') }} />
         <div className="scroll-table">
           <RegistryTable bare className="lab-table lab-notifiable-table" columns={[
-            { key: 'disease', label: t('labNotifiable.colDisease') },
-            { key: 'patient', label: t('labNotifiable.colPatient') },
-            { key: 'date', label: t('labNotifiable.colDate') },
-            { key: 'deadline', label: t('labNotifiable.colDeadline') },
-            { key: 'status', label: t('labNotifiable.colStatus') },
-            { key: 'reference', label: t('labNotifiable.colReference') },
+            { key: 'disease', label: t('labNotifiable.colDisease'), sortValue: row => row.title },
+            { key: 'patient', label: t('labNotifiable.colPatient'), sortValue: row => row.patientName },
+            { key: 'date', label: t('labNotifiable.colDate'), sortValue: row => row.date },
+            { key: 'deadline', label: t('labNotifiable.colDeadline'), sortValue: row => { const due = row.status === 'pending' && row.entry ? deadlineDueAt(row.entry.deadline, row.start) : null; return due ? new Date(due).getTime() : null } },
+            { key: 'status', label: t('labNotifiable.colStatus'), sortValue: row => (row.overdue ? '0' : '1') + row.status },
+            { key: 'reference', label: t('labNotifiable.colReference'), sortValue: row => row.report?.reference },
           ]} rows={shown} loading={!loaded} rowKey={row => row.key}
           rowProps={row => ({ className: 'clickable-row', tabIndex: 0, onClick: () => setOpenRow(row), onKeyDown: event => { if (event.key === 'Enter') setOpenRow(row) } })}
           emptyTitle={rows.length ? t('svEmptyFiltered') : t('labNotifiable.empty')} emptyText={rows.length ? t('svEmptyFilteredHint') : t('labNotifiable.emptyText')} emptyFiltered={rows.length > 0} onClearFilters={() => { setQuery(''); setQuick('all') }} emptyIcon={Megaphone}
