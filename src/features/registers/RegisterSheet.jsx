@@ -150,12 +150,12 @@ export function RegisterSheet({ register, entries, onSaved }) {
     : (en ? 'Pick a month to open it.' : 'Πατήστε έναν μήνα για να τον ανοίξετε.')
   const recorded = new Set(monthEntries.map(item => String(item.periodStart)))
   return <RecordTabPanel className="register-sheet" title={isDay ? (en ? 'Entry' : 'Καταχώριση') : isMonth ? (en ? 'The month' : 'Ο μήνας') : (en ? 'The year' : 'Ετήσια εικόνα')} subtitle={subtitle}
+    footer={canEdit && <div className="inline-edit-footer">{dirty && <span className="register-form-errors">{en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές'}</span>}<SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}
     actions={<div className="register-sheet-actions">
       {byDay && <PeriodStepper label={label} onPrevious={() => goTo(dayShift(day, -1))} onNext={() => goTo(dayShift(day, 1))} nextDisabled={day >= today()} />}
       {!byDay && view !== 'year' && <PeriodStepper label={label} onPrevious={() => goToMonth(monthShift(month, -1))} onNext={() => goToMonth(monthShift(month, 1))} nextDisabled={month >= thisMonth()} />}
       {view === 'year' && <PeriodStepper label={year} onPrevious={() => goToMonth(`${Number(year) - 1}${month.slice(4)}`)} onNext={() => goToMonth(`${Number(year) + 1}${month.slice(4)}`)} nextDisabled={Number(year) >= Number(thisMonth().slice(0, 4))} />}
       {view !== 'year' && hasMonth && <StatusBadge tone={locked ? 'neutral' : 'info'} icon={locked ? Lock : undefined}>{locked ? (en ? 'Closed' : 'Κλειστός') : (en ? 'Open' : 'Ανοιχτός')}</StatusBadge>}
-      {canEdit && <SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}
       <SearchableSelect hideLabel className="register-period-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next => next && setView(next)} options={[{ value: 'day', label: en ? 'Day' : 'Ημέρα' }, { value: 'month', label: en ? 'Month' : 'Μήνας' }, { value: 'year', label: en ? 'Year' : 'Έτος' }]} />
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
