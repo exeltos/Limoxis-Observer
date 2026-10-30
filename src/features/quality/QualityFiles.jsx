@@ -1,8 +1,9 @@
 import { useEffect,useRef,useState } from 'react'
-import { Paperclip,Plus,X } from 'lucide-react'
+import { Eye,Paperclip,Plus,X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { FormCard } from '../../design-system/FormCard'
-import { cloudAttachmentsEnabled,loadAttachments,uploadAttachment } from '../../core/attachments/attachmentService'
+import { cloudAttachmentsEnabled,getAttachmentUrl,loadAttachments,uploadAttachment } from '../../core/attachments/attachmentService'
 
 // Files of a quality record: the line on its first tab, and the picker of the create form.
 
@@ -10,8 +11,10 @@ export const MAX_FILES=10
 const MAX_FILE_MB=15
 const fileSize=bytes=>bytes>=1048576?`${(bytes/1048576).toFixed(1)} MB`:`${Math.max(1,Math.round(bytes/1024))} KB`
 
-// «Files (N)» with the first names and a button to the Documents tab, where they are added.
+// «Files (N)»: each name opens the file in a new tab; the button goes to the Documents tab, where they are added.
+const SHOWN_FILES=4
 export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,en}){
+ const {notify}=useFeedback()
  const [loaded,setLoaded]=useState(null)
  const entityId=record.dbId||record.id
  useEffect(()=>{
@@ -20,12 +23,31 @@ export function QualityFilesRow({record,recordType,organizationId,canAdd,onOpen,
   return()=>{active=false}
  },[organizationId,recordType,entityId])
  const files=loaded?.length?loaded:(record.attachments||[])
- const names=files.slice(0,3).map(file=>file.name).filter(Boolean)
+ const canView=file=>Boolean(file.storagePath||file.dataUrl||file.objectUrl||file.url)
+ async function view(file){
+  const direct=file.dataUrl||file.objectUrl||file.url
+  if(!file.storagePath){if(direct)window.open(direct,'_blank','noopener,noreferrer');return}
+  const tab=window.open('about:blank','_blank')
+  try{
+   const url=await getAttachmentUrl(file.storagePath)
+   if(!url){tab?.close();return}
+   if(tab){tab.opener=null;tab.location.href=url}else window.location.assign(url)
+  }catch{
+   tab?.close()
+   notify(en?'The file could not be opened.':'Δεν ήταν δυνατό το άνοιγμα του αρχείου.','error')
+  }
+ }
  return <div className="quality-files-row">
   <Paperclip size={15} aria-hidden="true"/>
   <strong>{en?'Files':'Αρχεία'} ({files.length})</strong>
-  <span>{names.length?`${names.join(', ')}${files.length>names.length?'…':''}`:(en?'No files attached.':'Δεν υπάρχουν επισυνάψεις.')}</span>
-  <Button variant="secondary" onClick={onOpen}>{canAdd?<><Plus size={14}/>{en?'Add':'Προσθήκη'}</>:(en?'Open':'Άνοιγμα')}</Button>
+  <span className="quality-files-list">
+   {files.length?files.slice(0,SHOWN_FILES).map((file,index)=>canView(file)
+    ?<button type="button" key={file.id||index} title={en?`Open ${file.name}`:`Άνοιγμα: ${file.name}`} onClick={()=>view(file)}><Eye size={13} aria-hidden="true"/>{file.name}</button>
+    :<em key={file.id||index}>{file.name}</em>)
+    :(en?'No files attached.':'Δεν υπάρχουν επισυνάψεις.')}
+   {files.length>SHOWN_FILES&&<em>+{files.length-SHOWN_FILES}</em>}
+  </span>
+  <Button variant="secondary" onClick={onOpen}>{canAdd?<><Plus size={14}/>{en?'Add':'Προσθήκη'}</>:(en?'All files':'Όλα τα αρχεία')}</Button>
  </div>
 }
 

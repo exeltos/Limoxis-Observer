@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
 import { KpiFigures } from '../../design-system/KpiCard'
-import { AlertOctagon,AlertTriangle,BarChart3,Building2,FileWarning,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,BarChart3,Building2,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -103,7 +103,7 @@ function dueText(row,en){
  return en?`in ${days} ${days===1?'day':'days'}`:`σε ${days} ${days===1?'ημέρα':'ημέρες'}`
 }
 
-export function ActionsSummary({counts,view,loading,language,onOrphans}){
+export function ActionsSummary({counts,view,loading,language}){
  const en=language==='en'
  const {filters,set}=view
  const toggle=key=>()=>set('quick',filters.quick===key?null:key)
@@ -111,7 +111,7 @@ export function ActionsSummary({counts,view,loading,language,onOrphans}){
   {key:'open',icon:CheckSquare2,value:counts.open,label:en?'Open':'Ανοιχτές',active:filters.quick==='open',go:toggle('open')},
   {key:'overdue',icon:AlertOctagon,value:counts.overdue,label:en?'Overdue':'Εκπρόθεσμες',status:counts.overdue?'danger':'good',target:en?'target: 0':'στόχος: 0',active:filters.quick==='overdue',go:toggle('overdue')},
   {key:'dueSoon',icon:CalendarDays,value:counts.dueSoon,label:en?'Due in 14 days':'Λήγουν σε 14 ημέρες',tone:'warning',active:filters.quick==='dueSoon',go:toggle('dueSoon')},
-  {key:'orphans',icon:FileWarning,value:counts.orphans,label:en?'Deviations without an action':'Αποκλίσεις χωρίς ενέργεια',status:counts.orphans?'danger':'good',target:en?'target: 0':'στόχος: 0',go:onOrphans},
+  {key:'verification',icon:ShieldCheck,value:counts.verification,label:en?'To check for effectiveness':'Για έλεγχο αποτελεσματικότητας',tone:'warning',active:filters.quick==='verification',go:toggle('verification')},
  ]}/>
 }
 
@@ -120,7 +120,11 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
  const {filters,set,clear}=view
  // Findings that still wait for an action are listed under Deviations.
  const actions=useMemo(()=>rows.filter(row=>row.kind==='capa'),[rows])
- const filtered=useMemo(()=>filterActions(actions,filters,en),[actions,filters,en])
+ // Overdue first (the latest on top), then open by the nearest due date, closed ones last.
+ const filtered=useMemo(()=>{
+  const rank=row=>isOverdueAction(row)?0:isOpenRecord(row)?1:2
+  return filterActions(actions,filters,en).sort((a,b)=>rank(a)-rank(b)||(rank(a)<2?String(a.dueDate||'9999').localeCompare(String(b.dueDate||'9999')):String(b.dueDate||b.date||'').localeCompare(String(a.dueDate||a.date||''))))
+ },[actions,filters,en])
  const sortBy={code:row=>row.code,title:row=>titleOf(row,en),source:row=>row.sourceKind,department:row=>departmentOf(row,en),date:row=>row.dueDate,owner:row=>recordOwners(row).join(', '),status:row=>row.status}
  const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
  const statuses=[...new Set(actions.map(row=>row.status).filter(Boolean))]
