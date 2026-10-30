@@ -47,7 +47,7 @@ const STAGE_TONE={toAssess:'warning',investigating:'info',action:'info',effectiv
 export function StageTrack({stage,language}){
  const reached=stage==='closed'?5:INCIDENT_STAGES.indexOf(stage)+1
  return <span className="quality-stage">
-  <span className="quality-stage-track" aria-hidden="true">{[1,2,3,4,5].map(step=><i key={step} className={step<reached?'is-done':step===reached?'is-current':''}/>)}</span>
+  {stage!=='closed'&&stage!=='voided'&&<span className="quality-stage-track" aria-hidden="true">{[1,2,3,4,5].map(step=><i key={step} className={step<reached?'is-done':step===reached?'is-current':''}/>)}</span>}
   <StatusBadge tone={STAGE_TONE[stage]||'neutral'}>{stageLabel(stage,language)}</StatusBadge>
  </span>
 }
@@ -192,6 +192,12 @@ function ageText(row,language){
 const WAITING_DAYS=7
 const waitingDays=row=>{const days=-daysUntil(row.date);return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
 const PERIOD_DAYS={today:0,'7d':7,'30d':30}
+const SEVERITY_RANK={critical:4,high:3,medium:2,low:1}
+// Open records first (sentinel events, then the more severe, then the newest), closed ones after.
+const openFirst=(a,b)=>{
+ const closed=row=>row.stage==='closed'||row.stage==='voided'?1:0
+ return closed(a)-closed(b)||(b.sentinel?1:0)-(a.sentinel?1:0)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
+}
 
 // The line above a register, outside its card (as in Controls): what waits, in figures that filter the list.
 export function ReportSummary({view,loading,language,inbox=false}){
@@ -228,7 +234,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
   return (!quick||(days!=null&&(quick==='waiting'?days>=WAITING_DAYS:quick==='new'?days<WAITING_DAYS:true)))
    &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
    &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
- }):view.filtered,[view.filtered,inbox,quick,filters.period,filters.origin])
+ }):compact?[...view.filtered].sort(openFirst):view.filtered,[view.filtered,inbox,compact,quick,filters.period,filters.origin])
  const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),kind:row=>row.kind,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,stage:row=>row.stage,owner:row=>row.owner,reporter:row=>(row.anonymous?'':row.reporter)}
  const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
  const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
@@ -236,7 +242,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const columns=inbox
   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
   :compact
-   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:t('owner')}]
+   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Kind':'Είδος'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:t('owner')}]
    :null
  const inboxSelects=<>
    <FilterSelect label={en?'Period':'Περίοδος'} value={filters.period} onChange={value=>set('period',value)}><option value="all">{en?'All':'Όλες'}</option><option value="today">{en?'Today':'Σήμερα'}</option><option value="7d">{en?'Last 7 days':'Τελευταίες 7 ημέρες'}</option><option value="30d">{en?'Last 30 days':'Τελευταίες 30 ημέρες'}</option></FilterSelect>
@@ -261,8 +267,8 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
     rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,paging.sorted)})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
-     <td>{compact&&<span className="quality-title-kind" title={kindText(row.kind,language)}><Icon size={14} aria-hidden="true"/></span>}{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
-     {!inbox&&!compact&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
+     <td>{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
+     {!inbox&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
      <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage} language={language}/>}</td>

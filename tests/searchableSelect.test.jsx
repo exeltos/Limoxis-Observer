@@ -25,6 +25,19 @@ describe('SearchableSelect', () => {
     expect(screen.getByText('Πρόσφατα')).toBeTruthy()
   })
 
+  it('opens on the first press and closes on a second press of the open field', () => {
+    const { input } = setup({ value: '' })
+    const press = () => { fireEvent.mouseDown(input); fireEvent.focus(input); fireEvent.click(input) }
+    press()
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.mouseDown(input)
+    fireEvent.click(input)
+    expect(input.getAttribute('aria-expanded')).toBe('false')
+    fireEvent.mouseDown(input)
+    fireEvent.click(input)
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('keeps the first library match on Enter and offers the typed text last', () => {
     const { input, onChange } = setup({ value: '', allowCustom: true })
     fireEvent.change(input, { target: { value: 'Θάλ' } })
