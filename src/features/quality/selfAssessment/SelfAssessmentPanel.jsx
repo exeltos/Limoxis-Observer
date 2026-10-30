@@ -1,12 +1,11 @@
 import { useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle2, ClipboardCheck, Clock3, FileWarning, Plus, Send, Trash2, Undo2, Lock } from 'lucide-react'
+import { ClipboardCheck, Plus, Send, Trash2, Undo2, Lock } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { IconButton } from '../../../design-system/IconButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
-import { KpiFigures } from '../../../design-system/KpiCard'
 import { ExportMenu } from '../../../design-system/ExportMenu'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
@@ -42,12 +41,6 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
   const rows = useMemo(() => filterSelf(list.items, query), [list.items, query])
   const counts = selfCounts(list.items)
   const gaps = list.items.filter(item => item.status === 'submitted').reduce((sum, item) => sum + selfGaps(item.checklist).length, 0)
-  const figures = [
-    { key: 'all', icon: ClipboardCheck, value: counts.total, label: L(en, 'Αυτοαξιολογήσεις', 'Self-assessments'), hint: counts.drafts ? L(en, `${counts.drafts} πρόχειρες`, `${counts.drafts} drafts`) : null },
-    { key: 'progress', icon: Clock3, value: counts.inProgress, label: L(en, 'Σε εξέλιξη', 'In progress'), hint: counts.overdue ? L(en, `${counts.overdue} εκπρόθεσμες`, `${counts.overdue} overdue`) : null, status: counts.overdue ? 'warning' : null },
-    { key: 'submitted', icon: CheckCircle2, value: counts.submitted, label: L(en, 'Υποβλήθηκαν', 'Submitted') },
-    { key: 'gaps', icon: FileWarning, value: gaps, label: L(en, 'Κενά πριν την επιθεώρηση', 'Gaps before the audit'), tone: 'warning' },
-  ]
   async function act(item, status, message) {
     try { await setSelfStatus(tenant?.id, item, status); notify(message, 'success'); await list.reload() } catch (error) { console.error(error); notify(L(en, 'Η ενέργεια δεν ολοκληρώθηκε.', 'The action could not be completed.'), 'error') }
   }
@@ -61,7 +54,23 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
       {canManage && <Button onClick={() => navigate('/quality/self-assessments/new')}><Plus size={15} />{L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')}</Button>}
   </>
   return <>
-    <KpiFigures className="self-kpis" label={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} figures={figures} loading={list.loading} error={list.error} />
+    {!list.loading && !list.error && !list.items.length ? <div className="self-empty">
+      <ClipboardCheck size={30} aria-hidden="true" />
+      <h3>{L(en, 'Η αυτοαξιολόγηση προετοιμάζει το τμήμα πριν την επιθεώρηση', 'Self-assessment prepares the department before the audit')}</h3>
+      <ol className="self-steps">
+        <li><b>1</b><span>{L(en, 'Διαλέγετε ερωτηματολόγιο και τμήματα', 'Choose a questionnaire and departments')}</span></li>
+        <li><b>2</b><span>{L(en, 'Την ενεργοποιείτε: το τμήμα τη βλέπει', 'Release it: the department sees it')}</span></li>
+        <li><b>3</b><span>{L(en, 'Το τμήμα τη συμπληρώνει και τα κενά φαίνονται εδώ', 'The department fills it in and the gaps show here')}</span></li>
+      </ol>
+      {canManage && <Button onClick={() => navigate('/quality/self-assessments/new')}><Plus size={15} />{L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')}</Button>}
+    </div> : <>
+    <p className="quality-summary-line self-summary">
+      <span><b>{counts.total}</b> {L(en, 'αυτοαξιολογήσεις', 'self-assessments')}</span>
+      <span><b>{counts.inProgress}</b> {L(en, 'σε εξέλιξη', 'in progress')}</span>
+      <span><b>{counts.submitted}</b> {L(en, 'υποβλήθηκαν', 'submitted')}</span>
+      {counts.overdue > 0 && <span className="is-late"><b>{counts.overdue}</b> {L(en, 'εκπρόθεσμες', 'overdue')}</span>}
+      <span className={gaps ? 'is-late' : undefined}><b>{gaps}</b> {L(en, 'κενά πριν την επιθεώρηση', 'gaps before the audit')}</span>
+    </p>
     {toolbarSlot ? createPortal(toolbar, toolbarSlot) : <div className="self-toolbar row-actions">{toolbar}</div>}
     <div className="scroll-table">
       <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.items.length > 0} loading={list.loading} error={list.error} onRetry={list.reload}
@@ -83,5 +92,6 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
           </div>}</td>
         </>} />
     </div>
+    </>}
   </>
 }

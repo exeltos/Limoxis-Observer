@@ -87,7 +87,7 @@ export function SelfAssessmentCreatePage() {
             {areas.map(area => <button key={area.value} type="button" onClick={() => addIds(area.ids)}>{areaLabel(area.value, language)} ({area.ids.length})</button>)}
             {picked.length > 0 && <button type="button" className="is-clear" onClick={() => setPicked([])}>{L(en, 'Καθαρισμός', 'Clear')}</button>}
           </div>
-          <label className="self-departments-search"><Search size={14} aria-hidden="true" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={L(en, 'Αναζήτηση τμήματος…', 'Search a department…')} aria-label={L(en, 'Αναζήτηση τμήματος', 'Search a department')} /></label>
+          <div className="self-departments-search"><Search size={15} aria-hidden="true" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={L(en, 'Αναζήτηση τμήματος…', 'Search a department…')} aria-label={L(en, 'Αναζήτηση τμήματος', 'Search a department')} /></div>
         </header>
         <ul className="self-departments-list">
           {shown.map(item => <li key={item.id} className={picked.includes(item.id) ? 'is-on' : undefined}><CheckboxField label={item.name} checked={picked.includes(item.id)} onChange={() => toggle(item.id)} /></li>)}

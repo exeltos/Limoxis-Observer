@@ -25,14 +25,15 @@
 
 /* New self-assessment: one screen. The fields on a line, then a single row (title, area buttons, search) above the departments, which take the room left and scroll only when they do not fit. */
 .self-create-page { display: flex; flex-direction: column; gap: 12px; min-height: 0; height: 100%; }
-.self-create-fields { align-items: end; flex: none; }
+.self-create-page .self-create-fields.lo-form-grid.cols-3 { align-items: end; flex: none; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.3fr) 190px; }
 .self-create-page .self-new-hint { flex: none; }
 .self-departments { display: flex; flex-direction: column; gap: 10px; flex: 1 1 0; min-height: 160px; border-top: 1px solid #edf1f4; padding-top: 12px; }
 .self-departments > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; flex: none; }
 .self-departments > header strong { font-size: 14px; white-space: nowrap; }
 .self-departments > header strong span { margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--text-muted, #606e80); }
-.self-departments .self-departments-search { display: inline-flex; align-items: center; gap: 6px; height: 36px; margin-left: auto; padding: 0 10px; border: 1px solid var(--border, #d5dde6); border-radius: 9px; background: var(--surface, #fff); color: var(--text-muted, #606e80); }
-.self-create-page .self-departments .self-departments-search input { border: 0; outline: 0; background: none; font: inherit; font-size: 13px; width: 200px; height: 34px; padding: 0; line-height: normal; color: inherit; box-shadow: none; }
+.self-departments .self-departments-search { position: relative; margin-left: auto; width: 260px; }
+.self-departments .self-departments-search > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted, #606e80); pointer-events: none; }
+.self-create-page .self-departments .self-departments-search input { width: 100%; padding-left: 34px; }
 .self-departments-quick { display: flex; flex-wrap: wrap; gap: 6px; }
 .self-departments-quick button { height: 30px; padding: 0 12px; border: 1px solid var(--border, #d5dde6); border-radius: 999px; background: var(--surface, #fff); font: inherit; font-size: 12.5px; font-weight: 600; color: var(--primary, #256b9b); cursor: pointer; }
 .self-departments-quick button:hover { background: #eef4fa; }
@@ -45,4 +46,12 @@
 .self-departments-count { margin-right: auto; font-size: 12.5px; color: var(--text-muted, #606e80); }
 .self-create-page > .inline-edit-footer { flex: none; margin-top: 0; }
 .self-create-page input:not([type=checkbox]):not([type=file]):not(.self-departments-search input) { height: 40px; box-sizing: border-box; }
-.self-kpis { margin-top: 12px; }
+
+.self-summary { margin: 6px 0 4px; }
+.self-empty { display: grid; justify-items: center; gap: 14px; margin: 24px auto; padding: 28px 20px; max-width: 760px; text-align: center; color: var(--text-muted, #606e80); }
+.self-empty > svg { color: var(--primary, #256b9b); }
+.self-empty h3 { margin: 0; font-size: 16px; color: var(--text, #1d2939); }
+.self-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; margin: 0; padding: 0; list-style: none; text-align: left; }
+.self-steps li { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid #edf1f4; border-radius: 12px; font-size: 13px; color: var(--text, #1d2939); }
+.self-steps b { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: #eef4fa; color: var(--primary, #256b9b); font-size: 12px; }
+@media (max-width: 900px) { .self-steps { grid-template-columns: minmax(0, 1fr); } }
