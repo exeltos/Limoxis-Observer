@@ -70,7 +70,7 @@ export function EquipmentList({ list, registry = null, filters, setFilters, onOp
   const en = language === 'en'
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterEquipment(list.equipment, filters), [list.equipment, filters])
-  const sortBy = { code: row => row.code, device: row => row.name, department: row => (en ? row.departmentEn : row.department), next: row => row.next?.nextDue || null, programme: row => row.due, status: row => row.state }
+  const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, device: row => row.name, department: row => (en ? row.departmentEn : row.department), next: row => row.next?.nextDue || null, programme: row => row.due, status: row => row.state }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map(item => item.departmentId).filter(Boolean)); return list.departments.filter(item => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
   const advanced = ['department', 'state', 'due', 'criticality'].filter(key => filters[key] !== 'all').length
@@ -83,11 +83,12 @@ export function EquipmentList({ list, registry = null, filters, setFilters, onOp
     </FilterBar>
     <div className="scroll-table" ref={registry?.scrollRef}>
       <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.equipment.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))}
-        columns={withSort([{ key: 'code', label: t('code') }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }], sortBy)}
+        columns={withSort([{ key: 'code', label: t('code') }, { key: 'criticality', label: en ? 'Criticality' : 'Κρισιμότητα' }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }], sortBy)}
         emptyTitle={en ? 'No equipment' : 'Δεν υπάρχει εξοπλισμός'} emptyText={en ? 'Register the devices whose maintenance and calibration you follow.' : 'Καταχωρίστε τον εξοπλισμό του οποίου παρακολουθείτε τη συντήρηση και τη διακρίβωση.'}
         rowProps={row => ({ ...(registry?.rowProps(row.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(row, paging.sorted) })}
         renderRow={row => <>
-          <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
+          <td><strong>{row.code}</strong></td>
+          <td><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></td>
           <td>{row.name}<small>{[row.manufacturer, row.model, row.serialNumber && `S/N ${row.serialNumber}`].filter(Boolean).join(' · ') || '—'}</small></td>
           {showDepartment && <td>{(en ? row.departmentEn : row.department) || '—'}{row.location && <small>{row.location}</small>}</td>}
           <td className="nowrap-cell">{NEXT_LABEL(row, language)}{row.next?.days != null && row.next.days < 0 && <small className="quality-overdue-text">{en ? `${-row.next.days} days late` : `${-row.next.days} ημέρες καθυστέρηση`}</small>}</td>
@@ -110,7 +111,7 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
   const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => { rememberQualitySection('resources:suppliers'); navigate('/quality/suppliers/renewals') }}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{filterEnd}</>
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSuppliers(list.suppliers, filters), [list.suppliers, filters])
-  const sortBy = { code: row => row.code, supplier: row => row.name, evaluation: row => row.latestEvaluation?.evaluatedOn || null, attention: row => supplierNotes(row, language).length, approval: row => row.approval }
+  const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, supplier: row => row.name, evaluation: row => row.latestEvaluation?.evaluatedOn || null, attention: row => supplierNotes(row, language).length, approval: row => row.approval }
   const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = ['category', 'approval', 'criticality'].filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
   return <>
@@ -122,11 +123,12 @@ export function SuppliersList({ list, registry = null, filters, setFilters, onOp
     </FilterBar>
     <div className="scroll-table" ref={registry?.scrollRef}>
       <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.suppliers.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))}
-        columns={withSort([{ key: 'code', label: t('code') }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }], sortBy)}
+        columns={withSort([{ key: 'code', label: t('code') }, { key: 'criticality', label: en ? 'Criticality' : 'Κρισιμότητα' }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }], sortBy)}
         emptyTitle={en ? 'No suppliers' : 'Δεν υπάρχουν προμηθευτές'} emptyText={en ? 'Register the external providers whose products and services affect care.' : 'Καταχωρίστε τους εξωτερικούς παρόχους των οποίων τα προϊόντα και οι υπηρεσίες επηρεάζουν τη φροντίδα.'}
         rowProps={row => ({ ...(registry?.rowProps(row.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(row, paging.sorted) })}
         renderRow={row => { const notes = supplierNotes(row, language); return <>
-          <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
+          <td><strong>{row.code}</strong></td>
+          <td><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></td>
           <td>{row.name}<small>{supplierCategoryLabel(row.category, language)}</small></td>
           <td className="nowrap-cell">{row.latestEvaluation ? `${formatDay(row.latestEvaluation.evaluatedOn, language)} · ${formatPercent(row.score, language)}` : '—'}{row.evaluationDue ? <small className="quality-overdue-text">{en ? 'Evaluation due' : 'Οφείλεται αξιολόγηση'}{row.nextEvaluation ? ` · ${formatDay(row.nextEvaluation, language)}` : ''}</small> : row.nextEvaluation && <small>{en ? 'Next' : 'Επόμενη'} {formatDay(row.nextEvaluation, language)}</small>}</td>
           <td>{notes.length ? <span className="resource-notes">{notes.map(note => <StatusBadge key={note.key} tone={note.tone}>{note.label}</StatusBadge>)}</span> : '—'}</td>
