@@ -41,6 +41,7 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
   headerActions={recordActions({en,canEdit:!readOnly,editing,isNew,onEdit:()=>setEditing(true),onDelete})}
   onBack={onClose} backLabel={L(en,'Πίσω στην εκτίμηση','Back to the assessment')}>
   <div className="risk-editor" key={version}>
+   <div className="risk-editor-col">
    <Step n={1} title={L(en,'Περιγραφή','Description')}>
     <div className="risk-editor-grid risk-editor-grid-description">
      <fieldset className="risk-fieldset risk-span-2" disabled={locked}><ChoiceField label={L(en,'Ενότητα','Section')} value={draft.section} onChange={v=>set('section',v)} options={SECTIONS.map(x=>({value:x.id,label:en?x.en:x.el}))}/></fieldset>
@@ -50,19 +51,6 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
      <div className="risk-span-2">{field('jciReference',L(en,'Πρότυπο / ME','Standard / ME'),{placeholder:L(en,'π.χ. IPSG.5 ME 2','e.g. IPSG.5 ME 2')})}</div>
     </div>
     {area('hazard',L(en,'Πιθανό ρίσκο / κίνδυνος','Potential risk / hazard'),2)}
-   </Step>
-   {/* The order of the assessment: inherent risk, the controls in place, the residual risk they leave, the additional measures, the target. */}
-   <Step n={2} title={L(en,'Αξιολόγηση και μέτρα','Assessment and measures')}>
-    <div className="risk-editor-flow">
-     <ScoreRow kind="inherent" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
-     <MeasureList title={L(en,'Προληπτικά μέτρα που ήδη λαμβάνονται','Controls already in place')} hint={L(en,'μειώνουν τον εγγενή στον υπολειπόμενο κίνδυνο','they bring the inherent risk down to the residual')} value={draft.existingControls} onChange={v=>set('existingControls',v)} en={en} disabled={locked}/>
-     <ScoreRow kind="residual" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
-     {residualLevel&&<p className={`risk-response risk-response-${residualLevel.id}`}><strong>{L(en,'Απαιτούμενη ενέργεια','Required response')}:</strong> {en?residualLevel.responseEn:residualLevel.responseEl}</p>}
-     {s.inherent.c&&s.residual.c&&s.inherent.c!==s.residual.c&&area('consequenceRationale',L(en,'Γιατί άλλαξε η συνέπεια (C) με τα μέτρα;','Why did the consequence (C) change with the controls?'),2)}
-     <MeasureList title={L(en,'Απαιτούμενα πρόσθετα μέτρα (σχέδιο δράσης)','Additional measures required (action plan)')} hint={L(en,'οδηγούν στον κίνδυνο-στόχο','they lead to the target risk')} value={draft.additionalMeasures} onChange={v=>set('additionalMeasures',v)} en={en} disabled={locked}/>
-     <ScoreRow kind="target" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
-    </div>
-    {alerts.length>0&&<ul className="risk-warnings">{alerts.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><AlertTriangle size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
    </Step>
    <Step n={3} title={L(en,'Παρακολούθηση','Monitoring')}>
     <IndicatorPicker risk={draft} values={indicatorValues} en={en} disabled={locked} onChange={keys=>set('indicatorKeys',keys)}/>
@@ -76,6 +64,22 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
     {area('notes',L(en,'Σημειώσεις','Notes'),2)}
     {notes.length>0&&<ul className="risk-warnings">{notes.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><Info size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
    </Step>
+   </div>
+   <div className="risk-editor-col">
+   {/* The order of the assessment: inherent risk, the controls in place, the residual risk they leave, the additional measures, the target. */}
+   <Step n={2} title={L(en,'Αξιολόγηση και μέτρα','Assessment and measures')}>
+    <div className="risk-editor-flow">
+     <ScoreRow kind="inherent" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
+     <MeasureList title={L(en,'Προληπτικά μέτρα που ήδη λαμβάνονται','Controls already in place')} hint={L(en,'μειώνουν τον εγγενή στον υπολειπόμενο κίνδυνο','they bring the inherent risk down to the residual')} value={draft.existingControls} onChange={v=>set('existingControls',v)} en={en} disabled={locked}/>
+     <ScoreRow kind="residual" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
+     {residualLevel&&<p className={`risk-response risk-response-${residualLevel.id}`}><strong>{L(en,'Απαιτούμενη ενέργεια','Required response')}:</strong> {en?residualLevel.responseEn:residualLevel.responseEl}</p>}
+     {s.inherent.c&&s.residual.c&&s.inherent.c!==s.residual.c&&area('consequenceRationale',L(en,'Γιατί άλλαξε η συνέπεια (C) με τα μέτρα;','Why did the consequence (C) change with the controls?'),2)}
+     <MeasureList title={L(en,'Απαιτούμενα πρόσθετα μέτρα (σχέδιο δράσης)','Additional measures required (action plan)')} hint={L(en,'οδηγούν στον κίνδυνο-στόχο','they lead to the target risk')} value={draft.additionalMeasures} onChange={v=>set('additionalMeasures',v)} en={en} disabled={locked}/>
+     <ScoreRow kind="target" draft={draft} s={s} en={en} readOnly={locked} set={set}/>
+    </div>
+    {alerts.length>0&&<ul className="risk-warnings">{alerts.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><AlertTriangle size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
+   </Step>
+   </div>
   </div>
   <div className="risk-editor-actions">
    {locked&&!isNew&&onCreateCapa&&<Button variant="secondary" onClick={()=>onCreateCapa(draft)}><CheckSquare2 size={15}/>{L(en,'Δημιουργία διορθωτικής ενέργειας','Create CAPA')}</Button>}

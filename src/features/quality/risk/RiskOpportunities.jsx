@@ -63,7 +63,7 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
     <td><strong>{code}</strong></td>
     <td className="risk-hazard"><span>{o.activity||'—'}</span>{o.opportunity&&<small className="risk-opportunity-text">{o.opportunity}</small>}</td>
     <td><RatingBadge id={o.ratingId} en={en}/></td>
-    <td className="risk-opportunity-plan">{plan.length?<ol>{plan.map((step,i)=><li key={i}>{step}</li>)}</ol>:<span className="risk-axis-none">{L(en,'Χωρίς σχέδιο δράσης','No action plan')}</span>}{(o.owner||o.timeframe)&&<small>{[o.owner,o.timeframe].filter(Boolean).join(' · ')}</small>}</td>
+    <td className="risk-opportunity-plan">{plan.length?<span className="risk-plan-line" title={plan.join('\n')}><b>{plan.length} {L(en,plan.length===1?'βήμα':'βήματα',plan.length===1?'step':'steps')}</b> · {plan[0]}</span>:<span className="risk-axis-none">{L(en,'Χωρίς σχέδιο δράσης','No action plan')}</span>}{(o.owner||o.timeframe)&&<small>{[o.owner,o.timeframe].filter(Boolean).join(' · ')}</small>}</td>
     <td className="risk-opportunity-effect"><EffectivenessBadge id={o.effectivenessStatus} en={en}/>{o.effectiveness&&<small>{o.effectiveness}</small>}</td>
     <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα ευκαιρίας','Open the opportunity')} onClick={e=>{e.stopPropagation();onOpen(item)}}><ChevronRight size={15}/></button></td>
    </>}/>

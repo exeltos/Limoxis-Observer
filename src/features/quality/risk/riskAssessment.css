@@ -315,8 +315,6 @@
 .risk-editor-actions{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:8px;padding:12px 2px;margin-top:8px;border-top:1px solid var(--lo-color-border);background:var(--lo-card-bg,#fff);z-index:5}
 
 /* Analysis: KPI strip with the menu, decisions first, counts under each map, one breakdown table. */
-.risk-analysis-head{display:flex;align-items:flex-start;gap:10px}
-.risk-analysis-head>.module-summary-strip{flex:1 1 auto}
 .risk-analysis-side{display:flex;flex-direction:column;gap:12px;min-width:0}
 .risk-level-counts{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0 22px;padding:0;list-style:none;font-size:11.5px;color:var(--lo-color-muted)}
 .risk-level-counts li{display:inline-flex;align-items:center;gap:5px}
@@ -482,3 +480,27 @@
 .risk-split-bar>i{display:block;height:100%}
 .risk-split-nums{display:flex;gap:4px}
 .risk-split-nums>b{min-width:22px;padding:1px 6px;border-radius:999px;font-size:11px;text-align:center}
+
+/* Opportunities: the action plan as one line (the steps are on the opportunity). */
+.risk-plan-line{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;line-height:1.35}
+.risk-plan-line>b{font-weight:700;color:var(--lo-color-primary)}
+
+/* Details: the approval cycle as one slim bar with the next step beside it. */
+.risk-approval-bar{display:flex;flex-direction:row;align-items:center;gap:16px;padding:8px 14px}
+.risk-approval-bar .risk-approval{flex:1 1 auto;grid-template-columns:repeat(4,minmax(0,1fr))}
+.risk-approval-bar .risk-approval li{flex-direction:row;justify-content:flex-start;align-items:center;gap:6px;padding:0 6px;text-align:left}
+.risk-approval-bar .risk-approval li::before{display:none}
+.risk-approval-bar .risk-approval-dot{width:20px;height:20px;font-size:11px;border-width:1.5px;flex:none}
+.risk-approval-bar .risk-approval small{display:none}
+.risk-approval-bar .risk-approval li strong{font-size:12.5px;font-weight:600;white-space:nowrap}
+
+/* The risk form on two columns: description and monitoring on the left, the assessment on the right; the buttons stay at the foot. */
+.risk-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px 28px;align-items:start}
+.risk-editor-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.risk-editor-col .risk-editor-step:first-child{padding-top:0;border-top:0}
+.risk-editor .risk-editor-grid-description{grid-template-columns:repeat(4,minmax(0,1fr))}
+.risk-editor .risk-editor-grid-description .risk-span-4{grid-column:span 2}
+.risk-editor .risk-editor-grid-monitoring{grid-template-columns:repeat(2,minmax(0,1fr))}
+.risk-editor .risk-stage{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 110px}
+.risk-editor .risk-stage>header{grid-column:1/-1}
+@media(max-width:1100px){.risk-editor{grid-template-columns:minmax(0,1fr)}}

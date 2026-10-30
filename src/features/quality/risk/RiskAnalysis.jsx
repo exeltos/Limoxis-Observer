@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { FigureCards } from '../../../design-system/FigureCards'
 import { LEVELS,jciLabel,levelForScore,scored,sectionLabel } from './riskModel'
 import { L,LevelChip,LevelLegend,RiskHeatMap,defaultFrame,returnedClass,txt } from './riskUi'
 import { RiskIndicatorTable } from './RiskIndicatorsUi'
@@ -56,31 +55,20 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
  const [group,setGroup]=useState('process')
  // The heat-map cell the user came back from stays marked.
  const [mk,ml,mc]=String(mark).split(':'),marked=mk&&ml&&mc&&['inherent','residual','target'].includes(mk)?{kind:mk,l:Number(ml),c:Number(mc)}:null
- const high=summary.levels.residual.high+summary.levels.residual.very_high
  const map=(kind,title,caption,extra={})=><div className="risk-heatmap-cell">
   <RiskHeatMap heat={summary.heat[kind]} en={en} title={title} caption={caption} onCell={c=>onCell({...c,kind})} active={marked?.kind===kind?marked:null} {...extra}/>
   <LevelCounts counts={summary.levels[kind]} en={en}/>
  </div>
- const kpis=<div className="risk-analysis-head">
-  <FigureCards className="quality-summary-line risk-summary-line">
+ return frame(null,<div className="risk-analysis">
+  <p className="quality-summary-line risk-analysis-line">
    <span><b>{summary.total}</b> {L(en,'κίνδυνοι','risks')}</span>
-   <span className={summary.levels.residual.very_high?'is-late':undefined}><b>{summary.levels.residual.very_high}</b> {L(en,'πολύ υψηλοί (μετά τα μέτρα)','very high (after measures)')}</span>
-   <span><b>{summary.levels.residual.high}</b> {L(en,'υψηλοί (μετά τα μέτρα)','high (after measures)')}</span>
+   <span className={summary.levels.residual.very_high?'is-late':undefined}><b>{summary.levels.residual.very_high}</b> {L(en,'πολύ υψηλοί','very high')}</span>
+   <span><b>{summary.levels.residual.high}</b> {L(en,'υψηλοί','high')}</span>
    <span><b>{num(summary.averages.residual,en)}</b> {L(en,'μέσος υπολειπόμενος','average residual')}</span>
-   <span><b>{summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'}</b> {L(en,'μέση μείωση από τον εγγενή','average reduction')}</span>
-   <span className={summary.withoutPlan.length?'is-late':undefined}><b>{summary.withoutPlan.length}</b> {L(en,'υψηλοί χωρίς σχέδιο δράσης','high without a plan')}</span>
-  </FigureCards>
-  {actions}
- </div>
- return frame(kpis,<div className="risk-analysis">
-  <p className="risk-hint">{L(en,`${high} από ${summary.total} κινδύνους παραμένουν υψηλοί ή πολύ υψηλοί με τα υφιστάμενα μέτρα.`,`${high} of ${summary.total} risks stay high or very high with the existing controls.`)}</p>
-  <div className="risk-two-columns risk-analysis-decide">
-   <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
-   <div className="risk-analysis-side">
-    <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/></section>
-    <section className="risk-panel"><header><h3>{L(en,'Επιλεγμένοι για FMEA','Selected for FMEA')}</h3><small>{L(en,'Προληπτική ανάλυση της περιόδου','This period’s proactive analysis')}</small></header><RiskList risks={summary.prioritized} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Δεν έχει επιλεγεί κίνδυνος. Επιλέξτε τον μέσα στον κίνδυνο (Παρακολούθηση → FMEA).','No risk selected yet. Select it in the risk (Monitoring → FMEA).')}/></section>
-   </div>
-  </div>
+   <span><b>{summary.reduction.percent!=null?`${summary.reduction.percent}%`:'—'}</b> {L(en,'μέση μείωση','average reduction')}</span>
+   <span className={summary.withoutPlan.length?'is-late':undefined}><b>{summary.withoutPlan.length}</b> {L(en,'υψηλοί χωρίς σχέδιο','high without a plan')}</span>
+   {actions}
+  </p>
   <section className="risk-panel"><header><h3>{L(en,'Χάρτες κινδύνου','Risk heat maps')}</h3><LevelLegend en={en}/></header>
    <div className="risk-heatmaps">
     {map('inherent',L(en,'Εγγενής','Inherent'),L(en,'Χωρίς μέτρα','Before controls'))}
@@ -89,6 +77,13 @@ export function RiskAnalysis({summary,en,onCell,onOpen,risks=[],indicatorValues=
    </div>
    <p className="risk-hint">{L(en,'Επιλέξτε ένα κελί για να δείτε τους κινδύνους του στο μητρώο.','Select a cell to see its risks in the register.')}</p>
   </section>
+  <div className="risk-two-columns risk-analysis-decide">
+   <section className="risk-panel"><header><h3>{L(en,'Κίνδυνοι προτεραιότητας','Priority risks')}</h3><small>{L(en,'Υψηλός ή πολύ υψηλός υπολειπόμενος κίνδυνος','High or very high residual risk')}</small></header><RiskList risks={summary.priorities.slice(0,12)} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Κανένας υψηλός υπολειπόμενος κίνδυνος.','No high residual risk.')}/></section>
+   <div className="risk-analysis-side">
+    <section className="risk-panel"><header><h3>{L(en,'Χωρίς σχέδιο δράσης','Without an action plan')}</h3><small>{L(en,'Υψηλοί υπολειπόμενοι χωρίς πρόσθετα μέτρα','High residual risks without additional measures')}</small></header><RiskList risks={summary.withoutPlan} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Όλοι οι υψηλοί κίνδυνοι έχουν σχέδιο δράσης.','Every high risk has an action plan.')}/></section>
+    <section className="risk-panel"><header><h3>{L(en,'Επιλεγμένοι για FMEA','Selected for FMEA')}</h3><small>{L(en,'Προληπτική ανάλυση της περιόδου','This period’s proactive analysis')}</small></header><RiskList risks={summary.prioritized} en={en} onOpen={onOpen} returned={returned} empty={L(en,'Δεν έχει επιλεγεί κίνδυνος. Επιλέξτε τον μέσα στον κίνδυνο (Παρακολούθηση → FMEA).','No risk selected yet. Select it in the risk (Monitoring → FMEA).')}/></section>
+   </div>
+  </div>
   <RiskIndicatorTable risks={risks} values={indicatorValues} en={en} onOpen={onOpen}/>
   <section className="risk-panel">
    <header><h3>{L(en,'Ανάλυση ανά ομάδα','Breakdown')}</h3>

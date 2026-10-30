@@ -32,6 +32,12 @@ export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actio
  ]
  const link=(a,label)=><button type="button" className="risk-lineage-link" onClick={()=>onOpenAssessment?.(a.code)}><small>{label}</small><strong>{txt(a,'title',en)}</strong><span>{a.periodLabel} · {fmtDate(a.assessedOn,locale)}</span><ArrowRight size={14}/></button>
  return frame(null,<div className="risk-details">
+  <section className="risk-panel risk-approval-bar" aria-label={L(en,'Κύκλος έγκρισης','Approval cycle')}>
+   <ol className="risk-approval">{FLOW.map(([id,el,enLabel,events],i)=>{const done=i<at||(i===at&&id!=='draft'),current=i===at,event=i<=at?lastOf(events):null
+    const by=id==='approved'&&assessment.approvedByLabel?`${assessment.approvedByLabel} · ${fmtDate(assessment.approvedOn,locale)}`:event?`${event.actor||''} · ${fmtDate(String(event.at).slice(0,10),locale)}`:''
+    return <li key={id} className={`${done?'is-done':''}${current?' is-current':''}`.trim()||undefined} title={by||undefined}><span className="risk-approval-dot">{done&&!current?<CheckCircle2 size={12}/>:i+1}</span><strong>{en?enLabel:el}</strong>{by&&<small>{by}</small>}</li>})}</ol>
+   {nextStep&&<ActionButton label={nextStep.label} tone="primary" onClick={nextStep.onClick}>{nextStep.icon&&<nextStep.icon size={15}/>}<span>{nextStep.label}</span></ActionButton>}
+  </section>
   <div className="risk-details-columns">
    <section className="risk-panel"><header><h3>{L(en,'Ταυτότητα εκτίμησης','Assessment identity')}</h3><span className="risk-panel-actions">{actions}</span></header>
     <dl className="risk-identity">{fields.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v||'—'}</dd></div>)}</dl>
@@ -46,11 +52,6 @@ export function RiskAssessmentDetails({assessment,assessments=[],en,locale,actio
     </section>
    </div>
   </div>
-  <section className="risk-panel"><header><h3>{L(en,'Κύκλος έγκρισης','Approval cycle')}</h3>{nextStep&&<span className="risk-panel-actions"><ActionButton label={nextStep.label} tone="primary" onClick={nextStep.onClick}>{nextStep.icon&&<nextStep.icon size={15}/>}<span>{nextStep.label}</span></ActionButton></span>}</header>
-   <ol className="risk-approval">{FLOW.map(([id,el,enLabel,events],i)=>{const done=i<at||(i===at&&id!=='draft'),current=i===at,event=i<=at?lastOf(events):null
-    const by=id==='approved'&&assessment.approvedByLabel?`${assessment.approvedByLabel} · ${fmtDate(assessment.approvedOn,locale)}`:event?`${event.actor||''} · ${fmtDate(String(event.at).slice(0,10),locale)}`:''
-    return <li key={id} className={`${done?'is-done':''}${current?' is-current':''}`.trim()||undefined}><span className="risk-approval-dot">{done&&!current?<CheckCircle2 size={14}/>:i+1}</span><strong>{en?enLabel:el}</strong>{by&&<small>{by}</small>}</li>})}</ol>
-  </section>
   <section className="risk-panel"><header><h3>{L(en,'Ιστορικό','History')}</h3></header>
    <ol className="risk-timeline">
     {[...history].reverse().map(h=>{const [el,enLabel,Icon]=HISTORY[h.action]||[h.action,h.action,Pencil];return <li key={h.id}><span className="risk-timeline-icon"><Icon size={14}/></span><strong>{en?enLabel:el}</strong><small>{[h.actor,new Date(h.at).toLocaleString(locale)].filter(Boolean).join(' · ')}</small></li>})}
