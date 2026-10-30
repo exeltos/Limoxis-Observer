@@ -457,7 +457,7 @@
 .risk-summary-line{margin:0 0 10px}
 .risk-table .risk-hazard small.risk-hazard-meta{display:flex}
 .risk-view{display:flex;flex-direction:column;gap:10px}
-.risk-view .record-section-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.risk-view .record-section-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-right:44px}
 .risk-view-score{display:inline-flex;align-items:center;gap:10px}
 .risk-view-score small{font-weight:500;color:var(--lo-color-muted)}
 .risk-view-measures{margin:0;padding-left:18px;font-weight:500}
