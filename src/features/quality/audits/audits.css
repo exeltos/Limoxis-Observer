@@ -192,6 +192,10 @@
 .audit-meeting-line{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font:inherit;font-size:12.5px;color:var(--lo-color-text);text-align:left;cursor:pointer}
 .audit-meeting-line>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--lo-color-muted)}
 .audit-meeting-line[aria-expanded="true"]>svg:last-child{transform:rotate(90deg)}
-.audit-meeting-fields{padding:4px 2px 8px}
+.audit-meeting-fields{padding:10px 2px 14px}
+.audit-meeting-fields .lo-form-grid{align-items:end;gap:12px 16px}
+.audit-meeting-fields input:not([type=checkbox]):not([type=file]),.audit-meeting-fields textarea{box-sizing:border-box}
+.audit-meeting-fields input:not([type=checkbox]):not([type=file]){height:40px}
+.audit-meeting-fields textarea{min-height:40px}
 /* The month and the year of a planned month: the same height and edge as the other controls. */
 .audit-plan-page .month-field-controls select{min-height:40px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font:inherit;color:var(--lo-color-text)}
