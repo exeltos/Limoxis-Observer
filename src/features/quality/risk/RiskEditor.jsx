@@ -32,16 +32,14 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
  const short=String(draft.hazard||'').trim()
  const title=short?(short.length>90?`${short.slice(0,88)}…`:short):L(en,'Νέος κίνδυνος','New risk')
  const sectionLabel=SECTIONS.find(x=>x.id===draft.section)
- const path=STAGES.map(([kind])=>s[kind].score??'—').join(' → ')
  const alerts=warnings.filter(w=>w.tone!=='info'),notes=warnings.filter(w=>w.tone==='info')
  return <EntityRecordShell className="quality-record-shell risk-editor-shell workspace-fill" avatar={<ShieldAlert size={19}/>}
   eyebrow={[draft.lineageKey||L(en,'Νέος κίνδυνος','New risk'),sectionLabel&&(en?sectionLabel.en:sectionLabel.el),assessmentLabel].filter(Boolean).join(' · ')}
   title={title} subtitle={[draft.process,draft.scope].filter(Boolean).join(' · ')||undefined}
-  status={<span className="risk-editor-path" title={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{path}</span>}
+  status={<span className="risk-editor-path" aria-label={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{STAGES.map(([kind],i)=><span key={kind} className="risk-editor-path-step">{i>0&&<span className="risk-editor-path-arrow" aria-hidden="true">→</span>}<small>{{inherent:L(en,'Εγγενής','Inherent'),residual:L(en,'Υπολειπόμενος','Residual'),target:L(en,'Στόχος','Target')}[kind]}</small><LevelChip score={s[kind].score} level={s[kind].level} en={en} compact/></span>)}</span>}
   headerActions={recordActions({en,canEdit:!readOnly,editing,isNew,onEdit:()=>setEditing(true),onDelete})}
   onBack={onClose} backLabel={L(en,'Πίσω στην εκτίμηση','Back to the assessment')}>
   <div className="risk-editor" key={version}>
-   <div className="risk-editor-col">
    <Step n={1} title={L(en,'Περιγραφή','Description')}>
     <div className="risk-editor-grid risk-editor-grid-description">
      <fieldset className="risk-fieldset risk-span-2" disabled={locked}><ChoiceField label={L(en,'Ενότητα','Section')} value={draft.section} onChange={v=>set('section',v)} options={SECTIONS.map(x=>({value:x.id,label:en?x.en:x.el}))}/></fieldset>
@@ -52,20 +50,6 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
     </div>
     {area('hazard',L(en,'Πιθανό ρίσκο / κίνδυνος','Potential risk / hazard'),2)}
    </Step>
-   <Step n={3} title={L(en,'Παρακολούθηση','Monitoring')}>
-    <IndicatorPicker risk={draft} values={indicatorValues} en={en} disabled={locked} onChange={keys=>set('indicatorKeys',keys)}/>
-    <div className="risk-editor-grid risk-editor-grid-monitoring">
-     <div className="risk-field-span2">{field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}</div>
-     {field('reviewFrequency',L(en,'Συχνότητα ελέγχου','Review frequency'))}
-     {field('indicator',L(en,'Κωδικός συμβάντος / άλλος δείκτης','Incident code / other indicator'))}
-     <ManualDateField label={L(en,'Προθεσμία','Due date')} value={draft.dueDate||''} onChange={v=>set('dueDate',v||null)} optional disabled={locked}/>
-    </div>
-    <fieldset className="risk-fieldset risk-fmea" disabled={locked}><YesNoField label={L(en,'Προληπτική ανάλυση (FMEA)','Proactive analysis (FMEA)')} hint={L(en,'Ο κίνδυνος επιλέγεται για την FMEA της περιόδου.','The risk is selected for the period’s FMEA.')} value={Boolean(draft.prioritized)} onChange={v=>set('prioritized',v)}/></fieldset>
-    {area('notes',L(en,'Σημειώσεις','Notes'),2)}
-    {notes.length>0&&<ul className="risk-warnings">{notes.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><Info size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
-   </Step>
-   </div>
-   <div className="risk-editor-col">
    {/* The order of the assessment: inherent risk, the controls in place, the residual risk they leave, the additional measures, the target. */}
    <Step n={2} title={L(en,'Αξιολόγηση και μέτρα','Assessment and measures')}>
     <div className="risk-editor-flow">
@@ -79,7 +63,18 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
     </div>
     {alerts.length>0&&<ul className="risk-warnings">{alerts.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><AlertTriangle size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
    </Step>
-   </div>
+   <Step n={3} title={L(en,'Παρακολούθηση','Monitoring')}>
+    <IndicatorPicker risk={draft} values={indicatorValues} en={en} disabled={locked} onChange={keys=>set('indicatorKeys',keys)}/>
+    <div className="risk-editor-grid risk-editor-grid-monitoring">
+     <div className="risk-field-span2">{field('owner',L(en,'Υπεύθυνος υλοποίησης','Owner'))}</div>
+     {field('reviewFrequency',L(en,'Συχνότητα ελέγχου','Review frequency'))}
+     {field('indicator',L(en,'Κωδικός συμβάντος / άλλος δείκτης','Incident code / other indicator'))}
+     <ManualDateField label={L(en,'Προθεσμία','Due date')} value={draft.dueDate||''} onChange={v=>set('dueDate',v||null)} optional disabled={locked}/>
+    </div>
+    <fieldset className="risk-fieldset risk-fmea" disabled={locked}><YesNoField label={L(en,'Προληπτική ανάλυση (FMEA)','Proactive analysis (FMEA)')} hint={L(en,'Ο κίνδυνος επιλέγεται για την FMEA της περιόδου.','The risk is selected for the period’s FMEA.')} value={Boolean(draft.prioritized)} onChange={v=>set('prioritized',v)}/></fieldset>
+    {area('notes',L(en,'Σημειώσεις','Notes'),2)}
+    {notes.length>0&&<ul className="risk-warnings">{notes.map(w=><li key={w.id} className={`risk-warning-${w.tone}`}><Info size={14}/>{warningLabel(w.id,en)}</li>)}</ul>}
+   </Step>
   </div>
   <div className="risk-editor-actions">
    {locked&&!isNew&&onCreateCapa&&<Button variant="secondary" onClick={()=>onCreateCapa(draft)}><CheckSquare2 size={15}/>{L(en,'Δημιουργία διορθωτικής ενέργειας','Create CAPA')}</Button>}

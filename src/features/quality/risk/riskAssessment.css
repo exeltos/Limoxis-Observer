@@ -278,7 +278,10 @@
 .risk-editor-step>header{display:flex;align-items:center;gap:8px}
 .risk-editor-step h4{margin:0;font-size:13px;font-weight:750;color:var(--lo-color-text)}
 .risk-editor-step-number{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#e6eff6;color:#0b4a7a;font-size:11px;font-weight:800}
-.risk-editor-path{margin-left:auto;padding:2px 9px;border-radius:999px;background:#f2f5f8;font-size:11.5px;font-weight:750;color:var(--lo-color-text)}
+.risk-editor-path{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.risk-editor-path-step{display:inline-flex;align-items:center;gap:5px}
+.risk-editor-path-step>small{font-size:10.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:var(--lo-color-muted)}
+.risk-editor-path-arrow{color:#9fb0bf;font-size:12px}
 .risk-editor-grid-description{grid-template-columns:repeat(6,minmax(0,1fr))}
 .risk-span-2{grid-column:span 2;min-width:0}
 .risk-span-4{grid-column:span 4;min-width:0}

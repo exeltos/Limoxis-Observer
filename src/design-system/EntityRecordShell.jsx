@@ -165,7 +165,9 @@ export function EntityRecordShell({
 
   const utilityActions=[]
   const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions,[],utilityActions)
-  utilityActions.sort((a,b)=>(a.type===ExportMenu)-(b.type===ExportMenu))
+  // «Εξαγωγή» after the other utilities, and the page's main action (tone primary) last at the right, as on the Quality Center page.
+  const utilityRank=action=>action.props?.tone==='primary'?2:action.type===ExportMenu?1:0
+  utilityActions.sort((a,b)=>utilityRank(a)-utilityRank(b))
   const printAllTabs=hasTabs&&typeof renderTab==='function'
   // The record's «Εκτύπωση» prints the whole record (every tab), not the screen as it is.
   const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint?cloneElement(action,{onPrint:printRecord}):action)

@@ -182,8 +182,8 @@ export function RiskAssessmentPage(){
  const analysisFrame=pair({value:'analysis',icon:BarChart3,label:L(en,'Ανάλυση','Analysis')},{value:'comparison',icon:GitCompareArrows,label:L(en,'Σύγκριση περιόδων','Period comparison')})
  const detailsFrame=pair({value:'details',icon:Info,label:L(en,'Στοιχεία','Details')},{value:'methodology',icon:BookOpen,label:L(en,'Μεθοδολογία','Method')})
  const frame=(kpis,content,{registry=false,name=''}={})=><>
-  {kpis&&<div className="risk-kpi-row">{kpis}</div>}
   {tabNav}
+  {kpis&&<div className="risk-kpi-row">{kpis}</div>}
   <div className={`surface risk-workspace${registry?' is-registry':''}${name?` ${name}`:''}`} ref={bodyRef}>{moreMenu}{registry?<>{(origin||(!canEdit&&canManage))&&<div className="risk-notices">{notices}</div>}{content}</>:<div className="risk-tab-scroll">{notices}{content}</div>}</div>
  </>
  return <Page fill className="risk-assessment-page"><EntityRecordShell
@@ -193,7 +193,7 @@ export function RiskAssessmentPage(){
   title={txt(assessment,'title',en)}
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
   status={<AssessmentStatusBadge status={assessment.status} en={en}/>}
-  headerActions={<>{createAction}{exportMenu}</>}
+  headerActions={<>{exportMenu}{createAction}</>}
   onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${viewLabel(origin.tab)}»`,`Back to “${viewLabel(origin.tab)}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
    {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} indicatorValues={indicatorValues} returned={riskRow.returned} evidenceOf={evidenceOf}/>}
    {tab==='analysis'&&<RiskAnalysis frame={analysisFrame} mark={view.riskMark||''} returned={riskRow.returned} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
