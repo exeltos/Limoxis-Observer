@@ -284,7 +284,7 @@
 .quality-period-options>button{border:0;background:var(--lo-color-surface);padding:6px 12px;font:inherit;cursor:pointer;color:var(--lo-color-text)}
 .quality-period-options>button+button{border-left:1px solid var(--lo-color-border)}
 .quality-period-options>button.is-active{background:#2a78d6;color:#fff}
-.quality-compare-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.quality-compare-toggle{width:auto}
 .quality-active-filters{display:inline-flex;flex-wrap:wrap;gap:6px}
 .quality-active-filters>button{border:1px solid var(--lo-color-border);background:var(--lo-color-surface-muted);border-radius:999px;padding:3px 10px;font:inherit;cursor:pointer;color:var(--lo-color-text)}
 .quality-active-filters>button.is-clear{background:none;border-color:transparent;text-decoration:underline;color:var(--lo-color-muted)}

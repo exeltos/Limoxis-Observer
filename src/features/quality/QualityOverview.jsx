@@ -7,6 +7,7 @@ import { isOpenRecord } from './QualityLists'
 import { stageLabel } from './QualityReportRegister'
 import { IMPACTS,INCIDENT_CLASSES,REPORT_KINDS,harmLevel,incidentCategoryLabel,qualityCode,reportKindOf,vocabularyLabel } from './qualityVocabulary'
 import './risk/riskAssessment.css'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 
 // The first tab of the Quality Center, built like the risk assessment's
@@ -177,7 +178,7 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
    <div className="quality-period-options" role="group" aria-label={L(en,'Περίοδος','Period')}>
     {PERIODS.map(value=><button key={value} type="button" aria-pressed={period===value} className={period===value?'is-active':undefined} onClick={()=>changePeriod(value)}>{L(en,`${value} μήνες`,`${value} months`)}</button>)}
    </div>
-   <label className="quality-compare-toggle"><input type="checkbox" checked={compare} onChange={event=>setCompare(event.target.checked)}/>{L(en,'Σύγκριση με την προηγούμενη περίοδο','Compare with the previous period')}</label>
+   <CheckboxField className="quality-compare-toggle" checked={compare} onChange={setCompare} label={L(en,'Σύγκριση με την προηγούμενη περίοδο','Compare with the previous period')}/>
    {hasFilter&&<span className="quality-active-filters">
     {stats.pickedLabels.length>0&&<button type="button" onClick={()=>setPickedMonths([])}>{stats.pickedLabels.join(', ')} ✕</button>}
     {catLabel&&<button type="button" onClick={()=>setCategory(null)}>{catLabel} ✕</button>}
