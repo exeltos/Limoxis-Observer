@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Calculator, ClipboardList, Lock, Trash2, UserRound } from 'lucide-react'
+import { Calculator, ClipboardList, Lock, Pencil, Trash2, UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -16,6 +16,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { formatDay } from '../../core/i18n/formatDay'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { deleteEntry, loadEntry, loadRegister, saveEntry } from './registerService'
 import { useRegisterAccess } from './registerAccess'
@@ -24,7 +25,8 @@ import './registers.css'
 
 // One case of a register (a neonate in the NICU): the identity the department
 // keeps, then the register's fields section by section. Computed fields
-// (length of stay, age) update as the dates are typed.
+// (length of stay, age) update as the dates are typed. A saved case opens
+// read-only; «Edit» (in the card's ⋯) opens its fields.
 export function RegisterEntryPage() {
   const { registerId, entryId } = useParams()
   const isNew = entryId === 'new'
@@ -42,6 +44,7 @@ export function RegisterEntryPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [tried, setTried] = useState(false)
+  const [editing, setEditing] = useState(false)
   const back = () => navigate(`/registers/${registerId}`, { replace: true })
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export function RegisterEntryPage() {
   if (!register || (!isNew && !entry) || !access.canSee(register)) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Case not found' : 'Το περιστατικό δεν βρέθηκε'}</strong></div></Page>
 
   const canEdit = access.canRecord(register) && !entry?.locked
+  const editable = canEdit && (isNew || editing)
   const showIdentity = Boolean(register.settings?.identity) && access.canSeeIdentity(register)
   const set = (key, value) => setValues(current => ({ ...current, [key]: value }))
   const sections = register.settings?.sections?.length ? register.settings.sections : [{ key: '', label: en ? 'Details' : 'Στοιχεία' }]
@@ -77,12 +81,13 @@ export function RegisterEntryPage() {
 
   async function save() {
     setTried(true)
-    if (!check.valid || saving || !canEdit) return
+    if (!check.valid || saving || !editable) return
     setSaving(true)
     try {
       await saveEntry(tenant?.id, register, { ...(entry || {}), values }, { identity: showIdentity ? identity : null, actorLabel: auditActorFromAuth({ profile, user }).name })
       notify(en ? 'Case saved.' : 'Το περιστατικό αποθηκεύτηκε.', 'success')
-      back()
+      if (isNew) back()
+      else { setEntry(current => ({ ...current, values, identity: showIdentity ? identity : current.identity })); setEditing(false); setTried(false) }
     } catch (error) {
       console.error(error)
       notify(en ? 'The case could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση του περιστατικού.', 'error')
@@ -93,28 +98,40 @@ export function RegisterEntryPage() {
     if (!ok) return
     try { await deleteEntry(tenant?.id, register, entry.id); notify(en ? 'Case deleted.' : 'Το περιστατικό διαγράφηκε.', 'success'); back() } catch (error) { console.error(error); notify(en ? 'The case could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
-  const title = isNew ? (en ? 'New case' : 'Νέο περιστατικό') : (showIdentity && identity.patientName) || (en ? 'Case' : 'Περιστατικό')
+  const cancelEdit = () => { setValues(entry?.values || {}); setIdentity(entry?.identity || { caseNumber: '', patientName: '' }); setEditing(false); setTried(false) }
+  const caseCode = entry ? String(entry.id).slice(-6).toUpperCase() : ''
+  const title = isNew ? (en ? 'New case' : 'Νέο περιστατικό') : (showIdentity && identity.patientName) || `${en ? 'Case' : 'Περιστατικό'} ${caseCode}`
+  const subtitle = [showIdentity && identity.caseNumber ? `${en ? 'Case no.' : 'Αρ. περιστατικού'} ${identity.caseNumber}` : '', !isNew && entryDate ? `${en ? 'admitted' : 'εισαγωγή'} ${formatDay(entryDate, language)}` : '', en ? register.departmentEn : register.department].filter(Boolean).join(' · ')
   const errorCount = Object.keys(check.errors).length
-  return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ClipboardList size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={showIdentity && identity.caseNumber ? `${en ? 'Case no.' : 'Αρ. περιστατικού'} ${identity.caseNumber}` : (en ? register.departmentEn : register.department)} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
-    headerActions={!isNew && canEdit && <IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton>}>
+  return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ClipboardList size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={subtitle} recordId={isNew ? undefined : entry.id} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
+    headerActions={!isNew && canEdit && !editing && <><IconButton label={en ? 'Edit' : 'Επεξεργασία'} tone="edit" onClick={() => setEditing(true)}><Pencil size={16} /></IconButton><IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton></>}>
     <div className="register-form-page register-entry-form"><div className="lo-form-cards">
       {entry?.locked && <div className="governance-banner"><Lock size={16} /><span>{en ? 'This case belongs to a closed period and is read-only.' : 'Το περιστατικό ανήκει σε κλειστή περίοδο και δεν αλλάζει.'}</span></div>}
       {register.settings?.identity && (showIdentity ? <FormCard title={en ? 'Who' : 'Ταυτότητα'} icon={UserRound} hint={en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}>
         <FormGrid columns={2}>
-          {register.settings.identity.caseNumber && <Field label={en ? 'Case number' : 'Αριθμός περιστατικού'}><input value={identity.caseNumber} disabled={!canEdit} inputMode="numeric" onChange={event => setIdentity(current => ({ ...current, caseNumber: event.target.value }))} /></Field>}
-          {register.settings.identity.patientName && <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={identity.patientName} disabled={!canEdit} onChange={event => setIdentity(current => ({ ...current, patientName: event.target.value }))} /></Field>}
+          {register.settings.identity.caseNumber && <Field label={en ? 'Case number' : 'Αριθμός περιστατικού'}><input value={identity.caseNumber} disabled={!editable} inputMode="numeric" onChange={event => setIdentity(current => ({ ...current, caseNumber: event.target.value }))} /></Field>}
+          {register.settings.identity.patientName && <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={identity.patientName} disabled={!editable} onChange={event => setIdentity(current => ({ ...current, patientName: event.target.value }))} /></Field>}
         </FormGrid>
       </FormCard> : <div className="governance-banner"><Lock size={16} /><span>{en ? 'The case number and name are kept by the department and are not shown here.' : 'Ο αριθμός περιστατικού και το όνομα μένουν στο τμήμα και δεν εμφανίζονται εδώ.'}</span></div>)}
       {sections.map(section => {
         const fields = fieldsOf(section).filter(field => fieldVisible(field, full))
         if (!fields.length) return null
         return <FormCard key={section.key || 'main'} wide title={textOf(section, language)} icon={ClipboardList}>
-          <div className="register-entry-grid">{fields.map(field => <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!canEdit} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
+          <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
         </FormCard>
       })}
-    </div><div className="inline-edit-footer">{tried && errorCount > 0 && <span className="register-form-errors">{en ? `${errorCount} field(s) need attention` : `${errorCount} πεδί${errorCount === 1 ? 'ο θέλει' : 'α θέλουν'} διόρθωση`}</span>}<Button variant="secondary" onClick={back}>{en ? 'Cancel' : 'Ακύρωση'}</Button>{canEdit && <SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}</div></div>
+    </div>{editable && <div className="inline-edit-footer">{tried && errorCount > 0 && <span className="register-form-errors">{en ? `${errorCount} field(s) need attention` : `${errorCount} πεδί${errorCount === 1 ? 'ο θέλει' : 'α θέλουν'} διόρθωση`}</span>}<Button variant="secondary" onClick={isNew ? back : cancelEdit}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}</div>
   </EntityRecordShell></Page>
 }
+
+// A field of a saved case, read-only: its label and value, compact.
+function RegisterValue({ field, value, language }) {
+  const empty = value == null || value === '' || (Array.isArray(value) && !value.length)
+  return <div className="register-value"><span className="lo-field-label">{textOf(field, language)}</span><strong>{empty ? '—' : formatValue(field, value, language)}</strong></div>
+}
+
+// Notes about the FileMaker import belong to the register's definition, not to the form.
+const formHelp = text => (/filemaker/i.test(text || '') ? '' : text)
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -122,7 +139,7 @@ const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε
 export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language }) {
   const en = language === 'en'
   const label = `${textOf(field, language)}${required ? ' *' : ''}`
-  const help = en ? field.helpEn || field.help : field.help
+  const help = formHelp(en ? field.helpEn || field.help : field.help)
   const hint = warning || help || ''
   const unit = en ? field.unitEn || field.unit : field.unit
   const options = (field.options || []).map(option => ({ value: option.value, label: textOf(option, language) }))

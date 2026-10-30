@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { BarChart3, CalendarRange, ClipboardList, History, Lock, Plus, Settings2, Upload } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
@@ -105,7 +106,9 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
-  const open = entry => navigate(`/registers/${register.id}/entries/${entry.id}`)
+  // The cases open in the list's order, so the case page steps to the previous and next one.
+  const registry = useRegistryMemory(`register-cases-${register.id}`)
+  const open = entry => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
     <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={year !== 'all' ? 1 : 0} onClear={() => { setQuery(''); setYear('all') }}>
