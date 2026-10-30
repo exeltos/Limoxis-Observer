@@ -56,16 +56,18 @@
 .audit-chapter-strip button.is-danger small{color:var(--lo-status-danger-fg)}
 .audit-chapter-strip button.is-active{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary)}
 .audit-run-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
-.audit-questions{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-.audit-question{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
-.audit-question.is-yes{border-left-color:var(--lo-status-success-fg)}
-.audit-question.is-partial{border-left-color:var(--lo-status-warning-fg)}
-.audit-question.is-no{border-left-color:var(--lo-status-danger-fg)}
-.audit-question.is-na{border-left-color:var(--lo-color-muted)}
-.audit-chapter-title{margin:4px 0 0;font-size:13px;font-weight:800;color:var(--lo-color-primary)}
+.audit-questions{display:grid;gap:0;margin:0;padding:0;list-style:none;border:1px solid var(--lo-color-border);border-radius:12px;overflow:hidden;background:var(--lo-color-surface)}
+.audit-question{display:grid;gap:8px;border-top:1px solid #edf1f4;box-shadow:inset 3px 0 0 transparent;background:var(--lo-color-surface)}
+.audit-question:first-child{border-top:0}
+.audit-question:hover{background:#fafbfc}
+.audit-question.is-yes{box-shadow:inset 3px 0 0 var(--lo-status-success-fg)}
+.audit-question.is-partial{box-shadow:inset 3px 0 0 var(--lo-status-warning-fg)}
+.audit-question.is-no{box-shadow:inset 3px 0 0 var(--lo-status-danger-fg)}
+.audit-question.is-na{box-shadow:inset 3px 0 0 var(--lo-color-muted)}
+.audit-chapter-title{padding:7px 14px;background:#f5f7f9;border-bottom:1px solid #edf1f4;font-size:12px;font-weight:700;letter-spacing:.01em;color:#475467}
 .audit-question-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
-.audit-question-head>strong{flex:1 1 320px;font-size:13.5px;line-height:1.4;color:var(--lo-color-text)}
-.audit-clause{flex:0 0 auto;padding:2px 7px;border-radius:6px;background:var(--lo-color-surface-muted);font-size:12px;font-weight:800;color:var(--lo-color-text)}
+.audit-question-head>strong{flex:1 1 320px;font-size:13.5px;font-weight:500;line-height:1.45;color:#1d2939}
+.audit-clause{flex:0 0 auto;min-width:56px;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--lo-color-muted)}
 .audit-question-guide{display:grid;gap:2px;margin:0;font-size:12px;line-height:1.45;color:var(--lo-color-muted)}
 .audit-answer-grid{align-items:end}
 .audit-answer-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:40px}
@@ -100,21 +102,27 @@
 .audit-round-days{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none}
 .audit-round-days li{display:grid;grid-template-columns:110px 110px minmax(0,1fr);gap:6px 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--lo-color-border)}
 .audit-round-days small{color:var(--lo-color-muted)}
-.audit-answer-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:2px 0 8px}
-.audit-answer-buttons button{min-height:44px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font:inherit;font-size:14px;font-weight:650;color:var(--lo-color-text);cursor:pointer}
-.audit-answer-buttons button:disabled{cursor:default;opacity:.7}
-.audit-answer-buttons button.is-success{border-color:var(--lo-status-success-fg);color:var(--lo-status-success-fg);background:var(--lo-status-success-bg)}
-.audit-answer-buttons button.is-warning{border-color:var(--lo-status-warning-fg);color:var(--lo-status-warning-fg);background:var(--lo-status-warning-bg)}
-.audit-answer-buttons button.is-danger{border-color:var(--lo-status-danger-fg);color:var(--lo-status-danger-fg);background:var(--lo-status-danger-bg)}
-.audit-answer-buttons button.is-neutral{border-color:var(--lo-color-muted);color:var(--lo-color-muted);background:var(--lo-color-surface-muted)}
-.audit-answer-buttons button.is-on{font-weight:800;color:#fff}
+.audit-answer-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:2px 0 8px;border:1px solid var(--lo-color-border);border-radius:8px;overflow:hidden;background:var(--lo-color-surface)}
+.audit-answer-buttons button{min-height:44px;border:0;border-left:1px solid var(--lo-color-border);border-radius:0;background:var(--lo-color-surface);font:inherit;font-size:12.5px;font-weight:600;color:var(--lo-color-text);cursor:pointer;transition:background .12s}
+.audit-answer-buttons button:first-child{border-left:0}
+.audit-answer-buttons button:disabled{cursor:default}
+.audit-answer-buttons button.is-success{color:var(--lo-status-success-fg)}
+.audit-answer-buttons button.is-success:not(.is-on):not(:disabled):hover{background:var(--lo-status-success-bg)}
+.audit-answer-buttons button.is-warning{color:var(--lo-status-warning-fg)}
+.audit-answer-buttons button.is-warning:not(.is-on):not(:disabled):hover{background:var(--lo-status-warning-bg)}
+.audit-answer-buttons button.is-danger{color:var(--lo-status-danger-fg)}
+.audit-answer-buttons button.is-danger:not(.is-on):not(:disabled):hover{background:var(--lo-status-danger-bg)}
+.audit-answer-buttons button.is-neutral{color:var(--lo-color-muted)}
+.audit-answer-buttons button.is-neutral:not(.is-on):not(:disabled):hover{background:var(--lo-color-surface-muted)}
+.audit-answer-buttons button.is-on{font-weight:700;color:#fff}
 .audit-answer-buttons button.is-on.is-success{background:var(--lo-status-success-fg);color:#fff}
 .audit-answer-buttons button.is-on.is-warning{background:var(--lo-status-warning-fg);color:#fff}
 .audit-answer-buttons button.is-on.is-danger{background:var(--lo-status-danger-fg);color:#fff}
 .audit-answer-buttons button.is-on.is-neutral{background:var(--lo-color-muted);color:#fff}
-.audit-answer-tools{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px}
-.audit-answer-link{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;font:inherit;font-size:12.5px;font-weight:600;color:var(--lo-color-primary);cursor:pointer}
-.audit-answer-link:hover{text-decoration:underline}
+.audit-answer-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.audit-answer-link{display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:30px;height:30px;padding:0 6px;border:0;border-radius:8px;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--lo-color-muted);cursor:pointer}
+.audit-answer-link:hover,.audit-answer-link[aria-expanded="true"]{background:#eef2f6;color:var(--lo-color-primary)}
+.audit-answer-link.has-content{color:var(--lo-color-primary)}
 .audit-round-days li{grid-template-columns:110px 96px minmax(0,1fr);align-items:baseline}
 .audit-round-days li>span{text-align:right}
 .audit-round-fields{align-items:end}
@@ -180,14 +188,14 @@
 .audit-round-page .lo-form-grid{align-items:end}
 .audit-round-tools>button{height:40px}
 /* Questions on one line: the wording, the four answers and the comment and file links side by side; the guidance behind the «i». */
-.audit-question{grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:0 14px;padding:8px 12px}
+.audit-question{grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:0 12px;padding:9px 12px 9px 14px}
 .audit-question>*{grid-column:1/-1}
-.audit-question>.audit-chapter-title{grid-row:1;margin:0 0 6px}
+.audit-question>.audit-chapter-title{grid-row:1;margin:-9px -12px 9px -14px}
 .audit-question>:not(.audit-chapter-title):not(.audit-question-head):not(.audit-answer-buttons):not(.audit-answer-tools){margin-top:8px}
 .audit-question>.audit-question-head{grid-column:1;grid-row:2}
-.audit-question>.audit-answer-buttons{grid-column:2;grid-row:2;margin:0;grid-template-columns:repeat(4,60px);gap:6px}
-.audit-question>.audit-answer-tools{grid-column:3;grid-row:2;margin:0;flex-wrap:nowrap;gap:10px}
-.audit-answer-buttons button{min-height:34px;font-size:13px}
+.audit-question>.audit-answer-buttons{grid-column:2;grid-row:2;margin:0;grid-template-columns:repeat(4,54px)}
+.audit-question>.audit-answer-tools{grid-column:3;grid-row:2;margin:0;flex-wrap:nowrap}
+.audit-answer-buttons button{min-height:30px}
 .audit-question-head>strong{flex:1 1 260px}
 .audit-info{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid var(--lo-color-border);border-radius:999px;background:none;color:var(--lo-color-muted);cursor:pointer}
 .audit-info[aria-expanded="true"]{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
@@ -205,4 +213,3 @@
 /* The month and the year of a planned month: the same height and edge as the other controls. */
 .audit-plan-page .month-field-controls select{min-height:40px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font:inherit;color:var(--lo-color-text)}
 
-.audit-locked-actions { display: inline-flex; gap: var(--space-2, 8px); margin-inline-start: auto; }

@@ -82,7 +82,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
     <div className="quality-programme-summary">
      {/* Back to any earlier year; forward up to next year, to plan it. */}
      <PeriodStepper label={year} onPrevious={() => setYear(String(Number(year) - 1))} onNext={() => setYear(String(Number(year) + 1))} nextDisabled={Number(year) >= now.getFullYear() + 1} />
-     <span className="quality-programme-progress"><strong>{done}</strong> {en ? `of ${active} completed` : `από ${active} ολοκληρώθηκαν`}</span>
+     <span className="quality-programme-progress"><span><strong>{done}</strong> {en ? `of ${active} completed` : `από ${active} ολοκληρώθηκαν`}</span><span className="quality-programme-bar" aria-hidden="true"><i style={{ width: `${active ? Math.round(done * 100 / active) : 0}%` }} /></span></span>
      <ul className="quality-programme-legend">{STATE_ORDER.filter(state => matrix.totals[state] > 0).map(state => <li key={state}><span className={`quality-programme-dot is-${state}`} aria-hidden="true" />{STATE_LABELS[state][en ? 1 : 0]}<strong>{matrix.totals[state]}</strong></li>)}</ul>
      {departments.length > 0 && <button type="button" className={`quality-programme-coverage${uncovered.length ? ' is-gap' : ''}`} onClick={() => setScope(scope === 'all' ? 'audited' : 'all')} aria-pressed={scope === 'all'}>
       {uncovered.length ? (en ? `${uncovered.length} departments without an audit in ${year}` : `${uncovered.length} τμήματα χωρίς επιθεώρηση το ${year}`) : (en ? `Every department has an audit in ${year}` : `Όλα τα τμήματα έχουν επιθεώρηση το ${year}`)}
@@ -98,7 +98,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
        <th scope="col">{en ? 'Last audit' : 'Τελευταία'}</th>
        <th scope="col">{en ? 'Next audit' : 'Επόμενη'}</th>
        <th scope="col">{year}</th>
-       <th scope="col">{en ? 'Months' : 'Μήνες'}</th>
+       <th scope="col"><span className="quality-programme-months is-head" aria-label={en ? 'Months' : 'Μήνες'}>{Array.from({ length: 12 }, (_, month) => <span key={month} className={month === currentMonth ? 'is-now' : undefined}>{monthName(month, 'narrow')}</span>)}</span></th>
        <th scope="col">{en ? 'Lead auditor' : 'Επικεφαλής'}</th>
       </tr></thead>
       <tbody>
@@ -110,9 +110,9 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
         return <tr key={row.key || 'org'} className={`${row.key && !row.covered ? 'is-gap' : ''}${open ? ' is-clickable' : ''}`.trim()} onClick={open ? () => onOpen?.(open) : undefined}>
          <th scope="row"><span>{row.key ? (en ? row.nameEn : row.name) : (en ? 'Whole organization' : 'Όλος ο οργανισμός')}</span></th>
          <td className="nowrap-cell">{(open && open.standard) ? standardShort(open.standard) : '—'}</td>
-         <td className="nowrap-cell">{last ? <>{formatDay(last.completedDate || last.plannedDate, language)}{score?.rate != null && <small>{score.rate}%</small>}</> : '—'}</td>
+         <td className="nowrap-cell">{last ? <span className="quality-programme-last">{formatDay(last.completedDate || last.plannedDate, language)}{score?.rate != null && <small className={`quality-programme-rate is-${score.rate >= 90 ? 'success' : score.rate >= 75 ? 'warning' : 'danger'}`}>{score.rate}%</small>}</span> : '—'}</td>
          <td className={`nowrap-cell${late ? ' quality-overdue' : ''}`}>{next ? <>{when(next)}{late && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</> : (onPlan && row.key ? <button type="button" className="quality-programme-plan" onClick={event => { event.stopPropagation(); plan(row, Number(year) === now.getFullYear() ? Math.min(11, now.getMonth() + 1) : 0) }}><Plus size={13} aria-hidden="true" />{en ? 'Plan' : 'Προγραμματισμός'}</button> : <span className="quality-overdue-text">{en ? 'none planned' : 'δεν υπάρχει'}</span>)}</td>
-         <td className={inYear >= 2 ? '' : 'quality-overdue-text'}><strong>{inYear}/2</strong></td>
+         <td className={inYear >= 2 ? '' : 'quality-overdue-text'}><span className="quality-programme-count">{[0, 1].map(at => <i key={at} className={at < inYear ? 'is-on' : undefined} aria-hidden="true" />)}<strong>{inYear}/2</strong></span></td>
          <td><span className="quality-programme-months" aria-hidden="true">{row.months.map((cell, month) => <span key={month} className={`quality-programme-dot${cell.length ? ` is-${cell[0].state}` : ' is-empty'}${month === currentMonth ? ' is-now' : ''}`} title={`${monthName(month, 'long')}${cell.length ? ` · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : ''}`} />)}</span></td>
          <td>{open?.leadAuditor || '—'}</td>
         </tr>
