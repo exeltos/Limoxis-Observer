@@ -148,11 +148,15 @@ export function QualityPage(){
  const resources=useResources(tab==='resources')
  const visibleEquipment=useMemo(()=>filterEquipment(resources.equipment,equipmentFilters),[resources.equipment,equipmentFilters])
  const visibleSuppliers=useMemo(()=>filterSuppliers(resources.suppliers,supplierFilters),[resources.suppliers,supplierFilters])
- const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all'})
+ const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all',year:'auto'})
  const [editingObjective,setEditingObjective]=useState(null)
 
+ // The year of the objectives shown: this year's when there are any, else all (the older years stay one choice away).
+ const objectiveYears=useMemo(()=>[...new Set(objectives.objectives.map(item=>item.year).filter(Boolean))].sort((a,b)=>b-a),[objectives.objectives])
+ const objectiveYear=objectiveFilters.year==='auto'?(objectiveYears.includes(new Date().getFullYear())?String(new Date().getFullYear()):'all'):objectiveFilters.year
+ const inObjectiveYear=item=>objectiveYear==='all'||String(item.year)===objectiveYear
  const isMissed=item=>(item.status||'active')==='active'&&item.current.status==='missed'
- const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>!q||`${item.code} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters])
+ const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>!q||`${item.code} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters,objectiveYear])
  const todayIso=new Date().toISOString().slice(0,10)
 
  const overdueActions=actions.filter(isOverdueAction).length
@@ -171,7 +175,7 @@ export function QualityPage(){
  const actionCount=actionCounts(actions)
  const auditCount=auditCounts(audits)
  const objectiveState=state=>{setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:current.state===state&&measureView==='objectives'?'all':state}))}
- const activeObjectives=objectives.objectives.filter(item=>(item.status||'active')==='active')
+ const activeObjectives=objectives.objectives.filter(inObjectiveYear).filter(item=>(item.status||'active')==='active')
  const isStaleRegister=useCallback(item=>isStale(item,todayIso),[todayIso])
  const staleRegisters=registerList.registers.filter(isStaleRegister).length
  const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
@@ -300,7 +304,8 @@ export function QualityPage(){
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
-    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={null}>
+    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto'})} end={null}>
+     <FilterSelect label={L('Έτος','Year')} value={objectiveYear} onChange={year=>setObjectiveFilters(current=>({...current,year}))}><option value="all">{L('Όλα τα έτη','All years')}</option>{objectiveYears.map(year=>{const value=String(year);return <option key={value} value={value}>{value}</option>})}</FilterSelect>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>
     </FilterBar>
     <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} error={objectives.error} onRetry={objectives.reload} onOpen={objective=>openRecord('objectives',objective.id,visibleObjectives.map(item=>item.id))}/>
