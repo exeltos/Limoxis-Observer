@@ -102,7 +102,7 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
     {record.followUpOf && <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${record.followUpOf}`, { tab: 'details' })}>{L(en, 'Επαναληπτική της', 'Follow-up of')} {record.followUpOf}<ChevronRight size={13} /></button>}
     {draft && <ObserverDialog width="wide" fixedHeight title={L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning')} subtitle={record.displayId || record.id} onClose={() => setDraft(null)}
       footer={<DialogActions onSave={save} disabled={saving || independenceBlocks(draft.team || [], { id: draft.departmentId, name: draft.department })} />}>
-      <div className="lo-form-cards audit-plan-form"><AuditPlanFields draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language} /></div>
+      <div className="audit-plan-flat"><AuditPlanFields flat draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language} /></div>
     </ObserverDialog>}
   </section>
 }
