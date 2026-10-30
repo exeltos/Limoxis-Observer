@@ -85,6 +85,7 @@ export function filterActions(rows,filters,en){
   .filter(row=>filters.kind==='all'||row.kind===filters.kind)
   .filter(row=>filters.status==='all'||row.status===filters.status)
   .filter(row=>filters.department==='all'||departmentOf(row,en)===filters.department)
+  .filter(row=>!filters.cycle||filters.cycle==='all'||auditCycleKey(row)===filters.cycle)
   .filter(row=>!filters.quick||(filters.quick==='overdue'?isOverdueAction(row):filters.quick==='open'?row.kind==='capa'&&isOpenRecord(row):filters.quick==='dueSoon'?isDueSoonAction(row):filters.quick==='verification'?isVerificationAction(row):filters.quick==='orphans'?isOrphanFinding(row):true))
 }
 
@@ -168,6 +169,9 @@ export function auditRows(audits,findings=[]){
  return audits.map(audit=>({...audit,openFindings:findings.filter(finding=>finding.sourceId===audit.id&&isOpenRecord(finding)).length}))
 }
 
+// The round an audit belongs to: spring (up to June) or autumn of its year, as «2026-0» / «2026-1».
+export function auditCycleKey(row){const day=String(row.completedDate||row.plannedDate||'');return day.length<7?'':`${day.slice(0,4)}-${Number(day.slice(5,7))<=6?0:1}`}
+export const auditCycleName=(key,en)=>`${key.endsWith('-0')?(en?'Spring':'Άνοιξη'):(en?'Autumn':'Φθινόπωρο')} ${key.slice(0,4)}`
 export function filterAudits(rows,filters,en){
  return rows.filter(row=>matches(row,filters.query))
   .filter(row=>filters.status==='all'||row.status===filters.status)
@@ -218,7 +222,8 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
  const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
  const statuses=[...new Set(rows.map(row=>row.status).filter(Boolean))]
  const departments=[...new Set(rows.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
- const advanced=['status','type','department','standard'].filter(key=>filters[key]&&filters[key]!=='all').length
+ const advanced=['status','type','department','standard','cycle'].filter(key=>filters[key]&&filters[key]!=='all').length
+ const cycles=[...new Set(rows.map(auditCycleKey).filter(Boolean))].sort().reverse()
  const mode=AUDIT_VIEWS.some(item=>item.id===filters.mode)?filters.mode:'programme'
  return <>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}>
@@ -226,6 +231,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Round':'Κύκλος'} value={filters.cycle||'all'} onChange={value=>set('cycle',value)}><option value="all">{t('all')}</option>{cycles.map(key=><option key={key} value={key}>{auditCycleName(key,en)}</option>)}</FilterSelect>
   </FilterBar>
   {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan} onRound={onRound}/>}
   {mode==='self'&&<SelfAssessmentPanel query={filters.query} canManage={canManageSelf}/>}

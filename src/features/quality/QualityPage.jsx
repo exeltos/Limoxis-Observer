@@ -24,7 +24,7 @@ import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSe
 import { fillAuditProgramme,loadQualityRecords } from './qualityService'
 import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { printReport } from '../../core/export/reportDocument'
-import { auditDepartmentsReportDocument,auditDetailedBatchDocument,auditFindingsExport,auditRoundReportDocument } from './audits/auditReport'
+import { auditDetailedBatchDocument,auditFindingsExport } from './audits/auditReport'
 import { QualityOverview } from './QualityOverview'
 import { ActionsList,ActionsSummary,AUDIT_VIEWS,AuditsList,AuditsSummary,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
 import { capaSourceFor } from './qualityDeviations'
@@ -67,7 +67,7 @@ const RESOURCE_OPTIONS=[
  {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
-const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',mode:'programme',quick:null}
+const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',cycle:'all',mode:'programme',quick:null}
 
 function useQualityRecords(organizationId){
  const [data,setData]=useState({incidents:[],findings:[],capas:[],audits:[]})
@@ -245,13 +245,8 @@ export function QualityPage(){
   reports:listExport(register.filtered,()=>reportRegisterExport(register.filtered,{language,t,categories}),L('Αναφορές προς αξιολόγηση','Reports to assess')),
   incidents:listExport(incidents.filtered,()=>reportRegisterExport(incidents.filtered,{language,t,categories}),L('Μητρώο συμβάντων','Incident register')),
   actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu disabled={!rows.length} onPrint={()=>{if(!printRegistry(qualityExport('capas',capas,{en,t}),{language,kind:t('quality'),title:L('Διορθωτικές ενέργειες','Corrective actions')}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} items={[{id:'findings',label:L('Αποκλίσεις (.csv)','Deviations (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
-  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);const round=pdf=>{const days=[...new Set(records.data.audits.filter(audit=>!audit.plannedMonthOnly&&audit.status!=='cancelled').map(audit=>String(audit.completedDate||audit.plannedDate).slice(0,10)))].sort();const last=[...days].reverse().find(day=>day<=todayIso)||days[0];if(!last)return;const shift=(day,by)=>{const date=new Date(`${day}T12:00:00Z`);date.setUTCDate(date.getUTCDate()+by);return date.toISOString().slice(0,10)};if(!printReport(auditRoundReportDocument(records.data.audits,records.data.findings,{language,from:shift(last,-4),to:last}),{pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')};const cycleKey=audit=>{const day=String(audit.completedDate||audit.plannedDate||'');return day.length<7?'':`${day.slice(0,4)}-${Number(day.slice(5,7))<=6?0:1}`};const cycleKeys=[...new Set(rows.filter(audit=>audit.status==='completed'&&(audit.checklist||[]).length).map(cycleKey).filter(Boolean))].sort().reverse().slice(0,4);const cycleName=key=>`${key.endsWith('-0')?L('Άνοιξη','Spring'):L('Φθινόπωρο','Autumn')} ${key.slice(0,4)}`;const detailed=key=>{const chosen=key?rows.filter(audit=>cycleKey(audit)===key):rows;if(!printReport(auditDetailedBatchDocument(chosen,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')};const departments=pdf=>{if(!printReport(auditDepartmentsReportDocument(rows,records.data.findings,{language}),{pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')};return <ExportMenu menuWidth={360} disabled={!rows.length} items={[
-   {id:'dept-print',kind:'print',label:L('Έκθεση ανά τμήμα (εκτύπωση)','Report by department (print)'),onClick:()=>departments(false)},
-   {id:'dept-pdf',kind:'pdf',label:L('Έκθεση ανά τμήμα (PDF)','Report by department (PDF)'),onClick:()=>departments(true)},
-   ...cycleKeys.map(key=>({id:`detail-${key}`,kind:'print',label:L(`Συγκεντρωτική · ${cycleName(key)}`,`Summary · ${cycleName(key)}`),onClick:()=>detailed(key)})),
-   {id:'detail-all',kind:'print',label:L('Συγκεντρωτική · όλοι οι κύκλοι','Summary · all rounds'),onClick:()=>detailed(null)},
-   {id:'round-print',kind:'print',label:L('Έκθεση τελευταίου κύκλου (εκτύπωση)','Latest round report (print)'),onClick:()=>round(false)},
-   {id:'round-pdf',kind:'pdf',label:L('Έκθεση τελευταίου κύκλου (PDF)','Latest round report (PDF)'),onClick:()=>round(true)},
+  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);const summary=()=>{if(!printReport(auditDetailedBatchDocument(rows,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')};return <ExportMenu disabled={!rows.length} items={[
+   {id:'summary-print',kind:'print',label:L('Συγκεντρωτική έκθεση','Summary report'),onClick:summary},
    {id:'findings-excel',kind:'excel',label:L('Ευρήματα (Excel)','Findings (Excel)'),onClick:()=>exportRegistry(auditFindingsExport(rows,records.data.findings,language))},
    {id:'list-excel',kind:'excel',label:L('Λίστα επιθεωρήσεων (Excel)','Audit list (Excel)'),onClick:()=>exportRegistry(qualityExport('audits',rows,{en,t}))},
   ]}/>})(),

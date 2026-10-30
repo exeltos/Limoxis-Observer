@@ -176,6 +176,30 @@ export function auditDetailedBatchDocument(audits = [], findings = [], { languag
     })
   }
   if (clean.length) sections.push({ title: L('Χωρίς αποκλίσεις', 'No deviations'), text: clean.join(' · ') })
+  // The questionnaire at the end: every question once, with how the audited departments answered it.
+  const questions = new Map()
+  for (const { audit } of scored) for (const row of audit.checklist || []) {
+    const key = row.templateQuestionId || `${row.clauseRef}|${row.item}`
+    if (!questions.has(key)) questions.set(key, { row, yes: 0, partial: 0, no: 0, na: 0, order: questions.size })
+    const entry = questions.get(key)
+    if (entry[row.answer] !== undefined) entry[row.answer] += 1
+  }
+  if (questions.size) {
+    const rowsOut = []
+    let chapter = null
+    for (const entry of [...questions.values()].sort((x, y) => (x.row.position || 0) - (y.row.position || 0) || x.order - y.order)) {
+      const name = [entry.row.chapterRef, entry.row.chapterTitle].filter(Boolean).join(' · ')
+      if (name && name !== chapter) { chapter = name; rowsOut.push([{ html: `<b>${esc(name)}</b>`, colSpan: 7 }]) }
+      const asked = entry.yes + entry.partial + entry.no
+      const rate = asked ? Math.round(((entry.yes + entry.partial / 2) * 100) / asked) : null
+      rowsOut.push([entry.row.clauseRef || '—', entry.row.item, { text: String(entry.yes), align: 'right' }, { text: String(entry.partial), align: 'right' }, { text: String(entry.no), align: 'right' }, { text: String(entry.na), align: 'right' }, { html: `<b>${esc(pct(rate))}</b>`, align: 'right' }])
+    }
+    sections.push({
+      title: L('Παράρτημα: το ερωτηματολόγιο', 'Appendix: the questionnaire'),
+      table: { columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), { text: L('Ναι', 'Yes'), align: 'right' }, { text: L('Μερική', 'Partial'), align: 'right' }, { text: L('Όχι', 'No'), align: 'right' }, { text: L('Δ.Ε.', 'N/A'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }], rows: rowsOut },
+      note: L(`Οι αριθμοί δείχνουν πόσα από τα ${scored.length} τμήματα απάντησαν κάθε ερώτηση.`, `The numbers show how many of the ${scored.length} departments gave each answer.`),
+    })
+  }
   return {
     language,
     numbered: false,

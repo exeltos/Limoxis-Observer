@@ -203,6 +203,7 @@ describe('report and storage', () => {
     const withDeviation = done.filter(item => item.checklist.some(row => row.answer === 'partial' || row.answer === 'no'))
     expect(doc.sections.filter(section => section.tables).length).toBe(withDeviation.length)
     expect(doc.sections.some(section => section.html?.includes('page-break-before'))).toBe(false)
+    expect(doc.sections.at(-1).title).toBe('Παράρτημα: το ερωτηματολόγιο')
     expect(auditDetailedBatchDocument([]).sections[0].table.rows).toHaveLength(0)
   })
 
