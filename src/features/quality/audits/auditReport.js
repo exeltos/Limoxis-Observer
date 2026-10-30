@@ -14,6 +14,20 @@ const month = (value, language) => (value ? new Intl.DateTimeFormat(language ===
 const pct = value => (value == null ? '—' : `${value}%`)
 const label = (list, value, en) => list.find(item => item.value === value)?.label[en ? 1 : 0] || value || ''
 
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+const RESULT_COLOR = { yes: '#18794e', partial: '#b5720b', no: '#b42318', na: '#667085' }
+// A thin stacked bar of the four results: width follows the number of answers.
+const resultBar = (o, en) => {
+  const total = o.yes + o.partial + o.no + o.na
+  if (!total) return ''
+  const names = { yes: en ? 'Conforms' : 'Συμμορφώνεται', partial: en ? 'Partial' : 'Μερική', no: en ? 'Nonconformity' : 'Μη συμμόρφωση', na: en ? 'N/A' : 'Δ.Ε.' }
+  const segs = ['yes', 'partial', 'no', 'na'].filter(key => o[key] > 0).map(key => `<span style="display:block;float:left;height:12px;width:${(o[key] * 100 / total).toFixed(2)}%;background:${RESULT_COLOR[key]}"></span>`).join('')
+  const legend = ['yes', 'partial', 'no', 'na'].map(key => `<span style="margin-right:14px;white-space:nowrap"><b style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${RESULT_COLOR[key]};margin-right:4px"></b>${esc(names[key])} <b>${o[key]}</b></span>`).join('')
+  return `<div style="overflow:hidden;border-radius:6px;background:#eef1f4;height:12px">${segs}</div><p style="margin:6px 0 0;font-size:11px;color:#475467">${legend}</p>`
+}
+const rateBar = rate => (rate == null ? '' : `<span style="display:inline-block;width:90px;height:8px;border-radius:4px;background:#eef1f4;vertical-align:middle"><span style="display:block;height:8px;border-radius:4px;width:${Math.max(0, Math.min(100, rate))}%;background:${rate >= 90 ? '#18794e' : rate >= 75 ? '#b5720b' : '#b42318'}"></span></span>`)
+const resultCell = (answer, language) => ({ html: `<b style="color:${RESULT_COLOR[answer] || '#667085'}">${esc(resultLabel(answer, language) || '—')}</b>` })
+
 export function auditReportDocument(audit, findings = [], { language = 'el' } = {}) {
   const en = language === 'en'
   const L = (el, english) => (en ? english : el)
@@ -40,6 +54,12 @@ export function auditReportDocument(audit, findings = [], { language = 'el' } = 
       [L('Συμμόρφωση', 'Compliance'), `${pct(score.overall.rate)} (${score.overall.yes} ${L('συμμ.', 'conf.')}, ${score.overall.partial} ${L('μερ.', 'part.')}, ${score.overall.no} ${L('μη συμμ.', 'noncon.')}, ${score.overall.na} ${L('Δ/Ε', 'N/A')})`],
     ],
     sections: [
+      {
+        title: L('Σύνοψη', 'Summary'),
+        text: summaryText(audit, score, own, notMet, en),
+        html: resultBar(score.overall, en),
+        keepTogether: true,
+      },
       { title: L('Πεδίο και κριτήρια', 'Scope and criteria'), text: [en ? audit.scopeEn || audit.scope : audit.scope, audit.clausesScope?.length ? `${L('Κεφάλαια / άρθρα', 'Chapters / clauses')}: ${audit.clausesScope.join(', ')}` : L('Όλο το ερωτηματολόγιο για την περιοχή του τμήματος.', 'The whole questionnaire for the department’s area.'), L('Τα ερωτήματα είναι βοήθημα επιθεώρησης με αναφορά στο άρθρο· δεν αποτελούν το κείμενο του προτύπου.', 'The questions are an audit aid with the clause reference; not the text of the standard.')].filter(Boolean).join('\n') },
       {
         title: L('Ομάδα επιθεώρησης', 'Audit team'),
@@ -57,11 +77,18 @@ export function auditReportDocument(audit, findings = [], { language = 'el' } = 
         title: L('Αποτελέσματα ανά κεφάλαιο', 'Results by chapter'),
         table: {
           columns: [L('Κεφάλαιο', 'Chapter'), { text: L('Ερωτήσεις', 'Questions'), align: 'right' }, { text: L('Συμμ.', 'Conf.'), align: 'right' }, { text: L('Μερική', 'Partial'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Δ/Ε', 'N/A'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }],
-          rows: score.chapters.map(chapter => [[score.standards.length > 1 && chapter.standard ? standardShort(chapter.standard) : '', chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—', { text: String(chapter.total), align: 'right' }, { text: String(chapter.yes), align: 'right' }, { text: String(chapter.partial), align: 'right' }, { text: String(chapter.no), align: 'right' }, { text: String(chapter.na), align: 'right' }, { text: pct(chapter.rate), align: 'right' }]),
+          rows: score.chapters.map(chapter => [[score.standards.length > 1 && chapter.standard ? standardShort(chapter.standard) : '', chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—', { text: String(chapter.total), align: 'right' }, { text: String(chapter.yes), align: 'right' }, { text: String(chapter.partial), align: 'right' }, { text: String(chapter.no), align: 'right' }, { text: String(chapter.na), align: 'right' }, { html: `${rateBar(chapter.rate)} <b>${esc(pct(chapter.rate))}</b>`, align: 'right' }]),
           foot: [L('Σύνολο (σταθμισμένο)', 'Total (weighted)'), { text: String(score.overall.total), align: 'right' }, { text: String(score.overall.yes), align: 'right' }, { text: String(score.overall.partial), align: 'right' }, { text: String(score.overall.no), align: 'right' }, { text: String(score.overall.na), align: 'right' }, { text: pct(score.overall.rate), align: 'right' }],
           empty: L('Δεν υπάρχουν απαντήσεις.', 'No answers.'),
         },
         note: L('Συμμόρφωση = Σ(βάρος × τιμή) / Σ βάρος, με Συμμορφώνεται = 1, Μερική = ½, Μη συμμόρφωση = 0· οι «Δεν εφαρμόζεται» εξαιρούνται.', 'Compliance = Σ(weight × value) / Σ weight, with Conforms = 1, Partial = ½, Nonconformity = 0; «Not applicable» is left out.'),
+      },
+      {
+        title: L('Δυνατά σημεία και σημεία βελτίωσης', 'Strengths and areas to improve'),
+        tables: [
+          { columns: [L('Δυνατά σημεία (κεφάλαια χωρίς απόκλιση)', 'Strengths (chapters without a deviation)')], rows: strengths(score, en).map(line => [line]), empty: L('Κανένα κεφάλαιο χωρίς απόκλιση.', 'No chapter without a deviation.') },
+          { columns: [L('Σημεία βελτίωσης (κεφάλαια με αποκλίσεις)', 'Areas to improve (chapters with deviations)')], rows: weaknesses(score, en).map(line => [line]), empty: L('Δεν εντοπίστηκαν αποκλίσεις.', 'No deviation found.') },
+        ],
       },
       {
         title: L('Διαπιστώσεις', 'Observations and nonconformities'),
@@ -71,12 +98,46 @@ export function auditReportDocument(audit, findings = [], { language = 'el' } = 
         title: L('Ευρήματα και διορθωτικές ενέργειες', 'Findings and corrective actions'),
         table: { columns: [L('Κωδικός', 'Code'), L('Κατάταξη', 'Class'), L('Εύρημα', 'Finding'), L('Υπεύθυνος', 'Owner'), L('Προθεσμία', 'Due'), L('Κατάσταση', 'Status')], rows: own.map(finding => [finding.displayId || finding.id, findingClassLabel(finding.findingClass, language) || '—', en ? finding.titleEn || finding.title : finding.title, (finding.owners || []).join(', ') || finding.owner || '—', day(finding.dueDate), finding.status === 'closed' ? L('Κλειστό', 'Closed') : L('Ανοιχτό', 'Open')]), empty: L('Δεν καταγράφηκαν ευρήματα.', 'No findings.') },
       },
+      {
+        title: L('Προτεινόμενες ενέργειες', 'Recommended actions'),
+        list: notMet.filter(row => row.answer === 'no' || row.answer === 'partial').map(row => `${row.clauseRef ? `${row.clauseRef} — ` : ''}${row.item}${row.note ? ` (${row.note})` : ''}`),
+        note: L('Κάθε διαπίστωση καταχωρείται ως εύρημα με υπεύθυνο και προθεσμία, και ακολουθεί η παρακολούθηση μέχρι το κλείσιμο.', 'Each deviation is raised as a finding with an owner and a due date, and followed until it is closed.'),
+      },
       { title: L('Συμπέρασμα', 'Conclusion'), text: audit.conclusion || '—' },
+      {
+        title: L('Παράρτημα: πλήρες ερωτηματολόγιο', 'Appendix: the full questionnaire'),
+        table: {
+          columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Σχόλιο', 'Comment')],
+          rows: rows.map(row => [row.clauseRef || '—', row.item, resultCell(row.answer, language), [row.note, row.evidence].filter(Boolean).join(' — ') || '']),
+          empty: L('Δεν υπάρχουν απαντήσεις.', 'No answers.'),
+        },
+      },
     ],
     signatures: [{ role: L('Επικεφαλής επιθεωρητής', 'Lead auditor'), name: lead }, { role: L('Εκπρόσωπος επιθεωρούμενου', 'Auditee'), name: audit.auditeeRepresentative || '' }],
     filename: `${audit.displayId || audit.id}_${en ? 'audit-report' : 'ekthesi-epitheorisis'}`,
   }
 }
+
+// The summary in words: what was audited, how it came out, where the deviations are.
+function summaryText(audit, score, own, notMet, en) {
+  const L = (el, english) => (en ? english : el)
+  const o = score.overall
+  const dept = (en ? audit.departmentEn : audit.department) || L('ο οργανισμός', 'the organization')
+  const lines = [
+    L(`Η επιθεώρηση του τμήματος «${dept}» ${audit.completedDate ? `ολοκληρώθηκε στις ${day(audit.completedDate)}` : `είναι προγραμματισμένη για ${day(audit.plannedDate)}`} και κάλυψε ${o.total} ερωτήσεις.`, `The audit of «${dept}» ${audit.completedDate ? `was completed on ${day(audit.completedDate)}` : `is planned for ${day(audit.plannedDate)}`} and covered ${o.total} questions.`),
+    o.rate == null ? L('Δεν υπάρχουν ακόμη απαντήσεις.', 'There are no answers yet.') : L(`Η συνολική συμμόρφωση είναι ${o.rate}%: ${o.yes} συμμορφώνονται, ${o.partial} με μερική συμμόρφωση, ${o.no} μη συμμορφώσεις και ${o.na} δεν εφαρμόζονται.`, `Overall compliance is ${o.rate}%: ${o.yes} conform, ${o.partial} partially, ${o.no} nonconformities and ${o.na} not applicable.`),
+  ]
+  if (score.criticalFailed > 0) lines.push(L(`Προσοχή: ${score.criticalFailed} κρίσιμες ερωτήσεις δεν συμμορφώνονται.`, `Attention: ${score.criticalFailed} critical questions do not conform.`))
+  const low = score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100)
+  if (low.length) lines.push(L(`Οι αποκλίσεις βρίσκονται σε ${low.length} από ${score.chapters.length} κεφάλαια: ${low.slice(0, 4).map(chapter => chapter.ref || chapter.title).join(', ')}${low.length > 4 ? '…' : ''}.`, `Deviations are in ${low.length} of ${score.chapters.length} chapters: ${low.slice(0, 4).map(chapter => chapter.ref || chapter.title).join(', ')}${low.length > 4 ? '…' : ''}.`))
+  else if (o.total) lines.push(L('Δεν εντοπίστηκε απόκλιση σε κανένα κεφάλαιο.', 'No deviation was found in any chapter.'))
+  if (own.length) lines.push(L(`Καταγράφηκαν ${own.length} ευρήματα (${own.filter(finding => finding.status === 'closed').length} κλειστά).`, `${own.length} findings were raised (${own.filter(finding => finding.status === 'closed').length} closed).`))
+  else if (notMet.length) lines.push(L(`Υπάρχουν ${notMet.length} διαπιστώσεις προς καταχώρηση ως ευρήματα.`, `${notMet.length} deviations are to be raised as findings.`))
+  return lines.join('\n')
+}
+const chapterName = chapter => [chapter.ref, chapter.title].filter(Boolean).join(' · ') || '—'
+const strengths = (score, en) => score.chapters.filter(chapter => chapter.rate === 100).map(chapter => `${chapterName(chapter)} — 100% (${chapter.total} ${en ? 'questions' : 'ερωτήσεις'})`)
+const weaknesses = (score, en) => score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).sort((a, b) => a.rate - b.rate).map(chapter => `${chapterName(chapter)} — ${chapter.rate}% (${chapter.partial} ${en ? 'partial' : 'μερική'}, ${chapter.no} ${en ? 'nonconformity' : 'μη συμμόρφωση'})`)
 
 // The answers, one row per question (Excel opens the .csv).
 export function auditAnswersExport(audit, language = 'el') {

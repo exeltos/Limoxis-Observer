@@ -186,9 +186,12 @@ describe('report and storage', () => {
   it('builds the audit report on the shared layout with team, meetings, chapters, findings and signatures', () => {
     const audit = programmeAudits.find(item => item.standard === 'jci')
     const doc = auditReportDocument({ ...audit, displayId: audit.id }, programmeFindings)
-    expect(doc.sections.map(section => section.title)).toEqual(['Πεδίο και κριτήρια', 'Ομάδα επιθεώρησης', 'Συσκέψεις', 'Αποτελέσματα ανά κεφάλαιο', 'Διαπιστώσεις', 'Ευρήματα και διορθωτικές ενέργειες', 'Συμπέρασμα'])
+    expect(doc.sections.map(section => section.title)).toEqual(['Σύνοψη', 'Πεδίο και κριτήρια', 'Ομάδα επιθεώρησης', 'Συσκέψεις', 'Αποτελέσματα ανά κεφάλαιο', 'Δυνατά σημεία και σημεία βελτίωσης', 'Διαπιστώσεις', 'Ευρήματα και διορθωτικές ενέργειες', 'Προτεινόμενες ενέργειες', 'Συμπέρασμα', 'Παράρτημα: πλήρες ερωτηματολόγιο'])
     expect(doc.signatures.map(item => item.role)).toEqual(['Επικεφαλής επιθεωρητής', 'Εκπρόσωπος επιθεωρούμενου'])
-    expect(doc.sections[3].table.rows.map(cells => cells[0].split(' · ')[0])).toEqual(['IPSG', 'COP', 'MMU', 'PCI'])
+    expect(doc.sections[4].table.rows.map(cells => cells[0].split(' · ')[0])).toEqual(['IPSG', 'COP', 'MMU', 'PCI'])
+    expect(doc.sections[0].text).toContain('συμμόρφωση')
+    expect(doc.sections[0].html).toContain('background:#18794e')
+    expect(doc.sections.at(-1).table.rows).toHaveLength(audit.checklist.length)
     expect(auditAnswersExport(audit).rows).toHaveLength(audit.checklist.length)
   })
 
