@@ -50,3 +50,21 @@ describe('arranging a round', () => {
     expect(outside[0].auditId).toBeNull()
   })
 })
+
+describe('readiness of the basic questionnaire', () => {
+  it('counts each answer for every standard its clause reference names', async () => {
+    const { auditReadiness, rowStandards } = await import('../src/features/quality/audits/auditModel')
+    expect(rowStandards({ clauseRef: 'JCI IPSG.1 · ISO 9001 8.5' })).toEqual(['iso9001', 'jci'])
+    expect(rowStandards({ clauseRef: 'TEMOS T2 · JCI PFR' })).toEqual(['jci', 'temos'])
+    expect(rowStandards({ clauseRef: '4.1', standard: 'iso9001' })).toEqual(['iso9001'])
+    const row = (clauseRef, result) => ({ clauseRef, result, answer: result === 'yes' ? 'yes' : 'no', required: true, chapterRef: 'ΑΣΦ', chapterTitle: 'Ασφάλεια', weight: 1, standard: 'other' })
+    const audit = { id: 'a1', department: 'ΜΕΘ', status: 'completed', lifecycleStatus: 'active', standard: 'other', completedDate: '2026-05-12', plannedDate: '2026-05-12',
+      checklist: [row('JCI IPSG.1 · ISO 9001 8.5', 'yes'), row('JCI MMU', 'no'), row('TEMOS T2 · JCI PFR', 'yes'), row('ISO 9001 7.5', 'yes')] }
+    const { rows } = auditReadiness([audit], [], '2026-10-30')
+    const byStandard = Object.fromEntries(rows.map(item => [item.standard, item]))
+    expect(Object.keys(byStandard).sort()).toEqual(['iso9001', 'jci', 'temos'])
+    expect(byStandard.iso9001.rate).toBe(100)
+    expect(byStandard.jci.rate).toBeLessThan(100)
+    expect(byStandard.temos.rate).toBe(100)
+  })
+})

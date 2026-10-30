@@ -474,13 +474,23 @@ export function roundPlan(audits = [], departments = [], start, count = 3) {
 // completed audit that covered it (one audit may cover several standards), how
 // many departments were audited for it this year, its open findings and its
 // weakest chapters; and what is still missing across all standards.
+// The standards a question counts for: the ones its clause reference names («JCI IPSG.1 · ISO 9001 8.5»,
+// as the basic questionnaire writes them), else its own standard, else the audit's.
+const TAGS = [['iso9001', /ISO ?9001/], ['jci', /\bJCI\b/], ['temos', /TEMOS/]]
+export function rowStandards(row, audit = {}) {
+  const text = String(row.clauseRef || '')
+  const tagged = TAGS.filter(([, pattern]) => pattern.test(text)).map(([value]) => value)
+  if (tagged.length) return tagged
+  const own = row.standard || audit.standard
+  return own ? [own] : []
+}
 export const READINESS_ORDER = ['iso9001', 'iso15224', 'jci', 'temos', 'iso15189', 'haccp']
 export function auditReadiness(audits = [], findings = [], on = today()) {
   const year = on.slice(0, 4)
   const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled')
   const completed = live.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))
   const standardsOf = audit => {
-    const tagged = new Set((audit.checklist || []).map(row => row.standard).filter(Boolean))
+    const tagged = new Set((audit.checklist || []).flatMap(row => (row.standard || row.clauseRef ? rowStandards(row, audit) : [])).filter(Boolean))
     return tagged.size ? [...tagged] : [audit.standard, ...(audit.standards || [])].filter(Boolean)
   }
   const found = new Set(live.flatMap(standardsOf))
@@ -493,7 +503,7 @@ export function auditReadiness(audits = [], findings = [], on = today()) {
       const key = audit.department || ''
       if (!latest.has(key)) latest.set(key, audit)
     }
-    const answers = [...latest.values()].flatMap(audit => (audit.checklist || []).filter(row => (row.standard || audit.standard) === standard))
+    const answers = [...latest.values()].flatMap(audit => (audit.checklist || []).filter(row => rowStandards(row, audit).includes(standard)))
     const score = auditScore(answers)
     const departments = [...latest.keys()]
     const thisYear = [...latest.values()].filter(audit => String(audit.completedDate || audit.plannedDate || '').startsWith(year)).length
