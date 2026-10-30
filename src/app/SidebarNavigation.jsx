@@ -6,9 +6,11 @@ import { preloadRoute } from './routePreload'
 import { forgetRegistryViewStates } from '../core/navigation/useRegistryMemory'
 
 // Record pages of the merged sections keep their old address (/patients/:id): the menu entry they belong to.
-const MENU_ALIASES=[['/patients','/surveillance'],['/committees','/meetings'],['/regulations','/documents'],['/legislation','/documents']]
+// The department registers open from the Quality Center for those who see it (the staff of a department have their own «/registers» entry).
+const MENU_ALIASES=[['/patients','/surveillance'],['/committees','/meetings'],['/regulations','/documents'],['/legislation','/documents'],['/registers','/quality']]
 const menuPathOf=pathname=>{const alias=MENU_ALIASES.find(([from])=>pathname===from||pathname.startsWith(`${from}/`));return alias?alias[1]:pathname}
-const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);return to==='/'?path==='/':path===to||path.startsWith(`${to}/`)}
+const under=(path,to)=>to==='/'?path==='/':path===to||path.startsWith(`${to}/`)
+const isUnder=(pathname,to)=>under(pathname,to)||under(menuPathOf(pathname),to)
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon
