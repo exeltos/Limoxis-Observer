@@ -27,7 +27,7 @@ export const createEmptyIndicatorDefinition=()=>({id:null,system:false,key:'',ve
 
 export function indicatorDefinitionIsValid(v){return Boolean(v?.key?.trim()&&v?.titleEl?.trim()&&v?.version?.trim()&&(v.calculationType!=='auto'||(v?.numeratorMetric?.trim()&&indicatorMetricCombinationIsValid(v.numeratorMetric,v.denominatorMetric||'')))&&(!v?.effectiveFrom||!v?.effectiveTo||v.effectiveTo>=v.effectiveFrom))}
 
-export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=false,showSystem=false,lockKey=false,departments=[]}){
+export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=false,showSystem=false,lockKey=false,hideKey=false,departments=[]}){
  const el=language==='el',v=value||createEmptyIndicatorDefinition(),set=(key,next)=>onChange({...v,[key]:next}),automatic=v.calculationType==='auto'
  const visibleDepartmentIds=v.visibleDepartmentIds||[]
  const denominatorOptions=automatic?allowedIndicatorDenominators(v.numeratorMetric):[]
@@ -46,7 +46,7 @@ export function IndicatorDefinitionForm({value,onChange,language='el',readOnly=f
  }
  return <div className="entry-grid">
   <label className="entry-span-2"><span>{el?'Τίτλος *':'Title *'}</span><input autoFocus value={v.titleEl||''} disabled={readOnly} onChange={e=>set('titleEl',e.target.value)}/></label>
-  <label><span>{el?'Κωδικός δείκτη *':'Indicator key *'}</span><input value={v.key||''} disabled={readOnly||lockKey} onChange={e=>set('key',e.target.value)} placeholder="custom_indicator"/></label>
+  {!hideKey&&<label><span>{el?'Κωδικός δείκτη *':'Indicator key *'}</span><input value={v.key||''} disabled={readOnly||lockKey} onChange={e=>set('key',e.target.value)} placeholder="custom_indicator"/></label>}
   <label><span>{el?'Έκδοση *':'Version *'}</span><input value={v.version||''} disabled={readOnly} onChange={e=>set('version',e.target.value)}/></label>
   <SearchableSelect label={el?'Κατηγορία':'Category'} value={v.category||'surveillance'} disabled={readOnly} onChange={x=>set('category',x||'surveillance')} options={CATEGORY_OPTIONS.map(([value,elLabel,enLabel])=>({value,label:el?elLabel:enLabel}))}/>
   <ChoiceField label={el?'Τύπος υπολογισμού':'Calculation type'} value={v.calculationType||'auto'} disabled={readOnly} onChange={x=>set('calculationType',x)} options={[{value:'auto',label:el?'Αυτόματος από δεδομένα':'Automatic from data'},{value:'manual',label:el?'Χειροκίνητος':'Manual'}]}/>

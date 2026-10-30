@@ -142,6 +142,34 @@ export function ObjectiveBars({ objectives }) {
 
 export const newObjective = () => ({ year: new Date().getFullYear(), title: '', direction: 'higher', target: '', status: 'active' })
 
+// The fields of an objective, shared by the new-objective page and the edit dialog.
+export function ObjectiveFields({ objective, set, registers }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const register = registers.find(item => item.id === objective.registerId)
+  const indicatorOptions = useMemo(() => (register?.indicators || []).map(item => ({ value: item.id, label: textOf(item, language) })), [register, language])
+  return <>
+    <div className="lo-form-cards"><FormCard wide>
+      <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
+      {!en && <MoreSection moreLabel="Αγγλική μετάφραση" lessLabel="Λιγότερα"><Field label="Τίτλος (αγγλικά)"><input value={objective.titleEn || ''} onChange={event => set({ titleEn: event.target.value })} /></Field></MoreSection>}
+      <FormGrid columns={3}>
+        <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} placeholder={en ? 'None: value reported by the owner' : 'Κανένα: τιμή από τον υπεύθυνο'} {...selectText(en)} />
+        {register ? <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} /> : <Field label={en ? 'Value so far' : 'Τιμή έως σήμερα'}><input inputMode="decimal" value={objective.reportedValue ?? ''} onChange={event => set({ reportedValue: event.target.value })} /></Field>}
+        <Field label={en ? 'Unit' : 'Μονάδα'}><input value={objective.unit || ''} onChange={event => set({ unit: event.target.value })} /></Field>
+      </FormGrid>
+      <FormGrid columns={3}>
+        <ChoiceField label={en ? 'Met when the value is' : 'Επιτυγχάνεται όταν η τιμή είναι'} value={objective.direction} options={[{ value: 'higher', label: en ? 'At least' : 'Τουλάχιστον' }, { value: 'lower', label: en ? 'At most' : 'Το πολύ' }]} onChange={value => set({ direction: value })} />
+        <Field label={`${en ? 'Target' : 'Στόχος (τιμή)'} *`}><input inputMode="decimal" value={objective.target ?? ''} onChange={event => set({ target: event.target.value })} /></Field>
+        <Field label={en ? 'Year' : 'Έτος'}><input inputMode="numeric" value={objective.year || ''} onChange={event => set({ year: Number(event.target.value) || '' })} /></Field>
+      </FormGrid>
+      <FormGrid columns={3}>
+        <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={objective.ownerLabel || ''} onChange={event => set({ ownerLabel: event.target.value })} /></Field>
+        <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={objective.dueDate || ''} onChange={value => set({ dueDate: value })} />
+      </FormGrid>
+    </FormCard></div>
+  </>
+}
+
 export function ObjectiveDialog({ objective: initial, registers, onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -150,8 +178,6 @@ export function ObjectiveDialog({ objective: initial, registers, onClose, onSave
   const [objective, setObjective] = useState(() => ({ ...initial }))
   const [saving, setSaving] = useState(false)
   const set = next => setObjective(current => ({ ...current, ...next }))
-  const register = registers.find(item => item.id === objective.registerId)
-  const indicatorOptions = useMemo(() => (register?.indicators || []).map(item => ({ value: item.id, label: textOf(item, language) })), [register, language])
   const valid = objective.title?.trim() && objective.target !== ''
   async function save() {
     setSaving(true)
@@ -163,23 +189,6 @@ export function ObjectiveDialog({ objective: initial, registers, onClose, onSave
     } catch (error) { console.error(error); notify(en ? 'The objective could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.', 'error') } finally { setSaving(false) }
   }
   return <ObserverDialog title={initial.id ? (en ? 'Quality objective' : 'Στόχος ποιότητας') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')} subtitle={en ? 'ISO 9001 §6.2: measurable, with an owner and a date.' : 'ISO 9001 §6.2: μετρήσιμος, με υπεύθυνο και προθεσμία.'} onClose={onClose} width="wide" footer={<DialogActions onCancel={onClose} onSave={save} disabled={!valid || saving} saveLabel={en ? 'Save' : 'Αποθήκευση'} />}>
-    <div className="lo-form-cards"><FormCard wide>
-      <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
-      {!en && <MoreSection moreLabel="Αγγλική μετάφραση" lessLabel="Λιγότερα"><Field label="Τίτλος (αγγλικά)"><input value={objective.titleEn || ''} onChange={event => set({ titleEn: event.target.value })} /></Field></MoreSection>}
-      <FormGrid columns={2}>
-        <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} placeholder={en ? 'None: value reported by the owner' : 'Κανένα: τιμή από τον υπεύθυνο'} {...selectText(en)} />
-        {register ? <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} /> : <Field label={en ? 'Value so far' : 'Τιμή έως σήμερα'}><input inputMode="decimal" value={objective.reportedValue ?? ''} onChange={event => set({ reportedValue: event.target.value })} /></Field>}
-      </FormGrid>
-      <FormGrid columns={3}>
-        <ChoiceField label={en ? 'Met when the value is' : 'Επιτυγχάνεται όταν η τιμή είναι'} value={objective.direction} options={[{ value: 'higher', label: en ? 'At least' : 'Τουλάχιστον' }, { value: 'lower', label: en ? 'At most' : 'Το πολύ' }]} onChange={value => set({ direction: value })} />
-        <Field label={`${en ? 'Target' : 'Στόχος (τιμή)'} *`}><input inputMode="decimal" value={objective.target ?? ''} onChange={event => set({ target: event.target.value })} /></Field>
-        <Field label={en ? 'Unit' : 'Μονάδα'}><input value={objective.unit || ''} onChange={event => set({ unit: event.target.value })} /></Field>
-      </FormGrid>
-      <FormGrid columns={3}>
-        <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={objective.ownerLabel || ''} onChange={event => set({ ownerLabel: event.target.value })} /></Field>
-        <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={objective.dueDate || ''} onChange={value => set({ dueDate: value })} />
-        <Field label={en ? 'Year' : 'Έτος'}><input inputMode="numeric" value={objective.year || ''} onChange={event => set({ year: Number(event.target.value) || '' })} /></Field>
-      </FormGrid>
-    </FormCard></div>
+    <ObjectiveFields objective={objective} set={set} registers={registers} />
   </ObserverDialog>
 }
