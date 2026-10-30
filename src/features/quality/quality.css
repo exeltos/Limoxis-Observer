@@ -360,8 +360,6 @@ button.quality-column{border:0;background:none;padding:0;font:inherit;cursor:poi
 /* Programme: the round chips on the left, the print button on the right; a tick column to choose departments. */
 .quality-programme-printbar{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 16px}
 .quality-programme-printbar>.audit-rounds{flex:1 1 auto;min-width:0}
-.quality-programme-print{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);font:inherit;font-size:12.5px;font-weight:700;color:var(--lo-color-primary);cursor:pointer}
-.quality-programme-print:disabled{opacity:.5;cursor:default}
-.quality-programme-print>small{font-size:11px;font-weight:500;color:var(--lo-color-muted)}
+.quality-programme-print{display:inline-flex;flex:0 0 auto}
 .quality-programme-table th.quality-programme-pick,.quality-programme-table td.quality-programme-pick{width:34px;padding-right:0}
 .quality-programme-pick .lo-checkbox-field{min-height:0}

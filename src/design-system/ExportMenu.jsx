@@ -42,11 +42,13 @@ export function ExportMenu({
   compact = false,
   // A wider menu for long item names (one print per group of a list).
   menuWidth = 220,
+  // The button's name when the menu is not «Εξαγωγή» (e.g. a menu that only prints).
+  buttonLabel = '',
 }) {
   const context = useOptionalLanguage()
   const rawData = canExportRawData(useContext(tenantContext())?.role)
   const en = (language || context?.language) === 'en'
-  const label = en ? 'Export' : 'Εξαγωγή'
+  const label = buttonLabel || (en ? 'Export' : 'Εξαγωγή')
   const names = {
     print: en ? 'Print' : 'Εκτύπωση',
     pdf: 'PDF',

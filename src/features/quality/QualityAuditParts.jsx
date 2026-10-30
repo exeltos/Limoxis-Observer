@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ListChecks, Plus, Printer } from 'lucide-react'
+import { ListChecks, Plus } from 'lucide-react'
+import { ExportMenu } from '../../design-system/ExportMenu'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { useDepartments } from '../management/useLibraries'
@@ -74,8 +75,9 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const cycleAudits = useMemo(() => (cycle === null ? [] : roundOfHalf(audits, Number(year), cycle)), [audits, year, cycle])
   const cycleIds = useMemo(() => new Set(cycleAudits.map(audit => audit.id)), [cycleAudits])
   const cycleMonths = useMemo(() => new Set(cycleAudits.map(audit => Number(String(audit.plannedDate).slice(5, 7)) - 1)), [cycleAudits])
-  // What the print button prints: the audits done in the year (or in the round picked above), for the ticked departments or all.
-  const printable = useMemo(() => audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length && String(audit.completedDate || audit.plannedDate).startsWith(String(year)) && (cycle === null || cycleIds.has(audit.id)) && (!picked.length || picked.includes(String(audit.department || '').trim()))), [audits, year, cycle, cycleIds, picked])
+  // What the print menu prints: the audits done in the year, in the spring or the autumn round, for the ticked departments or all.
+  const printOf = half => audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length && String(audit.completedDate || audit.plannedDate).startsWith(String(year)) && (half === null || (Number(String(audit.completedDate || audit.plannedDate).slice(5, 7)) <= 6) === (half === 0)) && (!picked.length || picked.includes(String(audit.department || '').trim())))
+  const printItems = [[null, en ? `Whole ${year}` : `Όλο το ${year}`], [0, `${en ? 'Spring' : 'Άνοιξη'} ${year}`], [1, `${en ? 'Autumn' : 'Φθινόπωρο'} ${year}`]].map(([half, name]) => { const list = printOf(half); return { id: `print-${half}`, kind: 'print', label: `${name} · ${list.length} ${en ? 'audits' : 'επιθεωρήσεις'}`, disabled: !list.length, onClick: () => onPrint(list) } })
   const byDepartment = useMemo(() => {
     const map = new Map()
     audits.forEach(audit => { const key = String(audit.department || '').trim(); if (key) map.set(key, [...(map.get(key) || []), audit]) })
@@ -101,7 +103,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
     </div>
     <div className="quality-programme-printbar">
      <AuditRounds audits={audits} year={Number(year)} language={language} onRound={onRound} onSelect={setCycle} />
-     {onPrint && <button type="button" className="quality-programme-print" disabled={!printable.length} onClick={() => onPrint(printable)}><Printer size={15} aria-hidden="true" /> {en ? 'Print summary' : 'Εκτύπωση συγκεντρωτικής'}<small>{[cycle !== null ? (cycle === 0 ? (en ? 'Spring' : 'Άνοιξη') : (en ? 'Autumn' : 'Φθινόπωρο')) : year, picked.length ? (en ? `${picked.length} departments` : `${picked.length} τμήματα`) : (en ? 'all departments' : 'όλα τα τμήματα'), `${printable.length} ${en ? 'audits' : 'επιθεωρήσεις'}`].join(' · ')}</small></button>}
+     {onPrint && <span className="quality-programme-print"><ExportMenu buttonLabel={picked.length ? (en ? `Print · ${picked.length} departments` : `Εκτύπωση · ${picked.length} τμήματα`) : (en ? 'Print summary' : 'Εκτύπωση συγκεντρωτικής')} items={printItems} menuWidth={280} /></span>}
     </div>
     <div className="quality-programme-scroll">
      <table className="quality-programme-table">
