@@ -1,7 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { AlertOctagon,AlertTriangle,CalendarClock,Clock3,SearchCheck,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
-import { ActionButton } from '../../design-system/ActionButton'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -194,6 +194,11 @@ const waitingDays=row=>{const days=-daysUntil(row.date);return row.stage==='clos
 const PERIOD_DAYS={today:0,'7d':7,'30d':30}
 const SEVERITY_RANK={critical:4,high:3,medium:2,low:1}
 // Open records first (sentinel events, then the more severe, then the newest), closed ones after.
+// Deviations: those still without a corrective action first, then the open ones by priority, closed ones last.
+const deviationOrder=(a,b)=>{
+ const rank=row=>row.type==='finding'&&row.status==='closed'?2:row.type==='finding'&&!row.hasCapa?0:1
+ return rank(a)-rank(b)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
+}
 const openFirst=(a,b)=>{
  const closed=row=>row.stage==='closed'||row.stage==='voided'?1:0
  return closed(a)-closed(b)||(b.sentinel?1:0)-(a.sentinel?1:0)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
@@ -289,14 +294,14 @@ export function DeviationSummary({view,language}){
   {key:'all',icon:FileWarning,value:counts.total,label:en?'Deviations':'Αποκλίσεις',hint:en?`${counts.closed} closed`:`${counts.closed} κλειστές`,active:!pendingView&&filters.status==='all'&&!filters.quick,go:()=>showRegistry({})},
   {key:'progress',icon:Wrench,value:counts.inProgress,label:en?'In progress':'Σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',go:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
   {key:'withoutCapa',icon:AlertOctagon,value:counts.withoutCapa,label:en?'Without corrective action':'Χωρίς διορθωτική ενέργεια',status:counts.withoutCapa?'danger':'good',target:en?'target: 0':'στόχος: 0',active:!pendingView&&filters.quick==='withoutCapa',go:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
-  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Signals to assess':'Σήματα προς αξιολόγηση',tone:'warning',hint:en?'from other modules, e.g. out of limits':'από άλλες ενότητες, π.χ. εκτός ορίων',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
+  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Automatic signals':'Αυτόματα σήματα',tone:'warning',hint:en?'from other modules':'από άλλες ενότητες',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
  ]}/>
 }
 
 export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}){
  const en=language==='en'
  const {filters,set}=view
- const items=view.filtered
+ const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])
  const severityRank={critical:4,high:3,medium:2,low:1}
  const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),source:row=>row.source,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,status:row=>row.status,priority:row=>severityRank[row.severity]||0}
  const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
@@ -326,10 +331,12 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}</td>
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
      <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity)}</StatusBadge></td>
-     {showActions&&<td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
-      {row.type==='deviation'&&<ActionButton tone="neutral" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(row.item,language))}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
-      {needsAction(row)&&<ActionButton tone="neutral" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateFindingCapa(row.item)}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
-     </div></td>}
+     {showActions&&<td className="quality-register-actions" onClick={event=>event.stopPropagation()}>
+      <OverflowMenu label={en?'Actions':'Ενέργειες'} items={[
+       row.type==='deviation'?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateCapa(capaPrefill(row.item,language))}:null,
+       needsAction(row)?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateFindingCapa(row.item)}:null,
+      ]}/>
+     </td>}
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}
