@@ -10,7 +10,7 @@ import { auditCompliance, pendingFindings } from '../src/features/quality/qualit
 import { sectionFacts } from '../src/features/quality/review/reviewTemplate'
 
 const migration = fs.readFileSync('supabase/migrations/20261124100000_quality_audit_programme.sql', 'utf8')
-const wardMigration = fs.readFileSync('supabase/migrations/20261214110000_quality_audit_ward_checklist_seed.sql', 'utf8')
+const wardMigration = fs.readFileSync('supabase/migrations/20261214110000_quality_audit_ward_checklist_seed.sql', 'utf8') + fs.readFileSync('supabase/migrations/20261230100000_quality_audit_core_questionnaire_seed.sql', 'utf8')
 const demoMigration = fs.readFileSync('supabase/migrations/20261124100100_quality_audit_programme_demo.sql', 'utf8')
 const template = key => SYSTEM_TEMPLATES.find(item => item.key === key)
 const row = (answer, extra = {}) => ({ id: `r-${Math.random()}`, item: 'Q', chapterRef: '7', clauseRef: '7.1', weight: 1, answer, ...extra })

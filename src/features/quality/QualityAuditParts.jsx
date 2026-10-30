@@ -10,6 +10,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditMatrix, checklistTemplates } from './qualityAudit'
 import { standardShort } from './audits/auditStandards'
+import { AuditRounds } from './audits/AuditRounds'
 
 // The controls that are checklists, offered as audit checklists.
 function useChecklistTemplates(organizationId) {
@@ -51,7 +52,7 @@ const STATE_ORDER = ['done', 'running', 'late', 'planned', 'cancelled']
 // audit is a chip coloured by where it stands (done with its compliance, late,
 // planned); a department without an audit this year is flagged; an empty cell
 // plans a new audit for that department and month.
-export function AuditProgramme({ audits = [], language, onOpen, onPlan = null }) {
+export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null }) {
   const en = language === 'en'
   const { departments } = useDepartments()
   const now = new Date()
@@ -88,6 +89,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null })
       <small>{scope === 'all' ? (en ? 'Show audited only' : 'Μόνο με επιθεώρηση') : (en ? 'Show all departments' : 'Όλα τα τμήματα')}</small>
      </button>}
     </div>
+    <AuditRounds audits={audits} year={Number(year)} language={language} onRound={onRound} />
     <div className="quality-programme-scroll">
      <table className="quality-programme-table">
       <thead><tr>

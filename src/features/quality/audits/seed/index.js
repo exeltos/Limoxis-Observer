@@ -10,8 +10,9 @@ import iso15189 from './iso15189.js'
 import temos from './temos.js'
 import jci from './jci.js'
 import ward from './ward.js'
+import core from './core.js'
 
-export const QUESTIONNAIRE_SEEDS = [iso9001, iso15224, haccp, iso15189, temos, jci, ward]
+export const QUESTIONNAIRE_SEEDS = [core, iso9001, iso15224, haccp, iso15189, temos, jci, ward]
 
 export const seedDescription = title => `Βοήθημα επιθεώρησης για το ${title}: ερωτήσεις διατυπωμένες με δικά μας λόγια, με αναφορά στο άρθρο ή το κεφάλαιο. Δεν αποτελεί το κείμενο του προτύπου, που παραμένει η πηγή αναφοράς. Επεξεργάσιμο: δημιουργήστε αντίγραφο για το νοσοκομείο σας και προσαρμόστε το.`
 

@@ -125,3 +125,18 @@
 .audit-readiness-missing button{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .audit-readiness-missing button:hover{text-decoration:underline}
 .audit-readiness-missing p{margin:0;font-size:13px;color:var(--lo-color-muted)}
+/* The year's two audit rounds above the programme. */
+.audit-rounds{display:grid;gap:8px;margin:2px 0 14px}
+.audit-rounds-hint{display:flex;align-items:center;gap:7px;margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+.audit-rounds-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:900px){.audit-rounds-grid{grid-template-columns:minmax(0,1fr)}}
+.audit-round{display:grid;gap:8px;align-content:start;padding:12px 14px;border:1px solid #dfe7ee;border-radius:11px;background:#fbfcfd}
+.audit-round.is-empty{border-style:dashed;justify-items:start}
+.audit-round>header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.audit-round>header strong{font-size:13.5px;color:var(--lo-color-text)}
+.audit-round>p{margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+.audit-round-count b{color:var(--lo-color-text);font-size:15px}
+.audit-round>ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
+.audit-round>ul>li{display:grid;grid-template-columns:96px 22px minmax(0,1fr);align-items:baseline;gap:8px;font-size:12.5px}
+.audit-round>ul>li>span{font-weight:700;color:var(--lo-color-text);text-transform:capitalize}
+.audit-round>ul>li>small{color:var(--lo-color-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
