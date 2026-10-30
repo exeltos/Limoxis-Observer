@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Info, Paperclip, Plus, SearchCheck, Users } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Info, Paperclip, Pencil, Plus, SearchCheck, Users } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { Field } from '../../../design-system/Field'
@@ -63,7 +63,11 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const [pendingOpen, setPendingOpen] = useState(null)
   useEffect(() => { setRows(initial) }, [initial])
   useEffect(() => { setMeetings(meetingState(record)) }, [record])
-  const editable = canManage && !finalized && record.status !== 'cancelled'
+  const open = canManage && !finalized && record.status !== 'cancelled'
+  // A questionnaire that is fully answered and saved is locked until Edit is pressed.
+  const [unlocked, setUnlocked] = useState(false)
+  const lockedDone = open && !unlocked && stored.length > 0 && stored.every(row => row.answer) && !unclassified(stored).length
+  const editable = open && !lockedDone
   const dirty = JSON.stringify(rows) !== JSON.stringify(stored) || JSON.stringify(meetings) !== JSON.stringify(meetingState(record))
   const score = auditScore(rows)
   const toClassify = unclassified(rows)
@@ -89,6 +93,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     try {
       const saved = await saveQualityRecord('audits', organizationId, next)
       setRecord(saved)
+      setUnlocked(false)
       if (message) notify?.(message, 'success')
       return saved
     } catch (error) {
@@ -163,6 +168,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       <span><b>{score.overall.partial}</b> {L(en, 'μερική', 'partial')}</span>
       <span className={score.overall.no ? 'is-late' : undefined}><b>{score.overall.no}</b> {L(en, 'μη συμμόρφωση', 'nonconformity')}</span>
       <span><b>{score.overall.na}</b> {L(en, 'δεν εφαρμόζεται', 'not applicable')}</span>
+      {lockedDone && <span className="audit-locked-actions"><Button variant="secondary" onClick={() => setUnlocked(true)}><Pencil size={15} /> {L(en, 'Επεξεργασία', 'Edit')}</Button><Button disabled={!complete || saving} onClick={finish}><CheckCircle2 size={15} /> {L(en, 'Ολοκλήρωση επιθεώρησης', 'Complete audit')}</Button></span>}
       {score.criticalFailed > 0 && <span className="is-late"><b>{score.criticalFailed}</b> {L(en, 'κρίσιμες σε μη συμμόρφωση', 'critical not met')}</span>}
     </p>
     {score.standards.length > 1 && <div className="audit-chapter-strip audit-standard-strip" role="group" aria-label={L(en, 'Πρότυπα', 'Standards')}>

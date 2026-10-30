@@ -77,10 +77,20 @@ describe('anonymous and own incident reports', () => {
   })
 
   it('stores no reporter on an anonymous report, in the app and in the database', () => {
-    expect(service).toContain('reported_by:draft.anonymous?null:userId||null')
-    expect(service).toContain('is_anonymous:Boolean(draft.anonymous)')
+    expect(service).toContain("reported_by:reportPrivacy(draft)==='anonymous'?null:userId||null")
+    expect(service).toContain("is_anonymous:reportPrivacy(draft)==='anonymous'")
     expect(migration).toContain('add column if not exists is_anonymous boolean not null default false')
     expect(migration).toContain('check (not is_anonymous or (reported_by is null and reported_by_label is null))')
+  })
+
+  it('keeps a confidential report with its reporter, who follows it in My reports', async () => {
+    const { isOwnReport } = await import('../src/features/quality/MyReportsPage')
+    expect(isOwnReport({ privacy: 'confidential', anonymous: false, reportedById: 'u1' }, 'u1')).toBe(true)
+    expect(isOwnReport({ privacy: 'anonymous', anonymous: true, reportedById: null }, 'u1')).toBe(false)
+    expect(service).toContain("privacy==='named') return {}")
+    const sql = fs.readFileSync('supabase/migrations/20261230110000_quality_report_privacy.sql', 'utf8')
+    expect(sql).toContain('as restrictive for select')
+    expect(sql).not.toMatch(/\bdrop\b|\brevoke\b|alter policy/i)
   })
 })
 

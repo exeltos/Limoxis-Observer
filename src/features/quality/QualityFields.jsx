@@ -95,6 +95,17 @@ export function QualityOwnerField({ record, onChange, label }) {
   </div>
 }
 
+// One person with an account who may see a private report (their user id, not a name).
+export function QualityVisiblePersonField({ value, onChange, label }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const people = usePeople()
+  const withAccount = people.employees.filter(employee => employee.userId)
+  const options = people.options.filter(option => withAccount.some(employee => idOf(employee) === option.value))
+  const selected = withAccount.find(employee => employee.userId === value)
+  return <SearchableSelect label={label} value={selected ? idOf(selected) : ''} options={options} onChange={id => onChange?.(withAccount.find(employee => idOf(employee) === id)?.userId || '')} placeholder={en ? 'Search staff…' : 'Αναζήτηση προσωπικού…'} {...selectText(en)} />
+}
+
 // One person (the lead auditor): an employee or a typed name.
 export function QualityPersonField({ name, onChange, label, department }) {
   const { language } = useLanguage()

@@ -33,8 +33,8 @@ export function registerRows(incidents = [], deviations = [], capas = []) {
     status: record.status,
     severity: record.severity,
     sentinel: Boolean(record.sentinel),
-    reporter: record.anonymous ? '' : record.reportedByLabel || record.reportedBy || '',
-    anonymous: Boolean(record.anonymous),
+    reporter: record.anonymous || record.privacy === 'confidential' ? '' : record.reportedByLabel || record.reportedBy || '',
+    anonymous: Boolean(record.anonymous || record.privacy === 'confidential'),
     record,
   }))
   const pending = deviations.map(item => ({

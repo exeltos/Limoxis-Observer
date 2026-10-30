@@ -27,7 +27,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
-import { CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
@@ -173,7 +173,7 @@ function IncidentReadDetails({record,categories,language,t}){
     ]},
     facts.length?{title:en?'Event details':'Στοιχεία συμβάντος',items:facts.map(([label,value])=>({label,value}))}:null,
     {title:en?'Report and ownership':'Αναφορά και ιδιοκτησία',items:[
-      {label:t('qualityRecords.reportedBy'),value:record.anonymous?(en?'Anonymous report':'Ανώνυμη αναφορά'):record.reportedBy},
+      {label:t('qualityRecords.reportedBy'),value:reporterText(record,en)},
       {label:en?'Responsible person(s)':'Υπεύθυνος / Υπεύθυνοι',value:recordOwners(record).map(name=>roleTitleText(name,language)).join(', ')},
       {label:t('date'),value:formatDay(record.date,language)},
       {label:en?'Time':'Ώρα',value:record.eventTime},
@@ -338,7 +338,7 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
         <EditChoice editing={editing} label={en?'Category':'Κατηγορία συμβάντος'} value={draft.category||'clinical'} onChange={v=>set('category',v)} options={incidentCategoryOptions(categories,language,reportKindOf(draft)==='suggestion'?null:reportKindOf(draft))} display={incidentCategoryLabel(draft.category||'clinical',categories,language)}/>
         <div className="detail-item editable"><TimeField label={en?'Time':'Ώρα'} value={draft.eventTime||''} onChange={v=>set('eventTime',v)}/></div>
         <EditOwners editing={editing} draft={draft} patch={patch} en={en}/>
-        <p className="quality-edit-note">{en?'Reported by':'Αναφέρθηκε από'} <strong>{draft.anonymous?(en?'Anonymous report':'Ανώνυμη αναφορά'):draft.reportedBy||'—'}</strong> · {formatDay(draft.date,language)}</p>
+        <p className="quality-edit-note">{en?'Reported by':'Αναφέρθηκε από'} <strong>{reporterText(draft,en)||'—'}</strong> · {formatDay(draft.date,language)}</p>
       </>}
       </>}
       {!assessment&&recordType==='findings'&&editing&&<>

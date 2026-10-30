@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, ClipboardList, FileText, Paperclip, Plus, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ClipboardList, FileText, Paperclip, Plus, ShieldCheck, X } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -10,7 +10,6 @@ import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
-import { CheckboxField } from '../../design-system/CheckboxField'
 import { MoreSection } from '../../design-system/MoreSection'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -25,7 +24,7 @@ import { useLibraries } from '../management/useLibraries'
 import { cloudAttachmentsEnabled, uploadAttachment } from '../../core/attachments/attachmentService'
 import { createQualityRecord } from './qualityService'
 import { severityOptions } from './qualityVocabulary'
-import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
+import { QualityDepartmentField, QualityOwnerField, QualityVisiblePersonField, departmentRef } from './QualityFields'
 import { PrefilledList } from '../surveillance/forms/PrefilledList'
 import './quality.css'
 
@@ -44,7 +43,7 @@ export function emptyIncidentReport() {
     reachedPatient: false, harmOccurred: false, category: 'other', impact: 'none',
     date: today(), eventTime: '', description: '', descriptionEn: '',
     immediateActions: '', immediateActionsEn: '', owners: [], owner: '', ownerId: null,
-    anonymous: false, reportKind: 'report', sentinel: false, rcaDueDate: '', eventType: '',
+    anonymous: false, privacy: 'named', visibility: 'admin', visibleTo: '', reportKind: 'report', sentinel: false, rcaDueDate: '', eventType: '',
     fall: null, sharp: null, blueCode: null, obstetric: null,
   }
 }
@@ -116,8 +115,10 @@ export function IncidentReportPage() {
   const titleKey = en ? 'titleEn' : 'title'
   const descriptionKey = en ? 'descriptionEn' : 'description'
   const actionsKey = en ? 'immediateActionsEn' : 'immediateActions'
-  const valid = Boolean(departmentRef(draft) && draft.date && draft[titleKey].trim() && draft[descriptionKey].trim())
-  const attachmentsOn = cloudAttachmentsEnabled() && !draft.anonymous
+  const isPrivate = draft.privacy !== 'named'
+  const valid = Boolean(departmentRef(draft) && draft.date && draft[titleKey].trim() && draft[descriptionKey].trim() && (!isPrivate || draft.visibility !== 'person' || draft.visibleTo))
+  const attachmentsOn = cloudAttachmentsEnabled()
+  const privacy = draft.privacy
   const addFiles = list => {
     const picked = [...list]
     const tooBig = picked.filter(file => file.size > MAX_FILE_BYTES)
@@ -129,9 +130,10 @@ export function IncidentReportPage() {
     if (!valid || saving) return
     setSaving(true)
     try {
-      const actor = draft.anonymous ? { id: null, name: en ? 'Anonymous report' : 'Ανώνυμη αναφορά' } : auditActorFromAuth({ profile, user })
+      const actor = privacy === 'anonymous' ? { id: null, name: en ? 'Anonymous report' : 'Ανώνυμη αναφορά' } : auditActorFromAuth({ profile, user })
       const created = await createQualityRecord('incidents', tenant?.id, {
         ...draft,
+        anonymous: privacy === 'anonymous',
         reportKind: 'report',
         category: 'other',
         eventType: '',
@@ -146,7 +148,7 @@ export function IncidentReportPage() {
         description: draft.description || draft.descriptionEn,
         descriptionEn: draft.descriptionEn || draft.description,
         immediateActions: draft.immediateActions || draft.immediateActionsEn,
-        reportedByLabel: draft.anonymous ? '' : [actor.name, self?.position].filter(Boolean).join(' · '),
+        reportedByLabel: privacy !== 'named' ? '' : [actor.name, self?.position].filter(Boolean).join(' · '),
         history: [auditEvent('recordCreated', { actor })],
       }, profile?.id || user?.id)
       const recordId = created?.dbId
@@ -160,7 +162,7 @@ export function IncidentReportPage() {
       if (failed) notify(en ? `${failed} of ${files.length} files could not be attached. Add them from the report's «Documents» tab.` : `${failed} από ${files.length} αρχεία δεν επισυνάφθηκαν. Προσθέστε τα από την καρτέλα «Έγγραφα» της αναφοράς.`, 'error')
       if (fromEpisode) { goBack(); return }
       const code = created?.id || created?.code
-      if (canViewQuality && code && !draft.anonymous) navigate(`/quality/incidents/${code}`, { replace: true, state: { limoxisFrom: { pathname: '/quality', search: '', hash: '', state: null, tab: 'reports', registry: null } } })
+      if (canViewQuality && code && privacy === 'named') navigate(`/quality/incidents/${code}`, { replace: true, state: { limoxisFrom: { pathname: '/quality', search: '', hash: '', state: null, tab: 'reports', registry: null } } })
       else setSent(created)
     } catch (error) {
       console.error(error)
@@ -185,7 +187,7 @@ export function IncidentReportPage() {
     <p>{en ? 'Quality will assess it and decide whether it is an incident, a deviation, a complaint or another quality issue.' : 'Η Ποιότητα θα την αξιολογήσει και θα αποφασίσει αν πρόκειται για συμβάν, απόκλιση, παράπονο ή άλλο θέμα ποιότητας.'}</p>
     <div className="row-actions">
       <Button variant="secondary" onClick={() => navigate('/quality/my-reports')}>{en ? 'My reports' : 'Οι αναφορές μου'}</Button>
-      <Button onClick={() => { setSent(null); setFiles([]); setDraft({ ...emptyIncidentReport(), anonymous: draft.anonymous, departmentId: draft.departmentId, department: draft.department, departmentEn: draft.departmentEn }) }}><Plus size={15} />{en ? 'New report' : 'Νέα αναφορά'}</Button>
+      <Button onClick={() => { setSent(null); setFiles([]); setDraft({ ...emptyIncidentReport(), privacy: draft.privacy, visibility: draft.visibility, visibleTo: draft.visibleTo, departmentId: draft.departmentId, department: draft.department, departmentEn: draft.departmentEn }) }}><Plus size={15} />{en ? 'New report' : 'Νέα αναφορά'}</Button>
     </div>
   </div>)
 
@@ -205,12 +207,18 @@ export function IncidentReportPage() {
         <Field label={en ? 'Description *' : 'Περιγραφή *'} hint={en ? 'Describe facts and observations. Avoid patient names in free text.' : 'Περιγράψτε γεγονότα και παρατηρήσεις. Αποφύγετε ονόματα ασθενών στο ελεύθερο κείμενο.'}><textarea rows={3} value={draft[descriptionKey]} onChange={event => set(descriptionKey, event.target.value)} /></Field>
         <Field label={en ? 'Immediate actions taken' : 'Άμεσες ενέργειες'}><textarea rows={2} value={draft[actionsKey]} onChange={event => set(actionsKey, event.target.value)} placeholder={en ? 'Anything you did immediately…' : 'Τυχόν άμεσες ενέργειες που έγιναν…'} /></Field>
       </FormCard>
-      <FormCard title={en ? 'Attachments' : 'Επισυνάψεις'} icon={Paperclip} wide hint={draft.anonymous ? (en ? 'An anonymous report takes no files: the file would show who sent it.' : 'Η ανώνυμη αναφορά δεν δέχεται αρχεία: το αρχείο θα έδειχνε ποιος το έστειλε.') : !cloudAttachmentsEnabled() ? (en ? 'Files are not stored in the demo.' : 'Στο demo δεν αποθηκεύονται αρχεία.') : (en ? `Optional. Photos or documents, up to ${MAX_FILES} files of ${MAX_FILE_MB} MB.` : `Προαιρετικά. Φωτογραφίες ή έγγραφα, έως ${MAX_FILES} αρχεία των ${MAX_FILE_MB} MB.`)}>
+      <FormCard title={en ? 'Attachments' : 'Επισυνάψεις'} icon={Paperclip} wide hint={!cloudAttachmentsEnabled() ? (en ? 'Files are not stored in the demo.' : 'Στο demo δεν αποθηκεύονται αρχεία.') : (en ? `Optional. Photos or documents, up to ${MAX_FILES} files of ${MAX_FILE_MB} MB.` : `Προαιρετικά. Φωτογραφίες ή έγγραφα, έως ${MAX_FILES} αρχεία των ${MAX_FILE_MB} MB.`) + (isPrivate ? (en ? ' Do not include details that identify you, in the file or its name.' : ' Μην περιλαμβάνετε στοιχεία που σας αναγνωρίζουν, ούτε στο αρχείο ούτε στο όνομά του.') : '')}>
         <input ref={fileInput} type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={event => { addFiles(event.target.files || []); event.target.value = '' }} />
         {files.length > 0 && <ul className="quality-report-files">{files.map((file, index) => <li key={`${file.name}-${index}`}><Paperclip size={14} aria-hidden="true" /><span>{file.name}</span><small>{fileSize(file.size)}</small><button type="button" aria-label={en ? `Remove ${file.name}` : `Αφαίρεση ${file.name}`} onClick={() => setFiles(current => current.filter((_, at) => at !== index))}><X size={14} /></button></li>)}</ul>}
         <div><Button variant="secondary" disabled={!attachmentsOn || files.length >= MAX_FILES || saving} onClick={() => fileInput.current?.click()}><Plus size={15} />{en ? 'Add files' : 'Προσθήκη αρχείων'}</Button></div>
       </FormCard>
-      <div className="quality-report-wide"><CheckboxField label={en ? 'Anonymous report' : 'Ανώνυμη αναφορά'} hint={draft.anonymous ? (en ? 'Your name is not stored anywhere. Quality cannot ask you for details.' : 'Το όνομά σας δεν καταγράφεται πουθενά και η Ποιότητα δεν θα μπορεί να σας ζητήσει διευκρινίσεις.') : (en ? `The report is recorded with your details: ${reporterLine}. You can follow it in «My reports».` : `Η αναφορά καταγράφεται με τα στοιχεία σας: ${reporterLine}. Την παρακολουθείτε στις «Αναφορές μου».`)} checked={draft.anonymous} onChange={value => { set('anonymous', value); if (value) setFiles([]) }} /></div>
+      <FormCard title={en ? 'Who sees the report' : 'Ποιος βλέπει την αναφορά'} icon={ShieldCheck} wide hint={privacy === 'named' ? (en ? `The report is recorded with your details: ${reporterLine}. You can follow it in «My reports».` : `Η αναφορά καταγράφεται με τα στοιχεία σας: ${reporterLine}. Την παρακολουθείτε στις «Αναφορές μου».`) : privacy === 'confidential' ? (en ? 'Your name is kept privately and is not shown to those who handle the report. You follow it in «My reports».' : 'Το όνομά σας φυλάσσεται ιδιωτικά και δεν εμφανίζεται σε όσους χειρίζονται την αναφορά. Την παρακολουθείτε στις «Αναφορές μου».') : (en ? 'No name is stored. Keep the code you get after sending: it is the only way to refer to the report. Quality cannot ask you for details.' : 'Δεν καταγράφεται κανένα όνομα. Κρατήστε τον κωδικό που θα πάρετε μετά την αποστολή: είναι ο μόνος τρόπος να αναφερθείτε στην αναφορά. Η Ποιότητα δεν θα μπορεί να σας ζητήσει διευκρινίσεις.')}>
+        <FormGrid columns={isPrivate ? 2 : 1} className="quality-report-pair">
+          <ChoiceField label={en ? 'Report as' : 'Αναφορά ως'} value={privacy} options={[{ value: 'named', label: en ? 'With my name' : 'Με το όνομά μου' }, { value: 'confidential', label: en ? 'Confidential (name kept private)' : 'Εμπιστευτική (το όνομα φυλάσσεται)' }, { value: 'anonymous', label: en ? 'Completely anonymous' : 'Εντελώς ανώνυμη' }]} onChange={value => patch({ privacy: value, anonymous: value === 'anonymous' })} />
+          {isPrivate && <ChoiceField label={en ? 'Who can see it' : 'Ποιος μπορεί να την δει'} value={draft.visibility} options={[{ value: 'admin', label: en ? (privacy === 'confidential' ? 'Hospital administrator and me' : 'Hospital administrator only') : (privacy === 'confidential' ? 'Διαχειριστής και εγώ' : 'Μόνο ο διαχειριστής') }, { value: 'quality', label: en ? 'Administrator and Quality' : 'Διαχειριστής και Ποιότητα' }, { value: 'person', label: en ? 'Administrator and someone else' : 'Διαχειριστής και κάποιος άλλος' }]} onChange={value => patch({ visibility: value, visibleTo: value === 'person' ? draft.visibleTo : '' })} />}
+        </FormGrid>
+        {isPrivate && draft.visibility === 'person' && <QualityVisiblePersonField label={`${en ? 'Person who can see it' : 'Πρόσωπο που μπορεί να την δει'} *`} value={draft.visibleTo} onChange={value => set('visibleTo', value)} />}
+      </FormCard>
       {canManage && <div className="quality-report-wide"><MoreSection moreLabel={en ? 'For Quality' : 'Για την Ποιότητα'} lessLabel={en ? 'Less' : 'Λιγότερα'}>
         <FormGrid columns={2} className="quality-report-pair">
           <ChoiceField label={t('severity')} value={draft.severity} options={severityOptions(t)} onChange={value => set('severity', value)} />
