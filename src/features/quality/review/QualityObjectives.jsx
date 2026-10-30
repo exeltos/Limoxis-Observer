@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { Meter } from '../../../design-system/MiniCharts'
-import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
 import { MoreSection } from '../../../design-system/MoreSection'
@@ -10,12 +9,10 @@ import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
-import { useFeedback } from '../../../core/feedback/FeedbackContext'
-import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
-import { loadObjectives, loadReviews, saveObjective } from './reviewService'
+import { loadObjectives, loadReviews } from './reviewService'
 import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 
@@ -168,27 +165,4 @@ export function ObjectiveFields({ objective, set, registers }) {
       </FormGrid>
     </FormCard></div>
   </>
-}
-
-export function ObjectiveDialog({ objective: initial, registers, onClose, onSaved }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const { notify } = useFeedback()
-  const { tenant } = useTenant()
-  const [objective, setObjective] = useState(() => ({ ...initial }))
-  const [saving, setSaving] = useState(false)
-  const set = next => setObjective(current => ({ ...current, ...next }))
-  const valid = objective.title?.trim() && objective.target !== ''
-  async function save() {
-    setSaving(true)
-    try {
-      const { register: _r, indicator: _i, current: _c, ...clean } = objective // eslint-disable-line no-unused-vars
-      await saveObjective(tenant?.id, clean)
-      notify(en ? 'Objective saved.' : 'Ο στόχος αποθηκεύτηκε.', 'success')
-      onSaved()
-    } catch (error) { console.error(error); notify(en ? 'The objective could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.', 'error') } finally { setSaving(false) }
-  }
-  return <ObserverDialog title={initial.id ? (en ? 'Quality objective' : 'Στόχος ποιότητας') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')} subtitle={en ? 'ISO 9001 §6.2: measurable, with an owner and a date.' : 'ISO 9001 §6.2: μετρήσιμος, με υπεύθυνο και προθεσμία.'} onClose={onClose} width="wide" footer={<DialogActions onCancel={onClose} onSave={save} disabled={!valid || saving} saveLabel={en ? 'Save' : 'Αποθήκευση'} />}>
-    <ObjectiveFields objective={objective} set={set} registers={registers} />
-  </ObserverDialog>
 }

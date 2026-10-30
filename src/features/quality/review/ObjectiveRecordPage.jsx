@@ -19,7 +19,7 @@ import { CAPABILITIES,can } from '../../../core/permissions/roles'
 import { monthlySeries,textOf } from '../../registers/registerEngine'
 import { loadEntries } from '../../registers/registerService'
 import { formatObjectiveValue,objectiveState } from './reviewTemplate'
-import { ObjectiveDialog,objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
+import { objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
 
@@ -28,8 +28,7 @@ const tone=state=>({met:'success',missed:'danger'})[state]||'info'
 // /quality/objectives/:objectiveId — one objective on its own page: where it stands today, what it is measured by, who owns it and by when.
 export function ObjectiveRecordPage(){
  const {objectiveId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,role,membership}=useTenant(),{notify}=useFeedback()
- const {objectives,registers,loading,reload}=useObjectives(tenant?.id)
- const [editing,setEditing]=useState(false)
+ const {objectives,loading}=useObjectives(tenant?.id)
  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
  const back=()=>{rememberQualitySection('indicators:objectives');navigate('/quality',{replace:true})}
  const target_=objectives.find(item=>item.id===objectiveId)
@@ -73,7 +72,7 @@ export function ObjectiveRecordPage(){
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${objective.year} · ${en?'ISO 9001 §6.2':'ISO 9001 §6.2'}`} status={<StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>} onBack={back}
-  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}</>}>
+  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={16}/></IconButton>}</>}>
   <section className="record-section">
    <p className="quality-summary-line"><span><b>{value}</b> {en?'today':'σήμερα'}</span><span>{en?'target':'στόχος'} <b>{target}</b></span><span className={state==='missed'?'is-late':undefined}><b>{reach==null?'—':`${Math.round(reach)}%`}</b> {en?'of the target':'του στόχου'}</span><span>{objectiveStateLabel(state,en).toLowerCase()}</span></p>
    <Meter className="objective-record-meter" value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
@@ -85,6 +84,5 @@ export function ObjectiveRecordPage(){
    </>}
   </section>
  </EntityRecordShell>
- {editing&&<ObjectiveDialog objective={objective} registers={registers} onClose={()=>setEditing(false)} onSaved={()=>{setEditing(false);void reload()}}/>}
  </Page>
 }
