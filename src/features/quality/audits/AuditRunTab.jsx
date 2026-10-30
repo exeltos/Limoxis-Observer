@@ -54,6 +54,8 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const [adHoc, setAdHoc] = useState('')
   const [saving, setSaving] = useState(false)
   const [findingFor, setFindingFor] = useState(null)
+  // A file or a finding asked for on a row that is not saved yet: the audit saves first, then it opens on the saved row.
+  const [pendingOpen, setPendingOpen] = useState(null)
   useEffect(() => { setRows(initial) }, [initial])
   useEffect(() => { setMeetings(meetingState(record)) }, [record])
   const editable = canManage && !finalized && record.status !== 'cancelled'
@@ -67,6 +69,14 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const chapterAt = shownChapters.findIndex(item => item.key === chapter)
   const nextChapter = chapter !== 'all' && chapterAt >= 0 ? shownChapters[chapterAt + 1] : null
   const setRow = (index, next) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next, ...(next.answer !== undefined && !classesFor(next.answer).includes(row.findingClass) ? { findingClass: '' } : {}) } : row)))
+  const rowKey = row => `${row.standard || ''}|${row.templateQuestionId || ''}|${row.position}`
+  useEffect(() => {
+    if (!pendingOpen) return
+    const hit = rows.find(row => isSavedRow(row, organizationId) && rowKey(row) === pendingOpen.key)
+    if (!hit) return
+    if (pendingOpen.kind === 'files') setAttachmentsOf(hit.id); else setFindingFor(hit)
+    setPendingOpen(null)
+  }, [rows, pendingOpen, organizationId])
   const complete = rows.length > 0 && score.overall.unanswered === 0 && toClassify.length === 0
 
   async function persist(next, message) {
@@ -81,6 +91,14 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       notify?.(L(en, 'Δεν ήταν δυνατή η αποθήκευση της επιθεώρησης.', 'The audit could not be saved.'), 'error')
       return null
     } finally { setSaving(false) }
+  }
+  const openOnRow = async (row, kind) => {
+    if (kind === 'files' && attachmentsOf === row.id) { setAttachmentsOf(null); return }
+    if (isSavedRow(row, organizationId) && !dirty) { if (kind === 'files') setAttachmentsOf(row.id); else setFindingFor(row); return }
+    // Unsaved: save the audit (the answers so far), then open on the saved row.
+    const key = rowKey(row)
+    const saved = await save()
+    if (saved) setPendingOpen({ kind, key })
   }
   const history = (action, extra = {}) => [{ at: new Date().toISOString(), action, actor: actor?.name || '', ...extra }, ...(record.history || [])]
   const withMeetings = base => ({ ...base, openingMeeting: meetings.opening, closingMeeting: meetings.closing, conclusion: meetings.conclusion, auditeeRepresentative: meetings.representative })
@@ -188,14 +206,14 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
           </div>
           <div className="audit-answer-tools">
             {!(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <button type="button" className="audit-answer-link" onClick={() => setNotesOpen(current => new Set(current).add(row.id))}>+ {L(en, 'Σχόλιο', 'Comment')}</button>}
-            <button type="button" className="audit-answer-link" onClick={() => setAttachmentsOf(attachmentsOf === row.id ? null : row.id)} aria-expanded={attachmentsOf === row.id}><Paperclip size={13} /> {row.attachments?.length ? row.attachments.length : L(en, 'Αρχεία', 'Files')}</button>
+            <button type="button" className="audit-answer-link" onClick={() => openOnRow(row, 'files')} aria-expanded={attachmentsOf === row.id}><Paperclip size={13} /> {row.attachments?.length ? row.attachments.length : L(en, 'Αρχεία', 'Files')}</button>
           </div>
           {(needsClass(row) || row.findingClass || row.findingId) && <FormGrid columns={3} className="audit-answer-grid">
             <ChoiceField label={needsClass(row) ? L(en, 'Κατάταξη ευρήματος *', 'Finding class *') : L(en, 'Κατάταξη (προαιρετικά)', 'Class (optional)')} value={row.findingClass || ''} disabled={!editable || !classes.length || Boolean(row.findingId)} placeholder={classes.length ? L(en, 'Επιλέξτε', 'Choose') : '—'} options={FINDING_CLASSES.filter(item => classes.includes(item.value)).map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={findingClass => setRow(index, { findingClass })} />
             <div className="audit-answer-actions">
               {row.findingId
                 ? <button type="button" className="quality-audit-finding-link" disabled={dirty} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}>{L(en, 'Εύρημα', 'Finding')} {row.findingId}<ChevronRight size={13} /></button>
-                : editable && row.findingClass && <Button variant="secondary" disabled={dirty || saving || !isSavedRow(row, organizationId)} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : undefined} onClick={() => setFindingFor(row)}><SearchCheck size={15} /> {L(en, 'Εύρημα / διορθωτική ενέργεια', 'Finding / CAPA')}</Button>}
+                : editable && row.findingClass && <Button variant="secondary" disabled={saving} onClick={() => openOnRow(row, 'finding')}><SearchCheck size={15} /> {L(en, 'Εύρημα / διορθωτική ενέργεια', 'Finding / CAPA')}</Button>}
             </div>
           </FormGrid>}
           {(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <FormGrid columns={2} className="audit-answer-grid">
