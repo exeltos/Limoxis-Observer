@@ -11,7 +11,9 @@ describe('Quality center entry and tabs', () => {
     const returnSection = fs.readFileSync('src/features/quality/qualityReturnSection.js', 'utf8')
     expect(returnSection).toContain("QUALITY_RETURN_KEY = 'limoxis.quality.returnSection'")
     expect(page).toContain("import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'")
-    expect(page).toContain("useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])")
+    // The remembered section is cleared once read; a return to «Indicators & objectives» goes on to its own page.
+    expect(page).toContain("else writeSessionValue(RETURN_KEY,'')")
+    expect(page).toContain("navigate('/quality/measures',{replace:true})")
   })
 
   it('maps remembered sections, old and new, to the five tabs', () => {

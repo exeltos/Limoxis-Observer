@@ -14,7 +14,7 @@ describe('sidebar order per role', () => {
       'overview:dashboard', 'overview:executiveDashboard', 'overview:calendar',
       'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
       'operations:controls', 'operations:kitchen',
-      'quality:quality', 'quality:meetings', 'quality:documents', 'quality:library',
+      'quality:quality', 'quality:qualityMeasures', 'quality:meetings', 'quality:documents', 'quality:library',
       'staff:employees', 'staff:training', 'staff:interviews',
       'management:management',
     ])

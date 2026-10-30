@@ -87,7 +87,10 @@ function useQualityRecords(organizationId){
  return {data,loading,error,reload:()=>setVersion(value=>value+1)}
 }
 
-export function QualityPage(){
+// `section="measures"` (/quality/measures) is «Indicators & objectives» on a page of its own: indicators,
+// registers, objectives and surveys; the Quality Center keeps the rest.
+export function QualityPage({section=''}={}){
+ const measures=section==='measures'
  const {t,language,locale}=useLanguage()
  const en=language==='en'
  const L=(el,enText)=>en?enText:el
@@ -99,9 +102,12 @@ export function QualityPage(){
  const suppliersOn=moduleEnabled('suppliers')
  const navigate=useNavigate()
  const {goTo}=useContextualNavigation('/quality')
- const [initial]=useState(()=>qualityTabOf(new URLSearchParams(window.location.search).get('tab'))||qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:'overview',view:null})
- useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])
- const [tab,setTab]=useState(initial.tab)
+ const [initial]=useState(()=>qualityTabOf(new URLSearchParams(window.location.search).get('tab'))||qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:measures?'indicators':'overview',view:null})
+ // A return to «Indicators & objectives» that lands on the Quality Center goes on to its page.
+ const toMeasures=!measures&&initial.tab==='indicators'
+ useEffect(()=>{if(toMeasures){writeSessionValue(RETURN_KEY,`indicators:${initial.view||'indicators'}`);navigate('/quality/measures',{replace:true})}else writeSessionValue(RETURN_KEY,'')},[]) // eslint-disable-line react-hooks/exhaustive-deps
+ const [tabState,setTab]=useState(measures?'indicators':initial.tab)
+ const tab=measures?'indicators':tabState
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'indicators')
  const [resourceView,setResourceView]=useState(initial.tab==='resources'&&initial.view||'equipment')
  useEffect(()=>{if(!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
@@ -163,7 +169,7 @@ export function QualityPage(){
  const goReports=quick=>{setTab('reports');register.clear();register.set('quick',quick)}
  const goIncidents=quick=>{setTab('incidents');incidents.clear();if(quick)incidents.set('quick',quick)}
  const goActions=quick=>{setTab('actions');actionView.set('quick',quick)}
- const goObjectives=()=>{setTab('indicators');setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:'missed'}))}
+ const goObjectives=()=>{if(!measures){writeSessionValue(RETURN_KEY,'indicators:objectives');navigate('/quality/measures');return}setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:'missed'}))}
  const centerFigures=[
   {key:'open',icon:Clock3,value:register.counts.open,label:L('Αναφορές προς αξιολόγηση','Reports to assess'),tone:'warning',go:()=>goReports('open')},
   {key:'sentinel',icon:AlertOctagon,value:incidents.counts.sentinel,label:L('Ανοιχτά συμβάντα-φρουροί','Open sentinel events'),status:incidents.counts.sentinel?'danger':'good',target:L('στόχος: 0','target: 0'),go:()=>goIncidents('sentinel')},
@@ -261,12 +267,12 @@ export function QualityPage(){
  })[tab]
 
 
- return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and deviation to corrective action, objectives and management review.')}
+ return <Page fill className="registry-fill-page" title={measures?L('Δείκτες & Στόχοι','Indicators & objectives'):t('quality')} subtitle={measures?L('Οι δείκτες της πλατφόρμας και των μητρώων, οι στόχοι ποιότητας και οι έρευνες ικανοποίησης.','The platform and register indicators, the quality objectives and the satisfaction surveys.'):L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους κινδύνους και τους πόρους.','From the report and deviation to corrective action, risks and resources.')}
   actions={<div className="row-actions">
    {download}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
-  <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
+  {!measures&&<CanonicalTabs items={TABS.filter(item=>item.value!=='indicators'&&(!item.manage||canManage)).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>}
   {tab==='indicators'&&<CanonicalTabs items={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={measureView} onChange={setMeasureView} ariaLabel={L('Δείκτες & Στόχοι','Indicators & objectives')}/>}
   {tab==='resources'&&suppliersOn&&<CanonicalTabs items={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={resourceView} onChange={setResourceView} ariaLabel={L('Πόροι','Resources')}/>}
   {tab==='audits'&&<CanonicalTabs className="lo-subtabs" items={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))} value={AUDIT_VIEWS.some(item=>item.id===auditView.filters.mode)?auditView.filters.mode:'programme'} onChange={value=>auditView.set('mode',value)} ariaLabel={L('Επιθεωρήσεις','Audits')}/>}

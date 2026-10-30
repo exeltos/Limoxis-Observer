@@ -44,6 +44,11 @@ export const helpExtras={
   tip:{el:'Σε ελεγχόμενες εγγραφές προτιμάται διόρθωση/αρχειοθέτηση/ακύρωση αντί για φυσική διαγραφή ιστορικού.',en:'For governed records, prefer correction, archiving or voiding rather than physically deleting history.'},
   related:['/controls','/indicators','/documents']
  },
+ '/quality/measures':{
+  checks:{el:['Ορίστε τον στόχο κάθε δείκτη μητρώου στον «Ορισμό» του μητρώου: Καλύτερα όταν, Στόχος, Όριο.','Συνδέστε κάθε στόχο ποιότητας με μητρώο και δείκτη ώστε να υπολογίζεται μόνος του· χωρίς δική του τιμή παίρνει τον στόχο του δείκτη.','Ελέγξτε μία φορά τον μήνα τους στόχους που «δεν επιτυγχάνονται» και ανοίξτε διορθωτική ενέργεια όπου χρειάζεται.'],en:['Set each register indicator’s target in the register’s «Definition»: Better when, Target, Limit.','Link each quality objective to a register and indicator so it computes itself; without a value of its own it takes the indicator’s target.','Once a month, review the objectives that are «not met» and open a corrective action where needed.']},
+  tip:{el:'Ένας στόχος ποιότητας χωρίς σύνδεση χρειάζεται τιμή από τον υπεύθυνο· με σύνδεση ενημερώνεται από τις καταχωρίσεις του μητρώου.',en:'An unlinked quality objective needs a value from its owner; a linked one is updated from the register’s entries.'},
+  related:['/quality','/indicators','/registers']
+ },
  '/indicators':{
   checks:{el:['Ελέγξτε περίοδο, εύρος και παρονομαστή.','Επιβεβαιώστε την πηγή του αριθμητή και του παρονομαστή.','Χρησιμοποιήστε drill-down πριν ερμηνεύσετε ασυνήθιστη τιμή.'],en:['Check period, scope and denominator.','Verify the numerator and denominator data sources.','Use drill-down before interpreting an unusual value.']},
   tip:{el:'Ένας δείκτης πρέπει να είναι αναπαραγώγιμος: η ίδια πηγή και μέθοδος να δίνουν το ίδιο αποτέλεσμα.',en:'An indicator should be reproducible: the same source and method should produce the same result.'},
