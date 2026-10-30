@@ -26,14 +26,18 @@ export function AuditRounds({ audits = [], year, language, onRound = null }) {
   const en = language === 'en'
   const [open, setOpen] = useState(null)
   const box = useRef(null)
+  const [anchor, setAnchor] = useState(null)
   // The days float over the table: they close on an outside click or Escape.
   useEffect(() => {
     if (open === null) return undefined
     const away = event => { if (!box.current?.contains(event.target)) setOpen(null) }
     const key = event => { if (event.key === 'Escape') setOpen(null) }
     document.addEventListener('mousedown', away)
+    const close = event => { if (event?.target?.closest?.('.audit-round-days')) return; setOpen(null) }
     document.addEventListener('keydown', key)
-    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key); window.removeEventListener('resize', close); window.removeEventListener('scroll', close, true) }
   }, [open])
   const rounds = useMemo(() => [0, 1].map(half => ({ half, list: roundOfHalf(audits, year, half) })), [audits, year])
   const locale = en ? 'en-GB' : 'el-GR'
@@ -56,13 +60,13 @@ export function AuditRounds({ audits = [], year, language, onRound = null }) {
         </span>
         const done = list.every(audit => audit.status === 'completed')
         const dates = [...new Set(list.map(audit => String(audit.plannedDate)))].sort()
-        return <button key={half} type="button" className={`audit-round-chip${done ? ' is-done' : ''}${open === half ? ' is-open' : ''}`} aria-expanded={open === half} onClick={() => setOpen(open === half ? null : half)}>
+        return <button key={half} type="button" className={`audit-round-chip${done ? ' is-done' : ''}${open === half ? ' is-open' : ''}`} aria-expanded={open === half} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setAnchor({ left: Math.max(8, rect.left), bottom: window.innerHeight - rect.top + 6, maxHeight: Math.max(120, rect.top - 16) }); setOpen(open === half ? null : half) }}>
           <b>{name} {year}</b><span>{range(dates)} · {list.length} {L(en, 'τμήματα', 'departments')}</span>
           <em>{done ? L(en, 'Ολοκληρώθηκε', 'Completed') : L(en, 'Προγραμματισμένος', 'Planned')}</em><ChevronDown size={14} aria-hidden="true" />
         </button>
       })}
     </div>
-    {shown && <ul className="audit-round-days" role="region" aria-label={L(en, 'Ημέρες του κύκλου', 'Days of the round')}>{days.map(day => { const here = shown.list.filter(audit => String(audit.plannedDate) === day); return <li key={day}>
+    {shown && <ul className="audit-round-days" style={anchor || undefined} role="region" aria-label={L(en, 'Ημέρες του κύκλου', 'Days of the round')}>{days.map(day => { const here = shown.list.filter(audit => String(audit.plannedDate) === day); return <li key={day}>
       <span>{dayLabel(day)}</span><b>{here.length}</b><small>{here.slice(0, 8).map(audit => (en ? audit.departmentEn : audit.department) || audit.department).join(' · ')}{here.length > 8 ? ` · +${here.length - 8}` : ''}</small>
     </li> })}</ul>}
   </div>

@@ -199,7 +199,6 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       actions={<div className="audit-run-filters">
         {menuItems.length > 0 && <OverflowMenu items={menuItems} />}
         {!stored.length && template && area && <CheckboxField label={L(en, 'Και οι ερωτήσεις άλλων περιοχών', 'Include other areas')} checked={allAreas} onChange={setAllAreas} />}
-        <Button variant="secondary" onClick={() => document.querySelector('.audit-question.is-open')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>{L(en, 'Επόμενη αναπάντητη', 'Next unanswered')}</Button>
         <CheckboxField label={L(en, 'Μόνο ό,τι εκκρεμεί', 'Only what is open')} checked={openOnly} onChange={setOpenOnly} />
       </div>} />
     {!rows.length && <div className="inline-empty">{template ? L(en, 'Καμία ερώτηση για αυτό το πεδίο.', 'No question for this scope.') : L(en, 'Η επιθεώρηση δεν έχει ερωτηματολόγιο· ορίστε το στον «Σχεδιασμό» ή προσθέστε ερωτήσεις εδώ.', 'This audit has no questionnaire; set one in «Planning» or add questions here.')}</div>}
@@ -212,6 +211,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
           <div className="audit-question-head">
             <span className="audit-clause">{row.clauseRef || '—'}</span>
             <strong>{en ? row.itemEn || row.item : row.item}</strong>
+            {row.findingId && <button type="button" className="audit-finding-chip" disabled={dirty} title={dirty ? L(en, 'Αποθηκεύστε πρώτα', 'Save first') : L(en, 'Άνοιγμα ευρήματος', 'Open the finding')} onClick={() => goTo(`/quality/findings/${row.findingId}`, { tab: 'checklist' })}><SearchCheck size={12} /> {L(en, 'Εύρημα', 'Finding')}</button>}
             {row.critical && <StatusBadge tone="danger">{L(en, 'Κρίσιμη', 'Critical')}</StatusBadge>}
             {row.adHoc && <StatusBadge tone="neutral">{L(en, 'Επιπλέον ερώτηση', 'Added question')}</StatusBadge>}
             {Number(row.weight) > 1 && <StatusBadge tone="info">{L(en, `βάρος ${row.weight}`, `weight ${row.weight}`)}</StatusBadge>}
