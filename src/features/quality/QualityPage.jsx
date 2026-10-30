@@ -277,7 +277,7 @@ export function QualityPage(){
   {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
   {tab==='incidents'&&<ReportSummary view={incidents} loading={records.loading} language={language}/>}
   {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
-  {tab==='audits'&&(auditView.filters.mode||'programme')!=='programme'&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
+  {tab==='audits'&&!['programme','self'].includes(auditView.filters.mode||'programme')&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
   {tab==='risks'&&<KpiFigures className="quality-kpis" label={L('Κίνδυνοι','Risks')} figures={tabFigures.risks||[]}/>}
   {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language}/>}
   {tab==='indicators'&&measureView==='indicators'&&<PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" actionsSlot={indicatorActions}/></PageEmbedProvider>}

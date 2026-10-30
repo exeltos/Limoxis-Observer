@@ -217,6 +217,7 @@ export const AUDIT_VIEWS=[
 export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,onPrintSummary=null}){
  const en=language==='en'
  const {filters,set,clear}=view
+ const [toolbarSlot,setToolbarSlot]=useState(null)
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
  const sortBy={code:row=>row.code,title:row=>titleOf(row,en),standard:row=>row.standard,type:row=>row.auditType,date:row=>row.plannedDate,compliance:row=>auditCompliance(row).rate,owner:row=>row.leadAuditor,status:row=>row.status}
  const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
@@ -226,7 +227,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
  const cycles=[...new Set(rows.map(auditCycleKey).filter(Boolean))].sort().reverse()
  const mode=AUDIT_VIEWS.some(item=>item.id===filters.mode)?filters.mode:'programme'
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()} end={mode==='self'?<span className="quality-self-end" ref={setToolbarSlot}/>:null}>
    <FilterSelect label={en?'Standard':'Πρότυπο'} value={filters.standard||'all'} onChange={value=>set('standard',value)}><option value="all">{t('all')}</option>{AUDIT_STANDARDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
@@ -234,7 +235,7 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
    <FilterSelect label={en?'Round':'Κύκλος'} value={filters.cycle||'all'} onChange={value=>set('cycle',value)}><option value="all">{t('all')}</option>{cycles.map(key=><option key={key} value={key}>{auditCycleName(key,en)}</option>)}</FilterSelect>
   </FilterBar>
   {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan} onRound={onRound} onPrint={onPrintSummary}/>}
-  {mode==='self'&&<SelfAssessmentPanel query={filters.query} canManage={canManageSelf}/>}
+  {mode==='self'&&<SelfAssessmentPanel query={filters.query} canManage={canManageSelf} toolbarSlot={toolbarSlot}/>}
   {mode==='readiness'&&<AuditReadiness audits={filtered} findings={findings} language={language} onOpenAudit={audit=>onOpen(audit,filtered)} onOpenFinding={onOpenFinding}/>}
   {mode==='list'&&<>
    <div className="scroll-table" ref={registry.scrollRef}>

@@ -42,9 +42,9 @@ describe('Self-assessment database', () => {
     expect(sql).toContain("v_row.status = 'released' and")
   })
   it('is reachable from the audits tab, the department menu and the routes', () => {
-    expect(fs.readFileSync('src/features/quality/QualityLists.jsx', 'utf8')).toContain("<SelfAssessmentPanel query={filters.query} canManage={canManageSelf}/>")
+    expect(fs.readFileSync('src/features/quality/QualityLists.jsx', 'utf8')).toContain("<SelfAssessmentPanel query={filters.query} canManage={canManageSelf} toolbarSlot={toolbarSlot}/>")
     expect(fs.readFileSync('src/app/navigation.js', 'utf8')).toContain("key:'departmentSelfAssessment'")
     const app = fs.readFileSync('src/app/App.jsx', 'utf8')
-    for (const route of ['my-department/self-assessment"', 'my-department/self-assessment/:id', 'quality/self-assessments/:id']) expect(app).toContain(route)
+    for (const route of ['my-department/self-assessment"', 'my-department/self-assessment/:id', 'quality/self-assessments/:id', 'quality/self-assessments/new']) expect(app).toContain(route)
   })
 })

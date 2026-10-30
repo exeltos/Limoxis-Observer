@@ -81,14 +81,14 @@ export function SelfAssessmentCreatePage() {
       <p className="self-new-hint">{L(en, 'Θέλετε άλλες ερωτήσεις; Δημιουργήστε αντίγραφο του ερωτηματολογίου για το νοσοκομείο σας από τα «Ερωτηματολόγια».', 'Want other questions? Make a copy of the questionnaire for your hospital from «Questionnaires».')}</p>
       <section className="self-departments" aria-label={L(en, 'Τμήματα', 'Departments')}>
         <header>
-          <strong>{L(en, 'Τμήματα', 'Departments')} <span>{picked.length} {L(en, 'από', 'of')} {all.length} {L(en, 'επιλεγμένα', 'selected')}</span></strong>
+          <strong>{L(en, 'Τμήματα', 'Departments')} <span>{picked.length} {L(en, 'από', 'of')} {all.length}</span></strong>
+          <div className="self-departments-quick">
+            <button type="button" onClick={() => setPicked(all.map(item => item.id))}>{L(en, 'Όλα', 'All')} ({all.length})</button>
+            {areas.map(area => <button key={area.value} type="button" onClick={() => addIds(area.ids)}>{areaLabel(area.value, language)} ({area.ids.length})</button>)}
+            {picked.length > 0 && <button type="button" className="is-clear" onClick={() => setPicked([])}>{L(en, 'Καθαρισμός', 'Clear')}</button>}
+          </div>
           <label className="self-departments-search"><Search size={14} aria-hidden="true" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder={L(en, 'Αναζήτηση τμήματος…', 'Search a department…')} aria-label={L(en, 'Αναζήτηση τμήματος', 'Search a department')} /></label>
         </header>
-        <div className="self-departments-quick">
-          <button type="button" onClick={() => setPicked(all.map(item => item.id))}>{L(en, 'Όλα', 'All')} ({all.length})</button>
-          {areas.map(area => <button key={area.value} type="button" onClick={() => addIds(area.ids)}>{areaLabel(area.value, language)} ({area.ids.length})</button>)}
-          {picked.length > 0 && <button type="button" className="is-clear" onClick={() => setPicked([])}>{L(en, 'Καθαρισμός', 'Clear')}</button>}
-        </div>
         <ul className="self-departments-list">
           {shown.map(item => <li key={item.id} className={picked.includes(item.id) ? 'is-on' : undefined}><CheckboxField label={item.name} checked={picked.includes(item.id)} onChange={() => toggle(item.id)} /></li>)}
           {!shown.length && <li className="self-departments-empty">{L(en, 'Κανένα τμήμα.', 'No department.')}</li>}

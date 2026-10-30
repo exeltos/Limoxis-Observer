@@ -363,3 +363,4 @@ button.quality-column{border:0;background:none;padding:0;font:inherit;cursor:poi
 .quality-programme-print{display:inline-flex;flex:0 0 auto}
 .quality-programme-table th.quality-programme-pick,.quality-programme-table td.quality-programme-pick{width:34px;padding-right:0}
 .quality-programme-pick .lo-checkbox-field{min-height:0}
+.quality-self-end{display:inline-flex;align-items:center;gap:8px}

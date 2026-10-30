@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, ClipboardCheck, Clock3, FileWarning, Plus, Send, Trash2, Undo2, Lock } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
@@ -31,7 +32,7 @@ export function SelfAssessmentProgress({ answered, total, label }) {
 // Quality → Audits → «Αυτοαξιολόγηση»: the Quality team creates a self-assessment for
 // departments from an audit questionnaire and releases it; the department then sees and
 // answers it, and the gaps it leaves are the preparation for the audit.
-export function SelfAssessmentPanel({ query = '', canManage = false }) {
+export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { tenant } = useTenant()
@@ -55,12 +56,13 @@ export function SelfAssessmentPanel({ query = '', canManage = false }) {
     if (!ok) return
     try { await removeSelfAssessment(tenant?.id, item); await list.reload() } catch (error) { console.error(error); notify(L(en, 'Δεν ήταν δυνατή η διαγραφή.', 'It could not be deleted.'), 'error') }
   }
-  return <>
-    <KpiFigures label={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} figures={figures} loading={list.loading} error={list.error} />
-    <div className="self-toolbar row-actions">
+  const toolbar = <>
       <ExportMenu disabled={!rows.length} onExcel={() => exportRegistry(selfExport(rows, language))} />
       {canManage && <Button onClick={() => navigate('/quality/self-assessments/new')}><Plus size={15} />{L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')}</Button>}
-    </div>
+  </>
+  return <>
+    <KpiFigures className="self-kpis" label={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} figures={figures} loading={list.loading} error={list.error} />
+    {toolbarSlot ? createPortal(toolbar, toolbarSlot) : <div className="self-toolbar row-actions">{toolbar}</div>}
     <div className="scroll-table">
       <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.items.length > 0} loading={list.loading} error={list.error} onRetry={list.reload}
         emptyTitle={L(en, 'Δεν υπάρχουν αυτοαξιολογήσεις', 'No self-assessments')}
