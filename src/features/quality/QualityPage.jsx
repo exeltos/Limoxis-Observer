@@ -135,7 +135,6 @@ export function QualityPage(){
  const audits=useMemo(()=>auditRows(records.data.audits,records.data.findings),[records.data.audits,records.data.findings])
  const actionView=useListFilters('quality.actions',ACTION_DEFAULTS)
  const auditView=useListFilters('quality.audits',AUDIT_DEFAULTS)
- const [pickedAudits,setPickedAudits]=useState([])
  const riskList=useRiskAssessmentList(tenant?.id,true)
  const [riskCreating,setRiskCreating]=useState(false)
  const riskFile=useRef(null)
@@ -247,8 +246,8 @@ export function QualityPage(){
   reports:listExport(register.filtered,()=>reportRegisterExport(register.filtered,{language,t,categories}),L('Αναφορές προς αξιολόγηση','Reports to assess')),
   incidents:listExport(incidents.filtered,()=>reportRegisterExport(incidents.filtered,{language,t,categories}),L('Μητρώο συμβάντων','Incident register')),
   actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu disabled={!rows.length} onPrint={()=>{if(!printRegistry(qualityExport('capas',capas,{en,t}),{language,kind:t('quality'),title:L('Διορθωτικές ενέργειες','Corrective actions')}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} items={[{id:'findings',label:L('Αποκλίσεις (.csv)','Deviations (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
-  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);const chosen=pickedAudits.length?rows.filter(audit=>pickedAudits.includes(audit.id)):rows;return <ExportMenu menuWidth={320} disabled={!rows.length} items={[
-   {id:'summary-print',kind:'print',label:pickedAudits.length?L(`Συγκεντρωτική (${chosen.length} επιλεγμένες)`,`Summary (${chosen.length} selected)`):L('Συγκεντρωτική έκθεση','Summary report'),onClick:()=>printAuditSummary(chosen)},
+  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <ExportMenu disabled={!rows.length} items={[
+   {id:'summary-print',kind:'print',label:L('Συγκεντρωτική έκθεση','Summary report'),onClick:()=>printAuditSummary(rows)},
    {id:'findings-excel',kind:'excel',label:L('Ευρήματα (Excel)','Findings (Excel)'),onClick:()=>exportRegistry(auditFindingsExport(rows,records.data.findings,language))},
    {id:'list-excel',kind:'excel',label:L('Λίστα επιθεωρήσεων (Excel)','Audit list (Excel)'),onClick:()=>exportRegistry(qualityExport('audits',rows,{en,t}))},
   ]}/>})(),
@@ -294,7 +293,7 @@ export function QualityPage(){
    {tab==='actions'&&<ActionsList rows={actions} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>} 
-   {tab==='audits'&&<AuditsList canManageSelf={canManage} picked={pickedAudits} onPick={setPickedAudits} onPrintSummary={printAuditSummary} rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
+   {tab==='audits'&&<AuditsList canManageSelf={canManage} onPrintSummary={printAuditSummary} rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}
     onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} onRound={canManage?()=>{remember();goTo('/quality/audits/round')}:null} findings={records.data.findings}
     onOpenFinding={finding=>openRecord('findings',finding.id,[finding.id])}/>}

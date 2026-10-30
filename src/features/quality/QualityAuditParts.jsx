@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ListChecks, Plus } from 'lucide-react'
+import { ListChecks, Plus, Printer } from 'lucide-react'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { useDepartments } from '../management/useLibraries'
 import { ChoiceField } from '../../design-system/ChoiceField'
@@ -52,7 +53,7 @@ const STATE_ORDER = ['done', 'running', 'late', 'planned', 'cancelled']
 // audit is a chip coloured by where it stands (done with its compliance, late,
 // planned); a department without an audit this year is flagged; an empty cell
 // plans a new audit for that department and month.
-export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null }) {
+export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, onRound = null, onPrint = null }) {
   const en = language === 'en'
   const { departments } = useDepartments()
   const now = new Date()
@@ -61,7 +62,8 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const [scope, setScope] = useState('audited')
   // The round picked above the table (spring / autumn): its months are marked and a department opens on that round's audit.
   const [cycle, setCycle] = useState(null)
-  const pickYear = next => { setCycle(null); setYear(next) }
+  const [picked, setPicked] = useState([])
+  const pickYear = next => { setCycle(null); setPicked([]); setYear(next) }
   const matrix = useMemo(() => auditMatrix(audits, Number(year), departments, todayIso), [audits, year, departments, todayIso])
   const monthName = (month, style) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: style }).format(new Date(Date.UTC(2026, month, 15)))
   const currentMonth = String(now.getFullYear()) === year ? now.getMonth() : -1
@@ -72,6 +74,8 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const cycleAudits = useMemo(() => (cycle === null ? [] : roundOfHalf(audits, Number(year), cycle)), [audits, year, cycle])
   const cycleIds = useMemo(() => new Set(cycleAudits.map(audit => audit.id)), [cycleAudits])
   const cycleMonths = useMemo(() => new Set(cycleAudits.map(audit => Number(String(audit.plannedDate).slice(5, 7)) - 1)), [cycleAudits])
+  // What the print button prints: the audits done in the year (or in the round picked above), for the ticked departments or all.
+  const printable = useMemo(() => audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length && String(audit.completedDate || audit.plannedDate).startsWith(String(year)) && (cycle === null || cycleIds.has(audit.id)) && (!picked.length || picked.includes(String(audit.department || '').trim()))), [audits, year, cycle, cycleIds, picked])
   const byDepartment = useMemo(() => {
     const map = new Map()
     audits.forEach(audit => { const key = String(audit.department || '').trim(); if (key) map.set(key, [...(map.get(key) || []), audit]) })
@@ -95,10 +99,14 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
       <small>{scope === 'all' ? (en ? 'Show audited only' : 'Μόνο με επιθεώρηση') : (en ? 'Show all departments' : 'Όλα τα τμήματα')}</small>
      </button>}
     </div>
-    <AuditRounds audits={audits} year={Number(year)} language={language} onRound={onRound} onSelect={setCycle} />
+    <div className="quality-programme-printbar">
+     <AuditRounds audits={audits} year={Number(year)} language={language} onRound={onRound} onSelect={setCycle} />
+     {onPrint && <button type="button" className="quality-programme-print" disabled={!printable.length} onClick={() => onPrint(printable)}><Printer size={15} aria-hidden="true" /> {en ? 'Print summary' : 'Εκτύπωση συγκεντρωτικής'}<small>{[cycle !== null ? (cycle === 0 ? (en ? 'Spring' : 'Άνοιξη') : (en ? 'Autumn' : 'Φθινόπωρο')) : year, picked.length ? (en ? `${picked.length} departments` : `${picked.length} τμήματα`) : (en ? 'all departments' : 'όλα τα τμήματα'), `${printable.length} ${en ? 'audits' : 'επιθεωρήσεις'}`].join(' · ')}</small></button>}
+    </div>
     <div className="quality-programme-scroll">
      <table className="quality-programme-table">
       <thead><tr>
+       {onPrint && <th scope="col" className="quality-programme-pick"><CheckboxField ariaLabel={en ? 'Select every department shown' : 'Επιλογή όλων των τμημάτων'} label="" checked={rows.some(row => row.key) && rows.filter(row => row.key).every(row => picked.includes(row.key))} onChange={on => setPicked(on ? rows.filter(row => row.key).map(row => row.key) : [])} /></th>}
        <th scope="col">{en ? 'Department' : 'Τμήμα'}</th>
        <th scope="col">{en ? 'Standard' : 'Πρότυπο'}</th>
        <th scope="col">{en ? 'Last audit' : 'Τελευταία'}</th>
@@ -114,6 +122,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
         const late = next && !next.plannedMonthOnly && next.plannedDate < todayIso
         const score = last ? auditCompliance(last) : null
         return <tr key={row.key || 'org'} className={`${row.key && !row.covered ? 'is-gap' : ''}${open ? ' is-clickable' : ''}`.trim()} onClick={open ? () => onOpen?.(open) : undefined}>
+         {onPrint && <td className="quality-programme-pick" onClick={event => event.stopPropagation()}>{row.key ? <CheckboxField ariaLabel={`${en ? 'Select' : 'Επιλογή'} ${en ? row.nameEn : row.name}`} label="" checked={picked.includes(row.key)} onChange={on => setPicked(on ? [...picked, row.key] : picked.filter(key => key !== row.key))} /> : null}</td>}
          <th scope="row"><span>{row.key ? (en ? row.nameEn : row.name) : (en ? 'Whole organization' : 'Όλος ο οργανισμός')}</span></th>
          <td className="nowrap-cell">{(open && open.standard) ? standardShort(open.standard) : '—'}</td>
          <td className={`nowrap-cell${last ? ' is-link' : ''}`} onClick={last ? event => { event.stopPropagation(); onOpen?.(last) } : undefined}>{last ? <span className="quality-programme-last">{formatDay(last.completedDate || last.plannedDate, language)}{score?.rate != null && <small className={`quality-programme-rate is-${score.rate >= 90 ? 'success' : score.rate >= 75 ? 'warning' : 'danger'}`}>{score.rate}%</small>}</span> : '—'}</td>
@@ -123,7 +132,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
          <td>{open?.leadAuditor || '—'}</td>
         </tr>
        })}
-       {!rows.length && <tr><td colSpan={7} className="quality-programme-empty">{en ? `No audit in ${year} yet.` : `Καμία επιθεώρηση το ${year} ακόμη.`}{onPlan && (en ? ' Show all departments to plan one.' : ' Δείτε όλα τα τμήματα για να προγραμματίσετε.')}</td></tr>}
+       {!rows.length && <tr><td colSpan={onPrint ? 8 : 7} className="quality-programme-empty">{en ? `No audit in ${year} yet.` : `Καμία επιθεώρηση το ${year} ακόμη.`}{onPlan && (en ? ' Show all departments to plan one.' : ' Δείτε όλα τα τμήματα για να προγραμματίσετε.')}</td></tr>}
       </tbody>
      </table>
     </div>

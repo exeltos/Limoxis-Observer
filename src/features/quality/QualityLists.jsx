@@ -5,7 +5,6 @@ import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useSortedPaging,withSort } from './useSortedPaging'
-import { CheckboxField } from '../../design-system/CheckboxField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Meter,meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -215,7 +214,7 @@ export const AUDIT_VIEWS=[
  {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
  {id:'self',icon:ClipboardCheck,label:['Αυτοαξιολόγηση','Self-assessment']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,picked=[],onPick=null,onPrintSummary=null}){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,onRound=null,findings=[],onOpenFinding=null,canManageSelf=false,onPrintSummary=null}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
@@ -234,21 +233,16 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
    <FilterSelect label={en?'Round':'Κύκλος'} value={filters.cycle||'all'} onChange={value=>set('cycle',value)}><option value="all">{t('all')}</option>{cycles.map(key=><option key={key} value={key}>{auditCycleName(key,en)}</option>)}</FilterSelect>
   </FilterBar>
-  {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan} onRound={onRound}/>}
+  {mode==='programme'&&<AuditProgramme audits={filtered} language={language} onOpen={audit=>onOpen(audit,filtered)} onPlan={onPlan} onRound={onRound} onPrint={onPrintSummary}/>}
   {mode==='self'&&<SelfAssessmentPanel query={filters.query} canManage={canManageSelf}/>}
   {mode==='readiness'&&<AuditReadiness audits={filtered} findings={findings} language={language} onOpenAudit={audit=>onOpen(audit,filtered)} onOpenFinding={onOpenFinding}/>}
   {mode==='list'&&<>
-   {onPick&&<div className="quality-pick-bar">
-    <CheckboxField ariaLabel={en?'Select all shown audits':'Επιλογή όλων των εμφανιζόμενων'} label={picked.length?(en?`${picked.length} selected`:`${picked.length} επιλεγμένες`):(en?'Select audits to print':'Επιλέξτε επιθεωρήσεις για εκτύπωση')} checked={filtered.length>0&&filtered.every(row=>picked.includes(row.id))} onChange={on=>onPick(on?filtered.map(row=>row.id):[])}/>
-    {picked.length>0&&<><button type="button" className="audit-answer-link" onClick={()=>onPrintSummary?.(filtered.filter(row=>picked.includes(row.id)))}>{en?'Print summary report':'Εκτύπωση συγκεντρωτικής'}</button><button type="button" className="audit-answer-link" onClick={()=>onPick([])}>{en?'Clear selection':'Καθαρισμός επιλογής'}</button></>}
-   </div>}
    <div className="scroll-table" ref={registry.scrollRef}>
     <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={()=>clear()}
-     columns={withSort([...(onPick?[{key:'pick',label:'',sortable:false,ariaLabel:en?'Select':'Επιλογή',style:{width:36}}]:[]),{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'standard',label:en?'Standard':'Πρότυπο'},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}],sortBy)}
+     columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'standard',label:en?'Standard':'Πρότυπο'},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}],sortBy)}
      emptyTitle={en?'No audits':'Δεν υπάρχουν επιθεωρήσεις'} emptyText={en?'Plan the year’s audits on a questionnaire; each «Partial» or «Nonconformity» becomes a finding.':'Προγραμματίστε τις επιθεωρήσεις του έτους με ερωτηματολόγιο· κάθε «Μερική» ή «Μη συμμόρφωση» γίνεται εύρημα.'}
      rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,paging.sorted)})}
      renderRow={row=>{const score=auditCompliance(row);return <>
-      {onPick&&<td onClick={event=>event.stopPropagation()}><CheckboxField ariaLabel={en?`Select ${qualityCode(row,language)}`:`Επιλογή ${qualityCode(row,language)}`} label="" checked={picked.includes(row.id)} onChange={on=>onPick(on?[...picked,row.id]:picked.filter(id=>id!==row.id))}/></td>}
       <td><strong>{qualityCode(row,language)}</strong></td>
       <td>{titleOf(row,en)}{departmentOf(row,en)&&<small>{departmentOf(row,en)}</small>}</td>
       <td className="nowrap-cell">{row.standard?standardShort(row.standard):'—'}{row.clausesScope?.length>0&&<small>{row.clausesScope.join(', ')}</small>}</td>
