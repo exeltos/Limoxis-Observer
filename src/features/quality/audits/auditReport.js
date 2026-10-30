@@ -139,9 +139,9 @@ const chapterName = chapter => [chapter.ref, chapter.title].filter(Boolean).join
 const strengths = (score, en) => score.chapters.filter(chapter => chapter.rate === 100).map(chapter => `${chapterName(chapter)} — 100% (${chapter.total} ${en ? 'questions' : 'ερωτήσεις'})`)
 const weaknesses = (score, en) => score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).sort((a, b) => a.rate - b.rate).map(chapter => `${chapterName(chapter)} — ${chapter.rate}% (${chapter.partial} ${en ? 'partial' : 'μερική'}, ${chapter.no} ${en ? 'nonconformity' : 'μη συμμόρφωση'})`)
 
-// The detailed reports of many audits in one document: an overview table, then for
-// each completed audit its summary, chapters, strengths and weaknesses, deviations,
-// findings and recommended actions, each audit starting on a new page.
+// The reports of many audits in one short document: an overview table, then only the
+// departments with a deviation (the chapters that fell short and the deviations), and a
+// line with the departments without any. Each audit's own report is the long one.
 export function auditDetailedBatchDocument(audits = [], findings = [], { language = 'el' } = {}) {
   const en = language === 'en'
   const L = (el, english) => (en ? english : el)
@@ -151,7 +151,6 @@ export function auditDetailedBatchDocument(audits = [], findings = [], { languag
   const rated = scored.filter(item => item.score.overall.rate != null)
   const average = rated.length ? Math.round(rated.reduce((sum, item) => sum + item.score.overall.rate, 0) / rated.length) : null
   const dates = list.map(audit => String(audit.completedDate || audit.plannedDate).slice(0, 10)).sort()
-  const keep = [L('Σύνοψη', 'Summary'), L('Αποτελέσματα ανά κεφάλαιο', 'Results by chapter'), L('Δυνατά σημεία και σημεία βελτίωσης', 'Strengths and areas to improve'), L('Διαπιστώσεις', 'Observations and nonconformities'), L('Ευρήματα και διορθωτικές ενέργειες', 'Findings and corrective actions'), L('Προτεινόμενες ενέργειες', 'Recommended actions'), L('Συμπέρασμα', 'Conclusion')]
   const sections = [{
     title: L('Συνολική εικόνα', 'Overview'),
     table: {
@@ -161,22 +160,32 @@ export function auditDetailedBatchDocument(audits = [], findings = [], { languag
       empty: L('Δεν υπάρχουν ολοκληρωμένες επιθεωρήσεις με απαντήσεις.', 'No completed audit with answers.'),
     },
   }]
-  for (const { audit } of scored) {
-    const doc = auditReportDocument(audit, findings, { language })
-    sections.push({ html: '<div style="page-break-before:always;height:0"></div>' })
-    sections.push({ title: `${(en ? audit.departmentEn : audit.department) || audit.department || L('Όλος ο οργανισμός', 'Whole organization')} · ${audit.displayId || audit.id} · ${day(audit.completedDate)}`, text: '' })
-    doc.sections.filter(section => keep.includes(section.title)).forEach(section => sections.push({ ...section, title: `${section.title}` }))
+  // Only the departments with a deviation get a block (the chapters that fell short and the deviations); the others are one line at the end.
+  const clean = []
+  for (const { audit, score } of scored) {
+    const name = (en ? audit.departmentEn : audit.department) || audit.department || L('Όλος ο οργανισμός', 'Whole organization')
+    const deviations = (audit.checklist || []).filter(row => row.answer === 'partial' || row.answer === 'no')
+    if (!deviations.length) { clean.push(name); continue }
+    sections.push({
+      title: `${name} · ${audit.displayId || audit.id} · ${day(audit.completedDate)} — ${pct(score.overall.rate)}`,
+      keepTogether: true,
+      tables: [
+        { columns: [L('Κεφάλαιο', 'Chapter'), { text: L('Μερική', 'Partial'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }], rows: score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).map(chapter => [chapterName(chapter), { text: String(chapter.partial), align: 'right' }, { text: String(chapter.no), align: 'right' }, { text: pct(chapter.rate), align: 'right' }]) },
+        { columns: [L('Άρθρο', 'Clause'), L('Ερώτηση', 'Question'), L('Αποτέλεσμα', 'Result'), L('Σχόλιο', 'Comment')], rows: deviations.map(row => [row.clauseRef || '—', row.item, resultCell(row.answer, language), row.note || '']) },
+      ],
+    })
   }
+  if (clean.length) sections.push({ title: L('Χωρίς αποκλίσεις', 'No deviations'), text: clean.join(' · ') })
   return {
     language,
     numbered: false,
-    kind: L('Αναλυτικές εκθέσεις επιθεώρησης', 'Detailed audit reports'),
-    title: L('Αναλυτικές εκθέσεις επιθεωρήσεων', 'Detailed audit reports'),
+    kind: L('Συγκεντρωτική έκθεση επιθεωρήσεων', 'Audit summary report'),
+    title: L('Συγκεντρωτική έκθεση επιθεωρήσεων', 'Audit summary report'),
     code: dates.length ? `${day(dates[0])} – ${day(dates.at(-1))}` : '',
     meta: [[L('Επιθεωρήσεις', 'Audits'), String(list.length)], [L('Μέση συμμόρφωση', 'Average compliance'), pct(average)], [L('Περίοδος', 'Period'), dates.length ? `${day(dates[0])} – ${day(dates.at(-1))}` : '—'], [L('Με ευρήματα', 'With findings'), String(scored.filter(({ audit }) => findings.some(finding => finding.sourceId === audit.id)).length)]],
     sections,
     signatures: [{ role: L('Υπεύθυνος Ποιότητας', 'Quality manager'), name: '' }],
-    filename: en ? 'detailed-audit-reports' : 'analytikes-ekthesis-epitheoriseon',
+    filename: en ? 'audit-summary-report' : 'sygkentrotiki-ekthesi-epitheoriseon',
   }
 }
 

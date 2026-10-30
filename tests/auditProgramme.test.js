@@ -195,13 +195,14 @@ describe('report and storage', () => {
     expect(auditAnswersExport(audit).rows).toHaveLength(audit.checklist.length)
   })
 
-  it('builds one detailed report for many audits: an overview, then each audit on its own page', () => {
+  it('builds one short report for many audits: an overview, the departments with a deviation, and the clean ones in a line', () => {
     const done = programmeAudits.filter(item => item.status === 'completed' && (item.checklist || []).length)
     const doc = auditDetailedBatchDocument(done, programmeFindings)
     expect(doc.sections[0].title).toBe('Συνολική εικόνα')
     expect(doc.sections[0].table.rows).toHaveLength(done.length)
-    expect(doc.sections.filter(section => section.html?.includes('page-break-before')).length).toBe(done.length)
-    expect(doc.sections.filter(section => section.title === 'Σύνοψη').length).toBe(done.length)
+    const withDeviation = done.filter(item => item.checklist.some(row => row.answer === 'partial' || row.answer === 'no'))
+    expect(doc.sections.filter(section => section.tables).length).toBe(withDeviation.length)
+    expect(doc.sections.some(section => section.html?.includes('page-break-before'))).toBe(false)
     expect(auditDetailedBatchDocument([]).sections[0].table.rows).toHaveLength(0)
   })
 
