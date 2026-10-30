@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect,useMemo,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
 import { ClipboardList,Pencil,Target } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
@@ -16,8 +16,9 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { CAPABILITIES,can } from '../../../core/permissions/roles'
-import { textOf } from '../../registers/registerEngine'
-import { formatObjectiveValue } from './reviewTemplate'
+import { monthlySeries,textOf } from '../../registers/registerEngine'
+import { loadEntries } from '../../registers/registerService'
+import { formatObjectiveValue,objectiveState } from './reviewTemplate'
 import { ObjectiveDialog,objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
@@ -31,6 +32,21 @@ export function ObjectiveRecordPage(){
  const [editing,setEditing]=useState(false)
  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
  const back=()=>{rememberQualitySection('indicators:objectives');navigate('/quality',{replace:true})}
+ const target_=objectives.find(item=>item.id===objectiveId)
+ const [entries,setEntries]=useState([])
+ useEffect(()=>{
+  const register=target_?.register
+  if(!tenant?.id||!register||!target_?.indicator){setEntries([]);return undefined}
+  let live=true
+  loadEntries(tenant.id,register.id,{register}).then(rows=>{if(live)setEntries(rows)}).catch(()=>{if(live)setEntries([])})
+  return ()=>{live=false}
+ },[tenant?.id,target_?.register,target_?.indicator])
+ // The value month by month for the objective's year, up to the current month, only the months with a value.
+ const history=useMemo(()=>{
+  if(!target_?.register||!target_?.indicator)return []
+  const now=new Date(),last=target_.year<now.getFullYear()?12:target_.year>now.getFullYear()?0:now.getMonth()+1
+  return monthlySeries(target_.register,target_.indicator,entries,target_.year).filter(row=>row.month<=last&&row.value!=null)
+ },[target_,entries])
  if(loading)return <RouteLoading/>
  const objective=objectives.find(item=>item.id===objectiveId)
  if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
@@ -60,8 +76,13 @@ export function ObjectiveRecordPage(){
   headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>setEditing(true)}><Pencil size={16}/></IconButton>}</>}>
   <section className="record-section">
    <p className="quality-summary-line"><span><b>{value}</b> {en?'today':'σήμερα'}</span><span>{en?'target':'στόχος'} <b>{target}</b></span><span className={state==='missed'?'is-late':undefined}><b>{reach==null?'—':`${Math.round(reach)}%`}</b> {en?'of the target':'του στόχου'}</span><span>{objectiveStateLabel(state,en).toLowerCase()}</span></p>
-   <Meter value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
+   <Meter className="objective-record-meter" value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
    <DetailList sections={detail}/>
+   {history.length>0&&<>
+    <h3 className="objective-history-title">{en?'Value by month':'Ιστορικό τιμών'}</h3>
+    <table className="objective-history"><thead><tr><th>{en?'Month':'Μήνας'}</th><th>{en?'Value':'Τιμή'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead>
+     <tbody>{history.map(row=><tr key={row.month}><td>{new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'long',year:'numeric'}).format(new Date(objective.year,row.month-1,1))}</td><td>{formatObjectiveValue(row.value,unit,language)}</td><td><StatusBadge tone={tone(objectiveState(objective,row.value))}>{objectiveStateLabel(objectiveState(objective,row.value),en)}</StatusBadge></td></tr>)}</tbody></table>
+   </>}
   </section>
  </EntityRecordShell>
  {editing&&<ObjectiveDialog objective={objective} registers={registers} onClose={()=>setEditing(false)} onSaved={()=>{setEditing(false);void reload()}}/>}
