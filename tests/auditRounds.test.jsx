@@ -35,3 +35,18 @@ describe('audit rounds', () => {
     expect(screen.getAllByRole('button', { name: /Προγραμματισμός/ })).toHaveLength(2)
   })
 })
+
+describe('arranging a round', () => {
+  it('starts with the planned departments spread over the days and the others outside the round', async () => {
+    const { roundPlan } = await import('../src/features/quality/audits/auditModel')
+    const planned = ['Αιμοδοσία', 'ΜΕΘ', 'ΤΕΠ', 'Χειρουργική'].map((department, index) => ({ id: `a${index}`, department, status: 'planned', lifecycleStatus: 'active', auditType: 'internal', plannedDate: '2026-11-15' }))
+    const plan = roundPlan(planned, [{ id: 'd1', name: 'ΜΕΘ' }, { id: 'd2', name: 'Κουζίνα' }], '2026-11-10', 3)
+    expect(plan.days).toEqual(['2026-11-10', '2026-11-11', '2026-11-12'])
+    const inRound = plan.items.filter(item => item.day != null)
+    expect(inRound).toHaveLength(4)
+    expect(new Set(inRound.map(item => item.day)).size).toBe(3)
+    const outside = plan.items.filter(item => item.day == null)
+    expect(outside.map(item => item.department)).toEqual(['Κουζίνα'])
+    expect(outside[0].auditId).toBeNull()
+  })
+})

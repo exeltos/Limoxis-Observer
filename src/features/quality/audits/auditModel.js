@@ -455,6 +455,21 @@ export function spreadAuditRound(audits = [], start, count = 3) {
   return { days, assignments: open.map((audit, index) => ({ audit, plannedDate: days[Math.min(days.length - 1, Math.floor(index * days.length / open.length))] })) }
 }
 
+// An audit round to arrange: the days, and every department with the day it goes on (an index into
+// `days`) or none. The departments with a planned audit in the month of the first day start on a
+// day, spread evenly; the others start outside the round and can be added.
+export function roundPlan(audits = [], departments = [], start, count = 3) {
+  const days = workingDays(start, count)
+  const { assignments } = spreadAuditRound(audits, start, count)
+  const planned = new Map(assignments.map(item => [String(item.audit.department).trim(), item]))
+  const items = assignments.map(item => ({ key: `audit:${item.audit.id}`, auditId: item.audit.id, department: item.audit.department, departmentEn: item.audit.departmentEn || item.audit.department, departmentId: item.audit.departmentId || '', day: days.indexOf(item.plannedDate) }))
+  for (const department of departments) {
+    if (planned.has(String(department.name).trim())) continue
+    items.push({ key: `department:${department.id || department.name}`, auditId: null, department: department.name, departmentEn: department.nameEn || department.name, departmentId: department.id || '', day: null })
+  }
+  return { days, items: items.sort((a, b) => String(a.department).localeCompare(String(b.department), 'el')) }
+}
+
 // Readiness: for every standard, the compliance of each department's latest
 // completed audit that covered it (one audit may cover several standards), how
 // many departments were audited for it this year, its open findings and its

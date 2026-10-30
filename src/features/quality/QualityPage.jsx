@@ -21,7 +21,7 @@ import { readSessionValue,writeSessionJson,writeSessionValue } from '../../core/
 import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,printRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
-import { fillAuditProgramme,loadQualityRecords,planAuditRound } from './qualityService'
+import { applyAuditRound,fillAuditProgramme,loadQualityRecords } from './qualityService'
 import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { printReport } from '../../core/export/reportDocument'
 import { auditRoundReportDocument } from './audits/auditReport'
@@ -120,9 +120,9 @@ export function QualityPage(){
  const records=useQualityRecords(tenant?.id)
  const [fillingProgramme,setFillingProgramme]=useState(false)
  const [roundOpen,setRoundOpen]=useState(false)
- const applyRound=async(start,days)=>{
+ const applyRound=async(items,template,days)=>{
   setFillingProgramme(true)
-  try{const count=await planAuditRound(tenant?.id,records.data.audits,start,days);records.reload();setRoundOpen(false);notify(L(`${count} επιθεωρήσεις μοιράστηκαν σε ${days} ημέρες.`,`${count} audits spread over ${days} days.`),'success')}
+  try{const count=await applyAuditRound(tenant?.id,items,{template,userId:user?.id||null,days});records.reload();setRoundOpen(false);notify(L(`Ο κύκλος αποθηκεύτηκε: ${count} τμήματα σε ${days} ημέρες.`,`Round saved: ${count} departments over ${days} days.`),'success')}
   catch{notify(L('Δεν ήταν δυνατός ο προγραμματισμός του κύκλου.','The round could not be planned.'),'error')}
   finally{setFillingProgramme(false)}
  }

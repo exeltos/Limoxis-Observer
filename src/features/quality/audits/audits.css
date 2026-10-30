@@ -140,3 +140,22 @@
 .audit-round-days>li{display:grid;grid-template-columns:96px 24px minmax(0,1fr);align-items:baseline;gap:8px;font-size:12.5px}
 .audit-round-days>li>span{font-weight:700;color:var(--lo-color-text);text-transform:capitalize}
 .audit-round-days>li>small{color:var(--lo-color-muted)}
+/* The audit round dialog: the days as columns of departments. */
+.audit-round-tools{display:flex;align-items:end}
+.audit-round-columns{display:grid;gap:12px;margin-top:14px}
+@media(max-width:760px){.audit-round-columns{grid-template-columns:minmax(0,1fr)}}
+.audit-round-column{display:grid;align-content:start;gap:6px;padding:10px;border:1px solid #dfe7ee;border-radius:11px;background:#fbfcfd}
+.audit-round-column>header{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding-bottom:6px;border-bottom:1px solid #e9eef2}
+.audit-round-column>header>strong{text-transform:capitalize}
+.audit-round-column>header>span{font-size:12px;color:var(--lo-color-muted)}
+.audit-round-column>ul,.audit-round-outside>ul{display:grid;gap:4px;margin:0;padding:0;list-style:none;max-height:300px;overflow:auto}
+.audit-round-column li,.audit-round-outside li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;font-size:12.5px}
+.audit-round-column li>span,.audit-round-outside li>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.audit-round-column li>span>small{display:block;color:var(--lo-color-muted);font-size:10.5px}
+.audit-round-day{width:140px}
+.audit-round-column li.is-empty{color:var(--lo-color-muted)}
+.audit-round-outside{margin-top:14px}
+.audit-round-outside>h4{margin:0 0 6px;font-size:12.5px;color:var(--lo-color-muted)}
+.audit-plan-more{grid-column:1/-1}
+.audit-round-outside>ul{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 24px}
+@media(max-width:760px){.audit-round-outside>ul{grid-template-columns:minmax(0,1fr)}}

@@ -546,6 +546,28 @@ export async function fillAuditProgramme(organizationId,audits=[],userId=null){
 // An audit round: the month's planned audits spread over a few working days from
 // `start`. The database does it in production; the demo on its own copy.
 // Returns how many audits got a day.
+// An audit round arranged by hand: `items` are the departments with their day. An existing planned audit
+// gets the day; a department without one gets a new audit from the basic questionnaire. Returns how many.
+export async function applyAuditRound(organizationId,items=[],{template=null,userId=null,days=3}={}){
+  const existing=items.filter(item=>item.auditId),fresh=items.filter(item=>!item.auditId)
+  if(isDemoDataEnvironment()){
+    const dates=new Map(existing.map(item=>[item.auditId,item.plannedDate]))
+    saveQualityLocal('audits',loadQualityLocal('audits').map(row=>dates.has(row.id)?{...row,plannedDate:dates.get(row.id),plannedMonthOnly:false}:row))
+  }else{
+    assertReady(organizationId)
+    for(const item of existing)must(await supabase.from('quality_audits').update({planned_date:item.plannedDate,planned_month_only:false}).eq('id',item.auditId).eq('organization_id',organizationId))
+  }
+  for(const item of fresh){
+    await createQualityRecord('audits',organizationId,{
+      title:`Επιθεώρηση τμήματος · ${item.department}`,titleEn:`Department audit · ${item.departmentEn||item.department}`,
+      department:item.department,departmentEn:item.departmentEn||item.department,departmentId:item.departmentId,auditType:'internal',plannedDate:item.plannedDate,status:'planned',
+      ...(template?{templateId:template.id,templateTitle:template.title,templateVersion:template.version,standard:template.standard,standards:['iso9001','jci','temos'],checklistSource:`template:${template.id}`,scope:template.scope}:{}),
+      durationDays:days,riskLevel:'medium',frequencyMonths:6,history:[]
+    },userId)
+  }
+  return items.length
+}
+
 export async function planAuditRound(organizationId,audits=[],start,days=3){
   if(isDemoDataEnvironment()){
     const {assignments}=spreadAuditRound(audits,start,days)

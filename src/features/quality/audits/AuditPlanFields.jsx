@@ -8,6 +8,7 @@ import { MultiSelect } from '../../../design-system/MultiSelect'
 import { CheckboxField } from '../../../design-system/CheckboxField'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { MonthField } from '../../../design-system/MonthField'
+import { MoreSection } from '../../../design-system/MoreSection'
 import { IconButton } from '../../../design-system/IconButton'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useEmployeesData } from '../../employees/useEmployeesData'
@@ -27,7 +28,8 @@ const select = en => ({ emptyLabel: L(en, 'Δεν βρέθηκε', 'No match'), 
 export function AuditPlanFields({ draft, setDraft, templates = [], competence, language, titleField = true }) {
   const en = language === 'en'
   const patch = next => setDraft(current => ({ ...current, ...next }))
-  const forStandard = templates.filter(item => item.active !== false && (!draft.standard || item.standard === draft.standard))
+  // Every active questionnaire: choosing one sets the standard (the basic one first, the library after it).
+  const forStandard = templates.filter(item => item.active !== false).sort((a, b) => (b.key === 'core') - (a.key === 'core'))
   const questionnaire = templates.find(item => item.id === draft.templateId) || null
   const chapters = useMemo(() => templateChapters(questionnaire), [questionnaire])
   const chooseTemplate = id => {
@@ -45,28 +47,33 @@ export function AuditPlanFields({ draft, setDraft, templates = [], competence, l
         <ChoiceField label={L(en, 'Είδος επιθεώρησης', 'Kind of audit')} value={draft.auditType || 'internal'} options={AUDIT_KINDS.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={value => patch({ auditType: value })} />
       </FormGrid>
     </FormCard>
-    <FormCard title={L(en, 'Πρότυπο και ερωτηματολόγιο', 'Standard and questionnaire')} icon={ShieldAlert} hint={questionnaire ? L(en, `${questionnaire.questions.length} ερωτήσεις · περιοχή τμήματος: ${areaLabel(draft.department ? departmentArea(draft.department) : '', language) || 'όλες'}`, `${questionnaire.questions.length} questions · department area: ${areaLabel(draft.department ? departmentArea(draft.department) : '', language) || 'all'}`) : undefined}>
-      <FormGrid columns={3}>
-        <ChoiceField label={L(en, 'Πρότυπο', 'Standard')} value={draft.standard || ''} options={AUDIT_STANDARDS.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={value => patch({ standard: value, ...(questionnaire && questionnaire.standard !== value ? { templateId: null, templateTitle: '', templateVersion: null, clausesScope: [] } : {}) })} />
+    <FormCard title={L(en, 'Ερωτηματολόγιο', 'Questionnaire')} icon={ShieldAlert} hint={questionnaire ? L(en, `${questionnaire.questions.length} ερωτήσεις · περιοχή τμήματος: ${areaLabel(draft.department ? departmentArea(draft.department) : '', language) || 'όλες'}`, `${questionnaire.questions.length} questions · department area: ${areaLabel(draft.department ? departmentArea(draft.department) : '', language) || 'all'}`) : undefined}>
+      <FormGrid columns={2}>
         <SearchableSelect label={L(en, 'Ερωτηματολόγιο', 'Questionnaire')} value={draft.templateId || ''} onChange={chooseTemplate} placeholder={forStandard.length ? L(en, 'Επιλέξτε ερωτηματολόγιο', 'Choose a questionnaire') : L(en, 'Κανένα για αυτό το πρότυπο', 'None for this standard')}
           options={forStandard.map(item => ({ value: item.id, label: item.title, description: `${item.isSystem ? L(en, 'Βιβλιοθήκη πλατφόρμας', 'Platform library') : L(en, 'Του νοσοκομείου', 'Hospital copy')} · ${L(en, 'έκδοση', 'version')} ${item.version} · ${item.questions.length} ${L(en, 'ερωτήσεις', 'questions')}` }))} {...select(en)} />
+      </FormGrid>
+      <MoreSection moreLabel={L(en, 'Πρότυπο, κεφάλαια και άλλα πρότυπα', 'Standard, chapters and other standards')} lessLabel={L(en, 'Λιγότερα', 'Less')}>
+        <FormGrid columns={3}>
+        <ChoiceField label={L(en, 'Πρότυπο', 'Standard')} value={draft.standard || ''} options={AUDIT_STANDARDS.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={value => patch({ standard: value, ...(questionnaire && questionnaire.standard !== value ? { templateId: null, templateTitle: '', templateVersion: null, clausesScope: [] } : {}) })} />
         <MultiSelect label={L(en, 'Κεφάλαια / άρθρα στο πεδίο', 'Chapters / clauses in scope')} disabled={!chapters.length} tags options={chapters.map(chapter => ({ value: chapter.ref, label: `${chapter.ref} · ${chapter.title}` }))} selected={draft.clausesScope || []} onChange={value => patch({ clausesScope: value })}
           placeholder={L(en, 'Όλο το ερωτηματολόγιο', 'The whole questionnaire')} searchPlaceholder={L(en, 'Αναζήτηση κεφαλαίου', 'Search chapter')} emptyLabel={L(en, 'Δεν βρέθηκε', 'No match')} selectAllLabel={L(en, 'Επιλογή όλων', 'Select all')} clearAllLabel={L(en, 'Καθαρισμός', 'Clear')} countLabel={count => L(en, `${count} κεφάλαια`, `${count} chapters`)} />
         <MultiSelect label={L(en, 'Και άλλα πρότυπα στην ίδια επιθεώρηση', 'Other standards in the same audit')} tags options={AUDIT_STANDARDS.filter(item => item.value !== draft.standard && item.value !== 'other').map(item => ({ value: item.value, label: pick(item.label, en) }))} selected={(draft.standards || []).filter(value => value !== draft.standard)} onChange={value => patch({ standards: value })}
           placeholder={L(en, 'Μόνο το κύριο πρότυπο', 'The main standard only')} searchPlaceholder={L(en, 'Αναζήτηση προτύπου', 'Search standard')} emptyLabel={L(en, 'Δεν βρέθηκε', 'No match')} selectAllLabel={L(en, 'Επιλογή όλων', 'Select all')} clearAllLabel={L(en, 'Καθαρισμός', 'Clear')} countLabel={count => L(en, `${count} πρότυπα`, `${count} standards`)} />
-      </FormGrid>
+        </FormGrid>
+      </MoreSection>
     </FormCard>
     <FormCard title={L(en, 'Προγραμματισμός', 'Planning')} icon={CalendarDays} hint={L(en, `Συχνότητα κατά τον κίνδυνο: κάθε ${riskMonths(draft.riskLevel || 'medium')} μήνες`, `Frequency by risk: every ${riskMonths(draft.riskLevel || 'medium')} months`)}>
       <FormGrid columns={3}>
         {draft.plannedMonthOnly
           ? <MonthField label={L(en, 'Προγραμματισμένος μήνας', 'Planned month')} value={month} years={3} onChange={value => patch({ plannedDate: value ? `${value}-01` : '' })} />
           : <ManualDateField label={L(en, 'Προγραμματισμένη ημερομηνία', 'Planned date')} value={draft.plannedDate || ''} onChange={value => patch({ plannedDate: value })} />}
-        <ChoiceField label={L(en, 'Κίνδυνος (συχνότητα)', 'Risk (frequency)')} value={draft.riskLevel || 'medium'} options={RISK_LEVELS.map(item => ({ value: item.value, label: `${pick(item.label, en)} · ${L(en, `κάθε ${item.months} μήνες`, `every ${item.months} months`)}` }))} onChange={value => patch({ riskLevel: value, frequencyMonths: riskMonths(value) })} />
         <CheckboxField label={L(en, 'Μόνο μήνας (η ημέρα ορίζεται αργότερα)', 'Month only (day fixed later)')} checked={Boolean(draft.plannedMonthOnly)} onChange={value => patch({ plannedMonthOnly: value, plannedDate: value && draft.plannedDate ? `${String(draft.plannedDate).slice(0, 7)}-01` : draft.plannedDate })} />
       </FormGrid>
     </FormCard>
+    <div className="audit-plan-more"><MoreSection moreLabel={L(en, 'Περισσότερα: κίνδυνος, φορέας, διάρκεια, αναφορά, σημειώσεις', 'More: risk, carried out by, duration, report, notes')} lessLabel={L(en, 'Λιγότερα', 'Less')}>
     <FormCard title={L(en, 'Εκτέλεση και αναφορά', 'Execution and report')} icon={ClipboardCheck}>
       <FormGrid columns={3}>
+        <ChoiceField label={L(en, 'Κίνδυνος (συχνότητα)', 'Risk (frequency)')} value={draft.riskLevel || 'medium'} options={RISK_LEVELS.map(item => ({ value: item.value, label: `${pick(item.label, en)} · ${L(en, `κάθε ${item.months} μήνες`, `every ${item.months} months`)}` }))} onChange={value => patch({ riskLevel: value, frequencyMonths: riskMonths(value) })} />
         <ChoiceField label={L(en, 'Φορέας', 'Carried out by')} value={draft.auditBody || ''} placeholder={L(en, 'Επιλέξτε', 'Choose')} options={AUDIT_BODIES.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={value => patch({ auditBody: value })} />
         <Field label={L(en, 'Διάρκεια (ημέρες)', 'Duration (days)')}><input type="number" min="0" max="60" value={draft.durationDays ?? ''} onChange={event => patch({ durationDays: event.target.value === '' ? null : Number(event.target.value) })} /></Field>
         <ManualDateField label={L(en, 'Η αναφορά στάλθηκε στο τμήμα', 'Report sent to the department')} value={draft.reportSentOn || ''} onChange={value => patch({ reportSentOn: value })} />
@@ -74,6 +81,7 @@ export function AuditPlanFields({ draft, setDraft, templates = [], competence, l
         <Field label={L(en, 'Σημειώσεις', 'Notes')}><textarea rows={2} value={draft.notes || ''} onChange={event => patch({ notes: event.target.value })} /></Field>
       </FormGrid>
     </FormCard>
+    </MoreSection></div>
     <AuditTeamField team={draft.team || []} department={{ id: draft.departmentId, name: draft.department }} competence={competence} language={language} onChange={team => patch({ team, leadAuditor: team.find(member => member.role === 'lead')?.name || '' })} />
   </>
 }
