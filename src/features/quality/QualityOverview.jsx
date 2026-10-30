@@ -159,11 +159,7 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
  const [allDecide,setAllDecide]=useState(false)
  const [allNext,setAllNext]=useState(false)
  const more=(count,shown,toggle)=>count>FIRST&&<button type="button" className="quality-panel-all" onClick={toggle}>{shown?L(en,'Λιγότερα','Less'):L(en,`Όλα (${count})`,`All (${count})`)}</button>
- return <div className="risk-analysis quality-overview">
-  {(data.readiness.length>0||onMeetings)&&<p className="quality-summary-line quality-overview-links">
-   {data.readiness.length>0&&<button type="button" onClick={()=>onGo('readiness')}>{L(en,'Ετοιμότητα επιθεωρήσεων','Audit readiness')}: {data.readiness.map(row=><span key={row.standard} className={row.rate<80?'is-late':undefined}> {standardShort(row.standard)} <b>{row.rate}%</b></span>)}</button>}
-   {onMeetings&&<button type="button" onClick={onMeetings}>{L(en,'Συνεδριάσεις & αποφάσεις','Meetings & decisions')} →</button>}
-  </p>}
+ return <div className="risk-analysis quality-overview quality-dash">
   <div className="risk-two-columns risk-analysis-decide">
    <Panel title={L(en,'Θέλει απόφαση τώρα','Needs a decision now')} caption={L(en,'Συμβάντα-φρουροί, εκπρόθεσμες ενέργειες, αναφορές προς αξιολόγηση','Sentinel events, overdue actions, reports to assess')} count={data.decide.length}>
     <AttentionList items={allDecide?data.decide:data.decide.slice(0,FIRST)} onOpen={open} empty={L(en,'Τίποτα δεν περιμένει απόφαση.','Nothing is waiting for a decision.')}/>
@@ -174,28 +170,35 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
     {more(data.next.length,allNext,()=>setAllNext(!allNext))}
    </Panel>
   </div>
-  <div className="quality-period-bar">
-   <div className="quality-period-options" role="group" aria-label={L(en,'Περίοδος','Period')}>
-    {PERIODS.map(value=><button key={value} type="button" aria-pressed={period===value} className={period===value?'is-active':undefined} onClick={()=>changePeriod(value)}>{L(en,`${value} μήνες`,`${value} months`)}</button>)}
+  <section className="risk-panel quality-panel quality-dash-analysis">
+   <header className="quality-dash-head">
+    <h3>{L(en,'Αναφορές','Reports')}</h3>
+    <span className="quality-period-summary">{L(en,'Στην επιλογή','In the selection')}: <b>{stats.total}</b>{stats.totalBefore!=null&&<> {L(en,'έναντι','against')} <b>{stats.totalBefore}</b>{stats.totalBefore>0&&<> ({stats.total>=stats.totalBefore?'+':'−'}{Math.abs(Math.round((stats.total-stats.totalBefore)*100/stats.totalBefore))}%)</>}</>}</span>
+    <div className="quality-period-bar">
+     {hasFilter&&<span className="quality-active-filters">
+      {stats.pickedLabels.length>0&&<button type="button" onClick={()=>setPickedMonths([])}>{stats.pickedLabels.join(', ')} ✕</button>}
+      {catLabel&&<button type="button" onClick={()=>setCategory(null)}>{catLabel} ✕</button>}
+      {department&&<button type="button" onClick={()=>setDepartment(null)}>{department} ✕</button>}
+      <button type="button" className="is-clear" onClick={clearFilters}>{L(en,'Καθαρισμός','Clear')}</button>
+     </span>}
+     <CheckboxField className="quality-compare-toggle" checked={compare} onChange={setCompare} label={L(en,'Σύγκριση με την προηγούμενη περίοδο','Compare with the previous period')}/>
+     <div className="quality-period-options" role="group" aria-label={L(en,'Περίοδος','Period')}>
+      {PERIODS.map(value=><button key={value} type="button" aria-pressed={period===value} className={period===value?'is-active':undefined} onClick={()=>changePeriod(value)}>{L(en,`${value} μήνες`,`${value} months`)}</button>)}
+     </div>
+    </div>
+   </header>
+   <div className="quality-dash-grid">
+    <div className="quality-dash-cell quality-dash-months"><h4>{L(en,'Ανά μήνα','By month')}<small>{compare?L(en,'αχνές στήλες: προηγούμενη περίοδος','faint columns: previous period'):L(en,'Πάτησε για φίλτρο','Click to filter')}</small></h4><MonthColumns months={stats.byMonth} en={en} picked={pickedMonths} onPick={pickMonth}/></div>
+    <div className="quality-dash-cell"><h4>{L(en,'Ανά κατηγορία','By category')}</h4><BarList rows={stats.byCategory} en={en} picked={category} onPick={setCategory} empty={L(en,'Καμία αναφορά.','No reports.')}/></div>
+    <div className="quality-dash-cell"><h4>{L(en,'Ανά τμήμα','By department')}<small>{L(en,'Τα 6 με τις περισσότερες','Top 6')}</small></h4><BarList rows={stats.byDepartment} en={en} picked={department} onPick={setDepartment} empty={L(en,'Καμία αναφορά.','No reports.')}/></div>
+    <div className="quality-dash-cell"><h4>{L(en,'Είδος αναφοράς','Kind of report')}</h4><BarList rows={stats.byKind} en={en} empty={L(en,'Καμία αναφορά.','No reports.')}/></div>
+    <div className="quality-dash-cell"><h4>{L(en,'Έκβαση για τον ασθενή','Outcome for the patient')}<small>{L(en,`WHO · ${stats.patient} συμβάντα`,`WHO · ${stats.patient} incidents`)}</small></h4><BarList rows={stats.byOutcome} en={en} empty={L(en,'Κανένα κλινικό ή μη κλινικό συμβάν.','No clinical or non-clinical incident.')}/></div>
+    <div className="quality-dash-cell quality-dash-links">
+     <h4>{L(en,'Ετοιμότητα επιθεωρήσεων','Audit readiness')}</h4>
+     {data.readiness.length>0?<ul className="quality-readiness-bars">{data.readiness.map(row=><li key={row.standard}><button type="button" onClick={()=>onGo('readiness')}><span>{standardShort(row.standard)}</span><span className="quality-bar"><i className={row.rate<80?'is-low':undefined} style={{width:`${row.rate}%`}}/></span><strong>{row.rate}%</strong></button></li>)}</ul>:<p className="risk-empty-note">{L(en,'Καμία επιθεώρηση ακόμη.','No audit yet.')}</p>}
+     {onMeetings&&<button type="button" className="quality-panel-all" onClick={onMeetings}>{L(en,'Συνεδριάσεις & αποφάσεις','Meetings & decisions')} →</button>}
+    </div>
    </div>
-   <CheckboxField className="quality-compare-toggle" checked={compare} onChange={setCompare} label={L(en,'Σύγκριση με την προηγούμενη περίοδο','Compare with the previous period')}/>
-   {hasFilter&&<span className="quality-active-filters">
-    {stats.pickedLabels.length>0&&<button type="button" onClick={()=>setPickedMonths([])}>{stats.pickedLabels.join(', ')} ✕</button>}
-    {catLabel&&<button type="button" onClick={()=>setCategory(null)}>{catLabel} ✕</button>}
-    {department&&<button type="button" onClick={()=>setDepartment(null)}>{department} ✕</button>}
-    <button type="button" className="is-clear" onClick={clearFilters}>{L(en,'Καθαρισμός','Clear')}</button>
-   </span>}
-  </div>
-  <section className="risk-panel quality-panel">
-   <header><h3>{L(en,'Αναφορές ανά μήνα','Reports by month')}</h3><small>{L(en,`${stats.byMonth.reduce((sum,month)=>sum+month.value,0)} τους τελευταίους ${period} μήνες`,`${stats.byMonth.reduce((sum,month)=>sum+month.value,0)} in the last ${period} months`)}{compare&&` · ${L(en,'αχνές στήλες: προηγούμενη περίοδος','faint columns: previous period')}`}</small></header>
-   <MonthColumns months={stats.byMonth} en={en} picked={pickedMonths} onPick={pickMonth}/>
   </section>
-  <p className="quality-period-summary">{L(en,'Στην επιλογή','In the selection')}: <b>{stats.total}</b> {L(en,'αναφορές','reports')}{stats.totalBefore!=null&&<> {L(en,'έναντι','against')} <b>{stats.totalBefore}</b>{stats.totalBefore>0&&<> ({stats.total>=stats.totalBefore?'+':'−'}{Math.abs(Math.round((stats.total-stats.totalBefore)*100/stats.totalBefore))}%)</>}</>}</p>
-  <div className="quality-breakdowns">
-   <section className="risk-panel quality-panel"><header><h3>{L(en,'Ανά κατηγορία','By category')}</h3><small>{L(en,'Πάτησε για φίλτρο','Click to filter')}</small></header><BarList rows={stats.byCategory} en={en} picked={category} onPick={setCategory} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
-   <section className="risk-panel quality-panel"><header><h3>{L(en,'Ανά τμήμα','By department')}</h3><small>{L(en,'Τα 6 με τις περισσότερες','Top 6')}</small></header><BarList rows={stats.byDepartment} en={en} picked={department} onPick={setDepartment} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
-   <section className="risk-panel quality-panel"><header><h3>{L(en,'Είδος αναφοράς','Kind of report')}</h3></header><BarList rows={stats.byKind} en={en} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
-   <section className="risk-panel quality-panel"><header><h3>{L(en,'Έκβαση για τον ασθενή','Outcome for the patient')}</h3><small>{L(en,`WHO · ${stats.patient} συμβάντα`,`WHO · ${stats.patient} incidents`)}</small></header><BarList rows={stats.byOutcome} en={en} empty={L(en,'Κανένα κλινικό ή μη κλινικό συμβάν.','No clinical or non-clinical incident.')}/></section>
-  </div>
  </div>
 }

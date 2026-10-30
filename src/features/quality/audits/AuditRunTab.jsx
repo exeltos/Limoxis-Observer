@@ -247,7 +247,10 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       })}
     </ol>
     {nextChapter && <div className="audit-next-chapter"><Button variant="secondary" onClick={() => { setChapter(nextChapter.key); document.querySelector('.audit-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>{L(en, 'Επόμενο κεφάλαιο', 'Next chapter')}: {nextChapter.ref}{nextChapter.title ? ` · ${nextChapter.title}` : ''} <ChevronRight size={15} /></Button></div>}
-    {editable && <FormGrid columns={3} className="audit-adhoc"><Field label={L(en, 'Επιπλέον ερώτηση (εκτός ερωτηματολογίου)', 'Additional question (not in the questionnaire)')}><input value={adHoc} onChange={event => setAdHoc(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addQuestion() } }} /></Field><Button variant="secondary" disabled={!adHoc.trim()} onClick={addQuestion}><Plus size={15} /> {L(en, 'Προσθήκη ερώτησης', 'Add question')}</Button></FormGrid>}
+    {editable && <div className="audit-adhoc">
+      <input aria-label={L(en, 'Επιπλέον ερώτηση (εκτός ερωτηματολογίου)', 'Additional question (not in the questionnaire)')} placeholder={L(en, 'Επιπλέον ερώτηση, εκτός ερωτηματολογίου…', 'Additional question, outside the questionnaire…')} value={adHoc} onChange={event => setAdHoc(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addQuestion() } }} />
+      <button type="button" className="audit-answer-link" disabled={!adHoc.trim()} onClick={addQuestion}><Plus size={15} /> {L(en, 'Προσθήκη', 'Add')}</button>
+    </div>}
 
     {(toClassify.length > 0 || toRaise.length > 0 || rows.some(row => row.findingId)) && <div className={`governance-banner ${toClassify.length || toRaise.length ? 'warning' : 'success'} quality-audit-findings`}><ClipboardCheck size={17} aria-hidden="true" /><span>{toClassify.length
       ? L(en, `${toClassify.length} απαντήσεις «Μερική» ή «Μη συμμόρφωση» χωρίς κατάταξη (Μείζον, Έλασσον, Παρατήρηση, Ευκαιρία βελτίωσης).`, `${toClassify.length} «Partial» or «Nonconformity» answers without a class.`)

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CalendarRange, ChevronDown, Plus } from 'lucide-react'
 
 const L = (en, el, english) => (en ? english : el)
@@ -25,6 +25,16 @@ export function roundOfHalf(audits, year, half) {
 export function AuditRounds({ audits = [], year, language, onRound = null }) {
   const en = language === 'en'
   const [open, setOpen] = useState(null)
+  const box = useRef(null)
+  // The days float over the table: they close on an outside click or Escape.
+  useEffect(() => {
+    if (open === null) return undefined
+    const away = event => { if (!box.current?.contains(event.target)) setOpen(null) }
+    const key = event => { if (event.key === 'Escape') setOpen(null) }
+    document.addEventListener('mousedown', away)
+    document.addEventListener('keydown', key)
+    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', key) }
+  }, [open])
   const rounds = useMemo(() => [0, 1].map(half => ({ half, list: roundOfHalf(audits, year, half) })), [audits, year])
   const locale = en ? 'en-GB' : 'el-GR'
   const dayLabel = iso => new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${iso}T12:00:00Z`))
@@ -35,7 +45,7 @@ export function AuditRounds({ audits = [], year, language, onRound = null }) {
   }
   const shown = rounds.find(item => item.half === open && item.list.length)
   const days = shown ? [...new Set(shown.list.map(audit => String(audit.plannedDate)))].sort() : []
-  return <div className="audit-rounds" role="group" aria-label={L(en, 'Κύκλοι επιθεώρησης', 'Audit rounds')}>
+  return <div className="audit-rounds" ref={box} role="group" aria-label={L(en, 'Κύκλοι επιθεώρησης', 'Audit rounds')}>
     <div className="audit-rounds-line">
       <span className="audit-rounds-label" title={L(en, 'Κάθε τμήμα επιθεωρείται δύο φορές τον χρόνο, σε κύκλο τριών ημερών.', 'Every department is audited twice a year, in a round of three days.')}><CalendarRange size={15} aria-hidden="true" />{L(en, 'Κύκλοι', 'Rounds')}</span>
       {rounds.map(({ half, list }) => {
@@ -52,7 +62,7 @@ export function AuditRounds({ audits = [], year, language, onRound = null }) {
         </button>
       })}
     </div>
-    {shown && <ul className="audit-round-days">{days.map(day => { const here = shown.list.filter(audit => String(audit.plannedDate) === day); return <li key={day}>
+    {shown && <ul className="audit-round-days" role="region" aria-label={L(en, 'Ημέρες του κύκλου', 'Days of the round')}>{days.map(day => { const here = shown.list.filter(audit => String(audit.plannedDate) === day); return <li key={day}>
       <span>{dayLabel(day)}</span><b>{here.length}</b><small>{here.slice(0, 8).map(audit => (en ? audit.departmentEn : audit.department) || audit.department).join(' · ')}{here.length > 8 ? ` · +${here.length - 8}` : ''}</small>
     </li> })}</ul>}
   </div>

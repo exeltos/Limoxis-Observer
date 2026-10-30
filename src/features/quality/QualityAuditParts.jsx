@@ -75,7 +75,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
     const list = (byDepartment.get(row.key) || []).filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
     const last = list.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))[0]
     const next = list.filter(audit => ['planned', 'in_progress', 'inProgress'].includes(audit.status)).sort((a, b) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
-    return { last, next, inYear: row.months.flat().filter(cell => cell.state !== 'cancelled').length }
+    return { last, next, inYear: row.months.flat().filter(cell => cell.state === 'done').length }
   }
   const when = audit => (audit.plannedMonthOnly ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(audit.plannedDate).slice(0, 7)}-15T12:00:00Z`)) : formatDay(audit.plannedDate, language))
   return <div className="quality-programme">

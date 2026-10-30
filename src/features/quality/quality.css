@@ -130,8 +130,6 @@ td.quality-register-actions{width:48px;text-align:right}
 .quality-chip>small{font-size:9.5px;font-weight:600;white-space:normal;line-height:1.15}
 .quality-chip.is-danger{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
 .quality-chip.is-warning{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
-.quality-breakdowns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media(max-width:1100px){.quality-breakdowns{grid-template-columns:minmax(0,1fr)}}
 .quality-bars{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 .quality-bars>li{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(80px,2fr) 32px 52px;align-items:center;gap:10px;font-size:12px;color:var(--lo-color-text)}
 .quality-bars>li>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -327,3 +325,28 @@ button.quality-column{border:0;background:none;padding:0;font:inherit;cursor:poi
 .quality-files-list>button{display:inline-flex;align-items:center;gap:5px;max-width:260px;padding:3px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);font:inherit;color:var(--lo-color-text);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quality-files-list>button:hover{border-color:var(--lo-color-primary)}
 .quality-files-list>em{font-style:normal}
+/* Overview: the two lists, then one «Reports» card with six small charts on a 3×2 grid, on one screen. */
+.quality-dash{display:grid;gap:12px}
+.quality-dash .quality-attention-list{gap:0}
+.quality-dash .quality-attention-list>li+li{border-top:1px solid #f0f3f6}
+.quality-dash .quality-attention-list button{padding:5px 6px}
+.quality-dash .quality-attention-list strong{font-size:12.5px;font-weight:600;color:#1d2939}
+.quality-dash-analysis{gap:0;padding:0;overflow:hidden}
+.quality-dash-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px;border-bottom:1px solid #edf1f4}
+.quality-dash-head>.quality-period-bar{margin-left:auto}
+.quality-dash-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.quality-dash-cell{display:grid;align-content:start;gap:10px;min-width:0;padding:12px 16px;border-right:1px solid #edf1f4;border-bottom:1px solid #edf1f4}
+.quality-dash-cell:nth-child(3n){border-right:0}
+.quality-dash-cell:nth-child(n+4){border-bottom:0}
+.quality-dash-cell>h4{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0;font-size:12.5px;font-weight:700;color:#344054}
+.quality-dash-cell>h4>small{font-size:11px;font-weight:500;color:var(--lo-color-muted)}
+.quality-dash-months .quality-columns{height:124px;gap:4px}
+.quality-dash .quality-bars{gap:4px}
+.quality-dash .quality-bars>li{grid-template-columns:minmax(90px,1.3fr) minmax(48px,1.3fr) 24px 34px;gap:8px}
+.quality-readiness-bars{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.quality-readiness-bars button{display:grid;grid-template-columns:64px minmax(0,1fr) 40px;align-items:center;gap:8px;width:100%;padding:2px 0;border:0;background:none;font:inherit;font-size:12px;color:var(--lo-color-text);text-align:left;cursor:pointer}
+.quality-readiness-bars strong{text-align:right}
+.quality-dash-links>.quality-panel-all{justify-self:start}
+.quality-readiness-bars .quality-bar>i{background:var(--lo-status-success-fg)}
+.quality-readiness-bars .quality-bar>i.is-low{background:var(--lo-status-warning-fg)}
+@media(max-width:1100px){.quality-dash-grid{grid-template-columns:minmax(0,1fr)}.quality-dash-cell{border-right:0;border-bottom:1px solid #edf1f4}}
