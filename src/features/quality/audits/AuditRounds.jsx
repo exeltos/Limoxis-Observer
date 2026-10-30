@@ -22,7 +22,7 @@ export function roundOfHalf(audits, year, half) {
 
 // The year's two audit rounds on one slim line: when each runs and how many departments. A click on a
 // round opens the departments by day under the line; an empty half offers to plan a round.
-export function AuditRounds({ audits = [], year, language, onRound = null }) {
+export function AuditRounds({ audits = [], year, language, onRound = null, onSelect = null }) {
   const en = language === 'en'
   const [open, setOpen] = useState(null)
   const box = useRef(null)
@@ -60,7 +60,7 @@ export function AuditRounds({ audits = [], year, language, onRound = null }) {
         </span>
         const done = list.every(audit => audit.status === 'completed')
         const dates = [...new Set(list.map(audit => String(audit.plannedDate)))].sort()
-        return <button key={half} type="button" className={`audit-round-chip${done ? ' is-done' : ''}${open === half ? ' is-open' : ''}`} aria-expanded={open === half} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setAnchor({ left: Math.max(8, rect.left), bottom: window.innerHeight - rect.top + 6, maxHeight: Math.max(120, rect.top - 16) }); setOpen(open === half ? null : half) }}>
+        return <button key={half} type="button" className={`audit-round-chip${done ? ' is-done' : ''}${open === half ? ' is-open' : ''}`} aria-expanded={open === half} onClick={event => { const rect = event.currentTarget.getBoundingClientRect(); setAnchor({ left: Math.max(8, rect.left), bottom: window.innerHeight - rect.top + 6, maxHeight: Math.max(120, rect.top - 16) }); setOpen(open === half ? null : half); onSelect?.(open === half ? null : half) }}>
           <b>{name} {year}</b><span>{range(dates)} · {list.length} {L(en, 'τμήματα', 'departments')}</span>
           <em>{done ? L(en, 'Ολοκληρώθηκε', 'Completed') : L(en, 'Προγραμματισμένος', 'Planned')}</em><ChevronDown size={14} aria-hidden="true" />
         </button>

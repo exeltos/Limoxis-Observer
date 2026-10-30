@@ -10,7 +10,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { auditChecklistFromControl, auditChecklistFromText, auditCompliance, auditMatrix, checklistTemplates } from './qualityAudit'
 import { standardShort } from './audits/auditStandards'
-import { AuditRounds } from './audits/AuditRounds'
+import { AuditRounds, roundOfHalf } from './audits/AuditRounds'
 
 // The controls that are checklists, offered as audit checklists.
 function useChecklistTemplates(organizationId) {
@@ -59,6 +59,9 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const todayIso = now.toISOString().slice(0, 10)
   const [year, setYear] = useState(() => String(now.getFullYear()))
   const [scope, setScope] = useState('audited')
+  // The round picked above the table (spring / autumn): its months are marked and a department opens on that round's audit.
+  const [cycle, setCycle] = useState(null)
+  const pickYear = next => { setCycle(null); setYear(next) }
   const matrix = useMemo(() => auditMatrix(audits, Number(year), departments, todayIso), [audits, year, departments, todayIso])
   const monthName = (month, style) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: style }).format(new Date(Date.UTC(2026, month, 15)))
   const currentMonth = String(now.getFullYear()) === year ? now.getMonth() : -1
@@ -66,6 +69,9 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
   const rows = scope === 'all' ? matrix.rows : matrix.rows.filter(row => row.covered)
   const done = matrix.totals.done, active = matrix.total - matrix.totals.cancelled
   const plan = (row, month) => onPlan?.({ department: row.name, departmentEn: row.nameEn, departmentId: row.id, plannedDate: `${year}-${String(month + 1).padStart(2, '0')}-15` })
+  const cycleAudits = useMemo(() => (cycle === null ? [] : roundOfHalf(audits, Number(year), cycle)), [audits, year, cycle])
+  const cycleIds = useMemo(() => new Set(cycleAudits.map(audit => audit.id)), [cycleAudits])
+  const cycleMonths = useMemo(() => new Set(cycleAudits.map(audit => Number(String(audit.plannedDate).slice(5, 7)) - 1)), [cycleAudits])
   const byDepartment = useMemo(() => {
     const map = new Map()
     audits.forEach(audit => { const key = String(audit.department || '').trim(); if (key) map.set(key, [...(map.get(key) || []), audit]) })
@@ -75,13 +81,13 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
     const list = (byDepartment.get(row.key) || []).filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
     const last = list.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))[0]
     const next = list.filter(audit => ['planned', 'in_progress', 'inProgress'].includes(audit.status)).sort((a, b) => String(a.plannedDate).localeCompare(String(b.plannedDate)))[0]
-    return { last, next, inYear: row.months.flat().filter(cell => cell.state === 'done').length }
+    return { last, next, inCycle: list.find(audit => cycleIds.has(audit.id)), inYear: row.months.flat().filter(cell => cell.state === 'done').length }
   }
   const when = audit => (audit.plannedMonthOnly ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(audit.plannedDate).slice(0, 7)}-15T12:00:00Z`)) : formatDay(audit.plannedDate, language))
   return <div className="quality-programme">
     <div className="quality-programme-summary">
      {/* Back to any earlier year; forward up to next year, to plan it. */}
-     <PeriodStepper label={year} onPrevious={() => setYear(String(Number(year) - 1))} onNext={() => setYear(String(Number(year) + 1))} nextDisabled={Number(year) >= now.getFullYear() + 1} />
+     <PeriodStepper label={year} onPrevious={() => pickYear(String(Number(year) - 1))} onNext={() => pickYear(String(Number(year) + 1))} nextDisabled={Number(year) >= now.getFullYear() + 1} />
      <span className="quality-programme-progress"><span><strong>{done}</strong> {en ? `of ${active} completed` : `από ${active} ολοκληρώθηκαν`}</span><span className="quality-programme-bar" aria-hidden="true"><i style={{ width: `${active ? Math.round(done * 100 / active) : 0}%` }} /></span></span>
      <ul className="quality-programme-legend">{STATE_ORDER.filter(state => matrix.totals[state] > 0).map(state => <li key={state}><span className={`quality-programme-dot is-${state}`} aria-hidden="true" />{STATE_LABELS[state][en ? 1 : 0]}<strong>{matrix.totals[state]}</strong></li>)}</ul>
      {departments.length > 0 && <button type="button" className={`quality-programme-coverage${uncovered.length ? ' is-gap' : ''}`} onClick={() => setScope(scope === 'all' ? 'audited' : 'all')} aria-pressed={scope === 'all'}>
@@ -89,7 +95,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
       <small>{scope === 'all' ? (en ? 'Show audited only' : 'Μόνο με επιθεώρηση') : (en ? 'Show all departments' : 'Όλα τα τμήματα')}</small>
      </button>}
     </div>
-    <AuditRounds audits={audits} year={Number(year)} language={language} onRound={onRound} />
+    <AuditRounds audits={audits} year={Number(year)} language={language} onRound={onRound} onSelect={setCycle} />
     <div className="quality-programme-scroll">
      <table className="quality-programme-table">
       <thead><tr>
@@ -98,13 +104,13 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
        <th scope="col">{en ? 'Last audit' : 'Τελευταία'}</th>
        <th scope="col">{en ? 'Next audit' : 'Επόμενη'}</th>
        <th scope="col">{year}</th>
-       <th scope="col"><span className="quality-programme-months is-head" aria-label={en ? 'Months' : 'Μήνες'}>{Array.from({ length: 12 }, (_, month) => <span key={month} className={month === currentMonth ? 'is-now' : undefined}>{monthName(month, 'narrow')}</span>)}</span></th>
+       <th scope="col"><span className="quality-programme-months is-head" aria-label={en ? 'Months' : 'Μήνες'}>{Array.from({ length: 12 }, (_, month) => <span key={month} className={`${month === currentMonth ? 'is-now ' : ''}${cycleMonths.has(month) ? 'is-cycle' : ''}`.trim() || undefined}>{monthName(month, 'narrow')}</span>)}</span></th>
        <th scope="col">{en ? 'Lead auditor' : 'Επικεφαλής'}</th>
       </tr></thead>
       <tbody>
        {rows.map(row => {
-        const { last, next, inYear } = detail(row)
-        const open = next || last
+        const { last, next, inCycle, inYear } = detail(row)
+        const open = inCycle || next || last
         const late = next && !next.plannedMonthOnly && next.plannedDate < todayIso
         const score = last ? auditCompliance(last) : null
         return <tr key={row.key || 'org'} className={`${row.key && !row.covered ? 'is-gap' : ''}${open ? ' is-clickable' : ''}`.trim()} onClick={open ? () => onOpen?.(open) : undefined}>
@@ -113,7 +119,7 @@ export function AuditProgramme({ audits = [], language, onOpen, onPlan = null, o
          <td className={`nowrap-cell${last ? ' is-link' : ''}`} onClick={last ? event => { event.stopPropagation(); onOpen?.(last) } : undefined}>{last ? <span className="quality-programme-last">{formatDay(last.completedDate || last.plannedDate, language)}{score?.rate != null && <small className={`quality-programme-rate is-${score.rate >= 90 ? 'success' : score.rate >= 75 ? 'warning' : 'danger'}`}>{score.rate}%</small>}</span> : '—'}</td>
          <td className={`nowrap-cell${late ? ' quality-overdue' : ''}`}>{next ? <>{when(next)}{late && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</> : (onPlan && row.key ? <button type="button" className="quality-programme-plan" onClick={event => { event.stopPropagation(); plan(row, Number(year) === now.getFullYear() ? Math.min(11, now.getMonth() + 1) : 0) }}><Plus size={13} aria-hidden="true" />{en ? 'Plan' : 'Προγραμματισμός'}</button> : <span className="quality-overdue-text">{en ? 'none planned' : 'δεν υπάρχει'}</span>)}</td>
          <td className={inYear >= 2 ? '' : 'quality-overdue-text'}><span className="quality-programme-count">{[0, 1].map(at => <i key={at} className={at < inYear ? 'is-on' : undefined} aria-hidden="true" />)}<strong>{inYear}/2</strong></span></td>
-         <td><span className="quality-programme-months">{row.months.map((cell, month) => <span key={month} role={cell.length ? 'button' : undefined} tabIndex={cell.length ? 0 : undefined} aria-label={cell.length ? `${monthName(month, 'long')} · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : undefined} onClick={cell.length ? event => { event.stopPropagation(); onOpen?.(cell[0].audit) } : undefined} onKeyDown={cell.length ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onOpen?.(cell[0].audit) } } : undefined} className={`quality-programme-dot${cell.length ? ` is-${cell[0].state}` : ' is-empty'}${month === currentMonth ? ' is-now' : ''}`} title={`${monthName(month, 'long')}${cell.length ? ` · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : ''}`} />)}</span></td>
+         <td><span className="quality-programme-months">{row.months.map((cell, month) => <span key={month} role={cell.length ? 'button' : undefined} tabIndex={cell.length ? 0 : undefined} aria-label={cell.length ? `${monthName(month, 'long')} · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : undefined} onClick={cell.length ? event => { event.stopPropagation(); onOpen?.(cell[0].audit) } : undefined} onKeyDown={cell.length ? event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); onOpen?.(cell[0].audit) } } : undefined} className={`quality-programme-dot${cell.length ? ` is-${cell[0].state}` : ' is-empty'}${month === currentMonth ? ' is-now' : ''}${cycleMonths.has(month) && cell.some(item => cycleIds.has(item.audit.id)) ? ' is-cycle' : ''}`} title={`${monthName(month, 'long')}${cell.length ? ` · ${STATE_LABELS[cell[0].state][en ? 1 : 0]}` : ''}`} />)}</span></td>
          <td>{open?.leadAuditor || '—'}</td>
         </tr>
        })}
