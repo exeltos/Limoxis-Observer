@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, ClipboardCheck, Clock3, FileWarning, Plus, Send, Trash2, Undo2, Lock } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
@@ -7,21 +7,14 @@ import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { KpiFigures } from '../../../design-system/KpiCard'
 import { ExportMenu } from '../../../design-system/ExportMenu'
-import { Field } from '../../../design-system/Field'
-import { ChoiceField } from '../../../design-system/ChoiceField'
-import { MultiSelect } from '../../../design-system/MultiSelect'
-import { ManualDateField } from '../../../design-system/ManualDateField'
-import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { exportRegistry } from '../../../core/export/registryExports'
-import { useDepartments } from '../../management/useLibraries'
-import { useAuditTemplates } from '../audits/useAuditTemplates'
 import { standardShort } from '../audits/auditStandards'
 import { filterSelf, isOverdue, selfCounts, selfExport, selfGaps, selfStatusLabel, selfStatusTone } from './selfAssessmentModel'
-import { createSelfAssessments, removeSelfAssessment, setSelfStatus } from './selfAssessmentService'
+import { removeSelfAssessment, setSelfStatus } from './selfAssessmentService'
 import { useSelfAssessments } from './useSelfAssessments'
 import './selfAssessment.css'
 
@@ -45,7 +38,6 @@ export function SelfAssessmentPanel({ query = '', canManage = false }) {
   const { notify, confirm } = useFeedback()
   const navigate = useNavigate()
   const list = useSelfAssessments(tenant?.id)
-  const [creating, setCreating] = useState(false)
   const rows = useMemo(() => filterSelf(list.items, query), [list.items, query])
   const counts = selfCounts(list.items)
   const gaps = list.items.filter(item => item.status === 'submitted').reduce((sum, item) => sum + selfGaps(item.checklist).length, 0)
@@ -67,7 +59,7 @@ export function SelfAssessmentPanel({ query = '', canManage = false }) {
     <KpiFigures label={L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} figures={figures} loading={list.loading} error={list.error} />
     <div className="self-toolbar row-actions">
       <ExportMenu disabled={!rows.length} onExcel={() => exportRegistry(selfExport(rows, language))} />
-      {canManage && <Button onClick={() => setCreating(true)}><Plus size={15} />{L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')}</Button>}
+      {canManage && <Button onClick={() => navigate('/quality/self-assessments/new')}><Plus size={15} />{L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')}</Button>}
     </div>
     <div className="scroll-table">
       <RegistryTable bare className="quality-table self-table" rows={rows} rowKey={item => item.id} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.items.length > 0} loading={list.loading} error={list.error} onRetry={list.reload}
@@ -89,51 +81,5 @@ export function SelfAssessmentPanel({ query = '', canManage = false }) {
           </div>}</td>
         </>} />
     </div>
-    {creating && <NewSelfAssessmentDialog organizationId={tenant?.id} onClose={() => setCreating(false)} onDone={async count => { setCreating(false); notify(L(en, `Δημιουργήθηκαν ${count} αυτοαξιολογήσεις (πρόχειρες). Ενεργοποιήστε τες για να τις δουν τα τμήματα.`, `${count} self-assessments created as drafts. Release them for the departments to see.`), 'success'); await list.reload() }} />}
   </>
-}
-
-function NewSelfAssessmentDialog({ organizationId, onClose, onDone }) {
-  const { language } = useLanguage()
-  const en = language === 'en'
-  const { notify } = useFeedback()
-  const { templates, loading } = useAuditTemplates(organizationId)
-  const { departments } = useDepartments()
-  const navigate = useNavigate()
-  // The ward checklist (a department's own checklist) first, then the standards' questionnaires.
-  const active = useMemo(() => templates.filter(item => item.active !== false && item.questions.length).sort((a, b) => Number(b.key === 'ward' || b.basedOn != null) - Number(a.key === 'ward' || a.basedOn != null)), [templates])
-  const [templateId, setTemplateId] = useState('')
-  const [title, setTitle] = useState('')
-  const [picked, setPicked] = useState([])
-  const [dueOn, setDueOn] = useState('')
-  const [busy, setBusy] = useState(false)
-  useEffect(() => {
-    if (templateId || !active.length) return
-    const first = active.find(item => item.key === 'ward') || active[0]
-    setTemplateId(first.id)
-    setTitle(`${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${first.title}`)
-  }, [active, templateId, en])
-  const template = active.find(item => item.id === templateId)
-  const options = departments.map(item => ({ value: item.id || item.name, label: item.name || item.el || '' }))
-  async function save() {
-    if (!template || !picked.length || busy) return
-    setBusy(true)
-    try {
-      const chosen = departments.filter(item => picked.includes(item.id || item.name)).map(item => ({ id: item.id || item.name, name: item.name || item.el || '' }))
-      const made = await createSelfAssessments(organizationId, { template, departments: chosen, title: title.trim() || `${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${template.title}`, dueOn })
-      if (!made.length) { notify(L(en, 'Το ερωτηματολόγιο δεν έχει ερωτήσεις για τα τμήματα που επιλέξατε.', 'The questionnaire has no questions for the chosen departments.'), 'error'); return }
-      await onDone(made.length)
-    } catch (error) { console.error(error); notify(L(en, 'Δεν ήταν δυνατή η δημιουργία.', 'It could not be created.'), 'error') } finally { setBusy(false) }
-  }
-  return <ObserverDialog width="standard" title={L(en, 'Νέα αυτοαξιολόγηση', 'New self-assessment')} subtitle={L(en, 'Μία αυτοαξιολόγηση ανά τμήμα, με τις ερωτήσεις του ερωτηματολογίου που ταιριάζουν στο τμήμα. Μένει πρόχειρη μέχρι να την ενεργοποιήσετε.', 'One self-assessment per department, with the questions of the questionnaire that fit the department. It stays a draft until you release it.')} onClose={onClose}
-    footer={<DialogActions onSave={save} disabled={busy || !template || !picked.length} saveLabel={busy ? L(en, 'Δημιουργία…', 'Creating…') : L(en, 'Δημιουργία', 'Create')} />}>
-    <div className="self-new">
-      <ChoiceField label={L(en, 'Ερωτηματολόγιο *', 'Questionnaire *')} value={templateId} disabled={loading} onChange={value => { setTemplateId(value); const next = active.find(item => item.id === value); if (next && !title) setTitle(`${L(en, 'Αυτοαξιολόγηση', 'Self-assessment')} · ${next.title}`) }}
-        options={active.map(item => ({ value: item.id, label: `${item.title} (${item.questions.length})`, description: standardShort(item.standard) }))} placeholder={L(en, 'Επιλέξτε ερωτηματολόγιο…', 'Choose a questionnaire…')} />
-      <p className="self-new-hint">{L(en, 'Θέλετε άλλες ερωτήσεις; Δημιουργήστε αντίγραφο του ερωτηματολογίου για το νοσοκομείο σας και προσθέστε ή αλλάξτε ερωτήσεις.', 'Want other questions? Make a hospital copy of the questionnaire and add or change questions.')} <button type="button" className="text-button" onClick={() => navigate('/quality/audit-questionnaires')}>{L(en, 'Άνοιγμα ερωτηματολογίων', 'Open the questionnaires')}</button></p>
-      <Field label={L(en, 'Τίτλος', 'Title')}><input value={title} onChange={event => setTitle(event.target.value)} maxLength={160} /></Field>
-      <MultiSelect label={L(en, 'Τμήματα *', 'Departments *')} options={options} selected={picked} onChange={setPicked} tags placeholder={L(en, 'Επιλέξτε τμήματα…', 'Choose departments…')} />
-      <ManualDateField label={L(en, 'Προθεσμία', 'Due date')} value={dueOn} onChange={setDueOn} />
-    </div>
-  </ObserverDialog>
 }

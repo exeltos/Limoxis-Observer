@@ -3,7 +3,6 @@
 .self-progress-track { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-muted, #e8edf2); overflow: hidden; }
 .self-progress-fill { display: block; height: 100%; border-radius: 999px; background: var(--primary, #256b9b); }
 .self-progress-text { font-size: 12px; color: var(--text-muted, #606e80); white-space: nowrap; }
-.self-new { display: grid; gap: 14px; }
 .self-run { gap: 14px; overflow: auto; }
 .self-gaps ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .self-gaps li { display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
@@ -23,3 +22,26 @@
 .self-answer-na.selected { background: #5b6b7f; }
 .self-note { width: 100%; }
 .self-new-hint { margin: 0; font-size: 13px; color: var(--text-muted, #606e80); }
+
+/* New self-assessment: fields on one line, then the departments as a list to tick. */
+.self-create-page { display: grid; gap: 14px; align-content: start; overflow: auto; }
+.self-create-fields { align-items: end; }
+.self-departments { display: grid; gap: 10px; border-top: 1px solid #edf1f4; padding-top: 14px; }
+.self-departments > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.self-departments > header strong { font-size: 14px; }
+.self-departments > header strong span { margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--text-muted, #606e80); }
+.self-departments-search { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border: 1px solid var(--border, #d5dde6); border-radius: 9px; background: var(--surface, #fff); color: var(--text-muted, #606e80); }
+.self-departments-search input { border: 0; outline: 0; background: none; font: inherit; font-size: 13px; width: 220px; height: 100%; padding: 0; line-height: 1; color: inherit; box-shadow: none; }
+.self-departments-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.self-departments-quick button { height: 30px; padding: 0 12px; border: 1px solid var(--border, #d5dde6); border-radius: 999px; background: var(--surface, #fff); font: inherit; font-size: 12.5px; font-weight: 600; color: var(--primary, #256b9b); cursor: pointer; }
+.self-departments-quick button:hover { background: #eef4fa; }
+.self-departments-quick button.is-clear { color: var(--text-muted, #606e80); border-style: dashed; }
+.self-departments-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; max-height: 340px; overflow: auto; border: 1px solid var(--border, #e3e9f0); border-radius: 12px; }
+.self-departments-list > li { padding: 4px 12px; border-bottom: 1px solid #f0f3f6; }
+.self-departments-list > li.is-on { background: #eef6f1; }
+.self-departments-list .lo-checkbox-field { min-height: 32px; }
+.self-departments-empty { grid-column: 1 / -1; color: var(--text-muted, #606e80); font-size: 13px; }
+.self-departments-count { margin-right: auto; font-size: 12.5px; color: var(--text-muted, #606e80); }
+@media (max-width: 900px) { .self-departments-list { grid-template-columns: minmax(0, 1fr); } }
+.self-create-page input:not([type=checkbox]):not([type=file]):not(.self-departments-search input) { height: 40px; box-sizing: border-box; }
+.self-create-page .self-departments-search { padding: 0 10px; }
