@@ -1,5 +1,4 @@
 import { useMemo,useState } from 'react'
-import { MoreSection } from '../../design-system/MoreSection'
 import { auditReadiness } from './audits/auditModel'
 import { standardShort } from './audits/auditStandards'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -15,7 +14,7 @@ import { roleTitleText } from '../../core/i18n/roleTitles'
 // reports of the last twelve months by month, category, department and harm.
 
 const SOON_DAYS=30
-const FIRST=5
+const FIRST=8
 const L=(en,el,enText)=>en?enText:el
 const titleOf=(row,en)=>(en?row.titleEn:row.title)||row.title||''
 const departmentOf=(row,en)=>(en?row.departmentEn:row.department)||row.department||''
@@ -132,7 +131,6 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
     {more(data.next.length,allNext,()=>setAllNext(!allNext))}
    </Panel>
   </div>
-  <MoreSection moreLabel={L(en,'Περισσότερα: αναφορές ανά μήνα, κατηγορία, τμήμα, είδος, έκβαση','More: reports by month, category, department, kind, outcome')} lessLabel={L(en,'Λιγότερα','Less')}>
   <section className="risk-panel quality-panel">
    <header><h3>{L(en,'Αναφορές ανά μήνα','Reports by month')}</h3><small>{L(en,`${data.recent} τους τελευταίους 12 μήνες`,`${data.recent} in the last 12 months`)}</small></header>
    <MonthColumns months={data.byMonth} en={en}/>
@@ -143,6 +141,5 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Είδος αναφοράς','Kind of report')}</h3><small>{L(en,'12 μήνες','12 months')}</small></header><BarList rows={data.byKind} empty={L(en,'Καμία αναφορά.','No reports.')}/></section>
    <section className="risk-panel quality-panel"><header><h3>{L(en,'Έκβαση για τον ασθενή','Outcome for the patient')}</h3><small>{L(en,`WHO · ${data.patient} συμβάντα`,`WHO · ${data.patient} incidents`)}</small></header><BarList rows={data.byOutcome} empty={L(en,'Κανένα κλινικό ή μη κλινικό συμβάν.','No clinical or non-clinical incident.')}/></section>
   </div>
-  </MoreSection>
  </div>
 }
