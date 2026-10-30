@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
+import { Navigate } from 'react-router-dom'
+import { CalendarRange } from 'lucide-react'
+import { Page } from '../../../design-system/Page'
+import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
+import { SaveButton } from '../../../design-system/SaveButton'
+import { useLanguage } from '../../../core/i18n/LanguageContext'
+import { useFeedback } from '../../../core/feedback/FeedbackContext'
+import { useAuth } from '../../../core/auth/AuthContext'
+import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
+import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
+import { applyAuditRound, loadQualityRecords } from '../qualityService'
 import { FormGrid } from '../../../design-system/FormCard'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { ManualDateField } from '../../../design-system/ManualDateField'
@@ -12,11 +22,44 @@ import { roundPlan, workingDays } from './auditModel'
 const L = (en, el, english) => (en ? english : el)
 const evenly = (keys, days) => Object.fromEntries(keys.map((key, index) => [key, Math.min(days - 1, Math.floor(index * days / keys.length))]))
 
-// An audit round: a few working days (three by default) and the departments that go on each, as chips
+// The audit round, on a page of its own: a few working days (three by default) and the departments that go on each, as chips
 // to drag into the day boxes (or to pick and then click a box). Every department starts in the round,
 // spread evenly; drag one out to «Outside the round», or into another day. Nothing is saved until
 // «Save the round»: a department with no audit that month gets one, from the basic questionnaire.
-export function AuditRoundDialog({ audits, language, saving = false, onClose, onApply }) {
+export function AuditRoundPage() {
+  const { language, t } = useLanguage()
+  const en = language === 'en'
+  const { notify } = useFeedback()
+  const { user } = useAuth()
+  const { goBack } = useContextualNavigation('/quality')
+  const { tenant, role, membership, actualRole, isRolePreview } = useTenant()
+  const addOns = membership?.capabilities ?? [], custom = membership?.customCapabilities ?? []
+  const canManage = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, addOns, custom)
+  const [audits, setAudits] = useState(null)
+  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    let active = true
+    loadQualityRecords('audits', tenant?.id).then(rows => { if (active) setAudits(rows) }).catch(() => { if (active) setAudits([]) })
+    return () => { active = false }
+  }, [tenant?.id])
+  const onApply = async (items, template, days) => {
+    setSaving(true)
+    try {
+      const count = await applyAuditRound(tenant?.id, items, { template, userId: user?.id || null, days })
+      notify(en ? `Round saved: ${count} departments over ${days} days.` : `Ο κύκλος αποθηκεύτηκε: ${count} τμήματα σε ${days} ημέρες.`, 'success')
+      goBack()
+    } catch (error) {
+      console.error(error)
+      notify(en ? 'The round could not be planned.' : 'Δεν ήταν δυνατός ο προγραμματισμός του κύκλου.', 'error')
+    } finally { setSaving(false) }
+  }
+  if (!canManage) return <Navigate to="/quality" replace />
+  return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<CalendarRange size={19} />} eyebrow={t('quality')} title={L(en, 'Κύκλος επιθεώρησης', 'Audit round')} subtitle={L(en, 'Σύρετε τα τμήματα στις ημέρες του κύκλου (ή πατήστε ένα τμήμα και μετά την ημέρα).', 'Drag the departments into the days of the round (or pick one, then click the day).')} tabs={[]} activeTab="" onTabChange={() => {}} onBack={goBack}>
+    {audits && <AuditRoundForm audits={audits} language={language} saving={saving} onCancel={goBack} onApply={onApply} />}
+  </EntityRecordShell></Page>
+}
+
+function AuditRoundForm({ audits, language, saving, onCancel, onApply }) {
   const en = language === 'en'
   const { tenant } = useTenant()
   const { departments } = useDepartments()
@@ -56,10 +99,7 @@ export function AuditRoundDialog({ audits, language, saving = false, onClose, on
     onDragStart={event => { setDragging(item.key); event.dataTransfer.setData('text/plain', item.key); event.dataTransfer.effectAllowed = 'move' }}
     onDragEnd={() => { setDragging(null); setOver(null) }}
     onClick={event => { event.stopPropagation(); setPicked(picked === item.key ? null : item.key) }}>{en ? item.departmentEn : item.department}</button>
-  return <ObserverDialog width="wide" title={L(en, 'Κύκλος επιθεώρησης', 'Audit round')} subtitle={L(en, 'Σύρετε τα τμήματα στις ημέρες του κύκλου (ή πατήστε ένα τμήμα και μετά την ημέρα).', 'Drag the departments into the days of the round (or pick one, then click the day).')} onClose={onClose}
-    footer={<DialogActions onSave={() => onApply(inRound.map(item => ({ auditId: item.auditId, department: item.department, departmentEn: item.departmentEn, departmentId: item.departmentId, plannedDate: base.days[item.day] })), template, base.days.length)} saveLabel={L(en, 'Αποθήκευση κύκλου', 'Save the round')} disabled={saving || !inRound.length}>
-      <span className="audit-round-summary">{inRound.length} {L(en, 'τμήματα', 'departments')}{fresh > 0 ? ` · ${fresh} ${L(en, 'νέες επιθεωρήσεις', 'new audits')}` : ''}</span>
-    </DialogActions>}>
+  return <div className="record-section audit-round-page">
     <FormGrid columns={3} className="audit-round-fields">
       <ManualDateField label={L(en, 'Πρώτη ημέρα του κύκλου', 'First day of the round')} value={start} onChange={setStart} />
       <ChoiceField label={L(en, 'Εργάσιμες ημέρες', 'Working days')} value={count} options={['1', '2', '3', '4', '5'].map(value => ({ value, label: value }))} onChange={setCount} />
@@ -77,5 +117,10 @@ export function AuditRoundDialog({ audits, language, saving = false, onClose, on
         <div className="audit-round-chips">{outside.map(chip)}{!outside.length && <small>{L(en, 'Όλα τα τμήματα συμμετέχουν. Σύρτε εδώ όσα δεν θα επιθεωρηθούν.', 'Every department takes part. Drag here those that will not be audited.')}</small>}</div>
       </section>
     </>}
-  </ObserverDialog>
+    <div className="inline-edit-footer">
+      <span className="audit-round-summary">{inRound.length} {L(en, 'τμήματα', 'departments')}{fresh > 0 ? ` · ${fresh} ${L(en, 'νέες επιθεωρήσεις', 'new audits')}` : ''}</span>
+      <Button variant="secondary" onClick={onCancel}>{L(en, 'Ακύρωση', 'Cancel')}</Button>
+      <SaveButton loading={saving} disabled={saving || !inRound.length} onClick={() => onApply(inRound.map(item => ({ auditId: item.auditId, department: item.department, departmentEn: item.departmentEn, departmentId: item.departmentId, plannedDate: base.days[item.day] })), template, base.days.length)}>{L(en, 'Αποθήκευση κύκλου', 'Save the round')}</SaveButton>
+    </div>
+  </div>
 }

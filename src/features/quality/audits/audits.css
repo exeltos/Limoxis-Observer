@@ -166,3 +166,13 @@
 .audit-flat-section>header>strong{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--lo-color-text)}
 .audit-flat-section>header>span{font-size:12px;color:var(--lo-color-muted)}
 .audit-plan-flat .audit-plan-more{padding-top:6px;border-top:1px solid #e9eef2}
+/* Planning page: every row on the same three columns, controls on one line, the questionnaire two columns wide. */
+.audit-plan-flat .lo-form-grid{align-items:end}
+.audit-plan-flat .lo-form-grid>.lo-checkbox-field{align-self:end;min-height:40px}
+.audit-plan-flat .lo-form-grid.cols-2{grid-template-columns:repeat(3,minmax(0,1fr))}
+.audit-plan-flat .lo-form-grid.cols-2>.searchable-select:first-child{grid-column:span 2}
+.audit-plan-page .inline-edit-footer,.audit-round-page .inline-edit-footer{align-items:center}
+/* One control height on the planning and round pages, so labels and controls line up across a row. */
+.audit-plan-page input:not([type=checkbox]):not([type=file]),.audit-round-page input:not([type=checkbox]):not([type=file]),.audit-plan-page select,.audit-round-page select{height:40px;box-sizing:border-box}
+.audit-round-page .lo-form-grid{align-items:end}
+.audit-round-tools>button{height:40px}

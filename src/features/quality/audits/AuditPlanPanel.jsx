@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react'
 import { CalendarDays, ChevronRight } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
-import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
 import { DetailList } from '../../../design-system/DetailList'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { loadQualityRecords, saveQualityRecord } from '../qualityService'
+import { loadQualityRecords } from '../qualityService'
 import { AUDIT_BODIES, AUDIT_KINDS, RISK_LEVELS, TEAM_ROLES, standardLabel } from './auditStandards'
-import { competenceWarnings, independenceBlocks, independenceIssues, followingAuditDate } from './auditModel'
+import { competenceWarnings, independenceIssues, followingAuditDate } from './auditModel'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
-import { AuditPlanFields } from './AuditPlanFields'
-import { useAuditTemplates, useAuditorCompetence } from './useAuditTemplates'
+import { useAuditorCompetence } from './useAuditTemplates'
 import './audits.css'
 
 const L = (en, el, english) => (en ? english : el)
@@ -39,32 +37,16 @@ function useNextAudit(record, organizationId) {
 // The audit's planning on its record: standard and questionnaire, the chapters
 // in scope, kind, date (or month), risk and frequency, the team with its
 // independence and competence checks, and the audit it follows up. «Planning»
-// edits it in a dialog; an audit whose lead auditor audits their own department
+// opens it on a page of its own; an audit whose lead auditor audits their own department
 // is not saved.
-export function AuditPlanPanel({ record, setRecord, organizationId, canManage, finalized, language, notify, actor }) {
+export function AuditPlanPanel({ record, organizationId, canManage, finalized, language }) {
   const en = language === 'en'
   const { goTo } = useContextualNavigation('/quality')
-  const { templates } = useAuditTemplates(organizationId)
   const competence = useAuditorCompetence(organizationId)
-  const [draft, setDraft] = useState(null)
-  const [saving, setSaving] = useState(false)
   const department = { id: record.departmentId, name: record.department }
   const nextAudit = useNextAudit(record, organizationId)
   const issues = independenceIssues(record.team || [], department)
   const untrained = competenceWarnings(record.team || [], competence)
-  async function save() {
-    if (independenceBlocks(draft.team || [], { id: draft.departmentId, name: draft.department })) { notify?.(L(en, 'Ο επικεφαλής επιθεωρητής δεν μπορεί να επιθεωρήσει το δικό του τμήμα.', 'The lead auditor cannot audit their own department.'), 'error'); return }
-    setSaving(true)
-    try {
-      const saved = await saveQualityRecord('audits', organizationId, { ...draft, history: [{ at: new Date().toISOString(), action: 'recordUpdated', actor: actor?.name || '' }, ...(record.history || [])] })
-      setRecord(saved)
-      setDraft(null)
-      notify?.(L(en, 'Ο σχεδιασμός αποθηκεύτηκε.', 'Planning saved.'), 'success')
-    } catch (error) {
-      console.error(error)
-      notify?.(L(en, 'Δεν ήταν δυνατή η αποθήκευση.', 'The planning could not be saved.'), 'error')
-    } finally { setSaving(false) }
-  }
   const team = record.team || []
   const next = followingAuditDate(record)
   const nextLink = nextAudit
@@ -98,11 +80,7 @@ export function AuditPlanPanel({ record, setRecord, organizationId, canManage, f
         </span>
       </li>)}</ul> : <strong>{roleTitleText(record.leadAuditor, language) || '—'}</strong>}
     </div>
-    {canManage && !finalized && <div className="audit-plan-actions"><Button variant="secondary" onClick={() => setDraft(structuredClone(record))}><CalendarDays size={15} /> {L(en, 'Σχεδιασμός', 'Planning')}</Button></div>}
+    {canManage && !finalized && <div className="audit-plan-actions"><Button variant="secondary" onClick={() => goTo(`/quality/audits/${record.id}/plan`)}><CalendarDays size={15} /> {L(en, 'Σχεδιασμός', 'Planning')}</Button></div>}
     {record.followUpOf && <button type="button" className="quality-audit-finding-link" onClick={() => goTo(`/quality/audits/${record.followUpOf}`, { tab: 'details' })}>{L(en, 'Επαναληπτική της', 'Follow-up of')} {record.followUpOf}<ChevronRight size={13} /></button>}
-    {draft && <ObserverDialog width="wide" fixedHeight title={L(en, 'Σχεδιασμός επιθεώρησης', 'Audit planning')} subtitle={record.displayId || record.id} onClose={() => setDraft(null)}
-      footer={<DialogActions onSave={save} disabled={saving || independenceBlocks(draft.team || [], { id: draft.departmentId, name: draft.department })} />}>
-      <div className="audit-plan-flat"><AuditPlanFields flat draft={draft} setDraft={setDraft} templates={templates} competence={competence} language={language} /></div>
-    </ObserverDialog>}
   </section>
 }
