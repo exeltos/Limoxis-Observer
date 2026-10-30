@@ -24,8 +24,10 @@ function mapOperationalDefinition(r){
 
 export async function loadOperationalIndicatorDefinitions(organizationId,{from,to}={}){
  if(isDemoDataEnvironment()){
+  const off=await loadDisabledIndicatorKeys(organizationId)
   return loadIndicatorDefinitionsLocal()
    .filter(r=>r.status==='active')
+   .filter(r=>!off.has(r.indicator_key))
    .filter(r=>!from||!r.effective_to||r.effective_to>=from)
    .filter(r=>!to||!r.effective_from||r.effective_from<=to)
    .map(mapOperationalDefinition)
@@ -36,7 +38,26 @@ export async function loadOperationalIndicatorDefinitions(organizationId,{from,t
  if(to)query=query.or(`effective_from.is.null,effective_from.lte.${to}`)
  const {data,error}=await query;if(error)throw error
  const rows=data||[],localKeys=new Set(rows.filter(r=>r.organization_id).map(r=>r.indicator_key))
- return rows.filter(r=>r.organization_id||!localKeys.has(r.indicator_key)).map(mapOperationalDefinition)
+ // A shared indicator the hospital has switched off stays in Management only.
+ const off=await loadDisabledIndicatorKeys(organizationId).catch(()=>new Set())
+ return rows.filter(r=>r.organization_id||!localKeys.has(r.indicator_key)).filter(r=>r.organization_id||!off.has(r.indicator_key)).map(mapOperationalDefinition)
+}
+
+// Which shared indicators each hospital uses (organization_indicator_settings; no row = in use).
+const DEMO_SETTINGS_KEY='limoxis.demo.indicatorSettings'
+const readDemoSettings=()=>{try{return JSON.parse(window.localStorage.getItem(DEMO_SETTINGS_KEY)||'{}')}catch{return {}}}
+export async function loadDisabledIndicatorKeys(organizationId){
+ if(isDemoDataEnvironment())return new Set(Object.entries(readDemoSettings()).filter(([,enabled])=>enabled===false).map(([key])=>key))
+ assertCloud(organizationId)
+ const {data,error}=await supabase.from('organization_indicator_settings').select('indicator_key').eq('organization_id',organizationId).eq('enabled',false)
+ if(error)throw error
+ return new Set((data||[]).map(row=>row.indicator_key))
+}
+export async function saveIndicatorEnabled(organizationId,indicatorKey,enabled){
+ if(isDemoDataEnvironment()){const next={...readDemoSettings(),[indicatorKey]:enabled};try{window.localStorage.setItem(DEMO_SETTINGS_KEY,JSON.stringify(next))}catch{/* the demo keeps it for the page */}return}
+ assertCloud(organizationId)
+ const {error}=await supabase.from('organization_indicator_settings').upsert({organization_id:organizationId,indicator_key:indicatorKey,enabled,updated_at:new Date().toISOString()},{onConflict:'organization_id,indicator_key'})
+ if(error)throw error
 }
 
 // An indicator with a non-empty visibleDepartmentIds is only relevant to

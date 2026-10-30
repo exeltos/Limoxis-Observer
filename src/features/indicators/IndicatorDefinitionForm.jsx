@@ -17,7 +17,7 @@ export const metricLabels={patient_days:['Νοσηλευτικές ημέρες'
  antibiotic_ddd_total:['Σύνολο DDD αντιβιοτικών','Total antibiotic DDD'],aware_access_ddd_total:['DDD αντιβιοτικών κατηγορίας AWaRe Access','AWaRe Access category antibiotic DDD'],
  ...mdrIsolationLabels,mdr_isolation_total:['Σύνολο απομονώσεων MDR','Total MDR isolations'],
  pps_patients_total:['Σύνολο ασθενών μελέτης επιπολασμού','PPS total patients'],pps_patients_with_hai:['Ασθενείς με νοσοκομειακή λοίμωξη','Patients with healthcare-associated infection'],pps_patients_on_antibiotics:['Ασθενείς υπό αντιβιοτική αγωγή','Patients on antibiotic therapy'],
- clabsi_events:['Συμβάντα CLABSI','CLABSI events'],central_line_days:['Ημέρες κεντρικού καθετήρα','Central line days'],cauti_events:['Συμβάντα CAUTI','CAUTI events'],urinary_catheter_days:['Ημέρες ουροκαθετήρα','Urinary catheter days'],vap_events:['Συμβάντα VAP','VAP events'],ventilator_days:['Ημέρες αναπνευστήρα','Ventilator days'],
+ ssi_episodes:['Λοιμώξεις χειρουργικού πεδίου (επιτήρηση)','Surgical site infections (surveillance)'],clabsi_events:['Συμβάντα CLABSI','CLABSI events'],central_line_days:['Ημέρες κεντρικού καθετήρα','Central line days'],cauti_events:['Συμβάντα CAUTI','CAUTI events'],urinary_catheter_days:['Ημέρες ουροκαθετήρα','Urinary catheter days'],vap_events:['Συμβάντα VAP','VAP events'],ventilator_days:['Ημέρες αναπνευστήρα','Ventilator days'],
  ...clabsiByWeightLabels,
 }
 const CATEGORY_OPTIONS=[['surveillance','Επιτήρηση','Surveillance'],['prevention','Πρόληψη','Prevention'],['laboratory','Εργαστήριο','Laboratory'],['workforce','Προσωπικό','Workforce'],['quality','Ποιότητα','Quality']]
