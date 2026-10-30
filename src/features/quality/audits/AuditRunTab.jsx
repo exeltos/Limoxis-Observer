@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Info, MessageSquare, Paperclip, Pencil, Plus, SearchCheck, Users } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
@@ -287,7 +287,10 @@ const firstOpenView = rows => {
 function MeetingLine({ title, summary, language, defaultOpen = false, children }) {
   const en = language === 'en'
   const [open, setOpen] = useState(defaultOpen)
-  return <div className="audit-meeting">
+  const box = useRef(null)
+  // The fields open under the line, often below the edge of the screen: bring them into view.
+  useEffect(() => { if (open && !defaultOpen) box.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) }, [open, defaultOpen])
+  return <div className="audit-meeting" ref={box}>
     <button type="button" className="audit-meeting-line" aria-expanded={open} onClick={() => setOpen(!open)}><Users size={15} aria-hidden="true" /><strong>{title}</strong><span>{summary || L(en, 'δεν έχει καταγραφεί', 'not recorded')}</span><ChevronRight size={14} aria-hidden="true" /></button>
     {open && <div className="audit-meeting-fields">{children}</div>}
   </div>
