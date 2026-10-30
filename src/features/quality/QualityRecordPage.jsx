@@ -408,14 +408,17 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   if(record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
   if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':record.sourceId.startsWith('TRAINING:')?(language==='en'?'Training':'Εκπαίδευση'):record.sourceId.startsWith('RISK:')?(language==='en'?'Risk assessment':'Εκτίμηση κινδύνου'):(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση δέσμης μέτρων'):record.sourceId.startsWith('TRAINING:')?record.sourceId.slice(9):record.sourceId.startsWith('RISK:')?record.sourceId.split(':').slice(1).join(' · '):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
-  else if(record.sourceId)links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  // A source that is one of our records opens it; a bare number is the reference of an imported record (nothing to open).
+  else if(record.sourceId&&/^(AUD|FND|INC)-/.test(record.sourceId))links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  else if(record.sourceId)links.push({label:language==='en'?'Source':'Πηγή',id:`${language==='en'?'Imported from the source file · no. ':'Εισαγωγή από το αρχείο πηγής · αρ. '}${record.sourceId}`,external:true})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
   const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}
   const openLinked=path=>goTo(path,navigationOptions)
   const openSource=id=>goTo(sourceRecordPath(id),navigationOptions)
   const en=language==='en'
   return <div className="record-section"><div className="record-section-header"><h3>{recordType==='incidents'||recordType==='findings'?(en?'Links':'Συνδέσεις'):t('qualityRecords.linkedRecords')}</h3></div><div className="quality-link-list">
-    {links.map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
+    {links.filter(link=>link.external).map(link=><div className="quality-link-static" key={`${link.label}-${link.id}`}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong></span></div>)}
+    {links.filter(link=>!link.external).map(link=><button type="button" key={`${link.label}-${link.id}`} onClick={()=>link.source?openSource(link.id):openLinked(link.path)}><span className="quality-link-kind">{link.label}</span><span className="quality-link-main"><strong>{link.id}</strong>{link.title&&<small>{link.title}</small>}</span><ChevronRight size={16}/></button>)}
     {related.map(x=><button type="button" key={x.id} onClick={()=>goTo(`/quality/${x.kind}/${x.id}`,{returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'})}><span className="quality-link-kind">{t(x.kind==='findings'?'qualityRecords.finding':'qualityRecords.capa')}</span><span className="quality-link-main"><strong>{qualityCode(x,language)}</strong><small>{language==='el'?x.title:x.titleEn}</small></span><ChevronRight size={16}/></button>)}
     {!links.length&&!related.length&&<div className="inline-empty">{t('qualityRecords.noLinkedRecords')}</div>}
   </div></div>
@@ -432,7 +435,12 @@ function sourceRecordPath(id){
   if(id.startsWith('INC-'))return `/quality/incidents/${id}`
   return '/quality'
 }
-function QualityHistory({record,t,language}){const en=language==='en';const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:t(x.action),meta:[x.actor]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={events} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
+// The history of a record: the action in words (imported records carry codes such as «source_reconciled»), and the actor
+// or the system note beside it in the language of the screen.
+const HISTORY_LABELS={source_reconciled:['Συμφωνία με το αρχείο πηγής','Reconciled with the source file'],recordImported:['Εισαγωγή εγγραφής','Record imported'],recordUpdated:['Ενημέρωση εγγραφής','Record updated'],recordCreated:['Δημιουργία εγγραφής','Record created']}
+const historyTitle=(entry,t,en)=>{const text=entry.action?t(entry.action):'';return text&&text!==entry.action?text:(HISTORY_LABELS[entry.action]?.[en?1:0]||(en?'Change':'Αλλαγή'))}
+const historyActor=(actor,en)=>String(actor||'').replace(/^Reconciliation (?:από|from)\s+/i,en?'Reconciled with the file ':'Συμφωνήθηκε με το αρχείο ')
+function QualityHistory({record,t,language}){const en=language==='en';const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={events} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
 function Detail({label,value}){if(!value&&value!==0)return null;return <div className="detail-item"><span className="lo-field-label">{label}</span><strong>{value||'—'}</strong></div>}
 function EditText({editing,label,value,onChange}){return editing?<div className="detail-item editable"><Field label={label}><input value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>:<Detail label={label} value={value}/>}
 function EditDate({editing,label,value,onChange,language}){return editing?<div className="detail-item editable"><ManualDateField label={label} value={value||''} onChange={onChange}/></div>:<Detail label={label} value={formatDay(value,language)}/>}
