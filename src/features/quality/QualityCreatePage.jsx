@@ -73,6 +73,12 @@ function QualityRecordCreate({recordType}){
   const titleKey=en?'titleEn':'title';const textKey=recordType==='audits'?(en?'scopeEn':'scope'):(en?'descriptionEn':'description')
   const {templates}=useAuditTemplates(recordType==='audits'?tenant?.id:false)
   const competence=useAuditorCompetence(recordType==='audits'?tenant?.id:false)
+  // A new audit starts from the short basic questionnaire (about thirty questions for ISO 9001, JCI and TEMOS), unless a source chose another.
+  const basic=templates.find(item=>item.key==='core'&&item.active!==false)
+  useEffect(()=>{
+   if(recordType!=='audits'||!basic)return
+   setDraft(current=>current.templateId||current.checklist?.length?current:{...current,templateId:basic.id,templateTitle:basic.title,templateVersion:basic.version,standard:basic.standard,standards:['iso9001','jci','temos'],checklistSource:`template:${basic.id}`,scope:current.scope||basic.scope,durationDays:current.durationDays??3})
+  },[recordType,basic])
   const blocked=recordType==='audits'&&independenceBlocks(draft.team||[],{id:draft.departmentId,name:draft.department})
   const valid=Boolean(draft[titleKey].trim())&&!blocked&&(recordType!=='capas'||Boolean(draft.dueDate))
   async function save(){if(!canManage||!valid||saving)return;setSaving(true);try{const actor=auditActorFromAuth({profile,user});const created=await createQualityRecord(recordType,tenant?.id,{...draft,title:draft.title||draft.titleEn,titleEn:draft.titleEn||draft.title,reportedByLabel:actor.name,history:[auditEvent('recordCreated',{actor})]},user?.id);const failed=recordType==='findings'||recordType==='capas'?await pending.upload(tenant?.id,recordType,created?.dbId):0;if(failed)notify(en?`${failed} of ${pending.files.length} files could not be attached. Add them from the «Documents» tab.`:`${failed} από ${pending.files.length} αρχεία δεν επισυνάφθηκαν. Προσθέστε τα από την καρτέλα «Έγγραφα».`,'warning');if(recordType==='capas')signalDemoScenario('incident_capa');if(recordType==='audits')signalDemoStep('quality_audit','create');notify(t('recordCreated'),'success')

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { AuditRounds, roundOfHalf } from '../src/features/quality/audits/AuditRounds'
 
 const departments = ['Καρδιολογική', 'ΜΕΘ', 'Νεφρολογική', 'Ορθοπαιδική', 'Παθολογική', 'Παιδιατρική', 'Χειρουργική', 'ΜΕΝΝ']
@@ -19,17 +19,19 @@ describe('audit rounds', () => {
     expect(roundOfHalf([audits[0], audits[1]], 2026, 0)).toHaveLength(0)
   })
 
-  it('shows each round with its days, the departments per day and where it stands', () => {
+  it('shows each round on one line and opens the departments by day on a click', () => {
     render(<AuditRounds audits={audits} year={2026} language="el" onRound={() => {}} />)
-    expect(screen.getByText('Κύκλος Άνοιξης 2026')).toBeTruthy()
-    expect(screen.getByText('Κύκλος Φθινοπώρου 2026')).toBeTruthy()
+    expect(screen.getByText('Άνοιξη 2026')).toBeTruthy()
+    expect(screen.getByText('Φθινόπωρο 2026')).toBeTruthy()
     expect(screen.getByText('Ολοκληρώθηκε')).toBeTruthy()
     expect(screen.getByText('Προγραμματισμένος')).toBeTruthy()
-    expect(screen.getAllByText(/^8$/)).toHaveLength(2)
+    expect(screen.queryByRole('list')).toBeNull()
+    fireEvent.click(screen.getByText('Φθινόπωρο 2026'))
+    expect(screen.getAllByRole('listitem')).toHaveLength(3)
   })
 
   it('offers to plan a round where there is none', () => {
     render(<AuditRounds audits={[]} year={2027} language="el" onRound={() => {}} />)
-    expect(screen.getAllByRole('button', { name: /Προγραμματισμός κύκλου/ })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: /Προγραμματισμός/ })).toHaveLength(2)
   })
 })
