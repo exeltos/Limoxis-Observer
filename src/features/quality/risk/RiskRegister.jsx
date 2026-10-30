@@ -78,13 +78,13 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
   </div>
   {cell&&<div className="risk-cell-filter"><span>{L(en,'Φίλτρο από τον χάρτη','Filter from the heat map')}: L{cell.l} × C{cell.c}</span><button type="button" onClick={onClearCell}>{L(en,'Καθαρισμός','Clear')}</button></div>}
   <RegistryTable sortable={false} wrapperClassName="scroll-table risk-table-wrap" className="risk-table" rows={tableRows} rowKey={row=>row.heading?`section-${row.heading.id}`:row.risk.id||row.risk.lineageKey}
-   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'process',label:L(en,'Διεργασία / τμήμα','Process / department')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'inherent',label:L(en,'Εγγενής','Inherent')},{key:'residual',label:L(en,'Υπολειπόμενος','Residual'),className:'risk-step'},{key:'target',label:L(en,'Στόχος','Target'),className:'risk-step'},{key:'owner',label:L(en,'Υπεύθυνος','Owner')},{key:'open',label:''}]}
+   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'inherent',label:L(en,'Εγγενής','Inherent')},{key:'residual',label:L(en,'Υπολειπόμενος','Residual'),className:'risk-step'},{key:'target',label:L(en,'Στόχος','Target'),className:'risk-step'},{key:'owner',label:L(en,'Υπεύθυνος','Owner')},{key:'open',label:''}]}
    rowProps={row=>row.heading?{}:{className:`risk-row-clickable${returnedClass(returned,row.risk.lineageKey)}`,onClick:()=>onOpen(row.risk)}}
    emptyTitle={risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')} emptyText={risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}
-   renderRow={row=>row.heading?<tr className="risk-section-row"><td colSpan={8}><strong>{en?row.heading.en:row.heading.el}</strong><span>{sectionTotals[row.heading.id]}</span></td></tr>:<>
+   renderRow={row=>row.heading?<tr className="risk-section-row"><td colSpan={7}><strong>{en?row.heading.en:row.heading.el}</strong><span>{sectionTotals[row.heading.id]}</span></td></tr>:<>
      <td><strong>{row.risk.lineageKey}</strong>{row.risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
-     <td><span className="risk-process">{txt(row.risk,'process',en)||'—'}</span><small>{txt(row.risk,'scope',en)}</small></td>
-     <td className="risk-hazard"><span>{txt(row.risk,'hazard',en)}</span>
+     <td className="risk-hazard"><span className="risk-hazard-text">{txt(row.risk,'hazard',en)}</span>
+      <small className="risk-hazard-where">{[txt(row.risk,'process',en),txt(row.risk,'scope',en)].filter(Boolean).join(' · ')||'—'}</small>
       {(row.risk.jci||(row.risk.indicatorKeys||[]).length>0||evidenceOf)&&<small className="risk-hazard-meta">{row.risk.jci&&<span>JCI {row.risk.jci}</span>}{(row.risk.indicatorKeys||[]).length>0&&<IndicatorBadge keys={row.risk.indicatorKeys||[]} values={indicatorValues} en={en}/>}{evidenceOf&&<RiskEvidence evidence={evidenceOf(row.risk)} en={en}/>}</small>}
       {row.warnings.filter(w=>w.tone!=='info').slice(0,2).map(w=><small key={w.id} className="risk-row-warning"><AlertTriangle size={12}/>{warningLabel(w.id,en)}</small>)}</td>
      <td><LevelChip score={row.s.inherent.score} level={row.s.inherent.level} en={en} compact/></td>

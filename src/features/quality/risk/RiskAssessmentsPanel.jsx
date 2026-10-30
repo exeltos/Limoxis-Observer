@@ -13,13 +13,24 @@ import { auditActorFromAuth,auditEvent } from '../../../core/audit/actor'
 import { createAssessmentSeries,createRiskAssessment } from './riskService'
 import { importPlan,importRiskWorkbook } from './riskImport'
 import { summarizeRisks,levelLabel,suggestPeriodLabel } from './riskModel'
-import { AssessmentStatusBadge,L,LevelChip,PERIOD_KINDS,fmtDate,returnedClass,txt,usePaged,useReturnedRow } from './riskUi'
+import { AssessmentStatusBadge,L,PERIOD_KINDS,fmtDate,returnedClass,txt,usePaged,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
 
 const FIELD_LABELS={inherentScore:['Εγγενής βαθμός','Inherent score'],residualScore:['Υπολειπόμενος βαθμός','Residual score'],inherentLevel:['Εγγενής κατηγορία','Inherent level'],residualLevel:['Υπολειπόμενη κατηγορία','Residual level'],process:['Διεργασία','Process'],wording:['Λεκτικό','Wording']}
 
 // The assessments of the organization inside the Quality Center. The page's
 // «Create» menu opens a new assessment (creating) or the Excel file (fileRef).
+// The residual risks of one assessment as a thin bar: very high, high, moderate and low, each with its number.
+function RiskSplit({counts,en}){
+  const parts=[['very_high',counts.very_high],['high',counts.high],['moderate',counts.moderate],['low',counts.low]]
+  const total=parts.reduce((sum,[,value])=>sum+value,0)
+  if(!total)return <span>—</span>
+  return <div className="risk-split" title={parts.map(([id,value])=>`${levelLabel(id,en)}: ${value}`).join(' · ')}>
+    <span className="risk-split-bar" aria-hidden="true">{parts.filter(([,value])=>value>0).map(([id,value])=><i key={id} className={`risk-level-${id}`} style={{width:`${value*100/total}%`}}/>)}</span>
+    <span className="risk-split-nums">{parts.filter(([,value])=>value>0).map(([id,value])=><b key={id} className={`risk-level-${id}`}>{value}</b>)}</span>
+  </div>
+}
+
 export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onCreatingChange,fileRef,onRowsChange}){
  const navigate=useNavigate()
  const {profile,user}=useAuth()
@@ -61,10 +72,10 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
   <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση εκτίμησης ή περιόδου','Search assessment or period')} onClear={()=>setQuery('')}/>
   <RegistryTable sort={sort} onSort={onSort} wrapperClassName="scroll-table risk-assessments-table" className="risk-table" rows={pageRows} rowKey={({a})=>a.id}
-   columns={[{key:'period',label:L(en,'Περίοδος','Period')},{key:'title',label:L(en,'Εκτίμηση','Assessment')},{key:'date',label:L(en,'Ημερομηνία','Date')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'veryHigh',label:L(en,'Πολύ υψηλοί','Very high')},{key:'high',label:L(en,'Υψηλοί','High')},{key:'residual',label:L(en,'Μέσος υπολειπόμενος','Avg. residual')},{key:'status',label:L(en,'Κατάσταση','Status')}].map(column=>({...column,sortable:true}))}
+   columns={[{key:'period',label:L(en,'Περίοδος','Period')},{key:'title',label:L(en,'Εκτίμηση','Assessment')},{key:'date',label:L(en,'Ημερομηνία','Date')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'residual',label:L(en,'Κατανομή μετά τα μέτρα','Split after measures')},{key:'status',label:L(en,'Κατάσταση','Status')}].map(column=>({...column,sortable:true}))}
    rowProps={({a})=>({className:`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`,onClick:()=>open(a.code)})}
    emptyTitle={loading?undefined:L(en,'Δεν υπάρχουν εκτιμήσεις κινδύνου','No risk assessments yet')} emptyText={L(en,'Δημιουργήστε την πρώτη εκτίμηση ή εισαγάγετε το υπάρχον μητρώο σας από Excel.','Create the first assessment or import your existing register from Excel.')}
-   renderRow={({a,s})=><><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><span className="risk-level risk-level-very_high" title={levelLabel('very_high',en)}><strong>{s.levels.residual.very_high}</strong></span></td><td><span className="risk-level risk-level-high" title={levelLabel('high',en)}><strong>{s.levels.residual.high}</strong></span></td><td>{s.averages.residual!=null?<LevelChip score={Math.round(s.averages.residual)} en={en} title={String(s.averages.residual)}/>:'—'}</td><td><AssessmentStatusBadge status={a.status} en={en}/></td></>}/>
+   renderRow={({a,s})=><><td><strong>{a.periodLabel}</strong><small>{PERIOD_KINDS[a.periodKind]?.[en?1:0]}</small></td><td>{txt(a,'title',en)}<small>{a.formCode}</small></td><td>{fmtDate(a.assessedOn,locale)}<small>{L(en,'Επόμενη','Next')}: {fmtDate(a.nextReviewOn,locale)}</small></td><td>{s.total}</td><td><RiskSplit counts={s.levels.residual} en={en}/></td><td><AssessmentStatusBadge status={a.status} en={en}/></td></>}/>
   {rows.length>0&&pager}
   {creating&&<AssessmentDetailsDialog en={en} assessments={items} onClose={()=>setCreating(false)} onSave={create}/>}
   {preview&&<ImportPreviewDialog preview={preview} en={en} onClose={()=>setPreview(null)} onConfirm={confirmImport}/>}
