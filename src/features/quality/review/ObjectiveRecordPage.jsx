@@ -51,7 +51,7 @@ export function ObjectiveRecordPage(){
  if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
  const {current,register,indicator,unit}=objective
  const state=current.status,reach=targetReach(objective),sign=objective.direction==='lower'?'≤':'≥'
- const value=formatObjectiveValue(current.value,unit,language),target=`${sign} ${formatObjectiveValue(objective.target,unit,language)}`
+ const value=formatObjectiveValue(current.value,unit,language),target=`${sign} ${formatObjectiveValue(objective.target,unit,language)}${objective.targetFromIndicator?(en?' (indicator)':' (από τον δείκτη)'):''}`
  const detail=[
   {title:en?'Measurement':'Μέτρηση',items:[
    {label:en?'Measured by':'Μετριέται με',value:indicator?textOf(indicator,language):(en?'Value reported by the owner':'Τιμή από τον υπεύθυνο')},

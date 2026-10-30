@@ -11,7 +11,7 @@ import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { can, CAPABILITIES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
-import { ObjectiveFields,newObjective,useObjectives } from './QualityObjectives'
+import { ObjectiveFields,linkedTarget,newObjective,useObjectives } from './QualityObjectives'
 import { saveObjective } from './reviewService'
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
@@ -30,10 +30,10 @@ export function ObjectiveCreatePage() {
   const existing = objectiveId ? objectives.find(item => item.id === objectiveId) : null
   const [objective, setObjective] = useState(newObjective)
   // Editing: the form starts from the saved objective, without the values computed for display.
-  useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, ...clean } = existing; setObjective(clean) } }, [existing]) // eslint-disable-line no-unused-vars
+  useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line no-unused-vars
   const [saving, setSaving] = useState(false)
   const set = next => setObjective(current => ({ ...current, ...next }))
-  const valid = Boolean(objective.title?.trim()) && objective.target !== ''
+  const valid = Boolean(objective.title?.trim()) && ((objective.target !== '' && objective.target != null) || linkedTarget(registers, objective) != null)
   const back = () => { if (!objectiveId) rememberQualitySection('indicators:objectives'); goBack() }
   async function save() {
     if (!valid || saving) return

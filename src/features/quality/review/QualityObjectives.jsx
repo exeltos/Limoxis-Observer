@@ -38,7 +38,10 @@ export function useObjectives(organizationId) {
         const register = allRegisters.find(item => item.id === objective.registerId)
         const indicator = register?.indicators.find(item => item.id === objective.indicatorKey)
         const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value : toNumber(objective.reportedValue)
-        return { ...objective, register, indicator, current: { value, status: objectiveState(objective, value) } }
+        // Without a target of its own, a linked objective takes the target set in the indicator's definition.
+        const fromIndicator = (objective.target === '' || objective.target == null) && indicator && indicator.target != null && indicator.target !== ''
+        const effective = fromIndicator ? { ...objective, target: Number(indicator.target), direction: ['higher', 'lower'].includes(indicator.direction) ? indicator.direction : objective.direction, targetFromIndicator: true } : objective
+        return { ...effective, register, indicator, current: { value, status: objectiveState(effective, value) } }
       }))
     } catch (failure) { console.error(failure); setObjectives([]); setError(true) } finally { setLoading(false) }
   }, [organizationId])
@@ -137,6 +140,12 @@ export function ObjectiveBars({ objectives }) {
   </li>)}</ul>
 }
 
+// The target set in the definition of the indicator an objective is linked to (null when none).
+export function linkedTarget(registers, objective) {
+  const indicator = registers.find(item => item.id === objective.registerId)?.indicators.find(item => item.id === objective.indicatorKey)
+  return indicator && indicator.target != null && indicator.target !== '' ? Number(indicator.target) : null
+}
+
 export const newObjective = () => ({ year: new Date().getFullYear(), title: '', direction: 'higher', target: '', status: 'active' })
 
 // The fields of an objective, shared by the new-objective page and the edit dialog.
@@ -145,6 +154,7 @@ export function ObjectiveFields({ objective, set, registers }) {
   const en = language === 'en'
   const register = registers.find(item => item.id === objective.registerId)
   const indicatorOptions = useMemo(() => (register?.indicators || []).map(item => ({ value: item.id, label: textOf(item, language) })), [register, language])
+  const indicatorTarget = linkedTarget(registers, objective)
   return <>
     <div className="lo-form-cards"><FormCard wide>
       <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
@@ -156,7 +166,7 @@ export function ObjectiveFields({ objective, set, registers }) {
       </FormGrid>
       <FormGrid columns={3}>
         <ChoiceField label={en ? 'Met when the value is' : 'Επιτυγχάνεται όταν η τιμή είναι'} value={objective.direction} options={[{ value: 'higher', label: en ? 'At least' : 'Τουλάχιστον' }, { value: 'lower', label: en ? 'At most' : 'Το πολύ' }]} onChange={value => set({ direction: value })} />
-        <Field label={`${en ? 'Target' : 'Στόχος (τιμή)'} *`}><input inputMode="decimal" value={objective.target ?? ''} onChange={event => set({ target: event.target.value })} /></Field>
+        <Field label={`${en ? 'Target' : 'Στόχος (τιμή)'}${indicatorTarget == null ? ' *' : ''}`} hint={indicatorTarget != null ? (en ? `Empty = the indicator's target (${indicatorTarget})` : `Κενό = ο στόχος του δείκτη (${indicatorTarget})`) : ''}><input inputMode="decimal" value={objective.target ?? ''} placeholder={indicatorTarget != null ? String(indicatorTarget) : ''} onChange={event => set({ target: event.target.value })} /></Field>
         <Field label={en ? 'Year' : 'Έτος'}><input inputMode="numeric" value={objective.year || ''} onChange={event => set({ year: Number(event.target.value) || '' })} /></Field>
       </FormGrid>
       <FormGrid columns={3}>
