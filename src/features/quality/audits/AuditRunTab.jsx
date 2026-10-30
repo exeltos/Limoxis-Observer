@@ -45,8 +45,8 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const [rows, setRows] = useState(initial)
   const [meetings, setMeetings] = useState(() => meetingState(record))
   // A questionnaire of several chapters opens on the first chapter still to answer, one chapter at a time.
-  const [chapter, setChapter] = useState(() => firstOpenChapter(initial))
-  const [standardView, setStandardView] = useState('all')
+  const [standardView, setStandardView] = useState(() => firstOpenView(initial).standard)
+  const [chapter, setChapter] = useState(() => firstOpenView(initial).chapter)
   const [openOnly, setOpenOnly] = useState(false)
   const [attachmentsOf, setAttachmentsOf] = useState(null)
   const [notesOpen, setNotesOpen] = useState(() => new Set())
@@ -235,11 +235,14 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   </div>
 }
 
-// The chapter to open on: the first with an answer still missing (one chapter at a time), or all of them.
-const firstOpenChapter = rows => {
+// What to open on: the first standard still to answer and its first chapter with an answer missing
+// (one standard and one chapter at a time), or everything when nothing is open or there is one chapter.
+const firstOpenView = rows => {
   const score = auditScore(rows)
-  if (score.standards.length > 1 || score.chapters.length < 2) return 'all'
-  return score.chapters.find(item => item.unanswered > 0)?.key || 'all'
+  const standard = score.standards.length > 1 ? (score.standards.find(item => item.unanswered > 0)?.standard ?? 'all') : 'all'
+  const chapters = score.chapters.filter(item => standard === 'all' || item.standard === standard)
+  if (chapters.length < 2) return { standard, chapter: 'all' }
+  return { standard, chapter: chapters.find(item => item.unanswered > 0)?.key || 'all' }
 }
 
 // A meeting on one line: its title and what was recorded, opening the fields on a click.

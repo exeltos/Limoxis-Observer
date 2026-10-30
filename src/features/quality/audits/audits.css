@@ -195,3 +195,5 @@
 .audit-meeting-line>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--lo-color-muted)}
 .audit-meeting-line[aria-expanded="true"]>svg:last-child{transform:rotate(90deg)}
 .audit-meeting-fields{padding:4px 2px 8px}
+/* The month and the year of a planned month: the same height and edge as the other controls. */
+.audit-plan-page .month-field-controls select{min-height:40px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font:inherit;color:var(--lo-color-text)}
