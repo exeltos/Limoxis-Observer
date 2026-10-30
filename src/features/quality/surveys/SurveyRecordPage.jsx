@@ -110,7 +110,8 @@ export function SurveyRecordPage() {
   }
   const exportResponses = () => exportRegistry(responsesExport(survey, shown, language))
 
-  const tabs = isNew ? [{ id: 'questionnaire', label: en ? 'Questionnaire' : 'Ερωτηματολόγιο', icon: ClipboardList }] : [
+  // A new survey is one page (the questionnaire), without a strip of a single tab.
+  const tabs = isNew ? [] : [
     { id: 'results', label: en ? 'Results' : 'Αποτελέσματα', icon: BarChart3 },
     { id: 'responses', label: en ? `Responses ${responses.length}` : `Απαντήσεις ${responses.length}`, icon: MessageSquareText },
     { id: 'questionnaire', label: en ? `Questionnaire ${survey.questions.length}` : `Ερωτηματολόγιο ${survey.questions.length}`, icon: ClipboardList },
@@ -160,7 +161,7 @@ export function SurveyRecordPage() {
         </>} />
     </RecordTabPanel>}
     {tab === 'questionnaire' && <RecordTabPanel title={en ? 'Questionnaire' : 'Ερωτηματολόγιο'} subtitle={problems.length && !locked ? `${en ? 'To open it needs:' : 'Για να ανοίξει χρειάζεται:'} ${problems.join(' · ')}` : ''}
-      footer={!locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
+      footer={!locked && <div className="inline-edit-footer">{isNew && <Button variant="secondary" onClick={goBack}>{en ? 'Cancel' : 'Ακύρωση'}</Button>}<SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>

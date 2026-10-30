@@ -165,10 +165,13 @@ describe('Suppliers on templates', () => {
 })
 
 describe('Supplier record header', () => {
-  it('keeps «Αξιολόγηση» and «Μη συμμόρφωση» visible: the shell keeps a `utility` action beside the status', () => {
+  it('keeps «Νέα αξιολόγηση» visible as the main action, last: the shell keeps a `utility` action beside the status', () => {
     const page = fs.readFileSync('src/features/quality/resources/SupplierRecordPage.jsx', 'utf8')
     const shell = fs.readFileSync('src/design-system/EntityRecordShell.jsx', 'utf8')
     expect(shell).toContain('action.props.utility')
-    expect(page.match(/<HeaderAction utility><Button/g)).toHaveLength(2)
+    expect(page.match(/<HeaderAction utility tone="primary"><Button/g)).toHaveLength(1)
+    expect(page).toContain("'Νέα αξιολόγηση'")
+    // A nonconformity is added from its own tab, not from the header.
+    expect(page).not.toMatch(/<HeaderAction utility><Button variant="secondary"[^\n]*newNonconformity/)
   })
 })

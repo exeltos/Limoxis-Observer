@@ -254,7 +254,8 @@
 /* General-tab record actions are relocated by EntityRecordShell next to the first
    details-section heading. This is the one canonical position for edit/archive/delete. */
 .canonical-detail-screen>.entity-record-body{position:relative!important}
-.entity-record-body>.entity-record-general-actions{position:absolute;top:14px;right:14px;z-index:3;display:flex;align-items:center}
+/* Clear of the card's scrollbar when the record's body scrolls. */
+.entity-record-body>.entity-record-general-actions{position:absolute;top:14px;right:24px;z-index:3;display:flex;align-items:center}
 
 /* Employee is the canonical record CRUD appearance. All record-level edit/destructive
    actions resolve to this exact geometry, color and placement. */
@@ -1033,7 +1034,9 @@
    body is already the card: the panel fills it, the header is one row, the
    content scrolls inside and the footer stays at the bottom. */
 .entity-record-body>:is(.record-tab-panel,#lo-record-tab-panel),:is(.record-tab-panel,#lo-record-tab-panel){flex:1 1 auto!important;min-height:0!important;min-width:0!important;display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
-.record-tab-panel>:is(.record-tab-panel-header,#lo-record-tab-panel){flex:0 0 auto;margin:0!important;padding:14px 13px 12px!important;min-height:64px;box-sizing:border-box}
+.record-tab-panel>:is(.record-tab-panel-header,#lo-record-tab-panel){flex:0 0 auto;margin:0!important;padding:14px var(--record-tab-panel-end,13px) 12px 13px!important;min-height:64px;box-sizing:border-box}
+/* Room for the record's «…» in the top right corner, so it never sits on a tab's own buttons. */
+.entity-record-body:has(>.entity-record-general-actions){--record-tab-panel-end:56px}
 .record-tab-panel-body{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:auto}
 .record-tab-panel-body>.inline-empty,.record-tab-panel-body>.scroll-table>.inline-empty{margin:0;padding:28px 20px;border:0;border-radius:0;background:transparent;text-align:center}
 .record-tab-panel-body>.patient-history-list{max-height:none;flex:0 0 auto;padding:10px 13px 18px}
