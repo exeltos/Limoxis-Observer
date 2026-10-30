@@ -172,7 +172,7 @@ export function RiskAssessmentPage(){
  // the tabs, the tab's toolbar and its table (or its own scrolling pane).
  // The tabs as the flat strip of the Quality Center's sub-tabs, under the KPI cards and above the card with the table.
  const activeTab=tabs.find(t=>t.id===tab||(t.also||[]).includes(tab))?.id||tab
- const tabNav=<div className="risk-tabs risk-tabs-flat"><CanonicalTabs className="lo-subtabs" items={tabs.map(({id,label,icon})=>({value:id,icon,label}))} value={activeTab} onChange={setTab} ariaLabel={L(en,'Εκτίμηση κινδύνου','Risk assessment')}/>{moreMenu}</div>
+ const tabNav=<div className="risk-tabs risk-tabs-flat"><CanonicalTabs className="lo-subtabs" items={tabs.map(({id,label,icon})=>({value:id,icon,label}))} value={activeTab} onChange={setTab} ariaLabel={L(en,'Εκτίμηση κινδύνου','Risk assessment')}/></div>
  const notices=<>
   {!canEdit&&canManage&&<p className="risk-locked">{L(en,`Η εκτίμηση είναι «${statusLabel(assessment.status,en)}» και δεν αλλάζει. Για αλλαγές: «Επαναφορά σε πρόχειρο».`,`The assessment is “${statusLabel(assessment.status,en)}” and locked. To change it: “Back to draft”.`)}</p>}
   {origin&&<button type="button" className="risk-origin-back" onClick={returnToOrigin}><ArrowLeft size={14}/>{L(en,`Πίσω σε «${viewLabel(origin.tab)}»`,`Back to “${viewLabel(origin.tab)}”`)}</button>}
@@ -184,7 +184,7 @@ export function RiskAssessmentPage(){
  const frame=(kpis,content,{registry=false,name=''}={})=><>
   {kpis&&<div className="risk-kpi-row">{kpis}</div>}
   {tabNav}
-  <div className={`surface risk-workspace${registry?' is-registry':''}${name?` ${name}`:''}`} ref={bodyRef}>{registry?<>{(origin||(!canEdit&&canManage))&&<div className="risk-notices">{notices}</div>}{content}</>:<div className="risk-tab-scroll">{notices}{content}</div>}</div>
+  <div className={`surface risk-workspace${registry?' is-registry':''}${name?` ${name}`:''}`} ref={bodyRef}>{moreMenu}{registry?<>{(origin||(!canEdit&&canManage))&&<div className="risk-notices">{notices}</div>}{content}</>:<div className="risk-tab-scroll">{notices}{content}</div>}</div>
  </>
  return <Page fill className="risk-assessment-page"><EntityRecordShell
   className="quality-record-shell risk-assessment-shell workspace-fill"

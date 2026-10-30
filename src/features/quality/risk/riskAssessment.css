@@ -466,7 +466,7 @@
 .risk-view-history th small{display:block;font-weight:500;color:var(--lo-color-muted)}
 .risk-view-history tr.is-current{background:var(--lo-color-primary-soft)}
 .risk-tabs{position:relative}
-.risk-tabs-menu{position:absolute;top:50%;right:10px;transform:translateY(-50%)}
+.risk-workspace>.risk-tabs-menu{position:absolute;top:12px;right:12px;z-index:6}
 .risk-view-none{margin:0;font-size:13px;color:var(--lo-color-muted)}
 .risk-view-indicators{display:flex;flex-wrap:wrap;gap:6px}
 
@@ -487,4 +487,6 @@
 .risk-opportunity-owner small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11px}
 
 .risk-tabs-flat{flex:0 0 auto;margin:0 0 8px}
-.risk-tabs-flat .risk-tabs-menu{top:calc(50% - 3px)}
+.risk-workspace{position:relative}
+.risk-workspace.is-registry>.risk-toolbar{padding-right:60px}
+.risk-tab-scroll>.risk-subswitch{padding-right:48px}
