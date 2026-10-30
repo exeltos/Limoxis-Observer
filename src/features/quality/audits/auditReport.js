@@ -139,6 +139,47 @@ const chapterName = chapter => [chapter.ref, chapter.title].filter(Boolean).join
 const strengths = (score, en) => score.chapters.filter(chapter => chapter.rate === 100).map(chapter => `${chapterName(chapter)} — 100% (${chapter.total} ${en ? 'questions' : 'ερωτήσεις'})`)
 const weaknesses = (score, en) => score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).sort((a, b) => a.rate - b.rate).map(chapter => `${chapterName(chapter)} — ${chapter.rate}% (${chapter.partial} ${en ? 'partial' : 'μερική'}, ${chapter.no} ${en ? 'nonconformity' : 'μη συμμόρφωση'})`)
 
+// The detailed reports of many audits in one document: an overview table, then for
+// each completed audit its summary, chapters, strengths and weaknesses, deviations,
+// findings and recommended actions, each audit starting on a new page.
+export function auditDetailedBatchDocument(audits = [], findings = [], { language = 'el' } = {}) {
+  const en = language === 'en'
+  const L = (el, english) => (en ? english : el)
+  const list = audits.filter(audit => audit.status === 'completed' && (audit.checklist || []).length)
+    .sort((a, b) => String((en ? a.departmentEn : a.department) || a.department || '').localeCompare(String((en ? b.departmentEn : b.department) || b.department || ''), 'el') || String(a.completedDate).localeCompare(String(b.completedDate)))
+  const scored = list.map(audit => ({ audit, score: auditScore(audit.checklist || []) }))
+  const rated = scored.filter(item => item.score.overall.rate != null)
+  const average = rated.length ? Math.round(rated.reduce((sum, item) => sum + item.score.overall.rate, 0) / rated.length) : null
+  const dates = list.map(audit => String(audit.completedDate || audit.plannedDate).slice(0, 10)).sort()
+  const keep = [L('Σύνοψη', 'Summary'), L('Αποτελέσματα ανά κεφάλαιο', 'Results by chapter'), L('Δυνατά σημεία και σημεία βελτίωσης', 'Strengths and areas to improve'), L('Διαπιστώσεις', 'Observations and nonconformities'), L('Ευρήματα και διορθωτικές ενέργειες', 'Findings and corrective actions'), L('Προτεινόμενες ενέργειες', 'Recommended actions'), L('Συμπέρασμα', 'Conclusion')]
+  const sections = [{
+    title: L('Συνολική εικόνα', 'Overview'),
+    table: {
+      columns: [L('Τμήμα', 'Department'), L('Ημερομηνία', 'Date'), L('Κωδικός', 'Code'), { text: L('Μερικές', 'Partial'), align: 'right' }, { text: L('Μη συμμ.', 'Noncon.'), align: 'right' }, { text: L('Ευρήματα', 'Findings'), align: 'right' }, { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }],
+      rows: scored.map(({ audit, score }) => [(en ? audit.departmentEn : audit.department) || audit.department || '—', day(audit.completedDate), audit.displayId || audit.id, { text: String(score.overall.partial), align: 'right' }, { text: String(score.overall.no), align: 'right' }, { text: String(findings.filter(finding => finding.sourceId === audit.id).length), align: 'right' }, { html: `${rateBar(score.overall.rate)} <b>${esc(pct(score.overall.rate))}</b>`, align: 'right' }]),
+      foot: [L('Μέσος όρος', 'Average'), '', '', { text: String(scored.reduce((sum, item) => sum + item.score.overall.partial, 0)), align: 'right' }, { text: String(scored.reduce((sum, item) => sum + item.score.overall.no, 0)), align: 'right' }, { text: String(scored.reduce((sum, item) => sum + findings.filter(finding => finding.sourceId === item.audit.id).length, 0)), align: 'right' }, { text: pct(average), align: 'right' }],
+      empty: L('Δεν υπάρχουν ολοκληρωμένες επιθεωρήσεις με απαντήσεις.', 'No completed audit with answers.'),
+    },
+  }]
+  for (const { audit } of scored) {
+    const doc = auditReportDocument(audit, findings, { language })
+    sections.push({ html: '<div style="page-break-before:always;height:0"></div>' })
+    sections.push({ title: `${(en ? audit.departmentEn : audit.department) || audit.department || L('Όλος ο οργανισμός', 'Whole organization')} · ${audit.displayId || audit.id} · ${day(audit.completedDate)}`, text: '' })
+    doc.sections.filter(section => keep.includes(section.title)).forEach(section => sections.push({ ...section, title: `${section.title}` }))
+  }
+  return {
+    language,
+    numbered: false,
+    kind: L('Αναλυτικές εκθέσεις επιθεώρησης', 'Detailed audit reports'),
+    title: L('Αναλυτικές εκθέσεις επιθεωρήσεων', 'Detailed audit reports'),
+    code: dates.length ? `${day(dates[0])} – ${day(dates.at(-1))}` : '',
+    meta: [[L('Επιθεωρήσεις', 'Audits'), String(list.length)], [L('Μέση συμμόρφωση', 'Average compliance'), pct(average)], [L('Περίοδος', 'Period'), dates.length ? `${day(dates[0])} – ${day(dates.at(-1))}` : '—'], [L('Με ευρήματα', 'With findings'), String(scored.filter(({ audit }) => findings.some(finding => finding.sourceId === audit.id)).length)]],
+    sections,
+    signatures: [{ role: L('Υπεύθυνος Ποιότητας', 'Quality manager'), name: '' }],
+    filename: en ? 'detailed-audit-reports' : 'analytikes-ekthesis-epitheoriseon',
+  }
+}
+
 // The answers, one row per question (Excel opens the .csv).
 export function auditAnswersExport(audit, language = 'el') {
   const en = language === 'en'

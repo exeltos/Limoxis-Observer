@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import { QUESTIONNAIRE_SEEDS, SYSTEM_TEMPLATES } from '../src/features/quality/audits/seed/index.js'
 import { adHocRow, auditDashboard, auditReviewSummary, auditScore, awaitingFinding, capaDraftFromFinding, classesFor, clauseCoverage, competenceWarnings, findingDraftFromAnswer, fmQuestionClause, fmQuestionText, fmResult, inScope, independenceBlocks, independenceIssues, nextAuditDate, questionsForAudit, unclassified } from '../src/features/quality/audits/auditModel'
 import { departmentArea } from '../src/features/quality/audits/auditStandards'
-import { auditAnswersExport, auditReportDocument } from '../src/features/quality/audits/auditReport'
+import { auditAnswersExport, auditDetailedBatchDocument, auditReportDocument } from '../src/features/quality/audits/auditReport'
 import { checklistFromRows, checklistRows, teamRows } from '../src/features/quality/qualityRelations'
 import { programmeAudits, programmeFindings } from '../src/features/quality/audits/auditDemoData'
 import { auditCompliance, pendingFindings } from '../src/features/quality/qualityAudit'
@@ -193,6 +193,16 @@ describe('report and storage', () => {
     expect(doc.sections[0].html).toContain('background:#18794e')
     expect(doc.sections.at(-1).table.rows).toHaveLength(audit.checklist.length)
     expect(auditAnswersExport(audit).rows).toHaveLength(audit.checklist.length)
+  })
+
+  it('builds one detailed report for many audits: an overview, then each audit on its own page', () => {
+    const done = programmeAudits.filter(item => item.status === 'completed' && (item.checklist || []).length)
+    const doc = auditDetailedBatchDocument(done, programmeFindings)
+    expect(doc.sections[0].title).toBe('Συνολική εικόνα')
+    expect(doc.sections[0].table.rows).toHaveLength(done.length)
+    expect(doc.sections.filter(section => section.html?.includes('page-break-before')).length).toBe(done.length)
+    expect(doc.sections.filter(section => section.title === 'Σύνοψη').length).toBe(done.length)
+    expect(auditDetailedBatchDocument([]).sections[0].table.rows).toHaveLength(0)
   })
 
   it('keeps the four answers in result and the three-value answer for earlier readers', () => {
