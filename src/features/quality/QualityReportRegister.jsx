@@ -5,6 +5,7 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useSortedPaging,withSort } from './useSortedPaging'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -181,13 +182,6 @@ export function deviationsExport(rows,{language,t}){
  }
 }
 
-function usePage(items,resetKey){
- const [page,setPage]=useState(1)
- const [pageSize,setPageSize]=useState(15)
- useEffect(()=>setPage(1),[resetKey,pageSize])
- const totalPages=Math.max(1,Math.ceil(items.length/pageSize)),safePage=Math.min(page,totalPages)
- return {rows:items.slice((safePage-1)*pageSize,safePage*pageSize),props:{page:safePage,totalPages,totalItems:items.length,pageSize,onPageChange:setPage,onPageSizeChange:setPageSize}}
-}
 
 function ageText(row,language){
  const days=-daysUntil(row.date)
@@ -235,7 +229,8 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
    &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
  }):view.filtered,[view.filtered,inbox,quick,filters.period,filters.origin])
- const paging=usePage(items,JSON.stringify(filters))
+ const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),kind:row=>row.kind,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,stage:row=>row.stage,owner:row=>row.owner,reporter:row=>(row.anonymous?'':row.reporter)}
+ const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
  const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
  const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
  const columns=inbox
@@ -260,10 +255,10 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    {popover}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
-   <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={columns||[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}
+   <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
+    columns={withSort(columns||[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}],sortBy)}
     emptyTitle={en?'No records':'Δεν υπάρχουν εγγραφές'} emptyText={en?'Reports appear in the inbox first; after Quality classifies them they move to the incident register.':'Οι νέες αναφορές εμφανίζονται πρώτα στο inbox· μετά την ταξινόμηση από την Ποιότητα μεταφέρονται στο μητρώο Συμβάντων.'}
-    rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,items)})}
+    rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,paging.sorted)})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
      <td>{compact&&<span className="quality-title-kind" title={kindText(row.kind,language)}><Icon size={14} aria-hidden="true"/></span>}{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
@@ -296,7 +291,9 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
  const en=language==='en'
  const {filters,set}=view
  const items=view.filtered
- const paging=usePage(items,`${JSON.stringify(filters)}:${view.days}`)
+ const severityRank={critical:4,high:3,medium:2,low:1}
+ const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),source:row=>row.source,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,status:row=>row.status,priority:row=>severityRank[row.severity]||0}
+ const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
  const advanced=['source','department','priority','status'].filter(key=>filters[key]!=='all').length+(view.days!==90?1:0)
  const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
  const pendingView=filters.scope==='pending'
@@ -311,10 +308,10 @@ export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCre
    {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
-   <RegistryTable sortable={false} bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])]}
+   <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
+    columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])],sortBy)}
     emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “Signals from other modules” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στα «Σήματα από άλλες ενότητες» μέχρι να τις εξετάσει η Ποιότητα.'}
-    rowProps={row=>({...(registry?.rowProps(row.type==='finding'?row.id:row.key)||{}),onClick:()=>onOpenRow(row,items)})}
+    rowProps={row=>({...(registry?.rowProps(row.type==='finding'?row.id:row.key)||{}),onClick:()=>onOpenRow(row,paging.sorted)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
      <td><strong>{row.code}</strong></td>
      <td>{en?row.titleEn:row.title}{row.type==='finding'&&!row.hasCapa&&row.status!=='closed'&&<small>{en?'No corrective action linked':'Χωρίς συνδεδεμένη διορθωτική ενέργεια'}</small>}{row.type==='deviation'&&row.item.notes&&<small>{row.item.notes}</small>}</td>

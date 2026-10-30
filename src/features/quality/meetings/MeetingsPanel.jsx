@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { useSortedPaging, withSort } from '../useSortedPaging'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
@@ -58,13 +59,11 @@ export function meetingsExport(meetings, language) {
 export function MeetingsList({ list, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterMeetings(list.meetings, filters, en), [list.meetings, filters, en])
-  useEffect(() => setPage(1), [filters, pageSize])
+  const sortBy = { code: meeting => meeting.code, department: meeting => departmentOf(meeting, en), date: meeting => meeting.meetingDate, period: meeting => meeting.periodMonth, decisions: meeting => meeting.decisions.length, next: meeting => meeting.nextMeetingDate, status: meeting => meeting.status }
+  const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const departments = useMemo(() => [...new Set(list.meetings.map(meeting => departmentOf(meeting, en)))].sort((a, b) => a.localeCompare(b, 'el')), [list.meetings, en])
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const today = new Date().toISOString().slice(0, 10)
   const advanced = ['department', 'status'].filter(key => filters[key] !== 'all').length
   return <>
@@ -73,8 +72,8 @@ export function MeetingsList({ list, filters, setFilters, onOpen, filterEnd = nu
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option><option value="draft">{meetingStatusLabel('draft', language)}</option><option value="final">{meetingStatusLabel('final', language)}</option></FilterSelect>
     </FilterBar>
     <div className="scroll-table">
-      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={meeting => meeting.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.meetings.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', status: 'all', quick: null }))}
-        columns={[{ key: 'code', label: t('code') }, { key: 'department', label: t('department') }, { key: 'date', label: t('date') }, { key: 'period', label: en ? 'Indicators of' : 'Δείκτες του' }, { key: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next meeting' : 'Επόμενη' }, { key: 'status', label: t('status') }]}
+      <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={meeting => meeting.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.meetings.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', status: 'all', quick: null }))}
+        columns={withSort([{ key: 'code', label: t('code') }, { key: 'department', label: t('department') }, { key: 'date', label: t('date') }, { key: 'period', label: en ? 'Indicators of' : 'Δείκτες του' }, { key: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next meeting' : 'Επόμενη' }, { key: 'status', label: t('status') }], sortBy)}
         emptyTitle={en ? 'No department meetings' : 'Δεν υπάρχουν συναντήσεις τμημάτων'} emptyText={en ? 'A department records its meetings here: the month’s indicators, what was discussed and what was decided.' : 'Εδώ το τμήμα καταγράφει τις συναντήσεις του: τους δείκτες του μήνα, τι συζητήθηκε και τι αποφασίστηκε.'}
         rowProps={meeting => ({ className: 'registry-row-clickable', onClick: () => onOpen(meeting) })}
         renderRow={meeting => { const open = openDecisions(meeting).length, late = lateDecisions(meeting).length, nextLate = meeting.nextMeetingDate && meeting.nextMeetingDate < today; return <>
@@ -87,6 +86,6 @@ export function MeetingsList({ list, filters, setFilters, onOpen, filterEnd = nu
           <td><StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge></td>
         </> }} />
     </div>
-    {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
+    {rows.length > 0 && <RegistryPagination language={language} {...paging.props} />}
   </>
 }

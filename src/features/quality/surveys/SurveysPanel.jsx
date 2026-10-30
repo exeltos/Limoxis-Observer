@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { useSortedPaging, withSort } from '../useSortedPaging'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
@@ -63,12 +64,10 @@ export function surveysExport(surveys, language) {
 export function SurveysList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSurveys(list.surveys, filters), [list.surveys, filters])
-  useEffect(() => setPage(1), [filters, pageSize])
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
+  const sortBy = { code: survey => survey.code, survey: survey => (en ? survey.titleEn || survey.title : survey.title), period: survey => survey.opensOn, responses: survey => survey.responseCount || 0, status: survey => survey.status }
+  const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = ['audience', 'status'].filter(key => filters[key] !== 'all').length
   return <>
     <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search surveys…' : 'Αναζήτηση έρευνας…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))} end={filterEnd}>
@@ -76,8 +75,8 @@ export function SurveysList({ list, registry = null, filters, setFilters, onOpen
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option>{SURVEY_STATUSES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
     <div className="scroll-table" ref={registry?.scrollRef}>
-      <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={survey => survey.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
-        columns={[{ key: 'code', label: t('code') }, { key: 'survey', label: en ? 'Survey' : 'Έρευνα' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'responses', label: en ? 'Responses' : 'Απαντήσεις' }, { key: 'status', label: t('status') }]}
+      <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={survey => survey.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
+        columns={withSort([{ key: 'code', label: t('code') }, { key: 'survey', label: en ? 'Survey' : 'Έρευνα' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'responses', label: en ? 'Responses' : 'Απαντήσεις' }, { key: 'status', label: t('status') }], sortBy)}
         emptyTitle={en ? 'No surveys yet' : 'Δεν υπάρχουν έρευνες'} emptyText={en ? 'Start one from a template: inpatients, outpatients and emergency, or staff.' : 'Ξεκινήστε από πρότυπο: νοσηλευόμενοι, εξωτερικοί ασθενείς και ΤΕΠ, ή προσωπικό.'}
         rowProps={survey => ({ ...(registry?.rowProps(survey.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(survey) })}
         renderRow={survey => { const closing = surveyClosingSoon(survey); return <>
@@ -88,6 +87,6 @@ export function SurveysList({ list, registry = null, filters, setFilters, onOpen
           <td><StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge></td>
         </> }} />
     </div>
-    {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
+    {rows.length > 0 && <RegistryPagination language={language} {...paging.props} />}
   </>
 }

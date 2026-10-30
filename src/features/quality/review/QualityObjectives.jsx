@@ -96,7 +96,7 @@ export function reviewsExport(rows, language) {
 export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με' }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'state', label: en ? 'Status' : 'Κατάσταση' }]}
+  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: objective => (objective.indicator ? textOf(objective.indicator, language) : '') }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: objective => targetReach(objective) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: objective => roleTitleText(objective.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: objective => objective.current.status }]}
     rowProps={objective => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(objective) })}
     renderRow={objective => <>
       <td><strong>{objective.code}</strong><small>{objective.year}</small></td>

@@ -11,6 +11,8 @@ import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -59,8 +61,16 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
  const [kpi,setKpi]=useState('all')
  const kpiMatch=useCallback(r=>kpi==='all'||(kpi==='approved'?snapshotFor(r)?.status==='approved':r.status===kpi),[kpi,snapshotFor])
  const filtered=useMemo(()=>rows.filter(r=>(category==='all'||r.category===category)&&kpiMatch(r)&&`${r.titleEl} ${r.titleEn} ${r.source}`.toLowerCase().includes(query.toLowerCase())),[rows,category,query,kpiMatch]);const onTarget=rows.filter(r=>r.status==='onTarget').length,attention=rows.filter(r=>r.status==='attention').length,approvedCount=rows.filter(r=>snapshotFor(r)?.status==='approved').length
- useEffect(()=>setPage(1),[query,category,kpi,effectiveDepartment,from,to,pageSize])
- const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=filtered.slice((safePage-1)*pageSize,safePage*pageSize);const sequenceIds=filtered.map(r=>r.definitionId).filter(Boolean)
+ // The arrows in the headers sort the whole filtered list; then the page is cut.
+ const approvalRank={approved:2,calculated:1,reviewed:1}
+ const {sorted:sortedRows,sort,onSort}=useTableSort(filtered,{
+  indicator:r=>el?r.titleEl:(r.titleEn||r.titleEl),
+  result:r=>(r.value==null?null:Number(r.value)),
+  status:r=>r.status,
+  approval:r=>approvalRank[snapshotFor(r)?.status]??0,
+ })
+ useEffect(()=>setPage(1),[query,category,kpi,effectiveDepartment,from,to,pageSize,sort])
+ const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize);const sequenceIds=sortedRows.map(r=>r.definitionId).filter(Boolean)
  const activeFilterCount=(category!=='all'?1:0)+(kpi!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
  function clearFilters(){setQuery('');setCategory('all');setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
  // A card narrows the list to its rows (like Employees and Controls); clicking it again shows them all.
@@ -101,7 +111,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={activeFilterCount} onClear={clearFilters} end={null} advanced={<><FilterDate label={t('indicatorsRecords.fromDate')} value={from} onChange={setFrom}/><FilterDate label={t('indicatorsRecords.toDate')} value={to} onChange={setTo}/></>}><FilterSelect label={t('category')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{[...new Set(rows.map(r=>r.category))].map(x=><option key={x} value={x}>{categoryLabel(x,t)}</option>)}</FilterSelect><FilterSelect label={t('department')} value={effectiveDepartment} onChange={setDepartment}>{!departmentScoped&&<option value="">{t('indicatorsRecords.wholeHospital')}</option>}{allowedDepartments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</FilterSelect></FilterBar>
    {to<from&&<div className="inline-empty">{t('indicatorsRecords.endDateAfterStart')}</div>}
    {firstLoad?<TableSkeleton/>:loading&&<div className="inline-empty">{t('indicatorsRecords.calculatingEllipsis')}</div>}
-   <div className="scroll-table" ref={registry.scrollRef}><table className="data-table sticky-table indicator-click-table"><thead><tr><th>{t('indicatorsRecords.tableIndicator')}</th><th>{t('indicatorsRecords.tableResult')}</th><th>{t('status')}</th><th>{t('indicatorsRecords.approvalLabel')}</th></tr></thead><tbody>{pagedRows.map(r=>{const snapshot=snapshotFor(r);return <tr key={r.definitionId||r.id} {...registry.rowProps(r.definitionId,()=>openIndicator(r))}><td><strong>{el?r.titleEl:r.titleEn}</strong><small>{[categoryLabel(r.category,t),[r.source,r.version].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}</small><small>{fmtIndicatorDay(from)} – {fmtIndicatorDay(to)}{r.calculation==='manual'?(translate('copy.indicatorsCopy.manual',el?'el':'en')):''}{riskCounts.get(r.id)?` · ${t('indicatorsRecords.risksLabel')}: ${riskCounts.get(r.id)}`:''}</small></td><td className={`indicator-result-cell ${r.status}`}><strong>{fmtIndicatorValue(r.value,el)}</strong><small>{r.calculation==='manual'?(translate('copy.indicatorsCopy.enterInsideIndicator',el?'el':'en')):[el?r.unit:(r.unitEn||r.unit),r.evidence].filter(Boolean).join(' · ')}</small>{r.target!=null&&<small className="indicator-target">{t('indicatorsRecords.targetLabel')} {r.direction==='higher'?'≥':r.direction==='lower'?'≤':''} {fmtIndicatorValue(Number(r.target),el)}</small>}</td><td><span className={`indicator-status ${r.status}`}>{statusText(r.status,t)}</span></td><td onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}>{(()=>{
+   <div className="scroll-table" ref={registry.scrollRef}><RegistryTable bare className="indicator-click-table" sort={sort} onSort={onSort} rows={pagedRows} rowKey={r=>r.definitionId||r.id} columns={[{key:'indicator',label:t('indicatorsRecords.tableIndicator'),sortable:true},{key:'result',label:t('indicatorsRecords.tableResult'),sortable:true},{key:'status',label:t('status'),sortable:true},{key:'approval',label:t('indicatorsRecords.approvalLabel'),sortable:true}]} renderRow={r=>{const snapshot=snapshotFor(r);return <tr {...registry.rowProps(r.definitionId,()=>openIndicator(r))}><td><strong>{el?r.titleEl:r.titleEn}</strong><small>{categoryLabel(r.category,t)} · {fmtIndicatorDay(from)} – {fmtIndicatorDay(to)}{r.calculation==='manual'?(translate('copy.indicatorsCopy.manual',el?'el':'en')):''}{riskCounts.get(r.id)?` · ${t('indicatorsRecords.risksLabel')}: ${riskCounts.get(r.id)}`:''}</small></td><td className={`indicator-result-cell ${r.status}`}><strong>{fmtIndicatorValue(r.value,el)}</strong><small>{r.calculation==='manual'?(translate('copy.indicatorsCopy.enterInsideIndicator',el?'el':'en')):[el?r.unit:(r.unitEn||r.unit),r.evidence].filter(Boolean).join(' · ')}</small>{r.target!=null&&<small className="indicator-target">{t('indicatorsRecords.targetLabel')} {r.direction==='higher'?'≥':r.direction==='lower'?'≤':''} {fmtIndicatorValue(Number(r.target),el)}</small>}</td><td><span className={`indicator-status ${r.status}`}>{statusText(r.status,t)}</span></td><td onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}>{(()=>{
     const pendingReview=snapshot&&(snapshot.status==='calculated'||snapshot.status==='reviewed')
     const stale=pendingReview&&r.value!=null&&Number(snapshot.value)!==Number(r.value)
     if(!snapshot)return <span className="indicator-approval-none" title={t('indicatorsRecords.notSaved')} aria-label={t('indicatorsRecords.notSaved')}>—</span>
@@ -109,7 +119,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
     if(pendingReview&&stale)return <span className="indicator-approval-pending">{t('indicatorsRecords.valueChangedResaveRequired')}</span>
     if(pendingReview)return canManage?<IconButton size="sm" label={t('indicatorsRecords.approveIndicatorAction')} disabled={approvingId===snapshot.id} onClick={()=>approveSnapshot(snapshot)}><ClipboardCheck size={15}/></IconButton>:<span className="indicator-approval-pending">{t('indicatorsRecords.pendingApproval')}</span>
     return null
-  })()}</td></tr>})}</tbody></table>{!loading&&!filtered.length&&(rows.length?<RegistryEmptyState filtered onClearFilters={clearFilters}/>:<RegistryEmptyState icon={Activity} title={t('indicatorsRecords.noActiveIndicators')} text={t('indicatorsRecords.emptyRegistryText')} action={canManage?{label:t('indicatorsRecords.newIndicatorTitle'),icon:Plus,onClick:()=>navigate('/indicators/new')}:null}/>)}</div>
+  })()}</td></tr>}}/>{!loading&&!filtered.length&&(rows.length?<RegistryEmptyState filtered onClearFilters={clearFilters}/>:<RegistryEmptyState icon={Activity} title={t('indicatorsRecords.noActiveIndicators')} text={t('indicatorsRecords.emptyRegistryText')} action={canManage?{label:t('indicatorsRecords.newIndicatorTitle'),icon:Plus,onClick:()=>navigate('/indicators/new')}:null}/>)}</div>
    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
   </section>
  </Page>

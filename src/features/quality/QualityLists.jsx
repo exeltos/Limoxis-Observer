@@ -2,9 +2,9 @@ import { useEffect,useMemo,useState } from 'react'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { AlertOctagon,AlertTriangle,BarChart3,Building2,FileWarning,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useSortedPaging,withSort } from './useSortedPaging'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Meter,meterTone } from '../../design-system/MiniCharts'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -37,13 +37,6 @@ export function useListFilters(key,defaults){
  return {filters,set,clear,setFilters}
 }
 
-function usePaging(items,resetKey){
- const [page,setPage]=useState(1)
- const [pageSize,setPageSize]=useState(15)
- useEffect(()=>setPage(1),[resetKey,pageSize])
- const totalPages=Math.max(1,Math.ceil(items.length/pageSize)),safePage=Math.min(page,totalPages)
- return {rows:items.slice((safePage-1)*pageSize,safePage*pageSize),props:{page:safePage,totalPages,totalItems:items.length,pageSize,onPageChange:setPage,onPageSizeChange:setPageSize}}
-}
 
 const departmentOf=(row,en)=>(en?row.departmentEn:row.department)||''
 const titleOf=(row,en)=>(en?row.titleEn:row.title)||row.title||''
@@ -128,7 +121,8 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
  // Findings that still wait for an action are listed under Deviations.
  const actions=useMemo(()=>rows.filter(row=>row.kind==='capa'),[rows])
  const filtered=useMemo(()=>filterActions(actions,filters,en),[actions,filters,en])
- const paging=usePaging(filtered,JSON.stringify(filters))
+ const sortBy={code:row=>row.code,title:row=>titleOf(row,en),source:row=>row.sourceKind,department:row=>departmentOf(row,en),date:row=>row.dueDate,owner:row=>recordOwners(row).join(', '),status:row=>row.status}
+ const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
  const statuses=[...new Set(actions.map(row=>row.status).filter(Boolean))]
  const departments=[...new Set(actions.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
  const advanced=['status','department'].filter(key=>filters[key]!=='all').length
@@ -138,10 +132,10 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
   </FilterBar>
   <div className="scroll-table" ref={registry.scrollRef}>
-   <RegistryTable sortable={false} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length} emptyFiltered={actions.length>0} onClearFilters={clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Came from':'Προέλευση'},{key:'department',label:t('department')},{key:'date',label:en?'Due':'Προθεσμία'},{key:'owner',label:t('owner')},{key:'status',label:t('status')}]}
+   <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length} emptyFiltered={actions.length>0} onClearFilters={clear}
+    columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Came from':'Προέλευση'},{key:'department',label:t('department')},{key:'date',label:en?'Due':'Προθεσμία'},{key:'owner',label:t('owner')},{key:'status',label:t('status')}],sortBy)}
     emptyTitle={en?'No actions':'Δεν υπάρχουν ενέργειες'} emptyText={en?'Corrective actions from reports, findings, deviations, risks and reviews appear here.':'Εδώ εμφανίζονται οι διορθωτικές ενέργειες από αναφορές, ευρήματα, αποκλίσεις, κινδύνους και ανασκοπήσεις.'}
-    rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,filtered)})}
+    rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,paging.sorted)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.sourceKind]||CheckSquare2;const overdue=isOverdueAction(row);return <>
      <td><strong>{qualityCode(row,language)}</strong><small>{vocabularyLabel(CAPA_TYPES,row.actionType||'corrective',language)}</small></td>
      <td>{titleOf(row,en)}{row.subActions?.length>0&&(({done,total})=><><small>{en?`${done}/${total} steps done`:`${done}/${total} βήματα ολοκληρώθηκαν`}</small><Meter value={done*100/total} tone={done===total?'success':'neutral'} label={en?`${done}/${total} steps done`:`${done}/${total} βήματα`}/></>)(subActionProgress(row.subActions))}</td>
@@ -206,24 +200,24 @@ export function AuditsSummary({rows,counts,view,loading,language,onFill=null,fil
 
 // The audits as the year's programme (departments × months), a list, the
 // clause coverage of a standard and the dashboard; the filters apply to all four.
-const AUDIT_VIEWS=[
+export const AUDIT_VIEWS=[
  {id:'programme',icon:CalendarDays,label:['Πρόγραμμα','Programme']},
  {id:'list',icon:ListChecks,label:['Λίστα','List']},
  {id:'readiness',icon:BarChart3,label:['Ετοιμότητα','Readiness']},
  {id:'self',icon:ClipboardCheck,label:['Αυτοαξιολόγηση','Self-assessment']},
 ]
-export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null,onRound=null,canManageSelf=false}){
+export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=null,findings=[],onOpenFinding=null,canManageSelf=false}){
  const en=language==='en'
  const {filters,set,clear}=view
  const filtered=useMemo(()=>filterAudits(rows,filters,en),[rows,filters,en])
- const paging=usePaging(filtered,JSON.stringify(filters))
+ const sortBy={code:row=>row.code,title:row=>titleOf(row,en),standard:row=>row.standard,type:row=>row.auditType,date:row=>row.plannedDate,compliance:row=>auditCompliance(row).rate,owner:row=>row.leadAuditor,status:row=>row.status}
+ const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
  const statuses=[...new Set(rows.map(row=>row.status).filter(Boolean))]
  const departments=[...new Set(rows.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
  const advanced=['status','type','department','standard'].filter(key=>filters[key]&&filters[key]!=='all').length
  const mode=AUDIT_VIEWS.some(item=>item.id===filters.mode)?filters.mode:'programme'
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}
-   end={<>{onRound&&<button type="button" className="text-button quality-round-link" onClick={onRound}>{en?'Plan an audit round':'Κύκλος επιθεώρησης'}</button>}<ModeSwitch ariaLabel={en?'View':'Προβολή'} value={mode} onChange={value=>set('mode',value)} options={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))}/></>}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search audits…':'Αναζήτηση επιθεωρήσεων…'} activeAdvancedCount={advanced} onClear={()=>clear()}>
    <FilterSelect label={en?'Standard':'Πρότυπο'} value={filters.standard||'all'} onChange={value=>set('standard',value)}><option value="all">{t('all')}</option>{AUDIT_STANDARDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('auditType')} value={filters.type} onChange={value=>set('type',value)}><option value="all">{t('all')}</option>{AUDIT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
@@ -234,10 +228,10 @@ export function AuditsList({rows,view,loading,language,t,registry,onOpen,onPlan=
   {mode==='readiness'&&<AuditReadiness audits={filtered} findings={findings} language={language} onOpenAudit={audit=>onOpen(audit,filtered)} onOpenFinding={onOpenFinding}/>}
   {mode==='list'&&<>
    <div className="scroll-table" ref={registry.scrollRef}>
-    <RegistryTable sortable={false} bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={()=>clear()}
-     columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'standard',label:en?'Standard':'Πρότυπο'},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}]}
+    <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-audits-table" rows={paging.rows} empty={!loading&&!filtered.length} emptyFiltered={rows.length>0} onClearFilters={()=>clear()}
+     columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'standard',label:en?'Standard':'Πρότυπο'},{key:'type',label:t('auditType')},{key:'date',label:en?'Planned':'Ημερομηνία'},{key:'compliance',label:en?'Compliance':'Συμμόρφωση'},{key:'owner',label:en?'Lead auditor':'Επικεφαλής'},{key:'status',label:t('status')}],sortBy)}
      emptyTitle={en?'No audits':'Δεν υπάρχουν επιθεωρήσεις'} emptyText={en?'Plan the year’s audits on a questionnaire; each «Partial» or «Nonconformity» becomes a finding.':'Προγραμματίστε τις επιθεωρήσεις του έτους με ερωτηματολόγιο· κάθε «Μερική» ή «Μη συμμόρφωση» γίνεται εύρημα.'}
-     rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,filtered)})}
+     rowProps={row=>({...registry.rowProps(row.id),onClick:()=>onOpen(row,paging.sorted)})}
      renderRow={row=>{const score=auditCompliance(row);return <>
       <td><strong>{qualityCode(row,language)}</strong></td>
       <td>{titleOf(row,en)}{departmentOf(row,en)&&<small>{departmentOf(row,en)}</small>}</td>
