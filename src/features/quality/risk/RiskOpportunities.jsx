@@ -1,8 +1,7 @@
 import { useMemo,useState } from 'react'
 import { FigureCards } from '../../../design-system/FigureCards'
-import { ChevronRight,Plus } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
-import { ActionButton } from '../../../design-system/ActionButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { EFFECTIVENESS,OPPORTUNITY_RATINGS,normalizeOpportunity,opportunityCode,parseMeasures } from './riskModel'
@@ -16,7 +15,7 @@ export function EffectivenessBadge({id,en}){const x=EFFECTIVENESS.find(item=>ite
 const QUICK={high:x=>x.o.ratingId==='high',noPlan:x=>!x.plan.length,unassessed:x=>!x.o.effectivenessStatus||x.o.effectivenessStatus==='pending'}
 
 // Opportunities (ISO 9001 §6.1 risks and opportunities) of the assessment.
-export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null,returned='',frame=defaultFrame}){
+export function RiskOpportunities({items,en,onOpen,actions=null,returned='',frame=defaultFrame}){
  const [query,setQuery]=useState('')
  const [rating,setRating]=useState('all')
  const [effect,setEffect]=useState('all')
@@ -51,7 +50,6 @@ export function RiskOpportunities({items,en,canEdit,onOpen,onCreate,actions=null
     <FilterSelect label={L(en,'Υπεύθυνος','Owner')} value={owner} onChange={setOwner}><option value="all">{L(en,'Όλοι','All')}</option>{owners.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
    </FilterBar>
    <div className="risk-toolbar-actions">
-    {canEdit&&<ActionButton label={L(en,'Νέα ευκαιρία','New opportunity')} tone="primary" onClick={onCreate}><Plus size={16}/><span>{L(en,'Νέα ευκαιρία','New opportunity')}</span></ActionButton>}
     {actions}
    </div>
   </div>

@@ -2,7 +2,8 @@ import { CanonicalTabs } from '../../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../../design-system/ExportMenu'
 import { useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState } from 'react'
 import { useLocation,useNavigate,useParams,useSearchParams } from 'react-router-dom'
-import { ArrowLeft, BarChart3, BookOpen, CheckCircle2, ClipboardList, GitCompareArrows, Lightbulb, RotateCcw, Send, ShieldAlert, Archive, Trash2, Info, Pencil, Gauge } from 'lucide-react'
+import { ArrowLeft, BarChart3, BookOpen, CheckCircle2, ClipboardList, GitCompareArrows, Lightbulb, RotateCcw, Send, ShieldAlert, Archive, Trash2, Info, Pencil, Gauge, Plus } from 'lucide-react'
+import { ActionButton } from '../../../design-system/ActionButton'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
@@ -155,8 +156,10 @@ export function RiskAssessmentPage(){
  // The next step of the approval cycle, offered on the «Στοιχεία» tab.
  const nextStep=statusItems.find(item=>item.id===(assessment.status==='draft'?'review':assessment.status==='under_review'?'approve':assessment.status==='approved'?'archive':''))||null
  // «Εξαγωγή» in the header of the record; «⋯» at the top right of the card, as on every record.
+ // «New risk» / «New opportunity» in the header, as the platform's other pages.
+ const createAction=canEdit&&(tab==='register'||tab==='opportunities')?<ActionButton label={tab==='register'?L(en,'Νέος κίνδυνος','New risk'):L(en,'Νέα ευκαιρία','New opportunity')} tone="primary" onClick={()=>navigate(tab==='register'?`/quality/risks/${assessment.code}/new`:`/quality/risks/${assessment.code}/opportunities/new`,tab==='register'?{state:{riskTab:tab}}:undefined)}><Plus size={16}/><span>{tab==='register'?L(en,'Νέος κίνδυνος','New risk'):L(en,'Νέα ευκαιρία','New opportunity')}</span></ActionButton>:null
  const exportMenu=<ExportMenu onPrint={print} onPdf={print} items={[{id:'register',kind:'excel',label:L(en,'Excel: μητρώο κινδύνων','Excel: risk register'),onClick:exportCsv}]}/>
- const moreMenu=menuItems.length>0?<span className="risk-tabs-menu"><OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} size="md" width={280} trigger={<><span>{L(en,'Ενέργειες','Actions')}</span></>} items={menuItems}/></span>:null
+ const moreMenu=menuItems.length>0?<span className="risk-tabs-menu"><OverflowMenu label={L(en,'Ενέργειες εκτίμησης','Assessment actions')} width={280} items={menuItems}/></span>:null
 
  const tabs=[
   {id:'register',label:L(en,`Μητρώο (${risks.length})`,`Register (${risks.length})`),icon:ClipboardList},
@@ -190,12 +193,12 @@ export function RiskAssessmentPage(){
   title={txt(assessment,'title',en)}
   subtitle={[assessment.formCode,assessment.periodLabel,fmtDate(assessment.assessedOn,locale)].filter(Boolean).join(' · ')}
   status={<AssessmentStatusBadge status={assessment.status} en={en}/>}
-  headerActions={exportMenu}
+  headerActions={<>{createAction}{exportMenu}</>}
   onBack={goBack} backLabel={origin?L(en,`Πίσω σε «${viewLabel(origin.tab)}»`,`Back to “${viewLabel(origin.tab)}”`):L(en,'Πίσω στο Κέντρο Ποιότητας','Back to the Quality Center')}>
-   {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} canEdit={canEdit} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} onCreate={()=>navigate(`/quality/risks/${assessment.code}/new`,{state:{riskTab:tab}})} indicatorValues={indicatorValues} returned={riskRow.returned} evidenceOf={evidenceOf}/>}
+   {tab==='register'&&<RiskRegister frame={frame} key={JSON.stringify(preset)} preset={preset} risks={risks} en={en} cell={cell} onClearCell={()=>setView({riskTab:'register',riskOrigin:origin})} onOpen={openRisk} indicatorValues={indicatorValues} returned={riskRow.returned} evidenceOf={evidenceOf}/>}
    {tab==='analysis'&&<RiskAnalysis frame={analysisFrame} mark={view.riskMark||''} returned={riskRow.returned} summary={summary} risks={risks} indicatorValues={indicatorValues} en={en} onOpen={openRisk} onCell={c=>jump('register',{cell:c},`${c.kind}:${c.l}:${c.c}`)}/>}
    {tab==='comparison'&&<RiskComparison frame={analysisFrame} returned={riskRow.returned} assessment={{...assessment,risks}} assessments={comparable} en={en} locale={locale} onOpen={(risk,from)=>{if(from&&from.id!==assessment.id){rememberRow(`limoxis.quality.risk.returned.${from.code}`,risk.lineageKey);navigate(`/quality/risks/${from.code}/${risk.lineageKey}`,{state:{riskTab:'comparison'}})}else openRisk(risk)}}/>}
-   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} items={assessment.opportunities||[]} en={en} canEdit={canEdit} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}} onCreate={()=>navigate(`/quality/risks/${assessment.code}/opportunities/new`)}/>}
+   {tab==='opportunities'&&<RiskOpportunities frame={frame} returned={opportunityRow.returned} items={assessment.opportunities||[]} en={en} onOpen={item=>{opportunityRow.remember(item.id);navigate(`/quality/risks/${assessment.code}/opportunities/${item.id}`,{state:{returnState:view}})}}/>}
    {tab==='methodology'&&<RiskMethodology frame={detailsFrame} en={en} risks={risks} returned={view.riskMark||''} onJci={jci=>jump('register',{jci},`jci:${jci}`)} onPickFmea={()=>jump('register',{quick:'highOrAbove'},'fmea')}/>}
    {tab==='details'&&<RiskAssessmentDetails frame={detailsFrame} assessment={assessment} assessments={all} en={en} locale={locale} nextStep={nextStep} onOpenAssessment={code=>navigate(`/quality/risks/${code}`)} onCreateNext={canManage?()=>setCreatingNext(true):null}/>}
   <div className="risk-print-host" aria-hidden="true"><RiskReport ref={reportRef} assessment={{...assessment,risks}} summary={summary} previous={previous} organizationName={tenant?.name||''} en={en} locale={locale}/></div>

@@ -1,8 +1,7 @@
 import { useMemo,useState } from 'react'
 import { FigureCards } from '../../../design-system/FigureCards'
-import { AlertTriangle,ChevronRight,Plus,Star } from 'lucide-react'
+import { AlertTriangle,ChevronRight,Star } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
-import { ActionButton } from '../../../design-system/ActionButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { JCI_CHAPTERS,LEVELS,SECTIONS,riskWarnings,scored,warningLabel } from './riskModel'
 import { L,LevelChip,defaultFrame,returnedClass,txt,usePaged } from './riskUi'
@@ -20,7 +19,7 @@ function RiskEvidence({evidence,en}){
  return <span className="risk-evidence" title={L(en,'Τους τελευταίους 12 μήνες','In the last 12 months')}>{L(en,'12μ','12m')}: {parts.join(' · ')}</span>
 }
 
-export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,actions=null,indicatorValues=null,returned='',preset=null,frame=defaultFrame,evidenceOf=null}){
+export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indicatorValues=null,returned='',preset=null,frame=defaultFrame,evidenceOf=null}){
  const [query,setQuery]=useState('')
  const [section,setSection]=useState('all')
  const [process,setProcess]=useState('all')
@@ -72,7 +71,6 @@ export function RiskRegister({risks,en,canEdit,onOpen,onCreate,cell,onClearCell,
     <FilterSelect label={L(en,'Εμφάνιση','Show')} value={flag} onChange={setFlag}><option value="all">{L(en,'Όλους','All')}</option><option value="warnings">{L(en,'Με εκκρεμότητες','With open points')}</option><option value="prioritized">{L(en,'Επιλεγμένους για FMEA','Selected for FMEA')}</option></FilterSelect>
    </FilterBar>
    <div className="risk-toolbar-actions">
-    {canEdit&&<ActionButton label={L(en,'Νέος κίνδυνος','New risk')} tone="primary" onClick={onCreate}><Plus size={16}/><span>{L(en,'Νέος κίνδυνος','New risk')}</span></ActionButton>}
     {actions}
    </div>
   </div>
