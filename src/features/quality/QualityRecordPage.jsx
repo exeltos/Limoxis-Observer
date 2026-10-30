@@ -49,6 +49,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { auditCompliance } from './qualityAudit'
 import { QualityCapaRootCause } from './QualityCapaRootCause'
 import { QualityCapaProgress } from './QualityCapaProgress'
+import { QualityFilesRow } from './QualityFiles'
 import { IncidentEventFields, IncidentEventSummary, IncidentEventTypeField } from './IncidentEventDetails'
 import { analysisProgress } from './rootCauseAnalysis'
 import { capaSourceFor,sourcePath,subActionProgress } from './qualityDeviations'
@@ -137,6 +138,7 @@ export function QualityRecordPage(){
           onSelect={id=>openTab(id)} onOpenCapa={capa=>goTo(`/quality/capas/${capa.id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:tab})}
           onStep={next=>{if(next.id==='assess'||next.id==='close')openTab('assessment',true);else if(next.id==='capa')goTo('/quality/capas/new',{returnTo:`/quality/incidents/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor('incidents',record,language)}});else if(next.capa)goTo(`/quality/capas/${next.capa.id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:'details'})}}/>
       </div>:(tab==='details'||tab==='assessment')&&<QualityDetails key={tab} view={tab} recordType={recordType} record={record} linked={linked} setRecord={setRecord} t={t} language={language} canManage={canManage} notify={notify} actor={actor} finalized={finalized} onDeleted={goBack} organizationId={organizationId} extra={audit?<AuditPlanPanel record={record} setRecord={setRecord} organizationId={organizationId} canManage={canManage} finalized={finalized} language={language} notify={notify} actor={actor}/>:null}/>}
+      {tab==='details'&&(incident||recordType==='findings')&&<QualityFilesRow record={record} recordType={recordType} organizationId={organizationId} canAdd={!finalized&&(canAttach||canManage)} onOpen={()=>openTab('documents')} en={language==='en'}/>}
       {tab==='rootCause'&&recordType==='capas'&&<div className="quality-record-stack"><QualityCapaRootCause record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/></div>}
       {tab==='steps'&&recordType==='capas'&&<div className="quality-record-stack"><QualityCapaSteps record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language} locale={locale}/>
         <QualityCapaProgress record={record} setRecord={setRecord} canManage={canManage} finalized={finalized} organizationId={organizationId} actor={actor} notify={notify} language={language}/></div>}

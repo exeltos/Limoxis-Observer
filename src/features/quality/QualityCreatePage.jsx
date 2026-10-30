@@ -19,6 +19,7 @@ import { can,CAPABILITIES,ROLES } from '../../core/permissions/roles'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { auditActorFromAuth, auditEvent } from '../../core/audit/actor'
 import { createQualityRecord } from './qualityService'
+import { PendingFilesCard,usePendingFiles } from './QualityFiles'
 import { AUDIT_TYPES,CAPA_TYPES,FINDING_SOURCES,severityOptions,vocabularyOptions } from './qualityVocabulary'
 import { QualityDepartmentField,QualityOwnerField,QualityPersonField,departmentRef } from './QualityFields'
 import { IncidentReportPage } from './IncidentReportPage'
@@ -52,6 +53,7 @@ function QualityRecordCreate({recordType}){
   const location=useLocation();const {goBack}=useContextualNavigation('/quality');const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const {user,profile}=useAuth();const {role,membership,tenant,actualRole,isRolePreview}=useTenant();const c=config[recordType];const Icon=c.icon
   const pageTitle=Array.isArray(c.title)?c.title[en?1:0]:t(c.title)
   const [saving,setSaving]=useState(false)
+  const pending=usePendingFiles(notify,en)
   const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',standard:'',templateId:null,clausesScope:[],team:[],riskLevel:'medium',frequencyMonths:12,plannedMonthOnly:false,...prefillFrom(location.state?.qualitySource)}))
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
   const set=(k,v)=>setDraft(x=>({...x,[k]:v}));const patch=next=>setDraft(x=>({...x,...next}))
@@ -60,7 +62,7 @@ function QualityRecordCreate({recordType}){
   const competence=useAuditorCompetence(recordType==='audits'?tenant?.id:false)
   const blocked=recordType==='audits'&&independenceBlocks(draft.team||[],{id:draft.departmentId,name:draft.department})
   const valid=Boolean(draft[titleKey].trim())&&!blocked
-  async function save(){if(!canManage||!valid||saving)return;setSaving(true);try{const actor=auditActorFromAuth({profile,user});await createQualityRecord(recordType,tenant?.id,{...draft,title:draft.title||draft.titleEn,titleEn:draft.titleEn||draft.title,reportedByLabel:actor.name,history:[auditEvent('recordCreated',{actor})]},user?.id);if(recordType==='capas')signalDemoScenario('incident_capa');if(recordType==='audits')signalDemoStep('quality_audit','create');notify(t('recordCreated'),'success')
+  async function save(){if(!canManage||!valid||saving)return;setSaving(true);try{const actor=auditActorFromAuth({profile,user});const created=await createQualityRecord(recordType,tenant?.id,{...draft,title:draft.title||draft.titleEn,titleEn:draft.titleEn||draft.title,reportedByLabel:actor.name,history:[auditEvent('recordCreated',{actor})]},user?.id);const failed=recordType==='findings'?await pending.upload(tenant?.id,recordType,created?.dbId):0;if(failed)notify(en?`${failed} of ${pending.files.length} files could not be attached. Add them from the «Documents» tab.`:`${failed} από ${pending.files.length} αρχεία δεν επισυνάφθηκαν. Προσθέστε τα από την καρτέλα «Έγγραφα».`,'warning');if(recordType==='capas')signalDemoScenario('incident_capa');if(recordType==='audits')signalDemoStep('quality_audit','create');notify(t('recordCreated'),'success')
   goBack()}catch(error){console.error(error);notify(en?'The quality record could not be saved.':'Δεν ήταν δυνατή η αποθήκευση της εγγραφής ποιότητας.','error')}finally{setSaving(false)}}
   if(!canManage)return <Navigate to="/quality" replace/>
   const sourceText={emptyLabel:en?'No match':'Δεν βρέθηκε',clearLabel:en?'Clear':'Καθαρισμός'}
@@ -93,6 +95,7 @@ function QualityRecordCreate({recordType}){
         <Field label={t(recordType==='audits'?'qualityRecords.auditScope':'description')}><textarea rows={3} value={draft[textKey]} onChange={e=>set(textKey,e.target.value)}/></Field>
       </FormCard>
       {steps}
+      {recordType==='findings'&&<PendingFilesCard pending={pending} saving={saving} en={en}/>}
     </div>}<div className="inline-edit-footer"><Button variant="secondary" onClick={goBack}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div></div>
   </EntityRecordShell></Page>
 }
