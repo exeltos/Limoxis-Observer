@@ -9,10 +9,17 @@ alter table public.quality_incidents add column if not exists privacy text not n
 alter table public.quality_incidents add column if not exists visibility text;
 alter table public.quality_incidents add column if not exists visible_to uuid;
 
-alter table public.quality_incidents add constraint quality_incidents_privacy_check
-  check (privacy in ('named', 'confidential', 'anonymous'));
-alter table public.quality_incidents add constraint quality_incidents_visibility_check
-  check (visibility is null or visibility in ('admin', 'quality', 'person'));
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'quality_incidents_privacy_check') then
+    alter table public.quality_incidents add constraint quality_incidents_privacy_check
+      check (privacy in ('named', 'confidential', 'anonymous'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'quality_incidents_visibility_check') then
+    alter table public.quality_incidents add constraint quality_incidents_visibility_check
+      check (visibility is null or visibility in ('admin', 'quality', 'person'));
+  end if;
+end $$;
 
 create or replace function private.quality_incident_private_visible(
   target_org uuid, target_privacy text, target_visibility text, target_visible_to uuid, target_reporter uuid)
@@ -30,15 +37,18 @@ as $$
     or (target_visibility = 'person' and target_visible_to = (select auth.uid()))
 $$;
 
+-- (δημιουργείται μία φορά)
 create policy quality_incident_private_read on public.quality_incidents
   as restrictive for select to authenticated
   using (private.quality_incident_private_visible(organization_id, privacy, visibility, visible_to, reported_by));
 
+-- (δημιουργείται μία φορά)
 create policy quality_incident_private_update on public.quality_incidents
   as restrictive for update to authenticated
   using (private.quality_incident_private_visible(organization_id, privacy, visibility, visible_to, reported_by))
   with check (private.quality_incident_private_visible(organization_id, privacy, visibility, visible_to, reported_by));
 
+-- (δημιουργείται μία φορά)
 create policy quality_incident_private_delete on public.quality_incidents
   as restrictive for delete to authenticated
   using (private.quality_incident_private_visible(organization_id, privacy, visibility, visible_to, reported_by));
