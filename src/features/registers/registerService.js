@@ -14,7 +14,8 @@ import { definitionRows, entryFromRow, registerFromRows, registerRow, rowFromEnt
 
 // The demo and the Platform Owner preview (help screenshots) use the sample registers.
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
-const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+// Any UUID the database accepts: imported cases keep their original ids, not all of them version 1–5.
+const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ''))
 const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 function assertCloud(organizationId) {
   if (!supabase) throw new Error('Supabase is not configured.')
