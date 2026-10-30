@@ -176,3 +176,22 @@
 .audit-plan-page input:not([type=checkbox]):not([type=file]),.audit-round-page input:not([type=checkbox]):not([type=file]),.audit-plan-page select,.audit-round-page select{height:40px;box-sizing:border-box}
 .audit-round-page .lo-form-grid{align-items:end}
 .audit-round-tools>button{height:40px}
+/* Questions on one line: the wording, the four answers and the comment and file links side by side; the guidance behind the «i». */
+.audit-question{grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:0 14px;padding:8px 12px}
+.audit-question>*{grid-column:1/-1}
+.audit-question>.audit-chapter-title{grid-row:1;margin:0 0 6px}
+.audit-question>:not(.audit-chapter-title):not(.audit-question-head):not(.audit-answer-buttons):not(.audit-answer-tools){margin-top:8px}
+.audit-question>.audit-question-head{grid-column:1;grid-row:2}
+.audit-question>.audit-answer-buttons{grid-column:2;grid-row:2;margin:0;grid-template-columns:repeat(4,60px);gap:6px}
+.audit-question>.audit-answer-tools{grid-column:3;grid-row:2;margin:0;flex-wrap:nowrap;gap:10px}
+.audit-answer-buttons button{min-height:34px;font-size:13px}
+.audit-question-head>strong{flex:1 1 260px}
+.audit-info{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid var(--lo-color-border);border-radius:999px;background:none;color:var(--lo-color-muted);cursor:pointer}
+.audit-info[aria-expanded="true"]{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
+@media(max-width:900px){.audit-question>.audit-question-head,.audit-question>.audit-answer-buttons,.audit-question>.audit-answer-tools{grid-column:1/-1;grid-row:auto}.audit-question>.audit-answer-buttons{margin-top:8px}.audit-question>.audit-answer-buttons{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.audit-next-chapter{display:flex;justify-content:flex-end;padding:10px 0}
+.audit-meeting{display:grid;gap:8px}
+.audit-meeting-line{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font:inherit;font-size:12.5px;color:var(--lo-color-text);text-align:left;cursor:pointer}
+.audit-meeting-line>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--lo-color-muted)}
+.audit-meeting-line[aria-expanded="true"]>svg:last-child{transform:rotate(90deg)}
+.audit-meeting-fields{padding:4px 2px 8px}

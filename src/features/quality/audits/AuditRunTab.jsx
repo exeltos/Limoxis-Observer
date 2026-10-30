@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Paperclip, Plus, SearchCheck, Users } from 'lucide-react'
+import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Info, Paperclip, Plus, SearchCheck, Users } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { Field } from '../../../design-system/Field'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { CheckboxField } from '../../../design-system/CheckboxField'
-import { FormCard, FormGrid } from '../../../design-system/FormCard'
+import { FormGrid } from '../../../design-system/FormCard'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { SectionHeader } from '../../../design-system/SectionHeader'
 import { StatusBadge } from '../../../design-system/StatusBadge'
-import { MoreSection } from '../../../design-system/MoreSection'
 import { AttachmentField } from '../../../design-system/AttachmentField'
 import { meterTone } from '../../../design-system/MiniCharts'
+import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { createQualityRecord, saveQualityRecord } from '../qualityService'
@@ -44,11 +44,13 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const initial = useMemo(() => (stored.length || (!template && !others.length) ? stored : questionsForStandards([template, ...others], { department: record.department, scope: record.clausesScope, allAreas })), [stored, template, others, record.department, record.clausesScope, allAreas])
   const [rows, setRows] = useState(initial)
   const [meetings, setMeetings] = useState(() => meetingState(record))
-  const [chapter, setChapter] = useState('all')
+  // A questionnaire of several chapters opens on the first chapter still to answer, one chapter at a time.
+  const [chapter, setChapter] = useState(() => firstOpenChapter(initial))
   const [standardView, setStandardView] = useState('all')
   const [openOnly, setOpenOnly] = useState(false)
   const [attachmentsOf, setAttachmentsOf] = useState(null)
   const [notesOpen, setNotesOpen] = useState(() => new Set())
+  const [guideOpen, setGuideOpen] = useState(() => new Set())
   const [adHoc, setAdHoc] = useState('')
   const [saving, setSaving] = useState(false)
   const [findingFor, setFindingFor] = useState(null)
@@ -62,6 +64,8 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const chapters = score.chapters
   const shownChapters = standardView === 'all' && score.standards.length > 1 ? [] : chapters.filter(item => standardView === 'all' || item.standard === standardView)
   const visible = rows.map((row, index) => ({ row, index })).filter(({ row }) => (standardView === 'all' || (row.standard || '') === standardView) && (chapter === 'all' || chapterKey(row) === chapter) && (!openOnly || !row.answer || (needsClass(row) && (!row.findingClass || !row.findingId))))
+  const chapterAt = shownChapters.findIndex(item => item.key === chapter)
+  const nextChapter = chapter !== 'all' && chapterAt >= 0 ? shownChapters[chapterAt + 1] : null
   const setRow = (index, next) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next, ...(next.answer !== undefined && !classesFor(next.answer).includes(row.findingClass) ? { findingClass: '' } : {}) } : row)))
   const complete = rows.length > 0 && score.overall.unanswered === 0 && toClassify.length === 0
 
@@ -147,15 +151,13 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       {shownChapters.map(item => <button type="button" key={item.key} className={`${chapter === item.key ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.key)}><strong>{item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
     </div>}
 
-    <MoreSection moreLabel={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} lessLabel={L(en, 'Λιγότερα', 'Less')} defaultOpen={Boolean(meetings.opening.date || meetings.opening.attendees || meetings.representative)}>
-    <FormCard wide title={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} icon={Users}>
+    <MeetingLine title={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} summary={[meetings.opening.date && formatDay(meetings.opening.date, language), meetings.representative, meetings.opening.attendees].filter(Boolean).join(' · ')} language={language}>
       <FormGrid columns={3}>
         <ManualDateField label={L(en, 'Ημερομηνία', 'Date')} value={meetings.opening.date} onChange={date => setMeetings(current => ({ ...current, opening: { ...current.opening, date } }))} disabled={!editable} />
         <Field label={L(en, 'Εκπρόσωπος του τμήματος', 'Auditee representative')}><input value={meetings.representative} disabled={!editable} onChange={event => setMeetings(current => ({ ...current, representative: event.target.value }))} /></Field>
-        <Field label={L(en, 'Παρόντες', 'Attendees')}><input value={meetings.opening.attendees} disabled={!editable} onChange={event => setMeetings(current => ({ ...current, opening: { ...current.opening, attendees: event.target.value } }))} placeholder={L(en, 'Ονόματα, χωρισμένα με κόμμα', 'Names, separated by commas')} /></Field>
+        <Field label={L(en, 'Παρόντες', 'Attendees')}><input value={meetings.opening.attendees} disabled={!editable} onChange={event => setMeetings(current => ({ ...current, opening: { ...current.opening, attendees: event.target.value } }))} /></Field>
       </FormGrid>
-    </FormCard>
-    </MoreSection>
+    </MeetingLine>
 
     <SectionHeader title={L(en, `Ερωτηματολόγιο${record.templateTitle ? ` · ${record.templateTitle}` : ''}`, `Questionnaire${record.templateTitle ? ` · ${record.templateTitle}` : ''}`)}
       subtitle={!stored.length && template ? L(en, `${rows.length} ερωτήσεις για ${area ? `την περιοχή «${areaLabel(area, language)}»` : 'όλο τον οργανισμό'}${record.clausesScope?.length ? ` και τα κεφάλαια ${record.clausesScope.join(', ')}` : ''}. Αποθηκεύονται με την πρώτη αποθήκευση.`, `${rows.length} questions for ${area ? `the «${areaLabel(area, language)}» area` : 'the whole organization'}${record.clausesScope?.length ? ` and chapters ${record.clausesScope.join(', ')}` : ''}. Kept on the first save.`) : undefined}
@@ -177,11 +179,16 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
             {row.critical && <StatusBadge tone="danger">{L(en, 'Κρίσιμη', 'Critical')}</StatusBadge>}
             {row.adHoc && <StatusBadge tone="neutral">{L(en, 'Επιπλέον ερώτηση', 'Added question')}</StatusBadge>}
             {Number(row.weight) > 1 && <StatusBadge tone="info">{L(en, `βάρος ${row.weight}`, `weight ${row.weight}`)}</StatusBadge>}
+            {(row.guidance || row.evidenceRequired) && <button type="button" className="audit-info" aria-expanded={guideOpen.has(row.id)} title={L(en, 'Οδηγία και τεκμήρια', 'Guidance and evidence')} onClick={() => setGuideOpen(current => { const next = new Set(current); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next })}><Info size={14} /></button>}
           </div>
-          {(row.guidance || row.evidenceRequired) && <p className="audit-question-guide">{row.guidance && <span>{row.guidance}</span>}{row.evidenceRequired && <span><b>{L(en, 'Τεκμήρια:', 'Evidence:')}</b> {row.evidenceRequired}</span>}</p>}
+          {(row.guidance || row.evidenceRequired) && guideOpen.has(row.id) && <p className="audit-question-guide">{row.guidance && <span>{row.guidance}</span>}{row.evidenceRequired && <span><b>{L(en, 'Τεκμήρια:', 'Evidence:')}</b> {row.evidenceRequired}</span>}</p>}
           <div className="audit-answer-buttons" role="radiogroup" aria-label={L(en, 'Αποτέλεσμα', 'Result')}>
             {AUDIT_RESULTS.map(item => <button key={item.value} type="button" role="radio" aria-checked={row.answer === item.value} className={`is-${item.tone}${row.answer === item.value ? ' is-on' : ''}`} disabled={!editable} title={pick(item.label, en)}
               onClick={() => setRow(index, { answer: row.answer === item.value ? '' : item.value })}>{pick(RESULT_SHORT[item.value], en)}</button>)}
+          </div>
+          <div className="audit-answer-tools">
+            {!(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <button type="button" className="audit-answer-link" onClick={() => setNotesOpen(current => new Set(current).add(row.id))}>+ {L(en, 'Σχόλιο', 'Comment')}</button>}
+            <button type="button" className="audit-answer-link" onClick={() => setAttachmentsOf(attachmentsOf === row.id ? null : row.id)} aria-expanded={attachmentsOf === row.id}><Paperclip size={13} /> {row.attachments?.length ? row.attachments.length : L(en, 'Αρχεία', 'Files')}</button>
           </div>
           {(needsClass(row) || row.findingClass || row.findingId) && <FormGrid columns={3} className="audit-answer-grid">
             <ChoiceField label={needsClass(row) ? L(en, 'Κατάταξη ευρήματος *', 'Finding class *') : L(en, 'Κατάταξη (προαιρετικά)', 'Class (optional)')} value={row.findingClass || ''} disabled={!editable || !classes.length || Boolean(row.findingId)} placeholder={classes.length ? L(en, 'Επιλέξτε', 'Choose') : '—'} options={FINDING_CLASSES.filter(item => classes.includes(item.value)).map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={findingClass => setRow(index, { findingClass })} />
@@ -195,10 +202,6 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
             <Field label={needsClass(row) ? L(en, 'Διαπίστωση *', 'What was found *') : L(en, 'Σχόλιο', 'Comment')}><textarea rows={2} value={row.note || ''} disabled={!editable} onChange={event => setRow(index, { note: event.target.value })} /></Field>
             <Field label={L(en, 'Τεκμήρια που εξετάστηκαν', 'Evidence examined')}><textarea rows={2} value={row.evidence || ''} disabled={!editable} onChange={event => setRow(index, { evidence: event.target.value })} placeholder={row.evidenceRequired || ''} /></Field>
           </FormGrid>}
-          <div className="audit-answer-tools">
-            {!(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <button type="button" className="audit-answer-link" onClick={() => setNotesOpen(current => new Set(current).add(row.id))}>+ {L(en, 'Σχόλιο / τεκμήρια', 'Comment / evidence')}</button>}
-            <button type="button" className="audit-answer-link" onClick={() => setAttachmentsOf(attachmentsOf === row.id ? null : row.id)} aria-expanded={attachmentsOf === row.id}><Paperclip size={13} /> {L(en, 'Συνημμένα', 'Attachments')}{row.attachments?.length ? ` ${row.attachments.length}` : ''}</button>
-          </div>
           {attachmentsOf === row.id && <div className="audit-question-attachments">
             {isSavedRow(row, organizationId)
               ? <AttachmentField disabled={!editable} value={row.attachments || []} onChange={attachments => setRow(index, { attachments })} organizationId={organizationId} entityType="quality_audit_answer" entityId={row.id} accept="image/*,application/pdf" />
@@ -207,6 +210,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
         </li>
       })}
     </ol>
+    {nextChapter && <div className="audit-next-chapter"><Button variant="secondary" onClick={() => { setChapter(nextChapter.key); document.querySelector('.audit-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>{L(en, 'Επόμενο κεφάλαιο', 'Next chapter')}: {nextChapter.ref}{nextChapter.title ? ` · ${nextChapter.title}` : ''} <ChevronRight size={15} /></Button></div>}
     {editable && <FormGrid columns={3} className="audit-adhoc"><Field label={L(en, 'Επιπλέον ερώτηση (εκτός ερωτηματολογίου)', 'Additional question (not in the questionnaire)')}><input value={adHoc} onChange={event => setAdHoc(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); addQuestion() } }} /></Field><Button variant="secondary" disabled={!adHoc.trim()} onClick={addQuestion}><Plus size={15} /> {L(en, 'Προσθήκη ερώτησης', 'Add question')}</Button></FormGrid>}
 
     {(toClassify.length > 0 || toRaise.length > 0 || rows.some(row => row.findingId)) && <div className={`governance-banner ${toClassify.length || toRaise.length ? 'warning' : 'success'} quality-audit-findings`}><ClipboardCheck size={17} aria-hidden="true" /><span>{toClassify.length
@@ -214,13 +218,13 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       : toRaise.length ? L(en, `${toRaise.length} κατατεταγμένες απαντήσεις χωρίς εύρημα: ${[...new Set(toRaise.map(row => findingClassLabel(row.findingClass, language)))].join(', ')}.`, `${toRaise.length} classified answers without a finding.`)
       : L(en, 'Κάθε κατατεταγμένη απάντηση έχει το εύρημά της.', 'Every classified answer has its finding.')}</span>{canManage && !finalized && toRaise.length > 0 && !dirty && <Button disabled={saving} onClick={raiseAll}><FilePlus2 size={15} /> {L(en, 'Δημιουργία ευρημάτων', 'Create findings')}</Button>}</div>}
 
-    <FormCard wide title={L(en, 'Καταληκτική σύσκεψη', 'Closing meeting')} icon={Users}>
+    <MeetingLine title={L(en, 'Καταληκτική σύσκεψη', 'Closing meeting')} summary={[meetings.closing.date && formatDay(meetings.closing.date, language), meetings.closing.attendees, meetings.conclusion].filter(Boolean).join(' · ')} language={language} defaultOpen={complete}>
       <FormGrid columns={3}>
         <ManualDateField label={L(en, 'Ημερομηνία', 'Date')} value={meetings.closing.date} onChange={date => setMeetings(current => ({ ...current, closing: { ...current.closing, date } }))} disabled={!editable} />
         <Field label={L(en, 'Παρόντες', 'Attendees')}><input value={meetings.closing.attendees} disabled={!editable} onChange={event => setMeetings(current => ({ ...current, closing: { ...current.closing, attendees: event.target.value } }))} /></Field>
         <Field label={L(en, 'Συμπέρασμα επιθεώρησης', 'Audit conclusion')}><textarea rows={2} value={meetings.conclusion} disabled={!editable} onChange={event => setMeetings(current => ({ ...current, conclusion: event.target.value }))} /></Field>
       </FormGrid>
-    </FormCard>
+    </MeetingLine>
 
     {editable && <div className="inline-edit-footer quality-audit-footer">
       <span className="quality-audit-score">{L(en, `${score.overall.answered} από ${score.overall.total} απαντήθηκαν${score.overall.rate != null ? ` · ${score.overall.rate}%` : ''}`, `${score.overall.answered} of ${score.overall.total} answered${score.overall.rate != null ? ` · ${score.overall.rate}%` : ''}`)}</span>
@@ -228,6 +232,23 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       <Button disabled={!complete || saving || dirty} title={!complete ? L(en, 'Απαντήστε σε όλες τις ερωτήσεις και κατατάξτε κάθε μερική ή μη συμμόρφωση.', 'Answer every question and classify every partial or nonconformity.') : undefined} onClick={finish}><CheckCircle2 size={15} /> {L(en, 'Ολοκλήρωση επιθεώρησης', 'Complete audit')}</Button>
     </div>}
     {findingFor && <AuditFindingDialog row={findingFor} audit={record} language={language} saving={saving} onClose={() => setFindingFor(null)} onCreate={values => raise(findingFor, values)} />}
+  </div>
+}
+
+// The chapter to open on: the first with an answer still missing (one chapter at a time), or all of them.
+const firstOpenChapter = rows => {
+  const score = auditScore(rows)
+  if (score.standards.length > 1 || score.chapters.length < 2) return 'all'
+  return score.chapters.find(item => item.unanswered > 0)?.key || 'all'
+}
+
+// A meeting on one line: its title and what was recorded, opening the fields on a click.
+function MeetingLine({ title, summary, language, defaultOpen = false, children }) {
+  const en = language === 'en'
+  const [open, setOpen] = useState(defaultOpen)
+  return <div className="audit-meeting">
+    <button type="button" className="audit-meeting-line" aria-expanded={open} onClick={() => setOpen(!open)}><Users size={15} aria-hidden="true" /><strong>{title}</strong><span>{summary || L(en, 'δεν έχει καταγραφεί', 'not recorded')}</span><ChevronRight size={14} aria-hidden="true" /></button>
+    {open && <div className="audit-meeting-fields">{children}</div>}
   </div>
 }
 
