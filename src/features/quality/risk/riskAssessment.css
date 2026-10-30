@@ -487,4 +487,3 @@
 .risk-opportunity-owner{font-size:12.5px;max-width:200px}
 .risk-opportunity-owner>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .risk-opportunity-owner small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11px}
-.risk-figures-line{display:flex;flex-wrap:wrap;gap:6px 22px;padding:2px 4px}
