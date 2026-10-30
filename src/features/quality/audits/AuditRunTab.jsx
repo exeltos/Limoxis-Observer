@@ -37,7 +37,12 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
   const { templates } = useAuditTemplates(organizationId)
   const template = templates.find(item => item.id === record.templateId) || null
   // The other standards of the same audit: each one's questionnaire (the hospital's copy, else the library's).
-  const others = useMemo(() => (record.standards || []).filter(value => value !== record.standard).map(standard => templates.find(item => item.standard === standard && !item.isSystem && item.active !== false) || templates.find(item => item.standard === standard)).filter(Boolean), [record.standards, record.standard, templates])
+  // Other questionnaires combined into the audit: the ones picked by name, then (older audits) one per extra standard.
+  const others = useMemo(() => {
+    const picked = (record.extraTemplateIds || []).map(id => templates.find(item => item.id === id)).filter(Boolean)
+    const byStandard = (record.standards || []).filter(value => value !== record.standard && !picked.some(item => item.standard === value)).map(standard => templates.find(item => item.standard === standard && !item.isSystem && item.active !== false) || templates.find(item => item.standard === standard)).filter(Boolean)
+    return [...picked, ...byStandard].filter(item => item.id !== record.templateId)
+  }, [record.extraTemplateIds, record.standards, record.standard, record.templateId, templates])
   const [allAreas, setAllAreas] = useState(false)
   const stored = useMemo(() => record.checklist || [], [record.checklist])
   // A planned audit opens with its questionnaire for the department and the chapters in scope.
@@ -205,7 +210,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
               onClick={() => setRow(index, { answer: row.answer === item.value ? '' : item.value })}>{pick(RESULT_SHORT[item.value], en)}</button>)}
           </div>
           <div className="audit-answer-tools">
-            {!(needsClass(row) || row.note || row.evidence || notesOpen.has(row.id)) && <button type="button" className="audit-answer-link" onClick={() => setNotesOpen(current => new Set(current).add(row.id))}>+ {L(en, 'Σχόλιο', 'Comment')}</button>}
+            {!(needsClass(row) || row.note || row.evidence) && <button type="button" className="audit-answer-link" aria-expanded={notesOpen.has(row.id)} onClick={() => setNotesOpen(current => { const next = new Set(current); if (next.has(row.id)) next.delete(row.id); else next.add(row.id); return next })}>{notesOpen.has(row.id) ? '−' : '+'} {L(en, 'Σχόλιο', 'Comment')}</button>}
             <button type="button" className="audit-answer-link" onClick={() => openOnRow(row, 'files')} aria-expanded={attachmentsOf === row.id}><Paperclip size={13} /> {row.attachments?.length ? row.attachments.length : L(en, 'Αρχεία', 'Files')}</button>
           </div>
           {(needsClass(row) || row.findingClass || row.findingId) && <FormGrid columns={3} className="audit-answer-grid">

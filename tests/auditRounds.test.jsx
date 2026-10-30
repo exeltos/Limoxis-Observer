@@ -68,3 +68,21 @@ describe('readiness of the basic questionnaire', () => {
     expect(byStandard.temos.rate).toBe(100)
   })
 })
+
+describe('audit reports by department and findings export', () => {
+  it('prints a section per department with its audits and findings, and lists the findings for Excel', async () => {
+    const { auditDepartmentsReportDocument, auditFindingsExport } = await import('../src/features/quality/audits/auditReport')
+    const audits = [
+      { id: 'a1', displayId: 'AUD-1', department: 'ΜΕΘ', status: 'completed', lifecycleStatus: 'active', completedDate: '2026-05-12', plannedDate: '2026-05-12', checklist: [] },
+      { id: 'a2', displayId: 'AUD-2', department: 'ΤΕΠ', status: 'planned', lifecycleStatus: 'active', plannedDate: '2026-11-10', checklist: [] },
+    ]
+    const findings = [{ id: 'f1', displayId: 'FND-1', sourceId: 'a1', title: 'Λείπει υπογραφή', findingClass: 'minor', status: 'open', dueDate: '2026-12-15' }]
+    const report = auditDepartmentsReportDocument(audits, findings, { language: 'el' })
+    expect(report.meta.find(([name]) => name === 'Τμήματα')[1]).toBe('2')
+    expect(report.sections.filter(section => section.title).map(section => section.title)).toEqual(['ΜΕΘ', 'ΤΕΠ'])
+    const sheet = auditFindingsExport(audits, findings, 'el')
+    expect(sheet.rows).toHaveLength(1)
+    expect(sheet.rows[0][1]).toBe('ΜΕΘ')
+    expect(sheet.rows[0][3]).toBe('FND-1')
+  })
+})

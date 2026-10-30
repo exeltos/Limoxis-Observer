@@ -133,3 +133,63 @@ export function auditRoundReportDocument(audits = [], findings = [], { language 
     filename: `${en ? 'audit-round-report' : 'ekthesi-kyklou-epitheorisis'}_${from || days[0] || ''}`,
   }
 }
+
+// One report with a section per department: each of its audits (date, compliance) and their findings.
+// For a single department when the list is filtered to it, or for all of them at once (a mass print).
+export function auditDepartmentsReportDocument(audits = [], findings = [], { language = 'el' } = {}) {
+  const en = language === 'en'
+  const L = (el, english) => (en ? english : el)
+  const live = audits.filter(audit => audit.status !== 'cancelled' && audit.lifecycleStatus !== 'voided')
+  const names = [...new Set(live.map(audit => (en ? audit.departmentEn : audit.department) || audit.department || ''))].sort((a, b) => a.localeCompare(b, 'el'))
+  const status = audit => (audit.status === 'completed' ? L('Ολοκληρώθηκε', 'Completed') : audit.status === 'planned' ? L('Προγραμματισμένη', 'Planned') : L('Σε εξέλιξη', 'In progress'))
+  const when = audit => (audit.plannedMonthOnly ? month(audit.plannedDate, language) : day(audit.completedDate || audit.plannedDate))
+  const ids = new Set(live.map(audit => audit.id))
+  const own = findings.filter(finding => ids.has(finding.sourceId))
+  return {
+    language,
+    kind: L('Έκθεση επιθεωρήσεων ανά τμήμα', 'Audit report by department'),
+    title: names.length === 1 ? names[0] || L('Όλος ο οργανισμός', 'Whole organization') : L('Όλα τα τμήματα', 'All departments'),
+    code: '',
+    subtitle: L('Εσωτερικές επιθεωρήσεις και ευρήματα', 'Internal audits and findings'),
+    meta: [
+      [L('Τμήματα', 'Departments'), String(names.length)],
+      [L('Επιθεωρήσεις', 'Audits'), String(live.length)],
+      [L('Ευρήματα', 'Findings'), String(own.length)],
+      [L('Ανοιχτά ευρήματα', 'Open findings'), String(own.filter(finding => finding.status !== 'closed').length)],
+    ],
+    sections: names.flatMap(name => {
+      const list = live.filter(audit => ((en ? audit.departmentEn : audit.department) || audit.department || '') === name).sort((a, b) => String(a.completedDate || a.plannedDate).localeCompare(String(b.completedDate || b.plannedDate)))
+      const found = own.filter(finding => list.some(audit => audit.id === finding.sourceId))
+      return [{
+        title: name || L('Όλος ο οργανισμός', 'Whole organization'),
+        table: {
+          columns: [L('Επιθεώρηση', 'Audit'), L('Ημερομηνία', 'Date'), L('Πρότυπο', 'Standard'), { text: L('Συμμόρφωση', 'Compliance'), align: 'right' }, L('Κατάσταση', 'Status')],
+          rows: list.map(audit => [audit.displayId || audit.id, when(audit), standardLabel(audit.standard, language) || (audit.templateTitle || '—'), { text: pct(auditScore(audit.checklist || []).overall.rate), align: 'right' }, status(audit)]),
+          empty: L('Καμία επιθεώρηση.', 'No audits.'),
+        },
+      }, {
+        table: {
+          columns: [L('Εύρημα', 'Finding'), L('Κατάταξη', 'Class'), L('Τίτλος', 'Title'), L('Προθεσμία', 'Due'), L('Κατάσταση', 'Status')],
+          rows: found.map(finding => [finding.displayId || finding.id, findingClassLabel(finding.findingClass, language) || '—', en ? finding.titleEn || finding.title : finding.title, day(finding.dueDate), finding.status === 'closed' ? L('Κλειστό', 'Closed') : L('Ανοιχτό', 'Open')]),
+          empty: L('Δεν καταγράφηκαν ευρήματα.', 'No findings.'),
+        },
+      }]
+    }),
+    signatures: [{ role: L('Υπεύθυνος Ποιότητας', 'Quality manager'), name: '' }],
+    filename: `${en ? 'audits-by-department' : 'epitheoriseis-ana-tmima'}`,
+  }
+}
+
+// The findings of the audits, one row per finding (Excel opens the .csv).
+export function auditFindingsExport(audits = [], findings = [], language = 'el') {
+  const en = language === 'en'
+  const byId = new Map(audits.map(audit => [audit.id, audit]))
+  return {
+    name: en ? 'audit-findings' : 'efimata-epitheoriseon',
+    headers: en ? ['Audit', 'Department', 'Date', 'Finding', 'Class', 'Title', 'Owner', 'Due', 'Status'] : ['Επιθεώρηση', 'Τμήμα', 'Ημερομηνία', 'Εύρημα', 'Κατάταξη', 'Τίτλος', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
+    rows: findings.filter(finding => byId.has(finding.sourceId)).map(finding => {
+      const audit = byId.get(finding.sourceId)
+      return [audit.displayId || audit.id, (en ? audit.departmentEn : audit.department) || audit.department || '', day(audit.completedDate || audit.plannedDate), finding.displayId || finding.id, findingClassLabel(finding.findingClass, language) || '', en ? finding.titleEn || finding.title : finding.title, (finding.owners || []).join(', ') || finding.owner || '', day(finding.dueDate), finding.status === 'closed' ? (en ? 'Closed' : 'Κλειστό') : (en ? 'Open' : 'Ανοιχτό')]
+    }),
+  }
+}

@@ -158,6 +158,7 @@ export function mapRow(section,row){
     templateVersion:row.template_version||null,
     standard:row.standard||'',
     standards:row.standards||[],
+    extraTemplateIds:row.extra_template_ids||[],
     clausesScope:row.clauses_scope||[],
     plannedMonthOnly:Boolean(row.planned_month_only),
     riskLevel:row.risk_level||'',
@@ -322,6 +323,7 @@ function auditProgrammePayload(record){
     template_version:Number(record.templateVersion)||null,
     standard:STANDARD_VALUES.includes(record.standard)?record.standard:null,
     standards:(record.standards||[]).filter(value=>STANDARD_VALUES.includes(value)&&value!==record.standard),
+    extra_template_ids:(record.extraTemplateIds||[]).filter(isUuid),
     clauses_scope:Array.isArray(record.clausesScope)?record.clausesScope:[],
     planned_month_only:Boolean(record.plannedMonthOnly),
     risk_level:['low','medium','high'].includes(record.riskLevel)?record.riskLevel:null,
@@ -561,7 +563,7 @@ export async function applyAuditRound(organizationId,items=[],{template=null,use
     await createQualityRecord('audits',organizationId,{
       title:`Επιθεώρηση τμήματος · ${item.department}`,titleEn:`Department audit · ${item.departmentEn||item.department}`,
       department:item.department,departmentEn:item.departmentEn||item.department,departmentId:item.departmentId,auditType:'internal',plannedDate:item.plannedDate,status:'planned',
-      ...(template?{templateId:template.id,templateTitle:template.title,templateVersion:template.version,standard:template.standard,standards:['iso9001','jci','temos'],checklistSource:`template:${template.id}`,scope:template.scope}:{}),
+      ...(template?{templateId:template.id,templateTitle:template.title,templateVersion:template.version,standard:template.standard,standards:[],checklistSource:`template:${template.id}`,scope:template.scope}:{}),
       durationDays:days,riskLevel:'medium',frequencyMonths:6,history:[]
     },userId)
   }

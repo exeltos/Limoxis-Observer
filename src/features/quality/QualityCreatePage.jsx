@@ -77,7 +77,7 @@ function QualityRecordCreate({recordType}){
   const basic=templates.find(item=>item.key==='core'&&item.active!==false)
   useEffect(()=>{
    if(recordType!=='audits'||!basic)return
-   setDraft(current=>current.templateId||current.checklist?.length?current:{...current,templateId:basic.id,templateTitle:basic.title,templateVersion:basic.version,standard:basic.standard,standards:['iso9001','jci','temos'],checklistSource:`template:${basic.id}`,scope:current.scope||basic.scope,durationDays:current.durationDays??3})
+   setDraft(current=>current.templateId||current.checklist?.length?current:{...current,templateId:basic.id,templateTitle:basic.title,templateVersion:basic.version,standard:basic.standard,standards:[],checklistSource:`template:${basic.id}`,scope:current.scope||basic.scope,durationDays:current.durationDays??3})
   },[recordType,basic])
   const blocked=recordType==='audits'&&independenceBlocks(draft.team||[],{id:draft.departmentId,name:draft.department})
   const valid=Boolean(draft[titleKey].trim())&&!blocked&&(recordType!=='capas'||Boolean(draft.dueDate))

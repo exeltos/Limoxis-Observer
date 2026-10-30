@@ -60,14 +60,15 @@ export function AuditPlanFields({ draft, setDraft, templates = [], competence, l
       <FormGrid columns={2}>
         <SearchableSelect label={L(en, 'Ερωτηματολόγιο', 'Questionnaire')} value={draft.templateId || ''} onChange={chooseTemplate} placeholder={forStandard.length ? L(en, 'Επιλέξτε ερωτηματολόγιο', 'Choose a questionnaire') : L(en, 'Κανένα για αυτό το πρότυπο', 'None for this standard')}
           options={forStandard.map(item => ({ value: item.id, label: item.title, description: `${item.isSystem ? L(en, 'Βιβλιοθήκη πλατφόρμας', 'Platform library') : L(en, 'Του νοσοκομείου', 'Hospital copy')} · ${L(en, 'έκδοση', 'version')} ${item.version} · ${item.questions.length} ${L(en, 'ερωτήσεις', 'questions')}` }))} {...select(en)} />
+        <MultiSelect label={L(en, 'Επιπλέον ερωτηματολόγια', 'More questionnaires')} tags options={forStandard.filter(item => item.id !== draft.templateId).map(item => ({ value: item.id, label: item.title }))} selected={draft.extraTemplateIds || []} onChange={value => patch({ extraTemplateIds: value })}
+          placeholder={L(en, 'Μόνο το κύριο ερωτηματολόγιο', 'The main questionnaire only')} searchPlaceholder={L(en, 'Αναζήτηση ερωτηματολογίου', 'Search questionnaire')} emptyLabel={L(en, 'Δεν βρέθηκε', 'No match')} selectAllLabel={L(en, 'Επιλογή όλων', 'Select all')} clearAllLabel={L(en, 'Καθαρισμός', 'Clear')} countLabel={count => L(en, `${count} ερωτηματολόγια`, `${count} questionnaires`)} />
       </FormGrid>
-      <MoreSection moreLabel={L(en, 'Πρότυπο, κεφάλαια και άλλα πρότυπα', 'Standard, chapters and other standards')} lessLabel={L(en, 'Λιγότερα', 'Less')}>
+      <MoreSection moreLabel={L(en, 'Πρότυπο και κεφάλαια', 'Standard and chapters')} lessLabel={L(en, 'Λιγότερα', 'Less')}>
         <FormGrid columns={3}>
         <ChoiceField label={L(en, 'Πρότυπο', 'Standard')} value={draft.standard || ''} options={AUDIT_STANDARDS.map(item => ({ value: item.value, label: pick(item.label, en) }))} onChange={value => patch({ standard: value, ...(questionnaire && questionnaire.standard !== value ? { templateId: null, templateTitle: '', templateVersion: null, clausesScope: [] } : {}) })} />
         <MultiSelect label={L(en, 'Κεφάλαια στο πεδίο', 'Chapters in scope')} disabled={!chapters.length} tags options={chapters.map(chapter => ({ value: chapter.ref, label: `${chapter.ref} · ${chapter.title}` }))} selected={draft.clausesScope || []} onChange={value => patch({ clausesScope: value })}
           placeholder={L(en, 'Όλο το ερωτηματολόγιο', 'The whole questionnaire')} searchPlaceholder={L(en, 'Αναζήτηση κεφαλαίου', 'Search chapter')} emptyLabel={L(en, 'Δεν βρέθηκε', 'No match')} selectAllLabel={L(en, 'Επιλογή όλων', 'Select all')} clearAllLabel={L(en, 'Καθαρισμός', 'Clear')} countLabel={count => L(en, `${count} κεφάλαια`, `${count} chapters`)} />
-        <MultiSelect label={L(en, 'Άλλα πρότυπα στην επιθεώρηση', 'Other standards in the audit')} tags options={AUDIT_STANDARDS.filter(item => item.value !== draft.standard && item.value !== 'other').map(item => ({ value: item.value, label: pick(item.label, en) }))} selected={(draft.standards || []).filter(value => value !== draft.standard)} onChange={value => patch({ standards: value })}
-          placeholder={L(en, 'Μόνο το κύριο πρότυπο', 'The main standard only')} searchPlaceholder={L(en, 'Αναζήτηση προτύπου', 'Search standard')} emptyLabel={L(en, 'Δεν βρέθηκε', 'No match')} selectAllLabel={L(en, 'Επιλογή όλων', 'Select all')} clearAllLabel={L(en, 'Καθαρισμός', 'Clear')} countLabel={count => L(en, `${count} πρότυπα`, `${count} standards`)} />
+
         </FormGrid>
       </MoreSection>
     </Card>
