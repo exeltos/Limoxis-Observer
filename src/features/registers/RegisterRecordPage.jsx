@@ -60,7 +60,7 @@ export function RegisterRecordPage() {
 
   const sheet = register.kind === 'sheet'
   const tabs = [
-    { id: 'entries', label: sheet ? (en ? 'Monthly sheet' : 'Φύλλο μήνα') : (en ? `Cases ${entries.length}` : `Περιστατικά ${entries.length}`), icon: sheet ? CalendarRange : ClipboardList },
+    { id: 'entries', label: sheet ? (en ? 'Daily sheet' : 'Ημερήσιο φύλλο') : (en ? `Cases ${entries.length}` : `Περιστατικά ${entries.length}`), icon: sheet ? CalendarRange : ClipboardList },
     { id: 'indicators', label: en ? `Indicators ${register.indicators.length}` : `Δείκτες ${register.indicators.length}`, icon: BarChart3 },
     { id: 'definition', label: en ? 'Definition' : 'Ορισμός', icon: Settings2 },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: History },
@@ -69,9 +69,9 @@ export function RegisterRecordPage() {
   const caseActions = <div className="row-actions">{onExport && <ExportMenu onExcel={onExport} />}{access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>}{access.canRecord(register) && <ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton>}</div>
   const status = <StatusBadge tone={register.status === 'active' ? 'success' : 'neutral'}>{registerStatusLabel(register.status, language)}</StatusBadge>
   const context = <span className="register-context">{[en ? register.departmentEn : register.department, registerKindLabel(register.kind, language), `${en ? 'version' : 'έκδοση'} ${register.version}`].filter(Boolean).join(' · ')}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
-  return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : <ClipboardList size={19} />} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} headerActions={tab === 'entries' && !sheet ? caseActions : undefined}
+  return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : <ClipboardList size={19} />} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} headerActions={tab === 'entries' ? (sheet ? (onExport && <ExportMenu onExcel={onExport} />) : caseActions) : undefined}
 >
-    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} onExport={onExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
+    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
     {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} />}
     {tab === 'definition' && <RegisterBuilder register={register} canEdit={access.canDefine} entryCount={entries.length} onSaved={next => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
