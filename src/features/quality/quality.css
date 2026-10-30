@@ -108,6 +108,7 @@ td.quality-register-actions{width:48px;text-align:right}
 /* Quality Center (QualityPage.jsx): each tab's figures in one row, as many columns as figures. */
 .module-summary-strip.quality-kpis{grid-template-columns:repeat(var(--quality-kpis,4),minmax(0,1fr))!important}
 .quality-kpis>*{min-height:64px}
+.lo-kpi-strip.quality-kpis.quality-kpis-quarter{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 @media(max-width:1100px){.module-summary-strip.quality-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:600px){.module-summary-strip.quality-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 /* A report's stage: five marks of the flow and the stage's label. */

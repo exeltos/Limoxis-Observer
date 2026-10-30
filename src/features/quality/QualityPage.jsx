@@ -264,10 +264,10 @@ export function QualityPage(){
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
   <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
-  {tab==='indicators'&&<CanonicalTabs className="lo-subtabs" items={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={measureView} onChange={setMeasureView} ariaLabel={L('Δείκτες & Στόχοι','Indicators & objectives')}/>}
+  {tab==='indicators'&&<CanonicalTabs items={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={measureView} onChange={setMeasureView} ariaLabel={L('Δείκτες & Στόχοι','Indicators & objectives')}/>}
   {tab==='resources'&&suppliersOn&&<CanonicalTabs className="lo-subtabs" items={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={resourceView} onChange={setResourceView} ariaLabel={L('Πόροι','Resources')}/>}
   {tab==='audits'&&<CanonicalTabs className="lo-subtabs" items={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))} value={AUDIT_VIEWS.some(item=>item.id===auditView.filters.mode)?auditView.filters.mode:'programme'} onChange={value=>auditView.set('mode',value)} ariaLabel={L('Επιθεωρήσεις','Audits')}/>}
-  <KpiFigures className="quality-kpis" label={t('quality')} figures={figures}/>
+  <KpiFigures className={`quality-kpis${tab==='indicators'&&figures.length<4?' quality-kpis-quarter':''}`} label={t('quality')} figures={figures}/>
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
    <KpiFigures className="quality-kpis" label={L('Επισκόπηση','Overview')} loading={records.loading} error={records.error} figures={centerFigures}/>
    {records.error&&!records.loading&&<RegistryEmptyState error onRetry={records.reload}/>}
