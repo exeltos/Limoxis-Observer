@@ -12,7 +12,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
-import { PERIODS, breakdown, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { PERIODS, breakdown, sheetBreakdowns, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
 
 const PERIOD_MONTHS = { month: 1, quarter: 3, half: 6, year: 12 }
@@ -61,7 +61,7 @@ export function RegisterIndicators({ register, entries, onDefineTarget = null })
     </div>}>
     <div ref={reportRef} className="register-indicator-report">
       {exporting && <h3 className="register-report-title">{title}</h3>}
-      {open && <IndicatorDetail register={register} entries={entries} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} />}
+      {open && <IndicatorDetail register={register} entries={entries} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} onDefineTarget={onDefineTarget} />}
       {!open && report.length > 0 && <table className="data-table register-indicator-table">
         <thead><tr><th>{en ? 'Indicator' : 'Δείκτης'}</th><th className="register-num">{en ? 'Value' : 'Τιμή'}</th><th>{en ? 'Target' : 'Στόχος'}</th><th>{en ? 'Last 12 months' : 'Τάση 12 μηνών'}</th><th>{en ? 'vs previous' : 'Έναντι προηγ.'}</th><th>{en ? 'vs last year' : 'Έναντι πέρσι'}</th></tr></thead>
         {groups.map(group => <tbody key={group.key}>
@@ -105,14 +105,14 @@ function IndicatorRow({ row, register, entries, period, language, active, onOpen
   return <tr className={`registry-row-clickable register-indicator-row is-${current.status} ${active ? 'active' : ''}`} onClick={onOpen} tabIndex={0} aria-expanded={active} title={rule || undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen() } }}>
     <td><strong>{textOf(indicator, language)}</strong>{current.small && <small className="register-indicator-small"><AlertTriangle size={12} />{en ? 'Few cases: read with caution' : 'Λίγα περιστατικά: με επιφύλαξη'}</small>}</td>
     <td className="register-num register-indicator-value"><strong>{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {shortUnit(unit)}</small>}</strong>{ratio && <small>{ratio}</small>}</td>
-    <td>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}{target != null && <small>{indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, { ...indicator, unit: shortUnit(indicator.unit) }, language)}</small>}{target == null && (onDefineTarget && (indicator.direction === 'higher' || indicator.direction === 'lower') ? <button type="button" className="register-define-target" onClick={event => { event.stopPropagation(); onDefineTarget(indicator.id) }}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button> : current.status === 'context' && <span className="register-muted">—</span>)}</td>
+    <td>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}{target != null && <small>{indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, { ...indicator, unit: shortUnit(indicator.unit) }, language)}</small>}{target == null && (onDefineTarget ? <button type="button" className="register-define-target" onClick={event => { event.stopPropagation(); onDefineTarget(indicator.id) }}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button> : current.status === 'context' && <span className="register-muted">—</span>)}</td>
     <td><Sparkline width={110} height={28} points={trend} target={target} label={en ? `${textOf(indicator, language)}: the last 12 months` : `${textOf(indicator, language)}: οι τελευταίοι 12 μήνες`} /></td>
     <td><Change now={current.value} before={previous.value} indicator={indicator} language={language} /></td>
     <td><Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /></td>
   </tr>
 }
 
-function IndicatorDetail({ register, entries, row, period, language, order, onOpen, onClose }) {
+function IndicatorDetail({ register, entries, row, period, language, order, onOpen, onClose, onDefineTarget }) {
   const en = language === 'en'
   const { indicator, current, previous, lastYear } = row
   const year = period.from.slice(0, 4)
@@ -121,9 +121,12 @@ function IndicatorDetail({ register, entries, row, period, language, order, onOp
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
   const top = Math.max(1, ...values, target ?? 0)
   const short = month => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(Number(year), month - 1, 1)))
-  const splits = register.kind === 'case' ? (register.settings?.breakdowns || []).map(key => ({ field: register.fields.find(field => field.key === key), rows: breakdown(register, indicator, entries, period, key) })).filter(split => split.field && split.rows.length) : []
+  // The breakdowns: a case register's list fields; a sheet's rows and measures (per procedure, per shift).
+  const splits = register.kind === 'case'
+    ? (register.settings?.breakdowns || []).map(key => { const field = register.fields.find(item => item.key === key); return field && { key, label: `${en ? 'By' : 'Ανά'} ${textOf(field, language).toLowerCase()}`, rows: breakdown(register, indicator, entries, period, key) } }).filter(split => split && split.rows.length)
+    : sheetBreakdowns(register, indicator, entries, period).map(split => ({ ...split, label: en ? split.labelEn : split.label }))
   const [splitKey, setSplitKey] = useState(null)
-  const split = splits.find(item => item.field.key === splitKey) || splits[0] || null
+  const split = splits.find(item => item.key === splitKey) || splits[0] || null
   const index = order.findIndex(item => item.indicator.id === indicator.id)
   const unit = en ? indicator.unitEn || indicator.unit : indicator.unit
   return <section className="register-indicator-detail">
@@ -138,7 +141,7 @@ function IndicatorDetail({ register, entries, row, period, language, order, onOp
     <header><h4>{textOf(indicator, language)}</h4>{(en ? indicator.noteEn || indicator.note : indicator.note) && <p>{en ? indicator.noteEn || indicator.note : indicator.note}</p>}</header>
     <div className="register-indicator-detail-figures">
       <span><small>{periodLabel(period, language)}</small><strong>{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <em> {shortUnit(unit)}</em>}</strong>{(indicator.aggregation === 'percent' || indicator.aggregation === 'rate') && current.denominator != null && <small>{current.numerator} / {current.denominator}</small>}</span>
-      <span><small>{en ? 'Target' : 'Στόχος'}</small><strong>{target == null ? '—' : `${indicator.direction === 'higher' ? '≥' : '≤'} ${formatIndicatorValue(target, { ...indicator, unit: unit === '%' ? '%' : '' }, language)}`}</strong>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}</span>
+      <span><small>{en ? 'Target' : 'Στόχος'}</small><strong>{target == null ? '—' : `${indicator.direction === 'higher' ? '≥' : '≤'} ${formatIndicatorValue(target, { ...indicator, unit: unit === '%' ? '%' : '' }, language)}`}</strong>{target == null && onDefineTarget && <button type="button" className="register-define-target" onClick={() => onDefineTarget(indicator.id)}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button>}{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}</span>
       <span><small>{en ? 'vs previous' : 'Έναντι προηγ.'}</small><strong><Change now={current.value} before={previous.value} indicator={indicator} language={language} /></strong></span>
       <span><small>{en ? 'vs last year' : 'Έναντι πέρσι'}</small><strong><Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /></strong></span>
     </div>
@@ -151,7 +154,7 @@ function IndicatorDetail({ register, entries, row, period, language, order, onOp
       </span>)}
     </div>
     {split && <div className="register-split">
-      {splits.length > 1 ? <CanonicalTabs className="lo-subtabs" items={splits.map(item => ({ value: item.field.key, label: `${en ? 'By' : 'Ανά'} ${textOf(item.field, language).toLowerCase()}` }))} value={split.field.key} onChange={setSplitKey} ariaLabel={en ? 'Cases of the period' : 'Περιστατικά της περιόδου'} /> : <h5>{en ? 'Cases of the period by' : 'Περιστατικά της περιόδου ανά'} {textOf(split.field, language).toLowerCase()}</h5>}
+      {splits.length > 1 ? <CanonicalTabs className="lo-subtabs" items={splits.map(item => ({ value: item.key, label: item.label }))} value={split.key} onChange={setSplitKey} ariaLabel={en ? 'Breakdown of the period' : 'Κατανομή της περιόδου'} /> : <h5>{split.label}</h5>}
       <table className="data-table"><tbody>{split.rows.map(item => <tr key={item.option.value || 'none'}><td className="register-row-label">{textOf(item.option, language)}</td><td className="register-num">{item.count}</td><td className="register-num">{item.share == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(item.share)}%`}</td><td className="register-split-bar"><i style={{ width: `${item.share || 0}%` }} /></td></tr>)}</tbody></table>
     </div>}
   </section>

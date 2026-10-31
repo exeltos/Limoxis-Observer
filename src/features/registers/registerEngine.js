@@ -347,6 +347,25 @@ export function breakdown(register, indicator, entries = [], period, field) {
   }).filter(row => row.count > 0)
 }
 
+// A sheet indicator split by the rows it counts (per procedure) and by the measures (per shift).
+export function sheetBreakdowns(register, indicator, entries = [], period) {
+  if (register.kind !== 'sheet') return []
+  const sheet = register.sheet || {}
+  const inPeriod = entriesInPeriod(entries, period, indicator)
+  const rows = (sheet.rows || []).filter(row => !indicator.rows?.length || indicator.rows.includes(row.key))
+  const measures = (sheet.measures || []).filter(measure => !indicator.measure || measure.key === indicator.measure)
+  const split = (key, label, labelEn, items, totalOf) => {
+    const counts = items.map(item => ({ option: { value: item.key, label: item.label, labelEn: item.labelEn }, count: totalOf(item.key) })).filter(item => item.count)
+    const total = counts.reduce((sum, item) => sum + item.count, 0)
+    return { key, label, labelEn, rows: counts.map(item => ({ ...item, share: total ? round((item.count / total) * 100) : null })) }
+  }
+  const keys = list => list.map(item => item.key)
+  return [
+    rows.length > 1 && split('rows', 'Ανά γραμμή', 'By row', rows, row => sheetTotal(inPeriod, [row], keys(measures)) || 0),
+    measures.length > 1 && split('measures', 'Ανά στήλη', 'By column', measures, measure => sheetTotal(inPeriod, keys(rows), [measure]) || 0),
+  ].filter(item => item && item.rows.length)
+}
+
 // The rows of an indicator report: this period, the previous one, the same
 // period a year before.
 export function indicatorReport(register, entries = [], period) {
