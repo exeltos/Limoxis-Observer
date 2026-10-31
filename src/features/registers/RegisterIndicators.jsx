@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
-import { AlertTriangle, ArrowDownRight, ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Minus, Target } from 'lucide-react'
+import { AlertOctagon, AlertTriangle, ArrowDownRight, ArrowLeft, ArrowUpRight, ArrowUpDown, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, Minus, Target } from 'lucide-react'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { IconButton } from '../../design-system/IconButton'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
@@ -8,6 +8,8 @@ import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Sparkline } from '../../design-system/MiniCharts'
 import { ExportMenu } from '../../design-system/ExportMenu'
+import { KpiFigures } from '../../design-system/KpiCard'
+import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
@@ -16,6 +18,8 @@ import { PERIODS, breakdown, sheetBreakdowns, filterText, indicatorReport, month
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
 
 const PERIOD_MONTHS = { month: 1, quarter: 3, half: 6, year: 12 }
+// Worst first when sorting by status.
+const STATUS_RANK = { breach: 0, attention: 1, onTarget: 2, context: 3 }
 const lastMonth = () => { const date = new Date(); date.setUTCDate(1); date.setUTCMonth(date.getUTCMonth() - 1); return date.toISOString().slice(0, 7) }
 
 // The report of a register: every indicator for a period, compared with the
@@ -31,16 +35,45 @@ export function RegisterIndicators({ register, entries, onDefineTarget = null, o
   const [month, setMonth] = useState(lastMonth)
   const [openId, setOpenId] = useState(null)
   const [exporting, setExporting] = useState(false)
+  // The cards above the table filter it by status; the search and the sort work on the shown rows.
+  const [statusFilter, setStatusFilter] = useState(null)
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState({ key: null, dir: 'asc' })
   const period = periodOf(kind, `${month}-01`)
   const report = useMemo(() => indicatorReport(register, entries, period), [register, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
   const open = report.find(row => row.indicator.id === openId) || null
   // First the indicators that are judged (better higher or lower), then the ones shown for context.
-  const judged = report.filter(row => row.indicator.direction === 'higher' || row.indicator.direction === 'lower')
-  const context = report.filter(row => !judged.includes(row))
+  const count = status => report.filter(row => row.current.status === status).length
+  const needle = query.trim().toLowerCase()
+  const shown = report
+    .filter(row => !statusFilter || row.current.status === statusFilter)
+    .filter(row => !needle || textOf(row.indicator, language).toLowerCase().includes(needle))
+  const sortValue = { name: row => textOf(row.indicator, language).toLowerCase(), value: row => row.current.value, status: row => STATUS_RANK[row.current.status] ?? 9 }[sort.key]
+  const sorted = !sortValue ? shown : [...shown].sort((a, b) => {
+    const x = sortValue(a), y = sortValue(b)
+    if (x == null && y == null) return 0
+    if (x == null) return 1
+    if (y == null) return -1
+    return (typeof x === 'string' ? x.localeCompare(y, language) : x - y) * (sort.dir === 'asc' ? 1 : -1)
+  })
+  const toggleSort = key => setSort(current => current.key !== key ? { key, dir: 'asc' } : current.dir === 'asc' ? { key, dir: 'desc' } : { key: null, dir: 'asc' })
+  const sortHead = (key, label, className) => <th className={className} aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}><button type="button" className={`register-sort ${sort.key === key ? 'is-sorted' : ''}`} onClick={() => toggleSort(key)}>{label}<ArrowUpDown size={12} aria-hidden="true" /></button></th>
+  const figure = (key, icon, status, label, tone) => ({ key, icon, value: count(status), label, status: tone && count(status) > 0 ? tone : null, active: statusFilter === status, go: () => setStatusFilter(current => current === status ? null : status) })
+  const figures = [
+    figure('onTarget', CheckCircle2, 'onTarget', en ? 'On target' : 'Εντός στόχου', 'good'),
+    figure('attention', AlertTriangle, 'attention', en ? 'Below target' : 'Εκτός στόχου', 'warning'),
+    figure('breach', AlertOctagon, 'breach', en ? 'Past the limit' : 'Πέρα από το όριο', 'danger'),
+    figure('context', CircleDashed, 'context', en ? 'No target' : 'Χωρίς στόχο', null),
+  ]
+  // First the indicators that are judged (better higher or lower), then the ones shown for context.
+  const judged = sorted.filter(row => row.indicator.direction === 'higher' || row.indicator.direction === 'lower')
+  const context = sorted.filter(row => !judged.includes(row))
   const groups = [{ key: 'judged', label: en ? 'With a direction or target' : 'Με στόχο ή κατεύθυνση', rows: judged }, { key: 'context', label: en ? 'For context' : 'Πληροφοριακοί', rows: context }].filter(group => group.rows.length)
+  // A sorted list is one list: the groups would break the order.
+  const grouped = !sort.key ? groups : [{ key: 'all', label: '', rows: sorted }].filter(group => group.rows.length)
   const title = `${en ? register.nameEn : register.name} · ${periodLabel(period, language)}`
   // The detail steps through the indicators in the table's order.
-  const ordered = groups.flatMap(group => group.rows)
+  const ordered = grouped.flatMap(group => group.rows)
   // A step moves by the period shown: a month, a quarter, a half-year or a year.
   const step = direction => setMonth(shiftPeriod(period, direction * PERIOD_MONTHS[kind]).from.slice(0, 7))
   function exportCsv() {
@@ -63,14 +96,17 @@ export function RegisterIndicators({ register, entries, onDefineTarget = null, o
     </div>}>
     <div ref={reportRef} className="register-indicator-report">
       {exporting && <h3 className="register-report-title">{title}</h3>}
+      {!open && report.length > 0 && <KpiFigures label={en ? 'Indicators by status' : 'Δείκτες ανά κατάσταση'} figures={figures} />}
+      {!open && report.length > 0 && <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search an indicator' : 'Αναζήτηση δείκτη'} activeAdvancedCount={statusFilter ? 1 : 0} onClear={() => { setQuery(''); setStatusFilter(null) }} />}
       {open && <IndicatorDetail register={register} entries={entries} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} onDefineTarget={onDefineTarget} />}
       {!open && report.length > 0 && <table className="data-table register-indicator-table">
-        <thead><tr><th>{en ? 'Indicator' : 'Δείκτης'}</th><th className="register-num">{en ? 'Value' : 'Τιμή'}</th><th>{en ? 'Target' : 'Στόχος'}</th><th>{en ? 'Last 12 months' : 'Τάση 12 μηνών'}</th><th>{en ? 'vs previous' : 'Έναντι προηγ.'}</th><th>{en ? 'vs last year' : 'Έναντι πέρσι'}</th></tr></thead>
-        {groups.map(group => <tbody key={group.key}>
-          {groups.length > 1 && <tr className="register-indicator-group"><th colSpan={6}>{group.label}</th></tr>}
+        <thead><tr>{sortHead('name', en ? 'Indicator' : 'Δείκτης')}{sortHead('value', en ? 'Value' : 'Τιμή', 'register-num')}{sortHead('status', en ? 'Target' : 'Στόχος')}<th>{en ? 'Last 12 months' : 'Τάση 12 μηνών'}</th><th>{en ? 'Change' : 'Μεταβολή'}</th></tr></thead>
+        {grouped.map(group => <tbody key={group.key}>
+          {grouped.length > 1 && <tr className="register-indicator-group"><th colSpan={5}>{group.label}</th></tr>}
           {group.rows.map(row => <IndicatorRow key={row.indicator.id} row={row} register={register} entries={entries} period={period} language={language} active={row.indicator.id === openId} onOpen={() => setOpenId(row.indicator.id)} onDefineTarget={onDefineTarget} />)}
         </tbody>)}
       </table>}
+      {!open && report.length > 0 && !shown.length && <div className="inline-empty">{en ? 'No indicator matches. Clear the filters to see all.' : 'Κανένας δείκτης δεν ταιριάζει. Καθαρίστε τα φίλτρα για να δείτε όλους.'}</div>}
       {!report.length && <div className="inline-empty">{en ? 'This register has no indicators yet. Add them in «Definition».' : 'Το μητρώο δεν έχει ακόμη δείκτες. Προσθέστε τους στον «Ορισμό».'}</div>}
     </div>
   </RecordTabPanel>
@@ -109,8 +145,7 @@ function IndicatorRow({ row, register, entries, period, language, active, onOpen
     <td className="register-num register-indicator-value"><strong>{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {shortUnit(unit)}</small>}</strong>{ratio && <small>{ratio}</small>}</td>
     <td>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}{target != null && <small>{indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, { ...indicator, unit: shortUnit(indicator.unit) }, language)}</small>}{target == null && (onDefineTarget ? <button type="button" className="register-define-target" onClick={event => { event.stopPropagation(); onDefineTarget(indicator.id) }}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button> : current.status === 'context' && <span className="register-muted">—</span>)}</td>
     <td><Sparkline width={110} height={28} points={trend} target={target} label={en ? `${textOf(indicator, language)}: the last 12 months` : `${textOf(indicator, language)}: οι τελευταίοι 12 μήνες`} /></td>
-    <td><Change now={current.value} before={previous.value} indicator={indicator} language={language} /></td>
-    <td><Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /></td>
+    <td className="register-change-cell"><span><Change now={current.value} before={previous.value} indicator={indicator} language={language} /><small>{en ? 'vs previous' : 'έναντι προηγ.'}</small></span><span><Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /><small>{en ? 'vs last year' : 'έναντι πέρσι'}</small></span></td>
   </tr>
 }
 

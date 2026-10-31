@@ -56,7 +56,7 @@
 .register-year-table .is-selected{background:var(--lo-color-primary-soft)}
 
 /* Indicators */
-.register-indicator-report{display:grid;gap:14px;padding:14px 20px 20px}
+.register-indicator-report{display:grid;gap:10px;padding:14px 20px 20px}
 .register-report-title{margin:0;font-size:15px}
 .register-indicator-small{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--lo-status-warning-fg)}
 .register-indicator-table{width:100%;font-size:13px}
@@ -70,6 +70,12 @@
 .register-indicator-row.is-onTarget>td:first-child{box-shadow:inset 3px 0 0 var(--lo-status-success-border)}
 .register-indicator-row.active>td{background:color-mix(in srgb,var(--lo-color-primary) 6%,transparent)}
 .register-indicator-group>th{padding:6px 12px 4px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--lo-color-muted);background:transparent}
+.register-sort{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
+.register-sort svg{opacity:.35}
+.register-sort.is-sorted svg,.register-sort:hover svg{opacity:1;color:var(--lo-color-primary)}
+.register-indicator-table th.register-num .register-sort{justify-content:flex-end}
+.register-indicator-table td.register-change-cell small{display:inline;margin-left:4px}
+.register-change-cell>span{display:flex;align-items:center;gap:2px;white-space:nowrap}
 .register-muted{color:var(--lo-color-muted)}
 .register-change{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--lo-color-text)}
 .register-change.is-better{color:var(--lo-status-success-fg)}
