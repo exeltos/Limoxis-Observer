@@ -37,6 +37,8 @@ export function demoRegisters() {
   const targets = { mean_ventilator: { target: 5 }, mean_cpap: { target: 7 }, mortality: { target: 2, threshold: 4 }, readmissions: { target: 5, threshold: 8 }, late_infection_rate: { target: 5, threshold: 8 }, breast_milk: { target: 50, threshold: 35 } }
   nicu.indicators = nicu.indicators.map(indicator => ({ ...indicator, ...(targets[indicator.id] || {}) }))
   const endoscopy = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
+  // The demo shows the daily sheets: the earlier months are monthly totals, from the current month on it is one sheet per day.
+  endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: new Date().toISOString().slice(0, 7) }
   const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
   icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
   const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
@@ -108,8 +110,20 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       identities[id] = { caseNumber: String(caseNumber), patientName: `Νεογνό ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
     }
     // Endoscopy: one sheet per completed month (the current one still open).
+    if (back === 0) {
+      // The current month, day by day (working days only; a day now and then is missing).
+      const dayRandom = seeded(20261113)
+      const perDay = { gastroscopy: 4, colonoscopy: 2.6, gastrostomy: 0.07, cystoscopy: 0.43, bronchoscopy: 0.24, ercp: 0.14, eus: 0.12, ebus: 0.12 }
+      for (let day = 1; day <= days; day += 1) {
+        const iso = `${y}-${pad(m)}-${pad(day)}`
+        const weekday = new Date(`${iso}T00:00:00Z`).getUTCDay()
+        if (iso >= today || weekday === 0 || weekday === 6 || dayRandom() < 0.08) continue
+        const dayValues = Object.fromEntries(Object.entries(perDay).map(([key, mean]) => [key, { count: Math.max(0, Math.round(mean * (0.4 + dayRandom() * 1.2) + (mean < 1 && dayRandom() < mean ? 1 : 0))) }]))
+        entries.push({ id: `reg-entry-endo-${iso}`, registerId: DEMO_ENDOSCOPY_ID, entryDate: iso, periodStart: iso, values: dayValues, status: 'complete', locked: false, createdAt: `${iso}T14:00:00Z`, createdByLabel: 'Προϊσταμένη Ενδοσκοπικού' })
+      }
+    }
     if (back > 0) {
-      const base = { gastroscopy: 210, colonoscopy: 140, gastrostomy: 4, cystoscopy: 24, bronchoscopy: 13, ercp: 7, eus: 6, ebus: 6 }
+      const base = { gastroscopy: 85, colonoscopy: 55, gastrostomy: 1.5, cystoscopy: 9, bronchoscopy: 5, ercp: 3, eus: 2.5, ebus: 2.5 }
       const values = Object.fromEntries(Object.entries(base).map(([key, mean]) => {
         return [key, { count: Math.max(0, Math.round(mean * (0.85 + random() * 0.3))) }]
       }))
