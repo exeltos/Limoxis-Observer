@@ -37,7 +37,8 @@ describe('the department calendar', () => {
     expect(read('src/features/workspaces/DepartmentCalendarPage.jsx')).toContain('<CalendarPage departmentOnly />')
     const calendar = read('src/features/calendar/CalendarPage.jsx')
     expect(calendar).toContain("['cultures',...CALENDAR_KINDS.filter(kind=>kind!=='cultures')]")
-    expect(calendar).toContain("e.kind==='cultures'&&e.date>=today")
+    // No summary cards (the page fits without scrolling): the overdue count sits on the «To do» tab.
+    expect(calendar).not.toContain('module-summary-strip')
     // Only the calendar entry is marked on its page, not «My department» as well.
     expect(read('src/app/SidebarNavigation.jsx')).toContain("to==='/my-department'&&['/my-department/calendar'")
   })

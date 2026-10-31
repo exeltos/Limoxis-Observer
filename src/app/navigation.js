@@ -41,7 +41,7 @@ export const navigation=[
   {to:'/quality/culture-plan',key:'culturePlan',label:'sidebarNav.culturePlan',icon:Microscope,capability:CAPABILITIES.VIEW_QUALITY},
   // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
-  {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  {to:'/registers',key:'departmentRegisters',label:'sidebarNav.departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   // The suppliers the Quality team assigned to the department (read only).
   {to:'/my-department/suppliers',key:'departmentSuppliers',label:'sidebarNav.departmentSuppliers',icon:Truck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   // The self-assessments the Quality team released to the department (a preparation for the audit).
@@ -58,14 +58,14 @@ export const navigation=[
   // «Συνεδριάσεις & αποφάσεις»: committees, department meetings and the management review.
   {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsShort',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
   // «Έγγραφα & Κανονισμοί»: documents, regulations and legislation.
-  {to:'/documents',key:'documents',label:'sidebarNav.documentsRegulations',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
+  {to:'/documents',key:'documents',label:'sidebarNav.documentsShort',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
   // «Βιβλιοθήκη»: trusted sources (links, guidelines, clinical guides, news) for every role, staff users included.
   {to:'/library',key:'library',label:'libraryNav.menu',icon:LibraryBig,everyone:true},
   {to:'/kitchen',key:'kitchen',icon:ChefHat,capability:CAPABILITIES.VIEW_KITCHEN,anyCapabilities:kitchenCapabilities},
   {to:'/pharmacy',key:'pharmacy',icon:Pill,capability:CAPABILITIES.VIEW_PHARMACY},
   {to:'/occupational-health',key:'occupationalHealth',icon:Stethoscope,capability:CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH},
   {to:'/calendar',key:'calendar',icon:CalendarDays,capability:CAPABILITIES.VIEW_DOCUMENTS,anyCapabilities:calendarCapabilities},
-  {to:'/management',key:'management',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
+  {to:'/management',key:'management',label:'sidebarNav.managementShort',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
 ]
 
 const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
@@ -91,7 +91,7 @@ export const NAV_GROUP_LABELS=Object.freeze({
   quality:'sidebarNav.groupQuality',
   staff:'sidebarNav.groupStaff',
   management:'sidebarNav.groupManagement',
-  more:'more',
+  more:'sidebarNav.more',
 })
 
 // Hospital leadership (Administrator, Platform Owner inside a hospital).
@@ -110,6 +110,8 @@ const hospitalLeadershipGroups=[
 const roleMenuPolicy=Object.freeze({
   [ROLES.PLATFORM_OWNER]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.HOSPITAL_ADMIN]:groupedPolicy(hospitalLeadershipGroups),
+  // The demo account sees every module: the same headed groups, so the menu never scrolls.
+  [ROLES.DEMO]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
     ['dashboard','surveillance','laboratory','prevention','controls','indicators','meetings','calendar'],
     ['platformAnalyticsNav','quality','culturePlan','employees','training','documents','library','kitchen'],
@@ -126,7 +128,7 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
-    ['myDepartment','departmentCalendar','employees','controls','surveillance','calendar'],
+    ['myDepartment','departmentCalendar','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
     ['indicators','training','documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
@@ -237,8 +239,11 @@ function applyRoleMenuPolicy(role,items){
   return [...groupStaff([...primary,...more],primary.length),...management]
 }
 
+// One entry per destination: the department's calendar replaces the general one, and «Indicators & objectives» holds the indicators.
+const SUPERSEDED=[['departmentCalendar','calendar'],['qualityMeasures','indicators']]
+
 export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignments=false}={}){
-  const allowed=navigation.filter(item=>
+  const permitted=navigation.filter(item=>
     item.excludeRoles&&item.excludeRoles.includes(role)?false:
     item.roles&&!item.roles.includes(role)?false:
     // Open to every member of a hospital, whatever the role (no capability of its own).
@@ -251,6 +256,8 @@ export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignmen
     item.anyCapabilities?canAny(role,item.anyCapabilities,addOns,customCapabilities):
     can(role,item.capability,addOns,customCapabilities)
   )
+  const keys=new Set(permitted.map(item=>item.key))
+  const allowed=permitted.filter(item=>!SUPERSEDED.some(([by,gone])=>gone===item.key&&keys.has(by)))
   return applyRoleMenuPolicy(role,allowed)
 }
 

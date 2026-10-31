@@ -93,7 +93,7 @@ describe('grouped sidebar', () => {
   it('labels a merged entry with the section name', () => {
     renderMenu()
     expect(screen.getByRole('link', { name: 'sidebarNav.surveillanceSection' }).getAttribute('href')).toBe('/surveillance')
-    expect(screen.getByRole('link', { name: 'sidebarNav.documentsRegulations' }).getAttribute('href')).toBe('/documents')
+    expect(screen.getByRole('link', { name: 'sidebarNav.documentsShort' }).getAttribute('href')).toBe('/documents')
   })
 })
 

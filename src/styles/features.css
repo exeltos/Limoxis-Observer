@@ -3036,7 +3036,7 @@ button{letter-spacing:0}
 .sidebar nav{padding:8px 8px!important;gap:2px!important}
 /* Side menu (not the phone bar): the list takes the free height and scrolls above the bin and the footer. */
 @media (min-width:641px){.sidebar nav{flex:1 1 auto;border-bottom:1px solid rgba(255,255,255,.08)}}
-.nav-item.nested{min-height:25px!important;padding-left:27px!important;font-size:12.5px!important}
+.nav-item.nested{min-height:25px!important;padding-left:16px!important;font-size:12.5px!important}
 .sidebar-nav-children{padding:2px 0 4px!important}
 .sidebar-nav-management{margin-top:5px!important;padding-top:5px!important;border-top:1px solid rgba(255,255,255,.08)!important}
 @media (min-width:641px){.sidebar-nav-divider{margin:5px 0 3px;border-top:1px solid rgba(255,255,255,.08)}}
@@ -3894,7 +3894,7 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .filter-active-chip{display:inline-flex;align-items:center;gap:4px;min-height:26px;padding:2px 8px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font:inherit;font-size:11.5px;cursor:pointer}
 
 /* Sidebar: the entries inside an opened group wrap onto a second line instead of ending in «…». */
-.sidebar .sidebar-nav-children .nav-item>span{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.25}
+.sidebar .sidebar-nav-children .nav-item>span{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.25}
 .sidebar .sidebar-nav-children .nav-item{height:auto!important;min-height:34px;padding-top:6px!important;padding-bottom:6px!important}
 .record-summary-card .patient-no-admission-line{border-top:0;padding-top:4px}
 .patient-no-admission-view>.record-summary-grid{margin-bottom:12px}

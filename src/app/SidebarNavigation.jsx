@@ -37,26 +37,28 @@ function NavGroup({block,t,open,onToggle,pathname}){
 
 // The hospital menu: headed groups for the roles that have them (see
 // sidebarLayout in navigation.js), else the main list, «More» and the Management Center.
+const MORE='__more'
+
 export function SidebarNavigation({role,items,t,userKey}){
   const {pathname}=useLocation()
-  const [moreOpen,setMoreOpen]=useState(false)
   const layout=sidebarLayout(role,items)
   // One group is open at a time and it follows the open screen; the heading of the group the
   // open screen belongs to stays marked (dot, bold) even when another group is opened.
-  const activeGroup=layout.find(block=>block.kind==='group'&&block.items.some(item=>isUnder(pathname,item.to)))?.id||null
+  // «More» is one of these groups too, so opening it folds «Staff» and the menu never scrolls.
+  const activeBlock=layout.find(block=>(block.kind==='group'||block.kind==='more')&&block.items.some(item=>isUnder(pathname,item.to)))
+  const activeGroup=activeBlock?(activeBlock.kind==='more'?MORE:activeBlock.id):null
   const [openGroup,setOpenGroup]=useState(activeGroup)
   const [openFor,setOpenFor]=useState(`${userKey}|${activeGroup}`)
   if(openFor!==`${userKey}|${activeGroup}`){setOpenFor(`${userKey}|${activeGroup}`);setOpenGroup(activeGroup)}
   const toggleGroup=id=>setOpenGroup(current=>current===id?null:id)
-  const closeMore=()=>setMoreOpen(false)
   return layout.map((block,index)=>{
     if(block.kind==='group')return <NavGroup key={block.id} block={block} t={t} open={openGroup===block.id} onToggle={toggleGroup} pathname={pathname}/>
     // Plain entries after a headed group start under a divider, so they never read as part of the group.
-    if(block.kind==='list')return [layout[index-1]?.kind==='group'&&<div key={`divider-${index}`} className="sidebar-nav-divider" aria-hidden="true"/>,...block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)]
-    if(block.kind==='management')return <div key="management" className="sidebar-nav-management">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} onNavigate={closeMore}/>)}</div>
+    if(block.kind==='list')return [layout[index-1]?.kind==='group'&&<div key={`divider-${index}`} className="sidebar-nav-divider" aria-hidden="true"/>,...block.items.map(item=><NavEntry key={item.to} item={item} t={t} />)]
+    if(block.kind==='management')return <div key="management" className="sidebar-nav-management">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} />)}</div>
     const moreActive=block.items.some(item=>isUnder(pathname,item.to))
-    const moreExpanded=moreOpen||moreActive
-    const more=<div key="more" className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" title={t('more')} className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>setMoreOpen(v=>!v)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} nested/>)}</div>}</div>
+    const moreExpanded=openGroup===MORE
+    const more=<div key="more" className={`sidebar-nav-group ${moreExpanded?'open':''}`}><button type="button" title={t('sidebarNav.more')} className={`nav-item nav-group-trigger ${moreActive?'active-group':''}`} onClick={()=>toggleGroup(MORE)} aria-expanded={moreExpanded}><Layers3 size={18}/><span>{t('sidebarNav.more')}</span><ChevronDown className="nav-group-chevron" size={14}/></button>{moreExpanded&&<div className="sidebar-nav-children">{block.items.map(item=><NavEntry key={item.to} item={item} t={t} nested/>)}</div>}</div>
     return layout[index-1]?.kind==='group'?[<div key={`divider-${index}`} className="sidebar-nav-divider" aria-hidden="true"/>,more]:more
   })
 }

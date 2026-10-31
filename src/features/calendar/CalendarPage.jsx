@@ -1,10 +1,9 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,CalendarDays,ChevronLeft,ChevronRight,ClipboardCheck,ClipboardList,GraduationCap,ListChecks,Microscope,Plus } from 'lucide-react'
+import { CalendarDays,ChevronLeft,ChevronRight,ClipboardCheck,ClipboardList,GraduationCap,ListChecks,Plus } from 'lucide-react'
 import { useNavigate,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { MetricCard } from '../../design-system/MetricCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -123,8 +122,6 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
  const events=useMemo(()=>allEvents.filter(e=>allowedKinds.includes(e.kind)&&isOn(calendarFilterOf(e))&&(department==='all'||e.department===department)&&(!e.department||canAccessRecord({department:e.department}))),[allEvents,allowedKinds,isOn,department,canAccessRecord])
  const byDay=useMemo(()=>{const map=new Map();for(const e of events){const list=map.get(e.date)||[];list.push(e);map.set(e.date,list)}return map},[events])
  const overdue=events.filter(e=>e.state==='overdue')
- const weekEnd=dayKey(new Date(Date.now()+7*24*60*60*1000))
- const thisWeek=events.filter(e=>e.state!=='overdue'&&e.state!=='done'&&e.date>=today&&e.date<=weekEnd)
  const monthKey=`${cursor.year}-${String(cursor.month+1).padStart(2,'0')}`
  const monthEvents=events.filter(e=>e.date.startsWith(monthKey))
  // Modules switched off or a department chosen, and nothing left this month: say it is the filters.
@@ -158,20 +155,13 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
  if(!sources)return <RouteLoading/>
  // In the department's calendar the culture sampling comes first in every day, and the next one is on top of the page.
  const dayKinds=departmentOnly?['cultures',...CALENDAR_KINDS.filter(kind=>kind!=='cultures')]:CALENDAR_KINDS
- const nextCulture=departmentOnly?events.find(e=>e.kind==='cultures'&&e.date>=today&&!['done','late','missed'].includes(e.state)):null
  const dayEvents=byDay.get(selected)||[]
  const selectedEvents=panelKind?dayEvents.filter(e=>e.kind===panelKind):dayEvents
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
  const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
  return <Page fill className="calendar-page" title={culturesOnly?(en?'Culture plan':'Πλάνο καλλιεργειών'):departmentOnly?(en?'Department calendar':'Ημερολόγιο τμήματος'):(en?'Calendar':'Ημερολόγιο')} subtitle={departmentOnly?(en?'What concerns your department by date: the culture samples that will be taken, controls, trainings and deadlines.':'Ό,τι αφορά το τμήμα σας ανά ημερομηνία: οι καλλιέργειες που θα παρθούν, έλεγχοι, εκπαιδεύσεις και προθεσμίες.'):culturesOnly?(en?'The culture sampling of every department, by date: taken, missed and planned.':'Η δειγματοληψία καλλιεργειών κάθε τμήματος, ανά ημερομηνία: έγινε, χάθηκε, προγραμματισμένη.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')} actions={view==='year'?null:<ExportMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
-  <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:en?'To do':'Εκκρεμότητες',icon:ListChecks},...(culturesOnly?[{value:'year',label:en?'Year':'Έτος',icon:ClipboardList}]:[])]}/>
+  <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:`${en?'To do':'Εκκρεμότητες'}${overdue.length?` · ${overdueLabel(overdue.length,en)}`:''}`,icon:ListChecks},...(culturesOnly?[{value:'year',label:en?'Year':'Έτος',icon:ClipboardList}]:[])]}/>
   {view==='year'?<section className="surface registry-workspace workspace-fill"><EnvironmentalAnnualPlan/></section>:<>
-  <div className="module-summary-strip">
-   {departmentOnly&&<MetricCard icon={Microscope} value={nextCulture?fmtShort(nextCulture.date):'—'} label={nextCulture?(en?`Next culture sampling · ${nextCulture.department||''}`:`Επόμενη λήψη καλλιεργειών · ${nextCulture.department||''}`):(en?'No culture sampling planned':'Καμία λήψη καλλιεργειών προγραμματισμένη')} onClick={()=>nextCulture&&openDay(nextCulture.date)}/>}
-   <MetricCard icon={AlertTriangle} value={overdue.length} label={en?'Overdue':'Εκπρόθεσμα'} tone={overdue.length?'warning':'neutral'} onClick={()=>setView('list')}/>
-   <MetricCard icon={ClipboardCheck} value={thisWeek.length} label={en?'Next 7 days':'Επόμενες 7 ημέρες'} onClick={()=>setView('list')}/>
-   <MetricCard icon={CalendarDays} value={monthEvents.length} label={en?`In ${monthTitle}`:`Τον μήνα (${monthTitle})`} onClick={()=>setView('month')}/>
-  </div>
   <section className="surface registry-workspace workspace-column workspace-fill calendar-workspace">
    <div className="calendar-toolbar">
     <div className="calendar-kinds" role="group" aria-label={en?'Show':'Εμφάνιση'}>{filterKinds.map(filter=><button key={filter} type="button" className={`calendar-kind-toggle filter-${filter} ${isOn(filter)?'':'off'}`} aria-pressed={isOn(filter)} onClick={()=>toggleFilter(filter)}><span className="calendar-dot"/>{calendarFilterLabel(filter,language)}</button>)}</div>
