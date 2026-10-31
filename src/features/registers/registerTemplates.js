@@ -104,7 +104,7 @@ export const REGISTER_TEMPLATES = [
     kind: 'sheet',
     name: 'Πράξεις Οφθαλμολογικού',
     nameEn: 'Ophthalmology procedures',
-    description: 'Ένα φύλλο ανά μήνα με το πλήθος κάθε πράξης. Δείκτες: σύνολο πράξεων και μερίδιο κάθε πράξης.',
+    description: 'Ένα φύλλο ανά ημέρα με το πλήθος κάθε πράξης. Δείκτες: σύνολο πράξεων, μερίδιο κάθε πράξης, μέσος αριθμός ανά ημέρα λειτουργίας.',
     descriptionEn: 'One sheet per month with the number of each procedure. Indicators: total procedures and the share of each.',
     sheet: {
       period: 'month',
@@ -121,7 +121,9 @@ export const REGISTER_TEMPLATES = [
       { id: 'cataract_share', title: '% καταρρακτών', titleEn: '% cataracts', aggregation: 'percent', rows: ['cataract'], unit: '%', direction: 'context' },
       { id: 'vitrectomy_share', title: '% βιτρεκτομών', titleEn: '% vitrectomies', aggregation: 'percent', rows: ['vitrectomy'], unit: '%', direction: 'context' },
       { id: 'intravitreal_share', title: '% ενδοϋαλοειδικών εγχύσεων', titleEn: '% intravitreal injections', aggregation: 'percent', rows: ['intravitreal'], unit: '%', direction: 'context' },
-      { id: 'monthly_mean', title: 'Μέσος όρος πράξεων ανά μήνα', titleEn: 'Mean procedures per month', aggregation: 'mean', rows: [], direction: 'context' },
+      { id: 'other_local_share', title: '% λοιπών τοπικών πράξεων', titleEn: '% other local procedures', aggregation: 'percent', rows: ['other_local'], unit: '%', direction: 'context' },
+      { id: 'daily_mean', title: 'Μέσος αριθμός πράξεων ανά ημέρα λειτουργίας', titleEn: 'Mean procedures per working day', aggregation: 'mean', rows: [], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
+      { id: 'days_recorded', title: 'Ημέρες με καταχώριση', titleEn: 'Days recorded', aggregation: 'count', rows: [], dailyOnly: true, direction: 'context' },
     ],
   },
   {

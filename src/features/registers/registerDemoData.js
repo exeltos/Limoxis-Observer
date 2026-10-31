@@ -33,6 +33,8 @@ export const DEMO_OBSTETRICS_ID = 'reg-demo-obstetrics'
 export const DEMO_EMERGENCY_ID = 'reg-demo-emergency'
 export const DEMO_CATHLAB_ID = 'reg-demo-cathlab'
 export const DEMO_CHEMO_ID = 'reg-demo-chemo'
+export const DEMO_OPHTHALMOLOGY_ID = 'reg-demo-ophthalmology'
+export const DEMO_DELIVERYROOM_ID = 'reg-demo-deliveryroom'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -52,7 +54,12 @@ export function demoRegisters() {
   const cathLab = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
   const chemo = { ...registerFromTemplate('chemotherapy', { departmentId: 'Χημειοθεραπεία', department: 'Χημειοθεραπεία', departmentEn: 'Chemotherapy' }), id: DEMO_CHEMO_ID, code: 'REG-CHEMO' }
   chemo.fields = chemo.fields.map(field => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
-  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const ophthalmology = { ...registerFromTemplate('ophthalmology', { departmentId: 'Οφθαλμολογική', department: 'Οφθαλμολογική', departmentEn: 'Ophthalmology' }), id: DEMO_OPHTHALMOLOGY_ID, code: 'REG-OPH' }
+  ophthalmology.sheet = { ...ophthalmology.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
+  const deliveryRoom = { ...registerFromTemplate('deliveryRoom', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_DELIVERYROOM_ID, code: 'REG-DR' }
+  deliveryRoom.sheet = { ...deliveryRoom.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
+  deliveryRoom.indicators = deliveryRoom.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 50, threshold: 60 }, vbac_rate: { target: 10 } }[indicator.id] || {}) }))
+  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo, ophthalmology, deliveryRoom].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -268,6 +275,30 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       const id = `reg-entry-paed-${entries.filter(item => item.registerId === DEMO_PAEDIATRICS_ID).length + 1}`
       entries.push({ id, registerId: DEMO_PAEDIATRICS_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια Παιδιατρικής' })
       identities[id] = { caseNumber: String(kidNumber), patientName: `Παιδί ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
+    }
+  }
+  // Ophthalmology and the delivery room: a total a month before the current month, a sheet a day in it.
+  const sheetRandom = seeded(20261125)
+  const sheetMeans = {
+    [DEMO_OPHTHALMOLOGY_ID]: { cataract: 7.5, vitrectomy: 1.1, intravitreal: 2.6, other_local: 1.2 },
+    [DEMO_DELIVERYROOM_ID]: { vaginal: 1.5, cs: 2.2, vbac: 0.15, multiple_vaginal: 0.03, multiple_cs: 0.07, born_before_arrival: 0.05, hysteroscopy: 0.5, septic: 0.15, pregnancy_monitoring: 0.2, cerclage: 0.05 },
+  }
+  for (const [registerId, means] of Object.entries(sheetMeans)) {
+    const label = registerId === DEMO_OPHTHALMOLOGY_ID ? 'Προϊσταμένη Οφθαλμολογικού' : 'Μαία Αίθουσας Τοκετών'
+    for (let back = 13; back >= 0; back -= 1) {
+      const date = new Date(Date.UTC(year, month - 1 - back, 1))
+      const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+      const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+      const cell = (mean, factor) => ({ count: Math.max(0, Math.round(mean * factor * (0.6 + sheetRandom() * 0.8))) })
+      if (back > 0) entries.push({ id: `reg-entry-${registerId}-${y}-${pad(m)}`, registerId, entryDate: `${y}-${pad(m)}-01`, periodStart: `${y}-${pad(m)}-01`, values: Object.fromEntries(Object.entries(means).map(([key, mean]) => [key, cell(mean, registerId === DEMO_OPHTHALMOLOGY_ID ? 21 : 30)])), status: 'complete', locked: back > 1, createdAt: `${y}-${pad(m)}-${pad(days)}T14:00:00Z`, createdByLabel: label })
+      else {
+        for (let day = 1; day <= days; day += 1) {
+          const iso = `${y}-${pad(m)}-${pad(day)}`
+          const weekday = new Date(`${iso}T00:00:00Z`).getUTCDay()
+          if (iso >= today || (registerId === DEMO_OPHTHALMOLOGY_ID && (weekday === 0 || weekday === 6)) || sheetRandom() < 0.05) continue
+          entries.push({ id: `reg-entry-${registerId}-${iso}`, registerId, entryDate: iso, periodStart: iso, values: Object.fromEntries(Object.entries(means).map(([key, mean]) => [key, cell(mean, 1)])), status: 'complete', locked: false, createdAt: `${iso}T15:00:00Z`, createdByLabel: label })
+        }
+      }
     }
   }
   // Cath lab: one card per patient procedure, its own seed.

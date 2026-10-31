@@ -92,7 +92,7 @@ const OBSTETRICS = {
   ],
   indicators: [
     count('mothers', 'Λεχωίδες', 'Mothers'),
-    share('cs_rate', '% καισαρικών τομών', '% caesarean sections', [{ field: 'delivery', op: 'eq', value: 'cs' }], { denominatorFilters: [{ field: 'delivery', op: 'filled' }] }),
+    share('cs_rate', '% καισαρικών τομών', '% caesarean sections', [{ field: 'delivery', op: 'eq', value: 'cs' }], { denominatorFilters: [{ field: 'delivery', op: 'filled' }], note: 'Ανά λεχωίδα του τμήματος. Η Αίθουσα Τοκετών μετράει όλους τους τοκετούς.', noteEn: 'Per mother on the ward. The delivery room counts every delivery.' }),
     share('exclusive_bf', '% αποκλειστικού μητρικού θηλασμού', '% exclusive breastfeeding', [{ field: 'breastfeeding', op: 'eq', value: 'exclusive' }], { denominatorFilters: [{ field: 'breastfeeding', op: 'filled' }], direction: 'higher' }),
     share('weaning', '% απογαλακτισμού', '% weaning', [{ field: 'breastfeeding', op: 'eq', value: 'weaning' }], { denominatorFilters: [{ field: 'breastfeeding', op: 'filled' }], direction: 'lower' }),
     share('antenatal', '% με προγεννητικά μαθήματα', '% attended antenatal classes', [{ field: 'antenatal', op: 'eq', value: 'attended' }], { denominatorFilters: [{ field: 'antenatal', op: 'filled' }], direction: 'higher' }),
@@ -105,17 +105,17 @@ const DELIVERY_ROOM = {
   kind: 'sheet',
   name: 'Πράξεις Αίθουσας Τοκετών',
   nameEn: 'Delivery room activity',
-  description: 'Ένα φύλλο ανά μήνα: τοκετοί και λοιπές πράξεις. Το VBAC μετριέται ως μέρος των φυσιολογικών τοκετών, όχι επιπλέον.',
+  description: 'Ένα φύλλο ανά ημέρα: τοκετοί και λοιπές πράξεις. Οι φυσιολογικοί μετά από καισαρική μετριούνται ως μέρος των φυσιολογικών τοκετών, όχι επιπλέον.',
   descriptionEn: 'One sheet per month: deliveries and other procedures. VBAC is counted within vaginal deliveries, not on top.',
   sheet: {
     period: 'month',
     rows: [
       row('vaginal', 'Φυσιολογικοί τοκετοί', 'Vaginal deliveries', ['Φ.Τ', 'Φ/Τ'], 'deliveries'),
       row('cs', 'Καισαρικές τομές', 'Caesarean sections', ['Κ.Τ', 'Κ/Τ'], 'deliveries'),
-      row('vbac', 'VBAC (από τους φυσιολογικούς)', 'VBAC (within vaginal)', ['Vbac', 'V Bac'], 'deliveries'),
-      row('multiple_vaginal', 'Πολύδυμες κυήσεις με Φ.Τ', 'Multiple pregnancies, vaginal', ['Πολύδυμες Κυήσεις με Φ.Τ', 'Πολυδ κύηση με φτ'], 'deliveries'),
-      row('multiple_cs', 'Πολύδυμες κυήσεις με Κ.Τ', 'Multiple pregnancies, caesarean', ['Πολύδυμες Κυήσεις με Κ.Τ', 'Πολυδ κύηση με κτ'], 'deliveries'),
-      row('born_before_arrival', 'Τοκετός εκτός νοσοκομείου', 'Born before arrival', ['Τοκετός εν τη Πόλη', 'Τοκετοί εν τη πόλη', 'Τεκετοί εν τη πόλη'], 'deliveries'),
+      row('vbac', 'Φυσιολογικοί μετά από καισαρική (μέρος των φυσιολογικών)', 'Vaginal after caesarean (within vaginal)', ['Vbac', 'V Bac'], 'deliveries'),
+      row('multiple_vaginal', 'Πολύδυμες με φυσιολογικό τοκετό', 'Multiple pregnancies, vaginal', ['Πολύδυμες Κυήσεις με Φ.Τ', 'Πολυδ κύηση με φτ'], 'deliveries'),
+      row('multiple_cs', 'Πολύδυμες με καισαρική τομή', 'Multiple pregnancies, caesarean', ['Πολύδυμες Κυήσεις με Κ.Τ', 'Πολυδ κύηση με κτ'], 'deliveries'),
+      row('born_before_arrival', 'Τοκετοί πριν την άφιξη στο νοσοκομείο', 'Born before arrival', ['Τοκετός εν τη Πόλη', 'Τοκετοί εν τη πόλη', 'Τεκετοί εν τη πόλη'], 'deliveries'),
       row('hysteroscopy', 'Υστεροσκοπήσεις', 'Hysteroscopies', ['Υστεροσκοπήσεις'], 'other'),
       row('septic', 'Σηπτικά', 'Septic procedures', ['Σηπτικά'], 'other'),
       row('pregnancy_monitoring', 'Παρακολούθηση κύησης', 'Pregnancy monitoring', ['Παρακολούθηση κύησης'], 'other'),
@@ -127,10 +127,12 @@ const DELIVERY_ROOM = {
   indicators: [
     { id: 'deliveries', title: 'Σύνολο τοκετών', titleEn: 'Total deliveries', aggregation: 'sum', rows: ['vaginal', 'cs'], direction: 'context' },
     { id: 'cs_rate', title: '% καισαρικών τομών', titleEn: '% caesarean sections', aggregation: 'percent', rows: ['cs'], denominatorRows: ['vaginal', 'cs'], unit: '%', direction: 'lower' },
-    { id: 'vbac_rate', title: '% VBAC στους φυσιολογικούς', titleEn: '% VBAC of vaginal deliveries', aggregation: 'percent', rows: ['vbac'], denominatorRows: ['vaginal'], unit: '%', direction: 'context' },
-    { id: 'multiple_cs_rate', title: '% πολύδυμων με Κ.Τ', titleEn: '% multiple pregnancies by caesarean', aggregation: 'percent', rows: ['multiple_cs'], denominatorRows: ['vaginal', 'cs'], unit: '%', direction: 'context' },
+    { id: 'vbac_rate', title: '% φυσιολογικών τοκετών μετά από προηγούμενη καισαρική', titleEn: '% vaginal births after a previous caesarean', aggregation: 'percent', rows: ['vbac'], denominatorRows: ['vaginal'], unit: '%', direction: 'context' },
+    { id: 'multiple_cs_rate', title: '% πολύδυμων που γεννήθηκαν με καισαρική', titleEn: '% multiple pregnancies born by caesarean', aggregation: 'percent', rows: ['multiple_cs'], denominatorRows: ['vaginal', 'cs'], unit: '%', direction: 'context' },
     { id: 'hysteroscopies', title: 'Υστεροσκοπήσεις', titleEn: 'Hysteroscopies', aggregation: 'sum', rows: ['hysteroscopy'], direction: 'context' },
     { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic procedures', aggregation: 'sum', rows: ['septic'], direction: 'context' },
+    { id: 'born_before_arrival', title: 'Τοκετοί πριν την άφιξη στο νοσοκομείο', titleEn: 'Births before arrival at the hospital', aggregation: 'sum', rows: ['born_before_arrival'], direction: 'context', note: 'Δεν περιλαμβάνονται στο σύνολο των τοκετών.', noteEn: 'Not included in the total deliveries.' },
+    { id: 'daily_deliveries', title: 'Μέσος αριθμός τοκετών ανά ημέρα', titleEn: 'Mean deliveries per day', aggregation: 'mean', rows: ['vaginal', 'cs'], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
   ],
 }
 
@@ -267,6 +269,8 @@ const EMERGENCY = {
   indicators: [
     { id: 'total', title: 'Σύνολο περιστατικών', titleEn: 'Total cases', aggregation: 'sum', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], direction: 'context' },
     { id: 'admissions', title: 'Εισαγωγές', titleEn: 'Admissions', aggregation: 'sum', rows: ['admissions'], direction: 'context' },
+    { id: 'admission_rate', title: '% εισαγωγών από τα ΤΕΠ', titleEn: '% admitted from the emergency department', aggregation: 'percent', rows: ['admissions'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context', note: 'Εισαγωγές ÷ περιστατικά του ΤΕΠ.', noteEn: 'Admissions ÷ the department’s cases.' },
+    { id: 'daily_cases', title: 'Μέσος αριθμός περιστατικών ανά ημέρα', titleEn: 'Mean cases per day', aggregation: 'mean', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
     { id: 'night_share', title: '% περιστατικών στη νυχτερινή βάρδια', titleEn: '% of cases on the night shift', aggregation: 'percent', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], measure: 'night', denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context' },
     { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic', aggregation: 'sum', rows: ['septic'], direction: 'context' },
     { id: 'left_without_seen_rate', title: '% αποχωρήσεων χωρίς εξέταση', titleEn: '% left without being seen', aggregation: 'percent', rows: ['left_without_seen'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 2, direction: 'lower', note: 'Οι ασθενείς που έφυγαν πριν εξεταστούν, ως ποσοστό των περιστατικών του ΤΕΠ.', noteEn: "Patients who left before being seen, as a share of the emergency department's cases." },

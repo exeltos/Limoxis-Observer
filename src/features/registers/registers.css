@@ -266,6 +266,9 @@
 /* The daily entry as the department's ledger: a line per procedure, the number at the end, what it was the day before under the name. */
 .register-sheet{--reg-accent:var(--lo-color-primary)}
 .register-sheet.is-theme-endoscopy{--reg-accent:#1f8a8a}
+.register-sheet.is-theme-ophthalmology{--reg-accent:#3a74c9}
+.register-sheet.is-theme-emergency{--reg-accent:#c0392b}
+.register-sheet.is-theme-deliveryroom{--reg-accent:#b84d7a}
 .register-ledger{display:grid;gap:0;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface);box-shadow:inset 4px 0 0 var(--reg-accent);overflow:clip}
 .register-ledger-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px 10px 20px;background:linear-gradient(180deg,color-mix(in srgb,var(--reg-accent) 10%,var(--lo-color-surface)),var(--lo-color-surface));border-bottom:1px solid var(--lo-color-border);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
 .register-ledger-head strong{color:var(--reg-accent);font-size:12px}

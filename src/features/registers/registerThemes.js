@@ -1,4 +1,4 @@
-import { Activity, Baby, ClipboardList, Flower2, Heart, HeartPulse, Microscope, Pill, Zap } from 'lucide-react'
+import { Activity, Baby, ClipboardList, Flower2, Heart, HeartPulse, Eye, Microscope, Pill, Siren, Zap } from 'lucide-react'
 
 // The look of a register's pages: the NICU and the ICU have their own (colour and icon), the rest the standard one.
 // A register is recognised by its template, or by its name («ΜΕΝΝ», «ΜΕΘ») for the hospitals' own copies.
@@ -7,17 +7,21 @@ export function registerThemeKey(register) {
   if (['nicu', 'icu', 'obstetrics', 'endoscopy'].includes(register.templateKey)) return register.templateKey
   if (register.templateKey === 'cathLab') return 'cathlab'
   if (register.templateKey === 'chemotherapy') return 'chemo'
+  if (['ophthalmology', 'emergency', 'deliveryRoom'].includes(register.templateKey)) return register.templateKey === 'deliveryRoom' ? 'deliveryroom' : register.templateKey
   const text = `${register.name || ''} ${register.nameEn || ''} ${register.department || ''}`
   if (/ΜΕΝΝ|NICU/i.test(text)) return 'nicu'
   if (/(^|[^Α-Ωα-ωά-ώ])ΜΕΘ([^Α-Ωα-ωά-ώ]|$)|\bICU\b/.test(text)) return 'icu'
   if (register.kind !== 'sheet' && /Μαιευτικ|obstetric/i.test(text)) return 'obstetrics'
   if (/Ενδοσκοπ|endoscop/i.test(text)) return 'endoscopy'
+  if (register.kind === 'sheet' && /Οφθαλμ|ophthalm/i.test(text)) return 'ophthalmology'
+  if (register.kind === 'sheet' && /Αίθουσας? Τοκετών|Αιθουσας? Τοκετων|delivery room/i.test(text)) return 'deliveryroom'
+  if (register.kind === 'sheet' && /(^|[^Α-Ωα-ωά-ώ])ΤΕΠ([^Α-Ωα-ωά-ώ]|$)|emergency/i.test(text)) return 'emergency'
   if (register.kind !== 'sheet' && /Χημειοθεραπ|chemotherap/i.test(text)) return 'chemo'
   if (register.kind !== 'sheet' && /Αιμοδυναμικ|cath lab/i.test(text)) return 'cathlab'
   return ''
 }
 
-export const themeIcon = key => ({ nicu: Baby, icu: HeartPulse, obstetrics: Flower2, endoscopy: Microscope, cathlab: Zap, chemo: Pill })[key] || ClipboardList
+export const themeIcon = key => ({ nicu: Baby, icu: HeartPulse, obstetrics: Flower2, endoscopy: Microscope, cathlab: Zap, chemo: Pill, ophthalmology: Eye, emergency: Siren, deliveryroom: Flower2 })[key] || ClipboardList
 
 // The ICU keeps General and Cardiac surgery patients in one register: each case wears its own colour and symbol.
 const ICU_CATEGORIES = { cardiac: { Icon: Heart, tone: 'danger' }, general: { Icon: Activity, tone: 'info' } }

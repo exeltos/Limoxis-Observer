@@ -230,7 +230,7 @@ describe('the obstetrics register', () => {
     const { registerThemeKey } = await import('../src/features/registers/registerThemes')
     const register = demoRegisters().find(item => item.templateKey === 'obstetrics')
     expect(registerThemeKey(register)).toBe('obstetrics')
-    expect(registerThemeKey({ name: 'Πράξεις Αίθουσας Τοκετών', nameEn: '', department: 'Μαιευτική', kind: 'sheet' })).toBe('')
+    expect(registerThemeKey({ name: 'Πράξεις Αίθουσας Τοκετών', nameEn: '', department: 'Μαιευτική', kind: 'sheet' })).toBe('deliveryroom')
     const cs = register.indicators.find(item => item.id === 'cs_rate')
     expect([cs.target, cs.threshold, cs.direction]).toEqual([55, 65, 'lower'])
     const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
@@ -402,5 +402,27 @@ describe('the chemotherapy register', () => {
     expect(ids).not.toContain('mean_age')
     expect(ids).toContain('active_patients')
     expect(chemo.settings.sections.map(item => item.key)).toEqual(['patient', 'treatment', 'end'])
+  })
+})
+
+describe('the daily sheets of the ophthalmology, emergency and delivery room', () => {
+  const day = (periodStart, values) => ({ periodStart, entryDate: periodStart, values })
+  it('reads the mean per day and the admissions share', () => {
+    const emergency = registerFromTemplate('emergency')
+    const cells = (surgical, admissions) => ({ surgical: { morning: surgical, afternoon: 0, night: 0 }, admissions: { morning: admissions, afternoon: 0, night: 0 } })
+    const entries = [day('2026-11-02', cells(40, 8)), day('2026-11-03', cells(60, 12))]
+    emergency.sheet = { ...emergency.sheet, dailyFrom: '2026-11-01' }
+    const period = periodOf('month', '2026-11-10')
+    expect(computeIndicator(emergency, emergency.indicators.find(item => item.id === 'daily_cases'), entries, period).value).toBe(50)
+    expect(computeIndicator(emergency, emergency.indicators.find(item => item.id === 'admission_rate'), entries, period).value).toBe(20)
+  })
+  it('has no English codes in the delivery room, and its own looks', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    const room = registerFromTemplate('deliveryRoom')
+    const texts = [...room.indicators.map(item => item.title), ...room.sheet.rows.map(item => item.label)]
+    expect(texts.filter(text => /VBAC|Κ\.Τ|Φ\.Τ/.test(text))).toEqual([])
+    expect(room.indicators.map(item => item.id)).toEqual(expect.arrayContaining(['born_before_arrival', 'daily_deliveries']))
+    expect([registerThemeKey(room), registerThemeKey(registerFromTemplate('ophthalmology')), registerThemeKey(registerFromTemplate('emergency'))]).toEqual(['deliveryroom', 'ophthalmology', 'emergency'])
+    expect(registerFromTemplate('ophthalmology').indicators.map(item => item.id)).not.toContain('monthly_mean')
   })
 })
