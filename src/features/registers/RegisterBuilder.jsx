@@ -17,7 +17,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
-import { AGGREGATIONS, DAILY_SHEETS_FROM, COMPUTED_KINDS, FIELD_TYPES, FILTER_OPS, filterText, keyFrom, optionLabel, optionsOf, textOf } from './registerEngine'
+import { AGGREGATIONS, dailyStart, COMPUTED_KINDS, FIELD_TYPES, FILTER_OPS, filterText, keyFrom, optionLabel, optionsOf, textOf } from './registerEngine'
 import { saveRegister } from './registerService'
 import { registerStatusLabel } from './registerText'
 
@@ -91,6 +91,9 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
           <Field label={en ? 'Name' : 'Όνομα'}><input value={draft.name} disabled={!canEdit} onChange={event => patch({ name: event.target.value })} /></Field>
           <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={draft.status} options={['active', 'draft', 'archived'].map(value => ({ value, label: registerStatusLabel(value, language) }))} onChange={value => canEdit && patch({ status: value })} />
         </FormGrid>
+        {draft.kind === 'sheet' && <FormGrid columns={3}>
+          <ManualDateField label={en ? 'Recorded day by day from' : 'Ημερήσια καταχώριση από'} value={dailyStart(draft.sheet?.dailyFrom)} disabled={!canEdit} onChange={value => canEdit && value && patch({ sheet: { ...draft.sheet, dailyFrom: value } })} hint={en ? 'Before this day the sheet has one total a month.' : 'Πριν από αυτή την ημέρα το φύλλο έχει ένα σύνολο τον μήνα.'} />
+        </FormGrid>}
         {draft.kind === 'case' && <FormGrid columns={3}>
           <SearchableSelect label={en ? 'Date a case counts on' : 'Ημερομηνία που μετράει το περιστατικό'} value={draft.settings?.entryDateField || ''} disabled={!canEdit} options={dateFields.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => setSettings({ entryDateField: value || '' })} {...selectText(en)} />
           <div className="register-builder-checks">
@@ -155,8 +158,8 @@ export function RegisterBuilder({ register, entries = [], canEdit, entryCount, o
 // What each row usually is per day: the mean of the last 30 daily entries (null before the daily sheets start).
 function usualPerDay(register, entries) {
   if (register.kind !== 'sheet') return null
-  const dailyFrom = register.sheet?.dailyFrom || DAILY_SHEETS_FROM
-  const days = entries.filter(entry => String(entry.periodStart).slice(0, 7) >= dailyFrom).sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart))).slice(0, 30)
+  const dailyFrom = dailyStart(register.sheet?.dailyFrom)
+  const days = entries.filter(entry => String(entry.periodStart) >= dailyFrom).sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart))).slice(0, 30)
   return new Map((register.sheet?.rows || []).map(row => {
     const totals = days.map(entry => Object.values(entry.values?.[row.key] || {}).reduce((sum, cell) => sum + (Number(cell) || 0), 0))
     return [row.key, totals.length ? totals.reduce((sum, value) => sum + value, 0) / totals.length : null]

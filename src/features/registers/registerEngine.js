@@ -34,7 +34,9 @@ export function apacheMortality(score, postop) {
 }
 
 // Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
-export const DAILY_SHEETS_FROM = '2026-11'
+export const DAILY_SHEETS_FROM = '2026-11-01'
+// The day a sheet starts being recorded day by day (a month, «2026-11», means its first day).
+export const dailyStart = value => { const text = String(value || DAILY_SHEETS_FROM); return text.length === 7 ? `${text}-01` : text.slice(0, 10) }
 
 export const AGGREGATIONS = [
   { value: 'count', label: ['Πλήθος', 'Count'] },
@@ -259,8 +261,8 @@ export function computeIndicator(register, indicator, entries = [], period) {
   if (register.kind === 'sheet') {
     const sheet = register.sheet || {}
     // «Daily only» indicators read the days recorded one by one, never a month's single total.
-    const dailyFrom = sheet.dailyFrom || DAILY_SHEETS_FROM
-    const used = indicator.dailyOnly ? inPeriod.filter(entry => String(entry.periodStart).slice(0, 7) >= dailyFrom) : inPeriod
+    const dailyFrom = dailyStart(sheet.dailyFrom)
+    const used = indicator.dailyOnly ? inPeriod.filter(entry => String(entry.periodStart) >= dailyFrom) : inPeriod
     if (indicator.aggregation === 'count') {
       result.numerator = used.length
       result.value = indicator.dailyOnly && !used.length ? null : used.length
@@ -404,14 +406,16 @@ export function indicatorReport(register, entries = [], period) {
 
 // How much of a period a sheet has: months (before the daily sheets) or days with an entry, out
 // of those that have passed. null when the period mixes the two or has not started.
-export function sheetCoverage(entries = [], period, today, dailyFrom) {
+export function sheetCoverage(entries = [], period, today, dailyFromValue) {
+  const dailyFrom = dailyStart(dailyFromValue)
   const months = []
   for (let month = period.from.slice(0, 7); month <= period.to.slice(0, 7); month = shiftPeriod(periodOf('month', `${month}-01`), 1).from.slice(0, 7)) if (`${month}-01` <= today) months.push(month)
   if (!months.length) return null
-  const legacy = months.map(month => month < dailyFrom)
-  if (legacy.some(Boolean) && !legacy.every(Boolean)) return null
+  // A month is whole before the start, whole after it, or cut by it (then nothing is said).
+  const kinds = months.map(month => (`${month}-01` >= dailyFrom ? 'day' : `${month}-${pad(lastDay(Number(month.slice(0, 4)), Number(month.slice(5, 7))))}` < dailyFrom ? 'month' : 'mixed'))
+  if (kinds.some(kind => kind !== kinds[0]) || kinds[0] === 'mixed') return null
   const inPeriod = entriesInPeriod(entries, period)
-  if (legacy[0]) return { unit: 'month', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 7)).filter(month => months.includes(month))).size, expected: months.length }
+  if (kinds[0] === 'month') return { unit: 'month', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 7)).filter(month => months.includes(month))).size, expected: months.length }
   const expected = months.reduce((sum, month) => sum + (month === today.slice(0, 7) ? Number(today.slice(8, 10)) : lastDay(Number(month.slice(0, 4)), Number(month.slice(5, 7)))), 0)
   return { unit: 'day', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 10))).size, expected }
 }

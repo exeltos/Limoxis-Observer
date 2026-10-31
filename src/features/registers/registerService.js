@@ -70,7 +70,7 @@ export function entryDateOf(register, values = {}, recorded = '') {
 
 // --- Registers -----------------------------------------------------------------
 
-const registerSelect = 'id,organization_id,department_id,code,name_el,name_en,description_el,description_en,kind,status,version,template_key,entry_date_field,sheet_period,identity_case_number,identity_patient_name,table_name,history,updated_at,departments(name)'
+const registerSelect = 'id,organization_id,department_id,code,name_el,name_en,description_el,description_en,kind,status,version,template_key,entry_date_field,sheet_period,daily_from,identity_case_number,identity_patient_name,table_name,history,updated_at,departments(name)'
 const childTables = ['department_register_sections', 'department_register_fields', 'department_register_options', 'department_register_sheet_axes', 'department_register_indicators', 'department_register_indicator_filters']
 
 async function loadDefinitions(organizationId, registerRows) {

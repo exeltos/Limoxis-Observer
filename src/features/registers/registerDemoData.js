@@ -39,14 +39,14 @@ export function demoRegisters() {
   nicu.indicators = nicu.indicators.map(indicator => ({ ...indicator, ...(targets[indicator.id] || {}) }))
   const endoscopy = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
   // The demo shows the daily sheets: the earlier months are monthly totals, from the current month on it is one sheet per day.
-  endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: new Date().toISOString().slice(0, 7) }
+  endoscopy.sheet = { ...endoscopy.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
   const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
   icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
   const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
   const obstetrics = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
   obstetrics.indicators = obstetrics.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } }[indicator.id] || {}) }))
   const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
-  emergency.sheet = { ...emergency.sheet, dailyFrom: new Date().toISOString().slice(0, 7) }
+  emergency.sheet = { ...emergency.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
   return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 

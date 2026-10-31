@@ -266,6 +266,31 @@ describe('daily sheets', () => {
   })
 })
 
+describe('the day a sheet starts being daily', () => {
+  it('takes a month as its first day and any date as it is', async () => {
+    const { dailyStart, DAILY_SHEETS_FROM } = await import('../src/features/registers/registerEngine')
+    expect(DAILY_SHEETS_FROM).toBe('2026-11-01')
+    expect(dailyStart(undefined)).toBe('2026-11-01')
+    expect(dailyStart('2026-10')).toBe('2026-10-01')
+    expect(dailyStart('2026-10-31')).toBe('2026-10-31')
+  })
+  it('splits a month at the start: its single total before, the days from it', () => {
+    const ed = { ...registerFromTemplate('emergency'), sheet: { ...registerFromTemplate('emergency').sheet, dailyFrom: '2026-10-31' } }
+    const total = ed.indicators.find(item => item.id === 'total')
+    const entries = [{ periodStart: '2026-10-01', values: { surgical: { morning: 100 } } }, { periodStart: '2026-10-31', values: { surgical: { morning: 5 } } }]
+    expect(computeIndicator(ed, total, entries, periodOf('month', '2026-10-10')).value).toBe(105)
+    // The month is cut by the start: no coverage line, rather than a wrong one.
+    expect(sheetCoverage(entries, periodOf('month', '2026-10-10'), '2026-10-31', '2026-10-31')).toBeNull()
+    expect(sheetCoverage(entries, periodOf('month', '2026-11-10'), '2026-11-05', '2026-10-31')).toEqual({ unit: 'day', recorded: 0, expected: 5 })
+  })
+  it('keeps the start when the definition goes to the database', async () => {
+    const { registerRow } = await import('../src/features/registers/registerCloud')
+    const ed = { ...registerFromTemplate('emergency'), sheet: { ...registerFromTemplate('emergency').sheet, dailyFrom: '2026-10-31' } }
+    expect(registerRow(ed, 'org-1').daily_from).toBe('2026-10-31')
+    expect(registerRow(registerFromTemplate('emergency'), 'org-1').daily_from).toBeNull()
+  })
+})
+
 describe('database shape', () => {
   it('writes every template row by row and reads the same register back', async () => {
     const { definitionRows, registerFromRows, registerRow } = await import('../src/features/registers/registerCloud')

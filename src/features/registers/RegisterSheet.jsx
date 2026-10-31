@@ -20,7 +20,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useRegisterAccess } from './registerAccess'
-import { DAILY_SHEETS_FROM, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { DAILY_SHEETS_FROM, dailyStart, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { registerThemeKey } from './registerThemes'
 
 const thisMonth = () => new Date().toISOString().slice(0, 7)
@@ -52,7 +52,7 @@ const daysOf = month => { const [y, m] = month.split('-').map(Number); return Ar
 const sumValues = list => list.reduce((total, values) => { for (const [row, cells] of Object.entries(values || {})) { total[row] = total[row] || {}; for (const [measure, cell] of Object.entries(cells || {})) if (!blank(cell)) total[row][measure] = (total[row][measure] || 0) + Number(cell) } return total }, {})
 // Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
 export { DAILY_SHEETS_FROM }
-export const dailyFromOf = register => register.sheet?.dailyFrom || DAILY_SHEETS_FROM
+export const dailyFromOf = register => dailyStart(register.sheet?.dailyFrom)
 
 // newDayTick: «New day» in the record's header (each press opens today's entry).
 export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onExportApi = null }) {
@@ -69,9 +69,10 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const [editing, setEditing] = useState(false)
   // A shift at a time (or the day's total) when the sheet has several shifts; the first shift opens.
   const [shift, setShift] = useState(() => register.sheet?.measures?.[0]?.key || '')
-  const [day, setDay] = useState(() => (thisMonth() >= dailyFrom ? lastWorkingDay(today()) : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
+  const [day, setDay] = useState(() => (today() >= dailyFrom ? (lastWorkingDay(today()) >= dailyFrom ? lastWorkingDay(today()) : today()) : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
   const month = day.slice(0, 7)
-  const legacy = month < dailyFrom
+  // A day before the start is part of its month's single total.
+  const legacy = day < dailyFrom
   const periodStart = legacy ? `${month}-01` : day
   const monthEntries = useMemo(() => entries.filter(item => String(item.periodStart).startsWith(month)), [entries, month])
   const entry = entries.find(item => item.periodStart === periodStart) || null
@@ -120,9 +121,9 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     setEditing(false)
     setDay(next)
   }
-  const goToMonth = next => goTo(next >= dailyFrom ? (next === thisMonth() ? today() : `${next}-01`) : `${next}-01`)
+  const goToMonth = next => goTo(next === thisMonth() ? today() : `${next}-01`)
   const openDay = next => { setView('day'); goTo(next) }
-  useEffect(() => { if (newDayTick > 0) openDay(thisMonth() >= dailyFrom ? today() : `${thisMonth()}-01`) }, [newDayTick]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (newDayTick > 0) openDay(today() >= dailyFrom ? today() : `${thisMonth()}-01`) }, [newDayTick]) // eslint-disable-line react-hooks/exhaustive-deps
   // Enter moves to the next cell, as in a spreadsheet.
   function nextCell(event) {
     if (event.key !== 'Enter') return
@@ -195,7 +196,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
     {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} onAdd={date => { if (date > today()) { notify(en ? 'A day in the future cannot be recorded yet.' : 'Δεν μπορεί να καταχωριστεί ημέρα του μέλλοντος.', 'error'); return } openDay(date) }} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
-      {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today()} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
+      {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today() || item < dailyFrom} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
       {measures.length > 1 && <div className="register-sheet-shifts"><CanonicalTabs className="lo-subtabs" items={[...measures.map(measure => ({ value: measure.key, label: textOf(measure, language) })), { value: 'total', label: en ? 'Day total' : 'Σύνολο ημέρας' }]} value={shift} onChange={setShift} ariaLabel={en ? 'Shift' : 'Βάρδια'} /></div>}
       {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-ledger">
         <header className="register-ledger-head"><strong>{group ? textOf(group, language) : (en ? 'Totals of the day' : 'Σύνολα ημέρας')}</strong><span>{en ? 'Number' : 'Αριθμός'}</span></header>
@@ -214,7 +215,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
         { label: en ? 'Filled' : 'Συμπληρωμένα', value: `${filled}/${rows.length}`, meter: rows.length ? (filled / rows.length) * 100 : null, tone: filled === rows.length ? 'success' : undefined },
       ]} />
       {canEdit && <p className="register-sheet-hint">{en ? 'An empty box means not recorded; write 0 when there were none.' : 'Κενό πεδίο σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}</p>}
-    </div> : <SheetYear innerRef={tableRef} register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
+    </div> : <SheetYear innerRef={tableRef} register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
   </RecordTabPanel>
 }
 
@@ -239,7 +240,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
     .filter(item => (year === 'all' || String(item.periodStart).startsWith(year)) && (month === 'all' || String(item.periodStart).slice(5, 7) === month) && (!from || String(item.periodStart) >= from) && (!to || String(item.periodStart) <= to))
     .sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
   // What the list shows, at a glance: how many, the total, the mean per day, the working days nobody recorded.
-  const dailyItems = sorted.filter(item => String(item.periodStart).slice(0, 7) >= dailyFrom)
+  const dailyItems = sorted.filter(item => String(item.periodStart) >= dailyFrom)
   const sumAll = sorted.reduce((sum, item) => sum + totalOf(item), 0)
   const recordedDays = new Set(dailyItems.map(item => String(item.periodStart)))
   let missingDays = null
@@ -249,7 +250,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
     for (let day = ordered[0]; day <= ordered[ordered.length - 1]; day = dayShift(day, 1)) { const weekday = new Date(`${day}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6 && !recordedDays.has(day)) missingDays += 1 }
   }
   // The bars compare days with days and months with months.
-  const maxOf = daily => Math.max(1, ...sorted.filter(item => (String(item.periodStart).slice(0, 7) >= dailyFrom) === daily).map(totalOf))
+  const maxOf = daily => Math.max(1, ...sorted.filter(item => (String(item.periodStart) >= dailyFrom) === daily).map(totalOf))
   const maxDaily = maxOf(true), maxMonthly = maxOf(false)
   const figures = [
     { key: 'entries', icon: CalendarDays, value: sorted.length, label: en ? 'Entries' : 'Καταχωρίσεις' },
@@ -277,8 +278,8 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
       const change = before == null ? null : total - before
       const day = String(item.periodStart)
       return <tr key={item.id || day} className="registry-row-clickable" tabIndex={0} onClick={() => onOpen(day)} onKeyDown={event => { if (event.key === 'Enter') onOpen(day) }}>
-        <td><strong>{day.slice(0, 7) < dailyFrom ? monthText(day) : dayText(day)}</strong>{day.slice(0, 7) < dailyFrom && <span className="register-sheet-muted"> · {en ? 'month total' : 'σύνολο μήνα'}</span>}</td>
-        <td className="register-col-total"><span className="register-list-total"><strong>{fmt(total)}</strong>{change != null && change !== 0 && <span className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}{fmt(Math.abs(change))}</span>}</span><span className="register-list-bar" aria-hidden="true"><i style={{ width: `${Math.round((total / (day.slice(0, 7) >= dailyFrom ? maxDaily : maxMonthly)) * 100)}%` }} /></span></td>
+        <td><strong>{day < dailyFrom ? monthText(day) : dayText(day)}</strong>{day < dailyFrom && <span className="register-sheet-muted"> · {en ? 'month total' : 'σύνολο μήνα'}</span>}</td>
+        <td className="register-col-total"><span className="register-list-total"><strong>{fmt(total)}</strong>{change != null && change !== 0 && <span className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}{fmt(Math.abs(change))}</span>}</span><span className="register-list-bar" aria-hidden="true"><i style={{ width: `${Math.round((total / (day >= dailyFrom ? maxDaily : maxMonthly)) * 100)}%` }} /></span></td>
         {measures.length > 1 && measures.map(measure => <td key={measure.key} className="register-col-shift">{fmt(rows.reduce((sum, row) => sum + (Number(item.values?.[row.key]?.[measure.key]) || 0), 0))}</td>)}
         <td className="register-col-when">{item.createdAt ? formatDay(String(item.createdAt).slice(0, 10), language) : <span className="register-muted">—</span>}{item.updatedAt && String(item.updatedAt).slice(0, 10) !== String(item.createdAt || '').slice(0, 10) && <span className="register-list-change">{en ? 'edited' : 'διορθώθηκε'} {formatDay(String(item.updatedAt).slice(0, 10), language)}</span>}</td>
       </tr>
