@@ -1,6 +1,8 @@
 import { useEffect,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DetailList } from '../../design-system/DetailList'
+import { ArrowDownRight,ArrowUpRight,Minus } from 'lucide-react'
+import { Sparkline } from '../../design-system/MiniCharts'
+import { indicatorMetricLabel } from './IndicatorDefinitionForm'
 import { loadRiskAssessments } from '../quality/risk/riskService'
 import { levelLabel,scored } from '../quality/risk/riskModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadIndicatorSnapshots,loadOperationalIndicatorDefinitions } from './indicatorCloudService'
@@ -10,6 +12,13 @@ const today=()=>new Date().toISOString().slice(0,10)
 const fmtDay=value=>{const [y,m,d]=String(value||'').slice(0,10).split('-');return y&&m&&d?`${Number(d)}/${Number(m)}/${y}`:'—'}
 const fmtNumber=(value,el)=>value==null||value===''||!Number.isFinite(Number(value))?'—':new Intl.NumberFormat(el?'el-GR':'en-GB',{maximumFractionDigits:2}).format(Number(value))
 const STATUS={onTarget:['Εντός στόχου','On target','active'],attention:['Χρειάζεται προσοχή','Needs attention','danger'],context:['Παρακολούθηση','Monitoring','']}
+// Calendar days of a period, the equal period before it, the same period a year earlier, the last twelve months.
+const parseDay=value=>new Date(`${String(value).slice(0,10)}T00:00:00Z`)
+const isoDay=date=>date.toISOString().slice(0,10)
+const addDays=(value,days)=>{const date=parseDay(value);date.setUTCDate(date.getUTCDate()+days);return isoDay(date)}
+const shiftYear=(value,years)=>{const date=parseDay(value);date.setUTCFullYear(date.getUTCFullYear()+years);return isoDay(date)}
+const previousPeriod=(from,to)=>{const length=Math.round((parseDay(to)-parseDay(from))/86400000)+1;return {from:addDays(from,-length),to:addDays(from,-1)}}
+function lastMonths(to,count=12){const end=parseDay(to),list=[];for(let back=count-1;back>=0;back-=1){const first=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()-back,1)),last=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()-back+1,0));list.push({from:isoDay(first),to:isoDay(back===0&&parseDay(to)<last?parseDay(to):last)})}return list}
 const SNAPSHOT_STATUS={approved:['Εγκρίθηκε','Approved'],reviewed:['Ελέγχθηκε','Reviewed'],calculated:['Υπολογίστηκε','Calculated'],draft:['Πρόχειρο','Draft'],retired:['Αποσύρθηκε','Retired']}
 
 // The indicator's result for the period the user came from (the registry's
@@ -19,7 +28,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
  const el=language!=='en'
  const from=period?.from||monthStart(),to=period?.to||today(),departmentId=period?.departmentId||null
  const navigate=useNavigate()
- const [state,setState]=useState({loading:true,result:null,history:[],error:false})
+ const [state,setState]=useState({loading:true,result:null,previous:null,lastYear:null,series:[],definition:null,history:[],error:false})
  // The risks of the latest assessment that name this indicator as their measure.
  const [risks,setRisks]=useState({assessment:null,list:[]})
  useEffect(()=>{
@@ -32,14 +41,18 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
   let active=true
   if(!organizationId||!record)return()=>{active=false}
   setState(current=>({...current,loading:true}))
+  const before=previousPeriod(from,to),yearAgo={from:shiftYear(from,-1),to:shiftYear(to,-1)},months=lastMonths(to)
+  const metricsFor=range=>collectCloudIndicatorMetrics(organizationId,{from:range.from,to:range.to,departmentId}).catch(()=>null)
   Promise.all([
    collectCloudIndicatorMetrics(organizationId,{from,to,departmentId}),
    loadOperationalIndicatorDefinitions(organizationId,{from,to}),
    loadIndicatorSnapshots(organizationId,{departmentId}),
-  ]).then(([metrics,definitions,snapshots])=>{
+   metricsFor(before),metricsFor(yearAgo),Promise.all(months.map(metricsFor)),
+  ]).then(([metrics,definitions,snapshots,beforeMetrics,yearAgoMetrics,monthMetrics])=>{
    if(!active)return
    const definition=definitions.find(d=>d.definitionId===record.id)||definitions.find(d=>d.id===record.key)
-   setState({loading:false,error:false,result:definition?calculateCloudDefinition(definition,metrics||{}):null,history:(snapshots||[]).filter(s=>s.indicator_key===record.key).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))})
+   const valueOf=data=>(definition&&data?calculateCloudDefinition(definition,data).value:null)
+   setState({loading:false,error:false,definition,result:definition?calculateCloudDefinition(definition,metrics||{}):null,previous:valueOf(beforeMetrics),lastYear:valueOf(yearAgoMetrics),series:monthMetrics.map(valueOf),history:(snapshots||[]).filter(s=>s.indicator_key===record.key).sort((a,b)=>String(b.period_start).localeCompare(String(a.period_start)))})
   }).catch(()=>{if(active)setState({loading:false,error:true,result:null,history:[]})})
   return()=>{active=false}
  },[organizationId,record,from,to,departmentId])
@@ -53,8 +66,17 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
     :state.error?<div className="data-access-state error" role="alert">{el?'Δεν ήταν δυνατός ο υπολογισμός του δείκτη.':'Could not calculate the indicator.'}</div>
     :!result?<div className="inline-empty">{el?'Ο δείκτης δεν είναι ενεργός για αυτή την περίοδο.':'The indicator is not active for this period.'}</div>
     :<>
-     <p className="quality-summary-line"><span><b>{fmtNumber(result.value,el)}</b> {unit}</span><span className={result.status==='attention'?'is-late':undefined}>{status[el?0:1].toLowerCase()}</span><span>{el?'στόχος':'target'} <b>{target}</b></span><span><b>{state.history.filter(h=>h.status==='approved').length}</b> {el?'εγκεκριμένα αποτελέσματα':'approved results'}</span><span><b>{risks.list.length}</b> {el?'κίνδυνοι':'risks'}</span></p>
-     <DetailList sections={[{title:el?'Υπολογισμός':'Calculation',items:[{label:el?'Αριθμητής / παρονομαστής':'Numerator / denominator',value:result.evidence},{label:el?'Μονάδα':'Unit',value:unit}]}]}/>
+     <div className="indicator-result-hero">
+      <div className="indicator-result-value"><strong>{result.value==null?(el?'Χωρίς δεδομένα':'No data'):fmtNumber(result.value,el)}</strong>{result.value!=null&&unit&&<span>{unit}</span>}</div>
+      <div className="indicator-result-facts">
+       <span><small>{el?'Στόχος':'Target'}</small><b>{target}</b></span>
+       <span><small>{el?'Κατάσταση':'Status'}</small><b className={result.status==='attention'?'is-late':result.status==='onTarget'?'is-good':undefined}>{result.target==null?(el?'Χωρίς στόχο':'No target'):status[el?0:1]}</b></span>
+       <span><small>{el?'Έναντι προηγούμενης περιόδου':'Against the previous period'}</small><Change now={result.value} then={state.previous} direction={result.direction} el={el}/></span>
+       <span><small>{el?'Έναντι ίδιας περιόδου πέρσι':'Against the same period last year'}</small><Change now={result.value} then={state.lastYear} direction={result.direction} el={el}/></span>
+      </div>
+     </div>
+     <div className="indicator-result-trend"><small>{el?'Τελευταίοι 12 μήνες':'The last 12 months'}</small>{state.series.filter(value=>value!=null).length>1?<Sparkline width={560} height={92} points={state.series} target={result.target==null?null:Number(result.target)} label={el?'Τάση 12 μηνών':'12-month trend'}/>:<span className="indicator-result-empty">{el?'Δεν υπάρχουν αρκετά δεδομένα για τάση.':'Not enough data for a trend.'}</span>}</div>
+     <p className="indicator-result-formula"><small>{el?'Πώς υπολογίζεται':'How it is calculated'}</small>{formulaText(state.definition,result,el)}</p>
     </>}
   </section>
   {risks.list.length>0&&<section className="record-section">
@@ -70,4 +92,22 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
    </tbody></table></div>:<div className="inline-empty">{el?'Δεν υπάρχουν ακόμη αποθηκευμένα αποτελέσματα για αυτόν τον δείκτη.':'No saved results for this indicator yet.'}</div>}
   </section>
  </div>
+}
+
+// «+1,2» or «−0,4» against an earlier period, green when it is better for the indicator, red when worse.
+function Change({now,then,direction,el}){
+ if(now==null||then==null)return <b>—</b>
+ const delta=Number((Number(now)-Number(then)).toFixed(2))
+ if(delta===0)return <b className="indicator-change"><Minus size={13}/>0</b>
+ const better=direction==='lower'?delta<0:direction==='higher'?delta>0:null
+ const Icon=delta>0?ArrowUpRight:ArrowDownRight
+ return <b className={`indicator-change${better===true?' is-better':better===false?' is-worse':''}`}><Icon size={13}/>{delta>0?'+':'−'}{fmtNumber(Math.abs(delta),el)}</b>
+}
+// «84 patients with an infection ÷ 1,245 study patients × 100 = 6,7 %»: the calculation in words, then with the numbers.
+function formulaText(definition,result,el){
+ if(!definition)return ''
+ if(definition.calculation==='manual')return el?'Η τιμή καταχωρίζεται χειροκίνητα από τον υπεύθυνο.':'The value is entered by hand by the person responsible.'
+ const words=[indicatorMetricLabel(definition.numerator,el?'el':'en'),definition.denominator?`÷ ${indicatorMetricLabel(definition.denominator,el?'el':'en')}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
+ const numbers=[fmtNumber(result.numerator,el),definition.denominator?`÷ ${fmtNumber(result.denominator,el)}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
+ return `${words} (${numbers})`
 }
