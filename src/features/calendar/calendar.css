@@ -83,4 +83,4 @@
 .calendar-kind-name.short{display:none}
 @container (max-width:150px){.calendar-kind-name.full,.calendar-kind-late{display:none}.calendar-kind-name.short{display:inline}}
 @container (max-width:72px){.calendar-kind-name.short{display:none}}
-.calendar-panel-filter{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border:1px solid var(--lo-color-border);border-radius:999px;background:#fff;font:inherit;font-size:11px;font-weight:700;color:var(--lo-color-text);cursor:pointer}
+.calendar-panel-kind{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--lo-color-text-muted,#5d7083)}

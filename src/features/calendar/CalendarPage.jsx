@@ -1,12 +1,11 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { CalendarDays,ChevronLeft,ChevronRight,ClipboardCheck,ClipboardList,GraduationCap,ListChecks,Plus } from 'lucide-react'
+import { CalendarDays,ChevronLeft,ChevronRight,ListChecks } from 'lucide-react'
 import { useNavigate,useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { FilterSelect } from '../../design-system/FilterBar'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
@@ -16,8 +15,6 @@ import { CAPABILITIES,can } from '../../core/permissions/roles'
 import { exportRegistry } from '../../core/export/registryExports'
 import { loadControlCalendarMonths,loadControlProgramme } from '../controls/controlCloudService'
 import { programmeCalendar } from '../controls/controlCalendar'
-import { controlTypeCode } from '../controls/controlVocabulary'
-import { EnvironmentalAnnualPlan } from '../surveillance/EnvironmentalAnnualPlan'
 import { loadQualityRecords } from '../quality/qualityService'
 import { loadTrainingCalendarAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
@@ -44,18 +41,16 @@ const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο
 // CAPA and step deadlines, effectiveness reviews, planned audits, training
 // deadlines and certificate expiries, document reviews, committee meetings
 // and decisions. Each source is loaded only when the user may see it.
-// culturesOnly: the culture sampling programme (environmental controls) alone, as its own calendar (Quality › Culture plan);
-// the general calendar keeps it among the controls, so every department sees its own sampling dates.
 // departmentOnly: the department's own calendar (My department › Calendar): the same days, with the culture sampling first and
 // the next sampling on top.
-export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
+export function CalendarPage({departmentOnly=false}={}){
  const {language,locale}=useLanguage();const en=language==='en'
  const {tenant,role,membership,canAccessRecord,isDemo}=useTenant()
  const userId=useAuditActor()?.id||null
  const navigate=useNavigate()
  const mayDo=capability=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
  // The culture calendar is for whoever sees the Quality Center (or the controls): it shows that one source only.
- const allowedKey=(culturesOnly?(mayDo(CAPABILITIES.VIEW_CONTROLS)||mayDo(CAPABILITIES.VIEW_QUALITY)?['cultures']:[]):CALENDAR_KINDS.filter(kind=>mayDo(KIND_CAPABILITY[kind]))).join(',')
+ const allowedKey=(CALENDAR_KINDS.filter(kind=>mayDo(KIND_CAPABILITY[kind]))).join(',')
  const allowedKinds=useMemo(()=>allowedKey?allowedKey.split(','):[],[allowedKey])
  const [sources,setSources]=useState(null)
  const [cursor,setCursor]=useState(()=>{const d=new Date();return {year:d.getFullYear(),month:d.getMonth()}})
@@ -63,7 +58,7 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
  const [view,setView]=useState('month')
  // The chips (controls, trainings, meetings, expiries, other) live in the address: ?filter=controls opens only the controls.
  const [searchParams,setSearchParams]=useSearchParams()
- const filterKinds=useMemo(()=>(culturesOnly?[]:calendarFiltersFor(allowedKinds)),[allowedKinds,culturesOnly])
+ const filterKinds=useMemo(()=>calendarFiltersFor(allowedKinds),[allowedKinds])
  const filterParam=searchParams.get('filter')||''
  const picked=useMemo(()=>parseCalendarFilter(filterParam),[filterParam])
  const isOn=useCallback(filter=>!picked||picked.has(filter),[picked])
@@ -90,11 +85,10 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
    // The kitchen's calendar items reach back 30 days (verification, out of limits) and forward (plan, expiry): only that window is read.
    safe('kitchen',()=>loadKitchen(organizationId,{since:addDays(todayKey(),-30)}).then(state=>kitchenCalendarItems(state,{language})),[]),
   ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions,suppliers,kitchen])=>{
-   const isCulture=item=>controlTypeCode(item.category)==='CTRL-ENV'
-   if(active)setSources({controls:(controls||[]).filter(item=>!culturesOnly||isCulture(item)),capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
+   if(active)setSources({controls:controls||[],capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
   })
   return()=>{active=false}
- },[tenant?.id,allowedKinds,language,culturesOnly])
+ },[tenant?.id,allowedKinds,language])
 
  const controlsAllowed=allowedKinds.includes('controls')||allowedKinds.includes('cultures')
  useEffect(()=>{
@@ -143,14 +137,6 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
    rows:[...overdue.filter(e=>!e.date.startsWith(monthKey)),...monthEvents].map(e=>[new Intl.DateTimeFormat(locale).format(new Date(`${e.date}T12:00:00`)),e.time||'',calendarKindLabel(e.kind,language),e.title,e.detail||'',e.department||'',stateLabel(e.state,en)])})
  }
 
- const canManageQuality=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities??[],membership?.customCapabilities??[])
- const canManageTraining=can(role,CAPABILITIES.MANAGE_TRAINING,membership?.capabilities??[],membership?.customCapabilities??[])
- const from={limoxisFrom:{path:'/calendar',label:en?'Calendar':'Ημερολόγιο'}}
- const addItems=culturesOnly?[]:[
-  canManageQuality&&{id:'capa',label:en?'New CAPA (due this day)':'Νέα διορθωτική ενέργεια (προθεσμία)',icon:ClipboardCheck,onClick:()=>navigate('/quality/capas/new',{state:{...from,qualitySource:{dueDate:selected}}})},
-  canManageQuality&&{id:'audit',label:en?'New audit':'Νέα επιθεώρηση',icon:ListChecks,onClick:()=>navigate('/quality/audits/new',{state:{...from,qualitySource:{plannedDate:selected}}})},
-  canManageTraining&&{id:'training',label:en?'New training':'Νέα εκπαίδευση',icon:GraduationCap,onClick:()=>navigate('/training/new',{state:{...from,calendarDate:selected}})},
- ].filter(Boolean)
  const filtersHideAll=filtered&&(view==='month'?!monthEvents.length:!upcoming.length)
  if(!sources)return <RouteLoading/>
  // In the department's calendar the culture sampling comes first in every day, and the next one is on top of the page.
@@ -159,9 +145,8 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
  const selectedEvents=panelKind?dayEvents.filter(e=>e.kind===panelKind):dayEvents
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
  const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
- return <Page fill className="calendar-page" title={culturesOnly?(en?'Culture plan':'Πλάνο καλλιεργειών'):departmentOnly?(en?'Department calendar':'Ημερολόγιο τμήματος'):(en?'Calendar':'Ημερολόγιο')} subtitle={departmentOnly?(en?'What concerns your department by date: the culture samples that will be taken, controls, trainings and deadlines.':'Ό,τι αφορά το τμήμα σας ανά ημερομηνία: οι καλλιέργειες που θα παρθούν, έλεγχοι, εκπαιδεύσεις και προθεσμίες.'):culturesOnly?(en?'The culture sampling of every department, by date: taken, missed and planned.':'Η δειγματοληψία καλλιεργειών κάθε τμήματος, ανά ημερομηνία: έγινε, χάθηκε, προγραμματισμένη.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')} actions={view==='year'?null:<ExportMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
-  <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:`${en?'To do':'Εκκρεμότητες'}${overdue.length?` · ${overdueLabel(overdue.length,en)}`:''}`,icon:ListChecks},...(culturesOnly?[{value:'year',label:en?'Year':'Έτος',icon:ClipboardList}]:[])]}/>
-  {view==='year'?<section className="surface registry-workspace workspace-fill"><EnvironmentalAnnualPlan/></section>:<>
+ return <Page fill className="calendar-page" title={departmentOnly?(en?'Department calendar':'Ημερολόγιο τμήματος'):(en?'Calendar':'Ημερολόγιο')} subtitle={departmentOnly?(en?'What concerns your department by date: the culture samples that will be taken, controls, trainings and deadlines.':'Ό,τι αφορά το τμήμα σας ανά ημερομηνία: οι καλλιέργειες που θα παρθούν, έλεγχοι, εκπαιδεύσεις και προθεσμίες.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
+  <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:`${en?'To do':'Εκκρεμότητες'}${overdue.length?` · ${overdueLabel(overdue.length,en)}`:''}`,icon:ListChecks}]}/>
   <section className="surface registry-workspace workspace-column workspace-fill calendar-workspace">
    <div className="calendar-toolbar">
     <div className="calendar-kinds" role="group" aria-label={en?'Show':'Εμφάνιση'}>{filterKinds.map(filter=><button key={filter} type="button" className={`calendar-kind-toggle filter-${filter} ${isOn(filter)?'':'off'}`} aria-pressed={isOn(filter)} onClick={()=>toggleFilter(filter)}><span className="calendar-dot"/>{calendarFilterLabel(filter,language)}</button>)}</div>
@@ -182,7 +167,7 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
      </div>
     </div>
     <aside className="calendar-day-panel" aria-live="polite">
-     <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{panelKind&&<button type="button" className="calendar-panel-filter" onClick={()=>setPanelKind(null)} title={en?'Show every module':'Όλες οι ενότητες'}><span className={`calendar-dot kind-${panelKind}`}/>{calendarKindLabel(panelKind,language)} ×</button>}{addItems.length>0&&<OverflowMenu label={en?'Add':'Προσθήκη'} trigger={<><Plus size={15} aria-hidden="true"/>{en?'Add':'Προσθήκη'}</>} items={addItems}/>}</div>
+     <div className="calendar-day-panel-head"><h4>{fmtDay(selected)}</h4>{panelKind&&<span className="calendar-panel-kind"><span className={`calendar-dot kind-${panelKind}`}/>{calendarKindLabel(panelKind,language)}</span>}</div>
      {selectedEvents.length?<ul className="calendar-agenda">{selectedEvents.map(e=><EventRow key={e.id} event={e} language={language} onOpen={()=>navigate(e.path)}/>)}</ul>:<div className="inline-empty">{en?'Nothing scheduled.':'Δεν υπάρχει κάτι προγραμματισμένο.'}{nextDay&&<button type="button" className="calendar-next-day" onClick={()=>openDay(nextDay)}>{en?'Next':'Επόμενο'}: <strong>{fmtShort(nextDay)}</strong> · {byDay.get(nextDay)[0].title}<ChevronRight size={14} aria-hidden="true"/></button>}</div>}
     </aside>
    </div>:<div className="calendar-list scroll-panel">
@@ -191,7 +176,6 @@ export function CalendarPage({culturesOnly=false,departmentOnly=false}={}){
     {!upcoming.length&&!filtersHideAll&&<div className="registry-empty-state"><strong>{en?'Nothing pending':'Δεν υπάρχουν εκκρεμότητες'}</strong></div>}
    </div>}
   </section>
-  </>}
  </Page>
 }
 

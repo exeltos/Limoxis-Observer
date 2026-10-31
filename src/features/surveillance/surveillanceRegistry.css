@@ -25,8 +25,3 @@
 .environmental-registry td.env-batch{white-space:nowrap}
 
 /* The annual culture plan of the environmental surveillance: the year, the arrows and the export on one line above the calendar. */
-.environmental-plan-bar{display:flex;align-items:center;gap:10px;padding:10px 4px}
-.environmental-plan-bar strong{font-size:15px}
-.environmental-plan-bar>:last-child{margin-left:auto}
-.environmental-annual-plan{display:flex;flex-direction:column;flex:1 1 auto;min-height:360px}
-.environmental-annual-plan .control-calendar{min-height:340px}

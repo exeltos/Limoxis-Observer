@@ -49,11 +49,6 @@ export const helpExtras={
   tip:{el:'Ένας στόχος ποιότητας χωρίς σύνδεση χρειάζεται τιμή από τον υπεύθυνο· με σύνδεση ενημερώνεται από τις καταχωρίσεις του μητρώου.',en:'An unlinked quality objective needs a value from its owner; a linked one is updated from the register’s entries.'},
   related:['/quality','/indicators','/registers']
  },
- '/quality/culture-plan':{
-  checks:{el:['Ελέγξτε ότι κάθε τμήμα έχει δειγματοληψία τον μήνα που προβλέπεται.','Ό,τι χάθηκε (✕) ξαναπρογραμματίζεται και καταγράφεται ως αιτία στον αντίστοιχο έλεγχο.'],en:['Check that every department is sampled in the month planned.','What was missed (✕) is rescheduled and the reason recorded in the matching control.']},
-  tip:{el:'Η εξαγωγή του ετήσιου πλάνου (PDF ή Excel) είναι έτοιμη για επιθεωρητή.',en:'The annual plan export (PDF or Excel) is ready for the auditor.'},
-  related:['/quality','/surveillance','/controls']
- },
  '/indicators':{
   checks:{el:['Ελέγξτε περίοδο, εύρος και παρονομαστή.','Επιβεβαιώστε την πηγή του αριθμητή και του παρονομαστή.','Χρησιμοποιήστε drill-down πριν ερμηνεύσετε ασυνήθιστη τιμή.'],en:['Check period, scope and denominator.','Verify the numerator and denominator data sources.','Use drill-down before interpreting an unusual value.']},
   tip:{el:'Ένας δείκτης πρέπει να είναι αναπαραγώγιμος: η ίδια πηγή και μέθοδος να δίνουν το ίδιο αποτέλεσμα.',en:'An indicator should be reproducible: the same source and method should produce the same result.'},
