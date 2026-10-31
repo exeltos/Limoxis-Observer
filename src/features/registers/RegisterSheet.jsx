@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Upload } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Pencil, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
+import { FilterDate, FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -14,6 +16,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { saveEntry } from './registerService'
 import { exportRegistry } from '../../core/export/registryExports'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
+import { formatDay } from '../../core/i18n/formatDay'
 import { useRegisterAccess } from './registerAccess'
 import { DAILY_SHEETS_FROM, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { registerThemeKey } from './registerThemes'
@@ -59,8 +62,9 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const access = useRegisterAccess()
   const navigate = useNavigate()
   const dailyFrom = dailyFromOf(register)
-  // Opens on the day itself (today, or the last recorded day); before the daily sheets, on the month's entry.
-  const [view, setView] = useState('day')
+  // The tab opens on the list of everything recorded; a row opens that day (or month), read-only until «Edit».
+  const [view, setView] = useState('list')
+  const [editing, setEditing] = useState(false)
   // A shift at a time (or the day's total) when the sheet has several shifts; the first shift opens.
   const [shift, setShift] = useState(() => register.sheet?.measures?.[0]?.key || '')
   const [day, setDay] = useState(() => (thisMonth() >= dailyFrom ? lastWorkingDay(today()) : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
@@ -77,7 +81,9 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const groups = register.sheet?.groups || []
   const isMonth = view === 'month'
   const isDay = view === 'day'
-  const canEdit = isDay && access.canRecord(register) && periodStart <= today()
+  const canRecordDay = isDay && access.canRecord(register) && periodStart <= today()
+  // A saved day opens as it is; «Edit» in «⋯» unlocks it. A day nobody recorded yet is open for typing.
+  const canEdit = canRecordDay && (!entry || editing)
   const shown = isMonth && !legacy ? sumValues(monthEntries.map(item => item.values)) : values
   const set = (row, measure, text) => setValues(current => {
     const next = { ...current, [row]: { ...(current[row] || {}) } }
@@ -109,6 +115,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   async function goTo(next) {
     if (next === day) return
     if (dirty && canEdit && !(await confirm({ title: en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές', message: en ? `The changes to ${label} are not saved. Leave them?` : `Οι αλλαγές του φύλλου «${label}» δεν έχουν αποθηκευτεί. Να χαθούν;`, confirmLabel: en ? 'Leave without saving' : 'Αλλαγή χωρίς αποθήκευση', danger: true }))) return
+    setEditing(false)
     setDay(next)
   }
   const goToMonth = next => goTo(next >= dailyFrom ? (next === thisMonth() ? today() : `${next}-01`) : `${next}-01`)
@@ -128,6 +135,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     try {
       await saveEntry(tenant?.id, register, { ...(entry || {}), periodStart, values })
       notify(en ? 'Sheet saved.' : 'Το φύλλο αποθηκεύτηκε.', 'success')
+      setEditing(false)
       await onSaved?.()
     } catch (error) {
       console.error(error)
@@ -162,6 +170,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const previousTotal = rows.reduce((sum, row) => sum + (contexts.get(row.key).previous || 0), 0)
   // The month's tools that are not daily work wait in «⋯».
   const menu = [
+    canRecordDay && entry && !editing && { id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: Pencil, onClick: () => setEditing(true) },
     access.canRecord(register) && { id: 'import', label: en ? 'Import from file' : 'Εισαγωγή από αρχείο', icon: Upload, onClick: () => navigate(`/registers/${register.id}/import`) },
   ].filter(Boolean)
   // Under the fields: the total of what is on screen, the one before it, the month so far and how much is filled.
@@ -175,7 +184,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     : (en ? 'Pick a month to open it.' : 'Πατήστε έναν μήνα για να τον ανοίξετε.')
   const recorded = new Set(monthEntries.map(item => String(item.periodStart)))
   return <RecordTabPanel className={`register-sheet${registerThemeKey(register) ? ` is-theme-${registerThemeKey(register)}` : ''}`} title={isDay ? (en ? 'Entry' : 'Καταχώριση') : isMonth ? (en ? 'The month' : 'Ο μήνας') : view === 'list' ? (en ? 'Days' : 'Ημέρες') : (en ? 'The year' : 'Ετήσια εικόνα')} subtitle={subtitle}
-    footer={canEdit && <div className="inline-edit-footer">{dirty && <span className="register-form-errors">{en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές'}</span>}<SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}
+    footer={canEdit && <div className="inline-edit-footer">{dirty && <span className="register-form-errors">{en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές'}</span>}{entry && <Button variant="secondary" onClick={() => { setValues(structuredClone(entry.values || {})); setEditing(false) }}>{en ? 'Cancel' : 'Ακύρωση'}</Button>}<SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}
     actions={<div className="register-sheet-actions">
       {isDay ? <button type="button" className="register-indicator-back" onClick={() => setView('list')}><ArrowLeft size={14} />{en ? 'Days' : 'Ημέρες'}</button> : <SearchableSelect hideLabel className="register-period-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next => next && setView(next)} options={[{ value: 'list', label: en ? 'Days' : 'Ημέρες' }, { value: 'month', label: en ? 'Month' : 'Μήνας' }, { value: 'year', label: en ? 'Year' : 'Έτος' }]} />}
       {byDay && <PeriodStepper label={label} onPrevious={() => goTo(dayShift(day, -1))} onNext={() => goTo(dayShift(day, 1))} nextDisabled={day >= today()} />}
@@ -198,7 +207,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
       </section>)}
       <RecordMetricStrip className="register-sheet-totals" items={[
         { label: isMonth || legacy ? (en ? 'Month total' : 'Σύνολο μήνα') : (en ? 'Day total' : 'Σύνολο ημέρας'), value: fmt(grand), primary: true },
-        { label: byDay ? (en ? 'Previous day' : 'Προηγούμενη ημέρα') : (en ? 'Previous month' : 'Προηγούμενος μήνας'), value: previousTotal ? fmt(previousTotal) : '—', hidden: !isDay && !isMonth },
+        ...(measures.length > 1 ? measures.map(measure => ({ id: measure.key, label: textOf(measure, language), value: fmt(rows.reduce((sum, row) => sum + (Number(shown[row.key]?.[measure.key]) || 0), 0)) })) : [{ label: byDay ? (en ? 'Previous day' : 'Προηγούμενη ημέρα') : (en ? 'Previous month' : 'Προηγούμενος μήνας'), value: previousTotal ? fmt(previousTotal) : '—', hidden: !isDay && !isMonth }]),
         { label: en ? 'Month so far' : 'Μήνας μέχρι τώρα', value: fmt(monthSoFar), note: en ? `${monthEntries.length || (isDay ? 1 : 0)} days recorded` : `${monthEntries.length || (isDay ? 1 : 0)} ημέρες καταχωρισμένες`, hidden: !byDay },
         { label: en ? 'Filled' : 'Συμπληρωμένα', value: `${filled}/${rows.length}`, meter: rows.length ? (filled / rows.length) * 100 : null, tone: filled === rows.length ? 'success' : undefined },
       ]} />
@@ -214,23 +223,49 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
   const rows = register.sheet?.rows || []
   const measures = register.sheet?.measures || []
   const fmt = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
-  const sorted = [...entries].sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
+  // Everything recorded, newest first; the filters narrow it to a year and a month.
+  const [year, setYear] = useState('all')
+  const [month, setMonth] = useState('all')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
+  const years = [...new Set(entries.map(item => String(item.periodStart).slice(0, 4)))].sort().reverse()
+  const monthName = number => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
+  const totalOf = item => rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
+  // Each entry against the one recorded before it.
+  const olderTotal = new Map(); { const ascending = [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))); ascending.forEach((item, index) => { if (index > 0) olderTotal.set(String(item.periodStart), totalOf(ascending[index - 1])) }) }
+  const sorted = [...entries]
+    .filter(item => (year === 'all' || String(item.periodStart).startsWith(year)) && (month === 'all' || String(item.periodStart).slice(5, 7) === month) && (!from || String(item.periodStart) >= from) && (!to || String(item.periodStart) <= to))
+    .sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
   const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   const monthText = day => periodLabel(periodOf('month', day), language)
-  if (!sorted.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded yet. Start with «New day».' : 'Καμία ημέρα ακόμη. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
-  return <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
-    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th><th>{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th></tr></thead>
+  if (!entries.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded yet. Start with «New day».' : 'Καμία ημέρα ακόμη. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
+  const narrowed = year !== 'all' || month !== 'all' || from || to
+  const filters = <div className="register-sheet-filter-row">
+    <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
+    <FilterSelect label={en ? 'Month' : 'Μήνας'} value={month} onChange={setMonth}><option value="all">{en ? 'All months' : 'Όλοι οι μήνες'}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={String(index + 1).padStart(2, '0')}>{monthName(index + 1)}</option>)}</FilterSelect>
+    <FilterDate label={en ? 'From' : 'Από'} value={from} onChange={setFrom} />
+    <FilterDate label={en ? 'To' : 'Έως'} value={to} onChange={setTo} />
+    {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all'); setFrom(''); setTo('') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
+  </div>
+  return <><div className="register-sheet-days-filters">{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
+    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th>{measures.length > 1 && measures.map(measure => <th key={measure.key} className="register-num">{textOf(measure, language)}</th>)}<th>{en ? 'Mainly' : 'Κυρίως'}</th><th>{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th><th>{en ? 'Recorded' : 'Καταχωρίστηκε'}</th></tr></thead>
     <tbody>{sorted.map(item => {
       const filled = rows.filter(row => rowSum(item.values, row.key, measures) != null).length
-      const total = rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
+      const total = totalOf(item)
+      const before = olderTotal.get(String(item.periodStart))
+      const change = before == null ? null : total - before
+      const top = rows.map(row => ({ row, value: rowSum(item.values, row.key, measures) || 0 })).filter(entry => entry.value > 0).sort((a, b) => b.value - a.value).slice(0, 2)
       const day = String(item.periodStart)
       return <tr key={item.id || day} className="registry-row-clickable" tabIndex={0} onClick={() => onOpen(day)} onKeyDown={event => { if (event.key === 'Enter') onOpen(day) }}>
         <td><strong>{day.slice(0, 7) < dailyFrom ? monthText(day) : dayText(day)}</strong>{day.slice(0, 7) < dailyFrom && <span className="register-sheet-muted"> · {en ? 'month total' : 'σύνολο μήνα'}</span>}</td>
-        <td>{fmt(total)}</td>
+        <td><strong>{fmt(total)}</strong>{change != null && change !== 0 && <small className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? '+' : '−'}{fmt(Math.abs(change))}</small>}</td>
+        {measures.length > 1 && measures.map(measure => <td key={measure.key} className="register-num">{fmt(rows.reduce((sum, row) => sum + (Number(item.values?.[row.key]?.[measure.key]) || 0), 0))}</td>)}
+        <td>{top.length ? top.map(entry => `${textOf(entry.row, language)} ${fmt(entry.value)}`).join(' · ') : <span className="register-muted">—</span>}</td>
         <td>{filled} / {rows.length}</td>
+        <td>{item.createdAt ? formatDay(String(item.createdAt).slice(0, 10), language) : <span className="register-muted">—</span>}{item.updatedAt && String(item.updatedAt).slice(0, 10) !== String(item.createdAt || '').slice(0, 10) && <small className="register-list-change">{en ? 'edited' : 'διορθώθηκε'} {formatDay(String(item.updatedAt).slice(0, 10), language)}</small>}</td>
       </tr>
     })}</tbody>
-  </table></div>
+  </table></div>}</>
 }
 
 // The year: one column per month, one row per sheet row (sum of measures).

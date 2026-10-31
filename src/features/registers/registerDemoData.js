@@ -30,6 +30,7 @@ export const DEMO_ENDOSCOPY_ID = 'reg-demo-endoscopy'
 export const DEMO_ICU_ID = 'reg-demo-icu'
 export const DEMO_PAEDIATRICS_ID = 'reg-demo-paediatrics'
 export const DEMO_OBSTETRICS_ID = 'reg-demo-obstetrics'
+export const DEMO_EMERGENCY_ID = 'reg-demo-emergency'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -44,7 +45,9 @@ export function demoRegisters() {
   const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
   const obstetrics = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
   obstetrics.indicators = obstetrics.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } }[indicator.id] || {}) }))
-  return [nicu, endoscopy, icu, paediatrics, obstetrics].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
+  emergency.sheet = { ...emergency.sheet, dailyFrom: new Date().toISOString().slice(0, 7) }
+  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -175,6 +178,23 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       const id = `reg-entry-icu-${entries.filter(item => item.registerId === DEMO_ICU_ID).length + 1}`
       entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΘ' })
       identities[id] = { caseNumber: String(icuNumber), patientName: `${cardiac ? 'Ασθενής Κ' : 'Ασθενής Γ'}-${pad(entries.length % 100)}` }
+    }
+  }
+  // Emergency department: totals per shift; earlier months as one total, the current month day by day.
+  const edRandom = seeded(20261115)
+  const edMeans = { surgical: [9, 7, 3], urgent: [5, 4, 2], admissions: [3, 3, 2], dressings: [4, 3, 0.6], septic: [1.5, 1, 0.4], assessments: [0.3, 0.2, 0.1], checkup: [0.6, 0.3, 0.05], preop: [2.5, 0.3, 0], left_without_seen: [0.2, 0.2, 0.2], revisit_72h: [0.3, 0.2, 0.1], transfers: [0.2, 0.2, 0.1] }
+  const shifts = ['morning', 'afternoon', 'night']
+  const edValues = factor => Object.fromEntries(Object.entries(edMeans).map(([row, means]) => [row, Object.fromEntries(shifts.map((shift, index) => [shift, Math.max(0, Math.round(means[index] * factor * (0.5 + edRandom())))]))]))
+  for (let back = 13; back >= 0; back -= 1) {
+    const date = new Date(Date.UTC(year, month - 1 - back, 1))
+    const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+    if (back > 0) entries.push({ id: `reg-entry-ed-${y}-${pad(m)}`, registerId: DEMO_EMERGENCY_ID, entryDate: `${y}-${pad(m)}-01`, periodStart: `${y}-${pad(m)}-01`, values: edValues(22), status: 'complete', locked: false, createdAt: `${y}-${pad(m)}-28T14:00:00Z`, createdByLabel: 'Προϊστάμενος ΤΕΠ' })
+    else {
+      for (let day = 1; day <= new Date(Date.UTC(y, m, 0)).getUTCDate(); day += 1) {
+        const iso = `${y}-${pad(m)}-${pad(day)}`
+        if (iso >= today || edRandom() < 0.05) continue
+        entries.push({ id: `reg-entry-ed-${iso}`, registerId: DEMO_EMERGENCY_ID, entryDate: iso, periodStart: iso, values: edValues(1), status: 'complete', locked: false, createdAt: `${iso}T23:30:00Z`, createdByLabel: 'Προϊστάμενος ΤΕΠ' })
+      }
     }
   }
   // Obstetrics: one card per mother, its own seed.
