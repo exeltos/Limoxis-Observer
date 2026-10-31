@@ -105,7 +105,8 @@ function domainShare(snapshot,tr){const s=snapshot?.summary||{};return [[tr('Ε�
 
 // title/subtitle/showKpis let the department home reuse this layout: its
 // counts are organization-wide, so the department view hides them.
-export function DashboardPage({title,subtitle,showKpis=true,department=null}={}) {
+// extra: one more card of the page (the department home adds its cultures).
+export function DashboardPage({title,subtitle,showKpis=true,department=null,extra=null}={}) {
   const { role: actualRole, actualRole: signedInRole, tenant, isDemo, moduleEnabled, membership } = useTenant()
   // Inside a hospital the Platform Owner (and the demo account) see the full
   // hospital overview, not the platform workspace.
@@ -163,6 +164,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
 
   return <Page fill className="dashboard-page" title={title||workspace.title} subtitle={subtitle||workspace.subtitle}>
     {showKpis&&kpis.length > 0 && <KpiStrip className="role-kpis" label={tr('Βασικοί δείκτες','Key figures')} columns={kpis.length}>{kpis.map(([label,value,,key])=>{const [Icon=Activity,tileTo]=TILES[key]||[];const to=ROLE_TILE_SCREENS[role]?.[key]??tileTo;const open=to&&canOpen(to);const status=tileStatus(key,value);const period=TILE_PERIODS[key];return <KpiCard key={label} icon={Icon} label={label} value={value==='—'?null:value} period={period?tr(...period):null} status={status} target={TILE_TARGETS[key]==='danger'&&status?tr('στόχος: 0','target: 0'):null} loading={metricsState==='loading'&&!isDemo} error={metricsState==='error'} onOpen={open?()=>navigate(to):cardOf[key]?showCard(cardOf[key]):undefined}/>})}</KpiStrip>}
+    {extra}
     <FirstStepsCard steps={setupSteps} language={language} onOpen={navigate} storageKey={tenant?.id?`limoxis.firstSteps.closed.${tenant.id}`:null}/>
     {reviewCard&&<Card className="dashboard-card dashboard-executive-link dashboard-review-link"><CardHeader icon={ReviewIcon} title={`${tr('Προς έλεγχο','To review')} (${awaitingReview.loading?'…':awaitingReview.rows.length})`} subtitle={awaitingReview.rows.length?tr('Νέα θετικά δείγματα χωρίς επεισόδιο: ανοίξτε επεισόδιο ή σημειώστε ότι δεν χρειάζεται επιτήρηση.','New positive samples with no episode: open an episode or mark that no surveillance is needed.'):tr('Κανένα νέο θετικό δείγμα δεν περιμένει απόφαση.','No new positive sample is waiting for a decision.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/surveillance?tab=episodes&review=1')}>{tr('Προβολή λίστας','View list')}<ArrowRight size={14}/></button>}/></Card>}
     {showKpis&&(role===ROLES.HOSPITAL_ADMIN||role===ROLES.HOSPITAL_DIRECTOR)&&menuPaths.has('/executive')&&<Card className="dashboard-card dashboard-executive-link"><CardHeader icon={Gauge} title={tr('Δείκτες','Indicators')} subtitle={tr('Όλοι οι κρίσιμοι δείκτες του νοσοκομείου σε μία οθόνη, με σύγκριση περιόδων και αναφορά PDF.','Every key measure of the hospital on one screen, with period comparison and a PDF report.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/executive')}>{tr('Άνοιγμα','Open')}<ArrowRight size={14}/></button>}/></Card>}
