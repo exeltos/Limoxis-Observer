@@ -6,7 +6,7 @@ import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { DetailList } from '../../../design-system/DetailList'
 import { ExportMenu } from '../../../design-system/ExportMenu'
 import { IconButton } from '../../../design-system/IconButton'
-import { Meter } from '../../../design-system/MiniCharts'
+import { Meter,Sparkline } from '../../../design-system/MiniCharts'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { AutoTranslatedMark } from '../../../design-system/AutoTranslatedMark'
 import { useAutoTranslated } from '../../../core/i18n/autoTranslated'
@@ -54,6 +54,7 @@ export function ObjectiveRecordPage(){
  if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
  const {current,register,indicator,unit}=objective
  const state=current.status,reach=targetReach(objective),sign=objective.direction==='lower'?'≤':'≥'
+ const monthChange=history.length>1?Number((history.at(-1).value-history.at(-2).value).toFixed(2)):null
  const value=formatObjectiveValue(current.value,unit,language),target=`${sign} ${formatObjectiveValue(objective.target,unit,language)}${objective.targetFromIndicator?(en?' (indicator)':' (από τον δείκτη)'):''}`
  const detail=[
   {title:en?'Measurement':'Μέτρηση',items:[
@@ -74,16 +75,24 @@ export function ObjectiveRecordPage(){
    filename:`${objective.code}_${objective.year}`},{pdf:pdf===true})
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
- return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${objective.year} · ${en?'ISO 9001 §6.2':'ISO 9001 §6.2'}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
+ return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${en?'Quality objective':'Στόχος ποιότητας'} · ${objective.year}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
   headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={16}/></IconButton>}</>}>
   <section className="record-section">
-   <p className="quality-summary-line"><span><b>{value}</b> {en?'today':'σήμερα'}</span><span>{en?'target':'στόχος'} <b>{target}</b></span><span className={state==='missed'?'is-late':undefined}><b>{reach==null?'—':`${Math.round(reach)}%`}</b> {en?'of the target':'του στόχου'}</span><span>{objectiveStateLabel(state,en).toLowerCase()}</span></p>
+   <div className="indicator-result-hero">
+    <div className="indicator-result-value"><strong>{value}</strong></div>
+    <div className="indicator-result-facts">
+     <span><small>{en?'Target':'Στόχος'}</small><b>{target}</b></span>
+     <span><small>{en?'Reached':'Επίτευξη'}</small><b className={state==='missed'?'is-late':state==='met'?'is-good':undefined}>{reach==null?'—':`${Math.round(reach)}%`}</b></span>
+     <span><small>{en?'Status':'Κατάσταση'}</small><b className={state==='missed'?'is-late':state==='met'?'is-good':undefined}>{objectiveStateLabel(state,en)}</b></span>
+     <span><small>{en?'Against the previous month':'Έναντι προηγούμενου μήνα'}</small>{monthChange==null?<b>—</b>:<b className={`indicator-change${(objective.direction==='lower'?monthChange<0:monthChange>0)?' is-better':monthChange===0?'':' is-worse'}`}>{monthChange===0?'0':`${monthChange>0?'+':'−'}${formatObjectiveValue(Math.abs(monthChange),unit,language)}`}</b>}</span>
+    </div>
+   </div>
    <Meter className="objective-record-meter" value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
    <DetailList sections={detail}/>
    {history.length>0&&<>
-    <h3 className="objective-history-title">{en?'Value by month':'Ιστορικό τιμών'}</h3>
-    <table className="objective-history"><thead><tr><th>{en?'Month':'Μήνας'}</th><th>{en?'Value':'Τιμή'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead>
-     <tbody>{history.map(row=><tr key={row.month}><td>{new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'long',year:'numeric'}).format(new Date(objective.year,row.month-1,1))}</td><td>{formatObjectiveValue(row.value,unit,language)}</td><td><StatusBadge tone={tone(objectiveState(objective,row.value))}>{objectiveStateLabel(objectiveState(objective,row.value),en)}</StatusBadge></td></tr>)}</tbody></table>
+    {history.length>1&&<div className="indicator-result-trend"><small>{en?'Value by month':'Τιμή ανά μήνα'}</small><Sparkline width={560} height={92} points={history.map(row=>row.value)} target={Number.isFinite(Number(objective.target))&&objective.target!==''?Number(objective.target):null} label={en?'Value by month':'Τιμή ανά μήνα'}/></div>}
+    <table className="objective-history objective-history-compact"><thead><tr><th>{en?'Month':'Μήνας'}</th><th>{en?'Value':'Τιμή'}</th></tr></thead>
+     <tbody>{history.map(row=><tr key={row.month}><td>{new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'long',year:'numeric'}).format(new Date(objective.year,row.month-1,1))}</td><td className={objectiveState(objective,row.value)==='missed'?'is-late':undefined}>{formatObjectiveValue(row.value,unit,language)}</td></tr>)}</tbody></table>
    </>}
   </section>
  </EntityRecordShell>

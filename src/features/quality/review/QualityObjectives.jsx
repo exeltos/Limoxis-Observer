@@ -14,6 +14,7 @@ import { computeIndicator, periodOf, textOf } from '../../registers/registerEngi
 import { loadObjectives, loadReviews } from './reviewService'
 import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
+import { QualityPersonField } from '../QualityFields'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -60,7 +61,7 @@ export function useReviews(organizationId) {
   return { reviews, loading }
 }
 
-export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'In progress' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Σε εξέλιξη' })[state]
+export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'No value yet' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Χωρίς τιμή ακόμα' })[state]
 // How close the value is to the target (100 = met): value / target when more is
 // better, target / value when less is better.
 export function targetReach(objective) {
@@ -95,11 +96,10 @@ export function reviewsExport(rows, language) {
 export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: objective => (objective.indicator ? textOf(objective.indicator, language) : '') }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: objective => targetReach(objective) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: objective => roleTitleText(objective.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: objective => objective.current.status }]}
+  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: objective => (objective.indicator ? textOf(objective.indicator, language) : '') }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: objective => targetReach(objective) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: objective => roleTitleText(objective.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: objective => objective.current.status }]}
     rowProps={objective => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(objective) })}
     renderRow={objective => <>
-      <td><strong>{objective.code}</strong><small>{objective.year}</small></td>
-      <td>{objectiveTitle(objective, language)}</td>
+      <td><strong>{objectiveTitle(objective, language)}</strong><small>{objective.code} · {objective.year}</small></td>
       <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
       <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small><Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
       <td>{roleTitleText(objective.ownerLabel, language) || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
@@ -160,7 +160,7 @@ export function ObjectiveFields({ objective, set, registers }) {
       <FormGrid columns={3}>
         <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} placeholder={en ? 'None: value reported by the owner' : 'Κανένα: τιμή από τον υπεύθυνο'} {...selectText(en)} />
         {register ? <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} /> : <Field label={en ? 'Value so far' : 'Τιμή έως σήμερα'}><input inputMode="decimal" value={objective.reportedValue ?? ''} onChange={event => set({ reportedValue: event.target.value })} /></Field>}
-        <Field label={en ? 'Unit' : 'Μονάδα'}><input value={objective.unit || ''} onChange={event => set({ unit: event.target.value })} /></Field>
+        {!register && <Field label={en ? 'Unit' : 'Μονάδα'}><input value={objective.unit || ''} onChange={event => set({ unit: event.target.value })} /></Field>}
       </FormGrid>
       <FormGrid columns={3}>
         <ChoiceField label={en ? 'Met when the value is' : 'Επιτυγχάνεται όταν η τιμή είναι'} value={objective.direction} options={[{ value: 'higher', label: en ? 'At least' : 'Τουλάχιστον' }, { value: 'lower', label: en ? 'At most' : 'Το πολύ' }]} onChange={value => set({ direction: value })} />
@@ -168,7 +168,7 @@ export function ObjectiveFields({ objective, set, registers }) {
         <Field label={en ? 'Year' : 'Έτος'}><input inputMode="numeric" value={objective.year || ''} onChange={event => set({ year: Number(event.target.value) || '' })} /></Field>
       </FormGrid>
       <FormGrid columns={3}>
-        <Field label={en ? 'Owner' : 'Υπεύθυνος'}><input value={objective.ownerLabel || ''} onChange={event => set({ ownerLabel: event.target.value })} /></Field>
+        <QualityPersonField label={en ? 'Owner' : 'Υπεύθυνος'} name={objective.ownerLabel || ''} onChange={({ name }) => set({ ownerLabel: name })} />
         <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={objective.dueDate || ''} onChange={value => set({ dueDate: value })} />
       </FormGrid>
     </FormCard></div>

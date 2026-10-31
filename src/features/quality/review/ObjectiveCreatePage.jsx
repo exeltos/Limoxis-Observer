@@ -48,7 +48,7 @@ export function ObjectiveCreatePage() {
   if (objectiveId && loading) return <RouteLoading />
   if (objectiveId && !existing) return <Navigate to="/quality" replace />
   return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Target size={19} />} eyebrow={t('quality')} title={objectiveId ? (en ? 'Edit quality objective' : 'Επεξεργασία στόχου') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')}
-    subtitle={en ? 'ISO 9001 §6.2: measurable, with an owner and a date.' : 'ISO 9001 §6.2: μετρήσιμος, με υπεύθυνο και προθεσμία.'} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}>
+    subtitle={en ? 'Measurable, with an owner and a date.' : 'Μετρήσιμος, με υπεύθυνο και προθεσμία.'} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}>
     <div className="record-section">
       <ObjectiveFields objective={objective} set={set} registers={registers} />
       <div className="inline-edit-footer">
