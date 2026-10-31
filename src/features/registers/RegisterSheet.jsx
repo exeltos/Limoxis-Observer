@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowLeft, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
+import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { FormCard, FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -162,6 +163,9 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const menu = [
     access.canRecord(register) && { id: 'import', label: en ? 'Import from file' : 'Εισαγωγή από αρχείο', icon: Upload, onClick: () => navigate(`/registers/${register.id}/import`) },
   ].filter(Boolean)
+  // Under the fields: the total of what is on screen, the one before it, the month so far and how much is filled.
+  const entryTotal = item => rows.reduce((sum, row) => sum + (rowSum(item, row.key, measures) || 0), 0)
+  const monthSoFar = monthEntries.reduce((sum, item) => sum + (item.periodStart === periodStart ? 0 : entryTotal(item.values)), 0) + (isDay ? grand : 0)
   const previousLabel = byDay ? (en ? 'previous day' : 'προηγ. ημέρα') : (en ? 'previous month' : 'προηγ. μήνας')
   const subtitle = view === 'list'
     ? (en ? `${entries.length} entries · pick one to open it.` : `${entries.length} καταχωρίσεις · πατήστε μία για να την ανοίξετε.`)
@@ -189,6 +193,12 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
           </Field> })}
         </FormGrid>
       </FormCard>)}
+      <RecordMetricStrip className="register-sheet-totals" items={[
+        { label: isMonth || legacy ? (en ? 'Month total' : 'Σύνολο μήνα') : (en ? 'Day total' : 'Σύνολο ημέρας'), value: fmt(grand), primary: true },
+        { label: byDay ? (en ? 'Previous day' : 'Προηγούμενη ημέρα') : (en ? 'Previous month' : 'Προηγούμενος μήνας'), value: previousTotal ? fmt(previousTotal) : '—', hidden: !isDay && !isMonth },
+        { label: en ? 'Month so far' : 'Μήνας μέχρι τώρα', value: fmt(monthSoFar), note: en ? `${monthEntries.length || (isDay ? 1 : 0)} days recorded` : `${monthEntries.length || (isDay ? 1 : 0)} ημέρες καταχωρισμένες`, hidden: !byDay },
+        { label: en ? 'Filled' : 'Συμπληρωμένα', value: `${filled}/${rows.length}`, meter: rows.length ? (filled / rows.length) * 100 : null, tone: filled === rows.length ? 'success' : undefined },
+      ]} />
       {canEdit && <p className="register-sheet-hint">{en ? 'An empty box means not recorded; write 0 when there were none.' : 'Κενό πεδίο σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}</p>}
     </div> : <SheetYear innerRef={tableRef} register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
   </RecordTabPanel>
