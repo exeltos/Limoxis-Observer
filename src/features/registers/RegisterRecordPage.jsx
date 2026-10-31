@@ -81,7 +81,7 @@ export function RegisterRecordPage() {
   const beforeDaily = new Date().toISOString().slice(0, 7) < dailyFromOf(register)
   // «New day» opens today's sheet (from the first day of the daily sheets), also from the indicators tab.
   const primaryAction = access.canRecord(register) && (sheet
-    ? <ActionButton tone="primary" label={en ? 'New day' : 'Νέα ημέρα'} disabled={beforeDaily} title={beforeDaily ? (en ? 'Daily entry starts on 1 November 2026' : 'Η ημερήσια καταχώριση ξεκινά 1/11/2026') : undefined} onClick={() => { setTab('entries'); setNewDayTick(tick => tick + 1) }}><Plus size={17} /><span>{en ? 'New day' : 'Νέα ημέρα'}</span></ActionButton>
+    ? <ActionButton tone="primary" label={en ? 'New day' : 'Νέα ημέρα'} title={beforeDaily ? (en ? 'Until 31 October 2026 the sheet takes one total a month; from 1 November, one a day' : 'Μέχρι 31/10/2026 το φύλλο παίρνει ένα σύνολο τον μήνα· από 1/11, ένα την ημέρα') : undefined} onClick={() => { setTab('entries'); setNewDayTick(tick => tick + 1) }}><Plus size={17} /><span>{en ? 'New day' : 'Νέα ημέρα'}</span></ActionButton>
     : <ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton>)
   const headerActions = (tab === 'entries' || tab === 'indicators') && (exportMenu || importButton || primaryAction) ? <div className="row-actions">{exportMenu}{importButton}{primaryAction}</div> : undefined
   const status = <StatusBadge tone={register.status === 'active' ? 'success' : 'neutral'}>{registerStatusLabel(register.status, language)}</StatusBadge>

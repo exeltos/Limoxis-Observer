@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
+import { ManualDateField } from '../../design-system/ManualDateField'
 import { FilterDate, FilterSelect } from '../../design-system/FilterBar'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -121,7 +122,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   }
   const goToMonth = next => goTo(next >= dailyFrom ? (next === thisMonth() ? today() : `${next}-01`) : `${next}-01`)
   const openDay = next => { setView('day'); goTo(next) }
-  useEffect(() => { if (newDayTick > 0 && thisMonth() >= dailyFrom) openDay(today()) }, [newDayTick]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (newDayTick > 0) openDay(thisMonth() >= dailyFrom ? today() : `${thisMonth()}-01`) }, [newDayTick]) // eslint-disable-line react-hooks/exhaustive-deps
   // Enter moves to the next cell, as in a spreadsheet.
   function nextCell(event) {
     if (event.key !== 'Enter') return
@@ -193,7 +194,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
       {view === 'year' && <PeriodStepper label={year} onPrevious={() => goToMonth(`${Number(year) - 1}${month.slice(4)}`)} onNext={() => goToMonth(`${Number(year) + 1}${month.slice(4)}`)} nextDisabled={Number(year) >= Number(thisMonth().slice(0, 4))} />}
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
-    {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
+    {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} onAdd={date => { if (date > today()) { notify(en ? 'A day in the future cannot be recorded yet.' : 'Δεν μπορεί να καταχωριστεί ημέρα του μέλλοντος.', 'error'); return } openDay(date) }} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
       {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today()} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
       {measures.length > 1 && <div className="register-sheet-shifts"><CanonicalTabs className="lo-subtabs" items={[...measures.map(measure => ({ value: measure.key, label: textOf(measure, language) })), { value: 'total', label: en ? 'Day total' : 'Σύνολο ημέρας' }]} value={shift} onChange={setShift} ariaLabel={en ? 'Shift' : 'Βάρδια'} /></div>}
       {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-ledger">
@@ -219,7 +220,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
 
 // All the entries as a list, like the cases of a register: the day (or, before the daily
 // sheets, the month's total), the total and the rows filled. Newest first.
-function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }) {
+function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, onAdd }) {
   const en = language === 'en'
   const rows = register.sheet?.rows || []
   const measures = register.sheet?.measures || []
@@ -265,6 +266,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
     <FilterSelect label={en ? 'Month' : 'Μήνας'} value={month} onChange={setMonth}><option value="all">{en ? 'All months' : 'Όλοι οι μήνες'}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={String(index + 1).padStart(2, '0')}>{monthName(index + 1)}</option>)}</FilterSelect>
     <FilterDate label={en ? 'From' : 'Από'} value={from} onChange={setFrom} />
     <FilterDate label={en ? 'To' : 'Έως'} value={to} onChange={setTo} />
+    {onAdd && <div className="register-sheet-add"><ManualDateField label={en ? 'Add a day: pick its date' : 'Προσθήκη ημέρας: διαλέξτε ημερομηνία'} value="" onChange={value => value && onAdd(value)} hint={en ? 'Before 1 November a month takes one total.' : 'Πριν από 1/11 ο μήνας παίρνει ένα σύνολο.'} /></div>}
     {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all'); setFrom(''); setTo('') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
   </div>
   return <><div className="register-sheet-days-filters"><KpiFigures label={en ? 'The days at a glance' : 'Οι ημέρες με μια ματιά'} figures={figures} />{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">

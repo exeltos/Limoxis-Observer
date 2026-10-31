@@ -296,3 +296,6 @@
 .register-sheet-days-list .data-table .register-col-total{width:190px;text-align:left}
 .register-sheet-days-list .data-table .register-col-shift{width:130px;text-align:left;font-variant-numeric:tabular-nums}
 .register-sheet-days-list .data-table .register-col-when{width:230px;text-align:left}
+
+.register-sheet-filter-row .register-sheet-add{margin-left:auto}
+.register-sheet-filter-row .register-sheet-add .manual-date-field{width:280px}
