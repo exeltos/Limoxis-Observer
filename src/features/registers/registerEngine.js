@@ -379,19 +379,6 @@ export function indicatorReport(register, entries = [], period) {
   }))
 }
 
-// The entries of a period as the indicator reads them: the day it counts on, whether it
-// is in the numerator (`counted`), whether it is in the base of a percent (`base`) and the
-// value of the indicator's field. A case register only; the newest day first.
-export function countedEntries(register, indicator, entries = [], period) {
-  const ratio = indicator.aggregation === 'percent'
-  return entriesInPeriod(entries, period, indicator).map(entry => {
-    const values = computeValues(register.fields, entry.values || {})
-    const base = !ratio || matchesAll(indicator.denominatorFilters, values)
-    const counted = (ratio ? base : true) && matchesAll(indicator.filters, values)
-    return { entry, day: String(entryDay(entry, indicator) || '').slice(0, 10), counted, base, value: indicator.field ? values[indicator.field] : undefined }
-  }).sort((a, b) => b.day.localeCompare(a.day))
-}
-
 // How much of a period a sheet has: months (before the daily sheets) or days with an entry, out
 // of those that have passed. null when the period mixes the two or has not started.
 export function sheetCoverage(entries = [], period, today, dailyFrom) {

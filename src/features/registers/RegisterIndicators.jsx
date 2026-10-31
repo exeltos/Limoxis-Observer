@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { AlertOctagon, AlertTriangle, ArrowDownRight, ArrowLeft, ArrowUpRight, ArrowUpDown, Check, CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, Minus, Target } from 'lucide-react'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -14,9 +13,8 @@ import { FilterBar } from '../../design-system/FilterBar'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
-import { formatDay } from '../../core/i18n/formatDay'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
-import { PERIODS, breakdown, countedEntries, sheetBreakdowns, sheetCoverage, filterText, formatValue, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { PERIODS, breakdown, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { dailyFromOf } from './RegisterSheet'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
 
@@ -34,7 +32,7 @@ const lastMonth = () => { const date = new Date(); date.setUTCDate(1); date.setU
 // previous period and the same period last year, its trend month by month
 // (with the target line) and its split by the register's list fields.
 // onDefineTarget(indicatorId): opens the indicator in «Definition» (for those who may define the register).
-export function RegisterIndicators({ register, entries, withIdentity = false, onDefineTarget = null, onExportApi = null }) {
+export function RegisterIndicators({ register, entries, onDefineTarget = null, onExportApi = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notifyError } = useFeedback()
@@ -107,7 +105,7 @@ export function RegisterIndicators({ register, entries, withIdentity = false, on
       {exporting && <h3 className="register-report-title">{title}</h3>}
       {!open && report.length > 0 && <KpiFigures label={en ? 'Indicators by status' : 'Δείκτες ανά κατάσταση'} figures={figures} />}
       {!open && report.length > 0 && <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Search an indicator' : 'Αναζήτηση δείκτη'} activeAdvancedCount={statusFilter ? 1 : 0} onClear={() => { setQuery(''); setStatusFilter(null) }} />}
-      {open && <IndicatorDetail basis={mixedBasis ? basisOf(register, open.indicator, language) : ''} register={register} entries={entries} withIdentity={withIdentity} onPickMonth={value => { setKind('month'); setMonth(value) }} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} onDefineTarget={onDefineTarget} />}
+      {open && <IndicatorDetail basis={mixedBasis ? basisOf(register, open.indicator, language) : ''} register={register} entries={entries} onPickMonth={value => { setKind('month'); setMonth(value) }} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} onDefineTarget={onDefineTarget} />}
       {!open && report.length > 0 && <table className="data-table register-indicator-table">
         <thead><tr>{sortHead('name', en ? 'Indicator' : 'Δείκτης')}{sortHead('value', en ? 'Value' : 'Τιμή', 'register-num')}{sortHead('status', en ? 'Target' : 'Στόχος')}<th>{en ? 'Last 12 months' : 'Τάση 12 μηνών'}</th><th>{en ? 'Change' : 'Μεταβολή'}</th></tr></thead>
         {grouped.map(group => <tbody key={group.key}>
@@ -158,7 +156,7 @@ function IndicatorRow({ basis, row, register, entries, period, language, active,
   </tr>
 }
 
-function IndicatorDetail({ basis, register, entries, withIdentity, onPickMonth, row, period, language, order, onOpen, onClose, onDefineTarget }) {
+function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, language, order, onOpen, onClose, onDefineTarget }) {
   const en = language === 'en'
   const { indicator, current, previous, lastYear } = row
   const year = period.from.slice(0, 4)
@@ -203,7 +201,7 @@ function IndicatorDetail({ basis, register, entries, withIdentity, onPickMonth, 
         </button>
       })}
     </div>
-    {register.kind === 'sheet' ? <SheetCoverage entries={entries} period={period} dailyFrom={dailyFromOf(register)} language={language} /> : <CountedEntries register={register} indicator={indicator} entries={entries} period={period} withIdentity={withIdentity} language={language} />}
+    {register.kind === 'sheet' && <SheetCoverage entries={entries} period={period} dailyFrom={dailyFromOf(register)} language={language} />}
     {split && <div className="register-split">
       {splits.length > 1 ? <CanonicalTabs className="lo-subtabs" items={splits.map(item => ({ value: item.key, label: item.label }))} value={split.key} onChange={setSplitKey} ariaLabel={en ? 'Breakdown of the period' : 'Κατανομή της περιόδου'} /> : <h5>{split.label}</h5>}
       <table className="data-table"><tbody>{split.rows.map(item => <tr key={item.option.value || 'none'}><td className="register-row-label">{textOf(item.option, language)}</td><td className="register-num">{item.count}</td><td className="register-num">{item.share == null ? '—' : `${new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(item.share)}%`}</td><td className="register-split-bar"><i style={{ width: `${item.share || 0}%` }} /></td></tr>)}</tbody></table>
@@ -223,31 +221,4 @@ function SheetCoverage({ entries, period, dailyFrom, language }) {
     {missing > 0 ? <AlertTriangle size={14} aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
     <span><strong>{en ? `Recorded ${unit}` : recordedLabel}: {coverage.recorded} / {coverage.expected}</strong>{missing > 0 ? (en ? ` — ${missing} missing, so the value rests on part of the period.` : ` — λείπουν ${missing}, η τιμή στηρίζεται σε μέρος της περιόδου.`) : ''}</span>
   </p>
-}
-
-// The cases the value of the period rests on: the ones in the numerator marked, each opening its case.
-function CountedEntries({ register, indicator, entries, period, withIdentity, language }) {
-  const en = language === 'en'
-  const navigate = useNavigate()
-  const [all, setAll] = useState(false)
-  const rows = useMemo(() => countedEntries(register, indicator, entries, period), [register, indicator, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
-  const field = indicator.field ? register.fields.find(item => item.key === indicator.field) : null
-  const ratio = indicator.aggregation === 'percent'
-  const counted = rows.filter(row => row.counted).length
-  const limit = 8
-  const shown = all ? rows : rows.slice(0, limit)
-  if (!rows.length) return null
-  return <section className="register-counted">
-    <h5>{en ? 'Which cases were counted' : 'Ποια περιστατικά μετρήθηκαν'}<small>{ratio ? (en ? `${counted} in the numerator of ${rows.filter(row => row.base).length}` : `${counted} στον αριθμητή από ${rows.filter(row => row.base).length}`) : (en ? `${counted} of ${rows.length} cases in the period` : `${counted} από ${rows.length} περιστατικά της περιόδου`)}</small></h5>
-    <table className="data-table register-counted-table">
-      <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{withIdentity ? (en ? 'Case' : 'Περιστατικό') : '#'}</th>{field && <th>{textOf(field, language)}</th>}<th>{en ? 'Counted' : 'Μετράει'}</th></tr></thead>
-      <tbody>{shown.map(({ entry, day, counted: isCounted, base, value }) => <tr key={entry.id} className={`registry-row-clickable ${isCounted ? 'is-counted' : ''}`} tabIndex={0} onClick={() => navigate(`/registers/${register.id}/entries/${entry.id}`)} onKeyDown={event => { if (event.key === 'Enter') navigate(`/registers/${register.id}/entries/${entry.id}`) }}>
-        <td>{formatDay(day, language)}</td>
-        <td>{withIdentity ? <><strong>{entry.identity?.patientName || '—'}</strong><small>{entry.identity?.caseNumber || ''}</small></> : <strong>{String(entry.id).slice(-6).toUpperCase()}</strong>}</td>
-        {field && <td>{value == null || value === '' ? '—' : formatValue(field, value, language)}</td>}
-        <td>{isCounted ? <span className="register-counted-yes"><Check size={13} aria-hidden="true" />{en ? 'Yes' : 'Ναι'}</span> : <span className="register-muted">{ratio && base ? (en ? 'In the base only' : 'Μόνο στη βάση') : '—'}</span>}</td>
-      </tr>)}</tbody>
-    </table>
-    {rows.length > limit && <button type="button" className="register-indicator-back" onClick={() => setAll(value => !value)}>{all ? (en ? 'Show fewer' : 'Λιγότερα') : (en ? `Show all ${rows.length}` : `Εμφάνιση και των ${rows.length}`)}</button>}
-  </section>
 }

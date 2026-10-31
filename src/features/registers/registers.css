@@ -29,7 +29,7 @@
 .register-template-kind{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--lo-color-primary)}
 
 /* Case form */
-.register-entry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 16px;align-items:start}
+.register-entry-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px 18px;align-items:start}
 .register-entry-grid .register-number{min-height:40px}
 .register-entry-grid .register-number input,.register-entry-grid .manual-date-field input{box-sizing:border-box;height:40px}
 .register-entry-grid .register-computed output{box-sizing:border-box;min-height:40px}
@@ -107,11 +107,6 @@
 .register-coverage{display:flex;align-items:center;gap:8px;margin:0;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;font-size:13px;color:var(--lo-color-muted)}
 .register-coverage strong{color:var(--lo-color-text)}
 .register-coverage.is-partial{border-color:var(--lo-status-warning-border);color:var(--lo-status-warning-fg)}
-.register-counted{display:grid;gap:8px}
-.register-counted h5{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:0;font-size:13px}
-.register-counted h5 small{font-weight:400;color:var(--lo-color-muted)}
-.register-counted-table td small{display:block;color:var(--lo-color-muted)}
-.register-counted-yes{display:inline-flex;align-items:center;gap:4px;font-weight:650;color:var(--lo-status-success-fg)}
 .register-split h5{margin:0 0 6px;font-size:13px}
 .register-split-bar{width:40%}
 .register-split-bar i{display:block;height:8px;border-radius:4px;background:var(--lo-color-primary)}
@@ -198,3 +193,35 @@
 .lo-form-card.register-sheet-formcard .field input.register-sheet-input{width:96px;max-width:100%;min-height:34px;height:34px}
 
 .register-table td .status-badge{margin-left:8px}
+
+/* The entry as one page: a side index that follows the scrolling, a card per section, a theme colour per register. */
+.register-entry-form{--reg-accent:var(--lo-color-primary);--reg-soft:color-mix(in srgb,var(--reg-accent) 11%,var(--lo-color-surface))}
+.register-entry-form.is-theme-nicu{--reg-accent:#2b8aa3}
+.register-form-page>.lo-form-cards.register-entry-scroll{grid-template-columns:minmax(0,1fr)}
+.register-entry-layout{display:grid;grid-template-columns:232px minmax(0,1fr);gap:22px;align-items:start}
+.register-entry-rail{position:sticky;top:2px;display:grid;gap:4px;padding:12px;border:1px solid var(--lo-color-border);border-radius:16px;background:var(--lo-color-surface)}
+.register-entry-rail-title{display:flex;align-items:center;gap:8px;padding:2px 6px 8px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--reg-accent)}
+.register-entry-rail button{display:grid;grid-template-columns:26px minmax(0,1fr) auto;align-items:center;gap:10px;padding:7px 8px;border:0;border-radius:10px;background:none;color:var(--lo-color-text);font:inherit;font-size:13px;font-weight:600;text-align:left;cursor:pointer}
+.register-entry-rail button:hover{background:var(--lo-color-surface-muted)}
+.register-entry-rail button.is-active{background:var(--reg-soft)}
+.register-entry-rail button small{font-size:11.5px;font-weight:600;color:var(--lo-color-muted);font-variant-numeric:tabular-nums}
+.register-entry-rail i{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);font-style:normal;font-size:12px;font-weight:700}
+.register-entry-rail button.is-active i{background:var(--reg-accent);color:#fff}
+.register-entry-rail button.is-done i{background:color-mix(in srgb,var(--lo-status-success-fg) 16%,var(--lo-color-surface));color:var(--lo-status-success-fg)}
+.register-entry-rail button.has-errors i{background:var(--lo-status-danger-fg);color:#fff}
+.register-entry-main{display:grid;gap:16px;min-width:0}
+.register-entry-section,.register-entry-identity{display:grid;gap:16px;padding:18px 20px 20px;border:1px solid var(--lo-color-border);border-radius:16px;background:linear-gradient(180deg,var(--reg-soft),var(--lo-color-surface) 84px);box-shadow:inset 4px 0 0 var(--reg-accent);scroll-margin-top:4px}
+.register-entry-section>header,.register-entry-identity>header{display:flex;align-items:center;gap:12px}
+.register-entry-section h3,.register-entry-identity h3{margin:0;font-size:15px}
+.register-entry-section>header small{margin-left:auto;font-size:12px;font-weight:650;color:var(--lo-color-muted);font-variant-numeric:tabular-nums}
+.register-entry-section>header small.is-wrong{color:var(--lo-status-danger-fg)}
+.register-entry-identity>header small{display:flex;align-items:center;gap:5px;margin-top:2px;font-size:12px;color:var(--lo-color-muted)}
+.register-entry-badge{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px;background:var(--reg-accent);color:#fff;font-size:14px;font-weight:700}
+.register-entry-identity-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+@media (max-width:1100px){
+  .register-entry-layout{grid-template-columns:minmax(0,1fr)}
+  .register-entry-rail{position:sticky;top:0;z-index:2;display:flex;overflow-x:auto;padding:8px}
+  .register-entry-rail-title{display:none}
+  .register-entry-rail button{flex:none;grid-template-columns:24px auto auto}
+}
+@media (max-width:700px){.register-entry-identity-fields{grid-template-columns:minmax(0,1fr)}}
