@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Lock, LockOpen, Upload } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Lock, LockOpen, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
@@ -43,7 +43,8 @@ const sumValues = list => list.reduce((total, values) => { for (const [row, cell
 export const DAILY_SHEETS_FROM = '2026-11'
 export const dailyFromOf = register => register.sheet?.dailyFrom || DAILY_SHEETS_FROM
 
-export function RegisterSheet({ register, entries, onSaved }) {
+// newDayTick: «New day» in the record's header (each press opens today's entry).
+export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
@@ -52,7 +53,7 @@ export function RegisterSheet({ register, entries, onSaved }) {
   const access = useRegisterAccess()
   const navigate = useNavigate()
   const dailyFrom = dailyFromOf(register)
-  const [view, setView] = useState('day')
+  const [view, setView] = useState('list')
   const [day, setDay] = useState(() => (thisMonth() >= dailyFrom ? today() : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
   const month = day.slice(0, 7)
   const legacy = month < dailyFrom
@@ -104,6 +105,8 @@ export function RegisterSheet({ register, entries, onSaved }) {
     setDay(next)
   }
   const goToMonth = next => goTo(next >= dailyFrom ? (next === thisMonth() ? today() : `${next}-01`) : `${next}-01`)
+  const openDay = next => { setView('day'); goTo(next) }
+  useEffect(() => { if (newDayTick > 0 && thisMonth() >= dailyFrom) openDay(today()) }, [newDayTick]) // eslint-disable-line react-hooks/exhaustive-deps
   // Enter moves to the next cell, as in a spreadsheet.
   function nextCell(event) {
     if (event.key !== 'Enter') return
@@ -145,21 +148,23 @@ export function RegisterSheet({ register, entries, onSaved }) {
     view !== 'year' && hasMonth && (locked ? access.canReopen(register) : access.canRecord(register)) && { id: 'lock', label: locked ? (en ? 'Reopen month' : 'Άνοιγμα μήνα') : (en ? 'Close month' : 'Κλείσιμο μήνα'), icon: locked ? LockOpen : Lock, onClick: toggleLock, separatorBefore: true },
   ].filter(Boolean)
   const previousLabel = byDay ? (en ? 'previous day' : 'προηγ. ημέρα') : (en ? 'previous month' : 'προηγ. μήνας')
-  const subtitle = view !== 'year'
+  const subtitle = view === 'list'
+    ? (legacy ? (en ? 'Month total (before the daily sheets).' : 'Σύνολο μήνα (πριν τα ημερήσια φύλλα).') : (en ? `${monthEntries.length} days recorded · pick a day to open it.` : `${monthEntries.length} ημέρες καταχωρισμένες · πατήστε μια ημέρα για να την ανοίξετε.`))
+    : view !== 'year'
     ? <>{legacy && <span className="register-sheet-muted">{en ? 'Month total (before the daily sheets) · ' : 'Σύνολο μήνα (πριν τα ημερήσια φύλλα) · '}</span>}{isMonth && !legacy && <span className="register-sheet-muted">{en ? `${monthEntries.length} days recorded · ` : `${monthEntries.length} ημέρες καταχωρισμένες · `}</span>}{en ? `${filled} of ${rows.length} filled · total ${fmt(grand)}` : `${filled} από ${rows.length} συμπληρωμένες · σύνολο ${fmt(grand)}`}{previousTotal > 0 && <span className="register-sheet-muted">{` (${previousLabel} ${fmt(previousTotal)})`}</span>}{unusualCount > 0 && <span className="register-sheet-unusual-note"><AlertTriangle size={13} />{en ? unusualCount === 1 ? '1 unusual value' : `${unusualCount} unusual values` : unusualCount === 1 ? '1 ασυνήθιστη τιμή' : `${unusualCount} ασυνήθιστες τιμές`}</span>}</>
     : (en ? 'Pick a month to open it.' : 'Πατήστε έναν μήνα για να τον ανοίξετε.')
   const recorded = new Set(monthEntries.map(item => String(item.periodStart)))
-  return <RecordTabPanel className="register-sheet" title={isDay ? (en ? 'Entry' : 'Καταχώριση') : isMonth ? (en ? 'The month' : 'Ο μήνας') : (en ? 'The year' : 'Ετήσια εικόνα')} subtitle={subtitle}
+  return <RecordTabPanel className="register-sheet" title={isDay ? (en ? 'Entry' : 'Καταχώριση') : isMonth ? (en ? 'The month' : 'Ο μήνας') : view === 'list' ? (en ? 'Days' : 'Ημέρες') : (en ? 'The year' : 'Ετήσια εικόνα')} subtitle={subtitle}
     footer={canEdit && <div className="inline-edit-footer">{dirty && <span className="register-form-errors">{en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές'}</span>}<SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}
     actions={<div className="register-sheet-actions">
       {byDay && <PeriodStepper label={label} onPrevious={() => goTo(dayShift(day, -1))} onNext={() => goTo(dayShift(day, 1))} nextDisabled={day >= today()} />}
       {!byDay && view !== 'year' && <PeriodStepper label={label} onPrevious={() => goToMonth(monthShift(month, -1))} onNext={() => goToMonth(monthShift(month, 1))} nextDisabled={month >= thisMonth()} />}
       {view === 'year' && <PeriodStepper label={year} onPrevious={() => goToMonth(`${Number(year) - 1}${month.slice(4)}`)} onNext={() => goToMonth(`${Number(year) + 1}${month.slice(4)}`)} nextDisabled={Number(year) >= Number(thisMonth().slice(0, 4))} />}
       {view !== 'year' && hasMonth && <StatusBadge tone={locked ? 'neutral' : 'info'} icon={locked ? Lock : undefined}>{locked ? (en ? 'Closed' : 'Κλειστός') : (en ? 'Open' : 'Ανοιχτός')}</StatusBadge>}
-      <SearchableSelect hideLabel className="register-period-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next => next && setView(next)} options={[{ value: 'day', label: en ? 'Day' : 'Ημέρα' }, { value: 'month', label: en ? 'Month' : 'Μήνας' }, { value: 'year', label: en ? 'Year' : 'Έτος' }]} />
+      {isDay ? <button type="button" className="register-indicator-back" onClick={() => setView('list')}><ArrowLeft size={14} />{en ? 'Days' : 'Ημέρες'}</button> : <SearchableSelect hideLabel className="register-period-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next => next && setView(next)} options={[{ value: 'list', label: en ? 'Days' : 'Ημέρες' }, { value: 'month', label: en ? 'Month' : 'Μήνας' }, { value: 'year', label: en ? 'Year' : 'Έτος' }]} />}
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
-    {view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
+    {view === 'list' ? <SheetDays register={register} entries={legacy ? (entry ? [entry] : []) : monthEntries} legacy={legacy} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
       {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today()} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
       {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-sheet-group">
         {group && <h4>{textOf(group, language)}</h4>}
@@ -173,8 +178,34 @@ export function RegisterSheet({ register, entries, onSaved }) {
         </div> })}</div>
       </section>)}
       {canEdit && <p className="register-sheet-hint">{en ? 'An empty box means not recorded; write 0 when there were none.' : 'Κενό πεδίο σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}</p>}
-    </div> : <SheetYear register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'month' : 'day'); goToMonth(first.slice(0, 7)) }} />}
+    </div> : <SheetYear register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
   </RecordTabPanel>
+}
+
+// The days of a month as a list, like the cases of a register: date, total, rows filled and state.
+function SheetDays({ register, entries, legacy, onOpen }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const rows = register.sheet?.rows || []
+  const measures = register.sheet?.measures || []
+  const fmt = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
+  const sorted = [...entries].sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
+  const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
+  if (!sorted.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded this month. Start with «New day».' : 'Καμία ημέρα αυτόν τον μήνα. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
+  return <div className="scroll-table register-sheet-days-list"><table className="data-table">
+    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th className="register-num">{en ? 'Total' : 'Σύνολο'}</th><th className="register-num">{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th><th>{en ? 'State' : 'Κατάσταση'}</th></tr></thead>
+    <tbody>{sorted.map(item => {
+      const filled = rows.filter(row => rowSum(item.values, row.key, measures) != null).length
+      const total = rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
+      const day = String(item.periodStart)
+      return <tr key={item.id || day} className="registry-row-clickable" tabIndex={0} onClick={() => onOpen(day)} onKeyDown={event => { if (event.key === 'Enter') onOpen(day) }}>
+        <td><strong>{legacy ? (en ? 'Month total' : 'Σύνολο μήνα') : dayText(day)}</strong></td>
+        <td className="register-num">{fmt(total)}</td>
+        <td className="register-num">{filled} / {rows.length}</td>
+        <td><StatusBadge tone={item.locked ? 'neutral' : 'info'} icon={item.locked ? Lock : undefined}>{item.locked ? (en ? 'Closed' : 'Κλειστή') : (en ? 'Open' : 'Ανοιχτή')}</StatusBadge></td>
+      </tr>
+    })}</tbody>
+  </table></div>
 }
 
 // The year: one column per month, one row per sheet row (sum of measures).
