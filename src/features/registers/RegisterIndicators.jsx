@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { AlertTriangle, ArrowDownRight, ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Minus, Target } from 'lucide-react'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -22,7 +22,7 @@ const lastMonth = () => { const date = new Date(); date.setUTCDate(1); date.setU
 // previous period and the same period last year, its trend month by month
 // (with the target line) and its split by the register's list fields.
 // onDefineTarget(indicatorId): opens the indicator in «Definition» (for those who may define the register).
-export function RegisterIndicators({ register, entries, onDefineTarget = null }) {
+export function RegisterIndicators({ register, entries, onDefineTarget = null, onExportApi = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notifyError } = useFeedback()
@@ -53,11 +53,13 @@ export function RegisterIndicators({ register, entries, onDefineTarget = null })
     await new Promise(resolve => setTimeout(resolve, 0))
     try { await exportElementAsPdf({ element: reportRef.current, filename: `${register.code}_${period.from}_${period.to}` }) } catch (error) { notifyError(error, 'export', { operation: 'register_indicators_pdf' }) } finally { setExporting(false) }
   }
+  // The record's header shows «Export ▾» for this tab too: the page gets the handlers.
+  useEffect(() => { onExportApi?.({ excel: exportCsv, pdf: exportPdf, busy: exporting, disabled: !report.length }); return () => onExportApi?.(null) }, [report, exporting]) // eslint-disable-line react-hooks/exhaustive-deps
   return <RecordTabPanel className="register-indicators" title={en ? 'Indicators' : 'Δείκτες'} subtitle={en ? 'Computed from the entries; names never leave the department.' : 'Υπολογίζονται από τις καταχωρίσεις· τα ονόματα δεν φεύγουν από το τμήμα.'}
     actions={<div className="register-indicator-actions">
       <SearchableSelect hideLabel className="register-period-select" label={en ? 'Period' : 'Περίοδος'} value={kind} onChange={next=>next&&(setKind)(next)} options={optionsOf(PERIODS, language)}/>
       <PeriodStepper label={periodLabel(period, language)} onPrevious={() => step(-1)} onNext={() => step(1)} nextDisabled={shiftPeriod(period, PERIOD_MONTHS[kind]).from > new Date().toISOString().slice(0, 10)} />
-      <ExportMenu disabled={!report.length} onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exporting} />
+      {!onExportApi && <ExportMenu disabled={!report.length} onExcel={exportCsv} onPdf={exportPdf} pdfBusy={exporting} />}
     </div>}>
     <div ref={reportRef} className="register-indicator-report">
       {exporting && <h3 className="register-report-title">{title}</h3>}
