@@ -20,7 +20,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { loadEntries, loadRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { computeValues, formatValue, textOf } from './registerEngine'
-import { registerKindLabel, registerStatusLabel } from './registerText'
+import { registerStatusLabel } from './registerText'
 import { RegisterSheet, dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { RegisterIndicators } from './RegisterIndicators'
@@ -85,7 +85,7 @@ export function RegisterRecordPage() {
     : <ActionButton tone="primary" label={en ? 'New case' : 'Νέο περιστατικό'} onClick={() => navigate(`/registers/${register.id}/entries/new`)}><Plus size={17} /><span>{en ? 'New case' : 'Νέο περιστατικό'}</span></ActionButton>)
   const headerActions = (tab === 'entries' || tab === 'indicators') && (exportMenu || importButton || primaryAction) ? <div className="row-actions">{exportMenu}{importButton}{primaryAction}</div> : undefined
   const status = <StatusBadge tone={register.status === 'active' ? 'success' : 'neutral'}>{registerStatusLabel(register.status, language)}</StatusBadge>
-  const context = <span className="register-context">{[en ? register.departmentEn : register.department, registerKindLabel(register.kind, language), `${en ? 'version' : 'έκδοση'} ${register.version}`].filter(Boolean).join(' · ')}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
+  const context = <span className="register-context">{en ? register.departmentEn : register.department}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={(() => { const key = registerThemeKey(register); const Icon = key ? themeIcon(key) : sheet ? CalendarRange : ClipboardList; return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
