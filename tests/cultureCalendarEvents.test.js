@@ -38,5 +38,7 @@ describe('the department calendar', () => {
     const calendar = read('src/features/calendar/CalendarPage.jsx')
     expect(calendar).toContain("['cultures',...CALENDAR_KINDS.filter(kind=>kind!=='cultures')]")
     expect(calendar).toContain("e.kind==='cultures'&&e.date>=today")
+    // Only the calendar entry is marked on its page, not «My department» as well.
+    expect(read('src/app/SidebarNavigation.jsx')).toContain("to==='/my-department'&&['/my-department/calendar'")
   })
 })
