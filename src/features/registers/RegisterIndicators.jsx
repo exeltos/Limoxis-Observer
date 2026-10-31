@@ -44,6 +44,18 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   const categories = registerThemeKey(register) === 'icu' ? (register.fields.find(field => field.key === 'category')?.options || []) : []
   const entries = useMemo(() => (category === 'all' ? allEntries : allEntries.filter(entry => entry.values?.category === category)), [allEntries, category])
   const [month, setMonth] = useState(lastMonth)
+  // A register that has gone quiet opens on the last stretch with data, not on an empty period (once, when the entries arrive).
+  const settled = useRef(false)
+  useEffect(() => {
+    if (settled.current || !allEntries.length) return
+    settled.current = true
+    const today = new Date().toISOString().slice(0, 10)
+    const days = allEntries.map(entry => String(entry.periodStart || entry.entryDate || '').slice(0, 10)).filter(day => day && day <= today).sort()
+    const latest = days[days.length - 1]
+    if (!latest) return
+    const shown = periodOf(kind, `${lastMonth()}-01`)
+    if (!days.some(day => day >= shown.from && day <= shown.to)) setMonth(latest.slice(0, 7))
+  }, [allEntries]) // eslint-disable-line react-hooks/exhaustive-deps
   const [openId, setOpenId] = useState(null)
   const [exporting, setExporting] = useState(false)
   // The cards above the table filter it by status; the search and the sort work on the shown rows.
