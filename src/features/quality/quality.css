@@ -198,10 +198,6 @@ td.quality-register-actions{width:48px;text-align:right}
 @media (max-width:1100px){.review-action-row.meeting-person-row{grid-template-columns:1fr 1fr}}
 
 /* Optional English translation of a record (title, description), folded under «Αγγλική μετάφραση». */
-.quality-english-more{grid-column:1/-1}
-.quality-english-more .lo-more-section-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin-bottom:8px}
-@media (max-width:760px){.quality-english-more .lo-more-section-body{grid-template-columns:minmax(0,1fr)}}
-.quality-english-more .lo-more-section-body[hidden]{display:none}
 
 /* The reports inbox: one summary line and two chips instead of boxes (as in Controls). */
 .quality-summary-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;margin:0 0 10px;padding:0 4px;font-size:13px;color:var(--lo-color-muted)}

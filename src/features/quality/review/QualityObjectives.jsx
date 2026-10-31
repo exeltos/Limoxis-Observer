@@ -4,7 +4,6 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { Meter } from '../../../design-system/MiniCharts'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
-import { MoreSection } from '../../../design-system/MoreSection'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { ManualDateField } from '../../../design-system/ManualDateField'
@@ -158,7 +157,6 @@ export function ObjectiveFields({ objective, set, registers }) {
   return <>
     <div className="lo-form-cards"><FormCard wide>
       <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
-      {!en && <MoreSection moreLabel="Αγγλική μετάφραση" lessLabel="Λιγότερα"><Field label="Τίτλος (αγγλικά)"><input value={objective.titleEn || ''} onChange={event => set({ titleEn: event.target.value })} /></Field></MoreSection>}
       <FormGrid columns={3}>
         <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} placeholder={en ? 'None: value reported by the owner' : 'Κανένα: τιμή από τον υπεύθυνο'} {...selectText(en)} />
         {register ? <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} /> : <Field label={en ? 'Value so far' : 'Τιμή έως σήμερα'}><input inputMode="decimal" value={objective.reportedValue ?? ''} onChange={event => set({ reportedValue: event.target.value })} /></Field>}

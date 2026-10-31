@@ -64,9 +64,7 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
     <FormCard wide title={en ? 'Survey' : 'Έρευνα'} icon={Settings2} hint={en ? 'Satisfied = answers of 4 or 5 on a 1–5 scale; a question below the target is flagged. For a reliable result aim at 100 responses or more.' : 'Ικανοποιημένοι = απαντήσεις 4 ή 5 σε κλίμακα 1–5· ερώτηση κάτω από τον στόχο επισημαίνεται. Για αξιόπιστο αποτέλεσμα, στόχος 100 απαντήσεις και πάνω.'}>
       <FormGrid columns={2}>
         <Field label={`${en ? 'Title' : 'Τίτλος'} *`}><input value={survey.title} disabled={locked} onChange={event => set({ title: event.target.value })} /></Field>
-        <Field label={en ? 'Title in English' : 'Τίτλος στα αγγλικά'}><input value={survey.titleEn || ''} disabled={locked} onChange={event => set({ titleEn: event.target.value })} /></Field>
         <Field label={en ? 'Introduction to respondents' : 'Εισαγωγή προς τους ερωτώμενους'}><textarea rows={2} value={survey.description || ''} disabled={locked} onChange={event => set({ description: event.target.value })} /></Field>
-        <Field label={en ? 'Introduction in English' : 'Εισαγωγή στα αγγλικά'}><textarea rows={2} value={survey.descriptionEn || ''} disabled={locked} onChange={event => set({ descriptionEn: event.target.value })} /></Field>
         <SearchableSelect label={en ? 'Asks' : 'Απευθύνεται σε'} value={survey.audience} disabled={locked} options={audienceOptions(en)} onChange={value => value && set({ audience: value })} {...selectText(en)} clearLabel="" />
         <MultiSelect label={`${en ? 'Department it is about' : 'Τμήμα που αφορά'} *`} options={departmentOptions} selected={survey.departmentIds || []} disabled={locked} onChange={value => set({ departmentIds: value })} placeholder={en ? 'Choose the department…' : 'Επιλέξτε το τμήμα…'} searchPlaceholder={en ? 'Search department…' : 'Αναζήτηση τμήματος…'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'All' : 'Όλα'} clearAllLabel={en ? 'None' : 'Κανένα'} countLabel={count => (en ? `${count} departments` : `${count} τμήματα`)} />
       </FormGrid>
@@ -85,7 +83,6 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
           <div className="register-builder-section-head">
             {section ? <span className="survey-editor-section-name">
               <input aria-label={en ? 'Section' : 'Ενότητα'} value={section.label} disabled={locked} onChange={event => setSections(sections.map(item => (item.key === section.key ? { ...item, label: event.target.value } : item)))} />
-              <input aria-label={en ? 'Section in English' : 'Ενότητα στα αγγλικά'} placeholder="English" value={section.labelEn || ''} disabled={locked} onChange={event => setSections(sections.map(item => (item.key === section.key ? { ...item, labelEn: event.target.value } : item)))} />
             </span> : <strong>{en ? 'Without a section' : 'Χωρίς ενότητα'}</strong>}
             {!locked && <span className="register-builder-tools">
               {section && <><IconButton size="sm" label={en ? 'Section up' : 'Ενότητα πάνω'} disabled={index <= 0} onClick={() => setSections(move(sections, index, -1))}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Section down' : 'Ενότητα κάτω'} disabled={index >= sections.length - 1} onClick={() => setSections(move(sections, index, 1))}><ArrowDown size={14} /></IconButton></>}
@@ -151,7 +148,6 @@ function QuestionDialog({ question: initial, survey, locked, language, onCancel,
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Question' : 'Ερώτηση'}>
           <Field label={`${en ? 'Question' : 'Ερώτηση'} *`}><textarea rows={2} value={question.label} disabled={locked} onChange={event => set({ label: event.target.value })} /></Field>
-          <Field label={en ? 'In English' : 'Στα αγγλικά'}><textarea rows={2} value={question.labelEn || ''} disabled={locked} onChange={event => set({ labelEn: event.target.value })} /></Field>
           <FormGrid columns={2}>
             <SearchableSelect label={en ? 'Kind of answer' : 'Είδος απάντησης'} value={question.type} disabled={locked} options={QUESTION_TYPES.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={type => type && set({ type, ...(type === 'rating' && !question.scale ? { scale: 'rating' } : {}), options: ['single', 'multiple'].includes(type) && !options.length ? [{ value: '', label: '', labelEn: '' }, { value: '', label: '', labelEn: '' }] : options })} {...selectText(en)} clearLabel="" />
             <SearchableSelect label={en ? 'Section' : 'Ενότητα'} value={question.section || ''} disabled={locked} options={(survey.sections || []).map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={section => set({ section: section || '' })} placeholder={en ? 'No section' : 'Χωρίς ενότητα'} {...selectText(en)} />
@@ -162,7 +158,6 @@ function QuestionDialog({ question: initial, survey, locked, language, onCancel,
         {isChoice && <FormCard wide title={en ? 'Options' : 'Επιλογές'} hint={en ? 'At least two.' : 'Τουλάχιστον δύο.'}>
           <ul className="register-builder-list">{options.map((option, index) => <li key={option.value || `new-${index}`}><span className="register-axis-fields">
             <input aria-label={en ? 'Option' : 'Επιλογή'} placeholder={en ? 'Option' : 'Επιλογή'} value={option.label} disabled={locked} onChange={event => set({ options: options.map((item, at) => (at === index ? { ...item, label: event.target.value } : item)) })} />
-            <input aria-label={en ? 'In English' : 'Στα αγγλικά'} placeholder="English" value={option.labelEn || ''} disabled={locked} onChange={event => set({ options: options.map((item, at) => (at === index ? { ...item, labelEn: event.target.value } : item)) })} />
           </span>{!locked && <span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} disabled={!index} onClick={() => set({ options: move(options, index, -1) })}><ArrowUp size={14} /></IconButton><IconButton size="sm" tone="danger" label={en ? 'Remove option' : 'Αφαίρεση επιλογής'} onClick={() => set({ options: options.filter((_, at) => at !== index) })}><Trash2 size={14} /></IconButton></span>}</li>)}</ul>
           {!locked && <Button variant="secondary" onClick={() => set({ options: [...options, { value: '', label: '', labelEn: '' }] })}><Plus size={15} />{en ? 'Option' : 'Επιλογή'}</Button>}
         </FormCard>}

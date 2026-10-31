@@ -31,6 +31,6 @@ describe('English titles of quality records', () => {
     // The record editor asks for one title: its English copy follows it until a translation is stored.
     expect(source('src/features/quality/QualityRecordPage.jsx')).not.toContain('Τίτλος (αγγλικά)')
     expect(source('src/features/quality/QualityRecordPage.jsx')).toContain("x[`${k}En`]===x[k]")
-    expect(source('src/features/quality/review/QualityObjectives.jsx')).toContain('Τίτλος (αγγλικά)')
+    expect(source('src/features/quality/review/QualityObjectives.jsx')).not.toContain('Τίτλος (αγγλικά)')
   })
 })

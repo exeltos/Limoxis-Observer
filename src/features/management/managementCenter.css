@@ -87,7 +87,7 @@
 .hai-criteria-dialog .hai-group-head input,.hai-criteria-dialog .hai-group-head select{height:38px;width:100%}
 .hai-criteria-dialog .hai-group-index{display:grid;place-items:center;width:30px;height:38px;border-radius:8px;background:#e6f0f7;color:#0b6097;font-weight:800;font-size:13px}
 .hai-criteria-dialog .hai-item-table{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.hai-criteria-dialog .hai-item-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;align-items:start;gap:10px}
+.hai-criteria-dialog .hai-item-row{display:grid;grid-template-columns:minmax(0,1fr) 36px;align-items:start;gap:10px}
 .hai-criteria-dialog .hai-item-row.hai-item-head{align-items:end;padding:0 2px}
 .hai-criteria-dialog .hai-item-row textarea{width:100%;min-height:52px;padding:8px 10px;resize:vertical;font:inherit;font-size:13px;line-height:1.4;border:1px solid #cfd9e2;border-radius:8px;background:#fff}
 .hai-criteria-dialog .hai-item-row>button{margin-top:8px}
@@ -95,7 +95,7 @@
 .hai-criteria-dialog .hai-group-actions{display:flex;justify-content:flex-start;margin-top:10px}
 @media(max-width:760px){.hai-criteria-dialog .hai-editor-meta-grid,.external-source-form{grid-template-columns:1fr!important}.hai-criteria-dialog .hai-group-head{grid-template-columns:30px 1fr 36px}.hai-criteria-dialog .hai-group-head label:nth-of-type(2){grid-column:2}.hai-criteria-dialog .hai-item-row{grid-template-columns:1fr 36px}.hai-criteria-dialog .hai-item-head{display:none}}
 .hai-criteria-dialog .hai-group-card.is-locked .hai-group-head{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr)}
-.hai-criteria-dialog .hai-group-card.is-locked .hai-item-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.hai-criteria-dialog .hai-group-card.is-locked .hai-item-row{grid-template-columns:minmax(0,1fr)}
 .hai-criteria-dialog .hai-item-row textarea:disabled{background:#fbfcfd;color:#33495f;opacity:1}
 .lira-knowledge-dialog .lira-knowledge-summary .record-details-grid>.detail-item{padding:12px 14px!important;margin:0!important;border:0!important;border-right:1px solid #eef2f5!important;border-bottom:1px solid #eef2f5!important;border-radius:0!important;background:#fff!important;gap:6px!important;justify-content:flex-start!important}
 .lira-knowledge-dialog .lira-knowledge-summary .record-details-grid>.detail-item>strong{display:block!important;margin:0!important}
