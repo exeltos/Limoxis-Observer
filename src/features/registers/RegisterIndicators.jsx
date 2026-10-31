@@ -13,7 +13,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
-import { PERIODS, breakdown, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { PERIODS, breakdown, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
@@ -23,6 +23,7 @@ const PERIOD_MONTHS = { month: 1, quarter: 3, half: 6, year: 12 }
 const STATUS_RANK = { breach: 0, attention: 1, onTarget: 2, context: 3 }
 // The date an indicator counts on, in words («ανά ημερομηνία εξόδου»): shown when a register's indicators do not all count on the same one.
 const basisOf = (register, indicator, language) => {
+  if (isActiveCensus(register, indicator)) return language === 'en' ? 'on the last day' : 'την τελευταία ημέρα'
   const field = (register.fields || []).find(item => item.key === (indicator.dateField || register.settings?.entryDateField))
   return field ? `${language === 'en' ? 'by' : 'ανά'} ${textOf(field, language).toLowerCase()}` : ''
 }

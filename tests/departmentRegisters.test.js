@@ -376,3 +376,31 @@ describe('the cath lab register', () => {
     expect(indicatorReport(demo, own, periodOf('year', '2026-03-10')).length).toBe(demo.indicators.length)
   })
 })
+
+describe('the chemotherapy register', () => {
+  const chemo = registerFromTemplate('chemotherapy')
+  const active = chemo.indicators.find(item => item.id === 'active_patients')
+  const patient = (start, end = '', extra = {}) => ({ id: Math.random().toString(36), entryDate: start || '2026-10-19', values: { start_date: start, end_date: end, ...extra } })
+  it('counts the patients on treatment on the last day of the period, not the ones recorded in it', () => {
+    const entries = [patient('2026-01-10', '2026-02-20'), patient('2026-02-01'), patient('2026-03-30'), patient('2026-04-05')]
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-03-10')).value).toBe(2)
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-02-10')).value).toBe(1)
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-04-10')).value).toBe(3)
+  })
+  it('counts a patient without a start date from the day recorded, and splits by diagnosis', () => {
+    const entries = [patient('', '', { diagnosis: 'C50' }), patient('2026-10-01', '', { diagnosis: 'C50' }), patient('2026-10-02', '', { diagnosis: 'C34' })]
+    const october = periodOf('month', '2026-10-25')
+    expect(computeIndicator(chemo, active, entries, october).value).toBe(3)
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-09-10')).value).toBe(0)
+    const split = breakdown(chemo, active, entries, october, 'diagnosis')
+    expect(split.map(row => [row.option.value, row.count])).toEqual([['C50', 2], ['C34', 1]])
+  })
+  it('hides the mean age while no birth date is known, and has its own look', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    expect(registerThemeKey(chemo)).toBe('chemo')
+    const ids = indicatorReport(chemo, [patient('2026-10-01')], periodOf('month', '2026-10-10')).map(item => item.indicator.id)
+    expect(ids).not.toContain('mean_age')
+    expect(ids).toContain('active_patients')
+    expect(chemo.settings.sections.map(item => item.key)).toEqual(['patient', 'treatment', 'end'])
+  })
+})

@@ -19,7 +19,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry } from '../../core/export/registryExports'
 import { loadEntries, loadRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
-import { computeValues, formatValue, textOf } from './registerEngine'
+import { computeValues, formatValue, isTreatmentRegister, textOf } from './registerEngine'
 import { registerStatusLabel } from './registerText'
 import { RegisterSheet, dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
@@ -114,6 +114,9 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   // Registers of stays have a discharge date: «Still in» are the cases without one.
   const stays = register.fields.some(field => field.key === 'discharge_date')
   const [stay, setStay] = useState('all')
+  // Registers of treatments (chemotherapy) keep every patient: active until an end date is set.
+  const treatment = isTreatmentRegister(register)
+  const [state, setState] = useState('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const columns = listFields(register)
@@ -121,9 +124,10 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const rows = useMemo(() => [...entries]
     .filter(entry => year === 'all' || String(entry.entryDate).startsWith(year))
     .filter(entry => !stays || stay === 'all' || (stay === 'in') === !entry.values?.discharge_date)
+    .filter(entry => !treatment || state === 'all' || (state === 'active') === !entry.values?.end_date)
     .filter(entry => !query.trim() || `${entry.identity?.caseNumber || ''} ${entry.identity?.patientName || ''}`.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => String(b.entryDate).localeCompare(String(a.entryDate))), [entries, year, query, stay, stays])
-  useEffect(() => setPage(1), [query, year, stay, pageSize])
+    .sort((a, b) => (treatment ? Number(Boolean(a.values?.end_date)) - Number(Boolean(b.values?.end_date)) : 0) || String(b.entryDate).localeCompare(String(a.entryDate))), [entries, year, query, stay, stays, state, treatment])
+  useEffect(() => setPage(1), [query, year, stay, state, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -132,16 +136,18 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const open = entry => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all') }}>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0) + (state !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all'); setState('all') }}>
       <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
       {stays && <FilterSelect label={en ? 'Stay' : 'Νοσηλεία'} value={stay} onChange={setStay}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="in">{en ? 'Still in' : 'Νοσηλεύονται'}</option><option value="out">{en ? 'Discharged' : 'Έχουν βγει'}</option></FilterSelect>}
+      {treatment && <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={state} onChange={setState}><option value="all">{en ? 'All patients' : 'Όλοι οι ασθενείς'}</option><option value="active">{en ? 'Active' : 'Ενεργοί'}</option><option value="ended">{en ? 'Completed' : 'Ολοκλήρωσαν'}</option></FilterSelect>}
     </FilterBar>
-    <RegistryTable sortable={false} className="register-table" rows={paged} columns={[{ key: 'who', label: withIdentity ? (en ? 'Case' : 'Περιστατικό') : '#' }, ...columns.map(field => ({ key: field.key, label: textOf(field, language) }))]}
+    <RegistryTable sortable={false} className="register-table" rows={paged} columns={[{ key: 'who', label: withIdentity ? (en ? 'Case' : 'Περιστατικό') : '#' }, ...(treatment ? [{ key: 'state', label: en ? 'Status' : 'Κατάσταση' }] : []), ...columns.map(field => ({ key: field.key, label: textOf(field, language) }))]}
       rowProps={entry => ({ className: `registry-row-clickable${entry.values?.category && registerThemeKey(register) === 'icu' ? ` is-category-${entry.values.category}` : ''}`, onClick: () => open(entry), tabIndex: 0, onKeyDown: event => { if (event.key === 'Enter') open(entry) } })}
       renderRow={entry => {
         const values = computeValues(register.fields, entry.values)
         return <>
           <td>{withIdentity ? <><strong>{entry.identity?.patientName || '—'}</strong><small>{entry.identity?.caseNumber || ''}</small></> : <strong>{String(entry.id).slice(-6).toUpperCase()}</strong>}</td>
+          {treatment && <td><StatusBadge tone={entry.values?.end_date ? 'neutral' : 'success'}>{entry.values?.end_date ? (en ? 'Completed' : 'Ολοκλήρωσε') : (en ? 'Active' : 'Ενεργός')}</StatusBadge></td>}
           {columns.map(field => { const marker = field.key === 'category' ? caseMarker(register, values, language) : null; return <td key={field.key}>{marker ? <StatusBadge tone={marker.tone} icon={marker.Icon}>{marker.label}</StatusBadge> : field.key === 'discharge_date' && !values[field.key] ? <StatusBadge tone="info">{en ? 'Still in' : 'Νοσηλεύεται'}</StatusBadge> : formatValue(field, values[field.key], language)}</td> })}
         </>
       }}

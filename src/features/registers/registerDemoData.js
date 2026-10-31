@@ -32,6 +32,7 @@ export const DEMO_PAEDIATRICS_ID = 'reg-demo-paediatrics'
 export const DEMO_OBSTETRICS_ID = 'reg-demo-obstetrics'
 export const DEMO_EMERGENCY_ID = 'reg-demo-emergency'
 export const DEMO_CATHLAB_ID = 'reg-demo-cathlab'
+export const DEMO_CHEMO_ID = 'reg-demo-chemo'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -49,7 +50,9 @@ export function demoRegisters() {
   const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
   emergency.sheet = { ...emergency.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
   const cathLab = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
-  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const chemo = { ...registerFromTemplate('chemotherapy', { departmentId: 'Χημειοθεραπεία', department: 'Χημειοθεραπεία', departmentEn: 'Chemotherapy' }), id: DEMO_CHEMO_ID, code: 'REG-CHEMO' }
+  chemo.fields = chemo.fields.map(field => (field.key === 'physician' ? { ...field, options: [{ value: 'dr_a', label: 'Παπαδόπουλος Γ.', labelEn: 'Papadopoulos G.' }, { value: 'dr_b', label: 'Νικολάου Μ.', labelEn: 'Nikolaou M.' }, { value: 'dr_c', label: 'Καραγιάννη Ε.', labelEn: 'Karagianni E.' }] } : field))
+  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab, chemo].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -293,6 +296,37 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       const id = `reg-entry-cath-${entries.filter(item => item.registerId === DEMO_CATHLAB_ID).length + 1}`
       entries.push({ id, registerId: DEMO_CATHLAB_ID, entryDate: day, periodStart: null, values, status: 'complete', locked: false, createdAt: `${day}T12:00:00Z`, createdByLabel: 'Νοσηλεύτρια Αιμοδυναμικού' })
       identities[id] = { caseNumber: String(cathNumber), patientName: '' }
+    }
+  }
+  // Chemotherapy: one card per patient, active until an end date; about a third have finished.
+  const chemoRandom = seeded(20261121)
+  let chemoNumber = 10520000
+  for (let back = 13; back >= 0; back -= 1) {
+    const date = new Date(Date.UTC(year, month - 1 - back, 1))
+    const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    const count = 9 + Math.floor(chemoRandom() * 6)
+    for (let index = 0; index < count; index += 1) {
+      const start = `${y}-${pad(m)}-${pad(1 + Math.floor(chemoRandom() * days))}`
+      if (start > today) continue
+      const length = 60 + Math.floor(chemoRandom() * 200)
+      const end = addDays(start, length)
+      const finished = end <= today && chemoRandom() < 0.8
+      const diagnosis = pick(chemoRandom, [['C50', 28], ['C34', 20], ['C18', 12], ['C56', 9], ['C25', 8], ['C16', 7], ['C61', 6], ['C83', 4]])
+      const values = {
+        birth_date: addDays(start, -Math.round((42 + chemoRandom() * 42) * 365.25)),
+        sex: diagnosis === 'C50' || diagnosis === 'C56' ? 'female' : diagnosis === 'C61' ? 'male' : chemoRandom() < 0.5 ? 'male' : 'female',
+        start_date: start,
+        diagnosis,
+        physician: pick(chemoRandom, [['dr_a', 4], ['dr_b', 3], ['dr_c', 3]]),
+        regimen: pick(chemoRandom, [['FOLFOX', 3], ['AC-T', 3], ['Carboplatin / Paclitaxel', 3], ['Gemcitabine', 1]]),
+        end_date: finished ? end : '',
+        end_reason: finished ? pick(chemoRandom, [['Ολοκλήρωση κύκλων', 7], ['Αλλαγή θεραπείας', 2], ['Διακοπή λόγω τοξικότητας', 1]]) : '',
+      }
+      chemoNumber += 1 + Math.floor(chemoRandom() * 3)
+      const id = `reg-entry-chemo-${entries.filter(item => item.registerId === DEMO_CHEMO_ID).length + 1}`
+      entries.push({ id, registerId: DEMO_CHEMO_ID, entryDate: start, periodStart: null, values, status: 'complete', locked: false, createdAt: `${start}T11:00:00Z`, createdByLabel: 'Νοσηλεύτρια Χημειοθεραπείας' })
+      identities[id] = { caseNumber: String(chemoNumber), patientName: `Ασθενής Χ-${pad(entries.length % 100)}` }
     }
   }
   return { entries, identities }

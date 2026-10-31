@@ -230,6 +230,7 @@
 .register-entry-form.is-theme-icu{--reg-accent:#2f5f9e}
 .register-entry-form.is-theme-obstetrics{--reg-accent:#b84d7a}
 .register-entry-form.is-theme-cathlab{--reg-accent:#0f7f86}
+.register-entry-form.is-theme-chemo{--reg-accent:#7a4fb0}
 .register-entry-form.is-theme-icu[data-category="cardiac"]{--reg-accent:#b83a3a}
 .register-entry-category{display:grid;gap:8px}
 .register-entry-category-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}

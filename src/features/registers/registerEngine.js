@@ -226,6 +226,17 @@ export const entriesInPeriod = (entries = [], period, indicator) => entries.filt
   return day && day >= period.from && day <= period.to
 })
 
+// A register of treatments (chemotherapy): «Active patients» is a picture on the last day of the period, not the patients
+// recorded in it: whoever has started (the day recorded, when the start is unknown) and not ended by then.
+export const isTreatmentRegister = register => register.kind !== 'sheet' && ['start_date', 'end_date'].every(key => (register.fields || []).some(field => field.key === key && field.type === 'date'))
+export const isActiveCensus = (register, indicator) => indicator?.id === 'active_patients' && isTreatmentRegister(register)
+export const treatmentActive = (entry, day) => {
+  const start = String(entry.values?.start_date || entry.entryDate || '').slice(0, 10)
+  const end = String(entry.values?.end_date || '').slice(0, 10)
+  return Boolean(start) && start <= day && (!end || end > day)
+}
+export const periodEntries = (register, entries = [], period, indicator) => (isActiveCensus(register, indicator) ? entries.filter(entry => treatmentActive(entry, period.to)) : entriesInPeriod(entries, period, indicator))
+
 const mean = numbers => (numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : null)
 const median = numbers => {
   if (!numbers.length) return null
@@ -256,7 +267,7 @@ export function sheetTotal(entries = [], rows = [], measures = []) {
 //     (entries matching denominator.filters, or the sum of denominator.field).
 //   sheet: sum of numerator rows × measure, as a share of the denominator rows.
 export function computeIndicator(register, indicator, entries = [], period) {
-  const inPeriod = entriesInPeriod(entries, period, indicator)
+  const inPeriod = periodEntries(register, entries, period, indicator)
   const result = { id: indicator.id, value: null, numerator: null, denominator: null, n: inPeriod.length, small: false }
   if (register.kind === 'sheet') {
     const sheet = register.sheet || {}
@@ -287,7 +298,7 @@ export function computeIndicator(register, indicator, entries = [], period) {
     return withStatus(result, indicator)
   }
   const rows = inPeriod.map(entry => computeValues(register.fields, entry.values || {}))
-  const selected = rows.filter(values => matchesAll(indicator.filters, values))
+  const selected = isActiveCensus(register, indicator) ? rows : rows.filter(values => matchesAll(indicator.filters, values))
   switch (indicator.aggregation) {
     case 'count':
       result.value = selected.length
@@ -364,8 +375,10 @@ export function monthlySeries(register, indicator, entries = [], year) {
 export function breakdown(register, indicator, entries = [], period, field) {
   const definition = (register.fields || []).find(item => item.key === field)
   if (!definition) return []
-  const inPeriod = entriesInPeriod(entries, period, indicator).map(entry => computeValues(register.fields, entry.values || {}))
-  const options = [...(definition.options || []), { value: '', label: 'Χωρίς τιμή', labelEn: 'No value' }]
+  const inPeriod = periodEntries(register, entries, period, indicator).map(entry => computeValues(register.fields, entry.values || {}))
+  // A text field (the diagnosis) is split by what was written, the most frequent first.
+  const written = definition.type === 'text' ? [...inPeriod.reduce((map, values) => { const text = String(values[field] || '').trim(); return text ? map.set(text, (map.get(text) || 0) + 1) : map }, new Map())].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([text]) => ({ value: text, label: text, labelEn: text })) : null
+  const options = [...(written || definition.options || []), { value: '', label: 'Χωρίς τιμή', labelEn: 'No value' }]
   return options.map(option => {
     const rows = inPeriod.filter(values => (option.value === '' ? isBlank(values[field]) : Array.isArray(values[field]) ? values[field].includes(option.value) : values[field] === option.value))
     return { option, count: rows.length, share: inPeriod.length ? round((rows.length / inPeriod.length) * 100) : null }
@@ -399,7 +412,9 @@ export function indicatorReport(register, entries = [], period) {
   // An indicator that counts only the cases with an answer recorded («Επιπλοκή», «Ένδειξη») waits until one case has it.
   const answerField = key => (register.fields || []).some(field => field.key === key && ['yesNo', 'choice'].includes(field.type) && field.key !== 'outcome')
   const never = indicator => entries.length > 0 && (indicator.denominatorFilters || []).some(filter => filter.op === 'filled' && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
-  return (register.indicators || []).filter(indicator => !never(indicator)).map(indicator => ({
+  // A mean of a field nobody has filled (the age, when no birth date is known) has nothing to show.
+  const empty = indicator => entries.length > 0 && ['mean', 'median'].includes(indicator.aggregation) && register.kind !== 'sheet' && !entries.some(entry => !isBlank(computeValues(register.fields, entry.values || {})[indicator.field]))
+  return (register.indicators || []).filter(indicator => !never(indicator) && !empty(indicator)).map(indicator => ({
     indicator,
     current: computeIndicator(register, indicator, entries, period),
     previous: computeIndicator(register, indicator, entries, previous),
