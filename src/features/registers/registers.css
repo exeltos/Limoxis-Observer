@@ -76,6 +76,7 @@
 .register-indicator-table th.register-num .register-sort{justify-content:flex-end}
 .register-indicator-table td.register-change-cell small{display:inline;margin-left:4px}
 .register-change-cell>span{display:flex;align-items:center;gap:2px;white-space:nowrap}
+.register-indicator-basis{display:block;font-size:11.5px;font-weight:400;color:var(--lo-color-muted)}
 .register-muted{color:var(--lo-color-muted)}
 .register-change{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--lo-color-text)}
 .register-change.is-better{color:var(--lo-status-success-fg)}
