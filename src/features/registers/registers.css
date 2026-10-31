@@ -279,10 +279,14 @@
 .register-ledger-line.is-unusual .register-sheet-input{border-color:#d08a00;background:#fffaf0}
 .register-ledger-line.is-unusual .register-ledger-note{color:#9a5b00;font-weight:700}
 
-.register-sheet-days-filters{padding:12px 20px 14px}
+.register-sheet-days-filters{display:grid;gap:14px;padding:14px 20px 14px}
 .register-sheet-filter-row{display:flex;flex-wrap:wrap;align-items:end;gap:12px 16px}
 .register-sheet-filter-row .filter-field{width:172px}
 .register-sheet-filter-row select,.register-sheet-filter-row .manual-date-control,.register-sheet-filter-row .manual-date-control input{box-sizing:border-box;height:40px}
-.register-list-change{display:inline-block;margin-left:8px;font-size:11.5px;font-weight:650;color:var(--lo-color-muted)}
+.register-list-total{display:flex;align-items:baseline;gap:8px}
+.register-list-total strong{font-size:15px}
+.register-list-change{display:inline-flex;margin-left:8px;align-items:center;gap:1px;font-size:11.5px;font-weight:650;color:var(--lo-color-muted)}
+.register-list-bar{display:block;width:120px;height:5px;margin-top:5px;border-radius:3px;background:var(--lo-color-surface-muted)}
+.register-list-bar i{display:block;height:100%;border-radius:3px;background:color-mix(in srgb,var(--reg-accent,var(--lo-color-primary)) 70%,var(--lo-color-surface))}
 .register-list-change.is-up{color:var(--lo-status-success-fg)}
 .register-list-change.is-down{color:var(--lo-status-danger-fg)}

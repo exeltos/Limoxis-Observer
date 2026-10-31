@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Pencil, Upload } from 'lucide-react'
+import { AlertTriangle, ArrowDownRight, ArrowLeft, ArrowUpRight, CalendarDays, CalendarX2, Gauge, Pencil, Sigma, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { FilterDate, FilterSelect } from '../../design-system/FilterBar'
+import { KpiFigures } from '../../design-system/KpiCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -236,6 +237,25 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
   const sorted = [...entries]
     .filter(item => (year === 'all' || String(item.periodStart).startsWith(year)) && (month === 'all' || String(item.periodStart).slice(5, 7) === month) && (!from || String(item.periodStart) >= from) && (!to || String(item.periodStart) <= to))
     .sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
+  // What the list shows, at a glance: how many, the total, the mean per day, the working days nobody recorded.
+  const dailyItems = sorted.filter(item => String(item.periodStart).slice(0, 7) >= dailyFrom)
+  const sumAll = sorted.reduce((sum, item) => sum + totalOf(item), 0)
+  const recordedDays = new Set(dailyItems.map(item => String(item.periodStart)))
+  let missingDays = null
+  if (dailyItems.length) {
+    const ordered = [...recordedDays].sort()
+    missingDays = 0
+    for (let day = ordered[0]; day <= ordered[ordered.length - 1]; day = dayShift(day, 1)) { const weekday = new Date(`${day}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6 && !recordedDays.has(day)) missingDays += 1 }
+  }
+  // The bars compare days with days and months with months.
+  const maxOf = daily => Math.max(1, ...sorted.filter(item => (String(item.periodStart).slice(0, 7) >= dailyFrom) === daily).map(totalOf))
+  const maxDaily = maxOf(true), maxMonthly = maxOf(false)
+  const figures = [
+    { key: 'entries', icon: CalendarDays, value: sorted.length, label: en ? 'Entries' : 'Καταχωρίσεις' },
+    { key: 'total', icon: Sigma, value: fmt(sumAll), label: en ? 'Total of the choice' : 'Σύνολο της επιλογής' },
+    { key: 'mean', icon: Gauge, value: dailyItems.length ? fmt(Math.round(dailyItems.reduce((sum, item) => sum + totalOf(item), 0) / dailyItems.length)) : null, label: en ? 'Mean per day' : 'Μέσο ανά ημέρα', hint: dailyItems.length ? null : (en ? 'from the daily sheets' : 'από τα ημερήσια φύλλα') },
+    { key: 'missing', icon: CalendarX2, value: missingDays, label: en ? 'Working days not recorded' : 'Εργάσιμες χωρίς καταχώριση', tone: 'warning' },
+  ]
   const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   const monthText = day => periodLabel(periodOf('month', day), language)
   if (!entries.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded yet. Start with «New day».' : 'Καμία ημέρα ακόμη. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
@@ -247,22 +267,18 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
     <FilterDate label={en ? 'To' : 'Έως'} value={to} onChange={setTo} />
     {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all'); setFrom(''); setTo('') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
   </div>
-  return <><div className="register-sheet-days-filters">{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
-    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th>{measures.length > 1 && measures.map(measure => <th key={measure.key} className="register-num">{textOf(measure, language)}</th>)}<th>{en ? 'Mainly' : 'Κυρίως'}</th><th>{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th><th>{en ? 'Recorded' : 'Καταχωρίστηκε'}</th></tr></thead>
+  return <><div className="register-sheet-days-filters"><KpiFigures label={en ? 'The days at a glance' : 'Οι ημέρες με μια ματιά'} figures={figures} />{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
+    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th>{measures.length > 1 && measures.map(measure => <th key={measure.key} className="register-num">{textOf(measure, language)}</th>)}<th>{en ? 'Recorded' : 'Καταχωρίστηκε'}</th></tr></thead>
     <tbody>{sorted.map(item => {
-      const filled = rows.filter(row => rowSum(item.values, row.key, measures) != null).length
       const total = totalOf(item)
       const before = olderTotal.get(String(item.periodStart))
       const change = before == null ? null : total - before
-      const top = rows.map(row => ({ row, value: rowSum(item.values, row.key, measures) || 0 })).filter(entry => entry.value > 0).sort((a, b) => b.value - a.value).slice(0, 2)
       const day = String(item.periodStart)
       return <tr key={item.id || day} className="registry-row-clickable" tabIndex={0} onClick={() => onOpen(day)} onKeyDown={event => { if (event.key === 'Enter') onOpen(day) }}>
         <td><strong>{day.slice(0, 7) < dailyFrom ? monthText(day) : dayText(day)}</strong>{day.slice(0, 7) < dailyFrom && <span className="register-sheet-muted"> · {en ? 'month total' : 'σύνολο μήνα'}</span>}</td>
-        <td><strong>{fmt(total)}</strong>{change != null && change !== 0 && <small className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? '+' : '−'}{fmt(Math.abs(change))}</small>}</td>
+        <td><span className="register-list-total"><strong>{fmt(total)}</strong>{change != null && change !== 0 && <span className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}{fmt(Math.abs(change))}</span>}</span><span className="register-list-bar" aria-hidden="true"><i style={{ width: `${Math.round((total / (day.slice(0, 7) >= dailyFrom ? maxDaily : maxMonthly)) * 100)}%` }} /></span></td>
         {measures.length > 1 && measures.map(measure => <td key={measure.key} className="register-num">{fmt(rows.reduce((sum, row) => sum + (Number(item.values?.[row.key]?.[measure.key]) || 0), 0))}</td>)}
-        <td>{top.length ? top.map(entry => `${textOf(entry.row, language)} ${fmt(entry.value)}`).join(' · ') : <span className="register-muted">—</span>}</td>
-        <td>{filled} / {rows.length}</td>
-        <td>{item.createdAt ? formatDay(String(item.createdAt).slice(0, 10), language) : <span className="register-muted">—</span>}{item.updatedAt && String(item.updatedAt).slice(0, 10) !== String(item.createdAt || '').slice(0, 10) && <small className="register-list-change">{en ? 'edited' : 'διορθώθηκε'} {formatDay(String(item.updatedAt).slice(0, 10), language)}</small>}</td>
+        <td>{item.createdAt ? formatDay(String(item.createdAt).slice(0, 10), language) : <span className="register-muted">—</span>}{item.updatedAt && String(item.updatedAt).slice(0, 10) !== String(item.createdAt || '').slice(0, 10) && <span className="register-list-change">{en ? 'edited' : 'διορθώθηκε'} {formatDay(String(item.updatedAt).slice(0, 10), language)}</span>}</td>
       </tr>
     })}</tbody>
   </table></div>}</>
