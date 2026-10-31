@@ -253,6 +253,9 @@ const EMERGENCY = {
       row('assessments', 'Εκτιμήσεις', 'Assessments', ['ΕΚΤΙΜΗΣΕΙΣ']),
       row('checkup', 'ΗΚΓ - check up', 'ECG - check-up', ['CHECK UP', 'ΗΚΓ- CHECK UP']),
       row('preop', 'Προεγχειρητικός έλεγχος', 'Pre-operative check', ['ΠΡΟΕΓΧΕΙΡΗΤΙΚΟΣ', 'ΠΡΟΕΓΧΕΙΡΗΤΙΚΟΣ ΕΛΕΓΧΟΣ']),
+      row('left_without_seen', 'Αποχώρησαν χωρίς εξέταση', 'Left without being seen'),
+      row('revisit_72h', 'Επανεπισκέψεις εντός 72 ωρών', 'Return visits within 72 hours'),
+      row('transfers', 'Διακομιδές σε άλλο νοσοκομείο', 'Transfers to another hospital'),
     ],
     measures: SHIFTS,
     measureColumn: ['ΒΑΡΔΙΑ'],
@@ -262,6 +265,9 @@ const EMERGENCY = {
     { id: 'admissions', title: 'Εισαγωγές', titleEn: 'Admissions', aggregation: 'sum', rows: ['admissions'], direction: 'context' },
     { id: 'night_share', title: '% περιστατικών στη νυχτερινή βάρδια', titleEn: '% of cases on the night shift', aggregation: 'percent', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], measure: 'night', denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context' },
     { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic', aggregation: 'sum', rows: ['septic'], direction: 'context' },
+    { id: 'left_without_seen_rate', title: '% αποχωρήσεων χωρίς εξέταση', titleEn: '% left without being seen', aggregation: 'percent', rows: ['left_without_seen'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 2, direction: 'lower', note: 'Οι ασθενείς που έφυγαν πριν εξεταστούν, ως ποσοστό των περιστατικών του ΤΕΠ.', noteEn: "Patients who left before being seen, as a share of the emergency department's cases." },
+    { id: 'revisit_72h_rate', title: '% επανεπισκέψεων εντός 72 ωρών', titleEn: '% return visits within 72 hours', aggregation: 'percent', rows: ['revisit_72h'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 5, direction: 'lower', note: 'Ασθενείς που ξαναήρθαν στο ΤΕΠ εντός 72 ωρών από προηγούμενη επίσκεψη.', noteEn: 'Patients who came back to the emergency department within 72 hours of a previous visit.' },
+    { id: 'transfer_rate', title: '% διακομιδών σε άλλο νοσοκομείο', titleEn: '% transfers to another hospital', aggregation: 'percent', rows: ['transfers'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context', note: 'Πληροφοριακός δείκτης: δεν κρίνεται ως καλός ή κακός.', noteEn: 'Informative: it is not judged as good or bad.' },
   ],
 }
 
