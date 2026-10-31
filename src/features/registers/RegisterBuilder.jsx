@@ -142,16 +142,44 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
   </RecordTabPanel>
 }
 
+// The rows (or measures) of a sheet as a table, like the fields: each one is edited under its row.
 function AxisEditor({ title, items = [], canEdit, language, groups, onChange }) {
   const en = language === 'en'
-  const set = (index, next) => onChange(items.map((item, position) => (position === index ? { ...item, ...next } : item)))
+  const [editing, setEditing] = useState(null)
+  const withGroups = groups?.length > 0
+  const columns = (withGroups ? 2 : 1) + (canEdit ? 1 : 0)
+  function apply(next) {
+    const label = next.label.trim()
+    const item = { ...next, label, labelEn: (next.labelEn || '').trim() || label }
+    onChange(editing.index == null ? [...items, { ...item, key: keyFrom(label || `row ${items.length + 1}`, items.map(row => row.key)) }] : items.map((row, position) => (position === editing.index ? item : row)))
+    setEditing(null)
+  }
+  const editor = <AxisItemEditor item={editing?.item} title={title} groups={groups} language={language} onCancel={() => setEditing(null)} onApply={apply} />
   return <div className="register-builder-section">
-    <div className="register-builder-section-head"><strong>{title}</strong>{canEdit && <Button variant="secondary" onClick={() => { const label = en ? 'New' : 'Νέα'; onChange([...items, { key: keyFrom(`row ${items.length + 1}`, items.map(item => item.key)), label, labelEn: label }]) }}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>}</div>
-    <ul className="register-builder-list">{items.map((item, index) => <li key={item.key}>
-      <span className="register-axis-fields"><input aria-label={title} value={item.label} disabled={!canEdit} onChange={event => set(index, { label: event.target.value, ...(item.labelEn === item.label ? { labelEn: event.target.value } : {}) })} /><input aria-label={`${title} (EN)`} value={item.labelEn || ''} disabled={!canEdit} placeholder="English" onChange={event => set(index, { labelEn: event.target.value })} />{groups?.length > 0 && <SearchableSelect hideLabel label={en ? 'Group' : 'Ομάδα'} value={item.group || ''} disabled={!canEdit} options={groups.map(group => ({ value: group.key, label: textOf(group, language) }))} onChange={value => set(index, { group: value || '' })} {...selectText(en)} />}<code>{item.key}</code></span>
-      {canEdit && <span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => onChange(move(items, index, -1))}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove (data kept)' : 'Αφαίρεση (τα δεδομένα μένουν)'} onClick={() => onChange(items.filter((_, position) => position !== index))}><Archive size={14} /></IconButton></span>}
-    </li>)}</ul>
+    <div className="register-builder-section-head"><strong>{title} ({items.length})</strong>{canEdit && !editing && <Button variant="secondary" onClick={() => setEditing({ index: null, item: { label: '', labelEn: '', group: '' } })}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>}</div>
+    <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Name' : 'Όνομα'}</th>{withGroups && <th>{en ? 'Group' : 'Ομάδα'}</th>}{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{items.map((item, index) => {
+      const open = editing?.index === index
+      return <Fragment key={item.key}><tr className={open ? 'is-editing' : undefined}>
+        <td><strong>{textOf(item, language)}</strong>{item.labelEn && item.labelEn !== item.label && <small>{en ? item.label : item.labelEn}</small>}</td>
+        {withGroups && <td>{textOf(groups.find(group => group.key === item.group), language) || <span className="register-muted">—</span>}</td>}
+        {canEdit && <td className="register-builder-tools-cell"><span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => onChange(move(items, index, -1))}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Down' : 'Κάτω'} onClick={() => onChange(move(items, index, 1))}><ArrowDown size={14} /></IconButton><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ index, item })}><Pencil size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove (data kept)' : 'Αφαίρεση (τα δεδομένα μένουν)'} onClick={() => onChange(items.filter((_, position) => position !== index))}><Archive size={14} /></IconButton></span></td>}
+      </tr>{open && <tr className="register-builder-editor-row"><td colSpan={columns}>{editor}</td></tr>}</Fragment>
+    })}</tbody></table>
+    {editing && editing.index == null && editor}
   </div>
+}
+
+function AxisItemEditor({ item: initial, title, groups, language, onCancel, onApply }) {
+  const en = language === 'en'
+  const [item, setItem] = useState(initial || { label: '', labelEn: '', group: '' })
+  const set = next => setItem(current => ({ ...current, ...next }))
+  return <EditorPanel title={initial?.key ? `${en ? 'Edit' : 'Επεξεργασία'} · ${title}` : `${en ? 'New' : 'Νέα'} · ${title}`} onCancel={onCancel} onApply={() => onApply(item)} disabled={!item.label.trim()}>
+    <FormGrid columns={groups?.length ? 3 : 2}>
+      <Field label={`${en ? 'Name' : 'Όνομα'} *`}><input value={item.label} onChange={event => set({ label: event.target.value })} /></Field>
+      <Field label={en ? 'Name in English' : 'Όνομα στα αγγλικά'}><input value={item.labelEn || ''} onChange={event => set({ labelEn: event.target.value })} /></Field>
+      {groups?.length > 0 && <SearchableSelect label={en ? 'Group' : 'Ομάδα'} value={item.group || ''} options={groups.map(group => ({ value: group.key, label: textOf(group, language) }))} onChange={value => set({ group: value || '' })} {...selectText(en)} />}
+    </FormGrid>
+  </EditorPanel>
 }
 
 // An editor opened inside the definition, under its row (not a pop-up): «Apply» puts the change in the draft,
