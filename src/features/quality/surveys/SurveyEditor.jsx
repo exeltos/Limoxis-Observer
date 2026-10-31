@@ -61,7 +61,7 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
       </div>
     </FormCard>}
 
-    <FormCard wide title={en ? 'Survey' : 'Έρευνα'} icon={Settings2} hint={en ? 'Satisfied = answers of 4 or 5 on a 1–5 scale; a question below the target is flagged. For a reliable result aim at 100 responses or more.' : 'Ικανοποιημένοι = απαντήσεις 4 ή 5 σε κλίμακα 1–5· ερώτηση κάτω από τον στόχο επισημαίνεται. Για αξιόπιστο αποτέλεσμα, στόχος 100 απαντήσεις και πάνω.'}>
+    <FormCard wide title={en ? 'Questionnaire' : 'Ερωτηματολόγιο'} icon={Settings2} hint={en ? 'Satisfied = answers of 4 or 5 on a 1–5 scale; a question below the target is flagged. For a reliable result aim at 100 responses or more.' : 'Ικανοποιημένοι = απαντήσεις 4 ή 5 σε κλίμακα 1–5· ερώτηση κάτω από τον στόχο επισημαίνεται. Για αξιόπιστο αποτέλεσμα, στόχος 100 απαντήσεις και πάνω.'}>
       <FormGrid columns={2}>
         <Field label={`${en ? 'Title' : 'Τίτλος'} *`}><input value={survey.title} disabled={locked} onChange={event => set({ title: event.target.value })} /></Field>
         <Field label={en ? 'Introduction to respondents' : 'Εισαγωγή προς τους ερωτώμενους'}><textarea rows={2} value={survey.description || ''} disabled={locked} onChange={event => set({ description: event.target.value })} /></Field>
@@ -76,7 +76,7 @@ export function SurveyEditor({ survey, onChange, onTemplate, isNew, locked, hasR
       </FormGrid>
     </FormCard>
 
-    <FormCard wide title={en ? `Questions ${questions.length}` : `Ερωτήσεις ${questions.length}`} icon={ClipboardList} hint={hasResponses ? (en ? 'The survey has answers: change a wording only if its meaning stays, so results remain comparable.' : 'Η έρευνα έχει απαντήσεις: αλλάξτε μια διατύπωση μόνο αν το νόημα μένει ίδιο, ώστε τα αποτελέσματα να συγκρίνονται.') : (en ? 'Respondents answer one section at a time, in this order.' : 'Οι ερωτώμενοι απαντούν μία ενότητα τη φορά, με αυτή τη σειρά.')}>
+    <FormCard wide title={en ? `Questions ${questions.length}` : `Ερωτήσεις ${questions.length}`} icon={ClipboardList} hint={hasResponses ? (en ? 'The survey has answers: change a wording only if its meaning stays, so results remain comparable.' : 'Το ερωτηματολόγιο έχει απαντήσεις: αλλάξτε μια διατύπωση μόνο αν το νόημα μένει ίδιο, ώστε τα αποτελέσματα να συγκρίνονται.') : (en ? 'Respondents answer one section at a time, in this order.' : 'Οι ερωτώμενοι απαντούν μία ενότητα τη φορά, με αυτή τη σειρά.')}>
       {groups.map(({ section, items }) => {
         const index = section ? sections.indexOf(section) : -1
         return <div key={section?.key || 'none'} className="register-builder-section survey-editor-section">

@@ -60,11 +60,11 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
   </ol>
   return <div className="survey-collect">
     {!open && <div className="survey-collect-closed">
-      <div><strong>{survey.status === 'draft' ? (en ? 'The survey is a draft: its QR codes do not work yet' : 'Η έρευνα είναι προσχέδιο: οι κωδικοί QR δεν λειτουργούν ακόμη') : (en ? 'The survey does not take answers now' : 'Η έρευνα δεν δέχεται απαντήσεις τώρα')}</strong>
-        <span>{survey.status === 'draft' ? (en ? 'A phone that scans one sees “not available”. Open the survey and the same codes start working; you can print the posters now.' : 'Όποιος σκανάρει βλέπει «δεν είναι διαθέσιμη». Μόλις ανοίξετε την έρευνα, οι ίδιοι κωδικοί λειτουργούν· τις αφίσες μπορείτε να τις τυπώσετε από τώρα.') : (en ? 'It is closed or outside its dates.' : 'Έκλεισε ή είναι εκτός ημερομηνιών.')}</span></div>
-      {canOpen && survey.status === 'draft' && covered.length > 0 && <Button onClick={onOpen}><Play size={15} />{en ? 'Open the survey' : 'Άνοιγμα έρευνας'}</Button>}
+      <div><strong>{survey.status === 'draft' ? (en ? 'The survey is a draft: its QR codes do not work yet' : 'Το ερωτηματολόγιο είναι προσχέδιο: οι κωδικοί QR δεν λειτουργούν ακόμη') : (en ? 'The survey does not take answers now' : 'Το ερωτηματολόγιο δεν δέχεται απαντήσεις τώρα')}</strong>
+        <span>{survey.status === 'draft' ? (en ? 'A phone that scans one sees “not available”. Open the survey and the same codes start working; you can print the posters now.' : 'Όποιος σκανάρει βλέπει «δεν είναι διαθέσιμη». Μόλις ανοίξετε το ερωτηματολόγιο, οι ίδιοι κωδικοί λειτουργούν· τις αφίσες μπορείτε να τις τυπώσετε από τώρα.') : (en ? 'It is closed or outside its dates.' : 'Έκλεισε ή είναι εκτός ημερομηνιών.')}</span></div>
+      {canOpen && survey.status === 'draft' && covered.length > 0 && <Button onClick={onOpen}><Play size={15} />{en ? 'Open the questionnaire' : 'Άνοιγμα ερωτηματολογίου'}</Button>}
     </div>}
-    {!covered.length && <p className="survey-collect-note survey-collect-empty">{en ? 'Choose first the department the survey is about, under Questionnaire: each department gets its own QR code and its own form.' : 'Επιλέξτε πρώτα το τμήμα που αφορά η έρευνα, στην καρτέλα Ερωτηματολόγιο: κάθε τμήμα έχει δικό του κωδικό QR και δική του φόρμα.'}</p>}
+    {!covered.length && <p className="survey-collect-note survey-collect-empty">{en ? 'Choose first the department the survey is about, under Questionnaire: each department gets its own QR code and its own form.' : 'Επιλέξτε πρώτα το τμήμα που αφορά το ερωτηματολόγιο, στην καρτέλα Ερωτήσεις: κάθε τμήμα έχει δικό του κωδικό QR και δική του φόρμα.'}</p>}
     {single && <section className="survey-collect-main">
       <div className={`survey-collect-code ${open ? '' : 'is-off'}`}><QrCode text={surveyLink(survey, { departmentId: posterOf(single).id })} size={200} label={en ? `QR code: ${nameOf(single)}` : `Κωδικός QR: ${nameOf(single)}`} /></div>
       <div className="survey-collect-how">

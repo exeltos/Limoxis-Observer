@@ -43,10 +43,10 @@ export function SurveyRespondPage() {
   const sections = useMemo(() => formSections(survey, answers), [survey, answers])
 
   if (state.loading) return <Frame><RouteLoading /></Frame>
-  if (state.error || !survey) return <Frame><Status icon={ShieldCheck} title={en ? 'This survey is not available' : 'Η έρευνα δεν είναι διαθέσιμη'} text={en ? 'It may not have opened yet. Check the link, or ask the staff of the department.' : 'Ίσως δεν έχει ανοίξει ακόμη. Ελέγξτε τον σύνδεσμο ή ρωτήστε το προσωπικό του τμήματος.'} /></Frame>
+  if (state.error || !survey) return <Frame><Status icon={ShieldCheck} title={en ? 'This survey is not available' : 'Το ερωτηματολόγιο δεν είναι διαθέσιμο'} text={en ? 'It may not have opened yet. Check the link, or ask the staff of the department.' : 'Ίσως δεν έχει ανοίξει ακόμη. Ελέγξτε τον σύνδεσμο ή ρωτήστε το προσωπικό του τμήματος.'} /></Frame>
   const title = en ? survey.titleEn || survey.title : survey.title
   const intro = en ? survey.descriptionEn || survey.description : survey.description
-  if (!survey.open) return <Frame organization={survey.organizationName}><Status icon={Clock3} title={en ? 'This survey is closed' : 'Η έρευνα έχει ολοκληρωθεί'} text={en ? `Thank you for your interest. ${survey.organizationName || ''}` : `Ευχαριστούμε για το ενδιαφέρον σας. ${survey.organizationName || ''}`} /></Frame>
+  if (!survey.open) return <Frame organization={survey.organizationName}><Status icon={Clock3} title={en ? 'This survey is closed' : 'Το ερωτηματολόγιο έχει ολοκληρωθεί'} text={en ? `Thank you for your interest. ${survey.organizationName || ''}` : `Ευχαριστούμε για το ενδιαφέρον σας. ${survey.organizationName || ''}`} /></Frame>
   if (done) return <Frame organization={survey.organizationName}><Status icon={CheckCircle2} title={en ? 'Thank you!' : 'Ευχαριστούμε!'} text={kiosk ? (en ? 'Your answers were recorded. The form starts again for the next person.' : 'Οι απαντήσεις σας καταγράφηκαν. Η φόρμα ξεκινά ξανά για τον επόμενο.') : (en ? 'Your answers were recorded. They help us improve.' : 'Οι απαντήσεις σας καταγράφηκαν. Μας βοηθούν να γινόμαστε καλύτεροι.')} /></Frame>
 
   const departments = survey.departments || []
