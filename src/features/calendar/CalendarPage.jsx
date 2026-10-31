@@ -46,7 +46,7 @@ const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο
 // deadlines and certificate expiries, document reviews, committee meetings
 // and decisions. Each source is loaded only when the user may see it.
 // culturesOnly: the culture sampling programme (environmental controls) alone, as its own calendar (Quality › Culture plan);
-// the general calendar leaves it out.
+// the general calendar keeps it among the controls, so every department sees its own sampling dates.
 export function CalendarPage({culturesOnly=false}={}){
  const {language,locale}=useLanguage();const en=language==='en'
  const {tenant,role,membership,canAccessRecord,isDemo}=useTenant()
@@ -90,7 +90,7 @@ export function CalendarPage({culturesOnly=false}={}){
    safe('kitchen',()=>loadKitchen(organizationId,{since:addDays(todayKey(),-30)}).then(state=>kitchenCalendarItems(state,{language})),[]),
   ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions,suppliers,kitchen])=>{
    const isCulture=item=>controlTypeCode(item.category)==='CTRL-ENV'
-   if(active)setSources({controls:(controls||[]).filter(item=>isCulture(item)===culturesOnly),capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
+   if(active)setSources({controls:(controls||[]).filter(item=>!culturesOnly||isCulture(item)),capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
   })
   return()=>{active=false}
  },[tenant?.id,allowedKinds,language,culturesOnly])

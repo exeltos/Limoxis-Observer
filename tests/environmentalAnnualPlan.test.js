@@ -12,7 +12,7 @@ describe('the annual culture plan', () => {
     expect(source('src/app/navigation.js')).toContain("key:'culturePlan'")
     expect(source('src/features/quality/CulturePlanPage.jsx')).toContain('<CalendarPage culturesOnly />')
     const calendar = source('src/features/calendar/CalendarPage.jsx')
-    expect(calendar).toContain("isCulture(item)===culturesOnly")
+    expect(calendar).toContain('!culturesOnly||isCulture(item)')
     expect(calendar).toContain("<EnvironmentalAnnualPlan/>")
     expect(source('src/features/surveillance/SurveillanceCanonicalPage.jsx')).not.toContain('EnvironmentalAnnualPlan')
     const controls = source('src/features/controls/ControlsPage.jsx')
