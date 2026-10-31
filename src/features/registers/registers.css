@@ -243,3 +243,11 @@
 .register-entry-ecg{position:absolute;top:14px;right:18px;width:240px;height:40px;fill:none;stroke:var(--reg-accent);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.35;pointer-events:none}
 .register-table tr.is-category-cardiac>td:first-child{box-shadow:inset 4px 0 0 #b83a3a}
 .register-table tr.is-category-general>td:first-child{box-shadow:inset 4px 0 0 #2f5f9e}
+
+.register-category-filter{display:inline-flex;flex-wrap:wrap;gap:6px;justify-self:start}
+.register-category-filter button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.register-category-filter button.is-general>svg{color:#2f5f9e}
+.register-category-filter button.is-cardiac>svg{color:#b83a3a}
+.register-category-filter button.is-selected{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft)}
+.register-category-filter button.is-general.is-selected{border-color:#2f5f9e;background:color-mix(in srgb,#2f5f9e 12%,var(--lo-color-surface))}
+.register-category-filter button.is-cardiac.is-selected{border-color:#b83a3a;background:color-mix(in srgb,#b83a3a 12%,var(--lo-color-surface))}

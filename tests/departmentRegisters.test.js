@@ -191,6 +191,27 @@ describe('the ICU register', () => {
   })
 })
 
+describe('SMR', () => {
+  it('divides the deaths by the deaths the APACHE II risks add up to', () => {
+    const icu = registerFromTemplate('icu')
+    const smr = icu.indicators.find(item => item.id === 'smr')
+    const risk = apacheMortality(30, true) / 100
+    const stay = outcome => ({ values: { admission_date: '2026-03-01', discharge_date: '2026-03-10', apache_score: 30, apache_postop: true, outcome } })
+    const result = computeIndicator(icu, smr, [stay('death'), stay('transfer_ward')], periodOf('month', '2026-03-10'))
+    expect(result.numerator).toBe(1)
+    expect(result.denominator).toBe(Number((2 * risk).toFixed(2)))
+    expect(result.value).toBe(Number((1 / (2 * risk)).toFixed(2)))
+    expect(result.small).toBe(true)
+  })
+  it('counts the pressure ulcers of the month of discharge', () => {
+    const icu = registerFromTemplate('icu')
+    const ulcers = icu.indicators.find(item => item.id === 'pressure_ulcers')
+    const row = { values: { admission_date: '2026-02-20', discharge_date: '2026-03-04', pressure_ulcer: true } }
+    expect(computeIndicator(icu, ulcers, [row], periodOf('month', '2026-03-10')).numerator).toBe(1)
+    expect(computeIndicator(icu, ulcers, [row], periodOf('month', '2026-02-10')).n).toBe(0)
+  })
+})
+
 describe('database shape', () => {
   it('writes every template row by row and reads the same register back', async () => {
     const { definitionRows, registerFromRows, registerRow } = await import('../src/features/registers/registerCloud')

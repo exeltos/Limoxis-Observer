@@ -184,7 +184,7 @@ function RegisterValue({ field, value, language }) {
 }
 
 // Notes about the FileMaker import belong to the register's definition, not to the form.
-const formHelp = text => (/filemaker/i.test(text || '') ? '' : text)
+const formHelp = text => (/filemaker|ίδιος κανόνας σε όλα τα μητρώα|the same rule in every register/i.test(text || '') ? '' : text)
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 

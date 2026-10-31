@@ -40,6 +40,7 @@ export const AGGREGATIONS = [
   { value: 'median', label: ['Διάμεσος', 'Median'] },
   { value: 'sum', label: ['Άθροισμα', 'Sum'] },
   { value: 'rate', label: ['Ρυθμός ανά 1.000', 'Rate per 1,000'] },
+  { value: 'smr', label: ['Θνησιμότητα προς προβλεπόμενη (SMR)', 'Observed to predicted mortality (SMR)'] },
 ]
 
 export const FILTER_OPS = [
@@ -300,6 +301,17 @@ export function computeIndicator(register, indicator, entries = [], period) {
       const numbers = numbersOf(selected, indicator.field)
       result.value = numbers.length ? numbers.reduce((sum, n) => sum + n, 0) : null
       result.numerator = result.value
+      break
+    }
+    case 'smr': {
+      // Observed deaths over the deaths the patients' own predicted risks add up to; read with care under 20 patients.
+      const base = rows.filter(values => matchesAll(indicator.denominatorFilters, values))
+      const observed = base.filter(values => matchesAll(indicator.filters, values)).length
+      const expected = base.reduce((sum, values) => sum + (Number(values[indicator.field]) || 0) / 100, 0)
+      result.numerator = observed
+      result.denominator = round(expected, 2)
+      result.value = expected > 0 ? round(observed / expected, 2) : null
+      result.small = base.length > 0 && base.length < 20
       break
     }
     case 'rate': {

@@ -87,9 +87,8 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
     <CanonicalTabs className="register-builder-parts" items={[{ value: 'register', label: en ? 'Register' : 'Μητρώο' }, { value: 'fields', label: draft.kind === 'sheet' ? (en ? 'Sheet' : 'Φύλλο') : `${en ? 'Fields' : 'Πεδία'} (${draft.fields.length})` }, { value: 'indicators', label: `${en ? 'Indicators' : 'Δείκτες'} (${draft.indicators.length})` }]} value={part} onChange={value => { setPart(value); setEditing(null) }} ariaLabel={en ? 'Definition' : 'Ορισμός'} />
     <div className="lo-form-cards register-builder-cards">
       {part === 'register' && <FormCard wide title={en ? 'Register' : 'Μητρώο'}>
-        <FormGrid columns={3}>
+        <FormGrid columns={2}>
           <Field label={en ? 'Name' : 'Όνομα'}><input value={draft.name} disabled={!canEdit} onChange={event => patch({ name: event.target.value })} /></Field>
-          <Field label={en ? 'Name in English' : 'Όνομα στα αγγλικά'}><input value={draft.nameEn} disabled={!canEdit} onChange={event => patch({ nameEn: event.target.value })} /></Field>
           <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={draft.status} options={['active', 'draft', 'archived'].map(value => ({ value, label: registerStatusLabel(value, language) }))} onChange={value => canEdit && patch({ status: value })} />
         </FormGrid>
         {draft.kind === 'case' && <FormGrid columns={3}>
@@ -165,7 +164,7 @@ function AxisEditor({ title, items = [], canEdit, language, groups, onChange }) 
     <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Name' : 'Όνομα'}</th>{withGroups && <th>{en ? 'Group' : 'Ομάδα'}</th>}{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{items.map((item, index) => {
       const open = editing?.index === index
       return <Fragment key={item.key}><tr className={open ? 'is-editing' : undefined}>
-        <td><strong>{textOf(item, language)}</strong>{item.labelEn && item.labelEn !== item.label && <small>{en ? item.label : item.labelEn}</small>}</td>
+        <td><strong>{textOf(item, language)}</strong></td>
         {withGroups && <td>{textOf(groups.find(group => group.key === item.group), language) || <span className="register-muted">—</span>}</td>}
         {canEdit && <td className="register-builder-tools-cell"><span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => onChange(move(items, index, -1))}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Down' : 'Κάτω'} onClick={() => onChange(move(items, index, 1))}><ArrowDown size={14} /></IconButton><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ index, item })}><Pencil size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove (data kept)' : 'Αφαίρεση (τα δεδομένα μένουν)'} onClick={() => onChange(items.filter((_, position) => position !== index))}><Archive size={14} /></IconButton></span></td>}
       </tr>{open && <tr className="register-builder-editor-row"><td colSpan={columns}>{editor}</td></tr>}</Fragment>
@@ -179,9 +178,8 @@ function AxisItemEditor({ item: initial, title, groups, language, onCancel, onAp
   const [item, setItem] = useState(initial || { label: '', labelEn: '', group: '' })
   const set = next => setItem(current => ({ ...current, ...next }))
   return <EditorPanel title={initial?.key ? `${en ? 'Edit' : 'Επεξεργασία'} · ${title}` : `${en ? 'New' : 'Νέα'} · ${title}`} onCancel={onCancel} onApply={() => onApply(item)} disabled={!item.label.trim()}>
-    <FormGrid columns={groups?.length ? 3 : 2}>
+    <FormGrid columns={groups?.length ? 2 : 1}>
       <Field label={`${en ? 'Name' : 'Όνομα'} *`}><input value={item.label} onChange={event => set({ label: event.target.value })} /></Field>
-      <Field label={en ? 'Name in English' : 'Όνομα στα αγγλικά'}><input value={item.labelEn || ''} onChange={event => set({ labelEn: event.target.value })} /></Field>
       {groups?.length > 0 && <SearchableSelect label={en ? 'Group' : 'Ομάδα'} value={item.group || ''} options={groups.map(group => ({ value: group.key, label: textOf(group, language) }))} onChange={value => set({ group: value || '' })} {...selectText(en)} />}
     </FormGrid>
   </EditorPanel>
@@ -220,9 +218,8 @@ function FieldEditor({ field: initial, register, sections, locked, onCancel, onS
   return <EditorPanel title={initial.key ? (en ? 'Edit field' : 'Επεξεργασία πεδίου') : (en ? 'New field' : 'Νέο πεδίο')} subtitle={locked ? (en ? `Column ${field.key}: its type stays as recorded.` : `Στήλη ${field.key}: ο τύπος της μένει όπως καταγράφηκε.`) : ''} onCancel={onCancel} onApply={finish} disabled={!valid}>
     <div className="lo-form-cards">
       <FormCard wide title={en ? 'Field' : 'Πεδίο'}>
-        <FormGrid columns={2}>
+        <FormGrid columns={3}>
           <Field label={`${en ? 'Label' : 'Ετικέτα'} *`}><input value={field.label} onChange={event => set({ label: event.target.value })} /></Field>
-          <Field label={en ? 'Label in English' : 'Ετικέτα στα αγγλικά'}><input value={field.labelEn || ''} onChange={event => set({ labelEn: event.target.value })} /></Field>
           <SearchableSelect label={en ? 'Type' : 'Τύπος'} value={field.type} disabled={locked} options={optionsOf(FIELD_TYPES, language)} onChange={value => value && set({ type: value })} {...selectText(en)} clearLabel="" />
           <SearchableSelect label={en ? 'Section' : 'Ενότητα'} value={field.section || sections[0]?.key || ''} options={sections.map(section => ({ value: section.key, label: textOf(section, language) }))} onChange={value => set({ section: value || sections[0]?.key })} {...selectText(en)} clearLabel="" />
         </FormGrid>
@@ -235,7 +232,7 @@ function FieldEditor({ field: initial, register, sections, locked, onCancel, onS
         <Field label={en ? 'Help / definition' : 'Βοήθεια / ορισμός'}><input value={field.help || ''} onChange={event => set({ help: event.target.value })} /></Field>
       </FormCard>
       {['number', 'computed', 'gestation'].includes(field.type) && <FormCard wide title={en ? 'Unit and limits' : 'Μονάδα και όρια'} hint={en ? 'Outside the limits the value is refused; outside the usual range the user is asked to check.' : 'Εκτός ορίων η τιμή δεν γίνεται δεκτή· εκτός συνήθους εύρους ζητείται έλεγχος.'}>
-        <FormGrid columns={2}><Field label={en ? 'Unit' : 'Μονάδα'}><input value={field.unit || ''} placeholder="g, ημέρες, %" onChange={event => set({ unit: event.target.value })} /></Field><Field label={en ? 'Unit in English' : 'Μονάδα στα αγγλικά'}><input value={field.unitEn || ''} onChange={event => set({ unitEn: event.target.value })} /></Field></FormGrid>
+        <FormGrid columns={2}><Field label={en ? 'Unit' : 'Μονάδα'}><input value={field.unit || ''} placeholder="g, ημέρες, %" onChange={event => set({ unit: event.target.value })} /></Field></FormGrid>
         {field.type !== 'computed' && <FormGrid columns={4}>{number(en ? 'Minimum' : 'Ελάχιστο', 'min')}{number(en ? 'Maximum' : 'Μέγιστο', 'max')}{number(en ? 'Usual from' : 'Σύνηθες από', 'usualMin')}{number(en ? 'Usual to' : 'Σύνηθες έως', 'usualMax')}</FormGrid>}
       </FormCard>}
       {field.type === 'computed' && <FormCard wide title={en ? 'Computed by the database' : 'Υπολογίζεται από τη βάση'}>
@@ -254,7 +251,6 @@ function FieldEditor({ field: initial, register, sections, locked, onCancel, onS
       {isList && <FormCard wide title={en ? 'Values' : 'Τιμές'} hint={en ? '«Import as» lists the beginnings of the old values (FileMaker) each value takes.' : 'Στο «Εισαγωγή ως» γράφετε πώς ξεκινούσε η τιμή στο FileMaker (π.χ. ΔΙΑΚΟΜΙΔΗ), χωρισμένα με κόμμα.'}>
         <ul className="register-builder-list">{(field.options || []).map((option, index) => <li key={option.value || index}><span className="register-axis-fields">
           <input aria-label={en ? 'Value' : 'Τιμή'} value={option.label} onChange={event => set({ options: field.options.map((item, position) => (position === index ? { ...item, label: event.target.value } : item)) })} />
-          <input aria-label="English" placeholder="English" value={option.labelEn || ''} onChange={event => set({ options: field.options.map((item, position) => (position === index ? { ...item, labelEn: event.target.value } : item)) })} />
           <input aria-label={en ? 'Import as' : 'Εισαγωγή ως'} placeholder={en ? 'Import as' : 'Εισαγωγή ως'} value={(option.match || []).join(', ')} onChange={event => set({ options: field.options.map((item, position) => (position === index ? { ...item, match: event.target.value.split(',').map(text => text.trim()).filter(Boolean) } : item)) })} />
         </span><span className="register-builder-tools"><IconButton size="sm" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ options: field.options.filter((_, position) => position !== index) })}><Archive size={14} /></IconButton></span></li>)}</ul>
         <Button variant="secondary" onClick={() => set({ options: [...(field.options || []), { value: '', label: '', labelEn: '' }] })}><Plus size={15} />{en ? 'Value' : 'Τιμή'}</Button>
@@ -292,7 +288,7 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }) {
   const sheet = register.kind === 'sheet'
   const numeric = register.fields.filter(field => ['number', 'computed', 'gestation'].includes(field.type))
   const dates = register.fields.filter(field => field.type === 'date')
-  const aggregations = AGGREGATIONS.filter(item => (sheet ? ['sum', 'percent', 'mean'].includes(item.value) : true))
+  const aggregations = AGGREGATIONS.filter(item => (sheet ? ['sum', 'percent', 'mean'].includes(item.value) : item.value !== 'smr' || indicator.aggregation === 'smr'))
   const rows = (register.sheet?.rows || []).map(row => ({ value: row.key, label: textOf(row, language) }))
   const measures = (register.sheet?.measures || []).map(measure => ({ value: measure.key, label: textOf(measure, language) }))
   const needsField = !sheet && ['mean', 'median', 'sum'].includes(indicator.aggregation)
@@ -305,9 +301,8 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }) {
   return <EditorPanel title={initial.id ? (en ? 'Edit indicator' : 'Επεξεργασία δείκτη') : (en ? 'New indicator' : 'Νέος δείκτης')} onCancel={onCancel} onApply={finish} disabled={!valid}>
     <div className="lo-form-cards">
       <FormCard wide title={en ? 'Indicator' : 'Δείκτης'}>
-        <FormGrid columns={2}>
+        <FormGrid columns={1}>
           <Field label={`${en ? 'Title' : 'Τίτλος'} *`}><input value={indicator.title} onChange={event => set({ title: event.target.value })} /></Field>
-          <Field label={en ? 'Title in English' : 'Τίτλος στα αγγλικά'}><input value={indicator.titleEn || ''} onChange={event => set({ titleEn: event.target.value })} /></Field>
         </FormGrid>
         <SearchableSelect label={en ? 'Calculation' : 'Υπολογισμός'} value={indicator.aggregation} options={optionsOf(aggregations, language)} onChange={value => value && set({ aggregation: value })} {...selectText(en)} clearLabel="" />
         {needsField && <SearchableSelect label={en ? 'Of field' : 'Του πεδίου'} value={indicator.field || ''} options={numeric.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => set({ field: value })} {...selectText(en)} />}
@@ -319,7 +314,7 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }) {
         {indicator.aggregation === 'percent' && <ChoiceChips label={en ? 'Out of rows (none = all)' : 'Επί των γραμμών (καμία = όλες)'} options={rows} selected={indicator.denominatorRows || []} onToggle={value => set({ denominatorRows: (indicator.denominatorRows || []).includes(value) ? indicator.denominatorRows.filter(item => item !== value) : [...(indicator.denominatorRows || []), value] })} />}
       </FormCard> : <FormCard wide title={en ? 'Which cases' : 'Ποια περιστατικά'} hint={en ? 'No condition = every case of the period.' : 'Χωρίς συνθήκη = όλα τα περιστατικά της περιόδου.'}>
         <FilterRows register={register} filters={indicator.filters || []} language={language} onChange={filters => set({ filters })} />
-        {['percent', 'rate'].includes(indicator.aggregation) && <><h5 className="register-builder-subtitle">{indicator.aggregation === 'rate' ? (en ? 'Days counted among' : 'Ημέρες από τα περιστατικά με') : (en ? 'Out of cases with' : 'Επί των περιστατικών με')}</h5><FilterRows register={register} filters={indicator.denominatorFilters || []} language={language} onChange={denominatorFilters => set({ denominatorFilters })} /></>}
+        {['percent', 'rate', 'smr'].includes(indicator.aggregation) && <><h5 className="register-builder-subtitle">{indicator.aggregation === 'rate' ? (en ? 'Days counted among' : 'Ημέρες από τα περιστατικά με') : (en ? 'Out of cases with' : 'Επί των περιστατικών με')}</h5><FilterRows register={register} filters={indicator.denominatorFilters || []} language={language} onChange={denominatorFilters => set({ denominatorFilters })} /></>}
         {indicator.aggregation === 'rate' && <FormGrid columns={2}><SearchableSelect label={en ? 'Days field' : 'Πεδίο ημερών'} value={indicator.denominatorField || ''} options={numeric.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => set({ denominatorField: value })} {...selectText(en)} /><Field label={en ? 'Per' : 'Ανά'}><input inputMode="numeric" value={indicator.multiplier ?? 1000} onChange={event => set({ multiplier: Number(event.target.value) || 1000 })} /></Field></FormGrid>}
       </FormCard>}
       <FormCard wide title={en ? 'Target' : 'Στόχος'} hint={en ? 'Past the limit the indicator turns red and Quality is asked to open a corrective action.' : 'Πέρα από το όριο ο δείκτης γίνεται κόκκινος και προτείνεται διορθωτική ενέργεια.'}>
