@@ -411,7 +411,7 @@ export function indicatorReport(register, entries = [], period) {
   const lastYear = shiftPeriod(period, -12)
   // An indicator that counts only the cases with an answer recorded («Επιπλοκή», «Ένδειξη») waits until one case has it.
   const answerField = key => (register.fields || []).some(field => field.key === key && ['yesNo', 'choice'].includes(field.type) && field.key !== 'outcome')
-  const never = indicator => entries.length > 0 && (indicator.denominatorFilters || []).some(filter => filter.op === 'filled' && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
+  const never = indicator => entries.length > 0 && (indicator.denominatorFilters || []).some(filter => ['filled', 'eq', 'yes', 'no'].includes(filter.op) && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
   // A mean of a field nobody has filled (the age, when no birth date is known) has nothing to show.
   const empty = indicator => entries.length > 0 && ['mean', 'median'].includes(indicator.aggregation) && register.kind !== 'sheet' && !entries.some(entry => !isBlank(computeValues(register.fields, entry.values || {})[indicator.field]))
   return (register.indicators || []).filter(indicator => !never(indicator) && !empty(indicator)).map(indicator => ({

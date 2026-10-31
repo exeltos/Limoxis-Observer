@@ -367,6 +367,7 @@ describe('the cath lab register', () => {
     const ids = indicatorReport(cath, entries, march).map(item => item.indicator.id)
     expect(ids).toContain('urgent_share')
     expect(ids).not.toContain('stemi_share')
+    expect(ids).not.toContain('primary_pci')
     expect(indicatorReport(cath, [], march).map(item => item.indicator.id)).toContain('stemi_share')
   })
   it('has demo cases with every answer recorded', () => {
