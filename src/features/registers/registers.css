@@ -281,7 +281,7 @@
 
 .register-sheet-days-filters{display:grid;gap:14px;padding:14px 20px 14px}
 .register-sheet-filter-row{display:flex;flex-wrap:wrap;align-items:end;gap:12px 16px}
-.register-sheet-filter-row .filter-field{width:172px}
+.register-sheet-filter-row .filter-field{width:190px}
 .register-sheet-filter-row select,.register-sheet-filter-row .manual-date-control,.register-sheet-filter-row .manual-date-control input{box-sizing:border-box;height:40px}
 .register-list-total{display:flex;align-items:baseline;gap:8px}
 .register-list-total strong{font-size:15px}
@@ -298,4 +298,4 @@
 .register-sheet-days-list .data-table .register-col-when{width:230px;text-align:left}
 
 .register-sheet-filter-row .register-sheet-add{margin-left:auto}
-.register-sheet-filter-row .register-sheet-add .manual-date-field{width:280px}
+.register-sheet-filter-row .register-sheet-add .manual-date-field{width:210px}

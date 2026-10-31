@@ -5,7 +5,7 @@ import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { FilterDate, FilterSelect } from '../../design-system/FilterBar'
+import { FilterSelect } from '../../design-system/FilterBar'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
@@ -229,15 +229,13 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
   // Everything recorded, newest first; the filters narrow it to a year and a month.
   const [year, setYear] = useState('all')
   const [month, setMonth] = useState('all')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
   const years = [...new Set(entries.map(item => String(item.periodStart).slice(0, 4)))].sort().reverse()
   const monthName = number => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
   const totalOf = item => rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
   // Each entry against the one recorded before it.
   const olderTotal = new Map(); { const ascending = [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))); ascending.forEach((item, index) => { if (index > 0) olderTotal.set(String(item.periodStart), totalOf(ascending[index - 1])) }) }
   const sorted = [...entries]
-    .filter(item => (year === 'all' || String(item.periodStart).startsWith(year)) && (month === 'all' || String(item.periodStart).slice(5, 7) === month) && (!from || String(item.periodStart) >= from) && (!to || String(item.periodStart) <= to))
+    .filter(item => (year === 'all' || String(item.periodStart).startsWith(year)) && (month === 'all' || String(item.periodStart).slice(5, 7) === month))
     .sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart)))
   // What the list shows, at a glance: how many, the total, the mean per day, the working days nobody recorded.
   const dailyItems = sorted.filter(item => String(item.periodStart) >= dailyFrom)
@@ -261,14 +259,12 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
   const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   const monthText = day => periodLabel(periodOf('month', day), language)
   if (!entries.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded yet. Start with «New day».' : 'Καμία ημέρα ακόμη. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
-  const narrowed = year !== 'all' || month !== 'all' || from || to
+  const narrowed = year !== 'all' || month !== 'all'
   const filters = <div className="register-sheet-filter-row">
     <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
     <FilterSelect label={en ? 'Month' : 'Μήνας'} value={month} onChange={setMonth}><option value="all">{en ? 'All months' : 'Όλοι οι μήνες'}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={String(index + 1).padStart(2, '0')}>{monthName(index + 1)}</option>)}</FilterSelect>
-    <FilterDate label={en ? 'From' : 'Από'} value={from} onChange={setFrom} />
-    <FilterDate label={en ? 'To' : 'Έως'} value={to} onChange={setTo} />
-    {onAdd && <div className="register-sheet-add"><ManualDateField label={en ? 'Add a day: pick its date' : 'Προσθήκη ημέρας: διαλέξτε ημερομηνία'} value="" onChange={value => value && onAdd(value)} hint={en ? 'Before 1 November a month takes one total.' : 'Πριν από 1/11 ο μήνας παίρνει ένα σύνολο.'} /></div>}
-    {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all'); setFrom(''); setTo('') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
+    {onAdd && <div className="register-sheet-add"><ManualDateField label={en ? 'Add a day' : 'Προσθήκη ημέρας'} value="" onChange={value => value && onAdd(value)} /></div>}
+    {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
   </div>
   return <><div className="register-sheet-days-filters"><KpiFigures label={en ? 'The days at a glance' : 'Οι ημέρες με μια ματιά'} figures={figures} />{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
     <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th className="register-col-total">{en ? 'Total' : 'Σύνολο'}</th>{measures.length > 1 && measures.map(measure => <th key={measure.key} className="register-col-shift">{textOf(measure, language)}</th>)}<th className="register-col-when">{en ? 'Recorded' : 'Καταχωρίστηκε'}</th></tr></thead>
