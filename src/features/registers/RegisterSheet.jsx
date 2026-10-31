@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowLeft, Lock, LockOpen, Upload } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
-import { StatusBadge } from '../../design-system/StatusBadge'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { saveEntry, setEntryLocked } from './registerService'
+import { saveEntry } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 
@@ -66,11 +65,9 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
   const rows = register.sheet?.rows || []
   const measures = register.sheet?.measures || []
   const groups = register.sheet?.groups || []
-  const monthLocked = monthEntries.length > 0 && monthEntries.every(item => item.locked)
-  const locked = legacy ? Boolean(entry?.locked) : monthLocked || Boolean(entry?.locked)
   const isMonth = view === 'month'
   const isDay = view === 'day'
-  const canEdit = isDay && access.canRecord(register) && !locked && periodStart <= today()
+  const canEdit = isDay && access.canRecord(register) && periodStart <= today()
   const shown = isMonth && !legacy ? sumValues(monthEntries.map(item => item.values)) : values
   const set = (row, measure, text) => setValues(current => {
     const next = { ...current, [row]: { ...(current[row] || {}) } }
@@ -127,25 +124,12 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
       notify(en ? 'The sheet could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση του φύλλου.', 'error')
     } finally { setSaving(false) }
   }
-  // Closing the month locks every day recorded in it (or the month's total, for an earlier month).
-  async function toggleLock() {
-    const targets = legacy ? (entry ? [entry] : []) : monthEntries
-    if (!targets.length) return
-    try {
-      for (const item of targets) if (Boolean(item.locked) === locked) await setEntryLocked(tenant?.id, register, item.id, !locked)
-      notify(locked ? (en ? 'Month reopened.' : 'Ο μήνας άνοιξε ξανά.') : (en ? 'Month closed.' : 'Ο μήνας έκλεισε.'), 'success')
-      await onSaved?.()
-    } catch (error) { console.error(error); notify(en ? 'Not allowed.' : 'Δεν επιτρέπεται.', 'error') }
-  }
-
   const grouped = groups.length ? [...groups.map(group => ({ group, rows: rows.filter(row => row.group === group.key) })), { group: null, rows: rows.filter(row => !groups.some(group => group.key === row.group)) }].filter(item => item.rows.length) : [{ group: null, rows }]
   const year = month.slice(0, 4)
-  const hasMonth = legacy ? Boolean(entry) : monthEntries.length > 0
   const previousTotal = rows.reduce((sum, row) => sum + (contexts.get(row.key).previous || 0), 0)
   // The month's tools that are not daily work wait in «⋯».
   const menu = [
     access.canRecord(register) && { id: 'import', label: en ? 'Import from file' : 'Εισαγωγή από αρχείο', icon: Upload, onClick: () => navigate(`/registers/${register.id}/import`) },
-    view !== 'year' && hasMonth && (locked ? access.canReopen(register) : access.canRecord(register)) && { id: 'lock', label: locked ? (en ? 'Reopen month' : 'Άνοιγμα μήνα') : (en ? 'Close month' : 'Κλείσιμο μήνα'), icon: locked ? LockOpen : Lock, onClick: toggleLock, separatorBefore: true },
   ].filter(Boolean)
   const previousLabel = byDay ? (en ? 'previous day' : 'προηγ. ημέρα') : (en ? 'previous month' : 'προηγ. μήνας')
   const subtitle = view === 'list'
@@ -160,7 +144,6 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
       {byDay && <PeriodStepper label={label} onPrevious={() => goTo(dayShift(day, -1))} onNext={() => goTo(dayShift(day, 1))} nextDisabled={day >= today()} />}
       {!byDay && view !== 'year' && <PeriodStepper label={label} onPrevious={() => goToMonth(monthShift(month, -1))} onNext={() => goToMonth(monthShift(month, 1))} nextDisabled={month >= thisMonth()} />}
       {view === 'year' && <PeriodStepper label={year} onPrevious={() => goToMonth(`${Number(year) - 1}${month.slice(4)}`)} onNext={() => goToMonth(`${Number(year) + 1}${month.slice(4)}`)} nextDisabled={Number(year) >= Number(thisMonth().slice(0, 4))} />}
-      {view !== 'year' && hasMonth && <StatusBadge tone={locked ? 'neutral' : 'info'} icon={locked ? Lock : undefined}>{locked ? (en ? 'Closed' : 'Κλειστός') : (en ? 'Open' : 'Ανοιχτός')}</StatusBadge>}
       {isDay ? <button type="button" className="register-indicator-back" onClick={() => setView('list')}><ArrowLeft size={14} />{en ? 'Days' : 'Ημέρες'}</button> : <SearchableSelect hideLabel className="register-period-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next => next && setView(next)} options={[{ value: 'list', label: en ? 'Days' : 'Ημέρες' }, { value: 'month', label: en ? 'Month' : 'Μήνας' }, { value: 'year', label: en ? 'Year' : 'Έτος' }]} />}
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
@@ -182,7 +165,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
   </RecordTabPanel>
 }
 
-// The days of a month as a list, like the cases of a register: date, total, rows filled and state.
+// The days of a month as a list, like the cases of a register: date, total and rows filled.
 function SheetDays({ register, entries, legacy, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -193,16 +176,15 @@ function SheetDays({ register, entries, legacy, onOpen }) {
   const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   if (!sorted.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded this month. Start with «New day».' : 'Καμία ημέρα αυτόν τον μήνα. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
   return <div className="scroll-table register-sheet-days-list"><table className="data-table">
-    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th className="register-num">{en ? 'Total' : 'Σύνολο'}</th><th className="register-num">{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th><th>{en ? 'State' : 'Κατάσταση'}</th></tr></thead>
+    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th><th>{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th></tr></thead>
     <tbody>{sorted.map(item => {
       const filled = rows.filter(row => rowSum(item.values, row.key, measures) != null).length
       const total = rows.reduce((sum, row) => sum + (rowSum(item.values, row.key, measures) || 0), 0)
       const day = String(item.periodStart)
       return <tr key={item.id || day} className="registry-row-clickable" tabIndex={0} onClick={() => onOpen(day)} onKeyDown={event => { if (event.key === 'Enter') onOpen(day) }}>
         <td><strong>{legacy ? (en ? 'Month total' : 'Σύνολο μήνα') : dayText(day)}</strong></td>
-        <td className="register-num">{fmt(total)}</td>
-        <td className="register-num">{filled} / {rows.length}</td>
-        <td><StatusBadge tone={item.locked ? 'neutral' : 'info'} icon={item.locked ? Lock : undefined}>{item.locked ? (en ? 'Closed' : 'Κλειστή') : (en ? 'Open' : 'Ανοιχτή')}</StatusBadge></td>
+        <td>{fmt(total)}</td>
+        <td>{filled} / {rows.length}</td>
       </tr>
     })}</tbody>
   </table></div>
@@ -214,7 +196,7 @@ function SheetYear({ register, entries, year, selected, onSelect }) {
   const en = language === 'en'
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}-01`), [year])
   // A month's column adds up its days (or holds its earlier monthly total).
-  const byMonth = new Map(months.map(first => { const list = entries.filter(entry => String(entry.periodStart).startsWith(first.slice(0, 7))); return [first, list.length ? { values: sumValues(list.map(entry => entry.values)), locked: list.every(entry => entry.locked) } : null] }))
+  const byMonth = new Map(months.map(first => { const list = entries.filter(entry => String(entry.periodStart).startsWith(first.slice(0, 7))); return [first, list.length ? { values: sumValues(list.map(entry => entry.values)) } : null] }))
   const cell = (entry, row) => {
     if (!entry) return null
     const cells = (register.sheet?.measures || []).map(measure => entry.values?.[row]?.[measure.key]).filter(value => !blank(value))
@@ -222,7 +204,7 @@ function SheetYear({ register, entries, year, selected, onSelect }) {
   }
   const short = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   return <div className="scroll-table register-sheet-year"><table className="data-table register-year-table">
-      <thead><tr><th>{en ? 'Row' : 'Γραμμή'}</th>{months.map(day => <th key={day} className={`register-num ${day === selected ? 'is-selected' : ''}`}><button type="button" onClick={() => onSelect(day)}>{short(day)}{byMonth.get(day)?.locked && <Lock size={11} />}</button></th>)}<th className="register-num">{en ? 'Year' : 'Έτος'}</th></tr></thead>
+      <thead><tr><th>{en ? 'Row' : 'Γραμμή'}</th>{months.map(day => <th key={day} className={`register-num ${day === selected ? 'is-selected' : ''}`}><button type="button" onClick={() => onSelect(day)}>{short(day)}</button></th>)}<th className="register-num">{en ? 'Year' : 'Έτος'}</th></tr></thead>
       <tbody>{(register.sheet?.rows || []).map(row => {
         const values = months.map(day => cell(byMonth.get(day), row.key))
         const total = values.filter(value => value != null)
