@@ -548,6 +548,11 @@
       "authenticated": true,
       "reason": "Grants or removes a member's add-on supplier_renewal_sender (may e-mail suppliers for their expired certificates); Platform Owner only."
     },
+    "set_translation_settings": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Turns the automatic translation of a hospital's own texts on or off and sets its monthly limit of characters; checks itself that the caller is the Platform Owner or a Hospital Admin / Quality Manager of the organisation."
+    },
     "surveillance_case_exposure_count": {
       "category": "rpc",
       "authenticated": true,

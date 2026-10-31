@@ -4,13 +4,15 @@ import { lifecycleReminderEmail } from '../_shared/lifecycleReminderEmail.ts'
 import { legislationDigestEmail, legislationUpdateEmail } from '../_shared/legislationEmail.ts'
 import { newCandidates, parseFeed, parsePage } from '../_shared/legislationWatch.ts'
 import { supplierCertificateRenewalEmail, supplierCertificateSubmittedEmail } from '../_shared/supplierCertificateEmail.ts'
+import { runTranslations } from '../_shared/translateContent.ts'
 import { accountAccessAddedEmail, accountBatchSummaryEmail, accountCreatedEmail } from '../_shared/accountCreatedEmail.ts'
 
 // Called by pg_cron (private.platform_dispatch_scheduled_tasks / platform_dispatch_task)
 // with the shared secret from Vault, never by a browser. Tasks:
 //   lifecycle_reminders, send   send what is waiting in notification_outbox;
 //   legislation_watch           check the legislation sources, then send;
-//   legislation_digest          check, write the Platform Owner's morning digest, then send.
+//   legislation_digest          check, write the Platform Owner's morning digest, then send;
+//   translate_content           translate the queued institutional texts (docs/TRANSLATION_DESIGN.md).
 
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 // Supplier certificate links are also sent here, so an approved request goes out even
@@ -141,6 +143,7 @@ Deno.serve(async(req)=>{
   const {task='lifecycle_reminders'}=await req.json().catch(()=>({}))
   try{
     const result:Record<string,unknown>={task}
+    if(task==='translate_content')return reply({ok:true,...result,...await runTranslations(admin)})
     if(task==='legislation_watch'||task==='legislation_digest')result.found=await watchSources(admin)
     if(task==='legislation_digest')result.digests=await writeDigest(admin)
     Object.assign(result,await sendOutbox(admin))

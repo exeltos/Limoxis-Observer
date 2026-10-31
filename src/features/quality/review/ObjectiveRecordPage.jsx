@@ -8,6 +8,8 @@ import { ExportMenu } from '../../../design-system/ExportMenu'
 import { IconButton } from '../../../design-system/IconButton'
 import { Meter } from '../../../design-system/MiniCharts'
 import { StatusBadge } from '../../../design-system/StatusBadge'
+import { AutoTranslatedMark } from '../../../design-system/AutoTranslatedMark'
+import { useAutoTranslated } from '../../../core/i18n/autoTranslated'
 import { RouteLoading } from '../../../design-system/RouteLoading'
 import { printReport } from '../../../core/export/reportDocument'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
@@ -27,7 +29,7 @@ const tone=state=>({met:'success',missed:'danger'})[state]||'info'
 
 // /quality/objectives/:objectiveId — one objective on its own page: where it stands today, what it is measured by, who owns it and by when.
 export function ObjectiveRecordPage(){
- const {objectiveId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,role,membership}=useTenant(),{notify}=useFeedback()
+ const {objectiveId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,role,membership,isDemo}=useTenant(),{notify}=useFeedback()
  const {objectives,loading}=useObjectives(tenant?.id)
  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
  const back=()=>{rememberQualitySection('indicators:objectives');navigate('/quality',{replace:true})}
@@ -46,6 +48,7 @@ export function ObjectiveRecordPage(){
   const now=new Date(),last=target_.year<now.getFullYear()?12:target_.year>now.getFullYear()?0:now.getMonth()+1
   return monthlySeries(target_.register,target_.indicator,entries,target_.year).filter(row=>row.month<=last&&row.value!=null)
  },[target_,entries])
+ const auto=useAutoTranslated('quality_objectives',[objectiveId],{enabled:en&&!isDemo})
  if(loading)return <RouteLoading/>
  const objective=objectives.find(item=>item.id===objectiveId)
  if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
@@ -71,7 +74,7 @@ export function ObjectiveRecordPage(){
    filename:`${objective.code}_${objective.year}`},{pdf:pdf===true})
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
- return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${objective.year} · ${en?'ISO 9001 §6.2':'ISO 9001 §6.2'}`} status={<StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>} onBack={back}
+ return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${objective.year} · ${en?'ISO 9001 §6.2':'ISO 9001 §6.2'}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
   headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={16}/></IconButton>}</>}>
   <section className="record-section">
    <p className="quality-summary-line"><span><b>{value}</b> {en?'today':'σήμερα'}</span><span>{en?'target':'στόχος'} <b>{target}</b></span><span className={state==='missed'?'is-late':undefined}><b>{reach==null?'—':`${Math.round(reach)}%`}</b> {en?'of the target':'του στόχου'}</span><span>{objectiveStateLabel(state,en).toLowerCase()}</span></p>

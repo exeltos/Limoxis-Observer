@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { BookOpenCheck, Bookmark, ExternalLink, FileText, Image as ImageIcon, Info, Link as LinkIcon, Link2, Newspaper, Pencil, Plus, Rss, Stethoscope, X } from 'lucide-react'
 import { Page } from '../../design-system/Page'
@@ -7,6 +7,8 @@ import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { StatusBadge } from '../../design-system/StatusBadge'
+import { AutoTranslatedMark } from '../../design-system/AutoTranslatedMark'
+import { useAutoTranslated } from '../../core/i18n/autoTranslated'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -31,6 +33,9 @@ const external = { target: '_blank', rel: 'noopener noreferrer' }
 // «Βιβλιοθήκη» (Library), for every member of the hospital: trusted links,
 // guidelines, one-page clinical guides and news from the sources. The platform's
 // content is the same in every hospital; the hospital adds its own.
+// The English texts of the page that the system translated (only asked for in English, outside the demo).
+const AutoTranslatedContext = createContext(new Set())
+
 export function LibraryPage() {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -43,6 +48,7 @@ export function LibraryPage() {
   const [tab, setTab] = useState(LIBRARY_TABS.includes(requested) ? requested : 'links')
   const [state, setState] = useState({ loading: true, items: [], news: [], sources: [] })
   const [editing, setEditing] = useState(null)
+  const autoTranslated = useAutoTranslated('library_items', state.items.filter(item => item.organizationId).map(item => item.id), { enabled: en && !isDemoDataEnvironment() })
 
   const reload = useCallback(() => {
     Promise.all([loadLibrary(organizationId), loadNews(organizationId).catch(() => []), loadSources().catch(() => [])])
@@ -68,7 +74,7 @@ export function LibraryPage() {
   const edit = item => setEditing({ item })
   const actions = canManage ? <Button variant="secondary" onClick={add}><Plus size={16} />{L('Προσθήκη του νοσοκομείου', 'Add for the hospital')}</Button> : null
 
-  return <Page fill className="registry-fill-page" title={L('Βιβλιοθήκη', 'Library')} subtitle={L('Αξιόπιστες πηγές για πρόληψη λοιμώξεων, ποιότητα και νοσηλευτική: της πλατφόρμας για όλα τα νοσοκομεία, συν όσα προσθέτει το δικό σας.', 'Trusted sources for infection prevention, quality and nursing: the platform\'s for every hospital, plus whatever your own adds.')} actions={actions}>
+  return <AutoTranslatedContext.Provider value={autoTranslated}><Page fill className="registry-fill-page" title={L('Βιβλιοθήκη', 'Library')} subtitle={L('Αξιόπιστες πηγές για πρόληψη λοιμώξεων, ποιότητα και νοσηλευτική: της πλατφόρμας για όλα τα νοσοκομεία, συν όσα προσθέτει το δικό σας.', 'Trusted sources for infection prevention, quality and nursing: the platform\'s for every hospital, plus whatever your own adds.')} actions={actions}>
     <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={L('Βιβλιοθήκη', 'Library')} />
     <section className="surface registry-workspace workspace-fill lib-workspace">
       {tab === 'links' && <LinksTab items={state.items} sources={state.sources} loading={state.loading} language={language} canManage={canManage} onEdit={edit} />}
@@ -77,7 +83,7 @@ export function LibraryPage() {
       {tab === 'news' && <NewsTab news={state.news} sources={state.sources} loading={state.loading} language={language} canManage={canManage} onAdd={add} onEdit={news => setEditing({ item: { ...news, kind: 'announcement', name: news.title, abbreviation: news.sourceAbbreviation } })} />}
     </section>
     {editing && <LibraryItemDialog scope="hospital" organizationId={organizationId} item={editing.item} kind={editing.kind} language={language} onClose={() => setEditing(null)} onSaved={reload} />}
-  </Page>
+  </Page></AutoTranslatedContext.Provider>
 }
 
 function Logo({ item }) {
@@ -115,13 +121,14 @@ function LinkCard({ item, language, news, onEdit }) {
   const L = (el, english) => (en ? english : el)
   const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl || item.descriptionEn
   const note = (en ? item.noteEn : item.noteEl) || item.noteEl
+  const auto = useContext(AutoTranslatedContext)
   return <article className={`lib-card${item.proposed ? ' is-proposed' : ''}${item.group === 'archive' ? ' is-archived' : ''}`}>
     <Logo item={item} />
     <div>
       <a className="lib-card-title" href={item.url} {...external}>{item.name}</a>
       <span className="lib-domain">{domainOf(item.url)}</span>
-      {description && <p>{description}</p>}
-      {note && <p className="lib-note">{note}</p>}
+      {description && <p>{description}{en && auto.has(`${item.id}:description_el`) && item.descriptionEn && <AutoTranslatedMark />}</p>}
+      {note && <p className="lib-note">{note}{en && auto.has(`${item.id}:note_el`) && item.noteEn && <AutoTranslatedMark />}</p>}
       <div className="lib-tags">
         {(item.tags || []).map(tag => <span key={tag} className="lib-tag">{topicLabel(tag, language)}</span>)}
         {news && <span className="lib-tag is-rss"><Rss size={11} aria-hidden="true" />{L('Νέα', 'News')}</span>}
@@ -178,6 +185,7 @@ function GuidelineDrawer({ item, language, onClose, onEdit }) {
   const points = bulletLines((en ? item.summaryEn : item.summaryEl) || item.summaryEl)
   const link = (en ? item.limoxisEn : item.limoxisEl) || item.limoxisEl
   const description = (en ? item.descriptionEn : item.descriptionEl) || item.descriptionEl
+  const auto = useContext(AutoTranslatedContext)
   const [saved, setSaved] = useState(() => readSaved().has(item.id))
   useEffect(() => { setSaved(readSaved().has(item.id)) }, [item.id])
   const toggleSaved = () => { const set = readSaved(); if (set.has(item.id)) set.delete(item.id); else set.add(item.id); writeSaved(set); setSaved(set.has(item.id)) }
@@ -194,8 +202,8 @@ function GuidelineDrawer({ item, language, onClose, onEdit }) {
       <dt>{L('Γλώσσα', 'Language')}</dt><dd>{item.language === 'el' ? L('Ελληνικά', 'Greek') : item.language === 'en' ? L('Αγγλικά', 'English') : L('Άλλη', 'Other')}</dd>
       <dt>{L('Προστέθηκε', 'Added by')}</dt><dd>{item.organizationId ? L('Το νοσοκομείο', 'The hospital') : 'Platform Owner'}{item.updatedAt ? ` · ${formatDay(item.updatedAt, language)}` : ''}</dd>
     </dl>
-    {description && <p className="leg-note">{description}</p>}
-    {points.length > 0 && <div><span className="lib-eyebrow">{L('Τι λέει, σύντομα', 'In short')}</span><ul>{points.map(point => <li key={point}>{point}</li>)}</ul></div>}
+    {description && <p className="leg-note">{description}{en && auto.has(`${item.id}:description_el`) && item.descriptionEn && <AutoTranslatedMark />}</p>}
+    {points.length > 0 && <div><span className="lib-eyebrow">{L('Τι λέει, σύντομα', 'In short')}</span><ul>{points.map(point => <li key={point}>{point}</li>)}</ul>{en && auto.has(`${item.id}:summary_el`) && item.summaryEn && <AutoTranslatedMark />}</div>}
     {link && <div className="lib-callout"><Link2 size={16} aria-hidden="true" /><div><strong>{L('Στο Limoxis', 'In Limoxis')}</strong><br />{link}</div></div>}
     <div className="lib-row">
       {item.url && <a className="button button-primary" href={item.url} {...external}><ExternalLink size={16} />{L('Άνοιγμα πηγής', 'Open source')}</a>}

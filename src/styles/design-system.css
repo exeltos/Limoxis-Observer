@@ -1232,3 +1232,6 @@ td>.lo-meter{margin-top:5px}
 .attachment-empty-row{display:flex;align-items:center;gap:10px;padding:4px 2px;color:var(--lo-color-muted,#5f6f7c);font-size:13px}
 .attachment-empty-row>span{flex:1 1 auto}
 .observer-dialog:focus{outline:none}
+
+/* Automatic translation: a quiet tag beside an English text the system translated. */
+.auto-translated-mark{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border:1px dashed var(--lo-color-border);border-radius:999px;color:var(--lo-color-muted);font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle}
