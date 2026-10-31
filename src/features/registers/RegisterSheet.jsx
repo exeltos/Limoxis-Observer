@@ -3,6 +3,9 @@ import { AlertTriangle, ArrowLeft, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
+import { FormCard, FormGrid } from '../../design-system/FormCard'
+import { Field } from '../../design-system/Field'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -56,6 +59,8 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const dailyFrom = dailyFromOf(register)
   // Opens on the day itself (today, or the last recorded day); before the daily sheets, on the month's entry.
   const [view, setView] = useState('day')
+  // A shift at a time (or the day's total) when the sheet has several shifts; the first shift opens.
+  const [shift, setShift] = useState(() => register.sheet?.measures?.[0]?.key || '')
   const [day, setDay] = useState(() => (thisMonth() >= dailyFrom ? today() : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
   const month = day.slice(0, 7)
   const legacy = month < dailyFrom
@@ -175,17 +180,15 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     </div>}>
     {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
       {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today()} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
-      {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-sheet-group">
-        {group && <h4>{textOf(group, language)}</h4>}
-        <div className="register-sheet-form" style={{ '--sheet-measures': measures.length }}>
-          {measures.length > 1 && <div className="register-sheet-form-head" aria-hidden="true"><span />{measures.map(measure => <span key={measure.key}>{textOf(measure, language)}</span>)}<span>{en ? 'Total' : 'Σύνολο'}</span></div>}
-          {groupRows.map(row => { const context = contexts.get(row.key); return <div key={row.key} className={`register-sheet-line ${context.unusual ? 'is-unusual' : ''}`}>
-            <span className="register-sheet-line-title">{textOf(row, language)}{row.help && <small>{en ? row.helpEn || row.help : row.help}</small>}<em>{context.unusual ? <><AlertTriangle size={12} />{en ? `usually about ${fmt(Math.round(context.average))}` : `συνήθως περίπου ${fmt(Math.round(context.average))}`}</> : context.previous != null ? `${previousLabel} ${fmt(context.previous)}` : ''}</em></span>
-            {measures.map(measure => canEdit ? <input key={measure.key} aria-label={`${textOf(row, language)} · ${textOf(measure, language)}`} inputMode="numeric" value={values[row.key]?.[measure.key] ?? ''} onChange={event => set(row.key, measure.key, event.target.value)} onKeyDown={nextCell} /> : <strong key={measure.key} className="register-sheet-line-value">{fmt(shown[row.key]?.[measure.key] ?? null)}</strong>)}
-            <strong className="register-sheet-line-total">{fmt(rowTotal(row.key))}</strong>
-          </div> })}
-        </div>
-      </section>)}
+      {measures.length > 1 && <div className="register-sheet-shifts"><CanonicalTabs className="lo-subtabs" items={[...measures.map(measure => ({ value: measure.key, label: textOf(measure, language) })), { value: 'total', label: en ? 'Day total' : 'Σύνολο ημέρας' }]} value={shift} onChange={setShift} ariaLabel={en ? 'Shift' : 'Βάρδια'} /></div>}
+      {grouped.map(({ group, rows: groupRows }) => <FormCard key={group?.key || 'rows'} wide title={group ? textOf(group, language) : ''} className="register-sheet-formcard">
+        <FormGrid columns={3}>
+          {groupRows.map(row => { const context = contexts.get(row.key); const only = measures.length > 1 && shift !== 'total' ? measures.find(measure => measure.key === shift) : null; const total = rowTotal(row.key); return <Field key={row.key} className={context.unusual ? 'is-unusual' : ''} label={textOf(row, language)}>
+            {only || measures.length === 1 ? (canEdit ? <input className="register-sheet-input" aria-label={`${textOf(row, language)} · ${textOf(only || measures[0], language)}`} inputMode="numeric" value={values[row.key]?.[(only || measures[0]).key] ?? ''} onChange={event => set(row.key, (only || measures[0]).key, event.target.value)} onKeyDown={nextCell} /> : <strong className="register-sheet-value">{fmt(shown[row.key]?.[(only || measures[0]).key] ?? null)}</strong>) : <strong className="register-sheet-value">{fmt(total)}</strong>}
+            <small className="register-sheet-field-note">{context.unusual ? <><AlertTriangle size={12} />{en ? `usually about ${fmt(Math.round(context.average))}` : `συνήθως περίπου ${fmt(Math.round(context.average))}`}</> : context.previous != null ? `${previousLabel} ${fmt(context.previous)}` : '\u00a0'}</small>
+          </Field> })}
+        </FormGrid>
+      </FormCard>)}
       {canEdit && <p className="register-sheet-hint">{en ? 'An empty box means not recorded; write 0 when there were none.' : 'Κενό πεδίο σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}</p>}
     </div> : <SheetYear innerRef={tableRef} register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
   </RecordTabPanel>

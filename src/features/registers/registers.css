@@ -49,9 +49,7 @@
 .register-row-label small{display:block;font-weight:400;color:var(--lo-color-muted)}
 .register-sheet-muted{color:var(--lo-color-muted)}
 .register-sheet-unusual-note{display:inline-flex;align-items:center;gap:4px;margin-left:10px;color:#9a5b00;font-weight:700}
-.register-sheet-body{display:grid;gap:18px;padding:16px 20px 20px;overflow:auto}
-.register-sheet-group{display:grid;gap:10px}
-.register-sheet-group>h4{margin:0;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.register-sheet-body{display:grid;gap:12px;padding:12px 20px 16px;overflow:auto}
 .register-sheet-hint{margin:0;font-size:12px;color:var(--lo-color-muted)}
 .register-sheet-year{flex:1 1 auto;min-height:0;overflow:auto}
 .register-year-table th button{display:inline-flex;align-items:center;gap:3px;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
@@ -138,7 +136,7 @@
 .register-import-missing{display:grid;gap:4px;margin-top:12px;padding:10px 12px;border:1px dashed var(--lo-color-border-strong,#cad6df);border-radius:9px;background:var(--lo-color-surface-muted);font-size:12.5px;color:var(--lo-color-text)}
 .register-import-missing>span{line-height:1.5}
 .register-import-missing>small{color:var(--lo-color-muted)}
-.register-sheet-days{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px}
+.register-sheet-days{display:flex;flex-wrap:wrap;gap:4px;margin:0}
 .register-sheet-days button{min-width:32px;height:30px;padding:0 6px;border:1px solid var(--lo-color-border);border-radius:7px;background:var(--lo-color-surface);color:var(--lo-color-muted);font:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;cursor:pointer}
 .register-sheet-days button.is-recorded{background:color-mix(in srgb,var(--lo-status-success-fg,#2f7a4f) 12%,var(--lo-color-surface));border-color:color-mix(in srgb,var(--lo-status-success-fg,#2f7a4f) 35%,var(--lo-color-border));color:var(--lo-color-text);font-weight:650}
 .register-sheet-days button.is-selected{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary);color:var(--lo-color-primary);font-weight:700}
@@ -155,21 +153,13 @@
 .register-indicator-detail-figures strong em{font-style:normal;font-size:12px;color:var(--lo-color-muted)}
 .register-indicator-detail-figures .status-badge{justify-self:start}
 
-.register-sheet-form{display:grid;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);overflow:hidden}
-.register-sheet-form-head,.register-sheet-line{display:grid;grid-template-columns:minmax(200px,1.6fr) repeat(var(--sheet-measures,1),minmax(84px,1fr)) minmax(72px,.5fr);align-items:center;gap:10px;padding:6px 16px}
-.register-sheet-form-head{padding-top:9px;padding-bottom:9px;background:var(--lo-color-surface-muted,#f6f8fa);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
-.register-sheet-form-head>span:not(:first-child){text-align:right}
-.register-sheet-line+.register-sheet-line{border-top:1px solid var(--lo-color-border)}
-.register-sheet-line:focus-within{background:color-mix(in srgb,var(--lo-color-primary) 4%,transparent)}
-.register-sheet-line-title{display:grid;gap:2px;font-size:13.5px;font-weight:700;color:var(--lo-color-text)}
-.register-sheet-line-title small{font-size:11.5px;font-weight:500;color:var(--lo-color-muted)}
-.register-sheet-line-title em{display:flex;align-items:center;gap:4px;min-height:14px;font-style:normal;font-size:11.5px;font-weight:500;color:var(--lo-color-muted)}
-.register-sheet-line input{box-sizing:border-box;width:100%;height:36px;padding:0 12px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:9px;font:inherit;font-size:15px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;background:var(--lo-color-surface)}
-.register-sheet-line input:focus{outline:none;border-color:var(--lo-color-primary);box-shadow:0 0 0 3px var(--lo-color-primary-soft)}
-.register-sheet-line-value,.register-sheet-line-total{text-align:right;font-variant-numeric:tabular-nums}
-.register-sheet-line-value{font-size:16px}
-.register-sheet-line-total{font-size:15px;color:var(--lo-color-muted)}
-.register-sheet-line.is-unusual{background:#fffaf0}
-.register-sheet-line.is-unusual input{border-color:#d08a00}
-.register-sheet-line.is-unusual .register-sheet-line-title em{color:#9a5b00;font-weight:700}
-.register-sheet-line-title em:empty{display:none}
+
+.register-sheet-body .lo-form-card{margin:0}
+.register-sheet-field-note{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--lo-color-muted)}
+.field.is-unusual .register-sheet-input{border-color:#d08a00;background:#fffaf0}
+.field.is-unusual .register-sheet-field-note{color:#9a5b00;font-weight:700}
+
+.register-sheet-input{box-sizing:border-box;width:100%;height:36px;padding:0 12px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:9px;font:inherit;font-size:16px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;background:var(--lo-color-surface)}
+.register-sheet-input:focus{outline:none;border-color:var(--lo-color-primary);box-shadow:0 0 0 3px var(--lo-color-primary-soft)}
+.register-sheet-value{display:block;font-size:18px;line-height:36px;text-align:right;font-variant-numeric:tabular-nums}
+.register-sheet-shifts{min-height:44px;padding-top:8px}
