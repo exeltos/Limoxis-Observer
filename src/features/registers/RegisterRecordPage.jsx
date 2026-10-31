@@ -46,6 +46,8 @@ export function RegisterRecordPage() {
   const [newDayTick, setNewDayTick] = useState(0)
   // The indicators tab's export handlers, shown in the header like the entries' export.
   const [indicatorExport, setIndicatorExport] = useState(null)
+  // The sheet's export handlers: what is on screen (the day, the month, the year or the list).
+  const [sheetExport, setSheetExport] = useState(null)
   const withIdentity = register ? access.canSeeIdentity(register) : false
   const reload = useCallback(async () => {
     setLoading(true)
@@ -72,7 +74,8 @@ export function RegisterRecordPage() {
   ]
   const onExport = entries.length ? () => exportRegistry(registerExport(register, entries, { language, withIdentity })) : null
   // The header on Entries and on Indicators: «Export ▾» (the entries, or the indicator report) and the primary action.
-  const exportMenu = tab === 'indicators' ? <ExportMenu disabled={!indicatorExport || indicatorExport.disabled} onExcel={indicatorExport?.excel} onPdf={indicatorExport?.pdf} pdfBusy={Boolean(indicatorExport?.busy)} /> : onExport && <ExportMenu onExcel={onExport} />
+  const liveExport = tab === 'indicators' ? indicatorExport : sheet ? sheetExport : null
+  const exportMenu = tab === 'indicators' || sheet ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : onExport && <ExportMenu onExcel={onExport} />
   const importButton = tab === 'entries' && !sheet && access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>
   const beforeDaily = new Date().toISOString().slice(0, 7) < dailyFromOf(register)
   // «New day» opens today's sheet (from the first day of the daily sheets), also from the indicators tab.
@@ -84,7 +87,7 @@ export function RegisterRecordPage() {
   const context = <span className="register-context">{[en ? register.departmentEn : register.department, registerKindLabel(register.kind, language), `${en ? 'version' : 'έκδοση'} ${register.version}`].filter(Boolean).join(' · ')}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : <ClipboardList size={19} />} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
-    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} newDayTick={newDayTick} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
+    {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
     {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? indicatorId => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
     {tab === 'definition' && <RegisterBuilder register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={next => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}

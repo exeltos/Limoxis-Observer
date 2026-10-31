@@ -10,6 +10,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { saveEntry } from './registerService'
+import { exportRegistry } from '../../core/export/registryExports'
+import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useRegisterAccess } from './registerAccess'
 import { periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
 
@@ -43,7 +45,7 @@ export const DAILY_SHEETS_FROM = '2026-11'
 export const dailyFromOf = register => register.sheet?.dailyFrom || DAILY_SHEETS_FROM
 
 // newDayTick: «New day» in the record's header (each press opens today's entry).
-export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
+export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onExportApi = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
@@ -124,6 +126,29 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
       notify(en ? 'The sheet could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση του φύλλου.', 'error')
     } finally { setSaving(false) }
   }
+  // «Export ▾» in the record's header exports what is on screen: the day, the month, the year or the list.
+  const [exporting, setExporting] = useState(false)
+  function exportExcel() {
+    const name = `${register.code}_${view === 'year' ? year : view === 'list' ? (en ? 'all' : 'ola') : periodStart}`
+    const rowLabel = en ? 'Row' : 'Γραμμή'
+    if (view === 'list') {
+      exportRegistry({ name, headers: [en ? 'Date' : 'Ημερομηνία', ...rows.flatMap(row => measures.map(measure => `${textOf(row, language)}${measures.length > 1 ? ` · ${textOf(measure, language)}` : ''}`))], rows: [...entries].sort((a, b) => String(a.periodStart).localeCompare(String(b.periodStart))).map(item => [String(item.periodStart).slice(0, 7) < dailyFrom ? String(item.periodStart).slice(0, 7) : String(item.periodStart), ...rows.flatMap(row => measures.map(measure => item.values?.[row.key]?.[measure.key] ?? ''))]) })
+      return
+    }
+    if (view === 'year') {
+      const keys = Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`)
+      const short = key => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${key}-01T00:00:00Z`))
+      exportRegistry({ name, headers: [rowLabel, ...keys.map(short), en ? 'Year' : 'Έτος'], rows: rows.map(row => { const cells = keys.map(key => rowSum(valuesByMonth.get(key), row.key, measures)); return [textOf(row, language), ...cells.map(cell => cell ?? ''), cells.some(cell => cell != null) ? cells.reduce((sum, cell) => sum + (cell || 0), 0) : ''] }) })
+      return
+    }
+    exportRegistry({ name, headers: [rowLabel, ...(measures.length > 1 ? measures.map(measure => textOf(measure, language)) : []), en ? 'Total' : 'Σύνολο'], rows: [...rows.map(row => [textOf(row, language), ...(measures.length > 1 ? measures.map(measure => shown[row.key]?.[measure.key] ?? '') : []), rowTotal(row.key) ?? '']), [en ? 'Total' : 'Σύνολο', ...(measures.length > 1 ? measures.map(measure => rows.reduce((sum, row) => sum + Number(shown[row.key]?.[measure.key] || 0), 0)) : []), grand]] })
+  }
+  async function exportPdf() {
+    if (!tableRef.current) return
+    setExporting(true)
+    try { await exportElementAsPdf({ element: tableRef.current, filename: `${register.code}_${view === 'year' ? year : view === 'list' ? (en ? 'all' : 'ola') : periodStart}` }) } catch (error) { console.error(error); notify(en ? 'The PDF could not be made.' : 'Δεν ήταν δυνατή η δημιουργία του PDF.', 'error') } finally { setExporting(false) }
+  }
+  useEffect(() => { onExportApi?.({ excel: exportExcel, pdf: exportPdf, busy: exporting, disabled: !entries.length }); return () => onExportApi?.(null) }, [view, periodStart, entries, values, exporting]) // eslint-disable-line react-hooks/exhaustive-deps
   const grouped = groups.length ? [...groups.map(group => ({ group, rows: rows.filter(row => row.group === group.key) })), { group: null, rows: rows.filter(row => !groups.some(group => group.key === row.group)) }].filter(item => item.rows.length) : [{ group: null, rows }]
   const year = month.slice(0, 4)
   const previousTotal = rows.reduce((sum, row) => sum + (contexts.get(row.key).previous || 0), 0)
@@ -147,7 +172,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
       {view === 'year' && <PeriodStepper label={year} onPrevious={() => goToMonth(`${Number(year) - 1}${month.slice(4)}`)} onNext={() => goToMonth(`${Number(year) + 1}${month.slice(4)}`)} nextDisabled={Number(year) >= Number(thisMonth().slice(0, 4))} />}
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
-    {view === 'list' ? <SheetDays register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
+    {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
       {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today()} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
       {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-sheet-group">
         {group && <h4>{textOf(group, language)}</h4>}
@@ -161,13 +186,13 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0 }) {
         </div> })}</div>
       </section>)}
       {canEdit && <p className="register-sheet-hint">{en ? 'An empty box means not recorded; write 0 when there were none.' : 'Κενό πεδίο σημαίνει «δεν καταγράφηκε»· γράψτε 0 όταν δεν έγινε καμία.'}</p>}
-    </div> : <SheetYear register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
+    </div> : <SheetYear innerRef={tableRef} register={register} entries={entries} year={year} selected={`${month}-01`} onSelect={first => { setView(first.slice(0, 7) >= dailyFrom ? 'list' : 'day'); goToMonth(first.slice(0, 7)) }} />}
   </RecordTabPanel>
 }
 
 // All the entries as a list, like the cases of a register: the day (or, before the daily
 // sheets, the month's total), the total and the rows filled. Newest first.
-function SheetDays({ register, entries, dailyFrom, language, onOpen }) {
+function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }) {
   const en = language === 'en'
   const rows = register.sheet?.rows || []
   const measures = register.sheet?.measures || []
@@ -176,7 +201,7 @@ function SheetDays({ register, entries, dailyFrom, language, onOpen }) {
   const dayText = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
   const monthText = day => periodLabel(periodOf('month', day), language)
   if (!sorted.length) return <div className="register-sheet-body"><div className="inline-empty">{en ? 'No day recorded yet. Start with «New day».' : 'Καμία ημέρα ακόμη. Ξεκινήστε με «Νέα ημέρα».'}</div></div>
-  return <div className="scroll-table register-sheet-days-list"><table className="data-table">
+  return <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
     <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th><th>{en ? 'Rows filled' : 'Συμπληρωμένες γραμμές'}</th></tr></thead>
     <tbody>{sorted.map(item => {
       const filled = rows.filter(row => rowSum(item.values, row.key, measures) != null).length
@@ -192,7 +217,7 @@ function SheetDays({ register, entries, dailyFrom, language, onOpen }) {
 }
 
 // The year: one column per month, one row per sheet row (sum of measures).
-function SheetYear({ register, entries, year, selected, onSelect }) {
+function SheetYear({ innerRef, register, entries, year, selected, onSelect }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}-01`), [year])
@@ -204,7 +229,7 @@ function SheetYear({ register, entries, year, selected, onSelect }) {
     return cells.length ? cells.reduce((sum, value) => sum + Number(value), 0) : null
   }
   const short = day => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'short', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
-  return <div className="scroll-table register-sheet-year"><table className="data-table register-year-table">
+  return <div ref={innerRef} className="scroll-table register-sheet-year"><table className="data-table register-year-table">
       <thead><tr><th>{en ? 'Row' : 'Γραμμή'}</th>{months.map(day => <th key={day} className={`register-num ${day === selected ? 'is-selected' : ''}`}><button type="button" onClick={() => onSelect(day)}>{short(day)}</button></th>)}<th className="register-num">{en ? 'Year' : 'Έτος'}</th></tr></thead>
       <tbody>{(register.sheet?.rows || []).map(row => {
         const values = months.map(day => cell(byMonth.get(day), row.key))
