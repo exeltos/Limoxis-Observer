@@ -52,22 +52,6 @@
 .register-sheet-body{display:grid;gap:18px;padding:16px 20px 20px;overflow:auto}
 .register-sheet-group{display:grid;gap:10px}
 .register-sheet-group>h4{margin:0;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
-.register-sheet-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.register-sheet-card{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
-.register-sheet-card:focus-within{border-color:var(--lo-color-primary);box-shadow:0 0 0 3px var(--lo-color-primary-soft)}
-.register-sheet-card-title{font-size:13px;font-weight:700;line-height:1.3;color:var(--lo-color-text)}
-.register-sheet-card-title small{display:block;margin-top:2px;font-size:11.5px;font-weight:500;color:var(--lo-color-muted)}
-.register-sheet-card-values{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px}
-.register-sheet-card-values>label{display:grid;gap:3px;flex:1 1 72px;min-width:0}
-.register-sheet-card-values small{font-size:11px;font-weight:600;color:var(--lo-color-muted)}
-.register-sheet-card-values>label>input:is(input,#lo-sheet){box-sizing:border-box;width:100%;height:42px!important;min-height:42px!important;padding:0 12px!important;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:9px;font:inherit;font-size:20px;font-weight:700;text-align:right;color:var(--lo-color-text);background:var(--lo-color-surface)}
-.register-sheet-card-values>label>strong{font-size:22px;line-height:42px;text-align:right;color:var(--lo-color-text)}
-.register-sheet-card-total{display:grid;gap:3px;flex:0 0 auto;text-align:right}
-.register-sheet-card-total strong{font-size:18px;line-height:42px;color:var(--lo-color-muted)}
-.register-sheet-card-context{display:flex;align-items:center;gap:4px;min-height:16px;font-size:12px;color:var(--lo-color-muted)}
-.register-sheet-card.is-unusual{border-color:#d08a00;background:#fffaf0}
-.register-sheet-card.is-unusual input:is(input,#lo-sheet){border-color:#d08a00}
-.register-sheet-card.is-unusual .register-sheet-card-context{color:#9a5b00;font-weight:700}
 .register-sheet-hint{margin:0;font-size:12px;color:var(--lo-color-muted)}
 .register-sheet-year{flex:1 1 auto;min-height:0;overflow:auto}
 .register-year-table th button{display:inline-flex;align-items:center;gap:3px;border:0;background:none;color:inherit;font:inherit;cursor:pointer}
@@ -170,3 +154,22 @@
 .register-indicator-detail-figures strong{font-size:18px}
 .register-indicator-detail-figures strong em{font-style:normal;font-size:12px;color:var(--lo-color-muted)}
 .register-indicator-detail-figures .status-badge{justify-self:start}
+
+.register-sheet-form{display:grid;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);overflow:hidden}
+.register-sheet-form-head,.register-sheet-line{display:grid;grid-template-columns:minmax(200px,1.6fr) repeat(var(--sheet-measures,1),minmax(84px,1fr)) minmax(72px,.5fr);align-items:center;gap:10px;padding:6px 16px}
+.register-sheet-form-head{padding-top:9px;padding-bottom:9px;background:var(--lo-color-surface-muted,#f6f8fa);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.register-sheet-form-head>span:not(:first-child){text-align:right}
+.register-sheet-line+.register-sheet-line{border-top:1px solid var(--lo-color-border)}
+.register-sheet-line:focus-within{background:color-mix(in srgb,var(--lo-color-primary) 4%,transparent)}
+.register-sheet-line-title{display:grid;gap:2px;font-size:13.5px;font-weight:700;color:var(--lo-color-text)}
+.register-sheet-line-title small{font-size:11.5px;font-weight:500;color:var(--lo-color-muted)}
+.register-sheet-line-title em{display:flex;align-items:center;gap:4px;min-height:14px;font-style:normal;font-size:11.5px;font-weight:500;color:var(--lo-color-muted)}
+.register-sheet-line input{box-sizing:border-box;width:100%;height:36px;padding:0 12px;border:1px solid var(--lo-color-border-strong,#cad6df);border-radius:9px;font:inherit;font-size:15px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;background:var(--lo-color-surface)}
+.register-sheet-line input:focus{outline:none;border-color:var(--lo-color-primary);box-shadow:0 0 0 3px var(--lo-color-primary-soft)}
+.register-sheet-line-value,.register-sheet-line-total{text-align:right;font-variant-numeric:tabular-nums}
+.register-sheet-line-value{font-size:16px}
+.register-sheet-line-total{font-size:15px;color:var(--lo-color-muted)}
+.register-sheet-line.is-unusual{background:#fffaf0}
+.register-sheet-line.is-unusual input{border-color:#d08a00}
+.register-sheet-line.is-unusual .register-sheet-line-title em{color:#9a5b00;font-weight:700}
+.register-sheet-line-title em:empty{display:none}
