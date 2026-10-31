@@ -300,9 +300,6 @@
 .register-sheet-days-list .data-table .register-col-shift{width:130px;text-align:left;font-variant-numeric:tabular-nums}
 .register-sheet-days-list .data-table .register-col-when{width:230px;text-align:left}
 
-.register-sheet-filter-row .register-sheet-add{margin-left:auto}
-.register-sheet-filter-row .register-sheet-add .manual-date-field{width:190px}
-.register-sheet-filter-row .register-sheet-add .manual-date-field>.lo-field-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 
 /* Cath lab: the procedures as cards to tick (several can apply to one case). */
 .register-procedure-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}

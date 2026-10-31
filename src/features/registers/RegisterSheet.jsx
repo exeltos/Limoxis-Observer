@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
-import { ManualDateField } from '../../design-system/ManualDateField'
 import { FilterSelect } from '../../design-system/FilterBar'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -195,7 +194,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
       {view === 'year' && <PeriodStepper label={year} onPrevious={() => goToMonth(`${Number(year) - 1}${month.slice(4)}`)} onNext={() => goToMonth(`${Number(year) + 1}${month.slice(4)}`)} nextDisabled={Number(year) >= Number(thisMonth().slice(0, 4))} />}
       {menu.length > 0 && <OverflowMenu items={menu} label={en ? 'More' : 'Περισσότερα'} />}
     </div>}>
-    {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} onAdd={date => { if (date > today()) { notify(en ? 'A day in the future cannot be recorded yet.' : 'Δεν μπορεί να καταχωριστεί ημέρα του μέλλοντος.', 'error'); return } openDay(date) }} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
+    {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
       {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today() || item < dailyFrom} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
       {measures.length > 1 && <div className="register-sheet-shifts"><CanonicalTabs className="lo-subtabs" items={[...measures.map(measure => ({ value: measure.key, label: textOf(measure, language) })), { value: 'total', label: en ? 'Day total' : 'Σύνολο ημέρας' }]} value={shift} onChange={setShift} ariaLabel={en ? 'Shift' : 'Βάρδια'} /></div>}
       {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-ledger">
@@ -221,14 +220,13 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
 
 // All the entries as a list, like the cases of a register: the day (or, before the daily
 // sheets, the month's total), the total and the rows filled. Newest first.
-function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, onAdd }) {
+function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen }) {
   const en = language === 'en'
   const rows = register.sheet?.rows || []
   const measures = register.sheet?.measures || []
   const fmt = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
   // Everything recorded, newest first; the filters narrow it to a year and a month.
   const [year, setYear] = useState('all')
-  const [adding, setAdding] = useState(false)
   const [month, setMonth] = useState('all')
   const years = [...new Set(entries.map(item => String(item.periodStart).slice(0, 4)))].sort().reverse()
   const monthName = number => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
@@ -264,7 +262,6 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
   const filters = <div className="register-sheet-filter-row">
     <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
     <FilterSelect label={en ? 'Month' : 'Μήνας'} value={month} onChange={setMonth}><option value="all">{en ? 'All months' : 'Όλοι οι μήνες'}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={String(index + 1).padStart(2, '0')}>{monthName(index + 1)}</option>)}</FilterSelect>
-    {onAdd && <div className="register-sheet-add">{adding ? <ManualDateField label={en ? 'Day to add' : 'Ημέρα προς προσθήκη'} value="" onChange={value => { if (value) { setAdding(false); onAdd(value) } }} /> : <Button variant="secondary" onClick={() => setAdding(true)}><CalendarDays size={16} aria-hidden="true" />{en ? 'Add a past day' : 'Προσθήκη προηγούμενης ημέρας'}</Button>}</div>}
     {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
   </div>
   return <><div className="register-sheet-days-filters"><KpiFigures label={en ? 'The days at a glance' : 'Οι ημέρες με μια ματιά'} figures={figures} />{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
