@@ -228,6 +228,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
   const fmt = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR').format(value)
   // Everything recorded, newest first; the filters narrow it to a year and a month.
   const [year, setYear] = useState('all')
+  const [adding, setAdding] = useState(false)
   const [month, setMonth] = useState('all')
   const years = [...new Set(entries.map(item => String(item.periodStart).slice(0, 4)))].sort().reverse()
   const monthName = number => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, number - 1, 1)))
@@ -263,7 +264,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen, o
   const filters = <div className="register-sheet-filter-row">
     <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
     <FilterSelect label={en ? 'Month' : 'Μήνας'} value={month} onChange={setMonth}><option value="all">{en ? 'All months' : 'Όλοι οι μήνες'}</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={String(index + 1).padStart(2, '0')}>{monthName(index + 1)}</option>)}</FilterSelect>
-    {onAdd && <div className="register-sheet-add"><ManualDateField label={en ? 'Add a day' : 'Προσθήκη ημέρας'} value="" onChange={value => value && onAdd(value)} /></div>}
+    {onAdd && <div className="register-sheet-add">{adding ? <ManualDateField label={en ? 'Day to add' : 'Ημέρα προς προσθήκη'} value="" onChange={value => { if (value) { setAdding(false); onAdd(value) } }} /> : <Button variant="secondary" onClick={() => setAdding(true)}><CalendarDays size={16} aria-hidden="true" />{en ? 'Add a past day' : 'Προσθήκη προηγούμενης ημέρας'}</Button>}</div>}
     {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
   </div>
   return <><div className="register-sheet-days-filters"><KpiFigures label={en ? 'The days at a glance' : 'Οι ημέρες με μια ματιά'} figures={figures} />{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
