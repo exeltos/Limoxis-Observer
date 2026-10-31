@@ -151,6 +151,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
         discharge_date: out ? discharge : '',
         outcome: out ? (death ? 'death' : pick(icuRandom, [['transfer_ward', 12], ['transfer_hospital', 1]])) : '',
       }
+      if (values.outcome === 'transfer_ward') values.transfer_department = cardiac ? pick(icuRandom, [['cardiac_surgery_ward', 7], ['cardiology', 3]]) : pick(icuRandom, [['internal', 5], ['pulmonary', 3], ['surgical', 3], ['neurology', 1], ['orthopaedic', 1]])
       icuNumber += 1 + Math.floor(icuRandom() * 3)
       const id = `reg-entry-icu-${entries.filter(item => item.registerId === DEMO_ICU_ID).length + 1}`
       entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΘ' })

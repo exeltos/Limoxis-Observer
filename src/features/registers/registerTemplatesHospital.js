@@ -27,7 +27,7 @@ const ICU = {
   entryDateFallbacks: ['discharge_date'],
   // FileMaker kept these percentages without their decimal point (2,42 → 242).
   importRepairs: { euroscore: 'decimal' },
-  sections: [{ key: 'admission', label: 'Εισαγωγή', labelEn: 'Admission' }, { key: 'severity', label: 'Βαρύτητα', labelEn: 'Severity' }, { key: 'stay', label: 'Νοσηλεία', labelEn: 'Stay' }, { key: 'discharge', label: 'Έξοδος', labelEn: 'Discharge' }],
+  sections: [{ key: 'admission', label: 'Εισαγωγή', labelEn: 'Admission' }, { key: 'severity', label: 'Βαρύτητα', labelEn: 'Severity' }, { key: 'stay', label: 'Νοσηλεία', labelEn: 'Stay' }, { key: 'discharge', label: 'Έξοδος από τη ΜΕΘ', labelEn: 'Leaving the ICU' }],
   breakdowns: ['category', 'admission_reason', 'outcome'],
   fields: [
     { key: 'admission_date', section: 'admission', type: 'date', required: true, label: 'Ημερομηνία εισαγωγής', labelEn: 'Admission date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΙΣΑΓΩΓΗΣ ΜΕΘ'] },
@@ -50,7 +50,8 @@ const ICU = {
     yes('cultures', 'Λήψη καλλιεργειών', 'Cultures taken', { section: 'stay', aliases: ['ΛΗΨΗ ΚΑΛΛΙΕΡΓΕΙΩΝ', 'ΕΓΙΝΕ ΛΗΨΗ ΚΑΛΛΙΕΡΓΕΙΩΝ'] }),
     { key: 'discharge_date', section: 'discharge', type: 'date', notBefore: 'admission_date', list: true, label: 'Ημερομηνία εξόδου', labelEn: 'Discharge date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ ΑΠΟ ΤΗ ΜΕΘ'] },
     { ...stay('admission_date', 'discharge_date'), section: 'discharge', label: 'Ημέρες ΜΕΘ', labelEn: 'ICU days' },
-    { key: 'outcome', section: 'discharge', type: 'choice', list: true, label: 'Έκβαση', labelEn: 'Outcome', aliases: ['ΕΚΒΑΣΗ'], showWhen: { field: 'discharge_date' }, options: [o('transfer_ward', 'Μεταφορά σε κλινική', 'Transfer to a ward', ['ΜΕΤΑΦΟΡΑ']), o('transfer_hospital', 'Διακομιδή σε άλλο νοσοκομείο', 'Transfer to another hospital', ['ΔΙΑΚΟΜΙΔΗ']), o('death', 'Θάνατος', 'Death', ['ΘΑΝΑΤΟΣ'])] },
+    { key: 'outcome', section: 'discharge', type: 'choice', list: true, label: 'Πού πήγε', labelEn: 'Where to', aliases: ['ΕΚΒΑΣΗ'], showWhen: { field: 'discharge_date' }, options: [o('transfer_ward', 'Μεταφορά σε νοσηλευτικό τμήμα', 'Transfer to a ward', ['ΜΕΤΑΦΟΡΑ']), o('transfer_hospital', 'Διακομιδή σε άλλο νοσοκομείο', 'Transfer to another hospital', ['ΔΙΑΚΟΜΙΔΗ']), o('death', 'Θάνατος', 'Death', ['ΘΑΝΑΤΟΣ'])] },
+    { key: 'transfer_department', section: 'discharge', type: 'choice', provisional: true, label: 'Τμήμα μεταφοράς', labelEn: 'Receiving ward', showWhen: { field: 'outcome', value: 'transfer_ward' }, help: 'Το νοσηλευτικό τμήμα όπου πήγε ο ασθενής. Η λίστα συμπληρώνεται με τα τμήματα του νοσοκομείου.', helpEn: 'The ward the patient went to. The list is completed with the hospital’s wards.', options: [o('internal', 'Παθολογική', 'Internal Medicine'), o('surgical', 'Χειρουργική', 'Surgery'), o('cardiology', 'Καρδιολογική', 'Cardiology'), o('cardiac_surgery_ward', 'Καρδιοχειρουργική κλινική', 'Cardiac surgery ward'), o('neurology', 'Νευρολογική', 'Neurology'), o('orthopaedic', 'Ορθοπαιδική', 'Orthopaedics'), o('pulmonary', 'Πνευμονολογική', 'Pulmonology'), o('other_ward', 'Άλλο τμήμα', 'Other ward')] },
   ],
   indicators: [
     count('patients', 'Ασθενείς', 'Patients'),

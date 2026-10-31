@@ -93,8 +93,14 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
         </FormGrid>
         {draft.kind === 'case' && <FormGrid columns={3}>
           <SearchableSelect label={en ? 'Date a case counts on' : 'Ημερομηνία που μετράει το περιστατικό'} value={draft.settings?.entryDateField || ''} disabled={!canEdit} options={dateFields.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => setSettings({ entryDateField: value || '' })} {...selectText(en)} />
-          <YesNoField label={en ? 'Case number' : 'Αριθμός περιστατικού'} value={Boolean(draft.settings?.identity?.caseNumber)} onChange={value => canEdit && setSettings({ identity: { ...(draft.settings?.identity || {}), caseNumber: value } })} hint={en ? 'Kept in the identity table.' : 'Στον πίνακα ταυτότητας.'} />
-          <YesNoField label={en ? 'Patient name' : 'Ονοματεπώνυμο'} value={Boolean(draft.settings?.identity?.patientName)} onChange={value => canEdit && setSettings({ identity: { ...(draft.settings?.identity || {}), patientName: value } })} hint={en ? 'Seen only inside the department.' : 'Το βλέπει μόνο το τμήμα.'} />
+          <div className="register-builder-checks">
+            <span className="lo-field-label">{en ? 'Identity kept for each case' : 'Ταυτότητα που κρατιέται σε κάθε περιστατικό'}</span>
+            <div className="register-builder-checks-row">
+              <YesNoField label={en ? 'Case number' : 'Αριθμός περιστατικού'} value={Boolean(draft.settings?.identity?.caseNumber)} onChange={value => canEdit && setSettings({ identity: { ...(draft.settings?.identity || {}), caseNumber: value } })} />
+              <YesNoField label={en ? 'Patient name' : 'Ονοματεπώνυμο'} value={Boolean(draft.settings?.identity?.patientName)} onChange={value => canEdit && setSettings({ identity: { ...(draft.settings?.identity || {}), patientName: value } })} />
+            </div>
+            <small className="field-hint">{en ? 'Seen only inside the department; never in indicators or exports.' : 'Τα βλέπει μόνο το τμήμα· δεν εμφανίζονται σε δείκτες ή εξαγωγές.'}</small>
+          </div>
         </FormGrid>}
       </FormCard>}
 
