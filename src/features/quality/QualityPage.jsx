@@ -1,7 +1,7 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { STALE_DAYS,isStaleRegister as isStale } from '../registers/registerFigures'
 import { KpiFigures } from '../../design-system/KpiCard'
-import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileText,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -37,6 +37,8 @@ import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { ObjectivesTable,objectivesExport,useObjectives } from './review/QualityObjectives'
+import { loadObjectiveHistories,objectivesDossier } from './review/objectiveDossier'
+import { loadReviews } from './review/reviewService'
 import { SurveysList,filterSurveys,surveyCounts,surveysExport,useSurveys } from './surveys/SurveysPanel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExport,filterEquipment,filterSuppliers,supplierCounts,suppliersExport } from './resources/resourceModel'
@@ -149,6 +151,9 @@ export function QualityPage({section=''}={}){
  const [staleOnly,setStaleOnly]=useState(false)
  const registerList=useRegisterList()
  const objectives=useObjectives(tenant?.id)
+ // The auditor's file of the year's objectives: the months of each and the last management review, read once the objectives are on screen.
+ const [dossierData,setDossierData]=useState(null)
+ useEffect(()=>{if(tab!=='indicators'||measureView!=='objectives'||objectives.loading||!tenant?.id){return undefined}let live=true;Promise.all([loadObjectiveHistories(tenant.id,objectives.objectives),loadReviews(tenant.id).catch(()=>[])]).then(([histories,reviews])=>{if(live)setDossierData({histories,reviews})}).catch(()=>{if(live)setDossierData(null)});return()=>{live=false}},[tab,measureView,objectives.loading,objectives.objectives,tenant?.id])
  const surveys=useSurveys()
  const visibleSurveys=useMemo(()=>filterSurveys(surveys.surveys,surveyFilters),[surveys.surveys,surveyFilters])
  const resources=useResources(tab==='resources')
@@ -262,7 +267,7 @@ export function QualityPage({section=''}={}){
   ]}/>})(),
   risks:listExport(riskRows,()=>riskAssessmentsExport(riskRows,language),L('Εκτιμήσεις κινδύνου','Risk assessments')),
   // «Indicators» puts its own «Export» here (actionsSlot).
-  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives')),
+  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):<>{listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'))}<ActionButton label={L('Φάκελος στοχοθεσίας για επιθεωρητή','Objectives file for the auditor')} disabled={!dossierData||!activeObjectives.length} onClick={()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,histories:dossierData.histories,reviews:dossierData.reviews,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}><FileText size={16}/><span>{L('Φάκελος για επιθεωρητή','Auditor file')}</span></ActionButton></>,
   resources:resourceView==='equipment'?listExport(visibleEquipment,()=>equipmentExport(visibleEquipment,language),L('Εξοπλισμός','Equipment')):listExport(visibleSuppliers,()=>suppliersExport(visibleSuppliers,language),L('Προμηθευτές','Suppliers')),
  })[tab]
 

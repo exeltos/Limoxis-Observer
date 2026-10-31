@@ -20,6 +20,7 @@ import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { CAPABILITIES,can } from '../../../core/permissions/roles'
 import { monthlySeries,textOf } from '../../registers/registerEngine'
 import { loadEntries } from '../../registers/registerService'
+import { objectiveSection } from './objectiveDossier'
 import { formatObjectiveValue,objectiveState } from './reviewTemplate'
 import { objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
 import { rememberQualitySection } from '../qualityReturnSection'
@@ -72,6 +73,7 @@ export function ObjectiveRecordPage(){
  const printObjective=pdf=>{
   const ok=printReport({language,kind:en?'Quality objective':'Στόχος ποιότητας',code:objective.code,title:objectiveTitle(objective,language),subtitle:String(objective.year),
    meta:[[en?'Value today':'Τιμή σήμερα',value],[en?'Target':'Στόχος',target],[en?'Status':'Κατάσταση',objectiveStateLabel(state,en)],...detail.flatMap(section=>section.items.filter(item=>item.value!=null&&item.value!=='').map(item=>[item.label,String(item.value)]))],
+   sections:[{...objectiveSection(objective,history,language),title:en?'Value by month':'Τιμή ανά μήνα',facts:null}],
    filename:`${objective.code}_${objective.year}`},{pdf:pdf===true})
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
