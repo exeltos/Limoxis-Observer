@@ -80,18 +80,31 @@
 .register-change{display:inline-flex;align-items:center;gap:2px;font-weight:600;color:var(--lo-color-text)}
 .register-change.is-better{color:var(--lo-status-success-fg)}
 .register-change.is-worse{color:var(--lo-status-danger-fg)}
-.register-indicator-detail{display:grid;gap:12px;padding:14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.register-indicator-detail{display:grid;gap:14px}
 .register-indicator-detail header h4{margin:0}
 .register-indicator-detail header p{margin:4px 0 0;color:var(--lo-color-muted);font-size:13px}
 .register-trend{position:relative;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;align-items:end;height:170px;padding:18px 0 34px}
-.register-trend-bar{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
-.register-trend-bar i{display:block;width:70%;border-radius:4px 4px 0 0;background:var(--lo-color-primary)}
-.register-trend-bar.is-attention i{background:var(--lo-status-warning-border)}
-.register-trend-bar.is-breach i{background:var(--lo-status-danger-border)}
+.register-trend-bar{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;padding:0;border:0;border-radius:6px;background:none;font:inherit;color:inherit;cursor:pointer}
+.register-trend-bar:hover,.register-trend-bar.is-current{background:color-mix(in srgb,var(--lo-color-primary) 7%,transparent)}
+.register-trend-bar:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:1px}
+.register-trend-bar i{display:block;width:62%;border-radius:4px 4px 0 0;background:color-mix(in srgb,var(--lo-color-primary) 70%,var(--lo-color-surface))}
+.register-trend-bar.is-onTarget i{background:color-mix(in srgb,var(--lo-status-success-fg) 62%,var(--lo-color-surface))}
+.register-trend-bar.is-attention i{background:color-mix(in srgb,var(--lo-status-warning-fg) 62%,var(--lo-color-surface))}
+.register-trend-bar.is-breach i{background:color-mix(in srgb,var(--lo-status-danger-fg) 62%,var(--lo-color-surface))}
+.register-trend-bar.is-empty i{height:3px;border-radius:2px;background:var(--lo-color-border)}
+.register-trend-bar.is-current i{box-shadow:0 0 0 2px color-mix(in srgb,var(--lo-color-primary) 35%,transparent)}
 .register-trend-bar b{position:absolute;top:-18px;font-size:11px;font-weight:600}
 .register-trend-bar small{position:absolute;bottom:-22px;font-size:11px;color:var(--lo-color-muted)}
 .register-trend-target{position:absolute;left:0;right:0;border-top:2px dashed var(--lo-status-success-border);margin-bottom:34px;pointer-events:none}
 .register-trend-target em{position:absolute;right:0;top:-16px;font-size:11px;font-style:normal;color:var(--lo-status-success-fg)}
+.register-coverage{display:flex;align-items:center;gap:8px;margin:0;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;font-size:13px;color:var(--lo-color-muted)}
+.register-coverage strong{color:var(--lo-color-text)}
+.register-coverage.is-partial{border-color:var(--lo-status-warning-border);color:var(--lo-status-warning-fg)}
+.register-counted{display:grid;gap:8px}
+.register-counted h5{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:0;font-size:13px}
+.register-counted h5 small{font-weight:400;color:var(--lo-color-muted)}
+.register-counted-table td small{display:block;color:var(--lo-color-muted)}
+.register-counted-yes{display:inline-flex;align-items:center;gap:4px;font-weight:650;color:var(--lo-status-success-fg)}
 .register-split h5{margin:0 0 6px;font-size:13px}
 .register-split-bar{width:40%}
 .register-split-bar i{display:block;height:8px;border-radius:4px;background:var(--lo-color-primary)}

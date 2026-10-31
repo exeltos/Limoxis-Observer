@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apacheMortality, breakdown, computeIndicator, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
+import { apacheMortality, breakdown, computeIndicator, countedEntries, sheetCoverage, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
 import { REGISTER_TEMPLATES, registerFromTemplate } from '../src/features/registers/registerTemplates'
 import { demoRegisterEntries, demoRegisters } from '../src/features/registers/registerDemoData'
 
@@ -201,5 +201,32 @@ describe('database shape', () => {
       for (const field of template.fields || []) for (const option of field.options || []) expect(option.value).toMatch(/^[a-z0-9][a-z0-9_]{0,40}$/)
       for (const row of [...(template.sheet?.rows || []), ...(template.sheet?.measures || [])]) expect(row.key).toMatch(/^[a-z][a-z0-9_]{0,30}$/)
     }
+  })
+})
+
+describe('which entries an indicator counted', () => {
+  it('lists the period’s entries newest first and marks the ones in the numerator', () => {
+    const demo = demoRegisters().find(item => item.kind === 'case')
+    const mortality = demo.indicators.find(item => item.aggregation === 'percent')
+    const period = periodOf('year', new Date().toISOString().slice(0, 10))
+    const mine = demoRegisterEntries().entries.filter(item => item.registerId === demo.id)
+    const rows = countedEntries(demo, mortality, mine, period)
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.every((row, index) => index === 0 || rows[index - 1].day >= row.day)).toBe(true)
+    expect(rows.filter(row => row.counted).length).toBe(computeIndicator(demo, mortality, mine, period).numerator)
+  })
+})
+
+describe('how much of a period a sheet has', () => {
+  const entries = [{ periodStart: '2026-01-01' }, { periodStart: '2026-03-01' }]
+  it('counts the months of the period that have passed', () => {
+    expect(sheetCoverage(entries, periodOf('quarter', '2026-03-10'), '2026-05-10', '2026-11')).toEqual({ unit: 'month', recorded: 2, expected: 3 })
+  })
+  it('counts days once the daily sheets start, up to today', () => {
+    expect(sheetCoverage([{ periodStart: '2026-11-01' }, { periodStart: '2026-11-03' }], periodOf('month', '2026-11-10'), '2026-11-05', '2026-11')).toEqual({ unit: 'day', recorded: 2, expected: 5 })
+  })
+  it('says nothing for a period that mixes months and days, or has not started', () => {
+    expect(sheetCoverage(entries, periodOf('year', '2026-11-10'), '2026-12-05', '2026-11')).toBeNull()
+    expect(sheetCoverage(entries, periodOf('month', '2027-01-10'), '2026-12-05', '2026-11')).toBeNull()
   })
 })

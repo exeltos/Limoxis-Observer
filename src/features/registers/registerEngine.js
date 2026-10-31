@@ -379,6 +379,33 @@ export function indicatorReport(register, entries = [], period) {
   }))
 }
 
+// The entries of a period as the indicator reads them: the day it counts on, whether it
+// is in the numerator (`counted`), whether it is in the base of a percent (`base`) and the
+// value of the indicator's field. A case register only; the newest day first.
+export function countedEntries(register, indicator, entries = [], period) {
+  const ratio = indicator.aggregation === 'percent'
+  return entriesInPeriod(entries, period, indicator).map(entry => {
+    const values = computeValues(register.fields, entry.values || {})
+    const base = !ratio || matchesAll(indicator.denominatorFilters, values)
+    const counted = (ratio ? base : true) && matchesAll(indicator.filters, values)
+    return { entry, day: String(entryDay(entry, indicator) || '').slice(0, 10), counted, base, value: indicator.field ? values[indicator.field] : undefined }
+  }).sort((a, b) => b.day.localeCompare(a.day))
+}
+
+// How much of a period a sheet has: months (before the daily sheets) or days with an entry, out
+// of those that have passed. null when the period mixes the two or has not started.
+export function sheetCoverage(entries = [], period, today, dailyFrom) {
+  const months = []
+  for (let month = period.from.slice(0, 7); month <= period.to.slice(0, 7); month = shiftPeriod(periodOf('month', `${month}-01`), 1).from.slice(0, 7)) if (`${month}-01` <= today) months.push(month)
+  if (!months.length) return null
+  const legacy = months.map(month => month < dailyFrom)
+  if (legacy.some(Boolean) && !legacy.every(Boolean)) return null
+  const inPeriod = entriesInPeriod(entries, period)
+  if (legacy[0]) return { unit: 'month', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 7)).filter(month => months.includes(month))).size, expected: months.length }
+  const expected = months.reduce((sum, month) => sum + (month === today.slice(0, 7) ? Number(today.slice(8, 10)) : lastDay(Number(month.slice(0, 4)), Number(month.slice(5, 7)))), 0)
+  return { unit: 'day', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 10))).size, expected }
+}
+
 // What a filter says in words («Είδος τοκετού είναι Κ/Τ»).
 export function filterText(register, filter, language = 'el') {
   const field = (register.fields || []).find(item => item.key === filter.field)
