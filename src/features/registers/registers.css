@@ -260,3 +260,21 @@
 
 /* One section: no side index, the page takes the whole width. */
 .register-entry-layout.has-no-rail{grid-template-columns:minmax(0,1fr)}
+
+/* The daily entry as the department's ledger: a line per procedure, the number at the end, what it was the day before under the name. */
+.register-sheet{--reg-accent:var(--lo-color-primary)}
+.register-sheet.is-theme-endoscopy{--reg-accent:#1f8a8a}
+.register-ledger{display:grid;gap:0;border:1px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface);box-shadow:inset 4px 0 0 var(--reg-accent);overflow:clip}
+.register-ledger-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px 10px 20px;background:linear-gradient(180deg,color-mix(in srgb,var(--reg-accent) 10%,var(--lo-color-surface)),var(--lo-color-surface));border-bottom:1px solid var(--lo-color-border);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
+.register-ledger-head strong{color:var(--reg-accent);font-size:12px}
+.register-ledger-lines{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+.register-ledger-line{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name value" "note value";align-items:center;column-gap:16px;row-gap:1px;padding:9px 16px 9px 20px;border-bottom:1px solid var(--lo-color-border);cursor:text}
+.register-ledger-line:hover{background:color-mix(in srgb,var(--reg-accent) 5%,var(--lo-color-surface))}
+.register-ledger-line:focus-within{background:color-mix(in srgb,var(--reg-accent) 9%,var(--lo-color-surface))}
+.register-ledger-name{grid-area:name;align-self:end;font-size:14px;font-weight:650}
+.register-ledger-line>.register-sheet-input,.register-ledger-line>.register-sheet-value{grid-area:value;width:88px}
+.register-ledger-line>.register-sheet-value{text-align:right}
+.register-ledger-note{grid-area:note;align-self:start}
+.register-ledger-line.is-unusual{box-shadow:inset 3px 0 0 #d08a00}
+.register-ledger-line.is-unusual .register-sheet-input{border-color:#d08a00;background:#fffaf0}
+.register-ledger-line.is-unusual .register-ledger-note{color:#9a5b00;font-weight:700}

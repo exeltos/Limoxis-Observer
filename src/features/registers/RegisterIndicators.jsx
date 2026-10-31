@@ -100,7 +100,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   }
   // The record's header shows «Export ▾» for this tab too: the page gets the handlers.
   useEffect(() => { onExportApi?.({ excel: exportCsv, pdf: exportPdf, busy: exporting, disabled: !report.length }); return () => onExportApi?.(null) }, [report, exporting]) // eslint-disable-line react-hooks/exhaustive-deps
-  return <RecordTabPanel className="register-indicators" title={en ? 'Indicators' : 'Δείκτες'} subtitle={en ? 'Computed from the entries; names never leave the department.' : 'Υπολογίζονται από τις καταχωρίσεις· τα ονόματα δεν φεύγουν από το τμήμα.'}
+  return <RecordTabPanel className="register-indicators" title={en ? 'Indicators' : 'Δείκτες'} subtitle={register.kind === 'sheet' ? (en ? 'Computed from the totals of the sheet.' : 'Υπολογίζονται από τα σύνολα του φύλλου.') : (en ? 'Computed from the entries; names never leave the department.' : 'Υπολογίζονται από τις καταχωρίσεις· τα ονόματα δεν φεύγουν από το τμήμα.')}
     actions={<div className="register-indicator-actions">
       <SearchableSelect hideLabel className="register-period-select" label={en ? 'Period' : 'Περίοδος'} value={kind} onChange={next=>next&&(setKind)(next)} options={optionsOf(PERIODS, language)}/>
       <PeriodStepper label={periodLabel(period, language)} onPrevious={() => step(-1)} onNext={() => step(1)} nextDisabled={shiftPeriod(period, PERIOD_MONTHS[kind]).from > new Date().toISOString().slice(0, 10)} />
@@ -176,7 +176,7 @@ function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, l
   // The breakdowns: a case register's list fields; a sheet's rows and measures (per procedure, per shift).
   const splits = register.kind === 'case'
     ? (register.settings?.breakdowns || []).map(key => { const field = register.fields.find(item => item.key === key); return field && { key, label: `${en ? 'By' : 'Ανά'} ${textOf(field, language).toLowerCase()}`, rows: breakdown(register, indicator, entries, period, key) } }).filter(split => split && split.rows.length)
-    : sheetBreakdowns(register, indicator, entries, period).map(split => ({ ...split, label: en ? split.labelEn : split.label }))
+    : indicator.aggregation === 'count' ? [] : sheetBreakdowns(register, indicator, entries, period).map(split => ({ ...split, label: en ? split.labelEn : split.label }))
   const [splitKey, setSplitKey] = useState(null)
   const split = splits.find(item => item.key === splitKey) || splits[0] || null
   const index = order.findIndex(item => item.indicator.id === indicator.id)

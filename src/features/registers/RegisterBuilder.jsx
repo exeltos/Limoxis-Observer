@@ -17,7 +17,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { auditActorFromAuth } from '../../core/audit/actor'
-import { AGGREGATIONS, COMPUTED_KINDS, FIELD_TYPES, FILTER_OPS, filterText, keyFrom, optionLabel, optionsOf, textOf } from './registerEngine'
+import { AGGREGATIONS, DAILY_SHEETS_FROM, COMPUTED_KINDS, FIELD_TYPES, FILTER_OPS, filterText, keyFrom, optionLabel, optionsOf, textOf } from './registerEngine'
 import { saveRegister } from './registerService'
 import { registerStatusLabel } from './registerText'
 
@@ -28,7 +28,7 @@ const move = (list, index, step) => { const next = [...list]; const target = ind
 // or rows and measures (sheet), and the indicators. Each new field becomes a
 // column of the register's table; a field taken out is archived with its data.
 // A saved field keeps its key and type, so the data already recorded keeps its meaning.
-export function RegisterBuilder({ register, canEdit, entryCount, openIndicator = null, onSaved }) {
+export function RegisterBuilder({ register, entries = [], canEdit, entryCount, openIndicator = null, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -127,7 +127,7 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
       </FormCard>}
 
       {part === 'fields' && draft.kind === 'sheet' && <FormCard wide title={en ? 'Sheet' : 'Φύλλο'} hint={en ? 'Rows are what is counted (procedures); measures are the columns (number, shift). Each row × measure is a column of the table.' : 'Γραμμές: τι μετράται (πράξεις). Στήλες: τα μέτρα (αριθμός, βάρδια). Κάθε γραμμή × στήλη είναι στήλη του πίνακα.'}>
-        <AxisEditor title={en ? 'Rows' : 'Γραμμές'} items={draft.sheet.rows} canEdit={canEdit} language={language} groups={draft.sheet.groups || []} onChange={rows => patch({ sheet: { ...draft.sheet, rows } })} />
+        <AxisEditor usual={usualPerDay(draft, entries)} title={en ? 'Rows' : 'Γραμμές'} items={draft.sheet.rows} canEdit={canEdit} language={language} groups={draft.sheet.groups || []} onChange={rows => patch({ sheet: { ...draft.sheet, rows } })} />
         <AxisEditor title={en ? 'Measures' : 'Στήλες'} items={draft.sheet.measures} canEdit={canEdit} language={language} onChange={measures => patch({ sheet: { ...draft.sheet, measures } })} />
       </FormCard>}
 
@@ -152,12 +152,23 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
   </RecordTabPanel>
 }
 
+// What each row usually is per day: the mean of the last 30 daily entries (null before the daily sheets start).
+function usualPerDay(register, entries) {
+  if (register.kind !== 'sheet') return null
+  const dailyFrom = register.sheet?.dailyFrom || DAILY_SHEETS_FROM
+  const days = entries.filter(entry => String(entry.periodStart).slice(0, 7) >= dailyFrom).sort((a, b) => String(b.periodStart).localeCompare(String(a.periodStart))).slice(0, 30)
+  return new Map((register.sheet?.rows || []).map(row => {
+    const totals = days.map(entry => Object.values(entry.values?.[row.key] || {}).reduce((sum, cell) => sum + (Number(cell) || 0), 0))
+    return [row.key, totals.length ? totals.reduce((sum, value) => sum + value, 0) / totals.length : null]
+  }))
+}
+
 // The rows (or measures) of a sheet as a table, like the fields: each one is edited under its row.
-function AxisEditor({ title, items = [], canEdit, language, groups, onChange }) {
+function AxisEditor({ title, items = [], canEdit, language, groups, usual = null, onChange }) {
   const en = language === 'en'
   const [editing, setEditing] = useState(null)
   const withGroups = groups?.length > 0
-  const columns = (withGroups ? 2 : 1) + (canEdit ? 1 : 0)
+  const columns = (withGroups ? 2 : 1) + (usual ? 1 : 0) + (canEdit ? 1 : 0)
   function apply(next) {
     const label = next.label.trim()
     const item = { ...next, label, labelEn: (next.labelEn || '').trim() || label }
@@ -167,11 +178,12 @@ function AxisEditor({ title, items = [], canEdit, language, groups, onChange }) 
   const editor = <AxisItemEditor item={editing?.item} title={title} groups={groups} language={language} onCancel={() => setEditing(null)} onApply={apply} />
   return <div className="register-builder-section">
     <div className="register-builder-section-head"><strong>{title} ({items.length})</strong>{canEdit && !editing && <Button variant="secondary" onClick={() => setEditing({ index: null, item: { label: '', labelEn: '', group: '' } })}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>}</div>
-    <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Name' : 'Όνομα'}</th>{withGroups && <th>{en ? 'Group' : 'Ομάδα'}</th>}{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{items.map((item, index) => {
+    <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Name' : 'Όνομα'}</th>{withGroups && <th>{en ? 'Group' : 'Ομάδα'}</th>}{usual && <th className="register-num">{en ? 'Usually per day' : 'Συνήθως ανά ημέρα'}</th>}{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{items.map((item, index) => {
       const open = editing?.index === index
       return <Fragment key={item.key}><tr className={open ? 'is-editing' : undefined}>
         <td><strong>{textOf(item, language)}</strong></td>
         {withGroups && <td>{textOf(groups.find(group => group.key === item.group), language) || <span className="register-muted">—</span>}</td>}
+        {usual && <td className="register-num">{usual.get(item.key) == null ? <span className="register-muted">—</span> : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(usual.get(item.key))}</td>}
         {canEdit && <td className="register-builder-tools-cell"><span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => onChange(move(items, index, -1))}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Down' : 'Κάτω'} onClick={() => onChange(move(items, index, 1))}><ArrowDown size={14} /></IconButton><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ index, item })}><Pencil size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove (data kept)' : 'Αφαίρεση (τα δεδομένα μένουν)'} onClick={() => onChange(items.filter((_, position) => position !== index))}><Archive size={14} /></IconButton></span></td>}
       </tr>{open && <tr className="register-builder-editor-row"><td colSpan={columns}>{editor}</td></tr>}</Fragment>
     })}</tbody></table>
@@ -294,7 +306,7 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }) {
   const sheet = register.kind === 'sheet'
   const numeric = register.fields.filter(field => ['number', 'computed', 'gestation'].includes(field.type))
   const dates = register.fields.filter(field => field.type === 'date')
-  const aggregations = AGGREGATIONS.filter(item => (sheet ? ['sum', 'percent', 'mean'].includes(item.value) : item.value !== 'smr' || indicator.aggregation === 'smr'))
+  const aggregations = AGGREGATIONS.filter(item => (sheet ? ['sum', 'percent', 'mean', 'count'].includes(item.value) : item.value !== 'smr' || indicator.aggregation === 'smr'))
   const rows = (register.sheet?.rows || []).map(row => ({ value: row.key, label: textOf(row, language) }))
   const measures = (register.sheet?.measures || []).map(measure => ({ value: measure.key, label: textOf(measure, language) }))
   const needsField = !sheet && ['mean', 'median', 'sum'].includes(indicator.aggregation)
@@ -318,6 +330,7 @@ function IndicatorEditor({ indicator: initial, register, onCancel, onSave }) {
         <ChoiceChips label={en ? 'Rows (none = all)' : 'Γραμμές (καμία = όλες)'} options={rows} selected={indicator.rows || []} onToggle={value => set({ rows: (indicator.rows || []).includes(value) ? indicator.rows.filter(item => item !== value) : [...(indicator.rows || []), value] })} />
         {measures.length > 1 && <SearchableSelect label={en ? 'Measure (empty = all)' : 'Στήλη (κενό = όλες)'} value={indicator.measure || ''} options={measures} onChange={value => set({ measure: value || '' })} {...selectText(en)} />}
         {indicator.aggregation === 'percent' && <ChoiceChips label={en ? 'Out of rows (none = all)' : 'Επί των γραμμών (καμία = όλες)'} options={rows} selected={indicator.denominatorRows || []} onToggle={value => set({ denominatorRows: (indicator.denominatorRows || []).includes(value) ? indicator.denominatorRows.filter(item => item !== value) : [...(indicator.denominatorRows || []), value] })} />}
+        {['mean', 'count'].includes(indicator.aggregation) && <YesNoField label={en ? 'Only from the daily sheets' : 'Μόνο από τα ημερήσια φύλλα'} value={Boolean(indicator.dailyOnly)} onChange={value => set({ dailyOnly: value })} hint={en ? 'Months recorded as a single total are left out.' : 'Οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.'} />}
       </FormCard> : <FormCard wide title={en ? 'Which cases' : 'Ποια περιστατικά'} hint={en ? 'No condition = every case of the period.' : 'Χωρίς συνθήκη = όλα τα περιστατικά της περιόδου.'}>
         <FilterRows register={register} filters={indicator.filters || []} language={language} onChange={filters => set({ filters })} />
         {['percent', 'rate', 'smr'].includes(indicator.aggregation) && <><h5 className="register-builder-subtitle">{indicator.aggregation === 'rate' ? (en ? 'Days counted among' : 'Ημέρες από τα περιστατικά με') : (en ? 'Out of cases with' : 'Επί των περιστατικών με')}</h5><FilterRows register={register} filters={indicator.denominatorFilters || []} language={language} onChange={denominatorFilters => set({ denominatorFilters })} /></>}

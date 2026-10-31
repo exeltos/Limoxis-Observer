@@ -77,6 +77,7 @@ function indicatorFromRow(row, filters, denominatorFilters) {
   add('field', row.field_key); add('dateField', row.date_field_key); add('denominatorField', row.denominator_field_key); add('multiplier', num(row.multiplier))
   add('rows', row.sheet_rows); add('measure', row.sheet_measure); add('denominatorRows', row.denominator_rows); add('denominatorMeasure', row.denominator_measure)
   add('unit', row.unit_el); add('unitEn', row.unit_en); add('target', num(row.target)); add('threshold', num(row.threshold)); add('note', row.note_el); add('noteEn', row.note_en)
+  if (row.daily_only) indicator.dailyOnly = true
   if (!indicator.rows) indicator.rows = []
   return indicator
 }
@@ -156,6 +157,7 @@ export function definitionRows(register, organizationId, registerId) {
     sheet_measure: orNull(indicator.measure),
     denominator_rows: indicator.denominatorRows || [],
     denominator_measure: orNull(indicator.denominatorMeasure),
+    daily_only: Boolean(indicator.dailyOnly),
     unit_el: orNull(indicator.unit),
     unit_en: orNull(indicator.unitEn),
     target: num(indicator.target),

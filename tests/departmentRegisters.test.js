@@ -239,6 +239,33 @@ describe('the obstetrics register', () => {
   })
 })
 
+describe('daily sheets', () => {
+  const endoscopy = registerFromTemplate('endoscopy')
+  const find = id => endoscopy.indicators.find(item => item.id === id)
+  const day = (periodStart, gastroscopy, ercp = 0) => ({ periodStart, values: { gastroscopy: { count: gastroscopy }, ercp: { count: ercp } } })
+  it('reads the mean per day and the days recorded from the daily sheets only', () => {
+    const entries = [{ periodStart: '2026-10-01', values: { gastroscopy: { count: 90 } } }, day('2026-11-02', 4), day('2026-11-03', 6, 1)]
+    expect(computeIndicator(endoscopy, find('daily_mean'), entries, periodOf('month', '2026-11-10')).value).toBe(5.5)
+    expect(computeIndicator(endoscopy, find('days_recorded'), entries, periodOf('month', '2026-11-10')).value).toBe(2)
+    // A month recorded as one total has no day to average: nothing, not a wrong number.
+    expect(computeIndicator(endoscopy, find('daily_mean'), entries, periodOf('month', '2026-10-10')).value).toBeNull()
+    expect(computeIndicator(endoscopy, find('days_recorded'), entries, periodOf('month', '2026-10-10')).value).toBeNull()
+    expect(computeIndicator(endoscopy, find('total'), entries, periodOf('month', '2026-10-10')).value).toBe(90)
+  })
+  it('shares the advanced procedures over all the procedures', () => {
+    const result = computeIndicator(endoscopy, find('advanced_share'), [day('2026-11-02', 9, 1)], periodOf('month', '2026-11-10'))
+    expect(result.value).toBe(10)
+  })
+  it('keeps the daily-only mark when the definition goes to the database and back', async () => {
+    const { registerFromRows, registerRow, definitionRows } = await import('../src/features/registers/registerCloud')
+    const rows = definitionRows(endoscopy, 'org-1')
+    expect(rows.indicators.find(row => row.key === 'daily_mean').daily_only).toBe(true)
+    expect(rows.indicators.find(row => row.key === 'total').daily_only).toBe(false)
+    expect(typeof registerFromRows).toBe('function')
+    expect(typeof registerRow).toBe('function')
+  })
+})
+
 describe('database shape', () => {
   it('writes every template row by row and reads the same register back', async () => {
     const { definitionRows, registerFromRows, registerRow } = await import('../src/features/registers/registerCloud')

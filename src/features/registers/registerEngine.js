@@ -33,6 +33,9 @@ export function apacheMortality(score, postop) {
   return APACHE_MORTALITY[postop ? 'postop' : 'medical'][Math.min(7, Math.max(0, Math.floor(Number(score) / 5)))]
 }
 
+// Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
+export const DAILY_SHEETS_FROM = '2026-11'
+
 export const AGGREGATIONS = [
   { value: 'count', label: ['Πλήθος', 'Count'] },
   { value: 'percent', label: ['Ποσοστό %', 'Percentage %'] },
@@ -255,18 +258,26 @@ export function computeIndicator(register, indicator, entries = [], period) {
   const result = { id: indicator.id, value: null, numerator: null, denominator: null, n: inPeriod.length, small: false }
   if (register.kind === 'sheet') {
     const sheet = register.sheet || {}
+    // «Daily only» indicators read the days recorded one by one, never a month's single total.
+    const dailyFrom = sheet.dailyFrom || DAILY_SHEETS_FROM
+    const used = indicator.dailyOnly ? inPeriod.filter(entry => String(entry.periodStart).slice(0, 7) >= dailyFrom) : inPeriod
+    if (indicator.aggregation === 'count') {
+      result.numerator = used.length
+      result.value = indicator.dailyOnly && !used.length ? null : used.length
+      return withStatus(result, indicator)
+    }
     const allRows = (sheet.rows || []).map(row => row.key)
     const allMeasures = (sheet.measures || []).map(measure => measure.key)
     const numRows = indicator.rows?.length ? indicator.rows : allRows
     const numMeasures = indicator.measure ? [indicator.measure] : allMeasures
-    const numerator = sheetTotal(inPeriod, numRows, numMeasures)
+    const numerator = sheetTotal(used, numRows, numMeasures)
     result.numerator = numerator
     if (indicator.aggregation === 'percent') {
-      const denominator = sheetTotal(inPeriod, indicator.denominatorRows?.length ? indicator.denominatorRows : allRows, indicator.denominatorMeasure ? [indicator.denominatorMeasure] : allMeasures)
+      const denominator = sheetTotal(used, indicator.denominatorRows?.length ? indicator.denominatorRows : allRows, indicator.denominatorMeasure ? [indicator.denominatorMeasure] : allMeasures)
       result.denominator = denominator
       result.value = numerator == null || !denominator ? null : round((numerator / denominator) * 100)
     } else if (indicator.aggregation === 'mean') {
-      const months = inPeriod.filter(entry => numRows.some(row => numMeasures.some(measure => sheetCell(entry.values, row, measure) != null))).length
+      const months = used.filter(entry => numRows.some(row => numMeasures.some(measure => sheetCell(entry.values, row, measure) != null))).length
       result.denominator = months
       result.value = numerator == null || !months ? null : round(numerator / months)
     } else result.value = numerator

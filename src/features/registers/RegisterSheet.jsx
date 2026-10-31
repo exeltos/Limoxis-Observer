@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { PeriodStepper } from '../../design-system/PeriodStepper'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
-import { FormCard, FormGrid } from '../../design-system/FormCard'
-import { Field } from '../../design-system/Field'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -17,7 +15,8 @@ import { saveEntry } from './registerService'
 import { exportRegistry } from '../../core/export/registryExports'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
 import { useRegisterAccess } from './registerAccess'
-import { periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { DAILY_SHEETS_FROM, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { registerThemeKey } from './registerThemes'
 
 const thisMonth = () => new Date().toISOString().slice(0, 7)
 const blank = value => value === undefined || value === null || value === ''
@@ -40,12 +39,14 @@ export function rowContext(row, measures, valuesOf, month, current) {
 // «not recorded», not zero), the month as the sum of its days, or the whole year as a table. Months
 // recorded before the daily sheets (one total for the month, on its first day) stay as they were.
 const today = () => new Date().toISOString().slice(0, 10)
+// The day the entry opens on: today, or the last working day before it (a Saturday opens on the Friday).
+const lastWorkingDay = day => { let current = day; for (let step = 0; step < 3; step += 1) { const weekday = new Date(`${current}T00:00:00Z`).getUTCDay(); if (weekday !== 0 && weekday !== 6) return current; current = dayShift(current, -1) } return day }
 const dayShift = (day, by) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + by); return date.toISOString().slice(0, 10) }
 const daysOf = month => { const [y, m] = month.split('-').map(Number); return Array.from({ length: new Date(Date.UTC(y, m, 0)).getUTCDate() }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`) }
 // The values of several entries added together, row by row and measure by measure.
 const sumValues = list => list.reduce((total, values) => { for (const [row, cells] of Object.entries(values || {})) { total[row] = total[row] || {}; for (const [measure, cell] of Object.entries(cells || {})) if (!blank(cell)) total[row][measure] = (total[row][measure] || 0) + Number(cell) } return total }, {})
 // Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
-export const DAILY_SHEETS_FROM = '2026-11'
+export { DAILY_SHEETS_FROM }
 export const dailyFromOf = register => register.sheet?.dailyFrom || DAILY_SHEETS_FROM
 
 // newDayTick: «New day» in the record's header (each press opens today's entry).
@@ -62,7 +63,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
   const [view, setView] = useState('day')
   // A shift at a time (or the day's total) when the sheet has several shifts; the first shift opens.
   const [shift, setShift] = useState(() => register.sheet?.measures?.[0]?.key || '')
-  const [day, setDay] = useState(() => (thisMonth() >= dailyFrom ? today() : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
+  const [day, setDay] = useState(() => (thisMonth() >= dailyFrom ? lastWorkingDay(today()) : `${[...entries].map(entry => String(entry.periodStart).slice(0, 7)).sort().pop() || thisMonth()}-01`))
   const month = day.slice(0, 7)
   const legacy = month < dailyFrom
   const periodStart = legacy ? `${month}-01` : day
@@ -173,7 +174,7 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     ? <>{legacy && <span className="register-sheet-muted">{en ? 'Month total (before the daily sheets) · ' : 'Σύνολο μήνα (πριν τα ημερήσια φύλλα) · '}</span>}{isMonth && !legacy && <span className="register-sheet-muted">{en ? `${monthEntries.length} days recorded · ` : `${monthEntries.length} ημέρες καταχωρισμένες · `}</span>}{en ? `${filled} of ${rows.length} filled · total ${fmt(grand)}` : `${filled} από ${rows.length} συμπληρωμένες · σύνολο ${fmt(grand)}`}{previousTotal > 0 && <span className="register-sheet-muted">{` (${previousLabel} ${fmt(previousTotal)})`}</span>}{unusualCount > 0 && <span className="register-sheet-unusual-note"><AlertTriangle size={13} />{en ? unusualCount === 1 ? '1 unusual value' : `${unusualCount} unusual values` : unusualCount === 1 ? '1 ασυνήθιστη τιμή' : `${unusualCount} ασυνήθιστες τιμές`}</span>}</>
     : (en ? 'Pick a month to open it.' : 'Πατήστε έναν μήνα για να τον ανοίξετε.')
   const recorded = new Set(monthEntries.map(item => String(item.periodStart)))
-  return <RecordTabPanel className="register-sheet" title={isDay ? (en ? 'Entry' : 'Καταχώριση') : isMonth ? (en ? 'The month' : 'Ο μήνας') : view === 'list' ? (en ? 'Days' : 'Ημέρες') : (en ? 'The year' : 'Ετήσια εικόνα')} subtitle={subtitle}
+  return <RecordTabPanel className={`register-sheet${registerThemeKey(register) ? ` is-theme-${registerThemeKey(register)}` : ''}`} title={isDay ? (en ? 'Entry' : 'Καταχώριση') : isMonth ? (en ? 'The month' : 'Ο μήνας') : view === 'list' ? (en ? 'Days' : 'Ημέρες') : (en ? 'The year' : 'Ετήσια εικόνα')} subtitle={subtitle}
     footer={canEdit && <div className="inline-edit-footer">{dirty && <span className="register-form-errors">{en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές'}</span>}<SaveButton loading={saving} disabled={saving || !dirty} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}
     actions={<div className="register-sheet-actions">
       {isDay ? <button type="button" className="register-indicator-back" onClick={() => setView('list')}><ArrowLeft size={14} />{en ? 'Days' : 'Ημέρες'}</button> : <SearchableSelect hideLabel className="register-period-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next => next && setView(next)} options={[{ value: 'list', label: en ? 'Days' : 'Ημέρες' }, { value: 'month', label: en ? 'Month' : 'Μήνας' }, { value: 'year', label: en ? 'Year' : 'Έτος' }]} />}
@@ -185,14 +186,16 @@ export function RegisterSheet({ register, entries, onSaved, newDayTick = 0, onEx
     {view === 'list' ? <SheetDays innerRef={tableRef} register={register} entries={entries} dailyFrom={dailyFrom} language={language} onOpen={openDay} /> : view !== 'year' ? <div ref={tableRef} className="register-sheet-body">
       {byDay && <nav className="register-sheet-days" aria-label={en ? 'Days of the month' : 'Ημέρες του μήνα'}>{daysOf(month).map(item => <button key={item} type="button" className={`${item === day ? 'is-selected' : ''} ${recorded.has(item) ? 'is-recorded' : ''}`.trim()} disabled={item > today()} aria-pressed={item === day} onClick={() => goTo(item)}>{Number(item.slice(8))}</button>)}</nav>}
       {measures.length > 1 && <div className="register-sheet-shifts"><CanonicalTabs className="lo-subtabs" items={[...measures.map(measure => ({ value: measure.key, label: textOf(measure, language) })), { value: 'total', label: en ? 'Day total' : 'Σύνολο ημέρας' }]} value={shift} onChange={setShift} ariaLabel={en ? 'Shift' : 'Βάρδια'} /></div>}
-      {grouped.map(({ group, rows: groupRows }) => <FormCard key={group?.key || 'rows'} wide title={group ? textOf(group, language) : ''} className="register-sheet-formcard">
-        <FormGrid columns={3}>
-          {groupRows.map(row => { const context = contexts.get(row.key); const only = measures.length > 1 && shift !== 'total' ? measures.find(measure => measure.key === shift) : null; const total = rowTotal(row.key); return <Field key={row.key} className={context.unusual ? 'is-unusual' : ''} label={textOf(row, language)}>
+      {grouped.map(({ group, rows: groupRows }) => <section key={group?.key || 'rows'} className="register-ledger">
+        <header className="register-ledger-head"><strong>{group ? textOf(group, language) : (en ? 'Totals of the day' : 'Σύνολα ημέρας')}</strong><span>{en ? 'Number' : 'Αριθμός'}</span></header>
+        <div className="register-ledger-lines">
+          {groupRows.map(row => { const context = contexts.get(row.key); const only = measures.length > 1 && shift !== 'total' ? measures.find(measure => measure.key === shift) : null; const total = rowTotal(row.key); return <div key={row.key} className={`register-ledger-line${context.unusual ? ' is-unusual' : ''}`} onClick={event => { if (event.target.tagName !== 'INPUT') event.currentTarget.querySelector('input')?.focus() }}>
+            <span className="register-ledger-name">{textOf(row, language)}</span>
             {only || measures.length === 1 ? (canEdit ? <input className="register-sheet-input" aria-label={`${textOf(row, language)} · ${textOf(only || measures[0], language)}`} inputMode="numeric" value={values[row.key]?.[(only || measures[0]).key] ?? ''} onChange={event => set(row.key, (only || measures[0]).key, event.target.value)} onKeyDown={nextCell} /> : <strong className="register-sheet-value">{fmt(shown[row.key]?.[(only || measures[0]).key] ?? null)}</strong>) : <strong className="register-sheet-value">{fmt(total)}</strong>}
-            <small className="register-sheet-field-note">{context.unusual ? <><AlertTriangle size={12} />{en ? `usually about ${fmt(Math.round(context.average))}` : `συνήθως περίπου ${fmt(Math.round(context.average))}`}</> : context.previous != null ? `${previousLabel} ${fmt(context.previous)}` : '\u00a0'}</small>
-          </Field> })}
-        </FormGrid>
-      </FormCard>)}
+            <small className="register-sheet-field-note register-ledger-note">{context.unusual ? <><AlertTriangle size={12} />{en ? `usually about ${fmt(Math.round(context.average))}` : `συνήθως περίπου ${fmt(Math.round(context.average))}`}</> : context.previous != null ? `${previousLabel} ${fmt(context.previous)}` : '\u00a0'}</small>
+          </div> })}
+        </div>
+      </section>)}
       <RecordMetricStrip className="register-sheet-totals" items={[
         { label: isMonth || legacy ? (en ? 'Month total' : 'Σύνολο μήνα') : (en ? 'Day total' : 'Σύνολο ημέρας'), value: fmt(grand), primary: true },
         { label: byDay ? (en ? 'Previous day' : 'Προηγούμενη ημέρα') : (en ? 'Previous month' : 'Προηγούμενος μήνας'), value: previousTotal ? fmt(previousTotal) : '—', hidden: !isDay && !isMonth },
