@@ -228,6 +228,7 @@
 
 /* ICU: a monitor-like look, and the two kinds of patient in two colours (General blue, Cardiac surgery red). */
 .register-entry-form.is-theme-icu{--reg-accent:#2f5f9e}
+.register-entry-form.is-theme-obstetrics{--reg-accent:#b84d7a}
 .register-entry-form.is-theme-icu[data-category="cardiac"]{--reg-accent:#b83a3a}
 .register-entry-category{display:grid;gap:8px}
 .register-entry-category-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
@@ -256,3 +257,6 @@
 .register-builder .lo-form-grid:has(>.lo-checkbox-field){align-items:end}
 .register-builder-checks{display:grid;gap:4px;grid-column:span 2;align-content:start}
 .register-builder-checks-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 32px;min-height:40px}
+
+/* One section: no side index, the page takes the whole width. */
+.register-entry-layout.has-no-rail{grid-template-columns:minmax(0,1fr)}

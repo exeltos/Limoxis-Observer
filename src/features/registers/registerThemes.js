@@ -1,17 +1,18 @@
-import { Activity, Baby, ClipboardList, Heart, HeartPulse } from 'lucide-react'
+import { Activity, Baby, ClipboardList, Flower2, Heart, HeartPulse } from 'lucide-react'
 
 // The look of a register's pages: the NICU and the ICU have their own (colour and icon), the rest the standard one.
 // A register is recognised by its template, or by its name («ΜΕΝΝ», «ΜΕΘ») for the hospitals' own copies.
 export function registerThemeKey(register) {
   if (!register) return ''
-  if (register.templateKey === 'nicu' || register.templateKey === 'icu') return register.templateKey
+  if (['nicu', 'icu', 'obstetrics'].includes(register.templateKey)) return register.templateKey
   const text = `${register.name || ''} ${register.nameEn || ''} ${register.department || ''}`
   if (/ΜΕΝΝ|NICU/i.test(text)) return 'nicu'
   if (/(^|[^Α-Ωα-ωά-ώ])ΜΕΘ([^Α-Ωα-ωά-ώ]|$)|\bICU\b/.test(text)) return 'icu'
+  if (register.kind !== 'sheet' && /Μαιευτικ|obstetric/i.test(text)) return 'obstetrics'
   return ''
 }
 
-export const themeIcon = key => ({ nicu: Baby, icu: HeartPulse })[key] || ClipboardList
+export const themeIcon = key => ({ nicu: Baby, icu: HeartPulse, obstetrics: Flower2 })[key] || ClipboardList
 
 // The ICU keeps General and Cardiac surgery patients in one register: each case wears its own colour and symbol.
 const ICU_CATEGORIES = { cardiac: { Icon: Heart, tone: 'danger' }, general: { Icon: Activity, tone: 'info' } }

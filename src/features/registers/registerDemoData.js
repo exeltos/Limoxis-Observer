@@ -29,6 +29,7 @@ export const DEMO_NICU_ID = 'reg-demo-nicu'
 export const DEMO_ENDOSCOPY_ID = 'reg-demo-endoscopy'
 export const DEMO_ICU_ID = 'reg-demo-icu'
 export const DEMO_PAEDIATRICS_ID = 'reg-demo-paediatrics'
+export const DEMO_OBSTETRICS_ID = 'reg-demo-obstetrics'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -39,7 +40,9 @@ export function demoRegisters() {
   const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
   icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
   const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
-  return [nicu, endoscopy, icu, paediatrics].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const obstetrics = { ...registerFromTemplate('obstetrics', { departmentId: 'Μαιευτική', department: 'Μαιευτική', departmentEn: 'Obstetrics' }), id: DEMO_OBSTETRICS_ID, code: 'REG-OBS' }
+  obstetrics.indicators = obstetrics.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } }[indicator.id] || {}) }))
+  return [nicu, endoscopy, icu, paediatrics, obstetrics].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -158,6 +161,30 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       const id = `reg-entry-icu-${entries.filter(item => item.registerId === DEMO_ICU_ID).length + 1}`
       entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΘ' })
       identities[id] = { caseNumber: String(icuNumber), patientName: `${cardiac ? 'Ασθενής Κ' : 'Ασθενής Γ'}-${pad(entries.length % 100)}` }
+    }
+  }
+  // Obstetrics: one card per mother, its own seed.
+  const momRandom = seeded(20261111)
+  let momNumber = 10550000
+  for (let back = 13; back >= 0; back -= 1) {
+    const date = new Date(Date.UTC(year, month - 1 - back, 1))
+    const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    const count = 42 + Math.floor(momRandom() * 14)
+    for (let index = 0; index < count; index += 1) {
+      const day = `${y}-${pad(m)}-${pad(1 + Math.floor(momRandom() * days))}`
+      if (day > today) continue
+      const values = {
+        date: day,
+        delivery: momRandom() < 0.04 ? '' : momRandom() < 0.6 + back * -0.004 ? 'cs' : 'vaginal',
+        breastfeeding: pick(momRandom, [['exclusive', 60], ['mixed', 28], ['weaning', 12]]),
+        antenatal: pick(momRandom, [['attended', 9], ['aware_not_attended', 12], ['not_aware', 29], ['no', 50]]),
+        breast_pump: momRandom() < 0.3,
+      }
+      momNumber += 1 + Math.floor(momRandom() * 3)
+      const id = `reg-entry-obs-${entries.filter(item => item.registerId === DEMO_OBSTETRICS_ID).length + 1}`
+      entries.push({ id, registerId: DEMO_OBSTETRICS_ID, entryDate: day, periodStart: null, values, status: 'complete', locked: false, createdAt: `${day}T10:00:00Z`, createdByLabel: 'Μαία Μαιευτικής' })
+      identities[id] = { caseNumber: String(momNumber), patientName: `Λεχωίδα ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
     }
   }
   // Paediatrics: children up to 16 (newborns stay with the NICU), its own seed.

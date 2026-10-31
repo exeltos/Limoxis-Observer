@@ -140,7 +140,7 @@ export function RegisterEntryPage() {
     headerActions={!isNew && canEdit && !editing && <><IconButton label={en ? 'Edit' : 'Επεξεργασία'} tone="edit" onClick={() => setEditing(true)}><Pencil size={16} /></IconButton><IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton></>}>
     <div className={`register-form-page register-entry-form${theme ? ` is-theme-${theme}` : ''}`} data-category={marker?.value || undefined}><div className="lo-form-cards register-entry-scroll" ref={pageRef}>
       {entry?.locked && <div className="governance-banner"><Lock size={16} /><span>{en ? 'This case belongs to a closed period and is read-only.' : 'Το περιστατικό ανήκει σε κλειστή περίοδο και δεν αλλάζει.'}</span></div>}
-      <div className="register-entry-layout">
+      <div className={`register-entry-layout${sectionIndex.length > 1 ? '' : ' has-no-rail'}`}>
         {sectionIndex.length > 1 && <nav className="register-entry-rail" aria-label={en ? 'Sections of the entry' : 'Ενότητες της καταχώρισης'}>
           <span className="register-entry-rail-title"><ThemeIcon size={16} aria-hidden="true" />{en ? 'Entry' : 'Καταχώριση'}</span>
           {sectionIndex.map(item => <button key={item.id} type="button" className={`${activeSection === item.id || (!activeSection && item.no === 1) ? 'is-active' : ''} ${item.wrong ? 'has-errors' : item.total && item.filled === item.total ? 'is-done' : ''}`.trim()} onClick={() => goToSection(item.id)}>

@@ -225,6 +225,20 @@ describe('the paediatrics register', () => {
   })
 })
 
+describe('the obstetrics register', () => {
+  it('has its own look and a target on the caesarean rate in the demo', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    const register = demoRegisters().find(item => item.templateKey === 'obstetrics')
+    expect(registerThemeKey(register)).toBe('obstetrics')
+    expect(registerThemeKey({ name: 'Πράξεις Αίθουσας Τοκετών', nameEn: '', department: 'Μαιευτική', kind: 'sheet' })).toBe('')
+    const cs = register.indicators.find(item => item.id === 'cs_rate')
+    expect([cs.target, cs.threshold, cs.direction]).toEqual([55, 65, 'lower'])
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
+    expect(own.length).toBeGreaterThan(400)
+    expect(computeIndicator(register, cs, own, periodOf('year', '2026-03-10')).value).not.toBeNull()
+  })
+})
+
 describe('database shape', () => {
   it('writes every template row by row and reads the same register back', async () => {
     const { definitionRows, registerFromRows, registerRow } = await import('../src/features/registers/registerCloud')
