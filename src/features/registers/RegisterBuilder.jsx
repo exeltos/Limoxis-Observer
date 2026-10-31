@@ -28,7 +28,7 @@ const move = (list, index, step) => { const next = [...list]; const target = ind
 // or rows and measures (sheet), and the indicators. Each new field becomes a
 // column of the register's table; a field taken out is archived with its data.
 // A saved field keeps its key and type, so the data already recorded keeps its meaning.
-export function RegisterBuilder({ register, canEdit, entryCount, onSaved }) {
+export function RegisterBuilder({ register, canEdit, entryCount, openIndicator = null, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const { notify } = useFeedback()
@@ -38,7 +38,12 @@ export function RegisterBuilder({ register, canEdit, entryCount, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(null)
   // The definition in three parts, so it is not one long page: the register, its fields (or sheet), its indicators.
-  const [part, setPart] = useState('register')
+  const [part, setPart] = useState(() => (openIndicator ? 'indicators' : 'register'))
+  // Opened from «Set a target»: that indicator's editor is open.
+  useEffect(() => {
+    const indicator = openIndicator && register.indicators.find(item => item.id === openIndicator)
+    if (indicator && canEdit) { setPart('indicators'); setEditing({ kind: 'indicator', indicator, previousId: indicator.id }) }
+  }, [openIndicator]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => setDraft(structuredClone(register)), [register])
   const savedKeys = useMemo(() => new Set(register.fields.map(field => field.key)), [register])
   const dirty = JSON.stringify(draft) !== JSON.stringify(register)

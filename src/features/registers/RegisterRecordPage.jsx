@@ -41,6 +41,8 @@ export function RegisterRecordPage() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState(() => location.state?.registerTab || 'entries')
+  // «Set a target» in Indicators opens that indicator in Definition.
+  const [defineIndicator, setDefineIndicator] = useState(null)
   const withIdentity = register ? access.canSeeIdentity(register) : false
   const reload = useCallback(async () => {
     setLoading(true)
@@ -72,8 +74,8 @@ export function RegisterRecordPage() {
   return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : <ClipboardList size={19} />} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack} headerActions={tab === 'entries' ? (sheet ? (onExport && <ExportMenu onExcel={onExport} />) : caseActions) : undefined}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
-    {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} />}
-    {tab === 'definition' && <RegisterBuilder register={register} canEdit={access.canDefine} entryCount={entries.length} onSaved={next => setRegister(next)} />}
+    {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onDefineTarget={access.canDefine ? indicatorId => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
+    {tab === 'definition' && <RegisterBuilder register={register} canEdit={access.canDefine} entryCount={entries.length} openIndicator={defineIndicator} onSaved={next => setRegister(next)} />}
     {tab === 'history' && <HistoryTimeline title={en ? 'History' : 'Ιστορικό'} subtitle={en ? 'Changes to the register’s definition.' : 'Αλλαγές στον ορισμό του μητρώου.'} events={[...(register.history || [])].reverse().map(event => ({ at: event.at, title: historyTitle(event.action, language), meta: [event.actor] }))} when={value => formatDay(value, language)} emptyText={en ? 'No changes yet.' : 'Δεν υπάρχουν αλλαγές ακόμη.'} />}
   </EntityRecordShell></Page>
 }
