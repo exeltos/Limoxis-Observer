@@ -10,7 +10,10 @@ describe('the annual culture plan', () => {
   it('has a page and a menu entry of its own, and the Controls no longer list the culture programme', () => {
     expect(source('src/app/App.jsx')).toContain('path="quality/culture-plan"')
     expect(source('src/app/navigation.js')).toContain("key:'culturePlan'")
-    expect(source('src/features/quality/CulturePlanPage.jsx')).toContain('<EnvironmentalAnnualPlan />')
+    expect(source('src/features/quality/CulturePlanPage.jsx')).toContain('<CalendarPage culturesOnly />')
+    const calendar = source('src/features/calendar/CalendarPage.jsx')
+    expect(calendar).toContain("isCulture(item)===culturesOnly")
+    expect(calendar).toContain("<EnvironmentalAnnualPlan/>")
     expect(source('src/features/surveillance/SurveillanceCanonicalPage.jsx')).not.toContain('EnvironmentalAnnualPlan')
     const controls = source('src/features/controls/ControlsPage.jsx')
     expect(controls).not.toContain('setKind')
