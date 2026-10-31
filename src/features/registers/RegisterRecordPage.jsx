@@ -110,15 +110,19 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [year, setYear] = useState('all')
+  // Registers of stays have a discharge date: «Still in» are the cases without one.
+  const stays = register.fields.some(field => field.key === 'discharge_date')
+  const [stay, setStay] = useState('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const columns = listFields(register)
   const years = useMemo(() => [...new Set(entries.map(entry => String(entry.entryDate || '').slice(0, 4)).filter(Boolean))].sort().reverse(), [entries])
   const rows = useMemo(() => [...entries]
     .filter(entry => year === 'all' || String(entry.entryDate).startsWith(year))
+    .filter(entry => !stays || stay === 'all' || (stay === 'in') === !entry.values?.discharge_date)
     .filter(entry => !query.trim() || `${entry.identity?.caseNumber || ''} ${entry.identity?.patientName || ''}`.toLowerCase().includes(query.trim().toLowerCase()))
-    .sort((a, b) => String(b.entryDate).localeCompare(String(a.entryDate))), [entries, year, query])
-  useEffect(() => setPage(1), [query, year, pageSize])
+    .sort((a, b) => String(b.entryDate).localeCompare(String(a.entryDate))), [entries, year, query, stay, stays])
+  useEffect(() => setPage(1), [query, year, stay, pageSize])
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const paged = rows.slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -127,8 +131,9 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
   const open = entry => registry.openRecord(navigate, `/registers/${register.id}/entries/${entry.id}`, entry.id, rows.map(item => item.id))
   return <RecordTabPanel className="register-cases" title={en ? 'Cases' : 'Περιστατικά'} subtitle={withIdentity ? (en ? 'Your department’s cases. The case number and name stay inside the department.' : 'Τα περιστατικά του τμήματος. Αριθμός περιστατικού και όνομα μένουν στο τμήμα.') : (en ? 'The values the indicators read, without names.' : 'Οι τιμές που διαβάζουν οι δείκτες, χωρίς ονόματα.')}
     footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={year !== 'all' ? 1 : 0} onClear={() => { setQuery(''); setYear('all') }}>
+    <FilterBar query={query} onQueryChange={setQuery} placeholder={withIdentity ? (en ? 'Case number or name' : 'Αριθμός περιστατικού ή όνομα') : (en ? 'Search is by case number, inside the department' : 'Η αναζήτηση γίνεται με αριθμό περιστατικού, μέσα στο τμήμα')} activeAdvancedCount={(year !== 'all' ? 1 : 0) + (stay !== 'all' ? 1 : 0)} onClear={() => { setQuery(''); setYear('all'); setStay('all') }}>
       <FilterSelect label={en ? 'Year' : 'Έτος'} value={year} onChange={setYear}><option value="all">{en ? 'All years' : 'Όλα τα έτη'}</option>{years.map(item => <option key={item} value={item}>{item}</option>)}</FilterSelect>
+      {stays && <FilterSelect label={en ? 'Stay' : 'Νοσηλεία'} value={stay} onChange={setStay}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="in">{en ? 'Still in' : 'Νοσηλεύονται'}</option><option value="out">{en ? 'Discharged' : 'Έχουν βγει'}</option></FilterSelect>}
     </FilterBar>
     <RegistryTable sortable={false} className="register-table" rows={paged} columns={[{ key: 'who', label: withIdentity ? (en ? 'Case' : 'Περιστατικό') : '#' }, ...columns.map(field => ({ key: field.key, label: textOf(field, language) }))]}
       rowProps={entry => ({ className: 'registry-row-clickable', onClick: () => open(entry), tabIndex: 0, onKeyDown: event => { if (event.key === 'Enter') open(entry) } })}
@@ -136,7 +141,7 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
         const values = computeValues(register.fields, entry.values)
         return <>
           <td>{withIdentity ? <><strong>{entry.identity?.patientName || '—'}</strong><small>{entry.identity?.caseNumber || ''}</small></> : <strong>{String(entry.id).slice(-6).toUpperCase()}</strong>}</td>
-          {columns.map(field => <td key={field.key}>{formatValue(field, values[field.key], language)}</td>)}
+          {columns.map(field => <td key={field.key}>{field.key === 'discharge_date' && !values[field.key] ? <StatusBadge tone="info">{en ? 'Still in' : 'Νοσηλεύεται'}</StatusBadge> : formatValue(field, values[field.key], language)}</td>)}
         </>
       }}
       emptyTitle={!loading && !rows.length ? (en ? 'No cases' : 'Δεν υπάρχουν περιστατικά') : ''} emptyText={canRecord ? (en ? 'Record the first case with «New case».' : 'Καταχωρίστε το πρώτο με «Νέο περιστατικό».') : ''} />

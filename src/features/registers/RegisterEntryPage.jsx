@@ -45,6 +45,8 @@ export function RegisterEntryPage() {
   const [saving, setSaving] = useState(false)
   const [tried, setTried] = useState(false)
   const [editing, setEditing] = useState(false)
+  // The section on screen: the sections are tabs, so a case of 35 fields fits the screen.
+  const [sectionTab, setSectionTab] = useState(null)
   const back = () => navigate(`/registers/${registerId}`, { replace: true })
 
   useEffect(() => {
@@ -79,8 +81,20 @@ export function RegisterEntryPage() {
   const sections = register.settings?.sections?.length ? register.settings.sections : [{ key: '', label: en ? 'Details' : 'Στοιχεία' }]
   const fieldsOf = section => register.fields.filter(field => (field.section || '') === section.key || (!sections.some(item => item.key === field.section) && section === sections[0]))
 
+  const shownSections = sections.map(section => ({ section, fields: fieldsOf(section).filter(field => fieldVisible(field, full)) })).filter(item => item.fields.length)
+  const currentSection = shownSections.find(item => (item.section.key || 'main') === sectionTab) || shownSections[0]
+  const isBlank = value => value == null || value === '' || (Array.isArray(value) && !value.length)
+  // «Admission 5/8»: the fields filled of those that are typed (computed ones fill themselves); after a failed save, how many to correct.
+  const sectionTabs = shownSections.length > 1 ? shownSections.map(({ section, fields }) => {
+    const typed = fields.filter(field => field.type !== 'computed')
+    const filled = typed.filter(field => !isBlank(full[field.key])).length
+    const wrong = tried ? fields.filter(field => check.errors[field.key]).length : 0
+    return { id: section.key || 'main', label: `${textOf(section, language)} ${filled}/${typed.length}${wrong ? ` · ${en ? 'to correct' : 'προς διόρθωση'} ${wrong}` : ''}`, icon: ClipboardList }
+  }) : []
   async function save() {
     setTried(true)
+    // The first section with a field to correct opens.
+    if (!check.valid) { const bad = shownSections.find(item => item.fields.some(field => check.errors[field.key])); if (bad) setSectionTab(bad.section.key || 'main') }
     if (!check.valid || saving || !editable) return
     setSaving(true)
     try {
@@ -103,23 +117,19 @@ export function RegisterEntryPage() {
   const title = isNew ? (en ? 'New case' : 'Νέο περιστατικό') : (showIdentity && identity.patientName) || `${en ? 'Case' : 'Περιστατικό'} ${caseCode}`
   const subtitle = [showIdentity && identity.caseNumber ? `${en ? 'Case no.' : 'Αρ. περιστατικού'} ${identity.caseNumber}` : '', !isNew && entryDate ? `${en ? 'admitted' : 'εισαγωγή'} ${formatDay(entryDate, language)}` : '', en ? register.departmentEn : register.department].filter(Boolean).join(' · ')
   const errorCount = Object.keys(check.errors).length
-  return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ClipboardList size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={subtitle} recordId={isNew ? undefined : entry.id} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
+  return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ClipboardList size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={subtitle} recordId={isNew ? undefined : entry.id} tabs={sectionTabs} activeTab={currentSection ? currentSection.section.key || 'main' : ''} onTabChange={setSectionTab} onBack={back}
     headerActions={!isNew && canEdit && !editing && <><IconButton label={en ? 'Edit' : 'Επεξεργασία'} tone="edit" onClick={() => setEditing(true)}><Pencil size={16} /></IconButton><IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton></>}>
     <div className="register-form-page register-entry-form"><div className="lo-form-cards">
       {entry?.locked && <div className="governance-banner"><Lock size={16} /><span>{en ? 'This case belongs to a closed period and is read-only.' : 'Το περιστατικό ανήκει σε κλειστή περίοδο και δεν αλλάζει.'}</span></div>}
-      {register.settings?.identity && (showIdentity ? <FormCard title={en ? 'Who' : 'Ταυτότητα'} icon={UserRound} hint={en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}>
+      {register.settings?.identity && (showIdentity ? <FormCard wide title={en ? 'Who' : 'Ταυτότητα'} icon={UserRound} hint={en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}>
         <FormGrid columns={2}>
           {register.settings.identity.caseNumber && <Field label={en ? 'Case number' : 'Αριθμός περιστατικού'}><input value={identity.caseNumber} disabled={!editable} inputMode="numeric" onChange={event => setIdentity(current => ({ ...current, caseNumber: event.target.value }))} /></Field>}
           {register.settings.identity.patientName && <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={identity.patientName} disabled={!editable} onChange={event => setIdentity(current => ({ ...current, patientName: event.target.value }))} /></Field>}
         </FormGrid>
       </FormCard> : <div className="governance-banner"><Lock size={16} /><span>{en ? 'The case number and name are kept by the department and are not shown here.' : 'Ο αριθμός περιστατικού και το όνομα μένουν στο τμήμα και δεν εμφανίζονται εδώ.'}</span></div>)}
-      {sections.map(section => {
-        const fields = fieldsOf(section).filter(field => fieldVisible(field, full))
-        if (!fields.length) return null
-        return <FormCard key={section.key || 'main'} wide title={textOf(section, language)} icon={ClipboardList}>
-          <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
-        </FormCard>
-      })}
+      {currentSection && <FormCard key={currentSection.section.key || 'main'} wide title={shownSections.length > 1 ? undefined : textOf(currentSection.section, language)} icon={ClipboardList}>
+          <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{currentSection.fields.map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
+        </FormCard>}
     </div>{editable && <div className="inline-edit-footer">{tried && errorCount > 0 && <span className="register-form-errors">{en ? `${errorCount} field(s) need attention` : `${errorCount} πεδί${errorCount === 1 ? 'ο θέλει' : 'α θέλουν'} διόρθωση`}</span>}<Button variant="secondary" onClick={isNew ? back : cancelEdit}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}</div>
   </EntityRecordShell></Page>
 }
@@ -143,7 +153,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   const hint = warning || help || ''
   const unit = en ? field.unitEn || field.unit : field.unit
   const options = (field.options || []).map(option => ({ value: option.value, label: textOf(option, language) }))
-  if (field.type === 'computed') return <div className="field register-computed"><span className="lo-field-label">{textOf(field, language)}</span><output><Calculator size={14} />{value == null ? (en ? 'Not yet computed' : 'Δεν υπολογίζεται ακόμη') : formatValue(field, value, language)}</output>{help && <span className="field-hint">{help}</span>}</div>
+  if (field.type === 'computed') return <div className="field register-computed"><span className="lo-field-label">{textOf(field, language)}</span>{value == null ? <output className="is-pending">{en ? 'Calculated automatically' : 'Υπολογίζεται αυτόματα'}</output> : <output><Calculator size={14} />{formatValue(field, value, language)}</output>}{help && <span className="field-hint">{help}</span>}</div>
   if (field.type === 'date') return <div className={`register-field ${error ? 'has-error' : ''}`}><ManualDateField label={label} value={value || ''} disabled={disabled} onChange={next => onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'yesNo') return <div className={`register-field ${error ? 'has-error' : ''}`}><ChoiceField label={label} value={value === true ? 'yes' : value === false ? 'no' : ''} options={[{ value: 'no', label: en ? 'No' : 'Όχι' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }]} onChange={next => !disabled && onChange(next === 'yes')} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'choice' && options.length <= 3) return <div className={`register-field ${error ? 'has-error' : ''}`}><ChoiceField label={label} value={value || ''} options={options} onChange={next => !disabled && onChange(next)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
