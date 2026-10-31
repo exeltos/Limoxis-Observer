@@ -396,7 +396,10 @@ export function sheetBreakdowns(register, indicator, entries = [], period) {
 export function indicatorReport(register, entries = [], period) {
   const previous = shiftPeriod(period, -periodLength(period))
   const lastYear = shiftPeriod(period, -12)
-  return (register.indicators || []).map(indicator => ({
+  // An indicator that counts only the cases with an answer recorded («Επιπλοκή», «Ένδειξη») waits until one case has it.
+  const answerField = key => (register.fields || []).some(field => field.key === key && ['yesNo', 'choice'].includes(field.type) && field.key !== 'outcome')
+  const never = indicator => entries.length > 0 && (indicator.denominatorFilters || []).some(filter => filter.op === 'filled' && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
+  return (register.indicators || []).filter(indicator => !never(indicator)).map(indicator => ({
     indicator,
     current: computeIndicator(register, indicator, entries, period),
     previous: computeIndicator(register, indicator, entries, previous),

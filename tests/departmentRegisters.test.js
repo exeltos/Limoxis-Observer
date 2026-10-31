@@ -339,3 +339,41 @@ describe('how much of a period a sheet has', () => {
     expect(sheetCoverage(entries, periodOf('month', '2027-01-10'), '2026-12-05', '2026-11')).toBeNull()
   })
 })
+
+describe('the cath lab register', () => {
+  const cath = registerFromTemplate('cathLab')
+  const row = (values, date = '2026-03-10') => ({ id: Math.random().toString(36), entryDate: date, values: { date, ...values } })
+  it('has its own look, in three sections', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    expect(registerThemeKey(cath)).toBe('cathlab')
+    expect(registerThemeKey({ name: 'Πράξεις Αιμοδυναμικού', kind: 'case' })).toBe('cathlab')
+    expect(cath.settings.sections.map(item => item.key)).toEqual(['procedure', 'patient', 'outcome'])
+    expect(cath.fields.every(field => cath.settings.sections.some(item => item.key === field.section))).toBe(true)
+  })
+  it('reads urgent procedures and angioplasty in ST-elevation infarction', () => {
+    const entries = [
+      row({ procedures: ['angiography', 'angioplasty'], indication: 'stemi', urgent: true }),
+      row({ procedures: ['angiography'], indication: 'stemi', urgent: true }),
+      row({ procedures: ['angiography'], indication: 'stable', urgent: false }),
+      row({ procedures: ['pacemaker'], indication: 'rhythm', urgent: false }),
+    ]
+    const find = id => cath.indicators.find(item => item.id === id)
+    expect(computeIndicator(cath, find('urgent_share'), entries, march).value).toBe(50)
+    expect(computeIndicator(cath, find('stemi_share'), entries, march).value).toBe(50)
+    expect(computeIndicator(cath, find('primary_pci'), entries, march).value).toBe(50)
+  })
+  it('hides the indicators of answers nobody has recorded yet', () => {
+    const entries = [row({ procedures: ['angiography'] }), row({ procedures: ['angiography'], urgent: true })]
+    const ids = indicatorReport(cath, entries, march).map(item => item.indicator.id)
+    expect(ids).toContain('urgent_share')
+    expect(ids).not.toContain('complications')
+    expect(ids).not.toContain('stemi_share')
+    expect(indicatorReport(cath, [], march).map(item => item.indicator.id)).toContain('complications')
+  })
+  it('has demo cases with every answer recorded', () => {
+    const demo = demoRegisters().find(item => item.templateKey === 'cathLab')
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === demo.id)
+    expect(own.length).toBeGreaterThan(400)
+    expect(indicatorReport(demo, own, periodOf('year', '2026-03-10')).length).toBe(demo.indicators.length)
+  })
+})

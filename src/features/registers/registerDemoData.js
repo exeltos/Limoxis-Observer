@@ -31,6 +31,7 @@ export const DEMO_ICU_ID = 'reg-demo-icu'
 export const DEMO_PAEDIATRICS_ID = 'reg-demo-paediatrics'
 export const DEMO_OBSTETRICS_ID = 'reg-demo-obstetrics'
 export const DEMO_EMERGENCY_ID = 'reg-demo-emergency'
+export const DEMO_CATHLAB_ID = 'reg-demo-cathlab'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -47,7 +48,9 @@ export function demoRegisters() {
   obstetrics.indicators = obstetrics.indicators.map(indicator => ({ ...indicator, ...({ cs_rate: { target: 55, threshold: 65, direction: 'lower' }, exclusive_bf: { target: 60 }, weaning: { target: 10 }, antenatal: { target: 50 } }[indicator.id] || {}) }))
   const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
   emergency.sheet = { ...emergency.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
-  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const cathLab = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
+  cathLab.indicators = cathLab.indicators.map(indicator => ({ ...indicator, ...({ complications: { target: 2, threshold: 4 } }[indicator.id] || {}) }))
+  return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -263,6 +266,36 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       const id = `reg-entry-paed-${entries.filter(item => item.registerId === DEMO_PAEDIATRICS_ID).length + 1}`
       entries.push({ id, registerId: DEMO_PAEDIATRICS_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια Παιδιατρικής' })
       identities[id] = { caseNumber: String(kidNumber), patientName: `Παιδί ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
+    }
+  }
+  // Cath lab: one card per patient procedure, its own seed.
+  const cathRandom = seeded(20261117)
+  let cathNumber = 10610000
+  for (let back = 13; back >= 0; back -= 1) {
+    const date = new Date(Date.UTC(year, month - 1 - back, 1))
+    const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    const count = 52 + Math.floor(cathRandom() * 14)
+    for (let index = 0; index < count; index += 1) {
+      const day = `${y}-${pad(m)}-${pad(1 + Math.floor(cathRandom() * days))}`
+      if (day > today) continue
+      const kind = pick(cathRandom, [['angiography', 52], ['angioplasty', 28], ['pacemaker', 13], ['icd', 3], ['ep_study', 2], ['other', 2]])
+      const indication = kind === 'pacemaker' || kind === 'icd' || kind === 'ep_study' ? 'rhythm' : kind === 'other' ? 'other' : pick(cathRandom, kind === 'angioplasty' ? [['stemi', 30], ['nstemi', 28], ['unstable_angina', 20], ['stable', 22]] : [['stemi', 6], ['nstemi', 24], ['unstable_angina', 22], ['stable', 48]])
+      const values = {
+        date: day,
+        procedures: kind === 'angioplasty' && cathRandom() < 0.9 ? ['angiography', 'angioplasty'] : [kind],
+        indication,
+        urgent: indication === 'stemi' ? true : indication === 'nstemi' || indication === 'unstable_angina' ? cathRandom() < 0.45 : cathRandom() < 0.05,
+        age: Math.round(48 + cathRandom() * 38),
+        sex: cathRandom() < 0.68 ? 'male' : 'female',
+        to_surgery: kind === 'angiography' ? cathRandom() < 0.1 : false,
+        iabp: kind === 'angioplasty' ? cathRandom() < 0.04 : false,
+        complication: cathRandom() < (kind === 'angioplasty' ? 0.03 : 0.012),
+      }
+      cathNumber += 1 + Math.floor(cathRandom() * 3)
+      const id = `reg-entry-cath-${entries.filter(item => item.registerId === DEMO_CATHLAB_ID).length + 1}`
+      entries.push({ id, registerId: DEMO_CATHLAB_ID, entryDate: day, periodStart: null, values, status: 'complete', locked: false, createdAt: `${day}T12:00:00Z`, createdByLabel: 'Νοσηλεύτρια Αιμοδυναμικού' })
+      identities[id] = { caseNumber: String(cathNumber), patientName: '' }
     }
   }
   return { entries, identities }

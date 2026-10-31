@@ -157,7 +157,7 @@ export function RegisterEntryPage() {
             {tried && check.errors.category && <span className="field-error">{check.errors.category}</span>}
           </section>}
           {register.settings?.identity && (showIdentity ? <section className="register-entry-identity">
-            {theme === 'icu' && <svg className="register-entry-ecg" viewBox="0 0 240 40" aria-hidden="true" preserveAspectRatio="none"><polyline points="0,22 52,22 60,22 66,8 74,36 82,14 88,22 140,22 150,22 156,10 164,34 172,22 240,22" /></svg>}
+            {(theme === 'icu' || theme === 'cathlab') && <svg className="register-entry-ecg" viewBox="0 0 240 40" aria-hidden="true" preserveAspectRatio="none"><polyline points="0,22 52,22 60,22 66,8 74,36 82,14 88,22 140,22 150,22 156,10 164,34 172,22 240,22" /></svg>}
             <header><span className="register-entry-badge">{theme ? <ThemeIcon size={20} aria-hidden="true" /> : <UserRound size={20} aria-hidden="true" />}</span><div><h3>{en ? 'Who' : 'Ταυτότητα'}</h3><small><Lock size={12} aria-hidden="true" />{en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}</small></div></header>
             <div className="register-entry-identity-fields">
               {register.settings.identity.caseNumber && <Field label={en ? 'Case number' : 'Αριθμός περιστατικού'}><input value={identity.caseNumber} disabled={!editable} inputMode="numeric" onChange={event => setIdentity(current => ({ ...current, caseNumber: event.target.value }))} /></Field>}
@@ -168,7 +168,7 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
             </section>
           })}
         </div>
@@ -189,7 +189,7 @@ const formHelp = text => (/filemaker|ίδιος κανόνας σε όλα τα 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
 // One field of a register, drawn with the shared controls.
-export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language }) {
+export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false }) {
   const en = language === 'en'
   const label = `${textOf(field, language)}${required ? ' *' : ''}`
   const help = formHelp(en ? field.helpEn || field.help : field.help)
@@ -203,6 +203,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   if (field.type === 'choice') return <div className={`register-field ${error ? 'has-error' : ''}`}><SearchableSelect label={label} value={value || ''} options={options} disabled={disabled} onChange={next => onChange(next || '')} placeholder={en ? 'Choose…' : 'Επιλογή…'} {...selectText(en)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   if (field.type === 'multiChoice') {
     const selected = Array.isArray(value) ? value : []
+    if (cards) return <div className={`register-field register-field-wide register-procedure-field ${error ? 'has-error' : ''}`}><span className="lo-field-label">{label}</span><div className="register-procedure-cards" role="group" aria-label={textOf(field, language)}>{options.map(option => { const on = selected.includes(option.value); return <button key={option.value} type="button" aria-pressed={on} disabled={disabled} className={on ? 'is-selected' : ''} onClick={() => onChange(on ? selected.filter(item => item !== option.value) : [...selected, option.value])}><i aria-hidden="true">{on && <Check size={14} />}</i><span>{option.label}</span></button> })}</div>{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
     return <div className={`register-field ${error ? 'has-error' : ''}`}><MultiSelect label={label} options={options} selected={selected} disabled={disabled} onChange={next => onChange(next)} placeholder={en ? 'Choose…' : 'Επιλογή…'} searchPlaceholder={en ? 'Search…' : 'Αναζήτηση…'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'All' : 'Όλα'} clearAllLabel={en ? 'None' : 'Κανένα'} countLabel={count => (en ? `${count} selected` : `${count} επιλεγμένα`)} />{error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}</div>
   }
   if (field.type === 'gestation') return <GestationField label={label} value={value} onChange={onChange} disabled={disabled} error={error} hint={hint} />

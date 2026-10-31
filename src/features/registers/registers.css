@@ -229,6 +229,7 @@
 /* ICU: a monitor-like look, and the two kinds of patient in two colours (General blue, Cardiac surgery red). */
 .register-entry-form.is-theme-icu{--reg-accent:#2f5f9e}
 .register-entry-form.is-theme-obstetrics{--reg-accent:#b84d7a}
+.register-entry-form.is-theme-cathlab{--reg-accent:#0f7f86}
 .register-entry-form.is-theme-icu[data-category="cardiac"]{--reg-accent:#b83a3a}
 .register-entry-category{display:grid;gap:8px}
 .register-entry-category-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
@@ -299,3 +300,12 @@
 
 .register-sheet-filter-row .register-sheet-add{margin-left:auto}
 .register-sheet-filter-row .register-sheet-add .manual-date-field{width:210px}
+
+/* Cath lab: the procedures as cards to tick (several can apply to one case). */
+.register-procedure-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.register-procedure-cards button{display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border:2px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:14px;font-weight:650;text-align:left;cursor:pointer}
+.register-procedure-cards button:disabled{cursor:default;opacity:.6}
+.register-procedure-cards button>i{display:grid;place-items:center;flex:none;width:22px;height:22px;border:2px solid var(--lo-color-border);border-radius:7px;background:var(--lo-color-surface);color:#fff}
+.register-procedure-cards button.is-selected{border-color:var(--reg-accent);background:var(--reg-soft)}
+.register-procedure-cards button.is-selected>i{border-color:var(--reg-accent);background:var(--reg-accent)}
+.register-procedure-field{display:grid;gap:8px}
