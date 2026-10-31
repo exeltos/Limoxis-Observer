@@ -32,12 +32,12 @@ import { useAuditActor } from '../../core/audit/useAuditActor'
 import { CALENDAR_KINDS,buildCalendarEvents,calendarFilterLabel,calendarFilterOf,calendarFiltersFor,calendarKindLabel,controlExecutionEvents,dayKey,monthGrid,parseCalendarFilter } from './calendarEvents'
 import './calendar.css'
 
-const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES,suppliers:CAPABILITIES.VIEW_QUALITY,kitchen:CAPABILITIES.VIEW_KITCHEN}
+const KIND_CAPABILITY={controls:CAPABILITIES.VIEW_CONTROLS,cultures:CAPABILITIES.VIEW_CONTROLS,capa:CAPABILITIES.VIEW_QUALITY,audits:CAPABILITIES.VIEW_QUALITY,training:CAPABILITIES.VIEW_TRAINING,documents:CAPABILITIES.VIEW_DOCUMENTS,committees:CAPABILITIES.VIEW_COMMITTEES,suppliers:CAPABILITIES.VIEW_QUALITY,kitchen:CAPABILITIES.VIEW_KITCHEN}
 const WEEKDAYS={el:['Δευ','Τρί','Τετ','Πέμ','Παρ','Σάβ','Κυρ'],en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']}
 // A day cell shows one line per module: its dot, the count and the name (singular / plural).
-const KIND_COUNT={controls:['έλεγχος','έλεγχοι','control','controls'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items'],suppliers:['αξιολόγηση προμηθευτή','αξιολογήσεις προμηθευτών','supplier evaluation','supplier evaluations'],kitchen:['εκκρεμότητα κουζίνας','εκκρεμότητες κουζίνας','kitchen item','kitchen items']}
+const KIND_COUNT={controls:['έλεγχος','έλεγχοι','control','controls'],cultures:['καλλιέργεια','καλλιέργειες','culture','cultures'],capa:['διορθωτική ενέργεια','διορθωτικές ενέργειες','corrective action','corrective actions'],audits:['επιθεώρηση','επιθεωρήσεις','audit','audits'],training:['εκπαίδευση','εκπαιδεύσεις','training','trainings'],documents:['έγγραφο','έγγραφα','document','documents'],committees:['επιτροπή','επιτροπές','committee item','committee items'],suppliers:['αξιολόγηση προμηθευτή','αξιολογήσεις προμηθευτών','supplier evaluation','supplier evaluations'],kitchen:['εκκρεμότητα κουζίνας','εκκρεμότητες κουζίνας','kitchen item','kitchen items']}
 // Short module names for narrow day cells (the full name stays in the tooltip).
-const KIND_SHORT=[{controls:'Έλεγχοι',capa:'CAPA',audits:'Επιθ.',training:'Εκπαίδ.',documents:'Έγγρ.',committees:'Επιτρ.',suppliers:'Προμ.',kitchen:'Κουζ.'},{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Docs',committees:'Comm.',suppliers:'Suppl.',kitchen:'Kitchen'}]
+const KIND_SHORT=[{controls:'Έλεγχοι',cultures:'Καλλιέργ.',capa:'CAPA',audits:'Επιθ.',training:'Εκπαίδ.',documents:'Έγγρ.',committees:'Επιτρ.',suppliers:'Προμ.',kitchen:'Κουζ.'},{controls:'Controls',cultures:'Cultures',capa:'CAPA',audits:'Audits',training:'Training',documents:'Docs',committees:'Comm.',suppliers:'Suppl.',kitchen:'Kitchen'}]
 const countLabel=(kind,n,en)=>{const forms=KIND_COUNT[kind]||['','','','' ];const word=en?(n===1?forms[2]:forms[3]):(n===1?forms[0]:forms[1]);return word.charAt(0).toLocaleUpperCase(en?'en':'el')+word.slice(1)}
 const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο':'α'}`
 
@@ -54,7 +54,7 @@ export function CalendarPage({culturesOnly=false}={}){
  const navigate=useNavigate()
  const mayDo=capability=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
  // The culture calendar is for whoever sees the Quality Center (or the controls): it shows that one source only.
- const allowedKey=(culturesOnly?(mayDo(CAPABILITIES.VIEW_CONTROLS)||mayDo(CAPABILITIES.VIEW_QUALITY)?['controls']:[]):CALENDAR_KINDS.filter(kind=>mayDo(KIND_CAPABILITY[kind]))).join(',')
+ const allowedKey=(culturesOnly?(mayDo(CAPABILITIES.VIEW_CONTROLS)||mayDo(CAPABILITIES.VIEW_QUALITY)?['cultures']:[]):CALENDAR_KINDS.filter(kind=>mayDo(KIND_CAPABILITY[kind]))).join(',')
  const allowedKinds=useMemo(()=>allowedKey?allowedKey.split(','):[],[allowedKey])
  const [sources,setSources]=useState(null)
  const [cursor,setCursor]=useState(()=>{const d=new Date();return {year:d.getFullYear(),month:d.getMonth()}})
@@ -78,7 +78,7 @@ export function CalendarPage({culturesOnly=false}={}){
   const allowed=new Set(allowedKinds)
   const safe=(kind,load,fallback)=>allowed.has(kind)?load().catch(()=>fallback):Promise.resolve(fallback)
   Promise.all([
-   safe('controls',()=>loadControlProgramme(organizationId),[]),
+   (allowed.has('controls')||allowed.has('cultures'))?loadControlProgramme(organizationId).catch(()=>[]):Promise.resolve([]),
    safe('capa',()=>loadQualityRecords('capas',organizationId),[]),
    safe('audits',()=>loadQualityRecords('audits',organizationId),[]),
    safe('training',()=>loadTrainingCalendarAsync(organizationId),null),
@@ -95,7 +95,7 @@ export function CalendarPage({culturesOnly=false}={}){
   return()=>{active=false}
  },[tenant?.id,allowedKinds,language,culturesOnly])
 
- const controlsAllowed=allowedKinds.includes('controls')
+ const controlsAllowed=allowedKinds.includes('controls')||allowedKinds.includes('cultures')
  useEffect(()=>{
   if(!controlsAllowed||!tenant?.id){setControlMonths({year:cursor.year,months:null});return undefined}
   let active=true
@@ -180,8 +180,8 @@ export function CalendarPage({culturesOnly=false}={}){
       {weeks.flat().map(key=>{const list=byDay.get(key)||[];const outside=!key.startsWith(monthKey);const late=list.some(e=>e.state==='overdue');// The day selects its agenda; an item in it opens its record.
        return <div key={key} role="gridcell" tabIndex={0} className={`calendar-day ${outside?'outside':''} ${key===today?'today':''} ${key===selected?'selected':''} ${late?'has-overdue':''}`} onClick={()=>{setSelected(key);setPanelKind(null)}} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();setSelected(key);setPanelKind(null)}}} aria-label={`${fmtDay(key)}: ${list.length}`} aria-selected={key===selected}>
        <span className="calendar-day-number">{Number(key.slice(8))}</span>
-       {CALENDAR_KINDS.map(kind=>{const items=list.filter(e=>e.kind===kind);if(!items.length)return null;const late=items.filter(e=>e.state==='overdue').length;const name=culturesOnly?(en?(items.length===1?'Culture':'Cultures'):(items.length===1?'Καλλιέργεια':'Καλλιέργειες')):countLabel(kind,items.length,en);const full=`${items.length} ${name}${late?` · ${overdueLabel(late,en)}`:''}`
-        return <button type="button" key={kind} className={`calendar-kind-line kind-${kind}${late?' overdue':''}${key===selected&&panelKind===kind?' active':''}`} title={full} aria-label={full} onClick={event=>{event.stopPropagation();setSelected(key);setPanelKind(kind)}}><span className="calendar-dot"/><b>{items.length}</b><span className="calendar-kind-name full">{name}</span><span className="calendar-kind-name short" aria-hidden="true">{culturesOnly?name:(KIND_SHORT[en?1:0][kind]||name)}</span>{late>0&&<small className="calendar-kind-late">{overdueLabel(late,en)}</small>}</button>})}
+       {CALENDAR_KINDS.map(kind=>{const items=list.filter(e=>e.kind===kind);if(!items.length)return null;const late=items.filter(e=>e.state==='overdue').length;const name=countLabel(kind,items.length,en);const full=`${items.length} ${name}${late?` · ${overdueLabel(late,en)}`:''}`
+        return <button type="button" key={kind} className={`calendar-kind-line kind-${kind}${late?' overdue':''}${key===selected&&panelKind===kind?' active':''}`} title={full} aria-label={full} onClick={event=>{event.stopPropagation();setSelected(key);setPanelKind(kind)}}><span className="calendar-dot"/><b>{items.length}</b><span className="calendar-kind-name full">{name}</span><span className="calendar-kind-name short" aria-hidden="true">{KIND_SHORT[en?1:0][kind]||name}</span>{late>0&&<small className="calendar-kind-late">{overdueLabel(late,en)}</small>}</button>})}
       </div>})}
      </div>
     </div>
@@ -206,7 +206,7 @@ function EventRow({event,language,date,onOpen}){
   <span className="calendar-event-main"><strong title={event.title}>{event.title}</strong><small>{[calendarKindLabel(event.kind,language),event.detail,event.department].filter(Boolean).join(' · ')}</small></span>
   {event.state==='overdue'&&<span className="status-badge danger">{en?'Overdue':'Εκπρόθεσμο'}</span>}
   {/* The controls' executions keep the colours of their own calendar: done, late, missed, planned. */}
-  {event.kind==='controls'&&['done','late','missed','planned'].includes(event.state)&&<span className={`status-badge calendar-execution ${event.state}`}>{event.detail||stateLabel(event.state,en)}</span>}
+  {['controls','cultures'].includes(event.kind)&&['done','late','missed','planned'].includes(event.state)&&<span className={`status-badge calendar-execution ${event.state}`}>{event.detail||stateLabel(event.state,en)}</span>}
   {event.criticality==='high'&&<span className="status-badge danger">{en?'High':'Υψηλή'}</span>}
   <ChevronRight size={16} aria-hidden="true"/>
  </button></li>

@@ -2,29 +2,31 @@
 // one list of calendar events: { id, date (YYYY-MM-DD), time, kind, title,
 // detail, department, path, state }. state is 'overdue', 'due' or 'planned'.
 import { calculateNextDue } from '../controls/controlScheduling'
+import { controlTypeCode } from '../controls/controlVocabulary'
 import { suggestionCalendarItems } from '../documents/protocolReview/protocolReviewModel'
 import { standardShort } from '../quality/audits/auditStandards'
 
-export const CALENDAR_KINDS=['controls','capa','audits','training','documents','committees','suppliers','kitchen']
+export const CALENDAR_KINDS=['controls','cultures','capa','audits','training','documents','committees','suppliers','kitchen']
 
 const KIND_LABELS={
- el:{controls:'Έλεγχοι',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές',suppliers:'Προμηθευτές',kitchen:'Κουζίνα'},
- en:{controls:'Controls',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees',suppliers:'Suppliers',kitchen:'Kitchen'},
+ el:{controls:'Έλεγχοι',cultures:'Καλλιέργειες',capa:'Διορθωτικές ενέργειες',audits:'Επιθεωρήσεις',training:'Εκπαίδευση',documents:'Έγγραφα',committees:'Επιτροπές',suppliers:'Προμηθευτές',kitchen:'Κουζίνα'},
+ en:{controls:'Controls',cultures:'Cultures',capa:'CAPA',audits:'Audits',training:'Training',documents:'Documents',committees:'Committees',suppliers:'Suppliers',kitchen:'Kitchen'},
 }
 export const calendarKindLabel=(kind,language='el')=>KIND_LABELS[language==='en'?'en':'el'][kind]||kind
 
 // The calendar's filter chips: controls, trainings, meetings and expiries
 // (certificates, licences, kitchen batches); everything else is «Other».
 // ?filter=controls (or controls,training) opens the calendar with only those on.
-export const CALENDAR_FILTERS=['controls','training','meetings','expiries','other']
+export const CALENDAR_FILTERS=['controls','cultures','training','meetings','expiries','other']
 const FILTER_LABELS={
- el:{controls:'Έλεγχοι',training:'Εκπαιδεύσεις',meetings:'Συνεδριάσεις',expiries:'Λήξεις',other:'Λοιπά'},
- en:{controls:'Controls',training:'Trainings',meetings:'Meetings',expiries:'Expiries',other:'Other'},
+ el:{controls:'Έλεγχοι',cultures:'Καλλιέργειες',training:'Εκπαιδεύσεις',meetings:'Συνεδριάσεις',expiries:'Λήξεις',other:'Λοιπά'},
+ en:{controls:'Controls',cultures:'Cultures',training:'Trainings',meetings:'Meetings',expiries:'Expiries',other:'Other'},
 }
 export const calendarFilterLabel=(filter,language='el')=>FILTER_LABELS[language==='en'?'en':'el'][filter]||filter
 export function calendarFilterOf(event){
  if(event.expiry||/^(cert|kit-exp):/.test(String(event.id||'')))return 'expiries'
  if(event.kind==='controls')return 'controls'
+ if(event.kind==='cultures')return 'cultures'
  if(event.kind==='training')return 'training'
  if(event.kind==='committees')return 'meetings'
  return 'other'
@@ -32,7 +34,7 @@ export function calendarFilterOf(event){
 // The chips a calendar can offer from the modules the user may see.
 export function calendarFiltersFor(kinds=[]){
  const has=kind=>kinds.includes(kind)
- return CALENDAR_FILTERS.filter(filter=>filter==='controls'?has('controls'):filter==='training'?has('training'):filter==='meetings'?has('committees'):filter==='expiries'?has('training')||has('documents')||has('kitchen'):kinds.some(kind=>['capa','audits','documents','suppliers','kitchen'].includes(kind)))
+ return CALENDAR_FILTERS.filter(filter=>filter==='controls'?has('controls'):filter==='cultures'?has('cultures'):filter==='training'?has('training'):filter==='meetings'?has('committees'):filter==='expiries'?has('training')||has('documents')||has('kitchen'):kinds.some(kind=>['capa','audits','documents','suppliers','kitchen'].includes(kind)))
 }
 // ?filter= as the set of chips that are on; null when the address names none (all on).
 export function parseCalendarFilter(value){
@@ -45,15 +47,19 @@ export function parseCalendarFilter(value){
 // (on time or late), the missed due dates and — from controlEvents — the
 // planned ones. lines: programmeCalendar() of controls/controlCalendar.js for the year.
 const EXECUTION_DETAIL={el:{done:'Έγινε',late:'Έγινε με καθυστέρηση',missed:'Χάθηκε'},en:{done:'Done',late:'Done late',missed:'Missed'}}
+// The culture sampling is done by the infection control team in the department: the department sees it as a notice, not as its own task.
+const CULTURE_DETAIL={el:{done:'Λήφθηκαν δείγματα',late:'Λήφθηκαν δείγματα με καθυστέρηση',missed:'Δεν λήφθηκαν δείγματα',planned:'Θα πάρει δείγματα ο Έλεγχος Λοιμώξεων'},en:{done:'Samples taken',late:'Samples taken late',missed:'Samples not taken',planned:'The Infection Control team will take samples'}}
+const controlKind=control=>(controlTypeCode(control.category)==='CTRL-ENV'?'cultures':'controls')
 export function controlExecutionEvents(lines=[],{year,month,today=dayKey(new Date()),language='el'}={}){
  const en=language==='en'
- const words=EXECUTION_DETAIL[en?'en':'el']
  const list=[]
  const day=n=>`${year}-${pad(month+1)}-${pad(n)}`
  for(const {item,department,months} of lines){
   const cell=months?.[month]
   if(!cell||cell.inactive)continue
-  const base={kind:'controls',title:en?item.titleEn||item.title:item.title,department,path:`/controls/${item.id}`,criticality:item.responseConfig?.criticality||'medium'}
+  const kind=controlKind(item)
+  const words=kind==='cultures'?CULTURE_DETAIL[en?'en':'el']:EXECUTION_DETAIL[en?'en':'el']
+  const base={kind,title:en?item.titleEn||item.title:item.title,department,path:`/controls/${item.id}`,criticality:item.responseConfig?.criticality||'medium'}
   ;(cell.marks||[]).forEach((mark,index)=>{const date=day(mark.day);list.push({...base,id:`ctrl-done:${item.id}:${department}:${date}:${index}`,date,state:mark.late?'late':'done',detail:mark.late?words.late:words.done})})
   if(!cell.frequent)for(const missed of cell.missed||[]){const date=day(missed);if(date<today)list.push({...base,id:`ctrl-missed:${item.id}:${department}:${date}`,date,state:'missed',detail:words.missed})}
  }
@@ -97,16 +103,18 @@ function controlEvents(controls,range,today,list,en){
    const frequency=assignment.frequency||control.frequency||{}
    const daily=frequency.kind==='daily'
    const title=en?control.titleEn||control.title:control.title
-   const base={kind:'controls',title,department,path:`/controls/${control.id}`,criticality:control.responseConfig?.criticality||'medium'}
+   const kind=controlKind(control)
+   const base={kind,title,department,path:`/controls/${control.id}`,criticality:control.responseConfig?.criticality||'medium'}
+   const plannedDetail=kind==='cultures'?CULTURE_DETAIL[en?'en':'el'].planned:''
    let due=new Date(assignment.nextDueAt)
    const first=toDay(due)
-   push(list,{...base,id:`ctrl:${assignment.dbId||control.id}:${first}`,date:first,time:toTime(assignment.nextDueAt),state:stateOf(first,today),detail:daily?(en?'Daily':'Καθημερινός'):''},range)
+   push(list,{...base,id:`ctrl:${assignment.dbId||control.id}:${first}`,date:first,time:toTime(assignment.nextDueAt),state:stateOf(first,today),detail:plannedDetail||(daily?(en?'Daily':'Καθημερινός'):'')},range)
    if(daily||!range)continue
    for(let i=0;i<60;i+=1){
     due=new Date(calculateNextDue(frequency,due))
     const day=toDay(due)
     if(!day||day>range.to)break
-    if(day>=range.from)push(list,{...base,id:`ctrl:${assignment.dbId||control.id}:${day}`,date:day,time:toTime(due.toISOString()),state:'planned',detail:''},range)
+    if(day>=range.from)push(list,{...base,id:`ctrl:${assignment.dbId||control.id}:${day}`,date:day,time:toTime(due.toISOString()),state:'planned',detail:plannedDetail},range)
    }
   }
  }

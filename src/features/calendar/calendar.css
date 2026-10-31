@@ -9,6 +9,7 @@
 .calendar-department .filter-field select{min-width:180px}
 .calendar-dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--calendar-color,#6b7c8c)}
 .kind-controls{--calendar-color:#1f6fa9}
+.kind-cultures{--calendar-color:#1f8a8a}
 .kind-capa{--calendar-color:#b4532a}
 .kind-audits{--calendar-color:#7a4fb3}
 .kind-training{--calendar-color:#2f8a57}
@@ -18,6 +19,7 @@
 .kind-kitchen{--calendar-color:#2f7d6d}
 /* The filter chips: controls, trainings, meetings, expiries, other. */
 .filter-controls{--calendar-color:#1f6fa9}
+.filter-cultures{--calendar-color:#1f8a8a}
 .filter-training{--calendar-color:#2f8a57}
 .filter-meetings{--calendar-color:#3d6f7a}
 .filter-expiries{--calendar-color:#a07a12}
