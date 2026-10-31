@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { CALENDAR_KINDS, buildCalendarEvents, calendarFilterOf, calendarKindLabel, controlExecutionEvents } from '../src/features/calendar/calendarEvents'
 
@@ -25,5 +26,17 @@ describe('culture sampling in the calendar', () => {
     expect(events[0]).toMatchObject({ kind: 'cultures', detail: 'Samples taken', state: 'done' })
     const missed = controlExecutionEvents(line(months), { year: 2026, month: 8, today: '2026-11-05', language: 'en' })
     expect(missed[0]).toMatchObject({ kind: 'cultures', detail: 'Samples not taken', state: 'missed' })
+  })
+})
+
+describe('the department calendar', () => {
+  it('has a menu entry and a page of its own for the department roles, the culture sampling first', () => {
+    const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+    expect(read('src/app/navigation.js')).toContain("key:'departmentCalendar'")
+    expect(read('src/app/App.jsx')).toContain('path="my-department/calendar"')
+    expect(read('src/features/workspaces/DepartmentCalendarPage.jsx')).toContain('<CalendarPage departmentOnly />')
+    const calendar = read('src/features/calendar/CalendarPage.jsx')
+    expect(calendar).toContain("['cultures',...CALENDAR_KINDS.filter(kind=>kind!=='cultures')]")
+    expect(calendar).toContain("e.kind==='cultures'&&e.date>=today")
   })
 })
