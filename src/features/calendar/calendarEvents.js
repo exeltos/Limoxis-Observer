@@ -48,7 +48,7 @@ export function parseCalendarFilter(value){
 // planned ones. lines: programmeCalendar() of controls/controlCalendar.js for the year.
 const EXECUTION_DETAIL={el:{done:'Έγινε',late:'Έγινε με καθυστέρηση',missed:'Χάθηκε'},en:{done:'Done',late:'Done late',missed:'Missed'}}
 // The culture sampling is done by the infection control team in the department: the department sees it as a notice, not as its own task.
-const CULTURE_DETAIL={el:{done:'Λήφθηκαν δείγματα',late:'Λήφθηκαν δείγματα με καθυστέρηση',missed:'Δεν λήφθηκαν δείγματα',planned:'Θα πάρει δείγματα ο Έλεγχος Λοιμώξεων'},en:{done:'Samples taken',late:'Samples taken late',missed:'Samples not taken',planned:'The Infection Control team will take samples'}}
+const CULTURE_DETAIL={el:{done:'Λήφθηκαν δείγματα',late:'Λήφθηκαν δείγματα με καθυστέρηση',missed:'Δεν λήφθηκαν δείγματα',planned:'Έλεγχος Λοιμώξεων'},en:{done:'Samples taken',late:'Samples taken late',missed:'Samples not taken',planned:'Infection Control'}}
 const controlKind=control=>(controlTypeCode(control.category)==='CTRL-ENV'?'cultures':'controls')
 export function controlExecutionEvents(lines=[],{year,month,today=dayKey(new Date()),language='el'}={}){
  const en=language==='en'

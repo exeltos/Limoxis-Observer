@@ -6,12 +6,12 @@ const control = (category, extra = {}) => ({ id: 'c1', title: 'Καλλιέργ�
 const range = { from: '2026-11-01', to: '2026-12-31', today: '2026-11-05' }
 
 describe('culture sampling in the calendar', () => {
-  it('is its own kind, with the notice that the infection control team will take the samples', () => {
+  it('is its own kind, naming who takes the samples: Έλεγχος Λοιμώξεων', () => {
     expect(CALENDAR_KINDS).toContain('cultures')
     const events = buildCalendarEvents({ controls: [control('Περιβαλλοντικός μικροβιολογικός έλεγχος')] }, { ...range, language: 'el' })
     expect(events.length).toBeGreaterThan(0)
     expect(events.every(event => event.kind === 'cultures')).toBe(true)
-    expect(events[0]).toMatchObject({ department: 'ΜΕΘ', detail: 'Θα πάρει δείγματα ο Έλεγχος Λοιμώξεων' })
+    expect(events[0]).toMatchObject({ department: 'ΜΕΘ', detail: 'Έλεγχος Λοιμώξεων' })
     expect(calendarFilterOf(events[0])).toBe('cultures')
     expect(calendarKindLabel('cultures', 'en')).toBe('Cultures')
   })
