@@ -12,7 +12,7 @@ const MENU_ALIASES=[['/patients','/surveillance'],['/committees','/meetings'],['
 const menuPathOf=pathname=>{const alias=MENU_ALIASES.find(([from])=>pathname===from||pathname.startsWith(`${from}/`));return alias?alias[1]:pathname}
 const under=(path,to)=>to==='/'?path==='/':path===to||path.startsWith(`${to}/`)
 // A page of «Indicators & objectives» is not also under «Quality Center» (/quality is its parent path).
-const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);if(to==='/quality'&&under(path,'/quality/measures'))return false;return under(pathname,to)||under(path,to)}
+const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);if(to==='/quality'&&(under(path,'/quality/measures')||under(path,'/quality/culture-plan')))return false;return under(pathname,to)||under(path,to)}
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon

@@ -6,10 +6,12 @@ import { programmeCalendar } from '../src/features/controls/controlCalendar'
 
 const source = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
-describe('the annual culture plan of the environmental surveillance', () => {
-  it('has its own tab beside the samples, and the Controls no longer list the culture programme', () => {
-    const page = source('src/features/surveillance/SurveillanceCanonicalPage.jsx')
-    expect(page).toContain("mode === 'environmental' && envView === 'plan' ? <EnvironmentalAnnualPlan />")
+describe('the annual culture plan', () => {
+  it('has a page and a menu entry of its own, and the Controls no longer list the culture programme', () => {
+    expect(source('src/app/App.jsx')).toContain('path="quality/culture-plan"')
+    expect(source('src/app/navigation.js')).toContain("key:'culturePlan'")
+    expect(source('src/features/quality/CulturePlanPage.jsx')).toContain('<EnvironmentalAnnualPlan />')
+    expect(source('src/features/surveillance/SurveillanceCanonicalPage.jsx')).not.toContain('EnvironmentalAnnualPlan')
     const controls = source('src/features/controls/ControlsPage.jsx')
     expect(controls).not.toContain('setKind')
     expect(controls).toContain("controlTypeCode(item.category)!=='CTRL-ENV'")

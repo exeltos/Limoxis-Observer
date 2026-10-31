@@ -1,4 +1,4 @@
-import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Microscope, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -37,6 +37,8 @@ export const navigation=[
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
   // «Indicators & objectives» of the Quality Center on its own page: indicators, registers, objectives, surveys.
   {to:'/quality/measures',key:'qualityMeasures',label:'sidebarNav.qualityMeasures',icon:Target,capability:CAPABILITIES.VIEW_QUALITY},
+  // The annual plan of the environmental cultures, on a page of its own (it is not part of the Controls).
+  {to:'/quality/culture-plan',key:'culturePlan',label:'sidebarNav.culturePlan',icon:Microscope,capability:CAPABILITIES.VIEW_QUALITY},
   // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
   {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
@@ -95,7 +97,7 @@ const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
   ['clinical',['surveillance','laboratory','prevention','pharmacy']],
   ['operations',['controls','kitchen']],
-  ['quality',['quality','qualityMeasures','meetings','documents','library']],
+  ['quality',['quality','qualityMeasures','culturePlan','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
   ['management',['management']],
 ]
@@ -108,7 +110,7 @@ const roleMenuPolicy=Object.freeze({
   [ROLES.HOSPITAL_ADMIN]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
     ['dashboard','surveillance','laboratory','prevention','controls','indicators','meetings','calendar'],
-    ['platformAnalyticsNav','quality','employees','training','documents','library','kitchen'],
+    ['platformAnalyticsNav','quality','culturePlan','employees','training','documents','library','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),
   [ROLES.INFECTION_CONTROL_MEMBER]:policy(
@@ -147,7 +149,7 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy'],
   ),
   [ROLES.QUALITY_MANAGER]:policy(
-    ['dashboard','quality','qualityMeasures','controls','kitchen','indicators','documents','library','calendar'],
+    ['dashboard','quality','qualityMeasures','culturePlan','controls','kitchen','indicators','documents','library','calendar'],
     ['meetings'],
     ['pharmacy','occupationalHealth'],
   ),

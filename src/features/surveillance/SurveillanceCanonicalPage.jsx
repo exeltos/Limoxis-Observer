@@ -59,7 +59,6 @@ import {
   environmentalResampleInitial,
 } from './EnvironmentalSurveillanceFlow'
 import { isEnvironmentalSample } from './environmentalSurveillanceData'
-import { EnvironmentalAnnualPlan } from './EnvironmentalAnnualPlan'
 import { PERIOD_DAYS, employeeScreeningLabel, inPeriod, statusTone } from './surveillanceOptions'
 import { surveillanceTabAccess } from './surveillanceTabAccess'
 import { ProtocolBadge } from './protocols/ProtocolViews'
@@ -158,7 +157,6 @@ export function SurveillanceCanonicalPage() {
       .filter(x => department === 'all' || (language === 'el' ? x.department : x.departmentEn) === department)
   }, [awaitingReview.rows, canAccessRecord, query, department, language])
   const showWorklist = canReview && mode === 'patients' && quick === 'review'
-  const [envView, setEnvView] = useState('samples')
   const platformOwnerNoTenant = !isDemo && actualRole === ROLES.PLATFORM_OWNER && !tenant?.id
   const productionOrganizations = (memberships || []).filter(
     item => item?.organization?.id && !item.organization.is_demo,
@@ -544,8 +542,6 @@ export function SurveillanceCanonicalPage() {
         </div>
       </div>
       <div className="surface registry-workspace workspace-fill">
-        {mode === 'environmental' && <CanonicalTabs className="lo-subtabs" items={[{ value: 'samples', label: t('svSamplesTab') }, { value: 'plan', label: t('svAnnualPlanTab') }]} value={envView} onChange={setEnvView} ariaLabel={t('svEnvironmentalAria')} />}
-        {mode === 'environmental' && envView === 'plan' ? <EnvironmentalAnnualPlan /> : <>
         <FilterBar
           query={query}
           onQueryChange={setQuery}
@@ -636,7 +632,6 @@ export function SurveillanceCanonicalPage() {
             }}
           />
         )}
-        </>}
       </div>
       {creation === 'patient' && <NewSurveillanceFlow patients={patients} onPatientsChange={setPatients} onClose={() => setCreation(null)} onCreate={createPatient} />}
       {creation === 'employee' && canEmployees && <EmployeeSurveillanceFlow onClose={() => setCreation(null)} onCreated={load} />}

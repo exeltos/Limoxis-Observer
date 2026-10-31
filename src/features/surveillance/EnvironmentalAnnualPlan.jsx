@@ -14,7 +14,7 @@ import { controlTypeCode } from '../controls/controlVocabulary'
 import { loadControlProgramme } from '../controls/controlCloudService'
 
 // The annual plan of the environmental cultures: the culture programme (one control per department sampled) month by month for the
-// year: what was sampled, what was missed, what is planned. It is not part of the Controls; it lives here, with the samples.
+// year: what was sampled, what was missed, what is planned. It is not part of the Controls: it has its own page (Quality › Culture plan).
 export function EnvironmentalAnnualPlan() {
   const { language } = useLanguage()
   const en = language === 'en'
@@ -40,7 +40,7 @@ export function EnvironmentalAnnualPlan() {
   return <section className="environmental-annual-plan workspace-fill">
     <div className="row-actions environmental-plan-bar">
       <IconButton label={tx.previousYear} onClick={() => report.setYear(year => year - 1)}><ChevronLeft size={16} /></IconButton>
-      <strong>{en ? `Annual culture plan ${report.year}` : `Ετήσιο πλάνο καλλιεργειών ${report.year}`}</strong>
+      <strong>{report.year}</strong>
       <IconButton label={tx.nextYear} onClick={() => report.setYear(year => year + 1)}><ChevronRight size={16} /></IconButton>
       <ExportMenu disabled={!rows.length} onPrint={() => report.exportPdf(false)} onPdf={() => report.exportPdf(true)} onExcel={report.exportCsv} />
     </div>
