@@ -13,7 +13,6 @@ import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { IconButton } from '../../../design-system/IconButton'
-import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
@@ -120,10 +119,12 @@ export function SurveyRecordPage() {
     { id: 'questionnaire', label: en ? `Questions ${survey.questions.length}` : `Ερωτήσεις ${survey.questions.length}`, icon: ClipboardList },
     { id: 'collect', label: en ? 'Collection' : 'Συλλογή', icon: QrIcon },
   ]
+  // Header: export of the tab on screen and, for a draft, the main command; the record's «…» holds close/reopen and delete.
   const headerActions = <div className="row-actions">
+    {!isNew && (tab === 'results' || tab === 'responses') && <ExportMenu onPrint={tab === 'results' ? () => window.print() : undefined} onExcel={exportResponses} />}
     {!isNew && canManage && survey.status === 'draft' && <Button disabled={saving} onClick={openSurvey}><Play size={15} />{en ? 'Open the questionnaire' : 'Άνοιγμα ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && survey.status === 'open' && <Button variant="secondary" disabled={saving} onClick={closeSurvey}><Lock size={15} />{en ? 'Close' : 'Κλείσιμο'}</Button>}
-    {!isNew && canManage && survey.status === 'closed' && <Button variant="secondary" disabled={saving} onClick={reopen}><RotateCcw size={15} />{en ? 'Reopen' : 'Επανάνοιγμα'}</Button>}
+    {!isNew && canManage && survey.status === 'open' && <Button recordMenu disabled={saving} onClick={closeSurvey}><Lock size={15} />{en ? 'Close the questionnaire' : 'Κλείσιμο ερωτηματολογίου'}</Button>}
+    {!isNew && canManage && survey.status === 'closed' && <Button recordMenu disabled={saving} onClick={reopen}><RotateCcw size={15} />{en ? 'Reopen the questionnaire' : 'Επανάνοιγμα ερωτηματολογίου'}</Button>}
     {!isNew && canManage && <IconButton tone="danger" label={en ? 'Delete questionnaire' : 'Διαγραφή ερωτηματολογίου'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
   const departmentFilter = <>
@@ -143,16 +144,16 @@ export function SurveyRecordPage() {
     subtitle={[audienceLabel(survey.audience, language), [survey.opensOn && formatDay(survey.opensOn, language), survey.closesOn && formatDay(survey.closesOn, language)].filter(Boolean).join(' – ')].filter(Boolean).join(' · ')}
     status={!isNew && <StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'} actions={<ExportMenu onPrint={()=>window.print()} onExcel={exportResponses} />}>
+    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'}>
       {filterBar}
       <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} />
     </RecordTabPanel>}
     {viewing && <ObserverDialog title={en ? 'Response' : 'Απάντηση'} subtitle={[formatDay(viewing.submittedAt, language), (en ? viewing.departmentEn : viewing.department) || '', channelLabel(viewing.channel, language)].filter(Boolean).join(' · ')} onClose={() => setViewing(null)}
-      footer={<div className="row-actions">{canManage && <OverflowMenu label={en ? 'More' : 'Περισσότερα'} items={[{ id: 'delete', label: en ? 'Delete response' : 'Διαγραφή απάντησης', icon: Trash2, tone: 'danger', onClick: () => removeResponse(viewing) }]} />}<Button variant="secondary" onClick={() => setViewing(null)}>{en ? 'Close' : 'Κλείσιμο'}</Button></div>}>
+      footer={canManage && <Button variant="danger" onClick={() => removeResponse(viewing)}><Trash2 size={15} />{en ? 'Delete response' : 'Διαγραφή απάντησης'}</Button>}>
       <dl className="survey-response-answers">{survey.questions.filter(question => answerText(question, viewing.answers?.[question.id], language)).map(question => <div key={question.id}><dt>{textOf(question, language)}</dt><dd>{answerText(question, viewing.answers?.[question.id], language)}</dd></div>)}</dl>
     </ObserverDialog>}
     {tab === 'responses' && <RecordTabPanel title={en ? 'Responses' : 'Απαντήσεις'} subtitle={en ? 'Anonymous: no name or details are kept.' : 'Ανώνυμες: δεν κρατείται όνομα ούτε στοιχεία.'}
-      actions={<div className="row-actions"><ExportMenu onExcel={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
+      actions={<div className="row-actions">{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
       footer={shown.length > pageSize && <RegistryPagination language={language} page={safePage} totalPages={pages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />}>
       {filterBar}
       <RegistryTable sortable={false} className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}

@@ -41,6 +41,8 @@ function isUtilityAction(action){
 
 function recordActionKind(action){
   if(!isValidElement(action))return null
+  // A record command that belongs in the «…» too (e.g. «Κλείσιμο ερωτηματολογίου»): <Button recordMenu …>.
+  if(action.props.recordMenu)return 'menu'
   const className=String(action.props.className||'').toLowerCase()
   const aria=String(action.props['aria-label']||'').toLowerCase()
   const title=String(action.props.title||'').toLowerCase()
@@ -55,6 +57,7 @@ function recordActionKind(action){
 }
 
 function actionLabel(action,kind,en){
+  if(kind==='menu'&&!action.props.label&&!action.props['aria-label']&&!action.props.title)return Children.toArray(action.props.children).filter(child=>typeof child==='string').join('').trim()
   return action.props.label||action.props['aria-label']||action.props.title||(kind==='delete'?(en?'Delete':'Διαγραφή'):(en?'Edit':'Επεξεργασία'))
 }
 
@@ -176,6 +179,9 @@ export function EntityRecordShell({
   const cssText=value=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
   const printedTabs=printing&&printAllTabs?tabs.filter(tab=>!tab.disabled):null
   const reportDescription=printing&&printReport?(typeof printReport==='function'?printReport():printReport):null
+  // Record commands first, then edit, then delete (with its separator) last.
+  const menuRank=action=>{const kind=recordActionKind(action);return kind==='menu'?0:kind==='edit'?1:2}
+  rawGeneralActions.sort((a,b)=>menuRank(a)-menuRank(b))
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
