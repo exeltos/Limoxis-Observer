@@ -113,7 +113,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
  function exportPdf(pdf){
   if(loading||to<from)return
   const approvalText=r=>{const snapshot=snapshotFor(r);return !snapshot?'—':snapshot.status==='approved'?t('indicatorsRecords.approvedLabel'):t('indicatorsRecords.pendingApproval')}
-  const resultText=r=>`${fmtIndicatorValue(r.value,el)}${r.calculation!=='manual'&&r.unit?` ${el?r.unit:(r.unitEn||r.unit)}`:''}`
+  const resultText=r=>r.value==null&&r.calculation!=='manual'?t('noData'):`${fmtIndicatorValue(r.value,el)}${r.calculation!=='manual'&&r.unit?` ${el?r.unit:(r.unitEn||r.unit)}`:''}`
   const target=r=>r.target==null?'—':`${r.direction==='higher'?'≥ ':r.direction==='lower'?'≤ ':''}${fmtIndicatorValue(Number(r.target),el)}`
   const status=r=>({text:statusText(r.status,t),className:r.status==='attention'?'rd-bad':r.status==='onTarget'?'rd-good':''})
   const ok=printReport({language,orientation:'landscape',kind:t('indicators'),code:`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`,title:t('indicatorsRecords.reportTitle'),
