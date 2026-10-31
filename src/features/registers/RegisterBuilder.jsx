@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Archive, ArrowDown, ArrowUp, Pencil, Plus } from 'lucide-react'
+import { Archive, ArrowDown, ArrowUp, ChevronDown, ChevronRight, Pencil, Plus } from 'lucide-react'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { FormCard, FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
@@ -37,6 +37,9 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
   const [draft, setDraft] = useState(() => structuredClone(register))
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(null)
+  // The sections of the fields: the first one is open, the others fold, so 35 fields are not one long list.
+  const [expanded, setExpanded] = useState(() => new Set([register.settings?.sections?.[0]?.key || 'main']))
+  const toggleSection = key => setExpanded(current => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
   // The definition in three parts, so it is not one long page: the register, its fields (or sheet), its indicators.
   const [part, setPart] = useState(() => (openIndicator ? 'indicators' : 'register'))
   // Opened from «Set a target»: that indicator's editor is open.
@@ -83,14 +86,14 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
     footer={canEdit && <div className="inline-edit-footer">{dirty && <span className="register-form-errors">{en ? 'Unsaved changes' : 'Μη αποθηκευμένες αλλαγές'}</span>}<Button variant="secondary" disabled={!dirty || saving} onClick={() => setDraft(structuredClone(register))}>{en ? 'Undo changes' : 'Αναίρεση αλλαγών'}</Button><SaveButton loading={saving} disabled={!dirty || saving} onClick={save}>{en ? 'Save definition' : 'Αποθήκευση ορισμού'}</SaveButton></div>}>
     <CanonicalTabs className="register-builder-parts" items={[{ value: 'register', label: en ? 'Register' : 'Μητρώο' }, { value: 'fields', label: draft.kind === 'sheet' ? (en ? 'Sheet' : 'Φύλλο') : `${en ? 'Fields' : 'Πεδία'} (${draft.fields.length})` }, { value: 'indicators', label: `${en ? 'Indicators' : 'Δείκτες'} (${draft.indicators.length})` }]} value={part} onChange={value => { setPart(value); setEditing(null) }} ariaLabel={en ? 'Definition' : 'Ορισμός'} />
     <div className="lo-form-cards register-builder-cards">
-      {part === 'register' && <FormCard title={en ? 'Register' : 'Μητρώο'}>
-        <FormGrid columns={2}>
+      {part === 'register' && <FormCard wide title={en ? 'Register' : 'Μητρώο'}>
+        <FormGrid columns={3}>
           <Field label={en ? 'Name' : 'Όνομα'}><input value={draft.name} disabled={!canEdit} onChange={event => patch({ name: event.target.value })} /></Field>
           <Field label={en ? 'Name in English' : 'Όνομα στα αγγλικά'}><input value={draft.nameEn} disabled={!canEdit} onChange={event => patch({ nameEn: event.target.value })} /></Field>
+          <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={draft.status} options={['active', 'draft', 'archived'].map(value => ({ value, label: registerStatusLabel(value, language) }))} onChange={value => canEdit && patch({ status: value })} />
         </FormGrid>
-        <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={draft.status} options={['active', 'draft', 'archived'].map(value => ({ value, label: registerStatusLabel(value, language) }))} onChange={value => canEdit && patch({ status: value })} />
-        {draft.kind === 'case' && <SearchableSelect label={en ? 'Date a case counts on' : 'Ημερομηνία που μετράει το περιστατικό'} value={draft.settings?.entryDateField || ''} disabled={!canEdit} options={dateFields.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => setSettings({ entryDateField: value || '' })} {...selectText(en)} />}
-        {draft.kind === 'case' && <FormGrid columns={2}>
+        {draft.kind === 'case' && <FormGrid columns={3}>
+          <SearchableSelect label={en ? 'Date a case counts on' : 'Ημερομηνία που μετράει το περιστατικό'} value={draft.settings?.entryDateField || ''} disabled={!canEdit} options={dateFields.map(field => ({ value: field.key, label: textOf(field, language) }))} onChange={value => setSettings({ entryDateField: value || '' })} {...selectText(en)} />
           <YesNoField label={en ? 'Case number' : 'Αριθμός περιστατικού'} value={Boolean(draft.settings?.identity?.caseNumber)} onChange={value => canEdit && setSettings({ identity: { ...(draft.settings?.identity || {}), caseNumber: value } })} hint={en ? 'Kept in the identity table.' : 'Στον πίνακα ταυτότητας.'} />
           <YesNoField label={en ? 'Patient name' : 'Ονοματεπώνυμο'} value={Boolean(draft.settings?.identity?.patientName)} onChange={value => canEdit && setSettings({ identity: { ...(draft.settings?.identity || {}), patientName: value } })} hint={en ? 'Seen only inside the department.' : 'Το βλέπει μόνο το τμήμα.'} />
         </FormGrid>}
@@ -99,9 +102,10 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
       {part === 'fields' && draft.kind === 'case' && <FormCard wide title={en ? `Fields ${draft.fields.length}` : `Πεδία ${draft.fields.length}`} hint={entryCount ? (en ? `${entryCount} entries recorded: a saved field keeps its type.` : `${entryCount} καταχωρίσεις: ένα αποθηκευμένο πεδίο κρατά τον τύπο του.`) : ''}>
         {sections.map(section => {
           const fields = draft.fields.filter(field => (field.section || sections[0].key) === section.key || (!sections.some(item => item.key === field.section) && section === sections[0]))
+          const isOpen = expanded.has(section.key) || (editing?.kind === 'field' && editing.field.section === section.key)
           return <div key={section.key} className="register-builder-section">
-            <div className="register-builder-section-head"><input aria-label={en ? 'Section name' : 'Όνομα ενότητας'} value={textOf(section, language)} disabled={!canEdit} onChange={event => setSettings({ sections: sections.map(item => (item.key === section.key ? { ...item, [en ? 'labelEn' : 'label']: event.target.value } : item)) })} />{canEdit && <Button variant="secondary" onClick={() => setEditing({ kind: 'field', field: { key: '', section: section.key, type: 'number', label: '', labelEn: '' }, previousKey: null })}><Plus size={15} />{en ? 'Field' : 'Πεδίο'}</Button>}</div>
-            <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Field' : 'Πεδίο'}</th><th>{en ? 'Type' : 'Τύπος'}</th><th>{en ? 'Details' : 'Λεπτομέρειες'}</th>{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{fields.map(field => {
+            <div className="register-builder-section-head"><button type="button" className="register-builder-toggle" aria-expanded={isOpen} aria-label={`${textOf(section, language)} (${fields.length})`} onClick={() => toggleSection(section.key)}>{isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}<span>{fields.length}</span></button><input aria-label={en ? 'Section name' : 'Όνομα ενότητας'} value={textOf(section, language)} disabled={!canEdit} onChange={event => setSettings({ sections: sections.map(item => (item.key === section.key ? { ...item, [en ? 'labelEn' : 'label']: event.target.value } : item)) })} />{canEdit && <Button variant="secondary" onClick={() => { setExpanded(current => new Set(current).add(section.key)); setEditing({ kind: 'field', field: { key: '', section: section.key, type: 'number', label: '', labelEn: '' }, previousKey: null }) }}><Plus size={15} />{en ? 'Field' : 'Πεδίο'}</Button>}</div>
+            {isOpen && <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Field' : 'Πεδίο'}</th><th>{en ? 'Type' : 'Τύπος'}</th><th>{en ? 'Details' : 'Λεπτομέρειες'}</th>{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{fields.map(field => {
               const index = draft.fields.indexOf(field)
               const open = editing?.kind === 'field' && editing.previousKey === field.key
               return <Fragment key={field.key}><tr className={open ? 'is-editing' : undefined}>
@@ -110,7 +114,7 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
                 <td className="register-builder-detail">{[en ? field.unitEn || field.unit : field.unit, field.required && (field.requiredFrom ? (en ? `required from ${field.requiredFrom.split('-').reverse().join('/')}` : `υποχρεωτικό από ${field.requiredFrom.split('-').reverse().join('/')}`) : (en ? 'required' : 'υποχρεωτικό')), field.options?.length && `${field.options.length} ${en ? 'values' : 'τιμές'}`, field.provisional && (en ? 'list to complete' : 'λίστα προς συμπλήρωση')].filter(Boolean).join(' · ') || '—'}</td>
                 {canEdit && <td className="register-builder-tools-cell">{canEdit && <span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => patch({ fields: move(draft.fields, index, -1) })}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Down' : 'Κάτω'} onClick={() => patch({ fields: move(draft.fields, index, 1) })}><ArrowDown size={14} /></IconButton><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ kind: 'field', field: { ...field, breakdown: (draft.settings?.breakdowns || []).includes(field.key) }, previousKey: field.key })}><Pencil size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove (data kept)' : 'Αφαίρεση (τα δεδομένα μένουν)'} onClick={() => patch({ fields: draft.fields.filter(item => item !== field) })}><Archive size={14} /></IconButton></span>}</td>}
               </tr>{open && <tr className="register-builder-editor-row"><td colSpan={canEdit ? 4 : 3}><FieldEditor field={editing.field} register={draft} sections={sections} locked={savedKeys.has(editing.previousKey)} onCancel={() => setEditing(null)} onSave={next => upsertField(next, editing.previousKey)} /></td></tr>}</Fragment>
-            })}</tbody></table>
+            })}</tbody></table>}
             {editing?.kind === 'field' && !editing.previousKey && editing.field.section === section.key && <FieldEditor field={editing.field} register={draft} sections={sections} locked={false} onCancel={() => setEditing(null)} onSave={next => upsertField(next, null)} />}
           </div>
         })}
@@ -123,17 +127,18 @@ export function RegisterBuilder({ register, canEdit, entryCount, openIndicator =
       </FormCard>}
 
       {part === 'indicators' && <FormCard wide title={en ? `Indicators ${draft.indicators.length}` : `Δείκτες ${draft.indicators.length}`}>
-        <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Indicator' : 'Δείκτης'}</th><th>{en ? 'Calculation' : 'Υπολογισμός'}</th><th>{en ? 'Better when' : 'Καλύτερα όταν'}</th><th className="register-num">{en ? 'Target' : 'Στόχος'}</th><th className="register-num">{en ? 'Limit' : 'Όριο'}</th>{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{draft.indicators.map((indicator, index) => {
+        <table className="data-table register-builder-table"><thead><tr><th>{en ? 'Indicator' : 'Δείκτης'}</th><th>{en ? 'Calculation' : 'Υπολογισμός'}</th>{draft.kind === 'case' && <th>{en ? 'Counted on' : 'Μετράει στην'}</th>}<th>{en ? 'Better when' : 'Καλύτερα όταν'}</th><th className="register-num">{en ? 'Target' : 'Στόχος'}</th><th className="register-num">{en ? 'Limit' : 'Όριο'}</th>{canEdit && <th aria-label={en ? 'Actions' : 'Ενέργειες'} />}</tr></thead><tbody>{draft.indicators.map((indicator, index) => {
           const open = editing?.kind === 'indicator' && editing.previousId === indicator.id
           const judged = indicator.direction === 'higher' || indicator.direction === 'lower'
           return <Fragment key={indicator.id}><tr className={open ? 'is-editing' : undefined}>
             <td><strong>{textOf(indicator, language)}</strong><small>{[indicator.field && textOf(draft.fields.find(field => field.key === indicator.field), language), ...(indicator.filters || []).map(filter => filterText(draft, filter, language))].filter(Boolean).join(' · ')}</small></td>
             <td>{optionLabel(AGGREGATIONS, indicator.aggregation, language)}</td>
+            {draft.kind === 'case' && <td className="register-builder-detail">{textOf(draft.fields.find(field => field.key === (indicator.dateField || draft.settings?.entryDateField)), language) || '—'}</td>}
             <td>{indicator.direction === 'higher' ? (en ? 'Higher' : 'Υψηλότερο') : indicator.direction === 'lower' ? (en ? 'Lower' : 'Χαμηλότερο') : <span className="register-muted">{en ? 'No target' : 'Χωρίς στόχο'}</span>}</td>
             <td className="register-num">{judged && indicator.target != null && indicator.target !== '' ? `${indicator.direction === 'higher' ? '≥' : '≤'} ${indicator.target}` : <span className="register-muted">—</span>}</td>
             <td className="register-num">{judged && indicator.threshold != null && indicator.threshold !== '' ? indicator.threshold : <span className="register-muted">—</span>}</td>
             {canEdit && <td className="register-builder-tools-cell">{canEdit && <span className="register-builder-tools"><IconButton size="sm" label={en ? 'Up' : 'Πάνω'} onClick={() => patch({ indicators: move(draft.indicators, index, -1) })}><ArrowUp size={14} /></IconButton><IconButton size="sm" label={en ? 'Edit' : 'Επεξεργασία'} onClick={() => setEditing({ kind: 'indicator', indicator, previousId: indicator.id })}><Pencil size={14} /></IconButton><IconButton size="sm" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => patch({ indicators: draft.indicators.filter(item => item !== indicator) })}><Archive size={14} /></IconButton></span>}</td>}
-          </tr>{open && <tr className="register-builder-editor-row"><td colSpan={canEdit ? 6 : 5}><IndicatorEditor indicator={editing.indicator} register={draft} onCancel={() => setEditing(null)} onSave={next => upsertIndicator(next, editing.previousId)} /></td></tr>}</Fragment>
+          </tr>{open && <tr className="register-builder-editor-row"><td colSpan={(canEdit ? 6 : 5) + (draft.kind === 'case' ? 1 : 0)}><IndicatorEditor indicator={editing.indicator} register={draft} onCancel={() => setEditing(null)} onSave={next => upsertIndicator(next, editing.previousId)} /></td></tr>}</Fragment>
         })}</tbody></table>
         {editing?.kind === 'indicator' && !editing.previousId && <IndicatorEditor indicator={editing.indicator} register={draft} onCancel={() => setEditing(null)} onSave={next => upsertIndicator(next, null)} />}
         {canEdit && !editing && <Button variant="secondary" onClick={() => setEditing({ kind: 'indicator', indicator: { id: '', title: '', titleEn: '', aggregation: draft.kind === 'sheet' ? 'sum' : 'count', filters: [], denominatorFilters: [], rows: [], direction: 'context' }, previousId: null })}><Plus size={15} />{en ? 'Indicator' : 'Δείκτης'}</Button>}
