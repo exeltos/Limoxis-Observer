@@ -366,9 +366,8 @@ describe('the cath lab register', () => {
     const entries = [row({ procedures: ['angiography'] }), row({ procedures: ['angiography'], urgent: true })]
     const ids = indicatorReport(cath, entries, march).map(item => item.indicator.id)
     expect(ids).toContain('urgent_share')
-    expect(ids).not.toContain('complications')
     expect(ids).not.toContain('stemi_share')
-    expect(indicatorReport(cath, [], march).map(item => item.indicator.id)).toContain('complications')
+    expect(indicatorReport(cath, [], march).map(item => item.indicator.id)).toContain('stemi_share')
   })
   it('has demo cases with every answer recorded', () => {
     const demo = demoRegisters().find(item => item.templateKey === 'cathLab')

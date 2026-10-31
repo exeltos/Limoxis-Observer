@@ -143,7 +143,7 @@ const CATH_LAB = {
   descriptionEn: 'One card per patient procedure, with the case number only. Several procedures per case: coronary angiography with angioplasty counts in both.',
   identity: { caseNumber: true, patientName: false, caseNumberAliases: ['Αρ. περιστατικού', 'ΑΡ. ΠΕΡΙΣΤΑΤΙΚΟΥ'] },
   entryDateField: 'date',
-  sections: [{ key: 'procedure', label: 'Πράξη', labelEn: 'Procedure' }, { key: 'patient', label: 'Ασθενής', labelEn: 'Patient' }, { key: 'outcome', label: 'Έκβαση και επιπλοκές', labelEn: 'Outcome and complications' }],
+  sections: [{ key: 'procedure', label: 'Πράξη', labelEn: 'Procedure' }, { key: 'patient', label: 'Ασθενής', labelEn: 'Patient' }, { key: 'outcome', label: 'Έκβαση', labelEn: 'Outcome' }],
   breakdowns: ['procedures', 'indication', 'sex'],
   fields: [
     { key: 'date', section: 'procedure', type: 'date', required: true, label: 'Ημερομηνία', labelEn: 'Date', aliases: ['Ημερομηνία', 'ΗΜΕΡΟΜΗΝΙΑ'] },
@@ -153,8 +153,6 @@ const CATH_LAB = {
     { key: 'age', section: 'patient', type: 'number', unit: 'έτη', unitEn: 'years', min: 0, max: 120, list: true, label: 'Ηλικία', labelEn: 'Age', aliases: ['Ηλικία', 'ΗΛΙΚΙΑ'] },
     sex('sex', { section: 'patient', list: true }),
     yes('to_surgery', 'Προς καρδιοχειρουργείο', 'Referred to cardiac surgery', { section: 'outcome', aliases: ['Προς Χ/Ο', 'ΠΡΟΣ ΧΕΙΡΟΥΡΓΕΙΟ'] }),
-    yes('iabp', 'IABP', 'IABP', { section: 'outcome', aliases: ['IABP'] }),
-    yes('complication', 'Επιπλοκή', 'Complication', { section: 'outcome', help: 'Αιμάτωμα, επείγουσα επέμβαση, θάνατος.', helpEn: 'Haematoma, emergency surgery, death.' }),
   ],
   indicators: [
     count('patients', 'Ασθενείς', 'Patients'),
@@ -167,7 +165,6 @@ const CATH_LAB = {
     share('stemi_share', '% με οξύ έμφραγμα (ανάσπαση ST)', '% with ST-elevation infarction', [{ field: 'indication', op: 'eq', value: 'stemi' }], { denominatorFilters: [{ field: 'indication', op: 'filled' }], note: 'Μόνο όσες πράξεις έχουν καταγεγραμμένη ένδειξη.', noteEn: 'Only procedures with the indication recorded.' }),
     share('primary_pci', '% αγγειοπλαστικής στο οξύ έμφραγμα', '% angioplasty in ST-elevation infarction', [{ field: 'indication', op: 'eq', value: 'stemi' }, { field: 'procedures', op: 'eq', value: 'angioplasty' }], { denominatorFilters: [{ field: 'indication', op: 'eq', value: 'stemi' }], direction: 'higher', note: 'Από τους ασθενείς με οξύ έμφραγμα, όσοι έκαναν αγγειοπλαστική.', noteEn: 'Of the patients with ST-elevation infarction, those who had an angioplasty.' }),
     share('to_surgery', '% προς καρδιοχειρουργείο', '% referred to cardiac surgery', [{ field: 'to_surgery', op: 'yes' }]),
-    share('complications', '% με επιπλοκή', '% with complication', [{ field: 'complication', op: 'yes' }], { denominatorFilters: [{ field: 'complication', op: 'filled' }], direction: 'lower', note: 'Μόνο όσες πράξεις έχουν καταγραφή επιπλοκής (ναι/όχι).', noteEn: 'Only procedures with the complication recorded (yes/no).' }),
   ],
 }
 

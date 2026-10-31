@@ -49,7 +49,6 @@ export function demoRegisters() {
   const emergency = { ...registerFromTemplate('emergency', { departmentId: 'ΤΕΠ', department: 'ΤΕΠ', departmentEn: 'Emergency department' }), id: DEMO_EMERGENCY_ID, code: 'REG-ED' }
   emergency.sheet = { ...emergency.sheet, dailyFrom: `${new Date().toISOString().slice(0, 7)}-01` }
   const cathLab = { ...registerFromTemplate('cathLab', { departmentId: 'Αιμοδυναμικό', department: 'Αιμοδυναμικό', departmentEn: 'Cath lab' }), id: DEMO_CATHLAB_ID, code: 'REG-CATH' }
-  cathLab.indicators = cathLab.indicators.map(indicator => ({ ...indicator, ...({ complications: { target: 2, threshold: 4 } }[indicator.id] || {}) }))
   return [nicu, endoscopy, icu, paediatrics, obstetrics, emergency, cathLab].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
@@ -289,8 +288,6 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
         age: Math.round(48 + cathRandom() * 38),
         sex: cathRandom() < 0.68 ? 'male' : 'female',
         to_surgery: kind === 'angiography' ? cathRandom() < 0.1 : false,
-        iabp: kind === 'angioplasty' ? cathRandom() < 0.04 : false,
-        complication: cathRandom() < (kind === 'angioplasty' ? 0.03 : 0.012),
       }
       cathNumber += 1 + Math.floor(cathRandom() * 3)
       const id = `reg-entry-cath-${entries.filter(item => item.registerId === DEMO_CATHLAB_ID).length + 1}`

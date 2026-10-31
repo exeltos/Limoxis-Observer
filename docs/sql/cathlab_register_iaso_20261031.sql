@@ -1,5 +1,5 @@
 -- ΑΙΜΟΔΥΝΑΜΙΚΟ ΙΑΣΩ (REG-005 «Πράξεις Αιμοδυναμικού», εγκρίθηκε από τον ιδιοκτήτη 31/10/2026).
--- 1) Τρεις ενότητες φόρμας (Πράξη, Ασθενής, Έκβαση και επιπλοκές) αντί για μία.
+-- 1) Τρεις ενότητες φόρμας (Πράξη, Ασθενής, Έκβαση) αντί για μία.
 -- 2) Νέα πεδία «Ένδειξη» (λίστα) και «Επείγουσα πράξη» (ναι/όχι). Οι παλιές καταχωρίσεις μένουν κενές σε αυτά.
 -- 3) Νέοι δείκτες: % επείγουσες πράξεις, % με οξύ έμφραγμα (ανάσπαση ST), % αγγειοπλαστικής στο οξύ έμφραγμα.
 -- Δεν περιέχει delete/drop. Οι στήλες του πίνακα προστίθενται από το department_register_sync.
@@ -17,7 +17,7 @@ begin
   update public.department_register_sections set key = 'procedure' where register_id = rid and key = 'main';
   insert into public.department_register_sections (organization_id, register_id, key, label_el, label_en, position) values
     (org, rid, 'patient', 'Ασθενής', 'Patient', 1),
-    (org, rid, 'outcome', 'Έκβαση και επιπλοκές', 'Outcome and complications', 2);
+    (org, rid, 'outcome', 'Έκβαση', 'Outcome and complications', 2);
 
   -- Πεδία: σειρά και ενότητες.
   update public.department_register_fields set section_key = 'procedure', position = 0 where register_id = rid and key = 'date';
@@ -62,3 +62,9 @@ begin
   perform public.department_register_sync(rid);
   perform public.department_register_fast_reads(rid);
 end $$;
+
+-- ΣΥΜΠΛΗΡΩΜΑ 31/10/2026 (ζητήθηκε από τον ιδιοκτήτη): τα πεδία «IABP» και «Επιπλοκή» και ο δείκτης «% με επιπλοκή» αφαιρέθηκαν
+-- (δεν είχαν ποτέ τιμές). Αρχειοθετούνται, δεν διαγράφονται. Η ενότητα «Έκβαση και επιπλοκές» μετονομάστηκε «Έκβαση».
+-- update public.department_register_fields set archived = true where register_id = '68dec235-76b0-4785-9427-89e8b74d3411' and key in ('iabp','complication');
+-- update public.department_register_indicators set archived = true where register_id = '68dec235-76b0-4785-9427-89e8b74d3411' and key = 'complications';
+-- update public.department_register_sections set label_el = 'Έκβαση', label_en = 'Outcome' where register_id = '68dec235-76b0-4785-9427-89e8b74d3411' and key = 'outcome';
