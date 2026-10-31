@@ -268,7 +268,7 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
     {narrowed && <button type="button" className="register-indicator-back" onClick={() => { setYear('all'); setMonth('all'); setFrom(''); setTo('') }}>{en ? 'Clear filters' : 'Καθαρισμός φίλτρων'}</button>}
   </div>
   return <><div className="register-sheet-days-filters"><KpiFigures label={en ? 'The days at a glance' : 'Οι ημέρες με μια ματιά'} figures={figures} />{filters}</div>{!sorted.length ? <div className="register-sheet-body"><div className="inline-empty">{en ? 'Nothing recorded for this choice.' : 'Δεν υπάρχει καταχώριση για αυτή την επιλογή.'}</div></div> : <div ref={innerRef} className="scroll-table register-sheet-days-list"><table className="data-table">
-    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th>{en ? 'Total' : 'Σύνολο'}</th>{measures.length > 1 && measures.map(measure => <th key={measure.key} className="register-num">{textOf(measure, language)}</th>)}<th>{en ? 'Recorded' : 'Καταχωρίστηκε'}</th></tr></thead>
+    <thead><tr><th>{en ? 'Date' : 'Ημερομηνία'}</th><th className="register-col-total">{en ? 'Total' : 'Σύνολο'}</th>{measures.length > 1 && measures.map(measure => <th key={measure.key} className="register-col-shift">{textOf(measure, language)}</th>)}<th className="register-col-when">{en ? 'Recorded' : 'Καταχωρίστηκε'}</th></tr></thead>
     <tbody>{sorted.map(item => {
       const total = totalOf(item)
       const before = olderTotal.get(String(item.periodStart))
@@ -276,9 +276,9 @@ function SheetDays({ innerRef, register, entries, dailyFrom, language, onOpen })
       const day = String(item.periodStart)
       return <tr key={item.id || day} className="registry-row-clickable" tabIndex={0} onClick={() => onOpen(day)} onKeyDown={event => { if (event.key === 'Enter') onOpen(day) }}>
         <td><strong>{day.slice(0, 7) < dailyFrom ? monthText(day) : dayText(day)}</strong>{day.slice(0, 7) < dailyFrom && <span className="register-sheet-muted"> · {en ? 'month total' : 'σύνολο μήνα'}</span>}</td>
-        <td><span className="register-list-total"><strong>{fmt(total)}</strong>{change != null && change !== 0 && <span className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}{fmt(Math.abs(change))}</span>}</span><span className="register-list-bar" aria-hidden="true"><i style={{ width: `${Math.round((total / (day.slice(0, 7) >= dailyFrom ? maxDaily : maxMonthly)) * 100)}%` }} /></span></td>
-        {measures.length > 1 && measures.map(measure => <td key={measure.key} className="register-num">{fmt(rows.reduce((sum, row) => sum + (Number(item.values?.[row.key]?.[measure.key]) || 0), 0))}</td>)}
-        <td>{item.createdAt ? formatDay(String(item.createdAt).slice(0, 10), language) : <span className="register-muted">—</span>}{item.updatedAt && String(item.updatedAt).slice(0, 10) !== String(item.createdAt || '').slice(0, 10) && <span className="register-list-change">{en ? 'edited' : 'διορθώθηκε'} {formatDay(String(item.updatedAt).slice(0, 10), language)}</span>}</td>
+        <td className="register-col-total"><span className="register-list-total"><strong>{fmt(total)}</strong>{change != null && change !== 0 && <span className={`register-list-change ${change > 0 ? 'is-up' : 'is-down'}`}>{change > 0 ? <ArrowUpRight size={12} aria-hidden="true" /> : <ArrowDownRight size={12} aria-hidden="true" />}{fmt(Math.abs(change))}</span>}</span><span className="register-list-bar" aria-hidden="true"><i style={{ width: `${Math.round((total / (day.slice(0, 7) >= dailyFrom ? maxDaily : maxMonthly)) * 100)}%` }} /></span></td>
+        {measures.length > 1 && measures.map(measure => <td key={measure.key} className="register-col-shift">{fmt(rows.reduce((sum, row) => sum + (Number(item.values?.[row.key]?.[measure.key]) || 0), 0))}</td>)}
+        <td className="register-col-when">{item.createdAt ? formatDay(String(item.createdAt).slice(0, 10), language) : <span className="register-muted">—</span>}{item.updatedAt && String(item.updatedAt).slice(0, 10) !== String(item.createdAt || '').slice(0, 10) && <span className="register-list-change">{en ? 'edited' : 'διορθώθηκε'} {formatDay(String(item.updatedAt).slice(0, 10), language)}</span>}</td>
       </tr>
     })}</tbody>
   </table></div>}</>

@@ -290,3 +290,9 @@
 .register-list-bar i{display:block;height:100%;border-radius:3px;background:color-mix(in srgb,var(--reg-accent,var(--lo-color-primary)) 70%,var(--lo-color-surface))}
 .register-list-change.is-up{color:var(--lo-status-success-fg)}
 .register-list-change.is-down{color:var(--lo-status-danger-fg)}
+
+/* The list of days: fixed columns, the numbers and their headings on the same edge. */
+.register-sheet-days-list .data-table{table-layout:fixed;width:100%}
+.register-sheet-days-list .data-table .register-col-total{width:190px;text-align:left}
+.register-sheet-days-list .data-table .register-col-shift{width:130px;text-align:left;font-variant-numeric:tabular-nums}
+.register-sheet-days-list .data-table .register-col-when{width:230px;text-align:left}
