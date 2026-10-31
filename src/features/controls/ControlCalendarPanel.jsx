@@ -47,7 +47,8 @@ function useCalendarMonths(organizationId, year, refreshKey) {
   return state.key === key ? state : { months: null, failed: false }
 }
 
-export function useControlCalendarReport(rows, tx, language, organizationId, refreshKey) {
+// labels: another plan on the same calendar (the annual culture plan) names its documents: { kind, title: year => text, file }.
+export function useControlCalendarReport(rows, tx, language, organizationId, refreshKey, labels = null) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const [year, setYear] = useState(() => new Date().getFullYear())
@@ -60,7 +61,7 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
 
   function exportCsv() {
     if (failed) { notify(loadFailedText, 'danger'); return }
-    downloadCsv(`${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}.csv`,
+    downloadCsv(`${labels?.file || (en ? 'control-calendar' : 'imerologio-elegxon')}-${year}.csv`,
       [en ? 'Control' : 'Έλεγχος', en ? 'Department' : 'Τμήμα', en ? 'Frequency' : 'Συχνότητα', ...months],
       lines.map((line) => [title(line.item), line.department, frequencyLabel(line.frequency || line.item.frequency, language), ...line.months.map((cell) => calendarCellText(cell, en))]))
   }
@@ -84,12 +85,12 @@ export function useControlCalendarReport(rows, tx, language, organizationId, ref
          ...group.lines.map((line) => [{ text: line.department, className: 'rd-sub-cell' }, ...line.months.map(cellOf), yearCell(line)])])
     const ok = printReport({
       language, orientation: 'landscape',
-      kind: en ? 'Controls' : 'Έλεγχοι',
+      kind: labels?.kind || (en ? 'Controls' : 'Έλεγχοι'),
       code: String(year),
-      title: en ? `Control calendar ${year}` : `Ημερολόγιο ελέγχων ${year}`,
+      title: labels?.title ? labels.title(year) : (en ? `Control calendar ${year}` : `Ημερολόγιο ελέγχων ${year}`),
       meta: [[en ? 'Year' : 'Έτος', String(year)], [en ? 'Controls' : 'Έλεγχοι', String(lines.length)]],
       sections: [{ title: en ? 'Executions per month' : 'Εκτελέσεις ανά μήνα', note: `✓ ${tx.legendDone} · ✕ ${tx.legendMissed} · ○ ${tx.legendPlanned} · ${tx.legendCount}: 9/10. ${tx.calendarNote}`, table: { columns: [en ? 'Control' : 'Έλεγχος', ...months, String(year)], rows: rowsOut, empty: tx.noCalendar } }],
-      filename: `${en ? 'control-calendar' : 'imerologio-elegxon'}-${year}`,
+      filename: `${labels?.file || (en ? 'control-calendar' : 'imerologio-elegxon')}-${year}`,
     }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }

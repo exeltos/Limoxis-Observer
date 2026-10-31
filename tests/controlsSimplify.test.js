@@ -28,11 +28,12 @@ describe('controls list: department cards, key figures per tab, no filter popove
     expect(bar).not.toContain(' end={')
     expect(page).toContain('const periodSelect=<FilterSelect className="controls-period-select" label={tx.period}')
     expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
-    // The status, the department and the programme (routine controls / culture programme) are selects of the same popover on every tab.
+    // The status and the department are selects of the same popover on every tab; the culture programme is not part of the Controls.
     expect(bar).toContain('<FilterSelect label={tx.status} value={status} onChange={setStatus}>')
-    expect(bar).toContain('<FilterSelect label={language===\'en\'?\'Programme\':\'Πρόγραμμα\'} value={kind} onChange={setKind}>')
+    expect(bar).not.toContain('setKind')
+    expect(page).toContain("controlTypeCode(item.category)!=='CTRL-ENV'")
     expect(page).toContain('registry.loadViewState({query:')
-    expect(page).toContain("registry.saveViewState({query,department,status,view,period,kind})")
+    expect(page).toContain("registry.saveViewState({query,department,status,view,period})")
   })
 
   it('finds frequency, type and criticality through the search box, in both languages', () => {
