@@ -71,12 +71,13 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
       <div className="indicator-result-facts">
        <span><small>{el?'Στόχος':'Target'}</small><b>{target}</b></span>
        <span><small>{el?'Κατάσταση':'Status'}</small><b className={result.status==='attention'?'is-late':result.status==='onTarget'?'is-good':undefined}>{result.target==null?(el?'Χωρίς στόχο':'No target'):status[el?0:1]}</b></span>
+       {result.evidence&&state.definition?.calculation!=='manual'&&<span><small>{el?'Αριθμητής / παρονομαστής':'Numerator / denominator'}</small><b>{result.evidence}</b></span>}
        <span><small>{el?'Έναντι προηγούμενης περιόδου':'Against the previous period'}</small><Change now={result.value} then={state.previous} direction={result.direction} el={el}/></span>
        <span><small>{el?'Έναντι ίδιας περιόδου πέρσι':'Against the same period last year'}</small><Change now={result.value} then={state.lastYear} direction={result.direction} el={el}/></span>
       </div>
      </div>
      <div className="indicator-result-trend"><small>{el?'Τελευταίοι 12 μήνες':'The last 12 months'}</small>{state.series.filter(value=>value!=null).length>1?<Sparkline width={560} height={92} points={state.series} target={result.target==null?null:Number(result.target)} label={el?'Τάση 12 μηνών':'12-month trend'}/>:<span className="indicator-result-empty">{el?'Δεν υπάρχουν αρκετά δεδομένα για τάση.':'Not enough data for a trend.'}</span>}</div>
-     <p className="indicator-result-formula"><small>{el?'Πώς υπολογίζεται':'How it is calculated'}</small>{formulaText(state.definition,result,el)}</p>
+     <p className="indicator-result-formula"><small>{el?'Πώς υπολογίζεται':'How it is calculated'}</small>{formulaText(state.definition,el)}</p>
     </>}
   </section>
   {risks.list.length>0&&<section className="record-section">
@@ -104,10 +105,8 @@ function Change({now,then,direction,el}){
  return <b className={`indicator-change${better===true?' is-better':better===false?' is-worse':''}`}><Icon size={13}/>{delta>0?'+':'−'}{fmtNumber(Math.abs(delta),el)}</b>
 }
 // «84 patients with an infection ÷ 1,245 study patients × 100 = 6,7 %»: the calculation in words, then with the numbers.
-function formulaText(definition,result,el){
+function formulaText(definition,el){
  if(!definition)return ''
  if(definition.calculation==='manual')return el?'Η τιμή καταχωρίζεται χειροκίνητα από τον υπεύθυνο.':'The value is entered by hand by the person responsible.'
- const words=[indicatorMetricLabel(definition.numerator,el?'el':'en'),definition.denominator?`÷ ${indicatorMetricLabel(definition.denominator,el?'el':'en')}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
- const numbers=[fmtNumber(result.numerator,el),definition.denominator?`÷ ${fmtNumber(result.denominator,el)}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
- return `${words} (${numbers})`
+ return [indicatorMetricLabel(definition.numerator,el?'el':'en'),definition.denominator?`÷ ${indicatorMetricLabel(definition.denominator,el?'el':'en')}`:'',definition.denominator&&Number(definition.multiplier||1)!==1?`× ${fmtNumber(definition.multiplier,el)}`:''].filter(Boolean).join(' ')
 }

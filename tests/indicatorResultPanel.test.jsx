@@ -20,7 +20,7 @@ describe('IndicatorResultPanel', () => {
     expect(await screen.findByText('2,8')).toBeTruthy()
     expect(screen.getByText('3 / 1067')).toBeTruthy()
     expect(screen.getByText('≤ 2 /1.000 ημέρες')).toBeTruthy()
-    expect(screen.getByText('χρειάζεται προσοχή')).toBeTruthy()
+    expect(screen.getByText('Χρειάζεται προσοχή')).toBeTruthy()
     expect(screen.getByText('1/10/2026 – 9/10/2026 · Όλο το νοσοκομείο')).toBeTruthy()
     expect(screen.getByText('1/9/2026 – 30/9/2026')).toBeTruthy()
     expect(screen.getAllByRole('row')).toHaveLength(2)
