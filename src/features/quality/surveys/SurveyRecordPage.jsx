@@ -110,7 +110,8 @@ export function SurveyRecordPage() {
   }
   const exportResponses = () => exportRegistry(responsesExport(survey, shown, language))
 
-  const tabs = isNew ? [{ id: 'questionnaire', label: en ? 'Questionnaire' : 'Ερωτηματολόγιο', icon: ClipboardList }] : [
+  // A new survey is one page (the questionnaire), without a strip of a single tab.
+  const tabs = isNew ? [] : [
     { id: 'results', label: en ? 'Results' : 'Αποτελέσματα', icon: BarChart3 },
     { id: 'responses', label: en ? `Responses ${responses.length}` : `Απαντήσεις ${responses.length}`, icon: MessageSquareText },
     { id: 'questionnaire', label: en ? `Questionnaire ${survey.questions.length}` : `Ερωτηματολόγιο ${survey.questions.length}`, icon: ClipboardList },
@@ -147,7 +148,7 @@ export function SurveyRecordPage() {
       actions={<div className="row-actions"><ExportMenu onExcel={exportResponses} />{entryDepartments.length > 0 && survey.status === 'open' && <Button onClick={() => setEntry({ departmentId: entryDepartments.length === 1 ? entryDepartments[0].id || entryDepartments[0].name : '', channel: 'paper', answers: {}, missing: [] })}><Plus size={15} />{en ? 'Enter a response' : 'Καταχώριση απάντησης'}</Button>}</div>}
       footer={shown.length > pageSize && <RegistryPagination language={language} page={safePage} totalPages={pages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={() => {}} />}>
       {filterBar}
-      <RegistryTable className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}
+      <RegistryTable sortable={false} className="quality-table" rows={shown.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id}
         columns={[{ key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'department', label: en ? 'Department' : 'Τμήμα' }, { key: 'channel', label: en ? 'Channel' : 'Τρόπος' }, { key: 'overall', label: overall ? textOf(overall, language) : '—' }, { key: 'comment', label: en ? 'Comment' : 'Σχόλιο' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No responses' : 'Δεν υπάρχουν απαντήσεις'} emptyText={en ? 'Answers come in through the link or QR posters; paper forms are entered here.' : 'Οι απαντήσεις έρχονται από τον σύνδεσμο ή τις αφίσες QR· τα έντυπα καταχωρίζονται εδώ.'}
         renderRow={row => <>
@@ -160,7 +161,7 @@ export function SurveyRecordPage() {
         </>} />
     </RecordTabPanel>}
     {tab === 'questionnaire' && <RecordTabPanel title={en ? 'Questionnaire' : 'Ερωτηματολόγιο'} subtitle={problems.length && !locked ? `${en ? 'To open it needs:' : 'Για να ανοίξει χρειάζεται:'} ${problems.join(' · ')}` : ''}
-      footer={!locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
+      footer={!locked && <div className="inline-edit-footer">{isNew && <Button variant="secondary" onClick={goBack}>{en ? 'Cancel' : 'Ακύρωση'}</Button>}<SaveButton loading={saving} disabled={saving} onClick={save}>{isNew ? (en ? 'Create survey' : 'Δημιουργία έρευνας') : (en ? 'Save' : 'Αποθήκευση')}</SaveButton></div>}>
       <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>

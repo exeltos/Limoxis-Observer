@@ -29,7 +29,7 @@ export function SupplierRenewalSenderField({ organizationId, membershipId, userI
     catch (error) { console.error(error); notify(en ? 'The change was not saved.' : 'Η αλλαγή δεν αποθηκεύτηκε.', 'error') } finally { setBusy(false) }
   }
   return <div className={`${className} supplier-renewal-sender`}>
-    <div><strong><MailCheck size={15} /> {en ? 'Supplier certificate renewals' : 'Ανανέωση πιστοποιητικών προμηθευτών'}</strong><p>{en ? 'May approve, send, resend and remind the e-mails to suppliers for their expired certificates. Set only by the Platform Owner.' : 'Εγκρίνει, στέλνει, ξαναστέλνει και υπενθυμίζει τα email προς τους προμηθευτές για τα ληγμένα πιστοποιητικά τους. Ορίζεται μόνο από τον Platform Owner.'}</p></div>
+    <div><strong><MailCheck size={15} /> {en ? 'Supplier certificate renewals' : 'Ανανέωση πιστοποιητικών προμηθευτών'}</strong><p>{en ? 'May approve, send, resend and remind the e-mails to suppliers for their expired certificates. Set only by the Platform Owner.' : 'Εγκρίνει, στέλνει, ξαναστέλνει και υπενθυμίζει τα email προς τους προμηθευτές για τα ληγμένα πιστοποιητικά τους. Ορίζεται μόνο από τον Ιδιοκτήτη πλατφόρμας.'}</p></div>
     <CheckboxField label={en ? 'May send renewal requests' : 'Μπορεί να στέλνει αιτήματα ανανέωσης'} checked={enabled} disabled={disabled || loading || busy} onChange={change} />
   </div>
 }

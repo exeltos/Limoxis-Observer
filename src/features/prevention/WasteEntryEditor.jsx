@@ -1,5 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { DetailFields } from '../../design-system/DetailList'
 import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { useEffect, useMemo, useState } from 'react'
 import { Save } from 'lucide-react'
@@ -458,7 +458,7 @@ function WasteRecordDetails({ record, language, locale }) {
     <div className="record-view-stack waste-record-view">
       <section>
         <SectionHeader title={en ? 'Waste measurement' : 'Μέτρηση αποβλήτων'} />
-        <RecordDetailsGrid
+        <DetailFields
           fields={[
             { id: 'period', label: en ? 'Reporting period' : 'Περίοδος αναφοράς', value: period },
             { id: 'department', label: en ? 'Department' : 'Τμήμα', value: record.departmentEl },

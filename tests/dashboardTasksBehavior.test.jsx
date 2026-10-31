@@ -105,6 +105,32 @@ describe('priority work of a role', () => {
   })
 })
 
+describe('work the user cannot open', () => {
+  it('is left out, so a task never leads to «no access»', () => {
+    const metrics = { controlsDueToday: 1, overdueControls: 2, pendingSamples: 3 }
+    const withoutLab = dashboardTasks('department_manager', metrics, 'el', {
+      canUse: capability => capability !== 'view_lab',
+    })
+    expect(withoutLab.map(task => task.to)).toEqual(['/controls?due=today', '/controls'])
+    const withLab = dashboardTasks('department_manager', metrics, 'el', { canUse: () => true })
+    expect(withLab.map(task => task.to)).toContain('/laboratory')
+  })
+
+  it("gives the Link Nurse their department's controls and isolation reassessments", () => {
+    expect(DEPARTMENT_ROLES.has('link_nurse')).toBe(true)
+    const tasks = dashboardTasks('link_nurse', {
+      controlsDueToday: 1,
+      overdueControls: 1,
+      isolationReviewsDue: 2,
+    })
+    expect(tasks.map(task => task.to)).toEqual([
+      '/controls?due=today',
+      '/controls',
+      '/surveillance',
+    ])
+  })
+})
+
 describe('the Demo hospital', () => {
   it('counts tiles and tasks from the same sample records', () => {
     configureDataEnvironment({ mode: 'demo' })
@@ -197,5 +223,10 @@ describe('the department home', () => {
     tenant = { role: 'department_user', isDemo: true, membership: { previewDepartment: 'ΜΕΘ' } }
     open()
     expect(dashboardProps.at(-1).showKpis).toBe(false)
+  })
+  it("shows the Link Nurse the counts of their department", () => {
+    tenant = { role: 'link_nurse', isDemo: true, membership: { previewDepartment: 'ΜΕΘ' } }
+    open()
+    expect(dashboardProps.at(-1)).toMatchObject({ showKpis: true, department: 'ΜΕΘ' })
   })
 })

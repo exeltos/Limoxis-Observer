@@ -80,3 +80,17 @@ export function supplierCertificateRenewalEmail({organizationName='',organizatio
   ].filter((line,index,all)=>line!==''||all[index-1]!=='').join('\n')
   return {subject,html,text,replyTo:contactEmail||undefined}
 }
+
+// To the Platform Owner: suppliers have submitted renewed certificates, waiting for the
+// Quality Office's review (sent by the nightly check, once per certificate).
+export function supplierCertificateSubmittedEmail({organizationName='',certificates=[],actionUrl=''}:{organizationName?:string,certificates?:{supplier?:string,type?:string,number?:string,expiresOn?:string|null}[],actionUrl?:string}){
+  const day=(value:string|null|undefined)=>value?new Date(`${String(value).slice(0,10)}T12:00:00Z`).toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Athens'}):''
+  const hospital=organizationName||'Limoxis Observer'
+  const count=certificates.length
+  const subject=`Νέα πιστοποιητικά προμηθευτών (${count}) · ${hospital}`
+  const line=(item:{supplier?:string,type?:string,number?:string,expiresOn?:string|null})=>[item.supplier||'—',[item.type,item.number].filter(Boolean).join(' · '),item.expiresOn?`λήξη ${day(item.expiresOn)}`:''].filter(Boolean).join(' — ')
+  const rows=certificates.map(item=>`<li style="margin:0 0 6px">${esc(line(item))}</li>`).join('')
+  const html=`<!doctype html><html lang="el"><head><meta charset="utf-8"><title>${esc(subject)}</title></head><body style="margin:0;padding:24px;background:#f4f7fa;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#182433"><div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e3e9f0;border-radius:12px;padding:24px"><h1 style="margin:0 0 12px;font-size:18px;color:#172b43">Νέα πιστοποιητικά προμηθευτών</h1><p style="margin:0 0 12px;font-size:15px;line-height:1.6">${esc(hospital)}: προμηθευτές υπέβαλαν ${count===1?'1 ανανεωμένο πιστοποιητικό':`${count} ανανεωμένα πιστοποιητικά`}, που περιμένουν έλεγχο.</p><ul style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.5">${rows}</ul>${actionUrl?`<p style="margin:0"><a href="${esc(actionUrl)}" style="display:inline-block;padding:10px 18px;border-radius:10px;background:#256b9b;color:#fff;text-decoration:none;font-weight:600">Έλεγχος υποβολών</a></p>`:''}</div></body></html>`
+  const text=[`${hospital}: ${count===1?'1 ανανεωμένο πιστοποιητικό':`${count} ανανεωμένα πιστοποιητικά`} προμηθευτών περιμένουν έλεγχο.`,'',...certificates.map(item=>`- ${line(item)}`),'',actionUrl?`Έλεγχος υποβολών: ${actionUrl}`:''].join('\n')
+  return {subject,html,text}
+}

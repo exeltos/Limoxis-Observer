@@ -6,9 +6,13 @@ import { preloadRoute } from './routePreload'
 import { forgetRegistryViewStates } from '../core/navigation/useRegistryMemory'
 
 // Record pages of the merged sections keep their old address (/patients/:id): the menu entry they belong to.
-const MENU_ALIASES=[['/patients','/surveillance'],['/committees','/meetings'],['/regulations','/documents'],['/legislation','/documents']]
+// The department registers, objectives and surveys open from «Indicators & objectives» for those who see it
+// (the staff of a department have their own «/registers» entry; a role with an «/indicators» entry keeps it).
+const MENU_ALIASES=[['/patients','/surveillance'],['/committees','/meetings'],['/regulations','/documents'],['/legislation','/documents'],['/registers','/quality/measures'],['/quality/objectives','/quality/measures'],['/quality/surveys','/quality/measures'],['/indicators','/quality/measures']]
 const menuPathOf=pathname=>{const alias=MENU_ALIASES.find(([from])=>pathname===from||pathname.startsWith(`${from}/`));return alias?alias[1]:pathname}
-const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);return to==='/'?path==='/':path===to||path.startsWith(`${to}/`)}
+const under=(path,to)=>to==='/'?path==='/':path===to||path.startsWith(`${to}/`)
+// A page of «Indicators & objectives» is not also under «Quality Center» (/quality is its parent path).
+const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);if(to==='/quality'&&under(path,'/quality/measures'))return false;return under(pathname,to)||under(path,to)}
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon

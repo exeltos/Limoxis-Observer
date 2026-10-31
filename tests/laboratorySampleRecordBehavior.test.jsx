@@ -76,7 +76,7 @@ describe('laboratory record layout', () => {
 
   it('keeps sample actions in the sample card menu and «Εξαγωγή» in the record header, like every record', async () => {
     await openSample()
-    expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Επεξεργασία αποτελέσματος', 'Απόρριψη δείγματος'])
+    expect(openMenu(within(body()).getByRole('button', { name: 'Περισσότερες ενέργειες' }))).toEqual(['Επεξεργασία αποτελέσματος', 'Απόρριψη δείγματος', 'Διαγραφή'])
     closeMenu()
     expect(within(body()).queryByRole('button', { name: 'Εξαγωγή' })).not.toBeInTheDocument()
     const header = document.querySelector('.entity-record-header')

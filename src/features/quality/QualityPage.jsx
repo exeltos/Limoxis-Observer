@@ -1,28 +1,32 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
-import { AlertOctagon,AlertTriangle,CalendarClock,CalendarDays,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,Scale,SearchCheck,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,UserRound,Users,Wrench } from 'lucide-react'
+import { STALE_DAYS,isStaleRegister as isStale } from '../registers/registerFigures'
+import { KpiFigures } from '../../design-system/KpiCard'
+import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileText,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
-import { MetricCard } from '../../design-system/MetricCard'
 import { PageSkeleton } from '../../design-system/LoadingSkeleton'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
+import { useAuth } from '../../core/auth/AuthContext'
 import { can,CAPABILITIES,ROLES } from '../../core/permissions/roles'
 import { registryStorageKey,useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { readSessionValue,writeSessionJson,writeSessionValue } from '../../core/storage/browserStorage'
 import { formatDay } from '../../core/i18n/formatDay'
-import { exportRegistry,qualityExport } from '../../core/export/registryExports'
+import { exportRegistry,printRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
-import { loadQualityRecords } from './qualityService'
-import { DeviationQueue,ReportRegister,deviationsExport,reportRegisterExport,stageLabel,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
+import { fillAuditProgramme,loadQualityRecords } from './qualityService'
+import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
+import { printReport } from '../../core/export/reportDocument'
+import { auditDetailedBatchDocument,auditFindingsExport } from './audits/auditReport'
 import { QualityOverview } from './QualityOverview'
-import { ActionsList,AuditsList,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
+import { ActionsList,ActionsSummary,AUDIT_VIEWS,AuditsList,AuditsSummary,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
 import { capaSourceFor } from './qualityDeviations'
 import { useLibraries } from '../management/useLibraries'
 import { RiskAssessmentsPanel } from './risk/RiskAssessmentsPanel'
@@ -31,7 +35,10 @@ import { summarizeRisks } from './risk/riskModel'
 import { IndicatorsPage } from '../indicators/IndicatorsPage'
 import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
-import { ObjectiveDialog,ObjectivesTable,newObjective,objectivesExport,useObjectives } from './review/QualityObjectives'
+import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
+import { ObjectivesTable,objectivesExport,useObjectives } from './review/QualityObjectives'
+import { loadObjectiveHistories,objectivesDossier } from './review/objectiveDossier'
+import { loadReviews } from './review/reviewService'
 import { SurveysList,filterSurveys,surveyCounts,surveysExport,useSurveys } from './surveys/SurveysPanel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExport,filterEquipment,filterSuppliers,supplierCounts,suppliersExport } from './resources/resourceModel'
@@ -51,47 +58,58 @@ const TABS=[
  {value:'indicators',icon:Target,label:['Δείκτες & Στόχοι','Indicators & objectives']},
  {value:'resources',icon:Stethoscope,label:['Πόροι','Resources']},
 ]
-const STAGE_ICON={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:Scale,toClose:CheckCircle2}
 const INDICATOR_OPTIONS=[
  {value:'indicators',icon:Gauge,label:['Δείκτες','Indicators']},
  {value:'registers',icon:ClipboardList,label:['Μητρώα','Registers']},
  {value:'objectives',icon:Target,label:['Στόχοι','Objectives']},
- {value:'surveys',icon:Smile,label:['Έρευνες','Surveys']},
+ {value:'surveys',icon:Smile,label:['Ερωτηματολόγια','Questionnaires']},
 ]
 const RESOURCE_OPTIONS=[
  {value:'equipment',icon:Stethoscope,label:['Εξοπλισμός','Equipment']},
  {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null}
-const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',mode:'programme',quick:null}
-const STALE_DAYS=45
+const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',cycle:'all',mode:'programme',quick:null}
 
 function useQualityRecords(organizationId){
  const [data,setData]=useState({incidents:[],findings:[],capas:[],audits:[]})
  const [loading,setLoading]=useState(true)
+ const [error,setError]=useState(false)
+ const [version,setVersion]=useState(0)
  useEffect(()=>{
   let active=true
   setLoading(true)
   const sections=['incidents','findings','capas','audits']
-  Promise.all(sections.map(section=>loadQualityRecords(section,organizationId).catch(()=>[])))
-   .then(lists=>{if(active)setData(Object.fromEntries(sections.map((section,index)=>[section,lists[index]])))})
+  let failed=false
+  Promise.all(sections.map(section=>loadQualityRecords(section,organizationId).catch(()=>{failed=true;return []})))
+   .then(lists=>{if(active){setData(Object.fromEntries(sections.map((section,index)=>[section,lists[index]])));setError(failed)}})
    .finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
- },[organizationId])
- return {data,loading}
+ },[organizationId,version])
+ return {data,loading,error,reload:()=>setVersion(value=>value+1)}
 }
 
-export function QualityPage(){
+// `section="measures"` (/quality/measures) is «Indicators & objectives» on a page of its own: indicators,
+// registers, objectives and surveys; the Quality Center keeps the rest.
+export function QualityPage({section=''}={}){
+ const measures=section==='measures'
  const {t,language,locale}=useLanguage()
  const en=language==='en'
  const L=(el,enText)=>en?enText:el
  const {role,membership,tenant,actualRole,isRolePreview,moduleEnabled}=useTenant()
+ const {notify,confirm}=useFeedback()
+ // Where «Indicators» puts its «Export» and «⋯» (the top bar).
+ const [indicatorActions,setIndicatorActions]=useState(null)
+ const {user}=useAuth()
  const suppliersOn=moduleEnabled('suppliers')
  const navigate=useNavigate()
  const {goTo}=useContextualNavigation('/quality')
- const [initial]=useState(()=>qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:'overview',view:null})
- useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])
- const [tab,setTab]=useState(initial.tab)
+ const [initial]=useState(()=>qualityTabOf(new URLSearchParams(window.location.search).get('tab'))||qualityTabOf(readSessionValue(RETURN_KEY,''))||{tab:measures?'indicators':'overview',view:null})
+ // A return to «Indicators & objectives» that lands on the Quality Center goes on to its page.
+ const toMeasures=!measures&&initial.tab==='indicators'
+ useEffect(()=>{if(toMeasures){writeSessionValue(RETURN_KEY,`indicators:${initial.view||'indicators'}`);navigate('/quality/measures',{replace:true})}else writeSessionValue(RETURN_KEY,'')},[]) // eslint-disable-line react-hooks/exhaustive-deps
+ const [tabState,setTab]=useState(measures?'indicators':initial.tab)
+ const tab=measures?'indicators':tabState
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'indicators')
  const [resourceView,setResourceView]=useState(initial.tab==='resources'&&initial.view||'equipment')
  useEffect(()=>{if(!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
@@ -103,9 +121,18 @@ export function QualityPage(){
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[]
  const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER
  const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)
+ const canManageIndicators=ownerFullAccess||can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,custom)
  const canReportIncident=ownerFullAccess||can(role,CAPABILITIES.REPORT_INCIDENT,addOns,custom)
 
  const records=useQualityRecords(tenant?.id)
+ const [fillingProgramme,setFillingProgramme]=useState(false)
+ const fillProgramme=async()=>{
+  if(!await confirm({title:L('Προγραμματισμός επιθεωρήσεων','Plan the audits'),message:L('Να προγραμματιστεί η επόμενη επιθεώρηση για κάθε τμήμα που δεν έχει;','Plan the next audit for every department that has none?'),confirmLabel:L('Προγραμματισμός','Plan')}))return
+  setFillingProgramme(true)
+  try{const count=await fillAuditProgramme(tenant?.id,records.data.audits,user?.id||null);records.reload();notify(count?L(`Προγραμματίστηκαν ${count} επιθεωρήσεις.`,`${count} audits planned.`):L('Όλα τα τμήματα έχουν επόμενη επιθεώρηση.','Every department has a next audit.'),'success')}
+  catch{notify(L('Δεν ήταν δυνατός ο προγραμματισμός. Δοκιμάστε ξανά.','The audits could not be planned. Try again.'),'error')}
+  finally{setFillingProgramme(false)}
+ }
  const queue=useDeviationQueue(tenant?.id,canManage)
  const {libraries}=useLibraries()
  const categories=libraries.incidentCategories||[]
@@ -116,7 +143,7 @@ export function QualityPage(){
  const audits=useMemo(()=>auditRows(records.data.audits,records.data.findings),[records.data.audits,records.data.findings])
  const actionView=useListFilters('quality.actions',ACTION_DEFAULTS)
  const auditView=useListFilters('quality.audits',AUDIT_DEFAULTS)
- const riskList=useRiskAssessmentList(tenant?.id,tab==='risks')
+ const riskList=useRiskAssessmentList(tenant?.id,true)
  const [riskCreating,setRiskCreating]=useState(false)
  const riskFile=useRef(null)
  const [riskRows,setRiskRows]=useState([])
@@ -124,102 +151,88 @@ export function QualityPage(){
  const [staleOnly,setStaleOnly]=useState(false)
  const registerList=useRegisterList()
  const objectives=useObjectives(tenant?.id)
+ // The auditor's file of the year's objectives: the months of each and the last management review, read once the objectives are on screen.
+ const [dossierData,setDossierData]=useState(null)
+ useEffect(()=>{if(tab!=='indicators'||measureView!=='objectives'||objectives.loading||!tenant?.id){return undefined}let live=true;Promise.all([loadObjectiveHistories(tenant.id,objectives.objectives),loadReviews(tenant.id).catch(()=>[])]).then(([histories,reviews])=>{if(live)setDossierData({histories,reviews})}).catch(()=>{if(live)setDossierData(null)});return()=>{live=false}},[tab,measureView,objectives.loading,objectives.objectives,tenant?.id])
  const surveys=useSurveys()
  const visibleSurveys=useMemo(()=>filterSurveys(surveys.surveys,surveyFilters),[surveys.surveys,surveyFilters])
  const resources=useResources(tab==='resources')
  const visibleEquipment=useMemo(()=>filterEquipment(resources.equipment,equipmentFilters),[resources.equipment,equipmentFilters])
  const visibleSuppliers=useMemo(()=>filterSuppliers(resources.suppliers,supplierFilters),[resources.suppliers,supplierFilters])
- const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all'})
- const [editingObjective,setEditingObjective]=useState(null)
+ const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all',year:'auto'})
 
+ // The year of the objectives shown: this year's when there are any, else all (the older years stay one choice away).
+ const objectiveYears=useMemo(()=>[...new Set(objectives.objectives.map(item=>item.year).filter(Boolean))].sort((a,b)=>b-a),[objectives.objectives])
+ const objectiveYear=objectiveFilters.year==='auto'?(objectiveYears.includes(new Date().getFullYear())?String(new Date().getFullYear()):'all'):objectiveFilters.year
+ const inObjectiveYear=item=>objectiveYear==='all'||String(item.year)===objectiveYear
  const isMissed=item=>(item.status||'active')==='active'&&item.current.status==='missed'
- const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>!q||`${item.code} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters])
+ const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>!q||`${item.code} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters,objectiveYear])
  const todayIso=new Date().toISOString().slice(0,10)
 
  const overdueActions=actions.filter(isOverdueAction).length
  const missedObjectives=objectives.objectives.filter(isMissed).length
- const toggle=(view,key,value)=>view.set(key,view.filters[key]===value?null:value)
  const goReports=quick=>{setTab('reports');register.clear();register.set('quick',quick)}
  const goIncidents=quick=>{setTab('incidents');incidents.clear();if(quick)incidents.set('quick',quick)}
  const goActions=quick=>{setTab('actions');actionView.set('quick',quick)}
- const goObjectives=()=>{setTab('indicators');setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:'missed'}))}
- const goDeviations=quick=>{setTab('deviations');deviations.clear();deviations.set('scope','registry');if(quick)deviations.set('quick',quick)}
+ const goObjectives=()=>{if(!measures){writeSessionValue(RETURN_KEY,'indicators:objectives');navigate('/quality/measures');return}setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:'missed'}))}
  const centerFigures=[
-  {key:'open',icon:Clock3,value:register.counts.open,label:L('Αναφορές προς αξιολόγηση','Reports to assess'),go:()=>goReports('open')},
-  {key:'sentinel',icon:AlertOctagon,value:incidents.counts.sentinel,label:L('Ανοιχτά συμβάντα-φρουροί','Open sentinel events'),tone:incidents.counts.sentinel?'danger':'neutral',go:()=>goIncidents('sentinel')},
-  ...(canManage?[{key:'deviations',icon:FileWarning,value:deviations.loading?'—':deviations.counts.withoutCapa,label:L('Αποκλίσεις χωρίς ενέργεια','Deviations without action'),tone:deviations.counts.withoutCapa?'warning':'neutral',go:()=>goDeviations('withoutCapa')}]:[]),
-  {key:'overdue',icon:AlertTriangle,value:overdueActions,label:L('Εκπρόθεσμες ενέργειες','Overdue actions'),tone:overdueActions?'danger':'neutral',go:()=>goActions('overdue')},
-  {key:'objectives',icon:TrendingDown,value:objectives.loading?'—':missedObjectives,label:L('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),go:goObjectives},
+  {key:'open',icon:Clock3,value:register.counts.open,label:L('Αναφορές προς αξιολόγηση','Reports to assess'),tone:'warning',go:()=>goReports('open')},
+  {key:'sentinel',icon:AlertOctagon,value:incidents.counts.sentinel,label:L('Ανοιχτά συμβάντα-φρουροί','Open sentinel events'),status:incidents.counts.sentinel?'danger':'good',target:L('στόχος: 0','target: 0'),go:()=>goIncidents('sentinel')},
+  {key:'overdue',icon:AlertTriangle,value:overdueActions,label:L('Εκπρόθεσμες ενέργειες','Overdue actions'),status:overdueActions?'danger':'good',target:L('στόχος: 0','target: 0'),go:()=>goActions('overdue')},
+  {key:'objectives',icon:TrendingDown,value:missedObjectives,loading:objectives.loading,label:L('Στόχοι που δεν επιτυγχάνονται','Objectives not met'),tone:'danger',go:goObjectives},
+  // The deviations without an action are counted on «Actions» and «Deviations».
  ]
  const actionCount=actionCounts(actions)
  const auditCount=auditCounts(audits)
  const objectiveState=state=>{setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:current.state===state&&measureView==='objectives'?'all':state}))}
- const activeObjectives=objectives.objectives.filter(item=>(item.status||'active')==='active')
- const isStaleRegister=useCallback(item=>item.status!=='archived'&&(!item.lastEntry||(Date.parse(todayIso)-Date.parse(item.lastEntry))/86400000>STALE_DAYS),[todayIso])
+ const activeObjectives=objectives.objectives.filter(inObjectiveYear).filter(item=>(item.status||'active')==='active')
+ const isStaleRegister=useCallback(item=>isStale(item,todayIso),[todayIso])
  const staleRegisters=registerList.registers.filter(isStaleRegister).length
  const latestAssessment=[...riskList.items].sort((a,b)=>String(b.assessedOn||'').localeCompare(String(a.assessedOn||'')))[0]
  const latestRisks=latestAssessment?summarizeRisks(latestAssessment.risks||[]):null
- const quickFigure=(view,key,icon,value,label,tone)=>({key,icon,value,label,tone,active:view.filters.quick===key,go:()=>toggle(view,'quick',key)})
  const tabFigures={
-  actions:[quickFigure(actionView,'open',CheckSquare2,actionCount.open,L('Ανοιχτές ενέργειες','Open actions')),
-   quickFigure(actionView,'overdue',AlertTriangle,actionCount.overdue,L('Εκπρόθεσμες','Overdue'),actionCount.overdue?'danger':'neutral'),
-   quickFigure(actionView,'dueSoon',CalendarClock,actionCount.dueSoon,L('Λήγουν σε 14 ημέρες','Due in 14 days')),
-   quickFigure(actionView,'verification',Scale,actionCount.verification,L('Έλεγχος αποτελεσματικότητας','Effectiveness check')),
-   quickFigure(actionView,'orphans',SearchCheck,actionCount.orphans,L('Αποκλίσεις χωρίς ενέργεια','Deviations without an action'),actionCount.orphans?'warning':'neutral')],
-  audits:[quickFigure(auditView,'planned',CalendarDays,auditCount.planned,L('Μένουν φέτος','Left this year')),
-   quickFigure(auditView,'month',CalendarClock,auditCount.month,L('Αυτόν τον μήνα','This month')),
-   quickFigure(auditView,'overdue',AlertTriangle,auditCount.overdue,L('Εκπρόθεσμες','Overdue'),auditCount.overdue?'danger':'neutral'),
-   quickFigure(auditView,'withFindings',SearchCheck,auditCount.withFindings,L('Με ανοιχτές αποκλίσεις','With open deviations'),auditCount.withFindings?'warning':'neutral'),
-   {...quickFigure(auditView,'completed',Gauge,auditCount.compliance==null?'—':`${auditCount.compliance}%`,L('Μέση συμμόρφωση φέτος','Average compliance this year'))}],
   risks:latestRisks?[
-   {key:'assessments',icon:ShieldAlert,value:riskList.items.length,label:L('Εκτιμήσεις κινδύνου','Risk assessments')},
    {key:'risks',icon:ClipboardList,value:latestRisks.total,label:L(`Κίνδυνοι · ${latestAssessment.periodLabel}`,`Risks · ${latestAssessment.periodLabel}`)},
-   {key:'veryHigh',icon:AlertOctagon,value:latestRisks.levels.residual.very_high,label:L('Πολύ υψηλοί (υπολ.)','Very high (residual)'),tone:latestRisks.levels.residual.very_high?'danger':'neutral'},
-   {key:'high',icon:AlertTriangle,value:latestRisks.levels.residual.high,label:L('Υψηλοί (υπολ.)','High (residual)')},
-   {key:'next',icon:CalendarClock,value:formatDay(latestAssessment.nextReviewOn,language)||'—',label:L('Επόμενη αξιολόγηση','Next assessment')},
+   {key:'veryHigh',icon:AlertOctagon,value:latestRisks.levels.residual.very_high,label:L('Πολύ υψηλοί (μετά τα μέτρα)','Very high (after measures)'),status:latestRisks.levels.residual.very_high?'danger':'good',target:L('στόχος: 0','target: 0')},
+   {key:'high',icon:AlertTriangle,value:latestRisks.levels.residual.high,label:L('Υψηλοί (μετά τα μέτρα)','High (after measures)'),tone:'warning'},
+   {key:'next',icon:CalendarClock,value:formatDay(latestAssessment.nextReviewOn,language)||'—',label:L('Επόμενη αξιολόγηση','Next assessment'),hint:L(`${riskList.items.length} εκτιμήσεις`,`${riskList.items.length} assessments`)},
   ]:[],
-  indicators:[{key:'registers',icon:ClipboardList,value:registerList.loading?'—':registerList.registers.length,label:L('Μητρώα τμημάτων','Department registers'),active:measureView==='registers'&&!staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(false)}},
-   {key:'stale',icon:Clock3,value:registerList.loading?'—':staleRegisters,label:L(`Χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`,`No entry for ${STALE_DAYS}+ days`),tone:staleRegisters?'warning':'neutral',active:measureView==='registers'&&staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(value=>measureView!=='registers'||!value)}},
+  registers:[{key:'registers',icon:ClipboardList,value:registerList.loading?'—':registerList.registers.length,label:L('Μητρώα τμημάτων','Department registers'),active:measureView==='registers'&&!staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(false)}},
+   {key:'stale',icon:Clock3,value:registerList.loading?'—':staleRegisters,label:L(`Χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`,`No entry for ${STALE_DAYS}+ days`),tone:'warning',active:measureView==='registers'&&staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(value=>measureView!=='registers'||!value)}}],
+  objectives:[
    {key:'objectives',icon:Target,value:objectives.loading?'—':activeObjectives.length,label:L('Ενεργοί στόχοι','Active objectives'),active:measureView==='objectives'&&objectiveFilters.state==='all',go:()=>objectiveState('all')},
    {key:'met',icon:CheckCircle2,value:activeObjectives.filter(item=>item.current.status==='met').length,label:L('Επιτυγχάνονται','Met'),active:measureView==='objectives'&&objectiveFilters.state==='met',go:()=>objectiveState('met')},
-   {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),tone:missedObjectives?'danger':'neutral',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
-   {key:'pending',icon:Clock3,value:activeObjectives.filter(item=>item.current.status==='pending').length,label:L('Σε εξέλιξη','In progress'),active:measureView==='objectives'&&objectiveFilters.state==='pending',go:()=>objectiveState('pending')}],
+   {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),status:missedObjectives?'danger':'good',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
+   {key:'pending',icon:Clock3,value:activeObjectives.filter(item=>item.current.status==='pending').length,label:L('Χωρίς τιμή ακόμα','No value yet'),active:measureView==='objectives'&&objectiveFilters.state==='pending',go:()=>objectiveState('pending')}],
   equipment:(()=>{const count=equipmentCounts(resources.equipment);const dash=value=>resources.loading?'—':value;const quick=key=>setEquipmentFilters(current=>({...current,quick:current.quick===key?null:key}));return [
-   {key:'all',icon:Stethoscope,value:dash(count.total),label:L('Εξοπλισμός σε χρήση','Equipment in use'),active:!equipmentFilters.quick,go:()=>setEquipmentFilters(current=>({...current,quick:null}))},
-   {key:'overdue',icon:AlertTriangle,value:dash(count.overdue),label:L('Εκπρόθεσμη συντήρηση / διακρίβωση','Overdue maintenance / calibration'),tone:count.overdue?'danger':'neutral',active:equipmentFilters.quick==='overdue',go:()=>quick('overdue')},
-   {key:'dueSoon',icon:CalendarClock,value:dash(count.dueSoon),label:L('Οφείλονται σε 30 ημέρες','Due within 30 days'),tone:count.dueSoon?'warning':'neutral',active:equipmentFilters.quick==='dueSoon',go:()=>quick('dueSoon')},
-   {key:'down',icon:AlertOctagon,value:dash(count.down),label:L('Εκτός λειτουργίας','Out of service'),tone:count.down?'danger':'neutral',active:equipmentFilters.quick==='down',go:()=>quick('down')},
-   {key:'critical',icon:ShieldAlert,value:dash(count.critical),label:L('Υψηλής κρισιμότητας','High criticality'),active:equipmentFilters.quick==='critical',go:()=>quick('critical')}]})(),
+   {key:'all',icon:Stethoscope,value:dash(count.total),label:L('Εξοπλισμός σε χρήση','Equipment in use'),hint:resources.loading?null:L(`${count.critical} κρίσιμος`,`${count.critical} critical`),active:!equipmentFilters.quick,go:()=>setEquipmentFilters(current=>({...current,quick:null}))},
+   {key:'overdue',icon:AlertTriangle,value:dash(count.overdue),label:L('Εκπρόθεσμη συντήρηση / διακρίβωση','Overdue maintenance / calibration'),status:resources.loading?null:count.overdue?'danger':'good',target:L('στόχος: 0','target: 0'),active:equipmentFilters.quick==='overdue',go:()=>quick('overdue')},
+   {key:'dueSoon',icon:CalendarClock,value:dash(count.dueSoon),label:L('Οφείλονται σε 30 ημέρες','Due within 30 days'),tone:'warning',active:equipmentFilters.quick==='dueSoon',go:()=>quick('dueSoon')},
+   {key:'down',icon:AlertOctagon,value:dash(count.down),label:L('Εκτός λειτουργίας','Out of service'),tone:'danger',active:equipmentFilters.quick==='down',go:()=>quick('down')},
+   ]})(),
   suppliers:(()=>{const count=supplierCounts(resources.suppliers);const dash=value=>resources.loading?'—':value;const quick=key=>setSupplierFilters(current=>({...current,quick:current.quick===key?null:key}));return [
-   {key:'all',icon:Truck,value:dash(count.total),label:L('Ενεργοί προμηθευτές','Active suppliers'),active:!supplierFilters.quick,go:()=>setSupplierFilters(current=>({...current,quick:null}))},
-   {key:'approved',icon:CheckCircle2,value:dash(count.approved),label:L('Εγκεκριμένοι','Approved'),active:supplierFilters.quick==='approved',go:()=>quick('approved')},
-   {key:'attention',icon:AlertTriangle,value:dash(count.attention),label:L('Υπό όρους / απορρίπτονται','Conditional / rejected'),tone:count.attention?'warning':'neutral',active:supplierFilters.quick==='attention',go:()=>quick('attention')},
-   {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:count.evaluationDue?'warning':'neutral',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
-   {key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά που λήγουν','Certificates expiring'),tone:count.certificates?'warning':'neutral',active:supplierFilters.quick==='certificates',go:()=>quick('certificates')},
-   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Ανοιχτές μη συμμορφώσεις','Open nonconformities'),tone:count.nonconformities?'danger':'neutral',active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
+   {key:'all',icon:Truck,value:dash(count.total),label:L('Ενεργοί προμηθευτές','Active suppliers'),hint:resources.loading?null:L(`${count.approved} εγκεκριμένοι`,`${count.approved} approved`),active:!supplierFilters.quick,go:()=>setSupplierFilters(current=>({...current,quick:null}))},
+   {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:'warning',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
+   {key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά που λήγουν','Certificates expiring'),tone:'warning',active:supplierFilters.quick==='certificates',go:()=>quick('certificates')},
+   {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Ανοιχτές μη συμμορφώσεις','Open nonconformities'),status:resources.loading?null:count.nonconformities?'danger':'good',target:L('στόχος: 0','target: 0'),active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
   surveys:(()=>{const count=surveyCounts(surveys.surveys);const toggleSurvey=key=>setSurveyFilters(current=>({...current,quick:current.quick===key?null:key}));return [
-   {key:'all',icon:Smile,value:surveys.loading?'—':surveys.surveys.length,label:L('Έρευνες','Surveys'),active:!surveyFilters.quick,go:()=>setSurveyFilters(current=>({...current,quick:null}))},
+   {key:'all',icon:Smile,value:surveys.loading?'—':surveys.surveys.length,label:L('Ερωτηματολόγια','Questionnaires'),hint:count.drafts?L(`${count.drafts} προσχέδια`,`${count.drafts} drafts`):null,active:!surveyFilters.quick,go:()=>setSurveyFilters(current=>({...current,quick:null}))},
    {key:'open',icon:CheckCircle2,value:count.open,label:L('Σε εξέλιξη','Open'),active:surveyFilters.quick==='open',go:()=>toggleSurvey('open')},
-   {key:'recent',icon:Users,value:count.recent,label:L('Απαντήσεις 30 ημερών','Responses in 30 days')},
-   {key:'responses',icon:ClipboardList,value:count.responses,label:L('Απαντήσεις συνολικά','Responses in all')},
-   {key:'closing',icon:CalendarClock,value:count.closing,label:L('Λήγουν σε 14 ημέρες','Close within 14 days'),tone:count.closing?'warning':'neutral',active:surveyFilters.quick==='closing',go:()=>toggleSurvey('closing')},
-   {key:'draft',icon:Clock3,value:count.drafts,label:L('Προσχέδια','Drafts'),active:surveyFilters.quick==='draft',go:()=>toggleSurvey('draft')} ]})(),
+   {key:'recent',icon:Users,value:count.recent,label:L('Απαντήσεις 30 ημερών','Responses in 30 days'),hint:L(`${count.responses} συνολικά`,`${count.responses} in all`)},
+   {key:'closing',icon:CalendarClock,value:count.closing,label:L('Λήγουν σε 14 ημέρες','Close within 14 days'),tone:'warning',active:surveyFilters.quick==='closing',go:()=>toggleSurvey('closing')},
+   ]})(),
  }
- const incidentFigures=view=>[...['toAssess','investigating','action','effectiveness','toClose'].map(stage=>({key:stage,icon:STAGE_ICON[stage],value:view.counts.stages?.[stage]??0,label:stageLabel(stage,language),active:view.filters.quick===stage,go:()=>toggle(view,'quick',stage)})),
-  {key:'sentinel',icon:AlertOctagon,value:view.counts.sentinel,label:L('Συμβάντα-φρουροί','Sentinel events'),tone:view.counts.sentinel?'danger':'neutral',active:view.filters.quick==='sentinel',go:()=>toggle(view,'quick','sentinel')}]
  const figures=({
-  overview:centerFigures,
-  reports:incidentFigures(register),
-  incidents:incidentFigures(incidents),
-  deviations:[
-   {key:'all',icon:FileWarning,value:deviations.counts.total,label:L('Σύνολο αποκλίσεων','Total deviations'),active:deviations.filters.scope==='registry'&&deviations.filters.status==='all'&&!deviations.filters.quick,go:()=>{deviations.clear();deviations.set('scope','registry')}},
-   {key:'progress',icon:Wrench,value:deviations.counts.inProgress,label:L('Σε εξέλιξη','In progress'),active:deviations.filters.status==='inProgress',go:()=>{deviations.set('scope','registry');deviations.set('quick',null);deviations.set('status',deviations.filters.status==='inProgress'?'all':'inProgress')}},
-   {key:'closed',icon:CheckCircle2,value:deviations.counts.closed,label:L('Κλειστές','Closed'),active:deviations.filters.status==='closed',go:()=>{deviations.set('scope','registry');deviations.set('quick',null);deviations.set('status',deviations.filters.status==='closed'?'all':'closed')}},
-   {key:'withoutCapa',icon:SearchCheck,value:deviations.counts.withoutCapa,label:L('Χωρίς διορθωτική ενέργεια','Without corrective action'),tone:deviations.counts.withoutCapa?'warning':'neutral',active:deviations.filters.quick==='withoutCapa',go:()=>{deviations.set('scope','registry');deviations.set('status','all');deviations.set('quick',deviations.filters.quick==='withoutCapa'?null:'withoutCapa')}},
-   {key:'pending',icon:Clock3,value:deviations.counts.pending,label:L('Νέες προς αξιολόγηση','New to assess'),tone:deviations.counts.pending?'warning':'neutral',active:deviations.filters.scope==='pending',go:()=>{deviations.set('quick',null);deviations.set('status','all');deviations.set('scope',deviations.filters.scope==='pending'?'registry':'pending')}},
-  ],
- })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'&&measureView==='surveys'?tabFigures.surveys:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
+  overview:[],
+  reports:[],
+  incidents:[],
+  deviations:[],
+  risks:[],
+ })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'?tabFigures[measureView]:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
+ // What each tab asks for: reports and incidents still open, deviations, overdue actions and audits, the high residual risks of the latest assessment, objectives not met and registers gone quiet, equipment and suppliers that need attention.
+ const resourcesAttention=(()=>{const equipmentNow=equipmentCounts(resources.equipment),suppliersNow=supplierCounts(resources.suppliers);return equipmentNow.overdue+equipmentNow.down+suppliersNow.attention+suppliersNow.certificates})()
+ const tabCounts={reports:register.counts.open,incidents:incidents.counts.open,deviations:deviations.counts.total-deviations.counts.closed,actions:actionCount.open,audits:auditCount.overdue,risks:latestRisks?(latestRisks.levels.residual.very_high||0)+(latestRisks.levels.residual.high||0):0,indicators:missedObjectives+staleRegisters,resources:resourcesAttention}
  const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='resources'?`resources:${resourceView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
  const create=path=>()=>{remember();goTo(path,{registry:`quality.${tab}`})}
@@ -232,72 +245,85 @@ export function QualityPage(){
   incidents:reportOption,
   deviations:canManage?[{id:'finding',label:L('Απόκλιση','Deviation'),icon:FileWarning,onClick:create('/quality/findings/new')}]:[],
   actions:canManage?[{id:'capa',label:L('Διορθωτική ενέργεια','Corrective action'),icon:CheckSquare2,onClick:create('/quality/capas/new')}]:[],
-  audits:canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')}]:[],
+  audits:[...(canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')},{id:'round',label:L('Κύκλος επιθεώρησης','Audit round'),icon:ListChecks,onClick:create('/quality/audits/round')}]:[]),{id:'questionnaires',label:L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires'),icon:ListChecks,onClick:()=>{remember();goTo('/quality/audit-questionnaires')}}],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
-  indicators:canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');setEditingObjective(newObjective())}},{id:'survey',label:L('Έρευνα ικανοποίησης','Satisfaction survey'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[],
-  resources:canManage?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}},...(suppliersOn?[{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}}]:[])]:[],
+  indicators:[...(canManageIndicators?[{id:'indicator',label:L('Δείκτης','Indicator'),icon:Gauge,onClick:()=>{remember();goTo('/indicators/new')}}]:[]),...(canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');writeSessionValue(RETURN_KEY,'indicators:objectives');goTo('/quality/objectives/new')}},{id:'survey',label:L('Ερωτηματολόγιο ικανοποίησης','Satisfaction questionnaire'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[])],
+  resources:canManage?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}},...(suppliersOn?[{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}},{id:'templates',label:L('Πρότυπα αξιολόγησης','Evaluation templates'),icon:ListChecks,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}}]:[])]:[],
  })[tab]
 
+ // Every list exports the same rows to print and to Excel.
+ const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
+ const listExport=(rows,data,title)=><ExportMenu disabled={!rows.length} onPrint={()=>{if(!printRegistry(data(),{language,kind:t('quality'),title}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} onExcel={()=>exportRegistry(data())}/>
  const download=({
   overview:null,
-  deviations:<ExportMenu disabled={!deviations.filtered.length} onExcel={()=>exportRegistry(deviationsExport(deviations.filtered,{language,t}))}/>,
-  reports:<ExportMenu disabled={!register.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(register.filtered,{language,t,categories}))}/>,
-  incidents:<ExportMenu disabled={!incidents.filtered.length} onExcel={()=>exportRegistry(reportRegisterExport(incidents.filtered,{language,t,categories}))}/>,
-  actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu items={[{id:'findings',label:L('Αποκλίσεις (.csv)','Deviations (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
-  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <ExportMenu disabled={!rows.length} onExcel={()=>exportRegistry(qualityExport('audits',rows,{en,t}))}/>})(),
-  risks:<ExportMenu disabled={!riskRows.length} onExcel={()=>exportRegistry(riskAssessmentsExport(riskRows,language))}/>,
-  indicators:measureView==='indicators'?null:measureView==='surveys'?<ExportMenu disabled={!visibleSurveys.length} onExcel={()=>exportRegistry(surveysExport(visibleSurveys,language))}/>:measureView==='registers'?<ExportMenu disabled={!registerRows.length} onExcel={()=>exportRegistry(registersExport(registerRows,language))}/>:<ExportMenu disabled={!visibleObjectives.length} onExcel={()=>exportRegistry(objectivesExport(visibleObjectives,language))}/>,
-  resources:resourceView==='equipment'?<ExportMenu disabled={!visibleEquipment.length} onExcel={()=>exportRegistry(equipmentExport(visibleEquipment,language))}/>:<ExportMenu disabled={!visibleSuppliers.length} onExcel={()=>exportRegistry(suppliersExport(visibleSuppliers,language))}/>,
+  deviations:listExport(deviations.filtered,()=>deviationsExport(deviations.filtered,{language,t}),L('Αποκλίσεις','Deviations')),
+  reports:listExport(register.filtered,()=>reportRegisterExport(register.filtered,{language,t,categories}),L('Αναφορές προς αξιολόγηση','Reports to assess')),
+  incidents:listExport(incidents.filtered,()=>reportRegisterExport(incidents.filtered,{language,t,categories}),L('Μητρώο συμβάντων','Incident register')),
+  actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu disabled={!rows.length} onPrint={()=>{if(!printRegistry(qualityExport('capas',capas,{en,t}),{language,kind:t('quality'),title:L('Διορθωτικές ενέργειες','Corrective actions')}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} items={[{id:'findings',label:L('Αποκλίσεις (.csv)','Deviations (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
+  audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <ExportMenu disabled={!rows.length} items={[
+   {id:'summary-print',kind:'print',label:L('Συγκεντρωτική έκθεση','Summary report'),onClick:()=>printAuditSummary(rows)},
+   {id:'findings-excel',kind:'excel',label:L('Ευρήματα (Excel)','Findings (Excel)'),onClick:()=>exportRegistry(auditFindingsExport(rows,records.data.findings,language))},
+   {id:'list-excel',kind:'excel',label:L('Λίστα επιθεωρήσεων (Excel)','Audit list (Excel)'),onClick:()=>exportRegistry(qualityExport('audits',rows,{en,t}))},
+  ]}/>})(),
+  risks:listExport(riskRows,()=>riskAssessmentsExport(riskRows,language),L('Εκτιμήσεις κινδύνου','Risk assessments')),
+  // «Indicators» puts its own «Export» here (actionsSlot).
+  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):<>{listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'))}<ActionButton label={L('Φάκελος στοχοθεσίας για επιθεωρητή','Objectives file for the auditor')} disabled={!dossierData||!activeObjectives.length} onClick={()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,histories:dossierData.histories,reviews:dossierData.reviews,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}><FileText size={16}/><span>{L('Φάκελος για επιθεωρητή','Auditor file')}</span></ActionButton></>,
+  resources:resourceView==='equipment'?listExport(visibleEquipment,()=>equipmentExport(visibleEquipment,language),L('Εξοπλισμός','Equipment')):listExport(visibleSuppliers,()=>suppliersExport(visibleSuppliers,language),L('Προμηθευτές','Suppliers')),
  })[tab]
 
- const resourceSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={resourceView} onChange={setResourceView} options={RESOURCE_OPTIONS.filter(option=>suppliersOn||option.value!=='suppliers').map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
- const measureSwitch=<ModeSwitch ariaLabel={L('Προβολή','View')} value={measureView} onChange={setMeasureView} options={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))}/>
 
- return <Page fill className="registry-fill-page" title={t('quality')} subtitle={L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους στόχους και την Ανασκόπηση Διοίκησης.','From the report and deviation to corrective action, objectives and management review.')}
+ return <Page fill className="registry-fill-page" title={measures?L('Δείκτες & Στόχοι','Indicators & objectives'):t('quality')} subtitle={measures?L('Οι δείκτες της πλατφόρμας και των μητρώων, οι στόχοι ποιότητας και τα ερωτηματολόγια ικανοποίησης.','The platform and register indicators, the quality objectives and the satisfaction questionnaires.'):L('Από την αναφορά και την απόκλιση ως τη διορθωτική ενέργεια, τους κινδύνους και τους πόρους.','From the report and deviation to corrective action, risks and resources.')}
   actions={<div className="row-actions">
    {download}
-   {tab==='overview'&&<ActionButton label={t('sidebarNav.openMeetingsSection')} tone="neutral" onClick={()=>navigate('/meetings?tab=departments')}><Users size={17}/><span>{t('sidebarNav.openMeetingsSection')}</span></ActionButton>}
-   {tab==='audits'&&<ActionButton label={L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires')} tone="neutral" onClick={()=>{remember();goTo('/quality/audit-questionnaires')}}><ListChecks size={17}/><span>{L('Ερωτηματολόγια','Questionnaires')}</span></ActionButton>}
-   {tab==='reports'&&canReportIncident&&<ActionButton label={L('Οι αναφορές μου','My reports')} tone="neutral" onClick={()=>goTo('/quality/my-reports')}><UserRound size={17}/><span>{L('Οι αναφορές μου','My reports')}</span></ActionButton>}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
-  {figures.length>0&&<div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{'--quality-kpis':figures.length}}>
-   {figures.map(figure=><MetricCard key={figure.key} loading={(records.loading||deviations.loading)&&typeof figure.value==='number'} icon={figure.icon} value={figure.value} label={figure.label} tone={figure.tone} onClick={figure.go} active={figure.active}/>)}
-  </div></div>}
-  <CanonicalTabs items={TABS.filter(item=>!item.manage||canManage).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:item.value==='reports'?register.counts.open:item.value==='incidents'?incidents.counts.open:item.value==='deviations'?deviations.counts.total:item.value==='actions'?overdueActions:0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>
+  {!measures&&<CanonicalTabs items={TABS.filter(item=>item.value!=='indicators'&&(!item.manage||canManage)).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>}
+  {tab==='indicators'&&<CanonicalTabs items={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={measureView} onChange={setMeasureView} ariaLabel={L('Δείκτες & Στόχοι','Indicators & objectives')}/>}
+  {tab==='resources'&&suppliersOn&&<CanonicalTabs items={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={resourceView} onChange={setResourceView} ariaLabel={L('Πόροι','Resources')}/>}
+  {tab==='audits'&&<CanonicalTabs className="lo-subtabs" items={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))} value={AUDIT_VIEWS.some(item=>item.id===auditView.filters.mode)?auditView.filters.mode:'programme'} onChange={value=>auditView.set('mode',value)} ariaLabel={L('Επιθεωρήσεις','Audits')}/>}
+  <KpiFigures className={`quality-kpis${tab==='indicators'&&figures.length<4?' quality-kpis-quarter':''}`} label={t('quality')} figures={figures}/>
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
-   {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} objectives={objectives.objectives} language={language} categories={categories}
-    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
-  </div>:<section className="surface registry-workspace workspace-column workspace-fill">
-   {tab==='reports'&&<ReportRegister view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
+   <KpiFigures className="quality-kpis" label={L('Επισκόπηση','Overview')} loading={records.loading} error={records.error} figures={centerFigures}/>
+   {records.error&&!records.loading&&<RegistryEmptyState error onRetry={records.reload}/>}
+   {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} findings={records.data.findings} objectives={objectives.objectives} onMeetings={()=>navigate('/meetings?tab=departments')} language={language} categories={categories}
+    onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='readiness'?(auditView.set('mode','readiness'),setTab('audits')):target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
+  </div>:<>
+  {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
+  {tab==='incidents'&&<ReportSummary view={incidents} loading={records.loading} language={language}/>}
+  {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
+  {tab==='audits'&&!['programme','self'].includes(auditView.filters.mode||'programme')&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
+  {tab==='risks'&&<KpiFigures className="quality-kpis" label={L('Κίνδυνοι','Risks')} figures={tabFigures.risks||[]}/>}
+  {tab==='actions'&&<ActionsSummary counts={actionCount} view={actionView} loading={records.loading} language={language}/>}
+  {tab==='indicators'&&measureView==='indicators'&&<PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" actionsSlot={indicatorActions} withRegisters/></PageEmbedProvider>}
+  {!(tab==='indicators'&&measureView==='indicators')&&<section className="surface registry-workspace workspace-column workspace-fill">
+   {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
-   {tab==='incidents'&&<ReportRegister view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
+   {tab==='incidents'&&<ReportRegister compact view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='deviations'&&canManage&&<DeviationQueue view={deviations} loading={queue.loading} language={language} t={t}
+    registry={registry} onOpenRow={(row,rows)=>row.type==='finding'?openRecord('findings',row.id,rows.filter(item=>item.type==='finding').map(item=>item.id)):(remember(),registry.openRecord(navigate,row.item.path,row.key,[]))}
+    onCreateFindingCapa={finding=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}}
     onCreateCapa={prefill=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:prefill}})}}/>}
    {tab==='actions'&&<ActionsList rows={actions} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>} 
-   {tab==='audits'&&<AuditsList rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
+   {tab==='audits'&&<AuditsList canManageSelf={canManage} onPrintSummary={printAuditSummary} rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}
-    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} findings={records.data.findings}/>}
+    onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} onRound={canManage?()=>{remember();goTo('/quality/audits/round')}:null} findings={records.data.findings}
+    onOpenFinding={finding=>openRecord('findings',finding.id,[finding.id])}/>}
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
-   {tab==='indicators'&&measureView==='indicators'&&<>
-    <div className="section-toolbar"><div><strong>{L('Υπολογισμός έτους έως σήμερα','Year-to-date calculation')}</strong><small>{L('Οι ετήσιες κλινοημέρες χρησιμοποιούνται μαζί με τα διαθέσιμα δεδομένα από 1/1 έως σήμερα.','Annual patient-days are used with the available data from Jan 1 to today.')}</small></div>{measureSwitch}</div>
-    <PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators"/></PageEmbedProvider>
-   </>}
-   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} filterEnd={measureSwitch} onRowsChange={setRegisterRows}/>}
+   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
-    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={objectiveFilters.state!=='all'?1:0} onClear={()=>setObjectiveFilters({query:'',state:'all'})} end={measureSwitch}>
+    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto'})} end={null}>
+     <FilterSelect label={L('Έτος','Year')} value={objectiveYear} onChange={year=>setObjectiveFilters(current=>({...current,year}))}><option value="all">{L('Όλα τα έτη','All years')}</option>{objectiveYears.map(year=>{const value=String(year);return <option key={value} value={value}>{value}</option>})}</FilterSelect>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>
     </FilterBar>
-    <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} onOpen={objective=>canManage&&setEditingObjective(objective)}/>
+    <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} error={objectives.error} onRetry={objectives.reload} onOpen={objective=>openRecord('objectives',objective.id,visibleObjectives.map(item=>item.id))}/>
    </>}
-   {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} filters={surveyFilters} setFilters={setSurveyFilters} filterEnd={measureSwitch} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');goTo(`/quality/surveys/${survey.id}`)}}/>}
-   {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');goTo(`/quality/equipment/${row.id}`)}}/>}
-   {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&<SuppliersList list={resources} filters={supplierFilters} setFilters={setSupplierFilters} filterEnd={resourceSwitch} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');goTo(`/quality/suppliers/${row.id}`)}}/>}
-  </section>}
-  {editingObjective&&<ObjectiveDialog objective={editingObjective} registers={objectives.registers} onClose={()=>setEditingObjective(null)} onSaved={()=>{setEditingObjective(null);void objectives.reload()}}/>}
+   {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} registry={registry} filters={surveyFilters} setFilters={setSurveyFilters} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');registry.openRecord(navigate,`/quality/surveys/${survey.id}`,survey.id)}}/>}
+   {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} registry={registry} filters={equipmentFilters} setFilters={setEquipmentFilters} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');registry.openRecord(navigate,`/quality/equipment/${row.id}`,row.id)}}/>}
+   {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&<SuppliersList list={resources} registry={registry} filters={supplierFilters} setFilters={setSupplierFilters} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');registry.openRecord(navigate,`/quality/suppliers/${row.id}`,row.id)}}/>}
+  </section>}</>}
  </Page>
 }
 

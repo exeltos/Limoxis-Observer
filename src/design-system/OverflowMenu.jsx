@@ -14,6 +14,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   const triggerRef=useRef(null)
   const popoverRef=useRef(null)
   const visibleItems=items.filter(item=>item&&item.hidden!==true)
+  const visibleCount=visibleItems.length
 
   const updatePosition=useCallback(()=>{
     const trigger=triggerRef.current
@@ -23,10 +24,18 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
     const menuWidth=Math.min(width,Math.max(0,viewportWidth-16))
     const preferredLeft=align==='start'?rect.left:rect.right-menuWidth
     const left=Math.max(8,Math.min(preferredLeft,viewportWidth-menuWidth-8))
-    setPosition({top:rect.bottom+6,left,width:menuWidth})
-  },[align,width])
+    // Opens upwards when it would run past the bottom of the screen (a trigger in a dialog's footer).
+    const viewportHeight=window.innerHeight||document.documentElement.clientHeight
+    const height=popoverRef.current?.offsetHeight||visibleCount*40+12
+    const below=rect.bottom+6
+    const top=below+height>viewportHeight-8&&rect.top-6-height>=8?rect.top-6-height:below
+    setPosition(current=>current&&current.top===top&&current.left===left&&current.width===menuWidth?current:{top,left,width:menuWidth})
+  },[align,width,visibleCount])
 
   useLayoutEffect(()=>{if(open)updatePosition()},[open,updatePosition])
+  // Once drawn, its real height decides above or below.
+  const drawn=Boolean(position)
+  useLayoutEffect(()=>{if(open&&drawn)updatePosition()},[open,drawn,updatePosition])
   // The first item takes the focus when the menu opens, so the keyboard continues inside it.
   const positioned=Boolean(position)
   useEffect(()=>{if(open&&positioned)popoverRef.current?.querySelector('button:not([disabled])')?.focus()},[open,positioned])
@@ -66,7 +75,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   const popover=open&&position?<div ref={popoverRef} className="lo-overflow-popover lo-overflow-popover-portal" style={{position:'fixed',top:position.top,left:position.left,width:position.width,zIndex:2400}} role="menu" aria-label={resolvedLabel} onClick={event=>event.stopPropagation()}>
     {visibleItems.map((item,index)=>{
       const Icon=item.icon
-      return <div key={item.id||item.label||index} className={item.separatorBefore?'lo-overflow-separated':''}>
+      return <div key={item.id||item.label||index} className={item.separatorBefore&&index>0?'lo-overflow-separated':''}>
         <button type="button" role="menuitem" aria-current={item.current||undefined} className={`lo-overflow-item ${item.tone==='danger'?'lo-overflow-item-danger':''} ${item.current?'lo-overflow-item-current':''}`.trim()} disabled={item.disabled} onClick={()=>{if(item.disabled)return;setOpen(false);item.onClick?.()}}>
           {Icon&&<Icon size={15}/>}<span>{item.label}{item.description&&<small>{item.description}</small>}</span>
         </button>

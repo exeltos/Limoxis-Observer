@@ -7,9 +7,12 @@ import { canSeeSensitiveEmployeeHealth } from '../src/core/permissions/roleUxPol
 import { navigationFor } from '../src/app/navigation'
 
 describe('role + scope access foundation', () => {
-  it('keeps a department user on the quiet employee workspace', () => {
+  it('keeps a department user on the quiet employee workspace, with cultures requested for the own department only', () => {
     expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.VIEW_MY_DEPARTMENT)).toBe(true)
-    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.VIEW_LAB)).toBe(false)
+    // The department requests cultures; the database limits the lab samples to the department scope.
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.VIEW_LAB)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.REQUEST_LAB_SAMPLES)).toBe(true)
+    expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.MANAGE_LAB_SAMPLES)).toBe(false)
     expect(can(ROLES.DEPARTMENT_USER, CAPABILITIES.MANAGE_ORGANIZATION)).toBe(false)
   })
 

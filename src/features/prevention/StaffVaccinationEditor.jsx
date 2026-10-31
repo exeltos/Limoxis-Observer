@@ -1,5 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { DetailFields } from '../../design-system/DetailList'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { Pencil, Trash2, UserRoundCheck, Users } from 'lucide-react'
@@ -37,7 +37,19 @@ const VACCINES = [
   'Άλλο',
 ].map(name => ({ id: name, el: name, en: name }))
 
+// The editor is a dialog (inside another screen) or the body of its own page (asPage): the page has its title and back button in the shell, so only the content and the actions stay.
+function Frame({ asPage, footer, children, ...dialogProps }) {
+  if (!asPage) return <ObserverDialog {...dialogProps} footer={footer}>{children}</ObserverDialog>
+  return (
+    <section className="record-section vaccination-page-body">
+      {children}
+      {footer && <div className="inline-edit-footer">{footer}</div>}
+    </section>
+  )
+}
+
 export function StaffVaccinationEditor({
+  asPage = false,
   language,
   employees,
   value,
@@ -73,7 +85,8 @@ export function StaffVaccinationEditor({
   const setMode = next => onChange({ ...value, mode: next, selectedEmployeeIds: [] })
   if (readOnly)
     return (
-      <ObserverDialog
+      <Frame
+        asPage={asPage}
         width="workspace"
         className="vaccination-record-dialog"
         eyebrow={en ? 'Staff vaccination' : 'Εμβολιασμός προσωπικού'}
@@ -132,7 +145,7 @@ export function StaffVaccinationEditor({
                 </>
               }
             />
-            <RecordDetailsGrid
+            <DetailFields
               className="record-details-cols-5"
               fields={[
                 { id: 'vaccine', label: en ? 'Vaccine' : 'Εμβόλιο', value: draft.vaccine },
@@ -155,10 +168,11 @@ export function StaffVaccinationEditor({
             />
           </section>
         </div>
-      </ObserverDialog>
+      </Frame>
     )
   return (
-    <ObserverDialog
+    <Frame
+      asPage={asPage}
       width="workspace"
       fixedHeight={mode !== 'edit'}
       eyebrow={en ? 'Staff vaccination' : 'Εμβολιασμός προσωπικού'}
@@ -298,6 +312,6 @@ export function StaffVaccinationEditor({
           </section>
         )}
       </div>
-    </ObserverDialog>
+    </Frame>
   )
 }

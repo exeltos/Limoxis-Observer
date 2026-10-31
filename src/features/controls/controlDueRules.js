@@ -5,11 +5,18 @@
 // calendar and control_assignments.next_due_at all agree.
 //
 //   daily, N times a day   the day holds N slots (the execution times, or the
-//                          day split evenly). Slot i is due by the next slot's
-//                          time, the last one by 23:59:59 the same day. A
-//                          tolerance (frequency.toleranceMinutes) shortens that
-//                          to slot time + tolerance, never past the next slot.
-//                          The k-th entry of a day covers slot k, early or late.
+//                          day split evenly). With execution times each slot
+//                          has a window: from 1 hour before its time to 2 hours
+//                          after it when once a day, 1 hour after when more
+//                          often (frequency.toleranceMinutes sets the margin
+//                          after), never past the next slot or 23:59:59. The
+//                          day split evenly keeps the old rule: by the next
+//                          slot, the last by 23:59:59. The k-th entry of a day
+//                          covers slot k: in its window it is on time, later
+//                          the same day it is late, none is a missed slot.
+//                          Weekdays only (frequency.weekdaysOnly): Saturday
+//                          and Sunday hold no slots; Friday's last slot is
+//                          followed by Monday's first.
 //   every N days           due by 23:59:59 on the N-th day after the last entry.
 //   weekly / every N weeks due by Sunday 23:59:59 of the N-th week after the
 //                          week of the last entry (weeks run Monday–Sunday).
@@ -24,6 +31,11 @@
 export const CONTROL_TIME_ZONE = 'Europe/Athens'
 const MINUTE = 60000
 const DAY_MINUTES = 1440
+// The window around a set time: minutes before it, and after it when the
+// control is done once a day or more often.
+export const SLOT_EARLY_MINUTES = 60
+export const SLOT_MARGIN_ONCE = 120
+export const SLOT_MARGIN_SEVERAL = 60
 
 const formatters = new Map()
 function formatter(timeZone) {
@@ -59,15 +71,24 @@ const addDays = (d, n) => civilDay(d.year, d.month, d.day + n)
 
 const positive = (value, fallback = 1) => { const n = Math.floor(Number(value)); return Number.isFinite(n) && n >= 1 ? n : fallback }
 
+// The execution times of a daily control, minutes after midnight, in order.
+const setTimes = (frequency = {}) => [...new Set((frequency.times || []).map((t) => /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim())).filter(Boolean).map((m) => Number(m[1]) * 60 + Number(m[2])).filter((m) => m >= 0 && m < DAY_MINUTES))].sort((a, b) => a - b)
+
 // Slot start times of a daily control, minutes after midnight, in order.
 export function slotStarts(frequency = {}) {
-  const times = [...new Set((frequency.times || []).map((t) => /^(\d{1,2}):(\d{2})$/.exec(String(t || '').trim())).filter(Boolean).map((m) => Number(m[1]) * 60 + Number(m[2])).filter((m) => m >= 0 && m < DAY_MINUTES))].sort((a, b) => a - b)
+  const times = setTimes(frequency)
   if (times.length) return times
   const n = positive(frequency.timesPerDay)
   return Array.from({ length: n }, (_, i) => Math.floor((i * DAY_MINUTES) / n))
 }
 
 export const isDailyFrequency = (frequency = {}) => frequency.kind === 'daily'
+
+// A daily control of the working days only (Monday to Friday).
+export const isWeekdaysOnly = (frequency = {}) => isDailyFrequency(frequency) && frequency.weekdaysOnly === true
+const isWeekend = (d) => { const weekday = new Date(Date.UTC(d.year, d.month - 1, d.day)).getUTCDay(); return weekday === 0 || weekday === 6 }
+// The first day from `d` on that holds slots.
+const workingDay = (frequency, d) => { let day = d; while (isWeekdaysOnly(frequency) && isWeekend(day)) day = addDays(day, 1); return day }
 
 // Entries a period requires: the slots of a day, otherwise one.
 export function requiredPerPeriod(frequency = {}) {
@@ -109,9 +130,39 @@ export function slotDeadline(frequency, d, index, timeZone = CONTROL_TIME_ZONE) 
   const starts = slotStarts(frequency)
   const i = Math.min(Math.max(0, index), starts.length - 1)
   const boundary = i < starts.length - 1 ? starts[i + 1] : DAY_MINUTES
-  const tolerance = Number(frequency.toleranceMinutes)
-  const minutes = tolerance > 0 ? Math.min(starts[i] + tolerance, boundary) : boundary
+  const margin = slotMargin(frequency)
+  const minutes = margin > 0 ? Math.min(starts[i] + margin, boundary) : boundary
   return minutes >= DAY_MINUTES ? endOfDay(d, timeZone) : zonedInstant(d.year, d.month, d.day, minutes, timeZone)
+}
+
+// Minutes after a set time that still count as on time: the control's own
+// margin, otherwise 2 hours once a day and 1 hour more often; 0 (by the next
+// slot) when the day is split evenly without times.
+export function slotMargin(frequency = {}) {
+  const tolerance = Number(frequency.toleranceMinutes)
+  if (tolerance > 0) return tolerance
+  const times = setTimes(frequency)
+  if (!times.length) return 0
+  return times.length === 1 ? SLOT_MARGIN_ONCE : SLOT_MARGIN_SEVERAL
+}
+
+// The earliest on-time moment of slot `index` on local day `d`: 1 hour before
+// its time (with execution times), otherwise the start of the day.
+export function slotOpens(frequency, d, index, timeZone = CONTROL_TIME_ZONE) {
+  const starts = slotStarts(frequency)
+  const i = Math.min(Math.max(0, index), starts.length - 1)
+  const minutes = setTimes(frequency).length ? Math.max(0, starts[i] - SLOT_EARLY_MINUTES) : 0
+  return zonedInstant(d.year, d.month, d.day, minutes, timeZone)
+}
+
+// The on-time window of slot `index` in minutes after midnight: [open, close]
+// (close 1440 is the end of the day), as slotOpens and slotDeadline.
+export function slotWindowMinutes(frequency = {}, index = 0) {
+  const starts = slotStarts(frequency)
+  const i = Math.min(Math.max(0, index), starts.length - 1)
+  const boundary = i < starts.length - 1 ? starts[i + 1] : DAY_MINUTES
+  const margin = slotMargin(frequency)
+  return { open: setTimes(frequency).length ? Math.max(0, starts[i] - SLOT_EARLY_MINUTES) : 0, close: margin > 0 ? Math.min(starts[i] + margin, boundary) : boundary }
 }
 
 // End (last second) of the period `interval` units after the one holding `at`.
@@ -130,8 +181,9 @@ export function nextDueAfterExecution(frequency = {}, at = new Date(), doneInPer
   if (!isDailyFrequency(frequency)) return periodDeadlineAfter(frequency, at, timeZone).toISOString()
   const d = localDay(at, timeZone)
   const done = Math.max(0, Math.floor(Number(doneInPeriod) || 0))
+  if (isWeekdaysOnly(frequency) && isWeekend(d)) return slotDeadline(frequency, workingDay(frequency, d), 0, timeZone).toISOString()
   if (done < requiredPerPeriod(frequency)) return slotDeadline(frequency, d, done, timeZone).toISOString()
-  return slotDeadline(frequency, addDays(d, 1), 0, timeZone).toISOString()
+  return slotDeadline(frequency, workingDay(frequency, addDays(d, 1)), 0, timeZone).toISOString()
 }
 
 // The next deadline strictly after `from` (stepping a schedule forward).
@@ -139,13 +191,14 @@ export function nextDeadlineAfter(frequency = {}, from = new Date(), timeZone = 
   if (!isDailyFrequency(frequency)) return periodDeadlineAfter(frequency, from, timeZone).toISOString()
   const t = new Date(from).getTime()
   const today = localDay(from, timeZone)
-  for (const d of [addDays(today, -1), today, addDays(today, 1)]) {
+  for (const d of [-1, 0, 1, 2, 3].map((n) => addDays(today, n))) {
+    if (isWeekdaysOnly(frequency) && isWeekend(d)) continue
     for (let i = 0; i < requiredPerPeriod(frequency); i += 1) {
       const deadline = slotDeadline(frequency, d, i, timeZone)
       if (deadline.getTime() > t) return deadline.toISOString()
     }
   }
-  return slotDeadline(frequency, addDays(today, 2), 0, timeZone).toISOString()
+  return slotDeadline(frequency, workingDay(frequency, addDays(today, 4)), 0, timeZone).toISOString()
 }
 
 // The first deadline of a new assignment: the open slot of today, or the end of
@@ -182,7 +235,8 @@ export function executionMarks(history = [], frequency = {}, timeZone = CONTROL_
       rank = key === dayKey ? rank + 1 : 1
       dayKey = key
       const counted = rank <= required
-      return { row, at: row.at, counted, onTime: counted && new Date(row.at) <= slotDeadline(frequency, d, rank - 1, timeZone) }
+      const at = new Date(row.at)
+      return { row, at: row.at, counted, onTime: counted && at >= slotOpens(frequency, d, rank - 1, timeZone) && at <= slotDeadline(frequency, d, rank - 1, timeZone) }
     }
     const previous = rows[index - 1]
     return { row, at: row.at, counted: true, onTime: !previous || new Date(row.at) <= new Date(nextDueAfterExecution(frequency, previous.at, 1, timeZone)) }

@@ -1,3 +1,4 @@
 .lo-empty-state .lo-empty-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#eef4f8;color:#4f6d87;margin-bottom:4px}
 .lo-empty-state.lo-empty-filtered .lo-empty-icon{background:#f4f6f8;color:#6b7989}
 .lo-empty-state>button{margin-top:8px}
+.lo-empty-state.lo-empty-error .lo-empty-icon{background:#fdeeee;color:#a23f46}

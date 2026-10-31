@@ -31,7 +31,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
   const filtered=useMemo(()=>rows.filter(x=>`${x.protocolCode} ${x.subjectType} ${x.sourceCode} ${x.unit} ${x.source||''}`.toLowerCase().includes(query.toLowerCase())),[rows,query])
   async function persist(next){await saveData(next);window.dispatchEvent(new CustomEvent('limoxis:environmental-standards-updated'))}
   async function save(){
-    if(readOnlySystem){notify(language==='en'?'System protocols can only be changed by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να αλλάξουν μόνο από τον Platform Owner.','warning');return}
+    if(readOnlySystem){notify(language==='en'?'System protocols can only be changed by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να αλλάξουν μόνο από τον Ιδιοκτήτη πλατφόρμας.','warning');return}
     if(!draft.protocolCode.trim()||!draft.subjectType||!draft.unit.trim()){notify(t('completeRequiredFields'),'error');return}
     const limit=draft.limitCfu===''?null:Number(draft.limitCfu)
     if(limit!==null&&(!Number.isFinite(limit)||limit<0)){notify(t('environmentalStandards.invalidLimit'),'error');return}
@@ -39,7 +39,7 @@ export function EnvironmentalStandardsPanel({embedded=false,global=false}){
     try{await persist(draft.id?rows.map(x=>x.id===draft.id?item:x):[...rows,item]);setDraft(null);notify(t('environmentalStandards.environmentalProtocolSaved'),'success')}catch{return}
   }
   async function remove(item){
-    if(item.system&&!isPlatformOwner){notify(language==='en'?'System protocols can only be deleted by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να διαγραφούν μόνο από τον Platform Owner.','warning');return}
+    if(item.system&&!isPlatformOwner){notify(language==='en'?'System protocols can only be deleted by the Platform Owner.':'Τα πρωτόκολλα συστήματος μπορούν να διαγραφούν μόνο από τον Ιδιοκτήτη πλατφόρμας.','warning');return}
     const ok=await confirm({title:t('delete'),message:t('environmentalStandards.confirmEnvironmentalProtocolDelete'),confirmLabel:t('delete'),danger:true})
     if(!ok)return
     try{await persist(rows.filter(x=>x.id!==item.id));notify(t('environmentalStandards.environmentalProtocolDeleted'),'success')}catch{return}

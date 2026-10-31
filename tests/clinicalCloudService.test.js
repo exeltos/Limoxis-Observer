@@ -46,7 +46,7 @@ describe('clinical cloud service',()=>{
     expect(page).toContain('CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY')
     expect(page).toContain('CAPABILITIES.REASSESS_SURVEILLANCE')
     expect(page).toContain('CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME')
-    expect(page).toContain('CAPABILITIES.DELETE_SURVEILLANCE')
+    expect(page).toContain('canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy })')
     expect(page).toContain('CAPABILITIES.REOPEN_SURVEILLANCE')
   })
 })

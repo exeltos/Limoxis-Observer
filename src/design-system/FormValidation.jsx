@@ -68,11 +68,11 @@ export function useFormValidation(rules = []) {
 }
 
 // «Συμπληρώστε: Τμήμα, Ημερομηνία λήψης» — what still keeps the form from saving.
-export function MissingFieldsSummary({ labels = [], className = '' }) {
+export function MissingFieldsSummary({ labels = [], className = '', attempted = false }) {
   const language = useOptionalLanguage()?.language
   if (!labels.length) return null
   return (
-    <p className={`form-missing-summary ${className}`.trim()} role="status">
+    <p className={`form-missing-summary ${attempted ? 'is-attempted' : ''} ${className}`.trim()} role="status">
       <strong>{language === 'en' ? 'Fill in:' : 'Συμπληρώστε:'}</strong> {labels.join(', ')}
     </p>
   )
@@ -105,7 +105,7 @@ export function FormSubmit({
   }
   return (
     <>
-      <MissingFieldsSummary labels={form.missingLabels} />
+      <MissingFieldsSummary labels={form.missingLabels} attempted={form.attempted} />
       {icon ? (
         <SaveButton savingLabel={savingLabel} {...props}>
           {children}

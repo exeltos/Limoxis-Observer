@@ -12,27 +12,6 @@
 .exec-report-head strong,.exec-report-head span{display:block}
 .exec-report-head strong{font-size:15px;color:var(--lo-color-text)}
 .exec-report-head span{font-size:11.5px;color:var(--lo-color-muted)}
-.exec-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.exec-kpi{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:132px;padding:12px 12px 12px 16px;border:1px solid var(--lo-color-border);border-radius:11px;background:var(--lo-color-surface);color:var(--lo-color-text);text-align:left;font:inherit;overflow:hidden}
-button.exec-kpi{cursor:pointer}
-button.exec-kpi:hover{border-color:var(--lo-color-primary)}
-.exec-kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--lo-status-neutral-border)}
-.exec-tone-good:before{background:var(--lo-status-success-fg)}
-.exec-tone-warning:before{background:#d29b22}
-.exec-tone-danger:before{background:var(--lo-status-danger-fg)}
-.exec-kpi-label{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;font-size:11.5px;font-weight:650;color:var(--lo-color-muted)}
-.exec-kpi-period{font-style:normal;font-size:10px;font-weight:600;padding:0 6px;border-radius:999px;background:var(--lo-status-neutral-bg);color:var(--lo-status-neutral-fg)}
-.exec-kpi strong{font-size:24px;line-height:1.1}
-.exec-kpi small{font-size:11px;color:var(--lo-color-muted)}
-.exec-kpi .exec-kpi-error{color:var(--lo-status-danger-fg)}
-.exec-status{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:700;border:1px solid var(--lo-status-neutral-border);background:var(--lo-status-neutral-bg);color:var(--lo-status-neutral-fg)}
-.exec-status-good{border-color:var(--lo-status-success-border);background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
-.exec-status-warning{border-color:var(--lo-status-warning-border);background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
-.exec-status-danger{border-color:var(--lo-status-danger-border);background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
-.exec-delta{display:inline-flex;align-items:center;gap:3px;margin-top:auto;font-size:11px;font-weight:700;color:var(--lo-status-neutral-fg)}
-.exec-delta em{font-style:normal;font-weight:500}
-.exec-delta.better{color:var(--lo-status-success-fg)}
-.exec-delta.worse{color:var(--lo-status-danger-fg)}
 .exec-skeleton{display:grid;gap:7px;width:100%;padding:4px 0}
 .exec-skeleton i{display:block;height:11px;border-radius:6px;background:linear-gradient(90deg,var(--lo-status-neutral-bg) 25%,var(--lo-status-neutral-border) 50%,var(--lo-status-neutral-bg) 75%);background-size:200% 100%;animation:exec-shimmer 1.3s ease-in-out infinite}
 .exec-skeleton i:first-child{height:20px;width:55%}
@@ -70,19 +49,9 @@ button.exec-kpi:hover{border-color:var(--lo-color-primary)}
 .exec-rank li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .exec-rank li small{grid-column:1/-1;font-size:10.5px;color:var(--lo-color-muted)}
 .exec-footnote{display:flex;align-items:center;gap:6px;margin:0;font-size:11px;color:var(--lo-color-muted)}
-@media (max-width:1180px){.exec-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:900px){.exec-grid{grid-template-columns:1fr}.exec-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.exec-period{margin-left:0;width:100%}}
-@media print{.exec-filters{display:none!important}.exec-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important}.exec-kpi,.exec-card{box-shadow:none!important}}
+@media (max-width:900px){.exec-grid{grid-template-columns:1fr}.exec-period{margin-left:0;width:100%}}
+@media print{.exec-filters{display:none!important}.lo-kpi-strip.exec-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.exec-card{box-shadow:none!important}}
 /* «Δείκτες»: one row of tabs (with «Περισσότερα» at its end) and one filter row under it. */
-.exec-tabs-row{display:flex;align-items:flex-end;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface,#fff)}
-.exec-tabs-row .exec-view-tabs{flex:1 1 auto;min-width:0;margin-bottom:0;border-bottom:0}
-.exec-more-tabs{position:relative;flex:0 0 auto}
-.exec-more-trigger{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--lo-color-muted);font:inherit;font-size:13px;font-weight:650;cursor:pointer;white-space:nowrap}
-.exec-more-trigger.active{color:var(--lo-color-primary,#0b6097);border-bottom-color:currentColor}
-.exec-more-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:40;display:grid;gap:2px;min-width:240px;padding:6px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff;box-shadow:0 10px 28px rgba(16,35,59,.16)}
-.exec-more-menu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:#24364a;font:inherit;font-size:13px;text-align:left;cursor:pointer}
-.exec-more-menu button:hover,.exec-more-menu button:focus-visible{background:#f2f7fb;outline:none}
-.exec-more-menu button[aria-current="true"]{font-weight:700}
 .exec-filters .lo-export-menu{margin-bottom:2px}
 /* The sections of a tab, one under the other, without a frame of their own. */
 .exec-analysis-report{display:grid;gap:18px}

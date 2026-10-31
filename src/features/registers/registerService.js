@@ -14,7 +14,8 @@ import { definitionRows, entryFromRow, registerFromRows, registerRow, rowFromEnt
 
 // The demo and the Platform Owner preview (help screenshots) use the sample registers.
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
-const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''))
+// Any UUID the database accepts: imported cases keep their original ids, not all of them version 1–5.
+const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ''))
 const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 function assertCloud(organizationId) {
   if (!supabase) throw new Error('Supabase is not configured.')
@@ -69,7 +70,7 @@ export function entryDateOf(register, values = {}, recorded = '') {
 
 // --- Registers -----------------------------------------------------------------
 
-const registerSelect = 'id,organization_id,department_id,code,name_el,name_en,description_el,description_en,kind,status,version,template_key,entry_date_field,sheet_period,identity_case_number,identity_patient_name,table_name,history,updated_at,departments(name)'
+const registerSelect = 'id,organization_id,department_id,code,name_el,name_en,description_el,description_en,kind,status,version,template_key,entry_date_field,sheet_period,daily_from,identity_case_number,identity_patient_name,table_name,history,updated_at,departments(name)'
 const childTables = ['department_register_sections', 'department_register_fields', 'department_register_options', 'department_register_sheet_axes', 'department_register_indicators', 'department_register_indicator_filters']
 
 async function loadDefinitions(organizationId, registerRows) {

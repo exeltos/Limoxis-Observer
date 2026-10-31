@@ -11,12 +11,14 @@ describe('Quality center entry and tabs', () => {
     const returnSection = fs.readFileSync('src/features/quality/qualityReturnSection.js', 'utf8')
     expect(returnSection).toContain("QUALITY_RETURN_KEY = 'limoxis.quality.returnSection'")
     expect(page).toContain("import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'")
-    expect(page).toContain("useEffect(()=>{writeSessionValue(RETURN_KEY,'')},[])")
+    // The remembered section is cleared once read; a return to «Indicators & objectives» goes on to its own page.
+    expect(page).toContain("else writeSessionValue(RETURN_KEY,'')")
+    expect(page).toContain("navigate('/quality/measures',{replace:true})")
   })
 
   it('maps remembered sections, old and new, to the five tabs', () => {
     expect(qualityTabOf('')).toBe(null)
-    expect(qualityTabOf('incidents')).toEqual({ tab: 'reports', view: null })
+    expect(qualityTabOf('incidents')).toEqual({ tab: 'incidents', view: null })
     expect(qualityTabOf('capas')).toEqual({ tab: 'actions', view: null })
     expect(qualityTabOf('findings')).toEqual({ tab: 'actions', view: null })
     expect(qualityTabOf('risks')).toEqual({ tab: 'risks', view: null })
@@ -32,9 +34,9 @@ describe('Quality center entry and tabs', () => {
     expect(qualityTabOf('measure:registers')).toEqual({ tab: 'indicators', view: 'registers' })
   })
 
-  it('uses the shared module frame: canonical tabs, one figures row, create top right', () => {
+  it('uses the shared module frame: canonical tabs, key-figure cards, create top right', () => {
     expect(page).toContain('<CanonicalTabs')
-    expect(page).toContain('module-summary-strip')
+    expect(page).toContain('<KpiFigures className="quality-kpis"')
     expect(page).toContain('<CreateAction')
     expect(page).not.toContain('quality-tabs')
   })

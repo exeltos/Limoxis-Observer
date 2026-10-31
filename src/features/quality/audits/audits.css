@@ -1,6 +1,5 @@
 /* Audit programme: views, coverage, dashboard, running an audit, team, questionnaires. */
 
-.audit-view-tabs{margin:2px 14px 0}
 .audit-view{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
 .audit-view-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
 .audit-view-head .lo-period-stepper{margin-left:auto}
@@ -57,21 +56,29 @@
 .audit-chapter-strip button.is-danger small{color:var(--lo-status-danger-fg)}
 .audit-chapter-strip button.is-active{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary)}
 .audit-run-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
-.audit-questions{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-.audit-question{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
-.audit-question.is-yes{border-left-color:var(--lo-status-success-fg)}
-.audit-question.is-partial{border-left-color:var(--lo-status-warning-fg)}
-.audit-question.is-no{border-left-color:var(--lo-status-danger-fg)}
-.audit-question.is-na{border-left-color:var(--lo-color-muted)}
-.audit-chapter-title{margin:4px 0 0;font-size:13px;font-weight:800;color:var(--lo-color-primary)}
+.audit-questions{display:grid;gap:0;margin:0;padding:0;list-style:none;border:1px solid var(--lo-color-border);border-radius:12px;overflow:hidden;background:var(--lo-color-surface)}
+.audit-question{display:grid;gap:8px;border-top:1px solid #edf1f4;box-shadow:inset 3px 0 0 transparent;background:var(--lo-color-surface)}
+.audit-question:first-child{border-top:0}
+
+.audit-question.is-yes{box-shadow:inset 3px 0 0 var(--lo-status-success-fg);background:rgba(24,121,78,.045)}
+.audit-question.is-partial{box-shadow:inset 3px 0 0 var(--lo-status-warning-fg);background:rgba(181,114,11,.07)}
+.audit-question.is-no{box-shadow:inset 3px 0 0 var(--lo-status-danger-fg);background:rgba(180,35,24,.06)}
+.audit-question.is-na{box-shadow:inset 3px 0 0 var(--lo-color-muted);background:#f6f7f9}
+.audit-finding-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px solid var(--lo-status-danger-fg);border-radius:999px;background:var(--lo-status-danger-bg);font:inherit;font-size:11px;font-weight:700;color:var(--lo-status-danger-fg);cursor:pointer}
+.audit-finding-chip:disabled{opacity:.6;cursor:default}
+.audit-chapter-title{padding:7px 14px;background:#f5f7f9;border-bottom:1px solid #edf1f4;font-size:12px;font-weight:700;letter-spacing:.01em;color:#475467}
 .audit-question-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
-.audit-question-head>strong{flex:1 1 320px;font-size:13.5px;line-height:1.4;color:var(--lo-color-text)}
-.audit-clause{flex:0 0 auto;padding:2px 7px;border-radius:6px;background:var(--lo-color-surface-muted);font-size:12px;font-weight:800;color:var(--lo-color-text)}
+.audit-question-head>strong{flex:1 1 320px;font-size:13.5px;font-weight:500;line-height:1.45;color:#1d2939}
+.audit-clause{flex:0 0 auto;min-width:56px;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--lo-color-muted)}
 .audit-question-guide{display:grid;gap:2px;margin:0;font-size:12px;line-height:1.45;color:var(--lo-color-muted)}
 .audit-answer-grid{align-items:end}
 .audit-answer-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:40px}
 .audit-question-attachments{padding-top:4px;border-top:1px dashed var(--lo-color-border)}
-.audit-adhoc{align-items:end}
+.audit-adhoc{display:flex;align-items:center;gap:8px;padding:6px 0}
+.audit-adhoc>input{flex:1 1 auto;min-width:0;height:34px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;font:inherit;font-size:13px;background:var(--lo-color-surface)}
+.audit-adhoc>.audit-answer-link{padding:0 10px;border:1px solid var(--lo-color-border)}
+.audit-adhoc>.audit-answer-link:disabled{opacity:.5;cursor:default}
+.audit-run>.inline-edit-footer{position:sticky;bottom:0;z-index:2;margin:8px -4px 0;padding:10px 4px;background:var(--lo-color-surface);border-top:1px solid var(--lo-color-border)}
 
 /* The team */
 .audit-team-list{display:grid;gap:8px;margin:0 0 10px;padding:0;list-style:none}
@@ -97,3 +104,120 @@
 @media (max-width:760px){
   .audit-trend{grid-template-columns:repeat(6,minmax(0,1fr))}
 }
+.audit-plan-actions{display:flex;justify-content:flex-end}
+.audit-round-days{display:grid;gap:8px;margin:12px 0 0;padding:0;list-style:none}
+.audit-round-days li{display:grid;grid-template-columns:110px 110px minmax(0,1fr);gap:6px 12px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--lo-color-border)}
+.audit-round-days small{color:var(--lo-color-muted)}
+.audit-answer-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:2px 0 8px;border:1px solid var(--lo-color-border);border-radius:8px;overflow:hidden;background:var(--lo-color-surface)}
+.audit-answer-buttons button{min-height:44px;border:0;border-left:1px solid var(--lo-color-border);border-radius:0;background:var(--lo-color-surface);font:inherit;font-size:12.5px;font-weight:600;color:var(--lo-color-text);cursor:pointer;transition:background .12s}
+.audit-answer-buttons button:first-child{border-left:0}
+.audit-answer-buttons button:disabled{cursor:default}
+.audit-answer-buttons button.is-success{color:var(--lo-status-success-fg)}
+.audit-answer-buttons button.is-success:not(.is-on):not(:disabled):hover{background:var(--lo-status-success-bg)}
+.audit-answer-buttons button.is-warning{color:var(--lo-status-warning-fg)}
+.audit-answer-buttons button.is-warning:not(.is-on):not(:disabled):hover{background:var(--lo-status-warning-bg)}
+.audit-answer-buttons button.is-danger{color:var(--lo-status-danger-fg)}
+.audit-answer-buttons button.is-danger:not(.is-on):not(:disabled):hover{background:var(--lo-status-danger-bg)}
+.audit-answer-buttons button.is-neutral{color:var(--lo-color-muted)}
+.audit-answer-buttons button.is-neutral:not(.is-on):not(:disabled):hover{background:var(--lo-color-surface-muted)}
+.audit-answer-buttons button.is-on{font-weight:700;color:#fff}
+.audit-answer-buttons button.is-on.is-success{background:var(--lo-status-success-fg);color:#fff}
+.audit-answer-buttons button.is-on.is-warning{background:var(--lo-status-warning-fg);color:#fff}
+.audit-answer-buttons button.is-on.is-danger{background:var(--lo-status-danger-fg);color:#fff}
+.audit-answer-buttons button.is-on.is-neutral{background:var(--lo-color-muted);color:#fff}
+.audit-answer-tools{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.audit-answer-link{display:inline-flex;align-items:center;justify-content:center;gap:3px;min-width:30px;height:30px;padding:0 6px;border:0;border-radius:8px;background:none;font:inherit;font-size:12px;font-weight:600;color:var(--lo-color-muted);cursor:pointer}
+.audit-answer-link:hover,.audit-answer-link[aria-expanded="true"]{background:#eef2f6;color:var(--lo-color-primary)}
+.audit-answer-link.has-content{color:var(--lo-color-primary)}
+.audit-round-days li{grid-template-columns:110px 96px minmax(0,1fr);align-items:baseline}
+.audit-round-days li>span{text-align:right}
+.audit-round-fields{align-items:end}
+.audit-readiness{display:flex;flex-direction:column;gap:14px}
+.audit-readiness-rate{min-width:150px}
+.audit-readiness-rate strong{display:inline-block;min-width:44px}
+.audit-readiness-chapter{display:block}
+.audit-readiness-missing h4{margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.audit-readiness-missing ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.audit-readiness-missing li{padding:7px 10px;border-left:3px solid var(--lo-color-border);border-radius:0 8px 8px 0;background:var(--lo-color-surface-subtle,#f6f8fa);font-size:13px}
+.audit-readiness-missing li.is-danger{border-left-color:var(--lo-status-danger-fg)}
+.audit-readiness-missing li.is-warning{border-left-color:var(--lo-status-warning-fg)}
+.audit-readiness-missing button{padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.audit-readiness-missing button:hover{text-decoration:underline}
+.audit-readiness-missing p{margin:0;font-size:13px;color:var(--lo-color-muted)}
+/* The year's two audit rounds: one slim line above the programme. */
+.audit-rounds{position:relative;display:block;margin:0 0 8px}
+.audit-rounds-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.audit-rounds-label{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--lo-color-muted)}
+.audit-round-chip{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border:1px solid #dfe7ee;border-radius:999px;background:#fbfcfd;font:inherit;font-size:12.5px;color:var(--lo-color-text);cursor:pointer}
+.audit-round-chip.is-empty{border-style:dashed;cursor:default}
+.audit-round-chip>span{color:var(--lo-color-muted)}
+.audit-round-chip>em{font-style:normal;font-weight:700;color:var(--lo-color-primary)}
+.audit-round-chip.is-done>em{color:var(--lo-status-success-fg)}
+.audit-round-chip.is-open{border-color:var(--lo-color-primary)}
+.audit-round-chip>button{display:inline-flex;align-items:center;gap:4px;border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--lo-color-primary);cursor:pointer}
+.audit-round-days{position:fixed;z-index:30;overflow:auto;display:grid;gap:4px;width:min(620px,calc(100vw - 32px));margin:0;padding:10px 14px;list-style:none;border:1px solid #dfe7ee;border-radius:11px;background:var(--lo-color-surface);box-shadow:0 -10px 28px rgba(16,24,40,.14)}
+.audit-round-days>li{display:grid;grid-template-columns:96px 24px minmax(0,1fr);align-items:baseline;gap:8px;font-size:12.5px}
+.audit-round-days>li>span{font-weight:700;color:var(--lo-color-text);text-transform:capitalize}
+.audit-round-days>li>small{color:var(--lo-color-muted)}
+/* The audit round dialog: day boxes to drop department chips into. */
+.audit-round-tools{display:flex;align-items:end}
+.audit-round-summary{margin-right:auto;font-size:12.5px;color:var(--lo-color-muted)}
+.audit-round-columns{display:grid;gap:12px;margin:14px 0 12px}
+@media(max-width:760px){.audit-round-columns{grid-template-columns:minmax(0,1fr)}}
+.audit-round-box{display:grid;align-content:start;gap:8px;min-height:120px;padding:10px;border:1px dashed #cfdbe5;border-radius:10px}
+.audit-round-box.is-outside{min-height:0}
+.audit-round-box.is-over{border-color:var(--lo-color-primary);border-style:solid;background:rgba(42,120,214,.06)}
+.audit-round-box>header{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.audit-round-box:not(.is-outside)>header>strong{text-transform:capitalize}
+.audit-round-box>header>span{font-size:12px;color:var(--lo-color-muted)}
+.audit-round-chips{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.audit-round-chips>small{color:var(--lo-color-muted)}
+.audit-dept-chip{padding:4px 10px;border:1px solid #dfe7ee;border-radius:999px;background:var(--lo-color-surface);font:inherit;font-size:12.5px;color:var(--lo-color-text);cursor:grab}
+.audit-dept-chip:active{cursor:grabbing}
+.audit-dept-chip.is-new{border-style:dashed}
+.audit-dept-chip.is-picked{border-color:var(--lo-color-primary);background:rgba(42,120,214,.1)}
+.audit-plan-more{grid-column:1/-1}
+/* The planning dialog's groups: a heading and a line, not cards. */
+.audit-plan-flat{display:grid;gap:0}
+.audit-flat-section{display:grid;gap:10px;padding:14px 0;border-top:1px solid #e9eef2}
+.audit-flat-section:first-child{border-top:0;padding-top:0}
+.audit-flat-section>header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.audit-flat-section>header>strong{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--lo-color-text)}
+.audit-flat-section>header>span{font-size:12px;color:var(--lo-color-muted)}
+.audit-plan-flat .audit-plan-more{padding-top:6px;border-top:1px solid #e9eef2}
+/* Planning page: every row on the same three columns, controls on one line, the questionnaire two columns wide. */
+.audit-plan-flat .lo-form-grid{align-items:end}
+.audit-plan-flat .lo-form-grid>.lo-checkbox-field{align-self:end;min-height:40px}
+.audit-plan-page .inline-edit-footer,.audit-round-page .inline-edit-footer{align-items:center}
+/* One control height on the planning and round pages, so labels and controls line up across a row. */
+.audit-plan-page input:not([type=checkbox]):not([type=file]),.audit-round-page input:not([type=checkbox]):not([type=file]),.audit-plan-page select,.audit-round-page select{height:40px;box-sizing:border-box}
+.audit-round-page .lo-form-grid{align-items:end}
+.audit-round-tools>button{height:40px}
+/* Questions on one line: the wording, the four answers and the comment and file links side by side; the guidance behind the «i». */
+.audit-question{grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:0 12px;padding:9px 12px 9px 14px}
+.audit-question>*{grid-column:1/-1}
+.audit-question>.audit-chapter-title{grid-row:1;margin:-9px -12px 9px -14px}
+.audit-question>:not(.audit-chapter-title):not(.audit-question-head):not(.audit-answer-buttons):not(.audit-answer-tools){margin-top:8px}
+.audit-question>.audit-question-head{grid-column:1;grid-row:2}
+.audit-question>.audit-answer-buttons{grid-column:2;grid-row:2;margin:0;grid-template-columns:repeat(4,54px)}
+.audit-question>.audit-answer-tools{grid-column:3;grid-row:2;margin:0;flex-wrap:nowrap}
+.audit-answer-buttons button{min-height:30px}
+.audit-question-head>strong{flex:1 1 260px}
+.audit-info{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid var(--lo-color-border);border-radius:999px;background:none;color:var(--lo-color-muted);cursor:pointer}
+.audit-info[aria-expanded="true"]{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
+@media(max-width:900px){.audit-question>.audit-question-head,.audit-question>.audit-answer-buttons,.audit-question>.audit-answer-tools{grid-column:1/-1;grid-row:auto}.audit-question>.audit-answer-buttons{margin-top:8px}.audit-question>.audit-answer-buttons{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.audit-next-chapter{display:flex;justify-content:flex-end;padding:10px 0}
+.audit-meeting{display:grid;gap:8px}
+.audit-meeting-line{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font:inherit;font-size:12.5px;color:var(--lo-color-text);text-align:left;cursor:pointer}
+.audit-meeting-line>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--lo-color-muted)}
+.audit-meeting-line[aria-expanded="true"]>svg:last-child{transform:rotate(90deg)}
+.audit-meeting-fields{padding:10px 2px 14px}
+.audit-meeting-fields .lo-form-grid{align-items:end;gap:12px 16px}
+.audit-meeting-fields input:not([type=checkbox]):not([type=file]),.audit-meeting-fields textarea{box-sizing:border-box}
+.audit-meeting-fields input:not([type=checkbox]):not([type=file]){height:40px}
+.audit-meeting-fields textarea{min-height:40px}
+/* The month and the year of a planned month: the same height and edge as the other controls. */
+.audit-plan-page .month-field-controls select{min-height:40px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);font:inherit;color:var(--lo-color-text)}
+
+
+.audit-run{padding-bottom:16px}

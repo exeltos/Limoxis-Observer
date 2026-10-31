@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, LogOut, Plus, ShieldAlert, UsersRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -10,13 +10,15 @@ import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { loadPatients } from './patientsService'
+import { loadPatients, suggestPatientCode } from './patientsService'
+export { suggestPatientCode }
+import { StatusCards } from '../../design-system/StatusCards'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { MetricCard } from '../../design-system/MetricCard'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry, patientsListExport } from '../../core/export/registryExports'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { formatDay } from '../../core/i18n/formatDay'
@@ -29,7 +31,9 @@ import {loadPatientInfectionFlags} from './patientInfectionFlagsService'
 import {loadLatestPatientRiskFlags} from '../clinical-scales/patientRiskFlagsService'
 
 // The registry shows the patient first, as the episodes do, and the status as a badge.
-const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral'}
+const PATIENT_STATUS_TONES={active:'success',transferred:'info',discharged:'neutral',deceased:'neutral',noAdmission:'neutral'}
+// A patient with no admission is not «active»: the laboratory imports can create the person alone.
+const effectiveStatus=p=>p.hasAdmission===false?'noAdmission':p.status
 
 export function PatientsPage(){
   const {t,language}=useLanguage()
@@ -52,7 +56,7 @@ export function PatientsPage(){
   const [infectionFlags,setInfectionFlags]=useState({})
   useEffect(()=>{
     let alive=true
-    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
+    loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(isDemo?list.map(item=>({...item,hasAdmission:Boolean(item.admissionDate)})):list)}).catch(error=>{if(alive){setPatients([]);notify(error?.message||t('patientsLoadFailed'),'danger')}})
     loadLatestPatientRiskFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setRiskFlags(value)}).catch(()=>{})
     loadPatientInfectionFlags(tenant?.id,{isDemo}).then(value=>{if(alive)setInfectionFlags(value)}).catch(()=>{})
     return ()=>{alive=false}
@@ -65,10 +69,12 @@ export function PatientsPage(){
     .filter(p=>`${p.id} ${p.name} ${p.nameEn||''} ${p.hospitalRecordNumber||''}`.toLowerCase().includes(query.toLowerCase()))
     .filter(p=>department==='all'||(language==='el'?p.department:p.departmentEn)===department)
     .filter(p=>inPeriod(p.admissionDate,period))
-    .filter(p=>status==='all'||(status==='isolation'?isolated(p):p.status===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
+    .filter(p=>status==='all'||(status==='isolation'?isolated(p):effectiveStatus(p)===status)),[query,patients,department,status,period,language,canAccessRecord,isolated])
+  const {sorted:sortedRows,sort,onSort}=useTableSort(rows,{name:p=>language==='el'?p.name:(p.nameEn||p.name),department:p=>language==='el'?p.department:p.departmentEn,admission:p=>p.lastAdmissionDate||p.admissionDate,status:p=>effectiveStatus(p)},{key:'admission',dir:'desc'})
+  useEffect(()=>{setPage(1)},[sort])
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize))
   const safePage=Math.min(page,totalPages)
-  const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
+  const pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize)
   const fmt=value=>formatDay(value,language)
   const pageCaps={[UI_ACTIONS.CREATE]:CAPABILITIES.CREATE_PATIENT}
   const canCreate=can(role,CAPABILITIES.CREATE_PATIENT,membership?.capabilities??[],membership?.customCapabilities??[])
@@ -79,47 +85,42 @@ export function PatientsPage(){
   const scopedPatients=patients.filter(p=>canAccessRecord(p))
   const patientSummary={
     total:scopedPatients.length,
-    active:scopedPatients.filter(p=>p.status==='active').length,
-    discharged:scopedPatients.filter(p=>p.status==='discharged').length,
+    active:scopedPatients.filter(p=>effectiveStatus(p)==='active').length,
+    discharged:scopedPatients.filter(p=>effectiveStatus(p)==='discharged').length,
     // In production a transfer between departments keeps the patient active, so the card counts isolations in place.
     isolation:scopedPatients.filter(p=>isolated(p)).length,
   }
-  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(rows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
-    <div className="workspace-summary patient-summary-strip" aria-label={t('patientRegistry')}>
-      <PatientSummaryMetric loading={loading} icon={UsersRound} label={t('patientsCountAll')} value={patientSummary.total} filter="all" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric loading={loading} icon={Activity} label={t('patientsCountActive')} value={patientSummary.active} kind="active" filter="active" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric loading={loading} icon={LogOut} label={t('patientsCountDischarged')} value={patientSummary.discharged} filter="discharged" current={status} onFilter={setStatus}/>
-      <PatientSummaryMetric loading={loading} icon={ShieldAlert} label={t('patientsCountIsolation')} value={patientSummary.isolation} filter="isolation" current={status} onFilter={setStatus}/>
-    </div>
+  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(sortedRows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
+    <StatusCards label={t('patientRegistry')} loading={loading} items={[['all',UsersRound,'patientsCountAll',patientSummary.total],['active',Activity,'patientsCountActive',patientSummary.active],['discharged',LogOut,'patientsCountDischarged',patientSummary.discharged],['isolation',ShieldAlert,'patientsCountIsolation',patientSummary.isolation]].map(([filter,icon,key,value])=>{const active=filter!=='all'&&status===filter;return {key:filter,icon,label:t(key),value,active,onToggle:()=>setStatus(filter==='all'||active?'all':filter)}})}/>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('discharged')}</option><option value="transferred">{t('transferred')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="discharged">{t('patientsCountDischarged')}</option><option value="transferred">{t('transferred')}</option><option value="noAdmission">{t('patientNoAdmission')}</option><option value="deceased">{t('deceased')}</option><option value="isolation">{t('patientsCountIsolation')}</option></FilterSelect>
       <FilterSelect label={t('svPeriod')} value={period} onChange={setPeriod}><option value="all">{t('svPeriodAll')}</option>{PERIOD_DAYS.map(days=><option key={days} value={String(days)}>{t(`svPeriod${days}`)}</option>)}</FilterSelect>
       </FilterBar>
       <RegistryTable
         wrapperClassName="scroll-table"
         wrapperRef={registry.scrollRef}
-        columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')},{key:'admission',label:t('admissionDate')},{key:'status',label:t('status')},{key:'alerts',label:t('clinicalAlerts')}]}
+        sort={sort}
+        onSort={onSort}
+        columns={[{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true},{key:'admission',label:t('admissionDate'),sortable:true},{key:'status',label:t('status'),sortable:true},{key:'infection',label:t('patientsColumnInfection')},{key:'scores',label:t('patientsColumnScores')}]}
         rows={pagedRows}
         loading={loading}
         rowKey={patient=>patient.id}
-        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,rows.map(x=>x.id))})}
-        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[patient.status]||'neutral'}>{t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language}/></span></td></>}
+        rowProps={patient=>registry.rowProps(patient.id,()=>{registry.saveViewState({query,department,status,period});registry.openRecord(navigate,`/patients/${patient.id}`,patient.id,sortedRows.map(x=>x.id))})}
+        renderRow={patient=><><td><strong>{language==='el'?patient.name:(patient.nameEn||patient.name)}</strong><small>{[patient.id,patient.hospitalRecordNumber].filter(Boolean).join(' · ')}</small></td><td>{language==='el'?patient.department:patient.departmentEn}</td><td>{fmt(patient.lastAdmissionDate||patient.admissionDate)}</td><td><StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>{effectiveStatus(patient)==='noAdmission'?t('patientNoAdmission'):effectiveStatus(patient)==='discharged'?t('patientsCountDischarged'):t(patient.status)}</StatusBadge></td><td><span className="patient-flags-cell"><PatientInfectionFlags flags={infectionFlags[patient.recordId]||infectionFlags[patient.id]} t={t} fmtDate={value=>fmt(String(value).slice(0,10))}/></span></td><td><span className="patient-flags-cell"><ClinicalRiskText rows={riskFlags[patient.recordId]||riskFlags[patient.id]||[]} language={language} max={2}/></span></td></>}
         emptyTitle={t('patientRegistryEmptyTitle')}
         emptyText={t('patientRegistryEmptyDescription')}
         emptyFiltered={scopedPatients.length>0}
         onClearFilters={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}
         emptyIcon={UsersRound}
-        emptyAction={canCreate?{label:t('create'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
+        emptyAction={canCreate?{label:t('newPatient'),icon:Plus,onClick:()=>pageAction(UI_ACTIONS.CREATE)}:null}
       />
       {rows.length>0&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}
     </div>
   </Page>
 }
 
-// A summary card filters the registry by its status; clicking it again shows everyone.
-function PatientSummaryMetric({icon,label,value,kind='',filter,current,onFilter,loading=false}){const active=filter!=='all'&&current===filter;return <MetricCard loading={loading} icon={icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={onFilter?()=>onFilter(active?'all':filter):undefined}/>}
 
 // The patient form's state and checks, shared by the «New patient» page and the
 // in-place edit of the patient record.
@@ -131,7 +132,14 @@ export function usePatientForm({patient=null,departments=[],existingPatients=[]}
     dateOfBirth:patient?.dateOfBirth||'',birthWeightGrams:patient?.birthWeightGrams||'',gestationalAgeWeeks:patient?.gestationalAgeWeeks||'',sex:patient?.sex||'',departmentId:patient?.departmentId||'',department:patient?.department||'',departmentEn:patient?.departmentEn||patient?.department||'',
     admissionDate:patient?.admissionDate||'',status:patient?.status||'active',notes:patient?.notes||''
   }))
-  const set=(key,value)=>setDraft(d=>({...d,[key]:value}))
+  // The code is suggested for a new patient until the person types their own.
+  const codeEdited=useRef(false)
+  const set=(key,value)=>{if(key==='patientCode')codeEdited.current=true;setDraft(d=>({...d,[key]:value}))}
+  useEffect(()=>{
+    if(editing||codeEdited.current)return
+    const next=suggestPatientCode(existingPatients)
+    if(next)setDraft(d=>(codeEdited.current||d.patientCode===next?d:{...d,patientCode:next}))
+  },[editing,existingPatients])
   function setDepartment(id){
     const item=departments.find(value=>value.id===id)
     setDraft(d=>({...d,departmentId:id,department:item?.name||'',departmentEn:item?.nameEn||item?.name||''}))
@@ -175,19 +183,21 @@ export function PatientFormFields({form,t,language,departments=[],className=''})
   // Optional fields with a wrong value: the message shows at once, not only after a submit.
   const optionalError=(key,invalid,message)=>invalid?{fieldKey:key,error:message}:{fieldKey:key}
   return <div ref={validation.scopeRef} className={`entry-grid patient-entry-grid ${className}`.trim()}>
-      <Field label={t('patientId')} {...validation.field('patientCode')} error={duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:validation.errorFor('patientCode')}><input autoFocus={!editing} disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/></Field>
-      <Field label={t('hospitalRecordNumber')}><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></Field>
-      <Field label={t('firstName')} {...validation.field('firstName')}><input autoFocus={editing} value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></Field>
+      <h3 className="patient-form-group">{t('patientFormGroupPatient')}</h3>
+      <Field label={t('firstName')} {...validation.field('firstName')}><input autoFocus value={draft.firstName} onChange={e=>set('firstName',e.target.value)}/></Field>
       <Field label={t('lastName')} {...validation.field('lastName')}><input value={draft.lastName} onChange={e=>set('lastName',e.target.value)}/></Field>
       <Field label={t('fatherName')}><input value={draft.fatherName} onChange={e=>set('fatherName',e.target.value)}/></Field>
       <ManualDateField label={t('dateOfBirth')} value={draft.dateOfBirth} onChange={v=>set('dateOfBirth',v)} hint={ageHint} {...optionalError('dateOfBirth',birthInvalid,t('invalidDateOfBirth'))}/>
+      <SearchableSelect label={t('sex')} value={draft.sex} options={['female','male','other'].map(value=>({value,label:t(value)}))} placeholder={t('select')} clearLabel="" onChange={v=>set('sex',v)} {...validation.field('sex')}/>
       {showNeonatal?<>
       <Field label={translate('copy.patientsCopy.birthWeightG',lang)} {...optionalError('birthWeightGrams',birthWeightInvalid,t('invalidBirthWeight'))}><input type="number" min="1" value={draft.birthWeightGrams} onChange={e=>set('birthWeightGrams',e.target.value)}/></Field>
       <Field label={translate('copy.patientsCopy.gestationalAgeWeeks',lang)} {...optionalError('gestationalAgeWeeks',gestationInvalid,t('invalidGestationalAge'))}><input type="number" min="20" max="45" value={draft.gestationalAgeWeeks} onChange={e=>set('gestationalAgeWeeks',e.target.value)}/></Field>
       </>:null}
+      <h3 className="patient-form-group">{editing?t('patientFormGroupRecord'):t('patientFormGroupAdmission')}</h3>
       {!editing&&<><SearchableSelect label={t('department')} value={draft.departmentId} options={departmentOptions(departments,language)} placeholder={t('select')} emptyLabel={listTexts(language).emptyLabel} clearLabel={listTexts(language).clearLabel} onChange={setDepartment}/>
       <ManualDateField label={t('admissionDate')} value={draft.admissionDate} onChange={v=>set('admissionDate',v)} {...validation.field('admissionDate')}/></>}
-      <SearchableSelect label={t('sex')} value={draft.sex} options={['female','male','other'].map(value=>({value,label:t(value)}))} placeholder={t('select')} clearLabel="" onChange={v=>set('sex',v)} {...validation.field('sex')}/>
-      <Field label={t('notes')} className="entry-span-2"><textarea rows={3} value={draft.notes} onChange={e=>set('notes',e.target.value)}/></Field>
+      <Field label={t('patientId')} {...validation.field('patientCode')} error={duplicate?`${t('patientCodeDuplicate')}${duplicate.name?` (${duplicate.name})`:''}`:validation.errorFor('patientCode')}><input disabled={editing} value={draft.patientCode} onChange={e=>set('patientCode',e.target.value)} aria-invalid={Boolean(duplicate)}/></Field>
+      <Field label={t('hospitalRecordNumber')}><input value={draft.hospitalRecordNumber} onChange={e=>set('hospitalRecordNumber',e.target.value)}/></Field>
+      <Field label={t('notes')} className="entry-span-2"><textarea rows={2} className="patient-notes-field" value={draft.notes} onChange={e=>set('notes',e.target.value)} onInput={event=>{event.target.style.height='auto';event.target.style.height=`${event.target.scrollHeight}px`}}/></Field>
     </div>
 }

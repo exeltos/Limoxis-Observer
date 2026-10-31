@@ -141,3 +141,10 @@ export function qualityCode(record, language = 'el') {
   const code = String(record?.displayId || record?.id || record?.code || '')
   return language === 'en' ? code : code.replace(/^CAPA-/, 'ΔΕ-')
 }
+
+// Who a report says it came from: the name, or the kind of private report.
+export function reporterText(record, en) {
+  if (record?.privacy === 'confidential') return en ? 'Confidential report' : 'Εμπιστευτική αναφορά'
+  if (record?.anonymous) return en ? 'Anonymous report' : 'Ανώνυμη αναφορά'
+  return record?.reportedBy || ''
+}

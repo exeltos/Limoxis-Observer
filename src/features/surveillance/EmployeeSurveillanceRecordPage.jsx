@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle2, ClipboardList, FileClock, FolderOpen, Pencil, Trash2, UserRound, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -19,11 +19,15 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { Field } from '../../design-system/Field'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { FormSubmit, useFormValidation } from '../../design-system/FormValidation'
-import { formatDay } from '../../core/i18n/formatDay'
+import { formatDay, formatDayTime } from '../../core/i18n/formatDay'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
+import { Button } from '../../design-system/Button'
+import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import { downloadRecordJson } from '../../core/export/recordExport'
@@ -35,7 +39,7 @@ import {
   laboratoryRequestEditable,
   updateLaboratoryRequest,
 } from '../laboratory/laboratoryRequestManagementService'
-import { employeeSurveillanceRecords, updateEmployeeSurveillanceRecord } from './employeeSurveillanceData'
+import { employeeSurveillanceRecords, removeDemoEmployeeSurveillance, updateEmployeeSurveillanceRecord } from './employeeSurveillanceData'
 import {
   loadEmployeeSurveillanceRecords,
   updateEmployeeSurveillanceFollowup,
@@ -67,6 +71,7 @@ export function EmployeeSurveillanceRecordPage() {
   const { notify, notifyError, confirm } = useFeedback()
   const { tenant, isDemo, role, actualRole, membership, canSeeSensitiveEmployeeHealth } = useTenant()
   const { goBack } = useContextualNavigation('/surveillance')
+  const deleteItem = useRecordDelete()
   const recordNavigation = useRecordSequenceNavigation({
     registry: 'surveillance-employees',
     currentId: recordId,
@@ -83,10 +88,12 @@ export function EmployeeSurveillanceRecordPage() {
   const recordRef = useRef(null)
   recordRef.current = record
   const organizationId = tenant?.id
-  const { employees: allowed } = surveillanceTabAccess({ role, actualRole, isDemo, canSeeSensitiveEmployeeHealth })
+  const { employees: allowed } = surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth })
   const has = capability => can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManageFollowup = isDemo || has(CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH)
   const canManageLab = !isDemo && has(CAPABILITIES.MANAGE_LAB_SAMPLES)
+  const canOpenSample = has(CAPABILITIES.VIEW_LAB)
+  const navigate = useNavigate()
 
   const loadSamples = useCallback(
     async row => {
@@ -230,6 +237,19 @@ export function EmployeeSurveillanceRecordPage() {
   const department = en ? record.departmentEn || record.department : record.department
   const screening = (record.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', ')
   const resultStatus = record.resultStatus || 'pending'
+  // «Delete» of the screening (with its requests and results) is made from inside the record.
+  const screeningDelete = deleteItem({
+    createdBy: record.createdBy,
+    table: 'employee_surveillance_records',
+    id: record.recordId,
+    label: name,
+    detail: record.id,
+    demo: async () => {
+      const removed = removeDemoEmployeeSurveillance(record.id)
+      if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'employee_surveillance_records', label: name, detail: record.id, store: 'employee_surveillance', row: removed })
+    },
+    onDone: goBack,
+  })
   const statusBadge = (
     <StatusBadge tone={statusTone(record.status === 'active' ? resultStatus : record.status)}>
       {t(record.status === 'active' ? resultStatus : record.status)}
@@ -267,13 +287,24 @@ export function EmployeeSurveillanceRecordPage() {
       : []
     return (
       <div key={sample.recordId || sample.id} className="employee-sample-row">
-        <div className="employee-sample-main">
-          <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
-          <span>
-            {sampleTypeLabel(sample.type, t)}
-            {sample.source ? ` · ${materialLabels(sample.source, en)}` : ''}
-          </span>
-        </div>
+        {/* The sample opens its laboratory record (the source of the result) for those who may see it. */}
+        {canOpenSample ? (
+          <button type="button" className="employee-sample-main employee-sample-open" onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)}>
+            <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
+            <span>
+              {sampleTypeLabel(sample.type, t)}
+              {sample.source ? ` · ${materialLabels(sample.source, en)}` : ''}
+            </span>
+          </button>
+        ) : (
+          <div className="employee-sample-main">
+            <strong className="employee-code-compact" title={sample.id}>{compactCode(sample.id)}</strong>
+            <span>
+              {sampleTypeLabel(sample.type, t)}
+              {sample.source ? ` · ${materialLabels(sample.source, en)}` : ''}
+            </span>
+          </div>
+        )}
         <div className="employee-lab-actions">
           <StatusBadge tone={sample.result === 'negative' ? 'success' : 'neutral'}>
             {sample.result ? t(sample.result) : t(sample.status)}
@@ -286,7 +317,7 @@ export function EmployeeSurveillanceRecordPage() {
   })
 
   const history = [
-    record.startedAt && { at: record.startedAt, title: L('Έναρξη επιτήρησης', 'Surveillance started') },
+    record.startedAt && { at: record.startedAt, title: L('Έναρξη ελέγχου', 'Screening started') },
     ...samples.flatMap(sample => [
       sample.collectedAt && { at: sample.collectedAt, title: `${L('Λήψη δείγματος', 'Sample collected')} · ${compactCode(sample.id)}` },
       (sample.resultedAt || sample.finalizedAt) && {
@@ -303,17 +334,17 @@ export function EmployeeSurveillanceRecordPage() {
     <>
       {tabId === 'summary' && (
         <div className="record-section employee-record-page-summary">
+          <SectionHeader title={L('Έλεγχος', 'Screening')} />
           <DetailList
             sections={[
               {
-                title: L('Έλεγχος', 'Screening'),
                 items: [
                   { label: L('Εργαζόμενος', 'Employee'), value: name },
                   { label: L('Κωδικός', 'Code'), value: record.employeeId },
                   { label: L('Τμήμα', 'Department'), value: department },
                   { label: L('Έναρξη', 'Started'), value: fmt(record.startedAt) },
                   { label: L('Τύπος ελέγχου', 'Screening type'), value: screening },
-                  { label: L('Αποτέλεσμα', 'Result'), value: t(resultStatus) },
+                  { label: L('Αποτέλεσμα', 'Result'), value: <StatusBadge tone={statusTone(resultStatus)}>{t(resultStatus)}</StatusBadge> },
                 ],
               },
               followupEligible && {
@@ -374,7 +405,14 @@ export function EmployeeSurveillanceRecordPage() {
         />
       )}
       {tabId === 'history' && (
-        <HistoryTimeline title={t('history')} events={history} when={fmt} emptyText={t('noData')} />
+        <HistoryTimeline
+          card
+          title={t('history')}
+          subtitle={L('Χρονολογικό ιστορικό των ενεργειών του ελέγχου.', 'Chronological history of the screening actions.')}
+          events={history}
+          when={value => (/^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmt(value) : formatDayTime(value, language))}
+          emptyText={t('noData')}
+        />
       )}
     </>
   )
@@ -437,6 +475,7 @@ export function EmployeeSurveillanceRecordPage() {
         onTabChange={setTab}
         headerActions={
           <>
+            {screeningDelete && <Button tone="danger" label={t('clinicalRecords.deleteEmployeeScreening')} onClick={screeningDelete.onClick} />}
             {canManageFollowup && followupEligible && (
               <ActionButton tone={hasFollowup(record) ? 'edit' : 'primary'} label={followupLabel} onClick={() => setFollowupOpen(true)}>
                 {hasFollowup(record) ? <Pencil size={15} /> : <CheckCircle2 size={15} />}

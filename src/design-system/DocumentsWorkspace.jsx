@@ -1,8 +1,10 @@
 import { AttachmentField } from './AttachmentField'
+import { useLanguage } from '../core/i18n/LanguageContext'
 import './DocumentsWorkspace.css'
 
-// Every record's documents tab opens the same way (as in Quality): a
-// record-section card with the title and the shared attachment box.
+// Every record's documents tab opens the same way: one line saying what it holds,
+// then the shared attachment box, inside the record's own frame (no second card;
+// the tab already names it, so the title is there for screen readers only).
 export function DocumentsWorkspace({
   title,
   subtitle,
@@ -14,8 +16,12 @@ export function DocumentsWorkspace({
   value=[],
   onChange=()=>{},
 }){
-  return <div className="record-section documents-workspace">
-    {(title||subtitle)&&<div className="record-section-header lo-section-header"><div>{title&&<h3>{title}</h3>}{subtitle&&<p>{subtitle}</p>}</div></div>}
+  const {t}=useLanguage()
+  // Every documents card has the same shape: title, one line saying what it holds, then the files (or one line and the button).
+  const shownTitle=title||t('documents'),shownSubtitle=subtitle||t('documentsSubtitle')
+  return <div className="documents-workspace">
+    <h3 className="lo-visually-hidden">{shownTitle}</h3>
+    <p className="documents-workspace-note">{shownSubtitle}</p>
     <AttachmentField
       disabled={disabled}
       value={value}

@@ -1,12 +1,13 @@
 import { useEffect,useMemo,useRef,useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useLocation,useNavigate } from 'react-router-dom'
-import { Activity,AlertOctagon,AlertTriangle,ArrowDownRight,ArrowRight,ArrowUpRight,BookOpen,BriefcaseMedical,ChefHat,CheckCircle2,ChevronDown,ChevronUp,ClipboardCheck,FlaskConical,GraduationCap,Minus,MoreHorizontal,ShieldCheck,TriangleAlert } from 'lucide-react'
+import { Activity,AlertOctagon,AlertTriangle,ArrowRight,BookOpen,BriefcaseMedical,ChefHat,ChevronDown,ChevronUp,ClipboardCheck,FlaskConical,GraduationCap,ShieldCheck,TriangleAlert } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Card,CardHeader } from '../../design-system/Card'
 import { ExportMenu } from '../../design-system/ExportMenu'
+import { KpiCard,KpiStrip } from '../../design-system/KpiCard'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { ModuleTabs } from '../../design-system/ModuleTabs'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { printElement } from '../../design-system/printElement'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -29,7 +30,6 @@ import './executive.css'
 
 const PART_KEYS=['domains','people','qualityFood','microbiology','clusters','governance']
 const SEVERITY_LABELS={critical:['Κρίσιμη','Critical'],high:['Υψηλή','High'],medium:['Μέτρια','Medium'],low:['Χαμηλή','Low']}
-const TONES={good:[CheckCircle2,'Εντός στόχου','On target'],warning:[AlertTriangle,'Προσοχή','Watch'],danger:[AlertOctagon,'Εκτός στόχου','Off target']}
 // Detail screen of each Analysis tab for a viewer who has it; otherwise the Analysis tab itself.
 const MODULE_SCREENS={surveillance:['/surveillance',CAPABILITIES.VIEW_SURVEILLANCE],laboratory:['/laboratory',CAPABILITIES.VIEW_LAB],prevention:['/prevention',CAPABILITIES.VIEW_PREVENTION],controls:['/controls',CAPABILITIES.VIEW_CONTROLS],quality:['/quality',CAPABILITIES.VIEW_QUALITY],qualityfood:['/quality',CAPABILITIES.VIEW_QUALITY],training:['/training',CAPABILITIES.VIEW_TRAINING],governance:['/meetings',CAPABILITIES.VIEW_COMMITTEES]}
 
@@ -61,19 +61,13 @@ function demoParts(range,en){
 function Skeleton({lines=3}){return <div className="exec-skeleton" aria-hidden="true">{Array.from({length:lines},(_,i)=><i key={i}/>)}</div>}
 const formatValue=(value,unit,en)=>value==null?'—':`${new Intl.NumberFormat(en?'en-GB':'el-GR',{maximumFractionDigits:1}).format(value)}${unit||''}`
 
-function DeltaBadge({item,tx,en,against}){
+// The change against the previous period, for the KpiCard: rates in percentage points, counts by their relative change (or the difference, from zero).
+function deltaOf(item,tx,en,against){
  const d=item.delta
  if(!d)return null
- const Icon=d.trend==='up'?ArrowUpRight:d.trend==='down'?ArrowDownRight:Minus
  const sign=d.diff>0?'+':''
- // Rates change in percentage points; counts by their relative change (or the difference, from zero).
  const amount=item.unit==='%'?`${sign}${formatValue(d.diff,'',en)} ${tx('μον.','pts')}`:d.change!=null?`${sign}${formatValue(d.change,'%',en)}`:`${sign}${formatValue(d.diff,'',en)}`
- return <span className={`exec-delta ${d.good==null?'flat':d.good?'better':'worse'}`} title={against||tx('Μεταβολή έναντι της προηγούμενης περιόδου','Change against the previous period')}><Icon size={13} aria-hidden="true"/>{amount}<em>{d.good==null?tx('σταθερό','unchanged'):d.good?tx('βελτίωση','better'):tx('επιδείνωση','worse')}</em></span>
-}
-function KpiTile({item,loading,error,tx,en,onOpen,period,against}){
- const [Icon,el,enLabel]=TONES[item.tone]||[]
- const body=<><span className="exec-kpi-label">{tx(...item.label)}{period&&<em className="exec-kpi-period">{period}</em>}</span>{loading?<Skeleton lines={2}/>:error?<small className="exec-kpi-error">{tx('Δεν φορτώθηκε','Not loaded')}</small>:<><strong>{formatValue(item.value,item.unit,en)}</strong>{Icon&&item.value!=null&&<span className={`exec-status exec-status-${item.tone}`}><Icon size={13} aria-hidden="true"/>{en?enLabel:el}</span>}<small>{tx(...item.hint)}</small><DeltaBadge item={item} tx={tx} en={en} against={against}/></>}</>
- return onOpen?<button type="button" className={`exec-kpi exec-tone-${loading||error?'neutral':item.tone}`} onClick={onOpen}>{body}</button>:<article className={`exec-kpi exec-tone-${loading||error?'neutral':item.tone}`}>{body}</article>
+ return {text:`${amount} ${d.good==null?tx('σταθερό','unchanged'):d.good?tx('βελτίωση','better'):tx('επιδείνωση','worse')}`,trend:d.trend,good:d.good,title:against||tx('Μεταβολή έναντι της προηγούμενης περιόδου','Change against the previous period')}
 }
 function Figures({rows}){return <dl className="exec-figures">{rows.filter(Boolean).map(([label,value,tone])=><div key={label} className={tone?`exec-figure-${tone}`:''}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
 // The key figures always show; the charts and lists open on demand (and all of them for print / PDF).
@@ -84,18 +78,6 @@ function SectionCard({id,icon,title,subtitle,loading,error,onOpen,tx,figures,chi
  </Card>
 }
 const FLAGS_FOLDED=5
-// «Περισσότερα» at the end of the one row of tabs: the prevalence survey, reporting and LIRA.
-function MoreTabs({tabs,activeId,onChange,tx,en}){
- const [open,setOpen]=useState(false)
- const rootRef=useRef(null),triggerRef=useRef(null)
- useEffect(()=>{if(!open)return undefined;rootRef.current?.querySelector('[role="menuitem"]')?.focus();const onPointer=event=>{if(!rootRef.current?.contains(event.target))setOpen(false)};document.addEventListener('mousedown',onPointer);return()=>document.removeEventListener('mousedown',onPointer)},[open])
- const active=tabs.find(([id])=>id===activeId)
- const onKey=event=>{const items=[...(rootRef.current?.querySelectorAll('[role="menuitem"]')??[])];const index=items.indexOf(document.activeElement);if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();items[(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus()}else if(event.key==='Escape'){event.preventDefault();setOpen(false);triggerRef.current?.focus()}}
- return <div ref={rootRef} className="exec-more-tabs" onKeyDown={onKey}>
-  <button ref={triggerRef} type="button" className={`tab exec-more-trigger${active?' active':''}`} aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><MoreHorizontal size={15} aria-hidden="true"/><span>{active?(en?active[2]:active[1]):tx('Περισσότερα','More')}</span><ChevronDown size={13} aria-hidden="true"/></button>
-  {open&&<div className="exec-more-menu" role="menu" aria-label={tx('Περισσότερα','More')}>{tabs.map(([id,elLabel,enLabel,Icon])=><button key={id} type="button" role="menuitem" tabIndex={-1} aria-current={id===activeId?'true':undefined} onClick={()=>{setOpen(false);onChange(id)}}><Icon size={15} aria-hidden="true"/><span>{en?enLabel:elLabel}</span></button>)}</div>}
- </div>
-}
 function RankList({title,rows,tx,en}){return <div className="exec-rank"><strong>{title}</strong>{rows.length?<ol>{rows.map(row=><li key={row.name}><span>{row.name}</span><b>{formatValue(row.rate,'%',en)}</b><small>{tx(`${row.findings}/${row.executions} με εύρημα`,`${row.findings}/${row.executions} with finding`)}</small></li>)}</ol>:<p className="inline-empty">{tx('Δεν υπάρχουν αρκετές εκτελέσεις.','Not enough executions.')}</p>}</div>}
 
 export function ExecutiveDashboardPage(){
@@ -197,7 +179,7 @@ export function ExecutiveDashboardPage(){
  const analysisCompare=previous&&compareOf[compareMode]?{range:previous,departmentId:previousDepartment,...compareOf[compareMode]}:null
  const against=compareMode==='departments'?tx('Διαφορά έναντι όλου του νοσοκομείου','Difference against the whole hospital'):''
  return <Page className="exec-page" title={title} subtitle={hospital}>
-  {mainTabs.length+moreTabs.length>1&&<div className="exec-tabs-row"><ModuleTabs className="exec-view-tabs" activeId={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} tabs={mainTabs.map(([id,elLabel,enLabel,icon])=>({id,label:en?enLabel:elLabel,icon}))}/>{moreTabs.length>0&&<MoreTabs tabs={moreTabs} activeId={activeTab[0]} onChange={setPageTab} tx={tx} en={en}/>}</div>}
+  {mainTabs.length+moreTabs.length>1&&<CanonicalTabs className="exec-view-tabs" value={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} items={mainTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))} moreItems={moreTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))}/>}
   <div className="exec-filters" role="group" aria-label={tx('Φίλτρα','Filters')}>
    <AnalysisSelect label={tx('Περίοδος','Period')} value={filters.period} onChange={event=>setFilters({period:event.target.value,...(event.target.value==='custom'?{from:range.from,to:range.to}:{})})}>{Object.entries(presetLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</AnalysisSelect>
    {filters.period==='custom'&&<><ManualDateField label={tx('Από','From')} value={range.from} onChange={value=>value&&setFilters({from:value,to:range.to})}/><ManualDateField label={tx('Έως','To')} value={range.to} onChange={value=>value&&setFilters({from:range.from,to:value})}/></>}
@@ -208,13 +190,13 @@ export function ExecutiveDashboardPage(){
   </div>
   {activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{activeSections.map(id=><AnalysisPage key={`${id}:${compareMode}`} embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/>)}</section>:<section ref={reportRef} className="exec-report">
    <header className="exec-report-head"><div><strong>{reportLines[0]}</strong><span>{reportLines.slice(1).join(' · ')}</span></div>{isDemo&&<span className="status-badge temporary">{tx('ΔΕΔΟΜΕΝΑ DEMO','DEMO DATA')}</span>}</header>
-   <div className="exec-kpis">{kpis.map(item=>{const parts=kpiParts(item);return <KpiTile key={item.id} item={item} loading={parts.some(part=>!part||part.status==='loading')} error={parts.some(part=>part?.status==='error')} tx={tx} en={en} period={kpiPeriod} against={against} onOpen={openAnalysis(item.tab)}/>})}</div>
+   <KpiStrip className="exec-kpis" label={tx('Βασικοί δείκτες','Key measures')}>{kpis.map(item=>{const parts=kpiParts(item);return <KpiCard key={item.id} label={tx(...item.label)} period={kpiPeriod} value={item.value==null?null:formatValue(item.value,'',en)} unit={item.unit} status={item.value==null?null:item.tone} hint={tx(...item.hint)} delta={deltaOf(item,tx,en,against)} loading={parts.some(part=>!part||part.status==='loading')} error={parts.some(part=>part?.status==='error')} onOpen={openAnalysis(item.tab)}/>})}</KpiStrip>
    <Card className="exec-card exec-attention">
     <CardHeader icon={TriangleAlert} title={tx('Τι χρειάζεται προσοχή','What needs attention')} subtitle={tx('Δείκτες εκτός στόχου και εκκρεμότητες, οι σοβαρότεροι πρώτοι.','Measures off target and open items, the most serious first.')}/>
     {loadingAny&&!flags.length?<Skeleton lines={3}/>:flags.length?<><ul className="exec-flags">{shownFlags.map(flag=>{const open=openFlag(flag.tab);const Icon=flag.severity==='danger'?AlertOctagon:AlertTriangle;const content=<><Icon size={16} aria-hidden="true"/><span><strong>{tx(...flag.text)}</strong>{flag.detail&&<small>{tx(...flag.detail)}</small>}</span><em>{flag.severity==='danger'?tx('Άμεσα','Urgent'):tx('Παρακολούθηση','Monitor')}</em>{open&&<ArrowRight size={15} aria-hidden="true"/>}</>;return <li key={flag.id} className={`exec-flag-${flag.severity}`}>{open?<button type="button" onClick={open}>{content}</button>:<div>{content}</div>}</li>})}</ul>{flags.length>FLAGS_FOLDED&&<button type="button" className="text-button exec-flags-more" data-pdf-ignore="" aria-expanded={allFlags} onClick={()=>setAllFlags(v=>!v)}>{allFlags?tx('Λιγότερα','Show fewer'):tx(`Όλα (${flags.length})`,`All (${flags.length})`)}{allFlags?<ChevronUp size={14} aria-hidden="true"/>:<ChevronDown size={14} aria-hidden="true"/>}</button>}</>:failedAny?<div className="inline-empty">{tx('Κάποιες ενότητες δεν φορτώθηκαν· η εικόνα είναι ελλιπής.','Some sections did not load; the picture is incomplete.')}</div>:<div className="inline-empty">{tx('Όλοι οι δείκτες είναι εντός στόχου για την περίοδο.','Every measure is on target for the period.')}</div>}
    </Card>
    <div className="exec-grid">
-    {on('surveillance','laboratory')&&<SectionCard id="infections" icon={FlaskConical} title={tx('Λοιμώξεις & Μικροβιολογία','Infections & microbiology')} subtitle={tx('Θετικές καλλιέργειες ανά μήνα.','Positive cultures by month.')} {...partState(['domains','microbiology'])} onOpen={openAnalysis(on('surveillance')?'surveillance':'laboratory')} tx={tx} {...cardProps('infections')} figures={<Figures rows={[[tx('Επεισόδια επιτήρησης','Surveillance episodes'),formatValue(s.total,'',en)],[tx('Επιβεβαιωμένες HAI','Confirmed HAI'),formatValue(s.haiConfirmed,'',en),s.haiConfirmed?'warning':''],[tx('Θετικές καλλιέργειες','Positive cultures'),formatValue(micro.totalPositive,'',en)],[tx('Κρίσιμα αποτελέσματα','Critical results'),formatValue(micro.totalCritical,'',en),micro.totalCritical?'warning':''],[tx('Ενεργές συρροές','Active clusters'),formatValue(snapshot.clusters.length,'',en),snapshot.clusters.length?'danger':'']]}/>}>
+    {on('surveillance','laboratory')&&<SectionCard id="infections" icon={FlaskConical} title={tx('Λοιμώξεις & Μικροβιολογία','Infections & microbiology')} subtitle={tx('Θετικές καλλιέργειες ανά μήνα.','Positive cultures by month.')} {...partState(['domains','microbiology'])} onOpen={openAnalysis(on('surveillance')?'surveillance':'laboratory')} tx={tx} {...cardProps('infections')} figures={<Figures rows={[[tx('Επεισόδια επιτήρησης','Surveillance episodes'),formatValue(s.total,'',en)],[tx('Επιβεβαιωμένες ΛΣΦΥ','Confirmed HAI'),formatValue(s.haiConfirmed,'',en),s.haiConfirmed?'warning':''],[tx('Θετικές καλλιέργειες','Positive cultures'),formatValue(micro.totalPositive,'',en)],[tx('Κρίσιμα αποτελέσματα','Critical results'),formatValue(micro.totalCritical,'',en),micro.totalCritical?'warning':''],[tx('Ενεργές συρροές','Active clusters'),formatValue(snapshot.clusters.length,'',en),snapshot.clusters.length?'danger':'']]}/>}>
      <TrendChart points={cultureTrend} en={en} label={tx('Θετικές καλλιέργειες ανά μήνα','Positive cultures by month')}/>
      <h3 className="exec-subtitle">{tx('Συχνότεροι μικροοργανισμοί','Most frequent organisms')}</h3>
      <BarList rows={micro.microorganisms} en={en} max={5}/>

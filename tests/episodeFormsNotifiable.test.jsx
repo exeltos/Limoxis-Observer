@@ -61,7 +61,7 @@ describe('notifiable disease section', () => {
     expect(rows[0]).toMatchObject({ title: 'ΕΛΟΝΟΣΙΑ', status: 'notified', date: '2025-09-25' })
   })
 
-  it('renders the uniform row: «Δηλωτέο» signal, «Εκκρεμεί», one action «Νέα δήλωση» that opens the prefilled form', async () => {
+  it('renders the uniform row: «Δηλωτέο» signal, «Εκκρεμεί», one action «Δήλωση στον ΕΟΔΥ» that opens the prefilled form', async () => {
     const Section = notifiableSection.Component
     render(
       <MemoryRouter>
@@ -80,7 +80,7 @@ describe('notifiable disease section', () => {
     expect(within(list).getByText('Εκπρόθεσμη')).toBeInTheDocument()
     expect(within(list).getByText(/Δήλωση εντός 24 ωρών/)).toBeInTheDocument()
     expect(within(list).getByText(/καθυστέρηση/)).toBeInTheDocument()
-    fireEvent.click(within(list).getByRole('button', { name: 'Νέα δήλωση' }))
+    fireEvent.click(within(list).getByRole('button', { name: 'Δήλωση στον ΕΟΔΥ' }))
     const dialog = await screen.findByRole('dialog')
     expect(within(dialog).getByText('Προσυμπληρωμένα')).toBeInTheDocument()
     expect(within(dialog).getByText('PT-1 · Ελένη Παπαδοπούλου')).toBeInTheDocument()

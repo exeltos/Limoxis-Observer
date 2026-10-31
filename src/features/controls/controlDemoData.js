@@ -49,7 +49,7 @@ const definition2={
 function demoExpiryCatalogue(){
  const on=days=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
  return [['Adrenaline 1mg/ml',10,'ampoule',-6,''],['Atropine 0.5mg/ml',6,'ampoule',12,''],['Amiodarone 150mg/3ml',4,'ampoule',75,''],['Φυσιολογικός ορός 0,9% 500ml',24,'bottle',160,''],['Ηπαρίνη 5.000 IU/ml',8,'vial',25,'Στο ψυγείο'],['Midazolam 5mg/ml',5,'ampoule',-2,'Ελεγχόμενο'],['Παρακεταμόλη 500mg',40,'tablet',210,''],['Σύριγγες 10ml',120,'piece',400,''],['Χλωρεξιδίνη 2% διάλυμα',12,'flacon',48,''],['Naloxone 0.4mg/ml',3,'ampoule',19,'Τροχήλατο ανάνηψης']]
-  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[]}))
+  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[],category:form==='piece'?'supply':'medicine'}))
 }
 const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:demoExpiryCatalogue(),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
 // A weekly checklist audit: every item is answered Yes / No / N/A and the

@@ -1,59 +1,26 @@
 import { useEffect, useState } from 'react'
-import {
-  Activity,
-  AlertTriangle,
-  BedDouble,
-  Microscope,
-  Pill,
-  RefreshCcw,
-  ShieldCheck,
-  Stethoscope,
-} from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
-import { RegistryTable } from '../../design-system/RegistryTable'
-import { StatusBadge } from '../../design-system/StatusBadge'
+
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { SurveillanceJourneyGuidance, SurveillanceJourneyMap } from './SurveillanceJourneyMap'
 import { patientAgeDays } from '../clinical-scales/clinicalScaleContext'
 import { Detail } from './ClinicalAdmissions'
-import {
-  approvalStatusLabel,
-  administrationStatusLabel,
-  clinicalTerm,
-  clinicalValueLabel,
-  episodeTypeLabel,
-} from './clinicalRecordLabels'
-import {
-  AdministrationDialog,
-  AssessmentDialog,
-  DeviceDialog,
-  SampleRequestDialog,
-  HaiDialog,
-  TherapyDialog,
-  IsolationDialog,
-  EndDialog,
-  ReassessmentDialog,
-  OutcomeDialog,
-  ReasonDialog,
-} from './ClinicalRecordDialogs'
+import { ClinicalEntryDetail, StageTable, StateBadge } from './ClinicalJourneyParts'
+import { clinicalTerm, episodeTypeLabel } from './clinicalRecordLabels'
+import { AssessmentDialog, DeviceDialog, SampleRequestDialog, HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalRecordDialogs'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
+import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
-import { statusTone } from './surveillanceOptions'
+
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { ProtocolPanel, ProtocolPickerDialog } from './protocols/ProtocolViews'
 import { TherapyReviewCard } from './protocols/TherapyReviewCard'
 import { protocolCues, protocolStages, useEpisodeProtocols } from './protocols/useEpisodeProtocols'
 import { reviewWindow, showsReviewCard } from './protocols/therapyReview'
-import {
-  changeRecognitionTime,
-  createTherapyReview,
-  finishProtocolRun,
-  recordProtocolStep,
-  setProtocolWeight,
-  startProtocolRun,
-} from './protocols/protocolService'
+import { changeRecognitionTime, createTherapyReview, finishProtocolRun, recordProtocolStep, removeDemoProtocolRun, setProtocolWeight, startProtocolRun } from './protocols/protocolService'
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
@@ -74,6 +41,7 @@ export function CanonicalJourney({
   initialStage = null,
   startProtocolRequest = null,
   onProtocolRequestHandled,
+  deleteItem = null,
 }) {
   const { notify } = useFeedback()
   const actor = useAuditActor()
@@ -92,6 +60,28 @@ export function CanonicalJourney({
     [reason, setReason] = useState(''),
     [entryDetail, setEntryDetail] = useState(null)
   const active = record.status === 'active'
+  // «Delete» of an entry of the episode, for a «…» menu (null when the person may not delete it).
+  const ENTRY_TABLES = {
+    assessment: ['clinical_assessments', row => row.byId],
+    hai: ['hai_classifications', row => row.classifiedBy],
+    isolation: ['isolation_episodes', row => row.createdBy],
+    outcome: ['surveillance_outcomes', row => row.recordedById],
+    therapy: ['antimicrobial_therapies', row => row.createdBy],
+    reassessment: ['surveillance_reassessments', row => row.byId],
+    device: ['surveillance_devices', row => row.createdBy],
+  }
+  const entryDelete = (kind, row, label) =>
+    row?.id && deleteItem
+      ? deleteItem({
+          createdBy: ENTRY_TABLES[kind][1](row),
+          table: ENTRY_TABLES[kind][0],
+          id: row.id,
+          label,
+          detail: record.id,
+          demo: () => repository.deleteEntry(record, kind, row),
+          onDone: onReload,
+        })
+      : null
   // "Start protocol" from the episode header or from a qSOFA / SOFA prompt.
   useEffect(() => {
     if (!startProtocolRequest?.nonce || !active) return
@@ -147,23 +137,18 @@ export function CanonicalJourney({
   if (!active)
     return (
       <div className="clinical-data-hub">
-        <div className="clinical-data-heading">
-          <div>
-            <span className="eyebrow">{t('surveillance')}</span>
-            <h3>{t('clinicalRecords.completedSurveillance')}</h3>
-          </div>
-          {permissions.canReopen && (
+        {permissions.canReopen && (
+          <div className="clinical-data-heading">
             <Button variant="secondary" onClick={() => setDialog('reopen')}>
               <RefreshCcw size={15} />
               {t('clinicalRecords.reopenSurveillance')}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
         <CompletedReport
           record={record}
           t={t}
           fmtDate={fmtDate}
-          fmtDateTime={fmtDateTime}
           language={language}
           libraries={libraries}
         />
@@ -206,6 +191,24 @@ export function CanonicalJourney({
         {activeRun && (
           <ProtocolPanel
             run={activeRun}
+            menu={[
+              deleteItem?.({
+                createdBy: activeRun.startedBy,
+                table: 'clinical_protocol_runs',
+                id: activeRun.id,
+                label: t(`sepsis.protocols.${activeRun.protocolKey}.panelTitle`),
+                detail: record.id,
+                demo: async () => {
+                  const removed = removeDemoProtocolRun(activeRun.id)
+                  if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'clinical_protocol_runs', label: t(`sepsis.protocols.${activeRun.protocolKey}.panelTitle`), detail: record.id, store: 'protocol_runs', row: removed })
+                },
+                onDone: async () => {
+                  await protocols.reload()
+                  setStage('assessment')
+                  await onReload()
+                },
+              }),
+            ]}
             record={record}
             t={t}
             language={language}
@@ -236,6 +239,7 @@ export function CanonicalJourney({
           <StagePanel
             icon={ShieldCheck}
             title={t('clinicalAssessment')}
+            menu={[entryDelete('assessment', record.assessment, t('clinicalAssessment'))]}
             action={
               permissions.canAssess ? (
                 <Button
@@ -336,6 +340,7 @@ export function CanonicalJourney({
                   ...(deviceBundles ? [{ key: 'day', label: t('episodeForms.bundles.dayColumn') }] : []),
                   { key: 'status', label: t('status') },
                   ...(deviceBundles ? [{ key: 'bundle', label: t('episodeForms.bundles.column') }, { key: 'check', label: '' }] : []),
+                  ...(deleteItem ? [{ key: 'menu', label: '' }] : []),
                 ]}
                 rows={record.devices}
                 renderRow={x => {
@@ -369,6 +374,11 @@ export function CanonicalJourney({
                             {t('episodeForms.bundles.check')}
                           </Button>
                         )}
+                      </td>
+                    )}
+                    {deleteItem && (
+                      <td className="open-record-cell">
+                        {entryDelete('device', x, x.name || x.type) && <OverflowMenu label={t('episodeForms.rowActions')} items={[entryDelete('device', x, x.name || x.type)]} />}
                       </td>
                     )}
                   </>
@@ -439,6 +449,7 @@ export function CanonicalJourney({
         {stage === 'hai' && (
           <StagePanel
             icon={AlertTriangle}
+            menu={[entryDelete('hai', record.haiClassification, t('haiClassification'))]}
             title={translate(
               'copy.clinicalRecordCopy.haiHealthcareAssociatedInfectionsAmrAntimicrobial',
               language === 'el' ? 'el' : 'en',
@@ -584,6 +595,7 @@ export function CanonicalJourney({
           <StagePanel
             icon={BedDouble}
             title={t('isolation')}
+            menu={[entryDelete('isolation', record.isolation, t('isolation'))]}
             action={
               permissions.canIsolation ? (
                 <div className="row-actions">
@@ -695,6 +707,7 @@ export function CanonicalJourney({
           <StagePanel
             icon={Activity}
             title={t('outcome')}
+            menu={[entryDelete('outcome', record.outcome, t('outcome'))]}
             action={
               permissions.canOutcome ? (
                 <Button
@@ -841,6 +854,11 @@ export function CanonicalJourney({
           fmtDateTime={fmtDateTime}
           canManage={active}
           onClose={() => setEntryDetail(null)}
+          onDelete={
+            entryDetail.kind === 'therapy' || entryDetail.kind === 'reassessment'
+              ? entryDelete(entryDetail.kind, entryDetail.row, entryDetail.kind === 'therapy' ? entryDetail.row.antimicrobial : t('reassessment'))
+              : null
+          }
           onEdit={() => {
             const kind = entryDetail.kind
             setEntryDetail(null)
@@ -904,255 +922,4 @@ export function CanonicalJourney({
       )}
     </div>
   )
-}
-function ClinicalEntryDetail({
-  entry,
-  t,
-  language,
-  fmtDate,
-  fmtDateTime,
-  canManage,
-  onClose,
-  onEdit,
-  onFinishTherapy,
-  onApproveTherapy,
-  onRejectTherapy,
-  onRecordAdministration,
-}) {
-  const [showAdminForm, setShowAdminForm] = useState(false)
-  const row = entry.row || {}
-  const titleMap = {
-    sample: translate('copy.clinicalRecordCopy.sampleDetails', language === 'el' ? 'el' : 'en'),
-    therapy: translate(
-      'copy.clinicalRecordCopy.antimicrobialTherapyDetails',
-      language === 'el' ? 'el' : 'en',
-    ),
-    reassessment: translate(
-      'copy.clinicalRecordCopy.reassessmentDetails',
-      language === 'el' ? 'el' : 'en',
-    ),
-  }
-  const fields =
-    entry.kind === 'sample'
-      ? [
-          [
-            translate('copy.clinicalRecordCopy.sampleCode', language === 'el' ? 'el' : 'en'),
-            row.id,
-          ],
-          [t('sampleType'), clinicalValueLabel(row.type || row.sampleType, language, t)],
-          [t('status'), clinicalValueLabel(row.result || row.status || 'pending', language, t)],
-          [t('organism'), row.organism || '—'],
-          ['AMR', row.resistance || '—'],
-        ]
-      : entry.kind === 'therapy'
-        ? [
-            [
-              translate('copy.clinicalRecordCopy.antimicrobial', language === 'el' ? 'el' : 'en'),
-              row.antimicrobial,
-            ],
-            [translate('copy.clinicalRecordCopy.dose', language === 'el' ? 'el' : 'en'), row.dose],
-            [
-              translate('copy.clinicalRecordCopy.route', language === 'el' ? 'el' : 'en'),
-              clinicalValueLabel(row.route, language, t),
-            ],
-            [
-              translate('copy.clinicalRecordCopy.started2', language === 'el' ? 'el' : 'en'),
-              fmtDate(row.startedAt),
-            ],
-            [t('status'), clinicalValueLabel(row.status || 'active', language, t)],
-            [
-              language === 'el' ? 'Stewardship' : 'Stewardship',
-              approvalStatusLabel(row.approvalStatus, language),
-            ],
-          ]
-        : [
-            [
-              translate('copy.clinicalRecordCopy.date', language === 'el' ? 'el' : 'en'),
-              fmtDate(row.date),
-            ],
-            [t('status'), clinicalValueLabel(row.status, language, t)],
-            [
-              translate('copy.clinicalRecordCopy.notes', language === 'el' ? 'el' : 'en'),
-              row.notes || '—',
-            ],
-            [
-              translate('copy.clinicalRecordCopy.nextReview', language === 'el' ? 'el' : 'en'),
-              fmtDate(row.nextReviewDue),
-            ],
-          ]
-  const pendingApproval = row.approvalStatus === 'pending'
-  const canAdminister =
-    row.status === 'active' && !pendingApproval && row.approvalStatus !== 'rejected'
-  const hasFooterActions =
-    (entry.kind === 'therapy' &&
-      Boolean(
-        (pendingApproval && (onRejectTherapy || onApproveTherapy)) ||
-        (canAdminister && onRecordAdministration) ||
-        onFinishTherapy,
-      )) ||
-    (entry.kind === 'reassessment' && canManage)
-  const footerActions = (
-    <>
-      {entry.kind === 'therapy' && pendingApproval && onRejectTherapy && (
-        <Button variant="secondary" onClick={onRejectTherapy}>
-          {translate('copy.clinicalRecordCopy.reject', language === 'el' ? 'el' : 'en')}
-        </Button>
-      )}
-      {entry.kind === 'therapy' && pendingApproval && onApproveTherapy && (
-        <Button variant="secondary" onClick={onApproveTherapy}>
-          {translate('copy.clinicalRecordCopy.approve', language === 'el' ? 'el' : 'en')}
-        </Button>
-      )}
-      {entry.kind === 'therapy' && canAdminister && onRecordAdministration && (
-        <Button variant="secondary" onClick={() => setShowAdminForm(true)}>
-          {translate(
-            'copy.clinicalRecordCopy.recordAdministration',
-            language === 'el' ? 'el' : 'en',
-          )}
-        </Button>
-      )}
-      {entry.kind === 'therapy' && onFinishTherapy && (
-        <Button variant="secondary" onClick={onFinishTherapy}>
-          {translate('copy.clinicalRecordCopy.endTherapy', language === 'el' ? 'el' : 'en')}
-        </Button>
-      )}
-      {entry.kind === 'reassessment' && canManage && (
-        <Button onClick={onEdit}>
-          {translate('copy.clinicalRecordCopy.newReassessment', language === 'el' ? 'el' : 'en')}
-        </Button>
-      )}
-    </>
-  )
-  return (
-    <ObserverDialog
-      title={titleMap[entry.kind] || t('details')}
-      onClose={onClose}
-      footer={hasFooterActions ? footerActions : null}
-    >
-      <div className="detail-grid clinical-entry-detail-grid">
-        {fields.map(([label, value]) => (
-          <Detail key={label} label={label} value={value} />
-        ))}
-      </div>
-      {entry.kind === 'therapy' && (
-        <div className="record-section-header">
-          <div>
-            <span className="eyebrow">
-              {translate(
-                'copy.clinicalRecordCopy.actualAdministrations',
-                language === 'el' ? 'el' : 'en',
-              )}
-            </span>
-          </div>
-        </div>
-      )}
-      {entry.kind === 'therapy' &&
-        (row.administrations?.length ? (
-          <StageTable
-            columns={[
-              {
-                key: 'date',
-                label: translate('copy.clinicalRecordCopy.date', language === 'el' ? 'el' : 'en'),
-              },
-              {
-                key: 'dose',
-                label: translate('copy.clinicalRecordCopy.dose', language === 'el' ? 'el' : 'en'),
-              },
-              {
-                key: 'route',
-                label: translate('copy.clinicalRecordCopy.route2', language === 'el' ? 'el' : 'en'),
-              },
-              { key: 'status', label: t('status') },
-            ]}
-            rows={row.administrations}
-            renderRow={a => (
-              <>
-                <td>{fmtDateTime ? fmtDateTime(a.administeredAt) : fmtDate(a.administeredAt)}</td>
-                <td>{a.dose || '—'}</td>
-                <td>{a.route || '—'}</td>
-                <td>
-                  <StateBadge
-                    status={a.status}
-                    label={administrationStatusLabel(a.status, language)}
-                  />
-                </td>
-              </>
-            )}
-          />
-        ) : (
-          <div className="inline-empty">
-            {translate(
-              'copy.clinicalRecordCopy.noAdministrationRecordedYet',
-              language === 'el' ? 'el' : 'en',
-            )}
-          </div>
-        ))}
-      {entry.kind === 'therapy' && pendingApproval && (
-        <div className="entry-detail-note">
-          {translate(
-            'copy.clinicalRecordCopy.restrictedAntibioticStewardshipApprovalIsRequired',
-            language === 'el' ? 'el' : 'en',
-          )}
-        </div>
-      )}
-      {entry.kind === 'sample' && canManage && (
-        <span className="entry-detail-note">
-          {translate(
-            'copy.clinicalRecordCopy.resultsAndCorrectionsAreManagedBy',
-            language === 'el' ? 'el' : 'en',
-          )}
-        </span>
-      )}
-      {entry.kind === 'reassessment' && canManage && (
-        <span className="entry-detail-note">
-          {translate(
-            'copy.clinicalRecordCopy.reassessmentsRemainHistoricalRecordANew',
-            language === 'el' ? 'el' : 'en',
-          )}
-        </span>
-      )}
-      {showAdminForm && (
-        <AdministrationDialog
-          t={t}
-          language={language}
-          onClose={() => setShowAdminForm(false)}
-          onSave={draft => {
-            setShowAdminForm(false)
-            onRecordAdministration?.(draft)
-          }}
-        />
-      )}
-    </ObserverDialog>
-  )
-}
-
-// Lists inside an episode use the same table as the registries; rows that open
-// a detail window are clickable and keyboard-reachable.
-function StageTable({ columns, rows, renderRow, onOpen }) {
-  return (
-    <RegistryTable
-      columns={columns}
-      rows={rows}
-      renderRow={renderRow}
-      rowProps={
-        onOpen
-          ? row => ({
-              className: 'clickable-row',
-              tabIndex: 0,
-              onClick: () => onOpen(row),
-              onKeyDown: event => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  onOpen(row)
-                }
-              },
-            })
-          : undefined
-      }
-    />
-  )
-}
-// The same coloured status labels as the surveillance list.
-function StateBadge({ status, label }) {
-  return <StatusBadge tone={statusTone(status)}>{label}</StatusBadge>
 }

@@ -164,12 +164,11 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     <ObserverDialog
       width="standard"
       className="surveillance-entry employee-surveillance-entry"
-      eyebrow={en ? 'New surveillance' : 'Νέα επιτήρηση'}
       title={t('svEmployeeSurveillance')}
       subtitle={
         en
-          ? 'Tick one or more employees; each one gets their own surveillance record.'
-          : 'Επιλέξτε έναν ή περισσότερους εργαζόμενους· ο καθένας αποκτά τη δική του επιτήρηση.'
+          ? 'Tick one or more employees; each one gets their own screening record.'
+          : 'Επιλέξτε έναν ή περισσότερους εργαζόμενους· ο καθένας αποκτά τη δική του εγγραφή ελέγχου.'
       }
       onClose={onClose}
       footer={
@@ -179,8 +178,8 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
               ? 'Saving…'
               : 'Αποθήκευση…'
             : en
-              ? 'Create surveillance'
-              : 'Δημιουργία επιτήρησης'}
+              ? 'Create screening'
+              : 'Δημιουργία ελέγχου'}
         </FormSubmit>
       }
     >
@@ -222,9 +221,13 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
           <span className="lo-field-label">{en ? 'Notes' : 'Σημειώσεις'}</span>
           <textarea
             data-limoxis-no-expand="true"
-            rows={3}
+            rows={2}
             value={notes}
             onChange={event => setNotes(event.target.value)}
+            onInput={event => {
+              event.target.style.height = 'auto'
+              event.target.style.height = `${event.target.scrollHeight}px`
+            }}
           />
         </label>
       </div>

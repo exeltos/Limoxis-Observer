@@ -105,16 +105,13 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
       </>}
       {k !== 'news_source' && k !== 'announcement' && <>
         <div className="lib-span"><Field label={L(`Περιγραφή στα ελληνικά${k === 'link' ? ' *' : ''}`, `Description in Greek${k === 'link' ? ' *' : ''}`)} hint={L(`Έως ${DESCRIPTION_LIMIT} χαρακτήρες · εμφανίζεται στην κάρτα`, `Up to ${DESCRIPTION_LIMIT} characters · shown on the card`)} error={err('descriptionEl')}><textarea rows={2} maxLength={DESCRIPTION_LIMIT} value={draft.descriptionEl} onChange={e => set('descriptionEl', e.target.value)} /></Field></div>
-        <div className="lib-span"><Field label={L('Περιγραφή στα αγγλικά', 'Description in English')}><textarea rows={2} maxLength={DESCRIPTION_LIMIT} value={draft.descriptionEn} onChange={e => set('descriptionEn', e.target.value)} /></Field></div>
       </>}
       {k === 'guideline' && <>
         <Field label={L('Τι λέει, σύντομα (ελληνικά · ένα σημείο ανά γραμμή)', 'In short (Greek · one point per line)')}><textarea rows={4} value={draft.summaryEl} onChange={e => set('summaryEl', e.target.value)} /></Field>
-        <Field label={L('Τι λέει, σύντομα (αγγλικά)', 'In short (English)')}><textarea rows={4} value={draft.summaryEn} onChange={e => set('summaryEn', e.target.value)} /></Field>
       </>}
       {k === 'clinical_guide' && <div className="lib-span"><Field label={L('Αρχείο (εικόνα ή PDF, έως 10 MB)', 'File (image or PDF, up to 10 MB)')} hint={draft.file ? draft.file.name : draft.fileName || L('Ανεβάστε το infographic ή δώστε σύνδεσμο παραπάνω.', 'Upload the infographic or give a link above.')} error={errors.file ? L('Το αρχείο ξεπερνά τα 10 MB.', 'The file is larger than 10 MB.') : ''}><input type="file" accept={ACCEPT} onChange={e => set('file', e.target.files?.[0] || null)} /></Field></div>}
       {k === 'link' && platform && draft.group === 'archive' && <>
         <Field label={L('Σημείωση (ελληνικά)', 'Note (Greek)')}><input value={draft.noteEl} onChange={e => set('noteEl', e.target.value)} placeholder={L('π.χ. συγχωνεύθηκε στην …', 'e.g. merged into …')} /></Field>
-        <Field label={L('Σημείωση (αγγλικά)', 'Note (English)')}><input value={draft.noteEn} onChange={e => set('noteEn', e.target.value)} /></Field>
       </>}
       {k !== 'news_source' && k !== 'announcement' && <div className="lib-span"><ChoiceChips label={L('Θέματα', 'Topics')} options={LIBRARY_TOPICS.map(topic => ({ value: topic.value, label: topic[en ? 'en' : 'el'] }))} selected={draft.tags} onToggle={value => set('tags', draft.tags.includes(value) ? draft.tags.filter(tag => tag !== value) : [...draft.tags, value])} /></div>}
       {k !== 'news_source' && <Field label={L('Ορατότητα', 'Visibility')}><span className="lib-form-static">{platform ? L('Όλα τα νοσοκομεία', 'Every hospital') : L('Μόνο το νοσοκομείο σας', 'Your hospital only')}</span></Field>}

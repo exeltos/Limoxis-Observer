@@ -10,6 +10,7 @@ import {
   Syringe,
   Stethoscope,
 } from 'lucide-react'
+import { AttentionList } from '../../design-system/AttentionList'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 const icons = {
@@ -45,19 +46,19 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
   return [
     {
       id: 'assessment',
-      label: t('clinicalAssessment'),
+      label: t('clinicalRecords.stageAssessment'),
       status: record?.assessment ? 'complete' : 'pending',
       meta: record?.assessment ? fmtDate(record.assessment.date || record.startedAt) : t('pending'),
     },
     {
       id: 'devices',
-      label: t('clinicalRecords.devicesRisk'),
+      label: t('clinicalRecords.stageDevices'),
       status: devices.length ? 'complete' : 'pending',
       meta: devices.length ? String(devices.length) : t('clinicalRecords.notStarted'),
     },
     {
       id: 'samples',
-      label: t('sampleAndLaboratory'),
+      label: t('clinicalRecords.stageSamples'),
       status: samples.length ? (validatedSamples.length ? 'complete' : 'waiting') : 'pending',
       meta: samples.length
         ? validatedSamples.length
@@ -67,7 +68,7 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
     },
     {
       id: 'hai',
-      label: t('haiAmr'),
+      label: t('clinicalRecords.stageHai'),
       status: record?.haiClassification ? 'complete' : 'pending',
       meta: record?.resistance || t(record?.haiClassification?.status || 'pending'),
     },
@@ -83,7 +84,7 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
     },
     {
       id: 'therapy',
-      label: t('therapy'),
+      label: t('clinicalRecords.stageTherapy'),
       status: therapy.length ? 'complete' : 'pending',
       meta: therapy[0]?.antimicrobial || t('clinicalRecords.notStarted'),
     },
@@ -112,63 +113,13 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
   const { language } = useLanguage()
   const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate)
   const stages = extraStages.length ? [baseStages[0], ...extraStages, ...baseStages.slice(1)] : baseStages
-  const samples = record?.samples || []
-  const validatedSamples = samples.filter(sample => Boolean(sample.organism))
-  const assessed = Boolean(record?.assessment)
-  const criteriaMet = Boolean(record?.haiClassification?.criteriaMet)
-  const reviewTone = criteriaMet
-    ? 'complete'
-    : !assessed
-      ? 'warning'
-      : validatedSamples.length
-        ? 'warning'
-        : 'info'
-  const reviewTitle = criteriaMet
-    ? language === 'el'
-      ? 'Κριτήρια τεκμηριωμένα'
-      : 'Criteria documented'
-    : !assessed
-      ? language === 'el'
-        ? 'Αναμένεται αρχική αξιολόγηση'
-        : 'Initial assessment pending'
-      : validatedSamples.length
-        ? language === 'el'
-          ? 'Έλεγχος κριτηρίων HAI'
-          : 'HAI criteria review'
-        : language === 'el'
-          ? 'Αναμονή μικροβιολογίας'
-          : 'Awaiting microbiology'
-  const reviewText = criteriaMet
-    ? language === 'el'
-      ? 'Η τελική κατάταξη βασίζεται στα καταγεγραμμένα κλινικά και εργαστηριακά δεδομένα.'
-      : 'Final classification is supported by the recorded clinical and laboratory evidence.'
-    : !assessed
-      ? language === 'el'
-        ? 'Καταγράψτε πρώτα κλινικά σημεία, συμπτώματα και σχετικούς παράγοντες/συσκευές.'
-        : 'Record clinical signs, symptoms and relevant factors/devices first.'
-      : validatedSamples.length
-        ? language === 'el'
-          ? 'Υπάρχει μικροβιολογικό εύρημα. Αξιολογήστε αν πληρούνται τα κριτήρια επιτήρησης πριν από την τελική κατάταξη.'
-          : 'Microbiology evidence is available. Review surveillance criteria before final classification.'
-        : language === 'el'
-          ? 'Η διερεύνηση μπορεί να συνεχιστεί. Θετικό αποτέλεσμα δεν απαιτείται για κάθε ορισμό λοίμωξης.'
-          : 'Investigation can continue. A positive laboratory result is not required for every infection definition.'
-
   return (
     <div
       className="journey-map strict-journey-map episode-workspace-map"
       aria-label={t('surveillanceJourney')}
     >
-      <div className="episode-workspace-topline">
-        <div className={`ecdc-review-card ${reviewTone}`}>
-          <span>{language === 'el' ? 'Αξιολόγηση ECDC' : 'ECDC assessment'}</span>
-          <strong>{reviewTitle}</strong>
-          <small>{reviewText}</small>
-        </div>
-      </div>
       <nav
         className={`episode-section-tabs${extraStages.length ? ' has-protocol-tabs' : ''}`}
-        style={extraStages.length ? { '--episode-tab-count': stages.length } : undefined}
         aria-label={language === 'el' ? 'Ενότητες επεισοδίου' : 'Episode sections'}
       >
         {stages.map(stage => (
@@ -195,6 +146,7 @@ export function SurveillanceJourneyGuidance({
   onSelect,
   extraCues = [],
 }) {
+  // A short list: the first three, the rest behind «and N more».
   const cues = [...extraCues],
     samples = record?.samples || [],
     pendingSamples = samples.filter(sample => !sample.organism)
@@ -210,7 +162,7 @@ export function SurveillanceJourneyGuidance({
     cues.push({ id: 'isolation', tone: 'neutral', title: t('isolation') })
   if (canTherapy && !record?.therapy?.length)
     cues.push({ id: 'therapy', tone: 'neutral', title: t('therapy') })
-  if (canAssess && record?.haiClassification && !record.haiClassification.criteriaMet)
+  if (canAssess && record?.assessment && !record?.haiClassification?.criteriaMet && (record?.haiClassification || samples.some(sample => Boolean(sample.organism))))
     cues.push({ id: 'hai', tone: 'warning', title: t('clinicalRecords.haiCriteriaNeedReview') })
   if (canReassess && !record?.reassessments?.length)
     cues.push({ id: 'reassessment', tone: 'due', title: t('clinicalRecords.reassessmentRequired') })
@@ -224,25 +176,13 @@ export function SurveillanceJourneyGuidance({
       </div>
     )
   return (
-    <div className="journey-guidance compact-guidance">
-      <div className="journey-guidance-title">
-        <AlertTriangle size={15} />
-        <strong>{t('clinicalRecords.attentionNeeded')}</strong>
-        <span>{cues.length}</span>
-      </div>
-      <div className="journey-guidance-items">
-        {cues.map((cue, index) => (
-          <button
-            type="button"
-            key={`${cue.id}-${index}`}
-            className={`guidance-cue ${cue.tone}`}
-            onClick={() => onSelect?.(cue.id)}
-          >
-            <strong>{cue.title}</strong>
-          </button>
-        ))}
-      </div>
-    </div>
+    <AttentionList
+      className="journey-attention"
+      title={t('clinicalRecords.attentionNeeded')}
+      limit={3}
+      moreLabel={count => String(t('clinicalRecords.attentionMore')).replace('{count}', String(count))}
+      items={cues.map(cue => ({ id: cue.id, text: cue.title, tone: cue.tone === 'danger' ? 'danger' : cue.tone === 'warning' || cue.tone === 'due' ? 'warning' : 'info', onClick: onSelect ? () => onSelect(cue.id) : null }))}
+    />
   )
 }
 

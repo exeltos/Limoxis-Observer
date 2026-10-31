@@ -65,6 +65,8 @@ export function PatientClinicalRecordRoute({ patientMode = false }) {
         state={{
           ...(location.state || {}),
           admissionId: target.admissionId || location.state?.admissionId || '',
+          // The row of the list it was opened from: the record arrows keep moving along that list.
+          fromCaseId: caseId,
         }}
       />
     )

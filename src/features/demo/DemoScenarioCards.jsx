@@ -20,7 +20,7 @@ function StarScale({label,value,onChange,labels,en,large=false}){
 }
 
 // The Platform Owner's trial run: shown the same, stored nowhere.
-const TrialNote=({en})=><small className="demo-scenario-trial">{en?'Trial as Platform Owner: nothing is saved.':'Δοκιμή ως Platform Owner: δεν αποθηκεύεται.'}</small>
+const TrialNote=({en})=><small className="demo-scenario-trial">{en?'Trial as Platform Owner: nothing is saved.':'Δοκιμή ως Ιδιοκτήτης πλατφόρμας: δεν αποθηκεύεται.'}</small>
 
 // The scenario the evaluator is working on, beside the screen: what to do and
 // its steps, checked off as the screens report them. The screens also tell

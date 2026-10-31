@@ -13,7 +13,8 @@ import {
 } from 'lucide-react'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { MetricCard } from '../../design-system/MetricCard'
+import { KpiFigures } from '../../design-system/KpiCard'
+import { DetailFields } from '../../design-system/DetailList'
 import {
   todayIso,
   fmtDate,
@@ -80,67 +81,30 @@ export function Overview({ record, members, en }) {
   ]
   return (
     <section className="record-section committee-overview">
-      <div className="module-summary-strip">
-        <MetricCard
-          icon={Users}
-          value={members.length}
-          label={en ? 'Active members' : 'Ενεργά μέλη'}
-        />
-        <MetricCard
-          icon={CalendarDays}
-          value={meetings.length}
-          label={en ? 'Meetings' : 'Συνεδριάσεις'}
-        />
-        <MetricCard
-          icon={ClipboardList}
-          value={openDecisions.length}
-          label={en ? 'Open actions' : 'Ανοιχτές ενέργειες'}
-        />
-        <MetricCard
-          icon={Target}
-          value={`${completedPlan}/${plan.length}`}
-          label={en ? 'Plan objectives' : 'Στόχοι σχεδίου'}
-        />
-      </div>
+      <Head title={en ? 'Committee profile' : 'Στοιχεία επιτροπής'} />
+      <KpiFigures
+        label={en ? 'Committee' : 'Επιτροπή'}
+        figures={[
+          { key: 'members', icon: Users, value: members.length, label: en ? 'Active members' : 'Ενεργά μέλη' },
+          { key: 'meetings', icon: CalendarDays, value: meetings.length, label: en ? 'Meetings' : 'Συνεδριάσεις' },
+          { key: 'open', icon: ClipboardList, value: openDecisions.length, label: en ? 'Open actions' : 'Ανοιχτές ενέργειες' },
+          { key: 'plan', icon: Target, value: plan.length ? `${completedPlan}/${plan.length}` : null, label: en ? 'Plan objectives' : 'Στόχοι σχεδίου', status: plan.length ? (completedPlan === plan.length ? 'good' : 'warning') : null },
+        ]}
+      />
       <div className="committee-overview-grid">
         <div className="committee-overview-main">
-          <Head title={en ? 'Committee profile' : 'Στοιχεία επιτροπής'} />
-          <div className="committee-detail-grid">
-            <div className="detail-field">
-              <span>{en ? 'Chair' : 'Πρόεδρος / Συντονιστής'}</span>
-              <strong>{record.chair || '—'}</strong>
-            </div>
-            <div className="detail-field">
-              <span>{en ? 'Secretary' : 'Γραμματέας'}</span>
-              <strong>{record.secretary || '—'}</strong>
-            </div>
-            <div className="detail-field">
-              <span>{en ? 'Term' : 'Θητεία'}</span>
-              <strong>
-                {fmtDate(record.termStart)} → {fmtDate(record.termEnd)}
-              </strong>
-            </div>
-            <div className="detail-field">
-              <span>{en ? 'Decision no.' : 'Αρ. απόφασης'}</span>
-              <strong>{record.decisionNumber || '—'}</strong>
-            </div>
-            <div className="detail-field">
-              <span>{en ? 'Meeting frequency' : 'Συχνότητα'}</span>
-              <strong>{frequencyLabel(record.meetingFrequency, en)}</strong>
-            </div>
-            <div className="detail-field">
-              <span>{en ? 'Quorum' : 'Απαρτία'}</span>
-              <strong>{quorumLabel(record.quorumRule, en)}</strong>
-            </div>
-          </div>
-          <div className="source-truth-note">
-            <strong>{en ? 'Committee role' : 'Ρόλος επιτροπής'}</strong>
-            <p>{record.committeeRole || '—'}</p>
-          </div>
-          <div className="source-truth-note">
-            <strong>{en ? 'Responsibilities / mandate' : 'Αρμοδιότητες / σκοπός'}</strong>
-            <p>{record.mandate || '—'}</p>
-          </div>
+          <DetailFields
+            fields={[
+              { label: en ? 'Chair' : 'Πρόεδρος / Συντονιστής', value: record.chair },
+              { label: en ? 'Secretary' : 'Γραμματέας', value: record.secretary },
+              { label: en ? 'Term' : 'Θητεία', value: `${fmtDate(record.termStart)} – ${fmtDate(record.termEnd)}` },
+              { label: en ? 'Decision no.' : 'Αρ. απόφασης', value: record.decisionNumber },
+              { label: en ? 'Meeting frequency' : 'Συχνότητα', value: frequencyLabel(record.meetingFrequency, en) },
+              { label: en ? 'Quorum' : 'Απαρτία', value: quorumLabel(record.quorumRule, en) },
+              { label: en ? 'Committee role' : 'Ρόλος επιτροπής', value: record.committeeRole },
+              { label: en ? 'Responsibilities / mandate' : 'Αρμοδιότητες / σκοπός', value: record.mandate },
+            ]}
+          />
         </div>
         <aside className="committee-governance-watch">
           <div className="committee-watch-head">
@@ -245,7 +209,7 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
                 <td className="committee-member-text">{m.responsibilities || '—'}</td>
                 <td>{m.voting ? (en ? 'Yes' : 'Ναι') : en ? 'No' : 'Όχι'}</td>
                 <td>
-                  {fmtDate(m.startedAt)} →{' '}
+                  {fmtDate(m.startedAt)} –{' '}
                   {m.endedAt ? fmtDate(m.endedAt) : en ? 'today' : 'σήμερα'}
                 </td>
                 {canManage && (
@@ -325,7 +289,7 @@ export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, 
             </tr>
           </thead>
           <tbody>
-            {rows.map(x => (
+            {[...rows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).map(x => (
               <tr key={x.id} onClick={() => onOpen(x)}>
                 <td>
                   {fmtDate(x.date)}

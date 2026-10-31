@@ -36,17 +36,12 @@ async function create(recordType) {
   await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
   act(() => { api.enterSampleDemo() })
   if (recordType === 'incidents') {
-    // The three steps of the report form: what happened, description, send.
-    const category = await screen.findByRole('combobox', { name: /Κατηγορία/ })
-    fireEvent.change(category, { target: { value: 'Φάρμακο' } })
-    fireEvent.keyDown(category, { key: 'Enter' })
-    const department = screen.getByRole('combobox', { name: /Τμήμα/ })
+    // The neutral report is one screen: where and when, what happened, send.
+    const department = await screen.findByRole('combobox', { name: /Τμήμα/ })
     fireEvent.change(department, { target: { value: 'ΜΕΘ' } })
     fireEvent.keyDown(department, { key: 'Enter' })
-    fireEvent.click(screen.getByRole('button', { name: /Επόμενο/ }))
     fireEvent.change(await screen.findByRole('textbox', { name: /Σύντομος τίτλος/ }), { target: { value: 'Πτώση ασθενούς' } })
     fireEvent.change(screen.getByRole('textbox', { name: /Περιγραφή/ }), { target: { value: 'Ο ασθενής γλίστρησε στο μπάνιο.' } })
-    fireEvent.click(screen.getByRole('button', { name: /Επόμενο/ }))
     fireEvent.click(await screen.findByRole('button', { name: /Αποστολή αναφοράς/ }))
     return screen.findByTestId('where')
   }

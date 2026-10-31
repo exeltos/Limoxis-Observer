@@ -4,6 +4,7 @@ import { configureDataEnvironment } from '../src/core/data/dataEnvironment'
 import { loadSnapshot, saveSnapshot } from '../src/core/data/repository'
 import {
   binLocalRow,
+  canDeleteRecord,
   canUseRecycleBin,
   describeDeleted,
   listRecycleBin,
@@ -29,14 +30,20 @@ describe('recycle bin (Demo, local)', () => {
     expect(await listRecycleBin(null, 'hospital_admin')).toEqual([])
   })
 
-  it('shows each module only to its roles, and everything to the Hospital Admin', async () => {
+  it('gives every role a bin of its own deletions, whatever the module', async () => {
     await binLocalRow(null, { module: 'clinical', kind: 'a', label: 'Clinical', table: 'prevention_waste', row: { id: 1 } })
     await binLocalRow(null, { module: 'quality', kind: 'b', label: 'Quality', table: 'documents', row: { id: 2 } })
-    expect((await listRecycleBin(null, 'hospital_admin')).map(entry => entry.label).sort()).toEqual(['Clinical', 'Quality'])
-    expect((await listRecycleBin(null, 'infection_control_lead')).map(entry => entry.label)).toEqual(['Clinical'])
-    expect((await listRecycleBin(null, 'quality_manager')).map(entry => entry.label)).toEqual(['Quality'])
-    expect(canUseRecycleBin('department_user')).toBe(false)
-    expect(await listRecycleBin(null, 'department_user')).toEqual([])
+    expect(canUseRecycleBin('department_user')).toBe(true)
+    expect((await listRecycleBin(null, 'department_user')).map(entry => entry.label).sort()).toEqual(['Clinical', 'Quality'])
+    expect(canUseRecycleBin(null)).toBe(false)
+  })
+
+  it('lets the Owner, the Hospital Admin and the Infection Control Lead delete any record, anyone else only their own', () => {
+    for (const role of ['hospital_admin', 'infection_control_lead']) expect(canDeleteRecord({ role, userId: 'u1', createdBy: 'u2' })).toBe(true)
+    expect(canDeleteRecord({ role: 'infection_control_member', actualRole: 'platform_owner', userId: 'u1', createdBy: 'u2' })).toBe(true)
+    expect(canDeleteRecord({ role: 'infection_control_member', userId: 'u1', createdBy: 'u2' })).toBe(false)
+    expect(canDeleteRecord({ role: 'link_nurse', userId: 'u1', createdBy: 'u1' })).toBe(true)
+    expect(canDeleteRecord({ role: 'link_nurse', userId: 'u1', createdBy: null })).toBe(false)
   })
 
   it('deletes an entry for good', async () => {

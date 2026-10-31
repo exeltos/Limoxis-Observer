@@ -1,0 +1,15 @@
+/* FigureCards: the counts above a list as small cards (one shared look for Quality, Kitchen, Controls, Indicators),
+   always on one line (a long label wraps inside its card); only a phone puts them two by two. */
+div.lo-figure-cards{display:flex;flex-wrap:nowrap;align-items:stretch;gap:8px;margin:0 0 10px;padding:0;font-size:12px;color:var(--lo-color-muted)}
+div.lo-figure-cards>:is(button,span):has(>b,>strong){position:relative;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;flex:1 1 0;min-width:0;min-height:56px;margin:0;padding:8px 12px 8px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;font-weight:600;line-height:1.3;color:var(--lo-color-muted);text-align:left;text-decoration:none;overflow:hidden}
+div.lo-figure-cards>:is(button,span):has(>b,>strong):before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent}
+div.lo-figure-cards>:is(button,span):has(>b,>strong)>:is(b,strong){order:-1;font-size:19px;font-weight:760;line-height:1.1;letter-spacing:-.01em;color:var(--lo-metric-value);font-variant-numeric:tabular-nums}
+div.lo-figure-cards>button:has(>b,>strong){cursor:pointer}
+div.lo-figure-cards>button:has(>b,>strong):hover{border-color:color-mix(in srgb,var(--lo-color-primary) 55%,var(--lo-color-border));color:var(--lo-color-text);text-decoration:none}
+div.lo-figure-cards>button:has(>b,>strong):focus-visible{outline:2px solid var(--lo-field-focus,#5f93ad);outline-offset:2px}
+div.lo-figure-cards>button.is-active:has(>b,>strong){border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 6%,var(--lo-color-surface));color:var(--lo-color-text);text-decoration:none}
+div.lo-figure-cards>:is(.is-late,.is-alert):has(>b,>strong):before{background:var(--lo-status-danger-fg)}
+div.lo-figure-cards>:is(.is-late,.is-alert)>:is(b,strong){color:var(--lo-status-danger-fg)}
+div.lo-figure-cards>:not(:has(>b,>strong)){flex:0 0 auto;align-self:center}
+div.lo-figure-cards>:last-child:not(:has(>b,>strong)):not(:only-child){margin-left:auto}
+@media (max-width:620px){div.lo-figure-cards{flex-wrap:wrap}div.lo-figure-cards>:is(button,span):has(>b,>strong){flex-basis:calc(50% - 4px)}}

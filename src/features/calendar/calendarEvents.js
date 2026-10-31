@@ -92,9 +92,10 @@ function push(list,event,range){
 // ones are projected across the range so the month shows every occurrence.
 function controlEvents(controls,range,today,list,en){
  for(const control of controls){
-  const daily=control.frequency?.kind==='daily'
   for(const [department,assignment] of Object.entries(control.assignments||{})){
    if(!assignment?.nextDueAt||assignment.status==='paused')continue
+   const frequency=assignment.frequency||control.frequency||{}
+   const daily=frequency.kind==='daily'
    const title=en?control.titleEn||control.title:control.title
    const base={kind:'controls',title,department,path:`/controls/${control.id}`,criticality:control.responseConfig?.criticality||'medium'}
    let due=new Date(assignment.nextDueAt)
@@ -102,7 +103,7 @@ function controlEvents(controls,range,today,list,en){
    push(list,{...base,id:`ctrl:${assignment.dbId||control.id}:${first}`,date:first,time:toTime(assignment.nextDueAt),state:stateOf(first,today),detail:daily?(en?'Daily':'Καθημερινός'):''},range)
    if(daily||!range)continue
    for(let i=0;i<60;i+=1){
-    due=new Date(calculateNextDue(control.frequency||{},due))
+    due=new Date(calculateNextDue(frequency,due))
     const day=toDay(due)
     if(!day||day>range.to)break
     if(day>=range.from)push(list,{...base,id:`ctrl:${assignment.dbId||control.id}:${day}`,date:day,time:toTime(due.toISOString()),state:'planned',detail:''},range)

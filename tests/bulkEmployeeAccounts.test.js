@@ -1,4 +1,4 @@
-// N1 · Bulk creation of accounts from the employee roster (Platform Owner only):
+// N1 · Bulk creation of accounts from the employee roster (Platform Owner or the hospital's admin):
 // the server rules, the e-mails, the screen's model and the wiring of the Edge
 // Functions, the migration and both outbox drainers.
 import fs from 'node:fs'
@@ -92,6 +92,8 @@ describe('what happens to each person', () => {
     const existing = { userId: 'u9', fullName: 'Ευδοκία Σταμάτη', username: 'ES18452', isDemo: false, memberHere: false, organizations: ['Σισμανόγλειο'] }
     expect(planItem(item('pharmacy'), employee, existing, false).code).toBe('EXISTING_ACCOUNT_NEEDS_CONFIRMATION')
     expect(planItem(item('pharmacy'), employee, existing, true).action).toBe('link_existing')
+    // A Hospital Admin never links it, confirmed or not.
+    expect(planItem(item('pharmacy'), employee, existing, true, false).code).toBe('ACCOUNT_IN_USE')
     expect(planItem(item('pharmacy'), employee, { ...existing, isDemo: true }, true).code).toBe('EXISTING_ACCOUNT_CONFLICT')
     expect(planItem(item('pharmacy'), employee, { ...existing, memberHere: true }, true).code).toBe('EMAIL_IN_THIS_ORG')
   })
@@ -174,6 +176,9 @@ describe('account e-mails', () => {
     expect(mail.html).toContain('IP40718')
     expect(mail.html).toContain('Απέτυχε')
     expect(mail.text).toContain('Ιωάννα Παππά · Χρήστης Τμήματος · ΜΕΘ · IP40718')
+    // Whoever ran it (the owner or the hospital's admin), the summary names no one wrongly.
+    expect(mail.text).not.toContain('Platform Owner')
+    expect(mail.text).toContain('από το μητρώο εργαζομένων')
   })
 })
 
@@ -248,9 +253,12 @@ describe('server wiring', () => {
   const migration = read('supabase/migrations/20261203100000_bulk_employee_accounts.sql')
   const config = read('supabase/config.toml')
 
-  it('bulk creation is Platform Owner only, with JWT verification at the gateway', () => {
-    expect(bulk).toContain("if(!profile?.is_platform_owner)return fail('NOT_AUTHORIZED',403)")
-    expect(bulk).not.toContain("role==='hospital_admin'&&m?.status==='active'")
+  it('bulk creation is for the Platform Owner or the hospital\'s own active admin, with JWT verification at the gateway', () => {
+    expect(bulk).toContain("if(member?.role!=='hospital_admin'||member?.status!=='active')return fail('NOT_AUTHORIZED',403)")
+    expect(bulk).toContain(".eq('organization_id',body.organizationId).eq('user_id',callerData.user.id)")
+    // Only the owner links an account that another organization uses.
+    expect(bulk).toContain("canLinkExisting:isOwner")
+    expect(bulk).toContain('planWithDuplicates(item,loaded,confirmed&&ctx.canLinkExisting,ctx.canLinkExisting)')
     expect(config).toMatch(/\[functions\.platform-bulk-create-accounts\]\s*verify_jwt = true/)
     expect(bulk).toContain("from '../_shared/organizationAccount.ts'")
     expect(read('supabase/functions/create-organization-user/index.ts')).toContain("from '../_shared/organizationAccount.ts'")

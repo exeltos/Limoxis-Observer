@@ -1,4 +1,5 @@
 import { Button } from '../../../design-system/Button'
+import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FORM_STATUS } from './formStatus'
@@ -9,9 +10,9 @@ import { FORM_STATUS } from './formStatus'
 // finding); «Ολοκληρώθηκε» and «Εκκρεμεί» are plain words.
 //
 //   <FormRow title detail status={FORM_STATUS.OVERDUE} statusDetail date dateLabel
-//            action={{ label, onClick, primary }} signal="danger" />
+//            action={{ label, onClick, primary }} menu={[{ label, icon, tone, onClick }]} signal="danger" />
 // Props are listed above.
-export function FormRow({ title, detail, status, statusLabel, statusDetail, signal = '', badge = null, date, dateLabel, action = null, children }) {
+export function FormRow({ title, detail, status, statusLabel, statusDetail, signal = '', badge = null, date, dateLabel, action = null, menu = [], children }) {
   const { t } = useLanguage()
   const word = statusLabel || (status ? t(`episodeForms.status.${status}`) : '')
   const danger = signal === 'danger' || status === FORM_STATUS.OVERDUE
@@ -27,7 +28,7 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
       </div>
       <div className="episode-form-status">
         {word && (danger ? <StatusBadge tone="danger">{word}</StatusBadge> : <span>{word}</span>)}
-        {statusDetail && <small>{statusDetail}</small>}
+        {statusDetail && statusDetail !== word && <small>{statusDetail}</small>}
       </div>
       <div className="episode-form-date">
         {date ? <b>{date}</b> : <span className="episode-form-none">—</span>}
@@ -39,6 +40,7 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
             {action.label}
           </Button>
         )}
+        {menu.filter(Boolean).length > 0 && <OverflowMenu label={t('episodeForms.rowActions')} items={menu} />}
       </div>
     </li>
   )

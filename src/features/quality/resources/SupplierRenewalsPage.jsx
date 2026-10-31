@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BellRing, CheckCircle2, Clock3, FileCheck2, FileText, Lock, MailCheck, RefreshCw, Send, X } from 'lucide-react'
+import { FigureCards } from '../../../design-system/FigureCards'
+import { BellRing, CheckCircle2, FileText, Lock, Moon, RefreshCw, Send, X } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { BackButton } from '../../../design-system/BackButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -9,7 +10,6 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { ExportMenu } from '../../../design-system/ExportMenu'
 import { Button } from '../../../design-system/Button'
 import { IconButton } from '../../../design-system/IconButton'
-import { MetricCard } from '../../../design-system/MetricCard'
 import { CheckboxField } from '../../../design-system/CheckboxField'
 import { SectionHeader } from '../../../design-system/SectionHeader'
 import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
@@ -25,7 +25,7 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useResources, useResourceAccess } from './ResourcesPanel'
 import { certificationStateLabel, certificationStateTone } from './resourceModel'
 import { filterRenewals, isEmail, isOpenItem, itemStatusLabel, itemStatusTone, renewalCounts, renewalGroups, renewalPermissions, renewalQueue, requestItems, requestStatusLabel, requestStatusTone, sendGroups, sendItems, senderOnlyHint } from './supplierRenewalModel'
-import { certificateItemAction, certificateRequestAction, createCertificateRequests, loadCertificateRequests } from './supplierRenewalService'
+import { certificateItemAction, certificateRequestAction, createCertificateRequests, DEFAULT_RENEWAL_SETTINGS, loadCertificateRequests, loadRenewalSettings, saveRenewalSettings } from './supplierRenewalService'
 import '../quality.css'
 import './resources.css'
 
@@ -71,6 +71,7 @@ export function SupplierRenewalsPage() {
   const [selected, setSelected] = useState([])
   const [sending, setSending] = useState(null)
   const [reviewing, setReviewing] = useState(null)
+  const [autoOpen, setAutoOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const queue = useMemo(() => renewalQueue(list.suppliers, requests, { expiring: true }), [list.suppliers, requests])
@@ -99,24 +100,29 @@ export function SupplierRenewalsPage() {
   })
   const selectedRows = queue.filter(row => selected.includes(row.key) && row.selectable)
   const selectedSuppliers = new Set(selectedRows.map(row => row.supplierId)).size
+  // «Send to all»: every expired certificate with nothing open, of a supplier with an e-mail.
+  const allExpired = queue.filter(row => row.state === 'expired' && row.selectable && row.recipients.length > 0)
+  const allSuppliers = new Set(allExpired.map(row => row.supplierId)).size
 
   return <Page fill className="supplier-renewals-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
     title={en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}
     subtitle={en ? 'Expired supplier certificates, by supplier. After approval each supplier gets one e-mail with a personal link listing all its certificates to replace; you then accept each one and it replaces the old one.' : 'Τα ληγμένα πιστοποιητικά, ανά προμηθευτή. Μετά την έγκριση κάθε προμηθευτής λαμβάνει ένα email με προσωπικό σύνδεσμο για όλα τα πιστοποιητικά του· όταν αποδεχθείτε το καθένα, αντικαθιστά το παλιό.'}
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={exportQueue} />
+      {perms.send && <Button variant="secondary" onClick={() => setAutoOpen(true)}><Moon size={15} />{en ? 'Automatic' : 'Αυτόματα'}</Button>}
+      {perms.send && allExpired.length > 0 && !selectedRows.length && <Button onClick={() => setSending(allExpired)}><Send size={15} />{en ? `Send to all expired (${allSuppliers})` : `Αποστολή σε όλους τους ληγμένους (${allSuppliers})`}</Button>}
       {selectedRows.length > 0 && <Button onClick={() => setSending(selectedRows)}><Send size={15} />{perms.send ? (en ? `Approve & send (${selectedSuppliers} e-mails)` : `Έγκριση & αποστολή (${selectedSuppliers} email)`) : (en ? `Propose (${selectedRows.length})` : `Πρόταση για αποστολή (${selectedRows.length})`)}</Button>}</div>}>
-    <div className="workspace-summary"><div className="module-summary-strip quality-kpis" style={{ '--quality-kpis': 5 }}>
-      <MetricCard icon={AlertTriangle} value={list.loading ? '—' : counts.expired} label={en ? `Expired certificates · ${counts.suppliers} suppliers` : `Ληγμένα πιστοποιητικά · ${counts.suppliers} προμηθευτές`} tone={counts.expired ? 'danger' : 'neutral'} active={filters.state === 'expired' && filters.request === 'all'} onClick={() => setFilters({ ...NO_FILTERS })} />
-      <MetricCard icon={Send} value={list.loading ? '—' : counts.toSend} label={en ? 'Suppliers ready to send' : 'Προμηθευτές για αποστολή'} active={filters.request === 'none'} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'none' }))} />
-      <MetricCard icon={MailCheck} value={loading ? '—' : counts.sent} label={en ? 'Awaiting the supplier' : 'Αναμένεται ο προμηθευτής'} active={filters.request === 'sent'} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'sent' }))} />
-      <MetricCard icon={Clock3} value={loading ? '—' : counts.noResponse} label={en ? 'No answer (7+ days)' : 'Χωρίς απάντηση (7+ ημέρες)'} tone={counts.noResponse ? 'warning' : 'neutral'} active={filters.request === 'no_response'} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'no_response' }))} />
-      <MetricCard icon={FileCheck2} value={loading ? '—' : counts.submitted} label={en ? 'Submitted, to review' : 'Υποβλήθηκαν, προς έλεγχο'} tone={counts.submitted ? 'warning' : 'neutral'} />
-    </div></div>
+    <FigureCards className="quality-summary-line">
+      <button type="button" className={`${counts.expired ? 'is-late' : ''}${filters.state === 'expired' && filters.request === 'all' ? ' is-active' : ''}`.trim() || undefined} onClick={() => setFilters({ ...NO_FILTERS })}><b>{list.loading ? '—' : counts.expired}</b> {en ? `expired certificates · ${counts.suppliers} suppliers` : `ληγμένα πιστοποιητικά · ${counts.suppliers} προμηθευτές`}</button>
+      <button type="button" className={filters.request === 'none' ? 'is-active' : undefined} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'none' }))}><b>{list.loading ? '—' : counts.toSend}</b> {en ? 'suppliers ready to send' : 'προμηθευτές για αποστολή'}</button>
+      <button type="button" className={filters.request === 'sent' ? 'is-active' : undefined} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'sent' }))}><b>{loading ? '—' : counts.sent}</b> {en ? 'awaiting the supplier' : 'αναμένεται ο προμηθευτής'}</button>
+      <button type="button" className={`${counts.noResponse ? 'is-late' : ''}${filters.request === 'no_response' ? ' is-active' : ''}`.trim() || undefined} onClick={() => setFilters(current => ({ ...current, state: 'all', request: 'no_response' }))}><b>{loading ? '—' : counts.noResponse}</b> {en ? 'no answer (7+ days)' : 'χωρίς απάντηση (7+ ημέρες)'}</button>
+      <span><b>{loading ? '—' : counts.submitted}</b> {en ? 'submitted, to review' : 'υποβλήθηκαν, προς έλεγχο'}</span>
+    </FigureCards>
     <section className="surface registry-workspace workspace-column workspace-fill">
       {!perms.send && <p className="supplier-renewal-locked-note"><Lock size={14} /><span>{en ? `Sending and reminders: ${lockedText.toLowerCase()}. You can propose requests for approval.` : `Αποστολή και υπενθυμίσεις: ${lockedText}. Μπορείτε να προτείνετε αιτήματα για έγκριση.`}</span></p>}
       {submitted.length > 0 && <div className="supplier-renewal-review">
         <SectionHeader title={en ? `Submitted certificates to review ${submitted.length}` : `Υποβολές προς έλεγχο ${submitted.length}`} subtitle={en ? 'Accept to replace the old certificate (its values are kept), or reject with a comment.' : 'Με την αποδοχή αντικαθίσταται το παλιό πιστοποιητικό (οι προηγούμενες τιμές κρατούνται)· ή απορρίψτε με σχόλιο.'} />
-        <RegistryTable className="quality-table" rows={submitted} rowKey={item => item.id}
+        <RegistryTable sortable={false} className="quality-table" rows={submitted} rowKey={item => item.id}
           columns={[{ key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'certificate', label: en ? 'New certificate' : 'Νέο πιστοποιητικό' }, { key: 'expires', label: en ? 'New expiry' : 'Νέα λήξη' }, { key: 'submitted', label: en ? 'Submitted' : 'Υποβλήθηκε' }, { key: 'actions', label: '' }]}
           renderRow={item => { const row = byCertificate.get(item.certificationId); return <>
             <td><strong>{row?.supplierName || '—'}</strong><small>{item.request.recipientEmail}</small></td>
@@ -131,7 +137,7 @@ export function SupplierRenewalsPage() {
         <FilterSelect label={en ? 'Request' : 'Αίτημα'} value={filters.request} onChange={value => set('request', value)}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="none">{en ? 'Something to send' : 'Με πιστοποιητικά προς αποστολή'}</option><option value="proposed">{requestStatusLabel('proposed', language)}</option><option value="sent">{requestStatusLabel('sent', language)}</option><option value="no_response">{en ? 'No answer' : 'Χωρίς απάντηση'}</option><option value="submitted">{en ? 'Submitted, to review' : 'Υποβλήθηκαν, προς έλεγχο'}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table">
-        <RegistryTable bare className="quality-table quality-register-table supplier-renewal-table" rows={visible} rowKey={group => group.key} empty={!list.loading && !rows.length} emptyFiltered={groups.length > 0} onClearFilters={() => setFilters({ ...NO_FILTERS })}
+        <RegistryTable sortable={false} bare className="quality-table quality-register-table supplier-renewal-table" rows={visible} rowKey={group => group.key} empty={!list.loading && !rows.length} emptyFiltered={groups.length > 0} onClearFilters={() => setFilters({ ...NO_FILTERS })}
           columns={[{ key: 'select', label: <CheckboxField label="" ariaLabel={en ? 'Select all' : 'Επιλογή όλων'} checked={allVisible} disabled={!selectableVisible.length} onChange={on => toggle(selectableVisible, on)} /> }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'certificates', label: en ? 'Certificates' : 'Πιστοποιητικά' }, { key: 'email', label: 'Email' }, { key: 'request', label: en ? 'Request' : 'Αίτημα' }, { key: 'actions', label: '' }]}
           emptyTitle={en ? 'No certificates to renew' : 'Δεν υπάρχουν πιστοποιητικά προς ανανέωση'} emptyText={en ? 'Every supplier certificate is in date.' : 'Όλα τα πιστοποιητικά των προμηθευτών είναι σε ισχύ.'}
           renderRow={group => { const request = group.request; const keys = group.selectable.map(row => row.key); return <>
@@ -158,9 +164,42 @@ export function SupplierRenewalsPage() {
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
     </section>
+    {autoOpen && <RenewalAutoDialog organizationId={tenant?.id} onClose={() => setAutoOpen(false)} />}
     {sending && <RenewalSendDialog rows={sending} canSend={perms.send} onClose={() => setSending(null)} onDone={async () => { setSending(null); await refresh() }} />}
     {reviewing && <RenewalReviewDialog item={reviewing.item} row={reviewing.row} canManage={perms.review} canSend={perms.send} onClose={() => setReviewing(null)} onDone={async () => { setReviewing(null); await refresh() }} />}
   </Page>
+}
+
+// The nightly automatic e-mailing of this hospital (off by default): requests for the
+// expired certificates, a reminder after a few days, and a note to the Platform Owner
+// when suppliers submit.
+export function RenewalAutoDialog({ organizationId, onClose }) {
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const { notify } = useFeedback()
+  const [settings, setSettings] = useState(DEFAULT_RENEWAL_SETTINGS)
+  const [loaded, setLoaded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { loadRenewalSettings(organizationId).then(setSettings).catch(error => console.error(error)).finally(() => setLoaded(true)) }, [organizationId])
+  const set = (key, value) => setSettings(current => ({ ...current, [key]: value }))
+  async function save() {
+    if (busy) return
+    setBusy(true)
+    try { await saveRenewalSettings(organizationId, settings); notify(en ? 'Saved.' : 'Αποθηκεύτηκε.', 'success'); onClose() } catch (error) { console.error(error); notify(en ? 'It could not be saved.' : 'Δεν αποθηκεύτηκε.', 'error') } finally { setBusy(false) }
+  }
+  const last = settings.lastRunAt ? formatDay(settings.lastRunAt.slice(0, 10), language) : ''
+  return <ObserverDialog title={en ? 'Automatic e-mails to suppliers' : 'Αυτόματα email στους προμηθευτές'}
+    subtitle={isDemoDataEnvironment() ? (en ? 'Demo: nothing is actually e-mailed.' : 'Demo: δεν στέλνεται πραγματικό email.') : (en ? 'Every night the platform checks the supplier certificates.' : 'Κάθε βράδυ η πλατφόρμα ελέγχει τα πιστοποιητικά των προμηθευτών.')}
+    onClose={onClose} footer={<DialogActions onSave={save} disabled={busy || !loaded} saveLabel={en ? 'Save' : 'Αποθήκευση'} />}>
+    <div className="supplier-renewal-send">
+      <CheckboxField label={en ? 'E-mail suppliers with expired certificates automatically' : 'Αυτόματη αποστολή email στους προμηθευτές με ληγμένα πιστοποιητικά'} checked={settings.autoEnabled} disabled={!loaded} onChange={value => set('autoEnabled', value)} />
+      <small>{en ? 'Each supplier gets one e-mail with the link to the form. Suppliers without an e-mail, with a request in progress or asked in the last 30 days are skipped.' : 'Κάθε προμηθευτής παίρνει ένα email με τον σύνδεσμο της φόρμας. Παραλείπονται όσοι δεν έχουν email, έχουν ανοιχτό αίτημα ή τους ζητήθηκε τις τελευταίες 30 ημέρες.'}</small>
+      <Field label={en ? 'Remind after (days)' : 'Υπενθύμιση μετά από (ημέρες)'}><input type="number" min="3" max="30" value={settings.remindAfterDays} disabled={!settings.autoEnabled} onChange={e => set('remindAfterDays', e.target.value)} /></Field>
+      <Field label={en ? 'Reminders at most' : 'Το πολύ υπενθυμίσεις'}><input type="number" min="0" max="5" value={settings.maxReminders} disabled={!settings.autoEnabled} onChange={e => set('maxReminders', e.target.value)} /></Field>
+      <small>{en ? 'The Platform Owner is notified by e-mail when suppliers submit new certificates.' : 'Ο Ιδιοκτήτης πλατφόρμας ειδοποιείται με email όταν οι προμηθευτές υποβάλλουν νέα πιστοποιητικά.'}</small>
+      {last && <small>{en ? `Last check: ${last}` : `Τελευταίος έλεγχος: ${last}`}{settings.lastResult?.ok === false ? (en ? ' · failed' : ' · απέτυχε') : ''}</small>}
+    </div>
+  </ObserverDialog>
 }
 
 // The approval: the selected certificates by supplier, with the address of each

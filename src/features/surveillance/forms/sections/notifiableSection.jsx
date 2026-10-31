@@ -1,18 +1,20 @@
 import { useMemo, useState } from 'react'
-import { Megaphone, Plus } from 'lucide-react'
+import { ExternalLink, Megaphone, Plus } from 'lucide-react'
 import { Button } from '../../../../design-system/Button'
 import { ObserverDialog, DialogActions } from '../../../../design-system/ObserverDialog'
 import { Field } from '../../../../design-system/Field'
 import { ManualDateField } from '../../../../design-system/ManualDateField'
 import { SearchableSelect } from '../../../../design-system/SearchableSelect'
+import { DocumentsWorkspace } from '../../../../design-system/DocumentsWorkspace'
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../../core/feedback/FeedbackContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { notifiableFindings } from '../../../reporting/notifiableFindings'
-import { loadRecordNotificationReports, saveNotificationReport, updateNotificationReport, createClinicalNotificationReport } from '../../../reporting/notificationReportsService'
+import { loadRecordNotificationReports, removeDemoNotificationReport, saveNotificationReport, updateNotificationReport, createClinicalNotificationReport } from '../../../reporting/notificationReportsService'
+import { binMemoryRow } from '../../../../core/recycleBin/recycleBinService'
 import { deadlineStatusText, deadlineWords, eodyEntry, eodyEntryByName } from '../../../reporting/eodyCatalogue'
-import { NotifiablePicker } from './notifiablePicker'
+import { NewNotificationDialog } from './notifiablePicker'
 import { FormEmpty, FormRow, FormRows } from '../FormRow'
 import { FormSection } from '../FormSection'
 import { PrefilledList } from '../PrefilledList'
@@ -22,6 +24,8 @@ import { episodeContext } from '../formPrefill'
 // The roles the database lets read and write notifiable disease reports (RLS of
 // notifiable_disease_reports). Everyone else does not even learn that a report exists.
 export const NOTIFIABLE_ROLES = Object.freeze([ROLES.PLATFORM_OWNER, ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.LABORATORY])
+// The EODY page that lists the blank notification forms (Word), per disease.
+export const EODY_FORMS_URL = 'https://www.eody.gov.gr/el/symvanta-dimosias-ygeias/epidimiologiki-epitirisi/systimata-epitirisis/systima-ypoxreotikis-dilosis.html'
 export const canSeeNotifiable = ctx =>
   NOTIFIABLE_ROLES.includes(ctx.role) && (!isProfileDisabled(CAPABILITIES.VIEW_LAB) || !isProfileDisabled(CAPABILITIES.VIEW_SURVEILLANCE))
 
@@ -49,12 +53,35 @@ export function notifiableRows(ctx, reports = []) {
   return rows
 }
 
-function NotifiableDialog({ ctx, row, onClose, onSaved }) {
+// «Διαγραφή» of a saved notification (to the recycle bin). A laboratory finding that has no report
+// yet is only a signal derived from a validated result: it has nothing to delete (it can be set to
+// «Δεν απαιτείται»). null when the person may not delete it.
+export function notifiableDeleteItem(ctx, row, t, onDone) {
+  if (!row?.report) return null
+  return ctx.deleteItem?.({
+    createdBy: row.report.updatedBy,
+    table: 'notifiable_disease_reports',
+    id: row.report.id,
+    label: row.title,
+    detail: t('episodeForms.notifiable.title'),
+    demo: async () => {
+      const removed = removeDemoNotificationReport(row.report.findingKey || row.report.id)
+      if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'notifiable_disease_reports', label: row.title, detail: t('episodeForms.notifiable.title'), store: 'notification_reports', row: removed })
+    },
+    onDone,
+  }) || null
+}
+
+export function NotifiableDialog({ ctx, row, onClose, onSaved }) {
   const { t } = useLanguage()
   const { notify } = useFeedback()
   const [draft, setDraft] = useState({ status: row.status, notifiedAt: row.report?.notifiedAt || '', reference: row.report?.reference || '' })
   const [busy, setBusy] = useState(false)
+  const [demoForms, setDemoForms] = useState([])
   const base = episodeContext(ctx)
+  const removeItem = notifiableDeleteItem(ctx, row, t, onSaved)
+  // The completed form hangs on the saved report (its id); the demo keeps it on the screen only.
+  const reportId = row.report?.id
   async function save() {
     setBusy(true)
     try {
@@ -75,7 +102,15 @@ function NotifiableDialog({ ctx, row, onClose, onSaved }) {
       title={row.title}
       subtitle={t('episodeForms.notifiable.title')}
       onClose={onClose}
-      footer={<DialogActions onSave={save} disabled={busy} />}
+      footer={
+        <DialogActions onSave={save} disabled={busy}>
+          {removeItem && (
+            <Button variant="secondary" disabled={busy} onClick={removeItem.onClick}>
+              {removeItem.label}
+            </Button>
+          )}
+        </DialogActions>
+      }
     >
       <PrefilledList
         items={[
@@ -105,6 +140,21 @@ function NotifiableDialog({ ctx, row, onClose, onSaved }) {
           <input value={draft.reference} onChange={event => setDraft(current => ({ ...current, reference: event.target.value }))} />
         </Field>
       </div>
+      {reportId || ctx.isDemo ? (
+        <DocumentsWorkspace
+          title={t('episodeForms.notifiable.formTitle')}
+          subtitle={t('episodeForms.notifiable.formSubtitle')}
+          {...(ctx.isDemo ? { value: demoForms, onChange: setDemoForms } : { organizationId: ctx.organizationId, entityType: 'notifiable_disease_report', entityId: reportId })}
+        />
+      ) : (
+        <p className="field-hint">{t('episodeForms.notifiable.formAfterSave')}</p>
+      )}
+      <p className="notifiable-forms-link">
+        <a href={EODY_FORMS_URL} target="_blank" rel="noreferrer">
+          <ExternalLink size={14} aria-hidden="true" />
+          {t('episodeForms.notifiable.eodyForms')}
+        </a>
+      </p>
     </ObserverDialog>
   )
 }
@@ -165,13 +215,16 @@ function NotifiableSection({ ctx, section, reload }) {
                 statusDetail={statusDetail}
                 date={row.date ? fmtDate(row.date) : ''}
                 dateLabel={row.date ? t('episodeForms.notifiable.findingDate') : ''}
-                action={{ label: row.report ? t('episodeForms.open') : t('episodeForms.notifiable.new'), onClick: () => setOpenRow(row) }}
+                action={{ label: row.report ? t('episodeForms.open') : t('episodeForms.notifiable.submit'), onClick: () => setOpenRow(row) }}
+                menu={[
+                  notifiableDeleteItem(ctx, row, t, reload),
+                ]}
               />
             )
           })}
         </FormRows>
       )}
-      {picking && <NotifiablePicker busy={creating} onPick={createReport} onClose={() => setPicking(false)} />}
+      {picking && <NewNotificationDialog busy={creating} onSave={({ entry }) => createReport(entry)} onClose={() => setPicking(false)} />}
       {openRow && (
         <NotifiableDialog
           ctx={ctx}

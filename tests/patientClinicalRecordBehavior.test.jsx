@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 
 vi.mock('../src/core/auth/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'owner-1' }, profile: { id: 'owner-1', isPlatformOwner: true, fullName: 'Platform Owner', isDemo: false }, isAuthenticated: true, isDemoSession: false, loading: false }),
@@ -119,6 +119,31 @@ describe('patient profile', () => {
   })
 })
 
+describe('record arrows', () => {
+  // A patient opened from the surveillance list arrives by its episode: the arrows keep walking that list.
+  it('walks the list the patient was opened from, by episode, from a patient page reached through it', async () => {
+    sessionStorage.setItem('limoxis.registry.surveillance-patients.sequence', JSON.stringify(['SUR-260041', 'SUR-260045', 'SUR-260050']))
+    let api
+    function Capture() { api = useTenant(); return null }
+    function Where() { const { pathname } = useLocation(); return <output data-testid="where">{pathname}</output> }
+    const entry = { pathname: '/patients/PT-260184', state: { limoxisFrom: { registry: 'surveillance-patients' }, fromCaseId: 'SUR-260041' } }
+    render(<MemoryRouter initialEntries={[entry]}><LanguageProvider><FeedbackProvider><TenantProvider><Capture/><Where/>
+      <Routes>
+        <Route path="/patients/:patientId" element={<PatientClinicalRecordRoute patientMode/>}/>
+        <Route path="/surveillance/:caseId" element={<PatientClinicalRecordRoute/>}/>
+      </Routes>
+    </TenantProvider></FeedbackProvider></LanguageProvider></MemoryRouter>)
+    await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
+    act(() => { api.enterSampleDemo() })
+    await screen.findByText('Ασθενής & νοσηλεία')
+    const nav = document.querySelector('.entity-record-sequence')
+    expect(nav).toHaveTextContent('1/3')
+    expect(within(nav).getByRole('button', { name: 'Προηγούμενη εγγραφή' })).toBeDisabled()
+    fireEvent.click(within(nav).getByRole('button', { name: 'Επόμενη εγγραφή' }))
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent('/surveillance/SUR-260045'))
+  })
+})
+
 describe('admissions', () => {
   it('opens on the active admission, with transfer and discharge in the patient «…» menu', async () => {
     await openPatient()
@@ -127,8 +152,9 @@ describe('admissions', () => {
     const items = patientMenu()
     expect(items).toEqual(expect.arrayContaining(['Μεταφορά σε άλλο τμήμα', 'Εξιτήριο', 'Διαγραφή ασθενούς']))
     expect(items).not.toContain('Νέα νοσηλεία')
-    expect(items.some(label => /^Επεξεργασία/.test(label))).toBe(false)
-    expect(screen.getAllByRole('button', { name: 'Επεξεργασία' })).toHaveLength(1)
+    // One «…» menu: «Edit patient» is its first item, with no separate button.
+    expect(items[0]).toBe('Επεξεργασία ασθενούς')
+    expect(screen.queryByRole('button', { name: 'Επεξεργασία' })).not.toBeInTheDocument()
   })
 
   it('shows the admissions under the patient name and readmits a discharged patient', async () => {
@@ -161,6 +187,9 @@ describe('admissions', () => {
     const department = within(dialog).getAllByRole('combobox').find(select => optionsOf(select).includes('ΜΕΘ'))
     chooseOption(department, optionsOf(department)[1])
     expect(department).toHaveValue(optionsOf(department)[1])
+    // Every admission has its own record number: the save waits for it.
+    expect(save).toBeDisabled()
+    fireEvent.change(within(dialog).getByLabelText(/Αριθμός φακέλου/), { target: { value: 'ΦΑΚ-2026-9001' } })
     await waitFor(() => expect(save).toBeEnabled())
     fireEvent.click(save)
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -231,9 +260,10 @@ describe('surveillance tree and samples', () => {
   })
 
   it('does not offer to start a surveillance from a negative sample', async () => {
-    const unlinked = { ...structuredClone(laboratorySamples.find(sample => sample.id === 'LAB-260827-001')), surveillanceCase: null, ast: [], critical: false, resistance: null, organism: null }
+    // A stay without a surveillance episode: an episode of the same stay would adopt its samples.
+    const unlinked = { ...structuredClone(laboratorySamples.find(sample => sample.id === 'LAB-260124-002')), surveillanceCase: null, ast: [], critical: false, resistance: null, organism: null }
     laboratorySamples.unshift({ ...unlinked, id: 'LAB-NEG-1', result: 'negative' }, { ...unlinked, id: 'LAB-POS-1', result: 'positive', organism: 'Escherichia coli' })
-    await openPatient('PT-260184')
+    await openPatient('PT-260082')
     await openTab('Επιτήρηση & Δείγματα')
     const negative = within(body()).getByText(/LAB-NEG-1/).closest('.sv-sample')
     expect(negative.querySelector('.sample-negative-note')).toHaveAttribute('title', 'Ένα αρνητικό αποτέλεσμα δεν μπορεί να ξεκινήσει επιτήρηση.')
@@ -244,7 +274,7 @@ describe('surveillance tree and samples', () => {
   it('requests a sample from the episode: the laboratory records the collection and the result', async () => {
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Δείγμα / Εργαστήριο')
+    const panel = await openStage('Δείγματα')
     fireEvent.click(within(panel).getByRole('button', { name: /Αίτημα δείγματος/ }))
     const dialog = screen.getByRole('dialog', { name: 'Αίτημα δείγματος' })
     expect(within(dialog).queryByPlaceholderText('ηη/μμ/εεεε')).toBeNull()
@@ -257,7 +287,7 @@ describe('surveillance episode journey', () => {
   it('shows assessment signs, risk factors and classification through the library labels', async () => {
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Κλινική αξιολόγηση')
+    const panel = await openStage('Αξιολόγηση')
     for (const label of ['Λοίμωξη', 'Πυρετός >38°C', 'Υπόταση', 'Κεντρικός φλεβικός καθετήρας']) expect(within(panel).getByText(label)).toBeInTheDocument()
   })
 
@@ -267,20 +297,20 @@ describe('surveillance episode journey', () => {
     window.addEventListener(DEMO_STEP_EVENT, listener)
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('HAI / AMR')
+    const panel = await openStage('ΛΣΦΥ / Αντοχή')
     window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(steps).toContain('clabsi_classification/hai')
-    expect(document.querySelector('[data-demo-step="clabsi_classification:hai"]')).toHaveTextContent(/HAI \/ AMR/)
+    expect(document.querySelector('[data-demo-step="clabsi_classification:hai"]')).toHaveTextContent(/ΛΣΦΥ \/ Αντοχή/)
     expect(within(panel).getByText('Παράγεται από επικυρωμένα μικροβιολογικά/AST δεδομένα.')).toBeInTheDocument()
-    expect(within(panel).getAllByRole('button').map(button => button.textContent.trim())).toEqual(['Νέα αξιολόγηση HAI'])
+    expect(within(panel).getAllByRole('button').map(button => button.textContent.trim())).toEqual(['Νέα αξιολόγηση ΛΣΦΥ'])
   })
 
   it('builds the HAI options from the centrally governed criteria sets of the organization', async () => {
     criteriaSets = { custom_bsi: { labelEl: 'Τοπικός ορισμός BSI', labelEn: 'Local BSI definition', source: 'Local' } }
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('HAI / AMR')
-    fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση HAI/ }))
+    const panel = await openStage('ΛΣΦΥ / Αντοχή')
+    fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ }))
     await waitFor(() => expect(loadHaiCriteriaSets).toHaveBeenCalledWith('demo-hospital'))
     await waitFor(() => expect(within(screen.getByRole('dialog')).getAllByRole('combobox').some(select => optionsOf(select).some(text => /Τοπικός ορισμός BSI/.test(text)))).toBe(true))
   })
@@ -291,8 +321,8 @@ describe('surveillance episode journey', () => {
     await openTab('Επιτήρηση & Δείγματα')
     fireEvent.click(document.querySelector('.sv-episode-head'))
     await screen.findByRole('button', { name: /Ενέργειες επιτήρησης/ })
-    const panel = await openStage('HAI / AMR')
-    fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση HAI/ }))
+    const panel = await openStage('ΛΣΦΥ / Αντοχή')
+    fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ }))
     const definitions = await waitFor(() => {
       const select = within(screen.getByRole('dialog')).getAllByRole('combobox').find(item => optionsOf(item).some(text => text.startsWith('CLABSI')))
       expect(select).toBeDefined()
@@ -309,7 +339,7 @@ describe('surveillance episode journey', () => {
     clinicalCases['SUR-260041'].therapy.push({ id: 'TX-PENDING', antimicrobial: 'Colistin', dose: '9 MU', route: 'IV', startedAt: '2026-08-27', status: 'active', approvalStatus: 'pending' })
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Αντιμικροβιακή αγωγή')
+    const panel = await openStage('Αγωγή')
     fireEvent.click(within(panel).getByText('Ceftazidime/avibactam'))
     expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Καταγραφή χορήγησης' })).toBeInTheDocument()
     fireEvent.click(within(screen.getByRole('dialog')).getAllByRole('button', { name: /Κλείσιμο/ })[0])

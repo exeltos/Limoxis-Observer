@@ -1,3 +1,4 @@
+import { cleanDepartmentResponse } from './controlResponse'
 import { supabase } from '../../core/supabase/client'
 import { firstDue,nextDueAfterExecution,periodBounds,periodProgress } from './controlDueRules'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
@@ -67,6 +68,13 @@ export function summarizeHistory(history=[],todayFrom=startOfToday()){
 }
 const EMPTY_SUMMARY={executions:0,today:0,findings:0,lastPerformedAt:null}
 
+// A department's own schedule as saved: only what differs from the control's, with its filled times; null = the control's.
+function cleanDepartmentFrequency(own,fallback){
+ if(!own||typeof own!=='object')return null
+ const cleaned={...own,times:(own.times||[]).filter(Boolean)}
+ return JSON.stringify(cleaned)===JSON.stringify({...(fallback||{}),times:(fallback?.times||[]).filter(Boolean)})?null:cleaned
+}
+
 function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null,progress=null){
  const {config:responseConfig,meta}=cleanResponseConfig(row.response_config)
  const frequency=row.frequency_config||{kind:'daily',timesPerDay:1,times:['09:00'],interval:1}
@@ -84,6 +92,10 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null
    lastCompletedAt:assignment.last_completed_at,
    nextDueAt:assignment.next_due_at,
    status:assignment.status,
+   // This department's own schedule, when it differs from the control's.
+   frequency:assignment.frequency_config||null,
+   // This department's own limits and deviation text, when they differ from the control's.
+   responseOverride:assignment.response_override||null,
    // Only the executions this view asked for (recent ones, the expiry lists,
    // findings); counts come from summary.
    history,
@@ -121,6 +133,8 @@ function mapDefinition(row,assignments=[],executions=[],drafts=[],summaries=null
   createdAt:row.created_at,
   updatedAt:row.updated_at,
   departments:activeAssignments.map(a=>a.department?.name).filter(Boolean),
+  // Departments where the control is paused (kept with their history; added back from the editor).
+  pausedDepartments:assignments.filter(a=>a.control_id===row.id&&a.status==='paused').map(a=>a.department?.name).filter(Boolean),
   // Department-scoped roles are checked by department id (roleUxPolicy).
   departmentIdByName:Object.fromEntries(activeAssignments.filter(a=>a.department?.name).map(a=>[a.department.name,a.department_id||a.department?.id||null])),
   assignments:assignmentMap,
@@ -239,19 +253,19 @@ export async function loadControlByCode(organizationId,code){
 
 // One page of a control's executions (its departments' assignments), latest
 // first, with the total, optionally within [from, to).
-export async function loadControlHistoryPage(organizationId,assignmentIds=[],{page=1,pageSize=15,from=null,to=null}={}){
+export async function loadControlHistoryPage(organizationId,assignmentIds=[],{page=1,pageSize=15,from=null,to=null,order='desc'}={}){
  const ids=[...new Set(assignmentIds.filter(Boolean))]
  if(!ids.length)return {rows:[],total:0}
  const start=(Math.max(1,page)-1)*pageSize
  if(isDemoDataEnvironment()){
-  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>new Date(b.at)-new Date(a.at))
+  const rows=loadControlExecutionsLocal().filter(row=>ids.includes(row.assignment_id)&&(!from||new Date(row.performed_at)>=new Date(from))&&(!to||new Date(row.performed_at)<new Date(to))).map(mapExecution).sort((a,b)=>(order==='asc'?-1:1)*(new Date(b.at)-new Date(a.at)))
   return {rows:rows.slice(start,start+pageSize),total:rows.length}
  }
  assertCloud(organizationId)
  let query=supabase.from('control_executions').select('*',{count:'exact'}).eq('organization_id',organizationId).in('assignment_id',ids)
  if(from)query=query.gte('performed_at',new Date(from).toISOString())
  if(to)query=query.lt('performed_at',new Date(to).toISOString())
- const {data,error,count}=await query.order('performed_at',{ascending:false}).order('id',{ascending:false}).range(start,start+pageSize-1)
+ const {data,error,count}=await query.order('performed_at',{ascending:order==='asc'}).order('id',{ascending:order==='asc'}).range(start,start+pageSize-1)
  if(error)throw error
  return {rows:(data||[]).map(mapExecution),total:count??(data||[]).length}
 }
@@ -265,6 +279,70 @@ export async function loadControlAdherenceCounts(organizationId,{from,to}){
  const {data,error}=await supabase.rpc('control_adherence_counts',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
  if(error)throw error
  return new Map((data||[]).map(row=>[row.assignment_id,{performed:Number(row.performed)||0,onTime:Number(row.on_time)||0}]))
+}
+
+// The regular entries of each assignment per local day of a period, as
+// minutes after midnight (control_entry_day_times, one row per assignment, read
+// in pages), to name the date and time of each missed execution:
+// Map(assignment id → Map('YYYY-MM-DD' → minutes[])). The demo returns null:
+// its local history is read directly.
+export async function loadControlEntryTimes(organizationId,{from,to}){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await readPages(()=>supabase.rpc('control_entry_day_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()}).order('assignment_id'))
+ if(error)throw error
+ return new Map((data||[]).map(row=>[row.assignment_id,new Map(Object.entries(row.days||{}).map(([day,minutes])=>[day,(minutes||[]).map(Number)]))]))
+}
+
+// The latest regular entry of the hospital's controls: the reports end on its
+// day while the entries are still recorded elsewhere (controlAdherence.reportEnd).
+// The demo returns null: its history runs up to today.
+export async function loadControlLastEntryAt(organizationId){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.from('control_executions').select('performed_at').eq('organization_id',organizationId).neq('status','cancelled').is('cancelled_at',null).order('performed_at',{ascending:false}).limit(1)
+ if(error)throw error
+ return data?.[0]?.performed_at||null
+}
+
+// When each department really records its daily controls: per assignment, the
+// minutes after midnight (Athens) of the entries of a period, one list per
+// slot (the k-th entry of a day is slot k), read by control_execution_times.
+// The demo returns null: its local history is read directly.
+export async function loadControlExecutionTimes(organizationId,{from,to}){
+ if(isDemoDataEnvironment())return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.rpc('control_execution_times',{p_organization_id:organizationId,p_from:new Date(from).toISOString(),p_to:new Date(to).toISOString()})
+ if(error)throw error
+ const byAssignment=new Map()
+ for(const row of data||[]){
+  if(!byAssignment.has(row.assignment_id))byAssignment.set(row.assignment_id,[])
+  byAssignment.get(row.assignment_id)[Math.max(0,Number(row.slot)-1)]=(row.minutes||[]).map(Number)
+ }
+ return byAssignment
+}
+
+// New execution times for one department of a control (the «Times» report):
+// its own schedule, or the control's when they are the same; next_due_at
+// follows the new times from today's progress.
+export async function saveDepartmentTimes(organizationId,item,department,times){
+ const assignment=item.assignments?.[department]
+ if(!assignment)throw new Error('Assignment not found.')
+ const frequency={...(assignment.frequency||item.frequency||{}),times:[...times].filter(Boolean).sort()}
+ const own=cleanDepartmentFrequency(frequency,item.frequency)
+ const done=assignment.progress?.done??periodProgress(frequency,assignment.history||[]).done
+ const nextDue=nextDueAfterExecution(frequency,new Date(),done)
+ if(isDemoDataEnvironment()){
+  const assignments=loadControlAssignmentsLocal()
+  const row=assignments.find(a=>a.id===assignment.dbId)
+  if(!row)throw new Error('Assignment not found.')
+  row.frequency_config=own;row.next_due_at=nextDue
+  saveControlAssignmentsLocal(assignments)
+  return
+ }
+ assertCloud(organizationId)
+ const {error}=await supabase.from('control_assignments').update({frequency_config:own,next_due_at:nextDue}).eq('organization_id',organizationId).eq('id',assignment.dbId)
+ if(error)throw error
 }
 
 // Per assignment, the twelve months of a year: done, late, and the days for
@@ -366,11 +444,15 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   for(const assignment of assignments.filter(a=>a.control_id===definition.id)){
    if(!wantedNames.has(assignment.department?.name)&&assignment.status!=='paused')assignment.status='paused'
   }
-  const nextDue=firstDue(draft.frequency||{},now)
   for(const department of departments){
+   const own=cleanDepartmentFrequency(draft.departmentFrequencies?.[department.name],draft.frequency)
+   const ownResponse=cleanDepartmentResponse(draft.departmentResponses?.[department.name],draft.responseConfig)
+   const nextDue=firstDue(own||draft.frequency||{},now)
    const existingAssignment=assignments.find(a=>a.control_id===definition.id&&a.department_id===department.id)
-   if(existingAssignment)existingAssignment.status='scheduled'
-   else assignments.push({id:demoId('ctrl-asg'),control_id:definition.id,organization_id:organizationId,department_id:department.id,department:{id:department.id,name:department.name},status:'scheduled',next_due_at:nextDue,last_completed_at:null})
+   if(existingAssignment){
+    if(JSON.stringify(existingAssignment.frequency_config||null)!==JSON.stringify(own))existingAssignment.next_due_at=nextDue
+    existingAssignment.status='scheduled';existingAssignment.frequency_config=own;existingAssignment.response_override=ownResponse
+   }else assignments.push({id:demoId('ctrl-asg'),control_id:definition.id,organization_id:organizationId,department_id:department.id,department:{id:department.id,name:department.name},status:'scheduled',frequency_config:own,response_override:ownResponse,next_due_at:nextDue,last_completed_at:null})
   }
   saveControlDefinitionsLocal(definitions)
   saveControlAssignmentsLocal(assignments)
@@ -403,7 +485,7 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
   if(error)throw error
   definition=data
  }
- const {data:existing,error:existingError}=await supabase.from('control_assignments').select('id,department_id,status,last_completed_at,next_due_at').eq('organization_id',organizationId).eq('control_id',definition.id)
+ const {data:existing,error:existingError}=await supabase.from('control_assignments').select('id,department_id,status,last_completed_at,next_due_at,frequency_config').eq('organization_id',organizationId).eq('control_id',definition.id)
  if(existingError)throw existingError
  const wantedIds=new Set(departments.map(x=>x.id))
  for(const assignment of existing||[]){
@@ -412,14 +494,27 @@ export async function saveControlDefinition(organizationId,draft,{actorName='',c
    if(error)throw error
   }
  }
- const nextDue=firstDue(draft.frequency||{},new Date())
  for(const department of departments){
   const previous=(existing||[]).find(x=>x.department_id===department.id)
-  const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,assignee_id:draft.assignees?.[department.name]?.userId||null,status:'scheduled',next_due_at:previous?.next_due_at||nextDue,last_completed_at:previous?.last_completed_at||null}
+  const own=cleanDepartmentFrequency(draft.departmentFrequencies?.[department.name],draft.frequency)
+  const ownResponse=cleanDepartmentResponse(draft.departmentResponses?.[department.name],draft.responseConfig)
+  const nextDue=firstDue(own||draft.frequency||{},new Date())
+  const changed=previous&&JSON.stringify(previous.frequency_config||null)!==JSON.stringify(own)
+  const row={control_id:definition.id,organization_id:organizationId,department_id:department.id,assignee_id:draft.assignees?.[department.name]?.userId||null,status:'scheduled',frequency_config:own,response_override:ownResponse,next_due_at:(!changed&&previous?.next_due_at)||nextDue,last_completed_at:previous?.last_completed_at||null}
   const {error}=await supabase.from('control_assignments').upsert(row,{onConflict:'control_id,department_id'})
   if(error)throw error
  }
  return loadControlByCode(organizationId,definition.code)
+}
+
+// The names of the controls that already exist (code, title, status), for the warning about a new
+// control whose name is the same in essence as one of them.
+export async function loadControlNames(organizationId){
+ if(isDemoDataEnvironment())return (await loadControlProgramme(organizationId,{summary:false})).map(({id,title,status})=>({id,title,status}))
+ assertCloud(organizationId)
+ const {data,error}=await readPages(()=>supabase.from('control_definitions').select('code,title,status').eq('organization_id',organizationId).neq('status','archived').order('code'))
+ if(error)throw error
+ return (data||[]).map(row=>({id:row.code,title:row.title,status:row.status}))
 }
 
 export async function deleteControlDefinition(organizationId,record){
@@ -486,7 +581,7 @@ export async function completeControlExecution(organizationId,record,department,
  if(!assignment?.dbId||!assignment?.departmentId)throw new Error('Control assignment is required.')
  const extra=extraFields(payload)
  if(isDemoDataEnvironment()){
-  const progress=periodProgress(record.frequency||{},loadControlExecutionsLocal().filter(x=>x.assignment_id===assignment.dbId).map(mapExecution))
+  const progress=periodProgress(assignment.frequency||record.frequency||{},loadControlExecutionsLocal().filter(x=>x.assignment_id===assignment.dbId).map(mapExecution))
   if(progress.complete&&!extra.is_extra)throw new ControlPeriodCompleteError(progress)
   const userId=payload.actor?.id||''
   const now=new Date()
@@ -495,7 +590,7 @@ export async function completeControlExecution(organizationId,record,department,
   const executions=loadControlExecutionsLocal()
   executions.unshift(execution)
   saveControlExecutionsLocal(executions)
-  refreshDemoAssignment(assignment.dbId,record.frequency||{})
+  refreshDemoAssignment(assignment.dbId,assignment.frequency||record.frequency||{})
   await removeControlDraft(organizationId,record,department)
   return mapExecution(execution)
  }
@@ -581,7 +676,7 @@ export async function voidControlExecution(organizationId,record,department,exec
    const remaining=executions.some(x=>x.assignment_id===assignment.dbId&&x.status!=='cancelled'&&!x.is_extra)
    if(stored&&!remaining&&execution.previousNextDueAt){stored.last_completed_at=execution.previousLastCompletedAt||null;stored.next_due_at=execution.previousNextDueAt}
    saveControlAssignmentsLocal(assignments)
-   if(remaining)refreshDemoAssignment(assignment.dbId,record.frequency||{})
+   if(remaining)refreshDemoAssignment(assignment.dbId,assignment.frequency||record.frequency||{})
   }
   return mapExecution(current)
  }

@@ -30,7 +30,9 @@ describe('list reads', () => {
 
   it('reads the patient record without the roster or the whole laboratory', () => {
     const record = read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')
-    expect(record).toContain('loadPatientsByKeys(tenant.id, { codes: [patientId] })')
+    expect(record).toContain('loadPatientsByKeys(tenant.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })')
+    // The link from a surveillance row carries the record id: it opens the same patient.
+    expect(record).toContain('isPatientKey(row, patientId)')
     expect(record).toContain('useLaboratoryRegistry({ enabled: isDemo || !tenant?.id || Boolean(labScope), scope: labScope })')
     expect(read('src/features/laboratory/repositories/supabaseLaboratoryRepository.js')).toContain('loadPatientLaboratorySamples(organizationId, scope)')
   })

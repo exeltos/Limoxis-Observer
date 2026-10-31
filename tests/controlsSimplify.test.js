@@ -12,23 +12,27 @@ const row = (id, extra = {}) => ({
   departments: ['ΜΕΘ'],
 })
 
-describe('controls list: three cards, two filters (Ο7)', () => {
-  it('shows only the cards that ask for action, and the adherence card opens no tab', () => {
-    const strip = page.slice(page.indexOf('<div className="module-summary-strip">'), page.indexOf('<CanonicalTabs'))
-    expect((strip.match(/<Kpi /g) || []).length).toBe(3)
-    expect(strip.indexOf('label={tx.overdue}')).toBeLessThan(strip.indexOf('label={tx.dueSoon}'))
-    expect(strip.indexOf('label={tx.dueSoon}')).toBeLessThan(strip.indexOf('tx.adherence'))
-    const adherenceCard = strip.slice(strip.indexOf('<Kpi loading={firstLoad} icon={Gauge}'))
-    expect(adherenceCard).not.toContain('onClick')
+describe('controls list: department cards, key figures per tab, no filter popover', () => {
+  it('opens on the department cards, with the key figures of the open tab under the tabs', () => {
+    expect(page).toContain("value:'departments',label:tx.departments,icon:LayoutGrid")
+    expect(page).toContain('<ControlDepartmentCards cards={cards}')
+    expect(page).toContain('function openDepartment(dep){setDepartment(dep);setStatus(\'all\');setView(\'programme\')}')
+    expect(page.indexOf('<CanonicalTabs')).toBeLessThan(page.indexOf('<ControlsKpis view={activeView}'))
+    expect(page).not.toContain('module-summary-strip')
+    expect(page).not.toContain('<Kpi ')
   })
 
-  it('keeps only the department and status filters', () => {
+  it('period and status sit inside the «Filters» popover beside the search; the department is a chip', () => {
     const bar = page.slice(page.indexOf('<FilterBar'), page.indexOf('</FilterBar>'))
-    expect((bar.match(/<FilterSelect /g) || []).length).toBe(2)
-    expect(bar).toContain('label={tx.department}')
-    expect(bar).toContain('label={tx.status}')
+    // The period of the rates and the status are inside the popover, not beside the search.
+    expect(bar).not.toContain(' end={')
+    expect(page).toContain('const periodSelect=<FilterSelect className="controls-period-select" label={tx.period}')
+    expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
+    // The status, the department and the programme (routine controls / culture programme) are selects of the same popover on every tab.
+    expect(bar).toContain('<FilterSelect label={tx.status} value={status} onChange={setStatus}>')
+    expect(bar).toContain('<FilterSelect label={language===\'en\'?\'Programme\':\'Πρόγραμμα\'} value={kind} onChange={setKind}>')
     expect(page).toContain('registry.loadViewState({query:')
-    expect(page).toContain("registry.saveViewState({query,department,status,view})")
+    expect(page).toContain("registry.saveViewState({query,department,status,view,period,kind})")
   })
 
   it('finds frequency, type and criticality through the search box, in both languages', () => {
@@ -49,8 +53,8 @@ describe('one place per action (Ο6)', () => {
   })
 
   it('records from the header only for one department, otherwise only from the department rows', () => {
-    expect(record).toContain('{canExecute&&visibleDepartments.length===1&&<ActionButton')
-    expect(record).toContain('{allowed&&assignments.length>1&&<ActionButton')
+    expect(record).toContain('{canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton')
+    expect(record).toContain('{allowed&&assignments.length>1&&!heldBack(dep)&&<ActionButton')
   })
 
   it('has one export per tab: the expiry panel hands its form to the page menu', () => {
@@ -66,8 +70,9 @@ describe('one place per action (Ο6)', () => {
 
   it('saves from the form footer only', () => {
     expect(editor).not.toContain('headerActions=')
-    expect((editor.match(/<SaveButton /g) || []).length).toBe(1)
-    expect(editor).toContain('<div className="inline-edit-footer control-editor-footer">')
+    expect((editor.match(/<FormSubmit /g) || []).length).toBe(1)
+    expect(editor).not.toContain('<SaveButton ')
+    expect(editor).toContain('<div className="inline-edit-footer control-editor-footer"')
   })
 })
 
@@ -87,21 +92,35 @@ describe('control record page (Ο5)', () => {
   })
 })
 
-describe('new control form (Ο8)', () => {
-  it('folds the optional parts in a collapsed «Προχωρημένα» section', () => {
-    const advanced = editor.indexOf('<MoreSection')
-    expect(advanced).toBeGreaterThan(0)
-    expect(editor).toContain("defaultOpen={advancedOpenAtStart||advancedForced}")
-    expect(editor).toContain("moreLabel={en?'Advanced':'Προχωρημένα'}")
-    expect(editor.indexOf("How it is recorded")).toBeGreaterThan(advanced)
-    expect(editor.indexOf("Actions on deviation")).toBeGreaterThan(advanced)
-    expect(editor.indexOf("What is checked")).toBeLessThan(advanced)
-    expect(editor.indexOf("en?'Schedule':'Προγραμματισμός'")).toBeLessThan(advanced)
-    expect(editor.indexOf('inline-edit-footer control-editor-footer')).toBeGreaterThan(editor.indexOf('</MoreSection>'))
+describe('control form: three tabs, one row per department', () => {
+  it('puts every required field on «Details», per-department differences and instructions on their own tabs', () => {
+    expect(editor).toContain("activeTab={tab} onTabChange={setTab}")
+    const details = editor.indexOf("{tab==='details'&&<>")
+    const departments = editor.indexOf("{tab==='departments'&&<>")
+    const instructions = editor.indexOf("{tab==='instructions'&&<>")
+    expect(details).toBeGreaterThan(0)
+    expect(details).toBeLessThan(departments)
+    expect(departments).toBeLessThan(instructions)
+    expect(editor.indexOf('<MultiSelect className="control-departments-select"')).toBeGreaterThan(departments)
+    for (const required of ["What is checked", "en?'Schedule':'Προγραμματισμός'", "How it is recorded"]) {
+      const at = editor.indexOf(required)
+      expect(at).toBeGreaterThan(details)
+      expect(at).toBeLessThan(departments)
+    }
+    expect(editor.indexOf("Actions on deviation':'Ενέργειες σε απόκλιση'}><textarea")).toBeGreaterThan(instructions)
+    expect(editor).not.toContain('<MoreSection')
   })
 
-  it('opens the section by itself when a checklist or choice list is still missing', () => {
-    expect(editor).toContain("const advancedMissing=")
-    expect(editor).toContain('if(advancedMissing)setAdvancedForced(true)')
+  it('shows one table row per department, pauses and resumes departments, and opens the tab with what Save finds missing', () => {
+    expect(editor).toContain('<table className="data-table control-editor-department-table">')
+    expect(editor).toContain('<ControlDepartmentSchedules compact departments={[dep]}')
+    expect(editor).toContain('<ControlDepartmentResponses compact departments={[dep]}')
+    // A department's own schedule or limits open full width under its row.
+    expect(editor).toContain('<ControlDepartmentSchedules compact part="fields" departments={[dep]}')
+    expect(editor).toContain("onClickCapture={()=>{if(!form.valid)setTab(draft.departments.length?'details':'departments')}}")
+    // Pausing keeps the department's history; a paused department comes back with «Resume».
+    expect(editor).toContain("onClick={()=>set('departments',draft.departments.filter(x=>x!==dep))}")
+    expect(editor).toContain("onClick={()=>set('departments',[...draft.departments,dep])}")
+    expect(editor.indexOf('inline-edit-footer control-editor-footer')).toBeGreaterThan(editor.indexOf("{tab==='instructions'&&<>"))
   })
 })

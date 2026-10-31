@@ -133,7 +133,7 @@ function Disclaimer({ t }) {
 const STATE_KEY = code => `sepsis.state_${code}`
 
 // The section of a started protocol.
-export function ProtocolPanel({ run, record, t, language, canRecord, onRecordStep, onChangeTime, onFinish }) {
+export function ProtocolPanel({ run, record, t, language, canRecord, onRecordStep, onChangeTime, onFinish, menu = [] }) {
   const open = run.status === 'open'
   const now = useNow(open)
   const [stepDialog, setStepDialog] = useState(null)
@@ -150,6 +150,7 @@ export function ProtocolPanel({ run, record, t, language, canRecord, onRecordSte
     <StagePanel
       icon={Timer}
       title={protocolText(t, run.protocolKey, 'panelTitle')}
+      menu={menu}
       action={
         editable ? (
           <Button className="clinical-stage-action" variant="secondary" onClick={() => setStepDialog({ key: pending[0]?.key || visibleSteps(run)[0]?.key, choose: true })}>

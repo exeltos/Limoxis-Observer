@@ -13,11 +13,10 @@ const t = key => key
 
 describe('integration: owner decisions', () => {
   afterEach(cleanup)
-  it('keeps the incident report only at the foot of the sidebar', () => {
+  it('has no incident report button in the top bar or at the foot of the sidebar; the reports stay in Quality', () => {
     const shell = read('src/app/AppShell.jsx')
     expect(shell).not.toContain('topbar-report')
-    expect(shell).toContain('<SidebarIncidentReport t={t}')
-    expect(read('src/app/SidebarIncidentReport.jsx')).toContain("go('/quality/my-reports')")
+    expect(shell).not.toContain('SidebarIncidentReport')
     expect(read('src/app/App.jsx')).toContain('path="quality/my-reports"')
   })
 

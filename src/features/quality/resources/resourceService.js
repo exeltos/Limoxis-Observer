@@ -47,7 +47,7 @@ function saveLocal(state) {
 const toSupplier = row => ({
   id: row.id, code: row.code, name: row.name, legalName: row.legal_name || '', category: row.category, criticality: row.criticality, status: row.status,
   taxId: row.tax_id || '', contactName: row.contact_name || '', phone: row.phone || '', email: row.email || '', address: row.address || '', city: row.city || '', country: row.country || '', website: row.website || '', products: row.products || '',
-  contractEndsOn: row.contract_ends_on || '', approvalStatus: row.approval_status || '', evaluationMonths: row.evaluation_months || '', notes: row.notes || '',
+  contractEndsOn: row.contract_ends_on || '', approvalStatus: row.approval_status || '', evaluationMonths: row.evaluation_months || '', notes: row.notes || '', departmentIds: row.department_ids || [],
   ...supplierListsFromRow(row),
   createdAt: row.created_at, updatedAt: row.updated_at,
 })
@@ -55,6 +55,7 @@ const supplierRow = (organizationId, supplier) => ({
   organization_id: organizationId, name: supplier.name.trim(), legal_name: text(supplier.legalName), category: supplier.category || 'products', criticality: supplier.criticality || 'medium', status: supplier.status || 'active',
   tax_id: text(supplier.taxId), contact_name: text(supplier.contactName), phone: text(supplier.phone), email: text(supplier.email), address: text(supplier.address), city: text(supplier.city), country: text(supplier.country), website: text(supplier.website), products: text(supplier.products),
   contract_ends_on: supplier.contractEndsOn || null, approval_status: supplier.approvalStatus || null, evaluation_months: months(supplier.evaluationMonths), notes: text(supplier.notes),
+  department_ids: (supplier.departmentIds || []).filter(isUuid),
 })
 const toEquipment = row => ({
   id: row.id, code: row.code, name: row.name, equipmentType: row.equipment_type || '', departmentId: row.department_id || '', location: row.location || '',

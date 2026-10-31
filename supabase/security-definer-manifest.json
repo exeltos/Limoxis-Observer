@@ -413,6 +413,36 @@
       "authenticated": true,
       "reason": "Management › Users: the members of one organization with their profile (name, username, contact email); the organization's admin or the Platform Owner only, since member and profile RLS show an admin only its own row."
     },
+    "bin_delete": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: moves a clinical record and every row under it to the bin in one transaction; the Platform Owner, Hospital Admin or Infection Control Lead any record of the hospital, anyone else only what they entered (created_by)."
+    },
+    "bin_restore": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: puts a deleted record back exactly as it was; only the person who deleted it, while the entry has not expired."
+    },
+    "bin_list_mine": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: the caller's own deletions in one hospital, without the expired ones."
+    },
+    "bin_purge_mine": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: deletes one of the caller's own entries for good."
+    },
+    "organization_member_names": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Clinical history: the full names of the people who recorded entries of one organization (its members and the Platform Owner), for «recorded by»; an active member of that organization or the Platform Owner only, since profile RLS shows a user only its own row."
+    },
+    "organization_member_departments": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Management › Users: the department of each member of one organization (organization_member_scopes); the organization's admin or the Platform Owner only, since scope RLS shows a user only its own rows."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
@@ -496,7 +526,17 @@
     "quality_supplier_certificate_requests_create": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner, Hospital Admin, Quality Manager or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+    },
+    "quality_supplier_renewal_settings_set": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Switches the nightly e-mailing of suppliers with expired certificates on or off for a hospital (and its reminder days); only whoever may send the requests (Platform Owner, Hospital Admin, Quality Manager, designated sender)."
+    },
+    "quality_self_assessment_save": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "A department answers (or submits) the self-assessment released to it, and the Quality team may too before it closes: only the answers, notes and evidence of existing rows are merged, never the questions; progress and score are recomputed."
     },
     "review_laboratory_sample": {
       "category": "rpc",
@@ -507,6 +547,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Grants or removes a member's add-on supplier_renewal_sender (may e-mail suppliers for their expired certificates); Platform Owner only."
+    },
+    "set_translation_settings": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Turns the automatic translation of a hospital's own texts on or off and sets its monthly limit of characters; checks itself that the caller is the Platform Owner or a Hospital Admin / Quality Manager of the organisation."
     },
     "surveillance_case_exposure_count": {
       "category": "rpc",

@@ -26,7 +26,7 @@ describe('laboratory reference lists', () => {
   })
 
   it('falls back to the four legacy technical types while the library is empty', () => {
-    const fallback = PATIENT_SAMPLE_TYPES.filter(type => !['specimen', 'surveillanceSpecimen'].includes(type.id)).map(type => ({ value: type.id, label: `t:${type.id}`, type: type.id, source: '', specimenTypeId: null }))
+    const fallback = PATIENT_SAMPLE_TYPES.filter(type => type.id !== 'specimen').map(type => ({ value: type.id, label: `t:${type.id}`, type: type.id, source: '', specimenTypeId: null }))
     expect(patientSampleTypeOptions([], 'el', t)).toEqual(fallback)
     expect(patientSampleSources('urineCulture')).toEqual(['midstream', 'urinaryCatheter', 'nephrostomy', 'suprapubicCatheter', 'other'])
     expect(patientSampleSources('specimen')).toEqual([])

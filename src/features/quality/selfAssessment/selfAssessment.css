@@ -1,0 +1,57 @@
+.self-toolbar { justify-content: flex-end; margin: 4px 0 8px; }
+.self-progress { display: flex; align-items: center; gap: 10px; min-width: 180px; }
+.self-progress-track { flex: 1; height: 8px; border-radius: 999px; background: var(--surface-muted, #e8edf2); overflow: hidden; }
+.self-progress-fill { display: block; height: 100%; border-radius: 999px; background: var(--primary, #256b9b); }
+.self-progress-text { font-size: 12px; color: var(--text-muted, #606e80); white-space: nowrap; }
+.self-run { gap: 14px; overflow: auto; }
+.self-gaps ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.self-gaps li { display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+.self-gaps-more { color: var(--text-muted, #606e80); }
+.self-chapter h3 { margin: 12px 0 8px; font-size: 15px; display: flex; gap: 8px; align-items: baseline; }
+.self-chapter h3 small { color: var(--text-muted, #606e80); font-weight: 400; }
+.self-question { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--border, #e3e9f0); }
+.self-question-text { display: grid; gap: 4px; font-size: 14px; }
+.self-question-text small { color: var(--text-muted, #606e80); }
+.self-answers { display: flex; flex-wrap: wrap; gap: 6px; }
+.self-answer { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border, #d5dde6); background: var(--surface, #fff); color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.self-answer:disabled { cursor: default; opacity: 0.75; }
+.self-answer.selected { font-weight: 700; color: #fff; border-color: transparent; }
+.self-answer-yes.selected { background: #2f6f4d; }
+.self-answer-partial.selected { background: #8a641d; }
+.self-answer-no.selected { background: #a23f46; }
+.self-answer-na.selected { background: #5b6b7f; }
+.self-note { width: 100%; }
+.self-new-hint { margin: 0; font-size: 13px; color: var(--text-muted, #606e80); }
+
+/* New self-assessment: one screen. The fields on a line, then a single row (title, area buttons, search) above the departments, which take the room left and scroll only when they do not fit. */
+.self-create-page { display: flex; flex-direction: column; gap: 12px; min-height: 0; height: 100%; }
+.self-create-page .self-create-fields.lo-form-grid.cols-3 { align-items: end; flex: none; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.3fr) 190px; }
+.self-create-page .self-new-hint { flex: none; }
+.self-departments { display: flex; flex-direction: column; gap: 10px; flex: 1 1 0; min-height: 160px; border-top: 1px solid #edf1f4; padding-top: 12px; }
+.self-departments > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; flex: none; }
+.self-departments > header strong { font-size: 14px; white-space: nowrap; }
+.self-departments > header strong span { margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--text-muted, #606e80); }
+.self-departments .self-departments-search { position: relative; margin-left: auto; width: 260px; }
+.self-departments .self-departments-search > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted, #606e80); pointer-events: none; }
+.self-create-page .self-departments .self-departments-search input { width: 100%; padding-left: 34px; }
+.self-departments-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.self-departments-quick button { height: 30px; padding: 0 12px; border: 1px solid var(--border, #d5dde6); border-radius: 999px; background: var(--surface, #fff); font: inherit; font-size: 12.5px; font-weight: 600; color: var(--primary, #256b9b); cursor: pointer; }
+.self-departments-quick button:hover { background: #eef4fa; }
+.self-departments-quick button.is-clear { color: var(--text-muted, #606e80); border-style: dashed; }
+.self-departments-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); align-content: start; gap: 0; margin: 0; padding: 0; list-style: none; flex: 1 1 0; min-height: 0; overflow: auto; border: 1px solid var(--border, #e3e9f0); border-radius: 12px; }
+.self-departments-list > li { padding: 0 12px; border-bottom: 1px solid #f0f3f6; }
+.self-departments-list > li.is-on { background: #eef6f1; }
+.self-departments-list .lo-checkbox-field { min-height: 30px; }
+.self-departments-empty { grid-column: 1 / -1; padding: 10px 12px; color: var(--text-muted, #606e80); font-size: 13px; }
+.self-departments-count { margin-right: auto; font-size: 12.5px; color: var(--text-muted, #606e80); }
+.self-create-page > .inline-edit-footer { flex: none; margin-top: 0; }
+.self-create-page input:not([type=checkbox]):not([type=file]):not(.self-departments-search input) { height: 40px; box-sizing: border-box; }
+
+.self-summary { margin: 6px 0 4px; }
+.self-empty { display: grid; justify-items: center; gap: 14px; margin: 24px auto; padding: 28px 20px; max-width: 760px; text-align: center; color: var(--text-muted, #606e80); }
+.self-empty > svg { color: var(--primary, #256b9b); }
+.self-empty h3 { margin: 0; font-size: 16px; color: var(--text, #1d2939); }
+.self-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; margin: 0; padding: 0; list-style: none; text-align: left; }
+.self-steps li { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border: 1px solid #edf1f4; border-radius: 12px; font-size: 13px; color: var(--text, #1d2939); }
+.self-steps b { flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: #eef4fa; color: var(--primary, #256b9b); font-size: 12px; }
+@media (max-width: 900px) { .self-steps { grid-template-columns: minmax(0, 1fr); } }

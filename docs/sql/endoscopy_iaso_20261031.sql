@@ -1,0 +1,8 @@
+-- ΕΦΑΡΜΟΣΤΗΚΕ 31/10/2026 στον ΙΑΣΩ ΘΕΣΣΑΛΙΑΣ (με ρητό ΟΚ του ιδιοκτήτη).
+-- 1) Migration `register_indicator_daily_only` (supabase/migrations/20261231100000_register_indicator_daily_only.sql):
+--    στήλη department_register_indicators.daily_only boolean not null default false.
+-- 2) Ενδοσκοπικό (REG-009): τρεις νέοι δείκτες μετά τους υπάρχοντες 3, όλοι χωρίς στόχο:
+--    advanced_share «% προηγμένων πράξεων (ERCP, EUS, EBUS)» (percent, sheet_rows ercp/eus/ebus),
+--    daily_mean «Μέσος αριθμός πράξεων ανά ημέρα λειτουργίας» (mean, daily_only),
+--    days_recorded «Ημέρες με καταχώριση» (count, daily_only).
+-- Τα 32 μηνιαία σύνολα (3/2024–10/2026) δεν άλλαξαν· οι δείκτες «μόνο ημερήσια» ξεκινούν να έχουν τιμή από 1/11/2026.

@@ -123,3 +123,8 @@
 .committee-approval-panel .data-table{min-width:0!important;width:100%;table-layout:auto}
 
 /* The minutes as a document, off screen until "Export PDF" captures it. */
+/* Committee record: the record card is the body itself, so its sections and tables sit on it
+   without a second frame (as in the other records). !important only to undo the framed
+   .record-section / .scroll-table of foundation.css. */
+.committee-record-shell .entity-record-body>.record-section:is(section,#lo-committee-record){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
+.committee-record-shell .entity-record-body .scroll-table:is(div,#lo-committee-record){border:0!important;border-radius:0!important}

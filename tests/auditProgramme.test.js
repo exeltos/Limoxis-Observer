@@ -3,13 +3,14 @@ import fs from 'node:fs'
 import { QUESTIONNAIRE_SEEDS, SYSTEM_TEMPLATES } from '../src/features/quality/audits/seed/index.js'
 import { adHocRow, auditDashboard, auditReviewSummary, auditScore, awaitingFinding, capaDraftFromFinding, classesFor, clauseCoverage, competenceWarnings, findingDraftFromAnswer, fmQuestionClause, fmQuestionText, fmResult, inScope, independenceBlocks, independenceIssues, nextAuditDate, questionsForAudit, unclassified } from '../src/features/quality/audits/auditModel'
 import { departmentArea } from '../src/features/quality/audits/auditStandards'
-import { auditAnswersExport, auditReportDocument } from '../src/features/quality/audits/auditReport'
+import { auditAnswersExport, auditDetailedBatchDocument, auditReportDocument } from '../src/features/quality/audits/auditReport'
 import { checklistFromRows, checklistRows, teamRows } from '../src/features/quality/qualityRelations'
 import { programmeAudits, programmeFindings } from '../src/features/quality/audits/auditDemoData'
 import { auditCompliance, pendingFindings } from '../src/features/quality/qualityAudit'
 import { sectionFacts } from '../src/features/quality/review/reviewTemplate'
 
 const migration = fs.readFileSync('supabase/migrations/20261124100000_quality_audit_programme.sql', 'utf8')
+const wardMigration = fs.readFileSync('supabase/migrations/20261214110000_quality_audit_ward_checklist_seed.sql', 'utf8') + fs.readFileSync('supabase/migrations/20261230100000_quality_audit_core_questionnaire_seed.sql', 'utf8')
 const demoMigration = fs.readFileSync('supabase/migrations/20261124100100_quality_audit_programme_demo.sql', 'utf8')
 const template = key => SYSTEM_TEMPLATES.find(item => item.key === key)
 const row = (answer, extra = {}) => ({ id: `r-${Math.random()}`, item: 'Q', chapterRef: '7', clauseRef: '7.1', weight: 1, answer, ...extra })
@@ -17,7 +18,7 @@ const row = (answer, extra = {}) => ({ id: `r-${Math.random()}`, item: 'Q', chap
 describe('questionnaire library', () => {
   it('seeds one questionnaire per chosen standard with good coverage', () => {
     const counts = Object.fromEntries(SYSTEM_TEMPLATES.map(item => [item.standard, item.questions.length]))
-    expect(Object.keys(counts).sort()).toEqual(['haccp', 'iso15189', 'iso15224', 'iso9001', 'jci', 'temos'])
+    expect(Object.keys(counts).sort()).toEqual(['haccp', 'iso15189', 'iso15224', 'iso9001', 'jci', 'other', 'temos'])
     for (const [standard, count] of Object.entries(counts)) expect(count, standard).toBeGreaterThanOrEqual(30)
     expect(counts.iso9001).toBeGreaterThan(70)
     expect(counts.jci).toBeGreaterThanOrEqual(90)
@@ -35,7 +36,7 @@ describe('questionnaire library', () => {
 
   it('writes audit questions with a clause reference and says it is not the standard text', () => {
     for (const item of SYSTEM_TEMPLATES) {
-      expect(item.description).toContain('Δεν αποτελεί το κείμενο του προτύπου')
+      if (item.key !== 'ward') expect(item.description).toContain('Δεν αποτελεί το κείμενο του προτύπου')
       expect(item.isSystem).toBe(true)
       for (const question of item.questions) {
         expect(question.clauseRef, question.question).toBeTruthy()
@@ -46,7 +47,7 @@ describe('questionnaire library', () => {
 
   it('seeds the database library from the same files', () => {
     for (const seed of QUESTIONNAIRE_SEEDS) {
-      const match = migration.match(new RegExp(`'(\\{"k":"${seed.key}".*?\\})'::jsonb j\\)`, 's'))
+      const match = (migration + wardMigration).match(new RegExp(`'(\\{"k":"${seed.key}".*?\\})'::jsonb j\\)`, 's'))
       expect(match, seed.key).toBeTruthy()
       const stored = JSON.parse(match[1].replace(/''/g, "'"))
       expect(stored.ch.flatMap(chapter => chapter.q.map(question => question[1]))).toEqual(seed.chapters.flatMap(chapter => chapter.questions.map(question => question[1])))
@@ -185,10 +186,25 @@ describe('report and storage', () => {
   it('builds the audit report on the shared layout with team, meetings, chapters, findings and signatures', () => {
     const audit = programmeAudits.find(item => item.standard === 'jci')
     const doc = auditReportDocument({ ...audit, displayId: audit.id }, programmeFindings)
-    expect(doc.sections.map(section => section.title)).toEqual(['Πεδίο και κριτήρια', 'Ομάδα επιθεώρησης', 'Συσκέψεις', 'Αποτελέσματα ανά κεφάλαιο', 'Διαπιστώσεις', 'Ευρήματα και διορθωτικές ενέργειες', 'Συμπέρασμα'])
+    expect(doc.sections.map(section => section.title)).toEqual(['Σύνοψη', 'Πεδίο και κριτήρια', 'Ομάδα επιθεώρησης', 'Συσκέψεις', 'Αποτελέσματα ανά κεφάλαιο', 'Δυνατά σημεία και σημεία βελτίωσης', 'Διαπιστώσεις', 'Ευρήματα και διορθωτικές ενέργειες', 'Προτεινόμενες ενέργειες', 'Συμπέρασμα', 'Παράρτημα: πλήρες ερωτηματολόγιο'])
     expect(doc.signatures.map(item => item.role)).toEqual(['Επικεφαλής επιθεωρητής', 'Εκπρόσωπος επιθεωρούμενου'])
-    expect(doc.sections[3].table.rows.map(cells => cells[0].split(' · ')[0])).toEqual(['IPSG', 'COP', 'MMU', 'PCI'])
+    expect(doc.sections[4].table.rows.map(cells => cells[0].split(' · ')[0])).toEqual(['IPSG', 'COP', 'MMU', 'PCI'])
+    expect(doc.sections[0].text).toContain('συμμόρφωση')
+    expect(doc.sections[0].html).toContain('background:#18794e')
+    expect(doc.sections.at(-1).table.rows).toHaveLength(audit.checklist.length)
     expect(auditAnswersExport(audit).rows).toHaveLength(audit.checklist.length)
+  })
+
+  it('builds one short report for many audits: an overview, the departments with a deviation, and the clean ones in a line', () => {
+    const done = programmeAudits.filter(item => item.status === 'completed' && (item.checklist || []).length)
+    const doc = auditDetailedBatchDocument(done, programmeFindings)
+    expect(doc.sections[0].title).toBe('Συνολική εικόνα')
+    expect(doc.sections[0].table.rows).toHaveLength(done.length)
+    const withDeviation = done.filter(item => item.checklist.some(row => row.answer === 'partial' || row.answer === 'no'))
+    expect(doc.sections.filter(section => section.tables).length).toBe(withDeviation.length)
+    expect(doc.sections.some(section => section.html?.includes('page-break-before'))).toBe(false)
+    expect(doc.sections.at(-1).title).toBe('Παράρτημα: το ερωτηματολόγιο')
+    expect(auditDetailedBatchDocument([]).sections[0].table.rows).toHaveLength(0)
   })
 
   it('keeps the four answers in result and the three-value answer for earlier readers', () => {

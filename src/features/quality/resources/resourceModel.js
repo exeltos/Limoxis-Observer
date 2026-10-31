@@ -329,7 +329,7 @@ export function filterSuppliers(rows = [], filters = NO_SUPPLIER_FILTERS) {
 const supplierRank = row => (row.approval === 'rejected' || row.majorOpen ? 0 : row.approval === 'conditional' || row.openNonconformities || row.expiredCertificates ? 1 : row.evaluationDue ? 2 : 3)
 
 export function newSupplier() {
-  return { id: '', code: '', name: '', legalName: '', category: 'products', criticality: 'medium', status: 'active', taxId: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', website: '', products: '', contractEndsOn: '', approvalStatus: '', evaluationMonths: '', notes: '', certifications: [], evaluations: [], nonconformities: [], contacts: [] }
+  return { id: '', code: '', name: '', legalName: '', category: 'products', criticality: 'medium', status: 'active', taxId: '', contactName: '', phone: '', email: '', address: '', city: '', country: '', website: '', products: '', contractEndsOn: '', approvalStatus: '', evaluationMonths: '', notes: '', departmentIds: [], certifications: [], evaluations: [], nonconformities: [], contacts: [] }
 }
 export function supplierProblems(supplier, language = 'el') {
   const en = language === 'en'

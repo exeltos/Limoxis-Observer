@@ -66,6 +66,8 @@ export function normalizeLaboratorySample(row = {}) {
     location: row.location ?? '',
     point: row.point ?? '',
     environmentalBatchId: row.environmentalBatchId ?? row.environmental_batch_id ?? null,
+    environmentalPlate: row.environmentalPlate ?? row.environmental_plate ?? '',
+    environmentalPosition: row.environmentalPosition ?? row.environmental_position ?? '',
     microbiologyResults,
     documentsReviewedAt: row.documentsReviewedAt ?? row.documents_reviewed_at ?? null,
     finalizedAt: row.finalizedAt ?? row.finalized_at ?? null,
@@ -91,6 +93,13 @@ export function computeTurnaroundHours(sample) {
   const endMs = new Date(end).getTime()
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null
   return (endMs - startMs) / 3600000
+}
+
+// Hours a sample without an outcome has been waiting since collection (null when unknown).
+export function waitingHours(sample, now = Date.now()) {
+  const start = new Date(sample?.collectedAt ?? sample?.requestedAt ?? '').getTime()
+  if (!Number.isFinite(start) || start > now) return null
+  return (now - start) / 3600000
 }
 
 export function formatTurnaround(hours, language = 'el') {

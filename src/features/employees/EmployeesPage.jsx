@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Building2,Plus,Upload,UserCheck,Users,UserX } from 'lucide-react'
+import { Plus,Upload,UserCheck,UserPlus,Users,UserX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -11,7 +11,7 @@ import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { MetricCard } from '../../design-system/MetricCard'
+import { KpiFigures } from '../../design-system/KpiCard'
 import { useEmployeesData } from './useEmployeesData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Button } from '../../design-system/Button'
@@ -29,7 +29,7 @@ export function EmployeesPage(){
   const canImport=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,membership?.capabilities??[],membership?.customCapabilities??[])
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
-  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||x.employmentStatus===status),[employeeRows,query,department,status,language,canAccessRecord])
+  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)),[employeeRows,query,department,status,language,canAccessRecord])
   useEffect(()=>setPage(1),[query,department,status,pageSize])
   const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>
@@ -41,20 +41,19 @@ export function EmployeesPage(){
     active:scopedEmployees.filter(x=>x.employmentStatus==='active').length,
     inactive:scopedEmployees.filter(x=>x.employmentStatus==='inactive').length,
     departments:new Set(scopedEmployees.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean)).size,
+    newHires:scopedEmployees.filter(isNewHire).length,
   }
+  const toggle=value=>()=>setStatus(status===value?'all':value)
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
-    <div className="workspace-summary employee-registry-summary">
-      <div className="employee-kpis">
-        <Kpi icon={Users} value={employeeSummary.total} label={t('all')} filter="all" current={status} onFilter={setStatus}/>
-        <Kpi icon={UserCheck} value={employeeSummary.active} label={t('employeesRecords.activeEmployees')} kind="active" filter="active" current={status} onFilter={setStatus}/>
-        <Kpi icon={UserX} value={employeeSummary.inactive} label={t('inactive')} filter="inactive" current={status} onFilter={setStatus}/>
-        <Kpi icon={Building2} value={employeeSummary.departments} label={t('employeesRecords.departments')}/>
-      </div>
-    </div>
+    <KpiFigures label={t('employees')} figures={[
+      {key:'active',icon:UserCheck,value:employeeSummary.active,label:t('employeesRecords.activeEmployees'),hint:t('employeesRecords.departmentsNote').replace('{count}',employeeSummary.departments),active:status==='active',go:toggle('active')},
+      {key:'inactive',icon:UserX,value:employeeSummary.inactive,label:t('inactive'),active:status==='inactive',go:toggle('inactive')},
+      {key:'new',icon:UserPlus,value:employeeSummary.newHires,label:t('employeesRecords.newHires'),active:status==='new',go:toggle('new')},
+    ]}/>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={clearFilters}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
@@ -71,5 +70,5 @@ export function EmployeesPage(){
     {importOpen&&<EmployeeImportDialog existing={employeeRows} language={language} onClose={()=>setImportOpen(false)} onImported={reload}/>}
   </Page>
 }
-// A card with a status filter narrows the registry to it; clicking it again shows everyone.
-function Kpi({icon:Icon,value,label,kind='',filter,current,onFilter}){const active=Boolean(filter)&&filter!=='all'&&current===filter;return <MetricCard icon={Icon} value={value} label={label} tone={kind||'neutral'} active={active} onClick={filter&&onFilter?()=>onFilter(active?'all':filter):undefined}/>}
+// Hired in the last 12 months (by the hire date, in Athens time as a calendar day).
+function isNewHire(row){if(!row.hireDate)return false;const from=new Date();from.setFullYear(from.getFullYear()-1);return String(row.hireDate).slice(0,10)>=`${from.getFullYear()}-${String(from.getMonth()+1).padStart(2,'0')}-${String(from.getDate()).padStart(2,'0')}`}

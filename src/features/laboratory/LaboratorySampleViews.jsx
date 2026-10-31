@@ -1,7 +1,8 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
+import { limitAssessment, resultLimit } from './environmentalLimit'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { AlertTriangle } from 'lucide-react'
-import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
+import { DetailList } from '../../design-system/DetailList'
 import { methodLabel } from './laboratorySampleFormat'
 import { LaboratoryStatus } from './LaboratoryStatus'
 
@@ -18,7 +19,9 @@ export function ResultCard({
   menu,
   emptyState = null,
 }) {
-  const hasLimit = standard?.limitCfu != null && standard?.limitCfu !== ''
+  // The limit the result was assessed with, or the protocol's: a result without either has no assessment.
+  const limit = resultLimit(result, standard)
+  const hasLimit = limit != null
   const title = isEnvironmental
     ? t('laboratoryRecords.environmentalResult')
     : t('laboratoryRecords.resultAndOrganism')
@@ -28,11 +31,11 @@ export function ResultCard({
       {isEnvironmental && (
         <div className={`smart-protocol-strip ${hasLimit ? 'configured' : 'missing'}`}>
           <div>
-            <strong>{standard?.protocolCode || tx('noProtocol')}</strong>
+            <strong>{standard?.protocolCode || (hasLimit ? tx('assessedLimit') : tx('noProtocol'))}</strong>
             {hasLimit && (
               <span>
                 {' '}
-                · {standard.limitCfu} {standard.unit || 'CFU'}
+                · {limit} {standard?.unit || 'CFU'}
               </span>
             )}
           </div>
@@ -40,9 +43,7 @@ export function ResultCard({
         </div>
       )}
       {emptyState && !(result?.result || organisms.length) ? emptyState : result ? (
-        <RecordDetailsGrid
-          className="laboratory-summary-grid lab-result-grid"
-          fields={[
+        <DetailList className="lab-result-details" sections={[{ items: [
             {
               id: 'result',
               label: t('result'),
@@ -60,7 +61,7 @@ export function ResultCard({
               label: tx('organisms'),
               value: organisms.length ? organisms.join(', ') : null,
             },
-            { id: 'method', label: tx('method'), value: methodLabel(result.method, language) },
+            { id: 'method', label: tx('method'), value: methodLabel(result.method, language), hidden: !result.method },
             {
               id: 'status',
               label: tx('status'),
@@ -81,13 +82,13 @@ export function ResultCard({
               id: 'assessment',
               label: tx('assessment'),
               value:
-                result.withinLimit === true
+                limitAssessment(result, standard) === true
                   ? tx('within')
-                  : result.withinLimit === false
+                  : limitAssessment(result, standard) === false
                     ? tx('outside')
                     : tx('noLimit'),
             },
-          ].filter(Boolean)}
+          ].filter(field => field && !field.hidden).map(field => ({ label: field.label, value: field.meta ? <>{field.value}{' '}{field.meta}</> : field.value })) }]}
         />
       ) : (
         <div className="lab-table-empty lab-result-empty">{tx('noResult')}</div>

@@ -1,6 +1,6 @@
 # Limoxis Observer — οδηγίες για τον Claude
 
-Πλατφόρμα πρόληψης λοιμώξεων και ποιότητας νοσοκομείων. React 18 + React Router 7 + Vite, Supabase (Postgres, RLS, Edge Functions στο Deno, Storage). Το UI είναι ελληνικό με πλήρη αγγλική ισοτιμία. Περισσότερα στο `README.md` και στο `docs/` (`ARCHITECTURE.md`, `AUTHORIZATION_MODEL.md`, `DATA_MODEL.md`, `CSS_ARCHITECTURE.md`, `PLATFORM_FLOW.md`).
+Πλατφόρμα πρόληψης λοιμώξεων και ποιότητας νοσοκομείων. React 18 + React Router 7 + Vite, Supabase (Postgres, RLS, Edge Functions στο Deno, Storage). Το UI είναι ελληνικό με πλήρη αγγλική ισοτιμία. Περισσότερα στο `README.md` και στο `docs/` (`ARCHITECTURE.md`, `AUTHORIZATION_MODEL.md`, `DATA_MODEL.md`, `CSS_ARCHITECTURE.md`, `PLATFORM_FLOW.md`). **Εκκρεμότητες και σημείο συνέχειας: `docs/PENDING.md` — διάβασέ το πρώτο σε νέα συνεδρία.**
 
 ## Δομή
 - `src/app` — router, κέλυφος (AppShell, πάνω μπάρα), μενού (`navigation.js`, `SidebarNavigation.jsx`), `routePreload.js`.
@@ -30,6 +30,7 @@
 ## Κανόνες του repo
 - **Μην αναμορφώνεις αρχεία συνολικά** (Prettier/format): πολλά τεστ ελέγχουν κυριολεκτικά το κείμενο του πηγαίου κώδικα. Κράτα τις αλλαγές μικρές και στο ύφος του κώδικα γύρω τους.
 - Κάθε ορατό κείμενο έχει ελληνικά και αγγλικά. Τα ονόματα ρόλων έχουν μία πηγή: `src/core/permissions/roleLabels.js`.
+- **Μενού «⋯» εγγραφής:** πάντα πάνω δεξιά στην κάρτα της εγγραφής (Επεξεργασία, Διόρθωση, Απόρριψη, Διαγραφή μαζί), ποτέ στην κεφαλίδα. Το `EntityRecordShell` το βάζει εκεί αυτόματα για τα `headerActions` τύπου Επεξεργασία/Διαγραφή· ο έλεγχος είναι στο `tests/recordMenuPlacement.test.js`.
 - Νέα ενότητα ή καρτέλα: καταχώριση στο μενού/διαδρομές, εγγραφή στο `helpGuide.js` (what/users/analysis/start), module και capability στο `operatingProfile.js`.
 - Η ασφάλεια ζει στη βάση: κάθε πίνακας έχει `organization_id` και RLS. Η απόκρυψη στο UI είναι μόνο διευκόλυνση. Τα κλειδωμένα modules κόβονται και στη βάση (restrictive πολιτικές `<πίνακας>_module_gate`).
 - Demo και παραγωγή είναι ξεχωριστά: το demo δεν χρησιμοποιείται σιωπηλά στην παραγωγή. Κάθε οθόνη πρέπει να δουλεύει και με `?helpEmpty=1` (άδειο νοσοκομείο).

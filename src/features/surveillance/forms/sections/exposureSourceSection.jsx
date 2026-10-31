@@ -3,6 +3,7 @@ import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { countSourceExposuresAsync } from '../../../occupational-health/exposureIncidentService'
+import { FormLine } from '../FormSection'
 
 // «Πηγή έκθεσης για N εργαζόμενους»: on the episode of the source patient, a number and nothing
 // else (never names). It is read through surveillance_case_exposure_count, so it needs no right
@@ -15,19 +16,19 @@ function ExposureSourceLine({ ctx, section }) {
   const count = Number(section.value) || 0
   if (!count) return null
   return (
-    <div className="episode-outbreak">
-      <p className="episode-outbreak-line">
-        <ShieldAlert size={15} aria-hidden="true" />
-        <span>
-          <strong>{t('episodeForms.exposureSource.label')}:</strong> {count} {count === 1 ? t('episodeForms.exposureSource.one') : t('episodeForms.exposureSource.many')}
-        </span>
-        {canOpenExposures(ctx) && (
+    <FormLine
+      id="exposureSource"
+      icon={ShieldAlert}
+      title={t('episodeForms.exposureSource.label')}
+      summary={`${count} ${count === 1 ? t('episodeForms.exposureSource.one') : t('episodeForms.exposureSource.many')}`}
+      action={
+        canOpenExposures(ctx) && (
           <button type="button" className="episode-form-link" onClick={() => ctx.goTo('/occupational-health', { returnTab: 'episodeForms' })}>
             {t('episodeForms.exposureSource.view')}
           </button>
-        )}
-      </p>
-    </div>
+        )
+      }
+    />
   )
 }
 

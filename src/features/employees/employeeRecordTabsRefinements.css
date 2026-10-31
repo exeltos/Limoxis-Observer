@@ -157,3 +157,8 @@
 /* Occupational health sub-navigation (visits / vaccinations / exposures). */
 .employee-health-tab{display:flex;flex-direction:column;gap:12px;min-height:0;flex:1}
 .employee-health-tab>.record-section{flex:1;min-height:0}
+/* «Details»: the record card is the body itself, so the basic details are a flat list to its
+   edges (as in Prevention and Controls), one heading, row lines only. !important only to undo the framed .record-section of foundation.css. */
+.employee-record-shell .employee-details-overview:is(section,#lo-employee-details){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
+.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit):is(div,#lo-employee-details){border:0!important;border-radius:0!important;padding:0!important}
+.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding-left:0!important;background:transparent!important}

@@ -16,7 +16,7 @@ describe('clinical route isolation',()=>{
 
   it('opens a patient row from Surveillance in the unified patient folder',()=>{
     expect(route).toContain("location.state?.limoxisFrom?.registry === 'surveillance-patients'")
-    expect(route).toContain('repository.loadCase(caseId)')
+    expect(route).toContain('.loadCase(caseId)')
     expect(route).toContain('to={`/patients/${target.patientRecordId}`}')
     expect(route).toContain('admissionId: target.admissionId')
   })

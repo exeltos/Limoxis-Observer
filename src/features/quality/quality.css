@@ -1,6 +1,4 @@
 /* Deviations queue, CAPA steps and prefilled steps on CAPA creation. */
-.quality-capa-steps .record-section-header p{margin:2px 0 0;font-size:11.5px;color:var(--lo-color-muted)}
-.quality-steps-overdue{color:#b42318}
 .quality-steps-progress{display:block;width:160px;height:7px;border-radius:999px;background:#e8eef3;overflow:hidden}
 .quality-steps-progress span{display:block;height:100%;background:#2f8a57}
 .quality-steps-table{margin-top:8px}
@@ -9,22 +7,17 @@
 .quality-step-menu-col{width:44px;text-align:right}
 .quality-step-done td strong{color:var(--lo-color-muted);text-decoration:line-through}
 .data-table td.quality-step-overdue{color:#b42318;font-weight:700}
-.quality-step-add{display:grid;grid-template-columns:minmax(220px,2fr) minmax(150px,1fr) 170px auto;gap:8px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--lo-color-border)}
-.quality-step-add>input{height:38px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:9px;font:inherit;font-size:12px}
-@media(max-width:900px){.quality-step-add{grid-template-columns:1fr}}
 /* Steps a CAPA starts with (from a control's deviation actions or a training). */
 .quality-prefill-steps{display:grid;gap:4px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
 /* New incident report (IncidentReportPage.jsx): three steps, the footer in reach. */
 .quality-report-form{display:flex;flex-direction:column;gap:12px;max-width:1100px;width:100%;margin:0 auto}
-.quality-report-hint{margin-top:-6px;font-size:11.5px;color:var(--lo-color-muted)}
-.quality-report-description{margin:0;padding:10px 12px;border-radius:8px;background:var(--lo-color-surface-muted);font-size:13px;line-height:1.5;white-space:pre-line;color:var(--lo-color-text)}
 .quality-report-footer{position:sticky;bottom:0;z-index:2;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
-.quality-report-step{margin-right:auto;font-size:12px;color:var(--lo-color-muted)}
+/* The shared detail-screen footer rule makes it transparent; this one sticks over the form, so it needs its own background. */
+.quality-record-shell.canonical-detail-screen .quality-report-footer{bottom:-14px;background:var(--lo-color-surface)!important;padding-bottom:26px!important}
 .quality-report-done{display:grid;justify-items:center;gap:8px;max-width:560px;margin:40px auto;padding:28px 24px;text-align:center;border:1px solid var(--lo-status-success-border);border-radius:14px;background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
 .quality-report-done>strong{font-size:16px;color:var(--lo-color-text)}
 .quality-report-done>span,.quality-report-done>p{margin:0;font-size:13px;color:var(--lo-color-text)}
 .quality-report-done .row-actions{margin-top:8px}
-.quality-report-title{font-size:15px;color:var(--lo-color-text)}
 
 .quality-table td:first-child>strong{white-space:nowrap}
 .quality-record-shell .record-section:is(.quality-report-form,.quality-create-form){border:0;background:transparent;box-shadow:none;padding:14px}
@@ -79,17 +72,12 @@
 .quality-deviation-table td:first-child>small{white-space:nowrap}
 .quality-register-table td>small.quality-overdue-text,.quality-audits-table td>small.quality-overdue-text{display:block;color:var(--lo-status-warning-fg);font-weight:700}
 .quality-register-table td:first-child .status-badge{margin-top:3px}
-.quality-register-actions{flex-wrap:nowrap;justify-content:flex-start;gap:6px}
-.quality-register-deviation{background:var(--lo-status-warning-bg)}
-.quality-register-deviation td{cursor:default}
+td.quality-register-actions{width:48px;text-align:right}
 /* Audits (QualityAuditParts.jsx): checklist preview, the checklist tab and the year programme. */
 .quality-audit-preview{display:grid;gap:3px;margin:0;padding-left:18px;font-size:12.5px;color:var(--lo-color-text)}
 .quality-audit-preview .is-more{list-style:none;margin-left:-18px;color:var(--lo-color-muted)}
 .quality-audit-findings{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
 .quality-audit-findings>span{flex:1 1 260px}
-.quality-audit-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--lo-color-border);background:var(--lo-color-surface)}
-.quality-audit-score{margin-right:auto;font-size:12.5px;color:var(--lo-color-muted)}
-.quality-audit-score strong{color:var(--lo-color-text)}
 
 /* Quality objectives and management review (Phase 4b) */
 .review-minutes .record-tab-panel-body>.lo-form-cards{padding:14px 20px 16px}
@@ -120,6 +108,7 @@
 /* Quality Center (QualityPage.jsx): each tab's figures in one row, as many columns as figures. */
 .module-summary-strip.quality-kpis{grid-template-columns:repeat(var(--quality-kpis,4),minmax(0,1fr))!important}
 .quality-kpis>*{min-height:64px}
+.lo-kpi-strip.quality-kpis.quality-kpis-quarter{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:1100px){.module-summary-strip.quality-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:600px){.module-summary-strip.quality-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 /* A report's stage: five marks of the flow and the stage's label. */
@@ -142,10 +131,8 @@
 .quality-chip>small{font-size:9.5px;font-weight:600;white-space:normal;line-height:1.15}
 .quality-chip.is-danger{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
 .quality-chip.is-warning{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
-.quality-breakdowns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media(max-width:1100px){.quality-breakdowns{grid-template-columns:minmax(0,1fr)}}
 .quality-bars{display:grid;gap:6px;margin:0;padding:0;list-style:none}
-.quality-bars>li{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(80px,2fr) 32px 36px;align-items:center;gap:10px;font-size:12px;color:var(--lo-color-text)}
+.quality-bars>li{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(80px,2fr) 32px 52px;align-items:center;gap:10px;font-size:12px;color:var(--lo-color-text)}
 .quality-bars>li>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .quality-bars>li>strong{text-align:right}
 .quality-bars>li>small{color:var(--lo-color-muted);font-size:10.5px}
@@ -187,48 +174,21 @@
 
 /* Audit programme (QualityAuditParts.jsx): departments down, months across. */
 .quality-programme{display:flex;flex-direction:column;gap:12px;min-height:0;padding:12px 14px;overflow:auto}
-.quality-programme-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
-.quality-programme-title{display:inline-flex;align-items:center;gap:8px;color:var(--lo-color-text)}
-.quality-programme-summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface-muted)}
+.quality-programme-summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:0 0 10px;border-bottom:1px solid #edf1f4}
 .quality-programme-progress{display:grid;gap:5px;min-width:180px;font-size:12.5px;color:var(--lo-color-text)}
 .quality-programme-progress strong{font-size:15px}
 .quality-programme-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0;padding:0;list-style:none;font-size:12px;color:var(--lo-color-muted)}
 .quality-programme-legend li{display:inline-flex;align-items:center;gap:6px}
 .quality-programme-legend strong{color:var(--lo-color-text)}
-.quality-programme-dot{display:inline-block;width:10px;height:10px;border-radius:3px}
+.quality-programme-dot{display:inline-block;width:16px;height:18px;border-radius:4px}
+.quality-programme-legend .quality-programme-dot{width:10px;height:10px;border-radius:3px}
 .quality-programme-coverage{display:grid;gap:1px;margin-left:auto;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-status-success-fg);font:inherit;font-size:12px;font-weight:700;text-align:left;cursor:pointer}
 .quality-programme-coverage.is-gap{border-color:var(--lo-status-warning-border,#f0c27b);color:var(--lo-status-warning-fg)}
 .quality-programme-coverage small{font-size:11px;font-weight:600;color:var(--lo-color-primary)}
-.quality-programme-scroll{overflow-x:auto;border:1px solid var(--lo-color-border);border-radius:10px}
-.quality-programme-grid{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:12px}
-.quality-programme-grid th,.quality-programme-grid td{border-bottom:1px solid var(--lo-color-border);border-right:1px solid var(--lo-color-border);vertical-align:top}
-.quality-programme-grid tr:last-child>*{border-bottom:0}
-.quality-programme-grid tr>*:last-child{border-right:0}
-.quality-programme-grid thead th{position:sticky;top:0;z-index:1;padding:7px 4px;background:var(--lo-color-surface-muted);color:var(--lo-color-muted);font-size:11px;font-weight:800;text-transform:capitalize;text-align:center}
-.quality-programme-grid thead th:first-child{width:190px;text-align:left;padding-left:10px}
-.quality-programme-grid thead th.is-now{background:var(--lo-color-primary);color:var(--lo-color-surface)}
-.quality-programme-grid tbody th{position:sticky;left:0;z-index:1;padding:7px 10px;background:var(--lo-color-surface);text-align:left;font-weight:700;color:var(--lo-color-text)}
-.quality-programme-grid tbody th>span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.quality-programme-grid tbody th>small{display:block;font-size:10.5px;font-weight:500;color:var(--lo-color-muted)}
-.quality-programme-grid tr.is-gap>th{box-shadow:inset 3px 0 0 var(--lo-status-warning-fg)}
-.quality-programme-grid tr.is-gap>th>small{color:var(--lo-status-warning-fg);font-weight:700}
-.quality-programme-grid td{position:relative;height:46px;padding:4px;background:var(--lo-color-surface)}
-.quality-programme-grid td.is-now{background:var(--lo-color-primary-soft)}
-.quality-programme-chip{display:grid;gap:1px;width:100%;margin-bottom:3px;padding:3px 5px;border:1px solid transparent;border-radius:6px;font:inherit;font-size:10.5px;text-align:left;cursor:pointer;overflow:hidden}
-.quality-programme-chip>strong{flex:0 0 auto;font-size:11px}
-.quality-programme-chip>span{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.2;font-size:9.5px;font-weight:600}
-.quality-programme-chip:hover{border-color:currentColor}
-.quality-programme-chip.is-done,.quality-programme-dot.is-done{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
-.quality-programme-chip.is-late,.quality-programme-dot.is-late{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
-.quality-programme-chip.is-running,.quality-programme-dot.is-running{background:var(--lo-status-info-bg,#e6f0fb);color:var(--lo-status-info-fg,#1f5fae)}
-.quality-programme-chip.is-planned,.quality-programme-dot.is-planned{background:var(--lo-color-surface);border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
-.quality-programme-chip.is-cancelled,.quality-programme-dot.is-cancelled{background:var(--lo-color-surface-muted);color:var(--lo-color-muted);text-decoration:line-through}
+.quality-programme-scroll{overflow-x:auto;border:1px solid var(--lo-color-border);border-radius:12px}
 .quality-programme-dot.is-done,.quality-programme-dot.is-late,.quality-programme-dot.is-running,.quality-programme-dot.is-cancelled{border:1px solid currentColor}
 .quality-programme-dot.is-planned{border:1px solid var(--lo-color-primary)}
-.quality-programme-add{position:absolute;inset:4px;display:grid;place-items:center;border:1px dashed transparent;border-radius:6px;background:transparent;color:transparent;cursor:pointer}
-.quality-programme-add:hover,.quality-programme-add:focus-visible{border-color:var(--lo-color-primary);color:var(--lo-color-primary)}
 .quality-programme-empty{padding:18px!important;text-align:center;color:var(--lo-color-muted)}
-.quality-programme-hint{margin:0;font-size:11.5px;color:var(--lo-color-muted)}
 
 /* Department meetings (meetings/MeetingRecordPage.jsx). */
 .meeting-carried{display:grid;gap:6px;margin:0;padding:0;list-style:none}
@@ -238,7 +198,191 @@
 @media (max-width:1100px){.review-action-row.meeting-person-row{grid-template-columns:1fr 1fr}}
 
 /* Optional English translation of a record (title, description), folded under «Αγγλική μετάφραση». */
-.quality-english-more{grid-column:1/-1}
-.quality-english-more .lo-more-section-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px;margin-bottom:8px}
-@media (max-width:760px){.quality-english-more .lo-more-section-body{grid-template-columns:minmax(0,1fr)}}
-.quality-english-more .lo-more-section-body[hidden]{display:none}
+
+/* The reports inbox: one summary line and two chips instead of boxes (as in Controls). */
+.quality-summary-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;margin:0 0 10px;padding:0 4px;font-size:13px;color:var(--lo-color-muted)}
+.quality-summary-line>button{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer}
+.quality-summary-line>button:hover,.quality-summary-line>button:focus-visible{color:var(--lo-color-primary);text-decoration:underline}
+.quality-summary-line b{font-size:14px;color:var(--lo-color-text)}
+.quality-summary-line .is-late b{color:var(--lo-status-danger-fg)}
+.quality-summary-line>button.is-active{color:var(--lo-color-primary);text-decoration:underline}
+.quality-finding-next{display:flex;align-items:center;gap:12px;border-top:0;padding:4px 0 12px}
+.quality-finding-next>button{width:auto}
+.quality-summary-line>span.is-late{color:var(--lo-status-danger-fg);font-weight:700}
+.quality-record-line{margin:0 0 14px;padding:0}
+.quality-sentinel-banner button{margin-left:auto;flex:0 0 auto}
+.governance-banner.warning.quality-sentinel-banner button svg{color:#fff!important}
+
+/* A record being edited: three columns, the footer at the end of the form (not floating over the fields). */
+.quality-record-shell .quality-record-details.is-editing .quality-detail-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px 16px!important}
+.quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide,.quality-record-details.is-editing .quality-detail-grid>.quality-detail-owner,.quality-record-details.is-editing .quality-detail-grid>.quality-edit-note{grid-column:1/-1}
+.quality-record-details.is-editing .quality-edit-note{margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+.quality-record-details.is-editing .quality-edit-note strong{color:var(--lo-color-text)}
+.quality-record-shell .quality-record-details.is-editing .inline-edit-footer{position:static!important;margin:16px 0 0!important;padding:12px 0 0!important;box-shadow:none!important;background:none!important}
+.quality-record-details.is-editing .quality-investigation-grid textarea{min-height:64px}
+.quality-record-shell:has(.quality-record-details.is-editing) .quality-next-step{display:none}
+.quality-record-shell .quality-record-details.is-editing .lo-checkbox-field.lo-checkbox-field>input[type="checkbox"]{width:20px!important;min-width:20px!important;height:20px!important;min-height:20px!important;padding:0!important;border-radius:5px!important}
+.quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide.detail-item{min-height:0;padding:0}
+.quality-record-details.is-editing .quality-detail-grid>.quality-edit-wide .lo-checkbox-field{min-height:28px!important}
+.quality-record-shell .quality-record-details.is-editing .quality-detail-grid{padding-bottom:6px!important}
+.quality-report-files{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px}
+.quality-report-files li{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--lo-color-border);border-radius:8px;font-size:13px}
+.quality-report-files li>span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quality-report-files li>small{color:var(--lo-color-muted)}
+.quality-report-files li>button{border:0;background:none;cursor:pointer;color:var(--lo-color-muted);display:grid;place-items:center}
+.quality-report-wide{grid-column:1/-1}
+/* The report form: labels and fields of one row share one line (department, date, time; severity, owner). */
+.quality-report-form .lo-form-grid{align-items:start!important}
+.quality-report-form .lo-form-grid>*{display:flex;flex-direction:column;gap:0;margin:0!important}
+.record-section.quality-report-form .lo-form-grid.cols-3>*>label{display:block!important;box-sizing:border-box;height:28px!important;line-height:16px!important;padding:0 0 12px!important}
+.record-section.quality-report-form .lo-form-grid.cols-3.lo-form-grid>*>span.lo-field-label{display:block!important;height:16px!important;line-height:16px!important;padding:0!important;box-sizing:border-box}
+.quality-report-form .lo-form-grid :is(input:not([type="checkbox"]),select,button.searchable-select-trigger){height:40px!important;min-height:40px!important;box-sizing:border-box}
+.quality-report-form .lo-form-grid .time-field-control{margin-top:1px}
+.quality-report-pair.lo-form-grid>*:first-child>label{display:block;height:24px;padding-bottom:5px;box-sizing:border-box}
+.quality-record-stack{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:auto}
+.quality-record-stack>.record-section{flex:0 0 auto;overflow:visible;height:auto}
+.rca-empty{margin:0 0 12px;color:var(--muted)}
+.quality-record-stack>.record-section{border:0;box-shadow:none;background:none;padding:0 2px}
+.quality-record-stack>.record-section+.record-section{padding-top:16px;border-top:1px solid var(--lo-color-border)}
+
+.quality-programme-summary{align-items:center}
+.quality-programme-progress{display:grid;gap:5px;min-width:200px;font-size:12.5px;color:var(--lo-color-muted)}
+.quality-programme-bar{display:block;height:6px;border-radius:999px;background:#e9eef3;overflow:hidden}
+.quality-programme-bar>i{display:block;height:100%;border-radius:inherit;background:var(--lo-status-success-fg)}
+.quality-programme-progress strong{font-size:14px;color:var(--lo-color-text)}
+.quality-programme-table{width:100%;border-collapse:collapse;font-size:13px}
+.quality-programme-table th,.quality-programme-table td{padding:8px 12px;border-bottom:1px solid #edf1f4;text-align:left;vertical-align:middle}
+.quality-programme-table thead th{position:sticky;top:0;z-index:1;background:var(--lo-color-surface-subtle,#f4f7f9);font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--lo-color-muted)}
+.quality-programme-table tbody th{font-weight:600;color:#1d2939}
+.quality-programme-table tr.is-gap>th{box-shadow:inset 3px 0 0 var(--lo-status-warning-fg)}
+.quality-programme-table tr.is-clickable{cursor:pointer}
+.quality-programme-table tr.is-clickable:hover{background:var(--lo-color-primary-soft)}
+.quality-programme-table small{display:block;font-size:11px;color:var(--lo-color-muted)}
+.quality-programme-months{display:inline-flex;gap:4px}
+.quality-programme-months.is-head>span{width:16px;text-align:center;font-size:10.5px;letter-spacing:0}
+.quality-programme-months.is-head>span.is-now{color:var(--lo-color-primary);font-weight:800}
+.quality-programme-last{display:inline-flex;align-items:center;gap:8px}
+.quality-programme-table .quality-programme-rate{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700}
+.quality-programme-rate.is-success{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
+.quality-programme-rate.is-warning{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.quality-programme-rate.is-danger{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
+.quality-programme-count{display:inline-flex;align-items:center;gap:4px}
+.quality-programme-count>i{width:9px;height:9px;border-radius:999px;border:1.5px solid var(--lo-status-success-fg)}
+.quality-programme-count>i.is-on{background:var(--lo-status-success-fg)}
+.quality-programme-count>strong{margin-left:4px;font-size:12.5px}
+.quality-programme-dot.is-empty{background:#f2f5f8;border:1px solid transparent}
+.quality-programme-dot.is-now{box-shadow:0 0 0 2px var(--lo-color-primary-soft)}
+.quality-programme-plan{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border:1px dashed var(--lo-color-primary);border-radius:7px;background:none;font:inherit;font-size:12px;color:var(--lo-color-primary);cursor:pointer}
+.quality-programme-dot.is-done{background:var(--lo-status-success-fg);color:var(--lo-status-success-fg)}
+.quality-programme-dot.is-late{background:var(--lo-status-danger-fg);color:var(--lo-status-danger-fg)}
+.quality-programme-dot.is-running{background:var(--lo-status-warning-fg);color:var(--lo-status-warning-fg)}
+.quality-programme-dot.is-planned{background:var(--lo-color-surface);border:1px solid var(--lo-color-primary)}
+.quality-programme-dot.is-cancelled{background:var(--lo-color-surface-muted);color:var(--lo-color-muted)}
+.quality-programme-dot.is-done,.quality-programme-dot.is-late,.quality-programme-dot.is-running,.quality-programme-dot.is-cancelled{border:1px solid currentColor}
+.page-embedded.indicators-page{flex:1 1 auto;overflow:hidden}
+/* The steps and the progress notes: two panels one under the other, each as tall as its content. */
+.quality-record-stack>.quality-capa-panel{flex:0 0 auto!important;height:auto!important;min-height:auto!important}
+.quality-capa-panel>.record-tab-panel-body{flex:0 0 auto;overflow:visible}
+
+.quality-period-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:12px}
+.quality-period-options{display:inline-flex;border:1px solid var(--lo-color-border);border-radius:8px;overflow:hidden}
+.quality-period-options>button{border:0;background:var(--lo-color-surface);padding:6px 12px;font:inherit;cursor:pointer;color:var(--lo-color-text)}
+.quality-period-options>button+button{border-left:1px solid var(--lo-color-border)}
+.quality-period-options>button.is-active{background:#1f5fae;color:#fff}
+.quality-compare-toggle{width:auto}
+.quality-active-filters{display:inline-flex;flex-wrap:wrap;gap:6px}
+.quality-active-filters>button{border:1px solid var(--lo-color-border);background:var(--lo-color-surface-muted);border-radius:999px;padding:3px 10px;font:inherit;cursor:pointer;color:var(--lo-color-text)}
+.quality-active-filters>button.is-clear{background:none;border-color:transparent;text-decoration:underline;color:var(--lo-color-muted)}
+button.quality-column{border:0;background:none;padding:0;font:inherit;cursor:pointer}
+.quality-column>span{position:relative}
+.quality-column>span>b{position:absolute;left:0;bottom:0;width:100%;border-radius:4px 4px 0 0;background:rgba(42,120,214,.28)}
+.quality-column>span>i{position:relative}
+.quality-column.is-picked>span>i{background:#1b4f95}
+.quality-column.is-picked>em{font-weight:700;color:var(--lo-color-text)}
+.quality-bars>li>button{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;gap:10px;border:0;background:none;padding:2px 0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.quality-bars>li>button>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quality-bars>li>button>strong{text-align:right}
+.quality-bars>li.is-picked>button>span:first-child{font-weight:700}
+.quality-bars>li.is-picked .quality-bar>i{background:#1b4f95}
+.quality-bar{position:relative}
+.quality-bar>b{position:absolute;left:0;top:0;height:100%;border-radius:0 4px 4px 0;background:rgba(42,120,214,.28)}
+.quality-bar>i{position:relative}
+.quality-delta.is-up{color:#b3261e}
+.quality-delta.is-down{color:#1d7a3c}
+.quality-bars>li>small.quality-delta,.quality-bars>li>button>small.quality-delta{white-space:nowrap}
+.quality-period-summary{margin:0;font-size:12px;color:var(--lo-color-muted)}.quality-period-summary>b{color:var(--lo-color-text)}
+/* The incident's event details: a card like the one above it, its fields on the same inner edge. */
+.quality-record-details.is-editing .quality-event-section{margin-top:14px;padding:16px 16px 12px;border:1px solid #dfe7ee;border-radius:11px;background:#fbfcfd;display:grid;gap:14px}
+.quality-event-type{max-width:calc((100% - 32px)/3)}
+.quality-record-details.is-editing .quality-event-section .quality-subsection-heading{padding-bottom:6px}
+.quality-event-details{display:grid;gap:14px}
+.quality-files-row{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 14px;border:1px solid #dfe7ee;border-radius:11px;background:#fbfcfd;font-size:12.5px;color:var(--lo-color-muted)}
+.quality-files-row>strong{color:var(--lo-color-text);white-space:nowrap}
+.quality-files-row>.quality-files-list{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.quality-files-list>button{display:inline-flex;align-items:center;gap:5px;max-width:260px;padding:3px 10px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);font:inherit;color:var(--lo-color-text);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.quality-files-list>button:hover{border-color:var(--lo-color-primary)}
+.quality-files-list>em{font-style:normal}
+/* Overview: the two lists, then one «Reports» card with six small charts on a 3×2 grid, on one screen. */
+.quality-dash{display:grid;gap:12px}
+.quality-dash .quality-attention-list{gap:0}
+.quality-dash .quality-attention-list>li+li{border-top:1px solid #f0f3f6}
+.quality-dash .quality-attention-list button{padding:5px 6px}
+.quality-dash .quality-attention-list strong{font-size:12.5px;font-weight:600;color:#1d2939}
+.quality-dash-analysis{gap:0;padding:0;overflow:hidden}
+.quality-dash-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px;border-bottom:1px solid #edf1f4}
+.quality-dash-head>.quality-period-bar{margin-left:auto}
+.quality-dash-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.quality-dash-cell{display:grid;align-content:start;gap:10px;min-width:0;padding:12px 16px;border-right:1px solid #edf1f4;border-bottom:1px solid #edf1f4}
+.quality-dash-cell:nth-child(3n){border-right:0}
+.quality-dash-cell:nth-child(n+4){border-bottom:0}
+.quality-dash-cell>h4{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0;font-size:12.5px;font-weight:700;color:#344054}
+.quality-dash-cell>h4>small{font-size:11px;font-weight:500;color:var(--lo-color-muted)}
+.quality-dash-months .quality-columns{height:124px;gap:4px}
+.quality-dash .quality-bars{gap:4px}
+.quality-dash .quality-bars>li{grid-template-columns:minmax(90px,1.3fr) minmax(48px,1.3fr) 24px 34px;gap:8px}
+.quality-readiness-bars{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.quality-readiness-bars button{display:grid;grid-template-columns:64px minmax(0,1fr) 40px;align-items:center;gap:8px;width:100%;padding:2px 0;border:0;background:none;font:inherit;font-size:12px;color:var(--lo-color-text);text-align:left;cursor:pointer}
+.quality-readiness-bars strong{text-align:right}
+.quality-dash-links>.quality-panel-all{justify-self:start}
+.quality-readiness-bars .quality-bar>i{background:var(--lo-status-success-fg)}
+.quality-readiness-bars .quality-bar>i.is-low{background:var(--lo-status-warning-fg)}
+@media(max-width:1100px){.quality-dash-grid{grid-template-columns:minmax(0,1fr)}.quality-dash-cell{border-right:0;border-bottom:1px solid #edf1f4}}
+.quality-programme-months>span[role=button]{cursor:pointer}
+.quality-programme-months>span[role=button]:hover,.quality-programme-months>span[role=button]:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:1px}
+.quality-programme-table td.is-link{cursor:pointer}
+.quality-programme-table td.is-link:hover .quality-programme-last{color:var(--lo-color-primary);text-decoration:underline}
+.quality-programme-dot.is-cycle{box-shadow:0 0 0 2px var(--lo-color-surface),0 0 0 4px var(--lo-color-primary)}
+.quality-programme-months.is-head>span.is-cycle{color:var(--lo-color-primary);font-weight:800;box-shadow:inset 0 -2px 0 var(--lo-color-primary)}
+
+/* Programme: the round chips on the left, the print button on the right; a tick column to choose departments. */
+.quality-programme-printbar{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:8px 16px}
+.quality-programme-printbar>.audit-rounds{flex:1 1 auto;min-width:0}
+.quality-programme-print{display:inline-flex;flex:0 0 auto}
+.quality-programme-table th.quality-programme-pick,.quality-programme-table td.quality-programme-pick{width:34px;padding-right:0}
+.quality-programme-pick .lo-checkbox-field{min-height:0}
+.quality-self-end{display:inline-flex;align-items:center;gap:8px}
+.objective-record-shell .objective-record-meter{display:block;width:100%;max-width:none;margin:0 0 14px}
+.objective-history{width:100%;border-collapse:collapse;font-size:12.5px}
+.objective-history th{padding:6px 10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--lo-color-muted);border-bottom:1px solid var(--lo-color-border)}
+.objective-history td{padding:8px 10px;border-bottom:1px solid var(--lo-color-border)}
+
+/* An indicator's result: the value large, its facts beside it, the trend and how it is calculated below. */
+.indicator-result-hero{display:flex;flex-wrap:wrap;align-items:center;gap:18px 40px;padding:6px 2px 14px}
+.indicator-result-value{display:flex;align-items:baseline;gap:8px}
+.indicator-result-value strong{font-size:40px;line-height:1;font-weight:750;color:var(--lo-color-text)}
+.indicator-result-value span{font-size:15px;font-weight:600;color:var(--lo-color-muted)}
+.indicator-result-facts{display:flex;flex-wrap:wrap;gap:14px 34px}
+.indicator-result-facts>span{display:grid;gap:3px}
+.indicator-result-facts small,.indicator-result-trend>small,.indicator-result-formula>small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
+.indicator-result-facts b{font-size:15px}
+.indicator-result-facts b.is-late{color:var(--lo-status-danger-fg)}
+.indicator-result-facts b.is-good{color:var(--lo-status-success-fg)}
+.indicator-change{display:inline-flex;align-items:center;gap:3px}
+.indicator-change.is-better{color:var(--lo-status-success-fg)}
+.indicator-change.is-worse{color:var(--lo-status-danger-fg)}
+.indicator-result-trend{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--lo-color-border)}
+.indicator-result-empty{font-size:13px;color:var(--lo-color-muted)}
+.indicator-result-formula{display:grid;gap:4px;margin:0;padding:12px 0 2px;border-top:1px solid var(--lo-color-border);font-size:14px}
+.indicator-result-cell .indicator-no-data{font-size:13px;font-weight:600;color:var(--lo-color-muted)}
+.objective-history-compact{max-width:460px;margin-top:6px}
+.objective-history td.is-late{color:var(--lo-status-danger-fg);font-weight:600}

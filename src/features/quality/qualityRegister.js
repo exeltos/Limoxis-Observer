@@ -33,6 +33,8 @@ export function registerRows(incidents = [], deviations = [], capas = []) {
     status: record.status,
     severity: record.severity,
     sentinel: Boolean(record.sentinel),
+    reporter: record.anonymous || record.privacy === 'confidential' ? '' : record.reportedByLabel || record.reportedBy || '',
+    anonymous: Boolean(record.anonymous || record.privacy === 'confidential'),
     record,
   }))
   const pending = deviations.map(item => ({
@@ -62,7 +64,7 @@ export function registerRows(incidents = [], deviations = [], capas = []) {
 export function filterRegister(rows, { query = '', kind = 'all', source = 'all', status = 'all', stage = 'all', department = 'all', category = 'all', quick = null, language = 'el' } = {}) {
   const text = query.trim().toLowerCase()
   return rows
-    .filter(row => !text || `${row.code} ${row.title} ${row.titleEn} ${row.owner} ${row.department}`.toLowerCase().includes(text))
+    .filter(row => !text || `${row.code} ${row.title} ${row.titleEn} ${row.owner} ${row.department} ${row.reporter || ''}`.toLowerCase().includes(text))
     .filter(row => kind === 'all' || row.kind === kind)
     .filter(row => source === 'all' || row.source === source)
     .filter(row => status === 'all' || row.status === status)
@@ -80,4 +82,12 @@ export function registerCounts(rows) {
     deviations: rows.filter(row => row.type === 'deviation').length,
     stages: Object.fromEntries(INCIDENT_STAGES.map(id => [id, rows.filter(row => row.type === 'report' && row.stage === id).length])),
   }
+}
+
+// Reports no one has classified for `days` days or more (the reminder in the bell).
+export function staleReports(incidents = [], { today, days = 7 } = {}) {
+  const day = value => Date.parse(`${String(value).slice(0, 10)}T12:00:00Z`)
+  return registerRows(incidents, [], [])
+    .filter(row => row.kind === 'report' && row.stage === 'toAssess' && row.date)
+    .filter(row => Math.round((day(today) - day(row.date)) / 86400000) >= days)
 }

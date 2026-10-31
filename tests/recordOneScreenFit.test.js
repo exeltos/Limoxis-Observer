@@ -18,7 +18,8 @@ describe('Laboratory and Quality records fit one laptop screen', () => {
 
   it('uses shorter info rows in both records', () => {
     expect(withoutImportant(modules)).toContain('min-height:54px')
-    expect(withoutImportant(lab)).toMatch(/laboratory-summary-grid[^{]*>\.detail-item\{min-height:52px/)
+    // The laboratory result reads in the shared DetailList (label beside its value), as the sample details do.
+    expect(fs.readFileSync('src/features/laboratory/LaboratorySampleViews.jsx', 'utf8')).toContain('<DetailList')
   })
 
   it('keeps the record bodies scrollable as a fallback', () => {

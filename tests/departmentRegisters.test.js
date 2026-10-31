@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { apacheMortality, breakdown, computeIndicator, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
+import { apacheMortality, breakdown, computeIndicator, sheetCoverage, computeValues, daysBetween, fieldVisible, formatValue, gestationText, indicatorReport, keyFrom, monthlySeries, parseGestation, periodLabel, periodOf, shiftPeriod, validateEntry } from '../src/features/registers/registerEngine'
 import { REGISTER_TEMPLATES, registerFromTemplate } from '../src/features/registers/registerTemplates'
 import { demoRegisterEntries, demoRegisters } from '../src/features/registers/registerDemoData'
 
@@ -162,10 +162,132 @@ describe('periods and templates', () => {
     const { entries, identities } = demoRegisterEntries(today)
     const own = entries.filter(item => item.registerId === register.id)
     expect(own.length).toBeGreaterThan(200)
-    expect(Object.keys(identities).length).toBe(own.length)
+    expect(own.every(item => identities[item.id])).toBe(true)
     expect(own.every(item => !('patientName' in item.values))).toBe(true)
     const report = indicatorReport(register, own, periodOf('year', '2026-06-01'))
     for (const row of report) expect(row.current.value).not.toBeNull()
+  })
+})
+
+describe('the ICU register', () => {
+  it('keeps General and Cardiac surgery patients apart, each with its own marker', async () => {
+    const { caseMarker, registerThemeKey } = await import('../src/features/registers/registerThemes')
+    const register = demoRegisters().find(item => item.templateKey === 'icu')
+    expect(registerThemeKey(register)).toBe('icu')
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
+    const cardiac = own.filter(item => item.values.category === 'cardiac'), general = own.filter(item => item.values.category === 'general')
+    expect(cardiac.length).toBeGreaterThan(20)
+    expect(general.length).toBeGreaterThan(20)
+    expect(caseMarker(register, cardiac[0].values).tone).toBe('danger')
+    expect(caseMarker(register, general[0].values).tone).toBe('info')
+    expect(caseMarker(register, {})).toBeNull()
+  })
+  it('is recognised by its name too, and never mistaken for the NICU', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    expect(registerThemeKey({ name: 'Μητρώο ασθενών ΜΕΘ', nameEn: '', department: '' })).toBe('icu')
+    expect(registerThemeKey({ name: 'Μητρώο νεογνών ΜΕΝΝ', nameEn: '', department: '' })).toBe('nicu')
+    expect(registerThemeKey({ name: '', nameEn: 'NICU register', department: '' })).toBe('nicu')
+    expect(registerThemeKey({ name: 'Μέθοδοι', nameEn: '', department: 'Παθολογική' })).toBe('')
+  })
+})
+
+describe('SMR', () => {
+  it('divides the deaths by the deaths the APACHE II risks add up to', () => {
+    const icu = registerFromTemplate('icu')
+    const smr = icu.indicators.find(item => item.id === 'smr')
+    const risk = apacheMortality(30, true) / 100
+    const stay = outcome => ({ values: { admission_date: '2026-03-01', discharge_date: '2026-03-10', apache_score: 30, apache_postop: true, outcome } })
+    const result = computeIndicator(icu, smr, [stay('death'), stay('transfer_ward')], periodOf('month', '2026-03-10'))
+    expect(result.numerator).toBe(1)
+    expect(result.denominator).toBe(Number((2 * risk).toFixed(2)))
+    expect(result.value).toBe(Number((1 / (2 * risk)).toFixed(2)))
+    expect(result.small).toBe(true)
+  })
+  it('counts the pressure ulcers of the month of discharge', () => {
+    const icu = registerFromTemplate('icu')
+    const ulcers = icu.indicators.find(item => item.id === 'pressure_ulcers')
+    const row = { values: { admission_date: '2026-02-20', discharge_date: '2026-03-04', pressure_ulcer: true } }
+    expect(computeIndicator(icu, ulcers, [row], periodOf('month', '2026-03-10')).numerator).toBe(1)
+    expect(computeIndicator(icu, ulcers, [row], periodOf('month', '2026-02-10')).n).toBe(0)
+  })
+})
+
+describe('the paediatrics register', () => {
+  it('computes the rates per 1,000 days from the stays and the lines', () => {
+    const register = demoRegisters().find(item => item.templateKey === 'paediatrics')
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
+    expect(own.length).toBeGreaterThan(300)
+    expect(own.every(item => ['infant', 'toddler', 'child', 'adolescent'].includes(item.values.age_group))).toBe(true)
+    const report = indicatorReport(register, own, periodOf('year', '2026-03-10'))
+    for (const key of ['hai_rate', 'falls_rate', 'phlebitis_rate', 'isolation', 'mean_los']) expect(report.find(row => row.indicator.id === key).current.value).not.toBeNull()
+    const rate = report.find(row => row.indicator.id === 'hai_rate').current
+    expect(rate.value).toBe(Number(((rate.numerator / rate.denominator) * 1000).toFixed(2)))
+  })
+})
+
+describe('the obstetrics register', () => {
+  it('has its own look and a target on the caesarean rate in the demo', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    const register = demoRegisters().find(item => item.templateKey === 'obstetrics')
+    expect(registerThemeKey(register)).toBe('obstetrics')
+    expect(registerThemeKey({ name: 'Πράξεις Αίθουσας Τοκετών', nameEn: '', department: 'Μαιευτική', kind: 'sheet' })).toBe('deliveryroom')
+    const cs = register.indicators.find(item => item.id === 'cs_rate')
+    expect([cs.target, cs.threshold, cs.direction]).toEqual([55, 65, 'lower'])
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
+    expect(own.length).toBeGreaterThan(400)
+    expect(computeIndicator(register, cs, own, periodOf('year', '2026-03-10')).value).not.toBeNull()
+  })
+})
+
+describe('daily sheets', () => {
+  const endoscopy = registerFromTemplate('endoscopy')
+  const find = id => endoscopy.indicators.find(item => item.id === id)
+  const day = (periodStart, gastroscopy, ercp = 0) => ({ periodStart, values: { gastroscopy: { count: gastroscopy }, ercp: { count: ercp } } })
+  it('reads the mean per day and the days recorded from the daily sheets only', () => {
+    const entries = [{ periodStart: '2026-10-01', values: { gastroscopy: { count: 90 } } }, day('2026-11-02', 4), day('2026-11-03', 6, 1)]
+    expect(computeIndicator(endoscopy, find('daily_mean'), entries, periodOf('month', '2026-11-10')).value).toBe(5.5)
+    expect(computeIndicator(endoscopy, find('days_recorded'), entries, periodOf('month', '2026-11-10')).value).toBe(2)
+    // A month recorded as one total has no day to average: nothing, not a wrong number.
+    expect(computeIndicator(endoscopy, find('daily_mean'), entries, periodOf('month', '2026-10-10')).value).toBeNull()
+    expect(computeIndicator(endoscopy, find('days_recorded'), entries, periodOf('month', '2026-10-10')).value).toBeNull()
+    expect(computeIndicator(endoscopy, find('total'), entries, periodOf('month', '2026-10-10')).value).toBe(90)
+  })
+  it('shares the advanced procedures over all the procedures', () => {
+    const result = computeIndicator(endoscopy, find('advanced_share'), [day('2026-11-02', 9, 1)], periodOf('month', '2026-11-10'))
+    expect(result.value).toBe(10)
+  })
+  it('keeps the daily-only mark when the definition goes to the database and back', async () => {
+    const { registerFromRows, registerRow, definitionRows } = await import('../src/features/registers/registerCloud')
+    const rows = definitionRows(endoscopy, 'org-1')
+    expect(rows.indicators.find(row => row.key === 'daily_mean').daily_only).toBe(true)
+    expect(rows.indicators.find(row => row.key === 'total').daily_only).toBe(false)
+    expect(typeof registerFromRows).toBe('function')
+    expect(typeof registerRow).toBe('function')
+  })
+})
+
+describe('the day a sheet starts being daily', () => {
+  it('takes a month as its first day and any date as it is', async () => {
+    const { dailyStart, DAILY_SHEETS_FROM } = await import('../src/features/registers/registerEngine')
+    expect(DAILY_SHEETS_FROM).toBe('2026-11-01')
+    expect(dailyStart(undefined)).toBe('2026-11-01')
+    expect(dailyStart('2026-10')).toBe('2026-10-01')
+    expect(dailyStart('2026-10-31')).toBe('2026-10-31')
+  })
+  it('splits a month at the start: its single total before, the days from it', () => {
+    const ed = { ...registerFromTemplate('emergency'), sheet: { ...registerFromTemplate('emergency').sheet, dailyFrom: '2026-10-31' } }
+    const total = ed.indicators.find(item => item.id === 'total')
+    const entries = [{ periodStart: '2026-10-01', values: { surgical: { morning: 100 } } }, { periodStart: '2026-10-31', values: { surgical: { morning: 5 } } }]
+    expect(computeIndicator(ed, total, entries, periodOf('month', '2026-10-10')).value).toBe(105)
+    // The month is cut by the start: no coverage line, rather than a wrong one.
+    expect(sheetCoverage(entries, periodOf('month', '2026-10-10'), '2026-10-31', '2026-10-31')).toBeNull()
+    expect(sheetCoverage(entries, periodOf('month', '2026-11-10'), '2026-11-05', '2026-10-31')).toEqual({ unit: 'day', recorded: 0, expected: 5 })
+  })
+  it('keeps the start when the definition goes to the database', async () => {
+    const { registerRow } = await import('../src/features/registers/registerCloud')
+    const ed = { ...registerFromTemplate('emergency'), sheet: { ...registerFromTemplate('emergency').sheet, dailyFrom: '2026-10-31' } }
+    expect(registerRow(ed, 'org-1').daily_from).toBe('2026-10-31')
+    expect(registerRow(registerFromTemplate('emergency'), 'org-1').daily_from).toBeNull()
   })
 })
 
@@ -201,5 +323,107 @@ describe('database shape', () => {
       for (const field of template.fields || []) for (const option of field.options || []) expect(option.value).toMatch(/^[a-z0-9][a-z0-9_]{0,40}$/)
       for (const row of [...(template.sheet?.rows || []), ...(template.sheet?.measures || [])]) expect(row.key).toMatch(/^[a-z][a-z0-9_]{0,30}$/)
     }
+  })
+})
+
+describe('how much of a period a sheet has', () => {
+  const entries = [{ periodStart: '2026-01-01' }, { periodStart: '2026-03-01' }]
+  it('counts the months of the period that have passed', () => {
+    expect(sheetCoverage(entries, periodOf('quarter', '2026-03-10'), '2026-05-10', '2026-11')).toEqual({ unit: 'month', recorded: 2, expected: 3 })
+  })
+  it('counts days once the daily sheets start, up to today', () => {
+    expect(sheetCoverage([{ periodStart: '2026-11-01' }, { periodStart: '2026-11-03' }], periodOf('month', '2026-11-10'), '2026-11-05', '2026-11')).toEqual({ unit: 'day', recorded: 2, expected: 5 })
+  })
+  it('says nothing for a period that mixes months and days, or has not started', () => {
+    expect(sheetCoverage(entries, periodOf('year', '2026-11-10'), '2026-12-05', '2026-11')).toBeNull()
+    expect(sheetCoverage(entries, periodOf('month', '2027-01-10'), '2026-12-05', '2026-11')).toBeNull()
+  })
+})
+
+describe('the cath lab register', () => {
+  const cath = registerFromTemplate('cathLab')
+  const row = (values, date = '2026-03-10') => ({ id: Math.random().toString(36), entryDate: date, values: { date, ...values } })
+  it('has its own look, in three sections', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    expect(registerThemeKey(cath)).toBe('cathlab')
+    expect(registerThemeKey({ name: 'Πράξεις Αιμοδυναμικού', kind: 'case' })).toBe('cathlab')
+    expect(cath.settings.sections.map(item => item.key)).toEqual(['procedure', 'patient', 'outcome'])
+    expect(cath.fields.every(field => cath.settings.sections.some(item => item.key === field.section))).toBe(true)
+  })
+  it('reads urgent procedures and angioplasty in ST-elevation infarction', () => {
+    const entries = [
+      row({ procedures: ['angiography', 'angioplasty'], indication: 'stemi', urgent: true }),
+      row({ procedures: ['angiography'], indication: 'stemi', urgent: true }),
+      row({ procedures: ['angiography'], indication: 'stable', urgent: false }),
+      row({ procedures: ['pacemaker'], indication: 'rhythm', urgent: false }),
+    ]
+    const find = id => cath.indicators.find(item => item.id === id)
+    expect(computeIndicator(cath, find('urgent_share'), entries, march).value).toBe(50)
+    expect(computeIndicator(cath, find('stemi_share'), entries, march).value).toBe(50)
+    expect(computeIndicator(cath, find('primary_pci'), entries, march).value).toBe(50)
+  })
+  it('hides the indicators of answers nobody has recorded yet', () => {
+    const entries = [row({ procedures: ['angiography'] }), row({ procedures: ['angiography'], urgent: true })]
+    const ids = indicatorReport(cath, entries, march).map(item => item.indicator.id)
+    expect(ids).toContain('urgent_share')
+    expect(ids).not.toContain('stemi_share')
+    expect(ids).not.toContain('primary_pci')
+    expect(indicatorReport(cath, [], march).map(item => item.indicator.id)).toContain('stemi_share')
+  })
+  it('has demo cases with every answer recorded', () => {
+    const demo = demoRegisters().find(item => item.templateKey === 'cathLab')
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === demo.id)
+    expect(own.length).toBeGreaterThan(400)
+    expect(indicatorReport(demo, own, periodOf('year', '2026-03-10')).length).toBe(demo.indicators.length)
+  })
+})
+
+describe('the chemotherapy register', () => {
+  const chemo = registerFromTemplate('chemotherapy')
+  const active = chemo.indicators.find(item => item.id === 'active_patients')
+  const patient = (start, end = '', extra = {}) => ({ id: Math.random().toString(36), entryDate: start || '2026-10-19', values: { start_date: start, end_date: end, ...extra } })
+  it('counts the patients on treatment on the last day of the period, not the ones recorded in it', () => {
+    const entries = [patient('2026-01-10', '2026-02-20'), patient('2026-02-01'), patient('2026-03-30'), patient('2026-04-05')]
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-03-10')).value).toBe(2)
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-02-10')).value).toBe(1)
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-04-10')).value).toBe(3)
+  })
+  it('counts a patient without a start date from the day recorded, and splits by diagnosis', () => {
+    const entries = [patient('', '', { diagnosis: 'C50' }), patient('2026-10-01', '', { diagnosis: 'C50' }), patient('2026-10-02', '', { diagnosis: 'C34' })]
+    const october = periodOf('month', '2026-10-25')
+    expect(computeIndicator(chemo, active, entries, october).value).toBe(3)
+    expect(computeIndicator(chemo, active, entries, periodOf('month', '2026-09-10')).value).toBe(0)
+    const split = breakdown(chemo, active, entries, october, 'diagnosis')
+    expect(split.map(row => [row.option.value, row.count])).toEqual([['C50', 2], ['C34', 1]])
+  })
+  it('hides the mean age while no birth date is known, and has its own look', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    expect(registerThemeKey(chemo)).toBe('chemo')
+    const ids = indicatorReport(chemo, [patient('2026-10-01')], periodOf('month', '2026-10-10')).map(item => item.indicator.id)
+    expect(ids).not.toContain('mean_age')
+    expect(ids).toContain('active_patients')
+    expect(chemo.settings.sections.map(item => item.key)).toEqual(['patient', 'treatment', 'end'])
+  })
+})
+
+describe('the daily sheets of the ophthalmology, emergency and delivery room', () => {
+  const day = (periodStart, values) => ({ periodStart, entryDate: periodStart, values })
+  it('reads the mean per day and the admissions share', () => {
+    const emergency = registerFromTemplate('emergency')
+    const cells = (surgical, admissions) => ({ surgical: { morning: surgical, afternoon: 0, night: 0 }, admissions: { morning: admissions, afternoon: 0, night: 0 } })
+    const entries = [day('2026-11-02', cells(40, 8)), day('2026-11-03', cells(60, 12))]
+    emergency.sheet = { ...emergency.sheet, dailyFrom: '2026-11-01' }
+    const period = periodOf('month', '2026-11-10')
+    expect(computeIndicator(emergency, emergency.indicators.find(item => item.id === 'daily_cases'), entries, period).value).toBe(50)
+    expect(computeIndicator(emergency, emergency.indicators.find(item => item.id === 'admission_rate'), entries, period).value).toBe(20)
+  })
+  it('has no English codes in the delivery room, and its own looks', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    const room = registerFromTemplate('deliveryRoom')
+    const texts = [...room.indicators.map(item => item.title), ...room.sheet.rows.map(item => item.label)]
+    expect(texts.filter(text => /VBAC|Κ\.Τ|Φ\.Τ/.test(text))).toEqual([])
+    expect(room.indicators.map(item => item.id)).toEqual(expect.arrayContaining(['born_before_arrival', 'daily_deliveries']))
+    expect([registerThemeKey(room), registerThemeKey(registerFromTemplate('ophthalmology')), registerThemeKey(registerFromTemplate('emergency'))]).toEqual(['deliveryroom', 'ophthalmology', 'emergency'])
+    expect(registerFromTemplate('ophthalmology').indicators.map(item => item.id)).not.toContain('monthly_mean')
   })
 })

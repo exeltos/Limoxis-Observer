@@ -31,8 +31,8 @@ function OutbreakInvestigationsScreen() {
 }
 
 export function SurveillanceSectionPage() {
-  const { role, actualRole, isDemo, canSeeSensitiveEmployeeHealth } = useTenant()
-  const access = useMemo(() => surveillanceTabAccess({ role, actualRole, isDemo, canSeeSensitiveEmployeeHealth }), [role, actualRole, isDemo, canSeeSensitiveEmployeeHealth])
+  const { role, actualRole, canSeeSensitiveEmployeeHealth } = useTenant()
+  const access = useMemo(() => surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth }), [role, actualRole, canSeeSensitiveEmployeeHealth])
   const allow = useCallback(id => (id === 'employees' ? access.employees : id === 'environmental' ? access.environment : true), [access])
   return <SectionRoute sectionId="surveillance" icons={SURVEILLANCE_ICONS} allow={allow} render={tab => tab === 'registry' ? <PatientsPage /> : tab === 'outbreaks' ? <OutbreakInvestigationsScreen /> : <SurveillanceCanonicalPage />} />
 }

@@ -4,22 +4,6 @@
   color: var(--lo-status-info-fg) !important;
   border-color: var(--lo-status-info-border) !important;
 }
-.environment-status-cell {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-.environmental-registry .button.environment-resample-action {
-  min-height: 26px !important;
-  height: 26px !important;
-  padding: 0 8px !important;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px !important;
-  font-size: 11px !important;
-  white-space: nowrap;
-}
 
 /* Environmental list: the second line of the code cell holds date, department and batch
    on a narrow screen, where those three columns are hidden. */
@@ -38,3 +22,4 @@
 /* «Προς έλεγχο» worklist: the two decisions stacked, so the table fits a tablet. */
 .sample-review-actions{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:150px;max-width:190px}
 .sample-review-actions .button{justify-content:center;text-align:center;line-height:1.25}
+.environmental-registry td.env-batch{white-space:nowrap}

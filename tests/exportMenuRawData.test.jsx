@@ -32,11 +32,13 @@ describe('ExportMenu raw data', () => {
     render(<LanguageProvider><ExportMenu language="el" onPrint={() => {}} onPdf={() => {}} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => {} }]} /></LanguageProvider>)
     expect(options()).toEqual(['Εκτύπωση', 'PDF'])
   })
-  it('runs the only option directly when JSON is hidden', () => {
+  it('opens «Εξαγωγή ▾» with the only option when JSON is hidden', () => {
     tenant.role = 'link_nurse'
     const print = vi.fn()
     wrap(<ExportMenu language="el" onPrint={print} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => {} }]} />)
     fireEvent.click(screen.getByRole('button', { name: /Εξαγωγή/ }))
+    expect(screen.queryByRole('menuitem', { name: /JSON/ })).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: /Εκτύπωση/ }))
     expect(print).toHaveBeenCalled()
   })
 })

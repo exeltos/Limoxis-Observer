@@ -36,7 +36,7 @@ const DEMO_QUESTIONS={
  ],
  'TRN-004':[
   sc('Q-201','Ποιο αντισηπτικό προτιμάται για την προετοιμασία του δέρματος πριν από τοποθέτηση CVC;',['Ποβιδόνη ιωδίνη 10%','Χλωρεξιδίνη > 0,5% σε αλκοόλη','Αλκοόλη 70% μόνη','Φυσιολογικός ορός'],1,2),
-  mc('Q-202','Ποια στοιχεία περιλαμβάνει το bundle τοποθέτησης CVC;',['Υγιεινή χεριών','Πλήρη μέτρα άσηπτης τεχνικής (maximal barrier)','Αποφυγή μηριαίας φλέβας σε ενήλικες','Προφυλακτική χορήγηση αντιβιοτικού'],[0,1,2],3),
+  mc('Q-202','Ποια στοιχεία περιλαμβάνει η δέσμη τοποθέτησης CVC;',['Υγιεινή χεριών','Πλήρη μέτρα άσηπτης τεχνικής (maximal barrier)','Αποφυγή μηριαίας φλέβας σε ενήλικες','Προφυλακτική χορήγηση αντιβιοτικού'],[0,1,2],3),
   tf('Q-203','Η ανάγκη διατήρησης της κεντρικής γραμμής επανεκτιμάται καθημερινά.',true,1),
   sc('Q-204','Κάθε πότε αλλάζει ένα διαφανές επίθεμα CVC, εφόσον είναι ακέραιο;',['Κάθε 24 ώρες','Κάθε 48 ώρες','Κάθε 7 ημέρες','Μόνο κατά την αφαίρεση'],2,2),
   tf('Q-205','Τα σημεία πρόσβασης (hubs) δεν χρειάζονται απολύμανση όταν χρησιμοποιούνται συχνά.',false,1),
@@ -63,9 +63,9 @@ const done=(id,programId,employeeId,employeeName,department,email,day,wrongIds,p
 
 export const trainingDemoState={
  programs:[
-  {id:'TRN-001',title:'Υγιεινή Χεριών – WHO 5 Moments',category:'ipc',method:'hybrid',owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer:'Δρ. Ελένη Κωνσταντίνου',audience:'Κλινικό προσωπικό',startDate:'2026-09-05',dueDate:'2026-09-30',validMonths:12,requiresAssessment:true,passScore:80,status:'active',description:'Ετήσια εκπαίδευση και επιβεβαίωση γνώσεων στην υγιεινή χεριών.',materials:[{id:'MAT-001',title:'WHO 5 Moments – συνοπτικός οδηγός',type:'PDF',url:''},{id:'MAT-002',title:'Παρουσίαση εκπαίδευσης',type:'Παρουσίαση',url:''}],assessmentQuestions:DEMO_QUESTIONS['TRN-001'],feedbackResponses:[{employeeId:'EMP-002',scores:{clarity:5,knowledge:5,usefulness:4,organization:5,materials:4},comment:'Πολύ πρακτική παρουσίαση.'}]},
+  {id:'TRN-001',title:'Υγιεινή Χεριών – 5 Στιγμές του ΠΟΥ',category:'ipc',method:'hybrid',owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer:'Δρ. Ελένη Κωνσταντίνου',audience:'Κλινικό προσωπικό',startDate:'2026-09-05',dueDate:'2026-09-30',validMonths:12,requiresAssessment:true,passScore:80,status:'active',description:'Ετήσια εκπαίδευση και επιβεβαίωση γνώσεων στην υγιεινή χεριών.',materials:[{id:'MAT-001',title:'5 Στιγμές του ΠΟΥ – συνοπτικός οδηγός',type:'PDF',url:''},{id:'MAT-002',title:'Παρουσίαση εκπαίδευσης',type:'Παρουσίαση',url:''}],assessmentQuestions:DEMO_QUESTIONS['TRN-001'],feedbackResponses:[{employeeId:'EMP-002',scores:{clarity:5,knowledge:5,usefulness:4,organization:5,materials:4},comment:'Πολύ πρακτική παρουσίαση.'}]},
   {id:'TRN-002',title:'Ορθή χρήση ΜΑΠ & απομόνωση',category:'ipc',method:'in_person',owner:'Ομάδα Πρόληψης Λοιμώξεων',trainer:'Ν. Παπαδόπουλος',audience:'ΜΕΘ · Παθολογική · ΤΕΠ',startDate:'2026-08-20',dueDate:'2026-09-10',validMonths:12,requiresAssessment:true,passScore:80,status:'active',description:'Πρακτική εκπαίδευση σε επιλογή, εφαρμογή και αφαίρεση ΜΑΠ και μέτρων απομόνωσης.',materials:[],assessmentQuestions:DEMO_QUESTIONS['TRN-002'],feedbackResponses:[]},
-  {id:'TRN-004',title:'Πρόληψη CLABSI και φροντίδα κεντρικών γραμμών',category:'ipc',method:'in_person',owner:'ΕΝΛ',trainer:'Ομάδα IPC',audience:'ΜΕΘ · Χειρουργική',startDate:'2026-04-10',dueDate:'2026-04-30',validMonths:12,requiresAssessment:true,passScore:80,status:'completed',description:'Εφαρμογή bundle πρόληψης CLABSI και ασφαλής διαχείριση κεντρικών γραμμών.',effectiveness:{plannedDate:'2026-07-30',method:'audit',criterion:'Συμμόρφωση στο bundle CLABSI ≥ 90% στη ΜΕΘ',result:'partial',evaluatedAt:'2026-08-05',evaluatedBy:'Ομάδα IPC',notes:'Συμμόρφωση 78%· ελλιπής τεκμηρίωση της ημερήσιας αναγκαιότητας της γραμμής.'},materials:[],assessmentQuestions:DEMO_QUESTIONS['TRN-004'],feedbackResponses:[]},
+  {id:'TRN-004',title:'Πρόληψη CLABSI και φροντίδα κεντρικών γραμμών',category:'ipc',method:'in_person',owner:'ΕΝΛ',trainer:'Ομάδα IPC',audience:'ΜΕΘ · Χειρουργική',startDate:'2026-04-10',dueDate:'2026-04-30',validMonths:12,requiresAssessment:true,passScore:80,status:'completed',description:'Εφαρμογή δέσμης πρόληψης CLABSI και ασφαλής διαχείριση κεντρικών γραμμών.',effectiveness:{plannedDate:'2026-07-30',method:'audit',criterion:'Συμμόρφωση στη δέσμη CLABSI ≥ 90% στη ΜΕΘ',result:'partial',evaluatedAt:'2026-08-05',evaluatedBy:'Ομάδα IPC',notes:'Συμμόρφωση 78%· ελλιπής τεκμηρίωση της ημερήσιας αναγκαιότητας της γραμμής.'},materials:[],assessmentQuestions:DEMO_QUESTIONS['TRN-004'],feedbackResponses:[]},
   {id:'TRN-003',title:'Ασφαλής διαχείριση αιχμηρών',category:'occupational_health',method:'online',owner:'Ποιότητα & Ασφάλεια',trainer:'Τμήμα Ποιότητας',audience:'Όλο το προσωπικό',startDate:'2026-06-01',dueDate:'2026-06-30',validMonths:24,requiresAssessment:true,passScore:75,status:'completed',description:'Πρόληψη τραυματισμών και σωστή αναφορά έκθεσης.',effectiveness:{plannedDate:'2026-09-30',method:'indicator',criterion:'Καμία μη αναφερθείσα έκθεση σε αιχμηρά στο τρίμηνο',result:'',evaluatedAt:'',evaluatedBy:'',notes:''},materials:[],assessmentQuestions:DEMO_QUESTIONS['TRN-003'],feedbackResponses:[]},
  ],
  assignments:[
@@ -81,7 +81,7 @@ export const trainingDemoState={
   done('TRA-010','TRN-003','EMP-006','Σοφία Οικονόμου','Καρδιολογική','s.oikonomou@example.org','2026-06-16',['Q-302'],75,{clarity:4,knowledge:4,usefulness:5,organization:4,materials:4},'','CERT-TR-010'),
  ],
  certificates:[
-  {id:'CERT-TR-002',assignmentId:'TRA-002',employeeId:'EMP-002',title:'Υγιεινή Χεριών – WHO 5 Moments',issuedDate:'2026-08-27',validUntil:'2027-08-27',issuer:'Limoxis Observer · Demo Hospital'},
+  {id:'CERT-TR-002',assignmentId:'TRA-002',employeeId:'EMP-002',title:'Υγιεινή Χεριών – 5 Στιγμές του ΠΟΥ',issuedDate:'2026-08-27',validUntil:'2027-08-27',issuer:'Limoxis Observer · Demo Hospital'},
   {id:'CERT-TR-005',assignmentId:'TRA-005',employeeId:'EMP-005',title:'Πρόληψη CLABSI και φροντίδα κεντρικών γραμμών',issuedDate:'2026-04-22',validUntil:'2027-04-22',issuer:'Limoxis Observer · Demo Hospital'},
   {id:'CERT-TR-004',assignmentId:'TRA-004',employeeId:'EMP-001',title:'Ασφαλής διαχείριση αιχμηρών',issuedDate:'2026-06-18',validUntil:'2028-06-18',issuer:'Limoxis Observer · Demo Hospital'},
   {id:'CERT-TR-007',assignmentId:'TRA-007',employeeId:'EMP-002',title:'Ασφαλής διαχείριση αιχμηρών',issuedDate:'2026-06-12',validUntil:'2028-06-12',issuer:'Limoxis Observer · Demo Hospital'},
@@ -89,7 +89,7 @@ export const trainingDemoState={
   {id:'CERT-TR-009',assignmentId:'TRA-009',employeeId:'EMP-008',title:'Ασφαλής διαχείριση αιχμηρών',issuedDate:'2026-06-09',validUntil:'2028-06-09',issuer:'Limoxis Observer · Demo Hospital'},
  ],
  requirements:[
-  {id:'REQ-HH',title:'Υγιεινή Χεριών – WHO 5 Moments',programIds:['TRN-001'],professions:['Ιατρικό προσωπικό','Νοσηλευτικό προσωπικό'],departments:[],renewalMonths:12,active:true},
+  {id:'REQ-HH',title:'Υγιεινή Χεριών – 5 Στιγμές του ΠΟΥ',programIds:['TRN-001'],professions:['Ιατρικό προσωπικό','Νοσηλευτικό προσωπικό'],departments:[],renewalMonths:12,active:true},
   {id:'REQ-SHARPS',title:'Ασφαλής διαχείριση αιχμηρών',programIds:['TRN-003'],professions:[],departments:[],renewalMonths:24,active:true},
   {id:'REQ-PPE',title:'Ορθή χρήση ΜΑΠ & απομόνωση',programIds:['TRN-002'],professions:[],positions:['Νοσηλευτής/τρια ΜΕΘ','Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων (ΝΕΛ)'],departments:[],renewalMonths:12,active:true},
   {id:'REQ-CLABSI',title:'Πρόληψη CLABSI',programIds:['TRN-004'],professions:['Νοσηλευτικό προσωπικό'],departments:['ΜΕΘ','Χειρουργική'],renewalMonths:12,active:true},

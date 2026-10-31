@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { serveWithCors } from '../_shared/cors.ts'
+import { memberDepartmentIds, resolveMemberDepartment, setMemberDepartment } from '../_shared/organizationAccount.ts'
 
 const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
 const reply=(body:any,status=200)=>new Response(JSON.stringify(body),{status,headers:cors})
@@ -28,10 +29,20 @@ serveWithCors(async(req)=>{
  if(!isOwner&&sharedAccount&&action==='update'&&['fullName','email','phone','jobTitle'].some(key=>b[key]!==undefined))return reply({error:'Ο λογαριασμός χρησιμοποιείται και σε άλλον οργανισμό· τα στοιχεία του αλλάζουν μόνο από τον ίδιο τον χρήστη ή τον Platform Owner.',code:'SHARED_ACCOUNT'},403)
  const isSelf=userId===cu.user.id
  if(isSelf&&!isOwner){
-  if(action==='update'&&b.role)return reply({error:'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο ή τα δικαιώματα πρόσβασης.'},403)
+  if(action==='update'&&(b.role||b.departmentId!==undefined))return reply({error:'Δεν μπορείτε να αλλάξετε τον δικό σας ρόλο ή τα δικαιώματα πρόσβασης.'},403)
   if(['suspend','reactivate','delete','resend_invitation','invitation_link'].includes(action))return reply({error:'Δεν μπορείτε να αλλάξετε την κατάσταση πρόσβασης ή να διαγράψετε τον δικό σας λογαριασμό.'},403)
  }
- if(action==='update'){const profilePatch:any={};if(b.fullName!==undefined)profilePatch.full_name=String(b.fullName||'').trim();if(b.email!==undefined)profilePatch.contact_email=String(b.email||'').trim().toLowerCase()||null;if(b.phone!==undefined)profilePatch.phone=b.phone||null;if(b.jobTitle!==undefined)profilePatch.job_title=b.jobTitle||null;if(Object.keys(profilePatch).length){const {error}=await admin.from('profiles').update(profilePatch).eq('id',userId);if(error)return reply({error:error.message},500)}if(b.email!==undefined){const email=String(b.email||'').trim().toLowerCase();if(email){const {error}=await admin.auth.admin.updateUserById(userId,{email});if(error)return reply({error:error.message},500)}}if(b.role){const {error}=await admin.from('organization_members').update({role:b.role}).eq('organization_id',organizationId).eq('user_id',userId);if(error)return reply({error:'MEMBERSHIP_UPDATE_FAILED'},500)}return reply({ok:true})}
+ if(action==='update'){const profilePatch:any={};if(b.fullName!==undefined)profilePatch.full_name=String(b.fullName||'').trim();if(b.email!==undefined)profilePatch.contact_email=String(b.email||'').trim().toLowerCase()||null;if(b.phone!==undefined)profilePatch.phone=b.phone||null;if(b.jobTitle!==undefined)profilePatch.job_title=b.jobTitle||null;if(Object.keys(profilePatch).length){const {error}=await admin.from('profiles').update(profilePatch).eq('id',userId);if(error)return reply({error:error.message},500)}if(b.email!==undefined){const email=String(b.email||'').trim().toLowerCase();if(email){const {error}=await admin.auth.admin.updateUserById(userId,{email});if(error)return reply({error:error.message},500)}}if(b.role||b.departmentId!==undefined){
+  // A role of a department keeps (or gets) the department it sees; any other role sees the whole hospital.
+  const {data:current}=await admin.from('organization_members').select('role').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  const nextRole=b.role||current?.role
+  const kept=b.departmentId===undefined?(await memberDepartmentIds(admin,{organizationId,userId}))[0]||null:b.departmentId
+  const {data:employeeRow}=await admin.from('employees').select('id').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle()
+  const department=await resolveMemberDepartment(admin,{organizationId,role:nextRole,departmentId:kept,employeeDbId:employeeRow?.id||null})
+  if('error' in department)return reply({error:department.error==='DEPARTMENT_REQUIRED'?'Ο ρόλος χρειάζεται τμήμα.':department.error==='DEPARTMENT_NOT_FOUND'?'Το τμήμα δεν βρέθηκε στον οργανισμό.':department.error,code:department.error},400)
+  if(b.role){const {error}=await admin.from('organization_members').update({role:b.role}).eq('organization_id',organizationId).eq('user_id',userId);if(error)return reply({error:'MEMBERSHIP_UPDATE_FAILED'},500)}
+  try{await setMemberDepartment(admin,{organizationId,userId,departmentId:department.departmentId})}catch{return reply({error:'DEPARTMENT_SAVE_FAILED'},500)}
+ }return reply({ok:true})}
  if(action==='link_employee'){const employeeDbId=String(b.employeeDbId||'').trim();if(!employeeDbId)return reply({error:'employeeDbId is required'},400);const {data:employee,error:employeeError}=await admin.from('employees').select('id,user_id').eq('organization_id',organizationId).eq('id',employeeDbId).maybeSingle();if(employeeError)return reply({error:employeeError.message},500);if(!employee)return reply({error:'EMPLOYEE_NOT_FOUND'},404);if(employee.user_id&&employee.user_id!==userId)return reply({error:'EMPLOYEE_ALREADY_LINKED_TO_ANOTHER_ACCOUNT'},409);const {error:unlinkError}=await admin.from('employees').update({user_id:null,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('user_id',userId).neq('id',employeeDbId);if(unlinkError)return reply({error:unlinkError.message},500);const {error:linkError}=await admin.from('employees').update({user_id:userId,updated_at:new Date().toISOString()}).eq('organization_id',organizationId).eq('id',employeeDbId);if(linkError)return reply({error:linkError.message},500);return reply({ok:true,employeeId:employeeDbId})}
  // The sign-in ban is global: an account another hospital also uses is paused in this hospital only.
  if(action==='suspend'||action==='reactivate'){const status=action==='suspend'?'disabled':'active';const {data:prevMember,error:fetchError}=await admin.from('organization_members').select('status').eq('organization_id',organizationId).eq('user_id',userId).maybeSingle();if(fetchError)return reply({error:'MEMBERSHIP_UPDATE_FAILED'},500);if(!prevMember)return reply({error:'MEMBERSHIP_NOT_FOUND'},404);const {error:memberError}=await admin.from('organization_members').update({status}).eq('organization_id',organizationId).eq('user_id',userId);if(memberError)return reply({error:'MEMBERSHIP_UPDATE_FAILED'},500);const {error}=sharedAccount?{error:null}:await admin.auth.admin.updateUserById(userId,{ban_duration:action==='suspend'?'876000h':'none'});if(error){await admin.from('organization_members').update({status:prevMember.status}).eq('organization_id',organizationId).eq('user_id',userId);return reply({error:error.message},500)}return reply({ok:true,status})}
@@ -57,8 +68,11 @@ serveWithCors(async(req)=>{
   const newUserId=invited.user.id
   const {error:profileError}=await admin.from('profiles').update({full_name:p.full_name,username:p.username,contact_email:email,phone:p.phone||null,job_title:p.job_title||null}).eq('id',newUserId)
   if(profileError){await admin.auth.admin.deleteUser(newUserId);await admin.auth.admin.updateUserById(userId,{email});return reply({error:'RESEND_INVITE_PROFILE_SYNC_FAILED'},500)}
+  const keptDepartments=await memberDepartmentIds(admin,{organizationId,userId})
   const {error:memberError}=await admin.from('organization_members').insert({organization_id:organizationId,user_id:newUserId,role:member.role,status:'invited'})
   if(memberError){await admin.auth.admin.deleteUser(newUserId);await admin.auth.admin.updateUserById(userId,{email});return reply({error:'RESEND_INVITE_MEMBERSHIP_FAILED'},500)}
+  // The new account sees the same department as the one it replaces.
+  try{await setMemberDepartment(admin,{organizationId,userId:newUserId,departmentId:keptDepartments[0]||null})}catch{await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',newUserId);await admin.auth.admin.deleteUser(newUserId);await admin.auth.admin.updateUserById(userId,{email});return reply({error:'RESEND_INVITE_MEMBERSHIP_FAILED'},500)}
   // The new account is fully functional now; only clean up the stale one after this point.
   const {error:oldMemberError}=await admin.from('organization_members').delete().eq('organization_id',organizationId).eq('user_id',userId)
   if(oldMemberError)console.error('resend_invitation: failed to remove stale membership',oldMemberError.message)

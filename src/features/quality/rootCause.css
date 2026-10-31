@@ -35,5 +35,3 @@
 .quality-steps-table .quality-step-toggle.is-done{color:var(--lo-status-success-fg,#1f7a4d)}
 .quality-steps-table .quality-step-toggle:disabled{cursor:default;opacity:1}
 .quality-steps-table .quality-step-owner{min-width:150px}
-.quality-step-add .quality-step-owner{min-width:0}
-.quality-step-add .quality-step-owner input{height:38px;padding-left:10px;font-size:12px}

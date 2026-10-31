@@ -35,14 +35,14 @@ function SampleRecord() {
   return <p>Καρτέλα δείγματος</p>
 }
 
-async function openCenter() {
+async function openCenter(entry = '/surveillance') {
   let api
   function Capture() {
     api = useTenant()
     return null
   }
   render(
-    <MemoryRouter initialEntries={['/surveillance']}>
+    <MemoryRouter initialEntries={[entry]}>
       <LanguageProvider>
         <FeedbackProvider>
           <TenantProvider>
@@ -103,7 +103,7 @@ describe('Environment tab: results outside limits', () => {
     await openCenter()
     await openTab(/Περιβάλλον/)
     const row = rowOf('ENV-260824-003')
-    expect(row).toHaveTextContent('Εκτός αποδεκτών ορίων')
+    expect(row).toHaveTextContent('Εκτός ορίων')
     const badge = within(statusCell(row)).getByText('Χρειάζεται ενέργεια')
     expect(badge).toHaveClass('status-badge', 'warning')
     expect(statusCell(row)).not.toHaveTextContent('Ολοκληρώθηκε')
@@ -119,20 +119,21 @@ describe('Environment tab: results outside limits', () => {
     expect(badge).not.toHaveClass('active')
   })
 
-  it('counts the rows needing action in the critical findings tile', async () => {
+  it('counts the rows needing action in the outside-limits tile', async () => {
     await openCenter()
     await openTab(/Περιβάλλον/)
     const needingAction = screen.getAllByText('Χρειάζεται ενέργεια').length
     expect(needingAction).toBeGreaterThan(0)
-    expect(metric('Κρίσιμα ευρήματα')).toHaveTextContent(String(needingAction))
+    expect(metric('Σημεία εκτός ορίων')).toHaveTextContent(String(needingAction))
   })
 
-  it('starts a re-sampling of the same point from the row, without opening the sample', async () => {
-    await openCenter()
+  it('starts a re-sampling of the same point from the record of the sample, which sends it here', async () => {
+    const { laboratorySamples } = await import('../src/features/laboratory/laboratoryDemoData')
+    const sample = laboratorySamples.find(item => item.id === 'ENV-260824-003')
+    await openCenter({ pathname: '/surveillance', state: { resampleOf: sample } })
+    // The list itself has no re-sample button any more.
     await openTab(/Περιβάλλον/)
-    const row = rowOf('ENV-260824-003')
-    fireEvent.click(within(row).getByRole('button', { name: /Επαναδειγματοληψία/ }))
-    expect(screen.queryByText('Καρτέλα δείγματος')).toBeNull()
+    expect(within(rowOf('ENV-260824-003')).queryByRole('button', { name: /Επαναδειγματοληψία/ })).toBeNull()
     expect(await screen.findByText('Επαναδειγματοληψία σημείου')).toBeInTheDocument()
     // Location, point and method are searchable lists that keep the earlier sample's values.
     expect(screen.getByRole('combobox', { name: 'Χώρος / περιοχή' })).toHaveValue('Παθολογική')
@@ -204,7 +205,7 @@ describe('New employee surveillance dialog', () => {
   it('keeps the footer actions outside the scrolling body', async () => {
     await openCenter()
     await openCreation(/Εργαζόμενος/)
-    const create = await screen.findByRole('button', { name: 'Δημιουργία επιτήρησης' })
+    const create = await screen.findByRole('button', { name: 'Δημιουργία ελέγχου' })
     const body = document.querySelector('.employee-surveillance-body')
     expect(body).not.toBeNull()
     expect(within(body).getByText('Τύπος ελέγχου')).toBeInTheDocument()
@@ -220,7 +221,7 @@ describe('New employee surveillance dialog', () => {
     expect(screen.queryByRole('button', { name: /Μαζική επιτήρηση/ })).toBeNull()
     expect(screen.queryByRole('checkbox')).toBeNull()
     expect(field).toHaveTextContent('Επιλέξτε εργαζόμενους')
-    const create = screen.getByRole('button', { name: 'Δημιουργία επιτήρησης' })
+    const create = screen.getByRole('button', { name: 'Δημιουργία ελέγχου' })
     // Looks disabled and says what is missing; a press marks the field instead of saving.
     expect(create).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByText(/Συμπληρώστε:/).closest('.form-missing-summary')).toHaveTextContent('Εργαζόμενοι')
@@ -321,9 +322,7 @@ describe('English labels', () => {
     )
     await openTab(/Environment/)
     await waitFor(() => expect(rowOf('ENV-260824-003')).toHaveTextContent('Action needed'))
-    expect(
-      within(rowOf('ENV-260824-003')).getByRole('button', { name: /Re-sample/ }),
-    ).toBeInTheDocument()
+    expect(within(rowOf('ENV-260824-003')).queryByRole('button', { name: /Re-sample/ })).toBeNull()
     await openTab(/Employees/)
     expect(screen.getByRole('columnheader', { name: 'Status' })).toBeInTheDocument()
     await openTab(/Patients/)

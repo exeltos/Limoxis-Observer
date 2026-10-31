@@ -6,12 +6,14 @@ import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { clinicalCases, demoSurveillanceList } from '../surveillance/clinicalDemoData'
 import { laboratorySamples } from '../laboratory/laboratoryDemoData'
 import { loadControlAssignmentsLocal } from '../controls/controlStore'
+import { periodBounds } from '../controls/controlDueRules'
 import { loadQualityLocal } from '../quality/qualityStore'
 import { loadCommittees } from '../committees/committeeData'
 import { loadOccupationalVisits } from '../employees/employeeRecordsService'
 import { employeeRows } from '../employees/employeeDemoData'
 import { demoPatientDayPeriods } from '../management/managementData'
 import { pendingActionsOf } from './dashboardTasks'
+import { loadSnapshot } from '../../core/data/repository'
 import { isCommunicated } from '../surveillance/recordAttention'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { interviewsDemoState } from '../interviews/interviewsDemoData'
@@ -37,6 +39,10 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
     row =>
       inDepartment(row) && isOpen(row.status) && row.next_due_at && new Date(row.next_due_at) < now,
   ).length
+  const endOfToday = periodBounds({ kind: 'daily' }, now).end
+  const controlsDueToday = loadControlAssignmentsLocal().filter(
+    row => inDepartment(row) && row.status === 'scheduled' && row.next_due_at && new Date(row.next_due_at) < endOfToday,
+  ).length
   const pendingSamples = laboratorySamples.filter(
     row =>
       inDepartment(row) &&
@@ -54,6 +60,9 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
   const metrics = {
     activeUsers: 3,
     activeDepartments: m.departmentCount,
+    selfAssessmentsOpen: (loadSnapshot('quality_local_self_assessments', []) || []).filter(
+      item => item.status === 'released' && (!department || item.departmentName === department),
+    ).length,
     patientDayPeriods: demoPatientDayPeriods.length,
     inpatients: cases.length,
     activeSurveillance: demoSurveillanceList().filter(
@@ -63,6 +72,7 @@ export function collectDemoDashboardMetrics({ department = null, now = new Date(
       item => item.status === 'active' && item.nextReview && item.nextReview <= today,
     ).length,
     overdueControls,
+    controlsDueToday,
     pendingSamples,
     newSamplesToday: s.dashboard?.newSamplesToday ?? 0,
     positiveLab: m.totalPositive,

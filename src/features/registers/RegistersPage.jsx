@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ClipboardList, Plus, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -7,6 +7,8 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { RegistersPanel, useRegisterList } from './RegistersPanel'
+import { FigureCards } from '../../design-system/FigureCards'
+import { STALE_DAYS, isStaleRegister } from './registerFigures'
 import { useRegisterAccess } from './registerAccess'
 import { MeetingsList, useMeetings } from '../quality/meetings/MeetingsPanel'
 import { EquipmentList, useResources } from '../quality/resources/ResourcesPanel'
@@ -26,13 +28,27 @@ export function RegistersPage() {
   const [filters, setFilters] = useState({ query: '', department: 'all', status: 'all', quick: null })
   const equipment = useResources(view === 'equipment')
   const [equipmentFilters, setEquipmentFilters] = useState(NO_EQUIPMENT_FILTERS)
+  // The figures above the list; «no entry for 45+ days» narrows the list to those registers.
+  const [staleOnly, setStaleOnly] = useState(false)
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const isQuiet = useCallback(register => isStaleRegister(register, todayIso), [todayIso])
+  const active = list.registers.filter(register => register.status === 'active')
+  const entries = list.registers.reduce((sum, register) => sum + (Number(register.entryCount) || 0), 0)
+  const indicators = list.registers.reduce((sum, register) => sum + (register.indicators?.length || 0), 0)
+  const stale = list.registers.filter(isQuiet)
   const viewSwitch = <SearchableSelect hideLabel className="registers-view-select" label={en ? 'View' : 'Προβολή'} value={view} onChange={next=>next&&(setView)(next)} options={[{ value: 'registers', icon: ClipboardList, label: en ? 'Registers' : 'Μητρώα' }, { value: 'meetings', icon: Users, label: en ? 'Meetings' : 'Συναντήσεις' }, { value: 'equipment', icon: Stethoscope, label: en ? 'Equipment' : 'Εξοπλισμός' }]}/>
   const action = view === 'equipment' ? null : view === 'meetings'
     ? <ActionButton tone="primary" label={en ? 'New meeting' : 'Νέα συνάντηση'} onClick={() => goTo('/meetings/new')}><Plus size={18} /><span>{en ? 'New meeting' : 'Νέα συνάντηση'}</span></ActionButton>
     : access.canDefine && <ActionButton tone="primary" label={en ? 'New register' : 'Νέο μητρώο'} onClick={() => navigate('/registers/new')}><Plus size={18} /><span>{en ? 'New register' : 'Νέο μητρώο'}</span></ActionButton>
   return <Page fill title={en ? 'Department registers' : 'Μητρώα τμήματος'} subtitle={en ? 'The cases and monthly sheets your department records, the indicators computed from them, and its meetings and its equipment.' : 'Τα περιστατικά και τα μηνιαία φύλλα που καταχωρεί το τμήμα σας, οι δείκτες που προκύπτουν από αυτά, οι συναντήσεις και ο εξοπλισμός του.'} actions={action}>
+    {view === 'registers' && <FigureCards className="registers-figures" label={en ? 'Registers at a glance' : 'Σύνοψη μητρώων'}>
+      <span><b>{list.loading ? '—' : active.length}</b> {en ? 'registers in use' : 'μητρώα σε χρήση'}</span>
+      <span><b>{list.loading ? '—' : entries}</b> {en ? 'entries' : 'καταχωρίσεις'}</span>
+      <span><b>{list.loading ? '—' : indicators}</b> {en ? 'indicators from the registers' : 'δείκτες από τα μητρώα'}</span>
+      <button type="button" className={`${stale.length ? 'is-late' : ''}${staleOnly ? ' is-active' : ''}`.trim() || undefined} aria-pressed={staleOnly} onClick={() => setStaleOnly(value => !value)}><b>{list.loading ? '—' : stale.length}</b> {en ? `no entry for ${STALE_DAYS}+ days` : `χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`}</button>
+    </FigureCards>}
     <section className="surface registry-workspace workspace-column workspace-fill registers-workspace">
-      {view === 'registers' && <RegistersPanel list={list} filterEnd={viewSwitch} />}
+      {view === 'registers' && <RegistersPanel list={list} only={staleOnly ? isQuiet : null} filterEnd={viewSwitch} />}
       {view === 'meetings' && <MeetingsList list={meetings} filters={filters} setFilters={setFilters} filterEnd={viewSwitch} onOpen={meeting => goTo(`/meetings/${meeting.id}`)} />}
       {view === 'equipment' && <EquipmentList list={equipment} filters={equipmentFilters} setFilters={setEquipmentFilters} filterEnd={viewSwitch} onOpen={row => goTo(`/quality/equipment/${row.id}`)} />}
     </section>

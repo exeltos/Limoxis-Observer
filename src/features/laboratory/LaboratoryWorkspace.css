@@ -1,9 +1,8 @@
 /* New sample dialog (ObserverDialog, fixed height): numbered steps. */
-.lab-flow-body{padding:0 2px}.lab-flow-section{padding:14px 0;border-bottom:1px solid var(--lo-color-border)}.lab-flow-section:first-child{padding-top:2px}.lab-flow-section:last-child{border-bottom:0}.lab-flow-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px}.lab-flow-heading>span{width:25px;height:25px;flex:0 0 25px;border-radius:50%;display:grid;place-items:center;background:var(--lo-color-primary-soft,#eaf4fb);color:var(--lo-color-primary,#176b9a);font-size:12px;font-weight:800}.lab-flow-heading>div{display:flex;flex-direction:column;gap:2px}.lab-flow-heading strong{font-size:13px;color:var(--lo-color-text)}.lab-flow-heading small{font-size:11px;color:var(--lo-color-text-muted)}.lab-flow-grid{padding:0!important}.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 14px!important}.lab-flow-full{grid-column:1/-1}.lab-collected-pair{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:end}@media(max-width:720px){.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:1fr!important}}.lab-flow-reveal{animation:labFlowReveal .16s ease-out}@keyframes labFlowReveal{from{opacity:.35;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.lab-flow-body{padding:0 2px}.lab-flow-section{padding:14px 0;border-bottom:1px solid var(--lo-color-border)}.lab-flow-section:first-child{padding-top:2px}.lab-flow-section:last-child{border-bottom:0}.lab-flow-heading{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px}.lab-flow-heading>span{width:25px;height:25px;flex:0 0 25px;border-radius:50%;display:grid;place-items:center;background:var(--lo-color-primary-soft,#eaf4fb);color:var(--lo-color-primary,#176b9a);font-size:12px;font-weight:800}.lab-flow-heading>div{display:flex;flex-direction:column;gap:2px}.lab-flow-heading strong{font-size:13px;color:var(--lo-color-text)}.lab-flow-heading small{font-size:11px;color:var(--lo-color-text-muted)}.lab-flow-grid{padding:0}.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px}.lab-flow-full{grid-column:1/-1}.lab-collected-pair{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;align-items:end}@media(max-width:720px){.lab-create-flow .lab-flow-grid:is(.entry-grid,#lo-lab-flow){grid-template-columns:1fr}}.lab-flow-reveal{animation:labFlowReveal .16s ease-out}@keyframes labFlowReveal{from{opacity:.35;transform:translateY(-3px)}to{opacity:1;transform:none}}
 
 
 /* Laboratory registry — canonical module pattern */
-.lab-summary{flex:0 0 auto}
 .laboratory-registry{min-height:0}
 .laboratory-registry .lab-table td small{display:block}
 .laboratory-registry .lab-table td:nth-child(1){min-width:190px}
@@ -12,14 +11,34 @@
 .laboratory-registry .lab-table td:nth-child(4){min-width:160px}
 .laboratory-registry .lab-table td:nth-child(5){min-width:125px}
 .laboratory-registry .lab-table td:nth-child(6){min-width:115px}
-.lab-critical-note{color:var(--lo-color-danger,#b42318)!important;font-weight:750}
 .lab-review-tag{display:block;margin-top:4px}
 
 /* Registry: the source column is the secondary one; on a narrow screen (tablet)
    it moves under the sample type, so the list never scrolls sideways. */
-.laboratory-registry .lab-inline-secondary{display:none}
+.laboratory-registry .lab-table td small.lab-inline-secondary{display:none}
 @media(max-width:1100px){
 .laboratory-registry .lab-col-secondary{display:none}
-.laboratory-registry .lab-inline-secondary{display:block}
+.laboratory-registry .lab-table td small.lab-inline-secondary{display:block}
 .laboratory-registry .lab-table td:nth-child(n){min-width:0}
 }
+
+.lab-critical-badge{margin-left:6px}
+
+/* Plates tab: the plate's positions side by side */
+.lab-plates-table td small { display: block; margin-top: 2px; color: #5f6f7c; font-size: 12px; }
+.plate-positions { width: 100%; border-collapse: collapse; }
+.plate-positions th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #5f6f7c; border-bottom: 1px solid #dbe5eb; }
+.plate-positions td { padding: 10px; border-bottom: 1px solid #edf1f4; vertical-align: top; }
+.plate-positions tbody tr { cursor: pointer; }
+.plate-positions tbody tr:hover, .plate-positions tbody tr:focus-visible { background: #f3f7fa; outline: none; }
+.plate-positions td small { display: block; margin-top: 2px; color: #5f6f7c; font-size: 12px; }
+.plate-positions .plate-no-result { color: #5f6f7c; }
+/* Δείγματα προς το εργαστήριο: μία γραμμή ανά δείγμα (τύπος, πηγή, θέση), ίδιος ασθενής και ώρα λήψης. */
+.lab-samples .lab-sample-row{display:grid;grid-template-columns:64px minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) 150px;gap:10px 14px;align-items:end;padding:8px 0;border-top:1px solid var(--lo-color-border,#edf1f5)}
+.lab-samples .lab-sample-row:first-of-type{border-top:0;padding-top:0}
+.lab-sample-n{align-self:center;padding-top:20px;font-size:12px;font-weight:750;color:var(--lo-color-text-muted,#5f6f7c)}
+.lab-sample-remove{align-self:end}
+.lab-sample-add{margin-top:8px}
+.lab-create-flow .epi-q-mini{padding-top:16px}
+@media(max-width:900px){.lab-samples .lab-sample-row{grid-template-columns:1fr}.lab-sample-n{padding-top:0}}
+.lab-create-shell .lab-create-flow{max-width:1180px;width:100%;margin:0 auto;padding:4px 0 24px}

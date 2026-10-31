@@ -1,7 +1,8 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
-import { pharmacyDepartments, antibioticLibrary } from './pharmacyDemoData'
+import { pharmacyDepartments, antibioticLibrary, dddReferenceLibrary } from './pharmacyDemoData'
 import { loadAntibioticDispensingLocal, saveAntibioticDispensingLocal } from './pharmacyStore'
+import { awareCategoryFor } from './whoAwareClassification'
 import { selectAllPages } from '../../core/data/inChunks'
 
 const assertCloud=organizationId=>{
@@ -39,12 +40,30 @@ export async function loadPharmacySupportData(organizationId){
  return {departments:(departmentsResult.data||[]).map(x=>({id:x.id,el:x.name,en:x.name})),products:(productsResult.data||[]).map(x=>({id:x.id,el:x.name_el,en:x.name_en||x.name_el,code:x.code}))}
 }
 
+// DDD per antibiotic code (WHO ATC/DDD, as the pharmacy verified it): the hospital's own value wins over the shared one.
+export async function loadDddReference(organizationId){
+ if(isDemoDataEnvironment())return {...dddReferenceLibrary}
+ assertCloud(organizationId)
+ const {data,error}=await supabase.from('who_ddd_reference').select('antibiotic_code,ddd_grams,organization_id').or(`organization_id.is.null,organization_id.eq.${organizationId}`)
+ if(error)throw error
+ const shared=(data||[]).filter(row=>!row.organization_id),own=(data||[]).filter(row=>row.organization_id)
+ return Object.fromEntries([...shared,...own].map(row=>[row.antibiotic_code,Number(row.ddd_grams)]).filter(([,grams])=>grams>0))
+}
+
 export async function loadAntibioticDispensingRecords(organizationId){
  if(isDemoDataEnvironment())return loadAntibioticDispensingLocal()
  assertCloud(organizationId)
  // Read page by page: a single response stops at 1000 rows.
  const data=await selectAllPages(()=>supabase.from('antibiotic_dispensing_periods').select('*,department:departments(id,name),antibiotic_item:master_library_items(id,name_el,name_en,code)').eq('organization_id',organizationId).order('period_start',{ascending:false}).order('created_at',{ascending:false}).order('id',{ascending:true}))
  return data.map(mapRow)
+}
+
+// DDD of the WHO AWaRe «Access» antibiotics dispensed in the period (rows without a DDD reference are left out,
+// like the total DDD of the database does): the numerator of the Access share indicator.
+export async function loadAccessDddTotal(organizationId,{from,to}={}){
+ const [rows,ddd]=await Promise.all([loadAntibioticDispensingRecords(organizationId),loadDddReference(organizationId)])
+ const inPeriod=row=>(!to||String(row.periodStart||'')<=to)&&(!from||String(row.periodEnd||row.periodStart||'')>=from)
+ return Math.round(rows.filter(inPeriod).filter(row=>awareCategoryFor(row.productEn||row.product)==='access'&&Number(ddd[row.productCode])>0).reduce((sum,row)=>sum+(Number(row.quantityGrams)||0)/Number(ddd[row.productCode]),0)*100)/100
 }
 
 export async function saveAntibioticDispensingRecord(organizationId,record,{existingId=null}={}){
@@ -64,11 +83,12 @@ export async function saveAntibioticDispensingRecord(organizationId,record,{exis
  if(!hospitalScope&&!department)throw new Error('Selected department is not available for this organization.')
  const product=support.products.find(x=>x.id===record.antibioticItemId||x.el===record.product)
  if(!product)throw new Error('Selected antibiotic is not available in the central library.')
+ const keepRange=record.periodKind==='range'&&record.periodStart&&record.periodEnd
  const [year,month]=String(record.period||'').slice(0,7).split('-').map(Number)
- if(!year||!month)throw new Error('A valid month is required.')
- const periodStart=`${year}-${String(month).padStart(2,'0')}-01`
+ if(!keepRange&&(!year||!month))throw new Error('A valid month is required.')
+ const periodStart=keepRange?record.periodStart:`${year}-${String(month).padStart(2,'0')}-01`
  const lastDay=new Date(year,month,0).getDate()
- const periodEnd=`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
+ const periodEnd=keepRange?record.periodEnd:`${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
  const payload={organization_id:organizationId,department_id:department?.id||null,period_start:periodStart,period_end:periodEnd,antibiotic_item_id:product.id,quantity_grams:Number(record.quantityGrams)||0,source:record.method||'manual',source_reference:record.referenceNumber||null,responsible_name:record.responsible||null,notes:record.notes||null,updated_by:userId,updated_at:new Date().toISOString()}
  let saved
  if(existingId){const {data,error}=await supabase.from('antibiotic_dispensing_periods').update(payload).eq('organization_id',organizationId).eq('id',existingId).select('*').single();if(error)throw error;saved=data}

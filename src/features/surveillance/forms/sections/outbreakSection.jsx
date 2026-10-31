@@ -3,6 +3,7 @@ import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { CAPABILITIES, isProfileDisabled } from '../../../../core/permissions/roles'
 import { ROLES } from '../../../../core/permissions/systemRoleMatrix'
 import { loadPatientOutbreakLinks } from '../../../lira/liraPatientLinks'
+import { FormLine } from '../FormSection'
 
 // The roles the database lets read the outbreak investigations (RLS of lira_outbreak_*). The
 // line is read-only information, not a form: it closes the tab and says nothing to others.
@@ -21,23 +22,22 @@ function OutbreakLine({ ctx, section }) {
   const links = section.value || []
   if (!links.length) return null
   const canOpen = ctx.has(CAPABILITIES.VIEW_LIRA)
-  return (
-    <div className="episode-outbreak">
-      {links.map(link => (
-        <p key={link.id} className="episode-outbreak-line">
-          <Biohazard size={15} aria-hidden="true" />
-          <span>
-            <strong>{t('episodeForms.outbreak.label')}:</strong> {outbreakText(ctx, link)}
-          </span>
-          {canOpen && (
-            <button type="button" className="episode-form-link" onClick={() => ctx.goTo(`/surveillance?tab=outbreaks&investigation=${encodeURIComponent(link.id)}`, { returnTab: 'episodeForms' })}>
-              {t('episodeForms.outbreak.open')}
-            </button>
-          )}
-        </p>
-      ))}
-    </div>
-  )
+  return links.map(link => (
+    <FormLine
+      key={link.id}
+      id="outbreak"
+      icon={Biohazard}
+      title={t('episodeForms.outbreak.label')}
+      summary={outbreakText(ctx, link)}
+      action={
+        canOpen && (
+          <button type="button" className="episode-form-link" onClick={() => ctx.goTo(`/surveillance?tab=outbreaks&investigation=${encodeURIComponent(link.id)}`, { returnTab: 'episodeForms' })}>
+            {t('episodeForms.outbreak.open')}
+          </button>
+        )
+      }
+    />
+  ))
 }
 
 export const outbreakSection = {

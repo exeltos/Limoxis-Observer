@@ -33,6 +33,11 @@ export function apacheMortality(score, postop) {
   return APACHE_MORTALITY[postop ? 'postop' : 'medical'][Math.min(7, Math.max(0, Math.floor(Number(score) / 5)))]
 }
 
+// Sheets are recorded day by day from November 2026; the months before keep their one monthly total.
+export const DAILY_SHEETS_FROM = '2026-11-01'
+// The day a sheet starts being recorded day by day (a month, «2026-11», means its first day).
+export const dailyStart = value => { const text = String(value || DAILY_SHEETS_FROM); return text.length === 7 ? `${text}-01` : text.slice(0, 10) }
+
 export const AGGREGATIONS = [
   { value: 'count', label: ['Πλήθος', 'Count'] },
   { value: 'percent', label: ['Ποσοστό %', 'Percentage %'] },
@@ -40,6 +45,7 @@ export const AGGREGATIONS = [
   { value: 'median', label: ['Διάμεσος', 'Median'] },
   { value: 'sum', label: ['Άθροισμα', 'Sum'] },
   { value: 'rate', label: ['Ρυθμός ανά 1.000', 'Rate per 1,000'] },
+  { value: 'smr', label: ['Θνησιμότητα προς προβλεπόμενη (SMR)', 'Observed to predicted mortality (SMR)'] },
 ]
 
 export const FILTER_OPS = [
@@ -220,6 +226,17 @@ export const entriesInPeriod = (entries = [], period, indicator) => entries.filt
   return day && day >= period.from && day <= period.to
 })
 
+// A register of treatments (chemotherapy): «Active patients» is a picture on the last day of the period, not the patients
+// recorded in it: whoever has started (the day recorded, when the start is unknown) and not ended by then.
+export const isTreatmentRegister = register => register.kind !== 'sheet' && ['start_date', 'end_date'].every(key => (register.fields || []).some(field => field.key === key && field.type === 'date'))
+export const isActiveCensus = (register, indicator) => indicator?.id === 'active_patients' && isTreatmentRegister(register)
+export const treatmentActive = (entry, day) => {
+  const start = String(entry.values?.start_date || entry.entryDate || '').slice(0, 10)
+  const end = String(entry.values?.end_date || '').slice(0, 10)
+  return Boolean(start) && start <= day && (!end || end > day)
+}
+export const periodEntries = (register, entries = [], period, indicator) => (isActiveCensus(register, indicator) ? entries.filter(entry => treatmentActive(entry, period.to)) : entriesInPeriod(entries, period, indicator))
+
 const mean = numbers => (numbers.length ? numbers.reduce((sum, n) => sum + n, 0) / numbers.length : null)
 const median = numbers => {
   if (!numbers.length) return null
@@ -250,22 +267,30 @@ export function sheetTotal(entries = [], rows = [], measures = []) {
 //     (entries matching denominator.filters, or the sum of denominator.field).
 //   sheet: sum of numerator rows × measure, as a share of the denominator rows.
 export function computeIndicator(register, indicator, entries = [], period) {
-  const inPeriod = entriesInPeriod(entries, period, indicator)
+  const inPeriod = periodEntries(register, entries, period, indicator)
   const result = { id: indicator.id, value: null, numerator: null, denominator: null, n: inPeriod.length, small: false }
   if (register.kind === 'sheet') {
     const sheet = register.sheet || {}
+    // «Daily only» indicators read the days recorded one by one, never a month's single total.
+    const dailyFrom = dailyStart(sheet.dailyFrom)
+    const used = indicator.dailyOnly ? inPeriod.filter(entry => String(entry.periodStart) >= dailyFrom) : inPeriod
+    if (indicator.aggregation === 'count') {
+      result.numerator = used.length
+      result.value = indicator.dailyOnly && !used.length ? null : used.length
+      return withStatus(result, indicator)
+    }
     const allRows = (sheet.rows || []).map(row => row.key)
     const allMeasures = (sheet.measures || []).map(measure => measure.key)
     const numRows = indicator.rows?.length ? indicator.rows : allRows
     const numMeasures = indicator.measure ? [indicator.measure] : allMeasures
-    const numerator = sheetTotal(inPeriod, numRows, numMeasures)
+    const numerator = sheetTotal(used, numRows, numMeasures)
     result.numerator = numerator
     if (indicator.aggregation === 'percent') {
-      const denominator = sheetTotal(inPeriod, indicator.denominatorRows?.length ? indicator.denominatorRows : allRows, indicator.denominatorMeasure ? [indicator.denominatorMeasure] : allMeasures)
+      const denominator = sheetTotal(used, indicator.denominatorRows?.length ? indicator.denominatorRows : allRows, indicator.denominatorMeasure ? [indicator.denominatorMeasure] : allMeasures)
       result.denominator = denominator
       result.value = numerator == null || !denominator ? null : round((numerator / denominator) * 100)
     } else if (indicator.aggregation === 'mean') {
-      const months = inPeriod.filter(entry => numRows.some(row => numMeasures.some(measure => sheetCell(entry.values, row, measure) != null))).length
+      const months = used.filter(entry => numRows.some(row => numMeasures.some(measure => sheetCell(entry.values, row, measure) != null))).length
       result.denominator = months
       result.value = numerator == null || !months ? null : round(numerator / months)
     } else result.value = numerator
@@ -273,7 +298,7 @@ export function computeIndicator(register, indicator, entries = [], period) {
     return withStatus(result, indicator)
   }
   const rows = inPeriod.map(entry => computeValues(register.fields, entry.values || {}))
-  const selected = rows.filter(values => matchesAll(indicator.filters, values))
+  const selected = isActiveCensus(register, indicator) ? rows : rows.filter(values => matchesAll(indicator.filters, values))
   switch (indicator.aggregation) {
     case 'count':
       result.value = selected.length
@@ -300,6 +325,17 @@ export function computeIndicator(register, indicator, entries = [], period) {
       const numbers = numbersOf(selected, indicator.field)
       result.value = numbers.length ? numbers.reduce((sum, n) => sum + n, 0) : null
       result.numerator = result.value
+      break
+    }
+    case 'smr': {
+      // Observed deaths over the deaths the patients' own predicted risks add up to; read with care under 20 patients.
+      const base = rows.filter(values => matchesAll(indicator.denominatorFilters, values))
+      const observed = base.filter(values => matchesAll(indicator.filters, values)).length
+      const expected = base.reduce((sum, values) => sum + (Number(values[indicator.field]) || 0) / 100, 0)
+      result.numerator = observed
+      result.denominator = round(expected, 2)
+      result.value = expected > 0 ? round(observed / expected, 2) : null
+      result.small = base.length > 0 && base.length < 20
       break
     }
     case 'rate': {
@@ -339,12 +375,33 @@ export function monthlySeries(register, indicator, entries = [], year) {
 export function breakdown(register, indicator, entries = [], period, field) {
   const definition = (register.fields || []).find(item => item.key === field)
   if (!definition) return []
-  const inPeriod = entriesInPeriod(entries, period, indicator).map(entry => computeValues(register.fields, entry.values || {}))
-  const options = [...(definition.options || []), { value: '', label: 'Χωρίς τιμή', labelEn: 'No value' }]
+  const inPeriod = periodEntries(register, entries, period, indicator).map(entry => computeValues(register.fields, entry.values || {}))
+  // A text field (the diagnosis) is split by what was written, the most frequent first.
+  const written = definition.type === 'text' ? [...inPeriod.reduce((map, values) => { const text = String(values[field] || '').trim(); return text ? map.set(text, (map.get(text) || 0) + 1) : map }, new Map())].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([text]) => ({ value: text, label: text, labelEn: text })) : null
+  const options = [...(written || definition.options || []), { value: '', label: 'Χωρίς τιμή', labelEn: 'No value' }]
   return options.map(option => {
     const rows = inPeriod.filter(values => (option.value === '' ? isBlank(values[field]) : Array.isArray(values[field]) ? values[field].includes(option.value) : values[field] === option.value))
     return { option, count: rows.length, share: inPeriod.length ? round((rows.length / inPeriod.length) * 100) : null }
   }).filter(row => row.count > 0)
+}
+
+// A sheet indicator split by the rows it counts (per procedure) and by the measures (per shift).
+export function sheetBreakdowns(register, indicator, entries = [], period) {
+  if (register.kind !== 'sheet') return []
+  const sheet = register.sheet || {}
+  const inPeriod = entriesInPeriod(entries, period, indicator)
+  const rows = (sheet.rows || []).filter(row => !indicator.rows?.length || indicator.rows.includes(row.key))
+  const measures = (sheet.measures || []).filter(measure => !indicator.measure || measure.key === indicator.measure)
+  const split = (key, label, labelEn, items, totalOf) => {
+    const counts = items.map(item => ({ option: { value: item.key, label: item.label, labelEn: item.labelEn }, count: totalOf(item.key) })).filter(item => item.count)
+    const total = counts.reduce((sum, item) => sum + item.count, 0)
+    return { key, label, labelEn, rows: counts.map(item => ({ ...item, share: total ? round((item.count / total) * 100) : null })) }
+  }
+  const keys = list => list.map(item => item.key)
+  return [
+    rows.length > 1 && split('rows', 'Ανά γραμμή', 'By row', rows, row => sheetTotal(inPeriod, [row], keys(measures)) || 0),
+    measures.length > 1 && split('measures', 'Ανά στήλη', 'By column', measures, measure => sheetTotal(inPeriod, keys(rows), [measure]) || 0),
+  ].filter(item => item && item.rows.length)
 }
 
 // The rows of an indicator report: this period, the previous one, the same
@@ -352,12 +409,33 @@ export function breakdown(register, indicator, entries = [], period, field) {
 export function indicatorReport(register, entries = [], period) {
   const previous = shiftPeriod(period, -periodLength(period))
   const lastYear = shiftPeriod(period, -12)
-  return (register.indicators || []).map(indicator => ({
+  // An indicator that counts only the cases with an answer recorded («Επιπλοκή», «Ένδειξη») waits until one case has it.
+  const answerField = key => (register.fields || []).some(field => field.key === key && ['yesNo', 'choice'].includes(field.type) && field.key !== 'outcome')
+  const never = indicator => entries.length > 0 && (indicator.denominatorFilters || []).some(filter => ['filled', 'eq', 'yes', 'no'].includes(filter.op) && answerField(filter.field) && !entries.some(entry => { const value = entry.values?.[filter.field]; return value != null && value !== '' }))
+  // A mean of a field nobody has filled (the age, when no birth date is known) has nothing to show.
+  const empty = indicator => entries.length > 0 && ['mean', 'median'].includes(indicator.aggregation) && register.kind !== 'sheet' && !entries.some(entry => !isBlank(computeValues(register.fields, entry.values || {})[indicator.field]))
+  return (register.indicators || []).filter(indicator => !never(indicator) && !empty(indicator)).map(indicator => ({
     indicator,
     current: computeIndicator(register, indicator, entries, period),
     previous: computeIndicator(register, indicator, entries, previous),
     lastYear: computeIndicator(register, indicator, entries, lastYear),
   }))
+}
+
+// How much of a period a sheet has: months (before the daily sheets) or days with an entry, out
+// of those that have passed. null when the period mixes the two or has not started.
+export function sheetCoverage(entries = [], period, today, dailyFromValue) {
+  const dailyFrom = dailyStart(dailyFromValue)
+  const months = []
+  for (let month = period.from.slice(0, 7); month <= period.to.slice(0, 7); month = shiftPeriod(periodOf('month', `${month}-01`), 1).from.slice(0, 7)) if (`${month}-01` <= today) months.push(month)
+  if (!months.length) return null
+  // A month is whole before the start, whole after it, or cut by it (then nothing is said).
+  const kinds = months.map(month => (`${month}-01` >= dailyFrom ? 'day' : `${month}-${pad(lastDay(Number(month.slice(0, 4)), Number(month.slice(5, 7))))}` < dailyFrom ? 'month' : 'mixed'))
+  if (kinds.some(kind => kind !== kinds[0]) || kinds[0] === 'mixed') return null
+  const inPeriod = entriesInPeriod(entries, period)
+  if (kinds[0] === 'month') return { unit: 'month', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 7)).filter(month => months.includes(month))).size, expected: months.length }
+  const expected = months.reduce((sum, month) => sum + (month === today.slice(0, 7) ? Number(today.slice(8, 10)) : lastDay(Number(month.slice(0, 4)), Number(month.slice(5, 7)))), 0)
+  return { unit: 'day', recorded: new Set(inPeriod.map(entry => String(entry.periodStart).slice(0, 10))).size, expected }
 }
 
 // What a filter says in words («Είδος τοκετού είναι Κ/Τ»).

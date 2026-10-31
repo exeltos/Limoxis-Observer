@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { useContext, useEffect, useState } from 'react'
 import { advancedAntibioticNames, newTherapyRow, therapiesToSave } from './therapyEntries'
 import { Button } from '../../design-system/Button'
@@ -118,6 +118,8 @@ export function SimpleDialog({
   className = '',
   // A form from useFormValidation: the save says what is missing instead of saving empty.
   form = null,
+  // A deletion: the button is red and names what it does.
+  danger = false,
 }) {
   return (
     <ObserverDialog
@@ -130,9 +132,14 @@ export function SimpleDialog({
           <FormSubmit form={form} disabled={disabled} onSubmit={onSave}>
             {saveLabel || t('save')}
           </FormSubmit>
+        ) : danger ? (
+          <Button variant="danger" disabled={disabled} onClick={onSave}>
+            <Trash2 size={15} aria-hidden="true" />
+            {saveLabel || t('delete')}
+          </Button>
         ) : (
           <SaveButton disabled={disabled} onClick={onSave}>
-            {t('save')}
+            {saveLabel || t('save')}
           </SaveButton>
         )
       }
@@ -917,9 +924,10 @@ export function OutcomeDialog({ t, onClose, onSave }) {
     </SimpleDialog>
   )
 }
-export function ReasonDialog({ title, t, reason, setReason, onClose, onSave }) {
+export function ReasonDialog({ title, t, reason, setReason, onClose, onSave, saveLabel = '', note = '', danger = false }) {
   return (
-    <SimpleDialog title={title} t={t} onClose={onClose} onSave={onSave} disabled={!reason.trim()}>
+    <SimpleDialog title={title} t={t} onClose={onClose} onSave={onSave} disabled={!reason.trim()} saveLabel={saveLabel} danger={danger}>
+      {note && <p className="entry-span-2">{note}</p>}
       <label className="field entry-span-2">
         <span className="lo-field-label">{t('reasonRequired')}</span>
         <textarea rows={4} value={reason} onChange={e => setReason(e.target.value)} autoFocus />

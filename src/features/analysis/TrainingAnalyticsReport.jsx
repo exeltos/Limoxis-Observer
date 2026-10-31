@@ -1,6 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
 import { supabase } from '../../core/supabase/client'
 import { ExportMenu } from '../../design-system/ExportMenu'
+import { KpiCard,KpiStrip } from '../../design-system/KpiCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
 import { BarList,ChartCard,Scoreboard,TrendChart } from './AnalysisCharts'
@@ -29,7 +30,7 @@ function kpiRows(details,tx,en){
   [tx('Εκπρόθεσμες αναθέσεις','Overdue assignments'),fmt(details.overdue,en,0),tx('πέρασε η προθεσμία ολοκλήρωσης','past the completion due date'),details.overdue?'danger':'good'],
  ]
 }
-function Kpis({rows}){return <div className="analysis-kpis">{rows.map(([label,value,hint,tone])=><article key={label} className={tone?`kpi-${tone}`:''}><span>{label}</span><strong>{value}</strong>{hint&&<small>{hint}</small>}</article>)}</div>}
+function Kpis({rows}){return <KpiStrip className="analysis-kpi-strip" columns={Math.min(Math.max(rows.length,1),6)}>{rows.map(([label,value,hint,tone])=><KpiCard key={label} label={label} value={value} hint={hint} status={tone||null}/>)}</KpiStrip>}
 
 async function loadTrainingAnalytics({organizationId,range,departmentId}){
  const {data,error}=await supabase.rpc('analysis_training_metrics',{p_organization_id:organizationId||null,p_from:range?.from||null,p_to:range?.to||null,p_department_id:departmentId||null})

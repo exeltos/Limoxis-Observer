@@ -66,6 +66,8 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
       department: group.department,
       organism: group.organism,
       count: best.count,
+      patientCount: new Set(best.items.map(x => x.patientId).filter(Boolean)).size || best.count,
+      sampleCount: best.items.length,
       windowDays,
       firstDate: best.firstDate,
       lastDate: best.lastDate,

@@ -1,0 +1,102 @@
+import { useEffect,useMemo,useState } from 'react'
+import { useNavigate,useParams } from 'react-router-dom'
+import { ClipboardList,Pencil,Target } from 'lucide-react'
+import { Page } from '../../../design-system/Page'
+import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
+import { DetailList } from '../../../design-system/DetailList'
+import { ExportMenu } from '../../../design-system/ExportMenu'
+import { IconButton } from '../../../design-system/IconButton'
+import { Meter,Sparkline } from '../../../design-system/MiniCharts'
+import { StatusBadge } from '../../../design-system/StatusBadge'
+import { AutoTranslatedMark } from '../../../design-system/AutoTranslatedMark'
+import { useAutoTranslated } from '../../../core/i18n/autoTranslated'
+import { RouteLoading } from '../../../design-system/RouteLoading'
+import { printReport } from '../../../core/export/reportDocument'
+import { useFeedback } from '../../../core/feedback/FeedbackContext'
+import { useLanguage } from '../../../core/i18n/LanguageContext'
+import { useTenant } from '../../../core/tenant/TenantContext'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { roleTitleText } from '../../../core/i18n/roleTitles'
+import { CAPABILITIES,can } from '../../../core/permissions/roles'
+import { monthlySeries,textOf } from '../../registers/registerEngine'
+import { loadEntries } from '../../registers/registerService'
+import { objectiveSection } from './objectiveDossier'
+import { formatObjectiveValue,objectiveState } from './reviewTemplate'
+import { objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
+import { rememberQualitySection } from '../qualityReturnSection'
+import '../quality.css'
+
+const tone=state=>({met:'success',missed:'danger'})[state]||'info'
+
+// /quality/objectives/:objectiveId — one objective on its own page: where it stands today, what it is measured by, who owns it and by when.
+export function ObjectiveRecordPage(){
+ const {objectiveId}=useParams(),navigate=useNavigate(),{language}=useLanguage(),en=language==='en',{tenant,role,membership,isDemo}=useTenant(),{notify}=useFeedback()
+ const {objectives,loading}=useObjectives(tenant?.id)
+ const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
+ const back=()=>{rememberQualitySection('indicators:objectives');navigate('/quality',{replace:true})}
+ const target_=objectives.find(item=>item.id===objectiveId)
+ const [entries,setEntries]=useState([])
+ useEffect(()=>{
+  const register=target_?.register
+  if(!tenant?.id||!register||!target_?.indicator){setEntries([]);return undefined}
+  let live=true
+  loadEntries(tenant.id,register.id,{register}).then(rows=>{if(live)setEntries(rows)}).catch(()=>{if(live)setEntries([])})
+  return ()=>{live=false}
+ },[tenant?.id,target_?.register,target_?.indicator])
+ // The value month by month for the objective's year, up to the current month, only the months with a value.
+ const history=useMemo(()=>{
+  if(!target_?.register||!target_?.indicator)return []
+  const now=new Date(),last=target_.year<now.getFullYear()?12:target_.year>now.getFullYear()?0:now.getMonth()+1
+  return monthlySeries(target_.register,target_.indicator,entries,target_.year).filter(row=>row.month<=last&&row.value!=null)
+ },[target_,entries])
+ const auto=useAutoTranslated('quality_objectives',[objectiveId],{enabled:en&&!isDemo})
+ if(loading)return <RouteLoading/>
+ const objective=objectives.find(item=>item.id===objectiveId)
+ if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
+ const {current,register,indicator,unit}=objective
+ const state=current.status,reach=targetReach(objective),sign=objective.direction==='lower'?'≤':'≥'
+ const monthChange=history.length>1?Number((history.at(-1).value-history.at(-2).value).toFixed(2)):null
+ const value=formatObjectiveValue(current.value,unit,language),target=`${sign} ${formatObjectiveValue(objective.target,unit,language)}${objective.targetFromIndicator?(en?' (indicator)':' (από τον δείκτη)'):''}`
+ const detail=[
+  {title:en?'Measurement':'Μέτρηση',items:[
+   {label:en?'Measured by':'Μετριέται με',value:indicator?textOf(indicator,language):(en?'Value reported by the owner':'Τιμή από τον υπεύθυνο')},
+   {label:en?'Register':'Μητρώο',value:register?(en?register.nameEn||register.name:register.name):null},
+   {label:en?'Met when the value is':'Επιτυγχάνεται όταν η τιμή είναι',value:objective.direction==='lower'?(en?'At most':'Το πολύ'):(en?'At least':'Τουλάχιστον')},
+   {label:en?'Year':'Έτος',value:objective.year},
+  ]},
+  {title:en?'Responsibility':'Ευθύνη',items:[
+   {label:en?'Owner':'Υπεύθυνος',value:roleTitleText(objective.ownerLabel,language)},
+   {label:en?'Due':'Προθεσμία',value:formatDay(objective.dueDate,language)},
+  ]},
+ ]
+ // The objective as a printed sheet.
+ const printObjective=pdf=>{
+  const ok=printReport({language,kind:en?'Quality objective':'Στόχος ποιότητας',code:objective.code,title:objectiveTitle(objective,language),subtitle:String(objective.year),
+   meta:[[en?'Value today':'Τιμή σήμερα',value],[en?'Target':'Στόχος',target],[en?'Status':'Κατάσταση',objectiveStateLabel(state,en)],...detail.flatMap(section=>section.items.filter(item=>item.value!=null&&item.value!=='').map(item=>[item.label,String(item.value)]))],
+   sections:[{...objectiveSection(objective,history,language),title:en?'Value by month':'Τιμή ανά μήνα',facts:null}],
+   filename:`${objective.code}_${objective.year}`},{pdf:pdf===true})
+  if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
+ }
+ return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${en?'Quality objective':'Στόχος ποιότητας'} · ${objective.year}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
+  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<IconButton size="sm" tone="edit" label={en?'Edit':'Επεξεργασία'} onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={16}/></IconButton>}</>}>
+  <section className="record-section">
+   <div className="indicator-result-hero">
+    <div className="indicator-result-value"><strong>{value}</strong></div>
+    <div className="indicator-result-facts">
+     <span><small>{en?'Target':'Στόχος'}</small><b>{target}</b></span>
+     <span><small>{en?'Reached':'Επίτευξη'}</small><b className={state==='missed'?'is-late':state==='met'?'is-good':undefined}>{reach==null?'—':`${Math.round(reach)}%`}</b></span>
+     <span><small>{en?'Status':'Κατάσταση'}</small><b className={state==='missed'?'is-late':state==='met'?'is-good':undefined}>{objectiveStateLabel(state,en)}</b></span>
+     <span><small>{en?'Against the previous month':'Έναντι προηγούμενου μήνα'}</small>{monthChange==null?<b>—</b>:<b className={`indicator-change${(objective.direction==='lower'?monthChange<0:monthChange>0)?' is-better':monthChange===0?'':' is-worse'}`}>{monthChange===0?'0':`${monthChange>0?'+':'−'}${formatObjectiveValue(Math.abs(monthChange),unit,language)}`}</b>}</span>
+    </div>
+   </div>
+   <Meter className="objective-record-meter" value={reach} tone={tone(state)} label={`${objectiveTitle(objective,language)}: ${value}`}/>
+   <DetailList sections={detail}/>
+   {history.length>0&&<>
+    {history.length>1&&<div className="indicator-result-trend"><small>{en?'Value by month':'Τιμή ανά μήνα'}</small><Sparkline width={560} height={92} points={history.map(row=>row.value)} target={Number.isFinite(Number(objective.target))&&objective.target!==''?Number(objective.target):null} label={en?'Value by month':'Τιμή ανά μήνα'}/></div>}
+    <table className="objective-history objective-history-compact"><thead><tr><th>{en?'Month':'Μήνας'}</th><th>{en?'Value':'Τιμή'}</th></tr></thead>
+     <tbody>{history.map(row=><tr key={row.month}><td>{new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'long',year:'numeric'}).format(new Date(objective.year,row.month-1,1))}</td><td className={objectiveState(objective,row.value)==='missed'?'is-late':undefined}>{formatObjectiveValue(row.value,unit,language)}</td></tr>)}</tbody></table>
+   </>}
+  </section>
+ </EntityRecordShell>
+ </Page>
+}

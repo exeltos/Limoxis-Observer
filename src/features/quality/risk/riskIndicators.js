@@ -22,7 +22,7 @@ const RULES = [
   [/(λανθασμεν|λαθος|σφαλμ|ανεπιθυμητ)\S*.*φαρμακ|φαρμακ\S*.*(λανθασμεν|λαθος|σφαλμ|ανεπιθυμητ)/, ['medication-incidents-per-1000-patient-days']],
   [/αντιβιοτ|αντιμικροβ/, ['antibiotic-ddd-per-100-patient-days']],
   [/εμβολιασ/, ['vaccination-coverage']],
-  [/ικανοποιησ\S* (ασθεν|ενδιαφερομεν)|patient satisfaction/, ['patient-satisfaction']],
+  [/ικανοποιησ\S* (\S+ ){0,4}(ασθεν|ενδιαφερομεν)|patient satisfaction/, ['patient-satisfaction']],
 ]
 
 // Indicators to propose for a risk, among those the organization has; the

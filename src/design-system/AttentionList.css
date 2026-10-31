@@ -1,0 +1,17 @@
+/* AttentionList: «Χρειάζεται προσοχή», one look in every record (summary, episode, …). */
+.lo-attention{border:1px solid var(--lo-status-warning-border);background:#fffbf0;border-radius:10px;padding:8px 12px}
+.lo-attention-title{display:flex;align-items:center;gap:6px;margin-bottom:2px;color:var(--lo-status-warning-fg);font-size:12.5px}
+.lo-attention-title span{min-width:18px;padding:0 6px;border-radius:999px;background:var(--lo-status-warning-border);text-align:center;font-size:11px;font-weight:700}
+.lo-attention ul{margin:0;padding:0;list-style:none}
+.lo-attention li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:30px;padding:4px 0;border-top:1px dashed var(--lo-status-warning-border);font-size:12.5px;color:#172033}
+.lo-attention li:first-child{border-top:0}
+.lo-attention li>span::before,.lo-attention-row>span::before{content:'';display:inline-block;width:7px;height:7px;margin-right:8px;border-radius:50%;background:var(--lo-status-warning-fg);vertical-align:1px}
+.lo-attention li.tone-danger>span::before,.lo-attention li.tone-danger .lo-attention-row>span::before{background:var(--lo-status-danger-fg)}
+.lo-attention li.tone-info>span::before,.lo-attention li.tone-info .lo-attention-row>span::before{background:var(--lo-status-info-fg)}
+.lo-attention-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:0;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.lo-attention-row>b{color:var(--lo-color-primary);font-weight:700}
+.lo-attention-row:hover>span{text-decoration:underline}
+.lo-attention-link{flex:none;padding:0;border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--lo-color-primary);cursor:pointer;white-space:nowrap}
+.lo-attention-link:hover{text-decoration:underline}
+.lo-attention-more{margin-top:2px;font-weight:600}
+.lo-attention :is(.lo-attention-row,.lo-attention-link):focus-visible{outline:2px solid var(--lo-field-focus,#5f93ad);outline-offset:2px;border-radius:4px}

@@ -128,7 +128,8 @@ describe('surveillance flow through the relational tables', () => {
       isolationDecision: { required: true },
       outcome: { status: 'resolved' },
     })
-    expect(loaded.timeline.find(item => item.type === 'surveillance_start').detail).toBe('created')
+    // «created» only repeats the event's name: no detail.
+    expect(loaded.timeline.find(item => item.type === 'surveillance_start').detail).toBe('')
 
     for (const write of writes) for (const row of write.rows) for (const column of RETIRED) expect(row, `${write.table}.${column}`).not.toHaveProperty(column)
   })
@@ -142,7 +143,7 @@ describe('surveillance flow through the relational tables', () => {
     expect(tables.surveillance_events.map(row => [row.event_type, row.detail])).toEqual([['surveillance_start', 'created'], ['isolation_not_required', 'no']])
     const loaded = await repo.loadCase(created.recordId)
     expect(loaded.isolationDecision).toEqual({ required: false, decidedAt: caseRow.isolation_decided_at, by: 'actor-1' })
-    expect(loaded.timeline.map(item => item.detail)).toEqual(expect.arrayContaining(['created', 'no']))
+    expect(loaded.timeline.map(item => item.detail)).toEqual(expect.arrayContaining(['', 'no']))
   })
 
   it('keeps an edit of the start in the case columns and adds an «updated» start event', async () => {

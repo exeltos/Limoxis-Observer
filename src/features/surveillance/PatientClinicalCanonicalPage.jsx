@@ -15,12 +15,11 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { Button } from '../../design-system/Button'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { EmptyState } from '../../design-system/EmptyState'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
+import { SectionHeader } from '../../design-system/SectionHeader'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
+import { formatDateTime, formatDay, formatDayTime } from '../../core/i18n/formatDay'
 import { useLanguage, translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -59,9 +58,12 @@ import {
 import { SurveillanceWorkspace } from './ClinicalSurveillanceWorkspace'
 import { Timeline } from './ClinicalRecordViews'
 import { statusTone } from './surveillanceOptions'
+import { printSurveillanceReport } from './clinicalRecordLabels'
 import { buildSurveillanceReport } from './surveillanceReport'
 import { sampleTypeLabel } from '../laboratory/laboratoryCloudService'
 import './surveillanceEpisode.css'
+import { canDeleteRecord } from '../../core/recycleBin/recycleBinService'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 export {
   timelineLabel,
   withCriteriaKeys,
@@ -75,13 +77,18 @@ export {
 const legacyTab = id => (id === 'clinicalScales' ? 'episodeForms' : id)
 const deepLinkTab = location => new URLSearchParams(location.search).get('tab')
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// /patients/:patientId carries the patient code, or the record id when the page is
+// reached from a surveillance row: both open the same patient.
+const isPatientKey = (row, key) => String(row.id) === String(key) || String(row.recordId) === String(key)
+
 export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
   const location = useLocation()
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
-  const { tenant, isDemo, role, membership, canAccessRecord } = useTenant()
+  const { tenant, isDemo, role, actualRole, membership, canAccessRecord } = useTenant()
   const { goBack, goTo, restored } = useContextualNavigation(patientMode ? '/surveillance?tab=registry' : '/surveillance')
   const repository = useMemo(
     () => createClinicalRepository({ isDemo, organizationId: tenant?.id, actor }),
@@ -116,8 +123,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     setSampleToLink(fromSample)
     setCreateOpen(true)
   }, [fromSample, loading, fromSampleOpened])
-  const [clearTestOpen, setClearTestOpen] = useState(false)
-  const [newAdmissionOpen, setNewAdmissionOpen] = useState(false)
+  // «New admission for the existing patient» (from a would-be duplicate patient) opens the new admission at once.
+  const [newAdmissionOpen, setNewAdmissionOpen] = useState(() => Boolean(location.state?.openNewAdmission))
   // The header's NEWS2 / Braden / GCS chips (and ?tab=clinicalScales) open the scales
   // section of the forms tab.
   const [formsOpenRequest, setFormsOpenRequest] = useState(() =>
@@ -131,10 +138,11 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const [protocolRequest, setProtocolRequest] = useState(null)
   const has = cap =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  const deleteItem = useRecordDelete()
   const patient = useMemo(
     () =>
       patientMode
-        ? patients.find(row => String(row.id) === String(patientId)) || null
+        ? patients.find(row => isPatientKey(row, patientId)) || null
         : patients.find(row => episodes.some(ep => episodeBelongsToPatient(ep, row))) || null,
     [patients, patientMode, patientId, episodes],
   )
@@ -236,15 +244,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     () => (patientMode ? [] : samplesForEpisode(record, laboratory.rows || [])),
     [patientMode, record, laboratory.rows],
   )
-  const sequenceId = patientMode ? patientId : caseId
+  // A patient opened from the surveillance list arrives by its episode (/surveillance/:caseId
+  // leads here): the arrows then walk that list, whose rows are episodes, not the patient list.
+  const fromEpisodeList = patientMode && Boolean(location.state?.fromCaseId) && location.state?.limoxisFrom?.registry === 'surveillance-patients'
+  const sequenceId = fromEpisodeList ? location.state.fromCaseId : patientMode ? patientId : caseId
   const recordNavigation = useRecordSequenceNavigation({
-    registry: patientMode
-      ? 'patients'
-      : typeof location.state?.limoxisFrom?.registry === 'string'
-        ? location.state.limoxisFrom.registry
-        : 'surveillance-patients',
+    registry: fromEpisodeList
+      ? 'surveillance-patients'
+      : patientMode
+        ? 'patients'
+        : typeof location.state?.limoxisFrom?.registry === 'string'
+          ? location.state.limoxisFrom.registry
+          : 'surveillance-patients',
     currentId: sequenceId,
-    pathForId: id => (patientMode ? `/patients/${id}` : `/surveillance/${id}`),
+    pathForId: id => (patientMode && !fromEpisodeList ? `/patients/${id}` : `/surveillance/${id}`),
   })
 
   // Moving to another record (sequence, link) keeps this page mounted: until its
@@ -260,10 +273,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       let roster = !cloud
         ? await loadPatients(tenant?.id, { isDemo })
         : patientMode
-          ? await loadPatientsByKeys(tenant.id, { codes: [patientId] })
+          ? await loadPatientsByKeys(tenant.id, UUID_PATTERN.test(patientId) ? { recordIds: [patientId] } : { codes: [patientId] })
           : []
       const selectedPatient = patientMode
-        ? roster.find(row => String(row.id) === String(patientId))
+        ? roster.find(row => isPatientKey(row, patientId))
         : null
       let rows = []
       if (patientMode && selectedPatient) rows = await repository.loadForPatient(selectedPatient)
@@ -353,6 +366,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     // The laboratory samples of this record: the episode's, the admission's, or those outside any admission.
     samples: formsSamples,
     patientMode,
+    // «Delete» of a record of a form section: the item for its «…» menu, or null when not allowed.
+    deleteItem,
+    canDelete: createdBy => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy }),
     scaleRows: patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : [],
     returnPath: `${location.pathname}${location.search}`,
     // A scale saved or deleted in the forms tab refreshes the header chips at once.
@@ -496,30 +512,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     return created
   }
 
-  async function clearOwnerClinicalTestData() {
-    if (role !== 'platform_owner' || !patient || !selectedAdmission) return
-    try {
-      for (const sample of admissionSamples)
-        await laboratory.repository.remove?.(sample.id || sample.recordId)
-      for (const ep of admissionEpisodes)
-        await repository.voidCase(ep, 'Platform Owner test data reset')
-      setSelectedEpisodeId('')
-      setSampleToLink(null)
-      await laboratory.reload()
-      await load()
-      setClearTestOpen(false)
-      notify(
-        translate(
-          'copy.clinicalRecordCopy.clinicalTestSurveillanceAndSamplesCleared',
-          language === 'el' ? 'el' : 'en',
-        ),
-        'success',
-      )
-    } catch (err) {
-      notify(err?.message || t('actionFailed'), 'error')
-    }
-  }
-
   async function createAdmissionSample(draft) {
     if (!patient || creatingAdmissionSampleRef.current) return null
     // Outside the patient route (/surveillance/:id) there is no selected admission:
@@ -614,17 +606,21 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                     label: t('epiQuestionnaire.riskLabel'),
                     value: (
                       <>
-                        {epiEntry.summary.status === 'done' ? riskWords(epiEntry.row, language, t) : t('epiQuestionnaire.riskPending')}{' '}
-                        <button
-                          type="button"
-                          className="record-summary-link"
-                          onClick={() => {
-                            setTab('episodeForms')
-                            setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
-                          }}
-                        >
-                          {t('epiQuestionnaire.link')}
-                        </button>
+                        {/* Pending: one word that opens the questionnaire. Done: the risk factors, then the link
+                            (with a risk signal the «Needs attention» box already links to it). */}
+                        {epiEntry.summary.status === 'done' && <>{riskWords(epiEntry.row, language, t)}{!epiEntry.summary.signal ? ' · ' : ' '}</>}
+                        {(epiEntry.summary.status !== 'done' || !epiEntry.summary.signal) && (
+                          <button
+                            type="button"
+                            className="record-summary-link"
+                            onClick={() => {
+                              setTab('episodeForms')
+                              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+                            }}
+                          >
+                            {epiEntry.summary.status === 'done' ? t('epiQuestionnaire.link') : t('episodeForms.status.pending')}
+                          </button>
+                        )}
                       </>
                     ),
                   },
@@ -673,13 +669,15 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             setCreateOpen(true)
           }}
           onCreateSample={patient ? createAdmissionSample : null}
-          onClearTestData={
-            patientMode && role === 'platform_owner' ? () => setClearTestOpen(true) : null
-          }
           canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
+          onEpisodeDeleted={deleted => {
+            if (patientMode || String(deleted?.id) !== String(caseId)) return false
+            goBack()
+            return true
+          }}
           deviceBundles={deviceBundles}
           t={t}
           language={language}
@@ -721,22 +719,20 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
               has(CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME) ||
               has(CAPABILITIES.CLOSE_SURVEILLANCE),
             canEdit: has(CAPABILITIES.EDIT_SURVEILLANCE),
-            canDelete: has(CAPABILITIES.DELETE_SURVEILLANCE),
+            canDelete: record => canDeleteRecord({ role, actualRole, userId: actor?.id, createdBy: record?.createdBy }),
             canReopen: has(CAPABILITIES.REOPEN_SURVEILLANCE),
           }}
         />
       )}
-      {tabId === 'surveillanceJourney' && selectedAdmission && outsideSection}
       {tabId === 'episodeForms' && <EpisodeFormsTab ctx={formsCtx} forms={forms} openRequest={formsOpenRequest} />}
       {/* Documents belong to the surveillance when there is one, else to the
           admission itself, so they can be added before any surveillance. */}
       {tabId === 'documents' && documentsScope && (
         <DocumentsWorkspace
-          title={translate('copy.clinicalRecordCopy.documents', language === 'en' ? 'en' : 'el')}
           disabled={!has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)}
           {...(isDemo
             ? {
-                value: demoDocuments[documentsScope.key] || [],
+                value: demoDocuments[documentsScope.key] ?? repository.demoDocuments(),
                 onChange: files =>
                   setDemoDocuments(current => ({ ...current, [documentsScope.key]: files })),
               }
@@ -761,23 +757,24 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       )}
       {tabId === 'history' && record && (
         <Timeline
-          record={record}
+          record={{ ...record, timeline: [...(record.timeline || []), ...outsideTimeline] }}
+          title=""
           t={t}
           language={language}
           fmtDateTime={value =>
-            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value, language)
           }
         />
       )}
       {tabId === 'history' && !record && selectedAdmission && (
         <Timeline
-          record={{ timeline: admissionTimeline }}
-          title={t('clinicalRecords.admissionHistory')}
+          record={{ timeline: [...admissionTimeline, ...outsideTimeline] }}
+          title=""
           subtitle={t('clinicalRecords.admissionHistoryHint')}
           t={t}
           language={language}
           fmtDateTime={value =>
-            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : fmtDateTime(value)
+            /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? fmtDate(value) : formatDayTime(value, language)
           }
         />
       )}
@@ -793,9 +790,14 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           )}
         />
       )}
-      {tabId === 'history' && selectedAdmission && outsideSection}
     </>
   )
+  // The report window of the open episode, from the single Export menu in the header.
+  const printEpisodeReport = () => {
+    if (!record) return
+    if (!printSurveillanceReport(record, { language, fmtDate, fmtDateTime, t, libraries: clinicalLibraries }))
+      notify(t('clinicalRecords.reportPopupBlocked'), 'error')
+  }
   // The printed report (EntityRecordShell printReport): a document built from what this user can see.
   const printReport = () =>
     buildSurveillanceReport({
@@ -814,7 +816,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       libraries: clinicalLibraries,
       documents: documentsScope
         ? isDemo
-          ? { value: demoDocuments[documentsScope.key] || [] }
+          ? { value: demoDocuments[documentsScope.key] ?? repository.demoDocuments() }
           : { organizationId: tenant?.id, entityType: documentsScope.entityType, entityId: documentsScope.entityId }
         : null,
       department,
@@ -854,11 +856,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         }
         status={
           <>
-            {patientMode && shellStatus !== 'active' ? (
-              <span className="record-status-word">{t(shellStatus)}</span>
-            ) : (
-              <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
-            )}
+            {/* The same status badge on every record (active, discharged, completed). */}
+            <StatusBadge tone={statusTone(shellStatus)}>{t(shellStatus)}</StatusBadge>
             {record?.resistance && <StatusBadge tone="danger">{record.resistance}</StatusBadge>}
             {patient && (
               <ClinicalRiskFlags
@@ -875,7 +874,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
         headerActions={
           selectedAdmission || !patientMode ? (
             <>
-            <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() =>
+            <ExportMenu onPrint={()=>window.print()} items={[...(record ? [{id:'episode-report',kind:'print',label:t('clinicalRecords.episodeReport'),onClick:printEpisodeReport}] : []),{id:'json',kind:'data',label:'JSON',onClick:() =>
                 downloadRecordJson(
                   {
                     patient,
@@ -902,8 +901,12 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             notifiable reports and what lies outside admissions), never an empty page. */}
         {patientMode && !selectedAdmission && patient && (
           <div className="patient-no-admission-view">
+          {/* The same two cards as a patient with an admission: the patient on the left, the admission on the right. */}
+          <div className="record-summary-grid">
           <PatientDetailsSection
-            bare
+            compact
+            title={t('patient')}
+            stayFields={patient?.department ? [[translate('copy.clinicalRecordCopy.currentDepartment', language === 'el' ? 'el' : 'en'), patient.department]] : null}
             patient={patient}
             tenantId={tenant?.id}
             isDemo={isDemo}
@@ -914,6 +917,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             onChanged={() => load()}
             onDeleted={goBack}
           />
+          <section className="clinical-panel patient-summary-card record-summary-card">
+            <SectionHeader title={t('clinicalRecords.admission')} />
           <PatientWithoutAdmission
             patient={patient}
             tenantId={tenant?.id}
@@ -924,33 +929,13 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             samplesCount={outsideSamples.length}
             t={t}
           />
+          </section>
+          </div>
           <EpisodeFormsTab ctx={formsCtx} forms={forms} withoutAdmission />
           {outsideSection}
           </div>
         )}
         {renderTab(activeTab)}
-        {clearTestOpen && (
-          <ObserverDialog
-            title={translate(
-              'copy.clinicalRecordCopy.clearClinicalTestData',
-              language === 'el' ? 'el' : 'en',
-            )}
-            width="compact"
-            onClose={() => setClearTestOpen(false)}
-            footer={
-              <Button onClick={clearOwnerClinicalTestData}>
-                {translate('copy.clinicalRecordCopy.confirmClear', language === 'el' ? 'el' : 'en')}
-              </Button>
-            }
-          >
-            <p>
-              {translate(
-                'copy.clinicalRecordCopy.surveillanceEpisodesAndSamplesShownFor',
-                language === 'el' ? 'el' : 'en',
-              )}
-            </p>
-          </ObserverDialog>
-        )}
         {createOpen && (
           <NewSurveillanceFlow
             patient={patient}

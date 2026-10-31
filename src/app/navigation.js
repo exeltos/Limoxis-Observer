@@ -1,4 +1,4 @@
-import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -35,9 +35,15 @@ export const navigation=[
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
+  // «Indicators & objectives» of the Quality Center on its own page: indicators, registers, objectives, surveys.
+  {to:'/quality/measures',key:'qualityMeasures',label:'sidebarNav.qualityMeasures',icon:Target,capability:CAPABILITIES.VIEW_QUALITY},
   // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
   {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The suppliers the Quality team assigned to the department (read only).
+  {to:'/my-department/suppliers',key:'departmentSuppliers',label:'sidebarNav.departmentSuppliers',icon:Truck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The self-assessments the Quality team released to the department (a preparation for the audit).
+  {to:'/my-department/self-assessment',key:'departmentSelfAssessment',label:'sidebarNav.departmentSelfAssessment',icon:ListChecks,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
@@ -46,7 +52,7 @@ export const navigation=[
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   {to:'/training',key:'training',icon:GraduationCap,capability:CAPABILITIES.VIEW_TRAINING},
   // «Συνεδριάσεις & αποφάσεις»: committees, department meetings and the management review.
-  {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsDecisions',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
+  {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsShort',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
   // «Έγγραφα & Κανονισμοί»: documents, regulations and legislation.
   {to:'/documents',key:'documents',label:'sidebarNav.documentsRegulations',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
   // «Βιβλιοθήκη»: trusted sources (links, guidelines, clinical guides, news) for every role, staff users included.
@@ -89,7 +95,7 @@ const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
   ['clinical',['surveillance','laboratory','prevention','pharmacy']],
   ['operations',['controls','kitchen']],
-  ['quality',['quality','meetings','documents','library']],
+  ['quality',['quality','qualityMeasures','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
   ['management',['management']],
 ]
@@ -141,7 +147,7 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy'],
   ),
   [ROLES.QUALITY_MANAGER]:policy(
-    ['dashboard','quality','controls','kitchen','indicators','documents','library','calendar'],
+    ['dashboard','quality','qualityMeasures','controls','kitchen','indicators','documents','library','calendar'],
     ['meetings'],
     ['pharmacy','occupationalHealth'],
   ),

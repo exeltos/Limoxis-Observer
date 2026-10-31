@@ -90,7 +90,7 @@ button.sp-bundle-item:hover{box-shadow:0 0 0 3px var(--lo-field-focus-ring,rgba(
 .sp-ward-badge.g{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg);border-color:var(--lo-status-success-border)}
 
 /* Episode tab of a started protocol; the strip widens by one column per protocol */
-html body .surveillance-episode-page .episode-section-tabs.has-protocol-tabs{grid-template-columns:repeat(var(--episode-tab-count,9),minmax(0,1fr))!important}
+html body .surveillance-episode-page .episode-section-tabs.has-protocol-tabs{grid-template-columns:repeat(5,minmax(0,1fr))!important}
 @media(max-width:1279px){html body .surveillance-episode-page .episode-section-tabs.has-protocol-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 @media(max-width:700px){html body .surveillance-episode-page .episode-section-tabs.has-protocol-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 .episode-section-tab.protocol-tab{outline:1px solid var(--lo-status-danger-border);outline-offset:-1px}

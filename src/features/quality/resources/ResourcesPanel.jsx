@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileClock, ListChecks } from 'lucide-react'
+import { FileClock } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { useSortedPaging, withSort } from '../useSortedPaging'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
@@ -12,6 +13,7 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { useDepartments } from '../../management/useLibraries'
+import { rememberQualitySection } from '../qualityReturnSection'
 import { loadResources } from './resourceService'
 import { formatPercent } from './supplierTemplates'
 import { APPROVALS, CRITICALITY, DUE_STATES, EQUIPMENT_STATES, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentStateLabel, equipmentStateTone, eventKindLabel, filterEquipment, filterSuppliers, supplierCategoryLabel, withEquipmentStatus, withSupplierStatus } from './resourceModel'
@@ -52,7 +54,8 @@ export function useResources(enabled = true) {
     const names = new Map(departments.map(item => [item.id || item.name, item]))
     const own = new Set(ownKey.split('|').filter(Boolean))
     const equipment = scoped ? data.equipment.filter(item => own.has(item.departmentId)) : data.equipment
-    const suppliers = access.canViewAll ? data.suppliers : []
+    // A department reads the suppliers assigned to it (the database returns only those; the demo filters here).
+    const suppliers = access.canViewAll ? data.suppliers : data.suppliers.filter(item => (item.departmentIds || []).some(id => own.has(id)))
     const supplierNames = new Map(data.suppliers.map(item => [item.id, item.name]))
     const devices = withEquipmentStatus(equipment, data.events).map(item => { const department = names.get(item.departmentId); return { ...item, department: department?.name || (item.departmentId && !/^[0-9a-f-]{36}$/.test(item.departmentId) ? item.departmentId : ''), departmentEn: department?.nameEn || department?.name || '', supplierName: supplierNames.get(item.supplierId) || '' } })
     return { equipment: devices, suppliers: withSupplierStatus(suppliers, equipment, undefined, data.templates || []), events: data.events, templates: data.templates || [] }
@@ -62,15 +65,13 @@ export function useResources(enabled = true) {
 
 const NEXT_LABEL = (row, language) => row.next ? `${eventKindLabel(row.next.kind, language)} · ${formatDay(row.next.nextDue, language)}` : '—'
 
-export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }) {
+export function EquipmentList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null, showDepartment = true }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterEquipment(list.equipment, filters), [list.equipment, filters])
-  useEffect(() => setPage(1), [filters, pageSize])
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
+  const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, device: row => row.name, department: row => (en ? row.departmentEn : row.department), next: row => row.next?.nextDue || null, programme: row => row.due, status: row => row.state }
+  const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const usedDepartments = useMemo(() => { const ids = new Set(list.equipment.map(item => item.departmentId).filter(Boolean)); return list.departments.filter(item => ids.has(item.id || item.name)) }, [list.equipment, list.departments])
   const advanced = ['department', 'state', 'due', 'criticality'].filter(key => filters[key] !== 'all').length
   return <>
@@ -80,13 +81,14 @@ export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = n
       <FilterSelect label={en ? 'Programme' : 'Πρόγραμμα'} value={filters.due} onChange={value => set('due', value)}><option value="all">{t('all')}</option>{DUE_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
-    <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.equipment.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))}
-        columns={[{ key: 'code', label: t('code') }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }]}
+    <div className="scroll-table" ref={registry?.scrollRef}>
+      <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.equipment.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', state: 'all', due: 'all', criticality: 'all', quick: null }))}
+        columns={withSort([{ key: 'code', label: t('code') }, { key: 'criticality', label: en ? 'Criticality' : 'Κρισιμότητα' }, { key: 'device', label: en ? 'Device' : 'Εξοπλισμός' }, ...(showDepartment ? [{ key: 'department', label: en ? 'Department' : 'Τμήμα' }] : []), { key: 'next', label: en ? 'Next check' : 'Επόμενος έλεγχος' }, { key: 'programme', label: en ? 'Programme' : 'Πρόγραμμα' }, { key: 'status', label: t('status') }], sortBy)}
         emptyTitle={en ? 'No equipment' : 'Δεν υπάρχει εξοπλισμός'} emptyText={en ? 'Register the devices whose maintenance and calibration you follow.' : 'Καταχωρίστε τον εξοπλισμό του οποίου παρακολουθείτε τη συντήρηση και τη διακρίβωση.'}
-        rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen(row, rows) })}
+        rowProps={row => ({ ...(registry?.rowProps(row.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(row, paging.sorted) })}
         renderRow={row => <>
-          <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
+          <td><strong>{row.code}</strong></td>
+          <td><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></td>
           <td>{row.name}<small>{[row.manufacturer, row.model, row.serialNumber && `S/N ${row.serialNumber}`].filter(Boolean).join(' · ') || '—'}</small></td>
           {showDepartment && <td>{(en ? row.departmentEn : row.department) || '—'}{row.location && <small>{row.location}</small>}</td>}
           <td className="nowrap-cell">{NEXT_LABEL(row, language)}{row.next?.days != null && row.next.days < 0 && <small className="quality-overdue-text">{en ? `${-row.next.days} days late` : `${-row.next.days} ημέρες καθυστέρηση`}</small>}</td>
@@ -94,11 +96,11 @@ export function EquipmentList({ list, filters, setFilters, onOpen, filterEnd = n
           <td><StatusBadge tone={equipmentStateTone(row.state)}>{equipmentStateLabel(row.state, language)}</StatusBadge>{row.downSince && <small>{en ? 'since' : 'από'} {formatDay(row.downSince, language)}</small>}</td>
         </>} />
     </div>
-    {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
+    {rows.length > 0 && <RegistryPagination language={language} {...paging.props} />}
   </>
 }
 
-export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = null }) {
+export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -106,13 +108,11 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
   // The evaluation templates by supplier category and the expired certificates to
   // renew by e-mail: Quality manages them.
   const expired = list.suppliers.filter(item => item.status !== 'inactive' && item.expiredCertificates > 0).length
-  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/renewals')}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{access.canViewAll && <Button variant="secondary" onClick={() => navigate('/quality/suppliers/templates')}><ListChecks size={15} />{en ? 'Evaluation templates' : 'Πρότυπα αξιολόγησης'}</Button>}{filterEnd}</>
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
+  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => { rememberQualitySection('resources:suppliers'); navigate('/quality/suppliers/renewals') }}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{filterEnd}</>
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSuppliers(list.suppliers, filters), [list.suppliers, filters])
-  useEffect(() => setPage(1), [filters, pageSize])
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
+  const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, supplier: row => row.name, evaluation: row => row.latestEvaluation?.evaluatedOn || null, attention: row => supplierNotes(row, language).length, approval: row => row.approval }
+  const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = ['category', 'approval', 'criticality'].filter(key => filters[key] !== 'all').length + (filters.status !== 'active' ? 1 : 0)
   return <>
     <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search supplier, tax ID, products…' : 'Αναζήτηση προμηθευτή, ΑΦΜ, προϊόντων…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))} end={end}>
@@ -121,20 +121,21 @@ export function SuppliersList({ list, filters, setFilters, onOpen, filterEnd = n
       <FilterSelect label={en ? 'Criticality' : 'Κρισιμότητα'} value={filters.criticality} onChange={value => set('criticality', value)}><option value="all">{t('all')}</option>{CRITICALITY.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="active">{en ? 'Active' : 'Ενεργοί'}</option><option value="inactive">{en ? 'Inactive' : 'Ανενεργοί'}</option><option value="all">{t('all')}</option></FilterSelect>
     </FilterBar>
-    <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.suppliers.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))}
-        columns={[{ key: 'code', label: t('code') }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }]}
+    <div className="scroll-table" ref={registry?.scrollRef}>
+      <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row => row.id} empty={!list.loading && !rows.length} emptyFiltered={list.suppliers.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', category: 'all', approval: 'all', criticality: 'all', status: 'active', quick: null }))}
+        columns={withSort([{ key: 'code', label: t('code') }, { key: 'criticality', label: en ? 'Criticality' : 'Κρισιμότητα' }, { key: 'supplier', label: en ? 'Supplier' : 'Προμηθευτής' }, { key: 'evaluation', label: en ? 'Latest evaluation' : 'Τελευταία αξιολόγηση' }, { key: 'attention', label: en ? 'Needs attention' : 'Χρειάζεται προσοχή' }, { key: 'approval', label: en ? 'Approval' : 'Έγκριση' }], sortBy)}
         emptyTitle={en ? 'No suppliers' : 'Δεν υπάρχουν προμηθευτές'} emptyText={en ? 'Register the external providers whose products and services affect care.' : 'Καταχωρίστε τους εξωτερικούς παρόχους των οποίων τα προϊόντα και οι υπηρεσίες επηρεάζουν τη φροντίδα.'}
-        rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen(row, rows) })}
+        rowProps={row => ({ ...(registry?.rowProps(row.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(row, paging.sorted) })}
         renderRow={row => { const notes = supplierNotes(row, language); return <>
-          <td><strong>{row.code}</strong><small><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></small></td>
+          <td><strong>{row.code}</strong></td>
+          <td><StatusBadge tone={criticalityTone(row.criticality)}>{criticalityLabel(row.criticality, language)}</StatusBadge></td>
           <td>{row.name}<small>{supplierCategoryLabel(row.category, language)}</small></td>
           <td className="nowrap-cell">{row.latestEvaluation ? `${formatDay(row.latestEvaluation.evaluatedOn, language)} · ${formatPercent(row.score, language)}` : '—'}{row.evaluationDue ? <small className="quality-overdue-text">{en ? 'Evaluation due' : 'Οφείλεται αξιολόγηση'}{row.nextEvaluation ? ` · ${formatDay(row.nextEvaluation, language)}` : ''}</small> : row.nextEvaluation && <small>{en ? 'Next' : 'Επόμενη'} {formatDay(row.nextEvaluation, language)}</small>}</td>
           <td>{notes.length ? <span className="resource-notes">{notes.map(note => <StatusBadge key={note.key} tone={note.tone}>{note.label}</StatusBadge>)}</span> : '—'}</td>
           <td><StatusBadge tone={approvalTone(row.approval)}>{approvalLabel(row.approval, language)}</StatusBadge></td>
         </> }} />
     </div>
-    {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
+    {rows.length > 0 && <RegistryPagination language={language} {...paging.props} />}
   </>
 }
 
