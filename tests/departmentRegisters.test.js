@@ -162,10 +162,32 @@ describe('periods and templates', () => {
     const { entries, identities } = demoRegisterEntries(today)
     const own = entries.filter(item => item.registerId === register.id)
     expect(own.length).toBeGreaterThan(200)
-    expect(Object.keys(identities).length).toBe(own.length)
+    expect(own.every(item => identities[item.id])).toBe(true)
     expect(own.every(item => !('patientName' in item.values))).toBe(true)
     const report = indicatorReport(register, own, periodOf('year', '2026-06-01'))
     for (const row of report) expect(row.current.value).not.toBeNull()
+  })
+})
+
+describe('the ICU register', () => {
+  it('keeps General and Cardiac surgery patients apart, each with its own marker', async () => {
+    const { caseMarker, registerThemeKey } = await import('../src/features/registers/registerThemes')
+    const register = demoRegisters().find(item => item.templateKey === 'icu')
+    expect(registerThemeKey(register)).toBe('icu')
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
+    const cardiac = own.filter(item => item.values.category === 'cardiac'), general = own.filter(item => item.values.category === 'general')
+    expect(cardiac.length).toBeGreaterThan(20)
+    expect(general.length).toBeGreaterThan(20)
+    expect(caseMarker(register, cardiac[0].values).tone).toBe('danger')
+    expect(caseMarker(register, general[0].values).tone).toBe('info')
+    expect(caseMarker(register, {})).toBeNull()
+  })
+  it('is recognised by its name too, and never mistaken for the NICU', async () => {
+    const { registerThemeKey } = await import('../src/features/registers/registerThemes')
+    expect(registerThemeKey({ name: 'Μητρώο ασθενών ΜΕΘ', nameEn: '', department: '' })).toBe('icu')
+    expect(registerThemeKey({ name: 'Μητρώο νεογνών ΜΕΝΝ', nameEn: '', department: '' })).toBe('nicu')
+    expect(registerThemeKey({ name: '', nameEn: 'NICU register', department: '' })).toBe('nicu')
+    expect(registerThemeKey({ name: 'Μέθοδοι', nameEn: '', department: 'Παθολογική' })).toBe('')
   })
 })
 

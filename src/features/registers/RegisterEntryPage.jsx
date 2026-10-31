@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Baby, Calculator, Check, ClipboardList, Lock, Pencil, Trash2, UserRound } from 'lucide-react'
+import { Calculator, Check, Lock, Pencil, Trash2, UserRound } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
@@ -19,6 +19,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { deleteEntry, loadEntry, loadRegister, saveEntry } from './registerService'
 import { useRegisterAccess } from './registerAccess'
+import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { computeValues, fieldVisible, formatValue, gestationText, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
 import './registers.css'
 
@@ -104,7 +105,11 @@ export function RegisterEntryPage() {
     return { id: section.key || 'main', no: position + 1, label: textOf(section, language), filled, total: typed.length, wrong: tried ? fields.filter(field => check.errors[field.key]).length : 0 }
   })
   const goToSection = id => { setActiveSection(id); document.getElementById(`register-section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
-  const theme = register && (register.templateKey === 'nicu' || /ΜΕΝΝ|NICU/i.test(`${register.name} ${register.nameEn} ${register.department}`)) ? 'nicu' : ''
+  const theme = registerThemeKey(register)
+  const ThemeIcon = themeIcon(theme)
+  // The ICU keeps General and Cardiac surgery patients together: the choice is two cards at the top and colours the whole entry.
+  const categoryField = theme === 'icu' ? register.fields.find(field => field.key === 'category' && field.type === 'choice') : null
+  const marker = caseMarker(register, full, language)
   async function save() {
     setTried(true)
     // The first section with a field to correct opens.
@@ -131,21 +136,29 @@ export function RegisterEntryPage() {
   const title = isNew ? (en ? 'New case' : 'Νέο περιστατικό') : (showIdentity && identity.patientName) || `${en ? 'Case' : 'Περιστατικό'} ${caseCode}`
   const subtitle = [showIdentity && identity.caseNumber ? `${en ? 'Case no.' : 'Αρ. περιστατικού'} ${identity.caseNumber}` : '', !isNew && entryDate ? `${en ? 'admitted' : 'εισαγωγή'} ${formatDay(entryDate, language)}` : '', en ? register.departmentEn : register.department].filter(Boolean).join(' · ')
   const errorCount = Object.keys(check.errors).length
-  return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={theme === 'nicu' ? <Baby size={19} /> : <ClipboardList size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={subtitle} recordId={isNew ? undefined : entry.id} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
+  return <Page fill><EntityRecordShell className="register-record-shell register-entry-shell workspace-fill" avatar={<ThemeIcon size={19} />} eyebrow={en ? register.nameEn : register.name} title={title} subtitle={subtitle} recordId={isNew ? undefined : entry.id} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}
     headerActions={!isNew && canEdit && !editing && <><IconButton label={en ? 'Edit' : 'Επεξεργασία'} tone="edit" onClick={() => setEditing(true)}><Pencil size={16} /></IconButton><IconButton label={en ? 'Delete case' : 'Διαγραφή περιστατικού'} tone="danger" onClick={remove}><Trash2 size={16} /></IconButton></>}>
-    <div className={`register-form-page register-entry-form${theme ? ` is-theme-${theme}` : ''}`}><div className="lo-form-cards register-entry-scroll" ref={pageRef}>
+    <div className={`register-form-page register-entry-form${theme ? ` is-theme-${theme}` : ''}`} data-category={marker?.value || undefined}><div className="lo-form-cards register-entry-scroll" ref={pageRef}>
       {entry?.locked && <div className="governance-banner"><Lock size={16} /><span>{en ? 'This case belongs to a closed period and is read-only.' : 'Το περιστατικό ανήκει σε κλειστή περίοδο και δεν αλλάζει.'}</span></div>}
       <div className="register-entry-layout">
         {sectionIndex.length > 1 && <nav className="register-entry-rail" aria-label={en ? 'Sections of the entry' : 'Ενότητες της καταχώρισης'}>
-          <span className="register-entry-rail-title">{theme === 'nicu' ? <Baby size={16} aria-hidden="true" /> : <ClipboardList size={16} aria-hidden="true" />}{en ? 'Entry' : 'Καταχώριση'}</span>
+          <span className="register-entry-rail-title"><ThemeIcon size={16} aria-hidden="true" />{en ? 'Entry' : 'Καταχώριση'}</span>
           {sectionIndex.map(item => <button key={item.id} type="button" className={`${activeSection === item.id || (!activeSection && item.no === 1) ? 'is-active' : ''} ${item.wrong ? 'has-errors' : item.total && item.filled === item.total ? 'is-done' : ''}`.trim()} onClick={() => goToSection(item.id)}>
             <i>{item.wrong ? '!' : item.total && item.filled === item.total ? <Check size={13} aria-hidden="true" /> : item.no}</i>
             <span>{item.label}</span><small>{item.filled}/{item.total}</small>
           </button>)}
         </nav>}
         <div className="register-entry-main">
+          {categoryField && <section className="register-entry-category" aria-label={textOf(categoryField, language)}>
+            <span className="register-entry-category-label">{textOf(categoryField, language)}{categoryField.required ? ' *' : ''}</span>
+            <div role="radiogroup" className="register-entry-category-cards">
+              {categoryField.options.map(option => { const choice = caseMarker(register, { category: option.value }, language); const OptionIcon = choice?.Icon; return <button key={option.value} type="button" role="radio" aria-checked={full.category === option.value} disabled={!editable} className={`is-${option.value}${full.category === option.value ? ' is-selected' : ''}`} onClick={() => set('category', option.value)}>{OptionIcon && <OptionIcon size={20} aria-hidden="true" />}<span>{textOf(option, language)}</span></button> })}
+            </div>
+            {tried && check.errors.category && <span className="field-error">{check.errors.category}</span>}
+          </section>}
           {register.settings?.identity && (showIdentity ? <section className="register-entry-identity">
-            <header><span className="register-entry-badge">{theme === 'nicu' ? <Baby size={20} aria-hidden="true" /> : <UserRound size={20} aria-hidden="true" />}</span><div><h3>{en ? 'Who' : 'Ταυτότητα'}</h3><small><Lock size={12} aria-hidden="true" />{en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}</small></div></header>
+            {theme === 'icu' && <svg className="register-entry-ecg" viewBox="0 0 240 40" aria-hidden="true" preserveAspectRatio="none"><polyline points="0,22 52,22 60,22 66,8 74,36 82,14 88,22 140,22 150,22 156,10 164,34 172,22 240,22" /></svg>}
+            <header><span className="register-entry-badge">{theme ? <ThemeIcon size={20} aria-hidden="true" /> : <UserRound size={20} aria-hidden="true" />}</span><div><h3>{en ? 'Who' : 'Ταυτότητα'}</h3><small><Lock size={12} aria-hidden="true" />{en ? 'Seen only inside the department; never in indicators or exports.' : 'Τη βλέπει μόνο το τμήμα· δεν εμφανίζεται σε δείκτες ή εξαγωγές.'}</small></div></header>
             <div className="register-entry-identity-fields">
               {register.settings.identity.caseNumber && <Field label={en ? 'Case number' : 'Αριθμός περιστατικού'}><input value={identity.caseNumber} disabled={!editable} inputMode="numeric" onChange={event => setIdentity(current => ({ ...current, caseNumber: event.target.value }))} /></Field>}
               {register.settings.identity.patientName && <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={identity.patientName} disabled={!editable} onChange={event => setIdentity(current => ({ ...current, patientName: event.target.value }))} /></Field>}
@@ -155,7 +168,7 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
             </section>
           })}
         </div>

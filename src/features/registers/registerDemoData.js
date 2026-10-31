@@ -27,6 +27,7 @@ const pick = (random, weighted) => {
 
 export const DEMO_NICU_ID = 'reg-demo-nicu'
 export const DEMO_ENDOSCOPY_ID = 'reg-demo-endoscopy'
+export const DEMO_ICU_ID = 'reg-demo-icu'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -34,7 +35,9 @@ export function demoRegisters() {
   const targets = { mean_ventilator: { target: 5 }, mean_cpap: { target: 7 }, mortality: { target: 2, threshold: 4 }, readmissions: { target: 5, threshold: 8 }, late_infection_rate: { target: 5, threshold: 8 }, breast_milk: { target: 50, threshold: 35 } }
   nicu.indicators = nicu.indicators.map(indicator => ({ ...indicator, ...(targets[indicator.id] || {}) }))
   const endoscopy = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
-  return [nicu, endoscopy].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
+  icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality: { target: 20, threshold: 25 }, mean_icu_days: { target: 6 }, pressure_ulcers: { target: 3, threshold: 6 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
+  return [nicu, endoscopy, icu].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -106,6 +109,52 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
         return [key, { count: Math.max(0, Math.round(mean * (0.85 + random() * 0.3))) }]
       }))
       entries.push({ id: `reg-entry-endo-${y}-${pad(m)}`, registerId: DEMO_ENDOSCOPY_ID, entryDate: `${y}-${pad(m)}-01`, periodStart: `${y}-${pad(m)}-01`, values, status: 'complete', locked: back > 1, createdAt: `${y}-${pad(m)}-${pad(days)}T14:00:00Z`, createdByLabel: 'Προϊσταμένη Ενδοσκοπικού' })
+    }
+  }
+  // ICU: General and Cardiac surgery patients, its own seed so the NICU's numbers stay the same.
+  const icuRandom = seeded(20261107)
+  let icuNumber = 10590000
+  for (let back = 13; back >= 0; back -= 1) {
+    const date = new Date(Date.UTC(year, month - 1 - back, 1))
+    const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    const count = 14 + Math.floor(icuRandom() * 7)
+    for (let index = 0; index < count; index += 1) {
+      const admission = `${y}-${pad(m)}-${pad(1 + Math.floor(icuRandom() * days))}`
+      if (admission > today) continue
+      const cardiac = icuRandom() < 0.38
+      const age = Math.round(cardiac ? 58 + icuRandom() * 24 : 38 + icuRandom() * 48)
+      const apache = Math.max(3, Math.min(45, Math.round((cardiac ? 11 : 17) + (icuRandom() - 0.4) * 18)))
+      const ventilated = cardiac ? icuRandom() < 0.7 : icuRandom() < 0.55
+      const stay = Math.max(1, Math.round((cardiac ? 2.5 : 6) + icuRandom() * (cardiac ? 3 : 9)))
+      const discharge = addDays(admission, stay)
+      const out = discharge <= today
+      const death = out && icuRandom() < (cardiac ? 0.04 : 0.17) + apache / 400
+      const values = {
+        admission_date: admission,
+        category: cardiac ? 'cardiac' : 'general',
+        age,
+        sex: icuRandom() < (cardiac ? 0.7 : 0.55) ? 'male' : 'female',
+        admission_reason: cardiac ? pick(icuRandom, [['cardiac_surgery', 6], ['cardiac', 2]]) : pick(icuRandom, [['respiratory', 4], ['sepsis', 3], ['postop', 3], ['neuro', 1], ['trauma', 1], ['other', 1]]),
+        requisition: icuRandom() < 0.05,
+        readmission_48h: icuRandom() < 0.025,
+        apache_score: apache,
+        apache_postop: cardiac || icuRandom() < 0.3,
+        euroscore: cardiac ? Math.round((1 + icuRandom() * 7) * 10) / 10 : null,
+        ventilator_hours: ventilated ? Math.round(6 + icuRandom() * (cardiac ? 30 : 160)) : 0,
+        pressure_ulcer: !cardiac && icuRandom() < 0.045,
+        vap: ventilated && !cardiac && icuRandom() < 0.05,
+        air_mattress: !cardiac && icuRandom() < 0.7,
+        daily_cleaning: icuRandom() < 0.97,
+        line_care: icuRandom() < 0.94,
+        cultures: icuRandom() < (cardiac ? 0.3 : 0.85),
+        discharge_date: out ? discharge : '',
+        outcome: out ? (death ? 'death' : pick(icuRandom, [['transfer_ward', 12], ['transfer_hospital', 1]])) : '',
+      }
+      icuNumber += 1 + Math.floor(icuRandom() * 3)
+      const id = `reg-entry-icu-${entries.filter(item => item.registerId === DEMO_ICU_ID).length + 1}`
+      entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΘ' })
+      identities[id] = { caseNumber: String(icuNumber), patientName: `${cardiac ? 'Ασθενής Κ' : 'Ασθενής Γ'}-${pad(entries.length % 100)}` }
     }
   }
   return { entries, identities }

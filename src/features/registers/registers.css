@@ -225,3 +225,21 @@
   .register-entry-rail button{flex:none;grid-template-columns:24px auto auto}
 }
 @media (max-width:700px){.register-entry-identity-fields{grid-template-columns:minmax(0,1fr)}}
+
+/* ICU: a monitor-like look, and the two kinds of patient in two colours (General blue, Cardiac surgery red). */
+.register-entry-form.is-theme-icu{--reg-accent:#2f5f9e}
+.register-entry-form.is-theme-icu[data-category="cardiac"]{--reg-accent:#b83a3a}
+.register-entry-category{display:grid;gap:8px}
+.register-entry-category-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
+.register-entry-category-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.register-entry-category-cards button{display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--lo-color-border);border-radius:14px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:14.5px;font-weight:650;text-align:left;cursor:pointer}
+.register-entry-category-cards button:disabled{cursor:default;opacity:.55}
+.register-entry-category-cards button.is-general>svg{color:#2f5f9e}
+.register-entry-category-cards button.is-cardiac>svg{color:#b83a3a}
+.register-entry-category-cards button.is-general.is-selected{border-color:#2f5f9e;background:color-mix(in srgb,#2f5f9e 10%,var(--lo-color-surface))}
+.register-entry-category-cards button.is-cardiac.is-selected{border-color:#b83a3a;background:color-mix(in srgb,#b83a3a 10%,var(--lo-color-surface))}
+.register-entry-category-cards button.is-selected:disabled{opacity:1}
+.register-entry-identity{position:relative;overflow:hidden}
+.register-entry-ecg{position:absolute;top:14px;right:18px;width:240px;height:40px;fill:none;stroke:var(--reg-accent);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.35;pointer-events:none}
+.register-table tr.is-category-cardiac>td:first-child{box-shadow:inset 4px 0 0 #b83a3a}
+.register-table tr.is-category-general>td:first-child{box-shadow:inset 4px 0 0 #2f5f9e}

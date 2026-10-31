@@ -22,6 +22,7 @@ import { useRegisterAccess } from './registerAccess'
 import { computeValues, formatValue, textOf } from './registerEngine'
 import { registerKindLabel, registerStatusLabel } from './registerText'
 import { RegisterSheet, dailyFromOf } from './RegisterSheet'
+import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { RegisterIndicators } from './RegisterIndicators'
 import { RegisterBuilder } from './RegisterBuilder'
 import './registers.css'
@@ -85,7 +86,7 @@ export function RegisterRecordPage() {
   const headerActions = (tab === 'entries' || tab === 'indicators') && (exportMenu || importButton || primaryAction) ? <div className="row-actions">{exportMenu}{importButton}{primaryAction}</div> : undefined
   const status = <StatusBadge tone={register.status === 'active' ? 'success' : 'neutral'}>{registerStatusLabel(register.status, language)}</StatusBadge>
   const context = <span className="register-context">{[en ? register.departmentEn : register.department, registerKindLabel(register.kind, language), `${en ? 'version' : 'έκδοση'} ${register.version}`].filter(Boolean).join(' · ')}{!withIdentity && !sheet && <span className="register-privacy"><Lock size={13} />{en ? 'Names visible only to the department' : 'Τα ονόματα τα βλέπει μόνο το τμήμα'}</span>}</span>
-  return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : <ClipboardList size={19} />} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
+  return <Page fill><EntityRecordShell className="register-record-shell workspace-fill" avatar={sheet ? <CalendarRange size={19} /> : (() => { const Icon = themeIcon(registerThemeKey(register)); return <Icon size={19} /> })()} eyebrow={register.code} title={en ? register.nameEn : register.name} context={context} status={status} tabs={tabs} activeTab={tab} onTabChange={next => { setTab(next); setNewDayTick(0) }} onBack={goBack} headerActions={headerActions}
 >
     {tab === 'entries' && (sheet ? <RegisterSheet register={register} entries={entries} onSaved={reload} newDayTick={newDayTick} onExportApi={setSheetExport} /> : <RegisterCases register={register} entries={entries} withIdentity={withIdentity} canRecord={access.canRecord(register)} loading={loading} />)}
     {tab === 'indicators' && <RegisterIndicators register={register} entries={entries} onExportApi={setIndicatorExport} onDefineTarget={access.canDefine ? indicatorId => { setDefineIndicator(indicatorId); setTab('definition') } : null} />}
@@ -136,12 +137,12 @@ function RegisterCases({ register, entries, withIdentity, canRecord, loading }) 
       {stays && <FilterSelect label={en ? 'Stay' : 'Νοσηλεία'} value={stay} onChange={setStay}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="in">{en ? 'Still in' : 'Νοσηλεύονται'}</option><option value="out">{en ? 'Discharged' : 'Έχουν βγει'}</option></FilterSelect>}
     </FilterBar>
     <RegistryTable sortable={false} className="register-table" rows={paged} columns={[{ key: 'who', label: withIdentity ? (en ? 'Case' : 'Περιστατικό') : '#' }, ...columns.map(field => ({ key: field.key, label: textOf(field, language) }))]}
-      rowProps={entry => ({ className: 'registry-row-clickable', onClick: () => open(entry), tabIndex: 0, onKeyDown: event => { if (event.key === 'Enter') open(entry) } })}
+      rowProps={entry => ({ className: `registry-row-clickable${entry.values?.category && registerThemeKey(register) === 'icu' ? ` is-category-${entry.values.category}` : ''}`, onClick: () => open(entry), tabIndex: 0, onKeyDown: event => { if (event.key === 'Enter') open(entry) } })}
       renderRow={entry => {
         const values = computeValues(register.fields, entry.values)
         return <>
           <td>{withIdentity ? <><strong>{entry.identity?.patientName || '—'}</strong><small>{entry.identity?.caseNumber || ''}</small></> : <strong>{String(entry.id).slice(-6).toUpperCase()}</strong>}</td>
-          {columns.map(field => <td key={field.key}>{field.key === 'discharge_date' && !values[field.key] ? <StatusBadge tone="info">{en ? 'Still in' : 'Νοσηλεύεται'}</StatusBadge> : formatValue(field, values[field.key], language)}</td>)}
+          {columns.map(field => { const marker = field.key === 'category' ? caseMarker(register, values, language) : null; return <td key={field.key}>{marker ? <StatusBadge tone={marker.tone} icon={marker.Icon}>{marker.label}</StatusBadge> : field.key === 'discharge_date' && !values[field.key] ? <StatusBadge tone="info">{en ? 'Still in' : 'Νοσηλεύεται'}</StatusBadge> : formatValue(field, values[field.key], language)}</td> })}
         </>
       }}
       emptyTitle={!loading && !rows.length ? (en ? 'No cases' : 'Δεν υπάρχουν περιστατικά') : ''} emptyText={canRecord ? (en ? 'Record the first case with «New case».' : 'Καταχωρίστε το πρώτο με «Νέο περιστατικό».') : ''} />
