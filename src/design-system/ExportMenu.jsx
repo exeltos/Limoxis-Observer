@@ -1,5 +1,4 @@
 import { FileSpreadsheet, FileText, FileType, Printer } from 'lucide-react'
-import { Button } from './Button'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
@@ -13,7 +12,7 @@ const ORDER = ['print', 'pdf', 'excel', 'word', 'data']
 // The one export control of the app, the same on list pages, record headers and
 // dialogs: «Εξαγωγή ▾» with only the options that apply, in this order:
 // Print, PDF, Excel, Word (then any further `items`, each with a `kind`).
-// With a single option the button runs it directly, still labelled «Εξαγωγή».
+// Always «Εξαγωγή ▾», even with a single option, so the control looks the same everywhere.
 // items: [{ id, kind: 'print' | 'pdf' | 'excel' | 'word' | 'data', label, onClick, disabled }]
 // ('data' is the record's raw data file, listed last, and shown only to
 // Platform Owner and Hospital Admin: everyone else never sees it.)
@@ -106,24 +105,6 @@ export function ExportMenu({
         />
       </span>
     )
-  if (all.length === 1) {
-    const only = all[0]
-    return (
-      <span className={`lo-export-menu ${className}`.trim()} data-pdf-ignore="">
-        <Button
-          variant="secondary"
-          className="lo-export-button"
-          disabled={only.disabled}
-          title={only.label}
-          aria-label={`${label}: ${only.label}`}
-          onClick={only.onClick}
-        >
-          <Printer size={15} aria-hidden="true" />
-          {label}
-        </Button>
-      </span>
-    )
-  }
   return (
     <span className={`lo-export-menu ${className}`.trim()} data-pdf-ignore="">
       <OverflowMenu
