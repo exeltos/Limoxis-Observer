@@ -28,6 +28,7 @@ const pick = (random, weighted) => {
 export const DEMO_NICU_ID = 'reg-demo-nicu'
 export const DEMO_ENDOSCOPY_ID = 'reg-demo-endoscopy'
 export const DEMO_ICU_ID = 'reg-demo-icu'
+export const DEMO_PAEDIATRICS_ID = 'reg-demo-paediatrics'
 
 export function demoRegisters() {
   const nicu = { ...registerFromTemplate('nicu', { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }), id: DEMO_NICU_ID, code: 'REG-MENN' }
@@ -37,7 +38,8 @@ export function demoRegisters() {
   const endoscopy = { ...registerFromTemplate('endoscopy', { departmentId: 'Παθολογική', department: 'Παθολογική', departmentEn: 'Internal Medicine' }), id: DEMO_ENDOSCOPY_ID, code: 'REG-ENDO', name: 'Πράξεις Ενδοσκοπικού', nameEn: 'Endoscopy procedures' }
   const icu = { ...registerFromTemplate('icu', { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }), id: DEMO_ICU_ID, code: 'REG-ICU' }
   icu.indicators = icu.indicators.map(indicator => ({ ...indicator, ...({ mortality_scored: { target: 15 }, mean_ventilator_hours: { target: 96 } }[indicator.id] || {}) }))
-  return [nicu, endoscopy, icu].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
+  const paediatrics = { ...registerFromTemplate('paediatrics', { departmentId: 'Παιδιατρική', department: 'Παιδιατρική', departmentEn: 'Paediatrics' }), id: DEMO_PAEDIATRICS_ID, code: 'REG-PAED' }
+  return [nicu, endoscopy, icu, paediatrics].map(register => ({ ...register, history: [{ at: '2026-01-10T09:00:00Z', action: 'created', actor: 'Ομάδα Ποιότητας' }] }))
 }
 
 export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10)) {
@@ -156,6 +158,50 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       const id = `reg-entry-icu-${entries.filter(item => item.registerId === DEMO_ICU_ID).length + 1}`
       entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΘ' })
       identities[id] = { caseNumber: String(icuNumber), patientName: `${cardiac ? 'Ασθενής Κ' : 'Ασθενής Γ'}-${pad(entries.length % 100)}` }
+    }
+  }
+  // Paediatrics: children up to 16 (newborns stay with the NICU), its own seed.
+  const kidRandom = seeded(20261109)
+  let kidNumber = 10570000
+  for (let back = 13; back >= 0; back -= 1) {
+    const date = new Date(Date.UTC(year, month - 1 - back, 1))
+    const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate()
+    const winter = [11, 12, 1, 2, 3].includes(m)
+    const count = (winter ? 38 : 24) + Math.floor(kidRandom() * 10)
+    for (let index = 0; index < count; index += 1) {
+      const admission = `${y}-${pad(m)}-${pad(1 + Math.floor(kidRandom() * days))}`
+      if (admission > today) continue
+      const ageDays = Math.round(Math.pow(kidRandom(), 1.7) * 16 * 365) + 30
+      const years = Math.floor(ageDays / 365.25)
+      const reason = pick(kidRandom, winter ? [['respiratory', 9], ['gastro', 3], ['fever', 3], ['uti', 1], ['seizure', 1], ['injury', 1], ['other', 1]] : [['respiratory', 3], ['gastro', 4], ['fever', 3], ['uti', 2], ['seizure', 1], ['injury', 2], ['surgical', 1], ['other', 1]])
+      const stay = Math.max(1, Math.round((reason === 'respiratory' ? 3.5 : 2.5) + kidRandom() * 3))
+      const discharge = addDays(admission, stay)
+      const out = discharge <= today
+      const ivAbx = ['respiratory', 'uti', 'fever'].includes(reason) && kidRandom() < 0.7
+      const lineDays = ivAbx || kidRandom() < 0.4 ? Math.max(1, stay - (kidRandom() < 0.3 ? 1 : 0)) : 0
+      const values = {
+        admission_date: admission,
+        birth_date: addDays(admission, -ageDays),
+        age_group: years < 1 ? 'infant' : years < 5 ? 'toddler' : years < 12 ? 'child' : 'adolescent',
+        sex: kidRandom() < 0.53 ? 'male' : 'female',
+        admission_reason: reason,
+        from_ed: kidRandom() < 0.82,
+        readmission_30d: kidRandom() < 0.04,
+        isolation: reason === 'gastro' ? kidRandom() < 0.7 : reason === 'respiratory' ? kidRandom() < 0.4 : kidRandom() < 0.05,
+        iv_antibiotics: ivAbx,
+        iv_antibiotic_days: ivAbx ? Math.max(1, stay - 1) : null,
+        peripheral_line_days: lineDays || null,
+        phlebitis: lineDays > 0 && kidRandom() < 0.025,
+        hai: kidRandom() < 0.012,
+        fall: kidRandom() < 0.006,
+        discharge_date: out ? discharge : '',
+        outcome: out ? pick(kidRandom, [['home', 96], ['picu', 1.2], ['transfer_hospital', 2], ['against_advice', 0.8]]) : '',
+      }
+      kidNumber += 1 + Math.floor(kidRandom() * 3)
+      const id = `reg-entry-paed-${entries.filter(item => item.registerId === DEMO_PAEDIATRICS_ID).length + 1}`
+      entries.push({ id, registerId: DEMO_PAEDIATRICS_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια Παιδιατρικής' })
+      identities[id] = { caseNumber: String(kidNumber), patientName: `Παιδί ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
     }
   }
   return { entries, identities }

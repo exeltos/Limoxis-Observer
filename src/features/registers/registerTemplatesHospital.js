@@ -301,6 +301,7 @@ const PAEDIATRICS = {
     yes('iv_antibiotics', 'Ενδοφλέβια αντιβίωση', 'IV antibiotics', { section: 'stay' }),
     days('iv_antibiotic_days', 'Ημέρες ενδοφλέβιας αντιβίωσης', 'IV antibiotic days', { section: 'stay', showWhen: { field: 'iv_antibiotics', value: true } }),
     days('peripheral_line_days', 'Ημέρες περιφερικού φλεβοκαθετήρα', 'Peripheral line days', { section: 'stay' }),
+    yes('phlebitis', 'Φλεβίτιδα περιφερικού καθετήρα', 'Peripheral line phlebitis', { section: 'stay', showWhen: { field: 'peripheral_line_days' }, help: 'Για τον δείκτη φλεβίτιδας ανά 1.000 ημέρες καθετήρα.', helpEn: 'For the phlebitis rate per 1,000 line days.' }),
     yes('hai', 'Λοίμωξη σχετιζόμενη με τη νοσηλεία', 'Healthcare-associated infection', { section: 'stay', help: 'Θα συνδεθεί με το επεισόδιο στην Επιτήρηση.', helpEn: 'To be linked with the Surveillance episode.' }),
     yes('fall', 'Πτώση', 'Fall', { section: 'stay', help: 'Κάθε πτώση δηλώνεται και ως αναφορά συμβάντος.', helpEn: 'Every fall is also reported as an incident.' }),
     { key: 'discharge_date', section: 'discharge', type: 'date', notBefore: 'admission_date', list: true, label: 'Ημερομηνία εξόδου', labelEn: 'Discharge date', aliases: ['ΗΜΕΡΟΜΗΝΙΑ ΕΞΟΔΟΥ'] },
@@ -317,6 +318,10 @@ const PAEDIATRICS = {
     share('iv_antibiotics', '% με ενδοφλέβια αντιβίωση', '% on IV antibiotics', [{ field: 'iv_antibiotics', op: 'yes' }], { direction: 'context' }),
     share('hai', '% με λοίμωξη σχετιζόμενη με τη νοσηλεία', '% healthcare-associated infection', [{ field: 'hai', op: 'yes' }], { direction: 'lower' }),
     count('falls', 'Πτώσεις', 'Falls', { filters: [{ field: 'fall', op: 'yes' }], direction: 'lower' }),
+    { id: 'hai_rate', title: 'Λοιμώξεις νοσηλείας ανά 1.000 ημέρες νοσηλείας', titleEn: 'Healthcare-associated infections per 1,000 patient-days', aggregation: 'rate', filters: [{ field: 'hai', op: 'yes' }], denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], denominatorField: 'length_of_stay', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες νοσηλείας', unitEn: '/1,000 patient-days', direction: 'lower', note: 'Μόνο όσα παιδιά βγήκαν, στον μήνα εξόδου.', noteEn: 'Discharged children only, in the month of discharge.' },
+    { id: 'falls_rate', title: 'Πτώσεις ανά 1.000 ημέρες νοσηλείας', titleEn: 'Falls per 1,000 patient-days', aggregation: 'rate', filters: [{ field: 'fall', op: 'yes' }], denominatorFilters: [{ field: 'discharge_date', op: 'filled' }], denominatorField: 'length_of_stay', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες νοσηλείας', unitEn: '/1,000 patient-days', direction: 'lower', note: 'Μόνο όσα παιδιά βγήκαν, στον μήνα εξόδου.', noteEn: 'Discharged children only, in the month of discharge.' },
+    { id: 'phlebitis_rate', title: 'Φλεβίτιδα ανά 1.000 ημέρες περιφερικού καθετήρα', titleEn: 'Phlebitis per 1,000 peripheral line days', aggregation: 'rate', filters: [{ field: 'phlebitis', op: 'yes' }], denominatorFilters: [{ field: 'peripheral_line_days', op: 'gt', value: 0 }], denominatorField: 'peripheral_line_days', multiplier: 1000, dateField: 'discharge_date', unit: '/1.000 ημέρες καθετήρα', unitEn: '/1,000 line days', direction: 'lower' },
+    share('isolation', '% παιδιών σε απομόνωση', '% children in isolation', [{ field: 'isolation', op: 'yes' }]),
     share('from_ed', '% εισαγωγών από τα ΤΕΠ', '% admitted through the ED', [{ field: 'from_ed', op: 'yes' }]),
   ],
 }

@@ -38,8 +38,8 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
   const en = language === 'en'
   const { notifyError } = useFeedback()
   const reportRef = useRef(null)
-  // The NICU and the ICU have few cases a month: they open on the quarter. The ICU can be read for one kind of patient.
-  const [kind, setKind] = useState(() => (registerThemeKey(register) ? 'quarter' : 'month'))
+  // The NICU, the ICU and any register with rates per 1,000 days have few events a month: they open on the quarter. The ICU can be read for one kind of patient.
+  const [kind, setKind] = useState(() => (registerThemeKey(register) || register.indicators.some(item => ['rate', 'smr'].includes(item.aggregation)) ? 'quarter' : 'month'))
   const [category, setCategory] = useState('all')
   const categories = registerThemeKey(register) === 'icu' ? (register.fields.find(field => field.key === 'category')?.options || []) : []
   const entries = useMemo(() => (category === 'all' ? allEntries : allEntries.filter(entry => entry.values?.category === category)), [allEntries, category])

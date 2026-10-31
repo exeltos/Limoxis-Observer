@@ -212,6 +212,19 @@ describe('SMR', () => {
   })
 })
 
+describe('the paediatrics register', () => {
+  it('computes the rates per 1,000 days from the stays and the lines', () => {
+    const register = demoRegisters().find(item => item.templateKey === 'paediatrics')
+    const own = demoRegisterEntries('2026-10-16').entries.filter(item => item.registerId === register.id)
+    expect(own.length).toBeGreaterThan(300)
+    expect(own.every(item => ['infant', 'toddler', 'child', 'adolescent'].includes(item.values.age_group))).toBe(true)
+    const report = indicatorReport(register, own, periodOf('year', '2026-03-10'))
+    for (const key of ['hai_rate', 'falls_rate', 'phlebitis_rate', 'isolation', 'mean_los']) expect(report.find(row => row.indicator.id === key).current.value).not.toBeNull()
+    const rate = report.find(row => row.indicator.id === 'hai_rate').current
+    expect(rate.value).toBe(Number(((rate.numerator / rate.denominator) * 1000).toFixed(2)))
+  })
+})
+
 describe('database shape', () => {
   it('writes every template row by row and reads the same register back', async () => {
     const { definitionRows, registerFromRows, registerRow } = await import('../src/features/registers/registerCloud')
