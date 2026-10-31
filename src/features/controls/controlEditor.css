@@ -423,3 +423,7 @@
 .control-editor-link:focus-visible {
   text-decoration: underline;
 }
+/* «Fill in: …» first, then Cancel beside Save. */
+.control-editor-footer > .form-missing-summary {
+  order: -1;
+}
