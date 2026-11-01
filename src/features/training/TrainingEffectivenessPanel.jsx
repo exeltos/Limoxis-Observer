@@ -5,6 +5,7 @@ import { ChevronDown,ChevronUp } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { RecordFacts } from '../../design-system/RecordFacts'
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ChoiceField } from '../../design-system/ChoiceField'
@@ -49,8 +50,7 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
  const practice=program.effectiveness?.result?effectivenessStateText(status,en):program.effectiveness?.plannedDate?`${effectivenessStateText(status,en)} · ${formatDay(program.effectiveness.plannedDate)}`:effectivenessStateText(status,en)
  const notMet=['partial','not_effective'].includes(program.effectiveness?.result)
 
- return <section className="training-section training-effectiveness">
-  <div className="record-section-header"><div><span className="eyebrow">{en?'Training effectiveness':'Αποτελεσματικότητα εκπαίδευσης'}</span><h3>{en?'Did the training change practice?':'Άλλαξε η εκπαίδευση την πρακτική;'}</h3></div><span className={`training-effectiveness-state ${status}`}>{effectivenessStateText(status,en)}</span></div>
+ return <RecordTabPanel className="training-effectiveness" title={en?'Effectiveness':'Αποτελεσματικότητα'} subtitle={en?'Did the training change practice?':'Άλλαξε η εκπαίδευση την πρακτική;'} actions={<span className={`training-effectiveness-state ${status}`}>{effectivenessStateText(status,en)}</span>} footer={canManage?<div className="inline-edit-footer">{dirty&&<Button variant="secondary" onClick={()=>setDraft(saved)} disabled={busy}>{en?'Cancel':'Ακύρωση'}</Button>}<SaveButton loading={busy} disabled={!dirty||busy} onClick={()=>void save()}>{en?'Save':'Αποθήκευση'}</SaveButton></div>:null}>
   <RecordFacts label={en?'Effectiveness levels':'Επίπεδα αποτελεσματικότητας'} items={[{value:levels.satisfaction==null?'':`${levels.satisfaction}/5`,label:en?`satisfaction (${levels.feedbackCount} answers)`:`ικανοποίηση (${levels.feedbackCount} απαντήσεις)`},{value:levels.passRate==null?'':`${levels.passRate}%`,label:en?`knowledge passed${levels.averageScore==null?'':` · avg ${levels.averageScore}%`}`:`γνώσεις: επιτυχία${levels.averageScore==null?'':` · μ.ο. ${levels.averageScore}%`}`},{value:practice,label:en?'practice':'εφαρμογή στην πράξη'}]}/>
 
   <div className="entry-grid">
@@ -67,11 +67,10 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
    </>}
   </div>
   {saved.evaluatedBy&&<p className="training-effectiveness-meta">{en?'Evaluated by':'Αξιολόγηση από'} {saved.evaluatedBy}{saved.evaluatedAt?` · ${formatDay(saved.evaluatedAt)}`:''} · {optionLabel(EFFECTIVENESS_METHODS,saved.method,en)}{saved.comment?` — ${saved.comment}`:''}</p>}
-  {canManage&&<div className="inline-edit-footer">{dirty&&<Button variant="secondary" onClick={()=>setDraft(saved)} disabled={busy}>{en?'Cancel':'Ακύρωση'}</Button>}<SaveButton loading={busy} disabled={!dirty||busy} onClick={()=>void save()}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}
 
   {(notMet||capas.length>0)&&<div className="training-effectiveness-capa">
    <div className="training-effectiveness-capa-head"><div><strong>{en?'Corrective action':'Διορθωτική ενέργεια'}</strong><span>{en?'When practice did not change, open a CAPA; it links back to this programme.':'Όταν η πρακτική δεν άλλαξε, ανοίξτε διορθωτική ενέργεια· συνδέεται με αυτό το πρόγραμμα.'}</span></div>{notMet&&canCreateCapa&&<Button onClick={()=>navigate('/quality/capas/new',{state:{qualitySource:effectivenessCapaSource(program,{en})}})}><Plus size={15}/>{en?' Create CAPA':' Δημιουργία διορθωτικής ενέργειας'}</Button>}</div>
    {capas.map(capa=><button type="button" key={capa.id} className="training-effectiveness-capa-link" onClick={()=>navigate(`/quality/capas/${capa.id}`)}><ClipboardCheck size={15}/><span><strong>{capa.displayId||capa.id}</strong><small>{en?capa.titleEn||capa.title:capa.title}</small></span><ChevronRight size={15}/></button>)}
   </div>}
- </section>
+ </RecordTabPanel>
 }

@@ -15,3 +15,9 @@
 .training-reader-status{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--lo-color-muted)}
 .training-reader-frame iframe{width:100%;height:70vh;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff}
 .training-reader-frame img{max-width:100%;border:1px solid var(--lo-color-border);border-radius:10px}
+/* The tabs of a programme are record-tab panels (title, one line, actions, a table edge to edge) like the other records. */
+.training-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.training-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.training-content-stack{display:grid;gap:12px;padding:12px 20px 18px;align-content:start}
+.training-participants-view .record-tab-panel-body,.training-results-panel .record-tab-panel-body{padding:0}
+.training-effectiveness .record-tab-panel-body{padding:12px 20px 16px}
