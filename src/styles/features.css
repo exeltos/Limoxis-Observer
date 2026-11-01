@@ -2518,18 +2518,6 @@
 .bed-days-table-wrap .clickable-row:hover{background:var(--lo-shell-control-hover)}
 .bed-days-record-shell{min-height:0;height:100%}
 .bed-days-record-shell .entity-record-body{min-height:0;display:flex;flex-direction:column}
-.bed-days-record-section{min-height:0;flex:1 1 auto}
-.bed-days-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px;padding-top:4px}
-.bed-days-detail{min-width:0;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:#fbfcfd}
-.bed-days-detail span{display:block;margin-bottom:5px;color:var(--lo-color-muted);font-size:10.5px;font-weight:750}
-.bed-days-detail strong{display:block;color:var(--lo-color-text);font-size:13.5px;line-height:1.35}
-.bed-days-record-actions{display:flex;align-items:center;gap:6px;justify-content:flex-end}
-.bed-days-record-actions>.lo-icon-button{width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important;border:0!important;border-radius:9px!important;background:transparent!important;box-shadow:none!important}
-.bed-days-record-actions>.lo-icon-button-edit{color:var(--lo-status-warning-fg)!important}
-.bed-days-record-actions>.lo-icon-button-danger{color:var(--lo-status-danger-fg)!important}
-.bed-days-record-actions>.lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)!important}
-.bed-days-record-actions>.lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)!important}
-@media(max-width:760px){.bed-days-details-grid{grid-template-columns:1fr}}
 
 
 /* ===== FEATURE SOURCE: src/styles/library-workspace.css ===== */

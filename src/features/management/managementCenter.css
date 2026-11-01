@@ -165,3 +165,15 @@
 .management-lira-ai .lira-ai-check strong{display:block;font-size:13px;color:#1d3a52}
 .management-lira-ai .lira-ai-translation-row{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:32px;align-items:start}
 @media(max-width:900px){.management-lira-ai .lira-ai-grid,.management-lira-ai .lira-ai-fields,.management-lira-ai .lira-ai-translation-row{grid-template-columns:1fr;gap:12px}.management-lira-ai .lira-ai-head{flex-direction:column}}
+.bed-days-record-shell .bed-days-num{text-align:right;font-variant-numeric:tabular-nums}
+.bed-days-record-shell .bed-days-sum td{color:var(--lo-color-muted)}
+.bed-days-record-shell .bed-days-total td{font-weight:700;border-top:2px solid var(--lo-color-border)}
+.bed-days-editor{display:flex;flex-direction:column;gap:18px;padding:12px 14px 0}
+.bed-days-period-fields{display:grid;grid-template-columns:repeat(3,minmax(0,220px));gap:12px}
+.bed-days-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;border-top:1px solid var(--lo-color-border)}
+.bed-days-lines-total{grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:0;margin-top:-18px}
+.bed-days-record-shell th.bed-days-num{text-align:right}
+.bed-days-line{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--lo-color-border);font-size:13.5px}
+.bed-days-line input{height:36px;text-align:right}
+.bed-days-line-total{font-weight:700}
+@media(max-width:760px){.bed-days-period-fields,.bed-days-lines{grid-template-columns:1fr}}
