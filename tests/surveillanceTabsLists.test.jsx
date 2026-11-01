@@ -76,8 +76,8 @@ describe('Outbreak investigations tab', () => {
 
   it('words the cluster as count, window and the dates of that same window', () => {
     const c = { count: 13, windowDays: 14, firstDate: '2025-05-25', lastDate: '2025-06-07' }
-    expect(clusterWindowText(c, false)).toMatch(/^13 περιστατικά σε 14 ημέρες \(25\/5 → 7\/6\/2025\)$/)
-    expect(clusterWindowText(c, true)).toContain('13 cases in 14 days')
+    expect(clusterWindowText(c, false)).toMatch(/^13 ασθενείς σε 14 ημέρες \(25\/5 → 7\/6\/2025\)$/)
+    expect(clusterWindowText(c, true)).toContain('13 patients in 14 days')
   })
 
   it('builds the cluster pre-fill from the cluster fields only', () => {

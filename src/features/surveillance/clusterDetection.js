@@ -54,8 +54,9 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
       const windowEnd = addDays(sorted[i].date, windowDays)
       let j = i
       while (j + 1 < sorted.length && sorted[j + 1].date <= windowEnd) j++
-      let count = j - i + 1
+      // Patients, not isolates: a patient with repeated cultures counts once (as in private.detect_organism_clusters).
       let items = sorted.slice(i, j + 1)
+      let count = new Set(items.map((item, index) => item.patientId || item.sampleId || `row-${i + index}`)).size
       if (skinFlora) ({ count, items } = skinFloraWindow(sorted, i, j))
       if (count >= threshold && (!best || count > best.count)) {
         best = { count, firstDate: items[0].date, lastDate: items[items.length - 1].date, items }

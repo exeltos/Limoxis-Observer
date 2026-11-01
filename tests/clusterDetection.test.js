@@ -98,3 +98,20 @@ describe('skin flora rule', () => {
     expect(sql).toContain(`'${SKIN_FLORA_PATTERN_SOURCE}'`)
   })
 })
+
+describe('clusters count patients', () => {
+  it('counts a patient with repeated cultures once, however many isolates share a day', async () => {
+    const { detectOrganismClusters } = await import('../src/features/surveillance/clusterDetection')
+    const records = []
+    for (const patientId of ['p1', 'p2', 'p3', 'p4']) for (const day of ['2025-10-16', '2025-10-16', '2025-10-20']) records.push({ organism: 'Staphylococcus aureus', department: 'Χειρουργική', date: day, patientId, sampleId: `${patientId}-${day}-${records.length}` })
+    const [cluster] = detectOrganismClusters(records, { windowDays: 14, threshold: 3 })
+    expect(cluster.count).toBe(4)
+    expect(cluster.sampleCount).toBe(12)
+  })
+  it('starts each database window on a distinct day and counts distinct patients', () => {
+    const sql = fs.readFileSync('supabase/migrations/20261231220200_cluster_count_patients.sql', 'utf8')
+    expect(sql).toContain('select distinct i.department_id, i.department_name, lower(i.organism) as org_key, i.event_date as window_start')
+    expect(sql).toContain("count(*) filter (where not p.is_flora or p.n_samples >= 2)::bigint as window_count")
+    expect(sql).toContain(`'${SKIN_FLORA_PATTERN_SOURCE}'`)
+  })
+})

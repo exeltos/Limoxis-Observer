@@ -64,3 +64,6 @@
 .analysis-embedded .analysis-scroll{overflow:visible}
 /* Inside the Indicators screen the report lines up with the filters above it (the page already has its margins). */
 .analysis-workspace.analysis-embedded .analysis-scroll{padding:12px 0 0!important}
+/* The cluster lines: the coloured mark sits inside the card, in line with the header's icon, not on the card's edge. */
+.analysis-signal-grid>div{padding:12px 14px 12px 30px}
+.analysis-signal-grid>div:before{left:14px;top:12px;bottom:12px;width:4px;border-radius:2px}
