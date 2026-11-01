@@ -194,6 +194,18 @@ function committeeEvents(committees,range,today,list,en){
  }
 }
 
+// A department's meeting group: its next regular meeting (the last one plus the frequency), and the meetings already set.
+// meetingGroups: [{ group, nextDue, upcoming: [meeting] }].
+function departmentMeetingEvents(meetingGroups,range,today,list,en){
+ for(const {group,nextDue,upcoming=[]} of meetingGroups){
+  if(group.active===false)continue
+  const path=`/meetings/groups/${group.id}`
+  for(const meeting of upcoming)push(list,{id:`dm:${meeting.id}`,kind:'committees',date:toDay(meeting.meetingDate),title:group.name,detail:`${meeting.kind==='extraordinary'?(en?'Extraordinary meeting':'Έκτακτη συνάντηση'):(en?'Department meeting':'Συνάντηση τμήματος')} · ${meeting.code||''}`,department:group.department||'',path:`/meetings/${meeting.id}`,state:'planned'},range)
+  if(!nextDue||upcoming.length)continue
+  push(list,{id:`dmg:${group.id}`,kind:'committees',date:toDay(nextDue),title:group.name,detail:en?'Department meeting due':'Οφειλόμενη συνάντηση τμήματος',department:group.department||'',path,state:nextDue<today?'overdue':'planned'},range)
+ }
+}
+
 // A supplier's next evaluation (its latest evaluation plus the frequency): «Αξιολόγηση προμηθευτή».
 // suppliers: [{ id, code, name, nextEvaluation, evaluationDue }] as supplierStatus gives them.
 function supplierEvents(suppliers,range,today,list,en){
@@ -204,7 +216,7 @@ function supplierEvents(suppliers,range,today,list,en){
  }
 }
 
-export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],protocolSuggestions=[],suppliers=[],kitchen=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
+export function buildCalendarEvents({controls=[],capas=[],audits=[],training=null,documentFamilies=[],committees=[],meetingGroups=[],protocolSuggestions=[],suppliers=[],kitchen=[]}={},{from,to,today=dayKey(new Date()),language='el',ownerId}={}){
  const en=language==='en'
  const range=from&&to?{from,to}:null
  const list=[]
@@ -216,6 +228,7 @@ export function buildCalendarEvents({controls=[],capas=[],audits=[],training=nul
  // Open protocol update suggestions are pending items of the documents.
  for(const event of suggestionCalendarItems(protocolSuggestions,documentFamilies.flatMap(family=>family.versions||[]),{today,language,ownerId}))push(list,event,range)
  committeeEvents(committees,range,today,list,en)
+ departmentMeetingEvents(meetingGroups,range,today,list,en)
  supplierEvents(suppliers,range,today,list,en)
  // The kitchen's items are built by its model (kitchenModel.kitchenCalendarItems).
  for(const event of kitchen)push(list,event,range)

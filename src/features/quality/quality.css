@@ -200,6 +200,8 @@ td.quality-register-actions{width:48px;text-align:right}
 .meeting-topics{display:grid;gap:10px;padding:12px 14px}
 .meeting-topic-card{display:grid;gap:8px;padding:10px;border:1px solid var(--lo-color-border,#dbe2e8);border-radius:8px}
 .meeting-topic-head{display:flex;align-items:center;justify-content:space-between}
+.meeting-group-record .record-tab-panel-body{flex:1 0 auto}
+.meeting-group-summary,.meeting-files{padding:12px 14px}
 .meeting-training-hint{margin:8px 0 0;font-size:12px;color:var(--lo-color-text-muted,#5d7083)}
 @media (max-width:1100px){.review-action-row.meeting-person-row{grid-template-columns:1fr 1fr}}
 

@@ -1,0 +1,166 @@
+import { useMemo, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { CalendarClock, ClipboardList, GraduationCap, ListChecks, Pencil, Plus, Users } from 'lucide-react'
+import { Page } from '../../../design-system/Page'
+import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
+import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
+import { RegistryTable } from '../../../design-system/RegistryTable'
+import { StatusBadge } from '../../../design-system/StatusBadge'
+import { DetailFields } from '../../../design-system/DetailList'
+import { OverflowMenu } from '../../../design-system/OverflowMenu'
+import { IconButton } from '../../../design-system/IconButton'
+import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
+import { FormGrid } from '../../../design-system/FormCard'
+import { Field } from '../../../design-system/Field'
+import { ChoiceField } from '../../../design-system/ChoiceField'
+import { SearchableSelect } from '../../../design-system/SearchableSelect'
+import { useLanguage } from '../../../core/i18n/LanguageContext'
+import { useFeedback } from '../../../core/feedback/FeedbackContext'
+import { useTenant } from '../../../core/tenant/TenantContext'
+import { formatDay } from '../../../core/i18n/formatDay'
+import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
+import { useDepartments } from '../../management/useLibraries'
+import { useMeetingGroups } from './MeetingsPanel'
+import { saveMeetingGroup } from './meetingService'
+import { MEETING_FREQUENCIES, decisionStatusLabel, frequencyLabel, groupStatus, meetingStatusLabel, newMeetingGroup } from './meetingModel'
+import '../quality.css'
+
+const HeaderAction = ({ children }) => children
+const kindLabel = (kind, en) => (kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'))
+const presentOf = meeting => (meeting.participants || []).filter(person => person.attended !== false).length
+
+// Quality defines a department's meeting group: which department, how often it meets, who leads it.
+export function MeetingGroupDialog({ initial, departments, saving, onClose, onSave, language }) {
+  const en = language === 'en'
+  const [v, setV] = useState(() => ({ ...newMeetingGroup(), ...initial }))
+  const set = next => setV(current => ({ ...current, ...next }))
+  const chooseDepartment = id => { const department = departments.find(item => (item.id || item.name) === id); set({ departmentId: id || '', department: department?.name || '', name: v.name || (department ? `${en ? 'Meetings' : 'Συναντήσεις'} ${department.name}` : '') }) }
+  const frequencies = MEETING_FREQUENCIES.includes(Number(v.frequencyDays)) ? MEETING_FREQUENCIES : [...MEETING_FREQUENCIES, Number(v.frequencyDays)].sort((a, b) => a - b)
+  return <ObserverDialog title={v.id ? (en ? 'Meeting group' : 'Ομάδα συναντήσεων') : (en ? 'New meeting group' : 'Νέα ομάδα συναντήσεων')} subtitle={en ? 'How often the department meets, as the administration set it.' : 'Πόσο συχνά συναντάται το τμήμα, όπως το όρισε η διοίκηση.'} onClose={onClose}
+    footer={<DialogActions onSave={() => onSave(v)} saveLabel={en ? 'Save' : 'Αποθήκευση'} disabled={saving || !String(v.name).trim() || !v.departmentId} />}>
+    <FormGrid columns={2}>
+      <SearchableSelect label={en ? 'Department *' : 'Τμήμα *'} value={v.departmentId} options={departments.map(item => ({ value: item.id || item.name, label: en ? item.nameEn || item.name : item.name }))} onChange={chooseDepartment} placeholder={en ? 'Choose the department' : 'Επιλέξτε τμήμα'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel={en ? 'Clear' : 'Καθαρισμός'} />
+      <Field label={en ? 'Name *' : 'Όνομα *'}><input value={v.name} onChange={event => set({ name: event.target.value })} /></Field>
+      <ChoiceField label={en ? 'Meets' : 'Συχνότητα'} value={Number(v.frequencyDays)} options={frequencies.map(days => ({ value: days, label: frequencyLabel(days, language) }))} onChange={value => set({ frequencyDays: Number(value) })} />
+      <Field label={en ? 'Duration (hours)' : 'Διάρκεια (ώρες)'}><input type="number" min="0.5" step="0.5" value={v.durationHours} onChange={event => set({ durationHours: event.target.value })} /></Field>
+      <Field label={en ? 'Led by' : 'Υπεύθυνος'}><input value={v.managerLabel} placeholder={en ? 'e.g. the head nurse' : 'π.χ. ο/η Προϊστάμενος/η'} onChange={event => set({ managerLabel: event.target.value })} /></Field>
+      <ChoiceField label={en ? 'Status' : 'Κατάσταση'} value={v.active === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Active' : 'Ενεργή' }, { value: 'no', label: en ? 'Inactive' : 'Ανενεργή' }]} onChange={value => set({ active: value === 'yes' })} />
+    </FormGrid>
+  </ObserverDialog>
+}
+
+// The groups: one row per department, with how often it meets and when the next meeting is due.
+export function MeetingGroupsList({ data, onOpen, language }) {
+  const en = language === 'en'
+  const today = new Date().toISOString().slice(0, 10)
+  const rows = useMemo(() => data.groups.map(group => ({ group, status: groupStatus(group, data.meetings.meetings, today) })), [data.groups, data.meetings.meetings, today])
+  return <div className="scroll-table">
+    <RegistryTable className="quality-table" rows={rows} rowKey={row => row.group.id} error={data.error} onRetry={data.reload}
+      columns={[{ key: 'group', label: en ? 'Group' : 'Ομάδα' }, { key: 'frequency', label: en ? 'Meets' : 'Συχνότητα' }, { key: 'last', label: en ? 'Last meeting' : 'Τελευταία' }, { key: 'next', label: en ? 'Next due' : 'Επόμενη' }, { key: 'meetings', label: en ? 'Meetings' : 'Συναντήσεις' }, { key: 'open', label: en ? 'Open decisions' : 'Ανοιχτές αποφάσεις' }]}
+      emptyTitle={en ? 'No meeting groups' : 'Δεν υπάρχουν ομάδες συναντήσεων'} emptyText={en ? 'Quality defines one group per department, with how often it meets.' : 'Η Ποιότητα ορίζει μία ομάδα ανά τμήμα, με τη συχνότητα των συναντήσεών του.'}
+      rowProps={row => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => onOpen(row.group), onKeyDown: event => { if (event.key === 'Enter') onOpen(row.group) } })}
+      renderRow={({ group, status }) => <>
+        <td><strong>{group.name}</strong><small>{(en ? group.departmentEn : group.department) || (en ? 'No department' : 'Χωρίς τμήμα')}{group.active === false ? ` · ${en ? 'inactive' : 'ανενεργή'}` : ''}</small></td>
+        <td>{frequencyLabel(group.frequencyDays, language)}</td>
+        <td className="nowrap-cell">{status.last ? formatDay(status.last.meetingDate, language) : '—'}</td>
+        <td className={`nowrap-cell${status.overdue ? ' quality-overdue' : ''}`}>{status.nextDue ? formatDay(status.nextDue, language) : (en ? 'Not held yet' : 'Δεν έχει γίνει')}{status.overdue && status.nextDue && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</td>
+        <td>{status.meetings.length}</td>
+        <td>{status.open.length}{status.late.length > 0 && <small className="quality-overdue-text">{en ? `${status.late.length} overdue` : `${status.late.length} εκπρόθεσμες`}</small>}</td>
+      </>} />
+  </div>
+}
+
+// One department's meeting group: its summary, its meetings (regular and extraordinary), the
+// decisions still open and the training that came up. `groupId` given by the department's own page.
+export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings?tab=departments' } = {}) {
+  const params = useParams()
+  const groupId = ownGroupId || params.groupId
+  const { language } = useLanguage()
+  const en = language === 'en'
+  const { notify } = useFeedback()
+  const { tenant } = useTenant()
+  const { goTo, goBack, restored } = useContextualNavigation(home)
+  const data = useMeetingGroups()
+  const { departments } = useDepartments()
+  const [tab, setTab] = useState(restored?.tab || 'meetings')
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const group = data.groups.find(item => item.id === groupId) || null
+  const today = new Date().toISOString().slice(0, 10)
+  if (data.loading && !group) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!group) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting group not found' : 'Η ομάδα συναντήσεων δεν βρέθηκε'}</strong></div></Page>
+  const status = groupStatus(group, data.meetings.meetings, today)
+  const canWrite = data.canManage || data.meetings.access.canSee({ departmentId: group.departmentId, department: group.department })
+  const openMeeting = meeting => goTo(`/meetings/${meeting.id}`, { tab })
+  const newMeeting = kind => goTo('/meetings/new', { tab: 'meetings', state: { group, kind } })
+  async function saveGroup(next) {
+    setSaving(true)
+    try { await saveMeetingGroup(tenant?.id, next); notify(en ? 'Group saved.' : 'Η ομάδα αποθηκεύτηκε.', 'success'); setEditing(false); data.reload() } catch (error) { console.error(error); notify(en ? 'The group could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'error') } finally { setSaving(false) }
+  }
+  const tabs = [
+    { id: 'summary', label: en ? 'Summary' : 'Σύνοψη', icon: CalendarClock },
+    { id: 'meetings', label: `${en ? 'Meetings' : 'Συναντήσεις'} ${status.meetings.length}`, icon: Users },
+    { id: 'decisions', label: `${en ? 'Open decisions' : 'Ανοιχτές αποφάσεις'} ${status.open.length}`, icon: ListChecks },
+    { id: 'trainings', label: `${en ? 'Training' : 'Εκπαιδεύσεις'} ${status.trainings.length}`, icon: GraduationCap },
+  ]
+  const headerActions = <div className="row-actions">
+    {data.canManage && <IconButton tone="edit" label={en ? 'Edit the group' : 'Επεξεργασία ομάδας'} onClick={() => setEditing(true)}><Pencil size={16} /></IconButton>}
+    {canWrite && group.active !== false && <HeaderAction utility tone="primary"><OverflowMenu label={en ? 'New meeting' : 'Νέα συνάντηση'} width={220} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'New meeting' : 'Νέα συνάντηση'}</>}
+      items={[{ id: 'regular', label: en ? 'Regular meeting' : 'Τακτική συνάντηση', icon: CalendarClock, onClick: () => newMeeting('regular') }, { id: 'extraordinary', label: en ? 'Extraordinary meeting' : 'Έκτακτη συνάντηση', icon: ClipboardList, onClick: () => newMeeting('extraordinary') }]} /></HeaderAction>}
+  </div>
+  return <Page fill><EntityRecordShell className="quality-record-shell meeting-group-record workspace-fill" avatar={<Users size={19} />} eyebrow={(en ? group.departmentEn : group.department) || (en ? 'Meeting group' : 'Ομάδα συναντήσεων')} title={group.name}
+    subtitle={[frequencyLabel(group.frequencyDays, language), group.managerLabel].filter(Boolean).join(' · ')}
+    status={status.overdue ? <StatusBadge tone="danger">{status.last ? (en ? 'Meeting overdue' : 'Εκπρόθεσμη συνάντηση') : (en ? 'No meeting yet' : 'Καμία συνάντηση')}</StatusBadge> : group.active === false ? <StatusBadge tone="neutral">{en ? 'Inactive' : 'Ανενεργή'}</StatusBadge> : null}
+    headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={ownGroupId ? undefined : goBack}>
+    {tab === 'summary' && <RecordTabPanel title={en ? 'Summary' : 'Σύνοψη'}>
+      <div className="meeting-group-summary"><DetailFields fields={[
+        { label: en ? 'Department' : 'Τμήμα', value: (en ? group.departmentEn : group.department) || '—' },
+        { label: en ? 'Meets' : 'Συχνότητα', value: frequencyLabel(group.frequencyDays, language) },
+        { label: en ? 'Duration' : 'Διάρκεια', value: group.durationHours ? `${String(group.durationHours).replace('.', en ? '.' : ',')} ${en ? 'h' : Number(group.durationHours) === 1 ? 'ώρα' : 'ώρες'}` : '—' },
+        { label: en ? 'Led by' : 'Υπεύθυνος', value: group.managerLabel || '—' },
+        { label: en ? 'Last meeting' : 'Τελευταία συνάντηση', value: status.last ? `${formatDay(status.last.meetingDate, language)} · ${status.last.code}` : (en ? 'None yet' : 'Καμία ακόμη') },
+        { label: en ? 'Next due' : 'Επόμενη οφειλόμενη', value: status.nextDue ? <span className={status.overdue ? 'quality-overdue-text' : ''}>{formatDay(status.nextDue, language)}{status.overdue ? ` · ${en ? 'overdue' : 'εκπρόθεσμη'}` : ''}</span> : (en ? 'With the first meeting' : 'Με την πρώτη συνάντηση') },
+      ]} /></div>
+    </RecordTabPanel>}
+    {tab === 'meetings' && <RecordTabPanel title={en ? 'Meetings' : 'Συναντήσεις'} subtitle={en ? 'Regular meetings as often as set, and extraordinary ones when needed.' : 'Τακτικές με τη συχνότητα που ορίστηκε, και έκτακτες όταν χρειαστεί.'}>
+      <RegistryTable className="quality-table" rows={status.meetings} rowKey={meeting => meeting.id}
+        columns={[{ key: 'code', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'topics', label: en ? 'Topics' : 'Θέματα' }, { key: 'present', label: en ? 'Present' : 'Παρόντες' }, { key: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        emptyTitle={en ? 'No meetings yet' : 'Δεν υπάρχουν συναντήσεις ακόμη'} emptyText={en ? 'Start with «New meeting».' : 'Ξεκινήστε με τη «Νέα συνάντηση».'}
+        rowProps={meeting => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => openMeeting(meeting), onKeyDown: event => { if (event.key === 'Enter') openMeeting(meeting) } })}
+        renderRow={meeting => <>
+          <td><strong>{meeting.code || '—'}</strong><small>{kindLabel(meeting.kind, en)}</small></td>
+          <td className="nowrap-cell">{formatDay(meeting.meetingDate, language)}</td>
+          <td>{(meeting.topics || []).length || String(meeting.agenda || '').split(/\n+/).filter(Boolean).length}</td>
+          <td>{presentOf(meeting)}{(meeting.participants || []).length ? ` / ${meeting.participants.length}` : ''}</td>
+          <td>{meeting.decisions.length}</td>
+          <td><StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge></td>
+        </>} />
+    </RecordTabPanel>}
+    {tab === 'decisions' && <RecordTabPanel title={en ? 'Open decisions' : 'Ανοιχτές αποφάσεις'} subtitle={en ? 'The decisions still open; each new meeting carries them over.' : 'Οι αποφάσεις που είναι ακόμη ανοιχτές· κάθε νέα συνάντηση τις μεταφέρει.'}>
+      <RegistryTable className="quality-table" rows={status.open} rowKey={(item, index) => item.id || index}
+        columns={[{ key: 'title', label: en ? 'Decision' : 'Απόφαση' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'due', label: en ? 'Due' : 'Προθεσμία' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        emptyTitle={en ? 'No open decisions' : 'Δεν υπάρχουν ανοιχτές αποφάσεις'}
+        rowProps={() => ({ className: 'registry-row-clickable', onClick: () => status.meetings[0] && openMeeting(status.meetings[0]) })}
+        renderRow={item => <>
+          <td><strong>{item.title}</strong>{item.carriedFrom && <small>{en ? `From ${item.carriedFrom}` : `Από ${item.carriedFrom}`}</small>}</td>
+          <td>{item.ownerLabel || '—'}</td>
+          <td className={`nowrap-cell${item.dueDate && item.dueDate < today ? ' quality-overdue' : ''}`}>{formatDay(item.dueDate, language) || '—'}</td>
+          <td><StatusBadge tone="info">{decisionStatusLabel(item.status, language)}</StatusBadge></td>
+        </>} />
+    </RecordTabPanel>}
+    {tab === 'trainings' && <RecordTabPanel title={en ? 'Training' : 'Εκπαιδεύσεις'} subtitle={en ? 'Training that came up in the meetings.' : 'Η εκπαίδευση που προέκυψε στις συναντήσεις.'}>
+      <RegistryTable className="quality-table" rows={status.trainings} rowKey={(item, index) => item.id || index}
+        columns={[{ key: 'topic', label: en ? 'Training' : 'Εκπαίδευση' }, { key: 'audience', label: en ? 'Who' : 'Ποιοι' }, { key: 'due', label: en ? 'By' : 'Έως' }, { key: 'meeting', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        emptyTitle={en ? 'No training came up' : 'Δεν προέκυψε εκπαίδευση'}
+        rowProps={item => ({ className: 'registry-row-clickable', onClick: () => (item.programKey ? goTo(`/training/${item.programKey}`) : openMeeting(item.meeting)) })}
+        renderRow={item => <>
+          <td><strong>{item.topic}</strong></td>
+          <td>{item.audience || '—'}</td>
+          <td className="nowrap-cell">{formatDay(item.dueDate, language) || '—'}</td>
+          <td>{item.meeting.code}<small>{formatDay(item.meeting.meetingDate, language)}</small></td>
+          <td><StatusBadge tone={item.programStatus === 'completed' ? 'success' : item.programId || item.programKey ? 'info' : 'warning'}>{item.programStatus === 'completed' ? (en ? 'Done' : 'Έγινε') : item.programId || item.programKey ? (en ? 'Created' : 'Δημιουργήθηκε') : (en ? 'To be created' : 'Προς δημιουργία')}</StatusBadge></td>
+        </>} />
+    </RecordTabPanel>}
+    {editing && <MeetingGroupDialog initial={group} departments={departments} saving={saving} onClose={() => setEditing(false)} onSave={saveGroup} language={language} />}
+  </EntityRecordShell></Page>
+}

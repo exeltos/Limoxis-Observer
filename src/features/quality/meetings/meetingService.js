@@ -13,13 +13,14 @@ const isUuid = value => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f
 const localId = prefix => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
 const must = ({ data, error }) => { if (error) throw error; return data }
 const LOCAL_KEY = 'quality_local_department_meetings'
+const LOCAL_GROUPS_KEY = 'quality_local_department_meeting_groups'
 
 // --- Demo -------------------------------------------------------------------------
 
 function demoMeetings() {
   const day = new Date().toISOString().slice(0, 10)
-  const nicu = { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU' }
-  const icu = { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU' }
+  const nicu = { departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU', groupId: 'dmg-nicu' }
+  const icu = { departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU', groupId: 'dmg-icu' }
   const team = [{ name: 'Διευθυντής ΜΕΝΝ', role: 'Διευθυντής', attended: true }, { name: 'Προϊσταμένη ΜΕΝΝ', role: 'Προϊσταμένη', attended: true }, { name: 'Υπεύθυνος Ποιότητας', role: 'Ποιότητα', attended: true }]
   const first = addDays(day, -45), second = addDays(day, -14), icuDay = addDays(day, -40)
   return [
@@ -37,6 +38,19 @@ function demoMeetings() {
   ]
 }
 
+// The demo's meeting groups: one per department that meets, defined by Quality.
+const demoGroups = () => [
+  { id: 'dmg-nicu', departmentId: 'Νεογνολογική / ΜΕΝΝ', department: 'Νεογνολογική / ΜΕΝΝ', departmentEn: 'Neonatal / NICU', name: 'Συναντήσεις ΜΕΝΝ', frequencyDays: 30, durationHours: 1, managerLabel: 'Προϊσταμένη ΜΕΝΝ', active: true },
+  { id: 'dmg-icu', departmentId: 'ΜΕΘ', department: 'ΜΕΘ', departmentEn: 'ICU', name: 'Συναντήσεις ΜΕΘ', frequencyDays: 90, durationHours: 1, managerLabel: 'Προϊσταμένη ΜΕΘ', active: true },
+]
+function localGroups() {
+  const rows = loadSnapshot(LOCAL_GROUPS_KEY, null)
+  if (Array.isArray(rows)) return rows
+  const initial = demoGroups()
+  saveSnapshot(LOCAL_GROUPS_KEY, initial)
+  return initial
+}
+
 function local() {
   const rows = loadSnapshot(LOCAL_KEY, null)
   if (Array.isArray(rows)) return rows
@@ -48,10 +62,10 @@ function local() {
 // --- Cloud --------------------------------------------------------------------------
 
 const toMeeting = (row, decisions = [], participants = [], departments = new Map(), topics = [], trainings = []) => ({
-  id: row.id, code: row.code, departmentId: row.department_id, department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
+  id: row.id, groupId: row.group_id || '', code: row.code, departmentId: row.department_id, department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
   title: row.title, kind: row.kind, meetingDate: row.meeting_date, periodMonth: row.period_month || '', agenda: row.agenda || '', minutes: row.minutes || '', nextMeetingDate: row.next_meeting_date || '', status: row.status, finalizedAt: row.finalized_at, finalizedByLabel: row.finalized_by_label || '',
   decisions: decisions.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, title: item.title, ownerLabel: item.owner_label || '', dueDate: item.due_date || '', status: item.status, capaId: item.capa_id || '', carriedFrom: item.carried_from || '' })),
-  participants: participants.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, name: item.name, role: item.role || '', attended: item.attended })),
+  participants: participants.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, employeeId: item.employee_id || '', name: item.name, role: item.role || '', attended: item.attended })),
   topics: topics.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, subject: item.subject, discussion: item.discussion || '', conclusion: item.conclusion || '' })),
   trainings: trainings.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, topic: item.topic, audience: item.audience || '', dueDate: item.due_date || '', programId: item.training_program_id || '', programKey: item.program?.program_key || '', programStatus: item.program?.status || '' })),
 })
@@ -84,7 +98,7 @@ export async function saveMeeting(organizationId, meeting) {
     saveSnapshot(LOCAL_KEY, meeting.id ? rows.map(row => (row.id === meeting.id ? next : row)) : [next, ...rows])
     return next
   }
-  const head = { organization_id: organizationId, department_id: meeting.departmentId, title: meeting.title, kind: meeting.kind || 'regular', meeting_date: meeting.meetingDate, period_month: meeting.periodMonth || null, agenda: meeting.agenda || null, minutes: meeting.minutes || null, next_meeting_date: meeting.nextMeetingDate || null, status: meeting.status, finalized_at: meeting.finalizedAt || null, finalized_by_label: meeting.finalizedByLabel || null }
+  const head = { organization_id: organizationId, group_id: isUuid(meeting.groupId) ? meeting.groupId : null, department_id: meeting.departmentId, title: meeting.title, kind: meeting.kind || 'regular', meeting_date: meeting.meetingDate, period_month: meeting.periodMonth || null, agenda: meeting.agenda || null, minutes: meeting.minutes || null, next_meeting_date: meeting.nextMeetingDate || null, status: meeting.status, finalized_at: meeting.finalizedAt || null, finalized_by_label: meeting.finalizedByLabel || null }
   let id = isUuid(meeting.id) ? meeting.id : null
   if (id) must(await supabase.from('quality_department_meetings').update(head).eq('id', id))
   else {
@@ -100,7 +114,7 @@ export async function saveMeeting(organizationId, meeting) {
   for (const table of ['quality_department_meeting_topics', 'quality_department_meeting_trainings']) must(await supabase.from(table).delete().eq('meeting_id', id))
   if (topics.length) must(await supabase.from('quality_department_meeting_topics').insert(topics.map((topic, position) => ({ ...base, ...(isUuid(topic.id) ? { id: topic.id } : {}), position, subject: String(topic.subject).trim(), discussion: topic.discussion || null, conclusion: topic.conclusion || null }))))
   if (trainings.length) must(await supabase.from('quality_department_meeting_trainings').insert(trainings.map((item, position) => ({ ...base, ...(isUuid(item.id) ? { id: item.id } : {}), position, topic: String(item.topic).trim(), audience: item.audience || null, due_date: item.dueDate || null, training_program_id: isUuid(item.programId) ? item.programId : null }))))
-  if (meeting.participants.length) must(await supabase.from('quality_department_meeting_participants').insert(meeting.participants.map((person, position) => ({ ...base, position, name: person.name, role: person.role || null, attended: person.attended !== false }))))
+  if (meeting.participants.length) must(await supabase.from('quality_department_meeting_participants').insert(meeting.participants.map((person, position) => ({ ...base, position, employee_id: isUuid(person.employeeId) ? person.employeeId : null, name: person.name, role: person.role || null, attended: person.attended !== false }))))
   return (await loadMeetings(organizationId)).find(row => row.id === id)
 }
 
@@ -113,4 +127,35 @@ export async function linkMeetingTraining(organizationId, { meetingId, trainingI
   }
   if (!isUuid(trainingId) || !isUuid(program.dbId)) return
   must(await supabase.from('quality_department_meeting_trainings').update({ training_program_id: program.dbId }).eq('id', trainingId).eq('organization_id', organizationId))
+}
+
+// --- Meeting groups ------------------------------------------------------------------
+
+const toGroup = (row, departments = new Map()) => ({
+  id: row.id, departmentId: row.department_id || '', department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
+  name: row.name, frequencyDays: row.frequency_days, durationHours: row.duration_hours == null ? '' : Number(row.duration_hours), managerLabel: row.manager_label || '', active: row.active !== false,
+})
+
+// The groups the user may see: the database returns only their department's, unless they see the whole Quality Center.
+export async function loadMeetingGroups(organizationId) {
+  if (isLocal()) return localGroups()
+  const [rows, departments] = await Promise.all([
+    supabase.from('quality_department_meeting_groups').select('*').eq('organization_id', organizationId).order('name').then(must),
+    departmentNames(organizationId),
+  ])
+  return (rows || []).map(row => toGroup(row, departments))
+}
+
+// Quality defines a group: its department, name, how often it meets.
+export async function saveMeetingGroup(organizationId, group) {
+  const days = Math.min(730, Math.max(1, Number(group.frequencyDays) || 90))
+  if (isLocal()) {
+    const rows = localGroups()
+    const next = { ...group, frequencyDays: days, id: group.id || localId('dmg') }
+    saveSnapshot(LOCAL_GROUPS_KEY, group.id ? rows.map(row => (row.id === group.id ? next : row)) : [...rows, next])
+    return next
+  }
+  const row = { organization_id: organizationId, department_id: isUuid(group.departmentId) ? group.departmentId : null, name: String(group.name || '').trim(), frequency_days: days, duration_hours: Number(group.durationHours) > 0 ? Number(group.durationHours) : null, manager_label: group.managerLabel || null, active: group.active !== false }
+  if (isUuid(group.id)) return toGroup(must(await supabase.from('quality_department_meeting_groups').update(row).eq('id', group.id).eq('organization_id', organizationId).select('*').single()))
+  return toGroup(must(await supabase.from('quality_department_meeting_groups').insert(row).select('*').single()))
 }

@@ -9,7 +9,7 @@ import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useRegisterAccess } from '../../registers/registerAccess'
-import { loadMeetings } from './meetingService'
+import { loadMeetingGroups, loadMeetings } from './meetingService'
 import { lateDecisions, latestMeetings, meetingAccess, meetingStatusLabel, openDecisions } from './meetingModel'
 
 // The department meetings the user may see: every department for Quality, the
@@ -30,6 +30,24 @@ export function useMeetings(enabled = true) {
   useEffect(() => { reload() }, [reload])
   const visible = useMemo(() => meetings.filter(access.canSee), [meetings, access])
   return { meetings: visible, all: meetings, loading, error, reload, access, canManage, seesAll: registerAccess.seesAll }
+}
+
+// The meeting groups the user may see, with their meetings: every department for Quality, the own for its members.
+export function useMeetingGroups(enabled = true) {
+  const { tenant } = useTenant()
+  const meetings = useMeetings(enabled)
+  const [groups, setGroups] = useState([])
+  const [loading, setLoading] = useState(enabled)
+  const [error, setError] = useState(false)
+  const reloadGroups = useCallback(() => {
+    if (!enabled) { setLoading(false); return }
+    setLoading(true)
+    loadMeetingGroups(tenant?.id).then(rows => { setGroups(rows); setError(false) }).catch(() => { setGroups([]); setError(true) }).finally(() => setLoading(false))
+  }, [tenant?.id, enabled])
+  useEffect(() => { reloadGroups() }, [reloadGroups])
+  const visible = useMemo(() => groups.filter(group => meetings.access.canSee({ departmentId: group.departmentId, department: group.department })), [groups, meetings.access])
+  const reload = useCallback(() => { reloadGroups(); meetings.reload() }, [reloadGroups, meetings])
+  return { groups: visible, meetings, loading: loading || meetings.loading, error: error || meetings.error, reload, canManage: meetings.canManage }
 }
 
 const departmentOf = (meeting, en) => (en ? meeting.departmentEn : meeting.department) || meeting.department || '—'

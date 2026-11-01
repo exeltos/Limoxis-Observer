@@ -25,3 +25,37 @@ describe('department meetings: topics and training', () => {
     expect(read('src/features/registers/RegistersPage.jsx')).not.toContain("value: 'meetings'")
   })
 })
+
+describe('department meeting groups', async () => {
+  const { groupStatus, frequencyLabel, meetingInGroup, newMeetingFor } = await import('../src/features/quality/meetings/meetingModel')
+  const group = { id: 'g1', departmentId: 'd1', frequencyDays: 90, active: true }
+  const meeting = (id, meetingDate, extra = {}) => ({ id, meetingDate, departmentId: 'd1', groupId: 'g1', decisions: [], ...extra })
+
+  it('dates the next meeting from the last one and the frequency', () => {
+    const status = groupStatus(group, [meeting('m1', '2026-01-10'), meeting('m2', '2026-04-01')], '2026-05-01')
+    expect(status.last.id).toBe('m2')
+    expect(status.nextDue).toBe('2026-06-30')
+    expect(status.overdue).toBe(false)
+    expect(groupStatus(group, [meeting('m2', '2026-04-01')], '2026-07-15').overdue).toBe(true)
+  })
+
+  it('keeps a meeting recorded before the groups in its department’s group', () => {
+    expect(meetingInGroup({ departmentId: 'd1' }, group)).toBe(true)
+    expect(meetingInGroup({ departmentId: 'd1', groupId: 'g2' }, group)).toBe(false)
+  })
+
+  it('names the frequency and starts a new meeting in the group', () => {
+    expect(frequencyLabel(90, 'el')).toBe('Κάθε 3 μήνες')
+    expect(frequencyLabel(45, 'el')).toBe('Κάθε 45 ημέρες')
+    const next = newMeetingFor({ id: 'd1', name: 'ΜΕΘ' }, [], '2026-05-01', group)
+    expect(next.groupId).toBe('g1')
+    expect(next.nextMeetingDate).toBe('2026-07-30')
+  })
+
+  it('keeps the groups in a table of their own, written by Quality and read by the department', () => {
+    const sql = read('supabase/migrations/20261231150000_department_meeting_groups.sql')
+    expect(sql).toContain('create table if not exists public.quality_department_meeting_groups')
+    expect(sql).toContain('quality_department_meeting_groups_module_gate')
+    expect(sql).toContain("add column if not exists employee_id uuid references public.employees(id)")
+  })
+})

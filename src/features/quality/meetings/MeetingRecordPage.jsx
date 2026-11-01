@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, CheckSquare2, ClipboardList, Gauge, GraduationCap, ListChecks, MessagesSquare, Plus, RotateCcw, Sparkles, Trash2, Users } from 'lucide-react'
+import { CheckCircle2, CheckSquare2, ClipboardList, Gauge, GraduationCap, ListChecks, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -29,6 +29,9 @@ import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { indicatorReport, periodOf, textOf } from '../../registers/registerEngine'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from '../../registers/registerText'
 import { useMeetings } from './MeetingsPanel'
+import { useEmployeesData } from '../../employees/useEmployeesData'
+import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
+import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { saveMeeting } from './meetingService'
 import { DECISION_STATUSES, MEETING_KINDS, addDays, decisionStatusLabel, meetingStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
 import '../quality.css'
@@ -111,12 +114,29 @@ export function MeetingRecordPage() {
   useEffect(() => {
     if (list.loading || meeting) return
     if (!isNew) { const found = list.meetings.find(row => row.id === meetingId || row.code === meetingId); setMeeting(found ? withTopics(structuredClone(found)) : false); return }
+    // From a meeting group: its department, its frequency, regular or extraordinary.
+    const group = location.state?.group || null
+    if (group) {
+      const department = ownDepartments.find(item => (item.id || item.name) === group.departmentId) || { id: group.departmentId, name: group.department, nameEn: group.departmentEn }
+      const kind = location.state?.kind === 'extraordinary' ? 'extraordinary' : 'regular'
+      setMeeting(withTopics({ ...newMeetingFor(department, list.all, undefined, group), kind, title: kind === 'extraordinary' ? (en ? 'Extraordinary meeting' : 'Έκτακτη συνάντηση') : (en ? 'Regular meeting' : 'Τακτική συνάντηση') }))
+      return
+    }
     const wanted = location.state?.department
     const department = ownDepartments.find(item => item.name === wanted || item.id === wanted) || (ownDepartments.length === 1 ? ownDepartments[0] : null)
     if (department || ownDepartments.length || !departmentsLoading) setMeeting(withTopics(department ? newMeetingFor(department, list.all) : { ...newMeetingFor(null, list.all), departmentId: '' }))
-  }, [list.loading, list.meetings, list.all, meetingId, isNew, meeting, ownDepartments, departmentsLoading, location.state])
+  }, [list.loading, list.meetings, list.all, meetingId, isNew, meeting, ownDepartments, departmentsLoading, location.state, en])
 
   const indicators = useDepartmentIndicators(tenant?.id, meeting || null)
+  // The attendance: the department's active employees, each present or absent.
+  const { data: employees } = useEmployeesData()
+  const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: employee.position || employee.profession || '' })), [employees, meeting])
+  const [documents, setDocuments] = useState([])
+  useEffect(() => {
+    // A new meeting starts with every active employee of the department present; the head marks who was absent.
+    if (!isNew || !meeting || meeting.staffFilled || !staff.length) return
+    setMeeting(current => ({ ...current, staffFilled: true, participants: staff.map(person => ({ ...person, attended: true })) }))
+  }, [isNew, meeting, staff])
   if (list.loading || meeting === null) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
   if (meeting === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting not found' : 'Η συνάντηση δεν βρέθηκε'}</strong></div></Page>
 
@@ -152,6 +172,7 @@ export function MeetingRecordPage() {
   }
   const indicatorLines = (indicators || []).filter(row => row.current.value != null).map(row => `${textOf(row.indicator, language)}: ${formatIndicatorValue(row.current.value, row.indicator, language)}${row.indicator.target != null ? ` (${en ? 'target' : 'στόχος'} ${formatIndicatorValue(row.indicator.target, row.indicator, language)})` : ''}${row.current.status ? ` · ${indicatorStatusLabel(row.current.status, language)}` : ''}`)
   const carried = meeting.decisions.filter(item => item.carriedFrom)
+  const missingStaff = staff.filter(person => !meeting.participants.some(item => (item.employeeId && item.employeeId === person.employeeId) || String(item.name).trim().toLowerCase() === person.name.toLowerCase()))
   const hasMinutes = Boolean(String(meeting.minutes).trim()) || meeting.topics.some(item => String(item.subject).trim())
   const tabs = [
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList },
@@ -159,7 +180,8 @@ export function MeetingRecordPage() {
     { id: 'topics', label: en ? `Topics ${meeting.topics.length}` : `Θέματα ${meeting.topics.length}`, icon: MessagesSquare },
     { id: 'decisions', label: en ? `Decisions ${meeting.decisions.length}` : `Αποφάσεις ${meeting.decisions.length}`, icon: ListChecks },
     { id: 'training', label: en ? `Training ${meeting.trainings.length}` : `Εκπαίδευση ${meeting.trainings.length}`, icon: GraduationCap },
-    { id: 'people', label: en ? `Participants ${meeting.participants.length}` : `Συμμετέχοντες ${meeting.participants.length}`, icon: Users },
+    { id: 'people', label: `${en ? 'Attendance' : 'Παρουσίες'} ${meeting.participants.filter(person => person.attended !== false).length}/${meeting.participants.length}`, icon: Users },
+    ...(isNew ? [] : [{ id: 'files', label: en ? 'Files' : 'Αρχεία', icon: Paperclip }]),
   ]
   const footer = <div className="inline-edit-footer">
     
@@ -257,13 +279,17 @@ export function MeetingRecordPage() {
           <span className="review-action-tools">{item.title && item.status === 'open' && list.access.canCreateCapa() && <Button variant="secondary" onClick={() => openCapa(item)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ decisions: meeting.decisions.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>
         </div>)}{!meeting.decisions.length && <div className="inline-empty">{en ? 'No decisions yet.' : 'Δεν υπάρχουν αποφάσεις ακόμη.'}</div>}</div>}
     </RecordTabPanel>}
-    {tab === 'people' && <RecordTabPanel title={en ? 'Participants' : 'Συμμετέχοντες'} actions={!locked && <Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, { name: '', role: '', attended: true }] })}><Plus size={15} />{en ? 'Participant' : 'Συμμετέχων'}</Button>} footer={footer}>
-      <div className="review-actions">{meeting.participants.map((person, index) => <div key={person.id || index} className="review-action-row meeting-person-row">
-        <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={person.name} disabled={locked} onChange={event => setPerson(index, { name: event.target.value })} /></Field>
-        <Field label={en ? 'Role' : 'Ιδιότητα'}><input value={person.role} disabled={locked} onChange={event => setPerson(index, { role: event.target.value })} /></Field>
+    {tab === 'people' && <RecordTabPanel title={en ? 'Attendance' : 'Παρουσίες'} subtitle={en ? 'The department’s active employees: mark who was absent.' : 'Οι ενεργοί εργαζόμενοι του τμήματος: δηλώστε ποιοι ήταν απόντες.'}
+      actions={!locked && <div className="row-actions">{missingStaff.length > 0 && <Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, ...missingStaff.map(person => ({ ...person, attended: false }))] })}><Users size={15} />{en ? `Add the department’s employees (${missingStaff.length})` : `Προσθήκη εργαζομένων τμήματος (${missingStaff.length})`}</Button>}<Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, { name: '', role: '', attended: true }] })}><Plus size={15} />{en ? 'Other person' : 'Άλλος συμμετέχων'}</Button></div>} footer={footer}>
+      <div className="review-actions">{meeting.participants.map((person, index) => <div key={person.id || person.employeeId || index} className="review-action-row meeting-person-row">
+        <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={person.name} disabled={locked || Boolean(person.employeeId)} onChange={event => setPerson(index, { name: event.target.value })} /></Field>
+        <Field label={en ? 'Role' : 'Ιδιότητα'}><input value={person.role} disabled={locked || Boolean(person.employeeId)} onChange={event => setPerson(index, { role: event.target.value })} /></Field>
         {locked ? <Field label={en ? 'Attended' : 'Παρουσία'}><input value={person.attended === false ? (en ? 'Absent' : 'Απών') : (en ? 'Present' : 'Παρών')} disabled /></Field> : <ChoiceField label={en ? 'Attended' : 'Παρουσία'} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => setPerson(index, { attended: value === 'yes' })} />}
-        {!locked && <span className="review-action-tools"><IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: meeting.participants.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>}
-      </div>)}{!meeting.participants.length && <div className="inline-empty">{en ? 'No participants yet.' : 'Δεν υπάρχουν συμμετέχοντες ακόμη.'}</div>}</div>
+        {!locked && !person.employeeId && <span className="review-action-tools"><IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: meeting.participants.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>}
+      </div>)}{!meeting.participants.length && <div className="inline-empty">{en ? 'No employees of the department yet.' : 'Δεν υπάρχουν ακόμη εργαζόμενοι του τμήματος.'}</div>}</div>
+    </RecordTabPanel>}
+    {tab === 'files' && !isNew && <RecordTabPanel title={en ? 'Files' : 'Αρχεία'}>
+      <div className="meeting-files"><DocumentsWorkspace disabled={locked && !list.canManage} organizationId={isDemoDataEnvironment() ? null : tenant?.id} entityType="quality_department_meeting" entityId={meeting.id} subtitle={en ? 'Files of the meeting: the signed minutes, presentations, attendance sheets.' : 'Τα αρχεία της συνάντησης: υπογεγραμμένο πρακτικό, παρουσιάσεις, κατάσταση παρόντων.'} value={documents} onChange={setDocuments} /></div>
     </RecordTabPanel>}
   </EntityRecordShell></Page>
 }

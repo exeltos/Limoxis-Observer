@@ -19,6 +19,8 @@ import { loadQualityRecords } from '../quality/qualityService'
 import { loadTrainingCalendarAsync } from '../training/trainingService'
 import { groupDocumentFamilies,loadDocumentsAsync } from '../documents/documentService'
 import { loadCommitteesAsync } from '../committees/committeeService'
+import { loadMeetingGroups, loadMeetings } from '../quality/meetings/meetingService'
+import { groupStatus } from '../quality/meetings/meetingModel'
 import { loadProtocolSuggestionsAsync } from '../documents/protocolReview/protocolReviewService'
 import { loadSupplierSchedule } from '../quality/resources/resourceService'
 import { withSupplierStatus } from '../quality/resources/resourceModel'
@@ -50,7 +52,7 @@ export function CalendarPage({departmentOnly=false}={}){
  const navigate=useNavigate()
  const mayDo=capability=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
  // The culture calendar is for whoever sees the Quality Center (or the controls): it shows that one source only.
- const allowedKey=(CALENDAR_KINDS.filter(kind=>mayDo(KIND_CAPABILITY[kind]))).join(',')
+ const allowedKey=(CALENDAR_KINDS.filter(kind=>mayDo(KIND_CAPABILITY[kind])||(kind==='committees'&&mayDo(CAPABILITIES.VIEW_MY_DEPARTMENT)))).join(',')
  const allowedKinds=useMemo(()=>allowedKey?allowedKey.split(','):[],[allowedKey])
  const [sources,setSources]=useState(null)
  const [cursor,setCursor]=useState(()=>{const d=new Date();return {year:d.getFullYear(),month:d.getMonth()}})
@@ -80,12 +82,14 @@ export function CalendarPage({departmentOnly=false}={}){
    safe('training',()=>loadTrainingCalendarAsync(organizationId),null),
    safe('documents',()=>loadDocumentsAsync(organizationId),[]),
    safe('committees',()=>loadCommitteesAsync(organizationId),[]),
+   // The department meeting groups: when each department's next meeting is due.
+   safe('committees',()=>Promise.all([loadMeetingGroups(organizationId),loadMeetings(organizationId)]).then(([groups,meetings])=>groups.map(group=>{const status=groupStatus(group,meetings,todayKey());return {group,nextDue:status.nextDue,upcoming:status.meetings.filter(meeting=>meeting.status==='draft'&&String(meeting.meetingDate)>=todayKey())}})),[]),
    safe('documents',()=>loadProtocolSuggestionsAsync(organizationId),[]),
    safe('suppliers',()=>loadSupplierSchedule(organizationId).then(({suppliers,templates})=>withSupplierStatus(suppliers,[],undefined,templates)),[]),
    // The kitchen's calendar items reach back 30 days (verification, out of limits) and forward (plan, expiry): only that window is read.
    safe('kitchen',()=>loadKitchen(organizationId,{since:addDays(todayKey(),-30)}).then(state=>kitchenCalendarItems(state,{language})),[]),
-  ]).then(([controls,capas,audits,training,documents,committees,protocolSuggestions,suppliers,kitchen])=>{
-   if(active)setSources({controls:controls||[],capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,protocolSuggestions,suppliers,kitchen})
+  ]).then(([controls,capas,audits,training,documents,committees,meetingGroups,protocolSuggestions,suppliers,kitchen])=>{
+   if(active)setSources({controls:controls||[],capas,audits,training,documentFamilies:groupDocumentFamilies(documents),committees,meetingGroups,protocolSuggestions,suppliers,kitchen})
   })
   return()=>{active=false}
  },[tenant?.id,allowedKinds,language])

@@ -11,7 +11,10 @@ import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { exportRegistry, printRegistry } from '../../../core/export/registryExports'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
-import { MeetingsList, filterMeetings, meetingsExport, useMeetings } from './MeetingsPanel'
+import { meetingsExport, useMeetingGroups } from './MeetingsPanel'
+import { MeetingGroupDialog, MeetingGroupPage, MeetingGroupsList } from './MeetingGroups'
+import { saveMeetingGroup } from './meetingService'
+import { useDepartments } from '../../management/useLibraries'
 import { ReviewsTable, reviewsExport, useReviews } from '../review/QualityObjectives'
 import '../quality.css'
 
@@ -22,25 +25,38 @@ const openDecisions = review => (review.actions || []).filter(action => action.s
 const lateDecisions = review => openDecisions(review).filter(action => action.dueDate && action.dueDate < new Date().toISOString().slice(0, 10))
 
 
-// `home`: where a meeting returns to (the Meetings section, or the department's own «Meetings»).
+// The department meeting groups (one per department, defined by Quality): how often each meets,
+// the last meeting and the next one due. `home`: where a group returns to.
 export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', ownDepartment = false } = {}) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const L = (el, enText) => (en ? enText : el)
   const { notify } = useFeedback()
+  const { tenant } = useTenant()
   const printList = (data, title) => { if (!printRegistry(data, { language, kind: t('sidebarNav.meetingsDecisions'), title })) notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'Allow pop-ups to print.'), 'error') }
   const { goTo } = useContextualNavigation(home)
-  const meetings = useMeetings()
-  const [filters, setFilters] = useState({ query: '', department: 'all', status: 'all', quick: null })
-  const visible = useMemo(() => filterMeetings(meetings.meetings, filters, en), [meetings.meetings, filters, en])
-  return <Page fill className="registry-fill-page" title={ownDepartment ? t('sidebarNav.departmentMeetings') : t('sidebarNav.tabDepartmentMeetings')} subtitle={t('sidebarNav.departmentMeetingsSubtitle')}
+  const data = useMeetingGroups()
+  const { departments } = useDepartments()
+  const [query, setQuery] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const shown = useMemo(() => { const q = query.trim().toLowerCase(); return { ...data, groups: data.groups.filter(group => !q || `${group.name} ${group.department}`.toLowerCase().includes(q)) } }, [data, query])
+  // The department's own page opens straight into its group when it has one.
+  if (ownDepartment && !data.loading && data.groups.length === 1) return <MeetingGroupPage groupId={data.groups[0].id} home={home} />
+  async function addGroup(group) {
+    setSaving(true)
+    try { const saved = await saveMeetingGroup(tenant?.id, group); notify(L('Η ομάδα δημιουργήθηκε.', 'Group created.'), 'success'); setAdding(false); data.reload(); goTo(`/meetings/groups/${saved.id}`) } catch (error) { console.error(error); notify(L('Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'The group could not be saved.'), 'error') } finally { setSaving(false) }
+  }
+  return <Page fill className="registry-fill-page" title={ownDepartment ? t('sidebarNav.departmentMeetings') : t('sidebarNav.tabDepartmentMeetings')} subtitle={L('Μία ομάδα συναντήσεων ανά τμήμα, με τη συχνότητα που όρισε η διοίκηση.', 'One meeting group per department, meeting as often as the administration set.')}
     actions={<div className="row-actions">
-      <ExportMenu disabled={!visible.length} onPrint={() => printList(meetingsExport(visible, language), t('sidebarNav.tabDepartmentMeetings'))} onExcel={() => exportRegistry(meetingsExport(visible, language))} />
-      <ActionButton label={L('Συνάντηση τμήματος', 'Department meeting')} tone="primary" onClick={() => goTo('/meetings/new')}><Plus size={18} /><span>{t('create')}</span></ActionButton>
+      <ExportMenu disabled={!data.meetings.meetings.length} onPrint={() => printList(meetingsExport(data.meetings.meetings, language), t('sidebarNav.tabDepartmentMeetings'))} onExcel={() => exportRegistry(meetingsExport(data.meetings.meetings, language))} />
+      {data.canManage && <ActionButton label={L('Ομάδα συναντήσεων', 'Meeting group')} tone="primary" onClick={() => setAdding(true)}><Plus size={18} /><span>{L('Ομάδα', 'Group')}</span></ActionButton>}
     </div>}>
     <section className="surface registry-workspace workspace-column workspace-fill">
-      <MeetingsList list={meetings} filters={filters} setFilters={setFilters} onOpen={meeting => goTo(`/meetings/${meeting.id}`)} />
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση ομάδας ή τμήματος…', 'Search group or department…')} onClear={() => setQuery('')} />
+      <MeetingGroupsList data={shown} language={language} onOpen={group => goTo(`/meetings/groups/${group.id}`)} />
     </section>
+    {adding && <MeetingGroupDialog initial={{}} departments={departments} saving={saving} onClose={() => setAdding(false)} onSave={addGroup} language={language} />}
   </Page>
 }
 
