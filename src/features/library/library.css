@@ -9,18 +9,7 @@
 .lib-group{display:grid;gap:10px}
 .lib-group>h3{margin:4px 0 0;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--lo-color-text)}
 .lib-group>h3 b{font-size:11px;font-weight:600;color:var(--lo-color-muted)}
-.lib-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
-.lib-card{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 13px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
-.lib-card.is-proposed{border-style:dashed}
-.lib-card.is-archived{background:var(--lo-color-surface-muted)}
-.lib-card a.lib-card-title{display:block;font-size:13.5px;font-weight:700;line-height:1.3;color:var(--lo-color-text);text-decoration:none}
-.lib-card a.lib-card-title:hover,.lib-card a.lib-card-title:focus-visible{color:var(--lo-color-primary);text-decoration:underline}
 .lib-domain{display:block;margin-top:1px;font-size:11.5px;color:var(--lo-color-primary);overflow-wrap:anywhere}
-.lib-card p{margin:5px 0 6px;font-size:12px;line-height:1.45;color:var(--lo-color-muted)}
-.lib-card .lib-note{margin:0 0 6px;font-size:11.5px;color:var(--lo-status-warning-fg)}
-.lib-card-actions{display:grid;gap:4px;justify-items:end}
-.lib-card-actions a{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:8px;color:var(--lo-color-muted)}
-.lib-card-actions a:hover{color:var(--lo-color-primary);background:var(--lo-color-surface-muted)}
 .lib-logo{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;color:#fff;font-weight:800;font-size:12px;letter-spacing:.02em;background:#356982;overflow:hidden}
 .lib-logo.is-long{font-size:10px}
 .lib-logo.tone-gov{background:#1f5f8b}
@@ -40,10 +29,6 @@
 .lib-guides.no-drawer{grid-template-columns:minmax(0,1fr)}
 .lib-guides-main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .lib-guides-main .scroll-table{flex:1 1 auto;min-height:0}
-.lib-filter-selects{display:flex;flex-wrap:wrap;gap:8px}
-.lib-filter-selects .filter-field{display:flex;flex-direction:row;align-items:center;gap:8px;margin:0}
-.lib-filter-selects .filter-field select{height:40px;min-width:110px;max-width:200px;padding:0 10px;border:1px solid var(--lo-color-border);border-radius:9px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px}
-.lib-filter-selects .filter-field>span{margin:0;white-space:nowrap}
 .lib-guide-row td small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11.5px}
 .lib-guide-row.is-selected td{background:var(--lo-status-info-bg)}
 .lib-drawer{display:grid;gap:12px;align-content:start;padding:16px 18px;border-left:1px solid var(--lo-color-border);background:var(--lo-color-surface);overflow:auto}
@@ -58,6 +43,7 @@
 .lib-callout{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--lo-status-info-border);border-radius:10px;background:var(--lo-status-info-bg);color:var(--lo-status-info-fg);font-size:12.5px;line-height:1.5}
 .lib-callout svg{flex:none;margin-top:1px}
 .lib-news{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;flex:1 1 auto;min-height:0;overflow:auto;padding:0 14px 16px}
+.lib-news.is-wide{grid-template-columns:minmax(0,1fr)}
 .lib-news-list{display:grid;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);overflow:hidden}
 .lib-news-item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 14px;border-bottom:1px solid var(--lo-color-border)}
 .lib-news-item:last-child{border-bottom:0}
@@ -78,12 +64,6 @@
 .lib-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:4px;background:#3d9a69}
 .lib-dot.is-failing{background:#d39b2a}
 .lib-dot.is-unchecked,.lib-dot.is-off{background:var(--lo-color-border-strong)}
-.lib-guide-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-.lib-guide-card{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 13px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
-.lib-guide-card .lib-logo{background:var(--lo-color-surface-muted);color:var(--lo-color-primary)}
-.lib-guide-card button.lib-card-title{padding:0;border:0;background:none;font:inherit;font-size:13.5px;font-weight:700;line-height:1.3;color:var(--lo-color-text);text-align:left;cursor:pointer}
-.lib-guide-card button.lib-card-title:hover{color:var(--lo-color-primary);text-decoration:underline}
-.lib-guide-card small{display:block;margin-top:3px;color:var(--lo-color-muted);font-size:11.5px}
 .lib-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
 .lib-form .lib-span{grid-column:1/-1}
 .lib-form-box{display:grid;gap:10px;padding:12px 14px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface-muted)}
@@ -100,3 +80,17 @@
   .lib-news{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:760px){.lib-form{grid-template-columns:minmax(0,1fr)}}
+/* Links and clinical guides as lists: the logo beside the name, the group as a heading row,
+   the edit command in the row's «…». */
+.lib-link-name{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:center}
+.lib-link-name .lib-logo{width:32px;height:32px;border-radius:8px;font-size:10px}
+.lib-link-name>div{display:grid;gap:1px;min-width:0}
+.lib-link-name small{font-size:12px;color:var(--lo-color-muted)}
+.lib-links-table td.lib-link-about{max-width:440px;font-size:12.5px;line-height:1.4;color:var(--lo-color-muted)}
+.lib-links-table td.lib-link-about small{display:block;margin-top:2px}
+.lib-links-table tr.lib-group-row th{padding:12px 16px 6px;background:var(--lo-color-surface);font-size:13px;font-weight:700;text-align:left;text-transform:none;letter-spacing:0;color:var(--lo-color-text)}
+.lib-links-table tr.lib-group-row th b{margin-left:4px;font-size:11.5px;color:var(--lo-color-muted)}
+.lib-links-table tr.is-archived{opacity:.7}
+.data-table td.lib-row-menu{width:44px;text-align:right}
+.lib-links-table a.lib-card-title{display:block;font-size:13.5px;font-weight:700;line-height:1.3;color:var(--lo-color-text);text-decoration:none}
+.lib-links-table a.lib-card-title:hover,.lib-links-table a.lib-card-title:focus-visible{color:var(--lo-color-primary);text-decoration:underline}
