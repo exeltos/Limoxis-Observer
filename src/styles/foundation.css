@@ -3601,6 +3601,7 @@ button.danger:not(.button-primary):not(.button-secondary):not(.button-danger):no
 .sidebar-nav-section.has-active>.nav-section-heading>span::before{content:'';display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:#6fb2dd;vertical-align:middle}
 .sidebar-nav-section-items{display:flex;flex-direction:column;gap:1px;--lo-nav-indent:22px}
 .sidebar-nav-section.collapsed .sidebar-nav-section-items{display:none}
+.sidebar-nav-section-single>.nav-section-heading{text-decoration:none}
 
 .page-heading-group{
   min-width:0;

@@ -29,6 +29,9 @@ function NavGroup({block,t,open,onToggle,pathname}){
   const active=block.items.some(item=>isUnder(pathname,item.to))
   const listId=`sidebar-group-${block.id}`
   const label=t(block.label)
+  // A group of one entry («Management») is not a menu to unfold: its heading opens the screen at once
+  // (the folded rail still shows the entry's icon, as it does for every folded group).
+  if(block.items.length===1){const item=block.items[0];return <div className={`sidebar-nav-section collapsed sidebar-nav-section-single ${active?'has-active':''}`.trim()}><Link to={item.to} id={`${listId}-heading`} className="nav-section-heading" title={label} aria-current={active?'page':undefined} onClick={()=>forgetRegistryViewStates()} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)}><span>{label}</span></Link><div id={listId} className="sidebar-nav-section-items">{block.items.map(entry=><NavEntry key={entry.to} item={entry} t={t}/>)}</div></div>}
   return <div className={`sidebar-nav-section ${open?'open':'collapsed'} ${active?'has-active':''}`.trim()} role="group" aria-labelledby={`${listId}-heading`}>
     <button type="button" id={`${listId}-heading`} className="nav-section-heading" aria-expanded={open} aria-controls={listId} title={label} onClick={()=>onToggle(block.id)}><span>{label}</span><ChevronDown className="nav-group-chevron" size={13} aria-hidden="true"/></button>
     <div id={listId} className="sidebar-nav-section-items">{block.items.map(item=><NavEntry key={item.to} item={item} t={t}/>)}</div>
