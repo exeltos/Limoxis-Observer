@@ -32,15 +32,15 @@ function demoMeetings() {
       participants: team.map((person, position) => ({ ...person, id: `dmp-2-${position}`, position })) },
     { id: 'dm-demo-3', code: `DM-${icuDay.slice(0, 4)}-01`, ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: icuDay, periodMonth: previousMonth(icuDay), agenda: 'Δείκτες λοιμώξεων\nΣυμβάντα', minutes: 'Η συμμόρφωση στην υγιεινή χεριών παραμένει κάτω από τον στόχο.', nextMeetingDate: addDays(icuDay, 30), status: 'final', finalizedAt: `${icuDay}T13:00:00Z`, finalizedByLabel: 'Διευθυντής ΜΕΘ',
       topics: [{ id: 'dmt-3-1', subject: 'Δείκτες λοιμώξεων', discussion: 'Αύξηση CLABSI τον μήνα που πέρασε· δύο περιστατικά σε νέο προσωπικό.', conclusion: 'Επανεκπαίδευση στη φροντίδα κεντρικών γραμμών.' }, { id: 'dmt-3-2', subject: 'Συμβάντα', discussion: '', conclusion: '' }],
-      trainings: [{ id: 'dmtr-3-1', topic: 'Φροντίδα κεντρικών φλεβικών γραμμών (CLABSI bundle)', audience: 'Νέο νοσηλευτικό προσωπικό', dueDate: addDays(icuDay, 30), programId: '', programKey: '', programStatus: '' }],
+      trainingHeld: true, trainingProgramId: '', trainingProgramKey: '', trainingTitle: '', trainingStatus: '',
       decisions: [{ id: 'dmd-4', position: 0, title: 'Επανεκπαίδευση στις 5 Στιγμές για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
       participants: [{ id: 'dmp-3-0', position: 0, name: 'Διευθυντής ΜΕΘ', role: 'Διευθυντής', attended: true }, { id: 'dmp-3-1', position: 1, name: 'Link Nurse ΜΕΘ', role: 'Link Nurse', attended: true }] },
     // Earlier ICU meetings, as the imported ones look: one with attendance linked to the employees (one has since left), one final without attendance.
     { id: 'dm-demo-4', code: 'DM-2026-02', ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: addDays(day, -150), periodMonth: previousMonth(addDays(day, -150)), agenda: 'Υγιεινή χεριών', minutes: '', nextMeetingDate: addDays(day, -60), status: 'final', finalizedAt: `${addDays(day, -150)}T10:00:00.000Z`, finalizedByLabel: 'Υπεύθυνος Ποιότητας',
-      topics: [{ id: 'dmt-4-1', subject: 'Υγιεινή χεριών', discussion: '', conclusion: '' }], trainings: [], decisions: [],
+      topics: [{ id: 'dmt-4-1', subject: 'Υγιεινή χεριών', discussion: '', conclusion: '' }], trainingHeld: false, decisions: [],
       participants: [{ id: 'dmp-4-0', position: 0, employeeId: 'EMP-001', name: 'Μαρία Παπαδοπούλου', role: '', attended: true }, { id: 'dmp-4-1', position: 1, employeeId: 'EMP-004', name: 'Αλέξανδρος Γεωργίου', role: '', attended: true }, { id: 'dmp-4-2', position: 2, employeeId: '', name: 'Μικροβιολόγος εργαστηρίου', role: 'Μικροβιολόγος', attended: false }] },
     { id: 'dm-demo-5', code: 'DM-2026-03', ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: addDays(day, -230), periodMonth: previousMonth(addDays(day, -230)), agenda: 'Ωράριο', minutes: '', nextMeetingDate: addDays(day, -150), status: 'final', finalizedAt: `${addDays(day, -230)}T10:00:00.000Z`, finalizedByLabel: 'Υπεύθυνος Ποιότητας',
-      topics: [{ id: 'dmt-5-1', subject: 'Ωράριο', discussion: '', conclusion: '' }], trainings: [], decisions: [], participants: [] }
+      topics: [{ id: 'dmt-5-1', subject: 'Ωράριο', discussion: '', conclusion: '' }], decisions: [], participants: [] }
   ]
 }
 
@@ -67,13 +67,12 @@ function local() {
 
 // --- Cloud --------------------------------------------------------------------------
 
-const toMeeting = (row, decisions = [], participants = [], departments = new Map(), topics = [], trainings = []) => ({
-  id: row.id, groupId: row.group_id || '', code: row.code, departmentId: row.department_id, department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
+const toMeeting = (row, decisions = [], participants = [], departments = new Map(), topics = [], program = null) => ({
+  id: row.id, groupId: row.group_id || '', trainingHeld: Boolean(row.training_held || row.training_program_id), trainingProgramId: row.training_program_id || '', trainingProgramKey: program?.program_key || '', trainingTitle: program?.title || '', trainingStatus: program?.status || '', code: row.code, departmentId: row.department_id, department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
   title: row.title, kind: row.kind, meetingDate: row.meeting_date, periodMonth: row.period_month || '', agenda: row.agenda || '', minutes: row.minutes || '', nextMeetingDate: row.next_meeting_date || '', status: row.status, finalizedAt: row.finalized_at, finalizedByLabel: row.finalized_by_label || '',
   decisions: decisions.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, title: item.title, ownerLabel: item.owner_label || '', dueDate: item.due_date || '', status: item.status, capaId: item.capa_id || '', carriedFrom: item.carried_from || '' })),
   participants: participants.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, employeeId: item.employee_id || '', name: item.name, role: item.role || '', attended: item.attended })),
   topics: topics.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, subject: item.subject, discussion: item.discussion || '', conclusion: item.conclusion || '' })),
-  trainings: trainings.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, topic: item.topic, audience: item.audience || '', dueDate: item.due_date || '', programId: item.training_program_id || '', programKey: item.program?.program_key || '', programStatus: item.program?.status || '' })),
 })
 
 async function departmentNames(organizationId) {
@@ -88,10 +87,10 @@ export async function loadMeetings(organizationId) {
   // The meetings with their decisions and participants embedded, beside the
   // department names: one round trip instead of two in a row.
   const [rows, departments] = await Promise.all([
-    supabase.from('quality_department_meetings').select('*,decisions:quality_department_meeting_decisions(*),participants:quality_department_meeting_participants(*),topics:quality_department_meeting_topics(*),trainings:quality_department_meeting_trainings(*,program:training_programs(program_key,status))').eq('organization_id', organizationId).order('meeting_date', { ascending: false }).then(must),
+    supabase.from('quality_department_meetings').select('*,decisions:quality_department_meeting_decisions(*),participants:quality_department_meeting_participants(*),topics:quality_department_meeting_topics(*),program:training_programs(program_key,title,status)').eq('organization_id', organizationId).order('meeting_date', { ascending: false }).then(must),
     departmentNames(organizationId),
   ])
-  return (rows || []).map(({ decisions, participants, topics, trainings, ...row }) => toMeeting(row, decisions || [], participants || [], departments, topics || [], trainings || []))
+  return (rows || []).map(({ decisions, participants, topics, program, ...row }) => toMeeting(row, decisions || [], participants || [], departments, topics || [], program || null))
 }
 
 // Saves the meeting and replaces its decisions and participants.
@@ -100,11 +99,11 @@ export async function saveMeeting(organizationId, meeting) {
   if (isLocal()) {
     const rows = local()
     const sameDepartment = rows.filter(row => row.departmentId === meeting.departmentId).map(row => row.code)
-    const next = { ...meeting, code: meeting.code || nextMeetingCode(sameDepartment, year), id: meeting.id || localId('dm'), decisions: meeting.decisions.map((decision, position) => ({ ...decision, id: decision.id || localId('dmd'), position })), participants: meeting.participants.map((person, position) => ({ ...person, id: person.id || localId('dmp'), position })), topics: (meeting.topics || []).map(topic => ({ ...topic, id: topic.id || localId('dmt') })), trainings: (meeting.trainings || []).map(item => ({ ...item, id: item.id || localId('dmtr') })) }
+    const next = { ...meeting, code: meeting.code || nextMeetingCode(sameDepartment, year), id: meeting.id || localId('dm'), decisions: meeting.decisions.map((decision, position) => ({ ...decision, id: decision.id || localId('dmd'), position })), participants: meeting.participants.map((person, position) => ({ ...person, id: person.id || localId('dmp'), position })), topics: (meeting.topics || []).map(topic => ({ ...topic, id: topic.id || localId('dmt') })) }
     saveSnapshot(LOCAL_KEY, meeting.id ? rows.map(row => (row.id === meeting.id ? next : row)) : [next, ...rows])
     return next
   }
-  const head = { organization_id: organizationId, group_id: isUuid(meeting.groupId) ? meeting.groupId : null, department_id: meeting.departmentId, title: meeting.title, kind: meeting.kind || 'regular', meeting_date: meeting.meetingDate, period_month: meeting.periodMonth || null, agenda: meeting.agenda || null, minutes: meeting.minutes || null, next_meeting_date: meeting.nextMeetingDate || null, status: meeting.status, finalized_at: meeting.finalizedAt || null, finalized_by_label: meeting.finalizedByLabel || null }
+  const head = { organization_id: organizationId, group_id: isUuid(meeting.groupId) ? meeting.groupId : null, training_held: Boolean(meeting.trainingHeld), training_program_id: isUuid(meeting.trainingProgramId) ? meeting.trainingProgramId : null, department_id: meeting.departmentId, title: meeting.title, kind: meeting.kind || 'regular', meeting_date: meeting.meetingDate, period_month: meeting.periodMonth || null, agenda: meeting.agenda || null, minutes: meeting.minutes || null, next_meeting_date: meeting.nextMeetingDate || null, status: meeting.status, finalized_at: meeting.finalizedAt || null, finalized_by_label: meeting.finalizedByLabel || null }
   let id = isUuid(meeting.id) ? meeting.id : null
   if (id) must(await supabase.from('quality_department_meetings').update(head).eq('id', id))
   else {
@@ -114,25 +113,23 @@ export async function saveMeeting(organizationId, meeting) {
   const base = { organization_id: organizationId, meeting_id: id }
   for (const table of ['quality_department_meeting_decisions', 'quality_department_meeting_participants']) must(await supabase.from(table).delete().eq('meeting_id', id))
   if (meeting.decisions.length) must(await supabase.from('quality_department_meeting_decisions').insert(meeting.decisions.map((decision, position) => ({ ...base, position, title: decision.title, owner_label: decision.ownerLabel || null, due_date: decision.dueDate || null, status: decision.status || 'open', capa_id: isUuid(decision.capaId) ? decision.capaId : null, carried_from: decision.carriedFrom || null }))))
-  // Topics and training needs keep their ids (a FileMaker topic, a training linked to its programme).
+  // Topics keep their ids (a FileMaker topic).
   const topics = (meeting.topics || []).filter(topic => String(topic.subject || '').trim())
-  const trainings = (meeting.trainings || []).filter(item => String(item.topic || '').trim())
-  for (const table of ['quality_department_meeting_topics', 'quality_department_meeting_trainings']) must(await supabase.from(table).delete().eq('meeting_id', id))
+  must(await supabase.from('quality_department_meeting_topics').delete().eq('meeting_id', id))
   if (topics.length) must(await supabase.from('quality_department_meeting_topics').insert(topics.map((topic, position) => ({ ...base, ...(isUuid(topic.id) ? { id: topic.id } : {}), position, subject: String(topic.subject).trim(), discussion: topic.discussion || null, conclusion: topic.conclusion || null }))))
-  if (trainings.length) must(await supabase.from('quality_department_meeting_trainings').insert(trainings.map((item, position) => ({ ...base, ...(isUuid(item.id) ? { id: item.id } : {}), position, topic: String(item.topic).trim(), audience: item.audience || null, due_date: item.dueDate || null, training_program_id: isUuid(item.programId) ? item.programId : null }))))
   if (meeting.participants.length) must(await supabase.from('quality_department_meeting_participants').insert(meeting.participants.map((person, position) => ({ ...base, position, employee_id: isUuid(person.employeeId) ? person.employeeId : null, name: person.name, role: person.role || null, attended: person.attended !== false }))))
   return (await loadMeetings(organizationId)).find(row => row.id === id)
 }
 
-// A training created from a meeting is linked back to the meeting's training need.
-export async function linkMeetingTraining(organizationId, { meetingId, trainingId }, program) {
+// A training created for a meeting is linked back to it (the meeting then shows it, and whether it was done).
+export async function linkMeetingTraining(organizationId, { meetingId }, program) {
   if (isLocal()) {
     const rows = local()
-    saveSnapshot(LOCAL_KEY, rows.map(row => (row.id !== meetingId ? row : { ...row, trainings: (row.trainings || []).map(item => (item.id === trainingId ? { ...item, programId: program.dbId || '', programKey: program.id, programStatus: program.status || 'active' } : item)) })))
+    saveSnapshot(LOCAL_KEY, rows.map(row => (row.id !== meetingId ? row : { ...row, trainingHeld: true, trainingProgramId: program.dbId || program.id, trainingProgramKey: program.id, trainingTitle: program.title || '', trainingStatus: program.status || 'active' })))
     return
   }
-  if (!isUuid(trainingId) || !isUuid(program.dbId)) return
-  must(await supabase.from('quality_department_meeting_trainings').update({ training_program_id: program.dbId }).eq('id', trainingId).eq('organization_id', organizationId))
+  if (!isUuid(meetingId) || !isUuid(program.dbId)) return
+  must(await supabase.from('quality_department_meetings').update({ training_program_id: program.dbId, training_held: true }).eq('id', meetingId).eq('organization_id', organizationId))
 }
 
 // --- Meeting groups ------------------------------------------------------------------

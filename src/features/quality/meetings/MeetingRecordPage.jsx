@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, CheckSquare2, ClipboardList, Gauge, GraduationCap, ListChecks, MessagesSquare, Paperclip, Plus, RotateCcw, Sparkles, Trash2, Users } from 'lucide-react'
+import { CheckCircle2, CheckSquare2, ClipboardList, GraduationCap, ListChecks, MessagesSquare, Paperclip, Plus, RotateCcw, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -8,7 +8,6 @@ import { ExportMenu } from '../../../design-system/ExportMenu'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
 import { ManualDateField } from '../../../design-system/ManualDateField'
-import { MonthField } from '../../../design-system/MonthField'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { Button } from '../../../design-system/Button'
@@ -25,9 +24,6 @@ import { auditActorFromAuth } from '../../../core/audit/actor'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { libraryOptions, useDepartments, useLibraries } from '../../management/useLibraries'
-import { loadEntries, loadRegisters } from '../../registers/registerService'
-import { indicatorReport, periodOf, textOf } from '../../registers/registerEngine'
-import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from '../../registers/registerText'
 import { useMeetings } from './MeetingsPanel'
 import { useEmployeesData } from '../../employees/useEmployeesData'
 import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
@@ -46,12 +42,12 @@ function downloadMinutes(meeting, organizationName) {
   const absent = meeting.participants.filter(person => person.attended === false).map(person => escapeHtml(person.name)).join(', ')
   const decisions = meeting.decisions.length ? `<h2>Αποφάσεις</h2><table border="1" cellpadding="4" cellspacing="0"><tr><th>Α/Α</th><th>Απόφαση</th><th>Υπεύθυνος</th><th>Προθεσμία</th><th>Κατάσταση</th></tr>${meeting.decisions.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.title)}</td><td>${escapeHtml(item.ownerLabel)}</td><td>${formatDay(item.dueDate, 'el')}</td><td>${decisionStatusLabel(item.status, 'el')}</td></tr>`).join('')}</table>` : ''
   const topics = (meeting.topics || []).map((item, index) => `<p><b>${index + 1}. ${escapeHtml(item.subject)}</b></p>${item.discussion ? `<p>${escapeHtml(item.discussion)}</p>` : ''}${item.conclusion ? `<p><i>Συμπέρασμα:</i> ${escapeHtml(item.conclusion)}</p>` : ''}`).join('')
-  const trainings = (meeting.trainings || []).length ? `<h2>Εκπαίδευση</h2><table border="1" cellpadding="4" cellspacing="0"><tr><th>Α/Α</th><th>Εκπαίδευση</th><th>Ποιοι</th><th>Έως</th></tr>${meeting.trainings.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.topic)}</td><td>${escapeHtml(item.audience)}</td><td>${formatDay(item.dueDate, 'el')}</td></tr>`).join('')}</table>` : ''
+  const training = meeting.trainingHeld ? `<h2>Εκπαίδευση</h2><p>Έγινε εκπαίδευση στη συνάντηση${meeting.trainingTitle ? `: ${escapeHtml(meeting.trainingTitle)}` : ''}.</p>` : ''
   const html = `<html><head><meta charset="utf-8"><title>${escapeHtml(meeting.title)}</title><style>body{font-family:Calibri,Arial;font-size:11pt}h1{font-size:16pt}h2{font-size:12pt;margin-top:14pt}table{border-collapse:collapse;width:100%}</style></head><body>
 <h1>${escapeHtml(meeting.title)} · ${escapeHtml(meeting.department)}</h1><p><b>Πρακτικό συνάντησης τμήματος</b> ${escapeHtml(meeting.code)} · ${escapeHtml(organizationName || '')}</p>
-<p>Ημερομηνία ${formatDay(meeting.meetingDate, 'el')} &nbsp;|&nbsp; Δείκτες ${escapeHtml(monthLabel(meeting.periodMonth, 'el'))} &nbsp;|&nbsp; Επόμενη συνάντηση ${formatDay(meeting.nextMeetingDate, 'el')}</p>
+<p>Ημερομηνία ${formatDay(meeting.meetingDate, 'el')} &nbsp;|&nbsp; Επόμενη συνάντηση ${formatDay(meeting.nextMeetingDate, 'el')}</p>
 <p><b>Παρόντες</b> ${present || '—'}${absent ? `<br><b>Απόντες</b> ${absent}` : ''}</p>
-<h2>Θέματα</h2>${topics || paragraphs(meeting.agenda)}${String(meeting.minutes || '').trim() ? `<h2>Λοιπές σημειώσεις</h2>${paragraphs(meeting.minutes)}` : ''}${decisions}${trainings}</body></html>`
+<h2>Θέματα</h2>${topics || paragraphs(meeting.agenda)}${String(meeting.minutes || '').trim() ? `<h2>Λοιπές σημειώσεις</h2>${paragraphs(meeting.minutes)}` : ''}${decisions}${training}</body></html>`
   const url = URL.createObjectURL(new Blob(['\ufeff', html], { type: 'application/msword' }))
   const link = document.createElement('a')
   link.href = url
@@ -61,35 +57,13 @@ function downloadMinutes(meeting, organizationName) {
 }
 
 // Earlier meetings kept their topics as lines of the agenda: they open as topics.
-const withTopics = meeting => ({ ...meeting, trainings: meeting.trainings || [], topics: meeting.topics?.length ? meeting.topics : String(meeting.agenda || '').split(/\n+/).map(line => line.trim()).filter(Boolean).map(subject => ({ subject, discussion: '', conclusion: '' })) })
+const withTopics = meeting => ({ ...meeting, topics: meeting.topics?.length ? meeting.topics : String(meeting.agenda || '').split(/\n+/).map(line => line.trim()).filter(Boolean).map(subject => ({ subject, discussion: '', conclusion: '' })) })
 const trainingStatusText = (status, en) => ({ completed: en ? 'Training done' : 'Η εκπαίδευση έγινε', cancelled: en ? 'Training cancelled' : 'Η εκπαίδευση ακυρώθηκε' })[status] || (en ? 'Training created' : 'Η εκπαίδευση δημιουργήθηκε')
 
 // The profession as the people register keeps it («190 ΝΟΣΗΛΕΥΤΗΣ/ΤΡΙΑ 2ΕΤΟΥΣ»): without the code and the years.
 const cleanRole = text => String(text || '').replace(/^\s*\d+\s*/, '').replace(/\s+\d+\s*(ΕΤΟΥΣ|ΕΤΩΝ|ΕΤΙΑΣ)\s*$/i, '').trim()
-const monthLabel = (day, language) => (day ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(day).slice(0, 7)}-01T00:00:00Z`)) : '')
 
-// The department's register indicators for the month the meeting reviews,
-// read from its registers; one click writes them into the minutes.
-function useDepartmentIndicators(organizationId, meeting) {
-  const [rows, setRows] = useState(null)
-  const key = meeting?.departmentId, dept = meeting?.department, month = meeting?.periodMonth
-  useEffect(() => {
-    let active = true
-    if (!key || !month) { setRows([]); return () => { active = false } }
-    setRows(null)
-    ;(async () => {
-      const registers = (await loadRegisters(organizationId).catch(() => [])).filter(register => register.status === 'active' && (register.departmentId === key || register.department === dept))
-      const period = periodOf('month', `${String(month).slice(0, 7)}-01`)
-      const entries = await Promise.all(registers.map(register => loadEntries(organizationId, register.id, { register }).catch(() => [])))
-      const result = registers.flatMap((register, index) => indicatorReport(register, entries[index], period).map(row => ({ register, ...row })))
-      if (active) setRows(result)
-    })()
-    return () => { active = false }
-  }, [organizationId, key, dept, month])
-  return rows
-}
-
-// One department meeting: when, which month's indicators, agenda and minutes,
+// One department meeting: when, topics and conclusions, decisions (carried from the previous one), who attended, a training held,
 // the decisions (with those carried from the previous meeting) and who took part.
 export function MeetingRecordPage() {
   const { meetingId } = useParams()
@@ -130,7 +104,6 @@ export function MeetingRecordPage() {
     if (department || ownDepartments.length || !departmentsLoading) setMeeting(withTopics(department ? newMeetingFor(department, list.all) : { ...newMeetingFor(null, list.all), departmentId: '' }))
   }, [list.loading, list.meetings, list.all, meetingId, isNew, meeting, ownDepartments, departmentsLoading, location.state, en])
 
-  const indicators = useDepartmentIndicators(tenant?.id, meeting || null)
   // The attendance: the department's active employees, each present or absent.
   const { data: employees } = useEmployeesData()
   const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: cleanRole(employee.position || employee.profession) })), [employees, meeting])
@@ -150,10 +123,9 @@ export function MeetingRecordPage() {
   const setDecision = (index, next) => setMeeting(current => ({ ...current, decisions: current.decisions.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const setTopic = (index, next) => setMeeting(current => ({ ...current, topics: current.topics.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const addTopic = subject => setMeeting(current => ({ ...current, topics: [...current.topics, { subject, discussion: '', conclusion: '' }] }))
-  const setTraining = (index, next) => setMeeting(current => ({ ...current, trainings: current.trainings.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
-  // A training need becomes a training programme, filled in from the meeting; the programme is linked back on save.
-  function createTraining(item) {
-    navigate('/training/new', { state: { trainingDraft: { title: item.topic, audience: [meeting.department, item.audience].filter(Boolean).join(' · '), deliveryKind: 'intra_department', dueDate: item.dueDate || '', description: en ? `From the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Από τη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id, trainingId: item.id } } })
+  // The training held at the meeting: a new programme, filled in from the meeting; it is linked back when saved.
+  function createTraining() {
+    navigate('/training/new', { state: { trainingDraft: { title: meeting.topics.map(topic => topic.subject).filter(Boolean)[0] || '', audience: meeting.department, deliveryKind: 'intra_department', startDate: meeting.meetingDate, dueDate: meeting.meetingDate, description: en ? `Held at the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Έγινε στη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id } } })
   }
   const setPerson = (index, next) => setMeeting(current => ({ ...current, participants: current.participants.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const chooseDepartment = id => { const department = ownDepartments.find(item => (item.id || item.name) === id); if (department) setMeeting(current => ({ ...newMeetingFor(department, list.all, current.meetingDate), meetingDate: current.meetingDate })) }
@@ -163,7 +135,7 @@ export function MeetingRecordPage() {
     setSaving(true)
     try {
       const topics = meeting.topics.filter(item => String(item.subject).trim())
-      const next = { ...meeting, topics, trainings: meeting.trainings.filter(item => String(item.topic).trim()), agenda: topics.map(item => item.subject.trim()).join('\n'), decisions: meeting.decisions.filter(item => String(item.title).trim()), participants: meeting.participants.filter(item => String(item.name).trim()), status: nextStatus || meeting.status, ...(nextStatus === 'final' ? { finalizedAt: new Date().toISOString(), finalizedByLabel: auditActorFromAuth({ profile, user }).name } : nextStatus === 'draft' ? { finalizedAt: null, finalizedByLabel: '' } : {}) }
+      const next = { ...meeting, topics, agenda: topics.map(item => item.subject.trim()).join('\n'), decisions: meeting.decisions.filter(item => String(item.title).trim()), participants: meeting.participants.filter(item => String(item.name).trim()), status: nextStatus || meeting.status, ...(nextStatus === 'final' ? { finalizedAt: new Date().toISOString(), finalizedByLabel: auditActorFromAuth({ profile, user }).name } : nextStatus === 'draft' ? { finalizedAt: null, finalizedByLabel: '' } : {}) }
       const saved = await saveMeeting(tenant?.id, next)
       notify(nextStatus === 'final' ? (en ? 'The minutes are final.' : 'Το πρακτικό οριστικοποιήθηκε.') : (en ? 'Meeting saved.' : 'Η συνάντηση αποθηκεύτηκε.'), 'success')
       list.reload()
@@ -174,7 +146,6 @@ export function MeetingRecordPage() {
   function openCapa(decision) {
     navigate('/quality/capas/new', { state: { qualitySource: { source: 'other', sourceId: `DM:${meeting.code || 'new'}`, departmentId: meeting.departmentId, department: meeting.department, departmentEn: meeting.departmentEn, title: decision.title, dueDate: decision.dueDate, description: en ? `Decision of the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Απόφαση της συνάντησης ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` } } })
   }
-  const indicatorLines = (indicators || []).filter(row => row.current.value != null).map(row => `${textOf(row.indicator, language)}: ${formatIndicatorValue(row.current.value, row.indicator, language)}${row.indicator.target != null ? ` (${en ? 'target' : 'στόχος'} ${formatIndicatorValue(row.indicator.target, row.indicator, language)})` : ''}${row.current.status ? ` · ${indicatorStatusLabel(row.current.status, language)}` : ''}`)
   const carried = meeting.decisions.filter(item => item.carriedFrom)
   // «Present 6 of 7 · Absent: M. Xytsa»: the head sees at a glance who was missing.
   const presentCount = meeting.participants.filter(person => person.attended !== false).length
@@ -184,10 +155,8 @@ export function MeetingRecordPage() {
   const hasMinutes = Boolean(String(meeting.minutes).trim()) || meeting.topics.some(item => String(item.subject).trim())
   const tabs = [
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList },
-    { id: 'indicators', label: en ? 'Indicators' : 'Δείκτες', icon: Gauge },
     { id: 'topics', label: en ? `Topics ${meeting.topics.length}` : `Θέματα ${meeting.topics.length}`, icon: MessagesSquare },
     { id: 'decisions', label: en ? `Decisions ${meeting.decisions.length}` : `Αποφάσεις ${meeting.decisions.length}`, icon: ListChecks },
-    { id: 'training', label: en ? `Training ${meeting.trainings.length}` : `Εκπαίδευση ${meeting.trainings.length}`, icon: GraduationCap },
     { id: 'people', label: `${en ? 'Attendance' : 'Παρουσίες'} ${meeting.participants.filter(person => person.attended !== false).length}/${meeting.participants.length}`, icon: Users },
     ...(isNew ? [] : [{ id: 'files', label: en ? 'Files' : 'Αρχεία', icon: Paperclip }]),
   ]
@@ -198,15 +167,14 @@ export function MeetingRecordPage() {
     {list.access.canReopen(meeting) && <Button variant="secondary" disabled={saving} onClick={() => save('draft')}><RotateCcw size={15} />{en ? 'Back to draft' : 'Επαναφορά σε πρόχειρο'}</Button>}
   </div>
 
-  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={[formatDay(meeting.meetingDate, language), meeting.periodMonth && `${en ? 'indicators of' : 'δείκτες'} ${monthLabel(meeting.periodMonth, language)}`].filter(Boolean).join(' · ')} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} subtitle={meeting.status === 'final' ? (en ? `Final · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'en')}` : `Οριστικό · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'el')}`) : (en ? 'The month’s indicators come from the department’s registers.' : 'Οι δείκτες του μήνα έρχονται από τα μητρώα του τμήματος.')} footer={footer}>
+  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
+    {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} subtitle={meeting.status === 'final' ? (en ? `Final · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'en')}` : `Οριστικό · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'el')}`) : undefined} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Meeting' : 'Συνάντηση'}>
-          <FormGrid columns={4}>
+          <FormGrid columns={3}>
             {isNew ? <SearchableSelect label={en ? 'Department *' : 'Τμήμα *'} value={meeting.departmentId} options={ownDepartments.map(item => ({ value: item.id || item.name, label: en ? item.nameEn || item.name : item.name }))} onChange={chooseDepartment} placeholder={en ? 'Choose the department' : 'Επιλέξτε τμήμα'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel="" />
               : <Field label={en ? 'Department' : 'Τμήμα'}><input value={(en ? meeting.departmentEn : meeting.department) || ''} disabled /></Field>}
             <ManualDateField label={en ? 'Date' : 'Ημερομηνία'} value={meeting.meetingDate} disabled={locked} onChange={value => set({ meetingDate: value, periodMonth: value ? previousMonth(value) : meeting.periodMonth, nextMeetingDate: value ? addDays(value, 30) : meeting.nextMeetingDate })} />
-            <MonthField label={en ? 'Indicators of' : 'Δείκτες του μήνα'} value={String(meeting.periodMonth || '').slice(0, 7)} disabled={locked} onChange={value => set({ periodMonth: value ? `${value}-01` : '' })} />
             <ManualDateField label={en ? 'Next meeting' : 'Επόμενη συνάντηση'} value={meeting.nextMeetingDate} disabled={locked} onChange={value => set({ nextMeetingDate: value })} />
           </FormGrid>
           <FormGrid columns={2}>
@@ -215,27 +183,17 @@ export function MeetingRecordPage() {
               : <ChoiceField label={en ? 'Kind' : 'Είδος'} value={meeting.kind} options={MEETING_KINDS.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={value => set({ kind: value })} />}
           </FormGrid>
         </FormCard>
+        <FormCard wide icon={GraduationCap} title={en ? 'Training' : 'Εκπαίδευση'}>
+          <ChoiceField label={en ? 'Was a training held during the meeting?' : 'Έγινε εκπαίδευση στη συνάντηση;'} value={meeting.trainingHeld ? 'yes' : 'no'} disabled={locked || Boolean(meeting.trainingProgramId)} options={[{ value: 'no', label: en ? 'No' : 'Όχι' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }]} onChange={value => set({ trainingHeld: value === 'yes' })} />
+          {meeting.trainingHeld && <div className="meeting-training">
+            {meeting.trainingProgramId
+              ? <><div><strong>{meeting.trainingTitle || (en ? 'Training' : 'Εκπαίδευση')}</strong><small>{trainingStatusText(meeting.trainingStatus, en)}</small></div>{meeting.trainingProgramKey && <Button variant="secondary" onClick={() => navigate(`/training/${meeting.trainingProgramKey}`)}><GraduationCap size={15} />{en ? 'Open the training' : 'Άνοιγμα εκπαίδευσης'}</Button>}</>
+              : <><span className="meeting-training-hint">{isNew ? (en ? 'Save the meeting first, then create the training.' : 'Αποθηκεύστε πρώτα τη συνάντηση και μετά δημιουργήστε την εκπαίδευση.') : (en ? 'No training is linked to this meeting yet.' : 'Δεν έχει συνδεθεί ακόμη εκπαίδευση με τη συνάντηση.')}</span>{!isNew && canCreateTraining && <Button variant="secondary" onClick={createTraining}><GraduationCap size={15} />{en ? 'Create the training' : 'Δημιουργία εκπαίδευσης'}</Button>}</>}
+          </div>}
+        </FormCard>
         {carried.length > 0 && <FormCard wide icon={ListChecks} title={en ? 'Open from the previous meeting' : 'Εκκρεμότητες προηγούμενης συνάντησης'} hint={en ? 'Mark them in «Decisions».' : 'Ενημερώστε τες στις «Αποφάσεις».'}>
           <ul className="meeting-carried">{carried.map((item, index) => <li key={index}><StatusBadge tone={item.status === 'done' ? 'success' : 'info'}>{decisionStatusLabel(item.status, language)}</StatusBadge><span>{item.title}</span><small>{[item.ownerLabel, item.dueDate && formatDay(item.dueDate, language), item.carriedFrom].filter(Boolean).join(' · ')}</small></li>)}</ul>
         </FormCard>}
-      </div>
-    </RecordTabPanel>}
-    {tab === 'indicators' && <RecordTabPanel className="review-minutes" title={en ? 'Indicators of the month' : 'Δείκτες του μήνα'} footer={footer}>
-      <div className="lo-form-cards">
-        <FormCard wide icon={Gauge} title={en ? `Indicators · ${monthLabel(meeting.periodMonth, 'en')}` : `Δείκτες · ${monthLabel(meeting.periodMonth, 'el')}`} hint={indicators && !indicators.length ? (en ? 'The department has no register with indicators.' : 'Το τμήμα δεν έχει μητρώο με δείκτες.') : undefined}>
-          {indicators === null ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div> : indicators.length > 0 && <>
-            <RegistryTable className="quality-table meeting-indicators" rows={indicators} rowKey={row => `${row.register.id}:${row.indicator.id}`}
-              columns={[{ key: 'indicator', label: en ? 'Indicator' : 'Δείκτης' }, { key: 'value', label: en ? 'Value' : 'Τιμή' }, { key: 'previous', label: en ? 'Previous month' : 'Προηγ. μήνας' }, { key: 'target', label: en ? 'Target' : 'Στόχος' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
-              renderRow={row => <>
-                <td>{textOf(row.indicator, language)}<small>{en ? row.register.nameEn : row.register.name}</small></td>
-                <td><strong>{formatIndicatorValue(row.current.value, row.indicator, language) || '—'}</strong></td>
-                <td>{formatIndicatorValue(row.previous?.value, row.indicator, language) || '—'}</td>
-                <td>{row.indicator.target != null ? formatIndicatorValue(row.indicator.target, row.indicator, language) : '—'}</td>
-                <td>{row.current.status ? <StatusBadge tone={indicatorStatusTone(row.current.status)}>{indicatorStatusLabel(row.current.status, language)}</StatusBadge> : '—'}</td>
-              </>} />
-            {!locked && indicatorLines.length > 0 && <Button variant="secondary" onClick={() => set({ minutes: [meeting.minutes, `${en ? 'Indicators of' : 'Δείκτες'} ${monthLabel(meeting.periodMonth, language)}:`, ...indicatorLines].filter(Boolean).join('\n') })}><Sparkles size={15} />{en ? 'Write them into the minutes' : 'Οι δείκτες στο πρακτικό'}</Button>}
-          </>}
-        </FormCard>
       </div>
     </RecordTabPanel>}
     {tab === 'topics' && <RecordTabPanel className="review-minutes" title={en ? 'Topics' : 'Θέματα'} subtitle={en ? 'Each topic with what was discussed and what was concluded.' : 'Κάθε θέμα με ό,τι συζητήθηκε και το συμπέρασμα.'} actions={!locked && <Button variant="secondary" onClick={() => addTopic('')}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button>} footer={footer}>
@@ -252,21 +210,6 @@ export function MeetingRecordPage() {
           {!locked && topicOptions.length > 0 && <SearchableSelect label={en ? 'Add a topic from the library' : 'Προσθήκη θέματος από τη βιβλιοθήκη'} value="" options={topicOptions} onChange={value => { const item = (libraries.committeeTopics || []).find(entry => entry.value === value); if (item) addTopic(en ? item.en : item.el) }} placeholder={en ? 'Choose a topic' : 'Επιλέξτε θέμα'} />}
         <Field label={en ? 'Other notes' : 'Λοιπές σημειώσεις'}><textarea rows={3} value={meeting.minutes} disabled={locked} onChange={event => set({ minutes: event.target.value })} /></Field>
       </div>
-    </RecordTabPanel>}
-    {tab === 'training' && <RecordTabPanel title={en ? 'Training' : 'Εκπαίδευση'} subtitle={en ? 'Training that came up in the meeting: who needs it and by when. «Create the training» opens it ready, in Training.' : 'Η εκπαίδευση που προέκυψε στη συνάντηση: ποιοι τη χρειάζονται και έως πότε. Η «Δημιουργία εκπαίδευσης» την ανοίγει έτοιμη στην Εκπαίδευση.'} actions={!locked && <Button variant="secondary" onClick={() => set({ trainings: [...meeting.trainings, { topic: '', audience: '', dueDate: '', programId: '', programKey: '', programStatus: '' }] })}><Plus size={15} />{en ? 'Training need' : 'Ανάγκη εκπαίδευσης'}</Button>} footer={footer}>
-      <div className="review-actions">{meeting.trainings.map((item, index) => <div key={item.id || index} className="review-action-row meeting-training-row">
-        <Field label={`${index + 1}. ${en ? 'Training on' : 'Εκπαίδευση σε'}`}><input value={item.topic} disabled={locked || Boolean(item.programKey || item.programId)} onChange={event => setTraining(index, { topic: event.target.value })} /></Field>
-        <Field label={en ? 'Who needs it' : 'Ποιοι τη χρειάζονται'}><input value={item.audience} disabled={locked} onChange={event => setTraining(index, { audience: event.target.value })} /></Field>
-        <ManualDateField label={en ? 'By' : 'Έως'} value={item.dueDate} disabled={locked} onChange={value => setTraining(index, { dueDate: value })} optional />
-        <span className="review-action-tools">
-          {item.programKey
-            ? <Button variant="secondary" onClick={() => navigate(`/training/${item.programKey}`)}><GraduationCap size={15} />{trainingStatusText(item.programStatus, en)}</Button>
-            : item.programId ? <StatusBadge tone="info">{trainingStatusText('', en)}</StatusBadge>
-            : !isNew && item.id && String(item.topic).trim() && canCreateTraining && <Button variant="secondary" onClick={() => createTraining(item)}><GraduationCap size={15} />{en ? 'Create the training' : 'Δημιουργία εκπαίδευσης'}</Button>}
-          {!locked && !item.programKey && !item.programId && <IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ trainings: meeting.trainings.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton>}
-        </span>
-      </div>)}{!meeting.trainings.length && <div className="inline-empty">{en ? 'No training came up in this meeting.' : 'Δεν προέκυψε εκπαίδευση σε αυτή τη συνάντηση.'}</div>}
-      {!locked && meeting.trainings.some(item => !item.id && String(item.topic).trim()) && <p className="meeting-training-hint">{en ? 'Save the meeting to create the training.' : 'Αποθηκεύστε τη συνάντηση για να δημιουργηθεί η εκπαίδευση.'}</p>}</div>
     </RecordTabPanel>}
     {tab === 'decisions' && <RecordTabPanel title={en ? 'Decisions' : 'Αποφάσεις'} subtitle={en ? 'Open decisions of the previous meeting are carried here.' : 'Οι ανοιχτές αποφάσεις της προηγούμενης συνάντησης μεταφέρονται εδώ.'} actions={!locked && <Button variant="secondary" onClick={() => set({ decisions: [...meeting.decisions, { title: '', ownerLabel: '', dueDate: '', status: 'open', capaId: '', carriedFrom: '' }] })}><Plus size={15} />{en ? 'Decision' : 'Απόφαση'}</Button>} footer={footer}>
       {locked ? <RegistryTable className="review-decisions-table" rows={meeting.decisions} rowKey={(item, index) => item.id || index}

@@ -148,17 +148,15 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
           <td><StatusBadge tone="info">{decisionStatusLabel(item.status, language)}</StatusBadge></td>
         </>} />
     </RecordTabPanel>}
-    {tab === 'trainings' && <RecordTabPanel title={en ? 'Training' : 'Εκπαιδεύσεις'} subtitle={en ? 'Training that came up in the meetings.' : 'Η εκπαίδευση που προέκυψε στις συναντήσεις.'}>
-      <RegistryTable className="quality-table" rows={status.trainings} rowKey={(item, index) => item.id || index}
-        columns={[{ key: 'topic', label: en ? 'Training' : 'Εκπαίδευση' }, { key: 'audience', label: en ? 'Who' : 'Ποιοι' }, { key: 'due', label: en ? 'By' : 'Έως' }, { key: 'meeting', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
-        emptyTitle={en ? 'No training came up' : 'Δεν προέκυψε εκπαίδευση'}
-        rowProps={item => ({ className: 'registry-row-clickable', onClick: () => (item.programKey ? goTo(`/training/${item.programKey}`) : openMeeting(item.meeting)) })}
-        renderRow={item => <>
-          <td><strong>{item.topic}</strong></td>
-          <td>{item.audience || '—'}</td>
-          <td className="nowrap-cell">{formatDay(item.dueDate, language) || '—'}</td>
-          <td>{item.meeting.code}<small>{formatDay(item.meeting.meetingDate, language)}</small></td>
-          <td><StatusBadge tone={item.programStatus === 'completed' ? 'success' : item.programId || item.programKey ? 'info' : 'warning'}>{item.programStatus === 'completed' ? (en ? 'Done' : 'Έγινε') : item.programId || item.programKey ? (en ? 'Created' : 'Δημιουργήθηκε') : (en ? 'To be created' : 'Προς δημιουργία')}</StatusBadge></td>
+    {tab === 'trainings' && <RecordTabPanel title={en ? 'Training' : 'Εκπαιδεύσεις'} subtitle={en ? 'The meetings during which a training was held.' : 'Οι συναντήσεις στις οποίες έγινε εκπαίδευση.'}>
+      <RegistryTable className="quality-table" rows={status.trainings} rowKey={meeting => meeting.id}
+        columns={[{ key: 'meeting', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'training', label: en ? 'Training' : 'Εκπαίδευση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        emptyTitle={en ? 'No training was held at the meetings' : 'Δεν έγινε εκπαίδευση στις συναντήσεις'}
+        rowProps={meeting => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => openMeeting(meeting), onKeyDown: event => { if (event.key === 'Enter') openMeeting(meeting) } })}
+        renderRow={meeting => <>
+          <td><strong>{meeting.code}</strong><small>{formatDay(meeting.meetingDate, language)}</small></td>
+          <td>{meeting.trainingTitle || '—'}</td>
+          <td><StatusBadge tone={meeting.trainingStatus === 'completed' ? 'success' : meeting.trainingProgramId ? 'info' : 'warning'}>{meeting.trainingStatus === 'completed' ? (en ? 'Done' : 'Έγινε') : meeting.trainingProgramId ? (en ? 'Linked' : 'Συνδέθηκε') : (en ? 'Not linked yet' : 'Δεν έχει συνδεθεί')}</StatusBadge></td>
         </>} />
     </RecordTabPanel>}
     {editing && <MeetingGroupDialog initial={group} departments={departments} saving={saving} onClose={() => setEditing(false)} onSave={saveGroup} language={language} />}

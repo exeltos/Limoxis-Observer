@@ -194,13 +194,14 @@ td.quality-register-actions{width:48px;text-align:right}
 .meeting-carried{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 .meeting-carried>li{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:2px 10px;font-size:13px;color:var(--lo-color-text)}
 .meeting-carried>li>small{grid-column:2;font-size:11.5px;color:var(--lo-color-muted)}
-.review-action-row.meeting-training-row{grid-template-columns:minmax(220px,2fr) minmax(180px,1.4fr) 180px auto}
 /* Department meeting topics: one card each, subject over «discussed» and «conclusion». */
 .meeting-topics{display:grid;gap:10px;padding:12px 14px}
 .meeting-topic-card{display:grid;gap:8px;padding:10px;border:1px solid var(--lo-color-border,#dbe2e8);border-radius:8px}
 .meeting-topic-head{display:flex;align-items:center;justify-content:space-between}
 .meeting-group-record .record-tab-panel-body{flex:1 0 auto}
 .meeting-group-summary,.meeting-files{padding:12px 14px}
+.meeting-training{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px}
+.meeting-training small{display:block;color:var(--lo-color-text-muted,#5d7083)}
 .meeting-training-hint{margin:8px 0 0;font-size:12px;color:var(--lo-color-text-muted,#5d7083)}
 
 /* Optional English translation of a record (title, description), folded under «Αγγλική μετάφραση». */

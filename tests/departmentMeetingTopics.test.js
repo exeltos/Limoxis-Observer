@@ -13,11 +13,16 @@ describe('department meetings: topics and training', () => {
     expect(sql).toContain("insert into public.quality_department_meeting_topics (id, organization_id, meeting_id, subject, position)")
   })
 
-  it('opens the meeting on tabs, with a training tab that creates the programme from the meeting', () => {
+  it('opens the meeting on tabs, with the training held at it as a yes/no and a link, not a tab', () => {
     const page = read('src/features/quality/meetings/MeetingRecordPage.jsx')
-    for (const id of ["id: 'details'", "id: 'indicators'", "id: 'topics'", "id: 'decisions'", "id: 'training'", "id: 'people'"]) expect(page).toContain(id)
+    for (const id of ["id: 'details'", "id: 'topics'", "id: 'decisions'", "id: 'people'", "id: 'files'"]) expect(page).toContain(id)
+    // No indicators and no training tab: the meeting only says whether a training was held and which one.
+    expect(page).not.toContain("id: 'indicators'")
+    expect(page).not.toContain("id: 'training'")
+    expect(page).toContain('Έγινε εκπαίδευση στη συνάντηση;')
     expect(page).toContain("navigate('/training/new', { state: { trainingDraft:")
     expect(read('src/features/training/TrainingCreatePage.jsx')).toContain('linkMeetingTraining(tenant.id,location.state.meetingTraining,program)')
+    expect(read('supabase/migrations/20261231160000_department_meeting_training_held.sql')).toContain('training_held boolean')
   })
 
   it('gives the department its own «Meetings» and takes them out of the registers', () => {

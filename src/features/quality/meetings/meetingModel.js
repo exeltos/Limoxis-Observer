@@ -101,6 +101,6 @@ export function groupStatus(group, meetings = [], day = today()) {
   const nextDue = last ? addDays(last.meetingDate, Number(group.frequencyDays) || 90) : null
   // The open decisions are followed on the latest meeting (earlier ones were carried into it).
   const latest = own[0] || null
-  return { meetings: own, last, nextDue, overdue: Boolean(group.active !== false && (!last || (nextDue && nextDue < day))), open: latest ? openDecisions(latest) : [], late: latest ? lateDecisions(latest, day) : [], trainings: own.flatMap(meeting => (meeting.trainings || []).map(item => ({ ...item, meeting }))) }
+  return { meetings: own, last, nextDue, overdue: Boolean(group.active !== false && (!last || (nextDue && nextDue < day))), open: latest ? openDecisions(latest) : [], late: latest ? lateDecisions(latest, day) : [], trainings: own.filter(meeting => meeting.trainingHeld) }
 }
 export const newMeetingGroup = () => ({ id: '', departmentId: '', name: '', frequencyDays: 90, durationHours: '', managerLabel: '', active: true })
