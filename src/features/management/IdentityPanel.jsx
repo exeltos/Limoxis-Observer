@@ -40,7 +40,7 @@ export function IdentityPanel({tenant,isDemo=false}){
  }
 
  return <section className="management-section">
-  <div className="section-toolbar"><div><h2><Building2 size={18}/> {el?'Ταυτότητα νοσοκομείου':'Hospital identity'}</h2><p>{el?'Λογότυπο και γραμμή κεφαλίδας που τυπώνονται στην κορυφή κάθε PDF και στα πιστοποιητικά εκπαίδευσης.':'Logo and header line printed at the top of every PDF and on training certificates.'}</p></div></div>
+  <div className="section-toolbar"><div><h2>{el?'Ταυτότητα':'Identity'}</h2><p>{el?'Λογότυπο και γραμμή κεφαλίδας που τυπώνονται στην κορυφή κάθε PDF και στα πιστοποιητικά εκπαίδευσης.':'Logo and header line printed at the top of every PDF and on training certificates.'}</p></div></div>
   <div className="identity-settings">
    <div className="identity-logo">
     <span>{el?'Λογότυπο':'Logo'}</span>

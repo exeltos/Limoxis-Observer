@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GraduationCap,Lock } from 'lucide-react'
+import { GraduationCap } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
@@ -38,7 +38,7 @@ export function SecurityPanel({tenant,isDemo=false}){
   finally{setSaving(false)}
  }
  return <section className="management-section">
-  <div className="section-toolbar"><div><h2><Lock size={18}/> {el?'Ασφάλεια':'Security'}</h2><p>{el?'Ρυθμίσεις που ισχύουν για όλους τους χρήστες του νοσοκομείου.':'Settings that apply to every user of the hospital.'}</p></div></div>
+  <div className="section-toolbar"><div><h2>{el?'Ασφάλεια':'Security'}</h2><p>{el?'Ρυθμίσεις που ισχύουν για όλους τους χρήστες του νοσοκομείου · αποθηκεύονται αυτόματα μόλις τις αλλάξετε.':'Settings for every user of the hospital · saved as soon as you change them.'}</p></div></div>
   <div className="security-setting">
    <label className="field"><span>{el?'Κλείδωμα οθόνης μετά από αδράνεια':'Screen lock after inactivity'}</span>
     <select value={minutes} disabled={saving} onChange={event=>void change(Number(event.target.value))}>{IDLE_LOCK_OPTIONS.map(value=><option key={value} value={value}>{value?(el?`${value} λεπτά`:`${value} minutes`):(el?'Ποτέ':'Never')}</option>)}</select>

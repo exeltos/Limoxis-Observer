@@ -141,3 +141,7 @@
 .management-user-body>*{flex:none}
 .management-user-body .management-role-capability-groups{max-height:none;overflow:visible}
 .management-user-body .management-role-capability{grid-template-columns:18px minmax(0,1fr) auto;align-items:center}
+/* Inside a group (Νοσοκομείο, Λίστες) each screen shows its own title, with its button on the right. */
+.management-shell .library-extra-scroll .section-toolbar>div>h2,.management-shell .library-content>.section-toolbar>div>h2{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}
+.announcement-row-text{display:block;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.library-extra-scroll>.management-section{padding-left:0;padding-right:0}
