@@ -1,4 +1,4 @@
-import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -45,6 +45,8 @@ export const navigation=[
   // The self-assessments the Quality team released to the department (a preparation for the audit).
   // The department's own calendar: what concerns the department (the culture sampling first), month by month.
   {to:'/my-department/calendar',key:'departmentCalendar',label:'sidebarNav.departmentCalendar',icon:CalendarCheck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The department's meetings: topics discussed, decisions and the training that came up.
+  {to:'/my-department/meetings',key:'departmentMeetings',label:'sidebarNav.departmentMeetings',icon:MessagesSquare,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/my-department/self-assessment',key:'departmentSelfAssessment',label:'sidebarNav.departmentSelfAssessment',icon:ListChecks,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS},
@@ -126,17 +128,17 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
-    ['myDepartment','departmentCalendar','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
     ['indicators','training','documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
-    ['myDepartment','departmentCalendar','surveillance','prevention','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','surveillance','prevention','controls','calendar'],
     ['employees','indicators','training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
-    ['myDepartment','departmentCalendar','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','controls','calendar'],
     ['training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),

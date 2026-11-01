@@ -52,6 +52,8 @@ describe('sidebar order per role', () => {
       const keys = navigationFor({ role }).map(item => item.key)
       expect(keys, role).toContain('departmentCalendar')
       expect(keys, role).not.toContain('calendar')
+      // Their meetings have an entry of their own, right after the calendar.
+      expect(keys.indexOf('departmentMeetings'), role).toBe(keys.indexOf('departmentCalendar') + 1)
     }
     expect(sidebarLayout(ROLES.DEMO, navigationFor({ role: ROLES.DEMO })).every(block => block.kind === 'group')).toBe(true)
   })

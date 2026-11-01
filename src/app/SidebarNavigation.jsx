@@ -13,7 +13,7 @@ const menuPathOf=pathname=>{const alias=MENU_ALIASES.find(([from])=>pathname===f
 const under=(path,to)=>to==='/'?path==='/':path===to||path.startsWith(`${to}/`)
 // A page of «Indicators & objectives» is not also under «Quality Center» (/quality is its parent path); the department's calendar,
 // suppliers and self-assessment are not also «My department».
-const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);if(to==='/quality'&&under(path,'/quality/measures'))return false;if(to==='/my-department'&&['/my-department/calendar','/my-department/suppliers','/my-department/self-assessment'].some(child=>under(path,child)))return false;return under(pathname,to)||under(path,to)}
+const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);if(to==='/quality'&&under(path,'/quality/measures'))return false;if(to==='/my-department'&&['/my-department/calendar','/my-department/meetings','/my-department/suppliers','/my-department/self-assessment'].some(child=>under(path,child)))return false;return under(pathname,to)||under(path,to)}
 
 function NavEntry({item,t,nested=false,onNavigate}){
   const Icon=item.icon

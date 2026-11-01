@@ -22,17 +22,18 @@ const openDecisions = review => (review.actions || []).filter(action => action.s
 const lateDecisions = review => openDecisions(review).filter(action => action.dueDate && action.dueDate < new Date().toISOString().slice(0, 10))
 
 
-export function DepartmentMeetingsScreen() {
+// `home`: where a meeting returns to (the Meetings section, or the department's own «Meetings»).
+export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', ownDepartment = false } = {}) {
   const { t, language } = useLanguage()
   const en = language === 'en'
   const L = (el, enText) => (en ? enText : el)
   const { notify } = useFeedback()
   const printList = (data, title) => { if (!printRegistry(data, { language, kind: t('sidebarNav.meetingsDecisions'), title })) notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'Allow pop-ups to print.'), 'error') }
-  const { goTo } = useContextualNavigation('/meetings?tab=departments')
+  const { goTo } = useContextualNavigation(home)
   const meetings = useMeetings()
   const [filters, setFilters] = useState({ query: '', department: 'all', status: 'all', quick: null })
   const visible = useMemo(() => filterMeetings(meetings.meetings, filters, en), [meetings.meetings, filters, en])
-  return <Page fill className="registry-fill-page" title={t('sidebarNav.tabDepartmentMeetings')} subtitle={t('sidebarNav.departmentMeetingsSubtitle')}
+  return <Page fill className="registry-fill-page" title={ownDepartment ? t('sidebarNav.departmentMeetings') : t('sidebarNav.tabDepartmentMeetings')} subtitle={t('sidebarNav.departmentMeetingsSubtitle')}
     actions={<div className="row-actions">
       <ExportMenu disabled={!visible.length} onPrint={() => printList(meetingsExport(visible, language), t('sidebarNav.tabDepartmentMeetings'))} onExcel={() => exportRegistry(meetingsExport(visible, language))} />
       <ActionButton label={L('Συνάντηση τμήματος', 'Department meeting')} tone="primary" onClick={() => goTo('/meetings/new')}><Plus size={18} /><span>{t('create')}</span></ActionButton>

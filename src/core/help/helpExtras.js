@@ -49,6 +49,11 @@ export const helpExtras={
   tip:{el:'Ένας στόχος ποιότητας χωρίς σύνδεση χρειάζεται τιμή από τον υπεύθυνο· με σύνδεση ενημερώνεται από τις καταχωρίσεις του μητρώου.',en:'An unlinked quality objective needs a value from its owner; a linked one is updated from the register’s entries.'},
   related:['/quality','/indicators','/registers']
  },
+ '/my-department/meetings':{
+  checks:{el:['Γράψτε κάθε θέμα χωριστά, με ό,τι συζητήθηκε και το συμπέρασμα.','Καταγράψτε στην «Εκπαίδευση» ό,τι εκπαίδευση προέκυψε, με το ποιοι τη χρειάζονται και έως πότε.','Οριστικοποιήστε το πρακτικό όταν συμφωνήσουν οι συμμετέχοντες.'],en:['Write each topic separately, with what was discussed and the conclusion.','Record under «Training» any training that came up, who needs it and by when.','Finalize the minutes once the participants agree.']},
+  tip:{el:'Οι ανοιχτές αποφάσεις μιας συνάντησης μεταφέρονται αυτόματα στην επόμενη του τμήματος.',en:'The open decisions of a meeting are carried into the department’s next one automatically.'},
+  related:['/my-department','/training','/registers']
+ },
  '/indicators':{
   checks:{el:['Ελέγξτε περίοδο, εύρος και παρονομαστή.','Επιβεβαιώστε την πηγή του αριθμητή και του παρονομαστή.','Χρησιμοποιήστε drill-down πριν ερμηνεύσετε ασυνήθιστη τιμή.'],en:['Check period, scope and denominator.','Verify the numerator and denominator data sources.','Use drill-down before interpreting an unusual value.']},
   tip:{el:'Ένας δείκτης πρέπει να είναι αναπαραγώγιμος: η ίδια πηγή και μέθοδος να δίνουν το ίδιο αποτέλεσμα.',en:'An indicator should be reproducible: the same source and method should produce the same result.'},
