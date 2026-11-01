@@ -176,9 +176,12 @@ export async function loadCandidateSignature(organizationId, candidate) {
 
 // «Αίτηση από tablet»: a single-use link for one candidate (24 hours). The code comes back
 // once; the database keeps only its SHA-256. The demo gets the sample form («demo»).
-export async function createApplicationLink(organizationId, position = '') {
-  if (isLocal()) return { id: '', token: 'demo', position: String(position || '').trim(), expiresAt: new Date(Date.now() + 864e5).toISOString() }
-  return must(await supabase.rpc('hr_application_link_create', { p_organization_id: organizationId, p_position: String(position || '').trim() || null }))
+export async function createApplicationLink(organizationId, position = '', { category = '', employment = '' } = {}) {
+  if (isLocal()) return { id: '', token: 'demo', position: String(position || '').trim(), professionalCategory: category, employmentType: employment, expiresAt: new Date(Date.now() + 864e5).toISOString() }
+  const link = must(await supabase.rpc('hr_application_link_create', { p_organization_id: organizationId, p_position: String(position || '').trim() || null }))
+  // The area and the type of employment are chosen here, before the tablet is handed over; the candidate does not fill them in.
+  if (category || employment) must(await supabase.rpc('hr_application_link_set', { p_link_id: link.id, p_category: category || null, p_employment: employment || null }))
+  return { ...link, professionalCategory: category, employmentType: employment }
 }
 export async function cancelApplicationLink(linkId) {
   if (isLocal() || !isUuid(linkId)) return

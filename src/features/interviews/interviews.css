@@ -57,3 +57,4 @@
 /* One height for every control of the big forms, so the rows line up whatever the field is (text, list, date). */
 .interviews-form-body .lo-form-grid{align-items:start}
 .interviews-form-body .lo-form-grid :is(.field,.searchable-select,.manual-date-field,.time-field) :is(input:not([type=checkbox]):not([type=radio]),select){height:40px;min-height:40px;box-sizing:border-box}
+.interviews-apply-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}

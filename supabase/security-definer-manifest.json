@@ -584,6 +584,11 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Saves or submits the caller's own opinion on a candidate; checks the caller's role (HR office / Hospital Admin or the competent Division Director) itself."
+    },
+    "hr_application_link_set": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Sets the area and type of employment of a not yet used tablet application link; checks manage_interviews of the link's organisation itself."
     }
   }
 }

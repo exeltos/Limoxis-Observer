@@ -12,3 +12,6 @@ revoke all on public.hr_divisions, public.hr_division_categories, public.hr_divi
 -- Έλεγχος (μόνο ανάγνωση):
 -- select routine_name, grantee from information_schema.routine_privileges
 --  where routine_schema in ('public','private') and routine_name in ('hr_division_candidates','hr_candidate_opinions','hr_save_opinion','hr_my_divisions','hr_opinion_role');
+
+-- Προεπιλογές συνδέσμου tablet (θέση, χώρος, είδος απασχόλησης):
+revoke all on function public.hr_application_link_set(uuid, text, text) from public, anon;
