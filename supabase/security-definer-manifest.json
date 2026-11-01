@@ -569,6 +569,21 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Number of employees exposed to the source patient of a surveillance episode (counts only, never names), for whoever can view the episode (can_view_surveillance_record); 0 when the occupational-health module is locked."
+    },
+    "hr_division_candidates": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Candidates of the caller's own division (Division Director), professional data and CV only; no identity, family, health or contact data."
+    },
+    "hr_candidate_opinions": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Opinions of the interview roles on a candidate; only HR office / Hospital Admin or the competent Division Director; others' opinions are shown only after the reader has submitted his or her own."
+    },
+    "hr_save_opinion": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Saves or submits the caller's own opinion on a candidate; checks the caller's role (HR office / Hospital Admin or the competent Division Director) itself."
     }
   }
 }
