@@ -20,10 +20,10 @@ describe('management review', () => {
   it('summarises the reports, corrective actions and audits of the period', () => {
     const period = { from: '2026-08-27', to: '2026-11-24' }
     const data = { incidents: [{ date: '2026-09-01', status: 'closed', reportKind: 'complaint' }, { date: '2026-10-01', sentinel: true }, { date: '2026-01-01' }], capas: [{ status: 'open', dueDate: '2026-10-01', date: '2026-09-02' }], audits: [{ plannedDate: '2026-09-10', status: 'completed' }] }
-    expect(sectionFacts('incidents', data, period)[0]).toMatch(/^2 αναφορές.*1 έκλεισαν, 1 συμβάντα-φρουροί/)
-    expect(sectionFacts('complaints', data, period)[0]).toMatch(/1 παράπονα/)
-    expect(sectionFacts('capas', data, period)[0]).toMatch(/1 διορθωτικές.*1 ανοιχτές σήμερα, 1 εκπρόθεσμες/)
-    expect(sectionFacts('audits', data, period)[0]).toMatch(/1 επιθεωρήσεις στην περίοδο, 1 ολοκληρωμένες/)
+    expect(sectionFacts('incidents', data, period)[0]).toMatch(/^2 αναφορές.*1 έκλεισε, 1 συμβάν-φρουρός/)
+    expect(sectionFacts('complaints', data, period)[0]).toMatch(/1 παράπονο και 0 προτάσεις/)
+    expect(sectionFacts('capas', data, period)[0]).toMatch(/1 διορθωτική ενέργεια ανοίχτηκε.*1 ανοιχτή σήμερα, 1 εκπρόθεσμη/)
+    expect(sectionFacts('audits', data, period)[0]).toMatch(/1 επιθεώρηση στην περίοδο, 1 ολοκληρωμένη/)
   })
 
   it('tells a first review apart from one whose predecessor decided nothing', () => {

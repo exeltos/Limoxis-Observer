@@ -64,8 +64,13 @@ export function newReviewFrom(previous, today = new Date().toISOString().slice(0
   }
 }
 
+// A count with its word in the right number: «1 αξιολόγηση», «3 αξιολογήσεις».
+const n = (value, one, many) => `${value} ${value === 1 ? one : many}`
+// Only the word (a verb or an adjective after the count): «1 εγκρίθηκε», «2 εγκρίθηκαν».
+const w = (value, one, many) => (value === 1 ? one : many)
+
 // What Limoxis holds for a section over the period, as sentences the author
-// can insert and edit. `data` = { incidents, capas, findings, audits, objectives, previous }.
+// can insert and edit. `data` = { incidents, capas, findings, audits, objectives, previous, … }.
 export function sectionFacts(source, data = {}, period, language = 'el') {
   const en = language === 'en'
   const incidents = (data.incidents || []).filter(row => inPeriod(row.date, period))
@@ -75,37 +80,40 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
   const lines = []
   if (source === 'incidents') {
     const sentinel = count(incidents, row => row.sentinel)
-    lines.push(en ? `${incidents.length} reports in the period (${dmy(period.from)}–${dmy(period.to)}); ${count(incidents, row => row.status === 'closed')} closed, ${sentinel} sentinel events.` : `${incidents.length} αναφορές στην περίοδο ${dmy(period.from)}–${dmy(period.to)}· ${count(incidents, row => row.status === 'closed')} έκλεισαν, ${sentinel} συμβάντα-φρουροί.`)
-    const kinds = { clinical: en ? 'clinical' : 'κλινικά', nonClinical: en ? 'non-clinical' : 'μη κλινικά', complaint: en ? 'complaints' : 'παράπονα', suggestion: en ? 'suggestions' : 'προτάσεις' }
-    const split = Object.entries(kinds).map(([kind, label]) => `${count(incidents, row => (row.reportKind || 'clinical') === kind)} ${label}`).join(', ')
+    const closed = count(incidents, row => row.status === 'closed')
+    lines.push(en ? `${n(incidents.length, 'report', 'reports')} in the period (${dmy(period.from)}–${dmy(period.to)}); ${closed} closed, ${n(sentinel, 'sentinel event', 'sentinel events')}.` : `${n(incidents.length, 'αναφορά', 'αναφορές')} στην περίοδο ${dmy(period.from)}–${dmy(period.to)}· ${closed} ${w(closed, 'έκλεισε', 'έκλεισαν')}, ${n(sentinel, 'συμβάν-φρουρός', 'συμβάντα-φρουροί')}.`)
+    const kinds = { clinical: en ? ['clinical', 'clinical'] : ['κλινικό', 'κλινικά'], nonClinical: en ? ['non-clinical', 'non-clinical'] : ['μη κλινικό', 'μη κλινικά'], complaint: en ? ['complaint', 'complaints'] : ['παράπονο', 'παράπονα'], suggestion: en ? ['suggestion', 'suggestions'] : ['πρόταση', 'προτάσεις'] }
+    const split = Object.entries(kinds).map(([kind, [one, many]]) => n(count(incidents, row => (row.reportKind || 'clinical') === kind), one, many)).join(', ')
     if (incidents.length) lines.push(en ? `By kind: ${split}.` : `Ανά είδος: ${split}.`)
   }
   if (source === 'complaints') {
-    const complaints = incidents.filter(row => row.reportKind === 'complaint'), suggestions = incidents.filter(row => row.reportKind === 'suggestion')
-    lines.push(en ? `${complaints.length} complaints and ${suggestions.length} suggestions recorded in the period.` : `Καταγράφηκαν ${complaints.length} παράπονα και ${suggestions.length} προτάσεις στην περίοδο.`)
+    const complaints = count(incidents, row => row.reportKind === 'complaint'), suggestions = count(incidents, row => row.reportKind === 'suggestion')
+    lines.push(en ? `Recorded in the period: ${n(complaints, 'complaint', 'complaints')} and ${n(suggestions, 'suggestion', 'suggestions')}.` : `Καταγράφηκαν στην περίοδο: ${n(complaints, 'παράπονο', 'παράπονα')} και ${n(suggestions, 'πρόταση', 'προτάσεις')}.`)
     // The questionnaires: the responses of the period and the share of satisfied answers (4–5 of 5).
     for (const { survey, responses } of data.surveys || []) {
       const own = (responses || []).filter(response => inPeriod(response.submittedAt, period))
       if (!own.length) continue
       const { answered, satisfied } = satisfactionCounts(survey, own)
       const rate = answered ? Math.round((satisfied / answered) * 100) : null
-      lines.push(en ? `Questionnaire «${survey.title}»: ${own.length} responses, ${rate == null ? '—' : `${rate}%`} satisfied (target ${survey.satisfiedTarget || 80}%).` : `Ερωτηματολόγιο «${survey.title}»: ${own.length} απαντήσεις, ${rate == null ? '—' : `${rate}%`} ικανοποιημένοι (στόχος ${survey.satisfiedTarget || 80}%).`)
+      lines.push(en ? `Questionnaire «${survey.title}»: ${n(own.length, 'response', 'responses')}, ${rate == null ? '—' : `${rate}%`} satisfied (target ${survey.satisfiedTarget || 80}%).` : `Ερωτηματολόγιο «${survey.title}»: ${n(own.length, 'απάντηση', 'απαντήσεις')}, ${rate == null ? '—' : `${rate}%`} ικανοποιημένοι (στόχος ${survey.satisfiedTarget || 80}%).`)
     }
   }
   if (source === 'capas') {
     const open = capas.filter(row => !['closed', 'completed'].includes(row.status))
     const overdue = open.filter(row => row.dueDate && row.dueDate < period.to)
     const opened = capas.filter(row => inPeriod(row.date || row.createdAt, period))
-    lines.push(en ? `${opened.length} corrective actions opened in the period; ${open.length} open today, ${overdue.length} past their due date.` : `${opened.length} διορθωτικές ενέργειες ανοίχτηκαν στην περίοδο· ${open.length} ανοιχτές σήμερα, ${overdue.length} εκπρόθεσμες.`)
+    lines.push(en ? `${n(opened.length, 'corrective action', 'corrective actions')} opened in the period; ${open.length} open today, ${overdue.length} past their due date.` : `${n(opened.length, 'διορθωτική ενέργεια ανοίχτηκε', 'διορθωτικές ενέργειες ανοίχτηκαν')} στην περίοδο· ${n(open.length, 'ανοιχτή', 'ανοιχτές')} σήμερα, ${n(overdue.length, 'εκπρόθεσμη', 'εκπρόθεσμες')}.`)
     const findings = (data.findings || []).filter(row => inPeriod(row.date, period))
-    if (findings.length) lines.push(en ? `${findings.length} findings recorded, ${count(findings, row => ['high', 'critical'].includes(row.severity))} of high severity.` : `${findings.length} ευρήματα, ${count(findings, row => ['high', 'critical'].includes(row.severity))} υψηλής σοβαρότητας.`)
+    if (findings.length) lines.push(en ? `${n(findings.length, 'finding', 'findings')} recorded, ${count(findings, row => ['high', 'critical'].includes(row.severity))} of high severity.` : `${n(findings.length, 'εύρημα', 'ευρήματα')}, ${count(findings, row => ['high', 'critical'].includes(row.severity))} υψηλής σοβαρότητας.`)
   }
   if (source === 'audits') {
-    lines.push(en ? `${audits.length} audits in the period, ${count(audits, row => row.status === 'completed')} completed.` : `${audits.length} επιθεωρήσεις στην περίοδο, ${count(audits, row => row.status === 'completed')} ολοκληρωμένες.`)
+    const completed = count(audits, row => row.status === 'completed')
+    lines.push(en ? `${n(audits.length, 'audit', 'audits')} in the period, ${completed} completed.` : `${n(audits.length, 'επιθεώρηση', 'επιθεωρήσεις')} στην περίοδο, ${n(completed, 'ολοκληρωμένη', 'ολοκληρωμένες')}.`)
     // The audit programme's results: compliance per standard and the findings by class.
     const summary = auditReviewSummary(data.audits || [], data.findings || [], day => inPeriod(day, period))
-    for (const entry of summary.standards) lines.push(en ? `${standardShort(entry.standard)}: ${entry.audits} audits (${entry.completed} completed), average compliance ${entry.rate == null ? '—' : `${entry.rate}%`}.` : `${standardShort(entry.standard)}: ${entry.audits} επιθεωρήσεις (${entry.completed} ολοκληρωμένες), μέση συμμόρφωση ${entry.rate == null ? '—' : `${entry.rate}%`}.`)
-    if (summary.total) lines.push(en ? `Audit findings: ${summary.findings.major} major, ${summary.findings.minor} minor, ${summary.findings.observation} observations, ${summary.findings.opportunity} opportunities for improvement; ${summary.open} still open.` : `Ευρήματα επιθεωρήσεων: ${summary.findings.major} μείζονα, ${summary.findings.minor} ελάσσονα, ${summary.findings.observation} παρατηρήσεις, ${summary.findings.opportunity} ευκαιρίες βελτίωσης· ${summary.open} παραμένουν ανοιχτά.`)
+    for (const entry of summary.standards) lines.push(en ? `${standardShort(entry.standard)}: ${n(entry.audits, 'audit', 'audits')} (${entry.completed} completed), average compliance ${entry.rate == null ? '—' : `${entry.rate}%`}.` : `${standardShort(entry.standard)}: ${n(entry.audits, 'επιθεώρηση', 'επιθεωρήσεις')} (${n(entry.completed, 'ολοκληρωμένη', 'ολοκληρωμένες')}), μέση συμμόρφωση ${entry.rate == null ? '—' : `${entry.rate}%`}.`)
+    const f = summary.findings
+    if (summary.total) lines.push(en ? `Audit findings: ${f.major} major, ${f.minor} minor, ${n(f.observation, 'observation', 'observations')}, ${n(f.opportunity, 'opportunity for improvement', 'opportunities for improvement')}; ${summary.open} still open.` : `Ευρήματα επιθεωρήσεων: ${n(f.major, 'μείζον', 'μείζονα')}, ${n(f.minor, 'έλασσον', 'ελάσσονα')}, ${n(f.observation, 'παρατήρηση', 'παρατηρήσεις')}, ${n(f.opportunity, 'ευκαιρία βελτίωσης', 'ευκαιρίες βελτίωσης')}· ${summary.open} ${w(summary.open, 'παραμένει ανοιχτό', 'παραμένουν ανοιχτά')}.`)
   }
   if (source === 'objectives' || source === 'registers') {
     if (!objectives.length) lines.push(en ? 'No quality objectives are recorded yet.' : 'Δεν έχουν καταχωριστεί ακόμη στόχοι ποιότητας.')
@@ -121,17 +129,18 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
     if (groups.length) {
       const meetings = (data.meetings || []).filter(meeting => inPeriod(meeting.meetingDate, period))
       const met = new Set(meetings.map(meeting => meeting.groupId || meeting.departmentId))
-      const late = groups.filter(group => groupStatus(group, data.meetings || [], period.to).overdue)
-      lines.push(en ? `Department meetings: ${meetings.length} in the period, ${groups.filter(group => met.has(group.id) || met.has(group.departmentId)).length} of ${groups.length} departments met; ${late.length} are overdue.` : `Συναντήσεις τμημάτων: ${meetings.length} στην περίοδο· συναντήθηκαν ${groups.filter(group => met.has(group.id) || met.has(group.departmentId)).length} από ${groups.length} τμήματα, ${late.length} είναι εκπρόθεσμα.`)
+      const metCount = groups.filter(group => met.has(group.id) || met.has(group.departmentId)).length
+      const late = groups.filter(group => groupStatus(group, data.meetings || [], period.to).overdue).length
+      lines.push(en ? `Department meetings: ${meetings.length} in the period; ${metCount} of ${n(groups.length, 'department', 'departments')} met, ${late} ${w(late, 'is', 'are')} overdue.` : `Συναντήσεις τμημάτων: ${meetings.length} στην περίοδο· ${w(metCount, 'συναντήθηκε', 'συναντήθηκαν')} ${metCount} από ${n(groups.length, 'τμήμα', 'τμήματα')}, ${late} ${w(late, 'είναι εκπρόθεσμο', 'είναι εκπρόθεσμα')}.`)
       const withTraining = count(meetings, meeting => meeting.trainingHeld)
-      if (withTraining) lines.push(en ? `${withTraining} department meetings included a training.` : `${withTraining} συναντήσεις τμημάτων περιείχαν εκπαίδευση.`)
+      if (withTraining) lines.push(en ? `${n(withTraining, 'department meeting', 'department meetings')} included a training.` : `${n(withTraining, 'συνάντηση τμήματος περιείχε', 'συναντήσεις τμημάτων περιείχαν')} εκπαίδευση.`)
     }
     const committees = (data.committees || []).filter(committee => committee.status !== 'inactive')
     if (committees.length) {
       const sittings = committees.flatMap(committee => (committee.meetings || []).filter(meeting => meeting.status !== 'cancelled' && inPeriod(meeting.date, period)))
-      const decisions = committees.flatMap(committee => committee.decisions || [])
-      const open = decisions.filter(decision => ['open', 'in_progress'].includes(decision.status))
-      lines.push(en ? `Committees: ${sittings.length} meetings of ${committees.length} committees in the period; ${open.length} decisions open, ${count(open, decision => decision.dueDate && decision.dueDate < period.to)} past their due date.` : `Επιτροπές: ${sittings.length} συνεδριάσεις ${committees.length} επιτροπών στην περίοδο· ${open.length} αποφάσεις ανοιχτές, ${count(open, decision => decision.dueDate && decision.dueDate < period.to)} εκπρόθεσμες.`)
+      const open = committees.flatMap(committee => committee.decisions || []).filter(decision => ['open', 'in_progress'].includes(decision.status))
+      const late = count(open, decision => decision.dueDate && decision.dueDate < period.to)
+      lines.push(en ? `Committees: ${n(sittings.length, 'meeting', 'meetings')} of ${n(committees.length, 'committee', 'committees')} in the period; ${n(open.length, 'decision', 'decisions')} open, ${late} past their due date.` : `Επιτροπές: ${n(sittings.length, 'συνεδρίαση', 'συνεδριάσεις')} ${committees.length === 1 ? '1 επιτροπής' : `${committees.length} επιτροπών`} στην περίοδο· ${n(open.length, 'απόφαση ανοιχτή', 'αποφάσεις ανοιχτές')}, ${n(late, 'εκπρόθεσμη', 'εκπρόθεσμες')}.`)
     }
     if (!lines.length) lines.push(en ? 'No department meetings or committees are recorded yet.' : 'Δεν έχουν καταγραφεί ακόμη συναντήσεις τμημάτων ή επιτροπές.')
   }
@@ -141,10 +150,12 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
     else {
       const evaluations = suppliers.flatMap(supplier => (supplier.evaluations || []).filter(evaluation => inPeriod(evaluation.evaluatedOn, period)))
       const results = evaluations.map(evaluationApproval)
-      lines.push(en ? `${suppliers.length} active suppliers; ${evaluations.length} evaluations in the period: ${count(results, r => r === 'approved')} approved, ${count(results, r => r === 'conditional')} conditional, ${count(results, r => r === 'rejected')} rejected.` : `${suppliers.length} ενεργοί προμηθευτές· ${evaluations.length} αξιολογήσεις στην περίοδο: ${count(results, r => r === 'approved')} εγκρίθηκαν, ${count(results, r => r === 'conditional')} υπό όρους, ${count(results, r => r === 'rejected')} απορρίφθηκαν.`)
-      const expired = suppliers.flatMap(supplier => (supplier.certifications || []).filter(cert => certificationState(cert, period.to) === 'expired'))
+      const approved = count(results, r => r === 'approved'), conditional = count(results, r => r === 'conditional'), rejected = count(results, r => r === 'rejected')
+      lines.push(en ? `${n(suppliers.length, 'active supplier', 'active suppliers')}; ${n(evaluations.length, 'evaluation', 'evaluations')} in the period: ${approved} approved, ${conditional} conditional, ${rejected} rejected.` : `${n(suppliers.length, 'ενεργός προμηθευτής', 'ενεργοί προμηθευτές')}· ${n(evaluations.length, 'αξιολόγηση', 'αξιολογήσεις')} στην περίοδο: ${approved} ${w(approved, 'εγκρίθηκε', 'εγκρίθηκαν')}, ${conditional} υπό όρους, ${rejected} ${w(rejected, 'απορρίφθηκε', 'απορρίφθηκαν')}.`)
+      const expired = suppliers.flatMap(supplier => (supplier.certifications || []).filter(cert => certificationState(cert, period.to) === 'expired')).length
       const issues = suppliers.flatMap(supplier => supplier.nonconformities || [])
-      lines.push(en ? `${expired.length} expired certificates; ${count(issues, issue => inPeriod(issue.date, period))} supplier nonconformities in the period, ${count(issues, issue => issue.status === 'open')} open.` : `${expired.length} ληγμένα πιστοποιητικά· ${count(issues, issue => inPeriod(issue.date, period))} μη συμμορφώσεις προμηθευτών στην περίοδο, ${count(issues, issue => issue.status === 'open')} ανοιχτές.`)
+      const recent = count(issues, issue => inPeriod(issue.date, period)), open = count(issues, issue => issue.status === 'open')
+      lines.push(en ? `${n(expired, 'expired certificate', 'expired certificates')}; ${n(recent, 'supplier nonconformity', 'supplier nonconformities')} in the period, ${open} open.` : `${n(expired, 'ληγμένο πιστοποιητικό', 'ληγμένα πιστοποιητικά')}· ${n(recent, 'μη συμμόρφωση προμηθευτή', 'μη συμμορφώσεις προμηθευτών')} στην περίοδο, ${n(open, 'ανοιχτή', 'ανοιχτές')}.`)
     }
   }
   if (source === 'risks') {
@@ -153,39 +164,47 @@ export function sectionFacts(source, data = {}, period, language = 'el') {
     if (!assessment) lines.push(en ? 'No risk assessment is recorded yet.' : 'Δεν έχει καταχωριστεί ακόμη εκτίμηση κινδύνων.')
     else {
       const summary = summarizeRisks(assessment.risks || [])
-      lines.push(en ? `Risk assessment ${assessment.code || assessment.title} (${dmy(assessment.assessedOn)}): ${(assessment.risks || []).length} risks, ${summary.priorities.length} still high after the measures, ${summary.withoutPlan.length} without an action plan.` : `Εκτίμηση κινδύνων ${assessment.code || assessment.title} (${dmy(assessment.assessedOn)}): ${(assessment.risks || []).length} κίνδυνοι, ${summary.priorities.length} παραμένουν υψηλοί μετά τα μέτρα, ${summary.withoutPlan.length} χωρίς σχέδιο δράσης.`)
+      const total = (assessment.risks || []).length, high = summary.priorities.length, noPlan = summary.withoutPlan.length
+      lines.push(en ? `Risk assessment ${assessment.code || assessment.title} (${dmy(assessment.assessedOn)}): ${n(total, 'risk', 'risks')}, ${high} still high after the measures, ${noPlan} without an action plan.` : `Εκτίμηση κινδύνων ${assessment.code || assessment.title} (${dmy(assessment.assessedOn)}): ${n(total, 'κίνδυνος', 'κίνδυνοι')}, ${high} ${w(high, 'παραμένει υψηλός', 'παραμένουν υψηλοί')} μετά τα μέτρα, ${noPlan} χωρίς σχέδιο δράσης.`)
       const opportunities = (assessment.opportunities || []).map(normalizeOpportunity)
-      if (opportunities.length) lines.push(en ? `${opportunities.length} opportunities: ${count(opportunities, o => o.effectivenessStatus === 'effective')} effective, ${count(opportunities, o => o.effectivenessStatus === 'partial')} partly, ${count(opportunities, o => o.effectivenessStatus === 'ineffective')} not effective.` : `${opportunities.length} ευκαιρίες: ${count(opportunities, o => o.effectivenessStatus === 'effective')} αποτελεσματικές, ${count(opportunities, o => o.effectivenessStatus === 'partial')} μερικώς, ${count(opportunities, o => o.effectivenessStatus === 'ineffective')} μη αποτελεσματικές.`)
+      const effective = count(opportunities, o => o.effectivenessStatus === 'effective'), partial = count(opportunities, o => o.effectivenessStatus === 'partial'), ineffective = count(opportunities, o => o.effectivenessStatus === 'ineffective')
+      if (opportunities.length) lines.push(en ? `${n(opportunities.length, 'opportunity', 'opportunities')}: ${effective} effective, ${partial} partly, ${ineffective} not effective.` : `${n(opportunities.length, 'ευκαιρία', 'ευκαιρίες')}: ${n(effective, 'αποτελεσματική', 'αποτελεσματικές')}, ${partial} μερικώς, ${n(ineffective, 'μη αποτελεσματική', 'μη αποτελεσματικές')}.`)
     }
   }
   if (source === 'resources') {
     const programs = (data.trainingPrograms || []).filter(program => program.status !== 'cancelled' && inPeriod(program.startDate || program.dueDate, period))
-    const assignments = (data.trainingAssignments || []).filter(row => inPeriod(row.completedDate, period) && row.status === 'completed')
-    lines.push(en ? `Training: ${programs.length} programmes in the period, ${count(programs, program => program.status === 'completed')} completed; ${assignments.length} employee completions.` : `Εκπαίδευση: ${programs.length} προγράμματα στην περίοδο, ${count(programs, program => program.status === 'completed')} ολοκληρώθηκαν· ${assignments.length} ολοκληρώσεις εργαζομένων.`)
+    const done = count(programs, program => program.status === 'completed')
+    const completions = count(data.trainingAssignments || [], row => inPeriod(row.completedDate, period) && row.status === 'completed')
+    lines.push(en ? `Training: ${n(programs.length, 'programme', 'programmes')} in the period, ${done} completed; ${n(completions, 'employee completion', 'employee completions')}.` : `Εκπαίδευση: ${n(programs.length, 'πρόγραμμα', 'προγράμματα')} στην περίοδο, ${done} ${w(done, 'ολοκληρώθηκε', 'ολοκληρώθηκαν')}· ${n(completions, 'ολοκλήρωση εργαζομένου', 'ολοκληρώσεις εργαζομένων')}.`)
     const events = (data.equipmentEvents || []).filter(event => inPeriod(event.happenedOn, period))
-    if ((data.equipment || []).length) lines.push(en ? `Equipment: ${count(events, event => event.kind === 'failure')} failures in the period; ${count(events, event => ['maintenance', 'calibration', 'safety'].includes(event.kind))} maintenance/calibration/safety checks, ${count(events, event => ['maintenance', 'calibration', 'safety'].includes(event.kind) && event.result === 'fail')} failed.` : `Εξοπλισμός: ${count(events, event => event.kind === 'failure')} βλάβες στην περίοδο· ${count(events, event => ['maintenance', 'calibration', 'safety'].includes(event.kind))} συντηρήσεις/διακριβώσεις/έλεγχοι ασφάλειας, ${count(events, event => ['maintenance', 'calibration', 'safety'].includes(event.kind) && event.result === 'fail')} απέτυχαν.`)
+    const checks = events.filter(event => ['maintenance', 'calibration', 'safety'].includes(event.kind))
+    const failures = count(events, event => event.kind === 'failure'), failed = count(checks, event => event.result === 'fail')
+    if ((data.equipment || []).length) lines.push(en ? `Equipment: ${n(failures, 'failure', 'failures')} in the period; ${n(checks.length, 'maintenance/calibration/safety check', 'maintenance/calibration/safety checks')}, ${failed} failed.` : `Εξοπλισμός: ${n(failures, 'βλάβη', 'βλάβες')} στην περίοδο· ${n(checks.length, 'συντήρηση/διακρίβωση/έλεγχος ασφάλειας', 'συντηρήσεις/διακριβώσεις/έλεγχοι ασφάλειας')}, ${failed} ${w(failed, 'απέτυχε', 'απέτυχαν')}.`)
   }
   if (source === 'compliance') {
     const current = (data.documents || []).filter(doc => ['published', 'approved'].includes(doc.status))
     if (!current.length) lines.push(en ? 'No controlled documents are recorded yet.' : 'Δεν έχουν καταχωριστεί ακόμη ελεγχόμενα έγγραφα.')
     else {
-      const late = current.filter(doc => doc.type !== 'licence' && doc.reviewDate && doc.reviewDate < period.to)
+      const late = count(current, doc => doc.type !== 'licence' && doc.reviewDate && doc.reviewDate < period.to)
       const licences = current.filter(doc => doc.type === 'licence')
-      lines.push(en ? `${current.length} documents in force; ${late.length} past their review date.` : `${current.length} έγγραφα σε ισχύ· ${late.length} έχουν ξεπεράσει την ημερομηνία αναθεώρησης.`)
-      if (licences.length) lines.push(en ? `${licences.length} licences, ${count(licences, doc => doc.reviewDate && doc.reviewDate < period.to)} expired.` : `${licences.length} άδειες, ${count(licences, doc => doc.reviewDate && doc.reviewDate < period.to)} έχουν λήξει.`)
+      const expired = count(licences, doc => doc.reviewDate && doc.reviewDate < period.to)
+      lines.push(en ? `${n(current.length, 'document', 'documents')} in force; ${late} past ${w(late, 'its', 'their')} review date.` : `${n(current.length, 'έγγραφο', 'έγγραφα')} σε ισχύ· ${late} ${w(late, 'έχει', 'έχουν')} ξεπεράσει την ημερομηνία αναθεώρησης.`)
+      if (licences.length) lines.push(en ? `${n(licences.length, 'licence', 'licences')}, ${expired} expired.` : `${n(licences.length, 'άδεια', 'άδειες')}, ${expired} ${w(expired, 'έχει', 'έχουν')} λήξει.`)
     }
   }
   if (source === 'improvements') {
     const summary = auditReviewSummary(data.audits || [], data.findings || [], day => inPeriod(day, period))
     const assessment = [...(data.riskAssessments || [])].filter(row => row.status !== 'archived').sort((a, b) => String(b.assessedOn || '').localeCompare(String(a.assessedOn || '')))[0]
     const opportunities = (assessment?.opportunities || []).map(normalizeOpportunity)
-    lines.push(en ? `${summary.findings.opportunity} opportunities for improvement from the audits of the period; ${opportunities.length} opportunities in the risk assessment (${count(opportunities, o => o.ratingId === 'high')} of high value).` : `${summary.findings.opportunity} ευκαιρίες βελτίωσης από τις επιθεωρήσεις της περιόδου· ${opportunities.length} ευκαιρίες στην εκτίμηση κινδύνων (${count(opportunities, o => o.ratingId === 'high')} υψηλής αξίας).`)
+    const high = count(opportunities, o => o.ratingId === 'high')
+    lines.push(en ? `${n(summary.findings.opportunity, 'opportunity', 'opportunities')} for improvement from the audits of the period; ${n(opportunities.length, 'opportunity', 'opportunities')} in the risk assessment (${high} of high value).` : `${n(summary.findings.opportunity, 'ευκαιρία', 'ευκαιρίες')} βελτίωσης από τις επιθεωρήσεις της περιόδου· ${n(opportunities.length, 'ευκαιρία', 'ευκαιρίες')} στην εκτίμηση κινδύνων (${high} υψηλής αξίας).`)
   }
   if (source === 'previousActions') {
     const actions = data.previous?.actions || []
+    const done = count(actions, row => row.status === 'done'), open = count(actions, row => row.status === 'open')
     if (!data.previous) lines.push(en ? 'There is no earlier review in Limoxis.' : 'Δεν υπάρχει προηγούμενη ανασκόπηση στο Limoxis.')
     else if (!actions.length) lines.push(en ? 'No actions were decided in the previous review.' : 'Δεν είχαν αποφασιστεί ενέργειες στην προηγούμενη ανασκόπηση.')
-    else lines.push(en ? `${count(actions, row => row.status === 'done')} of ${actions.length} actions of the previous review are done; ${count(actions, row => row.status === 'open')} remain open.` : `Από τις ${actions.length} ενέργειες της προηγούμενης ανασκόπησης ολοκληρώθηκαν ${count(actions, row => row.status === 'done')}· ${count(actions, row => row.status === 'open')} παραμένουν ανοιχτές.`)
+    else lines.push(en ? `${done} of ${n(actions.length, 'action', 'actions')} of the previous review ${w(done, 'is', 'are')} done; ${open} ${w(open, 'remains', 'remain')} open.` : `Από ${actions.length === 1 ? 'την 1 ενέργεια' : `τις ${actions.length} ενέργειες`} της προηγούμενης ανασκόπησης ${w(done, 'ολοκληρώθηκε', 'ολοκληρώθηκαν')} ${done}· ${open} ${w(open, 'παραμένει ανοιχτή', 'παραμένουν ανοιχτές')}.`)
   }
   return lines
 }

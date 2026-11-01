@@ -178,7 +178,7 @@ describe('programme, coverage and dashboard', () => {
     expect(summary.findings.major).toBe(1)
     const lines = sectionFacts('audits', { audits: programmeAudits, findings: programmeFindings }, { from: '2026-01-01', to: '2026-12-31' })
     expect(lines.join('\n')).toContain('JCI')
-    expect(lines.join('\n')).toContain('μείζονα')
+    expect(lines.join('\n')).toContain('1 μείζον, 4 ελάσσονα')
   })
 })
 
