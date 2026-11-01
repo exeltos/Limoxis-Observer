@@ -136,3 +136,8 @@
 .management-user-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .management-user-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
 .management-user-shell .record-tab-panel-body{flex:1 1 auto;overflow:auto}
+.management-role-editor-count-text{margin-right:auto;color:var(--color-text-secondary,#64748b);font-size:13px}
+/* In a record the whole tab scrolls once: the permission groups take their full height. */
+.management-user-body>*{flex:none}
+.management-user-body .management-role-capability-groups{max-height:none;overflow:visible}
+.management-user-body .management-role-capability{grid-template-columns:18px minmax(0,1fr) auto;align-items:center}
