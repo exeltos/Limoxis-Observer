@@ -73,8 +73,8 @@ export function buildProductionRows(tab,snapshot,tx){const summary=snapshot?.sum
 // «Περισσότερα» at the end of the strip.
 export const INDICATOR_TABS=[
  ['summary','Σύνοψη','Overview',Gauge,[]],
- ['infections','Λοιμώξεις','Infections',Stethoscope,['surveillance']],
- ['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical,['laboratory']],
+ // Infections and the microbiology (AMR) in one tab: the episodes and the cultures behind them.
+ ['infections','Λοιμώξεις & μικροβιολογία','Infections & microbiology',Stethoscope,['surveillance','laboratory']],
  ['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill,['antimicrobials']],
  ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',ShieldCheck,['prevention','controls']],
  ['organisation','Οργανισμός','Organisation',Users,['occupational','quality','qualityfood','training','governance']],

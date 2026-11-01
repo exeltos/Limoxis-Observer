@@ -97,6 +97,23 @@ export function targetsFromObjectives(objectives,year=new Date().getFullYear()){
  return targets
 }
 // The value of each of the three from the platform's indicators (null where the hospital has no such indicator).
+// The overview's table: the measures by area, in this order.
+export const EXEC_AREAS=Object.freeze([
+ ['infections',['Λοιμώξεις & μικροβιολογία','Infections & microbiology'],['hai','mdro']],
+ ['prevention',['Πρόληψη & έλεγχοι','Prevention & controls'],['handHygiene','bundles','overdueControls']],
+ ['quality',['Ποιότητα','Quality'],['incidents','capaOverdue']],
+ ['people',['Προσωπικό & εκπαίδευση','Workforce & training'],['training','staff']],
+ ['food',['Ασφάλεια τροφίμων','Food safety'],['certificates','temperature']],
+ ['governance',['Διακυβέρνηση','Governance'],['decisions']],
+])
+const TONE_RANK={danger:0,warning:1,good:2,neutral:3}
+// The areas with their measures: within an area the measures off target first; the areas with one off target first.
+export function measuresByArea(kpis){
+ const rank=item=>TONE_RANK[item.value==null?'neutral':item.tone]??3
+ return EXEC_AREAS.map(([id,label,ids])=>({id,label,rows:ids.map(key=>kpis.find(item=>item.id===key)).filter(Boolean).sort((a,b)=>rank(a)-rank(b))}))
+  .filter(area=>area.rows.length)
+  .sort((a,b)=>rank(a.rows[0])-rank(b.rows[0]))
+}
 export function indicatorRates(definitions,calculate){
  const rates={}
  for(const [key,indicators] of Object.entries(TARGET_INDICATORS)){const def=(definitions||[]).find(item=>indicators.includes(item.id));rates[key]=def?calculate(def):null}
@@ -111,13 +128,13 @@ export function executiveKpis(snapshot={},governance=null,targets=TARGETS,rates=
  return [
   {id:'hai',modules:['surveillance'],parts:['domains'],label:['Επιβεβαιωμένες ΛΣΦΥ','Confirmed HAI'],value:num(s.haiConfirmed),hint:[`${s.active??0} ενεργές επιτηρήσεις · ${s.total??0} στην περίοδο`,`${s.active??0} active surveillance · ${s.total??0} in period`],tone:countTone(s.haiConfirmed,{warning:1,danger:5}),better:'down',tab:'surveillance'},
   {id:'mdro',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά στελέχη','MDR isolates'],value:micro.totalPositive==null?null:mdro(micro),hint:[`MDR/XDR/PDR · ${micro.totalPositive??0} θετικές καλλιέργειες`,`MDR/XDR/PDR · ${micro.totalPositive??0} positive cultures`],tone:countTone(mdro(micro),{warning:1,danger:10}),better:'down',tab:'laboratory'},
-  {id:'handHygiene',modules:['prevention'],parts:['domains'],label:['Υγιεινή χεριών','Hand hygiene'],value:hand,unit:'%',hint:[`στόχος ≥ ${TARGET.handHygiene}% · ${hh.observations??0} ευκαιρίες`,`target ≥ ${TARGET.handHygiene}% · ${hh.observations??0} opportunities`],tone:rateTone(hand,TARGET.handHygiene,70),better:'up',tab:'prevention'},
-  {id:'bundles',modules:['prevention'],parts:['domains'],label:['Δέσμες μέτρων','Bundle score'],value:bundle,unit:'%',hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(bundle,TARGET.bundles,80),better:'up',tab:'prevention'},
-  {id:'overdueControls',modules:['controls'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμοι έλεγχοι','Overdue controls'],value:num(c.overdueAssignments),hint:[`${done==null?'—':`${done}%`} ολοκληρωμένες · ${c.executions??0} εκτελέσεις`,`${done==null?'—':`${done}%`} completed · ${c.executions??0} executions`],tone:countTone(c.overdueAssignments,{warning:1,danger:10}),better:'down',tab:'controls'},
+  {id:'handHygiene',modules:['prevention'],parts:['domains'],label:['Υγιεινή χεριών','Hand hygiene'],value:hand,unit:'%',target:`≥ ${TARGET.handHygiene}%`,hint:[`στόχος ≥ ${TARGET.handHygiene}% · ${hh.observations??0} ευκαιρίες`,`target ≥ ${TARGET.handHygiene}% · ${hh.observations??0} opportunities`],tone:rateTone(hand,TARGET.handHygiene,70),better:'up',tab:'prevention'},
+  {id:'bundles',modules:['prevention'],parts:['domains'],label:['Δέσμες μέτρων','Bundle score'],value:bundle,unit:'%',target:`≥ ${TARGET.bundles}%`,hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(bundle,TARGET.bundles,80),better:'up',tab:'prevention'},
+  {id:'overdueControls',modules:['controls'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμοι έλεγχοι','Overdue controls'],target:'0',value:num(c.overdueAssignments),hint:[`${done==null?'—':`${done}%`} ολοκληρωμένες · ${c.executions??0} εκτελέσεις`,`${done==null?'—':`${done}%`} completed · ${c.executions??0} executions`],tone:countTone(c.overdueAssignments,{warning:1,danger:10}),better:'down',tab:'controls'},
   {id:'incidents',modules:['quality'],parts:['domains'],label:['Ανοιχτά συμβάντα','Open incidents'],value:num(q.openIncidents),hint:[`${severe(q)} σοβαρά / κρίσιμα · ${q.incidents??0} στην περίοδο`,`${severe(q)} severe / critical · ${q.incidents??0} in period`],tone:severe(q)?'danger':countTone(q.openIncidents),better:'down',tab:'quality'},
-  {id:'capaOverdue',modules:['quality'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμες διορθωτικές','Overdue CAPA'],value:num(q.capaOverdue),hint:[`${q.capaOpen??0} ανοιχτές διορθωτικές ενέργειες`,`${q.capaOpen??0} open corrective actions`],tone:countTone(q.capaOverdue,{warning:1,danger:5}),better:'down',tab:'quality'},
-  {id:'training',modules:['training'],parts:['people'],label:['Ολοκλήρωση εκπαίδευσης','Training completion'],value:trained,unit:'%',hint:[`${t.overdue??0} εκπρόθεσμες · ${t.assignments??0} αναθέσεις`,`${t.overdue??0} overdue · ${t.assignments??0} assignments`],tone:rateTone(trained,TARGET.training,70),better:'up',tab:'training'},
-  {id:'certificates',modules:['suppliers','kitchen'],parts:['qualityFood'],pointInTime:true,label:['Ληγμένα πιστοποιητικά','Expired certificates'],value:num(f.certificatesExpired),hint:[`προμηθευτών · ${f.certificatesExpiring??0} λήγουν σε 30 ημέρες`,`suppliers' · ${f.certificatesExpiring??0} expire within 30 days`],tone:countTone(f.certificatesExpired,{warning:1,danger:10}),better:'down',tab:'qualityfood'},
+  {id:'capaOverdue',modules:['quality'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμες διορθωτικές','Overdue CAPA'],target:'0',value:num(q.capaOverdue),hint:[`${q.capaOpen??0} ανοιχτές διορθωτικές ενέργειες`,`${q.capaOpen??0} open corrective actions`],tone:countTone(q.capaOverdue,{warning:1,danger:5}),better:'down',tab:'quality'},
+  {id:'training',modules:['training'],parts:['people'],label:['Ολοκλήρωση εκπαίδευσης','Training completion'],value:trained,unit:'%',target:`≥ ${TARGET.training}%`,hint:[`${t.overdue??0} εκπρόθεσμες · ${t.assignments??0} αναθέσεις`,`${t.overdue??0} overdue · ${t.assignments??0} assignments`],tone:rateTone(trained,TARGET.training,70),better:'up',tab:'training'},
+  {id:'certificates',modules:['suppliers','kitchen'],parts:['qualityFood'],pointInTime:true,label:['Ληγμένα πιστοποιητικά','Expired certificates'],target:'0',value:num(f.certificatesExpired),hint:[`προμηθευτών · ${f.certificatesExpiring??0} λήγουν σε 30 ημέρες`,`suppliers' · ${f.certificatesExpiring??0} expire within 30 days`],tone:countTone(f.certificatesExpired,{warning:1,danger:10}),better:'down',tab:'qualityfood'},
   {id:'temperature',modules:['kitchen'],parts:['qualityFood'],label:['Μη συμμορφώσεις θερμοκρασίας','Temperature non-conformities'],value:f.thermalMeasured==null&&f.receipts==null?null:temperature,hint:[`${f.thermalMeasured??0} θερμικές μετρήσεις · ${f.receipts??0} παραλαβές`,`${f.thermalMeasured??0} thermal checks · ${f.receipts??0} receipts`],tone:countTone(temperature,{warning:1,danger:5}),better:'down',tab:'qualityfood'},
   {id:'decisions',modules:['governance'],parts:['governance'],pointInTime:true,label:['Ανοιχτές αποφάσεις επιτροπών','Open committee decisions'],value:num(governance?.openDecisions),hint:[`${governance?.overdueDecisions??0} εκπρόθεσμες · ${g.committees??0} επιτροπές`,`${governance?.overdueDecisions??0} overdue · ${g.committees??0} committees`],tone:countTone(governance?.overdueDecisions,{warning:1,danger:5}),better:'down',tab:'governance'},
   {id:'staff',modules:[],parts:['people'],pointInTime:true,label:['Προσωπικό','Staff'],value:num(w.activeEmployees),hint:['ενεργοί εργαζόμενοι','active employees'],tone:'neutral',better:'up',tab:'occupational'},

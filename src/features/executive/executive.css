@@ -59,3 +59,29 @@
 .exec-analysis-report .analysis-section-title{margin-top:0}
 /* Tablet: the one filter row stays one row (period, comparison, the dates and export side by side). */
 @media (max-width:900px){.exec-filters{flex-wrap:nowrap;gap:10px}.exec-filters .manual-date-field{width:auto;flex:1 1 120px;min-width:0}.exec-filters .analysis-filter-field{min-width:0;flex:1 1 150px}.exec-filters .exec-period{width:auto;margin-left:0;flex:0 1 auto;font-size:11px}.exec-filters .exec-period b{font-size:12px}}
+/* The overview: one table of every measure, by area; the filters in «Φίλτρα» next to the export. */
+.exec-actions{flex-wrap:nowrap}
+.exec-actions .filter-system{margin:0;padding:0;border:0;background:transparent}
+.exec-measures-card{padding:0;overflow:hidden}
+.exec-measures{width:100%;border-collapse:collapse;font-size:13px}
+.exec-measures thead th{position:sticky;top:0;z-index:1;padding:10px 14px;background:var(--lo-color-surface-muted,#f6f8fa);border-bottom:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left}
+.exec-measures .exec-area th{padding:12px 14px 5px;background:var(--lo-color-surface);color:#1d3a52;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--lo-color-border)}
+.exec-measures td{padding:8px 14px;border-bottom:1px solid var(--lo-color-border);vertical-align:middle}
+.exec-measures td strong{display:block;color:var(--lo-color-text);font-size:13.5px}
+.exec-measures td small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11.5px}
+.exec-measures .exec-num{text-align:right;white-space:nowrap}
+.exec-measures td.exec-num b{font-size:16px;font-variant-numeric:tabular-nums;color:#1d3a52}
+.exec-measures .exec-row-link{cursor:pointer}
+.exec-measures .exec-row-link:hover td{background:var(--lo-shell-control-hover)}
+.exec-measures .exec-better{color:#1f7a45}
+.exec-measures .exec-worse{color:#a32121}
+.exec-dot{display:inline-block;width:9px;height:9px;margin-right:8px;border-radius:50%;background:#b8c4cf;vertical-align:middle}
+.exec-dot-danger{background:#c43c3c}
+.exec-dot-warning{background:#d89a1c}
+.exec-dot-good{background:#2e9b5f}
+.analysis-figures{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 12px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
+.analysis-figures b{color:#1d3a52;font-size:15px;font-variant-numeric:tabular-nums}
+.analysis-figures .analysis-figure-danger b{color:#a32121}
+.analysis-figures .analysis-figure-warning b{color:#8a5a00}
+.analysis-figures .analysis-figure-good b{color:#1f7a45}
+@media(max-width:760px){.exec-measures td:nth-child(4),.exec-measures th:nth-child(4){display:none}}
