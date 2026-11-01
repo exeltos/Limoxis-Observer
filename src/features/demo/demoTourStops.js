@@ -247,7 +247,7 @@ export const DEMO_TOUR_STOPS = Object.freeze({
       titleEl: 'Προγραμματισμός', titleEn: 'Schedule',
       textEl: 'Συμπληρώστε τίτλο και ημερομηνία και πατήστε «Δημιουργία & συνέχεια».',
       textEn: 'Fill in the title and date and press "Create & continue".', advance: 'click' },
-    { step: 'minutes', target: { sel: '.committee-meeting-dialog button.button-secondary', text: ['Αποθήκευση', 'Save'] },
+    { step: 'minutes', target: { sel: '.committee-meeting-record button.committee-minutes-save', text: ['Αποθήκευση', 'Save'] },
       titleEl: 'Πρακτικά', titleEn: 'Minutes',
       textEl: 'Καταγράψτε παρουσίες και θέματα με τις αποφάσεις τους και πατήστε «Αποθήκευση».',
       textEn: 'Record attendance and the topics with their conclusions, then press "Save".', advance: 'click' },

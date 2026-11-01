@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { attendanceFor, finalizationBlocker, meetingQuorum } from './committeeMeetingRules'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   CalendarDays,
   CheckCircle2,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { MeetingRecord } from './CommitteeMeetingRecord'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
@@ -65,7 +66,6 @@ import {
   ReasonDialog,
   MemberDialog,
   NewMeetingDialog,
-  MeetingDialog,
   DecisionDialog,
   PlanDialog,
   FrameworkDialog,
@@ -87,6 +87,11 @@ export function CommitteeRecordPage() {
   const [tab, setTab] = useState('overview')
   const [dialog, setDialog] = useState(null)
   const [busy, setBusy] = useState(false)
+  // An open meeting is a page of its own (?minutes=<id>), so «back» returns to the committee's meetings.
+  const [params, setParams] = useSearchParams()
+  const minutesId = params.get('minutes') || ''
+  const openMeeting = id => { const next = new URLSearchParams(params); next.set('minutes', id); setParams(next) }
+  const closeMeeting = () => { const next = new URLSearchParams(params); next.delete('minutes'); setParams(next); setTab('meetings') }
 
   const recordNavigation = useRecordSequenceNavigation({
     registry: 'committees',
@@ -342,7 +347,7 @@ export function CommitteeRecordPage() {
       success: en ? 'Meeting created.' : 'Η συνεδρίαση δημιουργήθηκε.',
     })
     if (result) {
-      setDialog({ type: 'meeting', id })
+      openMeeting(id)
       signalDemoStep('committee_minutes', 'meeting')
       await notifyUpcomingMeeting(next)
     }
@@ -651,6 +656,28 @@ export function CommitteeRecordPage() {
     </>
   )
 
+  const openedMeeting = minutesId ? (record.meetings || []).find(x => x.id === minutesId) : null
+  if (openedMeeting)
+    return (
+      <Page fill>
+        <MeetingRecord
+          key={openedMeeting.id}
+          meeting={openedMeeting}
+          committeeName={record.name}
+          members={activeMembers}
+          actorId={actor.id}
+          canSave={canMinutes && !busy}
+          canFinalize={canFinalize && !busy}
+          busy={busy}
+          onBack={closeMeeting}
+          onSave={saveMeeting}
+          onApproval={answerApproval}
+          onExternalAction={externalAction}
+          en={en}
+        />
+      </Page>
+    )
+
   return (
     <Page fill>
       <EntityRecordShell
@@ -698,7 +725,7 @@ export function CommitteeRecordPage() {
             canCreate={canMeeting && !busy}
             canCancel={canMeeting && !busy}
             onAdd={() => setDialog({ type: 'newMeeting' })}
-            onOpen={x => setDialog({ type: 'meeting', id: x.id })}
+            onOpen={x => openMeeting(x.id)}
             onCancel={cancelMeeting}
             en={en}
           />
@@ -791,23 +818,6 @@ export function CommitteeRecordPage() {
       )}
       {dialog?.type === 'newMeeting' && (
         <NewMeetingDialog busy={busy} onClose={() => setDialog(null)} onSave={addMeeting} en={en} />
-      )}
-      {dialog?.type === 'meeting' && (
-        <MeetingDialog
-          key={dialog.id}
-          meeting={(record.meetings || []).find(x => x.id === dialog.id)}
-          committeeName={record.name}
-          members={activeMembers}
-          actorId={actor.id}
-          canSave={canMinutes && !busy}
-          canFinalize={canFinalize && !busy}
-          busy={busy}
-          onClose={() => setDialog(null)}
-          onSave={saveMeeting}
-          onApproval={answerApproval}
-          onExternalAction={externalAction}
-          en={en}
-        />
       )}
       {dialog?.type === 'cancelMeeting' && (
         <ReasonDialog
