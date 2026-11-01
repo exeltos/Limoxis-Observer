@@ -53,3 +53,13 @@
 .interviews-locked{padding:12px 14px;border:1px dashed var(--color-border,#cbd5e1);border-radius:10px}
 .interviews-division-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
 .interviews-division-form .interviews-span-3{grid-column:1/-1}
+/* The tabs made of stacked blocks: padded like the panel header, one scroll for the whole tab (no table scrolls inside another). */
+.interviews-record-shell .record-tab-panel-body{overflow:auto}
+.interviews-record-shell .record-tab-panel-body>.record-view-stack{padding:14px 20px 20px}
+/* Dialogs of the section: air between a block of fields and the next heading. */
+.observer-dialog-body>.lo-form-grid:has(+.lo-section-header),.observer-dialog-body>.interviews-row-list:has(+.lo-section-header){margin-bottom:22px}
+.observer-dialog-body>.lo-form-grid+.lo-form-grid{margin-top:14px}
+.interviews-form-body{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 20px 20px}
+.interviews-form-footer{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--color-border,#e2e8f0);background:var(--color-surface,#fff)}
+.interviews-form-body>:is(.lo-form-grid,.interviews-row-list):has(+.lo-section-header){margin-bottom:22px}
+.interviews-form-body>.lo-form-grid+.lo-form-grid{margin-top:14px}

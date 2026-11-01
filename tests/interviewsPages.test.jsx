@@ -50,7 +50,9 @@ describe('Interviews screens (demo)', () => {
     fireEvent.click(screen.getByRole('tab', { name: /Συνεντεύξεις/ }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Αξιολόγηση' })[0])
     expect(await screen.findByText('Βαθμολογία ανά κριτήριο')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Απόφαση/ }))
+    // The evaluation is a page in place of the record; cancelling returns to it.
+    fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))
+    fireEvent.click(await screen.findByRole('tab', { name: /Απόφαση/ }))
   })
 
   it('offers «Hire» for an application decided for hiring', async () => {

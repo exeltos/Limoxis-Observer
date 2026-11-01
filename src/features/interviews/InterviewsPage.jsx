@@ -49,6 +49,7 @@ function InterviewsListPage() {
   if (!state) return <Page fill title={en ? 'Interviews' : 'Συνεντεύξεις'}><div className="inline-empty">{loading ? (en ? 'Loading…' : 'Φόρτωση…') : (en ? 'The applications could not be loaded.' : 'Δεν ήταν δυνατή η φόρτωση των αιτήσεων.')}</div></Page>
 
   if (divisionsView) return <Page fill className="interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'}><section className="surface registry-workspace workspace-column workspace-fill"><DivisionsPanel organizationId={organizationId} candidates={candidates} onBack={() => setDivisionsView(false)} /></section></Page>
+  if (dialog) return <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} categories={categoriesOf(candidates, [])} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const open = item => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
@@ -87,6 +88,5 @@ function InterviewsListPage() {
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
     </section>
     {tablet && <ApplicationLinkDialog organizationId={organizationId} positions={positions} onClose={() => { setTablet(false); void reload() }} />}
-    {dialog && <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} categories={categoriesOf(candidates, [])} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />}
   </Page>
 }
