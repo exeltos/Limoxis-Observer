@@ -77,7 +77,7 @@ export function SelfAssessmentPanel({ query = '', canManage = false, toolbarSlot
         emptyTitle={L(en, 'Δεν υπάρχουν αυτοαξιολογήσεις', 'No self-assessments')}
         emptyText={L(en, 'Επιλέξτε ερωτηματολόγιο και τμήματα· όταν την ενεργοποιήσετε, το τμήμα τη βλέπει και τη συμπληρώνει ως προετοιμασία για την επιθεώρηση.', 'Choose a questionnaire and departments; once you release it the department sees and answers it as a preparation for the audit.')}
         columns={[{ key: 'title', label: L(en, 'Αυτοαξιολόγηση', 'Self-assessment'), sortValue: item => item.title }, { key: 'progress', label: L(en, 'Πρόοδος', 'Progress'), sortValue: item => (item.totalCount ? item.answeredCount / item.totalCount : null) }, { key: 'score', label: L(en, 'Βαθμός', 'Score'), sortValue: item => item.score }, { key: 'due', label: L(en, 'Προθεσμία', 'Due'), sortValue: item => item.dueOn }, { key: 'status', label: L(en, 'Κατάσταση', 'Status'), sortValue: item => item.status }, { key: 'actions', label: '', ariaLabel: L(en, 'Ενέργειες', 'Actions') }]}
-        rowProps={item => ({ onClick: () => navigate(`/quality/self-assessments/${item.id}`) })}
+        rowProps={item => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => navigate(`/quality/self-assessments/${item.id}`), onKeyDown: event => { if (event.key === 'Enter') navigate(`/quality/self-assessments/${item.id}`) } })}
         renderRow={item => <>
           <td><strong>{item.title}</strong><small>{item.departmentName}{item.standard ? ` · ${standardShort(item.standard)}` : ''}</small></td>
           <td><SelfAssessmentProgress answered={item.answeredCount} total={item.totalCount} label={L(en, 'Πρόοδος', 'Progress')} /></td>

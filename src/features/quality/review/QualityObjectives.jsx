@@ -113,7 +113,7 @@ export function ReviewsTable({ rows, loading, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
   return <RegistryTable className="quality-table" rows={rows} columns={[{ key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'actions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next review' : 'Επόμενη' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
-    rowProps={review => ({ onClick: () => onOpen?.(review) })}
+    rowProps={review => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => onOpen?.(review), onKeyDown: event => { if (event.key === 'Enter') onOpen?.(review) } })}
     renderRow={review => <>
       <td><strong>{review.code}</strong></td>
       <td>{formatDay(review.reviewDate, language)}</td>
