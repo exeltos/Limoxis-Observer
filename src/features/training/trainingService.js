@@ -118,6 +118,18 @@ export async function createTrainingProgramAsync(organizationId,draft){
   return {...program,dbId:data}
 }
 
+// The people who attended a meeting where the training was held become the programme's participants.
+// people: [{ employeeCode, name, department, departmentId, email }]; one without an employeeCode is a person outside the register.
+export async function addTrainingParticipantsAsync(organizationId,program,people=[]){
+  const now=new Date().toISOString(),stamp=Date.now()
+  const rows=people.filter(person=>String(person.name||'').trim()).map((person,index)=>({id:`TRA-${stamp}-${index}-${person.employeeCode||'M'}`,programId:program.id,employeeId:person.employeeCode||'',employeeName:String(person.name).trim(),department:person.department||'',departmentId:person.departmentId||null,email:person.email||'',assignedDate:now.slice(0,10),dueDate:program.dueDate||'',status:'assigned',attendanceResponse:'not_sent',attendance:null,completionConfirmedAt:null,score:null,competent:null,certificateId:null,createdAt:now,...(person.employeeCode?{}:{manualEntry:true})}))
+  if(!rows.length)return 0
+  if(isDemoDataEnvironment()){const state=loadTrainingState();saveTrainingState({...state,assignments:[...rows,...state.assignments]});return rows.length}
+  requireProduction(organizationId,'add_participants')
+  await saveRecords(organizationId,{assignments:rows.map(assignmentToRpc)})
+  return rows.length
+}
+
 export async function saveManagedTrainingStateAsync(organizationId,state){
   if(isDemoDataEnvironment())return saveTrainingState(state)
   requireProduction(organizationId,'save')

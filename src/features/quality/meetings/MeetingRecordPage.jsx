@@ -124,8 +124,11 @@ export function MeetingRecordPage() {
   const setTopic = (index, next) => setMeeting(current => ({ ...current, topics: current.topics.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const addTopic = subject => setMeeting(current => ({ ...current, topics: [...current.topics, { subject, discussion: '', conclusion: '' }] }))
   // The training held at the meeting: a new programme, filled in from the meeting; it is linked back when saved.
-  function createTraining() {
-    navigate('/training/new', { state: { trainingDraft: { title: meeting.topics.map(topic => topic.subject).filter(Boolean)[0] || '', audience: meeting.department, deliveryKind: 'intra_department', startDate: meeting.meetingDate, dueDate: meeting.meetingDate, description: en ? `Held at the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Έγινε στη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id } } })
+  // The people present become the programme's participants; the meeting is saved first so nothing typed is lost.
+  async function createTraining() {
+    if (!locked && !(await save())) return
+    const attendees = meeting.participants.filter(person => person.attended !== false && String(person.name).trim()).map(person => { const employee = employeeById.get(person.employeeId); return { employeeCode: employee?.id || '', name: person.name, department: employee?.department || meeting.department, departmentId: employee?.departmentId || meeting.departmentId || null, email: employee?.email || '' } })
+    navigate('/training/new', { state: { trainingDraft: { title: meeting.topics.map(topic => topic.subject).filter(Boolean)[0] || '', audience: meeting.department, deliveryKind: 'intra_department', startDate: meeting.meetingDate, dueDate: meeting.meetingDate, description: en ? `Held at the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Έγινε στη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id, attendees } } })
   }
   const setPerson = (index, next) => setMeeting(current => ({ ...current, participants: current.participants.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const chooseDepartment = id => { const department = ownDepartments.find(item => (item.id || item.name) === id); if (department) setMeeting(current => ({ ...newMeetingFor(department, list.all, current.meetingDate), meetingDate: current.meetingDate })) }
@@ -141,7 +144,8 @@ export function MeetingRecordPage() {
       list.reload()
       if (isNew) navigate(`/meetings/${saved.id}`, { replace: true, state: location.state })
       else setMeeting(withTopics(structuredClone(saved)))
-    } catch (error) { console.error(error); notify(en ? 'The meeting could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της συνάντησης.', 'error') } finally { setSaving(false) }
+      return true
+    } catch (error) { console.error(error); notify(en ? 'The meeting could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της συνάντησης.', 'error'); return false } finally { setSaving(false) }
   }
   function openCapa(decision) {
     navigate('/quality/capas/new', { state: { qualitySource: { source: 'other', sourceId: `DM:${meeting.code || 'new'}`, departmentId: meeting.departmentId, department: meeting.department, departmentEn: meeting.departmentEn, title: decision.title, dueDate: decision.dueDate, description: en ? `Decision of the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Απόφαση της συνάντησης ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` } } })

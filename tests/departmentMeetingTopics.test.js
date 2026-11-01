@@ -21,8 +21,15 @@ describe('department meetings: topics and training', () => {
     expect(page).not.toContain("id: 'training'")
     expect(page).toContain('Έγινε εκπαίδευση στη συνάντηση;')
     expect(page).toContain("navigate('/training/new', { state: { trainingDraft:")
-    expect(read('src/features/training/TrainingCreatePage.jsx')).toContain('linkMeetingTraining(tenant.id,location.state.meetingTraining,program)')
+    expect(read('src/features/training/TrainingCreatePage.jsx')).toContain('linkMeetingTraining(tenant.id,meetingTraining,program)')
     expect(read('supabase/migrations/20261231160000_department_meeting_training_held.sql')).toContain('training_held boolean')
+  })
+
+  it('leads from a meeting with a linked training to the training, and brings the attendees as participants', () => {
+    expect(read('src/features/quality/meetings/MeetingGroups.jsx')).toContain('goTo(`/training/${meeting.trainingProgramKey}`')
+    expect(read('src/features/quality/meetings/MeetingRecordPage.jsx')).toContain('meetingTraining: { meetingId: meeting.id, attendees }')
+    expect(read('src/features/training/trainingService.js')).toContain('export async function addTrainingParticipantsAsync')
+    expect(read('src/features/training/TrainingCreatePage.jsx')).toContain('addTrainingParticipantsAsync(tenant.id,program,meetingTraining.attendees||[])')
   })
 
   it('gives the department its own «Meetings» and takes them out of the registers', () => {

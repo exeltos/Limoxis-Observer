@@ -397,3 +397,4 @@ button.quality-column{border:0;background:none;padding:0;font:inherit;cursor:poi
 .meeting-attendance-empty{display:grid;justify-items:start;gap:8px;padding:16px 18px}
 .meeting-attendance-empty p{margin:0;font-size:13px;color:var(--lo-color-text-muted,#5d7083)}
 .meeting-attendance-table td>input{width:100%}
+.quality-table td.meeting-wrap-cell{white-space:normal;min-width:220px;max-width:640px}

@@ -12,6 +12,7 @@ import { useEmployeesData } from '../employees/useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { createTrainingProgramAsync } from './trainingService'
+import { addTrainingParticipantsAsync } from './trainingService'
 import { linkMeetingTraining } from '../quality/meetings/meetingService'
 import { TrainingProgramForm,TRAINING_PROGRAM_DEFAULTS,trainingProgramIsValid } from './TrainingProgramForm'
 
@@ -22,7 +23,7 @@ export function TrainingCreatePage(){
  // with tenant.id='demo-hospital' (not a real UUID) fails with a Postgres 400.
  useEffect(()=>{let active=true;if(isDemo){setDepartments(demoLibrarySeed.departments.map(([elName,enName])=>({id:elName,name:elName,nameEn:enName})));return()=>{active=false}}if(!tenant?.id)return;loadDepartments(tenant.id).then(rows=>{if(active)setDepartments((rows||[]).filter(x=>x.is_active!==false))}).catch(()=>{if(active)setDepartments([])});return()=>{active=false}},[isDemo,tenant?.id])
  const valid=trainingProgramIsValid(v)
- async function save(){if(!valid||saving)return;setSaving(true);try{const program=await createTrainingProgramAsync(tenant.id,v);if(location.state?.meetingTraining)await linkMeetingTraining(tenant.id,location.state.meetingTraining,program).catch(error=>console.error(error));notify(en?'Training program created.':'Το πρόγραμμα εκπαίδευσης δημιουργήθηκε.','success');navigate(`/training/${program.id}`,{replace:true})}catch(error){notifyError(error,'save',{operation:'training_create'})}finally{setSaving(false)}}
+ async function save(){if(!valid||saving)return;setSaving(true);try{const program=await createTrainingProgramAsync(tenant.id,v);if(location.state?.meetingTraining){const meetingTraining=location.state.meetingTraining;await linkMeetingTraining(tenant.id,meetingTraining,program).catch(error=>console.error(error));await addTrainingParticipantsAsync(tenant.id,program,meetingTraining.attendees||[]).catch(error=>console.error(error))};notify(en?'Training program created.':'Το πρόγραμμα εκπαίδευσης δημιουργήθηκε.','success');navigate(`/training/${program.id}`,{replace:true})}catch(error){notifyError(error,'save',{operation:'training_create'})}finally{setSaving(false)}}
  return <Page><EntityRecordShell className="training-create-shell" avatar={<GraduationCap size={19}/>} eyebrow={en?'Training':'Εκπαίδευση'} title={en?'New training program':'Νέο πρόγραμμα εκπαίδευσης'} subtitle={en?'Create training program':'Δημιουργία προγράμματος εκπαίδευσης'} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/training')}>
   <div className="record-section training-create-form"><TrainingProgramForm value={v} onChange={setV} language={language} employees={employees||[]} departments={departments}/><div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/training')} disabled={saving}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{en?'Save':'Αποθήκευση'}</SaveButton></div></div>
  </EntityRecordShell></Page>
