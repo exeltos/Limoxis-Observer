@@ -61,9 +61,10 @@ describe('controlled document distribution & acknowledgement', () => {
 })
 
 describe('documents list: review-due filter and sortable columns', () => {
-  it('makes the review-due metric toggle a dedicated filter instead of only counting', () => {
+  it('makes «review within 30 days» a filter of the list (no cards above it)', () => {
     expect(listPage).toContain('reviewDueOnly')
-    expect(listPage).toContain('setReviewDueOnly(v=>!v)')
+    expect(listPage).toContain("onChange={value=>setReviewDueOnly(value==='due')}")
+    expect(listPage).not.toContain('KpiFigures')
     expect(listPage).toContain('!reviewDueOnly||isReviewDue(family)')
   })
 

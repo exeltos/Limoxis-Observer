@@ -1,8 +1,9 @@
-/* The documents list: one line per document (the description in the title's tooltip;
-   owner and department cut with «…», the whole text in their tooltip). */
-.data-table td.documents-title-cell{max-width:250px}
-.data-table td.documents-title-cell strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.data-table td.documents-clip-cell{max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The documents list: the title wraps to two lines (the description in its tooltip);
+   owner and department cut with «…», the whole text in their tooltip. */
+.data-table td.documents-title-cell{min-width:300px;max-width:440px}
+.data-table td.documents-title-cell strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal}
+.data-table td.documents-type-cell{max-width:170px}
+.data-table td.documents-clip-cell{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Document record: the record card is the body itself, so its sections sit on it without a
    second frame (as in the other records). !important only to undo the framed .record-section
    of foundation.css. */

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BookOpenCheck, Clock3, Send, Users } from 'lucide-react'
+import { BookOpenCheck, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { Page } from '../../design-system/Page'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { MetricCard } from '../../design-system/MetricCard'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -38,6 +38,8 @@ const tone = (rate) => (rate >= 90 ? 'good' : rate >= 60 ? 'fair' : 'low')
 // staff have read which controlled document, and who is still pending.
 export function DocumentAcknowledgementsPage() {
   const navigate = useNavigate()
+  // A document opened from here returns here with «Back».
+  const { goTo } = useContextualNavigation('/documents?tab=acknowledgements')
   const { role, actualRole, isRolePreview, membership, tenant, isDemo } = useTenant()
   const { language } = useLanguage()
   const { notify } = useFeedback()
@@ -141,18 +143,12 @@ export function DocumentAcknowledgementsPage() {
 
   return <Page fill title={title} subtitle={en ? 'Who has read each published protocol and who is still pending: proof for inspections.' : 'Ποιος έχει διαβάσει κάθε δημοσιευμένο πρωτόκολλο και ποιος εκκρεμεί: απόδειξη για επιθεωρήσεις.'}
     actions={<div className="row-actions"><ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} onExcel={exportCsv} disabled={!entries.length} /></div>}>
-    <div className="module-summary-strip">
-      <MetricCard icon={Send} value={totals.distributions} label={en ? 'Distributed documents' : 'Κοινοποιημένα έγγραφα'} />
-      <MetricCard icon={BookOpenCheck} value={`${totals.rate}%`} label={en ? 'Overall read rate' : 'Συνολικό ποσοστό ανάγνωσης'} tone={totals.rate >= 90 ? 'active' : totals.rate >= 60 ? 'warning' : 'danger'} />
-      <MetricCard icon={Clock3} value={totals.pending} label={en ? 'Pending acknowledgements' : 'Εκκρεμείς επιβεβαιώσεις'} tone={totals.pending ? 'warning' : 'neutral'} onClick={() => setView('people')} active={view === 'people'} />
-      <MetricCard icon={Users} value={totals.complete} label={en ? 'Read by everyone' : 'Διαβάστηκαν από όλους'} />
-    </div>
     <section className="surface registry-workspace workspace-column workspace-fill">
       <ModuleTabs activeId={view} onChange={setView} ariaLabel={title} tabs={[{ id: 'documents', label: en ? 'By document' : 'Ανά έγγραφο', icon: BookOpenCheck }, { id: 'people', label: en ? 'By person' : 'Ανά άτομο', icon: Users }]} />
       {log && !log.complete && <div className="document-ack-note" style={{ padding: '10px 14px' }}>{en ? 'Pending lists need the latest database update; until then only confirmations are counted.' : 'Οι εκκρεμότητες χρειάζονται την τελευταία ενημέρωση της βάσης· μέχρι τότε μετρώνται μόνο οι επιβεβαιώσεις.'}</div>}
       <div className="scroll-table">
         {view === 'documents' && <table className="data-table sticky-table record-table-clickable"><thead><tr><th>{en ? 'Code' : 'Κωδικός'}</th><th>{en ? 'Document' : 'Έγγραφο'}</th><th>{en ? 'Version' : 'Έκδοση'}</th><th>{en ? 'Sent' : 'Απεστάλη'}</th><th>{en ? 'Read' : 'Διάβασαν'}</th><th>{en ? 'Pending' : 'Εκκρεμούν'}</th><th>{en ? 'Rate' : 'Ποσοστό'}</th></tr></thead>
-          <tbody>{entries.map((entry) => <tr key={entry.announcement.id} onClick={() => navigate(`/documents/${entry.documentId}?tab=distribution`)}>
+          <tbody>{entries.map((entry) => <tr key={entry.announcement.id} className="registry-row-clickable" onClick={() => goTo(`/documents/${entry.documentId}?tab=distribution`)}>
             <td className="nowrap-cell"><strong>{entry.documentCode}</strong></td><td>{entry.documentTitle}</td><td>{entry.version ? `v${entry.version}` : '—'}</td><td className="nowrap-cell">{fmtDay(entry.sentAt, en)}</td>
             <td>{entry.summary.acknowledged.length} / {entry.summary.total}</td><td>{entry.summary.pending.length}</td>
             <td><span className={`document-ack-rate ${tone(entry.summary.rate)}`}>{entry.summary.rate}%</span><span className="document-ack-mini-bar"><span style={{ width: `${entry.summary.rate}%` }} /></span></td>

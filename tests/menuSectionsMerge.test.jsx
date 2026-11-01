@@ -15,13 +15,13 @@ const ids = (section, role) => sectionTabsFor(section, { role }).map(tab => tab.
 describe('merged sections: one menu entry, the tabs the role may open', () => {
   it('names the tabs of Surveillance, Documents & regulations and Meetings & decisions in order', () => {
     expect(SECTION_TABS.surveillance.tabs.map(tab => tab.id)).toEqual(['episodes', 'registry', 'outbreaks', 'employees', 'environmental'])
-    expect(SECTION_TABS.documents.tabs.map(tab => tab.id)).toEqual(['documents', 'regulations', 'legislation'])
+    expect(SECTION_TABS.documents.tabs.map(tab => tab.id)).toEqual(['documents', 'regulations', 'legislation', 'acknowledgements'])
     expect(SECTION_TABS.meetings.tabs.map(tab => tab.id)).toEqual(['committees', 'departments', 'reviews'])
   })
 
   it('keeps each tab behind the gate its screen had', () => {
-    expect(ids('documents', ROLES.HOSPITAL_ADMIN)).toEqual(['documents', 'regulations', 'legislation'])
-    expect(ids('documents', ROLES.HOSPITAL_DIRECTOR)).toEqual(['documents', 'regulations'])
+    expect(ids('documents', ROLES.HOSPITAL_ADMIN)).toEqual(['documents', 'regulations', 'legislation', 'acknowledgements'])
+    expect(ids('documents', ROLES.HOSPITAL_DIRECTOR)).toEqual(['documents', 'regulations', 'acknowledgements'])
     expect(ids('meetings', ROLES.COMMITTEE_SECRETARIAT)).toEqual(['committees'])
     expect(ids('meetings', ROLES.QUALITY_MANAGER)).toEqual(['committees', 'departments', 'reviews'])
     expect(ids('meetings', ROLES.HOSPITAL_DIRECTOR)).toEqual([])

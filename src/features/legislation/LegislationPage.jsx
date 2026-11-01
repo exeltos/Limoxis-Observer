@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { AlertOctagon, BookMarked, CalendarClock, ExternalLink, FilePlus2, Gauge, Inbox, Link2, Pencil, Plus, Radar, RefreshCw, Scale, Sparkles, Trash2, XCircle } from 'lucide-react'
+import { BookMarked, ExternalLink, FilePlus2, Inbox, Link2, Pencil, Plus, Radar, RefreshCw, Scale, Trash2, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
@@ -8,7 +8,6 @@ import { IconButton } from '../../design-system/IconButton'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { KpiFigures } from '../../design-system/KpiCard'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -66,17 +65,7 @@ export function LegislationPage() {
   const pending = candidates.items.filter(item => item.status === 'pending')
   const failing = sources.items.filter(item => sourceHealth(item) === 'failing')
   const visible = useMemo(() => filterRegister(entries, filters), [entries, filters])
-  const quick = key => setFilters(current => ({ ...current, quick: current.quick === key ? null : key }))
-  const loading = register.loading
   const { notify } = useFeedback()
-
-  // At most four cards: the applicable texts and the updates to review are notes on them.
-  const figures = tab === 'register' ? [
-    { key: 'percent', icon: Gauge, value: counts.percent == null ? null : counts.percent, unit: '%', loading, label: en ? 'Average compliance' : 'Μέση συμμόρφωση', status: counts.percent == null ? null : counts.percent >= 90 ? 'good' : counts.percent >= 75 ? 'warning' : 'danger', target: en ? 'target ≥ 90%' : 'στόχος ≥ 90%', hint: en ? `of ${counts.applicable} texts` : `σε ${counts.applicable} κείμενα`, active: filters.quick === 'applicable', go: () => quick('applicable') },
-    { key: 'new', icon: Sparkles, value: counts.newTexts, loading, label: en ? 'New texts to decide on' : 'Νέα κείμενα προς απόφαση', tone: 'warning', hint: counts.updates ? (en ? `+${counts.updates} to review` : `+${counts.updates} για επανεξέταση`) : null, active: filters.quick === 'new', go: () => quick('new') },
-    { key: 'nonCompliant', icon: AlertOctagon, value: counts.nonCompliant, loading, label: en ? 'With non-compliance' : 'Με μη συμμόρφωση', status: counts.nonCompliant ? 'danger' : 'good', target: en ? 'target: 0' : 'στόχος: 0', active: filters.quick === 'nonCompliant', go: () => quick('nonCompliant') },
-    { key: 'reviewLate', icon: CalendarClock, value: counts.reviewLate, loading, label: en ? 'Review overdue' : 'Εκπρόθεσμη επανεξέταση', status: counts.reviewLate ? 'danger' : 'good', target: en ? 'target: 0' : 'στόχος: 0', active: filters.quick === 'reviewLate', go: () => quick('reviewLate') },
-  ] : []
 
   const actions = <div className="row-actions">
     {tab === 'register' && <ExportMenu disabled={!visible.length} onPrint={() => { if (!printRegistry(registerExport(visible, language), { language, kind: en ? 'Legislation' : 'Νομοθεσία', title: en ? 'Legislation that applies' : 'Νομοθεσία που αφορά' })) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') }} onExcel={() => exportRegistry(registerExport(visible, language))} />}
@@ -85,9 +74,8 @@ export function LegislationPage() {
 
   return <Page fill className="registry-fill-page" title={en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>
     {tabs.length > 1 && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
-    <KpiFigures label={en ? 'Legislation' : 'Νομοθεσία'} figures={figures} />
     <section className="surface registry-workspace workspace-column workspace-fill">
-      {tab === 'register' && <RegisterList entries={visible} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}
+      {tab === 'register' && <RegisterList entries={visible} counts={counts} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}
       {tab === 'library' && access.isPlatformOwner && <LibraryList library={library} language={language} onOpen={item => navigate(`${base}/library/${item.id}`)} />}
       {tab === 'review' && access.isPlatformOwner && <ReviewList candidates={candidates} texts={library.texts} language={language} onChanged={reloadOwner} base={base} />}
       {tab === 'sources' && access.isPlatformOwner && <SourcesList sources={sources} language={language} onChanged={reloadOwner} />}
@@ -104,13 +92,15 @@ function usePaging(rows, deps) {
   return { rows: rows.slice((safePage - 1) * pageSize, safePage * pageSize), page: safePage, totalPages, pageSize, setPage, setPageSize }
 }
 
-function RegisterList({ entries, loading, filters, setFilters, language, onOpen }) {
+function RegisterList({ entries, counts = {}, loading, filters, setFilters, language, onOpen }) {
   const en = language === 'en'
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const paging = usePaging(entries, [filters])
-  const advanced = ['topic', 'kind', 'state'].filter(key => filters[key] !== 'all').length
+  const advanced = ['topic', 'kind', 'state'].filter(key => filters[key] !== 'all').length + (filters.quick ? 1 : 0)
   return <>
     <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search text, reference, issuer…' : 'Αναζήτηση κειμένου, ΦΕΚ, φορέα…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)}>
+      {/* What needs attention (in place of the cards above the list). */}
+      <FilterSelect label={en ? 'Needs attention' : 'Χρειάζεται προσοχή'} value={filters.quick || 'all'} onChange={value => set('quick', value === 'all' ? null : value)}><option value="all">{en ? 'All' : 'Όλα'}</option><option value="new">{en ? `New texts to decide on (${counts.newTexts || 0})` : `Νέα κείμενα προς απόφαση (${counts.newTexts || 0})`}</option><option value="nonCompliant">{en ? `With non-compliance (${counts.nonCompliant || 0})` : `Με μη συμμόρφωση (${counts.nonCompliant || 0})`}</option><option value="reviewLate">{en ? `Review overdue (${counts.reviewLate || 0})` : `Εκπρόθεσμη επανεξέταση (${counts.reviewLate || 0})`}</option></FilterSelect>
       <FilterSelect label={en ? 'Topic' : 'Θέμα'} value={filters.topic} onChange={value => set('topic', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{TOPICS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'Kind' : 'Είδος'} value={filters.kind} onChange={value => set('kind', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{KINDS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={en ? 'State' : 'Κατάσταση'} value={filters.state} onChange={value => set('state', value)}><option value="all">{en ? 'All' : 'Όλες'}</option>{REGISTER_STATES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
