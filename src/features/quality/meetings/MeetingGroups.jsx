@@ -22,7 +22,7 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useDepartments } from '../../management/useLibraries'
 import { useMeetingGroups } from './MeetingsPanel'
 import { saveMeetingGroup } from './meetingService'
-import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, meetingStatusLabel, newMeetingGroup } from './meetingModel'
+import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup } from './meetingModel'
 import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
 
@@ -129,7 +129,7 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
     </RecordTabPanel>}
     {tab === 'meetings' && <RecordTabPanel title={en ? 'Meetings' : 'Συναντήσεις'} subtitle={en ? 'Regular meetings as often as set, and extraordinary ones when needed.' : 'Τακτικές με τη συχνότητα που ορίστηκε, και έκτακτες όταν χρειαστεί.'}>
       <RegistryTable className="quality-table" rows={status.meetings} rowKey={meeting => meeting.id}
-        columns={[{ key: 'code', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'topics', label: en ? 'Topics' : 'Θέματα' }, { key: 'present', label: en ? 'Present' : 'Παρόντες' }, { key: 'decision', label: en ? 'Decision' : 'Απόφαση' }, { key: 'capa', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }, { key: 'training', label: en ? 'Training' : 'Εκπαίδευση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        columns={[{ key: 'code', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'topics', label: en ? 'Topics' : 'Θέματα' }, { key: 'present', label: en ? 'Present' : 'Παρόντες' }, { key: 'decision', label: en ? 'Decision' : 'Απόφαση' }, { key: 'capa', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }, { key: 'training', label: en ? 'Training' : 'Εκπαίδευση' }]}
         emptyTitle={en ? 'No meetings yet' : 'Δεν υπάρχουν συναντήσεις ακόμη'} emptyText={en ? 'Start with «New meeting».' : 'Ξεκινήστε με τη «Νέα συνάντηση».'}
         rowProps={meeting => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => openMeeting(meeting), onKeyDown: event => { if (event.key === 'Enter') openMeeting(meeting) } })}
         renderRow={meeting => <>
@@ -140,7 +140,6 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
           <td>{yesNo(meeting.decisions.length > 0, en)}</td>
           <td>{yesNo(meetingCapas(capas, meeting).length > 0, en)}</td>
           <td>{meeting.trainingProgramKey ? <button type="button" className="meeting-link" onClick={event => { event.stopPropagation(); goTo(`/training/${meeting.trainingProgramKey}`, { tab }) }}>{en ? 'Yes · open' : 'Ναι · άνοιγμα'}</button> : yesNo(meeting.trainingHeld, en)}</td>
-          <td><StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge></td>
         </>} />
     </RecordTabPanel>}
     {tab === 'topics' && <RecordTabPanel title={en ? 'Topics' : 'Θέματα'} subtitle={en ? 'The topics of the meetings, with the decision taken and the corrective action, if any.' : 'Τα θέματα των συναντήσεων, με την απόφαση που πάρθηκε και τη διορθωτική ενέργεια, αν υπήρξε.'}>

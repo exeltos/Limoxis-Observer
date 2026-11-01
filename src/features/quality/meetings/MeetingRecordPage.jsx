@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle2, CheckSquare2, ClipboardList, GraduationCap, MessagesSquare, Paperclip, Plus, RotateCcw, Trash2, Users } from 'lucide-react'
+import { CheckSquare2, ClipboardList, GraduationCap, MessagesSquare, Paperclip, Plus, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -13,7 +13,6 @@ import { SearchableSelect } from '../../../design-system/SearchableSelect'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { IconButton } from '../../../design-system/IconButton'
-import { StatusBadge } from '../../../design-system/StatusBadge'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
@@ -31,7 +30,7 @@ import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { saveMeeting } from './meetingService'
-import { MEETING_KINDS, addDays, decisionStatusLabel, meetingStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
+import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
 import '../quality.css'
 
 const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
@@ -150,7 +149,7 @@ export function MeetingRecordPage() {
       const topics = meeting.topics.filter(item => String(item.subject).trim())
       const next = { ...meeting, topics, agenda: topics.map(item => item.subject.trim()).join('\n'), decisions: meeting.decisions.filter(item => String(item.title).trim()), participants: meeting.participants.filter(item => String(item.name).trim()), status: nextStatus || meeting.status, ...(nextStatus === 'final' ? { finalizedAt: new Date().toISOString(), finalizedByLabel: auditActorFromAuth({ profile, user }).name } : nextStatus === 'draft' ? { finalizedAt: null, finalizedByLabel: '' } : {}) }
       const saved = await saveMeeting(tenant?.id, next)
-      notify(nextStatus === 'final' ? (en ? 'The minutes are final.' : 'Το πρακτικό οριστικοποιήθηκε.') : (en ? 'Meeting saved.' : 'Η συνάντηση αποθηκεύτηκε.'), 'success')
+      notify(en ? 'Meeting saved.' : 'Η συνάντηση αποθηκεύτηκε.', 'success')
       list.reload()
       if (isNew) navigate(`/meetings/${saved.id}`, { replace: true, state: location.state })
       else setMeeting(withTopics(structuredClone(saved)))
@@ -166,7 +165,6 @@ export function MeetingRecordPage() {
   const absentNames = meeting.participants.filter(person => person.attended === false).map(person => person.name).filter(Boolean)
   const attendanceSummary = meeting.participants.length ? `${en ? `Present ${presentCount} of ${meeting.participants.length}` : `Παρόντες ${presentCount} από ${meeting.participants.length}`}${absentNames.length ? ` · ${en ? 'Absent' : 'Απόντες'}: ${absentNames.slice(0, 4).join(', ')}${absentNames.length > 4 ? ` +${absentNames.length - 4}` : ''}` : ''}` : (en ? 'Who attended the meeting.' : 'Ποιοι παρευρέθηκαν στη συνάντηση.')
   const missingStaff = staff.filter(person => !meeting.participants.some(item => (item.employeeId && item.employeeId === person.employeeId) || String(item.name).trim().toLowerCase() === person.name.toLowerCase()))
-  const hasMinutes = Boolean(String(meeting.minutes).trim()) || meeting.topics.some(item => String(item.subject).trim())
   const tabs = [
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList },
     { id: 'topics', label: en ? `Topics ${meeting.topics.length}` : `Θέματα ${meeting.topics.length}`, icon: MessagesSquare },
@@ -174,10 +172,7 @@ export function MeetingRecordPage() {
     ...(isNew ? [] : [{ id: 'files', label: en ? 'Files' : 'Αρχεία', icon: Paperclip }]),
   ]
   const footer = <div className="inline-edit-footer">
-    
     {!locked && <SaveButton loading={saving} disabled={saving} onClick={() => save()}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>}
-    {!locked && !isNew && <Button disabled={saving || !hasMinutes} title={!hasMinutes ? (en ? 'Write the topics first' : 'Γράψτε πρώτα τα θέματα') : undefined} onClick={() => save('final')}><CheckCircle2 size={15} />{en ? 'Finalize' : 'Οριστικοποίηση'}</Button>}
-    {list.access.canReopen(meeting) && <Button variant="secondary" disabled={saving} onClick={() => save('draft')}><RotateCcw size={15} />{en ? 'Back to draft' : 'Επαναφορά σε πρόχειρο'}</Button>}
   </div>
 
   // The corrective actions opened from this meeting's decisions (their source is «DM:<code>#<decision id>»).
@@ -194,7 +189,7 @@ export function MeetingRecordPage() {
     </div>
   }
   const looseDecisions = meeting.decisions.map((item, index) => ({ item, index })).filter(({ item }) => !meeting.topics.some(topic => topic.id && topic.id === item.topicId))
-  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
+  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} subtitle={meeting.status === 'final' ? (en ? `Final · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'en')}` : `Οριστικό · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'el')}`) : undefined} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Meeting' : 'Συνάντηση'}>
@@ -240,7 +235,6 @@ export function MeetingRecordPage() {
           <strong>{en ? 'No attendance has been recorded' : 'Δεν έχουν καταχωριστεί παρουσίες'}</strong>
           {!locked && staff.length > 0 && <><p>{en ? 'The department’s active employees come in as present; mark who was absent.' : 'Οι ενεργοί εργαζόμενοι του τμήματος μπαίνουν ως παρόντες· σημειώστε ποιοι ήταν απόντες.'}</p><Button onClick={() => set({ participants: staff.map(person => ({ ...person, attended: true })) })}><Users size={15} />{en ? `Record attendance (${staff.length})` : `Καταχώριση παρουσιών (${staff.length})`}</Button></>}
           {!locked && !staff.length && <p>{en ? 'The department has no active employees in the people register.' : 'Το τμήμα δεν έχει ενεργούς εργαζόμενους στο μητρώο προσωπικού.'}</p>}
-          {locked && list.access.canReopen(meeting) && <><p>{en ? 'The minutes are final. Take them back to draft to record who attended.' : 'Το πρακτικό είναι οριστικό. Επαναφέρετέ το σε πρόχειρο για να καταχωρίσετε ποιοι παρευρέθηκαν.'}</p><Button variant="secondary" disabled={saving} onClick={() => save('draft')}><RotateCcw size={15} />{en ? 'Back to draft' : 'Επαναφορά σε πρόχειρο'}</Button></>}
         </div>
         : <RegistryTable sortable={false} className="quality-table meeting-attendance-table" rows={meeting.participants} rowKey={(person, index) => person.id || person.employeeId || index}
           columns={[{ key: 'name', label: en ? 'Name' : 'Ονοματεπώνυμο' }, { key: 'role', label: en ? 'Role' : 'Ιδιότητα' }, { key: 'attended', label: en ? 'Attendance' : 'Παρουσία' }]}

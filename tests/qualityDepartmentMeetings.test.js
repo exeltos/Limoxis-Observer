@@ -33,10 +33,11 @@ describe('Department meetings', () => {
     expect(department.canSee(meeting('a', 'ΜΕΘ', '2026-09-01'))).toBe(true)
     expect(department.canSee(meeting('b', 'ΤΕΠ', '2026-09-01'))).toBe(false)
     expect(department.canWrite(meeting('a', 'ΜΕΘ', '2026-09-01', [], { status: 'draft' }))).toBe(true)
-    expect(department.canWrite(meeting('a', 'ΜΕΘ', '2026-09-01'))).toBe(false)
+    // No draft / final: the department keeps writing its meetings.
+    expect(department.canWrite(meeting('a', 'ΜΕΘ', '2026-09-01'))).toBe(true)
+    expect(department.canWrite(meeting('b', 'ΤΕΠ', '2026-09-01'))).toBe(false)
     expect(department.canCreateCapa()).toBe(false)
     const quality = meetingAccess({ seesAll: true, isMember: () => false }, true)
     expect(quality.canSee(meeting('b', 'ΤΕΠ', '2026-09-01'))).toBe(true)
-    expect(quality.canReopen(meeting('b', 'ΤΕΠ', '2026-09-01'))).toBe(true)
   })
 })

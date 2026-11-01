@@ -77,8 +77,7 @@ export function meetingAccess(access, canManageQuality) {
   const member = meeting => access.isMember({ departmentId: meeting?.departmentId, department: meeting?.department })
   return {
     canSee: meeting => access.seesAll || member(meeting),
-    canWrite: meeting => Boolean(meeting) && meeting.status !== 'final' && (canManageQuality || member(meeting)),
-    canReopen: meeting => Boolean(meeting) && meeting.status === 'final' && canManageQuality,
+    canWrite: meeting => Boolean(meeting) && (canManageQuality || member(meeting)),
     canCreateCapa: () => canManageQuality,
   }
 }
