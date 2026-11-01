@@ -31,6 +31,7 @@ import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from 
 import { useMeetings } from './MeetingsPanel'
 import { useEmployeesData } from '../../employees/useEmployeesData'
 import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
+import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { saveMeeting } from './meetingService'
 import { DECISION_STATUSES, MEETING_KINDS, addDays, decisionStatusLabel, meetingStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
@@ -63,6 +64,8 @@ function downloadMinutes(meeting, organizationName) {
 const withTopics = meeting => ({ ...meeting, trainings: meeting.trainings || [], topics: meeting.topics?.length ? meeting.topics : String(meeting.agenda || '').split(/\n+/).map(line => line.trim()).filter(Boolean).map(subject => ({ subject, discussion: '', conclusion: '' })) })
 const trainingStatusText = (status, en) => ({ completed: en ? 'Training done' : 'Η εκπαίδευση έγινε', cancelled: en ? 'Training cancelled' : 'Η εκπαίδευση ακυρώθηκε' })[status] || (en ? 'Training created' : 'Η εκπαίδευση δημιουργήθηκε')
 
+// The profession as the people register keeps it («190 ΝΟΣΗΛΕΥΤΗΣ/ΤΡΙΑ 2ΕΤΟΥΣ»): without the code and the years.
+const cleanRole = text => String(text || '').replace(/^\s*\d+\s*/, '').replace(/\s+\d+\s*(ΕΤΟΥΣ|ΕΤΩΝ|ΕΤΙΑΣ)\s*$/i, '').trim()
 const monthLabel = (day, language) => (day ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(day).slice(0, 7)}-01T00:00:00Z`)) : '')
 
 // The department's register indicators for the month the meeting reviews,
@@ -130,7 +133,8 @@ export function MeetingRecordPage() {
   const indicators = useDepartmentIndicators(tenant?.id, meeting || null)
   // The attendance: the department's active employees, each present or absent.
   const { data: employees } = useEmployeesData()
-  const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: employee.position || employee.profession || '' })), [employees, meeting])
+  const staff = useMemo(() => (meeting ? (employees || []).filter(employee => (employee.employmentStatus || 'active') === 'active' && ((meeting.departmentId && employee.departmentId === meeting.departmentId) || (employee.department && employee.department === meeting.department))) : []).map(employee => ({ employeeId: employee.dbId || employee.id, name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(), role: cleanRole(employee.position || employee.profession) })), [employees, meeting])
+  const employeeById = useMemo(() => new Map((employees || []).map(employee => [employee.dbId || employee.id, employee])), [employees])
   const [documents, setDocuments] = useState([])
   useEffect(() => {
     // A new meeting starts with every active employee of the department present; the head marks who was absent.
@@ -172,6 +176,10 @@ export function MeetingRecordPage() {
   }
   const indicatorLines = (indicators || []).filter(row => row.current.value != null).map(row => `${textOf(row.indicator, language)}: ${formatIndicatorValue(row.current.value, row.indicator, language)}${row.indicator.target != null ? ` (${en ? 'target' : 'στόχος'} ${formatIndicatorValue(row.indicator.target, row.indicator, language)})` : ''}${row.current.status ? ` · ${indicatorStatusLabel(row.current.status, language)}` : ''}`)
   const carried = meeting.decisions.filter(item => item.carriedFrom)
+  // «Present 6 of 7 · Absent: M. Xytsa»: the head sees at a glance who was missing.
+  const presentCount = meeting.participants.filter(person => person.attended !== false).length
+  const absentNames = meeting.participants.filter(person => person.attended === false).map(person => person.name).filter(Boolean)
+  const attendanceSummary = meeting.participants.length ? `${en ? `Present ${presentCount} of ${meeting.participants.length}` : `Παρόντες ${presentCount} από ${meeting.participants.length}`}${absentNames.length ? ` · ${en ? 'Absent' : 'Απόντες'}: ${absentNames.slice(0, 4).join(', ')}${absentNames.length > 4 ? ` +${absentNames.length - 4}` : ''}` : ''}` : (en ? 'Who attended the meeting.' : 'Ποιοι παρευρέθηκαν στη συνάντηση.')
   const missingStaff = staff.filter(person => !meeting.participants.some(item => (item.employeeId && item.employeeId === person.employeeId) || String(item.name).trim().toLowerCase() === person.name.toLowerCase()))
   const hasMinutes = Boolean(String(meeting.minutes).trim()) || meeting.topics.some(item => String(item.subject).trim())
   const tabs = [
@@ -279,14 +287,25 @@ export function MeetingRecordPage() {
           <span className="review-action-tools">{item.title && item.status === 'open' && list.access.canCreateCapa() && <Button variant="secondary" onClick={() => openCapa(item)}>{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>}<IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ decisions: meeting.decisions.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>
         </div>)}{!meeting.decisions.length && <div className="inline-empty">{en ? 'No decisions yet.' : 'Δεν υπάρχουν αποφάσεις ακόμη.'}</div>}</div>}
     </RecordTabPanel>}
-    {tab === 'people' && <RecordTabPanel title={en ? 'Attendance' : 'Παρουσίες'} subtitle={en ? 'The department’s active employees: mark who was absent.' : 'Οι ενεργοί εργαζόμενοι του τμήματος: δηλώστε ποιοι ήταν απόντες.'}
-      actions={!locked && <div className="row-actions">{missingStaff.length > 0 && <Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, ...missingStaff.map(person => ({ ...person, attended: false }))] })}><Users size={15} />{en ? `Add the department’s employees (${missingStaff.length})` : `Προσθήκη εργαζομένων τμήματος (${missingStaff.length})`}</Button>}<Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, { name: '', role: '', attended: true }] })}><Plus size={15} />{en ? 'Other person' : 'Άλλος συμμετέχων'}</Button></div>} footer={footer}>
-      <div className="review-actions">{meeting.participants.map((person, index) => <div key={person.id || person.employeeId || index} className="review-action-row meeting-person-row">
-        <Field label={en ? 'Name' : 'Ονοματεπώνυμο'}><input value={person.name} disabled={locked || Boolean(person.employeeId)} onChange={event => setPerson(index, { name: event.target.value })} /></Field>
-        <Field label={en ? 'Role' : 'Ιδιότητα'}><input value={person.role} disabled={locked || Boolean(person.employeeId)} onChange={event => setPerson(index, { role: event.target.value })} /></Field>
-        {locked ? <Field label={en ? 'Attended' : 'Παρουσία'}><input value={person.attended === false ? (en ? 'Absent' : 'Απών') : (en ? 'Present' : 'Παρών')} disabled /></Field> : <ChoiceField label={en ? 'Attended' : 'Παρουσία'} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => setPerson(index, { attended: value === 'yes' })} />}
-        {!locked && !person.employeeId && <span className="review-action-tools"><IconButton label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: meeting.participants.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>}
-      </div>)}{!meeting.participants.length && <div className="inline-empty">{en ? 'No employees of the department yet.' : 'Δεν υπάρχουν ακόμη εργαζόμενοι του τμήματος.'}</div>}</div>
+    {tab === 'people' && <RecordTabPanel title={en ? 'Attendance' : 'Παρουσίες'} subtitle={attendanceSummary}
+      actions={!locked && meeting.participants.length > 0 && <div className="row-actions">{missingStaff.length > 0 && <Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, ...missingStaff.map(person => ({ ...person, attended: false }))] })}><Users size={15} />{en ? `Add the department’s employees (${missingStaff.length})` : `Προσθήκη εργαζομένων τμήματος (${missingStaff.length})`}</Button>}<Button variant="secondary" onClick={() => set({ participants: [...meeting.participants, { name: '', role: '', attended: true }] })}><Plus size={15} />{en ? 'Other person' : 'Άλλος συμμετέχων'}</Button></div>} footer={footer}>
+      {meeting.participants.length === 0
+        ? <div className="meeting-attendance-empty">
+          <strong>{en ? 'No attendance has been recorded' : 'Δεν έχουν καταχωριστεί παρουσίες'}</strong>
+          {!locked && staff.length > 0 && <><p>{en ? 'The department’s active employees come in as present; mark who was absent.' : 'Οι ενεργοί εργαζόμενοι του τμήματος μπαίνουν ως παρόντες· σημειώστε ποιοι ήταν απόντες.'}</p><Button onClick={() => set({ participants: staff.map(person => ({ ...person, attended: true })) })}><Users size={15} />{en ? `Record attendance (${staff.length})` : `Καταχώριση παρουσιών (${staff.length})`}</Button></>}
+          {!locked && !staff.length && <p>{en ? 'The department has no active employees in the people register.' : 'Το τμήμα δεν έχει ενεργούς εργαζόμενους στο μητρώο προσωπικού.'}</p>}
+          {locked && list.access.canReopen(meeting) && <><p>{en ? 'The minutes are final. Take them back to draft to record who attended.' : 'Το πρακτικό είναι οριστικό. Επαναφέρετέ το σε πρόχειρο για να καταχωρίσετε ποιοι παρευρέθηκαν.'}</p><Button variant="secondary" disabled={saving} onClick={() => save('draft')}><RotateCcw size={15} />{en ? 'Back to draft' : 'Επαναφορά σε πρόχειρο'}</Button></>}
+        </div>
+        : <RegistryTable sortable={false} className="quality-table meeting-attendance-table" rows={meeting.participants} rowKey={(person, index) => person.id || person.employeeId || index}
+          columns={[{ key: 'name', label: en ? 'Name' : 'Ονοματεπώνυμο' }, { key: 'role', label: en ? 'Role' : 'Ιδιότητα' }, { key: 'attended', label: en ? 'Attendance' : 'Παρουσία' }]}
+          renderRow={(person, index) => { const former = person.employeeId && employeeById.get(person.employeeId) && employeeById.get(person.employeeId).employmentStatus && employeeById.get(person.employeeId).employmentStatus !== 'active'; return <>
+            <td>{person.employeeId || locked ? <strong>{person.name}</strong> : <input aria-label={en ? 'Name' : 'Ονοματεπώνυμο'} value={person.name} placeholder={en ? 'Name' : 'Ονοματεπώνυμο'} onChange={event => setPerson(index, { name: event.target.value })} />}{former && <small>{en ? 'Former employee' : 'Πρώην εργαζόμενος'}</small>}</td>
+            <td>{person.employeeId || locked ? (person.role || cleanRole(employeeById.get(person.employeeId)?.position || employeeById.get(person.employeeId)?.profession) || '—') : <input aria-label={en ? 'Role' : 'Ιδιότητα'} value={person.role} onChange={event => setPerson(index, { role: event.target.value })} />}</td>
+            <td className="meeting-attendance-cell">
+              <ModeSwitch ariaLabel={`${en ? 'Attendance' : 'Παρουσία'}: ${person.name}`} disabled={locked} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => setPerson(index, { attended: value === 'yes' })} />
+              {!locked && !person.employeeId && <IconButton size="sm" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => set({ participants: meeting.participants.filter((_, position) => position !== index) })}><Trash2 size={14} /></IconButton>}
+            </td>
+          </> }} />}
     </RecordTabPanel>}
     {tab === 'files' && !isNew && <RecordTabPanel title={en ? 'Files' : 'Αρχεία'}>
       <div className="meeting-files"><DocumentsWorkspace disabled={locked && !list.canManage} organizationId={isDemoDataEnvironment() ? null : tenant?.id} entityType="quality_department_meeting" entityId={meeting.id} subtitle={en ? 'Files of the meeting: the signed minutes, presentations, attendance sheets.' : 'Τα αρχεία της συνάντησης: υπογεγραμμένο πρακτικό, παρουσιάσεις, κατάσταση παρόντων.'} value={documents} onChange={setDocuments} /></div>

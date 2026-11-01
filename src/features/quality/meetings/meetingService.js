@@ -35,6 +35,12 @@ function demoMeetings() {
       trainings: [{ id: 'dmtr-3-1', topic: 'Φροντίδα κεντρικών φλεβικών γραμμών (CLABSI bundle)', audience: 'Νέο νοσηλευτικό προσωπικό', dueDate: addDays(icuDay, 30), programId: '', programKey: '', programStatus: '' }],
       decisions: [{ id: 'dmd-4', position: 0, title: 'Επανεκπαίδευση στις 5 Στιγμές για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
       participants: [{ id: 'dmp-3-0', position: 0, name: 'Διευθυντής ΜΕΘ', role: 'Διευθυντής', attended: true }, { id: 'dmp-3-1', position: 1, name: 'Link Nurse ΜΕΘ', role: 'Link Nurse', attended: true }] },
+    // Earlier ICU meetings, as the imported ones look: one with attendance linked to the employees (one has since left), one final without attendance.
+    { id: 'dm-demo-4', code: 'DM-2026-02', ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: addDays(day, -150), periodMonth: previousMonth(addDays(day, -150)), agenda: 'Υγιεινή χεριών', minutes: '', nextMeetingDate: addDays(day, -60), status: 'final', finalizedAt: `${addDays(day, -150)}T10:00:00.000Z`, finalizedByLabel: 'Υπεύθυνος Ποιότητας',
+      topics: [{ id: 'dmt-4-1', subject: 'Υγιεινή χεριών', discussion: '', conclusion: '' }], trainings: [], decisions: [],
+      participants: [{ id: 'dmp-4-0', position: 0, employeeId: 'EMP-001', name: 'Μαρία Παπαδοπούλου', role: '', attended: true }, { id: 'dmp-4-1', position: 1, employeeId: 'EMP-004', name: 'Αλέξανδρος Γεωργίου', role: '', attended: true }, { id: 'dmp-4-2', position: 2, employeeId: '', name: 'Μικροβιολόγος εργαστηρίου', role: 'Μικροβιολόγος', attended: false }] },
+    { id: 'dm-demo-5', code: 'DM-2026-03', ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: addDays(day, -230), periodMonth: previousMonth(addDays(day, -230)), agenda: 'Ωράριο', minutes: '', nextMeetingDate: addDays(day, -150), status: 'final', finalizedAt: `${addDays(day, -230)}T10:00:00.000Z`, finalizedByLabel: 'Υπεύθυνος Ποιότητας',
+      topics: [{ id: 'dmt-5-1', subject: 'Ωράριο', discussion: '', conclusion: '' }], trainings: [], decisions: [], participants: [] }
   ]
 }
 
