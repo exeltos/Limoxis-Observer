@@ -39,6 +39,7 @@ export const ROLES = [
   'doctor_reviewer',
   'quality_manager',
   'hospital_director',
+  'division_director',
   'link_nurse',
   'staff_user',
 ]

@@ -49,7 +49,7 @@ export const navigation=[
   {to:'/my-department/meetings',key:'departmentMeetings',label:'sidebarNav.departmentMeetings',icon:MessagesSquare,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/my-department/self-assessment',key:'departmentSelfAssessment',label:'sidebarNav.departmentSelfAssessment',icon:ListChecks,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
-  {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS},
+  {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS,anyCapabilities:[CAPABILITIES.VIEW_INTERVIEWS,CAPABILITIES.VIEW_DIVISION_INTERVIEWS]},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   // Roles without the executive dashboard keep the indicators list as «Δείκτες»; for the others it is Management › Indicator definitions.
@@ -172,6 +172,11 @@ const roleMenuPolicy=Object.freeze({
     ['executiveDashboard','indicators','documents','library','calendar'],
     [],
     ['dashboard','platformAnalyticsNav','management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.DIVISION_DIRECTOR]:policy(
+    ['dashboard','interviews','calendar'],
+    ['documents','library'],
+    ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.COMMITTEE_SECRETARIAT]:policy(
     ['dashboard','meetings','documents','library','calendar'],

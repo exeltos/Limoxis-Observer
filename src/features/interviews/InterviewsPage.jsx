@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock, FilePlus2, Inbox, Plus, Tablet } from 'lucide-react'
+import { Building2, CalendarClock, FilePlus2, Inbox, Plus, Tablet } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -15,9 +15,16 @@ import { CandidateDialog } from './InterviewsDialogs'
 import { ApplicationLinkDialog } from './ApplicationLinkDialog'
 import { employmentLabel, filterCandidates, fmtDay, fmtRating, fmtStamp, latestEvaluation, newCandidate, nextInterview, pipelineCounts, positionsOf, ratingTone, statusOptions } from './interviewsModel'
 import { exportCandidates } from './interviewsReports'
+import { DivisionInterviewsPage, DivisionsPanel } from './InterviewDivisions'
+import { categoriesOf } from './divisionsModel'
 
 // Συνεντεύξεις: the applications, the pipeline at the top, the interviews to come.
 export function InterviewsPage() {
+  const access = useInterviewsAccess()
+  return access.divisionOnly ? <DivisionInterviewsPage /> : <InterviewsListPage />
+}
+
+function InterviewsListPage() {
   const { language } = useLanguage()
   const en = language === 'en'
   const navigate = useNavigate()
@@ -32,6 +39,7 @@ export function InterviewsPage() {
   const [pageSize, setPageSize] = useState(15)
   const [dialog, setDialog] = useState(null)
   const [tablet, setTablet] = useState(false)
+  const [divisionsView, setDivisionsView] = useState(false)
   const candidates = useMemo(() => state?.candidates || [], [state])
   const counts = useMemo(() => pipelineCounts(candidates), [candidates])
   const positions = useMemo(() => positionsOf(candidates), [candidates])
@@ -40,12 +48,14 @@ export function InterviewsPage() {
 
   if (!state) return <Page fill title={en ? 'Interviews' : 'Συνεντεύξεις'}><div className="inline-empty">{loading ? (en ? 'Loading…' : 'Φόρτωση…') : (en ? 'The applications could not be loaded.' : 'Δεν ήταν δυνατή η φόρτωση των αιτήσεων.')}</div></Page>
 
+  if (divisionsView) return <Page fill className="interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'}><section className="surface registry-workspace workspace-column workspace-fill"><DivisionsPanel organizationId={organizationId} candidates={candidates} onBack={() => setDivisionsView(false)} /></section></Page>
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const open = item => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
   const actions = <div className="row-actions">
     <ExportMenu onExcel={() => exportCandidates(rows, language)} />
     {/* «New application ▾»: typed here, or filled in by the candidate on a tablet. */}
+    {access.canManage && <OverflowMenu label={en ? 'More' : 'Περισσότερα'} items={[{ id: 'divisions', label: en ? 'Divisions' : 'Διευθύνσεις', icon: Building2, onClick: () => setDivisionsView(true) }]} />}
     {access.canManage && <OverflowMenu label={en ? 'New application' : 'Νέα αίτηση'} triggerTone="primary" width={240} trigger={<><FilePlus2 size={15} aria-hidden="true" />{en ? 'New application' : 'Νέα αίτηση'}</>} items={[
       { id: 'new', label: en ? 'New application' : 'Νέα αίτηση', icon: FilePlus2, onClick: () => setDialog(newCandidate()) },
       { id: 'tablet', label: en ? 'Application from a tablet' : 'Αίτηση από tablet', icon: Tablet, onClick: () => setTablet(true) },
@@ -77,6 +87,6 @@ export function InterviewsPage() {
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
     </section>
     {tablet && <ApplicationLinkDialog organizationId={organizationId} positions={positions} onClose={() => { setTablet(false); void reload() }} />}
-    {dialog && <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />}
+    {dialog && <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} categories={categoriesOf(candidates, [])} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />}
   </Page>
 }

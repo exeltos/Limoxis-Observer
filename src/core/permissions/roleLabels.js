@@ -1,5 +1,5 @@
 export const SYSTEM_ROLE_KEYS=Object.freeze([
-  'hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','hospital_director','link_nurse','staff_user',
+  'hospital_admin','infection_control_lead','infection_control_member','department_manager','department_user','laboratory','committee_secretariat','hr_office','pharmacy','occupational_physician','doctor_reviewer','quality_manager','hospital_director','division_director','link_nurse','staff_user',
 ])
 
 // The one source of every role's name (menus, user button, management screens,
@@ -21,6 +21,7 @@ export const ROLE_LABELS=Object.freeze({
   doctor_reviewer:{el:'Ιατρός Αξιολογητής',en:'Doctor Reviewer'},
   quality_manager:{el:'Υπεύθυνος Ποιότητας',en:'Quality Manager'},
   hospital_director:{el:'Διοικητής / Γενικός Διευθυντής',en:'Hospital Director (CEO)'},
+  division_director:{el:'Διευθυντής Διεύθυνσης',en:'Division Director'},
   link_nurse:{el:'Νοσηλευτής Σύνδεσμος',en:'Link Nurse'},
   staff_user:{el:'Γενικός Χρήστης',en:'Staff User'},
   demo:{el:'Demo',en:'Demo'},
@@ -30,7 +31,7 @@ export const ROLE_LABELS=Object.freeze({
 export const ROLE_LABEL_KEYS=Object.freeze({
   platformOwnerRole:'platform_owner',hospitalAdminRole:'hospital_admin',infectionControlLeadRole:'infection_control_lead',infectionControlMemberRole:'infection_control_member',
   departmentManagerRole:'department_manager',departmentUserRole:'department_user',laboratoryRole:'laboratory',committeeSecretariatRole:'committee_secretariat',hrOfficeRole:'hr_office',
-  pharmacyRole:'pharmacy',occupationalPhysicianRole:'occupational_physician',doctorReviewerRole:'doctor_reviewer',qualityManagerRole:'quality_manager',hospitalDirectorRole:'hospital_director',
+  pharmacyRole:'pharmacy',occupationalPhysicianRole:'occupational_physician',doctorReviewerRole:'doctor_reviewer',qualityManagerRole:'quality_manager',hospitalDirectorRole:'hospital_director',divisionDirectorRole:'division_director',
   linkNurseRole:'link_nurse',staffUserRole:'staff_user',demoRole:'demo',
 })
 

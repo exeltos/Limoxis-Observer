@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CalendarPlus, ClipboardCheck, Gavel, GraduationCap, Info, MessagesSquare, Pencil, Trash2, UserPlus, UserSearch, Users } from 'lucide-react'
+import { CalendarPlus, ClipboardCheck, Gavel, GraduationCap, Info, MessagesSquare, Pencil, Scale, Trash2, UserPlus, UserSearch, Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
@@ -22,6 +22,9 @@ import { CRITERIA, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtR
 import { evaluationDocument } from './interviewsReports'
 import { CONSENTS } from './applicationModel'
 import { interviewsErrorMessage, loadCandidateSignature, removeCandidate, removeInterview } from './interviewsService'
+import { DivisionCandidatePage } from './InterviewDivisions'
+import { OpinionsPanel } from './InterviewOpinions'
+import { categoriesOf } from './divisionsModel'
 
 // A header command kept beside «Export» (not moved into the record's «…»).
 const HeaderAction = ({ children }) => children
@@ -29,6 +32,11 @@ const HeaderAction = ({ children }) => children
 // An application («ΑΙΤΗΣΗ ΕΡΓΑΣΙΑΣ»): the details, education and languages, previous
 // employers, the interviews with their evaluation, and the decision / hiring.
 export function InterviewRecordPage() {
+  const access = useInterviewsAccess()
+  return access.divisionOnly ? <DivisionCandidatePage /> : <InterviewRecordFull />
+}
+
+function InterviewRecordFull() {
   const { candidateId } = useParams()
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation('/interviews')
@@ -78,6 +86,7 @@ export function InterviewRecordPage() {
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: Info },
     { id: 'cv', label: en ? 'CV' : 'Βιογραφικό', icon: GraduationCap },
     { id: 'interviews', label: en ? `Interviews ${interviews.length}` : `Συνεντεύξεις ${interviews.length}`, icon: MessagesSquare },
+    { id: 'roles', label: en ? 'Role opinions' : 'Αξιολόγηση ρόλων', icon: Scale },
     { id: 'decision', label: en ? 'Decision' : 'Απόφαση', icon: Gavel },
   ]
   const age = ageOn(candidate.birthDate)
@@ -135,6 +144,7 @@ export function InterviewRecordPage() {
           </span></td>
         </>} />
     </RecordTabPanel>}
+    {tab === 'roles' && <RecordTabPanel title={en ? 'Role opinions' : 'Αξιολόγηση ρόλων'} subtitle={en ? 'The HR Office and the competent division each give an opinion; the final decision is taken in the Decision tab.' : 'Το Γραφείο Προσωπικού και η αρμόδια διεύθυνση δίνουν η καθεμία τη γνώμη της· η τελική απόφαση παίρνεται στην καρτέλα Απόφαση.'}><OpinionsPanel candidateId={candidate.id} /></RecordTabPanel>}
     {tab === 'decision' && <RecordTabPanel title={en ? 'Decision' : 'Απόφαση'} subtitle={en ? 'Hire, reserve list or reject; «Hire» then creates or links the employee.' : 'Πρόσληψη, λίστα αναμονής ή απόρριψη· η «Πρόσληψη» δημιουργεί ή συνδέει τον εργαζόμενο.'}>
       <div className="record-view-stack">
         <RecordDetailsGrid fields={filled([{ label: en ? 'Status' : 'Κατάσταση', value: <CandidateStatusBadge status={candidate.status} language={language} /> }, { label: en ? 'Decision' : 'Απόφαση', value: decisionLabel(candidate.decision, language) }, { label: en ? 'Date · decided by' : 'Ημερομηνία · αποφάσισε', value: [fmtDay(candidate.decisionOn), candidate.decisionByName].filter(item => item && item !== '—').join(' · ') },
@@ -148,7 +158,7 @@ export function InterviewRecordPage() {
         </div>
       </div>
     </RecordTabPanel>}
-    {dialog?.type === 'candidate' && <CandidateDialog initial={candidate} organizationId={organizationId} positions={positionsOf(state.candidates)} onClose={close} onSaved={reload} />}
+    {dialog?.type === 'candidate' && <CandidateDialog initial={candidate} organizationId={organizationId} positions={positionsOf(state.candidates)} categories={categoriesOf(state.candidates, [])} onClose={close} onSaved={reload} />}
     {dialog?.type === 'education' && <EducationDialog {...common} />}
     {dialog?.type === 'employers' && <EmployersDialog {...common} />}
     {dialog?.type === 'schedule' && <ScheduleDialog {...common} initial={dialog.interview} employees={employees} />}

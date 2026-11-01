@@ -16,7 +16,9 @@ export function useInterviewsAccess() {
   const canManage = owner || can(role, CAPABILITIES.MANAGE_INTERVIEWS, addOns, custom)
   const canView = canManage || can(role, CAPABILITIES.VIEW_INTERVIEWS, addOns, custom)
   const canHire = canManage && (owner || can(role, CAPABILITIES.MANAGE_STAFF_ADMIN, addOns, custom))
-  return { canView, canManage, canHire }
+  // A Division Director reads only the candidates of the own division, through a function of the database.
+  const divisionOnly = !canView && can(role, CAPABILITIES.VIEW_DIVISION_INTERVIEWS, addOns, custom)
+  return { canView, canManage, canHire, divisionOnly }
 }
 
 // Every application with its languages, employers and interviews.

@@ -34,6 +34,8 @@ export const ROLE_GUIDE=Object.freeze({
     does:l('Κλινική αξιολόγηση και επανεκτίμηση περιστατικών επιτήρησης, αντιμικροβιακή θεραπεία και έκβαση.','Clinical assessment and reassessment of surveillance cases, antimicrobial therapy and outcome.')},
   quality_manager:{who:l('Ο Υπεύθυνος Ποιότητας.','The quality manager.'),
     does:l('Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, έλεγχοι και δείκτες.','Incidents, findings, corrective actions (CAPA), audits, inspections and indicators.')},
+  division_director:{who:l('Ο Διευθυντής μιας διεύθυνσης (π.χ. Νοσηλευτικής Υπηρεσίας).','The head of a division (e.g. the Nursing Directorate).'),
+    does:l('Βλέπει μόνο τους υποψηφίους των θέσεων της διεύθυνσής του, με τα επαγγελματικά τους στοιχεία και το βιογραφικό, και δίνει τη γνώμη του. Δεν βλέπει ταυτότητα, οικογένεια ή στοιχεία υγείας.','Sees only the candidates for the positions of the own division, with their professional data and CV, and gives an opinion. Does not see ID, family or health data.')},
   hospital_director:{who:l('Ο Διευθυντής / Διοικητής του νοσοκομείου.','The hospital director.'),
     does:l('Βλέπει την πλήρη εικόνα του νοσοκομείου στους Δείκτες, με φίλτρα, σύγκριση και εξαγωγή αναφοράς. Δεν καταχωρεί.','Sees the whole hospital in Indicators, with filters, comparison and a report to export. Records nothing.')},
 })

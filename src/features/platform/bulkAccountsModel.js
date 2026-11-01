@@ -22,6 +22,7 @@ export const BULK_ROLES = Object.freeze([
   'quality_manager',
   'committee_secretariat',
   'hospital_director',
+  'division_director',
   'staff_user',
 ])
 export const MAX_RUN = 200

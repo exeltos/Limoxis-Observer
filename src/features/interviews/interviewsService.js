@@ -9,6 +9,7 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { interviewsDemoState } from './interviewsDemoData'
 import { overallRating, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule } from './interviewsModel'
+import { DIVISION_CANDIDATE_FIELDS, hasDisagreement } from './divisionsModel'
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const LOCAL_KEY = 'interviews_local_state'
@@ -20,7 +21,7 @@ const must = ({ data, error }) => { if (error) throw error; return data }
 const COLUMNS = {
   hr_candidates: { code: ['code', 't'], fullName: ['full_name', 't'], gender: ['gender', 't'], fatherName: ['father_name', 't'], motherName: ['mother_name', 't'], birthDate: ['birth_date', 'd'], birthPlace: ['birth_place', 't'], nationality: ['nationality', 't'], citizenship: ['citizenship', 't'],
     idNumber: ['id_number', 't'], idAuthority: ['id_authority', 't'], idIssuedOn: ['id_issued_on', 'd'], address: ['address', 't'], area: ['area', 't'], postcode: ['postcode', 't'], phoneLandline: ['phone_landline', 't'], phoneMobile: ['phone_mobile', 't'], email: ['email', 't'],
-    requestedPosition: ['requested_position', 't'], employmentType: ['employment_type', 't'], militaryService: ['military_service', 't'], workPermit: ['work_permit', 'b'], practiceLicence: ['practice_licence', 'b'], smoker: ['smoker', 'b'], maritalStatus: ['marital_status', 't'], children: ['children', 'n'],
+    requestedPosition: ['requested_position', 't'], professionalCategory: ['professional_category', 't'], employmentType: ['employment_type', 't'], militaryService: ['military_service', 't'], workPermit: ['work_permit', 'b'], practiceLicence: ['practice_licence', 'b'], smoker: ['smoker', 'b'], maritalStatus: ['marital_status', 't'], children: ['children', 'n'],
     educationLevel: ['education_level', 't'], education: ['education', 'j'], itSkills: ['it_skills', 't'], activities: ['activities', 't'], whyUs: ['why_us', 't'], applicationReason: ['application_reason', 't'], appliedOn: ['applied_on', 'd'],
     consentGiven: ['consent_given', 'b'], consentAt: ['consent_at', 'd'], consentText: ['consent_text', 't'], status: ['status', 't'], decision: ['decision', 't'], decisionOn: ['decision_on', 'd'], decisionByName: ['decision_by_name', 't'], decisionNotes: ['decision_notes', 't'],
     employeeId: ['employee_id', 'u'], source: ['source', 't'], notes: ['notes', 't'],
@@ -193,11 +194,99 @@ export async function removeInterview(organizationId, candidate, interviewId) {
   must(await supabase.from('hr_interviews').delete().eq('id', interviewId).eq('organization_id', organizationId))
 }
 
+// --- Divisions and opinions (20261231190100_interview_divisions_opinions.sql) -------------------
+
+// The hospital's divisions with the professional categories that belong to each and the
+// users who direct it: { divisions: [{ id, name, categories: [], members: [userId] }] }.
+export async function loadDivisions(organizationId) {
+  if (isLocal()) return { divisions: local().divisions || [] }
+  if (!organizationId) return { divisions: [] }
+  const [divisions, categories, members] = await Promise.all([byOrg('hr_divisions', organizationId, 'name'), byOrg('hr_division_categories', organizationId, 'professional_category'), byOrg('hr_division_members', organizationId)])
+  return { divisions: divisions.map(row => ({ id: row.id, name: row.name, categories: categories.filter(item => item.division_id === row.id).map(item => item.professional_category), members: members.filter(item => item.division_id === row.id).map(item => item.user_id) })) }
+}
+export async function saveDivision(organizationId, division) {
+  const name = String(division.name || '').trim()
+  if (isLocal()) {
+    const state = local(), id = division.id || localId('div')
+    const next = { id, name, categories: division.categories || [], members: division.members || [] }
+    state.divisions = (state.divisions || []).some(item => item.id === id) ? state.divisions.map(item => (item.id === id ? next : item)) : [...(state.divisions || []), next]
+    saveLocal(state); return id
+  }
+  const row = isUuid(division.id)
+    ? must(await supabase.from('hr_divisions').update({ name }).eq('id', division.id).eq('organization_id', organizationId).select('id').single())
+    : must(await supabase.from('hr_divisions').insert({ organization_id: organizationId, name }).select('id').single())
+  const existing = must(await supabase.from('hr_division_categories').select('id, professional_category').eq('organization_id', organizationId).eq('division_id', row.id)) || []
+  const wanted = [...new Set((division.categories || []).map(item => String(item).trim()).filter(Boolean))]
+  const remove = existing.filter(item => !wanted.includes(item.professional_category)).map(item => item.id)
+  if (remove.length) must(await supabase.from('hr_division_categories').delete().eq('organization_id', organizationId).in('id', remove))
+  const add = wanted.filter(category => !existing.some(item => item.professional_category === category))
+  // A category belongs to one division only: moving it takes it from the previous one.
+  if (add.length) {
+    must(await supabase.from('hr_division_categories').delete().eq('organization_id', organizationId).in('professional_category', add))
+    must(await supabase.from('hr_division_categories').insert(add.map(category => ({ organization_id: organizationId, division_id: row.id, professional_category: category }))))
+  }
+  const currentMembers = must(await supabase.from('hr_division_members').select('id, user_id').eq('organization_id', organizationId).eq('division_id', row.id)) || []
+  const wantedMembers = division.members || []
+  const dropMembers = currentMembers.filter(item => !wantedMembers.includes(item.user_id)).map(item => item.id)
+  if (dropMembers.length) must(await supabase.from('hr_division_members').delete().eq('organization_id', organizationId).in('id', dropMembers))
+  const addMembers = wantedMembers.filter(userId => !currentMembers.some(item => item.user_id === userId))
+  if (addMembers.length) must(await supabase.from('hr_division_members').insert(addMembers.map(userId => ({ organization_id: organizationId, division_id: row.id, user_id: userId }))))
+  return row.id
+}
+export async function removeDivision(organizationId, divisionId) {
+  if (isLocal()) { const state = local(); state.divisions = (state.divisions || []).filter(item => item.id !== divisionId); saveLocal(state); return }
+  must(await supabase.from('hr_divisions').delete().eq('id', divisionId).eq('organization_id', organizationId))
+}
+
+// The users who can be given a division: active «Division Director» members of the hospital.
+export async function loadDivisionDirectors(organizationId) {
+  if (isLocal()) return [{ userId: 'demo-user-1', name: 'Μαρία Παπαδοπούλου (παράδειγμα)' }, { userId: 'demo-user-2', name: 'Νίκος Αλεξίου (παράδειγμα)' }]
+  if (!organizationId) return []
+  const members = must(await supabase.from('organization_members').select('user_id, status').eq('organization_id', organizationId).eq('role', 'division_director')) || []
+  if (!members.length) return []
+  const profiles = must(await supabase.from('profiles').select('id, full_name, contact_email').in('id', members.map(item => item.user_id))) || []
+  return members.map(item => { const profile = profiles.find(row => row.id === item.user_id); return { userId: item.user_id, name: profile?.full_name || profile?.contact_email || item.user_id } })
+}
+
+// What a Division Director reads: the candidates of the own division, professional data and CV only.
+export async function loadDivisionCandidates(organizationId) {
+  if (isLocal()) {
+    const state = local(), mapped = new Set((state.divisions || []).flatMap(item => item.categories || []))
+    return state.candidates.filter(item => mapped.has(item.professionalCategory)).map(item => Object.fromEntries(DIVISION_CANDIDATE_FIELDS.map(key => [key, item[key] ?? ''])))
+  }
+  if (!organizationId) return []
+  return must(await supabase.rpc('hr_division_candidates', { p_organization_id: organizationId })) || []
+}
+
+// The opinions on a candidate: { role, mine, submittedCount, visible, disagreement, opinions }.
+// Others' opinions come only after the reader has submitted his / her own (the server decides).
+export async function loadOpinions(candidateId) {
+  if (isLocal()) {
+    const list = local().opinions?.[candidateId] || [], mine = list.find(item => item.mine) || null, visible = Boolean(mine?.submittedAt)
+    const submitted = list.filter(item => item.submittedAt)
+    return { role: 'hr_office', mine, submittedCount: submitted.length, visible, disagreement: visible && hasDisagreement(submitted), opinions: visible ? submitted : [] }
+  }
+  return must(await supabase.rpc('hr_candidate_opinions', { p_candidate_id: candidateId }))
+}
+export async function saveOpinion(candidateId, { stance, comment, submit = false }) {
+  if (isLocal()) {
+    const state = local(), list = state.opinions?.[candidateId] || [], now = new Date().toISOString()
+    const mine = { roleKind: 'hr_office', division: '', author: 'Demo Administrator', stance, comment: comment || '', submittedAt: submit ? now : null, mine: true }
+    // The demo adds a division opinion once yours is in, to show the comparison.
+    const others = submit && !list.some(item => !item.mine) ? [{ roleKind: 'division', division: 'Νοσηλευτική Υπηρεσία', author: 'Μαρία Παπαδοπούλου (παράδειγμα)', stance: stance === 'reject' ? 'propose' : 'reserve', comment: 'Παράδειγμα γνώμης της διεύθυνσης.', submittedAt: now, mine: false }] : []
+    state.opinions = { ...(state.opinions || {}), [candidateId]: [...list.filter(item => !item.mine), ...others, mine] }
+    saveLocal(state); return
+  }
+  must(await supabase.rpc('hr_save_opinion', { p_candidate_id: candidateId, p_stance: stance || null, p_comment: comment || null, p_submit: Boolean(submit) }))
+}
+
 export function interviewsErrorMessage(error, language = 'el') {
   const en = language === 'en'
   const text = `${error?.code || ''} ${error?.message || ''}`
   if (text.includes('HR_EMPLOYEE_OTHER_ORGANIZATION')) return en ? 'The employee belongs to another organization.' : 'Ο εργαζόμενος ανήκει σε άλλο οργανισμό.'
   if (text.includes('HR_APPLICATION_LINKS_BUSY')) return en ? 'Too many tablet links in the last hour; try again later.' : 'Δημιουργήθηκαν πολλοί σύνδεσμοι tablet την τελευταία ώρα· δοκιμάστε αργότερα.'
+  if (text.includes('HR_OPINION_SUBMITTED')) return en ? 'Your opinion has been submitted and cannot be changed.' : 'Η γνώμη σας έχει υποβληθεί και δεν αλλάζει.'
+  if (text.includes('HR_OPINION_FORBIDDEN')) return en ? 'You cannot give an opinion on this candidate.' : 'Δεν μπορείτε να δώσετε γνώμη για αυτόν τον υποψήφιο.'
   if (text.includes('DUPLICATE_EMPLOYEE_CODE')) return en ? 'An employee with this code already exists.' : 'Υπάρχει ήδη εργαζόμενος με αυτόν τον κωδικό.'
   if (text.includes('42501') || /row-level security/i.test(text)) return en ? 'You do not have permission for this action.' : 'Δεν έχετε δικαίωμα για αυτή την ενέργεια.'
   return en ? 'The change could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.'
