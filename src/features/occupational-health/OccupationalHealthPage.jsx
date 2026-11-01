@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState,useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CalendarClock,HeartPulse,Info,ShieldAlert,UserRoundCheck } from 'lucide-react'
+import { HeartPulse,Info,ShieldAlert } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RecordActions } from '../../design-system/RecordActions'
@@ -16,7 +16,6 @@ import { FITNESS } from './occupationalVisitModel'
 import { loadAllExposureIncidentsAsync,createExposureIncidentAsync } from './exposureIncidentService'
 import { ExposureIncidentEditor,EMPTY_EXPOSURE_INCIDENT } from './ExposureIncidentEditor'
 import { downloadCsv } from '../../core/export/csvExport'
-import { KpiFigures } from '../../design-system/KpiCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import './OccupationalHealthPage.css'
@@ -40,10 +39,6 @@ export function OccupationalHealthPage(){
  const visitRows=useMemo(()=>occupationalVisits.filter(x=>Boolean(employeeMap[x.employeeId])).filter(x=>canAccessRecord(employeeMap[x.employeeId])).filter(x=>{const e=employeeMap[x.employeeId];const hay=`${e?.id??''} ${e?.firstName??''} ${e?.firstNameEn??''} ${e?.lastName??''} ${e?.lastNameEn??''}`.toLowerCase();return hay.includes(query.toLowerCase())}).filter(x=>department==='all'||(language==='el'?employeeMap[x.employeeId]?.department:employeeMap[x.employeeId]?.departmentEn)===department).filter(x=>status==='all'||x.status===status),[occupationalVisits,employeeMap,canAccessRecord,query,department,status,language])
  const exposureFiltered=useMemo(()=>exposureRows.filter(x=>Boolean(employeeMap[x.employeeId])).filter(x=>canAccessRecord(employeeMap[x.employeeId])).filter(x=>{const e=employeeMap[x.employeeId];const hay=`${e?.id??''} ${e?.firstName??''} ${e?.firstNameEn??''} ${e?.lastName??''} ${e?.lastNameEn??''}`.toLowerCase();return hay.includes(query.toLowerCase())}).filter(x=>department==='all'||(language==='el'?employeeMap[x.employeeId]?.department:employeeMap[x.employeeId]?.departmentEn)===department),[exposureRows,employeeMap,canAccessRecord,query,department,language])
  const fmt=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—';const name=e=>!e?'—':language==='el'?`${e.lastName} ${e.firstName}`:`${e.firstNameEn||e.firstName} ${e.lastNameEn||e.lastName}`
- const scheduled=occupationalVisits.filter(x=>x.status==='scheduled').length
- // Fit for work counts people, not visits: each employee's latest completed visit decides.
- const fitEmployees=useMemo(()=>{const latest=new Map();for(const v of occupationalVisits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return [...latest.values()].filter(v=>['fit','fit_with_restrictions'].includes(v.fitStatus)).length},[occupationalVisits])
- const openExposures=exposureRows.filter(x=>x.status==='open').length
  async function saveExposureIncident(draft){try{const employee=employeeRows.find(x=>x.id===draft.employeeId);await createExposureIncidentAsync(tenant?.id,employee,draft);signalDemoStep('occupational_exposure','record');notify(translate('copy.occupationalCopy.exposureIncidentSaved',en?'en':'el'),'success');setExposureEditor(null);await reloadExposureIncidents()}catch(error){notify(error?.message||(translate('copy.occupationalCopy.couldNotSaveTheExposureIncident',en?'en':'el')),'error')}}
  function action(a){
   if(a===UI_ACTIONS.PRINT){window.print();return}
@@ -61,11 +56,6 @@ export function OccupationalHealthPage(){
  const createLabel=section==='exposure'?(translate('copy.occupationalCopy.newExposureIncident',en?'en':'el')):t('newOccupationalVisit')
  return <Page fill title={t('occupationalHealth')} subtitle={t('occupationalHealthSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE,UI_ACTIONS.PRINT,UI_ACTIONS.EXPORT]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH}} actionLabels={{[UI_ACTIONS.CREATE]:createLabel}} onAction={action}/> }>
   <ModuleTabs tabs={sectionTabs} activeId={section} onChange={setSection} ariaLabel={translate('copy.occupationalCopy.occupationalHealthSections',en?'en':'el')}/>
-  <KpiFigures label={t('occupationalHealth')} figures={[
-   {key:'scheduled',icon:CalendarClock,value:scheduled,loading:visitsFirstLoad,label:t('scheduledVisits'),active:section==='visits'&&status==='scheduled',go:()=>{setSection('visits');setStatus(status==='scheduled'?'all':'scheduled')}},
-   {key:'fit',icon:UserRoundCheck,value:fitEmployees,loading:visitsFirstLoad,label:t('fitForWork')},
-   {key:'exposure',icon:ShieldAlert,value:openExposures,loading:exposureFirstLoad,label:translate('copy.occupationalCopy.openExposureIncidents',en?'en':'el'),tone:'danger',active:section==='exposure',go:()=>setSection('exposure')},
-  ]}/>
   <section className="surface registry-workspace occupational-workspace workspace-fill"><FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(section==='visits'&&status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}} end={<span className="occupational-governance-tip" role="img" tabIndex={0} title={t('occupationalHealthGovernance')} aria-label={t('occupationalHealthGovernance')}><Info size={16} aria-hidden="true"/></span>}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>{section==='visits'&&<FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="scheduled">{t('scheduled')}</option><option value="completed">{t('completed')}</option></FilterSelect>}</FilterBar><div className="occupational-content single"><div className="scroll-table">{section==='visits'?visitsFirstLoad?<TableSkeleton/>:<Visits rows={visitRows} employeeMap={employeeMap} name={name} t={t} en={en} fmt={fmt} openEmployee={(id,rowId)=>registry.openRecord(navigate,`/occupational-health/visits/${encodeURIComponent(rowId)}`,rowId,[])} highlightId={registry.highlightId}/>:exposureFirstLoad?<TableSkeleton/>:<ExposureIncidents rows={exposureFiltered} employeeMap={employeeMap} name={name} en={en} fmt={fmt} openEmployee={(id,rowId)=>registry.openRecord(navigate,`/employees/${id}`,rowId,[],{state:{limoxisRestore:{tab:'exposureIncidents'}}})} highlightId={registry.highlightId}/>}</div></div></section>
   {exposureEditor&&<ExposureIncidentEditor language={language} employees={employeeRows.filter(x=>x.employmentStatus==='active'&&canAccessRecord(x))} draft={exposureEditor} onChange={setExposureEditor} onClose={()=>setExposureEditor(null)} onSave={saveExposureIncident}/>}
  </Page>
