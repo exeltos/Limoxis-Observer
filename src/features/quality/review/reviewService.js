@@ -32,8 +32,17 @@ function demoReviews() {
 const demoObjectives = () => [
   { id: 'qo-demo-1', code: `QO-${new Date().getFullYear()}-01`, year: new Date().getFullYear(), title: 'Μέση διάρκεια νοσηλείας ΜΕΝΝ έως 12 ημέρες', titleEn: 'Mean NICU length of stay up to 12 days', registerId: 'reg-demo-nicu', indicatorKey: 'mean_los', target: 12, direction: 'lower', unit: 'ημέρες', ownerLabel: 'Διευθυντής ΜΕΝΝ', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
   { id: 'qo-demo-2', code: `QO-${new Date().getFullYear()}-02`, year: new Date().getFullYear(), title: 'Αποκλειστικός μητρικός θηλασμός ≥ 50%', titleEn: 'Exclusive breastfeeding ≥ 50%', registerId: 'reg-demo-nicu', indicatorKey: 'breast_milk', target: 50, direction: 'higher', unit: '%', ownerLabel: 'Προϊσταμένη ΜΕΝΝ', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
-  { id: 'qo-demo-3', code: `QO-${new Date().getFullYear()}-03`, year: new Date().getFullYear(), title: 'Ικανοποίηση ασθενών ≥ 90%', titleEn: 'Patient satisfaction ≥ 90%', target: 90, direction: 'higher', unit: '%', reportedValue: 92, ownerLabel: 'Υπεύθυνος Ποιότητας', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
+  { id: 'qo-demo-3', code: `QO-${new Date().getFullYear()}-03`, year: new Date().getFullYear(), level: 'hospital', title: 'Ικανοποίηση ασθενών ≥ 90%', titleEn: 'Patient satisfaction ≥ 90%', target: 90, direction: 'higher', unit: '%', ownerLabel: 'Υπεύθυνος Ποιότητας', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
+  // The targets of the hospital's picture («Εικόνα νοσοκομείου»): objectives on the platform's indicators.
+  { id: 'qo-demo-4', code: `QO-${new Date().getFullYear()}-04`, year: new Date().getFullYear(), level: 'hospital', title: 'Συμμόρφωση υγιεινής χεριών ≥ 80%', titleEn: 'Hand hygiene compliance ≥ 80%', platformIndicatorKey: 'who-hh', target: 80, direction: 'higher', unit: '%', ownerLabel: 'Νοσηλεύτρια Επιτήρησης Λοιμώξεων', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
+  { id: 'qo-demo-5', code: `QO-${new Date().getFullYear()}-05`, year: new Date().getFullYear(), level: 'hospital', title: 'Πλήρης συμμόρφωση σε δέσμες μέτρων ≥ 90%', titleEn: 'Full bundle compliance ≥ 90%', platformIndicatorKey: 'bundle-all-or-none', target: 90, direction: 'higher', unit: '%', ownerLabel: 'Επιτροπή Λοιμώξεων', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
+  { id: 'qo-demo-6', code: `QO-${new Date().getFullYear()}-06`, year: new Date().getFullYear(), level: 'hospital', title: 'Ολοκλήρωση εκπαίδευσης ≥ 90%', titleEn: 'Training completion ≥ 90%', platformIndicatorKey: 'training', target: 90, direction: 'higher', unit: '%', ownerLabel: 'Υπεύθυνος Εκπαίδευσης', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
 ]
+// A few months of the patient satisfaction objective, entered by its owner.
+const demoObjectiveValues = () => {
+  const year = new Date().getFullYear(), last = new Date().getMonth()
+  return [91, 93, 90, 88, 92, 94, 91, 89, 93, 92, 90, 91].slice(0, Math.max(1, last)).map((value, index) => ({ id: `qov-demo-${index + 1}`, objectiveId: 'qo-demo-3', month: `${year}-${String(index + 1).padStart(2, '0')}-01`, value }))
+}
 function local(key, seed) {
   const rows = loadSnapshot(key, null)
   if (Array.isArray(rows)) return rows
@@ -44,25 +53,49 @@ function local(key, seed) {
 
 // --- Objectives -------------------------------------------------------------------
 
-const toObjective = row => ({ id: row.id, code: row.code, year: row.year, title: row.title, titleEn: row.title_en || '', description: row.description || '', departmentId: row.department_id || '', registerId: row.register_id || '', indicatorKey: row.indicator_key || '', target: row.target == null ? '' : Number(row.target), direction: row.direction, unit: row.unit || '', reportedValue: row.reported_value == null ? '' : Number(row.reported_value), ownerLabel: row.owner_label || '', dueDate: row.due_date || '', status: row.status })
-const objectiveRow = (objective, organizationId) => ({ organization_id: organizationId, code: objective.code, year: Number(objective.year) || new Date().getFullYear(), title: objective.title.trim(), title_en: objective.titleEn?.trim() || null, description: objective.description || null, department_id: isUuid(objective.departmentId) ? objective.departmentId : null, register_id: isUuid(objective.registerId) ? objective.registerId : null, indicator_key: objective.indicatorKey || null, target: toNumber(objective.target), direction: objective.direction || 'higher', unit: objective.unit || null, reported_value: toNumber(objective.reportedValue), owner_label: objective.ownerLabel || null, due_date: objective.dueDate || null, status: objective.status || 'active' })
+// The demo objectives (repository.js keeps them under a new storage key since the levels, 2026-11).
+const OBJECTIVES_KEY = 'quality_local_objectives'
+const toObjective = row => ({ id: row.id, code: row.code, year: row.year, level: row.level || '', committeeId: row.committee_id || '', platformIndicatorKey: row.platform_indicator_key || '', title: row.title, titleEn: row.title_en || '', description: row.description || '', departmentId: row.department_id || '', registerId: row.register_id || '', indicatorKey: row.indicator_key || '', target: row.target == null ? '' : Number(row.target), direction: row.direction, unit: row.unit || '', reportedValue: row.reported_value == null ? '' : Number(row.reported_value), ownerLabel: row.owner_label || '', dueDate: row.due_date || '', status: row.status })
+const objectiveRow = (objective, organizationId) => ({ organization_id: organizationId, code: objective.code, level: objective.level || null, committee_id: isUuid(objective.committeeId) ? objective.committeeId : null, platform_indicator_key: objective.platformIndicatorKey || null, year: Number(objective.year) || new Date().getFullYear(), title: objective.title.trim(), title_en: objective.titleEn?.trim() || null, description: objective.description || null, department_id: isUuid(objective.departmentId) ? objective.departmentId : null, register_id: isUuid(objective.registerId) ? objective.registerId : null, indicator_key: objective.indicatorKey || null, target: toNumber(objective.target), direction: objective.direction || 'higher', unit: objective.unit || null, reported_value: toNumber(objective.reportedValue), owner_label: objective.ownerLabel || null, due_date: objective.dueDate || null, status: objective.status || 'active' })
 
 export async function loadObjectives(organizationId) {
-  if (isLocal()) return local('quality_local_objectives', demoObjectives)
+  if (isLocal()) return local(OBJECTIVES_KEY, demoObjectives)
   const rows = must(await supabase.from('quality_objectives').select('*').eq('organization_id', organizationId).order('year', { ascending: false }).order('code'))
   return (rows || []).map(toObjective)
 }
 
 export async function saveObjective(organizationId, objective) {
   if (isLocal()) {
-    const rows = local('quality_local_objectives', demoObjectives)
+    const rows = local(OBJECTIVES_KEY, demoObjectives)
     const next = { ...objective, code: objective.code || nextCode('QO', rows.map(row => row.code), objective.year), id: objective.id || localId('qo') }
-    saveSnapshot('quality_local_objectives', objective.id ? rows.map(row => (row.id === objective.id ? next : row)) : [...rows, next])
+    saveSnapshot(OBJECTIVES_KEY, objective.id ? rows.map(row => (row.id === objective.id ? next : row)) : [...rows, next])
     return next
   }
   if (isUuid(objective.id)) return toObjective(must(await supabase.from('quality_objectives').update(objectiveRow(objective, organizationId)).eq('id', objective.id).select('*').single()))
   const codes = must(await supabase.from('quality_objectives').select('code').eq('organization_id', organizationId)) || []
   return toObjective(must(await supabase.from('quality_objectives').insert(objectiveRow({ ...objective, code: nextCode('QO', codes.map(row => row.code), objective.year) }, organizationId)).select('*').single()))
+}
+
+// --- Monthly values (quality_objective_values) -----------------------------------
+
+const toValue = row => ({ id: row.id, objectiveId: row.objective_id, month: row.month, value: Number(row.value) })
+
+export async function loadObjectiveValues(organizationId) {
+  if (isLocal()) return local('quality_local_objective_values', demoObjectiveValues)
+  const rows = must(await supabase.from('quality_objective_values').select('id,objective_id,month,value').eq('organization_id', organizationId).order('month'))
+  return (rows || []).map(toValue)
+}
+
+// Saves one month's value of an objective (an empty value removes it).
+export async function saveObjectiveValue(organizationId, objectiveId, month, value) {
+  const number = toNumber(value)
+  if (isLocal()) {
+    const rows = local('quality_local_objective_values', demoObjectiveValues).filter(row => !(row.objectiveId === objectiveId && row.month === month))
+    saveSnapshot('quality_local_objective_values', number == null ? rows : [...rows, { id: localId('qov'), objectiveId, month, value: number }])
+    return
+  }
+  if (number == null) { must(await supabase.from('quality_objective_values').delete().eq('organization_id', organizationId).eq('objective_id', objectiveId).eq('month', month)); return }
+  must(await supabase.from('quality_objective_values').upsert({ organization_id: organizationId, objective_id: objectiveId, month, value: number }, { onConflict: 'objective_id,month' }))
 }
 
 // --- Reviews ------------------------------------------------------------------------

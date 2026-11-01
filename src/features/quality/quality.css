@@ -420,3 +420,9 @@ button.quality-column{border:0;background:none;padding:0;font:inherit;cursor:poi
 .meeting-decision{display:flex;align-items:flex-end;gap:10px;padding:8px 10px;border-radius:8px;background:var(--lo-color-surface-muted,#f5f8fa)}
 .meeting-decision>.field{flex:1 1 auto;min-width:0}
 .meeting-link{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--lo-color-primary,#1f6fa9);text-decoration:underline;cursor:pointer}
+.objective-month-entry{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.objective-month-entry>small{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted)}
+.objective-month-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.objective-month-cell{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--lo-color-muted)}
+.objective-month-cell input{height:36px;text-align:right}
+@media(max-width:760px){.objective-month-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}

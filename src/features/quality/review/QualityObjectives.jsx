@@ -11,42 +11,81 @@ import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
-import { loadObjectives, loadReviews } from './reviewService'
+import { loadObjectiveValues, loadObjectives, loadReviews } from './reviewService'
+import { OBJECTIVE_LEVELS, levelLabel, planStatusLabel, loadCommitteeTargets, loadIndicatorDefinitions, loadLevelNames, monthlyMean, objectiveLevel, objectiveSource, platformValuesForYears } from './objectiveSources'
 import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { QualityPersonField } from '../QualityFields'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
-// The objectives with their value today: from the linked register indicator
-// (the year so far) or the value the owner reported.
+// The objectives with their value today: from the linked register indicator (the year so far), from the
+// platform's indicator (the hospital's data for the year so far) or the mean of the months the owner entered.
 export function useObjectives(organizationId) {
   const [objectives, setObjectives] = useState([])
   const [registers, setRegisters] = useState([])
+  const [definitions, setDefinitions] = useState([])
+  const [values, setValues] = useState([])
+  const [levels, setLevels] = useState({ departments: [], committees: [] })
+  const [committeeTargets, setCommitteeTargets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const reload = useCallback(async () => {
     setLoading(true)
     try {
       setError(false)
-      const [rows, allRegisters] = await Promise.all([loadObjectives(organizationId), loadRegisters(organizationId).catch(() => [])])
+      const [rows, allRegisters, allDefinitions, allValues, names, plans] = await Promise.all([loadObjectives(organizationId), loadRegisters(organizationId).catch(() => []), loadIndicatorDefinitions(organizationId), loadObjectiveValues(organizationId).catch(() => []), loadLevelNames(organizationId).catch(() => ({ departments: [], committees: [] })), loadCommitteeTargets(organizationId).catch(() => [])])
       setRegisters(allRegisters)
-      // The registers the objectives read, together.
+      setDefinitions(allDefinitions)
+      setValues(allValues)
+      setLevels(names)
+      setCommitteeTargets(plans)
+      // The registers the objectives read, together; the platform's indicators once per year.
       const linked = [...new Set(rows.map(row => row.registerId).filter(Boolean))].map(id => allRegisters.find(item => item.id === id)).filter(Boolean)
       const entriesBy = new Map(await Promise.all(linked.map(async register => [register.id, await loadEntries(organizationId, register.id, { register }).catch(() => [])])))
+      const platformYears = [...new Set(rows.filter(row => !row.registerId && row.platformIndicatorKey).map(row => Number(row.year)))]
+      const platform = await platformValuesForYears(organizationId, allDefinitions, platformYears)
       setObjectives(rows.map(objective => {
         const register = allRegisters.find(item => item.id === objective.registerId)
         const indicator = register?.indicators.find(item => item.id === objective.indicatorKey)
-        const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value : toNumber(objective.reportedValue)
+        const platformIndicator = !register && objective.platformIndicatorKey ? allDefinitions.find(def => def.id === objective.platformIndicatorKey) || null : null
+        const months = allValues.filter(row => row.objectiveId === objective.id && row.month.startsWith(`${objective.year}-`)).sort((a, b) => a.month.localeCompare(b.month))
+        const value = indicator ? computeIndicator(register, indicator, entriesBy.get(register.id) || [], periodOf('year', `${objective.year}-06-01`)).value
+          : platformIndicator ? platform.get(Number(objective.year))?.get(platformIndicator.id) ?? null
+            : months.length ? monthlyMean(months) : toNumber(objective.reportedValue)
         // Without a target of its own, a linked objective takes the target set in the indicator's definition.
-        const fromIndicator = (objective.target === '' || objective.target == null) && indicator && indicator.target != null && indicator.target !== ''
-        const effective = fromIndicator ? { ...objective, target: Number(indicator.target), direction: ['higher', 'lower'].includes(indicator.direction) ? indicator.direction : objective.direction, targetFromIndicator: true } : objective
-        return { ...effective, register, indicator, current: { value, status: objectiveState(effective, value) } }
+        const source = indicator || platformIndicator
+        const fromIndicator = (objective.target === '' || objective.target == null) && source && source.target != null && source.target !== ''
+        const effective = fromIndicator ? { ...objective, target: Number(source.target), direction: ['higher', 'lower'].includes(source.direction) ? source.direction : objective.direction, targetFromIndicator: true } : objective
+        const department = names.departments.find(item => item.id === objective.departmentId)
+        const committee = names.committees.find(item => item.id === objective.committeeId)
+        return { ...effective, register, indicator, platformIndicator, months, department, committee, level: objectiveLevel(objective), current: { value, status: objectiveState(effective, value) } }
       }))
     } catch (failure) { console.error(failure); setObjectives([]); setError(true) } finally { setLoading(false) }
   }, [organizationId])
   useEffect(() => { void reload() }, [reload])
-  return { objectives, registers, loading, error, reload }
+  return { objectives, registers, definitions, values, levels, committeeTargets, loading, error, reload }
+}
+
+// Where an objective sits: the hospital, its department (from the department or the register) or its committee.
+export function objectiveLevelText(objective, language) {
+  const en = language === 'en'
+  if (objective.level === 'department') return (objective.department && (en ? objective.department.nameEn : objective.department.name)) || (objective.register && (en ? objective.register.departmentEn || objective.register.department : objective.register.department)) || levelLabel('department', en)
+  if (objective.level === 'committee') return objective.committee?.name || levelLabel('committee', en)
+  return levelLabel('hospital', en)
+}
+// How it is measured, in words.
+export function objectiveMeasureText(objective, language) {
+  const en = language === 'en'
+  if (objective.indicator) return textOf(objective.indicator, language)
+  if (objective.platformIndicator) return en ? objective.platformIndicator.titleEn || objective.platformIndicator.titleEl : objective.platformIndicator.titleEl
+  return en ? 'Value per month' : 'Τιμή ανά μήνα'
+}
+export function objectiveMeasureSource(objective, language) {
+  const en = language === 'en'
+  if (objective.indicator) return en ? objective.register.nameEn : objective.register.name
+  if (objective.platformIndicator) return en ? 'Platform indicator' : 'Δείκτης πλατφόρμας'
+  return objective.months?.length ? (en ? `${objective.months.length} months entered` : `${objective.months.length} μήνες καταχωρημένοι`) : (en ? 'Entered by the owner' : 'Από τον υπεύθυνο')
 }
 
 export function useReviews(organizationId) {
@@ -78,8 +117,10 @@ export function objectivesExport(rows, language) {
   const en = language === 'en'
   return {
     name: en ? 'quality-objectives' : 'stoxoi-poiotitas',
-    headers: en ? ['Code', 'Year', 'Objective', 'Measured by', 'Value', 'Target', 'Owner', 'Due', 'Status'] : ['Κωδικός', 'Έτος', 'Στόχος', 'Μετριέται με', 'Τιμή', 'Στόχος (τιμή)', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
-    rows: rows.map(objective => [objective.code, objective.year, objectiveTitle(objective, language), objective.indicator ? textOf(objective.indicator, language) : '', formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
+    headers: en ? ['Code', 'Year', 'Level', 'Objective', 'Measured by', 'Value', 'Target', 'Owner', 'Due', 'Status'] : ['Κωδικός', 'Έτος', 'Επίπεδο', 'Στόχος', 'Μετριέται με', 'Τιμή', 'Στόχος (τιμή)', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
+    rows: rows.map(objective => objective.kind === 'plan'
+      ? [objective.committeeCode, objective.year, objective.committeeName, objective.title, objective.indicator, objective.baseline, objective.target, objective.ownerLabel, formatDay(objective.dueDate, language), planStatusLabel(objective.status, en)]
+      : [objective.code, objective.year, objectiveLevelText(objective, language), objectiveTitle(objective, language), objectiveMeasureText(objective, language), formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
   }
 }
 
@@ -92,20 +133,29 @@ export function reviewsExport(rows, language) {
   }
 }
 
-// The year's quality objectives with their value today (Quality Center > Measurement & review).
+// The year's objectives with their value today (Indicators & objectives › Objectives): the hospital's, the departments'
+// and the committees' (those of the committees' annual plans open the committee).
 export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen }) {
   const { language } = useLanguage()
   const en = language === 'en'
-  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: objective => (objective.indicator ? textOf(objective.indicator, language) : '') }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: objective => targetReach(objective) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: objective => roleTitleText(objective.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: objective => objective.current.status }]}
-    rowProps={objective => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(objective) })}
-    renderRow={objective => <>
-      <td><strong>{objectiveTitle(objective, language)}</strong><small>{objective.code} · {objective.year}</small></td>
-      <td>{objective.indicator ? <>{textOf(objective.indicator, language)}<small>{en ? objective.register.nameEn : objective.register.name}</small></> : (en ? 'Value reported by the owner' : 'Τιμή από τον υπεύθυνο')}</td>
-      <td><strong>{formatObjectiveValue(objective.current.value, objective.unit, language)}</strong><small>{objective.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(objective.target, objective.unit, language)}</small><Meter value={targetReach(objective)} tone={objectiveStateTone(objective.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
-      <td>{roleTitleText(objective.ownerLabel, language) || '—'}<small>{formatDay(objective.dueDate, language)}</small></td>
-      <td><StatusBadge tone={objectiveStateTone(objective.current.status)}>{objectiveStateLabel(objective.current.status, en)}</StatusBadge></td>
+  const plan = row => row.kind === 'plan'
+  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: row => (plan(row) ? row.indicator : objectiveMeasureText(row, language)) }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: row => (plan(row) ? null : targetReach(row)) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: row => roleTitleText(row.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: row => (plan(row) ? row.status : row.current.status) }]}
+    rowKey={row => (plan(row) ? `plan-${row.id}` : row.id)}
+    rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(row) })}
+    renderRow={row => plan(row) ? <>
+      <td><strong>{row.title}</strong><small>{row.committeeName} · {en ? 'annual plan' : 'ετήσιο σχέδιο'}</small></td>
+      <td>{row.indicator || '—'}<small>{en ? 'Committee' : 'Επιτροπή'}</small></td>
+      <td><strong>{row.target || '—'}</strong>{row.baseline ? <small>{en ? 'from' : 'από'} {row.baseline}</small> : null}</td>
+      <td>{roleTitleText(row.ownerLabel, language) || '—'}<small>{formatDay(row.dueDate, language)}</small></td>
+      <td><StatusBadge tone={row.status === 'completed' ? 'success' : row.status === 'cancelled' ? 'neutral' : 'info'}>{planStatusLabel(row.status, en)}</StatusBadge></td>
+    </> : <>
+      <td><strong>{objectiveTitle(row, language)}</strong><small>{objectiveLevelText(row, language)} · {row.code}</small></td>
+      <td>{objectiveMeasureText(row, language)}<small>{objectiveMeasureSource(row, language)}</small></td>
+      <td><strong>{formatObjectiveValue(row.current.value, row.unit, language)}</strong><small>{row.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(row.target, row.unit, language)}</small><Meter value={targetReach(row)} tone={objectiveStateTone(row.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
+      <td>{roleTitleText(row.ownerLabel, language) || '—'}<small>{formatDay(row.dueDate, language)}</small></td>
+      <td><StatusBadge tone={objectiveStateTone(row.current.status)}>{objectiveStateLabel(row.current.status, en)}</StatusBadge></td>
     </>}
-    emptyTitle={!loading && !rows.length ? (en ? 'No quality objectives' : 'Δεν υπάρχουν στόχοι ποιότητας') : ''} emptyText={en ? 'Set the year’s objectives on the department indicators.' : 'Ορίστε τους στόχους του έτους πάνω στους δείκτες των τμημάτων.'} />
+    emptyTitle={!loading && !rows.length ? (en ? 'No objectives' : 'Δεν υπάρχουν στόχοι') : ''} emptyText={en ? 'Set the year’s objectives of the hospital, the departments and the committees.' : 'Ορίστε τους στόχους του έτους για το νοσοκομείο, τα τμήματα και τις επιτροπές.'} />
 }
 
 // The management reviews (ISO 9001 §9.3).
@@ -139,28 +189,41 @@ export function ObjectiveBars({ objectives }) {
   </li>)}</ul>
 }
 
-// The target set in the definition of the indicator an objective is linked to (null when none).
-export function linkedTarget(registers, objective) {
-  const indicator = registers.find(item => item.id === objective.registerId)?.indicators.find(item => item.id === objective.indicatorKey)
+// The target set in the definition of the indicator an objective is linked to (null when none): the register's indicator
+// or the platform's.
+export function linkedTarget(registers, objective, definitions = []) {
+  const indicator = objective.registerId ? registers.find(item => item.id === objective.registerId)?.indicators.find(item => item.id === objective.indicatorKey) : objective.platformIndicatorKey ? definitions.find(item => item.id === objective.platformIndicatorKey) : null
   return indicator && indicator.target != null && indicator.target !== '' ? Number(indicator.target) : null
 }
 
-export const newObjective = () => ({ year: new Date().getFullYear(), title: '', direction: 'higher', target: '', status: 'active' })
+export const newObjective = () => ({ year: new Date().getFullYear(), level: 'hospital', title: '', direction: 'higher', target: '', status: 'active' })
 
-// The fields of an objective, shared by the new-objective page and the edit dialog.
-export function ObjectiveFields({ objective, set, registers }) {
+// The fields of an objective, shared by the new-objective page and the edit page: where it sits (the hospital,
+// a department or a committee) and how it is measured (a register's indicator, a platform indicator or a value per month).
+export function ObjectiveFields({ objective, set, registers, definitions = [], levels = { departments: [], committees: [] } }) {
   const { language } = useLanguage()
   const en = language === 'en'
+  const level = objective.level || objectiveLevel(objective)
+  const measure = objective.measure || objectiveSource(objective)
   const register = registers.find(item => item.id === objective.registerId)
   const indicatorOptions = useMemo(() => (register?.indicators || []).map(item => ({ value: item.id, label: textOf(item, language) })), [register, language])
-  const indicatorTarget = linkedTarget(registers, objective)
+  const definitionOptions = useMemo(() => definitions.map(def => ({ value: def.id, label: en ? def.titleEn || def.titleEl : def.titleEl, description: def.unit || '' })), [definitions, en])
+  const indicatorTarget = linkedTarget(registers, objective, definitions)
+  const setMeasure = value => set(value === 'register' ? { measure: value, platformIndicatorKey: '' } : value === 'indicator' ? { measure: value, registerId: '', indicatorKey: '' } : { measure: value, registerId: '', indicatorKey: '', platformIndicatorKey: '' })
   return <>
     <div className="lo-form-cards"><FormCard wide>
       <Field label={`${en ? 'Objective' : 'Στόχος'} *`}><input value={objective.title || ''} onChange={event => set({ title: event.target.value })} /></Field>
       <FormGrid columns={3}>
-        <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} placeholder={en ? 'None: value reported by the owner' : 'Κανένα: τιμή από τον υπεύθυνο'} {...selectText(en)} />
-        {register ? <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} /> : <Field label={en ? 'Value so far' : 'Τιμή έως σήμερα'}><input inputMode="decimal" value={objective.reportedValue ?? ''} onChange={event => set({ reportedValue: event.target.value })} /></Field>}
-        {!register && <Field label={en ? 'Unit' : 'Μονάδα'}><input value={objective.unit || ''} onChange={event => set({ unit: event.target.value })} /></Field>}
+        <ChoiceField label={en ? 'Level' : 'Επίπεδο'} value={level} options={OBJECTIVE_LEVELS.map(value => ({ value, label: levelLabel(value, en) }))} onChange={value => set({ level: value, departmentId: value === 'department' ? objective.departmentId : '', committeeId: value === 'committee' ? objective.committeeId : '' })} />
+        {level === 'department' && <SearchableSelect label={en ? 'Department' : 'Τμήμα'} value={objective.departmentId || ''} options={levels.departments.map(item => ({ value: item.id, label: en ? item.nameEn || item.name : item.name }))} onChange={value => set({ departmentId: value || '' })} placeholder={en ? 'From the register' : 'Από το μητρώο'} {...selectText(en)} />}
+        {level === 'committee' && <SearchableSelect label={en ? 'Committee' : 'Επιτροπή'} value={objective.committeeId || ''} options={levels.committees.map(item => ({ value: item.id, label: item.name }))} onChange={value => set({ committeeId: value || '' })} {...selectText(en)} />}
+      </FormGrid>
+      <FormGrid columns={3}>
+        <ChoiceField label={en ? 'Measured by' : 'Μετριέται με'} value={measure} options={[{ value: 'register', label: en ? 'Department register' : 'Μητρώο τμήματος' }, { value: 'indicator', label: en ? 'Platform indicator' : 'Δείκτης πλατφόρμας' }, { value: 'monthly', label: en ? 'Value per month' : 'Τιμή ανά μήνα' }]} onChange={setMeasure} />
+        {measure === 'register' && <SearchableSelect label={en ? 'Register' : 'Μητρώο'} value={objective.registerId || ''} options={registers.map(item => ({ value: item.id, label: en ? item.nameEn : item.name, description: en ? item.departmentEn : item.department }))} onChange={value => set({ registerId: value || '', indicatorKey: '' })} {...selectText(en)} />}
+        {measure === 'register' && register && <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.indicatorKey || ''} options={indicatorOptions} onChange={value => { const indicator = register.indicators.find(item => item.id === value); set({ indicatorKey: value || '', unit: indicator?.unit || objective.unit, direction: ['higher', 'lower'].includes(indicator?.direction) ? indicator.direction : objective.direction }) }} {...selectText(en)} />}
+        {measure === 'indicator' && <SearchableSelect label={en ? 'Indicator' : 'Δείκτης'} value={objective.platformIndicatorKey || ''} options={definitionOptions} onChange={value => { const def = definitions.find(item => item.id === value); set({ platformIndicatorKey: value || '', unit: def?.unit || objective.unit, direction: ['higher', 'lower'].includes(def?.direction) ? def.direction : objective.direction }) }} {...selectText(en)} />}
+        {measure === 'monthly' && <Field label={en ? 'Unit' : 'Μονάδα'}><input value={objective.unit || ''} onChange={event => set({ unit: event.target.value })} /></Field>}
       </FormGrid>
       <FormGrid columns={3}>
         <ChoiceField label={en ? 'Met when the value is' : 'Επιτυγχάνεται όταν η τιμή είναι'} value={objective.direction} options={[{ value: 'higher', label: en ? 'At least' : 'Τουλάχιστον' }, { value: 'lower', label: en ? 'At most' : 'Το πολύ' }]} onChange={value => set({ direction: value })} />
@@ -171,6 +234,7 @@ export function ObjectiveFields({ objective, set, registers }) {
         <QualityPersonField label={en ? 'Owner' : 'Υπεύθυνος'} name={objective.ownerLabel || ''} onChange={({ name }) => set({ ownerLabel: name })} />
         <ManualDateField label={en ? 'Due' : 'Προθεσμία'} value={objective.dueDate || ''} onChange={value => set({ dueDate: value })} />
       </FormGrid>
+      {measure === 'monthly' && <p className="field-hint">{en ? 'The owner enters the value of each month on the objective’s page; the year’s value is their mean.' : 'Ο υπεύθυνος περνά την τιμή κάθε μήνα στη σελίδα του στόχου· η τιμή του έτους είναι ο μέσος όρος τους.'}</p>}
     </FormCard></div>
   </>
 }

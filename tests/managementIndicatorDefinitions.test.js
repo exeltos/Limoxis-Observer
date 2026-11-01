@@ -22,11 +22,13 @@ describe('management indicator definitions',()=>{
   expect(service).toContain('removeIndicatorDefinition')
  })
  it('routes indicator management through its dedicated capability',()=>{
-  expect(MANAGEMENT_CAPABILITIES).toContain(CAPABILITIES.MANAGE_INDICATORS)
+  // The hospital's indicator definitions live in «Δείκτες & Στόχοι»: managing them does not open the Management Center.
+  expect(MANAGEMENT_CAPABILITIES).not.toContain(CAPABILITIES.MANAGE_INDICATORS)
   expect(MANAGEMENT_CAPABILITIES).toContain(CAPABILITIES.MANAGE_ANNOUNCEMENTS)
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_INDICATORS)).toBe(true)
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_LIBRARIES)).toBe(false)
-  expect(page).toContain("okCap(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
+  expect(page).not.toContain("okCap(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
+  expect(fs.readFileSync('src/features/quality/QualityPage.jsx','utf8')).toContain("goTo('/indicators/new')")
  })
  it('exposes a governed management UI',()=>{
   expect(page).toContain("id:'indicators'")

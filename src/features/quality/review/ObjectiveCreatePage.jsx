@@ -26,14 +26,14 @@ export function ObjectiveCreatePage() {
   const canManage = can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities || [], membership?.customCapabilities || [])
   const { goBack } = useContextualNavigation('/quality')
   const { objectiveId } = useParams()
-  const { objectives, registers, loading } = useObjectives(tenant?.id)
+  const { objectives, registers, definitions, levels, loading } = useObjectives(tenant?.id)
   const existing = objectiveId ? objectives.find(item => item.id === objectiveId) : null
   const [objective, setObjective] = useState(newObjective)
   // Editing: the form starts from the saved objective, without the values computed for display.
-  useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line no-unused-vars
+  useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, platformIndicator: _p, months: _m, department: _d, committee: _k, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line no-unused-vars
   const [saving, setSaving] = useState(false)
   const set = next => setObjective(current => ({ ...current, ...next }))
-  const valid = Boolean(objective.title?.trim()) && ((objective.target !== '' && objective.target != null) || linkedTarget(registers, objective) != null)
+  const valid = Boolean(objective.title?.trim()) && ((objective.target !== '' && objective.target != null) || linkedTarget(registers, objective, definitions) != null)
   const back = () => { if (!objectiveId) rememberQualitySection('indicators:objectives'); goBack() }
   async function save() {
     if (!valid || saving) return
@@ -50,7 +50,7 @@ export function ObjectiveCreatePage() {
   return <Page fill><EntityRecordShell className="quality-record-shell workspace-fill" avatar={<Target size={19} />} eyebrow={t('quality')} title={objectiveId ? (en ? 'Edit quality objective' : 'Επεξεργασία στόχου') : (en ? 'New quality objective' : 'Νέος στόχος ποιότητας')}
     subtitle={en ? 'Measurable, with an owner and a date.' : 'Μετρήσιμος, με υπεύθυνο και προθεσμία.'} tabs={[]} activeTab="" onTabChange={() => {}} onBack={back}>
     <div className="record-section">
-      <ObjectiveFields objective={objective} set={set} registers={registers} />
+      <ObjectiveFields objective={objective} set={set} registers={registers} definitions={definitions} levels={levels} />
       <div className="inline-edit-footer">
         <Button variant="secondary" onClick={back}>{en ? 'Cancel' : 'Ακύρωση'}</Button>
         <SaveButton loading={saving} disabled={saving || !valid} onClick={save}>{objectiveId ? (en ? 'Save' : 'Αποθήκευση') : (en ? 'Create objective' : 'Δημιουργία στόχου')}</SaveButton>

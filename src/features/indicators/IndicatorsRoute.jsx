@@ -20,7 +20,7 @@ export function IndicatorsRoute() {
   const dataItems = useIndicatorDataItems()
   const addOns = membership?.capabilities ?? [], custom = membership?.customCapabilities ?? []
   if (can(role, CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD, addOns, custom) && new URLSearchParams(location.search).get('tab') === 'data') return <Navigate to={`/executive${location.search}`} replace />
-  if (can(role, CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD, addOns, custom)) return <Navigate to={can(role, CAPABILITIES.MANAGE_INDICATORS, addOns, custom) ? '/management?tab=indicators' : '/executive'} replace />
+  if (can(role, CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD, addOns, custom)) return <Navigate to={can(role, CAPABILITIES.MANAGE_INDICATORS, addOns, custom) && can(role, CAPABILITIES.VIEW_QUALITY, addOns, custom) ? '/quality/measures' : '/executive'} replace />
   if (!dataItems.length) return <IndicatorsPage />
   const params = new URLSearchParams(location.search)
   const view = params.get('tab') === 'data' ? 'data' : 'list'

@@ -19,7 +19,9 @@ describe('Management Center: hospital vs platform', () => {
     // One row of tabs; Hospital and Lists are left lists of their screens; the indicator data moved to Indicators › Data.
     for (const id of ['users', 'roles', 'hospital', 'lists', 'patientDays', 'liraAi']) expect(hospitalTabs).toContain(`id:'${id}'`)
     const rails = page.slice(page.indexOf('const hospitalLead='), page.indexOf('// group row only') > 0 ? page.indexOf('// group row only') : page.length)
-    for (const id of ['identity', 'security', 'announcements', 'questionnaires', 'clinicalScales', 'environmentTemplates', 'bundles', 'haiCriteria', 'indicators']) expect(rails).toContain(`id:'${id}'`)
+    for (const id of ['identity', 'security', 'announcements', 'questionnaires', 'clinicalScales', 'environmentTemplates', 'bundles', 'haiCriteria']) expect(rails).toContain(`id:'${id}'`)
+    // The indicator definitions moved to «Δείκτες & Στόχοι».
+    expect(rails).not.toContain("id:'indicators'")
     for (const id of ['hospitalStructure', 'prevalenceSurvey']) expect(hospitalTabs).not.toContain(`id:'${id}'`)
     // The outbreak investigations moved to Surveillance › Outbreaks; LIRA & AI keeps the AI settings.
     expect(hospitalTabs).not.toContain("id:'liraOutbreaks'")

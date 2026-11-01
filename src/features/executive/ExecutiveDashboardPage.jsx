@@ -24,7 +24,8 @@ import { AnalysisPage } from '../analysis/AnalysisPage'
 import { periodTag,readSharedPeriod,writeSharedPeriod } from '../analysis/sharedPeriod'
 import { loadCommittees } from '../committees/committeeData'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
-import { controlRanking,executiveKpis,filtersToQuery,monthlyRate,parseFilters,pct,periodRange,previousRange,redFlags,visibleFor,withDeltas } from './executiveModel'
+import { TARGETS,controlRanking,executiveKpis,filtersToQuery,monthlyRate,parseFilters,pct,periodRange,previousRange,redFlags,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
+import { loadObjectives } from '../quality/review/reviewService'
 import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
 import './executive.css'
 import { Database } from 'lucide-react'
@@ -128,13 +129,16 @@ export function ExecutiveDashboardPage(){
   return {domains:parts.domains,people:parts.people,qualityFood:parts.qualityFood,microbiology:parts.microbiology}
 },[isDemo,organizationId,previous,previousDepartment,en])
  const current=useParts(currentParts),before=useParts(previousParts)
+ // The targets of the measures, from the hospital's objectives on the platform's indicators.
+ const [targets,setTargets]=useState(TARGETS)
+ useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;loadObjectives(organizationId).then(rows=>{if(live)setTargets(targetsFromObjectives(rows))}).catch(()=>{});return()=>{live=false}},[isDemo,organizationId])
  const snapshot=useMemo(()=>snapshotOf(current),[current])
  const governance=ready(current.governance)?current.governance.data:null
  const kpis=useMemo(()=>{
-  const now=executiveKpis(snapshot,governance)
+  const now=executiveKpis(snapshot,governance,targets)
   const allPrevious=previous&&['domains','people','qualityFood','microbiology'].every(key=>ready(before[key]))
-  return visibleFor(withDeltas(now,allPrevious?executiveKpis(snapshotOf(before),governance):null),moduleEnabled)
- },[snapshot,governance,previous,before,moduleEnabled])
+  return visibleFor(withDeltas(now,allPrevious?executiveKpis(snapshotOf(before),governance,targets):null),moduleEnabled)
+ },[snapshot,governance,previous,before,moduleEnabled,targets])
  const flags=useMemo(()=>redFlags(kpis,snapshot,moduleEnabled),[kpis,snapshot,moduleEnabled])
  const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')
  // A part that failed was never evaluated: «all on target» needs every part read.
@@ -154,7 +158,8 @@ export function ExecutiveDashboardPage(){
  const hospital=tenant?.name||tx('Νοσοκομείο','Hospital')
  const generated=new Date().toLocaleString(en?'en-GB':'el-GR',{dateStyle:'short',timeStyle:'short', hourCycle: 'h23'})
  const reportLines=[hospital,`${tx('Περίοδος','Period')}: ${periodLabel} (${presetLabels[filters.period]})`,`${tx('Τμήμα','Department')}: ${departmentName}${previous?` · ${tx('σύγκριση με','compared with')} ${previousLabel}`:''}`,`${tx('Δημιουργήθηκε','Generated')}: ${generated}`]
- const title=tx('Δείκτες','Indicators')
+ // «Εικόνα νοσοκομείου»: the picture for the administration (the indicators and objectives are in «Δείκτες & Στόχοι»).
+ const title=tx('Εικόνα νοσοκομείου','Hospital overview')
  // A report holds every chart and the whole attention list.
  const unfoldAll=()=>flushSync(()=>{setOpenCards(new Set(['infections','prevention','controls','quality','people','food','governance']));setAllFlags(true)})
  function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'})}

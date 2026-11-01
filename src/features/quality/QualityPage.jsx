@@ -37,7 +37,8 @@ import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { ObjectivesTable,objectivesExport,useObjectives } from './review/QualityObjectives'
-import { loadObjectiveHistories,objectivesDossier } from './review/objectiveDossier'
+import { loadDossierExtras,loadObjectiveHistories,objectivesDossier } from './review/objectiveDossier'
+import { OBJECTIVE_LEVELS,levelLabel } from './review/objectiveSources'
 import { loadReviews } from './review/reviewService'
 import { SurveysList,filterSurveys,surveyCounts,surveysExport,useSurveys } from './surveys/SurveysPanel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
@@ -153,20 +154,23 @@ export function QualityPage({section=''}={}){
  const objectives=useObjectives(tenant?.id)
  // The auditor's file of the year's objectives: the months of each and the last management review, read once the objectives are on screen.
  const [dossierData,setDossierData]=useState(null)
- useEffect(()=>{if(tab!=='indicators'||measureView!=='objectives'||objectives.loading||!tenant?.id){return undefined}let live=true;Promise.all([loadObjectiveHistories(tenant.id,objectives.objectives),loadReviews(tenant.id).catch(()=>[])]).then(([histories,reviews])=>{if(live)setDossierData({histories,reviews})}).catch(()=>{if(live)setDossierData(null)});return()=>{live=false}},[tab,measureView,objectives.loading,objectives.objectives,tenant?.id])
+ const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all',year:'auto',level:'all'})
+ const dossierYear=objectiveFilters.year==='auto'||objectiveFilters.year==='all'?new Date().getFullYear():Number(objectiveFilters.year)
+ useEffect(()=>{if(tab!=='indicators'||measureView!=='objectives'||objectives.loading||!tenant?.id){return undefined}let live=true;Promise.all([loadObjectiveHistories(tenant.id,objectives.objectives,objectives.definitions),loadReviews(tenant.id).catch(()=>[]),loadDossierExtras(tenant.id,dossierYear,objectives.definitions).catch(()=>null)]).then(([histories,reviews,extras])=>{if(live)setDossierData({histories,reviews,extras})}).catch(()=>{if(live)setDossierData(null)});return()=>{live=false}},[tab,measureView,objectives.loading,objectives.objectives,objectives.definitions,tenant?.id,dossierYear])
  const surveys=useSurveys()
  const visibleSurveys=useMemo(()=>filterSurveys(surveys.surveys,surveyFilters),[surveys.surveys,surveyFilters])
  const resources=useResources(tab==='resources')
  const visibleEquipment=useMemo(()=>filterEquipment(resources.equipment,equipmentFilters),[resources.equipment,equipmentFilters])
  const visibleSuppliers=useMemo(()=>filterSuppliers(resources.suppliers,supplierFilters),[resources.suppliers,supplierFilters])
- const [objectiveFilters,setObjectiveFilters]=useState({query:'',state:'all',year:'auto'})
 
  // The year of the objectives shown: this year's when there are any, else all (the older years stay one choice away).
  const objectiveYears=useMemo(()=>[...new Set(objectives.objectives.map(item=>item.year).filter(Boolean))].sort((a,b)=>b-a),[objectives.objectives])
  const objectiveYear=objectiveFilters.year==='auto'?(objectiveYears.includes(new Date().getFullYear())?String(new Date().getFullYear()):'all'):objectiveFilters.year
  const inObjectiveYear=item=>objectiveYear==='all'||String(item.year)===objectiveYear
  const isMissed=item=>(item.status||'active')==='active'&&item.current.status==='missed'
- const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return objectives.objectives.filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>!q||`${item.code} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''}`.toLowerCase().includes(q)).filter(item=>objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,objectiveFilters,objectiveYear])
+ // All the hospital's objectives in one list: its own, the departments' and the committees' (with the committees' annual plans).
+ const planRows=useMemo(()=>objectives.committeeTargets.map(item=>({...item,kind:'plan',level:'committee'})),[objectives.committeeTargets])
+ const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();const plans=objectiveFilters.state==='all'?planRows:[];return [...objectives.objectives,...plans].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q)).filter(item=>item.kind==='plan'||objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
  const todayIso=new Date().toISOString().slice(0,10)
 
  const overdueActions=actions.filter(isOverdueAction).length
@@ -184,7 +188,6 @@ export function QualityPage({section=''}={}){
  ]
  const actionCount=actionCounts(actions)
  const auditCount=auditCounts(audits)
- const objectiveState=state=>{setMeasureView('objectives');setObjectiveFilters(current=>({...current,state:current.state===state&&measureView==='objectives'?'all':state}))}
  const activeObjectives=objectives.objectives.filter(inObjectiveYear).filter(item=>(item.status||'active')==='active')
  const isStaleRegister=useCallback(item=>isStale(item,todayIso),[todayIso])
  const staleRegisters=registerList.registers.filter(isStaleRegister).length
@@ -199,11 +202,8 @@ export function QualityPage({section=''}={}){
   ]:[],
   registers:[{key:'registers',icon:ClipboardList,value:registerList.loading?'—':registerList.registers.length,label:L('Μητρώα τμημάτων','Department registers'),active:measureView==='registers'&&!staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(false)}},
    {key:'stale',icon:Clock3,value:registerList.loading?'—':staleRegisters,label:L(`Χωρίς καταχώριση ${STALE_DAYS}+ ημέρες`,`No entry for ${STALE_DAYS}+ days`),tone:'warning',active:measureView==='registers'&&staleOnly,go:()=>{setMeasureView('registers');setStaleOnly(value=>measureView!=='registers'||!value)}}],
-  objectives:[
-   {key:'objectives',icon:Target,value:objectives.loading?'—':activeObjectives.length,label:L('Ενεργοί στόχοι','Active objectives'),active:measureView==='objectives'&&objectiveFilters.state==='all',go:()=>objectiveState('all')},
-   {key:'met',icon:CheckCircle2,value:activeObjectives.filter(item=>item.current.status==='met').length,label:L('Επιτυγχάνονται','Met'),active:measureView==='objectives'&&objectiveFilters.state==='met',go:()=>objectiveState('met')},
-   {key:'missed',icon:TrendingDown,value:missedObjectives,label:L('Δεν επιτυγχάνονται','Not met'),status:missedObjectives?'danger':'good',active:measureView==='objectives'&&objectiveFilters.state==='missed',go:()=>objectiveState('missed')},
-   {key:'pending',icon:Clock3,value:activeObjectives.filter(item=>item.current.status==='pending').length,label:L('Χωρίς τιμή ακόμα','No value yet'),active:measureView==='objectives'&&objectiveFilters.state==='pending',go:()=>objectiveState('pending')}],
+  // The objectives without figures above them: the list and its filters say it all.
+  objectives:[],
   equipment:(()=>{const count=equipmentCounts(resources.equipment);const dash=value=>resources.loading?'—':value;const quick=key=>setEquipmentFilters(current=>({...current,quick:current.quick===key?null:key}));return [
    {key:'all',icon:Stethoscope,value:dash(count.total),label:L('Εξοπλισμός σε χρήση','Equipment in use'),hint:resources.loading?null:L(`${count.critical} κρίσιμος`,`${count.critical} critical`),active:!equipmentFilters.quick,go:()=>setEquipmentFilters(current=>({...current,quick:null}))},
    {key:'overdue',icon:AlertTriangle,value:dash(count.overdue),label:L('Εκπρόθεσμη συντήρηση / διακρίβωση','Overdue maintenance / calibration'),status:resources.loading?null:count.overdue?'danger':'good',target:L('στόχος: 0','target: 0'),active:equipmentFilters.quick==='overdue',go:()=>quick('overdue')},
@@ -267,7 +267,7 @@ export function QualityPage({section=''}={}){
   ]}/>})(),
   risks:listExport(riskRows,()=>riskAssessmentsExport(riskRows,language),L('Εκτιμήσεις κινδύνου','Risk assessments')),
   // «Indicators» puts its own «Export» here (actionsSlot).
-  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'),[{id:'dossier',kind:'pdf',label:L('Ετήσιος φάκελος στόχων','Annual objectives file'),disabled:!dossierData||!activeObjectives.length,onClick:()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,histories:dossierData.histories,reviews:dossierData.reviews,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]),
+  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'),[{id:'dossier',kind:'pdf',label:L('Ετήσιος φάκελος στόχων','Annual objectives file'),disabled:!dossierData||(!activeObjectives.length&&!objectives.committeeTargets.length),onClick:()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,committeeTargets:objectives.committeeTargets,histories:dossierData.histories,reviews:dossierData.reviews,extras:dossierData.extras,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]),
   resources:resourceView==='equipment'?listExport(visibleEquipment,()=>equipmentExport(visibleEquipment,language),L('Εξοπλισμός','Equipment')):listExport(visibleSuppliers,()=>suppliersExport(visibleSuppliers,language),L('Προμηθευτές','Suppliers')),
  })[tab]
 
@@ -314,11 +314,12 @@ export function QualityPage({section=''}={}){
    {tab==='risks'&&<RiskAssessmentsPanel list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
    {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
-    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto'})} end={null}>
+    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)+(objectiveFilters.level!=='all'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto',level:'all'})} end={null}>
      <FilterSelect label={L('Έτος','Year')} value={objectiveYear} onChange={year=>setObjectiveFilters(current=>({...current,year}))}><option value="all">{L('Όλα τα έτη','All years')}</option>{objectiveYears.map(year=>{const value=String(year);return <option key={value} value={value}>{value}</option>})}</FilterSelect>
+     <FilterSelect label={L('Επίπεδο','Level')} value={objectiveFilters.level} onChange={level=>setObjectiveFilters(current=>({...current,level}))}><option value="all">{L('Όλα τα επίπεδα','All levels')}</option>{OBJECTIVE_LEVELS.map(level=><option key={level} value={level}>{levelLabel(level,en)}</option>)}</FilterSelect>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>
     </FilterBar>
-    <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} error={objectives.error} onRetry={objectives.reload} onOpen={objective=>openRecord('objectives',objective.id,visibleObjectives.map(item=>item.id))}/>
+    <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} error={objectives.error} onRetry={objectives.reload} onOpen={objective=>{if(objective.kind==='plan'){writeSessionValue(RETURN_KEY,'indicators:objectives');navigate(`/committees/${objective.committeeCode}`);return}openRecord('objectives',objective.id,visibleObjectives.filter(item=>item.kind!=='plan').map(item=>item.id))}}/>
    </>}
    {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} registry={registry} filters={surveyFilters} setFilters={setSurveyFilters} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');registry.openRecord(navigate,`/quality/surveys/${survey.id}`,survey.id)}}/>}
    {tab==='resources'&&resourceView==='equipment'&&<EquipmentList list={resources} registry={registry} filters={equipmentFilters} setFilters={setEquipmentFilters} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');registry.openRecord(navigate,`/quality/equipment/${row.id}`,row.id)}}/>}
