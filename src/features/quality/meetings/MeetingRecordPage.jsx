@@ -29,7 +29,7 @@ import { useEmployeesData } from '../../employees/useEmployeesData'
 import { DocumentsWorkspace } from '../../../design-system/DocumentsWorkspace'
 import { ModeSwitch } from '../../../design-system/ModeSwitch'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
-import { saveMeeting } from './meetingService'
+import { deleteMeeting, saveMeeting } from './meetingService'
 import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
 import '../quality.css'
 
@@ -76,7 +76,7 @@ export function MeetingRecordPage() {
   const navigate = useNavigate()
   const { language } = useLanguage()
   const en = language === 'en'
-  const { notify } = useFeedback()
+  const { notify, confirm } = useFeedback()
   const { tenant, role, membership } = useTenant()
   const canCreateTraining = can(role, CAPABILITIES.MANAGE_TRAINING, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const { user, profile } = useAuth()
@@ -142,6 +142,11 @@ export function MeetingRecordPage() {
   const setPerson = (index, next) => setMeeting(current => ({ ...current, participants: current.participants.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const chooseDepartment = id => { const department = ownDepartments.find(item => (item.id || item.name) === id); if (department) setMeeting(current => ({ ...newMeetingFor(department, list.all, current.meetingDate), meetingDate: current.meetingDate })) }
 
+  async function remove() {
+    const ok = await confirm({ title: en ? 'Delete meeting' : 'Διαγραφή συνάντησης', message: en ? 'The meeting is deleted with its topics, decisions and attendance. A linked training or corrective action stays.' : 'Διαγράφεται η συνάντηση με τα θέματα, τις αποφάσεις και τις παρουσίες της. Η εκπαίδευση ή η διορθωτική ενέργεια που συνδέθηκε μένει.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
+    if (!ok) return
+    try { await deleteMeeting(tenant?.id, meeting.id); list.reload(); notify(en ? 'Meeting deleted.' : 'Η συνάντηση διαγράφηκε.', 'success'); goBack() } catch (error) { console.error(error); notify(en ? 'The meeting could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή της συνάντησης.', 'error') }
+  }
   async function save(nextStatus) {
     if (!meeting.departmentId) { notify(en ? 'Choose the department first.' : 'Επιλέξτε πρώτα το τμήμα.', 'error'); return }
     setSaving(true)
@@ -189,8 +194,8 @@ export function MeetingRecordPage() {
     </div>
   }
   const looseDecisions = meeting.decisions.map((item, index) => ({ item, index })).filter(({ item }) => !meeting.topics.some(topic => topic.id && topic.id === item.topicId))
-  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} subtitle={meeting.status === 'final' ? (en ? `Final · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'en')}` : `Οριστικό · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'el')}`) : undefined} footer={footer}>
+  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />}{!isNew && !locked && <IconButton tone="danger" label={en ? 'Delete meeting' : 'Διαγραφή συνάντησης'} onClick={remove}><Trash2 size={16} /></IconButton>}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
+    {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Meeting' : 'Συνάντηση'}>
           <FormGrid columns={3}>

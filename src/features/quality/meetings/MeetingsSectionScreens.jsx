@@ -45,15 +45,15 @@ export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', o
   if (ownDepartment && !data.loading && data.groups.length === 1) return <MeetingGroupPage groupId={data.groups[0].id} home={home} />
   async function addGroup(group) {
     setSaving(true)
-    try { const saved = await saveMeetingGroup(tenant?.id, group); notify(L('Η ομάδα δημιουργήθηκε.', 'Group created.'), 'success'); setAdding(false); data.reload(); goTo(`/meetings/groups/${saved.id}`) } catch (error) { console.error(error); notify(L('Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'The group could not be saved.'), 'error') } finally { setSaving(false) }
+    try { const saved = await saveMeetingGroup(tenant?.id, group); notify(L('Το τμήμα προστέθηκε.', 'Department added.'), 'success'); setAdding(false); data.reload(); goTo(`/meetings/groups/${saved.id}`) } catch (error) { console.error(error); notify(L('Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'The group could not be saved.'), 'error') } finally { setSaving(false) }
   }
   return <Page fill className="registry-fill-page" title={ownDepartment ? t('sidebarNav.departmentMeetings') : t('sidebarNav.tabDepartmentMeetings')} subtitle={L('Μία ομάδα συναντήσεων ανά τμήμα, με τη συχνότητα που όρισε η διοίκηση.', 'One meeting group per department, meeting as often as the administration set.')}
     actions={<div className="row-actions">
       <ExportMenu disabled={!data.meetings.meetings.length} onPrint={() => printList(meetingsExport(data.meetings.meetings, language), t('sidebarNav.tabDepartmentMeetings'))} onExcel={() => exportRegistry(meetingsExport(data.meetings.meetings, language))} />
-      {data.canManage && <ActionButton label={L('Ομάδα συναντήσεων', 'Meeting group')} tone="primary" onClick={() => setAdding(true)}><Plus size={18} /><span>{L('Ομάδα', 'Group')}</span></ActionButton>}
+      {data.canManage && <ActionButton label={L('Νέο τμήμα συναντήσεων', 'New meeting department')} tone="primary" onClick={() => setAdding(true)}><Plus size={18} /><span>{L('Τμήμα', 'Department')}</span></ActionButton>}
     </div>}>
     <section className="surface registry-workspace workspace-column workspace-fill">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση ομάδας ή τμήματος…', 'Search group or department…')} onClear={() => setQuery('')} />
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση τμήματος…', 'Search department…')} onClear={() => setQuery('')} />
       <MeetingGroupsList data={shown} language={language} onOpen={group => goTo(`/meetings/groups/${group.id}`)} />
     </section>
     {adding && <MeetingGroupDialog initial={{}} departments={departments} saving={saving} onClose={() => setAdding(false)} onSave={addGroup} language={language} />}

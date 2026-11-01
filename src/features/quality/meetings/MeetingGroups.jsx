@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CalendarClock, ClipboardList, MessagesSquare, Pencil, Plus, Users } from 'lucide-react'
+import { CalendarClock, ClipboardList, MessagesSquare, Pencil, Plus, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -21,7 +21,7 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { useContextualNavigation } from '../../../core/navigation/useContextualNavigation'
 import { useDepartments } from '../../management/useLibraries'
 import { useMeetingGroups } from './MeetingsPanel'
-import { saveMeetingGroup } from './meetingService'
+import { deleteMeetingGroup, saveMeetingGroup } from './meetingService'
 import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup } from './meetingModel'
 import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
@@ -38,7 +38,7 @@ export function MeetingGroupDialog({ initial, departments, saving, onClose, onSa
   const set = next => setV(current => ({ ...current, ...next }))
   const chooseDepartment = id => { const department = departments.find(item => (item.id || item.name) === id); set({ departmentId: id || '', department: department?.name || '', name: v.name || (department ? `${en ? 'Meetings' : 'Συναντήσεις'} ${department.name}` : '') }) }
   const frequencies = MEETING_FREQUENCIES.includes(Number(v.frequencyDays)) ? MEETING_FREQUENCIES : [...MEETING_FREQUENCIES, Number(v.frequencyDays)].sort((a, b) => a - b)
-  return <ObserverDialog title={v.id ? (en ? 'Meeting group' : 'Ομάδα συναντήσεων') : (en ? 'New meeting group' : 'Νέα ομάδα συναντήσεων')} subtitle={en ? 'How often the department meets, as the administration set it.' : 'Πόσο συχνά συναντάται το τμήμα, όπως το όρισε η διοίκηση.'} onClose={onClose}
+  return <ObserverDialog title={v.id ? (en ? 'Meeting group' : 'Ομάδα συναντήσεων') : (en ? 'New meeting department' : 'Νέο τμήμα συναντήσεων')} subtitle={en ? 'How often the department meets, as the administration set it.' : 'Πόσο συχνά συναντάται το τμήμα, όπως το όρισε η διοίκηση.'} onClose={onClose}
     footer={<DialogActions onSave={() => onSave(v)} saveLabel={en ? 'Save' : 'Αποθήκευση'} disabled={saving || !String(v.name).trim() || !v.departmentId} />}>
     <FormGrid columns={2}>
       <SearchableSelect label={en ? 'Department *' : 'Τμήμα *'} value={v.departmentId} options={departments.map(item => ({ value: item.id || item.name, label: en ? item.nameEn || item.name : item.name }))} onChange={chooseDepartment} placeholder={en ? 'Choose the department' : 'Επιλέξτε τμήμα'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} clearLabel={en ? 'Clear' : 'Καθαρισμός'} />
@@ -56,9 +56,9 @@ export function MeetingGroupsList({ data, onOpen, language }) {
   const en = language === 'en'
   const today = new Date().toISOString().slice(0, 10)
   const rows = useMemo(() => data.groups.map(group => ({ group, status: groupStatus(group, data.meetings.meetings, today) })), [data.groups, data.meetings.meetings, today])
-  return <div className="scroll-table">
+  return <>
     <RegistryTable className="quality-table" rows={rows} rowKey={row => row.group.id} error={data.error} onRetry={data.reload}
-      columns={[{ key: 'group', label: en ? 'Group' : 'Ομάδα' }, { key: 'frequency', label: en ? 'Meets' : 'Συχνότητα' }, { key: 'last', label: en ? 'Last meeting' : 'Τελευταία' }, { key: 'next', label: en ? 'Next due' : 'Επόμενη' }, { key: 'meetings', label: en ? 'Meetings' : 'Συναντήσεις' }]}
+      columns={[{ key: 'group', label: en ? 'Department' : 'Τμήμα' }, { key: 'frequency', label: en ? 'Meets' : 'Συχνότητα' }, { key: 'last', label: en ? 'Last meeting' : 'Τελευταία' }, { key: 'next', label: en ? 'Next due' : 'Επόμενη' }, { key: 'meetings', label: en ? 'Meetings' : 'Συναντήσεις' }]}
       emptyTitle={en ? 'No meeting groups' : 'Δεν υπάρχουν ομάδες συναντήσεων'} emptyText={en ? 'Quality defines one group per department, with how often it meets.' : 'Η Ποιότητα ορίζει μία ομάδα ανά τμήμα, με τη συχνότητα των συναντήσεών του.'}
       rowProps={row => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => onOpen(row.group), onKeyDown: event => { if (event.key === 'Enter') onOpen(row.group) } })}
       renderRow={({ group, status }) => <>
@@ -68,7 +68,7 @@ export function MeetingGroupsList({ data, onOpen, language }) {
         <td className={`nowrap-cell${status.overdue ? ' quality-overdue' : ''}`}>{status.nextDue ? formatDay(status.nextDue, language) : (en ? 'Not held yet' : 'Δεν έχει γίνει')}{status.overdue && status.nextDue && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</td>
         <td>{status.meetings.length}</td>
       </>} />
-  </div>
+  </>
 }
 
 // One department's meeting group: its summary, its meetings (regular and extraordinary), the
@@ -78,7 +78,7 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   const groupId = ownGroupId || params.groupId
   const { language } = useLanguage()
   const en = language === 'en'
-  const { notify } = useFeedback()
+  const { notify, confirm } = useFeedback()
   const { tenant } = useTenant()
   const { goTo, goBack, restored } = useContextualNavigation(home)
   const data = useMeetingGroups()
@@ -103,6 +103,12 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
     setSaving(true)
     try { await saveMeetingGroup(tenant?.id, next); notify(en ? 'Group saved.' : 'Η ομάδα αποθηκεύτηκε.', 'success'); setEditing(false); data.reload() } catch (error) { console.error(error); notify(en ? 'The group could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'error') } finally { setSaving(false) }
   }
+  async function removeGroup() {
+    if (status.meetings.length) { notify(en ? `The department has ${status.meetings.length} meetings: delete them first, or deactivate the department.` : `Το τμήμα έχει ${status.meetings.length} συναντήσεις: διαγράψτε τες πρώτα ή κάντε το τμήμα ανενεργό.`, 'error'); return }
+    const ok = await confirm({ title: en ? 'Delete department' : 'Διαγραφή τμήματος', message: en ? 'The department is removed from the meetings.' : 'Το τμήμα αφαιρείται από τις συναντήσεις.', confirmLabel: en ? 'Delete' : 'Διαγραφή', danger: true })
+    if (!ok) return
+    try { await deleteMeetingGroup(tenant?.id, group.id); data.reload(); notify(en ? 'Deleted.' : 'Διαγράφηκε.', 'success'); goBack() } catch (error) { console.error(error); notify(en ? 'The department could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
+  }
   const tabs = [
     { id: 'summary', label: en ? 'Summary' : 'Σύνοψη', icon: CalendarClock },
     { id: 'meetings', label: `${en ? 'Meetings' : 'Συναντήσεις'} ${status.meetings.length}`, icon: Users },
@@ -110,6 +116,7 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   ]
   const headerActions = <div className="row-actions">
     {data.canManage && <IconButton tone="edit" label={en ? 'Edit the group' : 'Επεξεργασία ομάδας'} onClick={() => setEditing(true)}><Pencil size={16} /></IconButton>}
+    {data.canManage && !ownGroupId && <IconButton tone="danger" label={en ? 'Delete department' : 'Διαγραφή τμήματος'} onClick={removeGroup}><Trash2 size={16} /></IconButton>}
     {canWrite && group.active !== false && <HeaderAction utility tone="primary"><OverflowMenu label={en ? 'New meeting' : 'Νέα συνάντηση'} width={220} triggerTone="primary" trigger={<><Plus size={16} aria-hidden="true" />{en ? 'New meeting' : 'Νέα συνάντηση'}</>}
       items={[{ id: 'regular', label: en ? 'Regular meeting' : 'Τακτική συνάντηση', icon: CalendarClock, onClick: () => newMeeting('regular') }, { id: 'extraordinary', label: en ? 'Extraordinary meeting' : 'Έκτακτη συνάντηση', icon: ClipboardList, onClick: () => newMeeting('extraordinary') }]} /></HeaderAction>}
   </div>

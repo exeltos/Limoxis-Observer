@@ -32,7 +32,7 @@ function demoMeetings() {
       participants: team.map((person, position) => ({ ...person, id: `dmp-2-${position}`, position })) },
     { id: 'dm-demo-3', code: `DM-${icuDay.slice(0, 4)}-01`, ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: icuDay, periodMonth: previousMonth(icuDay), agenda: 'Δείκτες λοιμώξεων\nΣυμβάντα', minutes: 'Η συμμόρφωση στην υγιεινή χεριών παραμένει κάτω από τον στόχο.', nextMeetingDate: addDays(icuDay, 30), status: 'final', finalizedAt: `${icuDay}T13:00:00Z`, finalizedByLabel: 'Διευθυντής ΜΕΘ',
       topics: [{ id: 'dmt-3-1', subject: 'Δείκτες λοιμώξεων', discussion: 'Αύξηση CLABSI τον μήνα που πέρασε· δύο περιστατικά σε νέο προσωπικό.', conclusion: 'Επανεκπαίδευση στη φροντίδα κεντρικών γραμμών.' }, { id: 'dmt-3-2', subject: 'Συμβάντα', discussion: '', conclusion: '' }],
-      trainingHeld: true, trainingProgramId: '', trainingProgramKey: '', trainingTitle: '', trainingStatus: '',
+      trainingHeld: true, trainingProgramId: 'TRN-004', trainingProgramKey: 'TRN-004', trainingTitle: 'Πρόληψη CLABSI και φροντίδα κεντρικών γραμμών', trainingStatus: 'completed',
       decisions: [{ id: 'dmd-4', position: 0, topicId: 'dmt-3-1', title: 'Επανεκπαίδευση στις 5 Στιγμές για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
       participants: [{ id: 'dmp-3-0', position: 0, name: 'Διευθυντής ΜΕΘ', role: 'Διευθυντής', attended: true }, { id: 'dmp-3-1', position: 1, name: 'Link Nurse ΜΕΘ', role: 'Link Nurse', attended: true }] },
     // Earlier ICU meetings, as the imported ones look: one with attendance linked to the employees (one has since left), one final without attendance.
@@ -122,6 +122,14 @@ export async function saveMeeting(organizationId, meeting) {
   return (await loadMeetings(organizationId)).find(row => row.id === id)
 }
 
+// A meeting is deleted with its topics, decisions and attendance (the database cascades). A meeting
+// that came from FileMaker keeps its import link, so the hourly sync does not bring it back.
+export async function deleteMeeting(organizationId, meetingId) {
+  if (isLocal()) { saveSnapshot(LOCAL_KEY, local().filter(row => row.id !== meetingId)); return }
+  const rows = must(await supabase.from('quality_department_meetings').delete().eq('id', meetingId).eq('organization_id', organizationId).select('id')) || []
+  if (!rows.length) throw new Error('meeting_not_deleted')
+}
+
 // A training created for a meeting is linked back to it (the meeting then shows it, and whether it was done).
 export async function linkMeetingTraining(organizationId, { meetingId }, program) {
   if (isLocal()) {
@@ -151,6 +159,13 @@ export async function loadMeetingGroups(organizationId) {
 }
 
 // Quality defines a group: its department, name, how often it meets.
+// A group is deleted only when it has no meetings (its meetings would be left without a group).
+export async function deleteMeetingGroup(organizationId, groupId) {
+  if (isLocal()) { saveSnapshot(LOCAL_GROUPS_KEY, localGroups().filter(row => row.id !== groupId)); return }
+  const rows = must(await supabase.from('quality_department_meeting_groups').delete().eq('id', groupId).eq('organization_id', organizationId).select('id')) || []
+  if (!rows.length) throw new Error('group_not_deleted')
+}
+
 export async function saveMeetingGroup(organizationId, group) {
   const days = Math.min(730, Math.max(1, Number(group.frequencyDays) || 90))
   if (isLocal()) {
