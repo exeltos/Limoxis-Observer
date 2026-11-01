@@ -15,7 +15,10 @@ describe('department meetings: topics and training', () => {
 
   it('opens the meeting on tabs, with the training held at it as a yes/no and a link, not a tab', () => {
     const page = read('src/features/quality/meetings/MeetingRecordPage.jsx')
-    for (const id of ["id: 'details'", "id: 'topics'", "id: 'decisions'", "id: 'people'", "id: 'files'"]) expect(page).toContain(id)
+    for (const id of ["id: 'details'", "id: 'topics'", "id: 'people'", "id: 'files'"]) expect(page).toContain(id)
+    // A decision comes out of a topic (a button on the topic), not from a tab of its own.
+    expect(page).not.toContain("id: 'decisions'")
+    expect(page).toContain('addDecision(topic.id)')
     // No indicators and no training tab: the meeting only says whether a training was held and which one.
     expect(page).not.toContain("id: 'indicators'")
     expect(page).not.toContain("id: 'training'")

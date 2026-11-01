@@ -33,7 +33,7 @@ function demoMeetings() {
     { id: 'dm-demo-3', code: `DM-${icuDay.slice(0, 4)}-01`, ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: icuDay, periodMonth: previousMonth(icuDay), agenda: 'Δείκτες λοιμώξεων\nΣυμβάντα', minutes: 'Η συμμόρφωση στην υγιεινή χεριών παραμένει κάτω από τον στόχο.', nextMeetingDate: addDays(icuDay, 30), status: 'final', finalizedAt: `${icuDay}T13:00:00Z`, finalizedByLabel: 'Διευθυντής ΜΕΘ',
       topics: [{ id: 'dmt-3-1', subject: 'Δείκτες λοιμώξεων', discussion: 'Αύξηση CLABSI τον μήνα που πέρασε· δύο περιστατικά σε νέο προσωπικό.', conclusion: 'Επανεκπαίδευση στη φροντίδα κεντρικών γραμμών.' }, { id: 'dmt-3-2', subject: 'Συμβάντα', discussion: '', conclusion: '' }],
       trainingHeld: true, trainingProgramId: '', trainingProgramKey: '', trainingTitle: '', trainingStatus: '',
-      decisions: [{ id: 'dmd-4', position: 0, title: 'Επανεκπαίδευση στις 5 Στιγμές για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
+      decisions: [{ id: 'dmd-4', position: 0, topicId: 'dmt-3-1', title: 'Επανεκπαίδευση στις 5 Στιγμές για το νέο προσωπικό', ownerLabel: 'Link Nurse ΜΕΘ', dueDate: addDays(icuDay, 21), status: 'open', capaId: '', carriedFrom: '' }],
       participants: [{ id: 'dmp-3-0', position: 0, name: 'Διευθυντής ΜΕΘ', role: 'Διευθυντής', attended: true }, { id: 'dmp-3-1', position: 1, name: 'Link Nurse ΜΕΘ', role: 'Link Nurse', attended: true }] },
     // Earlier ICU meetings, as the imported ones look: one with attendance linked to the employees (one has since left), one final without attendance.
     { id: 'dm-demo-4', code: 'DM-2026-02', ...icu, title: 'Συνάντηση ΜΕΘ', kind: 'regular', meetingDate: addDays(day, -150), periodMonth: previousMonth(addDays(day, -150)), agenda: 'Υγιεινή χεριών', minutes: '', nextMeetingDate: addDays(day, -60), status: 'final', finalizedAt: `${addDays(day, -150)}T10:00:00.000Z`, finalizedByLabel: 'Υπεύθυνος Ποιότητας',
@@ -70,7 +70,7 @@ function local() {
 const toMeeting = (row, decisions = [], participants = [], departments = new Map(), topics = [], program = null) => ({
   id: row.id, groupId: row.group_id || '', trainingHeld: Boolean(row.training_held || row.training_program_id), trainingProgramId: row.training_program_id || '', trainingProgramKey: program?.program_key || '', trainingTitle: program?.title || '', trainingStatus: program?.status || '', code: row.code, departmentId: row.department_id, department: departments.get(row.department_id)?.name || '', departmentEn: departments.get(row.department_id)?.nameEn || departments.get(row.department_id)?.name || '',
   title: row.title, kind: row.kind, meetingDate: row.meeting_date, periodMonth: row.period_month || '', agenda: row.agenda || '', minutes: row.minutes || '', nextMeetingDate: row.next_meeting_date || '', status: row.status, finalizedAt: row.finalized_at, finalizedByLabel: row.finalized_by_label || '',
-  decisions: decisions.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, title: item.title, ownerLabel: item.owner_label || '', dueDate: item.due_date || '', status: item.status, capaId: item.capa_id || '', carriedFrom: item.carried_from || '' })),
+  decisions: decisions.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, topicId: item.topic_id || '', title: item.title, ownerLabel: item.owner_label || '', dueDate: item.due_date || '', status: item.status, capaId: item.capa_id || '', carriedFrom: item.carried_from || '' })),
   participants: participants.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, position: item.position, employeeId: item.employee_id || '', name: item.name, role: item.role || '', attended: item.attended })),
   topics: topics.sort((a, b) => a.position - b.position).map(item => ({ id: item.id, subject: item.subject, discussion: item.discussion || '', conclusion: item.conclusion || '' })),
 })
@@ -112,11 +112,12 @@ export async function saveMeeting(organizationId, meeting) {
   }
   const base = { organization_id: organizationId, meeting_id: id }
   for (const table of ['quality_department_meeting_decisions', 'quality_department_meeting_participants']) must(await supabase.from(table).delete().eq('meeting_id', id))
-  if (meeting.decisions.length) must(await supabase.from('quality_department_meeting_decisions').insert(meeting.decisions.map((decision, position) => ({ ...base, position, title: decision.title, owner_label: decision.ownerLabel || null, due_date: decision.dueDate || null, status: decision.status || 'open', capa_id: isUuid(decision.capaId) ? decision.capaId : null, carried_from: decision.carriedFrom || null }))))
   // Topics keep their ids (a FileMaker topic).
   const topics = (meeting.topics || []).filter(topic => String(topic.subject || '').trim())
   must(await supabase.from('quality_department_meeting_topics').delete().eq('meeting_id', id))
   if (topics.length) must(await supabase.from('quality_department_meeting_topics').insert(topics.map((topic, position) => ({ ...base, ...(isUuid(topic.id) ? { id: topic.id } : {}), position, subject: String(topic.subject).trim(), discussion: topic.discussion || null, conclusion: topic.conclusion || null }))))
+  const topicIds = new Set(topics.map(topic => topic.id))
+  if (meeting.decisions.length) must(await supabase.from('quality_department_meeting_decisions').insert(meeting.decisions.map((decision, position) => ({ ...base, ...(isUuid(decision.id) ? { id: decision.id } : {}), position, topic_id: isUuid(decision.topicId) && topicIds.has(decision.topicId) ? decision.topicId : null, title: decision.title, owner_label: decision.ownerLabel || null, due_date: decision.dueDate || null, status: decision.status || 'open', capa_id: isUuid(decision.capaId) ? decision.capaId : null, carried_from: decision.carriedFrom || null }))))
   if (meeting.participants.length) must(await supabase.from('quality_department_meeting_participants').insert(meeting.participants.map((person, position) => ({ ...base, position, employee_id: isUuid(person.employeeId) ? person.employeeId : null, name: person.name, role: person.role || null, attended: person.attended !== false }))))
   return (await loadMeetings(organizationId)).find(row => row.id === id)
 }

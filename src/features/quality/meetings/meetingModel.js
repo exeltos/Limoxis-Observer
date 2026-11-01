@@ -43,7 +43,7 @@ export function newMeetingFor(department, meetings = [], day = today(), group = 
     title: 'Συνάντηση τμήματος', kind: 'regular', meetingDate: day, periodMonth: previousMonth(day),
     agenda: previous ? 'Εκκρεμότητες της προηγούμενης συνάντησης\nΔείκτες του μήνα\nΣυμβάντα και διορθωτικές ενέργειες\nΆλλα θέματα' : 'Δείκτες του μήνα\nΣυμβάντα και διορθωτικές ενέργειες\nΆλλα θέματα',
     minutes: '', nextMeetingDate: addDays(day, Number(group?.frequencyDays) || 30), status: 'draft', finalizedAt: null, finalizedByLabel: '',
-    decisions: carriedDecisions(previous), participants: (previous?.participants || []).map(person => ({ name: person.name, role: person.role, attended: true })),
+    decisions: [], participants: (previous?.participants || []).map(person => ({ name: person.name, role: person.role, attended: true })),
   }
 }
 
@@ -104,3 +104,6 @@ export function groupStatus(group, meetings = [], day = today()) {
   return { meetings: own, last, nextDue, overdue: Boolean(group.active !== false && (!last || (nextDue && nextDue < day))), open: latest ? openDecisions(latest) : [], late: latest ? lateDecisions(latest, day) : [], trainings: own.filter(meeting => meeting.trainingHeld) }
 }
 export const newMeetingGroup = () => ({ id: '', departmentId: '', name: '', frequencyDays: 90, durationHours: '', managerLabel: '', active: true })
+
+// The corrective actions opened from a meeting's decisions (their source is «DM:<meeting code>#<decision id>»).
+export const meetingCapas = (capas = [], meeting) => capas.filter(capa => String(capa.sourceId || '').startsWith(`DM:${meeting.code}#`))

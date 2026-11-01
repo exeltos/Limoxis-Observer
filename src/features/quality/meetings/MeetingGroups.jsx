@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { CalendarClock, ClipboardList, GraduationCap, ListChecks, MessagesSquare, Pencil, Plus, Users } from 'lucide-react'
+import { CalendarClock, ClipboardList, MessagesSquare, Pencil, Plus, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -22,10 +22,12 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useDepartments } from '../../management/useLibraries'
 import { useMeetingGroups } from './MeetingsPanel'
 import { saveMeetingGroup } from './meetingService'
-import { MEETING_FREQUENCIES, decisionStatusLabel, frequencyLabel, groupStatus, meetingStatusLabel, newMeetingGroup } from './meetingModel'
+import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, meetingStatusLabel, newMeetingGroup } from './meetingModel'
+import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
 
 const HeaderAction = ({ children }) => children
+const yesNo = (value, en) => (value ? (en ? 'Yes' : 'Ναι') : '—')
 const kindLabel = (kind, en) => (kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'))
 const presentOf = meeting => (meeting.participants || []).filter(person => person.attended !== false).length
 
@@ -56,7 +58,7 @@ export function MeetingGroupsList({ data, onOpen, language }) {
   const rows = useMemo(() => data.groups.map(group => ({ group, status: groupStatus(group, data.meetings.meetings, today) })), [data.groups, data.meetings.meetings, today])
   return <div className="scroll-table">
     <RegistryTable className="quality-table" rows={rows} rowKey={row => row.group.id} error={data.error} onRetry={data.reload}
-      columns={[{ key: 'group', label: en ? 'Group' : 'Ομάδα' }, { key: 'frequency', label: en ? 'Meets' : 'Συχνότητα' }, { key: 'last', label: en ? 'Last meeting' : 'Τελευταία' }, { key: 'next', label: en ? 'Next due' : 'Επόμενη' }, { key: 'meetings', label: en ? 'Meetings' : 'Συναντήσεις' }, { key: 'open', label: en ? 'Open decisions' : 'Ανοιχτές αποφάσεις' }]}
+      columns={[{ key: 'group', label: en ? 'Group' : 'Ομάδα' }, { key: 'frequency', label: en ? 'Meets' : 'Συχνότητα' }, { key: 'last', label: en ? 'Last meeting' : 'Τελευταία' }, { key: 'next', label: en ? 'Next due' : 'Επόμενη' }, { key: 'meetings', label: en ? 'Meetings' : 'Συναντήσεις' }]}
       emptyTitle={en ? 'No meeting groups' : 'Δεν υπάρχουν ομάδες συναντήσεων'} emptyText={en ? 'Quality defines one group per department, with how often it meets.' : 'Η Ποιότητα ορίζει μία ομάδα ανά τμήμα, με τη συχνότητα των συναντήσεών του.'}
       rowProps={row => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => onOpen(row.group), onKeyDown: event => { if (event.key === 'Enter') onOpen(row.group) } })}
       renderRow={({ group, status }) => <>
@@ -65,7 +67,6 @@ export function MeetingGroupsList({ data, onOpen, language }) {
         <td className="nowrap-cell">{status.last ? formatDay(status.last.meetingDate, language) : '—'}</td>
         <td className={`nowrap-cell${status.overdue ? ' quality-overdue' : ''}`}>{status.nextDue ? formatDay(status.nextDue, language) : (en ? 'Not held yet' : 'Δεν έχει γίνει')}{status.overdue && status.nextDue && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</td>
         <td>{status.meetings.length}</td>
-        <td>{status.open.length}{status.late.length > 0 && <small className="quality-overdue-text">{en ? `${status.late.length} overdue` : `${status.late.length} εκπρόθεσμες`}</small>}</td>
       </>} />
   </div>
 }
@@ -85,6 +86,9 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   const [tab, setTab] = useState(restored?.tab || 'meetings')
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  // The corrective actions opened from the meetings' decisions.
+  const [capas, setCapas] = useState([])
+  useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter(row => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   const group = data.groups.find(item => item.id === groupId) || null
   const today = new Date().toISOString().slice(0, 10)
   if (data.loading && !group) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
@@ -92,8 +96,6 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   const status = groupStatus(group, data.meetings.meetings, today)
   const canWrite = data.canManage || data.meetings.access.canSee({ departmentId: group.departmentId, department: group.department })
   const openMeeting = meeting => goTo(`/meetings/${meeting.id}`, { tab })
-  // A meeting with a linked training leads to it in Training (its participants, results, certificates); otherwise to the meeting.
-  const openTraining = meeting => (meeting.trainingProgramKey ? goTo(`/training/${meeting.trainingProgramKey}`, { tab }) : openMeeting(meeting))
   // What was said in the group's meetings, newest first: each topic with what was discussed and concluded.
   const topicRows = status.meetings.flatMap(meeting => (meeting.topics || []).map(topic => ({ ...topic, meeting })))
   const newMeeting = kind => goTo('/meetings/new', { tab: 'meetings', state: { group, kind } })
@@ -105,8 +107,6 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
     { id: 'summary', label: en ? 'Summary' : 'Σύνοψη', icon: CalendarClock },
     { id: 'meetings', label: `${en ? 'Meetings' : 'Συναντήσεις'} ${status.meetings.length}`, icon: Users },
     { id: 'topics', label: `${en ? 'Topics' : 'Θέματα'} ${topicRows.length}`, icon: MessagesSquare },
-    { id: 'decisions', label: `${en ? 'Open decisions' : 'Ανοιχτές αποφάσεις'} ${status.open.length}`, icon: ListChecks },
-    { id: 'trainings', label: `${en ? 'Training' : 'Εκπαιδεύσεις'} ${status.trainings.length}`, icon: GraduationCap },
   ]
   const headerActions = <div className="row-actions">
     {data.canManage && <IconButton tone="edit" label={en ? 'Edit the group' : 'Επεξεργασία ομάδας'} onClick={() => setEditing(true)}><Pencil size={16} /></IconButton>}
@@ -129,7 +129,7 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
     </RecordTabPanel>}
     {tab === 'meetings' && <RecordTabPanel title={en ? 'Meetings' : 'Συναντήσεις'} subtitle={en ? 'Regular meetings as often as set, and extraordinary ones when needed.' : 'Τακτικές με τη συχνότητα που ορίστηκε, και έκτακτες όταν χρειαστεί.'}>
       <RegistryTable className="quality-table" rows={status.meetings} rowKey={meeting => meeting.id}
-        columns={[{ key: 'code', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'topics', label: en ? 'Topics' : 'Θέματα' }, { key: 'present', label: en ? 'Present' : 'Παρόντες' }, { key: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        columns={[{ key: 'code', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'date', label: en ? 'Date' : 'Ημερομηνία' }, { key: 'topics', label: en ? 'Topics' : 'Θέματα' }, { key: 'present', label: en ? 'Present' : 'Παρόντες' }, { key: 'decision', label: en ? 'Decision' : 'Απόφαση' }, { key: 'capa', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }, { key: 'training', label: en ? 'Training' : 'Εκπαίδευση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
         emptyTitle={en ? 'No meetings yet' : 'Δεν υπάρχουν συναντήσεις ακόμη'} emptyText={en ? 'Start with «New meeting».' : 'Ξεκινήστε με τη «Νέα συνάντηση».'}
         rowProps={meeting => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => openMeeting(meeting), onKeyDown: event => { if (event.key === 'Enter') openMeeting(meeting) } })}
         renderRow={meeting => <>
@@ -137,44 +137,23 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
           <td className="nowrap-cell">{formatDay(meeting.meetingDate, language)}</td>
           <td>{(meeting.topics || []).length || String(meeting.agenda || '').split(/\n+/).filter(Boolean).length}</td>
           <td>{presentOf(meeting)}{(meeting.participants || []).length ? ` / ${meeting.participants.length}` : ''}</td>
-          <td>{meeting.decisions.length}</td>
+          <td>{yesNo(meeting.decisions.length > 0, en)}</td>
+          <td>{yesNo(meetingCapas(capas, meeting).length > 0, en)}</td>
+          <td>{meeting.trainingProgramKey ? <button type="button" className="meeting-link" onClick={event => { event.stopPropagation(); goTo(`/training/${meeting.trainingProgramKey}`, { tab }) }}>{en ? 'Yes · open' : 'Ναι · άνοιγμα'}</button> : yesNo(meeting.trainingHeld, en)}</td>
           <td><StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge></td>
         </>} />
     </RecordTabPanel>}
-    {tab === 'topics' && <RecordTabPanel title={en ? 'Topics' : 'Θέματα'} subtitle={en ? 'What the department discussed in its meetings, and what it concluded.' : 'Όσα συζήτησε το τμήμα στις συναντήσεις του και τα συμπεράσματα.'}>
+    {tab === 'topics' && <RecordTabPanel title={en ? 'Topics' : 'Θέματα'} subtitle={en ? 'The topics of the meetings, with the decision taken and the corrective action, if any.' : 'Τα θέματα των συναντήσεων, με την απόφαση που πάρθηκε και τη διορθωτική ενέργεια, αν υπήρξε.'}>
       <RegistryTable className="quality-table" sortable={false} rows={topicRows} rowKey={(topic, index) => topic.id || index}
-        columns={[{ key: 'subject', label: en ? 'Topic' : 'Θέμα' }, { key: 'discussion', label: en ? 'What was discussed' : 'Τι συζητήθηκε' }, { key: 'conclusion', label: en ? 'Conclusion' : 'Συμπέρασμα' }, { key: 'meeting', label: en ? 'Meeting' : 'Συνάντηση' }]}
+        columns={[{ key: 'subject', label: en ? 'Topic' : 'Θέμα' }, { key: 'decision', label: en ? 'Decision' : 'Απόφαση' }, { key: 'capa', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια' }, { key: 'meeting', label: en ? 'Meeting' : 'Συνάντηση' }]}
         emptyTitle={en ? 'No topics yet' : 'Δεν υπάρχουν θέματα ακόμη'}
         rowProps={topic => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => openMeeting(topic.meeting), onKeyDown: event => { if (event.key === 'Enter') openMeeting(topic.meeting) } })}
-        renderRow={topic => <>
+        renderRow={topic => { const decisions = topic.meeting.decisions.filter(item => topic.id && item.topicId === topic.id); const capa = decisions.map(item => capas.find(entry => entry.sourceId === `DM:${topic.meeting.code}#${item.id}`)).find(Boolean); return <>
           <td className="meeting-wrap-cell"><strong>{topic.subject}</strong></td>
-          <td className="meeting-wrap-cell">{topic.discussion || '—'}</td>
-          <td className="meeting-wrap-cell">{topic.conclusion || '—'}</td>
+          <td className="meeting-wrap-cell">{decisions.map(item => item.title).filter(Boolean).join(' · ') || '—'}</td>
+          <td>{capa ? <button type="button" className="meeting-link" onClick={event => { event.stopPropagation(); goTo(`/quality/capas/${capa.id}`, { tab }) }}>{capa.code || (en ? 'Open' : 'Άνοιγμα')}</button> : '—'}</td>
           <td className="nowrap-cell">{formatDay(topic.meeting.meetingDate, language)}<small>{topic.meeting.code}</small></td>
-        </>} />
-    </RecordTabPanel>}
-    {tab === 'decisions' && <RecordTabPanel title={en ? 'Open decisions' : 'Ανοιχτές αποφάσεις'} subtitle={en ? 'The decisions still open; each new meeting carries them over.' : 'Οι αποφάσεις που είναι ακόμη ανοιχτές· κάθε νέα συνάντηση τις μεταφέρει.'}>
-      <RegistryTable className="quality-table" rows={status.open} rowKey={(item, index) => item.id || index}
-        columns={[{ key: 'title', label: en ? 'Decision' : 'Απόφαση' }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος' }, { key: 'due', label: en ? 'Due' : 'Προθεσμία' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
-        emptyTitle={en ? 'No open decisions' : 'Δεν υπάρχουν ανοιχτές αποφάσεις'}
-        rowProps={() => ({ className: 'registry-row-clickable', onClick: () => status.meetings[0] && openMeeting(status.meetings[0]) })}
-        renderRow={item => <>
-          <td className="meeting-wrap-cell"><strong>{item.title}</strong>{item.carriedFrom && <small>{en ? `From ${item.carriedFrom}` : `Από ${item.carriedFrom}`}</small>}</td>
-          <td>{item.ownerLabel || '—'}</td>
-          <td className={`nowrap-cell${item.dueDate && item.dueDate < today ? ' quality-overdue' : ''}`}>{formatDay(item.dueDate, language) || '—'}</td>
-          <td><StatusBadge tone="info">{decisionStatusLabel(item.status, language)}</StatusBadge></td>
-        </>} />
-    </RecordTabPanel>}
-    {tab === 'trainings' && <RecordTabPanel title={en ? 'Training' : 'Εκπαιδεύσεις'} subtitle={en ? 'The meetings during which a training was held.' : 'Οι συναντήσεις στις οποίες έγινε εκπαίδευση.'}>
-      <RegistryTable className="quality-table" rows={status.trainings} rowKey={meeting => meeting.id}
-        columns={[{ key: 'meeting', label: en ? 'Meeting' : 'Συνάντηση' }, { key: 'training', label: en ? 'Training' : 'Εκπαίδευση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
-        emptyTitle={en ? 'No training was held at the meetings' : 'Δεν έγινε εκπαίδευση στις συναντήσεις'}
-        rowProps={meeting => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => openTraining(meeting), onKeyDown: event => { if (event.key === 'Enter') openTraining(meeting) } })}
-        renderRow={meeting => <>
-          <td><strong>{meeting.code}</strong><small>{formatDay(meeting.meetingDate, language)}</small></td>
-          <td className="meeting-wrap-cell">{meeting.trainingProgramKey ? <><strong>{meeting.trainingTitle || (en ? 'Training' : 'Εκπαίδευση')}</strong><small>{en ? 'Open in Training for the details' : 'Άνοιγμα στις Εκπαιδεύσεις για τις λεπτομέρειες'}</small></> : <><span>—</span><small>{en ? 'Not linked: open the meeting to create it' : 'Δεν έχει συνδεθεί: ανοίξτε τη συνάντηση για να τη δημιουργήσετε'}</small></>}</td>
-          <td><StatusBadge tone={meeting.trainingStatus === 'completed' ? 'success' : meeting.trainingProgramId ? 'info' : 'warning'}>{meeting.trainingStatus === 'completed' ? (en ? 'Done' : 'Έγινε') : meeting.trainingProgramId ? (en ? 'Linked' : 'Συνδέθηκε') : (en ? 'Not linked yet' : 'Δεν έχει συνδεθεί')}</StatusBadge></td>
-        </>} />
+        </> }} />
     </RecordTabPanel>}
     {editing && <MeetingGroupDialog initial={group} departments={departments} saving={saving} onClose={() => setEditing(false)} onSave={saveGroup} language={language} />}
   </EntityRecordShell></Page>

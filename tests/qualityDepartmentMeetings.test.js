@@ -11,10 +11,10 @@ describe('Department meetings', () => {
     expect(previousMonth('2026-01-15')).toBe('2025-12-01')
   })
 
-  it('carries the open decisions and the participants of the previous meeting', () => {
+  it('carries the participants of the previous meeting (decisions are no longer carried: a follow-up is a corrective action)', () => {
     const previous = meeting('DM-1', 'ΜΕΘ', '2026-09-01', [{ title: 'Open', status: 'open' }, { title: 'Done', status: 'done' }], { participants: [{ name: 'A', role: 'Nurse', attended: false }] })
     const next = newMeetingFor({ id: 'ΜΕΘ', name: 'ΜΕΘ' }, [previous, meeting('X', 'ΤΕΠ', '2026-09-20', [{ title: 'Other', status: 'open' }])], '2026-10-05')
-    expect(next.decisions).toEqual([expect.objectContaining({ title: 'Open', carriedFrom: 'DM-1' })])
+    expect(next.decisions).toEqual([])
     expect(next.participants).toEqual([{ name: 'A', role: 'Nurse', attended: true }])
     expect(next.periodMonth).toBe('2026-09-01')
     expect(carriedDecisions(null)).toEqual([])
