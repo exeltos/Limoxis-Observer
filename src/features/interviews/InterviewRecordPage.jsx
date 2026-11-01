@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Briefcase, CalendarPlus, ClipboardCheck, Gavel, GraduationCap, Info, MessagesSquare, Pencil, Trash2, UserPlus, UserSearch, Users } from 'lucide-react'
+import { CalendarPlus, ClipboardCheck, Gavel, GraduationCap, Info, MessagesSquare, Pencil, Trash2, UserPlus, UserSearch, Users } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
-import { RecordMetricStrip } from '../../design-system/RecordMetricStrip'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { Button } from '../../design-system/Button'
@@ -23,6 +22,9 @@ import { CRITERIA, ageOn, decisionLabel, employmentLabel, fmtDay, fmtMoney, fmtR
 import { evaluationDocument } from './interviewsReports'
 import { CONSENTS } from './applicationModel'
 import { interviewsErrorMessage, loadCandidateSignature, removeCandidate, removeInterview } from './interviewsService'
+
+// A header command kept beside «Export» (not moved into the record's «…»).
+const HeaderAction = ({ children }) => children
 
 // An application («ΑΙΤΗΣΗ ΕΡΓΑΣΙΑΣ»): the details, education and languages, previous
 // employers, the interviews with their evaluation, and the decision / hiring.
@@ -59,59 +61,63 @@ export function InterviewRecordPage() {
   }
   const closed = ['hired', 'rejected', 'withdrawn'].includes(candidate.status)
   const canHireNow = access.canHire && !candidate.employeeId && candidate.status !== 'rejected'
+  // One main button: the next step of the application. Scheduling, evaluating and deciding stay in their tabs; edit and delete in the «…».
+  const hireReady = canHireNow && candidate.decision === 'hire' && candidate.status !== 'withdrawn'
+  const nextStep = hireReady ? { label: en ? 'Hire' : 'Πρόσληψη', icon: <UserPlus size={15} />, run: () => setDialog({ type: 'hire' }) }
+    : !access.canManage || closed ? null
+      : ['new', 'screening'].includes(candidate.status) ? { label: en ? 'Schedule interview' : 'Προγραμματισμός συνέντευξης', icon: <CalendarPlus size={15} />, run: () => setDialog({ type: 'schedule', interview: newInterview(candidate.id) }) }
+        : candidate.status === 'interview_scheduled' ? { label: en ? 'Record evaluation' : 'Αξιολόγηση', icon: <ClipboardCheck size={15} />, run: () => setDialog({ type: 'evaluate', interview: interviews.find(item => item.status === 'scheduled') || newInterview(candidate.id) }) }
+          : { label: en ? 'Decide' : 'Απόφαση', icon: <Gavel size={15} />, run: () => setDialog({ type: 'decide' }) }
   const headerActions = <div className="row-actions">
     {evaluation && <ExportMenu {...reportExports(() => evaluationDocument(candidate, evaluation, { language }), { word: true, onBlocked: blocked })} />}
-    {access.canManage && !closed && <Button variant="secondary" onClick={() => setDialog({ type: 'schedule', interview: newInterview(candidate.id) })}><CalendarPlus size={15} />{en ? 'Schedule interview' : 'Προγραμματισμός'}</Button>}
-    {access.canManage && !closed && <Button variant="secondary" onClick={() => setDialog({ type: 'evaluate', interview: interviews.find(item => item.status === 'scheduled') || newInterview(candidate.id) })}><ClipboardCheck size={15} />{en ? 'Record evaluation' : 'Αξιολόγηση'}</Button>}
-    {access.canManage && candidate.status !== 'hired' && <Button variant="secondary" onClick={() => setDialog({ type: 'decide' })}><Gavel size={15} />{en ? 'Decide' : 'Απόφαση'}</Button>}
-    {canHireNow && candidate.decision === 'hire' && candidate.status !== 'withdrawn' && <Button onClick={() => setDialog({ type: 'hire' })}><UserPlus size={15} />{en ? 'Hire' : 'Πρόσληψη'}</Button>}
-    {access.canManage && <IconButton tone="edit" label={en ? 'Edit application' : 'Επεξεργασία αίτησης'} onClick={() => setDialog({ type: 'candidate' })}><Pencil size={16} /></IconButton>}
-    {access.canManage && <IconButton tone="danger" label={en ? 'Delete application' : 'Διαγραφή αίτησης'} onClick={remove}><Trash2 size={16} /></IconButton>}
+    {nextStep && <HeaderAction utility tone="primary"><Button onClick={nextStep.run}>{nextStep.icon}{nextStep.label}</Button></HeaderAction>}
+    {access.canManage && <Button recordMenu variant="secondary" onClick={() => setDialog({ type: 'candidate' })}><Pencil size={15} />{en ? 'Edit application' : 'Επεξεργασία αίτησης'}</Button>}
+    {access.canManage && <Button recordMenu variant="secondary" onClick={remove}><Trash2 size={15} />{en ? 'Delete application' : 'Διαγραφή αίτησης'}</Button>}
   </div>
   const tabs = [
     { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: Info },
-    { id: 'education', label: en ? 'Education & languages' : 'Εκπαίδευση & γλώσσες', icon: GraduationCap },
-    { id: 'employers', label: en ? `Experience ${candidate.employers.length}` : `Προϋπηρεσία ${candidate.employers.length}`, icon: Briefcase },
+    { id: 'cv', label: en ? 'CV' : 'Βιογραφικό', icon: GraduationCap },
     { id: 'interviews', label: en ? `Interviews ${interviews.length}` : `Συνεντεύξεις ${interviews.length}`, icon: MessagesSquare },
     { id: 'decision', label: en ? 'Decision' : 'Απόφαση', icon: Gavel },
   ]
   const age = ageOn(candidate.birthDate)
+  // Only the details that have a value; the rest are added with «Add details».
+  const filled = fields => fields.map(field => ({ ...field, hidden: field.hidden || !field.value || field.value === '—' }))
   return <Page fill><EntityRecordShell className="interviews-record-shell workspace-fill" avatar={<UserSearch size={19} />} eyebrow={candidate.code} title={candidate.fullName}
     subtitle={[candidate.requestedPosition, employmentLabel(candidate.employmentType, language), `${en ? 'Applied' : 'Αίτηση'} ${fmtDay(candidate.appliedOn)}`].filter(Boolean).join(' · ')}
     status={<span className="interviews-badges"><CandidateStatusBadge status={candidate.status} language={language} />{evaluation && <StatusBadge tone={ratingTone(evaluation.overallRating)}>{fmtRating(evaluation.overallRating, language)}</StatusBadge>}{candidate.source === 'tablet' && <StatusBadge tone="info">{en ? 'From tablet' : 'Από tablet'}</StatusBadge>}{!candidate.consentGiven && <StatusBadge tone="danger">{en ? 'No consent' : 'Χωρίς συναίνεση'}</StatusBadge>}</span>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} subtitle={en ? 'Personal data: seen only by HR and the Hospital Admin.' : 'Προσωπικά δεδομένα: τα βλέπει μόνο το Γραφείο Προσωπικού και ο Διαχειριστής.'}>
+    {tab === 'details' && <RecordTabPanel actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'candidate' })}><Pencil size={15} />{en ? 'Add details' : 'Προσθήκη στοιχείων'}</Button>} title={en ? 'Details' : 'Στοιχεία'} subtitle={en ? 'Personal data: seen only by HR and the Hospital Admin.' : 'Προσωπικά δεδομένα: τα βλέπει μόνο το Γραφείο Προσωπικού και ο Διαχειριστής.'}>
       <div className="record-view-stack">
-        <RecordDetailsGrid fields={[
+        <RecordDetailsGrid fields={filled([
           { label: en ? 'Position applied for' : 'Αιτούμενη θέση', value: candidate.requestedPosition }, { label: en ? 'Employment type' : 'Είδος απασχόλησης', value: employmentLabel(candidate.employmentType, language) }, { label: en ? 'Application date' : 'Ημερομηνία αίτησης', value: fmtDay(candidate.appliedOn), meta: candidate.source === 'filemaker' ? 'FileMaker' : candidate.source === 'tablet' ? (en ? 'From tablet' : 'Από tablet') : '' },
           { label: en ? 'Gender' : 'Φύλο', value: genderLabel(candidate.gender, language) }, { label: en ? 'Birth date' : 'Ημερομηνία γέννησης', value: fmtDay(candidate.birthDate), meta: age != null ? `${age} ${en ? 'years' : 'ετών'}` : '' }, { label: en ? 'Place of birth' : 'Τόπος γέννησης', value: candidate.birthPlace },
           { label: en ? "Father's / mother's name" : 'Όνομα πατρός / μητρός', value: [candidate.fatherName, candidate.motherName].filter(Boolean).join(' / ') }, { label: en ? 'Nationality / citizenship' : 'Εθνικότητα / υπηκοότητα', value: [candidate.nationality, candidate.citizenship].filter(Boolean).join(' / ') }, { label: en ? 'Marital status' : 'Οικογενειακή κατάσταση', value: [maritalLabel(candidate.maritalStatus, language), candidate.children !== '' && candidate.children != null ? `${candidate.children} ${en ? 'children' : 'παιδιά'}` : ''].filter(Boolean).join(' · ') },
           { label: en ? 'Military service' : 'Στρατιωτική θητεία', value: militaryLabel(candidate.militaryService, language) }, { label: en ? 'Work permit' : 'Άδεια εργασίας', value: yesNo(candidate.workPermit, language) }, { label: en ? 'Licence to practise' : 'Άδεια άσκησης επαγγέλματος', value: yesNo(candidate.practiceLicence, language) },
           { label: en ? 'Smoker' : 'Κάπνισμα', value: yesNo(candidate.smoker, language) }, { label: en ? 'ID card' : 'Ταυτότητα', value: [candidate.idNumber, candidate.idAuthority].filter(Boolean).join(' · '), meta: candidate.idIssuedOn ? fmtDay(candidate.idIssuedOn) : '' },
-        ]} />
+        ])} />
         <SectionHeader title={en ? 'Contact' : 'Επικοινωνία'} />
-        <RecordDetailsGrid fields={[{ label: en ? 'Address' : 'Διεύθυνση', value: [candidate.address, candidate.area, candidate.postcode].filter(Boolean).join(', ') }, { label: en ? 'Phones' : 'Τηλέφωνα', value: [candidate.phoneMobile, candidate.phoneLandline].filter(Boolean).join(' · ') }, { label: 'Email', value: candidate.email }]} />
+        <RecordDetailsGrid fields={filled([{ label: en ? 'Address' : 'Διεύθυνση', value: [candidate.address, candidate.area, candidate.postcode].filter(Boolean).join(', ') }, { label: en ? 'Phones' : 'Τηλέφωνα', value: [candidate.phoneMobile, candidate.phoneLandline].filter(Boolean).join(' · ') }, { label: 'Email', value: candidate.email }])} />
         <SectionHeader title={en ? 'About the application' : 'Για την αίτηση'} />
-        <RecordDetailsGrid fields={[{ label: en ? 'Why us' : 'Γιατί εμάς', value: candidate.whyUs, className: 'interviews-span-3' }, { label: en ? 'Reason for applying' : 'Λόγος αίτησης', value: candidate.applicationReason, className: 'interviews-span-3' }, { label: en ? 'Activities / interests' : 'Δραστηριότητες', value: candidate.activities, className: 'interviews-span-3' }, { label: en ? 'Notes (HR)' : 'Σημειώσεις (HR)', value: candidate.notes, className: 'interviews-span-3' },
-          { label: en ? 'Consent (GDPR)' : 'Συναίνεση (GDPR)', value: candidate.consentGiven ? (en ? 'Given' : 'Δόθηκε') : (en ? 'Not given' : 'Δεν δόθηκε'), meta: [candidate.consentText, fmtStamp(candidate.consentAt, language)].filter(Boolean).join(' · ') }]} />
+        <RecordDetailsGrid fields={filled([{ label: en ? 'Why us' : 'Γιατί εμάς', value: candidate.whyUs, className: 'interviews-span-3' }, { label: en ? 'Reason for applying' : 'Λόγος αίτησης', value: candidate.applicationReason, className: 'interviews-span-3' }, { label: en ? 'Activities / interests' : 'Δραστηριότητες', value: candidate.activities, className: 'interviews-span-3' }, { label: en ? 'Notes (HR)' : 'Σημειώσεις (HR)', value: candidate.notes, className: 'interviews-span-3' },
+          { label: en ? 'Consent (GDPR)' : 'Συναίνεση (GDPR)', value: candidate.consentGiven ? (en ? 'Given' : 'Δόθηκε') : (en ? 'Not given' : 'Δεν δόθηκε'), meta: [candidate.consentText, fmtStamp(candidate.consentAt, language)].filter(Boolean).join(' · ') }])} />
         {(candidate.source === 'tablet' || candidate.consentVersion) && <CandidateConsents candidate={candidate} organizationId={organizationId} en={en} language={language} />}
       </div>
     </RecordTabPanel>}
-    {tab === 'education' && <RecordTabPanel title={en ? 'Education & languages' : 'Εκπαίδευση & γλώσσες'} actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'education' })}><Pencil size={15} />{en ? 'Edit' : 'Επεξεργασία'}</Button>}>
+    {tab === 'cv' && <RecordTabPanel title={en ? 'CV' : 'Βιογραφικό'} subtitle={en ? 'Education, languages and previous employers.' : 'Εκπαίδευση, γλώσσες και προϋπηρεσία.'}>
       <div className="record-view-stack">
+        <SectionHeader title={en ? 'Education & languages' : 'Εκπαίδευση & γλώσσες'} actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'education' })}><Pencil size={15} />{en ? 'Edit' : 'Επεξεργασία'}</Button>} />
         <RecordDetailsGrid fields={[{ label: en ? 'Secondary education' : 'Βασική εκπαίδευση', value: candidate.educationLevel }, { label: en ? 'IT skills' : 'Γνώσεις πληροφορικής', value: candidate.itSkills, className: 'interviews-span-2' }]} />
         <RegistryTable rows={candidate.education.map((row, index) => ({ ...row, id: index }))} columns={[{ key: 'level', label: en ? 'Level' : 'Επίπεδο' }, { key: 'school', label: en ? 'School / department' : 'Σχολή / τμήμα' }, { key: 'title', label: en ? 'Degree' : 'Πτυχίο' }, { key: 'year', label: en ? 'Year' : 'Έτος' }]}
           emptyTitle={en ? 'No degrees recorded' : 'Δεν καταγράφηκαν πτυχία'} renderRow={row => <><td>{row.level || '—'}</td><td><strong>{row.school || '—'}</strong></td><td>{row.title || '—'}{row.completed === false && <small>{en ? 'In progress' : 'Σε εξέλιξη'}</small>}</td><td className="nowrap-cell">{row.year || '—'}</td></>} />
         <RegistryTable rows={candidate.languages} rowKey={row => row.id || row.language} columns={[{ key: 'language', label: en ? 'Language' : 'Γλώσσα' }, { key: 'speaking', label: en ? 'Speaking' : 'Ομιλία' }, { key: 'reading', label: en ? 'Reading' : 'Ανάγνωση' }, { key: 'writing', label: en ? 'Writing' : 'Γραφή' }, { key: 'certificate', label: en ? 'Certificate' : 'Πιστοποιητικό' }]}
           emptyTitle={en ? 'No languages recorded' : 'Δεν καταγράφηκαν γλώσσες'} renderRow={row => <><td><strong>{languageLabel(row.language, language)}</strong></td><td>{levelLabel(row.speaking, language) || '—'}</td><td>{levelLabel(row.reading, language) || '—'}</td><td>{levelLabel(row.writing, language) || '—'}</td><td>{certificateLabel(row, language) || '—'}</td></>} />
-      </div>
-    </RecordTabPanel>}
-    {tab === 'employers' && <RecordTabPanel title={en ? 'Previous employers' : 'Προϋπηρεσία'} actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'employers' })}><Pencil size={15} />{en ? 'Edit' : 'Επεξεργασία'}</Button>}>
+        <SectionHeader title={en ? 'Previous employers' : 'Προϋπηρεσία'} actions={access.canManage && <Button variant="secondary" onClick={() => setDialog({ type: 'employers' })}><Pencil size={15} />{en ? 'Edit' : 'Επεξεργασία'}</Button>} />
       <RegistryTable rows={[...candidate.employers].sort((a, b) => String(b.fromOn || '').localeCompare(String(a.fromOn || '')))} rowKey={row => row.id || row.employer} columns={[{ key: 'employer', label: en ? 'Employer' : 'Εργοδότης' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'position', label: en ? 'Position' : 'Θέση' }, { key: 'salary', label: en ? 'Salary' : 'Μισθός' }, { key: 'reason', label: en ? 'Reason for leaving' : 'Λόγος αποχώρησης' }]}
         emptyTitle={en ? 'No previous employers' : 'Χωρίς προϋπηρεσία'} renderRow={row => <><td><strong>{row.employer}</strong></td><td className="nowrap-cell">{fmtDay(row.fromOn)} – {row.toOn ? fmtDay(row.toOn) : (en ? 'today' : 'σήμερα')}</td><td>{row.jobTitle || '—'}</td><td className="nowrap-cell">{fmtMoney(row.salary, language)}</td><td>{row.leavingReason || '—'}</td></>} />
+      </div>
     </RecordTabPanel>}
-    {tab === 'interviews' && <RecordTabPanel title={en ? 'Interviews' : 'Συνεντεύξεις'} subtitle={en ? 'Scheduled interviews and their evaluation by the panel.' : 'Οι προγραμματισμένες συνεντεύξεις και η αξιολόγησή τους από την επιτροπή.'}>
-      <RecordMetricStrip items={[{ label: en ? 'Interviews' : 'Συνεντεύξεις', value: interviews.length, primary: true }, { label: en ? 'Scheduled' : 'Προγραμματισμένες', value: interviews.filter(item => item.status === 'scheduled').length }, { label: en ? 'Latest rating' : 'Τελευταία βαθμολογία', value: fmtRating(evaluation?.overallRating, language) }, { label: en ? 'Recommendation' : 'Πρόταση', value: outcomeLabel(evaluation?.outcome, language) || '—' }]} />
+    {tab === 'interviews' && <RecordTabPanel actions={access.canManage && !closed && <Button variant="secondary" onClick={() => setDialog({ type: 'schedule', interview: newInterview(candidate.id) })}><CalendarPlus size={15} />{en ? 'Interview' : 'Συνέντευξη'}</Button>} title={en ? 'Interviews' : 'Συνεντεύξεις'} subtitle={en ? 'Scheduled interviews and their evaluation by the panel.' : 'Οι προγραμματισμένες συνεντεύξεις και η αξιολόγησή τους από την επιτροπή.'}>
       <RegistryTable rows={interviews} rowKey={item => item.id} columns={[{ key: 'when', label: en ? 'When' : 'Πότε' }, { key: 'panel', label: en ? 'Panel' : 'Επιτροπή' }, { key: 'scores', label: en ? 'Scores' : 'Βαθμολογίες' }, { key: 'outcome', label: en ? 'Recommendation' : 'Πρόταση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }, { key: 'actions', label: '' }]}
         emptyTitle={en ? 'No interviews yet' : 'Δεν έχουν γίνει συνεντεύξεις'} emptyIcon={Users}
         emptyAction={access.canManage && !closed ? { label: en ? 'Schedule interview' : 'Προγραμματισμός συνέντευξης', icon: CalendarPlus, onClick: () => setDialog({ type: 'schedule', interview: newInterview(candidate.id) }) } : null}
@@ -131,11 +137,12 @@ export function InterviewRecordPage() {
     </RecordTabPanel>}
     {tab === 'decision' && <RecordTabPanel title={en ? 'Decision' : 'Απόφαση'} subtitle={en ? 'Hire, reserve list or reject; «Hire» then creates or links the employee.' : 'Πρόσληψη, λίστα αναμονής ή απόρριψη· η «Πρόσληψη» δημιουργεί ή συνδέει τον εργαζόμενο.'}>
       <div className="record-view-stack">
-        <RecordDetailsGrid fields={[{ label: en ? 'Status' : 'Κατάσταση', value: <CandidateStatusBadge status={candidate.status} language={language} /> }, { label: en ? 'Decision' : 'Απόφαση', value: decisionLabel(candidate.decision, language) }, { label: en ? 'Date · decided by' : 'Ημερομηνία · αποφάσισε', value: [fmtDay(candidate.decisionOn), candidate.decisionByName].filter(item => item && item !== '—').join(' · ') },
+        <RecordDetailsGrid fields={filled([{ label: en ? 'Status' : 'Κατάσταση', value: <CandidateStatusBadge status={candidate.status} language={language} /> }, { label: en ? 'Decision' : 'Απόφαση', value: decisionLabel(candidate.decision, language) }, { label: en ? 'Date · decided by' : 'Ημερομηνία · αποφάσισε', value: [fmtDay(candidate.decisionOn), candidate.decisionByName].filter(item => item && item !== '—').join(' · ') },
           { label: en ? 'Notes / reason' : 'Σημειώσεις / αιτιολογία', value: candidate.decisionNotes, className: 'interviews-span-3' },
           { label: en ? 'Salary offered' : 'Προτεινόμενος μισθός', value: fmtMoney(evaluation?.offeredSalary, language), meta: evaluation?.salaryExpectation ? `${en ? 'Asked' : 'Ζήτησε'} ${fmtMoney(evaluation.salaryExpectation, language)}` : '' }, { label: en ? 'Benefits' : 'Παροχές', value: evaluation?.benefits }, { label: en ? 'Available from' : 'Διαθέσιμος από', value: fmtDay(evaluation?.availableFrom) },
-          { label: en ? 'Employee' : 'Εργαζόμενος', value: employee ? `${employee.lastName} ${employee.firstName} (${employee.id})` : candidate.employeeId ? (en ? 'Linked' : 'Συνδέθηκε') : '—' }]} />
+          { label: en ? 'Employee' : 'Εργαζόμενος', value: employee ? `${employee.lastName} ${employee.firstName} (${employee.id})` : candidate.employeeId ? (en ? 'Linked' : 'Συνδέθηκε') : '' }])} />
         <div className="row-actions">
+          {access.canManage && candidate.status !== 'hired' && <Button variant="secondary" onClick={() => setDialog({ type: 'decide' })}><Gavel size={15} />{candidate.decision ? (en ? 'Change the decision' : 'Αλλαγή απόφασης') : (en ? 'Decide' : 'Απόφαση')}</Button>}
           {employee && <Button variant="secondary" onClick={() => navigate(`/employees/${encodeURIComponent(employee.id)}`)}><Users size={15} />{en ? 'Employee record' : 'Καρτέλα εργαζομένου'}</Button>}
           {canHireNow && candidate.status !== 'withdrawn' && <Button onClick={() => setDialog({ type: 'hire' })}><UserPlus size={15} />{en ? 'Hire' : 'Πρόσληψη'}</Button>}
         </div>

@@ -31,19 +31,21 @@ describe('Interviews screens (demo)', () => {
     renderAt('/interviews')
     expect(await screen.findByText('Κωνσταντίνου Δήμητρα')).toBeInTheDocument()
     expect(screen.queryByText('Παππά Χριστίνα')).not.toBeInTheDocument()
-    // The closed applications are one choice of «Filters» (the cards show the steps that ask for something).
+    // The closed applications are one choice of «Filters».
     fireEvent.click(screen.getByRole('button', { name: /Φίλτρα/ }))
     fireEvent.change(screen.getByLabelText('Κατάσταση'), { target: { value: 'rejected' } })
     expect(await screen.findByText('Παππά Χριστίνα')).toBeInTheDocument()
-    expect(screen.getByText('Επόμενες συνεντεύξεις')).toBeInTheDocument()
+    // No cards above the list: the steps that ask for something are counted in the status choices.
+    expect(screen.queryByText('Επόμενες συνεντεύξεις')).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Νέα αίτηση \(\d+\)/ })).toBeInTheDocument()
   })
 
   it('opens an application with its tabs and records an evaluation', async () => {
     renderAt('/interviews/demo-cand-3')
     expect(await screen.findByRole('heading', { name: 'Μιχαηλίδου Άννα' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Εκπαίδευση & γλώσσες/ }))
+    // Education, languages and previous employers are one tab: the CV.
+    fireEvent.click(screen.getByRole('tab', { name: /Βιογραφικό/ }))
     expect(screen.getByText('Νοσηλευτική Πανεπιστημίου Θεσσαλίας')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Προϋπηρεσία/ }))
     expect(screen.getByText('Γενικό Νοσοκομείο (παράδειγμα)')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: /Συνεντεύξεις/ }))
     fireEvent.click(screen.getAllByRole('button', { name: 'Αξιολόγηση' })[0])
