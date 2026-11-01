@@ -10,6 +10,7 @@ import { Field } from '../../../design-system/Field'
 import { ManualDateField } from '../../../design-system/ManualDateField'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { SearchableSelect } from '../../../design-system/SearchableSelect'
+import { LocationAutocompleteField } from '../../../design-system/LocationAutocompleteField'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { IconButton } from '../../../design-system/IconButton'
@@ -86,6 +87,7 @@ export function MeetingRecordPage() {
   // Topics from the hospital's library (Management > Libraries > Committee and meeting topics).
   const { libraries } = useLibraries()
   const topicOptions = useMemo(() => libraryOptions(libraries.committeeTopics || [], language).map(option => ({ ...option, description: [option.description, (libraries.committeeTopics || []).find(item => item.value === option.value)?.meta?.category].filter(Boolean).join(' · ') || undefined })), [libraries.committeeTopics, language])
+  const topicLabels = useMemo(() => topicOptions.map(option => option.label), [topicOptions])
   const [meeting, setMeeting] = useState(null)
   const [tab, setTab] = useState('details')
   const [saving, setSaving] = useState(false)
@@ -220,7 +222,7 @@ export function MeetingRecordPage() {
       <div className="meeting-topics">
         {meeting.topics.map((topic, index) => { const own = meeting.decisions.map((item, at) => ({ item, at })).filter(({ item }) => topic.id && item.topicId === topic.id); return <div key={topic.id || index} className="meeting-topic-card">
           <div className="meeting-topic-head">
-            <label className="field meeting-topic-subject"><span className="field-label lo-field-label">{en ? 'Topic' : 'Θέμα'} {index + 1}</span><input value={topic.subject} disabled={locked} list={topicOptions.length ? 'meeting-topic-library' : undefined} onChange={event => setTopic(index, { subject: event.target.value })} /></label>
+            <LocationAutocompleteField className="meeting-topic-subject" label={`${en ? 'Topic' : 'Θέμα'} ${index + 1}`} value={topic.subject} disabled={locked} options={topicLabels} onChange={subject => setTopic(index, { subject })} />
             {!locked && <span className="meeting-topic-tools">{!own.length && String(topic.subject).trim() && <Button variant="secondary" onClick={() => addDecision(topic.id)}><Plus size={15} />{en ? 'Decision' : 'Απόφαση'}</Button>}<IconButton tone="danger" label={en ? 'Delete topic' : 'Διαγραφή θέματος'} onClick={() => set({ topics: meeting.topics.filter((_, position) => position !== index) })}><Trash2 size={15} /></IconButton></span>}
           </div>
           {own.map(({ item, at }) => decisionRow(item, at))}
@@ -230,7 +232,6 @@ export function MeetingRecordPage() {
           <div className="meeting-topic-head"><strong>{en ? 'Other decisions' : 'Άλλες αποφάσεις'}</strong></div>
           {looseDecisions.map(({ item, index }) => decisionRow(item, index))}
         </div>}
-        {topicOptions.length > 0 && <datalist id="meeting-topic-library">{topicOptions.map(option => <option key={option.value} value={option.label} />)}</datalist>}
       </div>
     </RecordTabPanel>}
     {tab === 'people' && <RecordTabPanel title={en ? 'Attendance' : 'Παρουσίες'} subtitle={attendanceSummary}

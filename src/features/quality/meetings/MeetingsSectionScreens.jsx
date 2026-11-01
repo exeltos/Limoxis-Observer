@@ -47,7 +47,7 @@ export function DepartmentMeetingsScreen({ home = '/meetings?tab=departments', o
     setSaving(true)
     try { const saved = await saveMeetingGroup(tenant?.id, group); notify(L('Το τμήμα προστέθηκε.', 'Department added.'), 'success'); setAdding(false); data.reload(); goTo(`/meetings/groups/${saved.id}`) } catch (error) { console.error(error); notify(L('Δεν ήταν δυνατή η αποθήκευση της ομάδας.', 'The group could not be saved.'), 'error') } finally { setSaving(false) }
   }
-  return <Page fill className="registry-fill-page" title={ownDepartment ? t('sidebarNav.departmentMeetings') : t('sidebarNav.tabDepartmentMeetings')} subtitle={L('Μία ομάδα συναντήσεων ανά τμήμα, με τη συχνότητα που όρισε η διοίκηση.', 'One meeting group per department, meeting as often as the administration set.')}
+  return <Page fill className="registry-fill-page" title={ownDepartment ? t('sidebarNav.departmentMeetings') : t('sidebarNav.tabDepartmentMeetings')} subtitle={L('Οι συναντήσεις κάθε τμήματος, με τη συχνότητα που όρισε η διοίκηση.', 'The meetings of each department, as often as the administration set.')}
     actions={<div className="row-actions">
       <ExportMenu disabled={!data.meetings.meetings.length} onPrint={() => printList(meetingsExport(data.meetings.meetings, language), t('sidebarNav.tabDepartmentMeetings'))} onExcel={() => exportRegistry(meetingsExport(data.meetings.meetings, language))} />
       {data.canManage && <ActionButton label={L('Νέο τμήμα συναντήσεων', 'New meeting department')} tone="primary" onClick={() => setAdding(true)}><Plus size={18} /><span>{L('Τμήμα', 'Department')}</span></ActionButton>}
