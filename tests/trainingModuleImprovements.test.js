@@ -15,8 +15,9 @@ describe('training program record: scrolls like other record pages instead of cl
 
   it('still lets Participants/Assessment/Results manage their own internal registry scroll', () => {
     expect(productionPage).toContain("tab==='participants'&&<Participants")
-    expect(productionPage).toContain("tab==='assessment'&&<TrainingAssessmentEditor")
-    expect(productionPage).toContain("tab==='results'&&<TrainingResultsReview")
+    // Assessment is the «Knowledge test» of the Content tab; the review of results is a view of Results.
+    expect(productionPage).toContain("tab==='content'&&contentView==='test'&&<TrainingAssessmentEditor")
+    expect(productionPage).toContain("tab==='results'&&resultsView==='participants'&&<TrainingResultsReview")
   })
 })
 

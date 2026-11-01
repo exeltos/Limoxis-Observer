@@ -1,10 +1,10 @@
 import {useMemo,useState} from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { Award, CheckCircle2, ClipboardCheck, Eye, Star } from 'lucide-react'
+import { Award, CheckCircle2, ClipboardCheck, Eye } from 'lucide-react'
 
 
 import {MetricCard} from '../../design-system/MetricCard'
-import { KpiFigures } from '../../design-system/KpiCard'
+import { RecordFacts } from '../../design-system/RecordFacts'
 import { Button } from '../../design-system/Button'
 import {ObserverDialog,DialogActions} from '../../design-system/ObserverDialog'
 import {useAuth} from '../../core/auth/AuthContext'
@@ -82,12 +82,7 @@ export function TrainingResultsReview({program,rows,state,onPersist,busy=false,e
   if(ok)setSelected(null)
  }
  return <div className="workspace-column workspace-fill">
-  <KpiFigures label={en?'Results':'Αποτελέσματα'} figures={[
-   {key:'completed',icon:CheckCircle2,value:completed,label:en?'Completed':'Ολοκληρώσεις',hint:en?`of ${rows.length} participants`:`από ${rows.length} συμμετέχοντες`},
-   {key:'score',icon:ClipboardCheck,value:scored.length?avg:null,unit:'%',label:en?'Average score':'Μέση επίδοση',status:scored.length&&pass!=null?(avg>=pass?'good':'danger'):null,target:pass!=null?(en?`pass ≥ ${pass}%`:`βάση ≥ ${pass}%`):null},
-   {key:'competent',icon:Star,value:rows.filter(x=>x.competent===true).length,label:en?'Competent':'Επαρκείς'},
-   {key:'reviewed',icon:Eye,value:submittedRows.length?`${reviewedCount}/${submittedRows.length}`:null,label:en?'Reviewed':'Ελεγμένες',tone:'warning',status:submittedRows.length?(reviewedCount===submittedRows.length?'good':'warning'):null},
-  ]}/>
+  <RecordFacts label={en?'Results':'Αποτελέσματα'} items={[{value:`${completed}/${rows.length}`,label:en?'completed':'ολοκλήρωσαν'},{value:scored.length?`${avg}%`:'',label:en?(pass!=null?`average score (pass ≥ ${pass}%)`:'average score'):(pass!=null?`μέση επίδοση (βάση ≥ ${pass}%)`:'μέση επίδοση')},{value:rows.filter(x=>x.competent===true).length||'',label:en?'competent':'επαρκείς'},{value:submittedRows.length?`${reviewedCount}/${submittedRows.length}`:'',label:en?'reviewed':'ελεγμένες'}]}/>
   <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>{en?'Participant':'Συμμετέχων'}</th><th>{en?'Attendance':'Συμμετοχή'}</th><th>{en?'Score':'Βαθμολογία'}</th><th>{en?'Outcome':'Αποτέλεσμα'}</th><th>{en?'Review status':'Κατάσταση ελέγχου'}</th><th>{en?'Certificate':'Πιστοποιητικό'}</th></tr></thead><tbody>{rows.map(row=>{const submitted=Boolean(row.feedbackSubmittedAt||row.assessmentSubmittedAt),certificate=certificateFor(row);return <tr key={row.id} className={submitted?'clickable-row':''} onClick={()=>open(row)}><td><strong>{row.employeeName||'—'}</strong><small>{row.department||'—'}</small></td><td>{row.attendanceResponse==='confirmed'?(en?'Confirmed':'Επιβεβαιωμένη'):'—'}</td><td>{row.score!=null?`${row.score}%`:'—'}</td><td>{row.assessmentReviewStatus==='pending'?(en?'Manual review required':'Απαιτείται χειροκίνητος έλεγχος'):row.competent===true?(en?'Successful':'Επιτυχής'):row.competent===false?(en?'Retraining required':'Απαιτείται επανεκπαίδευση'):'—'}</td><td>{row.assessmentReviewedAt?<span className="status-badge active">{en?'Reviewed':'Ελέγχθηκε'}</span>:submitted?<span className="status-badge">{en?'Ready for review':'Προς έλεγχο'}</span>:'—'}</td><td className="open-record-cell">{certificate&&<Button variant="secondary" size="sm" disabled={Boolean(certBusyId)} onClick={event=>{event.stopPropagation();void downloadCertificateFor(row)}}><Award size={14}/>{en?'Certificate':'Πιστοποιητικό'}</Button>}</td></tr>})}</tbody></table></div>
   {selected&&<ObserverDialog width="wide" className="training-review-dialog" eyebrow={en?'Participant assessment':'Αξιολόγηση συμμετέχοντα'} title={selected.employeeName||'—'} onClose={()=>setSelected(null)} footer={pendingReview?<DialogActions onSave={finalizeReview} saveLabel={finalizing?(en?'Completing…':'Ολοκλήρωση…'):(en?'Complete review':'Ολοκλήρωση ελέγχου')} disabled={busy||finalizing}/>:!selected.assessmentReviewedAt?<DialogActions onSave={saveReview} saveLabel={en?'Mark as reviewed':'Σήμανση ως ελεγμένη'} disabled={busy||!reviewed}/>:null}>
    <div className="workspace-column training-review-content">

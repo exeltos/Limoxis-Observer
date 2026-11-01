@@ -1,9 +1,10 @@
 import { useEffect,useMemo,useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpenCheck,ChevronRight,ClipboardCheck,Plus,Smile,Target } from 'lucide-react'
+import { ChevronRight, ClipboardCheck, Plus } from 'lucide-react'
+import { ChevronDown,ChevronUp } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
-import { MetricCard } from '../../design-system/MetricCard'
+import { RecordFacts } from '../../design-system/RecordFacts'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ChoiceField } from '../../design-system/ChoiceField'
@@ -28,6 +29,7 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
  const saved=useMemo(()=>({...defaultEffectiveness(program),...(program.effectiveness||{})}),[program])
  const [draft,setDraft]=useState(saved)
  const [capas,setCapas]=useState([])
+ const [more,setMore]=useState(()=>Boolean(program.effectiveness?.result))
  useEffect(()=>setDraft(saved),[saved])
  useEffect(()=>{let active=true;loadQualityRecords('capas',tenant?.id).then(rows=>{if(active)setCapas(capasForProgram(rows||[],program.id))}).catch(()=>{});return()=>{active=false}},[tenant?.id,program.id])
  const levels=effectivenessLevels(program,assignments)
@@ -49,21 +51,20 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
 
  return <section className="record-section training-effectiveness">
   <div className="record-section-header"><div><span className="eyebrow">{en?'Training effectiveness':'Αποτελεσματικότητα εκπαίδευσης'}</span><h3>{en?'Did the training change practice?':'Άλλαξε η εκπαίδευση την πρακτική;'}</h3></div><span className={`training-effectiveness-state ${status}`}>{effectivenessStateText(status,en)}</span></div>
-  <div className="training-effectiveness-levels">
-   <MetricCard icon={Smile} value={levels.satisfaction==null?'—':`${levels.satisfaction}/5`} label={en?`1 · Satisfaction (${levels.feedbackCount} answers)`:`1 · Ικανοποίηση (${levels.feedbackCount} απαντήσεις)`}/>
-   <MetricCard icon={BookOpenCheck} value={levels.passRate==null?'—':`${levels.passRate}%`} label={en?`2 · Knowledge: passed${levels.averageScore==null?'':` · avg ${levels.averageScore}%`}`:`2 · Γνώσεις: επιτυχία${levels.averageScore==null?'':` · μ.ο. ${levels.averageScore}%`}`}/>
-   <MetricCard textValue icon={Target} value={practice} label={en?'3 · Practice (evaluation)':'3 · Εφαρμογή στην πράξη'} tone={status==='effective'?'active':notMet||status==='overdue'?'danger':'neutral'}/>
-  </div>
+  <RecordFacts label={en?'Effectiveness levels':'Επίπεδα αποτελεσματικότητας'} items={[{value:levels.satisfaction==null?'':`${levels.satisfaction}/5`,label:en?`satisfaction (${levels.feedbackCount} answers)`:`ικανοποίηση (${levels.feedbackCount} απαντήσεις)`},{value:levels.passRate==null?'':`${levels.passRate}%`,label:en?`knowledge passed${levels.averageScore==null?'':` · avg ${levels.averageScore}%`}`:`γνώσεις: επιτυχία${levels.averageScore==null?'':` · μ.ο. ${levels.averageScore}%`}`},{value:practice,label:en?'practice':'εφαρμογή στην πράξη'}]}/>
 
   <div className="entry-grid">
    <ManualDateField label={en?'Evaluate on':'Αξιολόγηση στις'} value={draft.plannedDate} onChange={value=>set('plannedDate',value)} disabled={!canManage}/>
    <SearchableSelect label={en?'Method':'Μέθοδος'} disabled={!canManage} value={draft.method} onChange={value=>set('method',value||draft.method)} options={EFFECTIVENESS_METHODS.map(([key,el,enLabel])=>({value:key,label:en?enLabel:el}))}/>
    <label className="entry-span-2"><span>{en?'What counts as effective':'Τι θεωρείται αποτελεσματικό'}</span><input disabled={!canManage} value={draft.criterion} onChange={e=>set('criterion',e.target.value)} placeholder={en?'e.g. hand hygiene compliance ≥ 80% in the ward audit':'π.χ. συμμόρφωση υγιεινής χεριών ≥ 80% στην επιθεώρηση του τμήματος'}/></label>
    <ChoiceField label={en?'Result':'Αποτέλεσμα'} disabled={!canManage} value={draft.result||''} onChange={value=>set('result',value)} options={[{value:'',label:en?'Not evaluated yet':'Δεν έχει αξιολογηθεί'},...EFFECTIVENESS_RESULTS.map(([key,el,enLabel])=>({value:key,label:en?enLabel:el}))]}/>
+   <label className="entry-span-2"><span>{en?'Findings':'Ευρήματα'}</span><textarea rows={3} disabled={!canManage} value={draft.notes} onChange={e=>set('notes',e.target.value)} placeholder={en?'What was observed or measured':'Τι παρατηρήθηκε ή μετρήθηκε'}/></label>
+   <button type="button" className="entry-span-2 training-form-more" aria-expanded={more} onClick={()=>setMore(value=>!value)}>{more?<ChevronUp size={15}/>:<ChevronDown size={15}/>}{more?(en?'Fewer details':'Λιγότερα στοιχεία'):(en?'More details':'Περισσότερα στοιχεία')}</button>
+   {more&&<>
    <ManualDateField label={en?'Evaluated on':'Ημερομηνία αξιολόγησης'} value={draft.evaluatedAt} onChange={value=>set('evaluatedAt',value)} optional disabled={!canManage||!draft.result}/>
    <label><span>{en?'Evaluated by':'Αξιολογητής'}</span><input disabled={!canManage||!draft.result} value={draft.evaluatedBy} onChange={e=>set('evaluatedBy',e.target.value)} placeholder={evaluator}/></label>
-   <label className="entry-span-2"><span>{en?'Findings':'Ευρήματα'}</span><textarea rows={3} disabled={!canManage} value={draft.notes} onChange={e=>set('notes',e.target.value)} placeholder={en?'What was observed or measured':'Τι παρατηρήθηκε ή μετρήθηκε'}/></label>
    <label className="entry-span-2"><span>{en?'Evaluation comment':'Σχόλιο αξιολόγησης'}</span><textarea rows={2} disabled={!canManage||!draft.result} value={draft.comment} onChange={e=>set('comment',e.target.value)} placeholder={en?'The evaluation as written by the evaluator':'Η αξιολόγηση όπως τη διατύπωσε ο αξιολογητής'}/></label>
+   </>}
   </div>
   {saved.evaluatedBy&&<p className="training-effectiveness-meta">{en?'Evaluated by':'Αξιολόγηση από'} {saved.evaluatedBy}{saved.evaluatedAt?` · ${formatDay(saved.evaluatedAt)}`:''} · {optionLabel(EFFECTIVENESS_METHODS,saved.method,en)}{saved.comment?` — ${saved.comment}`:''}</p>}
   {canManage&&<div className="inline-edit-footer">{dirty&&<Button variant="secondary" onClick={()=>setDraft(saved)} disabled={busy}>{en?'Cancel':'Ακύρωση'}</Button>}<SaveButton loading={busy} disabled={!dirty||busy} onClick={()=>void save()}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}
