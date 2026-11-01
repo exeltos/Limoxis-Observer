@@ -58,7 +58,6 @@ import {
   Meetings,
   Decisions,
   Plan,
-  Framework,
   History,
 } from './CommitteeRecordSections'
 import {
@@ -181,13 +180,13 @@ export function CommitteeRecordPage() {
     )
 
   const activeMembers = (record.memberRefs || []).filter(x => x.active !== false)
+  const activePlan = (record.annualPlan || []).filter(x => x.status !== 'cancelled')
   const tabs = [
     { id: 'overview', label: en ? 'Overview' : 'Σύνοψη', icon: CheckCircle2 },
-    { id: 'members', label: en ? 'Members' : 'Μέλη', icon: Users },
-    { id: 'plan', label: en ? 'Annual plan' : 'Ετήσιο σχέδιο', icon: Target },
-    { id: 'meetings', label: en ? 'Meetings' : 'Συνεδριάσεις', icon: CalendarDays },
-    { id: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις', icon: ClipboardList },
-    { id: 'framework', label: en ? 'Framework' : 'Θεσμικό πλαίσιο', icon: ShieldCheck },
+    { id: 'members', label: `${en ? 'Members' : 'Μέλη'} ${activeMembers.length}`, icon: Users },
+    { id: 'plan', label: `${en ? 'Annual plan' : 'Ετήσιο σχέδιο'}${activePlan.length ? ` ${activePlan.filter(x => x.status === 'completed').length}/${activePlan.length}` : ''}`, icon: Target },
+    { id: 'meetings', label: `${en ? 'Meetings' : 'Συνεδριάσεις'} ${(record.meetings || []).length}`, icon: CalendarDays },
+    { id: 'decisions', label: `${en ? 'Decisions' : 'Αποφάσεις'} ${(record.decisions || []).filter(x => !['completed', 'closed', 'cancelled'].includes(x.status)).length}`, icon: ClipboardList },
     { id: 'documents', label: en ? 'Documents' : 'Έγγραφα', icon: Paperclip },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
   ]
@@ -625,6 +624,17 @@ export function CommitteeRecordPage() {
               <Pencil size={16} />
             </IconButton>
           )}
+          {/* The institutional framework (role, basis, mandate) shows in the Overview; it is edited from the record's «…». */}
+          {canFramework && (
+            <IconButton
+              tone="edit"
+              label={en ? 'Edit institutional framework' : 'Επεξεργασία θεσμικού πλαισίου'}
+              disabled={busy}
+              onClick={() => setDialog({ type: 'framework' })}
+            >
+              <ShieldCheck size={16} />
+            </IconButton>
+          )}
           {canArchive && (
             <ActionButton
               tone="danger"
@@ -700,14 +710,6 @@ export function CommitteeRecordPage() {
             onAdd={() => setDialog({ type: 'decision' })}
             onEdit={x => setDialog({ type: 'decision', value: x })}
             onStatus={decisionStatus}
-            en={en}
-          />
-        )}
-        {tab === 'framework' && (
-          <Framework
-            record={record}
-            canManage={canFramework && !busy}
-            onEdit={() => setDialog({ type: 'framework' })}
             en={en}
           />
         )}

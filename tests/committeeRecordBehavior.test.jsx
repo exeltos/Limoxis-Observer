@@ -93,16 +93,20 @@ describe('committee record: members', () => {
 })
 
 describe('committee record: institutional framework', () => {
+  // The framework shows in the Overview and is edited from the record's «…» (no tab of its own).
   it('lets a role with create-committee rights edit the framework', () => {
-    openPage(); openTab('Θεσμικό πλαίσιο')
-    fireEvent.click(screen.getByRole('button', { name: /Ενέργειες/ }))
+    openPage()
+    expect(screen.queryByRole('tab', { name: /Θεσμικό πλαίσιο/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Ενέργειες εγγραφής/ }))
     expect(screen.getByRole('menuitem', { name: /Επεξεργασία θεσμικού πλαισίου/ })).toBeInTheDocument()
   })
 
   it('keeps framework edits away from the committee secretariat', () => {
     tenant = { ...tenant, role: 'committee_secretariat' }
-    openPage(); openTab('Θεσμικό πλαίσιο')
-    expect(screen.queryByRole('button', { name: /Ενέργειες/ })).not.toBeInTheDocument()
+    openPage()
+    const menu = screen.queryByRole('button', { name: /Ενέργειες εγγραφής/ })
+    if (menu) fireEvent.click(menu)
+    expect(screen.queryByRole('menuitem', { name: /Επεξεργασία θεσμικού πλαισίου/ })).not.toBeInTheDocument()
   })
 })
 

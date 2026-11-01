@@ -2,6 +2,9 @@
 export const todayIso = () => new Date().toISOString().slice(0, 10)
 export const fmtDate = value =>
   value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('el-GR') : '—'
+// A term without an end reads «from 28/3/2022», never «28/3/2022 – —».
+export const termText = (start, end, en, format = fmtDate) =>
+  start && end ? `${format(start)} – ${format(end)}` : start ? `${en ? 'from' : 'από'} ${format(start)}` : end ? `${en ? 'until' : 'έως'} ${format(end)}` : '—'
 export const statusLabel = (status, en) =>
   ({
     planned: en ? 'Planned' : 'Προγραμματισμένη',
