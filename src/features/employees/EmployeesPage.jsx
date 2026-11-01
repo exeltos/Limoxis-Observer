@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { Plus,Upload,UserCheck,UserPlus,Users,UserX } from 'lucide-react'
+import { Plus,Upload,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { Page } from '../../design-system/Page'
@@ -11,7 +11,6 @@ import { UI_ACTIONS } from '../../core/actions/actionPolicy'
 import { CAPABILITIES } from '../../core/permissions/roles'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { KpiFigures } from '../../design-system/KpiCard'
 import { useEmployeesData } from './useEmployeesData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Button } from '../../design-system/Button'
@@ -36,31 +35,18 @@ export function EmployeesPage(){
   if(error)return <div className="data-access-state error" role="alert"><span>{t('employeesLoadFailed')}</span><button type="button" onClick={reload}>{t('retry')}</button></div>
   const displayName=x=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
   const scopedEmployees=employeeRows.filter(x=>canAccessRecord(x))
-  const employeeSummary={
-    total:scopedEmployees.length,
-    active:scopedEmployees.filter(x=>x.employmentStatus==='active').length,
-    inactive:scopedEmployees.filter(x=>x.employmentStatus==='inactive').length,
-    departments:new Set(scopedEmployees.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean)).size,
-    newHires:scopedEmployees.filter(isNewHire).length,
-  }
-  const toggle=value=>()=>setStatus(status===value?'all':value)
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
-    <KpiFigures label={t('employees')} figures={[
-      {key:'active',icon:UserCheck,value:employeeSummary.active,label:t('employeesRecords.activeEmployees'),hint:t('employeesRecords.departmentsNote').replace('{count}',employeeSummary.departments),active:status==='active',go:toggle('active')},
-      {key:'inactive',icon:UserX,value:employeeSummary.inactive,label:t('inactive'),active:status==='inactive',go:toggle('inactive')},
-      {key:'new',icon:UserPlus,value:employeeSummary.newHires,label:t('employeesRecords.newHires'),active:status==='new',go:toggle('new')},
-    ]}/>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={clearFilters}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
-        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option></FilterSelect>
+        <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option><option value="new">{t('employeesRecords.newHires')}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table"><thead><tr><th>{t('employeeCode')}</th><th>{t('name')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><strong>{x.id}</strong></td><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
         {!rows.length&&(scopedEmployees.length
           ?<RegistryEmptyState filtered onClearFilters={clearFilters}/>
           :<RegistryEmptyState icon={Users} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} action={canImport?{label:t('create'),icon:Plus,onClick:()=>action(UI_ACTIONS.CREATE)}:null}/>)}

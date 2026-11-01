@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Activity,
-  BookOpenCheck,
   BriefcaseBusiness,
   FileCheck2,
   GraduationCap,
@@ -19,7 +18,6 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
-import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
@@ -222,12 +220,6 @@ export function EmployeeRecordPage({ selfMode = false }) {
           show: true,
         },
         {
-          id: 'protocols',
-          label: language === 'en' ? 'Protocols' : 'Πρωτόκολλα',
-          icon: BookOpenCheck,
-          show: canSeeProtocols || selfMode,
-        },
-        {
           id: 'history',
           label: t('history'),
           icon: ShieldCheck,
@@ -240,7 +232,6 @@ export function EmployeeRecordPage({ selfMode = false }) {
       canOccupational,
       canTraining,
       canSeeSensitiveEmployeeHealth,
-      canSeeProtocols,
       selfMode,
       language,
       role,
@@ -257,7 +248,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
   const [tab, setTab] = useState(() =>
     ['vaccinations', 'exposureIncidents'].includes(restored?.tab)
       ? 'occupational'
-      : restored?.tab || 'details',
+      : restored?.tab === 'protocols' ? 'certificates' : restored?.tab || 'details',
   )
   const selfProfileTabs = useMemo(
     () => [
@@ -271,11 +262,6 @@ export function EmployeeRecordPage({ selfMode = false }) {
         id: 'certificates',
         label: language === 'en' ? 'Documents' : 'Έγγραφα',
         icon: BriefcaseBusiness,
-      },
-      {
-        id: 'protocols',
-        label: language === 'en' ? 'Protocols' : 'Πρωτόκολλα',
-        icon: BookOpenCheck,
       },
     ],
     [t, language],
@@ -490,14 +476,11 @@ export function EmployeeRecordPage({ selfMode = false }) {
   }
   const headerActions = (
     <>
-      {!selfReadOnly && canOccupational && (
-        <ActionButton
-          tone="primary"
-          label={t('newScreening')}
-          onClick={() => setSurveillanceOpen(true)}
-        >
-          <span>+ {t('newScreening')}</span>
-        </ActionButton>
+      {canManageUsers && !employee.accountLinked && (
+        <Button recordMenu variant="secondary" onClick={() => setAccountOpen(true)}>
+          <KeyRound size={15} />
+          {language === 'en' ? 'Create user account' : 'Δημιουργία λογαριασμού χρήστη'}
+        </Button>
       )}
       <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />
     </>
@@ -561,8 +544,6 @@ export function EmployeeRecordPage({ selfMode = false }) {
             language={language}
             fmt={fmt}
             canAdmin={canAdmin}
-            canManageUsers={canManageUsers}
-            onCreateAccount={() => setAccountOpen(true)}
             deleteEmployee={deleteEmployee}
             notify={notify}
             organizationId={tenant?.id}
@@ -642,7 +623,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
             isDemo={isDemo}
           />
         )}
-        {tab === 'protocols' && (
+        {tab === 'certificates' && (canSeeProtocols || selfMode) && (
           <EmployeeProtocolsTab
             employee={employee}
             language={language}
@@ -776,8 +757,6 @@ function Details({
   language,
   fmt,
   canAdmin,
-  canManageUsers,
-  onCreateAccount,
   deleteEmployee,
   notify,
   organizationId,
@@ -960,36 +939,6 @@ function Details({
           onChange={value => set('phone', value)}
         />
       </div>
-      {!editing && canManageUsers && (
-        <div className="source-truth-note">
-          <KeyRound size={16} />
-          <div>
-            <strong>
-              {employee.accountLinked
-                ? language === 'en'
-                  ? 'Linked user account'
-                  : 'Συνδεδεμένος λογαριασμός χρήστη'
-                : language === 'en'
-                  ? 'No user account'
-                  : 'Δεν υπάρχει λογαριασμός χρήστη'}
-            </strong>
-            <span>
-              {employee.accountLinked
-                ? language === 'en'
-                  ? 'This employee is linked to an authenticated Limoxis Observer account.'
-                  : 'Ο εργαζόμενος είναι συνδεδεμένος με πιστοποιημένο λογαριασμό Limoxis Observer.'
-                : language === 'en'
-                  ? 'Create an account so personal training, approvals and self-service actions are tied to this employee.'
-                  : 'Δημιουργήστε λογαριασμό ώστε οι προσωπικές εκπαιδεύσεις, εγκρίσεις και ενέργειες αυτοεξυπηρέτησης να συνδέονται με τον συγκεκριμένο εργαζόμενο.'}
-            </span>
-          </div>
-          {!employee.accountLinked && (
-            <Button variant="secondary" onClick={onCreateAccount}>
-              {language === 'en' ? 'Create account' : 'Δημιουργία λογαριασμού'}
-            </Button>
-          )}
-        </div>
-      )}
       {editing && (
         <div className="inline-edit-footer">
           <Button variant="secondary" disabled={saving} onClick={cancel}>

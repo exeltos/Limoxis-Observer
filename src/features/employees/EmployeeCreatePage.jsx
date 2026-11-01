@@ -85,7 +85,6 @@ export function EmployeeCreatePage(){
     <label><span>Email</span><input type="email" value={v.email} onChange={e=>set('email',e.target.value)}/></label>
     <label><span>{en?'Phone':'Τηλέφωνο'}</span><input value={v.phone} onChange={e=>set('phone',e.target.value)}/></label>
    </div>
-   <div className="source-truth-note">{en?'One code identifies one employee folder. Training, evaluations, certificates, surveillance and future employment history remain under that single record.':'Ένας κωδικός αντιστοιχεί σε μία καρτέλα εργαζομένου. Εκπαιδεύσεις, αξιολογήσεις, πιστοποιήσεις, επιτήρηση και μελλοντικό ιστορικό παραμένουν κάτω από τον ίδιο φάκελο.'}</div>
    <div className="inline-edit-footer"><Button variant="secondary" onClick={()=>navigate('/employees')}>{t('cancel')}</Button><SaveButton loading={saving} disabled={!valid||saving} onClick={save}>{t('save')}</SaveButton></div>
   </div>
  </EntityRecordShell></Page>
