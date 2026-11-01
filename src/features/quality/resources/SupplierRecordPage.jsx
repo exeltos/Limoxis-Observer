@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { AlertTriangle, CheckSquare2, ClipboardList, Eye, FilePlus2, FolderOpen, Pencil, Plus, Send, Stethoscope, Star, Trash2, Truck, Users } from 'lucide-react'
+import { AlertTriangle, CheckSquare2, ClipboardList, Eye, FilePlus2, FolderOpen, Paperclip, Pencil, Plus, Send, Stethoscope, Star, Trash2, Truck, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
@@ -17,6 +17,8 @@ import { IconButton } from '../../../design-system/IconButton'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { OverflowMenu } from '../../../design-system/OverflowMenu'
+import { ActionButton } from '../../../design-system/ActionButton'
+import '../../../design-system/AttachmentField.css'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
@@ -156,6 +158,7 @@ function SupplierRecord({ supplierId }) {
   const evaluations = [...(draft.evaluations || [])].sort(byNewest('evaluatedOn'))
   const certifications = draft.certifications || []
   const documents = supplierDocumentRows(certifications, supplierFiles.files)
+  const addDocument = !locked && <ActionButton tone="neutral" label={en ? 'Add a document' : 'Προσθήκη εγγράφου'} onClick={() => setEditing({ field: 'certifications', item: newCertification() })}><FilePlus2 size={15} /><span>{en ? 'Add a document' : 'Προσθήκη εγγράφου'}</span></ActionButton>
   const contacts = draft.contacts || []
   const nonconformities = [...(draft.nonconformities || [])].sort(byNewest('date'))
   const openCount = nonconformities.filter(item => item.status !== 'closed').length
@@ -222,22 +225,24 @@ function SupplierRecord({ supplierId }) {
           {!locked && <td className="resource-menu-cell">{rowMenu([item.status !== 'closed' && { id: 'capa', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια', icon: CheckSquare2, onClick: () => openCapa(item) }, ...editDelete('nonconformities', item)].filter(Boolean))}</td>}
         </>} />
     </RecordTabPanel>}
-    {tab === 'documents' && row && <RecordTabPanel title={en ? 'Documents' : 'Έγγραφα'} subtitle={en ? 'Certificates, licences, contracts and other files of the supplier: the list warns 60 days before expiry.' : 'Πιστοποιητικά, άδειες, συμβάσεις και άλλα αρχεία του προμηθευτή: η λίστα ειδοποιεί 60 ημέρες πριν τη λήξη.'} actions={!locked && <Button onClick={() => setEditing({ field: 'certifications', item: newCertification() })}><FilePlus2 size={15} />{en ? 'New document' : 'Νέο έγγραφο'}</Button>}>
-      <RegistryTable className="quality-table" rows={documents} rowKey={doc => doc.key}
-        columns={[{ key: 'document', label: en ? 'Document' : 'Έγγραφο' }, { key: 'kind', label: en ? 'Kind' : 'Είδος' }, { key: 'expires', label: en ? 'Expires' : 'Λήξη' }, { key: 'actions', label: '' }]}
-        rowProps={doc => ({ className: 'registry-row-clickable', tabIndex: 0, onClick: () => (doc.cert && !locked ? editDocument(doc) : viewFile(doc.file)), onKeyDown: event => { if (event.key === 'Enter') (doc.cert && !locked ? editDocument(doc) : viewFile(doc.file)) } })}
-        emptyTitle={en ? 'No documents' : 'Δεν υπάρχουν έγγραφα'} emptyText={en ? 'Add the supplier’s certificates, licences and contracts with their files.' : 'Προσθέστε τα πιστοποιητικά, τις άδειες και τις συμβάσεις του προμηθευτή με τα αρχεία τους.'}
-        renderRow={doc => { const cert = doc.cert; const state = cert ? certificationState(cert) : null; const renewal = cert ? renewalRows.get(cert.id) : null; return <>
-          <td><strong>{cert ? cert.type : doc.file.description || doc.file.name}</strong>{cert && <small>{[cert.title !== cert.type && cert.title, cert.number, cert.issuer].filter(Boolean).join(' · ')}</small>}{doc.file && <small className="resource-file-name">{doc.file.name}</small>}</td>
-          <td>{cert ? documentKindLabel(cert.kind, language) : (en ? 'File' : 'Αρχείο')}</td>
-          <td className="nowrap-cell">{cert ? <>{formatDay(cert.expiresOn, language) || '—'} <StatusBadge tone={certificationStateTone(state)}>{certificationStateLabel(state, language)}</StatusBadge>{renewal?.item && <small><StatusBadge tone={itemStatusTone(renewal.item.status)}>{en ? 'Renewal' : 'Ανανέωση'}: {itemStatusLabel(renewal.item.status, language)}</StatusBadge></small>}</> : '—'}</td>
-          <td className="resource-menu-cell">{rowMenu([
+    {tab === 'documents' && row && <RecordTabPanel title={en ? 'Documents' : 'Έγγραφα'} subtitle={en ? 'Certificates, licences, contracts and other files of the supplier: the list warns 60 days before expiry.' : 'Πιστοποιητικά, άδειες, συμβάσεις και άλλα αρχεία του προμηθευτή: η λίστα ειδοποιεί 60 ημέρες πριν τη λήξη.'}>
+      {/* The same box as every record's attachments: one card per document, its «⋯», and «Add» at the foot. */}
+      <div className="resource-pad"><div className="attachment-field attachment-field-v2">
+        {documents.length === 0 && <div className="attachment-empty-row"><Paperclip size={16} aria-hidden="true" /><span>{en ? 'No documents yet.' : 'Δεν υπάρχουν έγγραφα.'}</span>{addDocument}</div>}
+        {documents.length > 0 && <div className="attachment-list">{documents.map(doc => { const cert = doc.cert; const state = cert ? certificationState(cert) : null; const renewal = cert ? renewalRows.get(cert.id) : null; const open = () => (cert && !locked ? editDocument(doc) : viewFile(doc.file)); return <div key={doc.key} className="attachment-row attachment-row-v2">
+          <div className="attachment-file-info">
+            <strong className="attachment-open-target" role="button" tabIndex={0} onClick={open} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open() } }}>{cert ? cert.type : doc.file.description || doc.file.name}</strong>
+            <div><span className="attachment-category">{cert ? documentKindLabel(cert.kind, language) : (en ? 'File' : 'Αρχείο')}</span>{cert?.expiresOn && <StatusBadge tone={certificationStateTone(state)}>{`${formatDay(cert.expiresOn, language)} · ${certificationStateLabel(state, language)}`}</StatusBadge>}{renewal?.item && <StatusBadge tone={itemStatusTone(renewal.item.status)}>{en ? 'Renewal' : 'Ανανέωση'}: {itemStatusLabel(renewal.item.status, language)}</StatusBadge>}<small>{[cert && cert.title !== cert.type && cert.title, cert?.number, cert?.issuer, doc.file?.name].filter(Boolean).join(' · ')}</small></div>
+          </div>
+          <div className="attachment-actions"><OverflowMenu label={en ? 'Document actions' : 'Ενέργειες εγγράφου'} items={[
             doc.file && { id: 'view', label: en ? 'View the file' : 'Προβολή αρχείου', icon: Eye, onClick: () => viewFile(doc.file) },
             !locked && { id: 'edit', label: en ? 'Edit' : 'Επεξεργασία', icon: Pencil, onClick: () => editDocument(doc) },
             !locked && cert && canRequestRenewal(renewal) && { id: 'renew', label: en ? 'Request renewal' : 'Αίτημα ανανέωσης', icon: Send, onClick: () => setRenewing([renewal]) },
             !locked && { id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, tone: 'danger', separatorBefore: true, onClick: () => removeDocument(doc) },
-          ].filter(Boolean))}</td>
-        </> }} />
+          ].filter(Boolean)} /></div>
+        </div> })}</div>}
+        {documents.length > 0 && addDocument && <div className="attachment-add-row">{addDocument}</div>}
+      </div></div>
     </RecordTabPanel>}
     {tab === 'contacts' && row && <RecordTabPanel title={en ? 'Contact persons' : 'Πρόσωπα επικοινωνίας'} subtitle={en ? 'Who to call for orders, quality and technical support.' : 'Με ποιον επικοινωνείτε για παραγγελίες, ποιότητα και τεχνική υποστήριξη.'} actions={add('contacts', newContact)}>
       <RegistryTable className="quality-table" rows={contacts} rowKey={item => item.id}

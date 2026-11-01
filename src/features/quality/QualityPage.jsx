@@ -1,7 +1,7 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { STALE_DAYS,isStaleRegister as isStale } from '../registers/registerFigures'
 import { KpiFigures } from '../../design-system/KpiCard'
-import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileText,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -253,7 +253,7 @@ export function QualityPage({section=''}={}){
 
  // Every list exports the same rows to print and to Excel.
  const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
- const listExport=(rows,data,title)=><ExportMenu disabled={!rows.length} onPrint={()=>{if(!printRegistry(data(),{language,kind:t('quality'),title}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} onExcel={()=>exportRegistry(data())}/>
+ const listExport=(rows,data,title,items=[])=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>{if(!printRegistry(data(),{language,kind:t('quality'),title}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} onExcel={()=>exportRegistry(data())}/>
  const download=({
   overview:null,
   deviations:listExport(deviations.filtered,()=>deviationsExport(deviations.filtered,{language,t}),L('Αποκλίσεις','Deviations')),
@@ -267,7 +267,7 @@ export function QualityPage({section=''}={}){
   ]}/>})(),
   risks:listExport(riskRows,()=>riskAssessmentsExport(riskRows,language),L('Εκτιμήσεις κινδύνου','Risk assessments')),
   // «Indicators» puts its own «Export» here (actionsSlot).
-  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):<>{listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'))}<ActionButton label={L('Φάκελος στοχοθεσίας για επιθεωρητή','Objectives file for the auditor')} disabled={!dossierData||!activeObjectives.length} onClick={()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,histories:dossierData.histories,reviews:dossierData.reviews,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}><FileText size={16}/><span>{L('Φάκελος για επιθεωρητή','Auditor file')}</span></ActionButton></>,
+  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'),[{id:'dossier',kind:'pdf',label:L('Ετήσιος φάκελος στόχων','Annual objectives file'),disabled:!dossierData||!activeObjectives.length,onClick:()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,histories:dossierData.histories,reviews:dossierData.reviews,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]),
   resources:resourceView==='equipment'?listExport(visibleEquipment,()=>equipmentExport(visibleEquipment,language),L('Εξοπλισμός','Equipment')):listExport(visibleSuppliers,()=>suppliersExport(visibleSuppliers,language),L('Προμηθευτές','Suppliers')),
  })[tab]
 
