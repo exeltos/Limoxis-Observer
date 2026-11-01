@@ -1,6 +1,6 @@
 import { PlatformUpdateCenter } from './PlatformUpdateCenter'
 import { useEffect,useMemo,useState } from 'react'
-import { Activity,Bell,BookOpen,Building2,Database,Globe2,History,KeyRound,Layers3,LineChart,Pencil,RefreshCcw,ShieldAlert,ShieldCheck,X,ClipboardList,Wind,Users,Lock } from 'lucide-react'
+import { Activity,Bell,CalendarDays,BookOpen,Building2,Database,Globe2,History,KeyRound,Layers3,LineChart,Pencil,RefreshCcw,ShieldAlert,ShieldCheck,X,ClipboardList,Wind,Users,Lock } from 'lucide-react'
 import './managementCenter.css'
 import { useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
@@ -59,11 +59,12 @@ export function ManagementPage({global=false,group=null}={}){
   if(global)return [{id:'libraries',label:t('libraries'),icon:Database},{id:'bundles',label:t('managementPanel.preventionBundlesLabel'),icon:Layers3},{id:'haiCriteria',label:t('managementPanel.haiCriteriaLabel'),icon:ShieldAlert},{id:'indicators',label:t('indicators'),icon:Activity},{id:'liraKnowledge',label:t('managementPanel.liraKnowledgeLabel'),icon:BookOpen},{id:'references',label:t('externalReferences'),icon:Globe2}]
   // `on`: the module the library belongs to is part of the organization's operating profile.
   // One row of tabs: Users, Roles, Hospital (identity, departments, security, announcements), Lists (every reference
-  // list in one left list) and LIRA & AI. The indicator data (bed days, structure, PPS) live in Indicators › Data.
+  // list in one left list), Bed days and LIRA & AI. Structural indicators and PPS live in Indicators › Data.
   const ok=cap=>can(role,cap,addOns,customCaps),on=cap=>!isProfileDisabled(cap);return [
   ...(ok(CAPABILITIES.MANAGE_USERS)?[{id:'users',label:t('users'),icon:Users}]:[]),...(ok(CAPABILITIES.MANAGE_ROLES)?[{id:'roles',label:t('rolesPermissions'),icon:ShieldCheck}]:[]),
   ...(ok(CAPABILITIES.MANAGE_USERS)||ok(CAPABILITIES.MANAGE_ANNOUNCEMENTS)||ok(CAPABILITIES.MANAGE_LIBRARIES)?[{id:'hospital',label:t('managementHospitalLabel'),icon:Building2}]:[]),
   ...(ok(CAPABILITIES.MANAGE_LIBRARIES)||ok(CAPABILITIES.MANAGE_INDICATORS)?[{id:'lists',label:t('managementListsLabel'),icon:Database}]:[]),
+  ...(ok(CAPABILITIES.MANAGE_BED_DAYS)?[{id:'patientDays',label:t('patientDays'),icon:CalendarDays}]:[]),
   ...(ok(CAPABILITIES.MANAGE_USERS)&&on(CAPABILITIES.VIEW_LIRA)?[{id:'liraAi',label:'LIRA & AI',icon:KeyRound}]:[]),
   ]},[global,role,addOns,customCaps,t,language,profileKey]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{if(tabs.length&&!tabs.some(item=>item.id===tab))setTab(tabs[0].id)},[tabs,tab]);
