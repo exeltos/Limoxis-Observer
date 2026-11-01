@@ -78,7 +78,7 @@ export function ManagementPage({global=false,group=null}={}){
   ...(okCap(CAPABILITIES.MANAGE_LIBRARIES)?[{id:'environmentTemplates',label:t('managementEnvironmentTemplatesLabel'),icon:Wind,tone:'cyan',render:()=>scroll(<EnvironmentalStandardsPanel embedded/>)}]:[]),
   ...(okCap(CAPABILITIES.MANAGE_LIBRARIES)&&onModule(CAPABILITIES.VIEW_PREVENTION)?[{id:'bundles',label:t('managementPanel.preventionBundlesLabel'),icon:Layers3,tone:'green',render:()=>scroll(<BundleLibraryPanel global={false}/>)}]:[]),
   ...(okCap(CAPABILITIES.MANAGE_LIBRARIES)&&onModule(CAPABILITIES.VIEW_SURVEILLANCE)?[{id:'haiCriteria',label:t('managementPanel.haiCriteriaLabel'),icon:ShieldAlert,tone:'rose',render:()=>scroll(<HaiCriteriaLibraryPanel global={false}/>)}]:[]),
-  ...(okCap(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators',label:t('sidebarNav.indicatorDefinitions'),icon:LineChart,tone:'indigo',render:()=>scroll(<PageEmbedProvider><IndicatorsPage/></PageEmbedProvider>)}]:[]),
+  ...(okCap(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators',label:t('sidebarNav.indicatorDefinitions'),icon:LineChart,tone:'indigo',render:()=>scroll(<div className="indicator-defs-embedded"><div className="section-toolbar"><div><h2>{t('sidebarNav.indicatorDefinitions')}</h2><p>{t('indicatorsRecords.operationalSubtitle')}</p></div></div><PageEmbedProvider><IndicatorsPage/></PageEmbedProvider></div>)}]:[]),
  ]
  // The lists in groups by area; the lists of a module the hospital does not use are left out.
  const LIST_GROUPS=[

@@ -4,6 +4,8 @@ import { SectionTabStrip, SectionTabsProvider, useSectionTabs } from './SectionT
 // A screen shown as a tab of another page (e.g. the indicators list in the
 // Management Center) keeps its actions and content but not its own heading.
 const PageEmbedContext = createContext(false)
+// Whether the screen is shown inside another page (it then leaves out its own heading).
+export const usePageEmbedded = () => useContext(PageEmbedContext)
 export function PageEmbedProvider({ children }) {
   return <PageEmbedContext.Provider value={true}>{children}</PageEmbedContext.Provider>
 }

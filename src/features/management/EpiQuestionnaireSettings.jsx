@@ -26,14 +26,11 @@ export function EpiQuestionnaireRegistryCells({ version }) {
   return (
     <>
       <td>
-        <strong>{t('epiQuestionnaire.name')}</strong>
+        <strong>{t('epiQuestionnaire.name')} <Lock size={12} className="library-lock" aria-label={t('epiQuestionnaire.settings.system')} /></strong>
         <small className="epi-sub">{fill(t('epiQuestionnaire.settings.subtitle'), { version })}</small>
       </td>
       <td>{t('epiQuestionnaire.settings.category')}</td>
       <td>{fill(t('epiQuestionnaire.settings.count'), { n: EPI_QUESTION_COUNT, core: EPI_CORE_KEYS.length })}</td>
-      <td>
-        <span className="status-badge active">{t('active')}</span> <span className="epi-lock"><Lock size={12} aria-hidden="true" />{t('epiQuestionnaire.settings.system')}</span>
-      </td>
     </>
   )
 }

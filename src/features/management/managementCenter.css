@@ -159,3 +159,10 @@
 /* Κλινοημέρες: «Φίλτρα» beside «Νέα καταχώρηση», not on a row of its own over the list. */
 .bed-days-actions{flex-wrap:nowrap}
 .bed-days-actions .filter-system{margin:0;padding:0;border:0;background:transparent}
+/* A system entry (read-only for the hospital): a small lock beside its name instead of a badge. */
+.library-lock{margin-left:6px;vertical-align:-1px;color:var(--lo-color-muted,#64748b)}
+/* Lists › Indicator definitions: the group's heading, the list's actions on its right, the table filling the rest. */
+.indicator-defs-embedded{position:relative;display:flex;flex-direction:column;height:100%;min-height:0}
+.indicator-defs-embedded>.page-embedded{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+.indicator-defs-embedded .page-embedded-actions{position:absolute;top:0;right:0}
+.library-extra-scroll>.management-section:has(>.indicator-defs-embedded){height:100%;min-height:0}

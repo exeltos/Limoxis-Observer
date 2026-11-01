@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { useNavigate } from 'react-router-dom'
 import { Activity,AlertTriangle,CheckCircle2,ClipboardCheck,Database,Plus,RefreshCcw } from 'lucide-react'
-import { Page } from '../../design-system/Page'
+import { Page, usePageEmbedded } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -41,6 +41,8 @@ function fmtIndicatorValue(value,el){if(value==null||value==='')return '—';con
 // where «Export» and «⋯» go; that page's «Create» offers the new indicator.
 // withRegisters: «Indicators & objectives» lists the department registers' indicators too, with their source and target.
 export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',actionsSlot=null,withRegisters=false,tabsBar=null}={}){
+ // Inside the Management Center (Lists › Indicator definitions) the list has the group's own heading and no figures on top.
+ const embedded=usePageEmbedded()
  const navigate=useNavigate();const registry=useRegistryMemory(registryKey);const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify}=useFeedback();const el=language==='el'
  const addOns=membership?.capabilities||[],customCapabilities=membership?.customCapabilities||[];const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,customCapabilities)
  const indicatorScope=scopeFor(CAPABILITIES.VIEW_INDICATORS,{role,scopeOverrides:membership?.scopeOverrides||{}})
@@ -139,7 +141,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
  return <Page fill className="indicators-page" title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={actionsSlot?null:<div className="row-actions">{exportMenu}{newButton}{moreMenu}</div>}>
   {tabsBar}
   {actionsSlot&&createPortal(exportMenu,actionsSlot)}
-  {summary}
+  {!embedded&&summary}
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">
    <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={activeFilterCount} onClear={clearFilters} end={actionsSlot?<IconButton label={t('recalculate')} disabled={loading} onClick={calculate}><RefreshCcw size={16}/></IconButton>:null} advanced={<><FilterDate label={t('indicatorsRecords.fromDate')} value={from} onChange={setFrom}/><FilterDate label={t('indicatorsRecords.toDate')} value={to} onChange={setTo}/></>}>{withRegisters&&<FilterSelect label={t('indicatorsRecords.targetLabel')} value={targetFilter} onChange={setTargetFilter}><option value="all">{t('indicatorsRecords.allFeminine')}</option><option value="with">{t('indicatorsRecords.withTarget')}</option><option value="without">{t('indicatorsRecords.withoutTarget')}</option></FilterSelect>}<FilterSelect label={t('category')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{[...new Set(listRows.map(r=>r.category))].map(x=><option key={x} value={x}>{categoryLabel(x,t)}</option>)}</FilterSelect><FilterSelect label={t('department')} value={effectiveDepartment} onChange={setDepartment}>{!departmentScoped&&<option value="">{t('indicatorsRecords.wholeHospital')}</option>}{allowedDepartments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</FilterSelect></FilterBar>

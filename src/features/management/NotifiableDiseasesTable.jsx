@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Info } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
-import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { FilterSelect } from '../../design-system/FilterBar'
 import { EODY_FOOTNOTES,eodyEntryByName } from '../reporting/eodyCatalogue'
 
 const DEADLINE_SHORT={immediate:'eodyFilterImmediate','24h':'eodyFilter24h',weekly:'eodyFilterWeekly'}
@@ -21,9 +21,9 @@ export function splitNotifiableRows(rows=[],{deadline='all',query=''}={}){
  }
 }
 
-// The quick filter sits in the library's search row (FilterBar end).
+// «Προθεσμία δήλωσης»: a choice of the library's «Filters».
 export function EodyDeadlineFilter({value,onChange,t}){
- return <ModeSwitch className="eody-library-filter" ariaLabel={t('librariesPanel.eodyFilterLabel')} value={value} onChange={onChange} options={FILTERS.map(([key,label])=>({value:key,label:t(`librariesPanel.${label}`)}))}/>
+ return <FilterSelect label={t('librariesPanel.eodyFilterLabel')} value={value} onChange={onChange}>{FILTERS.map(([key,label])=><option key={key} value={key}>{t(`librariesPanel.${label}`)}</option>)}</FilterSelect>
 }
 
 export function NotifiableDiseasesTable({rows,query,deadline='all',language,t,loading,renderActions}){
@@ -34,16 +34,14 @@ export function NotifiableDiseasesTable({rows,query,deadline='all',language,t,lo
   <RegistryTable
    wrapperClassName="table-wrap scroll-table"
    className="eody-library-table"
-   columns={[{key:'n',label:t('librariesPanel.eodyNumber'),className:'eody-col-n',style:{width:56}},{key:'name',label:t('librariesPanel.eodyDisease')},{key:'deadline',label:t('librariesPanel.eodyDeadline'),className:'eody-col-deadline',style:{width:130}},{key:'note',label:t('librariesPanel.eodyNote'),className:'eody-col-note',style:{width:116}},{key:'status',label:t('status'),className:'eody-col-status',style:{width:84}},{key:'actions',label:t('actions'),className:'eody-col-actions',style:{width:112}}]}
+   columns={[{key:'name',label:t('librariesPanel.eodyDisease')},{key:'deadline',label:t('librariesPanel.eodyDeadline'),className:'eody-col-deadline',style:{width:130}},{key:'note',label:t('librariesPanel.eodyNote'),className:'eody-col-note',style:{width:116}},{key:'actions',label:'',className:'eody-col-actions',style:{width:112}}]}
    rows={catalogue}
    rowKey={({row,entry})=>`eody-${entry.n}-${row[2]?.id||''}`}
    rowProps={({row})=>({className:row[2]?.active===false?'eody-row-inactive':undefined})}
    renderRow={({row,entry})=>{const meta=row[2]||{};return <>
-    <td className="eody-col-n">{entry.n}</td>
-    <td title={`${entry.el} — ${entry.en}`}><strong>{en?entry.en:entry.el}</strong><span className="eody-en">{en?entry.el:entry.en}</span></td>
+    <td title={`${entry.el} — ${entry.en}`}><strong>{en?entry.en:entry.el}</strong><span className="eody-en">{en?entry.el:entry.en}</span>{meta.active===false&&<span className="status-badge temporary">{t('librariesPanel.inactiveStatus')}</span>}</td>
     <td className={entry.deadline==='immediate'?'eody-deadline eody-deadline-immediate':'eody-deadline'}>{t(`librariesPanel.${DEADLINE_SHORT[entry.deadline]}`)}</td>
     <td className="eody-note">{entry.notes.length?<span className="eody-note-mark" tabIndex={0} title={entry.notes.map(key=>EODY_FOOTNOTES[key][en?'en':'el']).join(' ')}><Info size={13} aria-hidden="true"/>{t('librariesPanel.eodyNote')}</span>:<span className="eody-note-none">—</span>}</td>
-    <td>{statusCell(meta)}</td>
     <td>{renderActions(row)}</td></>}}
   />
   {legacy.length>0&&<details className="eody-legacy">
