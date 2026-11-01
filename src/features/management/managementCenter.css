@@ -156,3 +156,6 @@
 .management-section .library-categories-v2 .library-rail-group>button>b{font-size:11px}
 .management-section .library-categories-v2 .library-rail-group .library-category-icon{width:24px;height:24px;border-radius:7px}
 .management-section .library-categories-v2 .library-rail-group .library-category-copy strong{font-size:11.5px}
+/* Κλινοημέρες: «Φίλτρα» beside «Νέα καταχώρηση», not on a row of its own over the list. */
+.bed-days-actions{flex-wrap:nowrap}
+.bed-days-actions .filter-system{margin:0;padding:0;border:0;background:transparent}

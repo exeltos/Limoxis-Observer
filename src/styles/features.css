@@ -2512,7 +2512,6 @@
 /* ===== FEATURE SOURCE: src/styles/bed-days.css ===== */
 .bed-days-panel{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;gap:12px;overflow:hidden}
 .bed-days-panel .section-toolbar{margin:0!important;align-items:flex-start!important}
-.bed-days-tools{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .bed-days-table-wrap{min-height:0;flex:1 1 auto;overflow:auto;border:1px solid var(--lo-color-border);border-radius:11px;background:var(--lo-color-surface)}
 .bed-days-table-wrap .data-table{width:100%}
 .bed-days-table-wrap .clickable-row{cursor:pointer}
@@ -2530,7 +2529,6 @@
 .bed-days-record-actions>.lo-icon-button-danger{color:var(--lo-status-danger-fg)!important}
 .bed-days-record-actions>.lo-icon-button-edit:hover{background:var(--lo-status-warning-bg)!important}
 .bed-days-record-actions>.lo-icon-button-danger:hover{background:var(--lo-status-danger-bg)!important}
-@media(max-width:980px){.bed-days-tools{align-items:stretch}}
 @media(max-width:760px){.bed-days-details-grid{grid-template-columns:1fr}}
 
 
