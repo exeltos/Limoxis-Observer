@@ -63,6 +63,8 @@ const trainingStatusText = (status, en) => ({ completed: en ? 'Training done' : 
 
 // The profession as the people register keeps it («190 ΝΟΣΗΛΕΥΤΗΣ/ΤΡΙΑ 2ΕΤΟΥΣ»): without the code and the years.
 // Topics and decisions get an id at once, so a decision can point to the topic it came out of.
+// The record shell keeps a `utility` action visible in the header (tone primary: the main one, last).
+const HeaderAction = ({ children }) => children
 const newId = prefix => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`)
 const cleanRole = text => String(text || '').replace(/^\s*\d+\s*/, '').replace(/\s+\d+\s*(ΕΤΟΥΣ|ΕΤΩΝ|ΕΤΙΑΣ)\s*$/i, '').trim()
 
@@ -192,7 +194,7 @@ export function MeetingRecordPage() {
     </div>
   }
   const looseDecisions = meeting.decisions.map((item, index) => ({ item, index })).filter(({ item }) => !meeting.topics.some(topic => topic.id && topic.id === item.topicId))
-  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
+  return <Page fill><EntityRecordShell className="quality-record-shell review-record-shell workspace-fill" avatar={<Users size={19} />} eyebrow={meeting.code || (en ? 'New' : 'Νέα')} title={`${meeting.title}${meeting.department ? ` · ${en ? meeting.departmentEn : meeting.department}` : ''}`} subtitle={formatDay(meeting.meetingDate, language)} status={<StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge>} headerActions={<>{!locked && <HeaderAction utility tone="primary"><Button onClick={() => { setTab('topics'); addTopic('') }}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button></HeaderAction>}{!isNew && <ExportMenu onWord={() => downloadMinutes(meeting, tenant?.name)} />}</>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
     {tab === 'details' && <RecordTabPanel className="review-minutes" title={en ? 'Details' : 'Στοιχεία'} subtitle={meeting.status === 'final' ? (en ? `Final · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'en')}` : `Οριστικό · ${meeting.finalizedByLabel} · ${formatDay(meeting.finalizedAt, 'el')}`) : undefined} footer={footer}>
       <div className="lo-form-cards">
         <FormCard wide title={en ? 'Meeting' : 'Συνάντηση'}>
@@ -214,7 +216,7 @@ export function MeetingRecordPage() {
         </FormCard>
       </div>
     </RecordTabPanel>}
-    {tab === 'topics' && <RecordTabPanel className="review-minutes" title={en ? 'Topics' : 'Θέματα'} subtitle={en ? 'The topic of the meeting; if a decision was taken, add it (and a corrective action when there was one).' : 'Το θέμα της συνάντησης· αν πάρθηκε απόφαση, προσθέστε την (και διορθωτική ενέργεια όταν υπήρξε).'} actions={!locked && <Button variant="secondary" onClick={() => addTopic('')}><Plus size={15} />{en ? 'Topic' : 'Θέμα'}</Button>} footer={footer}>
+    {tab === 'topics' && <RecordTabPanel className="review-minutes" title={en ? 'Topics' : 'Θέματα'} subtitle={en ? 'The topic of the meeting; if a decision was taken, add it (and a corrective action when there was one).' : 'Το θέμα της συνάντησης· αν πάρθηκε απόφαση, προσθέστε την (και διορθωτική ενέργεια όταν υπήρξε).'} footer={footer}>
       <div className="meeting-topics">
         {meeting.topics.map((topic, index) => { const own = meeting.decisions.map((item, at) => ({ item, at })).filter(({ item }) => topic.id && item.topicId === topic.id); return <div key={topic.id || index} className="meeting-topic-card">
           <div className="meeting-topic-head">
