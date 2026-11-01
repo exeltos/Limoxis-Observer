@@ -54,7 +54,7 @@ export function BedDaysPanel(){
   const [rows,setRows]=useState(isDemo?demoPatientDayPeriods:[]); const [departments,setDepartments]=useState(isDemo?demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en})):[]); const [loading,setLoading]=useState(!isDemo); const [editor,setEditor]=useState(null); const [selectedKey,setSelectedKey]=useState(null); const [busy,setBusy]=useState(false); const [filters,setFilters]=useState({from:'',to:'',department:'all'});
   const fmt=v=>v?new Intl.DateTimeFormat(locale).format(new Date(`${v}T12:00:00`)):'—';
   const monthName=m=>t(`bedDaysPanel.m${m}`)
-  const periodLabel=(from,to)=>{const p=periodKind(from,to);if(p.kind==='month')return `${monthName(p.month)} ${p.year}`;if(p.kind==='quarter')return `${t(`bedDaysPanel.q${p.quarter}`)} ${p.year}`;if(p.kind==='year')return String(p.year);return `${fmt(from)} – ${fmt(to)}`}
+  const periodLabel=(from,to)=>{const p=periodKind(from,to);if(p.kind==='month')return `${monthName(p.month)} ${p.year}`;if(p.kind==='quarter')return `${t(`bedDaysPanel.q${p.quarter}`)} ${p.year}`;if(p.kind==='year')return String(p.year);if(from&&to&&from.slice(0,7)===to.slice(0,7)&&from.endsWith('-01')){const [y,m]=parts(from);return `${monthName(m)} ${y} · ${t('bedDaysPanel.until')} ${new Intl.DateTimeFormat(locale,{day:'numeric',month:'numeric'}).format(new Date(`${to}T12:00:00`))}`}return `${fmt(from)} – ${fmt(to)}`}
   const deptName=row=>language==='el'?row.departmentEl:(row.departmentEn||row.departmentEl)
   const num=v=>Number(v).toLocaleString(locale)
   const periods=useMemo(()=>groupPeriods(rows),[rows])
@@ -95,7 +95,7 @@ export function BedDaysPanel(){
 
   if(selected)return <section className="management-section management-scroll-section"><EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} eyebrow={t('patientDays')} title={periodLabel(selected.from,selected.to)} subtitle={`${fmt(selected.from)} – ${fmt(selected.to)}`} onBack={()=>setSelectedKey(null)} backLabel={t('patientDays')}
     headerActions={<div className="row-actions"><Button recordMenu variant="secondary" onClick={()=>openEdit(selected)}><Pencil size={15}/>{t('bedDaysPanel.editPeriodMenu')}</Button><Button recordMenu variant="secondary" onClick={()=>removePeriod(selected)}><Trash2 size={15}/>{t('bedDaysPanel.deletePeriod')}</Button></div>}>
-    <RecordTabPanel title={t('bedDaysPanel.periodTitle')}><RegistryTable bare sortable={false} wrapperClassName="bed-days-table-wrap" columns={[{key:'department',label:t('department')},{key:'value',label:t('patientDays'),className:'bed-days-num'}]}
+    <RecordTabPanel title={t('bedDaysPanel.periodTitle')}><RegistryTable bare sortable={false} wrapperClassName="bed-days-table-wrap" columns={[{key:'department',label:t('department')},{key:'value',label:<span className="bed-days-num-head">{t('patientDays')}</span>,className:'bed-days-num'}]}
       rows={[...selected.departments,...(selected.departments.length?[{id:'__sum',label:t('bedDaysPanel.sumOfDepartments'),value:deptSum(selected),kind:'bed-days-sum'}]:[]),{id:'__total',label:t('wholeHospital'),value:selected.hospital?.value,kind:'bed-days-total'}]} rowKey={row=>row.id} rowProps={row=>({className:row.kind||undefined})}
       renderRow={row=><><td>{row.kind?row.label:deptName(row)}</td><td className="bed-days-num">{row.value==null?'—':num(row.value)}</td></>}/></RecordTabPanel>
   </EntityRecordShell></section>

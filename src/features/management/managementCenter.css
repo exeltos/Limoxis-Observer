@@ -124,7 +124,7 @@
 .management-user-body .management-role-capability-groups{max-height:none;overflow:visible}
 .management-user-body .management-role-capability{grid-template-columns:18px minmax(0,1fr) auto;align-items:center}
 /* Inside a group (Νοσοκομείο, Λίστες) each screen shows its own title, with its button on the right. */
-.management-shell .library-extra-scroll .section-toolbar>div>h2,.management-shell .library-content>.section-toolbar>div>h2{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}
+.management-shell .library-extra-scroll .section-toolbar>div>h2,.management-shell .library-content>.section-toolbar>div>h2,.management-shell .bed-days-panel>.section-toolbar>div>h2{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}
 .announcement-row-text{display:block;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .library-extra-scroll>.management-section{padding-left:0;padding-right:0}
 /* Lists: a search over the names and titled groups that open and close. */
@@ -166,13 +166,13 @@
 .management-lira-ai .lira-ai-translation-row{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:32px;align-items:start}
 @media(max-width:900px){.management-lira-ai .lira-ai-grid,.management-lira-ai .lira-ai-fields,.management-lira-ai .lira-ai-translation-row{grid-template-columns:1fr;gap:12px}.management-lira-ai .lira-ai-head{flex-direction:column}}
 .bed-days-record-shell .bed-days-num{text-align:right;font-variant-numeric:tabular-nums}
+.bed-days-num-head{display:block;text-align:right}
 .bed-days-record-shell .bed-days-sum td{color:var(--lo-color-muted)}
 .bed-days-record-shell .bed-days-total td{font-weight:700;border-top:2px solid var(--lo-color-border)}
 .bed-days-editor{display:flex;flex-direction:column;gap:18px;padding:12px 14px 0}
 .bed-days-period-fields{display:grid;grid-template-columns:repeat(3,minmax(0,220px));gap:12px}
 .bed-days-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;border-top:1px solid var(--lo-color-border)}
 .bed-days-lines-total{grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:0;margin-top:-18px}
-.bed-days-record-shell th.bed-days-num{text-align:right}
 .bed-days-line{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--lo-color-border);font-size:13.5px}
 .bed-days-line input{height:36px;text-align:right}
 .bed-days-line-total{font-weight:700}
