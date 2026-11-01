@@ -40,19 +40,15 @@ describe('Interviews screens (demo)', () => {
     expect(screen.getByRole('option', { name: /Νέα αίτηση \(\d+\)/ })).toBeInTheDocument()
   })
 
-  it('opens an application with its tabs and records an evaluation', async () => {
+  it('opens an application as one screen: details, CV, notes and the three answers', async () => {
     renderAt('/interviews/demo-cand-3')
     expect(await screen.findByRole('heading', { name: 'Μιχαηλίδου Άννα' })).toBeInTheDocument()
-    // Education, languages and previous employers are one tab: the CV.
-    fireEvent.click(screen.getByRole('tab', { name: /Βιογραφικό/ }))
+    // Education, languages and previous employers are on the same screen.
     expect(screen.getByText('Νοσηλευτική Πανεπιστημίου Θεσσαλίας')).toBeInTheDocument()
     expect(screen.getByText('Γενικό Νοσοκομείο (παράδειγμα)')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Συνεντεύξεις/ }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Αξιολόγηση' })[0])
-    expect(await screen.findByText('Βαθμολογία ανά κριτήριο')).toBeInTheDocument()
-    // The evaluation is a page in place of the record; cancelling returns to it.
-    fireEvent.click(screen.getByRole('button', { name: 'Ακύρωση' }))
-    fireEvent.click(await screen.findByRole('tab', { name: /Απόφαση/ }))
+    // One screen: the application, the notes of the discussion and the three answers.
+    expect(screen.getByText('Σημειώσεις συζήτησης')).toBeInTheDocument()
+    for (const name of ['Πρόσληψη', 'Αναμονή', 'Απόρριψη']) expect(screen.getByRole('button', { name })).toBeInTheDocument()
   })
 
   it('offers «Hire» for an application decided for hiring', async () => {

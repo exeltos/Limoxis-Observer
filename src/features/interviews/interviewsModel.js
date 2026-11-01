@@ -10,6 +10,9 @@ const STATUS_LABELS = {
 const STATUS_TONES = { new: 'info', screening: 'info', interview_scheduled: 'warning', interviewed: 'info', offer: 'warning', hired: 'success', rejected: 'danger', withdrawn: 'neutral' }
 
 export const EMPLOYMENT_TYPES = { full_time: ['Πλήρης απασχόληση', 'Full time'], part_time: ['Μερική απασχόληση', 'Part time'], seasonal: ['Εποχική', 'Seasonal'], internship: ['Πρακτική άσκηση', 'Internship'], other: ['Άλλο', 'Other'] }
+// The fixed list of professional categories: the candidate picks one on the tablet, and a division is made of categories.
+export const PROFESSIONAL_CATEGORIES = { nursing: ['Νοσηλευτικό', 'Nursing'], medical: ['Ιατρικό', 'Medical'], paramedical: ['Παραϊατρικό / Εργαστηριακό', 'Paramedical / Laboratory'], administrative: ['Διοικητικό', 'Administrative'], technical: ['Τεχνικό', 'Technical'], support: ['Υποστηρικτικό (κουζίνα, καθαριότητα, φύλαξη)', 'Support (kitchen, cleaning, security)'], other: ['Άλλο', 'Other'] }
+export const categoryLabel = (value, language = 'el') => (value ? (Object.hasOwn(PROFESSIONAL_CATEGORIES, value) ? PROFESSIONAL_CATEGORIES[value][language === 'en' ? 1 : 0] : value) : '')
 export const GENDERS = { male: ['Άνδρας', 'Male'], female: ['Γυναίκα', 'Female'], other: ['Άλλο', 'Other'] }
 export const MILITARY = { done: ['Εκπληρωμένη', 'Completed'], exempt: ['Απαλλαγή', 'Exempt'], not_done: ['Εκκρεμεί', 'Not completed'], not_applicable: ['Δεν αφορά', 'Not applicable'] }
 export const MARITAL = { single: ['Άγαμος/η', 'Single'], married: ['Έγγαμος/η', 'Married'], divorced: ['Διαζευγμένος/η', 'Divorced'], widowed: ['Χήρος/α', 'Widowed'], other: ['Άλλο', 'Other'] }

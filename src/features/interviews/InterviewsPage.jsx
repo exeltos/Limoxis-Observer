@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2, CalendarClock, FilePlus2, Inbox, Plus, Tablet } from 'lucide-react'
+import { Building2, FilePlus2, Inbox, Plus, Tablet } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
@@ -13,10 +13,9 @@ import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { CandidateStatusBadge, useInterviews, useInterviewsAccess } from './InterviewsShared'
 import { CandidateDialog } from './InterviewsDialogs'
 import { ApplicationLinkDialog } from './ApplicationLinkDialog'
-import { employmentLabel, filterCandidates, fmtDay, fmtRating, fmtStamp, latestEvaluation, newCandidate, nextInterview, pipelineCounts, positionsOf, ratingTone, statusOptions } from './interviewsModel'
+import { employmentLabel, filterCandidates, fmtDay, newCandidate, pipelineCounts, positionsOf, statusOptions, categoryLabel } from './interviewsModel'
 import { exportCandidates } from './interviewsReports'
 import { DivisionInterviewsPage, DivisionsPanel } from './InterviewDivisions'
-import { categoriesOf } from './divisionsModel'
 
 // Συνεντεύξεις: the applications, the pipeline at the top, the interviews to come.
 export function InterviewsPage() {
@@ -48,8 +47,8 @@ function InterviewsListPage() {
 
   if (!state) return <Page fill title={en ? 'Interviews' : 'Συνεντεύξεις'}><div className="inline-empty">{loading ? (en ? 'Loading…' : 'Φόρτωση…') : (en ? 'The applications could not be loaded.' : 'Δεν ήταν δυνατή η φόρτωση των αιτήσεων.')}</div></Page>
 
-  if (divisionsView) return <Page fill className="interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'}><section className="surface registry-workspace workspace-column workspace-fill"><DivisionsPanel organizationId={organizationId} candidates={candidates} onBack={() => setDivisionsView(false)} /></section></Page>
-  if (dialog) return <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} categories={categoriesOf(candidates, [])} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />
+  if (divisionsView) return <Page fill className="interviews-page" title={en ? 'Interviews' : 'Συνεντεύξεις'}><section className="surface registry-workspace workspace-column workspace-fill"><DivisionsPanel organizationId={organizationId} onBack={() => setDivisionsView(false)} /></section></Page>
+  if (dialog) return <CandidateDialog initial={dialog} organizationId={organizationId} positions={positions} onClose={() => setDialog(null)} onSaved={async id => { await reload(); if (id) navigate(`/interviews/${encodeURIComponent(id)}`) }} />
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
   const open = item => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
@@ -70,20 +69,19 @@ function InterviewsListPage() {
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
         <RegistryTable sortable={false} bare rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={item => item.id}
-          columns={[{ key: 'name', label: en ? 'Candidate' : 'Υποψήφιος' }, { key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'position', label: en ? 'Position' : 'Θέση' }, { key: 'applied', label: en ? 'Applied' : 'Αίτηση' }, { key: 'interview', label: en ? 'Interview' : 'Συνέντευξη' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+          columns={[{ key: 'name', label: en ? 'Candidate' : 'Υποψήφιος' }, { key: 'code', label: en ? 'Code' : 'Κωδικός' }, { key: 'position', label: en ? 'Position' : 'Θέση' }, { key: 'applied', label: en ? 'Applied' : 'Αίτηση' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
           rowProps={item => ({ ...registry.rowProps(item.id), onClick: () => open(item), onKeyDown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(item) } } })}
           empty={!rows.length} emptyFiltered={candidates.length > 0} onClearFilters={clear} emptyIcon={Inbox}
           emptyTitle={candidates.length ? (en ? 'No application matches' : 'Καμία αίτηση δεν ταιριάζει') : (en ? 'No applications yet' : 'Δεν υπάρχουν αιτήσεις')}
           emptyText={candidates.length ? '' : (en ? 'Enter the first application; the FileMaker ones are brought over by the migration.' : 'Καταχωρίστε την πρώτη αίτηση· όσες υπήρχαν στο FileMaker μεταφέρονται με τη μετάπτωση.')}
           emptyAction={access.canManage && !candidates.length ? { label: en ? 'New application' : 'Νέα αίτηση', icon: Plus, onClick: () => setDialog(newCandidate()) } : null}
-          renderRow={item => { const next = nextInterview(item), last = latestEvaluation(item); return <>
+          renderRow={item => <>
             <td><strong>{item.fullName}</strong><small>{[item.phoneMobile || item.phoneLandline, item.email].filter(Boolean).join(' · ')}{item.source === 'tablet' && <> <StatusBadge tone="info">{en ? 'From tablet' : 'Από tablet'}</StatusBadge></>}</small></td>
             <td className="nowrap-cell"><strong>{item.code}</strong>{item.source === 'filemaker' && <small>FileMaker</small>}</td>
-            <td>{item.requestedPosition || '—'}{item.employmentType && <small>{employmentLabel(item.employmentType, language)}</small>}</td>
+            <td>{item.requestedPosition || '—'}{(item.professionalCategory || item.employmentType) && <small>{[categoryLabel(item.professionalCategory, language), employmentLabel(item.employmentType, language)].filter(Boolean).join(' · ')}</small>}</td>
             <td className="nowrap-cell">{fmtDay(item.appliedOn)}</td>
-            <td className="nowrap-cell">{next ? <><CalendarClock size={13} /> {fmtStamp(next.scheduledAt, language)}</> : last ? <StatusBadge tone={ratingTone(last.overallRating)}>{fmtRating(last.overallRating, language)}</StatusBadge> : '—'}</td>
             <td><CandidateStatusBadge status={item.status} language={language} /></td>
-          </>}} />
+          </>} />
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
     </section>

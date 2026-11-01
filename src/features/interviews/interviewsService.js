@@ -9,7 +9,7 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { interviewsDemoState } from './interviewsDemoData'
 import { overallRating, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule } from './interviewsModel'
-import { DIVISION_CANDIDATE_FIELDS, hasDisagreement } from './divisionsModel'
+import { DIVISION_CANDIDATE_FIELDS } from './divisionsModel'
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const LOCAL_KEY = 'interviews_local_state'
@@ -258,26 +258,11 @@ export async function loadDivisionCandidates(organizationId) {
   return must(await supabase.rpc('hr_division_candidates', { p_organization_id: organizationId })) || []
 }
 
-// The opinions on a candidate: { role, mine, submittedCount, visible, disagreement, opinions }.
-// Others' opinions come only after the reader has submitted his / her own (the server decides).
-export async function loadOpinions(candidateId) {
-  if (isLocal()) {
-    const list = local().opinions?.[candidateId] || [], mine = list.find(item => item.mine) || null, visible = Boolean(mine?.submittedAt)
-    const submitted = list.filter(item => item.submittedAt)
-    return { role: 'hr_office', mine, submittedCount: submitted.length, visible, disagreement: visible && hasDisagreement(submitted), opinions: visible ? submitted : [] }
-  }
-  return must(await supabase.rpc('hr_candidate_opinions', { p_candidate_id: candidateId }))
-}
-export async function saveOpinion(candidateId, { stance, comment, submit = false }) {
-  if (isLocal()) {
-    const state = local(), list = state.opinions?.[candidateId] || [], now = new Date().toISOString()
-    const mine = { roleKind: 'hr_office', division: '', author: 'Demo Administrator', stance, comment: comment || '', submittedAt: submit ? now : null, mine: true }
-    // The demo adds a division opinion once yours is in, to show the comparison.
-    const others = submit && !list.some(item => !item.mine) ? [{ roleKind: 'division', division: 'Νοσηλευτική Υπηρεσία', author: 'Μαρία Παπαδοπούλου (παράδειγμα)', stance: stance === 'reject' ? 'propose' : 'reserve', comment: 'Παράδειγμα γνώμης της διεύθυνσης.', submittedAt: now, mine: false }] : []
-    state.opinions = { ...(state.opinions || {}), [candidateId]: [...list.filter(item => !item.mine), ...others, mine] }
-    saveLocal(state); return
-  }
-  must(await supabase.rpc('hr_save_opinion', { p_candidate_id: candidateId, p_stance: stance || null, p_comment: comment || null, p_submit: Boolean(submit) }))
+// The notes written while the application is discussed with the candidate.
+export async function saveCandidateNotes(organizationId, candidate, notes) {
+  const value = String(notes || '').trim() || null
+  if (isLocal()) { updateLocalCandidate(candidate.id, () => ({ notes: value || '' })); return }
+  must(await supabase.from('hr_candidates').update({ notes: value }).eq('id', candidate.id).eq('organization_id', organizationId))
 }
 
 export function interviewsErrorMessage(error, language = 'el') {
@@ -285,8 +270,6 @@ export function interviewsErrorMessage(error, language = 'el') {
   const text = `${error?.code || ''} ${error?.message || ''}`
   if (text.includes('HR_EMPLOYEE_OTHER_ORGANIZATION')) return en ? 'The employee belongs to another organization.' : 'Ο εργαζόμενος ανήκει σε άλλο οργανισμό.'
   if (text.includes('HR_APPLICATION_LINKS_BUSY')) return en ? 'Too many tablet links in the last hour; try again later.' : 'Δημιουργήθηκαν πολλοί σύνδεσμοι tablet την τελευταία ώρα· δοκιμάστε αργότερα.'
-  if (text.includes('HR_OPINION_SUBMITTED')) return en ? 'Your opinion has been submitted and cannot be changed.' : 'Η γνώμη σας έχει υποβληθεί και δεν αλλάζει.'
-  if (text.includes('HR_OPINION_FORBIDDEN')) return en ? 'You cannot give an opinion on this candidate.' : 'Δεν μπορείτε να δώσετε γνώμη για αυτόν τον υποψήφιο.'
   if (text.includes('DUPLICATE_EMPLOYEE_CODE')) return en ? 'An employee with this code already exists.' : 'Υπάρχει ήδη εργαζόμενος με αυτόν τον κωδικό.'
   if (text.includes('42501') || /row-level security/i.test(text)) return en ? 'You do not have permission for this action.' : 'Δεν έχετε δικαίωμα για αυτή την ενέργεια.'
   return en ? 'The change could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση.'

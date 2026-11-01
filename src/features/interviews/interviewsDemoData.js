@@ -17,15 +17,15 @@ const interview = (id, fields) => ({ id, scheduledAt: '', location: 'Γραφε�
 
 export function interviewsDemoState() {
   const state = demoCandidatesAndDivisions()
-  const category = text => (/Νοσηλ/.test(text) ? 'Νοσηλευτής/τρια' : /Μαία/.test(text) ? 'Μαία' : /Μάγειρ|Κουζίν/.test(text) ? 'Μάγειρας' : '')
+  const category = text => (/Νοσηλ|Μαία/.test(text) ? 'nursing' : /Μάγειρ|Κουζίν|Τραυματιοφ/.test(text) ? 'support' : '')
   return { ...state, candidates: state.candidates.map(item => ({ ...item, professionalCategory: item.professionalCategory || category(item.requestedPosition || '') })) }
 }
 
 function demoCandidatesAndDivisions() {
   return {
     divisions: [
-      { id: 'demo-div-1', name: 'Νοσηλευτική Υπηρεσία', categories: ['Νοσηλευτής/τρια', 'Μαία'], members: [] },
-      { id: 'demo-div-2', name: 'Διεύθυνση Λειτουργιών', categories: ['Μάγειρας', 'Τεχνικός'], members: [] },
+      { id: 'demo-div-1', name: 'Νοσηλευτική Υπηρεσία', categories: ['nursing', 'medical', 'paramedical'], members: [] },
+      { id: 'demo-div-2', name: 'Διεύθυνση Λειτουργιών', categories: ['technical', 'support', 'administrative'], members: [] },
     ],
     opinions: {},
     candidates: [

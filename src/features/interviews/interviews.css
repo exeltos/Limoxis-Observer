@@ -39,18 +39,7 @@
 .interviews-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .interviews-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
 .interviews-record-shell .record-tab-panel-body{flex:1 1 auto}
-.interviews-stances{display:flex;flex-wrap:wrap;gap:8px}
 .interviews-division-row{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,2fr) auto;gap:12px;align-items:start}
-.interviews-opinion-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.interviews-opinion-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;border:1px solid var(--color-border,#e2e8f0);border-left-width:4px;border-radius:10px;padding:12px 14px;background:var(--color-surface,#fff)}
-.interviews-opinion-card.tone-success{border-left-color:var(--color-success,#15803d)}
-.interviews-opinion-card.tone-warning{border-left-color:var(--color-warning,#b45309)}
-.interviews-opinion-card.tone-danger{border-left-color:var(--color-danger,#b42318)}
-.interviews-opinion-card header{display:flex;flex-direction:column;gap:2px}
-.interviews-opinion-card header small,.interviews-opinion-card>small{color:var(--color-text-secondary,#64748b)}
-.interviews-opinion-card p{margin:0;white-space:pre-wrap}
-.interviews-disagreement{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:var(--color-danger-soft,#fef3f2)}
-.interviews-locked{padding:12px 14px;border:1px dashed var(--color-border,#cbd5e1);border-radius:10px}
 .interviews-division-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px}
 .interviews-division-form .interviews-span-3{grid-column:1/-1}
 /* The tabs made of stacked blocks: padded like the panel header, one scroll for the whole tab (no table scrolls inside another). */
@@ -63,3 +52,5 @@
 .interviews-form-footer{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--color-border,#e2e8f0);background:var(--color-surface,#fff)}
 .interviews-form-body>:is(.lo-form-grid,.interviews-row-list):has(+.lo-section-header){margin-bottom:22px}
 .interviews-form-body>.lo-form-grid+.lo-form-grid{margin-top:14px}
+.interviews-decision-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--color-border,#e2e8f0)}
+.interviews-decision-now{margin-right:auto;display:inline-flex;align-items:center;gap:8px;color:var(--color-text-secondary,#64748b)}

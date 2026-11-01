@@ -20,9 +20,8 @@ import { createEmployeeAsync } from '../employees/employeeService'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { useInterviewsActor } from './InterviewsShared'
-import { CRITERIA, DECISIONS, EMPLOYMENT_TYPES, GENDERS, INTERVIEWER_ROLES, LANGUAGES, LEVELS, MARITAL, MILITARY, OUTCOMES, SCORES, candidateProblems, decisionProblems, employeeDraftFor, fmtRating, interviewProblems, matchingEmployees, newEducation, newEmployer, newLanguage, options, overallRating, ratingTone, todayKey } from './interviewsModel'
-import { decide, interviewsErrorMessage, loadOpinions, markHired, saveCandidate, saveInterview } from './interviewsService'
-import { hasDisagreement } from './divisionsModel'
+import { PROFESSIONAL_CATEGORIES, CRITERIA, DECISIONS, EMPLOYMENT_TYPES, GENDERS, INTERVIEWER_ROLES, LANGUAGES, LEVELS, MARITAL, MILITARY, OUTCOMES, SCORES, candidateProblems, decisionProblems, employeeDraftFor, fmtRating, interviewProblems, matchingEmployees, newEducation, newEmployer, newLanguage, options, overallRating, ratingTone, todayKey } from './interviewsModel'
+import { decide, interviewsErrorMessage, markHired, saveCandidate, saveInterview } from './interviewsService'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 const triState = en => [{ value: '', label: '—' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }, { value: 'no', label: en ? 'No' : 'Όχι' }]
@@ -60,7 +59,7 @@ function FormPage({ title, subtitle, onClose, footer, children }) {
 
 // The application form («ΑΙΤΗΣΗ ΕΡΓΑΣΙΑΣ»): position, personal details, contact, the
 // rest of the form and the consent to the processing of personal data.
-export function CandidateDialog({ initial, organizationId, positions = [], categories = [], onClose, onSaved }) {
+export function CandidateDialog({ initial, organizationId, positions = [], onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const [draft, setDraft] = useState(() => structuredClone(initial))
@@ -73,7 +72,7 @@ export function CandidateDialog({ initial, organizationId, positions = [], categ
     <SectionHeader title={en ? 'Position' : 'Θέση'} />
     <FormGrid columns={3}>
       <SearchableSelect label={en ? 'Position applied for' : 'Αιτούμενη θέση εργασίας'} value={draft.requestedPosition} allowCustom options={positions.map(value => ({ value, label: value }))} onChange={value => set({ requestedPosition: value || '' })} {...selectText(en)} />
-      <SearchableSelect label={en ? 'Professional category' : 'Επαγγελματική κατηγορία'} value={draft.professionalCategory || ''} allowCustom options={categories.map(value => ({ value, label: value }))} onChange={value => set({ professionalCategory: value || '' })} {...selectText(en)} />
+      <ChoiceField label={en ? 'Area / category' : 'Χώρος / κατηγορία'} value={draft.professionalCategory || ''} options={withEmpty(options(PROFESSIONAL_CATEGORIES, language))} onChange={value => set({ professionalCategory: value })} />
       <ChoiceField label={en ? 'Employment type' : 'Είδος απασχόλησης'} value={draft.employmentType} options={withEmpty(options(EMPLOYMENT_TYPES, language))} onChange={value => set({ employmentType: value })} />
       <ManualDateField label={en ? 'Application date' : 'Ημερομηνία αίτησης'} value={draft.appliedOn} onChange={value => set({ appliedOn: value })} />
     </FormGrid>
@@ -283,20 +282,14 @@ export function EvaluationDialog({ candidate, initial, organizationId, employees
 
 // --- Decision and hiring ----------------------------------------------------------------------
 
-export function DecisionDialog({ candidate, organizationId, onClose, onSaved }) {
+export function DecisionDialog({ candidate, organizationId, initialDecision = '', onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useInterviewsActor()
-  const [draft, setDraft] = useState(() => ({ decision: candidate.decision || '', decisionOn: candidate.decisionOn || todayKey(), decisionByName: candidate.decisionByName || actor.name, decisionNotes: candidate.decisionNotes || '', withdrawn: candidate.status === 'withdrawn' }))
+  const [draft, setDraft] = useState(() => ({ decision: candidate.decision || initialDecision || '', decisionOn: candidate.decisionOn || todayKey(), decisionByName: candidate.decisionByName || actor.name, decisionNotes: candidate.decisionNotes || '', withdrawn: candidate.status === 'withdrawn' }))
   const [saving, run] = useSave(onSaved)
   const set = next => setDraft(current => ({ ...current, ...next }))
-  // When the HR Office and the division disagree, the decision must say why.
-  const [opinions, setOpinions] = useState(null)
-  useEffect(() => { let live = true; loadOpinions(candidate.id).then(data => { if (live) setOpinions(data) }).catch(() => {}); return () => { live = false } }, [candidate.id])
-  const disagreement = Boolean(opinions?.visible && (opinions.disagreement || hasDisagreement(opinions.opinions || [])))
-  // Others' opinions stay hidden until you have given yours: submit it first, then decide.
-  const waitingForOwn = Boolean(opinions && !opinions.visible && opinions.submittedCount > 0)
-  const problems = draft.withdrawn ? [] : [...decisionProblems(draft, language), ...(waitingForOwn ? [en ? 'your own opinion (Role opinions tab)' : 'τη δική σας γνώμη (καρτέλα Αξιολόγηση ρόλων)'] : []), ...(disagreement && !String(draft.decisionNotes || '').trim() ? [en ? 'Reason (the roles disagree)' : 'Αιτιολογία (οι ρόλοι διαφωνούν)'] : [])]
+  const problems = draft.withdrawn ? [] : decisionProblems(draft, language)
   const save = () => run(async () => { await decide(organizationId, candidate, { ...draft, status: draft.withdrawn ? 'withdrawn' : undefined }); onClose() }, en ? 'Decision recorded.' : 'Η απόφαση καταχωρίστηκε.')
   return <ObserverDialog title={en ? 'Decision' : 'Απόφαση'} subtitle={candidate.fullName} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={en ? 'Record decision' : 'Καταχώριση απόφασης'}><Missing problems={problems} en={en} /></DialogActions>}>
@@ -306,7 +299,7 @@ export function DecisionDialog({ candidate, organizationId, onClose, onSaved }) 
       <Text label={en ? 'Decided by' : 'Αποφάσισε'} value={draft.decisionByName} onChange={value => set({ decisionByName: value })} />
     </FormGrid>
     <FormGrid columns={1}>
-      <Text label={draft.decision === 'reject' || disagreement ? (en ? 'Reason *' : 'Αιτιολογία *') : (en ? 'Notes' : 'Σημειώσεις')} rows={3} value={draft.decisionNotes} onChange={value => set({ decisionNotes: value })} />
+      <Text label={draft.decision === 'reject' ? (en ? 'Reason *' : 'Αιτιολογία *') : (en ? 'Notes' : 'Σημειώσεις')} rows={3} value={draft.decisionNotes} onChange={value => set({ decisionNotes: value })} />
       <CheckboxField label={en ? 'The candidate withdrew (declined the offer or is no longer interested)' : 'Ο υποψήφιος αποσύρθηκε (αρνήθηκε την πρόταση ή δεν ενδιαφέρεται πια)'} checked={draft.withdrawn} onChange={value => set({ withdrawn: value })} />
     </FormGrid>
     {draft.decision === 'hire' && !draft.withdrawn && <p className="interviews-muted">{en ? 'The application stays at «Offer» until «Hire» creates or links the employee.' : 'Η αίτηση μένει «Πρόταση συνεργασίας» ώσπου η «Πρόσληψη» να δημιουργήσει ή να συνδέσει τον εργαζόμενο.'}</p>}
