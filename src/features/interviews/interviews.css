@@ -54,3 +54,6 @@
 .interviews-form-body>.lo-form-grid+.lo-form-grid{margin-top:14px}
 .interviews-decision-bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px;padding:12px 20px;border-top:1px solid var(--color-border,#e2e8f0)}
 .interviews-decision-now{margin-right:auto;display:inline-flex;align-items:center;gap:8px;color:var(--color-text-secondary,#64748b)}
+/* One height for every control of the big forms, so the rows line up whatever the field is (text, list, date). */
+.interviews-form-body .lo-form-grid{align-items:start}
+.interviews-form-body .lo-form-grid :is(.field,.searchable-select,.manual-date-field,.time-field) :is(input:not([type=checkbox]):not([type=radio]),select){height:40px;min-height:40px;box-sizing:border-box}
