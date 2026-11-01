@@ -26,7 +26,7 @@ describe('management indicator definitions',()=>{
   expect(MANAGEMENT_CAPABILITIES).toContain(CAPABILITIES.MANAGE_ANNOUNCEMENTS)
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_INDICATORS)).toBe(true)
   expect(can(ROLES.QUALITY_MANAGER,CAPABILITIES.MANAGE_LIBRARIES)).toBe(false)
-  expect(page).toContain("ok(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
+  expect(page).toContain("okCap(CAPABILITIES.MANAGE_INDICATORS)?[{id:'indicators'")
  })
  it('exposes a governed management UI',()=>{
   expect(page).toContain("id:'indicators'")

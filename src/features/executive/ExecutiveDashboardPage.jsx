@@ -27,6 +27,10 @@ import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { controlRanking,executiveKpis,filtersToQuery,monthlyRate,parseFilters,pct,periodRange,previousRange,redFlags,visibleFor,withDeltas } from './executiveModel'
 import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
 import './executive.css'
+import { Database } from 'lucide-react'
+import { IndicatorDataPanel, useIndicatorDataItems } from '../indicators/IndicatorDataPanel'
+
+const DATA_TAB=['data','Δεδομένα','Data',Database,[]]
 
 const PART_KEYS=['domains','people','qualityFood','microbiology','clusters','governance']
 const SEVERITY_LABELS={critical:['Κρίσιμη','Critical'],high:['Υψηλή','High'],medium:['Μέτρια','Medium'],low:['Χαμηλή','Low']}
@@ -92,7 +96,7 @@ export function ExecutiveDashboardPage(){
  const filters=useMemo(()=>parseFilters(location.search,readSharedPeriod()),[location.search])
  // One row of tabs (?tab=); an old ?view=analysis&tab=<analysis tab> opens the tab that shows it.
  const askedTab=query.get('tab')||''
- const pageTab=[...INDICATOR_TABS,...INDICATOR_MORE_TABS].some(([id])=>id===askedTab)?askedTab:query.get('view')==='analysis'?indicatorTabOf(askedTab||'surveillance'):'summary'
+ const pageTab=[...INDICATOR_TABS,...INDICATOR_MORE_TABS,DATA_TAB].some(([id])=>id===askedTab)?askedTab:query.get('view')==='analysis'?indicatorTabOf(askedTab||'surveillance'):'summary'
  // Σύγκριση: none, the previous period, or the chosen department against the whole hospital (?vs=departments).
  const compareMode=!filters.compare?'none':query.get('vs')==='departments'&&filters.department?'departments':'previous'
  const searchOf=(next,nextTab,nextMode=compareMode)=>{const params=new URLSearchParams(filtersToQuery({...next,compare:nextMode!=='none'}).replace(/^\?/,''));if(nextMode==='departments')params.set('vs','departments');if(nextTab&&nextTab!=='summary')params.set('tab',nextTab);const out=params.toString();return out?`?${out}`:''}
@@ -109,6 +113,8 @@ export function ExecutiveDashboardPage(){
  // The reference the summary and every tab compare with: the previous period, or the whole hospital.
  const previousDepartment=compareMode==='departments'?'':department
  const userCan=capability=>can(role,capability,membership?.capabilities??[],membership?.customCapabilities??[])
+ // «Δεδομένα»: bed days, structural indicators and PPS, entered by hand (moved here from the Management Center).
+ const dataItems=useIndicatorDataItems()
  const currentParts=useMemo(()=>{
   if(isDemo)return demoParts(range,en)
   if(!organizationId)return null
@@ -171,7 +177,7 @@ export function ExecutiveDashboardPage(){
  // The Analysis sections this viewer may see (modules of the operating profile; the Director reads aggregates only, no reporting lists).
  const sectionVisible=id=>(!TAB_MODULES[id]||TAB_MODULES[id].some(module=>moduleEnabled(module)))&&!(id==='reporting'&&role===ROLES.HOSPITAL_DIRECTOR)
  const tabVisible=([id,,,,sections])=>id==='summary'||(canAnalysis&&sections.some(sectionVisible))
- const mainTabs=INDICATOR_TABS.filter(tabVisible),moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
+ const mainTabs=[...INDICATOR_TABS.filter(tabVisible),...(dataItems.length?[DATA_TAB]:[])],moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
  const activeTab=[...mainTabs,...moreTabs].find(([id])=>id===pageTab)||mainTabs[0]
  const activeSections=activeTab[4].filter(sectionVisible)
  const tabTitle=en?activeTab[2]:activeTab[1]
@@ -180,6 +186,7 @@ export function ExecutiveDashboardPage(){
  const against=compareMode==='departments'?tx('Διαφορά έναντι όλου του νοσοκομείου','Difference against the whole hospital'):''
  return <Page className="exec-page" title={title} subtitle={hospital}>
   {mainTabs.length+moreTabs.length>1&&<CanonicalTabs className="exec-view-tabs" value={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} items={mainTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))} moreItems={moreTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))}/>}
+  {activeTab[0]==='data'?<IndicatorDataPanel initial={query.get('item')}/>:<>
   <div className="exec-filters" role="group" aria-label={tx('Φίλτρα','Filters')}>
    <AnalysisSelect label={tx('Περίοδος','Period')} value={filters.period} onChange={event=>setFilters({period:event.target.value,...(event.target.value==='custom'?{from:range.from,to:range.to}:{})})}>{Object.entries(presetLabels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</AnalysisSelect>
    {filters.period==='custom'&&<><ManualDateField label={tx('Από','From')} value={range.from} onChange={value=>value&&setFilters({from:value,to:range.to})}/><ManualDateField label={tx('Έως','To')} value={range.to} onChange={value=>value&&setFilters({from:range.from,to:value})}/></>}
@@ -222,5 +229,6 @@ export function ExecutiveDashboardPage(){
    </div>
    <p className="exec-footnote"><Activity size={13} aria-hidden="true"/>{isDemo?tx('Συνθετικά δεδομένα αποκλειστικά για το Demo περιβάλλον.','Synthetic data for the Demo environment only.'):tx('Πραγματικά δεδομένα του νοσοκομείου· οι εκκρεμότητες (εκπρόθεσμα, ληγμένα, ανοιχτές αποφάσεις) αφορούν τη σημερινή κατάσταση.','Live hospital data; open items (overdue, expired, open decisions) reflect the state today.')}</p>
   </section>}
+  </>}
  </Page>
 }

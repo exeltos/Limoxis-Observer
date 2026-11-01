@@ -16,7 +16,11 @@ const globalTabs = page.slice(page.indexOf('if(global)return ['), page.indexOf('
 describe('Management Center: hospital vs platform', () => {
   it('keeps platform-wide tabs out of the hospital Management Center', () => {
     for (const id of ['liraKnowledge', 'references', 'platform']) expect(hospitalTabs).not.toContain(`id:'${id}'`)
-    for (const id of ['users', 'roles', 'announcements', 'libraries', 'questionnaires', 'clinicalScales', 'environmentTemplates', 'bundles', 'haiCriteria', 'indicators', 'patientDays', 'hospitalStructure', 'prevalenceSurvey', 'liraAi']) expect(hospitalTabs).toContain(`id:'${id}'`)
+    // One row of tabs; Hospital and Lists are left lists of their screens; the indicator data moved to Indicators › Data.
+    for (const id of ['users', 'roles', 'hospital', 'lists', 'liraAi']) expect(hospitalTabs).toContain(`id:'${id}'`)
+    const rails = page.slice(page.indexOf('const hospitalLead='), page.indexOf('// group row only') > 0 ? page.indexOf('// group row only') : page.length)
+    for (const id of ['identity', 'security', 'announcements', 'questionnaires', 'clinicalScales', 'environmentTemplates', 'bundles', 'haiCriteria', 'indicators']) expect(rails).toContain(`id:'${id}'`)
+    for (const id of ['patientDays', 'hospitalStructure', 'prevalenceSurvey']) expect(hospitalTabs).not.toContain(`id:'${id}'`)
     // The outbreak investigations moved to Surveillance › Outbreaks; LIRA & AI keeps the AI settings.
     expect(hospitalTabs).not.toContain("id:'liraOutbreaks'")
   })
@@ -37,5 +41,21 @@ describe('Management Center: hospital vs platform', () => {
     expect(SECTION_TABS.surveillance.tabs.find(tab => tab.id === 'outbreaks').capability).toBe(CAPABILITIES.VIEW_LIRA)
     expect(can(ROLES.INFECTION_CONTROL_LEAD, CAPABILITIES.VIEW_LIRA, [], [])).toBe(true)
     expect(page).toContain("navigate('/surveillance?tab=outbreaks',{replace:true})")
+  })
+})
+
+describe('Indicators › Data: bed days, structural indicators and PPS', () => {
+  const data = fs.readFileSync('src/features/indicators/IndicatorDataPanel.jsx', 'utf8')
+  const executive = fs.readFileSync('src/features/executive/ExecutiveDashboardPage.jsx', 'utf8')
+  const route = fs.readFileSync('src/features/indicators/IndicatorsRoute.jsx', 'utf8')
+  it('lists the three hand-entered data screens, each behind its own capability', () => {
+    for (const [id, capability] of [['patientDays', 'MANAGE_BED_DAYS'], ['hospitalStructure', 'MANAGE_HOSPITAL_STRUCTURE'], ['prevalenceSurvey', 'RECORD_PREVALENCE_SURVEY']]) {
+      expect(data).toContain(`ok(CAPABILITIES.${capability}) ? [{ id: '${id}'`)
+    }
+  })
+  it('is a tab of the Indicators, on the executive dashboard and on the indicators list', () => {
+    expect(executive).toContain("const DATA_TAB=['data','Δεδομένα','Data',Database,[]]")
+    expect(executive).toContain('<IndicatorDataPanel initial={query.get(\'item\')}/>')
+    expect(route).toContain("params.get('tab') === 'data' ? 'data' : 'list'")
   })
 })

@@ -40,7 +40,7 @@ function fmtIndicatorValue(value,el){if(value==null||value==='')return '—';con
 // actionsSlot: inside another page (Quality Center), the element of that page's top bar
 // where «Export» and «⋯» go; that page's «Create» offers the new indicator.
 // withRegisters: «Indicators & objectives» lists the department registers' indicators too, with their source and target.
-export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',actionsSlot=null,withRegisters=false}={}){
+export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',actionsSlot=null,withRegisters=false,tabsBar=null}={}){
  const navigate=useNavigate();const registry=useRegistryMemory(registryKey);const {tenant,membership,role,isDemo}=useTenant();const {t,language}=useLanguage();const {notify}=useFeedback();const el=language==='el'
  const addOns=membership?.capabilities||[],customCapabilities=membership?.customCapabilities||[];const canManage=can(role,CAPABILITIES.MANAGE_INDICATORS,addOns,customCapabilities)
  const indicatorScope=scopeFor(CAPABILITIES.VIEW_INDICATORS,{role,scopeOverrides:membership?.scopeOverrides||{}})
@@ -137,6 +137,7 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   {key:'approved',icon:ClipboardCheck,value:approvedCount,label:t('indicatorsRecords.approvedResults'),active:kpi==='approved',go:toggle('approved')},
  ]}/>
  return <Page fill className="indicators-page" title={t('indicators')} subtitle={t('indicatorsRecords.operationalSubtitle')} actions={actionsSlot?null:<div className="row-actions">{exportMenu}{newButton}{moreMenu}</div>}>
+  {tabsBar}
   {actionsSlot&&createPortal(exportMenu,actionsSlot)}
   {summary}
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}

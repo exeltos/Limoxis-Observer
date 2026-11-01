@@ -24,10 +24,10 @@ const text = {
 export function firstSteps(values, { needsPatientDays = false } = {}) {
   if (values?.activeUsers == null || values?.activeDepartments == null) return null
   const steps = [
-    { id: 'departments', done: Number(values.activeDepartments) > 0, to: '/management?tab=libraries' },
+    { id: 'departments', done: Number(values.activeDepartments) > 0, to: '/management?tab=departments' },
     { id: 'users', done: Number(values.activeUsers) > 1, to: '/management?tab=users' },
   ]
-  if (needsPatientDays) steps.push({ id: 'patientDays', done: Number(values.patientDayPeriods) > 0, to: '/management?tab=patientDays' })
+  if (needsPatientDays) steps.push({ id: 'patientDays', done: Number(values.patientDayPeriods) > 0, to: '/indicators?tab=data&item=patientDays' })
   return steps
 }
 
