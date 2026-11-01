@@ -49,7 +49,7 @@ export function TrainingEffectivenessPanel({program,assignments=[],state,onPersi
  const practice=program.effectiveness?.result?effectivenessStateText(status,en):program.effectiveness?.plannedDate?`${effectivenessStateText(status,en)} · ${formatDay(program.effectiveness.plannedDate)}`:effectivenessStateText(status,en)
  const notMet=['partial','not_effective'].includes(program.effectiveness?.result)
 
- return <section className="record-section training-effectiveness">
+ return <section className="training-section training-effectiveness">
   <div className="record-section-header"><div><span className="eyebrow">{en?'Training effectiveness':'Αποτελεσματικότητα εκπαίδευσης'}</span><h3>{en?'Did the training change practice?':'Άλλαξε η εκπαίδευση την πρακτική;'}</h3></div><span className={`training-effectiveness-state ${status}`}>{effectivenessStateText(status,en)}</span></div>
   <RecordFacts label={en?'Effectiveness levels':'Επίπεδα αποτελεσματικότητας'} items={[{value:levels.satisfaction==null?'':`${levels.satisfaction}/5`,label:en?`satisfaction (${levels.feedbackCount} answers)`:`ικανοποίηση (${levels.feedbackCount} απαντήσεις)`},{value:levels.passRate==null?'':`${levels.passRate}%`,label:en?`knowledge passed${levels.averageScore==null?'':` · avg ${levels.averageScore}%`}`:`γνώσεις: επιτυχία${levels.averageScore==null?'':` · μ.ο. ${levels.averageScore}%`}`},{value:practice,label:en?'practice':'εφαρμογή στην πράξη'}]}/>
 

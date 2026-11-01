@@ -97,12 +97,10 @@
   padding-right:6px!important;
 }
 
-.training-participants-registry .training-participants-table th:nth-child(2){width:26%!important}
-.training-participants-registry .training-participants-table th:nth-child(3){width:18%!important}
-.training-participants-registry .training-participants-table th:nth-child(4){width:24%!important}
-.training-participants-registry .training-participants-table th:nth-child(5){width:14%!important}
-.training-participants-registry .training-participants-table th:nth-child(6){width:14%!important}
+.training-participants-registry .training-participants-table th:nth-child(2){width:40%!important}
+.training-participants-registry .training-participants-table th:nth-child(3){width:24%!important}
 .training-participants-registry .training-participants-table th:last-child{width:46px!important}
+.training-participants-registry .training-participants-table th.training-select-col{text-align:center!important}
 
 .training-participants-registry:has(.training-participants-table tbody:empty){
   min-height:0!important;
