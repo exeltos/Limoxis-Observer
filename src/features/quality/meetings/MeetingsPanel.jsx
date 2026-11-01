@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
-import { RegistryPagination } from '../../../design-system/RegistryPagination'
-import { useSortedPaging, withSort } from '../useSortedPaging'
-import { RegistryTable } from '../../../design-system/RegistryTable'
-import { StatusBadge } from '../../../design-system/StatusBadge'
-import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { useRegisterAccess } from '../../registers/registerAccess'
 import { loadMeetingGroups, loadMeetings } from './meetingService'
-import { lateDecisions, latestMeetings, meetingAccess, meetingStatusLabel, openDecisions } from './meetingModel'
+import { meetingAccess } from './meetingModel'
 
 // The department meetings the user may see: every department for Quality, the
 // own department(s) for its members (the database filters the same way).
@@ -51,59 +45,13 @@ export function useMeetingGroups(enabled = true) {
 }
 
 const departmentOf = (meeting, en) => (en ? meeting.departmentEn : meeting.department) || meeting.department || '—'
-const monthLabel = (day, language) => (day ? new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${String(day).slice(0, 7)}-01T00:00:00Z`)) : '—')
-
-export function filterMeetings(meetings, filters, en) {
-  const q = String(filters.query || '').trim().toLowerCase()
-  // Open and late decisions are followed on each department's latest meeting.
-  const latest = new Set(latestMeetings(meetings).map(meeting => meeting.id))
-  return meetings
-    .filter(meeting => !['open', 'late'].includes(filters.quick) || latest.has(meeting.id))
-    .filter(meeting => !q || `${meeting.code} ${meeting.title} ${meeting.department} ${meeting.departmentEn || ''} ${meeting.minutes || ''}`.toLowerCase().includes(q))
-    .filter(meeting => filters.department === 'all' || departmentOf(meeting, en) === filters.department)
-    .filter(meeting => filters.status === 'all' || meeting.status === filters.status)
-    .filter(meeting => !filters.quick || (filters.quick === 'open' ? openDecisions(meeting).length > 0 : filters.quick === 'late' ? lateDecisions(meeting).length > 0 : filters.quick === 'draft' ? meeting.status === 'draft' : true))
-}
 
 export function meetingsExport(meetings, language) {
   const en = language === 'en'
+  const yes = value => (value ? (en ? 'Yes' : 'Ναι') : '')
   return {
     name: en ? 'department-meetings' : 'synantiseis-tmimaton',
-    headers: en ? ['Code', 'Department', 'Date', 'Indicators of', 'Decisions', 'Open decisions', 'Next meeting', 'Status'] : ['Κωδικός', 'Τμήμα', 'Ημερομηνία', 'Δείκτες του', 'Αποφάσεις', 'Ανοιχτές αποφάσεις', 'Επόμενη', 'Κατάσταση'],
-    rows: meetings.map(meeting => [meeting.code, departmentOf(meeting, en), formatDay(meeting.meetingDate, language), monthLabel(meeting.periodMonth, language), meeting.decisions.length, openDecisions(meeting).length, formatDay(meeting.nextMeetingDate, language), meetingStatusLabel(meeting.status, language)]),
+    headers: en ? ['Code', 'Department', 'Date', 'Kind', 'Topics', 'Decision', 'Training'] : ['Κωδικός', 'Τμήμα', 'Ημερομηνία', 'Είδος', 'Θέματα', 'Απόφαση', 'Εκπαίδευση'],
+    rows: meetings.map(meeting => [meeting.code, departmentOf(meeting, en), formatDay(meeting.meetingDate, language), meeting.kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική'), (meeting.topics || []).map(topic => topic.subject).filter(Boolean).join(' · '), yes(meeting.decisions.length > 0), yes(meeting.trainingHeld)]),
   }
-}
-
-export function MeetingsList({ list, filters, setFilters, onOpen, filterEnd = null }) {
-  const { t, language } = useLanguage()
-  const en = language === 'en'
-  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
-  const rows = useMemo(() => filterMeetings(list.meetings, filters, en), [list.meetings, filters, en])
-  const sortBy = { code: meeting => meeting.code, department: meeting => departmentOf(meeting, en), date: meeting => meeting.meetingDate, period: meeting => meeting.periodMonth, decisions: meeting => meeting.decisions.length, next: meeting => meeting.nextMeetingDate, status: meeting => meeting.status }
-  const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
-  const departments = useMemo(() => [...new Set(list.meetings.map(meeting => departmentOf(meeting, en)))].sort((a, b) => a.localeCompare(b, 'el')), [list.meetings, en])
-  const today = new Date().toISOString().slice(0, 10)
-  const advanced = ['department', 'status'].filter(key => filters[key] !== 'all').length
-  return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search meetings…' : 'Αναζήτηση συνάντησης…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', department: 'all', status: 'all', quick: null }))} end={filterEnd}>
-      {departments.length > 1 && <FilterSelect label={t('department')} value={filters.department} onChange={value => set('department', value)}><option value="all">{t('allDepartments')}</option>{departments.map(value => <option key={value} value={value}>{value}</option>)}</FilterSelect>}
-      <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option><option value="draft">{meetingStatusLabel('draft', language)}</option><option value="final">{meetingStatusLabel('final', language)}</option></FilterSelect>
-    </FilterBar>
-    <div className="scroll-table">
-      <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={meeting => meeting.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.meetings.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', department: 'all', status: 'all', quick: null }))}
-        columns={withSort([{ key: 'code', label: t('code') }, { key: 'department', label: t('department') }, { key: 'date', label: t('date') }, { key: 'period', label: en ? 'Indicators of' : 'Δείκτες του' }, { key: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις' }, { key: 'next', label: en ? 'Next meeting' : 'Επόμενη' }, { key: 'status', label: t('status') }], sortBy)}
-        emptyTitle={en ? 'No department meetings' : 'Δεν υπάρχουν συναντήσεις τμημάτων'} emptyText={en ? 'A department records its meetings here: the month’s indicators, what was discussed and what was decided.' : 'Εδώ το τμήμα καταγράφει τις συναντήσεις του: τους δείκτες του μήνα, τι συζητήθηκε και τι αποφασίστηκε.'}
-        rowProps={meeting => ({ className: 'registry-row-clickable', onClick: () => onOpen(meeting) })}
-        renderRow={meeting => { const open = openDecisions(meeting).length, late = lateDecisions(meeting).length, nextLate = meeting.nextMeetingDate && meeting.nextMeetingDate < today; return <>
-          <td><strong>{meeting.code || '—'}</strong><small>{meeting.kind === 'extraordinary' ? (en ? 'Extraordinary' : 'Έκτακτη') : (en ? 'Regular' : 'Τακτική')}</small></td>
-          <td>{departmentOf(meeting, en)}<small>{meeting.title}</small></td>
-          <td className="nowrap-cell">{formatDay(meeting.meetingDate, language)}</td>
-          <td>{monthLabel(meeting.periodMonth, language)}</td>
-          <td>{meeting.decisions.length}<small className={late ? 'quality-overdue-text' : ''}>{late ? (en ? `${late} overdue` : `${late} εκπρόθεσμες`) : (en ? `${open} open` : `${open} ανοιχτές`)}</small></td>
-          <td className={`nowrap-cell${nextLate ? ' quality-overdue' : ''}`}>{formatDay(meeting.nextMeetingDate, language) || '—'}{nextLate && <small>{en ? 'Overdue' : 'Εκπρόθεσμη'}</small>}</td>
-          <td><StatusBadge tone={meeting.status === 'final' ? 'success' : 'info'}>{meetingStatusLabel(meeting.status, language)}</StatusBadge></td>
-        </> }} />
-    </div>
-    {rows.length > 0 && <RegistryPagination language={language} {...paging.props} />}
-  </>
 }

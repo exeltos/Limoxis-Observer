@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { carriedDecisions, departmentMeetingStatus, latestMeetings, meetingAccess, newMeetingFor, nextMeetingCode, previousMonth } from '../src/features/quality/meetings/meetingModel'
-import { filterMeetings } from '../src/features/quality/meetings/MeetingsPanel'
 
 const meeting = (id, departmentId, meetingDate, decisions = [], extra = {}) => ({ id, code: id, departmentId, department: departmentId, meetingDate, nextMeetingDate: '', status: 'final', decisions, participants: [], ...extra })
 
@@ -23,7 +22,6 @@ describe('Department meetings', () => {
   it('counts open decisions on each department’s latest meeting only', () => {
     const rows = [meeting('a', 'ΜΕΘ', '2026-08-01', [{ title: 'x', status: 'open' }]), meeting('b', 'ΜΕΘ', '2026-09-01', [{ title: 'x', status: 'open', carriedFrom: 'a' }], { nextMeetingDate: '2026-10-01' }), meeting('c', 'ΤΕΠ', '2026-09-10')]
     expect(latestMeetings(rows).map(row => row.id).sort()).toEqual(['b', 'c'])
-    expect(filterMeetings(rows, { query: '', department: 'all', status: 'all', quick: 'open' }, false).map(row => row.id)).toEqual(['b'])
     expect(departmentMeetingStatus(rows, '2026-10-17').find(row => row.meeting.id === 'b').overdue).toBe(true)
   })
 

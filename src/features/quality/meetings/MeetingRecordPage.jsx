@@ -80,7 +80,7 @@ export function MeetingRecordPage() {
   const { tenant, role, membership } = useTenant()
   const canCreateTraining = can(role, CAPABILITIES.MANAGE_TRAINING, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const { user, profile } = useAuth()
-  const { goBack } = useContextualNavigation('/meetings?tab=departments')
+  const { goBack, goTo } = useContextualNavigation('/meetings?tab=departments')
   const list = useMeetings()
   const { departments, loading: departmentsLoading } = useDepartments()
   // Topics from the hospital's library (Management > Libraries > Committee and meeting topics).
@@ -137,7 +137,7 @@ export function MeetingRecordPage() {
   async function createTraining() {
     if (!locked && !(await save())) return
     const attendees = meeting.participants.filter(person => person.attended !== false && String(person.name).trim()).map(person => { const employee = employeeById.get(person.employeeId); return { employeeCode: employee?.id || '', name: person.name, department: employee?.department || meeting.department, departmentId: employee?.departmentId || meeting.departmentId || null, email: employee?.email || '' } })
-    navigate('/training/new', { state: { trainingDraft: { title: meeting.topics.map(topic => topic.subject).filter(Boolean)[0] || '', audience: meeting.department, deliveryKind: 'intra_department', startDate: meeting.meetingDate, dueDate: meeting.meetingDate, description: en ? `Held at the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Έγινε στη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id, attendees } } })
+    goTo('/training/new', { tab, state: { trainingDraft: { title: meeting.topics.map(topic => topic.subject).filter(Boolean)[0] || '', audience: meeting.department, deliveryKind: 'intra_department', startDate: meeting.meetingDate, dueDate: meeting.meetingDate, description: en ? `Held at the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Έγινε στη συνάντηση ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` }, meetingTraining: { meetingId: meeting.id, attendees } } })
   }
   const setPerson = (index, next) => setMeeting(current => ({ ...current, participants: current.participants.map((item, position) => (position === index ? { ...item, ...next } : item)) }))
   const chooseDepartment = id => { const department = ownDepartments.find(item => (item.id || item.name) === id); if (department) setMeeting(current => ({ ...newMeetingFor(department, list.all, current.meetingDate), meetingDate: current.meetingDate })) }
@@ -157,7 +157,7 @@ export function MeetingRecordPage() {
     } catch (error) { console.error(error); notify(en ? 'The meeting could not be saved.' : 'Δεν ήταν δυνατή η αποθήκευση της συνάντησης.', 'error'); return false } finally { setSaving(false) }
   }
   function openCapa(decision) {
-    navigate('/quality/capas/new', { state: { qualitySource: { source: 'other', sourceId: `DM:${meeting.code}#${decision.id}`, departmentId: meeting.departmentId, department: meeting.department, departmentEn: meeting.departmentEn, title: decision.title, description: en ? `Decision of the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Απόφαση της συνάντησης ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` } } })
+    goTo('/quality/capas/new', { tab, state: { qualitySource: { source: 'other', sourceId: `DM:${meeting.code}#${decision.id}`, departmentId: meeting.departmentId, department: meeting.department, departmentEn: meeting.departmentEn, title: decision.title, description: en ? `Decision of the ${meeting.department} meeting ${meeting.code} (${formatDay(meeting.meetingDate, 'en')}).` : `Απόφαση της συνάντησης ${meeting.code} του τμήματος ${meeting.department} (${formatDay(meeting.meetingDate, 'el')}).` } } })
   }
 
   // «Present 6 of 7 · Absent: M. Xytsa»: the head sees at a glance who was missing.
@@ -181,7 +181,7 @@ export function MeetingRecordPage() {
   const decisionRow = (item, index) => {
     const capa = capaOf(item)
     const capaButton = capa
-      ? <Button variant="secondary" onClick={() => navigate(`/quality/capas/${capa.id}`)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'} {capa.code || ''}</Button>
+      ? <Button variant="secondary" onClick={() => goTo(`/quality/capas/${capa.id}`, { tab })}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'} {capa.code || ''}</Button>
       : !isNew && item.title && list.access.canCreateCapa() && <Button variant="secondary" onClick={() => openCapa(item)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>
     return <div key={item.id || index} className="meeting-decision">
       <label className="field"><span className="field-label lo-field-label">{en ? 'Decision' : 'Απόφαση'}</span><input value={item.title} disabled={locked} onChange={event => setDecision(index, { title: event.target.value })} /></label>
@@ -205,7 +205,7 @@ export function MeetingRecordPage() {
           <ChoiceField label={en ? 'Was a training held during the meeting?' : 'Έγινε εκπαίδευση στη συνάντηση;'} value={meeting.trainingHeld ? 'yes' : 'no'} disabled={locked || Boolean(meeting.trainingProgramId)} options={[{ value: 'no', label: en ? 'No' : 'Όχι' }, { value: 'yes', label: en ? 'Yes' : 'Ναι' }]} onChange={value => set({ trainingHeld: value === 'yes' })} />
           {meeting.trainingHeld && <div className="meeting-training">
             {meeting.trainingProgramId
-              ? <><div><strong>{meeting.trainingTitle || (en ? 'Training' : 'Εκπαίδευση')}</strong><small>{trainingStatusText(meeting.trainingStatus, en)}</small></div>{meeting.trainingProgramKey && <Button variant="secondary" onClick={() => navigate(`/training/${meeting.trainingProgramKey}`)}><GraduationCap size={15} />{en ? 'Open the training' : 'Άνοιγμα εκπαίδευσης'}</Button>}</>
+              ? <><div><strong>{meeting.trainingTitle || (en ? 'Training' : 'Εκπαίδευση')}</strong><small>{trainingStatusText(meeting.trainingStatus, en)}</small></div>{meeting.trainingProgramKey && <Button variant="secondary" onClick={() => goTo(`/training/${meeting.trainingProgramKey}`, { tab })}><GraduationCap size={15} />{en ? 'Open the training' : 'Άνοιγμα εκπαίδευσης'}</Button>}</>
               : <><span className="meeting-training-hint">{isNew ? (en ? 'Save the meeting first, then create the training.' : 'Αποθηκεύστε πρώτα τη συνάντηση και μετά δημιουργήστε την εκπαίδευση.') : (en ? 'No training is linked to this meeting yet.' : 'Δεν έχει συνδεθεί ακόμη εκπαίδευση με τη συνάντηση.')}</span>{!isNew && canCreateTraining && <Button variant="secondary" onClick={createTraining}><GraduationCap size={15} />{en ? 'Create the training' : 'Δημιουργία εκπαίδευσης'}</Button>}</>}
           </div>}
         </FormCard>
