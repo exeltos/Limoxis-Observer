@@ -99,7 +99,7 @@ export async function saveReview(organizationId, review) {
   const base = { organization_id: organizationId, review_id: id }
   for (const table of ['quality_management_review_sections', 'quality_management_review_actions', 'quality_management_review_participants']) must(await supabase.from(table).delete().eq('review_id', id))
   if (review.sections.length) must(await supabase.from('quality_management_review_sections').insert(review.sections.map((section, position) => ({ ...base, key: section.key, position, title: section.title, body: section.body || null }))))
-  if (review.actions.length) must(await supabase.from('quality_management_review_actions').insert(review.actions.map((action, position) => ({ ...base, position, section_key: action.sectionKey || null, title: action.title, owner_label: action.ownerLabel || null, due_date: action.dueDate || null, status: action.status || 'open', capa_id: isUuid(action.capaId) ? action.capaId : null }))))
+  if (review.actions.length) must(await supabase.from('quality_management_review_actions').insert(review.actions.map((action, position) => ({ ...base, ...(isUuid(action.id) ? { id: action.id } : {}), position, section_key: action.sectionKey || null, title: action.title, owner_label: action.ownerLabel || null, due_date: action.dueDate || null, status: action.status || 'open', capa_id: isUuid(action.capaId) ? action.capaId : null }))))
   if (review.participants.length) must(await supabase.from('quality_management_review_participants').insert(review.participants.map((person, position) => ({ ...base, position, name: person.name, role: person.role || null, attended: person.attended !== false, signed_at: person.signedAt || null }))))
   return (await loadReviews(organizationId)).find(row => row.id === id)
 }

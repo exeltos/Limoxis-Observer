@@ -85,6 +85,16 @@ td.quality-register-actions{width:48px;text-align:right}
 .review-text{display:grid;gap:6px;padding:2px 2px 4px;font-size:14px;line-height:1.55;color:var(--lo-color-text)}
 .review-text p{margin:0}
 .review-text-empty{color:var(--lo-color-text-muted)}
+.review-sections-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:16px;align-items:start;padding:10px 20px 12px}
+.review-sections-rail{position:sticky;top:0;display:grid;gap:1px;padding:6px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.review-sections-rail button{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:8px;padding:3px 6px;border:0;border-radius:8px;background:none;color:var(--lo-color-text);font:inherit;font-size:12.5px;font-weight:600;text-align:left;cursor:pointer}
+.review-sections-rail button:hover{background:var(--lo-color-surface-muted)}
+.review-sections-rail button.is-active{background:color-mix(in srgb,var(--lo-color-primary) 10%,var(--lo-color-surface));color:var(--lo-color-primary)}
+.review-sections-rail i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--lo-color-surface-muted);color:var(--lo-color-text-muted);font-style:normal;font-size:11px;font-weight:700}
+.review-sections-rail button.is-active i{background:var(--lo-color-primary);color:#fff}
+.review-sections-rail button.is-done i{background:color-mix(in srgb,var(--lo-status-success-fg) 16%,var(--lo-color-surface));color:var(--lo-status-success-fg)}
+.review-minutes .review-section-main{padding:0}
+@media (max-width:900px){.review-sections-layout{grid-template-columns:minmax(0,1fr)}.review-sections-rail{position:static;display:flex;overflow-x:auto}.review-sections-rail button{flex:none}}
 .review-facts{display:grid;gap:6px;padding:10px 12px;border:1px dashed var(--lo-color-border-strong);border-radius:8px;background:var(--lo-color-surface-muted)}
 .review-facts>span{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--lo-color-primary)}
 .review-facts ul{margin:0;padding-left:18px;font-size:13px;color:var(--lo-color-text)}
