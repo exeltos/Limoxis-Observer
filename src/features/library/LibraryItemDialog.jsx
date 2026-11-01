@@ -1,6 +1,9 @@
 import { useState } from 'react'
-import { Archive, RotateCcw } from 'lucide-react'
-import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
+import { Archive, BookOpenCheck, RotateCcw } from 'lucide-react'
+import { Page } from '../../design-system/Page'
+import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { SaveButton } from '../../design-system/SaveButton'
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { Field } from '../../design-system/Field'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
@@ -74,14 +77,12 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
   const urlLabel = k === 'clinical_guide' ? L('Σύνδεσμος (αν δεν ανεβάσετε αρχείο)', 'Link (if you do not upload a file)') : k === 'news_source' ? L('Feed (RSS / Atom) ή σελίδα *', 'Feed (RSS / Atom) or page *') : k === 'announcement' ? L('Σύνδεσμος (προαιρετικά)', 'Link (optional)') : L('Διεύθυνση (URL) *', 'Address (URL) *')
   const readAs = [{ value: 'rss', label: 'RSS / Atom' }, { value: 'page', label: L('Σελίδα με συνδέσμους', 'Page of links') }]
   const intervals = INTERVALS.map(hours => ({ value: String(hours), label: intervalLabel(hours, language) }))
-  const footer = <>
-    {!isNew && k !== 'news_source' && k !== 'announcement' && <Button variant="secondary" className="button-destructive" disabled={busy} onClick={toggleArchive}>{draft.status === 'archived' ? <RotateCcw size={16} /> : <Archive size={16} />}{draft.status === 'archived' ? L('Νέα δημοσίευση', 'Publish again') : L('Απόσυρση', 'Withdraw')}</Button>}
-    <DialogActions onSave={save} disabled={busy} />
-  </>
-
-  return <ObserverDialog width="wide" eyebrow={platform ? L('Διαχείριση βιβλιοθήκης', 'Library management') : L('Βιβλιοθήκη του νοσοκομείου', "Hospital's library")} title={isNew ? L('Νέα εγγραφή', 'New entry') : L('Επεξεργασία εγγραφής', 'Edit entry')}
-    subtitle={platform ? L('Ό,τι αποθηκεύεται εδώ εμφανίζεται στη «Βιβλιοθήκη» όλων των νοσοκομείων.', 'Whatever is saved here shows in the Library of every hospital.') : L('Ό,τι αποθηκεύεται εδώ εμφανίζεται μόνο στη «Βιβλιοθήκη» του νοσοκομείου σας, με την ένδειξη «Του νοσοκομείου».', "Whatever is saved here shows only in your hospital's Library, marked «Hospital's own».")}
-    onClose={onClose} footer={footer}>
+  const title = isNew ? L('Νέα εγγραφή', 'New entry') : L('Επεξεργασία εγγραφής', 'Edit entry')
+  const subtitle = platform ? L('Ό,τι αποθηκεύεται εδώ εμφανίζεται στη «Βιβλιοθήκη» όλων των νοσοκομείων.', 'Whatever is saved here shows in the Library of every hospital.') : L('Ό,τι αποθηκεύεται εδώ εμφανίζεται μόνο στη «Βιβλιοθήκη» του νοσοκομείου σας, με την ένδειξη «Του νοσοκομείου».', 'Whatever is saved here shows only in your hospital\'s Library, marked «Hospital\'s own».')
+  // The form takes the place of the list (a page of its own, not a dialog); withdrawing is in the «…».
+  return <Page fill><EntityRecordShell className="quality-record-shell lib-record-shell workspace-fill" avatar={<BookOpenCheck size={19} />} eyebrow={platform ? L('Διαχείριση βιβλιοθήκης', 'Library management') : L('Βιβλιοθήκη', 'Library')} title={title} subtitle={subtitle} tabs={[]} activeTab="" onTabChange={() => {}} onBack={onClose}
+    headerActions={!isNew && k !== 'news_source' && k !== 'announcement' ? <Button recordMenu variant="secondary" disabled={busy} onClick={toggleArchive}>{draft.status === 'archived' ? <RotateCcw size={16} /> : <Archive size={16} />}{draft.status === 'archived' ? L('Νέα δημοσίευση', 'Publish again') : L('Απόσυρση', 'Withdraw')}</Button> : null}>
+    <RecordTabPanel className="lib-form-panel" title={L('Στοιχεία εγγραφής', 'Entry details')} footer={<div className="inline-edit-footer"><Button variant="secondary" onClick={onClose} disabled={busy}>{L('Ακύρωση', 'Cancel')}</Button><SaveButton loading={busy} disabled={busy} onClick={save}>{L('Αποθήκευση', 'Save')}</SaveButton></div>}>
     <div className="lib-form">
       {isNew && <div className="lib-span"><ChoiceChips label={L('Τύπος', 'Type')} options={kinds.map(value => ({ value, label: kindLabel(value, language) }))} selected={[k]} onToggle={value => setDraft(current => ({ ...blankDraft(value, scope), name: current.name, url: current.url }))} /></div>}
       <Field label={nameLabel} error={err('name')}><input value={draft.name} onChange={e => set('name', e.target.value)} /></Field>
@@ -114,7 +115,6 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
         <Field label={L('Σημείωση (ελληνικά)', 'Note (Greek)')}><input value={draft.noteEl} onChange={e => set('noteEl', e.target.value)} placeholder={L('π.χ. συγχωνεύθηκε στην …', 'e.g. merged into …')} /></Field>
       </>}
       {k !== 'news_source' && k !== 'announcement' && <div className="lib-span"><ChoiceChips label={L('Θέματα', 'Topics')} options={LIBRARY_TOPICS.map(topic => ({ value: topic.value, label: topic[en ? 'en' : 'el'] }))} selected={draft.tags} onToggle={value => set('tags', draft.tags.includes(value) ? draft.tags.filter(tag => tag !== value) : [...draft.tags, value])} /></div>}
-      {k !== 'news_source' && <Field label={L('Ορατότητα', 'Visibility')}><span className="lib-form-static">{platform ? L('Όλα τα νοσοκομεία', 'Every hospital') : L('Μόνο το νοσοκομείο σας', 'Your hospital only')}</span></Field>}
       {platform && k !== 'news_source' && <Field label={L('Σήμανση', 'Mark')}><CheckboxField label={L('«Προτεινόμενο» από την πλατφόρμα', '«Suggested» by the platform')} checked={draft.proposed} onChange={value => set('proposed', value)} /></Field>}
       {platform && k === 'link' && <div className="lib-span lib-form-box">
         <CheckboxField label={L('Αυτόματη λήψη νέων από αυτή την πηγή (καρτέλα «Νέα»)', 'Fetch news from this source automatically («News» tab)')} checked={draft.news.enabled} onChange={value => setNews('enabled', value)} />
@@ -126,5 +126,6 @@ export function LibraryItemDialog({ scope, organizationId = null, item = null, k
         </div>}
       </div>}
     </div>
-  </ObserverDialog>
+    </RecordTabPanel>
+  </EntityRecordShell></Page>
 }

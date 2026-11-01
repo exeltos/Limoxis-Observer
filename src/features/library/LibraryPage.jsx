@@ -76,6 +76,9 @@ export function LibraryPage() {
   const edit = item => setEditing({ item })
   const actions = canManage ? <Button onClick={add}><Plus size={16} />{L('Προσθήκη', 'Add')}</Button> : null
 
+  // The form of an entry is a page of its own: it takes the place of the lists.
+  if (editing) return <LibraryItemDialog scope="hospital" organizationId={organizationId} item={editing.item} kind={editing.kind} language={language} onClose={() => setEditing(null)} onSaved={reload} />
+
   return <AutoTranslatedContext.Provider value={autoTranslated}><Page fill className="registry-fill-page" title={L('Βιβλιοθήκη', 'Library')} subtitle={L('Αξιόπιστες πηγές για πρόληψη λοιμώξεων, ποιότητα και νοσηλευτική: της πλατφόρμας για όλα τα νοσοκομεία, συν όσα προσθέτει το δικό σας.', 'Trusted sources for infection prevention, quality and nursing: the platform\'s for every hospital, plus whatever your own adds.')} actions={actions}>
     <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={L('Βιβλιοθήκη', 'Library')} />
     <section className="surface registry-workspace workspace-fill lib-workspace">
@@ -84,7 +87,6 @@ export function LibraryPage() {
       {tab === 'clinical' && <ClinicalTab items={state.items} loading={state.loading} language={language} canManage={canManage} onAdd={add} onEdit={edit} />}
       {tab === 'news' && <NewsTab news={state.news} sources={state.sources} showSources={showSources} read={read} onRead={markRead} loading={state.loading} language={language} canManage={canManage} onAdd={add} onEdit={news => setEditing({ item: { ...news, kind: 'announcement', name: news.title, abbreviation: news.sourceAbbreviation } })} />}
     </section>
-    {editing && <LibraryItemDialog scope="hospital" organizationId={organizationId} item={editing.item} kind={editing.kind} language={language} onClose={() => setEditing(null)} onSaved={reload} />}
   </Page></AutoTranslatedContext.Provider>
 }
 
