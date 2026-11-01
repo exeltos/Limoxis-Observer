@@ -9,3 +9,9 @@
 .entry-grid .training-form-more:hover{text-decoration:underline}
 /* Inside a programme the sections sit on the tab itself, without a second frame (as in the other records). */
 .training-record-shell .training-section{display:grid;gap:10px;padding:12px 4px}
+/* The reader of the personal training link: the file inside the page, with its reading-time line. */
+.training-reader-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center}
+.training-reader-frame{display:grid;gap:6px;margin-top:10px}
+.training-reader-status{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--lo-color-muted)}
+.training-reader-frame iframe{width:100%;height:70vh;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff}
+.training-reader-frame img{max-width:100%;border:1px solid var(--lo-color-border);border-radius:10px}

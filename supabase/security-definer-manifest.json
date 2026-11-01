@@ -480,6 +480,18 @@
       "authenticated": true,
       "reason": "Records one anonymous response through the survey's public link: open surveys only, answers checked against the questions, departments the survey covers, at most 60 a minute."
     },
+    "training_access_files": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Lists the files of the programme behind a participant's personal link, with that participant's time on each; the access token identifies the assignment."
+    },
+    "training_track_time": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Adds the participant's active seconds on one file of the programme; the access token identifies the assignment, a call counts at most the time that passed since the previous one."
+    },
     "training_email_access": {
       "category": "public-token",
       "anon": true,
