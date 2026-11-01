@@ -24,7 +24,8 @@ import { AnalysisPage } from '../analysis/AnalysisPage'
 import { periodTag,readSharedPeriod,writeSharedPeriod } from '../analysis/sharedPeriod'
 import { loadCommittees } from '../committees/committeeData'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
-import { TARGETS,controlRanking,executiveKpis,filtersToQuery,monthlyRate,parseFilters,pct,periodRange,previousRange,redFlags,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
+import { TARGETS,controlRanking,executiveKpis,filtersToQuery,monthlyRate,parseFilters,pct,periodRange,previousRange,redFlags,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
+import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
 import './executive.css'
@@ -132,13 +133,16 @@ export function ExecutiveDashboardPage(){
  // The targets of the measures, from the hospital's objectives on the platform's indicators.
  const [targets,setTargets]=useState(TARGETS)
  useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;loadObjectives(organizationId).then(rows=>{if(live)setTargets(targetsFromObjectives(rows))}).catch(()=>{});return()=>{live=false}},[isDemo,organizationId])
+ // Hand hygiene, bundles and training: the value of the platform's indicators for the period (the same as in «Δείκτες & Στόχοι»).
+ const [rates,setRates]=useState({now:{},before:{}})
+ useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[]);const at=async(period,departmentId)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,def=>calculateCloudDefinition(def,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment])
  const snapshot=useMemo(()=>snapshotOf(current),[current])
  const governance=ready(current.governance)?current.governance.data:null
  const kpis=useMemo(()=>{
-  const now=executiveKpis(snapshot,governance,targets)
+  const now=executiveKpis(snapshot,governance,targets,rates.now)
   const allPrevious=previous&&['domains','people','qualityFood','microbiology'].every(key=>ready(before[key]))
-  return visibleFor(withDeltas(now,allPrevious?executiveKpis(snapshotOf(before),governance,targets):null),moduleEnabled)
- },[snapshot,governance,previous,before,moduleEnabled,targets])
+  return visibleFor(withDeltas(now,allPrevious?executiveKpis(snapshotOf(before),governance,targets,rates.before):null),moduleEnabled)
+ },[snapshot,governance,previous,before,moduleEnabled,targets,rates])
  const flags=useMemo(()=>redFlags(kpis,snapshot,moduleEnabled),[kpis,snapshot,moduleEnabled])
  const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')
  // A part that failed was never evaluated: «all on target» needs every part read.

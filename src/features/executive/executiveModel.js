@@ -84,32 +84,35 @@ export function rateTone(value,good,warning){const n=num(value);if(n==null)retur
 export function countTone(value,{warning=1,danger=Infinity}={}){const n=num(value);if(n==null)return 'neutral';return n>=danger?'danger':n>=warning?'warning':'good'}
 
 export const TARGETS=Object.freeze({handHygiene:80,bundles:90,training:90,controlsCompleted:95})
-// The hospital sets these targets as objectives on the platform's indicators («Δείκτες & Στόχοι › Στόχοι»);
-// the values above stand while it has none.
-export const TARGET_INDICATORS=Object.freeze({handHygiene:'who-hh',bundles:'bundle-all-or-none',training:'training'})
+// The three rates are the platform's indicators («Δείκτες & Στόχοι»), with the same value on both screens; the
+// hospital sets their targets as objectives on them. The values above stand while it has none.
+// (The demo's definitions use other keys than the hospital's.)
+export const TARGET_INDICATORS=Object.freeze({handHygiene:['hh-compliance','who-hh'],bundles:['bundle-compliance','bundle-all-or-none'],training:['training-completion','training']})
 export function targetsFromObjectives(objectives,year=new Date().getFullYear()){
  const targets={...TARGETS}
- for(const [key,indicator] of Object.entries(TARGET_INDICATORS)){
-  const objective=(objectives||[]).find(item=>item.platformIndicatorKey===indicator&&Number(item.year)===Number(year)&&(item.status||'active')==='active'&&item.target!==''&&item.target!=null&&Number.isFinite(Number(item.target)))
+ for(const [key,indicators] of Object.entries(TARGET_INDICATORS)){
+  const objective=(objectives||[]).find(item=>indicators.includes(item.platformIndicatorKey)&&Number(item.year)===Number(year)&&(item.status||'active')==='active'&&item.target!==''&&item.target!=null&&Number.isFinite(Number(item.target)))
   if(objective)targets[key]=Number(objective.target)
  }
  return targets
 }
-
-// The headline measures. Each: id, module(s) it belongs to (shown if any is on),
-// the parts it needs, value (number or null), unit, hint, tone, better, and
-// pointInTime (counts of "now" that do not change with the period: no delta).
-export function executiveKpis(snapshot={},governance=null,targets=TARGETS){
- const TARGET=targets
+// The value of each of the three from the platform's indicators (null where the hospital has no such indicator).
+export function indicatorRates(definitions,calculate){
+ const rates={}
+ for(const [key,indicators] of Object.entries(TARGET_INDICATORS)){const def=(definitions||[]).find(item=>indicators.includes(item.id));rates[key]=def?calculate(def):null}
+ return rates
+}
+export function executiveKpis(snapshot={},governance=null,targets=TARGETS,rates={}){
+ const TARGET=targets,rate=(key,own)=>Number.isFinite(rates?.[key])?rates[key]:own
  const d=snapshot?.domains||{},s=d.surveillance||{},hh=d.handHygiene||{},b=d.bundles||{},c=d.controls||{},q=d.quality||{},t=d.training||{},w=d.workforce||{},g=d.governance||{},f=d.qualityFood||{}
  const micro=snapshot?.microbiology||{}
- const hand=pct(hh.compliant,hh.observations),done=pct(c.completed,c.executions),trained=pct(t.completed,t.assignments)
+ const hand=rate('handHygiene',pct(hh.compliant,hh.observations)),done=pct(c.completed,c.executions),trained=rate('training',pct(t.completed,t.assignments)),bundle=rate('bundles',num(b.averageScore))
  const temperature=(num(f.thermalOut)??0)+(num(f.receiptsOut)??0)
  return [
   {id:'hai',modules:['surveillance'],parts:['domains'],label:['Επιβεβαιωμένες ΛΣΦΥ','Confirmed HAI'],value:num(s.haiConfirmed),hint:[`${s.active??0} ενεργές επιτηρήσεις · ${s.total??0} στην περίοδο`,`${s.active??0} active surveillance · ${s.total??0} in period`],tone:countTone(s.haiConfirmed,{warning:1,danger:5}),better:'down',tab:'surveillance'},
   {id:'mdro',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά στελέχη','MDR isolates'],value:micro.totalPositive==null?null:mdro(micro),hint:[`MDR/XDR/PDR · ${micro.totalPositive??0} θετικές καλλιέργειες`,`MDR/XDR/PDR · ${micro.totalPositive??0} positive cultures`],tone:countTone(mdro(micro),{warning:1,danger:10}),better:'down',tab:'laboratory'},
   {id:'handHygiene',modules:['prevention'],parts:['domains'],label:['Υγιεινή χεριών','Hand hygiene'],value:hand,unit:'%',hint:[`στόχος ≥ ${TARGET.handHygiene}% · ${hh.observations??0} ευκαιρίες`,`target ≥ ${TARGET.handHygiene}% · ${hh.observations??0} opportunities`],tone:rateTone(hand,TARGET.handHygiene,70),better:'up',tab:'prevention'},
-  {id:'bundles',modules:['prevention'],parts:['domains'],label:['Δέσμες μέτρων','Bundle score'],value:num(b.averageScore),unit:'%',hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(b.averageScore,TARGET.bundles,80),better:'up',tab:'prevention'},
+  {id:'bundles',modules:['prevention'],parts:['domains'],label:['Δέσμες μέτρων','Bundle score'],value:bundle,unit:'%',hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(bundle,TARGET.bundles,80),better:'up',tab:'prevention'},
   {id:'overdueControls',modules:['controls'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμοι έλεγχοι','Overdue controls'],value:num(c.overdueAssignments),hint:[`${done==null?'—':`${done}%`} ολοκληρωμένες · ${c.executions??0} εκτελέσεις`,`${done==null?'—':`${done}%`} completed · ${c.executions??0} executions`],tone:countTone(c.overdueAssignments,{warning:1,danger:10}),better:'down',tab:'controls'},
   {id:'incidents',modules:['quality'],parts:['domains'],label:['Ανοιχτά συμβάντα','Open incidents'],value:num(q.openIncidents),hint:[`${severe(q)} σοβαρά / κρίσιμα · ${q.incidents??0} στην περίοδο`,`${severe(q)} severe / critical · ${q.incidents??0} in period`],tone:severe(q)?'danger':countTone(q.openIncidents),better:'down',tab:'quality'},
   {id:'capaOverdue',modules:['quality'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμες διορθωτικές','Overdue CAPA'],value:num(q.capaOverdue),hint:[`${q.capaOpen??0} ανοιχτές διορθωτικές ενέργειες`,`${q.capaOpen??0} open corrective actions`],tone:countTone(q.capaOverdue,{warning:1,danger:5}),better:'down',tab:'quality'},
