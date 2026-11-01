@@ -7,3 +7,9 @@
 /* The table sits on the white workspace itself, without a second frame. */
 .occupational-workspace .occupational-content>.scroll-table{border:0;border-radius:0}
 .occupational-workspace .occupational-content.single{padding:0}
+.occupational-span-3{grid-column:1/-1}
+.occupational-span-3 textarea{width:100%}
+.occupational-visit-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.occupational-visit-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.occupational-visit-shell .record-tab-panel-body{flex:1 1 auto;overflow:auto}
+.occupational-visit-shell .record-tab-panel-body>.record-view-stack{padding:14px 20px 20px}

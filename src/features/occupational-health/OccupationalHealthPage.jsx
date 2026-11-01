@@ -11,8 +11,8 @@ import { useLanguage,translate} from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useEmployeesData } from '../employees/useEmployeesData'
-import { createOccupationalVisitAsync,loadAllOccupationalVisitsAsync } from '../employees/employeeSubRecordsService'
-import { EMPTY_OCCUPATIONAL_VISIT,FITNESS,OccupationalVisitEditor,visitSavedMessage } from './OccupationalVisitEditor'
+import { loadAllOccupationalVisitsAsync } from '../employees/employeeSubRecordsService'
+import { FITNESS } from './occupationalVisitModel'
 import { loadAllExposureIncidentsAsync,createExposureIncidentAsync } from './exposureIncidentService'
 import { ExposureIncidentEditor,EMPTY_EXPOSURE_INCIDENT } from './ExposureIncidentEditor'
 import { downloadCsv } from '../../core/export/csvExport'
@@ -43,8 +43,6 @@ export function OccupationalHealthPage(){
  const scheduled=occupationalVisits.filter(x=>x.status==='scheduled').length
  // Fit for work counts people, not visits: each employee's latest completed visit decides.
  const fitEmployees=useMemo(()=>{const latest=new Map();for(const v of occupationalVisits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return [...latest.values()].filter(v=>['fit','fit_with_restrictions'].includes(v.fitStatus)).length},[occupationalVisits])
- const [visitEditor,setVisitEditor]=useState(null)
- async function saveVisit(){try{const employee=employeeRows.find(x=>x.id===visitEditor.employeeId);const created=await createOccupationalVisitAsync(tenant?.id,employee,visitEditor);setOccupationalVisits(rows=>[created,...rows]);signalDemoStep('occupational_visit','visit');notify(visitSavedMessage(language),'success');setVisitEditor(null)}catch(error){notifyError(error,'save',{operation:'occupational_visit_create'})}}
  const openExposures=exposureRows.filter(x=>x.status==='open').length
  async function saveExposureIncident(draft){try{const employee=employeeRows.find(x=>x.id===draft.employeeId);await createExposureIncidentAsync(tenant?.id,employee,draft);signalDemoStep('occupational_exposure','record');notify(translate('copy.occupationalCopy.exposureIncidentSaved',en?'en':'el'),'success');setExposureEditor(null);await reloadExposureIncidents()}catch(error){notify(error?.message||(translate('copy.occupationalCopy.couldNotSaveTheExposureIncident',en?'en':'el')),'error')}}
  function action(a){
@@ -55,7 +53,7 @@ export function OccupationalHealthPage(){
   }
   if(a===UI_ACTIONS.CREATE){
    if(section==='exposure'){setExposureEditor({...EMPTY_EXPOSURE_INCIDENT});return}
-   setVisitEditor({...EMPTY_OCCUPATIONAL_VISIT});return
+   navigate('/occupational-health/visits/new');return
   }
   notify(t('actionCompleted'),'info')
  }
@@ -68,8 +66,7 @@ export function OccupationalHealthPage(){
    {key:'fit',icon:UserRoundCheck,value:fitEmployees,loading:visitsFirstLoad,label:t('fitForWork')},
    {key:'exposure',icon:ShieldAlert,value:openExposures,loading:exposureFirstLoad,label:translate('copy.occupationalCopy.openExposureIncidents',en?'en':'el'),tone:'danger',active:section==='exposure',go:()=>setSection('exposure')},
   ]}/>
-  <section className="surface registry-workspace occupational-workspace workspace-fill"><FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(section==='visits'&&status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}} end={<span className="occupational-governance-tip" role="img" tabIndex={0} title={t('occupationalHealthGovernance')} aria-label={t('occupationalHealthGovernance')}><Info size={16} aria-hidden="true"/></span>}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>{section==='visits'&&<FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="scheduled">{t('scheduled')}</option><option value="completed">{t('completed')}</option></FilterSelect>}</FilterBar><div className="occupational-content single"><div className="scroll-table">{section==='visits'?visitsFirstLoad?<TableSkeleton/>:<Visits rows={visitRows} employeeMap={employeeMap} name={name} t={t} en={en} fmt={fmt} openEmployee={(id,rowId)=>registry.openRecord(navigate,`/employees/${id}`,rowId,[],{state:{limoxisRestore:{tab:'occupational'}}})} highlightId={registry.highlightId}/>:exposureFirstLoad?<TableSkeleton/>:<ExposureIncidents rows={exposureFiltered} employeeMap={employeeMap} name={name} en={en} fmt={fmt} openEmployee={(id,rowId)=>registry.openRecord(navigate,`/employees/${id}`,rowId,[],{state:{limoxisRestore:{tab:'exposureIncidents'}}})} highlightId={registry.highlightId}/>}</div></div></section>
-  {visitEditor&&<OccupationalVisitEditor language={language} employees={employeeRows.filter(x=>x.employmentStatus==='active'&&canAccessRecord(x))} draft={visitEditor} onChange={setVisitEditor} onClose={()=>setVisitEditor(null)} onSave={saveVisit}/>}
+  <section className="surface registry-workspace occupational-workspace workspace-fill"><FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(section==='visits'&&status!=='all'?1:0)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all')}} end={<span className="occupational-governance-tip" role="img" tabIndex={0} title={t('occupationalHealthGovernance')} aria-label={t('occupationalHealthGovernance')}><Info size={16} aria-hidden="true"/></span>}><FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>{section==='visits'&&<FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="scheduled">{t('scheduled')}</option><option value="completed">{t('completed')}</option></FilterSelect>}</FilterBar><div className="occupational-content single"><div className="scroll-table">{section==='visits'?visitsFirstLoad?<TableSkeleton/>:<Visits rows={visitRows} employeeMap={employeeMap} name={name} t={t} en={en} fmt={fmt} openEmployee={(id,rowId)=>registry.openRecord(navigate,`/occupational-health/visits/${encodeURIComponent(rowId)}`,rowId,[])} highlightId={registry.highlightId}/>:exposureFirstLoad?<TableSkeleton/>:<ExposureIncidents rows={exposureFiltered} employeeMap={employeeMap} name={name} en={en} fmt={fmt} openEmployee={(id,rowId)=>registry.openRecord(navigate,`/employees/${id}`,rowId,[],{state:{limoxisRestore:{tab:'exposureIncidents'}}})} highlightId={registry.highlightId}/>}</div></div></section>
   {exposureEditor&&<ExposureIncidentEditor language={language} employees={employeeRows.filter(x=>x.employmentStatus==='active'&&canAccessRecord(x))} draft={exposureEditor} onChange={setExposureEditor} onClose={()=>setExposureEditor(null)} onSave={saveExposureIncident}/>}
  </Page>
 }

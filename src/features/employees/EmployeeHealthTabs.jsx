@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
 import {
@@ -6,7 +8,6 @@ import {
   loadVaccinationsAsync,
   loadExposureIncidentsAsync,
 } from './employeeSubRecordsService'
-import { SubTabs } from '../../design-system/SubTabs'
 import {
   SectionTitle,
   Empty,
@@ -21,8 +22,11 @@ import {
 // Occupational-health tabs of the employee record: health overview, visits,
 // vaccinations and exposure incidents.
 
-// Occupational health, vaccinations and exposure incidents share one tab
-// (same permission) with a sub-navigation, so the record tabs fit one row.
+// Occupational health, vaccinations and exposure incidents share one tab (same permission) and one list, with a
+// «Kind» filter: a visit opens its own page, the others their details.
+const EXPOSURE_TYPES = { needlestick: ['Τρύπημα βελόνας', 'Needlestick'], sharps_object: ['Άλλο αιχμηρό αντικείμενο', 'Other sharps object'], mucocutaneous: ['Έκθεση βλεννογόνου', 'Mucocutaneous exposure'], non_intact_skin: ['Έκθεση μη ακέραιου δέρματος', 'Non-intact skin exposure'], other: ['Άλλο', 'Other'] }
+const FOLLOW_UPS = { pending: ['Εκκρεμεί', 'Pending'], scheduled: ['Προγραμματισμένη', 'Scheduled'], completed: ['Ολοκληρώθηκε', 'Completed'], closed: ['Έκλεισε', 'Closed'] }
+const KIND_FOR_SECTION = { visits: 'all', vaccinations: 'vaccination', exposures: 'exposure' }
 export function EmployeeHealthTab({
   employee,
   t,
@@ -31,48 +35,96 @@ export function EmployeeHealthTab({
   organizationId,
   initialSection = 'visits',
 }) {
-  const [section, setSection] = useState(initialSection)
   const en = language === 'en'
-  const sections = [
-    ['visits', en ? 'Visits' : 'Επισκέψεις'],
-    ['vaccinations', en ? 'Vaccinations' : 'Εμβολιασμοί'],
-    ['exposures', en ? 'Exposure incidents' : 'Περιστατικά έκθεσης'],
-  ]
+  const navigate = useNavigate()
+  const visits = useEmployeeSubRecords(loadOccupationalVisitsAsync, organizationId, employee.dbId, employee.id)
+  const vaccinations = useEmployeeSubRecords(loadVaccinationsAsync, organizationId, employee.dbId, employee.id)
+  const exposures = useEmployeeSubRecords(loadExposureIncidentsAsync, organizationId, employee.dbId, employee.id)
+  const [kind, setKind] = useState(KIND_FOR_SECTION[initialSection] || 'all')
+  const [selected, setSelected] = useState(null)
+  const pick = (map, value) => map[value]?.[en ? 1 : 0] || value || '—'
+  const all = useMemo(() => [
+    ...visits.data.map(row => ({ kind: 'visit', id: `v-${row.id}`, date: row.date, title: label(row.type, t), detail: [label(row.fitStatus, t), row.followUpDate && `${en ? 'Follow-up' : 'Επανέλεγχος'} ${fmt(row.followUpDate)}`].filter(Boolean).join(' · '), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
+    ...vaccinations.data.map(row => ({ kind: 'vaccination', id: `x-${row.id}`, date: row.date, title: row.vaccine || '—', detail: [row.dose, row.validUntil && `${en ? 'Valid until' : 'Ισχύει έως'} ${fmt(row.validUntil)}`].filter(Boolean).join(' · '), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
+    ...exposures.data.map(row => ({ kind: 'exposure', id: `e-${row.id}`, date: row.incidentDate, title: pick(EXPOSURE_TYPES, row.exposureType), detail: pick(FOLLOW_UPS, row.followUpStatus), status: row.status === 'open' ? (en ? 'Open' : 'Ανοικτό') : (en ? 'Closed' : 'Κλειστό'), tone: row.status === 'open' ? 'temporary' : '', raw: row })),
+  ].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))), [visits.data, vaccinations.data, exposures.data, en, fmt, t]) // eslint-disable-line react-hooks/exhaustive-deps
+  const byKind = useMemo(() => (kind === 'all' ? all : all.filter(row => row.kind === kind)), [all, kind])
+  const registry = useRegistryRows(byKind)
+  const kindLabel = value => ({ visit: en ? 'Visit' : 'Επίσκεψη', vaccination: en ? 'Vaccination' : 'Εμβολιασμός', exposure: en ? 'Exposure' : 'Έκθεση' })[value]
+  const loading = visits.loading || vaccinations.loading || exposures.loading
+  const failed = visits.error || vaccinations.error || exposures.error
+  const open = row => { if (row.kind === 'visit') navigate(`/occupational-health/visits/${encodeURIComponent(row.raw.id)}`); else setSelected(row) }
   return (
-    <div className="employee-health-tab">
-      <SubTabs
-        activeId={section}
-        onChange={setSection}
-        ariaLabel={en ? 'Occupational health' : 'Ιατρός Εργασίας'}
-        tabs={sections.map(([id, label]) => ({ id, label }))}
+    <section className="record-section record-secondary-registry employee-health-tab">
+      <SectionTitle
+        title={en ? 'Occupational health' : 'Ιατρός Εργασίας'}
+        subtitle={en ? 'Visits, vaccinations and exposure incidents of the employee, newest first.' : 'Επισκέψεις, εμβολιασμοί και περιστατικά έκθεσης του εργαζομένου, τα νεότερα πρώτα.'}
       />
-      {section === 'visits' && (
-        <EmployeeOccupationalTab
-          employee={employee}
-          t={t}
-          language={language}
-          fmt={fmt}
-          organizationId={organizationId}
-        />
+      <State loading={loading} error={failed} language={language} onRetry={() => { void visits.reload(); void vaccinations.reload(); void exposures.reload() }} />
+      {!loading && !failed && (
+        <FilterBar
+          query={registry.query}
+          onQueryChange={registry.setQuery}
+          placeholder={en ? 'Search records...' : 'Αναζήτηση εγγραφών...'}
+          activeAdvancedCount={kind !== 'all' ? 1 : 0}
+          onClear={() => { registry.setQuery(''); setKind('all') }}
+          resultCount={registry.filtered.length}
+        >
+          <FilterSelect label={en ? 'Kind' : 'Είδος'} value={kind} onChange={setKind}>
+            <option value="all">{en ? 'All' : 'Όλα'}</option>
+            <option value="visit">{en ? 'Visits' : 'Επισκέψεις'}</option>
+            <option value="vaccination">{en ? 'Vaccinations' : 'Εμβολιασμοί'}</option>
+            <option value="exposure">{en ? 'Exposure incidents' : 'Περιστατικά έκθεσης'}</option>
+          </FilterSelect>
+        </FilterBar>
       )}
-      {section === 'vaccinations' && (
-        <EmployeeVaccinationsTab
-          employee={employee}
-          t={t}
-          language={language}
-          fmt={fmt}
-          organizationId={organizationId}
-        />
+      {!loading && !failed && (registry.filtered.length ? (
+        <>
+          <div className="scroll-table">
+            <table className="data-table sticky-table record-table-clickable">
+              <thead>
+                <tr>
+                  <th>{en ? 'Date' : 'Ημερομηνία'}</th>
+                  <th>{en ? 'Kind' : 'Είδος'}</th>
+                  <th>{en ? 'Description' : 'Περιγραφή'}</th>
+                  <th>{en ? 'Details' : 'Λεπτομέρειες'}</th>
+                  <th>{en ? 'Status' : 'Κατάσταση'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {registry.paging.paged.map(row => (
+                  <tr key={row.id} tabIndex={0} onClick={() => open(row)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(row) } }}>
+                    <td>{fmt(row.date)}</td>
+                    <td>{kindLabel(row.kind)}</td>
+                    <td><strong>{row.title}</strong></td>
+                    <td>{row.detail || '—'}</td>
+                    <td><span className={`status-badge ${row.tone}`}>{row.status}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pager paging={registry.paging} total={registry.filtered.length} language={language} />
+        </>
+      ) : (
+        <Empty language={language} title={en ? 'No records' : 'Δεν υπάρχουν εγγραφές'} />
+      ))}
+      {selected && (
+        <ObserverDialog width="wide" eyebrow={kindLabel(selected.kind)} title={selected.title} subtitle={fmt(selected.date)} onClose={() => setSelected(null)}>
+          <div className="detail-grid">
+            {(selected.kind === 'vaccination'
+              ? [[en ? 'Dose' : 'Δόση', selected.raw.dose], [en ? 'Lot number' : 'Αριθμός παρτίδας', selected.raw.lotNumber], [en ? 'Valid until' : 'Ισχύει έως', fmt(selected.raw.validUntil)], [en ? 'Status' : 'Κατάσταση', selected.status]]
+              : [[en ? 'Device / source' : 'Συσκευή / πηγή', selected.raw.deviceOrSource], [en ? 'Body site' : 'Σημείο έκθεσης', selected.raw.bodySite], [en ? 'Follow-up status' : 'Κατάσταση παρακολούθησης', selected.detail], [en ? 'Follow-up due' : 'Επόμενος επανέλεγχος', fmt(selected.raw.followUpDueAt)]]
+            ).map(([name, value]) => (
+              <div className="detail-item" key={name}><span>{name}</span><strong>{value || '—'}</strong></div>
+            ))}
+          </div>
+          {(selected.raw.clinicalNotes || selected.raw.notes) && (
+            <div className="source-truth-note"><div><strong>{en ? 'Notes' : 'Σημειώσεις'}</strong><span>{selected.raw.clinicalNotes || selected.raw.notes}</span></div></div>
+          )}
+        </ObserverDialog>
       )}
-      {section === 'exposures' && (
-        <EmployeeExposureIncidentsTab
-          employee={employee}
-          language={language}
-          fmt={fmt}
-          organizationId={organizationId}
-        />
-      )}
-    </div>
+    </section>
   )
 }
 

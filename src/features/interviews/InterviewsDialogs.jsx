@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
-import { Page } from '../../design-system/Page'
+import { FormPage } from '../../design-system/FormPage'
 import { FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -42,18 +42,6 @@ function useSave(onSaved) {
 }
 const Missing = ({ problems, en }) => (problems.length ? <span className="interviews-dialog-result"><small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small></span> : null)
 const Text = ({ label, value, onChange, rows = 0, type = 'text' }) => <Field label={label}>{rows ? <textarea rows={rows} value={value ?? ''} onChange={e => onChange(e.target.value)} /> : <input type={type} value={value ?? ''} onChange={e => onChange(e.target.value)} />}</Field>
-
-// A form that is big enough for a whole screen (an application, an evaluation, the hiring) opens as a page in
-// place of the one that called it, with Cancel and the save actions pinned at the bottom: not as a window.
-function FormPage({ title, subtitle, onClose, footer, children }) {
-  const { language } = useLanguage()
-  return <Page fill className="interviews-page interviews-form-page" title={title} subtitle={subtitle}>
-    <section className="surface registry-workspace workspace-column workspace-fill">
-      <div className="interviews-form-body entity-record-body">{children}</div>
-      <div className="interviews-form-footer"><Button variant="secondary" onClick={onClose}>{language === 'en' ? 'Cancel' : 'Ακύρωση'}</Button>{footer}</div>
-    </section>
-  </Page>
-}
 
 // --- Application -------------------------------------------------------------------------------
 

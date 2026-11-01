@@ -67,17 +67,17 @@ describe('employee record tabs', () => {
     expect(steps).toEqual(['employee_record/training', 'performance_evaluation/evaluations', 'employee_record/documents'])
   })
 
-  it('groups visits, vaccinations and exposure incidents under the occupational health tab', async () => {
+  it('lists visits, vaccinations and exposure incidents together under the occupational health tab, with a «Kind» filter', async () => {
     await openEmployee()
     openTab('Ιατρός Εργασίας')
-    const sections = within(body()).getByRole('tablist', { name: 'Ιατρός Εργασίας' })
-    expect(within(sections).getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Επισκέψεις', 'Εμβολιασμοί', 'Περιστατικά έκθεσης'])
-    expect(await within(body()).findByText('Τύπος επίσκεψης')).toBeInTheDocument()
-    for (const section of ['Εμβολιασμοί', 'Περιστατικά έκθεσης']) {
-      fireEvent.click(within(sections).getByRole('tab', { name: section }))
-      expect(within(sections).getByRole('tab', { name: section })).toHaveAttribute('aria-selected', 'true')
-      await waitFor(() => expect(body().querySelector('.record-section')).not.toBeNull())
-    }
+    // One list (no tabs inside the tab): the columns of every kind and a filter for the kind.
+    expect(await within(body()).findByText('Περιγραφή')).toBeInTheDocument()
+    expect(within(body()).queryByRole('tablist', { name: 'Ιατρός Εργασίας' })).not.toBeInTheDocument()
+    fireEvent.click(within(body()).getByRole('button', { name: /Φίλτρα/ }))
+    const kind = screen.getByLabelText('Είδος')
+    expect([...kind.querySelectorAll('option')].map(option => option.textContent)).toEqual(['Όλα', 'Επισκέψεις', 'Εμβολιασμοί', 'Περιστατικά έκθεσης'])
+    fireEvent.change(kind, { target: { value: 'vaccination' } })
+    await waitFor(() => expect(body().querySelector('.record-section')).not.toBeNull())
     expect(within(body()).queryByRole('button', { name: /Νέ(ο|α) περιστατικ|Καταχώριση/ })).not.toBeInTheDocument()
   })
 
