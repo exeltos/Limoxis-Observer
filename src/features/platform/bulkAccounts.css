@@ -3,11 +3,6 @@
 .bulk-accounts{gap:10px;min-height:0}
 .bulk-accounts-surface{position:relative}
 .bulk-accounts-owner-only{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--lo-color-nav,#172b43);color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
-.bulk-accounts-chips{padding:8px 14px}
-.bulk-accounts-filters{display:flex;gap:8px;flex-wrap:nowrap}
-.bulk-accounts-filters .bulk-accounts-filter{flex:0 0 auto;display:inline-flex;flex-direction:row;align-items:center;gap:6px;height:40px;padding:0 4px 0 12px;border:1px solid var(--lo-field-border,#d5dfe7);border-radius:var(--lo-field-radius,9px);background:#fff;color:var(--lo-text-secondary,#5f6f7c)}
-.bulk-accounts-filter small{font-size:11px;white-space:nowrap}
-.bulk-accounts-filter select{width:auto;min-width:90px;max-width:200px;height:36px;padding:0 4px;border:0;background:transparent;color:var(--lo-text-strong,#20384c);font-size:13px;outline:0}
 .bulk-accounts-muted{color:var(--lo-text-secondary,#5f6f7c);font-size:12px}
 .bulk-accounts-grow{flex:1 1 auto}
 .bulk-accounts-check{width:17px;height:17px;accent-color:var(--lo-color-primary,#256b9b);cursor:pointer}

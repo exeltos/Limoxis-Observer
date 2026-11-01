@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  BriefcaseMedical,
   Building2,
   Check,
   CheckSquare,
@@ -19,7 +18,7 @@ import {
 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { CheckboxField } from '../../design-system/CheckboxField'
-import { FilterBar } from '../../design-system/FilterBar'
+import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { MetricCard } from '../../design-system/MetricCard'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
@@ -209,49 +208,26 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
         </div>
       )}
       <section className="surface registry-workspace workspace-column workspace-fill bulk-accounts-surface">
-        {filter !== 'batch' && (
-          <FilterBar
-            query={query}
-            onQueryChange={setQuery}
-            placeholder={tx('Αναζήτηση εργαζομένου, ειδικότητας ή email…', 'Search employee, profession or e-mail…')}
-            end={
-          <div className="bulk-accounts-filters">
-            <div className="bulk-accounts-filter">
-              <Building2 size={15} aria-hidden="true" />
-              <small>{tx('Τμήμα', 'Department')}</small>
-              <select value={departmentFilter} aria-label={tx('Τμήμα', 'Department')} onChange={event => setDepartmentFilter(event.target.value)}>
-                <option value="">{tx('Όλα', 'All')}</option>
-                {departments.map(department => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="bulk-accounts-filter">
-              <BriefcaseMedical size={15} aria-hidden="true" />
-              <small>{tx('Ειδικότητα', 'Profession')}</small>
-              <select value={professionFilter} aria-label={tx('Ειδικότητα', 'Profession')} onChange={event => setProfessionFilter(event.target.value)}>
-                <option value="">{tx('Όλες', 'All')}</option>
-                {professions.map(profession => (
-                  <option key={profession} value={profession}>
-                    {profession}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-            }
-          />
-        )}
-        <div className="platform-demo-status-chips bulk-accounts-chips" role="group" aria-label={tx('Λογαριασμός', 'Account')}>
-          {chips.map(chip => (
-            <button key={chip.id} type="button" className={`platform-demo-status-chip${filter === chip.id ? ' is-active' : ''}`} aria-pressed={filter === chip.id} onClick={() => setFilter(chip.id)}>
-              {chip.label}
-              <b>{chip.count}</b>
-            </button>
-          ))}
-        </div>
+        <FilterBar
+          query={query}
+          onQueryChange={setQuery}
+          placeholder={tx('Αναζήτηση εργαζομένου, ειδικότητας ή email…', 'Search employee, profession or e-mail…')}
+          activeAdvancedCount={(filter !== 'none' ? 1 : 0) + (departmentFilter ? 1 : 0) + (professionFilter ? 1 : 0)}
+          onClear={() => { setQuery(''); setFilter('none'); setDepartmentFilter(''); setProfessionFilter('') }}
+        >
+          {/* The account state, the department and the profession are choices of «Filters», not chips over the table. */}
+          <FilterSelect label={tx('Λογαριασμός', 'Account')} value={filter} onChange={setFilter}>
+            {chips.map(chip => <option key={chip.id} value={chip.id}>{`${chip.label} (${chip.count})`}</option>)}
+          </FilterSelect>
+          <FilterSelect label={tx('Τμήμα', 'Department')} value={departmentFilter} onChange={setDepartmentFilter}>
+            <option value="">{tx('Όλα', 'All')}</option>
+            {departments.map(department => <option key={department.id} value={department.id}>{department.name}</option>)}
+          </FilterSelect>
+          <FilterSelect label={tx('Ειδικότητα', 'Profession')} value={professionFilter} onChange={setProfessionFilter}>
+            <option value="">{tx('Όλες', 'All')}</option>
+            {professions.map(profession => <option key={profession} value={profession}>{profession}</option>)}
+          </FilterSelect>
+        </FilterBar>
         {filter === 'batch' && batch && (
           <div className="bulk-accounts-callout is-success bulk-accounts-batch-note">
             <CircleCheck size={16} />
@@ -267,7 +243,7 @@ export function BulkAccountsPanel({ organization, language = 'el', roster, loadi
             </div>
           </div>
         )}
-        {filter === 'none' && (
+        {filter === 'none' && selected.size > 0 && (
           <BulkRoleBar
             language={language}
             selected={selected}
