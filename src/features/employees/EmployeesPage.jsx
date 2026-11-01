@@ -8,7 +8,9 @@ import { RecordActions } from '../../design-system/RecordActions'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { UI_ACTIONS } from '../../core/actions/actionPolicy'
-import { CAPABILITIES } from '../../core/permissions/roles'
+import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
+import { loadAllOccupationalVisitsAsync } from './employeeSubRecordsService'
+import { fitnessLabel } from '../occupational-health/occupationalVisitModel'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useEmployeesData } from './useEmployeesData'
@@ -19,12 +21,17 @@ import { EmployeeImportDialog } from './EmployeeImportDialog'
 import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
 
 export function EmployeesPage(){
-  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership}=useTenant()
+  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership,tenant}=useTenant()
   const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
   const [importOpen,setImportOpen]=useState(false)
+  // The occupational physician sees each employee's latest completed visit and its fitness in the list.
+  const showHealth=role===ROLES.OCCUPATIONAL_PHYSICIAN
+  const [visits,setVisits]=useState([])
+  useEffect(()=>{if(!showHealth)return;let live=true;loadAllOccupationalVisitsAsync(tenant?.id).then(rows=>{if(live)setVisits(rows)}).catch(()=>{});return()=>{live=false}},[showHealth,tenant?.id])
+  const lastVisitOf=useMemo(()=>{const latest=new Map();for(const v of visits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return x=>latest.get(x.dbId)||latest.get(x.id)||null},[visits])
   const canImport=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,membership?.capabilities??[],membership?.customCapabilities??[])
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
@@ -39,14 +46,14 @@ export function EmployeesPage(){
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
-  return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t('employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
+  return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t(showHealth?'employeesRecords.registrySubtitlePhysician':'employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={clearFilters}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option><option value="new">{t('employeesRecords.newHires')}</option></FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th><th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td><td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th>{showHealth&&<th>{t('employeesRecords.lastVisit')}</th>}{showHealth&&<th>{t('employeesRecords.fitnessForWork')}</th>}<th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td>{showHealth&&<td className="nowrap-cell">{lastVisitOf(x)?new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR').format(new Date(`${String(lastVisitOf(x).date).slice(0,10)}T12:00:00`)):'—'}</td>}{showHealth&&<td>{lastVisitOf(x)?fitnessLabel(lastVisitOf(x).fitStatus,language):'—'}</td>}<td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
         {!rows.length&&(scopedEmployees.length
           ?<RegistryEmptyState filtered onClearFilters={clearFilters}/>
           :<RegistryEmptyState icon={Users} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} action={canImport?{label:t('create'),icon:Plus,onClick:()=>action(UI_ACTIONS.CREATE)}:null}/>)}
