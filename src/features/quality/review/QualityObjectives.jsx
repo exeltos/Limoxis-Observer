@@ -21,7 +21,7 @@ const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε
 
 // The objectives with their value today: from the linked register indicator (the year so far), from the
 // platform's indicator (the hospital's data for the year so far) or the mean of the months the owner entered.
-export function useObjectives(organizationId) {
+export function useObjectives(organizationId, { enabled = true } = {}) {
   const [objectives, setObjectives] = useState([])
   const [registers, setRegisters] = useState([])
   const [definitions, setDefinitions] = useState([])
@@ -31,6 +31,7 @@ export function useObjectives(organizationId) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const reload = useCallback(async () => {
+    if (!enabled) { setLoading(false); return }
     setLoading(true)
     try {
       setError(false)
@@ -62,7 +63,7 @@ export function useObjectives(organizationId) {
         return { ...effective, register, indicator, platformIndicator, months, department, committee, level: objectiveLevel(objective), current: { value, status: objectiveState(effective, value) } }
       }))
     } catch (failure) { console.error(failure); setObjectives([]); setError(true) } finally { setLoading(false) }
-  }, [organizationId])
+  }, [organizationId, enabled])
   useEffect(() => { void reload() }, [reload])
   return { objectives, registers, definitions, values, levels, committeeTargets, loading, error, reload }
 }

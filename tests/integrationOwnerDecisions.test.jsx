@@ -78,7 +78,7 @@ describe('integration: owner decisions', () => {
     const dashboard = read('src/features/dashboard/DashboardPage.jsx')
     expect(dashboard).toContain("inpatients:[BedDouble,'/surveillance?tab=registry']")
     expect(dashboard).toContain("upcomingMeetings:[CalendarDays,'/meetings']")
-    expect(dashboard).toContain('const open=to&&canOpen(to);')
+    expect(dashboard).toContain('to:to&&canOpen(to)?to:null')
     expect(dashboard).not.toMatch(/'\/(patients|committees|indicators)'\]/)
   })
 
