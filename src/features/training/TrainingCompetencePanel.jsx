@@ -20,7 +20,7 @@ const stateText=(state,en)=>({valid:en?'Valid':'Σε ισχύ',expiring:en?'Expi
 // professional category and department), who is covered, and who has to be
 // trained and by when.
 // onSummaryChange: the figures for the page's cards; onExportChange: its «Export» items for the page's top bar.
-export function TrainingCompetencePanel({state,employees=[],departments=[],language,locale,canManage,busy,onSaveRequirement,onDeleteRequirement,onSummaryChange,onExportChange}){
+export function TrainingCompetencePanel({state,employees=[],departments=[],language,locale,canManage,busy,onSaveRequirement,onDeleteRequirement,onSummaryChange,onExportChange,monthly=null,monthlyCount=null}){
  const en=language==='en'
  const {tenant,isDemo}=useTenant()
  const [positionOptions,setPositionOptions]=useState([])
@@ -63,15 +63,17 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
     {!onExportChange&&<ExportMenu items={exportItems}/>}
    </div>
   </div>
-  <SubTabs activeId={view} onChange={setView} ariaLabel={en?'Competence view':'Προβολή επάρκειας'} tabs={[{id:'matrix',label:en?'Matrix':'Πίνακας'},{id:'plan',label:en?'Who needs training':'Ποιοι χρειάζονται εκπαίδευση',count:plan.length},{id:'rules',label:en?'Requirements':'Απαιτήσεις',count:matrix.requirements.length}]}/>
+  <SubTabs activeId={view} onChange={setView} ariaLabel={en?'Competence view':'Προβολή επάρκειας'} tabs={[{id:'matrix',label:en?'Matrix':'Πίνακας'},{id:'plan',label:en?'Who needs training':'Ποιοι χρειάζονται εκπαίδευση',count:plan.length},...(monthly?[{id:'monthly',label:en?'Retraining by month':'Επανεκπαίδευση ανά μήνα',count:monthlyCount}]:[]),{id:'rules',label:en?'Requirements':'Απαιτήσεις',count:matrix.requirements.length}]}/>
 
   {view==='matrix'&&<div className="scroll-table">
    {matrix.requirements.length?<table className="data-table sticky-table training-competence-matrix">
     <thead><tr><th>{en?'Person':'Άτομο'}</th>{matrix.requirements.map(r=><th key={r.id} title={r.title}><span>{r.title}</span><small>{r.renewalMonths?`${en?'every':'ανά'} ${r.renewalMonths} ${en?'mo.':'μήνες'}`:(en?'once':'μία φορά')}</small></th>)}</tr></thead>
-    <tbody>{matrix.rows.map(row=><tr key={row.employee.id}><td><strong>{name(row.employee)}</strong><small>{[row.employee.department,row.employee.position||row.employee.profession].filter(Boolean).join(' · ')}</small></td>{row.cells.map((cell,index)=>{if(!cell)return <td key={index} className="training-competence-na">—</td>;const Icon=STATE_ICON[cell.state];return <td key={index} className={`training-competence-cell ${cell.state}`} title={`${stateText(cell.state,en)}${cell.completedOn?` · ${en?'completed':'ολοκλήρωση'} ${fmt(cell.completedOn)}`:''}${cell.validUntil?` · ${en?'valid until':'ισχύει έως'} ${fmt(cell.validUntil)}`:''}`}><Icon size={15} aria-hidden="true"/><span>{cell.state==='missing'?stateText(cell.state,en):fmt(cell.validUntil)||stateText(cell.state,en)}</span></td>})}</tr>)}</tbody>
+    <tbody>{matrix.rows.map(row=><tr key={row.employee.id}><td><strong>{name(row.employee)}</strong><small>{[row.employee.department,row.employee.position||row.employee.profession].filter(Boolean).join(' · ')}</small></td>{row.cells.map((cell,index)=>{if(!cell)return <td key={index} className="training-competence-na">—</td>;const Icon=STATE_ICON[cell.state];return <td key={index} className={`training-competence-cell ${cell.state}`} title={`${stateText(cell.state,en)}${cell.completedOn?` · ${en?'completed':'ολοκλήρωση'} ${fmt(cell.completedOn)}`:''}${cell.validUntil?` · ${en?'valid until':'ισχύει έως'} ${fmt(cell.validUntil)}`:''}`}><Icon size={15} aria-hidden="true"/>{cell.state==='missing'?<span className="lo-visually-hidden">{stateText(cell.state,en)}</span>:<span>{fmt(cell.validUntil)||stateText(cell.state,en)}</span>}</td>})}</tr>)}</tbody>
    </table>:<div className="registry-empty-state"><strong>{en?'No required training yet':'Δεν έχουν οριστεί απαιτούμενες εκπαιδεύσεις'}</strong><span>{en?'Add requirements in the Requirements tab: which training each professional category or department needs and how often.':'Ορίστε στην καρτέλα «Απαιτήσεις» ποια εκπαίδευση χρειάζεται κάθε επαγγελματική κατηγορία ή τμήμα και κάθε πότε.'}</span></div>}
    {matrix.requirements.length>0&&!matrix.rows.length&&<div className="registry-empty-state"><strong>{en?'No staff match the requirements':'Κανένας εργαζόμενος δεν αντιστοιχεί στις απαιτήσεις'}</strong></div>}
   </div>}
+
+  {view==='monthly'&&monthly}
 
   {view==='plan'&&<div className="scroll-table"><table className="data-table sticky-table">
    <thead><tr><th>{en?'Due by':'Έως'}</th><th>{en?'Person':'Άτομο'}</th><th>{en?'Department':'Τμήμα'}</th><th>{en?'Required training':'Απαιτούμενη εκπαίδευση'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead>
