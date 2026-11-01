@@ -145,3 +145,14 @@
 .management-shell .library-extra-scroll .section-toolbar>div>h2,.management-shell .library-content>.section-toolbar>div>h2{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}
 .announcement-row-text{display:block;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .library-extra-scroll>.management-section{padding-left:0;padding-right:0}
+/* Lists: a search over the names and titled groups that open and close. */
+.library-rail-search{display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:0 8px;height:34px;border:1px solid var(--lo-color-border,#e2e8f0);border-radius:8px;background:#fff;color:var(--lo-color-muted,#64748b)}
+.library-rail-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:12.5px}
+.library-rail-group{display:flex;flex-direction:column;gap:2px}
+.library-categories-v2 .library-rail-group-head{display:flex;align-items:center;gap:6px;min-height:30px;padding:6px 6px 4px;border:0;background:transparent;color:var(--lo-color-muted,#5d7891);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-align:left;cursor:pointer}
+.library-categories-v2 .library-rail-group-head span{flex:1}
+.library-categories-v2 .library-rail-group-head small{font-size:10.5px;font-weight:700}
+.management-section .library-categories-v2 .library-rail-group>button:not(.library-rail-group-head){min-height:34px;padding:4px 8px}
+.management-section .library-categories-v2 .library-rail-group>button>b{font-size:11px}
+.management-section .library-categories-v2 .library-rail-group .library-category-icon{width:24px;height:24px;border-radius:7px}
+.management-section .library-categories-v2 .library-rail-group .library-category-copy strong{font-size:11.5px}

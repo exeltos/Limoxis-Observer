@@ -1,6 +1,6 @@
 import { useEffect,useMemo,useState } from 'react'
 import { EodyDeadlineFilter,NotifiableDiseasesTable } from './NotifiableDiseasesTable'
-import { AlertTriangle,Power,PowerOff,Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness,Ruler,ListChecks,Pill,Wrench,MapPin,Hand } from 'lucide-react'
+import { AlertTriangle,ChevronDown,ChevronRight,Search,Power,PowerOff,Biohazard,BriefcaseMedical,Building2,Tablets,ClipboardCheck,Pencil,FileText,FlaskConical,LockKeyhole,PackageOpen,Plus,ShieldCheck,Syringe,Trash2,UsersRound,BriefcaseBusiness,Ruler,ListChecks,Pill,Wrench,MapPin,Hand } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -36,7 +36,8 @@ function loadDemoState(){const stored=loadSnapshot('management_libraries',{});re
 
 // `only`: the library categories to show (all when omitted); `leadItems` / `extraItems`: other screens listed in the
 // same left list, before / after the categories ({id,label,icon,tone,render}), so a group of settings is one list.
-export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],extraItems=[],initial=null,title=null,subtitle=null}={}){
+// `groups`: [{id,label,ids}] — the left list in titled groups that open and close, with a search over the names.
+export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],extraItems=[],groups=null,initial=null,title=null,subtitle=null}={}){
  const {language,t}=useLanguage();const {profile,user}=useAuth();const {notify,confirm}=useFeedback();const {tenant,isDemo:tenantIsDemo}=useTenant();const isDemo=!global&&tenantIsDemo;const isPlatformOwner=global // system (platform-wide) entries are edited only on the platform screen
  const visibleCategories=useMemo(()=>(global?categories.filter(([id])=>id!=='departments'):categories).filter(([id])=>(!only||only.includes(id))&&!exclude.includes(id)),[global,only,exclude])
  const [active,setActive]=useState(()=>{const ids=[...leadItems.map(item=>item.id),...visibleCategories.map(([id])=>id),...extraItems.map(item=>item.id)];return initial&&ids.includes(initial)?initial:ids[0]});const extra=[...leadItems,...extraItems].find(item=>item.id===active)||null;const activeCategory=categories.find(([id])=>id===active);const [query,setQuery]=useState('');const [eodyDeadline,setEodyDeadline]=useState('all');const [rows,setRows]=useState(()=>isDemo?loadDemoState():{});const [loading,setLoading]=useState(!isDemo);const [editor,setEditor]=useState(null);const [draft,setDraft]=useState({el:'',en:'',type:'general'})
@@ -67,11 +68,12 @@ export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],e
        {id:'toggle',label:inactive?t('librariesPanel.activateItem'):t('librariesPanel.deactivateItem'),icon:inactive?Power:PowerOff,onClick:()=>toggleActive(row),hidden:!isPlatformOwner},
        {id:'delete',label:t('delete'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>remove(row),hidden:meta.system&&!isPlatformOwner},
      ]}/>}
+ const railItems=[...leadItems.map(item=>({...item,tone:item.tone||'slate'})),...visibleCategories.map(([id,key,Icon,tone])=>({id,label:t(key),icon:Icon,tone,count:(rows[id]||[]).filter(x=>x[2]?.active!==false).length})),...extraItems.map(item=>({...item,tone:item.tone||'slate'}))]
  const railButton=(id,label,Icon,tone,count)=><button key={id} className={active===id?'active':''} onClick={()=>{setActive(id);setQuery('')}}><span className={`library-category-icon tone-${tone}`}><Icon size={16}/></span><span className="library-category-copy"><strong>{label}</strong></span>{count!=null&&<b>{count}</b>}</button>
  return <section className="management-section management-scroll-section library-section">
   {global&&<div className="library-governance-strip" title={t('librariesPanel.globalLibrariesGovernanceText')}><LockKeyhole size={15}/><div><strong>{t('librariesGovernanceStripTitle')}</strong><span>{t('librariesPanel.globalLibrariesGovernanceText')}</span></div></div>}
   <div className="library-layout workspace-fill">
-   <aside className="library-categories library-categories-v2 scroll-list">{leadItems.map(item=>railButton(item.id,item.label,item.icon,item.tone||'slate'))}{visibleCategories.map(([id,key,Icon,tone])=>railButton(id,t(key),Icon,tone,(rows[id]||[]).filter(x=>x[2]?.active!==false).length))}{extraItems.map(item=>railButton(item.id,item.label,item.icon,item.tone||'slate'))}</aside>
+   <aside className="library-categories library-categories-v2 scroll-list">{groups?<GroupedRail groups={groups} items={railItems} active={active} renderItem={item=>railButton(item.id,item.label,item.icon,item.tone,item.count)} t={t}/>:railItems.map(item=>railButton(item.id,item.label,item.icon,item.tone,item.count))}</aside>
    {extra?<div className="library-content workspace-column"><div className="library-extra-scroll">{extra.render()}</div></div>:<div className="library-content workspace-column"><div className="section-toolbar"><div><h2>{activeCategory?t(activeCategory[1]):(title||t('libraries'))}</h2><p>{active==='departments'?(subtitle||t('librariesPanel.librariesSubtitle')):(global?t('librariesPanel.globalLibrariesSubtitle'):t('librariesPanel.librariesSubtitle'))}</p></div><Button onClick={openAdd}><Plus size={15}/>{active==='departments'?t('librariesPanel.newDepartment'):t('newLibraryItem')}</Button></div><FilterBar compact query={query} onQueryChange={setQuery} placeholder={t('searchLibrary')} onClear={()=>setQuery('')} end={active==='notifiableDiseases'?<EodyDeadlineFilter value={eodyDeadline} onChange={setEodyDeadline} t={t}/>:null}/>{active==='notifiableDiseases'?<NotifiableDiseasesTable rows={rows.notifiableDiseases||[]} query={query} deadline={eodyDeadline} language={language} t={t} loading={loading} renderActions={rowMenu}/>:<RegistryTable
      wrapperClassName="table-wrap scroll-table"
      columns={active==='departments'?[{key:'name',label:t('department')},{key:'actions',label:''}]:[{key:'name',label:t('libraryEntryLabel')},{key:'source',label:t('librariesPanel.sourceReferenceLabel')},{key:'status',label:t('status')},{key:'actions',label:''}]}
@@ -84,4 +86,23 @@ export function LibrariesPanel({global=false,only=null,exclude=[],leadItems=[],e
   {jobRow&&<JobDescriptionDialog row={jobRow} language={language} saving={jobSaving} onClose={()=>setJobRow(null)} onSave={saveJob}/>}
   {editor&&<ObserverDialog eyebrow={t('libraries')} title={editor.mode==='add'?t('librariesPanel.newLibraryItemTitle'):editor.mode==='view'?t('librariesSystemRecordViewTitle'):t('librariesPanel.editLibraryItemTitle')} subtitle={editor.row?.[2]?.system?t('librariesSystemRecordManagedNote'):t('librariesPanel.localLibraryEntryNote')} width="standard" onClose={()=>setEditor(null)} footer={editor.mode==='view'?null:<DialogActions onCancel={()=>setEditor(null)} onSave={saveEditor} disabled={!draft.el.trim()}/>}><div className="entry-grid compact"><label className="field"><span>{t('librariesPanel.nameElRequired')}</span><input autoFocus={editor.mode!=='view'} disabled={editor.mode==='view'} value={draft.el} onChange={e=>setDraft(x=>({...x,el:e.target.value}))}/></label><label className="field"><span>Name EN</span><input disabled={editor.mode==='view'} value={draft.en} onChange={e=>setDraft(x=>({...x,en:e.target.value}))}/></label>{active==='departments'&&<label className="field"><span>{t('librariesPanel.departmentTypeLabel')}</span><select disabled={editor.mode==='view'} value={draft.type} onChange={e=>setDraft(x=>({...x,type:e.target.value}))}>{DEPARTMENT_TYPES.map(type=><option key={type} value={type}>{t(`librariesPanel.departmentType_${type}`)}</option>)}</select><small>{t('librariesPanel.departmentTypeHint')}</small></label>}</div></ObserverDialog>}
  </section>
+}
+
+// The left list in groups: a search over the names, and titled groups that open and close with a click (the group
+// of the open list starts open; a search opens every group that matches).
+function GroupedRail({groups,items,active,renderItem,t}){
+ const [search,setSearch]=useState('')
+ const [open,setOpen]=useState(()=>new Set(groups.filter(group=>group.ids.includes(active)).map(group=>group.id)))
+ const byId=new Map(items.map(item=>[item.id,item]))
+ const q=search.trim().toLowerCase()
+ const shown=groups.map(group=>({...group,items:group.ids.map(id=>byId.get(id)).filter(Boolean).filter(item=>!q||item.label.toLowerCase().includes(q))})).filter(group=>group.items.length)
+ const toggle=id=>setOpen(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})
+ return <>
+  <label className="library-rail-search"><Search size={14} aria-hidden="true"/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder={t('librariesPanel.findList')} aria-label={t('librariesPanel.findList')}/></label>
+  {shown.map(group=>{const isOpen=Boolean(q)||open.has(group.id);return <div key={group.id} className="library-rail-group">
+   <button type="button" className="library-rail-group-head" aria-expanded={isOpen} onClick={()=>toggle(group.id)}>{isOpen?<ChevronDown size={14} aria-hidden="true"/>:<ChevronRight size={14} aria-hidden="true"/>}<span>{group.label}</span><small>{group.items.length}</small></button>
+   {isOpen&&group.items.map(renderItem)}
+  </div>})}
+  {!shown.length&&<div className="inline-empty">{t('librariesPanel.noListMatches')}</div>}
+ </>
 }
