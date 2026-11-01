@@ -2410,8 +2410,6 @@
 
 
 /* ===== FEATURE SOURCE: src/styles/management-users.css ===== */
-.management-user-identity{display:flex;align-items:center;gap:12px;min-width:0}
-.management-user-avatar{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:0 0 42px;background:#eef4f8;color:#31526e}
 
 .management-user-section{padding:18px 0 0}
 .management-user-section+.management-user-section{margin-top:18px;border-top:1px solid #e8edf2}
