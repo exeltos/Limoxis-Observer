@@ -192,10 +192,10 @@ export function ExecutiveDashboardPage(){
       <tr className="exec-area"><th colSpan={5}>{tx(...area.label)}</th></tr>
       {area.rows.map(item=>{const parts=kpiParts(item);const busy=parts.some(part=>!part||part.status==='loading');const failed=parts.some(part=>part?.status==='error');const open=openAnalysis(item.tab);const change=deltaOf(item,tx,en,against);const tone=item.value==null?'neutral':item.tone||'neutral';return <tr key={item.id} className={open?'exec-row-link':undefined} onClick={open} tabIndex={open?0:undefined} onKeyDown={open?event=>{if(event.key==='Enter')open()}:undefined}>
        <td><strong>{tx(...item.label)}</strong><small>{tx(...item.hint).replace(/^(στόχος|target) [≥≤][^·]*· /,'')}</small></td>
-       <td className="exec-num">{busy?<LoadBar parts={parts} label={tx('Υπολογισμός…','Calculating…')}/>:<b>{failed?'—':formatValue(item.value,item.unit,en)}</b>}</td>
+       <td className="exec-num">{busy?<LoadBar parts={parts} label={tx('Υπολογισμός…','Calculating…')}/>:(item.missing&&!failed?<span className="exec-missing">{tx(...item.missing)}</span>:<b>{failed?'—':formatValue(item.value,item.unit,en)}</b>)}</td>
        <td>{item.target||'—'}</td>
        <td className={change?(change.good?'exec-better':change.good===false?'exec-worse':''):''}>{change?(change.good==null?tx('σταθερό','unchanged'):change.text):''}</td>
-       <td><span className={`exec-dot exec-dot-${tone}`} aria-hidden="true"/>{tone==='danger'?tx('Εκτός στόχου','Off target'):tone==='warning'?tx('Προσοχή','Attention'):tone==='good'?tx('Εντός στόχου','On target'):'—'}</td>
+       <td><span className={`exec-dot exec-dot-${tone}`} aria-hidden="true"/>{busy||failed?'—':item.status==='missing'?tx('Δεν καταγράφεται','Not recorded'):item.status==='noTarget'?tx('Χωρίς στόχο','No target'):tone==='danger'?tx('Εκτός στόχου','Off target'):tone==='warning'?tx('Προσοχή','Attention'):tone==='good'?tx('Εντός στόχου','On target'):'—'}</td>
       </tr>})}
      </tbody>)}
     </table>

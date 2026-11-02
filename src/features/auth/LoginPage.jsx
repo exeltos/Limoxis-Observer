@@ -108,12 +108,11 @@ export function LoginPage() {
           </div>
 
           <div className="login-field">
-            <label className="login-label" htmlFor="login-identifier">{greek?'Όνομα χρήστη ή email':'Username or email'}</label>
+            <label className="login-label" htmlFor="login-identifier">{greek?'Όνομα χρήστη':'Username'}</label>
             <div className="login-input-wrap">
               <User size={18} className="login-input-icon" aria-hidden="true"/>
-              <input id="login-identifier" className="login-input" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={identifier} onChange={e=>setIdentifier(e.target.value)} aria-describedby="login-identifier-hint" aria-invalid={error?true:undefined} required />
+              <input id="login-identifier" className="login-input" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} value={identifier} onChange={e=>setIdentifier(e.target.value)} aria-invalid={error?true:undefined} required />
             </div>
-            <span id="login-identifier-hint" className="login-hint">{greek?'Σύνδεση με username ή email':'Sign in with your username or email'}</span>
           </div>
 
           <div className="login-field">

@@ -64,7 +64,7 @@ export function HospitalStructurePanel() {
       <div className="section-toolbar">
         <div>
           <h2>{en ? 'Structural / staffing indicators' : 'Δομικοί / ποιοτικοί δείκτες'}</h2>
-          <p>{en ? 'Total beds, ICU beds, single rooms, and infection-control staffing (Ministerial Decision 388/2014 §2.8). Every change is recorded as a new dated entry, keeping the full history required by law.' : 'Σύνολο κλινών, κλίνες ΜΕΘ, μονόκλινα δωμάτια και στελέχωση ΕΝΛ (ΥΑ 388/2014 §2.8). Κάθε αλλαγή καταχωρίζεται ως νέα, χρονολογημένη εγγραφή, διατηρώντας το πλήρες ιστορικό που απαιτεί ο νόμος.'}</p>
+          <p>{en ? 'Beds and infection-control staffing (Ministerial Decision 388/2014). Every change is kept as a new dated entry.' : 'Κλίνες και στελέχωση ΕΝΛ (ΥΑ 388/2014). Κάθε αλλαγή κρατιέται ως νέα, χρονολογημένη εγγραφή.'}</p>
         </div>
         <Button onClick={() => setEditor(true)}><Plus size={15} />{en ? 'New entry' : 'Νέα καταχώρηση'}</Button>
       </div>
@@ -75,7 +75,7 @@ export function HospitalStructurePanel() {
         rows={rows}
         rowKey={row => row.id}
         renderRow={row => <>
-          <td><strong>{fmt(row.effectiveDate)}</strong></td><td>{row.totalBeds ?? '—'}</td><td>{row.icuBeds ?? '—'}</td><td>{row.singleRooms ?? '—'}</td><td>{row.infectionControlNurses ?? '—'}</td><td>{row.infectiousDiseasePhysicians ?? '—'}</td><td>{row.microbiologists ?? '—'}</td>
+          <td><strong>{fmt(row.effectiveDate)}</strong></td><td>{row.totalBeds ?? '—'}</td><td>{row.icuBeds ?? '—'}<ShareOf part={row.icuBeds} whole={row.totalBeds} en={en} /></td><td>{row.singleRooms ?? '—'}<ShareOf part={row.singleRooms} whole={row.totalBeds} en={en} /></td><td>{row.infectionControlNurses ?? '—'}<BedsPerNurse beds={row.totalBeds} nurses={row.infectionControlNurses} en={en} /></td><td>{row.infectiousDiseasePhysicians ?? '—'}</td><td>{row.microbiologists ?? '—'}</td>
           {isPlatformOwner && <td><OverflowMenu items={[{ id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, tone: 'danger', onClick: () => remove(row.id) }]} /></td>}
         </>}
         emptyTitle={en ? 'No structural entries recorded yet.' : 'Δεν έχουν καταχωριστεί δομικά στοιχεία.'}
@@ -83,6 +83,23 @@ export function HospitalStructurePanel() {
       {editor && <StructureDialog en={en} draft={draft} setDraft={setDraft} onClose={() => setEditor(false)} onSave={save} />}
     </section>
   )
+}
+
+// What the figures say: the share of the beds, and the beds per infection-control nurse against the WHO minimum
+// (at least one full-time IPC nurse per 250 beds, WHO core components of IPC programmes).
+export const WHO_BEDS_PER_IPC_NURSE = 250
+const number = value => (value === '' || value == null || !Number.isFinite(Number(value)) ? null : Number(value))
+export function ShareOf({ part, whole, en }) {
+  const a = number(part), b = number(whole)
+  if (a == null || !b) return null
+  return <small className="structure-derived">{`${String(Math.round((a / b) * 1000) / 10).replace('.', en ? '.' : ',')}%`}</small>
+}
+export function BedsPerNurse({ beds, nurses, en }) {
+  const b = number(beds), n = number(nurses)
+  if (!b || n == null) return null
+  if (n === 0) return <small className="structure-derived is-bad">{en ? 'no IPC nurse' : 'χωρίς ΝΕΛ'}</small>
+  const per = Math.round(b / n)
+  return <small className={`structure-derived${per > WHO_BEDS_PER_IPC_NURSE ? ' is-bad' : ''}`} title={en ? 'WHO minimum: 1 IPC nurse per 250 beds' : 'Ελάχιστο ΠΟΥ: 1 ΝΕΛ ανά 250 κλίνες'}>{en ? `1 per ${per} beds` : `1 ανά ${per} κλίνες`}</small>
 }
 
 function StructureDialog({ en, draft, setDraft, onClose, onSave }) {

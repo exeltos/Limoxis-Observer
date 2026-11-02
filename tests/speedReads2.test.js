@@ -42,7 +42,7 @@ describe('analysis per tab', () => {
     const args = { organizationId: 'org-1', from: '2026-01-01', to: '2026-12-31' }
     expect(analysisPartsForTab('overview')).toEqual(['summary', 'domains', 'microbiology'])
     await loadAnalysisSnapshot({ ...args, parts: analysisPartsForTab('overview') })
-    expect(rpcs().sort()).toEqual(['analysis_domain_metrics', 'analysis_microbiology_findings', 'platform_report_summary'])
+    expect(rpcs().sort()).toEqual(['analysis_domain_metrics', 'analysis_mdr_patients', 'analysis_microbiology_findings', 'platform_report_summary'])
     calls.length = 0
     await loadAnalysisSnapshot({ ...args, parts: analysisPartsForTab('surveillance') })
     expect(rpcs()).toEqual(['analysis_crosstab_metrics'])

@@ -67,3 +67,10 @@
 /* The cluster lines: the coloured mark sits inside the card, in line with the header's icon, not on the card's edge. */
 .analysis-signal-grid>div{padding:12px 14px 12px 30px}
 .analysis-signal-grid>div:before{left:14px;top:12px;bottom:12px;width:4px;border-radius:2px}
+/* A short note under a chart (e.g. organisms with too few isolates for a percentage). */
+.analysis-chart-note{margin:8px 0 0;font-size:12px;line-height:1.45;color:var(--lo-color-muted)}
+/* The detailed line list opens on demand. */
+.analysis-list-toggle{align-self:flex-start;margin:6px 0 2px;padding:7px 12px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-primary);font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.analysis-list-toggle:hover{background:var(--lo-color-surface-muted,#f3f6f9)}
+/* A whole-width line in place of charts that have nothing to show. */
+.analysis-section-note{grid-column:1/-1;padding:12px 14px;border:1px dashed var(--lo-color-border);border-radius:10px;font-size:13px;color:var(--lo-color-muted);background:var(--lo-color-surface)}

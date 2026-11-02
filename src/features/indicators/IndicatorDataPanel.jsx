@@ -2,7 +2,8 @@ import { Building2, Search } from 'lucide-react'
 import { useLanguage, translate } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
-import { ManagementRail } from '../management/ManagementRail'
+import { useState } from 'react'
+import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { HospitalStructurePanel } from '../management/HospitalStructurePanel'
 import { PrevalenceSurveyPanel } from '../management/PrevalenceSurveyPanel'
 import '../management/managementCenter.css'
@@ -24,8 +25,15 @@ export function useIndicatorDataItems() {
   return indicatorDataItems({ role, membership, language })
 }
 
+// Two small tabs over a full-width table (no side list for two items).
 export function IndicatorDataPanel({ initial = null }) {
   const { language } = useLanguage()
   const items = useIndicatorDataItems()
-  return <ManagementRail items={items} initial={initial} ariaLabel={language === 'en' ? 'Indicator data' : 'Δεδομένα δεικτών'} />
+  const [active, setActive] = useState(() => (items.some(item => item.id === initial) ? initial : items[0]?.id))
+  const current = items.find(item => item.id === active) || items[0]
+  if (!current) return null
+  return <div className="management-shell indicator-data-panel">
+    {items.length > 1 && <CanonicalTabs className="indicator-data-tabs" value={current.id} onChange={setActive} ariaLabel={language === 'en' ? 'Indicator data' : 'Δεδομένα δεικτών'} items={items.map(item => ({ value: item.id, label: item.label, icon: item.icon }))} />}
+    {current.render()}
+  </div>
 }

@@ -110,7 +110,9 @@ export function QualityPage({section=''}={}){
  const toMeasures=!measures&&initial.tab==='indicators'
  useEffect(()=>{if(toMeasures){writeSessionValue(RETURN_KEY,`indicators:${initial.view||'indicators'}`);navigate('/quality/measures',{replace:true})}else writeSessionValue(RETURN_KEY,'')},[]) // eslint-disable-line react-hooks/exhaustive-deps
  const [tabState,setTab]=useState(measures?'indicators':initial.tab)
- const tab=measures?'indicators':tabState
+ // The Quality Center and «Indicators & objectives» are one page: going from the second to the first keeps the page (and
+ // its last tab), so the Center never shows the indicators tab (it is not one of its tabs).
+ const tab=measures?'indicators':tabState==='indicators'?'overview':tabState
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'indicators')
  const [resourceView,setResourceView]=useState(initial.tab==='resources'&&initial.view||'equipment')
  useEffect(()=>{if(!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])

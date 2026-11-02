@@ -12,6 +12,7 @@ import { ROLES } from '../../core/permissions/roles'
 import { deletePrevalenceSurvey, loadPrevalenceSurveyHistory, savePrevalenceSurvey } from './prevalenceSurveyCloudService'
 import { loadDepartments } from './departmentsService'
 import { demoLibrarySeed } from './managementData'
+import { ShareOf } from './HospitalStructurePanel'
 
 const todayIso = () => new Date().toISOString().slice(0, 10)
 const emptyDraft = { surveyDate: todayIso(), departmentId: '', departmentEl: '', patientsTotal: '', patientsWithHai: '', patientsOnAntibiotics: '', responsibleName: '', notes: '' }
@@ -24,6 +25,8 @@ export function PrevalenceSurveyPanel() {
   const isPlatformOwner = role === ROLES.PLATFORM_OWNER
   const fmt = value => value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(`${value}T12:00:00`)) : '—'
   const [rows, setRows] = useState([])
+  // The responsible column only when it says something (not the same name on every row).
+  const showResponsible = new Set(rows.map(row => row.responsibleName || '')).size > 1
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(false)
   const [editor, setEditor] = useState(false)
@@ -90,18 +93,18 @@ export function PrevalenceSurveyPanel() {
       <div className="section-toolbar">
         <div>
           <h2>{en ? 'Point prevalence survey (PPS)' : 'Σημειακός επιπολασμός λοιμώξεων'}</h2>
-          <p>{en ? 'Snapshot count of inpatients, active HAIs and antibiotic use on a survey day, whole-hospital or per department (Ministerial Decision 388/2014 §2.2 / ECDC PPS).' : 'Στιγμιαία καταγραφή νοσηλευόμενων, ενεργών ΝΝΛ και χρήσης αντιβιοτικών σε ημέρα επισκόπησης, σε επίπεδο νοσοκομείου ή τμήματος (ΥΑ 388/2014 §2.2 / ECDC PPS).'}</p>
+          <p>{en ? 'One survey day: inpatients, those with a hospital infection and those on antibiotics (ECDC PPS).' : 'Μία ημέρα μέτρησης: νοσηλευόμενοι, όσοι έχουν νοσοκομειακή λοίμωξη και όσοι παίρνουν αντιβίωση (ECDC PPS).'}</p>
         </div>
         <Button onClick={() => setEditor(true)}><Plus size={15} />{en ? 'New survey' : 'Νέα επισκόπηση'}</Button>
       </div>
       {loading && <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>}
       {!loading && <RegistryTable
         wrapperClassName="table-wrap scroll-table"
-        columns={[{ key: 'date', label: en ? 'Survey date' : 'Ημερομηνία' }, { key: 'scope', label: en ? 'Scope' : 'Εύρος' }, { key: 'patients', label: en ? 'Patients' : 'Ασθενείς' }, { key: 'hai', label: en ? 'With HAI' : 'Με ΝΝΛ' }, { key: 'abx', label: en ? 'On antibiotics' : 'Υπό αντιβίωση' }, { key: 'responsible', label: en ? 'Responsible' : 'Υπεύθυνος' }, ...(isPlatformOwner ? [{ key: 'actions', label: '' }] : [])]}
+        columns={[{ key: 'date', label: en ? 'Survey date' : 'Ημερομηνία' }, { key: 'scope', label: en ? 'Scope' : 'Εύρος' }, { key: 'patients', label: en ? 'Patients' : 'Ασθενείς' }, { key: 'hai', label: en ? 'With a hospital infection' : 'Με νοσοκομειακή λοίμωξη' }, { key: 'abx', label: en ? 'On antibiotics' : 'Υπό αντιβίωση' }, ...(showResponsible ? [{ key: 'responsible', label: en ? 'Responsible' : 'Υπεύθυνος' }] : []), ...(isPlatformOwner ? [{ key: 'actions', label: '' }] : [])]}
         rows={rows}
         rowKey={row => row.id}
         renderRow={row => <>
-          <td><strong>{fmt(row.surveyDate)}</strong></td><td>{row.departmentId ? (departmentName(row) || '—') : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')}</td><td>{row.patientsTotal}</td><td>{row.patientsWithHai}</td><td>{row.patientsOnAntibiotics}</td><td>{en && row.responsibleName === 'ΕΝΛ' ? 'IPC committee' : (row.responsibleName || '—')}</td>
+          <td><strong>{fmt(row.surveyDate)}</strong></td><td>{row.departmentId ? (departmentName(row) || '—') : (en ? 'Whole hospital' : 'Όλο το νοσοκομείο')}</td><td>{row.patientsTotal}</td><td>{row.patientsWithHai}<ShareOf part={row.patientsWithHai} whole={row.patientsTotal} en={en} /></td><td>{row.patientsOnAntibiotics}<ShareOf part={row.patientsOnAntibiotics} whole={row.patientsTotal} en={en} /></td>{showResponsible && <td>{en && row.responsibleName === 'ΕΝΛ' ? 'IPC committee' : (row.responsibleName || '—')}</td>}
           {isPlatformOwner && <td><OverflowMenu items={[{ id: 'delete', label: en ? 'Delete' : 'Διαγραφή', icon: Trash2, tone: 'danger', onClick: () => remove(row.id) }]} /></td>}
         </>}
         emptyTitle={en ? 'No prevalence surveys recorded yet.' : 'Δεν έχουν καταγραφεί επισκοπήσεις επιπολασμού.'}

@@ -174,3 +174,8 @@
 .bed-days-line input{height:36px;text-align:right}
 .bed-days-line-total{font-weight:700}
 @media(max-width:760px){.bed-days-period-fields,.bed-days-lines{grid-template-columns:1fr}}
+/* Figures derived from a row (share of the beds, beds per IPC nurse, survey percentages). */
+.structure-derived{display:block;font-size:11.5px;color:var(--lo-color-muted)}
+.structure-derived.is-bad{color:#b42318;font-weight:650}
+.indicator-data-panel{display:flex;flex-direction:column;gap:6px}
+.indicator-data-tabs{margin:0 0 4px}

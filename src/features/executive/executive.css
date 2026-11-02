@@ -93,3 +93,4 @@
 .analysis-figure-versus{color:var(--lo-color-muted);font-size:12px}
 .analysis-comparison-card{margin:0 0 14px}
 @media(max-width:760px){.exec-measures td:nth-child(4),.exec-measures th:nth-child(4){display:none}}
+.exec-measures td.exec-num .exec-missing{font-size:12px;color:var(--lo-color-muted);white-space:normal}
