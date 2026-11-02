@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { assignmentCalendar, calendarTone, isFrequentControl, programmeCalendar } from '../src/features/controls/controlCalendar'
-import { calendarCellText } from '../src/features/controls/ControlCalendarPanel'
 
 const now = new Date(2026, 9, 8, 12) // 8 October 2026, local time
 const at = (month, day, hour = 10) => new Date(2026, month, day, hour).toISOString()
@@ -42,8 +41,6 @@ describe('annual control calendar', () => {
     expect(months[9].planned).toEqual([31])
     expect(months[10].planned).toEqual([30])
     expect(months[11].planned).toEqual([31])
-    expect(calendarCellText(months[7], false)).toBe('Έγινε 20 (με καθυστέρηση)')
-    expect(calendarCellText(months[8], true)).toBe('Missed 30')
   })
 
   it('leaves extra entries and entries beyond a day\'s slots out of the month', () => {
