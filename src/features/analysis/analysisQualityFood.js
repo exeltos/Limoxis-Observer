@@ -141,6 +141,7 @@ export function qualityFoodIndicatorMetrics(q = {}) {
   return {
     audit_answers_compliant: q.answersCompliant ?? 0,
     audit_answers_applicable: q.answersApplicable ?? 0,
+    audit_major_findings: q.findingsMajor ?? 0,
     kitchen_receipts_out_of_limits: q.receiptsOut ?? 0,
     kitchen_receipts: q.receipts ?? 0,
     kitchen_production_days_verified: q.productionDaysVerified ?? 0,
