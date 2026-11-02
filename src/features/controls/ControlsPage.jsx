@@ -159,7 +159,7 @@ export function ControlsPage(){
  // The same list on the shared document layout (landscape), to print or keep as PDF.
  function printProgramme(){
   const data=programmeExport(),en=language==='en'
-  const ok=printReport({language,orientation:'landscape',kind:t('controls'),title:en?'Control programme':'Πρόγραμμα ελέγχων',meta:[[tx.department,department==='all'?tx.allDepartments:department],[en?'Controls':'Έλεγχοι',String(rows.length)]],sections:[{title:en?'Controls per department':'Έλεγχοι ανά τμήμα',table:{columns:data.headers.slice(1),rows:data.rows.map(row=>row.slice(1).map(cell=>cell==null?'':String(cell))),empty:tx.emptyText}}],filename:data.name})
+  const ok=printReport({language,orientation:'landscape',kind:t('controls'),title:en?'Control programme':'Πρόγραμμα ελέγχων',meta:[[tx.department,department==='all'?tx.allDepartments:department],...(status!=='all'?[[tx.status,{today:en?'Due today':'Για σήμερα',overdue:tx.overdue,dueSoon:tx.dueSoon}[status]||status]]:[]),...(query.trim()?[[en?'Search':'Αναζήτηση',query.trim()]]:[]),[en?'Controls':'Έλεγχοι',String(rows.length)]],sections:[{title:en?'Controls per department':'Έλεγχοι ανά τμήμα',table:{columns:data.headers.slice(1),rows:data.rows.map(row=>row.slice(1).map(cell=>cell==null?'':String(cell))),empty:tx.emptyText}}],filename:data.name})
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  function clearFilters(){setQuery('');setDepartment('all');setStatus('all');setPeriod(DEFAULT_PERIOD)}

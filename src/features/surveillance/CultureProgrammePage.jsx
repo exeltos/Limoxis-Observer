@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { CalendarDays, ChevronLeft, ChevronRight, Grid3x3 } from 'lucide-react'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { IconButton } from '../../design-system/IconButton'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { registryMenu } from '../../core/export/registryExports'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -33,6 +36,7 @@ export function CultureProgrammePage() {
   const { language, t } = useLanguage()
   const en = language === 'en'
   const { tenant } = useTenant()
+  const { notify } = useFeedback()
   const today = useMemo(() => new Date(), [])
   const [view, setView] = useState('year')
   const [year, setYear] = useState(today.getFullYear())
@@ -63,6 +67,11 @@ export function CultureProgrammePage() {
     if (next < 0) { setMonth(11); setYear(value => value - 1) } else if (next > 11) { setMonth(0); setYear(value => value + 1) } else setMonth(next)
   }
   const label = view === 'year' ? String(year) : `${MONTHS[en ? 'en' : 'el'][month]} ${year}`
+  // The year as the table shows it, or the month as a list: what is printed or sent to Excel is what is on the screen.
+  const exportMenu = registryMenu(() => cultureProgrammeExport({ lines, extra, view, year, month, en }), {
+    language, kind: en ? 'Surveillance' : 'Επιτήρηση', title: `${en ? 'Culture programme' : 'Πρόγραμμα καλλιεργειών'} ${label}`,
+    onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error'),
+  })
 
   return <section className="culture-programme">
     <div className="culture-programme-bar">
@@ -72,6 +81,7 @@ export function CultureProgrammePage() {
         <strong>{label}</strong>
         <IconButton label={en ? 'Next' : 'Επόμενο'} onClick={() => step(1)}><ChevronRight size={16} /></IconButton>
       </div>
+      <ExportMenu {...exportMenu} disabled={!data?.items.length} />
     </div>
     {data && <p className="culture-programme-figures"><span><b>{counts.done}</b> {en ? 'done' : 'έγιναν'}</span><span className={counts.missed ? 'is-bad' : ''}><b>{counts.missed}</b> {en ? 'missed' : 'χάθηκαν'}</span><span className={counts.due ? 'is-warn' : ''}><b>{counts.due}</b> {en ? 'due this month' : 'οφείλονται αυτόν τον μήνα'}</span><span><b>{data.items.length}</b> {en ? 'cultures in the programme' : 'καλλιέργειες στο πρόγραμμα'}</span></p>}
     {error && <div className="inline-empty">{en ? 'The programme could not be read.' : 'Το πρόγραμμα δεν διαβάστηκε.'}</div>}
@@ -82,6 +92,30 @@ export function CultureProgrammePage() {
       : <MonthCalendar lines={lines} extra={extra} year={year} month={month} en={en} onOpen={setOpen} />)}
     {open && <ResultsDialog open={open} en={en} t={t} onClose={() => setOpen(null)} />}
   </section>
+}
+
+// «5/3» for a done culture (its department too for a category), ✗ missed, ! due, ◦ planned: the same marks as the table, in words for the month list.
+function cultureProgrammeExport({ lines, extra, view, year, month, en }) {
+  const months = MONTHS[en ? 'en' : 'el'], state = cell => (cell.state === 'planned' && view !== 'month' ? (en ? 'Plan' : 'Πλάνο') : STATE_LABEL[cell.state]?.[en ? 1 : 0] || '')
+  const done = (item, cell) => cell.rounds.map(round => `${fmtDay(round.day, en)}${item?.group ? ` ${round.department}` : ''}${round.outside ? (en ? ' (out of limit)' : ' (εκτός ορίου)') : ''}`).join(', ')
+  if (view === 'month') {
+    return {
+      name: `${en ? 'culture-programme' : 'programma-kalliergeion'}-${year}-${String(month + 1).padStart(2, '0')}`,
+      headers: [en ? 'Culture' : 'Καλλιέργεια', en ? 'Frequency' : 'Συχνότητα', en ? 'Status' : 'Κατάσταση', en ? 'Dates' : 'Ημερομηνίες'],
+      rows: [
+        ...lines.filter(line => line.months[month].state).map(({ item, months: cells }) => [rowName(item, en), everyText(item.every, en), state(cells[month]), cells[month].state === 'done' ? done(item, cells[month]) : '']),
+        ...extra.filter(round => round.day.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)).map(round => [round.department, en ? 'Out of programme' : 'Εκτός προγράμματος', en ? 'Done' : 'Έγινε', fmtDay(round.day, en)]),
+      ],
+    }
+  }
+  return {
+    name: `${en ? 'culture-programme' : 'programma-kalliergeion'}-${year}`,
+    headers: [en ? 'Culture' : 'Καλλιέργεια', en ? 'Frequency' : 'Συχνότητα', ...months],
+    rows: [
+      ...lines.map(({ item, months: cells }) => [rowName(item, en), everyText(item.every, en), ...cells.map(cell => (cell.state === 'done' ? done(item, cell) : cell.state ? state(cell) : ''))]),
+      ...groupByDepartment(extra).map(([department, rounds]) => [department, en ? 'Out of programme' : 'Εκτός προγράμματος', ...months.map((_, index) => rounds.filter(round => Number(round.day.slice(5, 7)) - 1 === index && round.day.startsWith(String(year))).map(round => fmtDay(round.day, en)).join(', '))]),
+    ],
+  }
 }
 
 function YearTable({ lines, extra, year, en, onOpen }) {
