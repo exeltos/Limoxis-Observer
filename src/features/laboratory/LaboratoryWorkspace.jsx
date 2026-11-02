@@ -7,6 +7,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { Button } from '../../design-system/Button'
 import { NotifiableReportsPanel } from './NotifiableReportsPanel'
+import { ReportingPanel } from '../reporting/ReportingPanel'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { PlatesPanel } from './PlatesPanel'
 import { canSeeNotifiable } from '../surveillance/forms/sections/notifiableSection'
 import { Page } from '../../design-system/Page'
@@ -79,6 +82,8 @@ export function LaboratoryWorkspace() {
   const tab = requestedTab === 'plates' || (showNotifiable && requestedTab === 'notifiable') ? requestedTab : 'samples'
   const setTab = value => setSearchParams(current => { const next = new URLSearchParams(current); if (value === 'samples') next.delete('tab'); else next.set('tab', value); return next }, { replace: true })
   const [notifiableNew, setNotifiableNew] = useState(false)
+  // The data checks and the EARS-Net export (formerly «Reporting & data quality» of the hospital overview), from «⋯».
+  const [reportingPart, setReportingPart] = useState('')
   const [duplicate, setDuplicate] = useState(null)
 
   useEffect(() => {
@@ -192,8 +197,11 @@ export function LaboratoryWorkspace() {
     {tabs}
     <PlatesPanel samples={repositoryRows.filter(sample => canAccessRecord(sample))} loading={samplesLoading} canManage={canCreate} repository={labRepository} reload={reloadSamples} />
   </Page>
-  if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button>}>
+  if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<><Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button><OverflowMenu label={language === 'en' ? 'More actions' : 'Περισσότερες ενέργειες'} items={[{ label: language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων', onClick: () => setReportingPart('quality') }, { label: language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net', onClick: () => setReportingPart('ears') }]} /></>}>
     {tabs}
+    {reportingPart && <ObserverDialog width="wide" title={reportingPart === 'quality' ? (language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων') : (language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net')} onClose={() => setReportingPart('')}>
+      <ReportingPanel tenant={tenant} isDemo={isDemo} year={new Date().getFullYear()} tx={(el, enText) => (language === 'en' ? enText : el)} en={language === 'en'} parts={[reportingPart]} />
+    </ObserverDialog>}
     <NotifiableReportsPanel organizationId={tenant?.id} isDemo={isDemo} samples={repositoryRows.filter(sample => canAccessRecord(sample))} canCreate creating={notifiableNew} onCreatingChange={setNotifiableNew} />
   </Page>
 

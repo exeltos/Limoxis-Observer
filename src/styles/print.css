@@ -36,8 +36,12 @@
   .entity-record-shell [hidden]:is(.lo-more-section-body){display:block!important}
   .entity-record-shell .summary-detail-note:not(#print-root){white-space:normal!important;overflow:visible!important}
   .record-print-footer:not(#print-root){display:block!important;margin:14px 0 0;padding-top:6px;border-top:0.5pt solid #777;font-size:9px;color:#000}
-  /* A printed record reads as a document, not the screen: serif, black on white, no chips, badges or coloured boxes. */
-  .entity-record-shell.record-printing:not(#print-root){font-family:Georgia,'Times New Roman',serif;color:#000}
-  .entity-record-shell.record-printing :not(#print-root,svg,svg *){color:#000!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;border-color:#888!important;font-family:inherit!important}
+  /* A printed record reads as a document, not the screen: the font of the shared documents (Arial), dark on white, no
+     chips, badges or coloured boxes; the label column of its tables keeps a light shade (owner, 2/11/2026). */
+  .entity-record-shell.record-printing:not(#print-root){font-family:Arial,Helvetica,sans-serif;color:#000}
+  .entity-record-shell.record-printing :not(#print-root,svg,svg *,.record-report-pairs,.record-report-antibiogram,.record-report-pairs *,.record-report-antibiogram *){color:#000!important;background-color:transparent!important;background-image:none!important;box-shadow:none!important;border-color:#888!important;font-family:inherit!important}
+  .entity-record-shell.record-printing .record-report :is(.record-report-pairs,.record-report-antibiogram){border-color:#cbd8e3}
+  .entity-record-shell.record-printing .record-report :is(.record-report-pairs,.record-report-antibiogram) :is(dt,dd){border-color:#cbd8e3;color:#000}
+  .entity-record-shell.record-printing .record-report :is(.record-report-pairs,.record-report-antibiogram) dt{background-color:#f2f6f9;color:#3d5266}
   .entity-record-shell.record-printing :is([class*="badge"],[class*="chip"],[class*="pill"],[class*="tag"]):not(#print-root){border:0!important;padding:0!important;border-radius:0!important}
 }

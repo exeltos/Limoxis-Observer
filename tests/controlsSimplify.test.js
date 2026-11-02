@@ -22,11 +22,11 @@ describe('controls list: department cards, key figures per tab, no filter popove
     expect(page).not.toContain('<Kpi ')
   })
 
-  it('period and status sit inside the «Filters» popover beside the search; the department is a chip', () => {
+  it('the period is always in sight beside the search, the status inside «Filters»; the department is a chip', () => {
     const bar = page.slice(page.indexOf('<FilterBar'), page.indexOf('</FilterBar>'))
-    // The period of the rates and the status are inside the popover, not beside the search.
-    expect(bar).not.toContain(' end={')
-    expect(page).toContain('const periodSelect=<FilterSelect className="controls-period-select" label={tx.period}')
+    // The period (day, month, quarter, half-year, year with ‹ ›) is chosen every time (owner, 2/11/2026): beside the search.
+    expect(bar).toContain("end={activeView==='expiry'?null:periodSelect}")
+    expect(page).toContain('const periodSelect=<ControlPeriodPicker value={period} onChange={setPeriod} language={language} label={tx.period}/>')
     expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
     // The status and the department are selects of the same popover on every tab; the culture programme is not part of the Controls.
     expect(bar).toContain('<FilterSelect label={tx.status} value={status} onChange={setStatus}>')

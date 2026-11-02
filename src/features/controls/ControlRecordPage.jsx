@@ -5,6 +5,7 @@ import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
+import { printReportLater } from '../../core/export/reportDocument'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -35,10 +36,11 @@ import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequenc
 import { slotStarts,slotWindowMinutes,zonedInstant,zonedParts } from './controlDueRules'
 import { RateMeter,useAdherenceLines } from './ControlAdherencePanel'
 import { ControlMissedDialog,missedText } from './ControlMissedDialog'
-import { periodRange,periodShort } from './controlAdherence'
+import { DEFAULT_PERIOD,periodRange,periodShort } from './controlAdherence'
+import { ControlPeriodPicker } from './ControlPeriodPicker'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
-import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
+import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,loadControlsOnTimeFrom,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import './controlRecord.css'
 
@@ -68,7 +70,10 @@ export function ControlRecordPage(){
  const [historyPageSize,setHistoryPageSize]=useState(15)
  const [historyDepartment,setHistoryDepartment]=useState('all')
  // The period of this control's rates and of its executions list (the same choices as the Controls page).
- const [period,setPeriod]=useState('30d')
+ const [period,setPeriod]=useState(DEFAULT_PERIOD)
+ // Entries before the day the hospital's times are judged from count as on time (owner, 2/11/2026).
+ const [judgedFrom,setJudgedFrom]=useState(null)
+ useEffect(()=>{let live=true;loadControlsOnTimeFrom(tenant?.id).then(day=>{if(live)setJudgedFrom(day)}).catch(()=>{});return()=>{live=false}},[tenant?.id])
  const [withMissed,setWithMissed]=useState(false)
  // The order of the executions (newest first by default): the arrow of the date column; the database orders the whole list.
  const [historyOrder,setHistoryOrder]=useState('desc')
@@ -100,14 +105,15 @@ export function ControlRecordPage(){
  useEffect(()=>{
   if(!tenant?.id||!historyOpen||!historyAssignmentIds.length)return undefined
   let active=true
-  loadControlHistoryPage(tenant.id,historyAssignmentIds,{page:historyPage,pageSize:historyPageSize,from:periodRange(period,new Date()).from,order:historyOrder})
+  loadControlHistoryPage(tenant.id,historyAssignmentIds,{page:historyPage,pageSize:historyPageSize,from:periodRange(period,new Date()).from,to:new Date(periodRange(period,new Date()).to.getTime()+1000),order:historyOrder})
    .then(result=>{if(active)setHistoryData({key:historyKey,...result})})
    .catch(error=>{if(active){setHistoryData({key:historyKey,rows:[],total:0});notifyError(error,'load',{operation:'control_history_load'})}})
   return()=>{active=false}
  },[tenant?.id,historyOpen,historyAssignmentIds,historyPage,historyPageSize,historyKey,historyOrder,period,record,notifyError])
  // The rates and the missed executions per department, read only for the two tabs that show them.
  const adherenceRows=useMemo(()=>record?[{item:record,departments:record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null}))}]:[],[record,canAccessRecord])
- const adherence=useAdherenceLines(adherenceRows,tab==='departments'||tab==='history'?tenant?.id:null,period,record,null)
+ // Read on every tab: the printed control carries the departments' adherence of the period.
+ const adherence=useAdherenceLines(adherenceRows,tenant?.id,period,record,null)
 
  if(loading)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Loading control…':'Φόρτωση ελέγχου…'}</div></Page>
  if(!record)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Control not found.':'Δεν βρέθηκε ο έλεγχος.'}</div></Page>
@@ -142,8 +148,9 @@ export function ControlRecordPage(){
  const historySafePage=Math.min(historyPage,historyTotalPages)
  const pagedHistory=historyRows
  // One «Filters» button (as in the lists): the period (and, in the executions, the department and the missed ones) sit inside it.
- const periodSelect=<FilterSelect label={en?'Period':'Περίοδος'} value={period} onChange={setPeriod}>{['today','30d','60d','6m','12m'].map(key=><option key={key} value={key}>{periodShort(key,language)}</option>)}</FilterSelect>
- const periodChips=<FilterBar activeAdvancedCount={period!=='30d'?1:0} onClear={()=>setPeriod('30d')}>{periodSelect}</FilterBar>
+ const periodSelect=<ControlPeriodPicker value={period} onChange={value=>{setPeriod(value);setHistoryPage(1)}} language={language}/>
+ // Always in sight (owner, 2/11/2026): the period is chosen every time.
+ const periodChips=periodSelect
  const lineOf=dep=>adherence.lines.find(line=>line.department===dep)
  const hhmm=minutes=>`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`
  // The set time an entry belongs to (the nearest) and whether it fell inside that time's window.
@@ -154,7 +161,35 @@ export function ControlRecordPage(){
   let index=0,best=Infinity
   starts.forEach((start,k)=>{const d=Math.abs(m-start);if(d<best){best=d;index=k}})
   const window=slotWindowMinutes(f,index)
-  return {time:hhmm(starts[index]),onTime:m>=window.open&&m<=window.close}
+  const before=judgedFrom&&`${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`<judgedFrom
+  return {time:hhmm(starts[index]),onTime:Boolean(before)||(m>=window.open&&m<=window.close)}
+ }
+ // The printed control (owner, 2/11/2026): the shared document (logo, hospital, code, date printed) with the control's
+ // details, its departments with the adherence of the period chosen, and every execution of that period (read on click).
+ const PRINT_LIMIT=500
+ function printControl(pdf){
+  const title=en?record.titleEn||record.title:record.title
+  const range=periodRange(period,new Date())
+  const ids=assignments.map(({assignment:current})=>current?.dbId).filter(Boolean)
+  const departmentOf=new Map(assignments.map(({department:dep,assignment:current})=>[current?.dbId,dep]))
+  const ok=printReportLater(async()=>{
+   const loaded=ids.length?await loadControlHistoryPage(tenant.id,ids,{page:1,pageSize:PRINT_LIMIT,from:range.from,to:new Date(range.to.getTime()+1000),order:'desc'}):{rows:[],total:0}
+   const executions=(loaded.rows||[]).filter(h=>h.status!=='cancelled')
+   const texts=[record.goal&&[en?'Goal':'Στόχος',record.goal],record.acceptanceCriteria&&[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')],record.guideNotes&&[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes],deviationActions(record,visibleDepartments[0])&&[en?'Actions on deviation':'Ενέργειες σε απόκλιση',deviationActions(record,visibleDepartments[0])]].filter(Boolean)
+   const periodName=periodShort(period,language)
+   return {
+    language,kind:en?'Control':'Έλεγχος',title,code:record.code,
+    meta:[[en?'Control type':'Είδος ελέγχου',record.category||'—'],[en?'Criticality':'Κρισιμότητα',criticalityLabel(controlCriticality(record),language)],[en?'Evidence':'Τεκμήριο',requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')],[en?'Responsible':'Υπεύθυνος',ownerText(record,language)||'—'],[en?'Frequency':'Συχνότητα',controlFrequencyLabel(record,visibleDepartments,language)],...(!differentSchedules?[[en?'Execution times':'Ώρες εκτέλεσης',timesWithWindows(assignmentFrequency(record,visibleDepartments[0]))||'—']]:[]),[en?'Period':'Περίοδος',periodName]],
+    sections:[
+     {title:en?'Goal and instructions':'Στόχος και οδηγίες',facts:texts,factColumns:1},
+     {title:`${en?'Departments':'Τμήματα'} · ${periodName}`,table:{columns:[en?'Department':'Τμήμα',en?'Responsible':'Υπεύθυνος',en?'Schedule':'Πρόγραμμα',en?'Done':'Έγιναν',en?'Missed':'Χάθηκαν',en?'Adherence':'Τήρηση',en?'Last entry':'Τελευταία καταχώρηση'],rows:assignments.map(({department:dep,assignment:current})=>{const line=lineOf(dep);return [dep,personLabel(record.assignees?.[dep],language)||ownerText(record,language)||'—',[frequencyLabel(assignmentFrequency(record,dep),language),timesWithWindows(assignmentFrequency(record,dep))].filter(Boolean).join(' · '),line?`${Math.min(line.performed,line.expected)} / ${line.expected}`:'—',line?String(line.missed):'—',line?.rate==null?'—':`${line.rate}%`,current?.lastCompletedAt?fmt(current.lastCompletedAt):'—']})}},
+     {title:`${en?'Executions':'Εκτελέσεις'} · ${periodName}`,note:(loaded.total||0)>(loaded.rows||[]).length?(en?`The first ${PRINT_LIMIT} of ${loaded.total}.`:`Οι πρώτες ${PRINT_LIMIT} από ${loaded.total}.`):undefined,
+      table:{columns:[en?'Date / time':'Ημερομηνία / ώρα',en?'Department':'Τμήμα',en?'Result':'Αποτέλεσμα',en?'Recorded by':'Καταχώρησε',en?'Notes':'Σημειώσεις'],rows:executions.length?executions.map(h=>{const row={...h,department:departmentOf.get(h.assignmentId)||''};return [fmt(row.at),row.department,[row.isExtra?(en?'Extra':'Έκτακτη'):'',structuredSummary(row,{record,language}),row.resultText].filter(Boolean).join(' · '),row.by||'—',row.notes||'']}):[[{text:en?'No executions in the period.':'Δεν υπάρχουν εκτελέσεις στην περίοδο.',colSpan:5}]]}},
+    ],
+    signatures:[en?'Checked by':'Ελέγχθηκε από'],
+   }
+  },{pdf,language,onError:error=>notifyError(error,'export',{operation:'control_print'})})
+  if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  // The missed executions as rows between the entries of the page, newest first.
  const missedRows=withMissed&&historyLoaded?adherence.lines.filter(line=>historyDepartment==='all'||line.department===historyDepartment).flatMap(line=>(line.missedDays||[]).flatMap(miss=>{
@@ -244,7 +279,7 @@ export function ControlRecordPage(){
   {canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
-  <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
+  <ExportMenu ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 
@@ -310,7 +345,7 @@ export function ControlRecordPage(){
    {listDepartment&&<ControlDepartmentListDialog record={record} department={listDepartment} language={language} onClose={()=>setListDepartment(null)}/>}
   </div>}
   {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} onExportChange={setExpiryExport} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
-  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar"><FilterBar activeAdvancedCount={(historyDepartment!=='all'?1:0)+(period!=='30d'?1:0)+(withMissed?1:0)} onClear={()=>{setHistoryDepartment('all');setHistoryPage(1);setPeriod('30d');setWithMissed(false)}}>{periodSelect}{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<FilterSelect label={en?'Executions':'Εκτελέσεις'} value={withMissed?'missed':'done'} onChange={value=>setWithMissed(value==='missed')}><option value="done">{en?'Recorded only':'Μόνο καταχωρημένες'}</option><option value="missed">{en?'With the missed':'Με τα χαμένα'}</option></FilterSelect></FilterBar></div><div className="record-tab-panel-body"><RegistryTable sort={{key:'at',dir:historyOrder}} onSort={()=>{setHistoryOrder(order=>order==='desc'?'asc':'desc');setHistoryPage(1)}}
+  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar"><FilterBar end={periodSelect} activeAdvancedCount={(historyDepartment!=='all'?1:0)+(withMissed?1:0)} onClear={()=>{setHistoryDepartment('all');setHistoryPage(1);setWithMissed(false)}}>{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<FilterSelect label={en?'Executions':'Εκτελέσεις'} value={withMissed?'missed':'done'} onChange={value=>setWithMissed(value==='missed')}><option value="done">{en?'Recorded only':'Μόνο καταχωρημένες'}</option><option value="missed">{en?'With the missed':'Με τα χαμένα'}</option></FilterSelect></FilterBar></div><div className="record-tab-panel-body"><RegistryTable sort={{key:'at',dir:historyOrder}} onSort={()=>{setHistoryOrder(order=>order==='desc'?'asc':'desc');setHistoryPage(1)}}
     wrapperClassName="scroll-table"
     className="control-history-table"
     columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα',sortable:true},{key:'department',label:en?'Department':'Τμήμα'},{key:'slot',label:en?'Control time':'Ώρα ελέγχου'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}

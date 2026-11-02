@@ -52,7 +52,7 @@ export function certificateDocument({
     <p class="rd-cert-lead">${en ? 'has successfully completed the training programme' : 'ολοκλήρωσε με επιτυχία το πρόγραμμα εκπαίδευσης'}</p>
     <p class="rd-cert-programme">${escapeHtml(program?.title || '—')}</p>
     <table class="rd-cert-facts">${facts.map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td><strong>${escapeHtml(value)}</strong></td></tr>`).join('')}</table>
-    <table class="rd-signatures"><tr>${signature(en ? 'Trainer' : 'Ο/Η εκπαιδευτής/τρια')}${signature(certificate?.issuer || (en ? 'For the hospital' : 'Για το νοσοκομείο'))}</tr></table>
+    <table class="rd-signatures"><tr>${signature(en ? 'Trainer' : 'Ο/Η εκπαιδευτής/τρια')}${signature(en ? 'Quality Manager / Administration' : 'Υπεύθυνος Ποιότητας / Διεύθυνση')}</tr></table>
     <p class="rd-cert-number">${en ? 'Certificate no.' : 'Αρ. βεβαίωσης'} <strong>${escapeHtml(number)}</strong></p>
   </div>`
   return {

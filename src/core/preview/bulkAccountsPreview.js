@@ -13,19 +13,19 @@ const dep = name => DEPARTMENTS.find(d => d.name === name)?.id || null
 
 // name, profession, department, e-mail
 const PEOPLE = [
-  ['Ιωάννα Παππά', 'Νοσηλεύτρια ΤΕ', 'ΜΕΘ', 'i.pappa@papanikolaou.example.org'],
+  ['Ιωάννα Παππά', 'Νοσηλευτής/τρια ΤΕ', 'ΜΕΘ', 'i.pappa@papanikolaou.example.org'],
   ['Μιχάλης Τσιρίγος', 'Νοσηλευτής ΤΕ', 'ΤΕΠ', 'm.tsirigos@papanikolaou.example.org'],
   ['Βασίλειος Ζερβός', 'Τραυματιοφορέας', 'ΤΕΠ', ''],
   ['Κωνσταντίνα Ρίζου', 'Προϊσταμένη Νοσηλευτικού Τμήματος', 'Β΄ Χειρουργική', 'k.rizou@papanikolaou.example.org'],
-  ['Σοφία Δημάκη', 'Νοσηλεύτρια ΔΕ', 'Καρδιολογική', 's.dimaki@papanikolaou.example.org'],
+  ['Σοφία Δημάκη', 'Νοσηλευτής/τρια ΔΕ', 'Καρδιολογική', 's.dimaki@papanikolaou.example.org'],
   ['Θεόδωρος Μαυρίδης', 'Επιμελητής Β΄ Παθολογίας', 'Α΄ Παθολογική', 'th.mavridis@papanikolaou.example.org'],
   ['Δέσποινα Αργυρίου', 'Μαία', 'Μαιευτική', 'd.argyriou@papanikolaou.example.org'],
   ['Αθανάσιος Γκίκας', 'Ιατρός Βιοπαθολόγος', 'Μικροβιολογικό Εργαστήριο', 'a.gkikas@papanikolaou.example.org'],
   ['Ευδοκία Σταμάτη', 'Φαρμακοποιός', 'Φαρμακείο', 'e.stamati@papanikolaou.example.org'],
-  ['Παρασκευή Λιάπη', 'Νοσηλεύτρια Επιτήρησης Λοιμώξεων', 'Γραφείο Λοιμώξεων', 'p.liapi@papanikolaou.example.org'],
-  ['Ολυμπία Κανελλοπούλου', 'Νοσηλεύτρια ΔΕ', 'Ορθοπαιδική', ''],
+  ['Παρασκευή Λιάπη', 'Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων', 'Γραφείο Λοιμώξεων', 'p.liapi@papanikolaou.example.org'],
+  ['Ολυμπία Κανελλοπούλου', 'Νοσηλευτής/τρια ΔΕ', 'Ορθοπαιδική', ''],
   ['Γεράσιμος Κουτσός', 'Ιατρός Εργασίας', 'Υγιεινή & Ασφάλεια', 'g.koutsos@papanikolaou.example.org'],
-  ['Νεκταρία Φωτίου', 'Νοσηλεύτρια ΤΕ', 'Νεφρολογική', 'n.fotiou@papanikolaou.example.org'],
+  ['Νεκταρία Φωτίου', 'Νοσηλευτής/τρια ΤΕ', 'Νεφρολογική', 'n.fotiou@papanikolaou.example.org'],
   ['Ηλίας Μπαλτάς', 'Διοικητικός υπάλληλος', 'Γραφείο Προσωπικού', 'i.baltas@papanikolaou.example.org'],
   ['Στέφανος Αλεξανδρόπουλος', 'Επιμελητής Α΄ Αναισθησιολογίας', 'Αναισθησιολογικό', 's.alexandropoulos@papanikolaou.example.org'],
 ]
@@ -52,7 +52,7 @@ function initial() {
   const stamati = list.find(row => row.full_name === 'Ευδοκία Σταμάτη')
   Object.assign(stamati, { existing_user_id: 'u-2-9', existing_name: 'Ευδοκία Σταμάτη', existing_is_demo: false, existing_organizations: ['Γ.Ν. Κομοτηνής «Σισμανόγλειο»'] })
   // One person invited earlier (single «Νέος χρήστης»), whose link expired.
-  list.push({ ...base(PEOPLE.length, ['Στέλλα Καραμανλή', 'Νοσηλεύτρια ΤΕ', 'Ουρολογική', 's.karamanli@papanikolaou.example.org']), user_id: 'u-1-90', username: 'SK29007', member_role: 'department_user', account_state: 'invited', blocked_reason: null, invitation_created_at: at(-18), invitation_expires_at: at(-11), item_status: null })
+  list.push({ ...base(PEOPLE.length, ['Στέλλα Καραμανλή', 'Νοσηλευτής/τρια ΤΕ', 'Ουρολογική', 's.karamanli@papanikolaou.example.org']), user_id: 'u-1-90', username: 'SK29007', member_role: 'department_user', account_state: 'invited', blocked_reason: null, invitation_created_at: at(-18), invitation_expires_at: at(-11), item_status: null })
   return list
 }
 const state = () => (rows ||= initial())

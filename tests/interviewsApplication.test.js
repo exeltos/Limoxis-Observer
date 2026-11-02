@@ -53,14 +53,14 @@ describe('Tablet application: the payload', () => {
     const draft = { ...demoApplication(), lastName: '  Νικολάου \u0007', firstName: ' Ελένη  Μαρία ', gender: 'robot', children: '45', email: ' E.Nikolaou@Example.org ', whyUs: 'Α\r\nΒ\u0000',
       education: Array.from({ length: 14 }, (_, i) => ({ title: `Τίτλος ${i}`, school: '', year: i ? '' : '19x9' })).concat([{ title: '', school: '', year: '2020' }]),
       languages: [{ language: 'en', speaking: 'superb', reading: 'very_good', writing: 'fair', certificate: false, certificateName: 'κρυφό' }, { language: ' ', speaking: 'fluent' }],
-      employers: [{ employer: 'Κλινική', from: '05/2020', to: '01/2021', current: true, jobTitle: 'Νοσηλεύτρια', leavingReason: '' }, { employer: '', from: '01/2010' }],
+      employers: [{ employer: 'Κλινική', from: '05/2020', to: '01/2021', current: true, jobTitle: 'Νοσηλευτής/τρια', leavingReason: '' }, { employer: '', from: '01/2010' }],
       consents: { gdpr: 'yes', truth: true, future: 1 }, signature: 'data:image/svg+xml;base64,AAAA' }
     const payload = cleanApplication(draft, { language: 'en' })
     expect(payload).toMatchObject({ language: 'en', fullName: 'Νικολάου Ελένη Μαρία', gender: '', children: '', email: 'e.nikolaou@example.org', whyUs: 'Α\nΒ', birthDate: '1996-03-14', signature: '' })
     expect(payload.education).toHaveLength(LIMITS.education)
     expect(payload.education[0]).toEqual({ title: 'Τίτλος 0', school: '', year: '', completed: true })
     expect(payload.languages).toEqual([{ language: 'en', speaking: '', reading: 'very_good', writing: 'fair', certificate: false, certificateName: '' }])
-    expect(payload.employers).toEqual([{ employer: 'Κλινική', fromOn: '2020-05-01', toOn: '', jobTitle: 'Νοσηλεύτρια', leavingReason: '' }])
+    expect(payload.employers).toEqual([{ employer: 'Κλινική', fromOn: '2020-05-01', toOn: '', jobTitle: 'Νοσηλευτής/τρια', leavingReason: '' }])
     expect(payload.consents).toEqual({ gdpr: false, future: false, references: false, truth: true })
     expect(cleanApplication(demoApplication()).signature.startsWith('data:image/png;base64,')).toBe(true)
   })

@@ -6,7 +6,8 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { SubTabs } from '../../design-system/SubTabs'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
-import { exportRegistry } from '../../core/export/registryExports'
+import { registryItems } from '../../core/export/registryExports'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
@@ -23,6 +24,7 @@ const stateText=(state,en)=>({valid:en?'Valid':'Σε ισχύ',expiring:en?'Expi
 export function TrainingCompetencePanel({state,employees=[],departments=[],language,locale,canManage,busy,onSaveRequirement,onDeleteRequirement,onSummaryChange,onExportChange,monthly=null,monthlyCount=null}){
  const en=language==='en'
  const {tenant,isDemo}=useTenant()
+ const {notify}=useFeedback()
  const [positionOptions,setPositionOptions]=useState([])
  useEffect(()=>{let active=true;if(isDemo){setPositionOptions(demoLibrarySeed.positions||[]);return()=>{active=false}}if(!tenant?.id)return()=>{active=false};loadManagementLibraries(tenant.id).then(libraries=>{if(active)setPositionOptions(libraries?.positions||[])}).catch(()=>{if(active)setPositionOptions([])});return()=>{active=false}},[isDemo,tenant?.id])
  const [view,setView]=useState('matrix')
@@ -40,18 +42,19 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  const name=e=>en?[e.firstNameEn||e.firstName,e.lastNameEn||e.lastName].filter(Boolean).join(' '):[e.lastName,e.firstName].filter(Boolean).join(' ')
  const programTitle=id=>(state.programs||[]).find(p=>p.id===id)?.title||id
 
- function exportMatrix(){
-  exportRegistry({name:en?'training-competence':'eparkeia-ekpaideusis',
+ function matrixExport(){
+  return ({name:en?'training-competence':'eparkeia-ekpaideusis',
    headers:[en?'Person':'Άτομο',en?'Department':'Τμήμα',en?'Category':'Κατηγορία',en?'Position':'Θέση',...matrix.requirements.map(r=>r.title)],
    rows:matrix.rows.map(row=>[name(row.employee),row.employee.department,row.employee.profession,row.employee.position||'',...row.cells.map(cell=>cell?`${stateText(cell.state,en)}${cell.validUntil?` (${fmt(cell.validUntil)})`:''}`:'')])})
  }
- function exportPlan(){
-  exportRegistry({name:en?'retraining-plan':'plano-epanekpaideusis',
+ function planExport(){
+  return ({name:en?'retraining-plan':'plano-epanekpaideusis',
    headers:en?['Due by','Person','Department','Category','Required training','Status','Valid until']:['Έως','Άτομο','Τμήμα','Κατηγορία','Απαιτούμενη εκπαίδευση','Κατάσταση','Ισχύς έως'],
    rows:plan.map(item=>[fmt(item.due),name(item.employee),item.employee.department,item.employee.profession,item.requirement.title,stateText(item.state,en),fmt(item.validUntil)])})
  }
 
- const exportItems=[{id:'matrix',label:en?'Excel: competence matrix':'Excel: πίνακας επάρκειας',disabled:!matrix.rows.length,onClick:exportMatrix},{id:'plan',label:en?'Excel: retraining plan':'Excel: πλάνο επανεκπαίδευσης',disabled:!plan.length,onClick:exportPlan}]
+ const printBlocked=()=>notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
+ const exportItems=[...registryItems('matrix',en?'competence matrix':'πίνακας επάρκειας',matrixExport,{language,kind:en?'Training':'Εκπαίδευση',disabled:!matrix.rows.length,onBlocked:printBlocked}),...registryItems('plan',en?'retraining plan':'πλάνο επανεκπαίδευσης',planExport,{language,kind:en?'Training':'Εκπαίδευση',disabled:!plan.length,onBlocked:printBlocked})]
  const exportRef=useRef(exportItems);exportRef.current=exportItems
  const summaryKey=`${matrix.rate}|${matrix.counts.missing}|${matrix.counts.expired}|${matrix.counts.expiring}|${matrix.rows.length}|${plan.length}|${department}`
  useEffect(()=>{onSummaryChange?.({rate:matrix.rate,...matrix.counts,people:matrix.rows.length,plan:plan.length,department})},[summaryKey]) // eslint-disable-line react-hooks/exhaustive-deps

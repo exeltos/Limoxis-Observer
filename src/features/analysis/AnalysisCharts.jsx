@@ -21,14 +21,16 @@ function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'No d
 
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
 // scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.
-export function BarList({rows,en,max:limit=8,scale,suffix=''}){
- const data=numericRows(rows).slice(0,limit)
+// Bars largest first (keepOrder keeps the given order); a row's third item is a detail beside the value («12/263»).
+export function BarList({rows,en,max:limit=8,scale,suffix='',keepOrder=false}){
+ const details=new Map((rows||[]).filter(row=>row?.[2]!=null).map(row=>[String(row[0]),row[2]]))
+ const sorted=numericRows(rows),data=(keepOrder?sorted:[...sorted].sort((a,b)=>b[1]-a[1])).slice(0,limit)
  if(!data.length)return <EmptyChart en={en}/>
  const max=scale||Math.max(1,...data.map(([,v])=>v))
- return <div className="viz-bars" role="list">{data.map(([label,value])=><div className="viz-bar-row" role="listitem" key={label} title={`${label}: ${fmt(value,en)}${suffix}`}>
+ return <div className={`viz-bars${details.size?' has-detail':''}`} role="list">{data.map(([label,value])=><div className="viz-bar-row" role="listitem" key={label} title={`${label}: ${fmt(value,en)}${suffix}${details.has(label)?` · ${details.get(label)}`:''}`}>
   <span className="viz-bar-label">{label}</span>
   <span className="viz-bar-track"><i style={{width:`${Math.min(100,Math.max(value>0?2:0,value/max*100))}%`,background:MAGNITUDE}}/></span>
-  <strong className="viz-bar-value">{fmt(value,en)}{suffix}</strong>
+  <strong className="viz-bar-value">{fmt(value,en)}{suffix}{details.has(label)&&<small className="viz-bar-detail"> · {details.get(label)}</small>}</strong>
  </div>)}</div>
 }
 
@@ -59,14 +61,17 @@ export function DonutChart({rows,en,centerLabel,max:limit=6}){
 
 // Monthly trend: 2px line over a soft area, >=8px markers, recessive grid,
 // crosshair + tooltip on hover (the whole column is the hit target).
-export function TrendChart({points,en,label}){
+// few: the months (keys) whose value rests on too few observations — a grey point and «λίγες παρατηρήσεις» on hover.
+// percent: a share of 100, so the axis runs 0–100 in even steps (not 0, 23, 46, 69, 92).
+export function TrendChart({points,en,label,few=null,percent=false}){
+ const fewKeys=new Set(few||[])
  const [hover,setHover]=useState(null)
  const wrapRef=useRef(null),[width,setWidth]=useState(640)
  useEffect(()=>{const el=wrapRef.current;if(!el||typeof ResizeObserver==='undefined')return undefined;const ro=new ResizeObserver(([entry])=>{const next=Math.round(entry.contentRect.width);if(next>0)setWidth(next)});ro.observe(el);return()=>ro.disconnect()},[])
  const data=(points||[]).map(([key,value])=>[key,toNumber(value)])
  if(data.length<2)return <EmptyChart en={en}/>
  const w=Math.max(320,width),h=220,pl=34,pr=26,pt=14,pb=28
- const max=Math.max(1,...data.map(([,v])=>v)),niceMax=Math.ceil(max/4)*4||4
+ const max=Math.max(1,...data.map(([,v])=>v)),niceMax=percent?Math.max(100,Math.ceil(max/25)*25):Math.ceil(max/4)*4||4
  const x=i=>pl+i*(w-pl-pr)/(data.length-1),y=v=>pt+(1-v/niceMax)*(h-pt-pb)
  const line=data.map(([,v],i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ')
  // The month still running (the last point is this month): its segment dashed and «έως 2/11», so a few days do not read as a drop.
@@ -88,22 +93,24 @@ export function TrendChart({points,en,label}){
    {partial&&<path d={`M${x(data.length-2)},${y(data[data.length-2][1])} L${x(data.length-1)},${y(data[data.length-1][1])}`} fill="none" stroke={MAGNITUDE} strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round"/>}
    {partial&&<text x={x(data.length-1)} y={Math.max(pt+10,y(data[data.length-1][1])-10)} textAnchor="end" className="viz-axis">{partialLabel}</text>}
    {hover!=null&&<line x1={x(hover)} x2={x(hover)} y1={pt} y2={h-pb} className="viz-crosshair"/>}
-   {data.map(([,v],i)=><circle key={i} cx={x(i)} cy={y(v)} r={hover===i?6:4} fill="#fff" stroke={MAGNITUDE} strokeWidth="2"/>)}
+   {data.map(([key,v],i)=><circle key={i} cx={x(i)} cy={y(v)} r={hover===i?6:4} fill="#fff" stroke={fewKeys.has(key)?'#9aa8b5':MAGNITUDE} strokeWidth="2" strokeDasharray={fewKeys.has(key)?'2 2':undefined}/>)}
    {data.map(([key],i)=><rect key={`hit-${key}`} x={x(i)-step/2} y={pt} width={step} height={h-pt-pb} fill="transparent" onMouseEnter={()=>setHover(i)}/>)}
   </svg>
-  {hover!=null&&<div className="viz-tooltip" style={{left:`${x(hover)/w*100}%`}}><span>{monthLabel(data[hover][0],en)}</span><strong>{fmt(data[hover][1],en)}</strong></div>}
+  {hover!=null&&<div className="viz-tooltip" style={{left:`${x(hover)/w*100}%`}}><span>{monthLabel(data[hover][0],en)}</span><strong>{fmt(data[hover][1],en)}</strong>{fewKeys.has(data[hover][0])&&<small>{en?'few observations':'λίγες παρατηρήσεις'}</small>}</div>}
  </div>
 }
 
 // Cross-tabulation: rows × columns of counts ([rowKey, columnKey, count]),
 // most frequent rows and columns first, each cell shaded by its share of the
 // largest one, with totals. `percent` shows each row's cells as % of its total.
-export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel}){
+// columnOrder: columns in a fixed order (severity low → critical) instead of by their totals.
+export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel,columnOrder=null}){
   const rowTotals=new Map(),columnTotals=new Map(),values=new Map()
   for(const [row,column,count] of cells){const n=Number(count)||0;if(!n||row==null||column==null)continue;rowTotals.set(row,(rowTotals.get(row)||0)+n);columnTotals.set(column,(columnTotals.get(column)||0)+n);values.set(`${row}\u0000${column}`,(values.get(`${row}\u0000${column}`)||0)+n)}
   if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
   const rows=[...rowTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxRows).map(([key])=>key)
-  const columns=[...columnTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxColumns).map(([key])=>key)
+  const rank=key=>{const at=columnOrder?columnOrder.indexOf(key):-1;return at<0?Infinity:at}
+  const columns=[...columnTotals].sort((a,b)=>(rank(a[0])-rank(b[0]))||(b[1]-a[1])).slice(0,maxColumns).map(([key])=>key)
   const peak=Math.max(...[...values.values()])
   const total=en?'Total':'Σύνολο'
   return <div className="analysis-matrix-wrap"><table className="analysis-matrix"><thead><tr><th scope="col">{rowLabel}</th>{columns.map(column=><th key={column} scope="col">{column}</th>)}<th scope="col">{totalLabel||total}</th></tr></thead>

@@ -184,7 +184,7 @@ describe('account e-mails', () => {
 
 describe('the screen model', () => {
   const raw = [
-    { employee_id: E1, full_name: 'Ιωάννα Παππά', profession_name: 'Νοσηλεύτρια ΤΕ', department_id: 'd1', department_name: 'ΜΕΘ', email: 'i@x.gr', account_state: 'none' },
+    { employee_id: E1, full_name: 'Ιωάννα Παππά', profession_name: 'Νοσηλευτής/τρια ΤΕ', department_id: 'd1', department_name: 'ΜΕΘ', email: 'i@x.gr', account_state: 'none' },
     { employee_id: E2, full_name: 'Βασίλειος Ζερβός', department_id: 'd2', department_name: 'ΤΕΠ', email: null, account_state: 'none', blocked_reason: 'missing_email' },
     { employee_id: 'e3', full_name: 'Στέλλα Καραμανλή', account_state: 'invited', member_role: 'department_user', invitation_expires_at: '2026-10-09T21:00:00Z', item_batch_id: 'b1', item_created_at: '2026-10-02T08:00:00Z' },
     { employee_id: 'e4', full_name: 'Θεόδωρος Μαυρίδης', account_state: 'invited', member_role: 'doctor_reviewer', invitation_expires_at: '2026-10-27T21:00:00Z', item_batch_id: 'b2', item_created_at: '2026-10-20T08:00:00Z', item_status: 'created' },

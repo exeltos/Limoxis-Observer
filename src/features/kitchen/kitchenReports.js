@@ -141,6 +141,11 @@ export function recallDrillDocument(drill, trace, { language = 'el' } = {}) {
 // --- Excel ----------------------------------------------------------------------------------
 const yes = (value, en) => (value == null ? '' : value ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι'))
 export function exportKitchenList(kind, rows, language = 'el') {
+  exportRegistry(kitchenListExport(kind, rows, language))
+}
+
+// The kitchen list as {name, headers, rows}: Excel, print and PDF are made from it.
+export function kitchenListExport(kind, rows, language = 'el') {
   const en = language === 'en'
   const L = (el, enText) => (en ? enText : el)
   const sheets = {
@@ -162,5 +167,5 @@ export function exportKitchenList(kind, rows, language = 'el') {
       row: r => [r.name, r.categoryLabel, storageLabel(r.storage, language), unitLabel(r.unit, language), r.supplierName, r.supplierCode, r.lowStockQuantity, yes(r.active !== false, en)] },
   }
   const sheet = sheets[kind]
-  exportRegistry({ name: `${en ? 'kitchen' : 'kouzina'}-${sheet.name}`, headers: sheet.headers, rows: rows.map(sheet.row) })
+  return { name: `${en ? 'kitchen' : 'kouzina'}-${sheet.name}`, headers: sheet.headers, rows: rows.map(sheet.row) }
 }

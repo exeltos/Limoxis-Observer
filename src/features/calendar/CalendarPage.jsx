@@ -10,9 +10,10 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { FilterSelect } from '../../design-system/FilterBar'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { can } from '../../core/permissions/roles'
-import { exportRegistry } from '../../core/export/registryExports'
+import { registryMenu } from '../../core/export/registryExports'
 import { programmeCalendar } from '../controls/controlCalendar'
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { loadControlCalendarMonths } from '../controls/controlCloudService'
@@ -36,6 +37,7 @@ const overdueLabel=(n,en)=>en?`${n} overdue`:`${n} εκπρόθεσμ${n===1?'ο
 // the next sampling on top.
 export function CalendarPage({departmentOnly=false}={}){
  const {language,locale}=useLanguage();const en=language==='en'
+ const {notify}=useFeedback()
  const {tenant,role,membership,canAccessRecord,isDemo}=useTenant()
  const userId=useAuditActor()?.id||null
  const navigate=useNavigate()
@@ -101,8 +103,8 @@ export function CalendarPage({departmentOnly=false}={}){
  function setFilter(next){setSearchParams(current=>{const params=new URLSearchParams(current);if(!next||filterKinds.every(filter=>next.has(filter)))params.delete('filter');else params.set('filter',[...next].join(',')||'none');return params},{replace:true})}
  function clearFilters(){setFilter(null);setDepartment('all')}
  function toggleFilter(filter){const next=new Set(filterKinds.filter(isOn));if(next.has(filter))next.delete(filter);else next.add(filter);setFilter(next)}
- function exportMonth(){
-  exportRegistry({name:en?`calendar-${monthKey}`:`imerologio-${monthKey}`,
+ function monthExport(){
+  return ({name:en?`calendar-${monthKey}`:`imerologio-${monthKey}`,
    headers:en?['Date','Time','Module','Item','Detail','Department','Status']:['Ημερομηνία','Ώρα','Ενότητα','Θέμα','Λεπτομέρεια','Τμήμα','Κατάσταση'],
    rows:[...overdue.filter(e=>!e.date.startsWith(monthKey)),...monthEvents].map(e=>[new Intl.DateTimeFormat(locale).format(new Date(`${e.date}T12:00:00`)),e.time||'',calendarKindLabel(e.kind,language),e.title,e.detail||'',e.department||'',stateLabel(e.state,en)])})
  }
@@ -115,7 +117,7 @@ export function CalendarPage({departmentOnly=false}={}){
  const selectedEvents=panelKind?dayEvents.filter(e=>e.kind===panelKind):dayEvents
  // An empty day points to the next day that has something, so a quiet day is never a dead end.
  const nextDay=dayEvents.length?null:[...byDay.keys()].filter(key=>key>selected).sort()[0]||null
- return <Page fill className="calendar-page" title={departmentOnly?(en?'Department calendar':'Ημερολόγιο τμήματος'):(en?'Calendar':'Ημερολόγιο')} subtitle={departmentOnly?(en?'What concerns your department by date: the culture samples that will be taken, controls, trainings and deadlines.':'Ό,τι αφορά το τμήμα σας ανά ημερομηνία: οι καλλιέργειες που θα παρθούν, έλεγχοι, εκπαιδεύσεις και προθεσμίες.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} onExcel={exportMonth}/>}>
+ return <Page fill className="calendar-page" title={departmentOnly?(en?'Department calendar':'Ημερολόγιο τμήματος'):(en?'Calendar':'Ημερολόγιο')} subtitle={departmentOnly?(en?'What concerns your department by date: the culture samples that will be taken, controls, trainings and deadlines.':'Ό,τι αφορά το τμήμα σας ανά ημερομηνία: οι καλλιέργειες που θα παρθούν, έλεγχοι, εκπαιδεύσεις και προθεσμίες.'):(en?'Everything that has to be done, from every module, by date.':'Όλα όσα πρέπει να γίνουν, από όλες τις ενότητες, ανά ημερομηνία.')} actions={<ExportMenu disabled={!monthEvents.length&&!overdue.length} {...registryMenu(monthExport,{language,kind:en?'Calendar':'Ημερολόγιο',title:`${en?'Calendar':'Ημερολόγιο'} ${monthKey}`,onBlocked:()=>notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')})}/>}>
   <CanonicalTabs value={view} onChange={setView} ariaLabel={en?'Calendar view':'Προβολή ημερολογίου'} items={[{value:'month',label:en?'Month':'Μήνας',icon:CalendarDays},{value:'list',label:`${en?'To do':'Εκκρεμότητες'}${overdue.length?` · ${overdueLabel(overdue.length,en)}`:''}`,icon:ListChecks}]}/>
   <section className="surface registry-workspace workspace-column workspace-fill calendar-workspace">
    <div className="calendar-toolbar">

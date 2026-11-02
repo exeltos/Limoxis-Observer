@@ -21,3 +21,9 @@
 .training-content-stack{display:grid;gap:12px;padding:12px 20px 18px;align-content:start}
 .training-participants-view .record-tab-panel-body,.training-results-panel .record-tab-panel-body{padding:0}
 .training-effectiveness .record-tab-panel-body{padding:12px 20px 16px}
+.training-program-progress{margin-top:22px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
+.training-program-progress h4{margin:0 0 8px;font-size:14px}
+.training-program-progress dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 28px;margin:0}
+.training-program-progress dl>div{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--lo-color-border)}
+.training-program-progress dt{color:var(--lo-color-muted)}
+.training-program-progress dd{margin:0;font-weight:600}

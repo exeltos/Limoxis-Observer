@@ -1,4 +1,4 @@
-import { FileSpreadsheet, FileText, FileType, Printer } from 'lucide-react'
+import { BarChart3, FileSpreadsheet, FileText, FileType, Printer } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { OverflowMenu } from './OverflowMenu'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
@@ -6,8 +6,8 @@ import { createContext, useContext } from 'react'
 import * as tenantModule from '../core/tenant/TenantContext'
 import { canExportRawData } from '../core/permissions/systemRoleMatrix'
 
-const ICONS = { print: Printer, pdf: FileText, excel: FileSpreadsheet, word: FileType }
-const ORDER = ['print', 'pdf', 'excel', 'word', 'data']
+const ICONS = { print: Printer, pdf: FileText, excel: FileSpreadsheet, word: FileType, report: BarChart3 }
+const ORDER = ['print', 'pdf', 'excel', 'word', 'report', 'data']
 
 // The one export control of the app, the same on list pages, record headers and
 // dialogs: «Εξαγωγή ▾» with only the options that apply, in this order:

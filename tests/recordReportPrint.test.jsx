@@ -111,11 +111,13 @@ describe('RecordReportPrint', () => {
     expect(html).not.toMatch(/badge|chip|pill|tone-|danger|warning|success|status-/i)
     expect(container.querySelector('table,button,input,svg')).toBeNull()
     expect(html).not.toMatch(/style="[^"]*(color|background)/i)
-    // The stylesheet: black on white, serif, no coloured values beyond black/grey rules.
+    // The stylesheet: the look of the shared documents (owner, 2/11/2026): Arial, the facts as a two-column table with a
+    // light label column, signatures; colours only from the documents' palette (no status colours).
     const css = read('src/styles/record-report.css')
-    expect(css).toContain('Georgia,"Times New Roman"')
-    expect(css).toContain('font:11pt/1.5')
-    expect(css.match(/#[0-9a-f]{3,6}\b/gi).every(color => ['#000', '#fff', '#777'].includes(color.toLowerCase()))).toBe(true)
+    expect(css).toContain('font:10pt/1.45 Arial,Helvetica,sans-serif')
+    expect(css).toContain('.record-report-signatures')
+    const palette = ['#fff', '#17324a', '#1d3a52', '#5d7083', '#8a5a00', '#cbd8e3', '#f2f6f9', '#e3e9ef']
+    expect(css.match(/#[0-9a-f]{3,6}\b/gi).every(color => palette.includes(color.toLowerCase()))).toBe(true)
   })
 
   it('shows the demo mark as plain words and the logo only as a data URL', () => {

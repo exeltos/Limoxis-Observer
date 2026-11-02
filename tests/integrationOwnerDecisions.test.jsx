@@ -52,11 +52,11 @@ describe('integration: owner decisions', () => {
     expect(screen.getByText('userMenu.language: Ελληνικά')).toBeTruthy()
   })
 
-  it('gives «Δείκτες» one row of tabs, «Περισσότερα» last, and maps every old Analysis tab', () => {
+  it('gives «Δείκτες» one row of tabs, no «Περισσότερα», and maps every old Analysis tab', () => {
     expect(INDICATOR_TABS.map(tab => tab[1])).toEqual(['Σύνοψη', 'Λοιμώξεις & μικροβιολογία', 'Αντιμικροβιακά', 'Πρόληψη & έλεγχοι', 'Οργανισμός'])
-    expect(INDICATOR_MORE_TABS.map(tab => tab[0])).toEqual(['pps', 'reporting', 'lira'])
+    expect(INDICATOR_MORE_TABS).toEqual([])
     expect(['overview', 'surveillance', 'laboratory', 'antimicrobials', 'prevention', 'controls', 'quality', 'qualityfood', 'training', 'governance', 'occupational', 'pps', 'reporting', 'lira'].map(indicatorTabOf))
-      .toEqual(['summary', 'infections', 'infections', 'antimicrobials', 'prevention', 'prevention', 'organisation', 'organisation', 'organisation', 'organisation', 'organisation', 'pps', 'reporting', 'lira'])
+      .toEqual(['summary', 'infections', 'infections', 'antimicrobials', 'prevention', 'prevention', 'organisation', 'organisation', 'organisation', 'organisation', 'organisation', 'infections', 'summary', 'infections'])
     const page = read('src/features/executive/ExecutiveDashboardPage.jsx')
     expect(page).toContain("const title=tx('Εικόνα νοσοκομείου','Hospital overview')")
     expect(page).not.toContain('CheckboxField')

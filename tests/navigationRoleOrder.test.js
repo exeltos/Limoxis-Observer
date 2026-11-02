@@ -13,7 +13,7 @@ describe('sidebar order per role', () => {
     expect(order(ROLES.HOSPITAL_ADMIN)).toEqual([
       'overview:dashboard', 'overview:executiveDashboard', 'overview:calendar',
       'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
-      'operations:controls', 'operations:kitchen',
+      'operations:controls', 'operations:cultureProgramme', 'operations:kitchen',
       'quality:quality', 'quality:qualityMeasures', 'quality:meetings', 'quality:documents', 'quality:library',
       'staff:employees', 'staff:training', 'staff:interviews',
       'management:management',

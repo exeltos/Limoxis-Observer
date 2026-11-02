@@ -30,6 +30,19 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
  }
 
  const retraining=section==='retraining'
+
+ // Planned against done, and the months so far with no programme at all (a future year has none «so far»).
+ const count=state=>rows.filter(r=>r.state===state).length
+ const lastMonth=today.slice(0,4)===String(year)?currentMonth:today.slice(0,4)>String(year)?11:-1
+ const emptyMonths=months.filter((_,m)=>m<=lastMonth&&!rows.some(r=>r.months.includes(m)))
+ const summaryText=[
+  en?`${rows.length} programmes`:`${rows.length} προγράμματα`,
+  en?`${count('done')} completed`:`${count('done')} ολοκληρώθηκαν`,
+  count('running')?(en?`${count('running')} in progress`:`${count('running')} σε εξέλιξη`):'',
+  count('planned')?(en?`${count('planned')} planned`:`${count('planned')} προγραμματισμένα`):'',
+  count('overdue')?(en?`${count('overdue')} overdue`:`${count('overdue')} εκπρόθεσμα`):'',
+  emptyMonths.length?`${en?'No training in':'Χωρίς εκπαίδευση'}: ${emptyMonths.join(', ')}`:'',
+ ].filter(Boolean).join(' · ')
  const monthCells=(row,render)=>months.map((_,m)=><td key={m} className={`training-plan-month${m===currentMonth?' current':''}`}>{render(m)}</td>)
 
  return <div className="training-plan">
@@ -39,6 +52,7 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
     <strong>{year}</strong>
     <IconButton label={en?'Next year':'Επόμενο έτος'} onClick={()=>onYearChange(year+1)}><ChevronRight size={16}/></IconButton>
    </div>
+   {!retraining&&rows.length>0&&<p className="training-plan-summary">{summaryText}</p>}
   </div>
   <div className="scroll-table">
    <table className="data-table sticky-table training-plan-table">

@@ -60,6 +60,8 @@ export function normalizeReport(report, { en = false } = {}) {
     sections.push({ ...next, empty: hasContent ? '' : plain(section.emptyText) || empty, documentsEmpty: plain(section.emptyText) || empty })
   }
   return {
+    // Signature lines at the end (as the shared documents): role names, e.g. «Επικυρώθηκε από».
+    signatures: cleanList(report?.signatures),
     kind: plain(report?.kind),
     code: plain(report?.code),
     title: plain(report?.title),

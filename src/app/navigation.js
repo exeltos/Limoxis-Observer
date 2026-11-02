@@ -1,4 +1,4 @@
-import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, CalendarRange, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -34,6 +34,8 @@ export const navigation=[
   {to:'/laboratory',key:'laboratory',icon:Beaker,capability:CAPABILITIES.VIEW_LAB},
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
+  // «Καλλιέργειες» (Culture programme): an entry of its own under «Controls» (indented), for the infection control lead and the administrator.
+  {to:'/controls/cultures',key:'cultureProgramme',label:'sidebarNav.culturesShort',icon:CalendarRange,capability:CAPABILITIES.VIEW_CONTROLS,roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD],parent:'controls'},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
   // «Indicators & objectives» of the Quality Center on its own page: indicators, registers, objectives, surveys.
   {to:'/quality/measures',key:'qualityMeasures',label:'sidebarNav.qualityMeasures',icon:Target,capability:CAPABILITIES.VIEW_QUALITY},
@@ -98,7 +100,7 @@ export const NAV_GROUP_LABELS=Object.freeze({
 const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
   ['clinical',['surveillance','laboratory','prevention','pharmacy']],
-  ['operations',['controls','kitchen']],
+  ['operations',['controls','cultureProgramme','kitchen']],
   ['quality',['quality','qualityMeasures','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
   ['management',['management']],
@@ -113,7 +115,7 @@ const roleMenuPolicy=Object.freeze({
   // The demo account sees every module: the same headed groups, so the menu never scrolls.
   [ROLES.DEMO]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
-    ['dashboard','surveillance','laboratory','prevention','controls','indicators','meetings','calendar'],
+    ['dashboard','surveillance','laboratory','prevention','controls','cultureProgramme','indicators','meetings','calendar'],
     ['platformAnalyticsNav','quality','employees','training','documents','library','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),

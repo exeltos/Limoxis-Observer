@@ -2975,6 +2975,8 @@ button{letter-spacing:0}
 /* Side menu (not the phone bar): the list takes the free height and scrolls above the bin and the footer. */
 @media (min-width:641px){.sidebar nav{flex:1 1 auto;border-bottom:1px solid rgba(255,255,255,.08)}}
 .nav-item.nested{min-height:25px!important;padding-left:16px!important;font-size:12.5px!important}
+/* An entry under another one of a group («Cultures» under «Controls»): its icon under the parent's label (indent + icon 18 + gap 10). */
+.sidebar-nav-section-items .nav-item.nested{padding-left:calc(var(--lo-nav-indent,12px) + 28px)!important}
 .sidebar-nav-children{padding:2px 0 4px!important}
 .sidebar-nav-management{margin-top:5px!important;padding-top:5px!important;border-top:1px solid rgba(255,255,255,.08)!important}
 @media (min-width:641px){.sidebar-nav-divider{margin:5px 0 3px;border-top:1px solid rgba(255,255,255,.08)}}

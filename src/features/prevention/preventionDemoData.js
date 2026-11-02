@@ -248,7 +248,7 @@ export const handHygieneRows = [
       {
         id: 'o1',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment1'],
         action: 'HR',
         gloves: false,
@@ -257,7 +257,7 @@ export const handHygieneRows = [
       {
         id: 'o2',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment4'],
         action: 'HR',
         gloves: true,
@@ -266,7 +266,7 @@ export const handHygieneRows = [
       {
         id: 'o3',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment2'],
         action: 'HW',
         gloves: false,
@@ -275,7 +275,7 @@ export const handHygieneRows = [
       {
         id: 'o4',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment3'],
         action: 'MISSED',
         gloves: false,
@@ -333,7 +333,7 @@ export const handHygieneRows = [
       {
         id: 'o1',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment2'],
         action: 'HW',
         gloves: true,
@@ -342,7 +342,7 @@ export const handHygieneRows = [
       {
         id: 'o2',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment3'],
         action: 'HW',
         gloves: true,
@@ -362,7 +362,7 @@ export const handHygieneRows = [
       {
         id: 'o1',
         professionalsCount: 2,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment1'],
         action: 'HR',
         gloves: false,
@@ -371,7 +371,7 @@ export const handHygieneRows = [
       {
         id: 'o2',
         professionalsCount: 1,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment2'],
         action: 'MISSED',
         gloves: true,
@@ -380,7 +380,7 @@ export const handHygieneRows = [
       {
         id: 'o3',
         professionalsCount: 2,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment4'],
         action: 'HR',
         gloves: false,
@@ -438,7 +438,7 @@ export const handHygieneRows = [
       {
         id: 'o1',
         professionalsCount: 2,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment1'],
         action: 'HR',
         gloves: false,
@@ -447,7 +447,7 @@ export const handHygieneRows = [
       {
         id: 'o2',
         professionalsCount: 2,
-        professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+        professionalCategory: 'Νοσηλευτής/τρια',
         moments: ['moment4'],
         action: 'HR',
         gloves: false,
@@ -751,9 +751,9 @@ const HH_OBSERVERS = [
 ]
 const WARD_COMPLIANCE = [0.02, -0.04, 0, -0.06, 0.03, 0.05, -0.02]
 const NURSING_CATEGORIES = [
-  'Νοσηλευτής / Νοσηλεύτρια',
-  'Νοσηλευτής / Νοσηλεύτρια',
-  'Νοσηλευτής / Νοσηλεύτρια',
+  'Νοσηλευτής/τρια',
+  'Νοσηλευτής/τρια',
+  'Νοσηλευτής/τρια',
   'Βοηθός Νοσηλευτή',
   'Βοηθητικό προσωπικό',
 ]

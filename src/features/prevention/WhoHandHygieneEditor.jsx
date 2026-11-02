@@ -44,7 +44,7 @@ export const WHO_MOMENTS = [
 
 export const WHO_PROFESSIONS = [
   ['Ιατρός', 'Physician'],
-  ['Νοσηλευτής / Νοσηλεύτρια', 'Nurse'],
+  ['Νοσηλευτής/τρια', 'Nurse'],
   ['Βοηθός Νοσηλευτή', 'Nursing assistant'],
   ['Φυσικοθεραπευτής', 'Physiotherapist'],
   ['Τεχνολόγος', 'Technologist'],
@@ -58,7 +58,7 @@ const fallbackProfessionalCategories = () =>
 const blankObservation = () => ({
   id: '',
   professionalsCount: 1,
-  professionalCategory: 'Νοσηλευτής / Νοσηλεύτρια',
+  professionalCategory: 'Νοσηλευτής/τρια',
   moments: [],
   action: '',
   gloves: false,
@@ -165,7 +165,7 @@ export function WhoHandHygieneEditor({
             mapped.find(category => category.value === 'Νοσηλευτής/τρια') ||
             mapped.find(category => category.value.toLocaleLowerCase('el').includes('νοσηλευ')) ||
             mapped[0]
-          return preferred && state.professionalCategory === 'Νοσηλευτής / Νοσηλεύτρια'
+          return preferred && state.professionalCategory === 'Νοσηλευτής/τρια'
             ? { ...state, professionalCategory: preferred.value }
             : state
         })

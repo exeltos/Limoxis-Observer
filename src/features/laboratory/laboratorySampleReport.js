@@ -63,5 +63,7 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
       { id: 'documents', title: L('Έγγραφα', 'Documents'), documents: documents || { value: [] } },
       { id: 'history', title: L('Ιστορικό', 'History'), events, keep: true },
     ],
+    // The laboratory's validation (owner, 2/11/2026).
+    signatures: [L('Επικυρώθηκε από', 'Validated by')],
   }
 }

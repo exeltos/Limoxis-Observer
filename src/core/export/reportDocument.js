@@ -70,6 +70,7 @@ function cell(value, tag = 'td') {
   return `<${tag}>${text(value, '')}</${tag}>`
 }
 
+const DENSE_COLUMNS = 11
 export function reportTableHtml({ columns = [], rows = [], foot = null, empty } = {}, en = false) {
   if (!rows.length)
     return `<p class="rd-empty">${escapeHtml(empty || (en ? 'No entries.' : 'Δεν υπάρχουν εγγραφές.'))}</p>`
@@ -78,7 +79,10 @@ export function reportTableHtml({ columns = [], rows = [], foot = null, empty } 
     : ''
   const body = rows.map(row => `<tr>${row.map(value => cell(value)).join('')}</tr>`).join('')
   const footer = foot ? `<tfoot><tr>${foot.map(value => cell(value)).join('')}</tr></tfoot>` : ''
-  return `<table class="rd-table" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
+  // A table of many columns (a long list such as the legislation) is dense: smaller type, fixed widths, words may break,
+  // so it always fits the page instead of running off its right edge.
+  const dense = columns.length >= DENSE_COLUMNS ? ' rd-dense' : ''
+  return `<table class="rd-table${dense}" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
 }
 
 function factsHtml(facts = [], columns = 2) {
@@ -123,7 +127,7 @@ function sectionHtml(section, number, en) {
   const title = section.title
     ? `<h2>${number ? `${number}. ` : ''}${escapeHtml(section.title)}</h2>`
     : ''
-  return `<section class="rd-section${section.keepTogether ? ' rd-keep' : ''}${section.pageBreak ? ' rd-page' : ''}">${title}${parts.join('')}</section>`
+  return `<section class="rd-section${section.keepTogether ? ' rd-keep' : ''}${section.pageBreak ? ' rd-break' : ''}">${title}${parts.join('')}</section>`
 }
 
 const REPORT_CSS = `
@@ -161,6 +165,8 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-table th{background:#eef3f7;font-weight:700}
 .rd-table tfoot td{font-weight:700;background:#f6f9fb}
 .rd-table tr{break-inside:avoid}
+.rd-dense{font-size:7pt;table-layout:fixed}
+.rd-dense th,.rd-dense td{padding:2px 3px;overflow-wrap:anywhere;word-break:break-word}
 .rd-table td small{display:block;color:#5d7083}
 .rd-table .rd-num{text-align:right;white-space:nowrap}
 .rd-table .rd-sub-cell{padding-left:18px;color:#4c6378}
@@ -172,7 +178,7 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-table .rd-warn{color:#b54708;font-weight:700}
 .rd-empty,.rd-note{color:#5d7083;font-size:9pt}
 .rd-keep{break-inside:avoid}
-.rd-page{break-before:page}
+.rd-break{break-before:page}
 .rd-signatures{width:100%;border-collapse:separate;border-spacing:16px 0;margin:22px -16px 0;break-inside:avoid}
 .rd-signatures td{vertical-align:top;border-top:1px solid #17324a;padding-top:6px;font-size:9.5pt;width:33%}
 .rd-signatures strong,.rd-signatures span{display:block;margin-bottom:12px}
@@ -286,6 +292,33 @@ export function printReport(doc, options = {}) {
   }
   if (win.document.readyState === 'complete') setTimeout(go, 300)
   else win.addEventListener('load', () => setTimeout(go, 200), { once: true })
+  return true
+}
+
+// A document whose data must be read first (e.g. every execution of a period): the window opens at once, inside the
+// click (popup blockers allow it only there), shows «Προετοιμασία…», and prints once the document is built.
+// build: async () => doc. Returns false when the window was blocked.
+export function printReportLater(build, options = {}) {
+  const win = window.open('', '_blank')
+  if (!win) return false
+  win.document.write(`<!doctype html><meta charset="utf-8"><p style="font:14px Arial,sans-serif;color:#5d7083;padding:24px">${options.language === 'en' ? 'Preparing the document…' : 'Προετοιμασία του εντύπου…'}</p>`)
+  Promise.resolve()
+    .then(build)
+    .then(doc => {
+      win.document.open()
+      win.document.write(buildReportHtml(doc, options))
+      win.document.close()
+      win.focus()
+      const go = () => { try { win.print() } catch { /* the window was closed */ } }
+      if (win.document.readyState === 'complete') setTimeout(go, 300)
+      else win.addEventListener('load', () => setTimeout(go, 200), { once: true })
+    })
+    .catch(error => {
+      win.document.open()
+      win.document.write(`<!doctype html><meta charset="utf-8"><p style="font:14px Arial,sans-serif;color:#a32121;padding:24px">${options.language === 'en' ? 'The document could not be prepared.' : 'Το έντυπο δεν ετοιμάστηκε.'}</p>`)
+      win.document.close()
+      options.onError?.(error)
+    })
   return true
 }
 

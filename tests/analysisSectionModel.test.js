@@ -21,9 +21,11 @@ const snapshot = {
 describe('Analysis section model', () => {
   it('computes hand hygiene compliance as a rate, not a record count', () => {
     const model = buildSectionModel('prevention', snapshot, tx)
-    expect(model.kpis[1][1]).toBe('75%')
-    expect(model.kpis[1][3]).toBe('warning')
-    expect(model.charts.find(chart => chart.title === 'Υγιεινή χεριών ανά τμήμα').rows).toEqual([['ΜΕΘ', 80]])
+    // Bundles with no assessment drop out of the figures: hand hygiene comes first.
+    expect(model.kpis[0][1]).toBe('75%')
+    expect(model.kpis[0][3]).toBe('warning')
+    // The rate with the opportunities it rests on.
+    expect(model.charts.find(chart => chart.title === 'Υγιεινή χεριών ανά τμήμα').rows).toEqual([['ΜΕΘ', 80, '10']])
   })
 
   it('shows confirmed HAI, isolations and translated classification labels', () => {
@@ -72,7 +74,7 @@ describe('Workforce, training and governance sections', () => {
   })
   it('reports training completion and pending minutes', () => {
     expect(buildSectionModel('training', snap, tx).kpis[0][1]).toBe('75%')
-    expect(buildSectionModel('training', snap, tx).charts[0].rows).toEqual([['ΜΕΘ', 50]])
+    expect(buildSectionModel('training', snap, tx).charts[0].rows).toEqual([['ΜΕΘ', 50, '1/2']])
     expect(buildSectionModel('governance', snap, tx).kpis[3][1]).toBe(1)
   })
   it('keeps occupational health aggregated and permission-gated in the database', () => {
@@ -124,5 +126,18 @@ describe('Overdue follow-ups', () => {
     const { overdueFollowUps } = await import('../src/features/analysis/analysisDomains')
     const visits = [{ employeeId: 'a', date: '2026-01-10', followUpDate: '2026-03-01' }, { employeeId: 'a', date: '2026-04-01', followUpDate: '2027-04-01' }, { employeeId: 'b', date: '2026-02-01', followUpDate: '2026-05-01' }, { employeeId: 'b', date: '2026-01-01', followUpDate: '2026-02-01' }]
     expect(overdueFollowUps(visits, '2026-11-02')).toBe(1)
+  })
+})
+
+describe('Antimicrobials section', () => {
+  it('says nothing is recorded instead of empty charts, and adds the pharmacy consumption when there is some', async () => {
+    const { buildSectionModel: build } = await import('../src/features/analysis/analysisDomains')
+    const say = (el) => el
+    const empty = build('antimicrobials', { domains: { antimicrobial: { total: 0 } } }, say)
+    expect(empty.charts.map(chart => chart.type)).toEqual(['note'])
+    const used = build('antimicrobials', { domains: { antimicrobial: { total: 3, byApproval: [['approved', 2], ['pending', 1]] }, consumption: { ddd: 500, accessDdd: 300, patientDays: 1000 } } }, say)
+    expect(used.kpis.find(row => row[0] === 'DDD / 100 ασθενοημέρες')[1]).toBe('50')
+    expect(used.kpis.find(row => row[0] === 'Access (AWaRe)')[1]).toBe('60%')
+    expect(used.charts.some(chart => chart.title === 'Συχνότερες ουσίες')).toBe(false)
   })
 })

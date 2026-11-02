@@ -31,3 +31,4 @@
 .training-plan-need.uncovered td:first-child small{color:#b42318;font-weight:700}
 .training-plan-empty{text-align:center;color:var(--lo-color-muted)}
 .training-plan-note{margin:0;padding:8px 14px;border-top:1px solid var(--lo-color-border);font-size:11px;color:var(--lo-color-muted)}
+.training-plan-summary{margin:0;color:var(--lo-color-muted)}

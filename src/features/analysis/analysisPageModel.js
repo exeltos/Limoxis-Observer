@@ -25,7 +25,7 @@ export function organismBySiteRows(rows,tx,limit=12){
  }
  return [...grouped.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit)
 }
-export const TABS=[['overview','Σύνοψη','Overview',Activity],['surveillance','Επιτήρηση & ΛΣΦΥ','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['qualityfood','Ποιότητα & ασφάλεια τροφίμων','Quality & food safety',ChefHat],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen],['pps','Μελέτη επιπολασμού','Prevalence survey',Gauge],['lira','LIRA & AI','LIRA & AI',BrainCircuit]]
+export const TABS=[['overview','Σύνοψη','Overview',Activity],['surveillance','Επιτήρηση & ΛΣΦΥ','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['qualityfood','Ποιότητα & ασφάλεια τροφίμων','Quality & food safety',ChefHat],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen],['pps','Μελέτη επιπολασμού','Prevalence survey',Gauge],['lira','Εξάρσεις','Outbreaks',BrainCircuit]]
 // Module each tab needs in the organization's operating profile; tabs not listed are always shown.
 // The kitchen is not a module of the profile (it is gated by view_kitchen), so
 // «Ποιότητα & ασφάλεια τροφίμων» follows the Quality module.
@@ -74,16 +74,14 @@ export function buildProductionRows(tab,snapshot,tx){const summary=snapshot?.sum
 export const INDICATOR_TABS=[
  ['summary','Σύνοψη','Overview',Gauge,[]],
  // Infections and the microbiology (AMR) in one tab: the episodes and the cultures behind them.
- ['infections','Λοιμώξεις & μικροβιολογία','Infections & microbiology',Stethoscope,['surveillance','laboratory']],
+ ['infections','Λοιμώξεις & μικροβιολογία','Infections & microbiology',Stethoscope,['surveillance','laboratory','pps','lira']],
  ['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill,['antimicrobials']],
  ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',ShieldCheck,['prevention','controls']],
  ['organisation','Οργανισμός','Organisation',Users,['occupational','quality','qualityfood','training','governance']],
 ]
-export const INDICATOR_MORE_TABS=[
- ['pps','Μελέτη επιπολασμού','Prevalence survey',Activity,['pps']],
- ['reporting','Αναφορές & ποιότητα δεδομένων','Reporting & data quality',FileWarning,['reporting']],
- ['lira','LIRA & AI','LIRA & AI',BrainCircuit,['lira']],
-]
+// No «More» (owner, 2/11/2026): the prevalence survey and the outbreaks are small tabs of «Infections & microbiology»; the data
+// quality checks and the EARS-Net export are the laboratory's (Laboratory › Notifiable diseases).
+export const INDICATOR_MORE_TABS=[]
 // The «Δείκτες» tab that shows an Analysis tab (old links: /analysis?tab=…, ?view=analysis&tab=…).
 export function indicatorTabOf(analysisTab){
  if(!analysisTab||analysisTab==='overview')return 'summary'

@@ -176,6 +176,7 @@ export function qualityFoodSection(q = {}, tx) {
   const satisfaction = pct(q.satisfiedAnswers, q.ratingAnswers)
   const patients = pct(q.patientSatisfiedAnswers, q.patientRatingAnswers)
   const n = value => Number(value ?? 0).toLocaleString(en ? 'en-US' : 'el-GR')
+  const receiptMonths = q.receiptsMonthly || []
   return {
     kpis: [
       [tx('Συμμόρφωση επιθεωρήσεων', 'Audit compliance'), fmtPct(compliance), tx(`${n(q.audits)} επιθεωρήσεις · ${n(q.findingsOpen)} ${q.findingsOpen === 1 ? 'ανοιχτό εύρημα' : 'ανοιχτά ευρήματα'}`, `${n(q.audits)} audits · ${n(q.findingsOpen)} open ${q.findingsOpen === 1 ? 'finding' : 'findings'}`), q.findingsMajor ? 'danger' : compliance == null ? '' : compliance < 90 ? 'warning' : 'good'],
@@ -194,20 +195,22 @@ export function qualityFoodSection(q = {}, tx) {
         [tx('Ημέρες επαληθευμένες', 'Days verified'), daysVerified],
         [tx('Αποψύξεις επαληθευμένες', 'Defrosts verified'), pct(q.defrostsVerified, q.defrosts)],
       ].filter(([, value]) => value != null).map(([key, value]) => [key, Math.round(value * 10) / 10]) },
-      { type: 'trend', wide: true, sparse: true, title: tx('Παραλαβές εκτός ορίων ανά μήνα (%)', 'Receipts out of limits by month (%)'), subtitle: tx('Παραλαβές με μέτρηση ή έλεγχο εκτός ορίων προς το σύνολο του μήνα.', 'Receipts with a measurement or check out of limits over the month’s receipts.'), points: (q.receiptsMonthly || []).map(([key, total, out]) => [key, pct(out, total) ?? 0]) },
-      { type: 'bars', title: tx('Προμηθευτές', 'Suppliers'), subtitle: tx('Αξιολογήσεις και μη συμμορφώσεις της περιόδου· πιστοποιητικά (σε λήξη, ληγμένα) όπως είναι σήμερα.', 'Evaluations and nonconformities of the period; certificates (expiring, expired) as they stand today.'), rows: [
-        [tx('Ενεργοί', 'Active'), q.suppliersActive ?? 0],
-        [tx('Αξιολογήθηκαν', 'Evaluated'), q.suppliersEvaluated ?? 0],
-        [tx('Λήγουν σε 60 ημέρες', 'Expire in 60 days'), q.certificatesExpiring ?? 0],
-        [tx('Ληγμένα', 'Expired'), q.certificatesExpired ?? 0],
-        [tx('Νέες μη συμμορφώσεις', 'New nonconformities'), q.nonconformities ?? 0],
-        [tx('Ανοιχτές μη συμμορφώσεις', 'Open nonconformities'), q.nonconformitiesOpen ?? 0],
-      ] },
+      // A trend of the receipts out of limits needs three months: two (one of them still running) read as an alarm.
+      ...(receiptMonths.length > 2
+        ? [{ type: 'trend', wide: true, sparse: true, percent: true, title: tx('Παραλαβές εκτός ορίων ανά μήνα (%)', 'Receipts out of limits by month (%)'), subtitle: tx('Παραλαβές με μέτρηση ή έλεγχο εκτός ορίων προς το σύνολο του μήνα.', 'Receipts with a measurement or check out of limits over the month’s receipts.'), points: receiptMonths.map(([key, total, out]) => [key, pct(out, total) ?? 0]) }]
+        : receiptMonths.length ? [{ type: 'note', text: tx(`Παραλαβές εκτός ορίων ανά μήνα: λίγες παραλαβές (${receiptMonths.length === 1 ? '1 μήνας' : `${receiptMonths.length} μήνες`}) για τάση.`, `Receipts out of limits by month: too few receipts (${receiptMonths.length} ${receiptMonths.length === 1 ? 'month' : 'months'}) for a trend.`) }] : []),
+      // The suppliers in numbers on one line, not as bars: active, evaluated, certificates and nonconformities are not compared with each other.
+      { type: 'note', text: tx(
+        `Προμηθευτές: ${n(q.suppliersActive)} ενεργοί · ${n(q.suppliersEvaluated)} αξιολογήθηκαν · πιστοποιητικά ${n(q.certificatesExpiring)} λήγουν σε 60 ημέρες, ${n(q.certificatesExpired)} ληγμένα · μη συμμορφώσεις ${n(q.nonconformities)} νέες, ${n(q.nonconformitiesOpen)} ανοιχτές.`,
+        `Suppliers: ${n(q.suppliersActive)} active · ${n(q.suppliersEvaluated)} evaluated · certificates ${n(q.certificatesExpiring)} expiring in 60 days, ${n(q.certificatesExpired)} expired · nonconformities ${n(q.nonconformities)} new, ${n(q.nonconformitiesOpen)} open.`) },
       { type: 'donut', title: tx('Αποτέλεσμα αξιολογήσεων', 'Evaluation results'), subtitle: tx('Αξιολογήσεις προμηθευτών της περιόδου.', 'Supplier evaluations in the period.'), rows: named(q.evaluationsByResult), center: tx('αξιολογήσεις', 'evaluations') },
       { type: 'rate', title: tx('Ικανοποίηση ανά έρευνα', 'Satisfaction by survey'), subtitle: tx('Απαντήσεις 4–5 στις ερωτήσεις κλίμακας 1–5.', 'Answers of 4–5 on the 1–5 scale questions.'), rows: (q.bySurvey || []).map(([key, , answeredCount, satisfiedCount]) => [key, pct(satisfiedCount, answeredCount) ?? 0]) },
-      { type: 'trend', wide: true, sparse: true, title: tx('Ικανοποίηση ανά μήνα (%)', 'Satisfaction by month (%)'), subtitle: tx('Απαντήσεις 4–5 προς όλες τις απαντήσεις κλίμακας του μήνα.', 'Answers of 4–5 over all scale answers of the month.'), points: (q.satisfactionMonthly || []).map(([key, answeredCount, satisfiedCount]) => [key, pct(satisfiedCount, answeredCount) ?? 0]) },
+      { type: 'trend', wide: true, sparse: true, percent: true, title: tx('Ικανοποίηση ανά μήνα (%)', 'Satisfaction by month (%)'), subtitle: tx('Απαντήσεις 4–5 προς όλες τις απαντήσεις κλίμακας του μήνα.', 'Answers of 4–5 over all scale answers of the month.'), points: (q.satisfactionMonthly || []).map(([key, answeredCount, satisfiedCount]) => [key, pct(satisfiedCount, answeredCount) ?? 0]) },
       { type: 'donut', title: tx('Κίνδυνοι ανά επίπεδο', 'Risks by level'), subtitle: tx('Υπολειπόμενος κίνδυνος, στην ισχύουσα εκτίμηση.', 'Residual risk, in the assessment in force.'), rows: named(q.risksByLevel), center: tx('κίνδυνοι', 'risks') },
-      { type: 'bars', title: tx('Απορρίψεις αποθέματος κουζίνας', 'Kitchen stock write-offs'), subtitle: tx('Ανά αιτία, στην περίοδο.', 'By reason, in the period.'), rows: named(q.writeoffsByReason) },
+      // One reason only: a line, not a card of one bar.
+      ...((q.writeoffsByReason || []).length > 1
+        ? [{ type: 'bars', title: tx('Απορρίψεις αποθέματος κουζίνας', 'Kitchen stock write-offs'), subtitle: tx('Ανά αιτία, στην περίοδο.', 'By reason, in the period.'), rows: named(q.writeoffsByReason) }]
+        : named(q.writeoffsByReason).map(([reason, count]) => ({ type: 'note', text: tx(`Απορρίψεις αποθέματος κουζίνας: ${n(count)} (${reason}).`, `Kitchen stock write-offs: ${n(count)} (${reason}).`) }))),
     // A monthly trend needs two months at least.
     ].filter(chart => chart.type !== 'trend' || chart.points.length > 1),
   }

@@ -13,7 +13,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { exportRegistry } from '../../core/export/registryExports'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
-import { PERIODS, breakdown, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodOf, shiftPeriod, textOf } from './registerEngine'
+import { PERIODS, breakdown, isActiveCensus, sheetBreakdowns, sheetCoverage, filterText, indicatorReport, monthlySeries, optionsOf, periodLabel, periodLength, periodOf, shiftPeriod, textOf } from './registerEngine'
 import { dailyFromOf } from './RegisterSheet'
 import { caseMarker, registerThemeKey } from './registerThemes'
 import { formatIndicatorValue, indicatorStatusLabel, indicatorStatusTone } from './registerText'
@@ -123,7 +123,7 @@ export function RegisterIndicators({ register, entries: allEntries, onDefineTarg
       {!open && report.length > 0 && <KpiFigures label={en ? 'Indicators by status' : 'Δείκτες ανά κατάσταση'} figures={figures} />}
       {open && <IndicatorDetail basis={mixedBasis ? basisOf(register, open.indicator, language) : ''} register={register} entries={entries} onPickMonth={value => { setKind('month'); setMonth(value) }} row={open} period={period} language={language} order={ordered} onOpen={setOpenId} onClose={() => setOpenId(null)} onDefineTarget={onDefineTarget} />}
       {!open && report.length > 0 && <table className="data-table register-indicator-table">
-        <thead><tr>{sortHead('name', en ? 'Indicator' : 'Δείκτης')}{sortHead('value', en ? 'Value' : 'Τιμή', 'register-num')}{sortHead('status', en ? 'Target' : 'Στόχος')}<th>{en ? 'Last 12 months' : 'Τάση 12 μηνών'}</th><th>{en ? 'Change' : 'Μεταβολή'}</th></tr></thead>
+        <thead><tr>{sortHead('name', en ? 'Indicator' : 'Δείκτης')}{sortHead('value', en ? 'Value' : 'Τιμή', 'register-num')}{sortHead('status', en ? 'Target' : 'Στόχος')}<th>{en ? 'Last 12 months' : 'Τάση 12 μηνών'}</th><th>{en ? 'Compared with' : 'Σύγκριση με'}</th></tr></thead>
         {grouped.map(group => <tbody key={group.key}>
           {grouped.length > 1 && <tr className="register-indicator-group"><th colSpan={5}>{group.label}</th></tr>}
           {group.rows.map(row => <IndicatorRow key={row.indicator.id} basis={mixedBasis ? basisOf(register, row.indicator, language) : ''} row={row} register={register} entries={entries} period={period} language={language} active={row.indicator.id === openId} onOpen={() => setOpenId(row.indicator.id)} onDefineTarget={onDefineTarget} />)}
@@ -142,9 +142,9 @@ function Change({ now, before, indicator, language }) {
   const en = language === 'en'
   if (now == null || before == null) return <span className="register-change">—</span>
   const diff = Number((now - before).toFixed(2))
-  const better = indicator.direction === 'higher' ? diff > 0 : indicator.direction === 'lower' ? diff < 0 : null
+  const better = indicator.direction === 'lower' ? diff < 0 : diff > 0 // no direction (a plain count): up is green, down is red
   const Icon = diff > 0 ? ArrowUpRight : diff < 0 ? ArrowDownRight : Minus
-  return <span className={`register-change ${better == null || diff === 0 ? '' : better ? 'is-better' : 'is-worse'}`} title={en ? 'Change' : 'Μεταβολή'}><Icon size={13} />{diff > 0 ? '+' : diff < 0 ? '−' : ''}{formatIndicatorValue(Math.abs(diff), { ...indicator, unit: indicator.unit === '%' ? '%' : '', unitEn: indicator.unit === '%' ? '%' : '' }, language)}</span>
+  return <span className={`register-change ${better == null || diff === 0 ? '' : better ? 'is-better' : 'is-worse'}`} title={en ? 'Change' : 'Μεταβολή'}><Icon size={13} />{diff > 0 ? '+' : diff < 0 ? '−' : ''}{formatIndicatorValue(Math.abs(diff), { ...indicator, unit: '', unitEn: '' }, language)}{indicator.unit === '%' ? (en ? ' pts' : ' μον.') : ''}</span>
 }
 
 // The twelve months up to the end of the period, for the card's sparkline.
@@ -156,19 +156,21 @@ function lastTwelveMonths(register, indicator, entries, period) {
 
 function IndicatorRow({ basis, row, register, entries, period, language, active, onOpen, onDefineTarget }) {
   const en = language === 'en'
-  const { indicator, current, previous, lastYear } = row
+  const { indicator, current, previous } = row
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
   const unit = en ? indicator.unitEn || indicator.unit : indicator.unit
+  // The comparison: the previous period of the same length, named, with its value and the difference.
+  const previousLabel = periodLabel(shiftPeriod(period, -periodLength(period)), language)
   const trend = useMemo(() => lastTwelveMonths(register, indicator, entries, period), [register, indicator, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
   // How the indicator is counted reads on hover, so the row stays short.
   const rule = register.kind === 'case' && indicator.filters?.length > 0 ? indicator.filters.map(filter => filterText(register, filter, language)).join(' · ') : ''
   const ratio = (indicator.aggregation === 'percent' || indicator.aggregation === 'rate' || indicator.aggregation === 'smr') && current.numerator != null && current.denominator != null ? `${current.numerator} / ${current.denominator}${indicator.aggregation === 'rate' ? (en ? ' days' : ' ημ.') : ''}` : ''
   return <tr className={`registry-row-clickable register-indicator-row is-${current.status} ${active ? 'active' : ''}`} onClick={onOpen} tabIndex={0} aria-expanded={active} title={rule || undefined} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen() } }}>
     <td><strong>{textOf(indicator, language)}</strong>{basis && <small className="register-indicator-basis">{basis}</small>}{current.small && <small className="register-indicator-small"><AlertTriangle size={12} />{en ? 'Few cases: read with caution' : 'Λίγα περιστατικά: με επιφύλαξη'}</small>}</td>
-    <td className="register-num register-indicator-value"><strong>{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {shortUnit(unit)}</small>}</strong>{ratio && <small>{ratio}</small>}</td>
+    <td className="register-num register-indicator-value"><strong>{current.notRecorded ? <span className="register-not-recorded" title={en ? 'The register has no entry that records this.' : 'Το μητρώο δεν έχει καμία εγγραφή που να το καταγράφει.'}>{en ? 'Not recorded' : 'Δεν καταγράφεται'}</span> : formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {shortUnit(unit)}</small>}</strong>{ratio && <small>{ratio}</small>}</td>
     <td>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}{target != null && <small>{indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, { ...indicator, unit: shortUnit(indicator.unit) }, language)}</small>}{target == null && (onDefineTarget ? <button type="button" className="register-define-target" onClick={event => { event.stopPropagation(); onDefineTarget(indicator.id) }}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button> : current.status === 'context' && <span className="register-muted">—</span>)}</td>
     <td><Sparkline width={110} height={28} points={trend} target={target} label={en ? `${textOf(indicator, language)}: the last 12 months` : `${textOf(indicator, language)}: οι τελευταίοι 12 μήνες`} /></td>
-    <td className="register-change-cell"><span><Change now={current.value} before={previous.value} indicator={indicator} language={language} /><small>{en ? 'vs previous' : 'έναντι προηγ.'}</small></span><span><Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /><small>{en ? 'vs last year' : 'έναντι πέρσι'}</small></span></td>
+    <td className="register-change-cell">{[[previousLabel, previous]].map(([label, other]) => <span key={label}><small>{label}:</small><b>{formatIndicatorValue(other.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}</b><Change now={current.value} before={other.value} indicator={indicator} language={language} /></span>)}</td>
   </tr>
 }
 
@@ -200,7 +202,7 @@ function IndicatorDetail({ basis, register, entries, onPickMonth, row, period, l
     </nav>
     <header><h4>{textOf(indicator, language)}</h4>{basis && <small className="register-indicator-basis">{basis}</small>}{(en ? indicator.noteEn || indicator.note : indicator.note) && <p>{en ? indicator.noteEn || indicator.note : indicator.note}</p>}</header>
     <div className="register-indicator-detail-figures">
-      <span><small>{periodLabel(period, language)}</small><strong>{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <em> {shortUnit(unit)}</em>}</strong>{(indicator.aggregation === 'percent' || indicator.aggregation === 'rate' || indicator.aggregation === 'smr') && current.numerator != null && current.denominator != null && <small>{current.numerator} / {current.denominator}</small>}</span>
+      <span><small>{periodLabel(period, language)}</small><strong>{current.notRecorded ? (en ? 'Not recorded' : 'Δεν καταγράφεται') : formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <em> {shortUnit(unit)}</em>}</strong>{(indicator.aggregation === 'percent' || indicator.aggregation === 'rate' || indicator.aggregation === 'smr') && current.numerator != null && current.denominator != null && <small>{current.numerator} / {current.denominator}</small>}</span>
       <span><small>{en ? 'Target' : 'Στόχος'}</small><strong>{target == null ? '—' : `${indicator.direction === 'higher' ? '≥' : '≤'} ${formatIndicatorValue(target, { ...indicator, unit: unit === '%' ? '%' : '' }, language)}`}</strong>{target == null && onDefineTarget && <button type="button" className="register-define-target" onClick={() => onDefineTarget(indicator.id)}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button>}{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}</span>
       <span><small>{en ? 'vs previous' : 'Έναντι προηγ.'}</small><strong><Change now={current.value} before={previous.value} indicator={indicator} language={language} /></strong></span>
       <span><small>{en ? 'vs last year' : 'Έναντι πέρσι'}</small><strong><Change now={current.value} before={lastYear.value} indicator={indicator} language={language} /></strong></span>

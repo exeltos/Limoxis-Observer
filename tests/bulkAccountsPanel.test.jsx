@@ -23,7 +23,7 @@ const organization = { id: 'org-1', name: 'Γ.Ν. Δοκιμής', contact_email
 const roster = {
   departments: [{ id: 'd1', name: 'ΜΕΘ' }],
   employees: [
-    { employee_id: 'e1', full_name: 'Ιωάννα Παππά', profession_name: 'Νοσηλεύτρια ΤΕ', department_id: 'd1', department_name: 'ΜΕΘ', email: 'i@h.gr', account_state: 'none' },
+    { employee_id: 'e1', full_name: 'Ιωάννα Παππά', profession_name: 'Νοσηλευτής/τρια ΤΕ', department_id: 'd1', department_name: 'ΜΕΘ', email: 'i@h.gr', account_state: 'none' },
     { employee_id: 'e2', full_name: 'Βασίλειος Ζερβός', department_name: 'ΤΕΠ', email: null, account_state: 'none', blocked_reason: 'missing_email' },
     { employee_id: 'e3', full_name: 'Μιχάλης Τσιρίγος', department_id: 'd1', department_name: 'ΜΕΘ', email: 'm@h.gr', account_state: 'none' },
   ].map(normalizeRosterRow),

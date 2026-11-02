@@ -16,7 +16,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { useSectionTabs } from '../../design-system/SectionTabs'
 import { Button } from '../../design-system/Button'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { exportRegistry, surveillanceListExport } from '../../core/export/registryExports'
+import { registryMenu, surveillanceListExport } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -499,7 +499,7 @@ export function SurveillanceCanonicalPage() {
       subtitle={t({ employees: 'svSubtitleEmployees', environmental: 'svSubtitleEnvironmental' }[mode] || 'surveillanceSubtitleV051')}
       actions={
         <div className="record-actions">
-            <ExportMenu onExcel={() => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }))} disabled={!filtered.length} />
+            <ExportMenu {...registryMenu(() => surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }), { language, kind: t('sidebarNav.surveillanceSection'), onBlocked: () => notify(t('indicatorsRecords.allowPopups'), 'error') })} disabled={!filtered.length} />
             {canCreate && (
             <Button variant="primary" onClick={() => startCreation(mode)}>
               <Plus size={15} aria-hidden="true" />

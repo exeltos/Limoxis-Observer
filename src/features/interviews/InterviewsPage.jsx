@@ -9,12 +9,14 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
 import { CandidateStatusBadge, useInterviews, useInterviewsAccess } from './InterviewsShared'
 import { CandidateDialog } from './InterviewsDialogs'
 import { ApplicationLinkDialog } from './ApplicationLinkDialog'
 import { employmentLabel, filterCandidates, fmtDay, newCandidate, pipelineCounts, positionsOf, statusOptions, categoryLabel } from './interviewsModel'
-import { exportCandidates } from './interviewsReports'
+import { candidatesExport } from './interviewsReports'
+import { registryMenu } from '../../core/export/registryExports'
 import { DivisionInterviewsPage, DivisionsPanel } from './InterviewDivisions'
 
 // Συνεντεύξεις: the applications, the pipeline at the top, the interviews to come.
@@ -25,6 +27,7 @@ export function InterviewsPage() {
 
 function InterviewsListPage() {
   const { language } = useLanguage()
+  const { notify } = useFeedback()
   const en = language === 'en'
   const navigate = useNavigate()
   const access = useInterviewsAccess()
@@ -53,7 +56,7 @@ function InterviewsListPage() {
   const open = item => { registry.saveViewState({ query, status, position }); registry.openRecord(navigate, `/interviews/${encodeURIComponent(item.id)}`, item.id, rows.map(row => row.id)) }
   const clear = () => { setQuery(''); setStatus('all'); setPosition('all') }
   const actions = <div className="row-actions">
-    <ExportMenu onExcel={() => exportCandidates(rows, language)} />
+    <ExportMenu {...registryMenu(() => candidatesExport(rows, language), { language, kind: en ? 'Interviews · candidates' : 'Συνεντεύξεις · υποψήφιοι', onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} disabled={!rows.length} />
     {/* «New application ▾»: typed here, or filled in by the candidate on a tablet. */}
     {access.canManage && <OverflowMenu label={en ? 'More' : 'Περισσότερα'} items={[{ id: 'divisions', label: en ? 'Divisions' : 'Διευθύνσεις', icon: Building2, onClick: () => setDivisionsView(true) }]} />}
     {access.canManage && <OverflowMenu label={en ? 'New application' : 'Νέα αίτηση'} triggerTone="primary" width={240} trigger={<><FilePlus2 size={15} aria-hidden="true" />{en ? 'New application' : 'Νέα αίτηση'}</>} items={[

@@ -16,7 +16,8 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { formatDay } from '../../core/i18n/formatDay'
-import { exportRegistry } from '../../core/export/registryExports'
+import { registryMenu } from '../../core/export/registryExports'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { loadEntries, loadRegister } from './registerService'
 import { useRegisterAccess } from './registerAccess'
 import { computeValues, formatValue, isTreatmentRegister, textOf } from './registerEngine'
@@ -35,6 +36,7 @@ export function RegisterRecordPage() {
   const { language } = useLanguage()
   const en = language === 'en'
   const { tenant } = useTenant()
+  const { notify } = useFeedback()
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation('/registers')
   const access = useRegisterAccess()
@@ -73,10 +75,11 @@ export function RegisterRecordPage() {
     { id: 'definition', label: en ? 'Definition' : 'Ορισμός', icon: Settings2 },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: History },
   ]
-  const onExport = entries.length ? () => exportRegistry(registerExport(register, entries, { language, withIdentity })) : null
+  // The cases of the register: print, PDF and Excel from the same rows (owner, 2/11/2026).
+  const casesMenu = entries.length ? registryMenu(() => registerExport(register, entries, { language, withIdentity }), { language, kind: en ? 'Register' : 'Μητρώο', title: (en ? register.nameEn : register.name) || register.name, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') }) : null
   // The header on Entries and on Indicators: «Export ▾» (the entries, or the indicator report) and the primary action.
   const liveExport = tab === 'indicators' ? indicatorExport : sheet ? sheetExport : null
-  const exportMenu = tab === 'indicators' || sheet ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : onExport && <ExportMenu onExcel={onExport} />
+  const exportMenu = tab === 'indicators' || sheet ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : casesMenu && <ExportMenu {...casesMenu} />
   const importButton = tab === 'entries' && !sheet && access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>
   const beforeDaily = new Date().toISOString().slice(0, 10) < dailyFromOf(register)
   // «New day» opens today's sheet (from the first day of the daily sheets), also from the indicators tab.
