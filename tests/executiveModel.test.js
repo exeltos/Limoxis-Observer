@@ -57,13 +57,20 @@ describe('executive dashboard measures', () => {
     expect(k.mdro.value).toBe(5)
     expect(k.handHygiene).toMatchObject({ value: 72, tone: 'warning' })
     expect(k.bundles.tone).toBe('good')
-    expect(k.incidents.tone).toBe('danger')
+    // Without a target the status is «no target»; the alert level stays for «what needs attention».
+    expect(k.incidents).toMatchObject({ tone: 'neutral', alert: 'danger', status: 'noTarget' })
     expect(k.capaOverdue).toMatchObject({ value: 2, tone: 'warning' })
     expect(k.training).toMatchObject({ value: 80, tone: 'warning' })
-    expect(k.temperature).toMatchObject({ value: 1, tone: 'warning' })
-    expect(k.decisions).toMatchObject({ value: 69, tone: 'good' })
-    expect(k.staff.value).toBe(417)
-    expect(executiveKpis({}, null).find(item => item.id === 'handHygiene')).toMatchObject({ value: null, tone: 'neutral' })
+    expect(k.temperature).toMatchObject({ value: 1, tone: 'neutral', alert: 'warning', status: 'noTarget' })
+    expect(k.decisions).toMatchObject({ value: 69, status: 'noTarget' })
+    expect(k.staff).toBeUndefined()
+    expect(executiveKpis({}, null).find(item => item.id === 'handHygiene')).toMatchObject({ value: null, tone: 'neutral', status: 'missing' })
+  })
+  it('says when HAI are not classified at all instead of a reassuring 0', () => {
+    const k = byId(executiveKpis({ domains: { surveillance: { total: 464, haiConfirmed: 0, byCaseStatus: [] } } }))
+    expect(k.hai).toMatchObject({ value: null, status: 'missing' })
+    expect(k.hai.missing[0]).toBe('Δεν γίνεται ταξινόμηση')
+    expect(byId(executiveKpis({ domains: { surveillance: { total: 10, haiConfirmed: 0, byCaseStatus: [['ruled_out', 3]] } } })).hai.value).toBe(0)
   })
   it('computes the change against the previous period, never for the counts of today', () => {
     expect(delta(72, 80, 'up')).toEqual({ diff: -8, change: -10, trend: 'down', good: false })
@@ -82,7 +89,6 @@ describe('executive dashboard measures', () => {
     expect(ids).not.toContain('temperature')
     expect(ids).not.toContain('handHygiene')
     expect(ids).toContain('certificates')
-    expect(ids).toContain('staff')
   })
   it('ranks departments by finding rate, leaving out the ones with few executions', () => {
     const { best, worst } = controlRanking(snapshot.domains.controls.byDepartment)

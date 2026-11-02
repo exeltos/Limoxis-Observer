@@ -102,7 +102,7 @@ export const EXEC_AREAS=Object.freeze([
  ['infections',['Λοιμώξεις & μικροβιολογία','Infections & microbiology'],['hai','mdro']],
  ['prevention',['Πρόληψη & έλεγχοι','Prevention & controls'],['handHygiene','bundles','overdueControls']],
  ['quality',['Ποιότητα','Quality'],['incidents','capaOverdue']],
- ['people',['Προσωπικό & εκπαίδευση','Workforce & training'],['training','staff']],
+ ['people',['Προσωπικό & εκπαίδευση','Workforce & training'],['training']],
  ['food',['Ασφάλεια τροφίμων','Food safety'],['certificates','temperature']],
  ['governance',['Διακυβέρνηση','Governance'],['decisions']],
 ])
@@ -119,14 +119,20 @@ export function indicatorRates(definitions,calculate){
  for(const [key,indicators] of Object.entries(TARGET_INDICATORS)){const def=(definitions||[]).find(item=>indicators.includes(item.id));rates[key]=def?calculate(def):null}
  return rates
 }
-export function executiveKpis(snapshot={},governance=null,targets=TARGETS,rates={}){
+export function executiveKpis(snapshot={},governance=null,targets=TARGETS,rates={}){return judgedByTarget(measures(snapshot,governance,targets,rates))}
+// The status is judged only against a target that is shown: a measure without one keeps its alert level (for «what needs
+// attention») but reads «Χωρίς στόχο»; a measure without data says so.
+export function judgedByTarget(items){return items.map(item=>item.value==null?{...item,tone:'neutral',alert:null,status:'missing'}:item.target?{...item,alert:item.tone,status:'judged'}:{...item,alert:item.tone,tone:'neutral',status:'noTarget'})}
+function measures(snapshot={},governance=null,targets=TARGETS,rates={}){
  const TARGET=targets,rate=(key,own)=>Number.isFinite(rates?.[key])?rates[key]:own
- const d=snapshot?.domains||{},s=d.surveillance||{},hh=d.handHygiene||{},b=d.bundles||{},c=d.controls||{},q=d.quality||{},t=d.training||{},w=d.workforce||{},g=d.governance||{},f=d.qualityFood||{}
+ const d=snapshot?.domains||{},s=d.surveillance||{},hh=d.handHygiene||{},b=d.bundles||{},c=d.controls||{},q=d.quality||{},t=d.training||{},g=d.governance||{},f=d.qualityFood||{}
  const micro=snapshot?.microbiology||{}
  const hand=rate('handHygiene',pct(hh.compliant,hh.observations)),done=pct(c.completed,c.executions),trained=rate('training',pct(t.completed,t.assignments)),bundle=rate('bundles',num(b.averageScore))
  const temperature=(num(f.thermalOut)??0)+(num(f.receiptsOut)??0)
+ // Surveillance with no HAI classification at all: a 0 would read as «no infections».
+ const classified=(s.byCaseStatus||[]).reduce((sum,[,n])=>sum+(Number(n)||0),0),unclassified=num(s.total)>0&&classified===0
  return [
-  {id:'hai',modules:['surveillance'],parts:['domains'],label:['Επιβεβαιωμένες ΛΣΦΥ','Confirmed HAI'],value:num(s.haiConfirmed),hint:[`${s.active??0} ενεργές επιτηρήσεις · ${s.total??0} στην περίοδο`,`${s.active??0} active surveillance · ${s.total??0} in period`],tone:countTone(s.haiConfirmed,{warning:1,danger:5}),better:'down',tab:'surveillance'},
+  {id:'hai',modules:['surveillance'],parts:['domains'],label:['Επιβεβαιωμένες ΛΣΦΥ','Confirmed HAI'],value:unclassified?null:num(s.haiConfirmed),missing:unclassified?['Δεν γίνεται ταξινόμηση','Not classified']:null,hint:[`${s.active??0} ενεργές επιτηρήσεις · ${s.total??0} στην περίοδο`,`${s.active??0} active surveillance · ${s.total??0} in period`],tone:countTone(s.haiConfirmed,{warning:1,danger:5}),better:'down',tab:'surveillance'},
   {id:'mdro',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά στελέχη','MDR isolates'],value:micro.totalPositive==null?null:mdro(micro),hint:[`MDR/XDR/PDR · ${micro.totalPositive??0} θετικές καλλιέργειες`,`MDR/XDR/PDR · ${micro.totalPositive??0} positive cultures`],tone:countTone(mdro(micro),{warning:1,danger:10}),better:'down',tab:'laboratory'},
   {id:'handHygiene',modules:['prevention'],parts:['domains'],label:['Υγιεινή χεριών','Hand hygiene'],value:hand,unit:'%',target:`≥ ${TARGET.handHygiene}%`,hint:[`στόχος ≥ ${TARGET.handHygiene}% · ${hh.observations??0} ευκαιρίες`,`target ≥ ${TARGET.handHygiene}% · ${hh.observations??0} opportunities`],tone:rateTone(hand,TARGET.handHygiene,70),better:'up',tab:'prevention'},
   {id:'bundles',modules:['prevention'],parts:['domains'],label:['Δέσμες μέτρων','Bundle score'],value:bundle,unit:'%',target:`≥ ${TARGET.bundles}%`,hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(bundle,TARGET.bundles,80),better:'up',tab:'prevention'},
@@ -134,10 +140,9 @@ export function executiveKpis(snapshot={},governance=null,targets=TARGETS,rates=
   {id:'incidents',modules:['quality'],parts:['domains'],label:['Ανοιχτά συμβάντα','Open incidents'],value:num(q.openIncidents),hint:[`${severe(q)} σοβαρά / κρίσιμα · ${q.incidents??0} στην περίοδο`,`${severe(q)} severe / critical · ${q.incidents??0} in period`],tone:severe(q)?'danger':countTone(q.openIncidents),better:'down',tab:'quality'},
   {id:'capaOverdue',modules:['quality'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμες διορθωτικές','Overdue CAPA'],target:'0',value:num(q.capaOverdue),hint:[`${q.capaOpen??0} ανοιχτές διορθωτικές ενέργειες`,`${q.capaOpen??0} open corrective actions`],tone:countTone(q.capaOverdue,{warning:1,danger:5}),better:'down',tab:'quality'},
   {id:'training',modules:['training'],parts:['people'],label:['Ολοκλήρωση εκπαίδευσης','Training completion'],value:trained,unit:'%',target:`≥ ${TARGET.training}%`,hint:[`${t.overdue??0} εκπρόθεσμες · ${t.assignments??0} αναθέσεις`,`${t.overdue??0} overdue · ${t.assignments??0} assignments`],tone:rateTone(trained,TARGET.training,70),better:'up',tab:'training'},
-  {id:'certificates',modules:['suppliers','kitchen'],parts:['qualityFood'],pointInTime:true,label:['Ληγμένα πιστοποιητικά','Expired certificates'],target:'0',value:num(f.certificatesExpired),hint:[`προμηθευτών · ${f.certificatesExpiring??0} λήγουν σε 30 ημέρες`,`suppliers' · ${f.certificatesExpiring??0} expire within 30 days`],tone:countTone(f.certificatesExpired,{warning:1,danger:10}),better:'down',tab:'qualityfood'},
+  {id:'certificates',modules:['suppliers','kitchen'],parts:['qualityFood'],pointInTime:true,label:['Ληγμένα πιστοποιητικά','Expired certificates'],target:'0',value:num(f.certificatesExpired),hint:[`${f.certificatesExpiredSuppliers!=null?`σε ${f.certificatesExpiredSuppliers} προμηθευτές`:'προμηθευτών'} · ${f.certificatesExpiring??0} λήγουν σε 60 ημέρες`,`${f.certificatesExpiredSuppliers!=null?`at ${f.certificatesExpiredSuppliers} suppliers`:`suppliers'`} · ${f.certificatesExpiring??0} expire within 60 days`],tone:countTone(f.certificatesExpired,{warning:1,danger:10}),better:'down',tab:'qualityfood'},
   {id:'temperature',modules:['kitchen'],parts:['qualityFood'],label:['Μη συμμορφώσεις θερμοκρασίας','Temperature non-conformities'],value:f.thermalMeasured==null&&f.receipts==null?null:temperature,hint:[`${f.thermalMeasured??0} θερμικές μετρήσεις · ${f.receipts??0} παραλαβές`,`${f.thermalMeasured??0} thermal checks · ${f.receipts??0} receipts`],tone:countTone(temperature,{warning:1,danger:5}),better:'down',tab:'qualityfood'},
   {id:'decisions',modules:['governance'],parts:['governance'],pointInTime:true,label:['Ανοιχτές αποφάσεις επιτροπών','Open committee decisions'],value:num(governance?.openDecisions),hint:[`${governance?.overdueDecisions??0} εκπρόθεσμες · ${g.committees??0} επιτροπές`,`${governance?.overdueDecisions??0} overdue · ${g.committees??0} committees`],tone:countTone(governance?.overdueDecisions,{warning:1,danger:5}),better:'down',tab:'governance'},
-  {id:'staff',modules:[],parts:['people'],pointInTime:true,label:['Προσωπικό','Staff'],value:num(w.activeEmployees),hint:['ενεργοί εργαζόμενοι','active employees'],tone:'neutral',better:'up',tab:'occupational'},
  ]
 }
 
@@ -167,7 +172,7 @@ export function redFlags(kpis=[],snapshot={},moduleEnabled=()=>true){
  const d=snapshot?.domains||{},s=d.surveillance||{},g=d.governance||{},f=d.qualityFood||{},t=d.training||{}
  const on=modules=>!modules.length||modules.some(module=>moduleEnabled(module))
  const fmt=item=>item.value==null?'—':`${String(item.value).replace('.',',')}${item.unit||''}`
- const flags=visibleFor(kpis,moduleEnabled).filter(item=>item.value!=null&&(item.tone==='danger'||item.tone==='warning')).map(item=>({id:item.id,severity:item.tone,text:[`${item.label[0]}: ${fmt(item)}`,`${item.label[1]}: ${fmt(item)}`],detail:item.hint,tab:item.tab}))
+ const flags=visibleFor(kpis,moduleEnabled).filter(item=>item.value!=null&&((item.alert??item.tone)==='danger'||(item.alert??item.tone)==='warning')).map(item=>({id:item.id,severity:item.alert??item.tone,text:[`${item.label[0]}: ${fmt(item)}`,`${item.label[1]}: ${fmt(item)}`],detail:item.hint,tab:item.tab}))
  const extra=(id,modules,count,severity,el,en,tab)=>{const n=Number(count)||0;if(n>0&&on(modules))flags.push({id,severity,text:[`${el}: ${n}`,`${en}: ${n}`],detail:null,tab})}
  extra('clusters',['laboratory','surveillance'],(snapshot?.clusters||[]).length,'danger','Ενεργές συρροές μικροοργανισμών','Active organism clusters','laboratory')
  extra('isolationReviews',['surveillance'],s.isolationReviewOverdue,'warning','Εκπρόθεσμες επανεκτιμήσεις απομόνωσης','Overdue isolation reviews','surveillance')
