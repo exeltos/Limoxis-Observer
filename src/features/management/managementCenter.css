@@ -149,7 +149,7 @@
 .management-lira-ai .lira-ai-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #e3e8ee}
 .management-lira-ai .lira-ai-head h2{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:700;color:#1d3a52}
 .management-lira-ai .lira-ai-head p{margin:4px 0 0;font-size:13px;color:#5f6e7c}
-.management-lira-ai .lira-ai-actions{display:flex;gap:8px;flex:none}
+.management-lira-ai .lira-ai-foot{display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid #e3e8ee}
 .management-lira-ai .lira-ai-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;border-bottom:1px solid #e3e8ee}
 .management-lira-ai .lira-ai-block{padding:16px 0}
 .management-lira-ai .lira-ai-block h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:#1d3a52}
@@ -160,7 +160,7 @@
 .management-lira-ai .lira-ai-check{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer}
 .management-lira-ai .lira-ai-check input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:#1f5f8b}
 .management-lira-ai .lira-ai-check strong{display:block;font-size:13px;color:#1d3a52}
-.management-lira-ai .lira-ai-translation-row{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:32px;align-items:start}
+.management-lira-ai .lira-ai-translation-row{display:grid;grid-template-columns:minmax(0,max-content) 220px;justify-content:start;gap:40px;align-items:start}
 @media(max-width:900px){.management-lira-ai .lira-ai-grid,.management-lira-ai .lira-ai-fields,.management-lira-ai .lira-ai-translation-row{grid-template-columns:1fr;gap:12px}.management-lira-ai .lira-ai-head{flex-direction:column}}
 .bed-days-record-shell .bed-days-num{text-align:right;font-variant-numeric:tabular-nums}
 .bed-days-num-head{display:block;text-align:right}
