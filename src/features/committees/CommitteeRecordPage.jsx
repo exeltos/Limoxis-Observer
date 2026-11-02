@@ -336,7 +336,7 @@ export function CommitteeRecordPage() {
       id,
       status: 'planned',
       topics: draft.topics?.length ? draft.topics : [createTopic()],
-      attendanceRecords: attendanceFor(activeMembers),
+      attendanceRecords: attendanceFor(draft.composition === 'control_team' && activeMembers.some(member => member.inControlTeam) ? activeMembers.filter(member => member.inControlTeam) : activeMembers),
       quorum: null,
       minutesNo: '',
       generalNotes: '',
@@ -821,7 +821,7 @@ export function CommitteeRecordPage() {
         />
       )}
       {dialog?.type === 'newMeeting' && (
-        <NewMeetingDialog busy={busy} onClose={() => setDialog(null)} onSave={addMeeting} en={en} />
+        <NewMeetingDialog busy={busy} onClose={() => setDialog(null)} onSave={addMeeting} en={en} teamName={controlTeamName(record.name, en)} hasTeam={activeMembers.some(member => member.inControlTeam)} />
       )}
       {dialog?.type === 'cancelMeeting' && (
         <ReasonDialog

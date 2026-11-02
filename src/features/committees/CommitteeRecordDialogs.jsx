@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadIndicatorDefinitions } from '../indicators/indicatorDefinitionService'
-import { fmtDate, createTopic, COMMITTEE_ROLE_OPTIONS } from './committeeRecordFormat'
+import { fmtDate, createTopic, COMMITTEE_ROLE_OPTIONS, compositionLabel } from './committeeRecordFormat'
 import {
   BADGE_ROLES,
   memberRoleLabel,
@@ -351,16 +352,25 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamNa
   )
 }
 
-export function NewMeetingDialog({ busy, onClose, onSave, en }) {
+// The date first; the title, when left empty, is made from the type and the month («Τακτική συνεδρίαση Νοεμβρίου 2026»).
+// A committee with a working team (ΟΕΕ) also chooses who meets.
+export function NewMeetingDialog({ busy, onClose, onSave, en, teamName = '', hasTeam = false }) {
   const [v, setV] = useState({
     title: '',
     meetingType: 'regular',
+    composition: 'plenary',
     date: '',
     time: '09:00',
     location: '',
     topics: [createTopic()],
   })
   const set = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const autoTitle = () => {
+    if (!v.date) return ''
+    const month = new Date(`${v.date}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' })
+    const kind = v.meetingType === 'extraordinary' ? (en ? 'Extraordinary meeting' : 'Έκτακτη συνεδρίαση') : (en ? 'Regular meeting' : 'Τακτική συνεδρίαση')
+    return `${kind} ${en ? month : month.replace(/^(\S+)/, word => GENITIVE_MONTHS[word.toLowerCase()] || word)}`
+  }
   return (
     <ObserverDialog
       width="wide"
@@ -370,8 +380,8 @@ export function NewMeetingDialog({ busy, onClose, onSave, en }) {
       footer={
         <DialogActions
           onCancel={onClose}
-          disabled={busy || !v.title.trim() || !v.date}
-          onSave={() => onSave({ ...v, title: v.title.trim() })}
+          disabled={busy || !v.date}
+          onSave={() => onSave({ ...v, title: v.title.trim() || autoTitle() })}
           saveLabel={
             busy
               ? en
@@ -385,31 +395,47 @@ export function NewMeetingDialog({ busy, onClose, onSave, en }) {
       }
     >
       <div className="entry-grid compact">
-        <label className="entry-span-2">
-          <span>{en ? 'Title' : 'Τίτλος'}</span>
-          <input value={v.title} onChange={e => set('title', e.target.value)} />
-        </label>
-        <label>
-          <span>{en ? 'Type' : 'Τύπος'}</span>
-          <select value={v.meetingType} onChange={e => set('meetingType', e.target.value)}>
-            <option value="regular">{en ? 'Regular' : 'Τακτική'}</option>
-            <option value="extraordinary">{en ? 'Extraordinary' : 'Έκτακτη'}</option>
-          </select>
-        </label>
         <ManualDateField
-          label={en ? 'Date' : 'Ημερομηνία'}
+          label={en ? 'Date *' : 'Ημερομηνία *'}
           value={v.date}
           onChange={x => set('date', x)}
         />
         <TimeField label={en ? 'Time' : 'Ώρα'} value={v.time} onChange={x => set('time', x)} />
-        <label>
-          <span>{en ? 'Location' : 'Χώρος'}</span>
-          <input value={v.location} onChange={e => set('location', e.target.value)} />
+        <ChoiceField
+          label={en ? 'Type' : 'Τύπος'}
+          value={v.meetingType}
+          onChange={x => set('meetingType', x)}
+          options={[{ value: 'regular', label: en ? 'Regular' : 'Τακτική' }, { value: 'extraordinary', label: en ? 'Extraordinary' : 'Έκτακτη' }]}
+        />
+        {hasTeam ? (
+          <ChoiceField
+            label={en ? 'Who meets' : 'Σύνθεση'}
+            value={v.composition}
+            onChange={x => set('composition', x)}
+            options={[{ value: 'plenary', label: compositionLabel('plenary', teamName, en) }, { value: 'control_team', label: compositionLabel('control_team', teamName, en) }]}
+          />
+        ) : (
+          <label>
+            <span>{en ? 'Location' : 'Χώρος'}</span>
+            <input value={v.location} onChange={e => set('location', e.target.value)} />
+          </label>
+        )}
+        {hasTeam && (
+          <label>
+            <span>{en ? 'Location' : 'Χώρος'}</span>
+            <input value={v.location} onChange={e => set('location', e.target.value)} />
+          </label>
+        )}
+        <label className={hasTeam ? undefined : 'entry-span-2'}>
+          <span>{en ? 'Title' : 'Τίτλος'}</span>
+          <input value={v.title} placeholder={autoTitle() || (en ? 'Made from the type and the month' : 'Από τον τύπο και τον μήνα')} onChange={e => set('title', e.target.value)} />
         </label>
       </div>
     </ObserverDialog>
   )
 }
+
+const GENITIVE_MONTHS = { ιανουάριος: 'Ιανουαρίου', φεβρουάριος: 'Φεβρουαρίου', μάρτιος: 'Μαρτίου', απρίλιος: 'Απριλίου', μάιος: 'Μαΐου', ιούνιος: 'Ιουνίου', ιούλιος: 'Ιουλίου', αύγουστος: 'Αυγούστου', σεπτέμβριος: 'Σεπτεμβρίου', οκτώβριος: 'Οκτωβρίου', νοέμβριος: 'Νοεμβρίου', δεκέμβριος: 'Δεκεμβρίου' }
 
 export function DecisionDialog({ initial, meetings, members = [], busy, onClose, onSave, en }) {
   const matchedMember = initial?.ownerId ? members.find(m => m.userId === initial.ownerId) : null
