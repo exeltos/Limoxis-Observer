@@ -11,6 +11,9 @@
 .committee-attendance-wrap{
   overflow:hidden!important;
 }
+/* The table takes its own height (the panel's fill-and-scroll rule would squeeze it to nothing under the «Σύνθεση» field). */
+.committee-meeting-record .record-tab-panel-body>.committee-attendance-wrap{flex:0 0 auto!important}
+.committee-composition{padding:12px 14px 4px;max-width:380px}
 .committee-attendance-table{
   width:100%!important;
   table-layout:fixed;
@@ -123,3 +126,5 @@
    .record-section / .scroll-table of foundation.css. */
 .committee-record-shell .entity-record-body>.record-section:is(section,#lo-committee-record){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
 .committee-record-shell .entity-record-body .scroll-table:is(div,#lo-committee-record){border:0!important;border-radius:0!important}
+.committee-mandate-list{margin:2px 0 0;padding-left:18px;white-space:normal}
+.committee-mandate-list li{margin:0 0 5px;line-height:1.45}

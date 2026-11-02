@@ -69,6 +69,6 @@ export function DetailList({ sections = [], className = '' }) {
 export function DetailFields({ fields = [], className = '' }) {
   const items = fields
     .filter(field => field && field.hidden !== true)
-    .map(field => ({ label: field.label, value: field.meta ? <>{field.value === 0 ? 0 : field.value || '—'} <small className="lo-detail-meta">{field.meta}</small></> : field.value }))
+    .map(field => ({ label: field.label, wide: field.wide === true, value: field.meta ? <>{field.value === 0 ? 0 : field.value || '—'} <small className="lo-detail-meta">{field.meta}</small></> : field.value }))
   return <DetailList className={className} sections={[{ items }]} />
 }

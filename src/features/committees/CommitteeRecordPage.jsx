@@ -50,7 +50,7 @@ import {
 } from './committeeWorkflowService'
 import { cancelCommitteeMeetingAsync } from './committeeMeetingLifecycleService'
 import { externalMinutesActionAsync } from './committeeExternalApprovalService'
-import { fmtDate, createTopic } from './committeeRecordFormat'
+import { fmtDate, createTopic, controlTeamName } from './committeeRecordFormat'
 import { rolesFromTitle } from './committeeMemberRoles'
 import {
   Head,
@@ -253,6 +253,7 @@ export function CommitteeRecordPage() {
       specialty: draft.specialty || '',
       responsibilities: draft.responsibilities || '',
       voting: draft.voting !== false,
+      inControlTeam: draft.inControlTeam === true,
       memberType: draft.memberType || 'regular',
       approvalRequired: Boolean(draft.approvalRequired),
       approvalStatus: draft.approvalRequired ? 'pending' : 'not_required',
@@ -652,7 +653,7 @@ export function CommitteeRecordPage() {
           )}
         </div>
       )}
-      <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:'JSON',onClick:() => downloadRecordJson(record, { filename: record?.id })}]} />
+      <ExportMenu items={[{id:'committee-print',kind:'print',label:en?'Print the committee details':'Εκτύπωση στοιχείων επιτροπής',onClick:()=>window.print()},{id:'json',kind:'data',label:'JSON',onClick:() => downloadRecordJson(record, { filename: record?.id })}]} />
     </>
   )
 
@@ -721,6 +722,7 @@ export function CommitteeRecordPage() {
         )}
         {tab === 'meetings' && (
           <Meetings
+            teamName={controlTeamName(record.name, en)}
             rows={record.meetings || []}
             canCreate={canMeeting && !busy}
             canCancel={canMeeting && !busy}

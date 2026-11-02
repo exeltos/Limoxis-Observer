@@ -1,4 +1,4 @@
-import { fmtDate, statusLabel } from './committeeRecordFormat'
+import { compositionLabel, controlTeamName, fmtDate, statusLabel } from './committeeRecordFormat'
 
 const ATTENDANCE = {
   present: ['Παρών/ούσα', 'Present'],
@@ -21,6 +21,7 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }) {
   const attendance = (minutes.attendanceRecords || []).filter(x => x.name)
   const topics = (minutes.topics || []).filter(t => t.subject || t.decision)
   const approvals = (minutes.approvals || []).filter(x => x.status !== 'cancelled')
+  const team = minutes.composition === 'control_team'
   const time =
     minutes.time ||
     (minutes.scheduledAt
@@ -31,14 +32,19 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }) {
       : '')
   return {
     language: en ? 'en' : 'el',
-    kind: L('Πρακτικά συνεδρίασης', 'Meeting minutes'),
-    code: minutes.minutesNo ? `${L('Πρακτικό', 'Minutes')} ${minutes.minutesNo}` : '',
-    title: committeeName || minutes.title,
-    subtitle: committeeName ? minutes.title : '',
+    // The paper says first and plainly what it is: the minutes of a meeting, its number, the committee and who met.
+    kind: committeeName || minutes.title,
+    code: '',
+    title: `${L('ΠΡΑΚΤΙΚΟ ΣΥΝΕΔΡΙΑΣΗΣ', 'MEETING MINUTES')}${minutes.minutesNo ? ` ${L('αρ.', 'no.')} ${minutes.minutesNo}` : ''}`,
+    subtitle: team
+      ? L(`Συνεδρίαση της ${controlTeamName(committeeName, false).replace(/^Ομάδα/, 'Ομάδας')}`, `Meeting of the ${controlTeamName(committeeName, true)}`)
+      : L('Συνεδρίαση της ολομέλειας της επιτροπής', 'Meeting of the whole committee'),
     meta: [
-      [L('Αρ. πρακτικού', 'Minutes no.'), minutes.minutesNo || '—'],
+      [L('Επιτροπή', 'Committee'), committeeName || '—'],
+      [L('Συνεδρίαση', 'Meeting'), minutes.title || '—'],
       [L('Ημερομηνία', 'Date'), [fmtDate(minutes.date), time].filter(Boolean).join(' · ')],
       [L('Χώρος', 'Location'), minutes.location || '—'],
+      [L('Σύνθεση', 'Who met'), compositionLabel(team ? 'control_team' : 'plenary', controlTeamName(committeeName, en), en)],
       [L('Κατάσταση', 'Status'), statusLabel(minutes.status, en)],
     ],
     sections: [
@@ -84,7 +90,7 @@ export function committeeMinutesReport({ committeeName = '', minutes, en }) {
     ].filter(Boolean),
     signatures: [L('Ο/Η Πρόεδρος', 'Chair'), L('Ο/Η Γραμματέας', 'Secretary')],
     filename: [
-      L('Πρακτικά', 'Minutes'),
+      L('Πρακτικό', 'Minutes'),
       committeeName,
       minutes.minutesNo,
       String(minutes.date || '').slice(0, 10),

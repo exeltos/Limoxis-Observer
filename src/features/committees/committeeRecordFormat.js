@@ -70,3 +70,12 @@ export const COMMITTEE_ROLE_OPTIONS = [
   ['Σύμβουλος', 'Advisor'],
   ['Παρατηρητής', 'Observer'],
 ]
+
+// The control team of a committee (its members marked so): «Ομάδα Ελέγχου Λοιμώξεων» in the infection committee.
+export const controlTeamName = (committeeName, en) =>
+  /λοιμ|infection/i.test(String(committeeName || ''))
+    ? (en ? 'Infection Control Team' : 'Ομάδα Ελέγχου Λοιμώξεων')
+    : (en ? 'Control team' : 'Ομάδα ελέγχου')
+// Who met: the whole committee or its control team.
+export const compositionLabel = (composition, teamName, en) =>
+  composition === 'control_team' ? teamName : (en ? 'Whole committee' : 'Ολομέλεια επιτροπής')
