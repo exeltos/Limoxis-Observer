@@ -297,6 +297,15 @@ export async function loadControlEntryTimes(organizationId,{from,to}){
 // The latest regular entry of the hospital's controls: the reports end on its
 // day while the entries are still recorded elsewhere (controlAdherence.reportEnd).
 // The demo returns null: its history runs up to today.
+// The day from which the time of the entries is judged (organizations.controls_on_time_from): earlier entries count as on time.
+export async function loadControlsOnTimeFrom(organizationId){
+ if(isDemoDataEnvironment()||!organizationId)return null
+ assertCloud(organizationId)
+ const {data,error}=await supabase.from('organizations').select('controls_on_time_from').eq('id',organizationId).maybeSingle()
+ if(error)return null
+ return data?.controls_on_time_from||null
+}
+
 export async function loadControlLastEntryAt(organizationId){
  if(isDemoDataEnvironment())return null
  assertCloud(organizationId)

@@ -39,7 +39,7 @@ import { DEFAULT_PERIOD,periodRange,periodShort } from './controlAdherence'
 import { ControlPeriodPicker } from './ControlPeriodPicker'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
-import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
+import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,loadControlsOnTimeFrom,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
 import './controlRecord.css'
 
@@ -70,6 +70,9 @@ export function ControlRecordPage(){
  const [historyDepartment,setHistoryDepartment]=useState('all')
  // The period of this control's rates and of its executions list (the same choices as the Controls page).
  const [period,setPeriod]=useState(DEFAULT_PERIOD)
+ // Entries before the day the hospital's times are judged from count as on time (owner, 2/11/2026).
+ const [judgedFrom,setJudgedFrom]=useState(null)
+ useEffect(()=>{let live=true;loadControlsOnTimeFrom(tenant?.id).then(day=>{if(live)setJudgedFrom(day)}).catch(()=>{});return()=>{live=false}},[tenant?.id])
  const [withMissed,setWithMissed]=useState(false)
  // The order of the executions (newest first by default): the arrow of the date column; the database orders the whole list.
  const [historyOrder,setHistoryOrder]=useState('desc')
@@ -156,7 +159,8 @@ export function ControlRecordPage(){
   let index=0,best=Infinity
   starts.forEach((start,k)=>{const d=Math.abs(m-start);if(d<best){best=d;index=k}})
   const window=slotWindowMinutes(f,index)
-  return {time:hhmm(starts[index]),onTime:m>=window.open&&m<=window.close}
+  const before=judgedFrom&&`${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`<judgedFrom
+  return {time:hhmm(starts[index]),onTime:Boolean(before)||(m>=window.open&&m<=window.close)}
  }
  // The missed executions as rows between the entries of the page, newest first.
  const missedRows=withMissed&&historyLoaded?adherence.lines.filter(line=>historyDepartment==='all'||line.department===historyDepartment).flatMap(line=>(line.missedDays||[]).flatMap(miss=>{
