@@ -5,6 +5,7 @@ import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
+import { printReportLater } from '../../core/export/reportDocument'
 import { ActionButton } from '../../design-system/ActionButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -111,7 +112,8 @@ export function ControlRecordPage(){
  },[tenant?.id,historyOpen,historyAssignmentIds,historyPage,historyPageSize,historyKey,historyOrder,period,record,notifyError])
  // The rates and the missed executions per department, read only for the two tabs that show them.
  const adherenceRows=useMemo(()=>record?[{item:record,departments:record.departments.filter(dep=>canAccessRecord({department:dep,departmentId:record.departmentIdByName?.[dep]||null}))}]:[],[record,canAccessRecord])
- const adherence=useAdherenceLines(adherenceRows,tab==='departments'||tab==='history'?tenant?.id:null,period,record,null)
+ // Read on every tab: the printed control carries the departments' adherence of the period.
+ const adherence=useAdherenceLines(adherenceRows,tenant?.id,period,record,null)
 
  if(loading)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Loading control…':'Φόρτωση ελέγχου…'}</div></Page>
  if(!record)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'Control not found.':'Δεν βρέθηκε ο έλεγχος.'}</div></Page>
@@ -161,6 +163,33 @@ export function ControlRecordPage(){
   const window=slotWindowMinutes(f,index)
   const before=judgedFrom&&`${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`<judgedFrom
   return {time:hhmm(starts[index]),onTime:Boolean(before)||(m>=window.open&&m<=window.close)}
+ }
+ // The printed control (owner, 2/11/2026): the shared document (logo, hospital, code, date printed) with the control's
+ // details, its departments with the adherence of the period chosen, and every execution of that period (read on click).
+ const PRINT_LIMIT=500
+ function printControl(pdf){
+  const title=en?record.titleEn||record.title:record.title
+  const range=periodRange(period,new Date())
+  const ids=assignments.map(({assignment:current})=>current?.dbId).filter(Boolean)
+  const departmentOf=new Map(assignments.map(({department:dep,assignment:current})=>[current?.dbId,dep]))
+  const ok=printReportLater(async()=>{
+   const loaded=ids.length?await loadControlHistoryPage(tenant.id,ids,{page:1,pageSize:PRINT_LIMIT,from:range.from,to:new Date(range.to.getTime()+1000),order:'desc'}):{rows:[],total:0}
+   const executions=(loaded.rows||[]).filter(h=>h.status!=='cancelled')
+   const texts=[record.goal&&[en?'Goal':'Στόχος',record.goal],record.acceptanceCriteria&&[en?'Acceptance criteria':'Κριτήρια αποδοχής',record.acceptanceCriteria],[en?'Instructions':'Οδηγίες',record.description||(en?'No instructions.':'Δεν υπάρχουν οδηγίες.')],record.guideNotes&&[en?'Guidance notes':'Σημειώσεις καθοδήγησης',record.guideNotes],deviationActions(record,visibleDepartments[0])&&[en?'Actions on deviation':'Ενέργειες σε απόκλιση',deviationActions(record,visibleDepartments[0])]].filter(Boolean)
+   const periodName=periodShort(period,language)
+   return {
+    language,kind:en?'Control':'Έλεγχος',title,code:record.code,
+    meta:[[en?'Control type':'Είδος ελέγχου',record.category||'—'],[en?'Criticality':'Κρισιμότητα',criticalityLabel(controlCriticality(record),language)],[en?'Evidence':'Τεκμήριο',requiresEvidence(record)?(en?'Required on every entry':'Υποχρεωτικό σε κάθε καταχώρηση'):(en?'Optional':'Προαιρετικό')],[en?'Responsible':'Υπεύθυνος',ownerText(record,language)||'—'],[en?'Frequency':'Συχνότητα',controlFrequencyLabel(record,visibleDepartments,language)],...(!differentSchedules?[[en?'Execution times':'Ώρες εκτέλεσης',timesWithWindows(assignmentFrequency(record,visibleDepartments[0]))||'—']]:[]),[en?'Period':'Περίοδος',periodName]],
+    sections:[
+     {title:en?'Goal and instructions':'Στόχος και οδηγίες',facts:texts,factColumns:1},
+     {title:`${en?'Departments':'Τμήματα'} · ${periodName}`,table:{columns:[en?'Department':'Τμήμα',en?'Responsible':'Υπεύθυνος',en?'Schedule':'Πρόγραμμα',en?'Done':'Έγιναν',en?'Missed':'Χάθηκαν',en?'Adherence':'Τήρηση',en?'Last entry':'Τελευταία καταχώρηση'],rows:assignments.map(({department:dep,assignment:current})=>{const line=lineOf(dep);return [dep,personLabel(record.assignees?.[dep],language)||ownerText(record,language)||'—',[frequencyLabel(assignmentFrequency(record,dep),language),timesWithWindows(assignmentFrequency(record,dep))].filter(Boolean).join(' · '),line?`${Math.min(line.performed,line.expected)} / ${line.expected}`:'—',line?String(line.missed):'—',line?.rate==null?'—':`${line.rate}%`,current?.lastCompletedAt?fmt(current.lastCompletedAt):'—']})}},
+     {title:`${en?'Executions':'Εκτελέσεις'} · ${periodName}`,note:(loaded.total||0)>(loaded.rows||[]).length?(en?`The first ${PRINT_LIMIT} of ${loaded.total}.`:`Οι πρώτες ${PRINT_LIMIT} από ${loaded.total}.`):undefined,
+      table:{columns:[en?'Date / time':'Ημερομηνία / ώρα',en?'Department':'Τμήμα',en?'Result':'Αποτέλεσμα',en?'Recorded by':'Καταχώρησε',en?'Notes':'Σημειώσεις'],rows:executions.length?executions.map(h=>{const row={...h,department:departmentOf.get(h.assignmentId)||''};return [fmt(row.at),row.department,[row.isExtra?(en?'Extra':'Έκτακτη'):'',structuredSummary(row,{record,language}),row.resultText].filter(Boolean).join(' · '),row.by||'—',row.notes||'']}):[[{text:en?'No executions in the period.':'Δεν υπάρχουν εκτελέσεις στην περίοδο.',colSpan:5}]]}},
+    ],
+    signatures:[en?'Checked by':'Ελέγχθηκε από'],
+   }
+  },{pdf,language,onError:error=>notifyError(error,'export',{operation:'control_print'})})
+  if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  // The missed executions as rows between the entries of the page, newest first.
  const missedRows=withMissed&&historyLoaded?adherence.lines.filter(line=>historyDepartment==='all'||line.department===historyDepartment).flatMap(line=>(line.missedDays||[]).flatMap(miss=>{
@@ -250,7 +279,7 @@ export function ControlRecordPage(){
   {canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
-  <ExportMenu onPrint={()=>window.print()} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
+  <ExportMenu onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 

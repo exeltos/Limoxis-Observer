@@ -289,6 +289,33 @@ export function printReport(doc, options = {}) {
   return true
 }
 
+// A document whose data must be read first (e.g. every execution of a period): the window opens at once, inside the
+// click (popup blockers allow it only there), shows «Προετοιμασία…», and prints once the document is built.
+// build: async () => doc. Returns false when the window was blocked.
+export function printReportLater(build, options = {}) {
+  const win = window.open('', '_blank')
+  if (!win) return false
+  win.document.write(`<!doctype html><meta charset="utf-8"><p style="font:14px Arial,sans-serif;color:#5d7083;padding:24px">${options.language === 'en' ? 'Preparing the document…' : 'Προετοιμασία του εντύπου…'}</p>`)
+  Promise.resolve()
+    .then(build)
+    .then(doc => {
+      win.document.open()
+      win.document.write(buildReportHtml(doc, options))
+      win.document.close()
+      win.focus()
+      const go = () => { try { win.print() } catch { /* the window was closed */ } }
+      if (win.document.readyState === 'complete') setTimeout(go, 300)
+      else win.addEventListener('load', () => setTimeout(go, 200), { once: true })
+    })
+    .catch(error => {
+      win.document.open()
+      win.document.write(`<!doctype html><meta charset="utf-8"><p style="font:14px Arial,sans-serif;color:#a32121;padding:24px">${options.language === 'en' ? 'The document could not be prepared.' : 'Το έντυπο δεν ετοιμάστηκε.'}</p>`)
+      win.document.close()
+      options.onError?.(error)
+    })
+  return true
+}
+
 // The export options of a document for ExportMenu: Print and PDF (the same
 // print view, with the «Save as PDF» hint), and Word when asked.
 // build: () => doc (called on click, so the document is current);
