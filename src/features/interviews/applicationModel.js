@@ -182,7 +182,7 @@ export function demoApplication() {
     maritalStatus: 'single', children: '0', workPermit: true, practiceLicence: true, address: 'Οδός Παραδείγματος 12', area: 'Λάρισα', postcode: '41222', phoneMobile: '6900000123', email: 'e.nikolaou@example.org', employmentType: 'full_time',
     educationLevel: 'Γενικό Λύκειο', education: [{ title: 'Πτυχίο Νοσηλευτικής', school: 'Πανεπιστήμιο Θεσσαλίας', year: '2019' }, { title: 'Μεταπτυχιακό στην Εντατική Νοσηλευτική', school: 'ΕΚΠΑ', year: '2022' }],
     languages: [{ ...newLanguageRow('el'), speaking: 'fluent', reading: 'fluent', writing: 'fluent' }, { language: 'en', speaking: 'very_good', reading: 'fluent', writing: 'good', certificate: true, certificateName: 'C1 (Advanced)' }],
-    employers: [{ employer: 'Ιδιωτική Κλινική (παράδειγμα)', from: '06/2019', to: '09/2024', current: false, jobTitle: 'Νοσηλεύτρια ΜΕΘ', leavingReason: 'Μετακόμιση στη Λάρισα' }, { employer: 'Κέντρο Αποκατάστασης (παράδειγμα)', from: '10/2024', to: '', current: true, jobTitle: 'Νοσηλεύτρια', leavingReason: '' }],
+    employers: [{ employer: 'Ιδιωτική Κλινική (παράδειγμα)', from: '06/2019', to: '09/2024', current: false, jobTitle: 'Νοσηλευτής/τρια ΜΕΘ', leavingReason: 'Μετακόμιση στη Λάρισα' }, { employer: 'Κέντρο Αποκατάστασης (παράδειγμα)', from: '10/2024', to: '', current: true, jobTitle: 'Νοσηλευτής/τρια', leavingReason: '' }],
     itSkills: 'Office, ηλεκτρονικός φάκελος ασθενούς', activities: 'Εθελόντρια στον Ερυθρό Σταυρό', whyUs: 'Θέλω να εργαστώ σε μια μονάδα με καλή οργάνωση και συνεχή εκπαίδευση, κοντά στο σπίτι μου.',
     consents: { gdpr: true, future: true, references: true, truth: true }, signature: DEMO_SIGNATURE }
 }

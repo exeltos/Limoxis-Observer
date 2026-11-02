@@ -30,7 +30,7 @@ function demoState() {
   approved.chapters[0].sections[0].html += '<p>Η παρούσα έκδοση εγκρίθηκε από τη Διοίκηση μετά από εισήγηση της Επιτροπής Νοσοκομειακών Λοιμώξεων.</p>'
   for (const chapter of approved.chapters) for (const section of chapter.sections) section.html = section.html.replace(/<p class="reg-fill">[^<]*<\/p>/g, '')
   const issued = `${new Date().getFullYear()}-02-10`
-  const signatures = [{ role: 'administrator', name: 'Μ. Παπαδοπούλου', title: 'Διοικήτρια', image: '', signedAt: `${issued}T09:00:00Z` }, { role: 'infection_lead', name: 'Α. Γεωργίου', title: 'Προϊστάμενη Νοσηλεύτρια Επιτήρησης Λοιμώξεων', image: '', signedAt: `${issued}T09:30:00Z` }]
+  const signatures = [{ role: 'administrator', name: 'Μ. Παπαδοπούλου', title: 'Διοικήτρια', image: '', signedAt: `${issued}T09:00:00Z` }, { role: 'infection_lead', name: 'Α. Γεωργίου', title: 'Προϊστάμενος/η Νοσηλευτικής Επιτήρησης Λοιμώξεων', image: '', signedAt: `${issued}T09:30:00Z` }]
   const regulation = { id: 'reg-demo-infection', code: 'REG-01', title: template.title, category: template.category, description: '', templateKey: template.key, templateVersion: template.version, edition: 2, issuedOn: issued, approvedAt: `${issued}T10:00:00Z`, approvedByName: 'Διοίκηση Demo Hospital', content: approved, archived: false, updatedAt: `${issued}T10:00:00Z`, signatures }
   const waste = REGULATION_TEMPLATES[1]
   const wasteRegulation = { id: 'reg-demo-waste', code: 'REG-02', title: waste.title, category: waste.category, description: '', templateKey: waste.key, templateVersion: waste.version, edition: 0, issuedOn: '', approvedAt: '', approvedByName: '', content: { chapters: [] }, archived: false, updatedAt: new Date().toISOString() }

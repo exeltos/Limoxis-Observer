@@ -121,7 +121,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       }
       caseNumber += 1 + Math.floor(random() * 3)
       const id = `reg-entry-nicu-${entries.length + 1}`
-      entries.push({ id, registerId: DEMO_NICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΝΝ' })
+      entries.push({ id, registerId: DEMO_NICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλευτής/τρια ΜΕΝΝ' })
       identities[id] = { caseNumber: String(caseNumber), patientName: `Νεογνό ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
     }
     // Endoscopy: one sheet per completed month (the current one still open).
@@ -188,7 +188,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       if (values.outcome === 'transfer_ward') values.transfer_department = cardiac ? pick(icuRandom, [['cardiac_surgery_ward', 7], ['cardiology', 3]]) : pick(icuRandom, [['internal', 5], ['pulmonary', 3], ['surgical', 3], ['neurology', 1], ['orthopaedic', 1]])
       icuNumber += 1 + Math.floor(icuRandom() * 3)
       const id = `reg-entry-icu-${entries.filter(item => item.registerId === DEMO_ICU_ID).length + 1}`
-      entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια ΜΕΘ' })
+      entries.push({ id, registerId: DEMO_ICU_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλευτής/τρια ΜΕΘ' })
       identities[id] = { caseNumber: String(icuNumber), patientName: `${cardiac ? 'Ασθενής Κ' : 'Ασθενής Γ'}-${pad(entries.length % 100)}` }
     }
   }
@@ -273,7 +273,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       }
       kidNumber += 1 + Math.floor(kidRandom() * 3)
       const id = `reg-entry-paed-${entries.filter(item => item.registerId === DEMO_PAEDIATRICS_ID).length + 1}`
-      entries.push({ id, registerId: DEMO_PAEDIATRICS_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλεύτρια Παιδιατρικής' })
+      entries.push({ id, registerId: DEMO_PAEDIATRICS_ID, entryDate: admission, periodStart: null, values, status: 'complete', locked: false, createdAt: `${admission}T10:00:00Z`, createdByLabel: 'Νοσηλευτής/τρια Παιδιατρικής' })
       identities[id] = { caseNumber: String(kidNumber), patientName: `Παιδί ${String.fromCharCode(913 + (entries.length % 24))}. ${pad(entries.length % 100)}` }
     }
   }
@@ -325,7 +325,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       }
       cathNumber += 1 + Math.floor(cathRandom() * 3)
       const id = `reg-entry-cath-${entries.filter(item => item.registerId === DEMO_CATHLAB_ID).length + 1}`
-      entries.push({ id, registerId: DEMO_CATHLAB_ID, entryDate: day, periodStart: null, values, status: 'complete', locked: false, createdAt: `${day}T12:00:00Z`, createdByLabel: 'Νοσηλεύτρια Αιμοδυναμικού' })
+      entries.push({ id, registerId: DEMO_CATHLAB_ID, entryDate: day, periodStart: null, values, status: 'complete', locked: false, createdAt: `${day}T12:00:00Z`, createdByLabel: 'Νοσηλευτής/τρια Αιμοδυναμικού' })
       identities[id] = { caseNumber: String(cathNumber), patientName: '' }
     }
   }
@@ -356,7 +356,7 @@ export function demoRegisterEntries(today = new Date().toISOString().slice(0, 10
       }
       chemoNumber += 1 + Math.floor(chemoRandom() * 3)
       const id = `reg-entry-chemo-${entries.filter(item => item.registerId === DEMO_CHEMO_ID).length + 1}`
-      entries.push({ id, registerId: DEMO_CHEMO_ID, entryDate: start, periodStart: null, values, status: 'complete', locked: false, createdAt: `${start}T11:00:00Z`, createdByLabel: 'Νοσηλεύτρια Χημειοθεραπείας' })
+      entries.push({ id, registerId: DEMO_CHEMO_ID, entryDate: start, periodStart: null, values, status: 'complete', locked: false, createdAt: `${start}T11:00:00Z`, createdByLabel: 'Νοσηλευτής/τρια Χημειοθεραπείας' })
       identities[id] = { caseNumber: String(chemoNumber), patientName: `Ασθενής Χ-${pad(entries.length % 100)}` }
     }
   }

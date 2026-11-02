@@ -18,6 +18,8 @@ import { INDICATOR_MORE_TABS,INDICATOR_TABS,TABS,TAB_MODULES,fmtDate,indicatorTa
 import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { AnalysisPage } from '../analysis/AnalysisPage'
+import { infectionReportDocument,loadInfectionReportRows } from '../analysis/infectionReport'
+import { printReportLater } from '../../core/export/reportDocument'
 import { periodTag,readSharedPeriod,writeSharedPeriod } from '../analysis/sharedPeriod'
 import { loadCommittees } from '../committees/committeeData'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
@@ -146,6 +148,8 @@ export function ExecutiveDashboardPage(){
  // The printed report carries the hospital, the period and when it was made.
  const [printing,setPrinting]=useState(false)
  const unfoldAll=()=>flushSync(()=>{setPrinting(true)})
+ // «Infections» also has its annual report, a document of its own (the window opens in the click, the data is read after).
+ function printInfectionReport(pdf){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({rows:await loadInfectionReportRows(organizationId,year),year,language}),{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
  function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`,heading:[`${title} · ${tabTitle}`,periodLine]}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'});setPrinting(false)}
  function exportPdf(){
   signalDemoScenario('analysis_export')
@@ -182,7 +186,7 @@ export function ExecutiveDashboardPage(){
    {!isDemo&&<FilterSelect label={tx('Τμήμα','Department')} value={department} onChange={value=>setFilters({department:value})}><option value="">{tx('Όλα τα τμήματα','All departments')}</option>{departments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</FilterSelect>}
    <FilterSelect label={tx('Σύγκριση','Comparison')} value={compareMode} onChange={value=>setFilters({compare:value!=='none'},value)}><option value="none">{tx('Χωρίς σύγκριση','No comparison')}</option><option value="previous">{tx('Προηγούμενη περίοδος','Previous period')}</option>{!isDemo&&<option value="departments" disabled={!department}>{tx('Τμήμα έναντι νοσοκομείου','Department vs hospital')}</option>}</FilterSelect>
   </FilterBar>
-  <ExportMenu disabled={activeTab[0]==='summary'&&loadingAny} pdfBusy={exportingPdf} onPrint={print} onPdf={exportPdf}/>
+  <ExportMenu disabled={activeTab[0]==='summary'&&loadingAny} pdfBusy={exportingPdf} onPrint={print} onPdf={exportPdf} items={activeTab[0]==='infections'?[{id:'infections-report-print',kind:'print',label:en?'Print: annual infections report':'Εκτύπωση: ετήσια αναφορά λοιμώξεων',onClick:()=>printInfectionReport(false)},{id:'infections-report-pdf',kind:'pdf',label:en?'PDF: annual infections report':'PDF: ετήσια αναφορά λοιμώξεων',onClick:()=>printInfectionReport(true)}]:[]}/>
  </div>
  const periodLine=`${presetLabels[filters.period]} · ${periodLabel}${department?` · ${departmentName}`:''}${previous?` · ${tx('έναντι','vs')} ${previousLabel}`:''}`
  return <Page className="exec-page" title={title} subtitle={activeTab[0]==='data'?hospital:periodLine} actions={pageActions}>

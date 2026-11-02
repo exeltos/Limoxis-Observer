@@ -27,7 +27,7 @@ const ORGANIZATIONS=[
 ]
 
 const PEOPLE={
- '11111111-0000-4000-8000-000000000001':[['hospital_admin','active','Μαρία Γεωργίου','m.georgiou','Διευθύντρια Νοσηλευτικής'],['infection_control_lead','active','Δρ. Νίκος Αλεξίου','n.alexiou','Πρόεδρος ΕΝΛ'],['quality_manager','active','Ελένη Παπά','e.papa','Υπεύθυνη Ποιότητας'],['department_manager','active','Κώστας Δήμου','k.dimou','Προϊστάμενος ΜΕΘ'],['staff_user','invited','Άννα Βλάχου','a.vlachou','Νοσηλεύτρια']],
+ '11111111-0000-4000-8000-000000000001':[['hospital_admin','active','Μαρία Γεωργίου','m.georgiou','Διευθύντρια Νοσηλευτικής'],['infection_control_lead','active','Δρ. Νίκος Αλεξίου','n.alexiou','Πρόεδρος ΕΝΛ'],['quality_manager','active','Ελένη Παπά','e.papa','Υπεύθυνη Ποιότητας'],['department_manager','active','Κώστας Δήμου','k.dimou','Προϊστάμενος ΜΕΘ'],['staff_user','invited','Άννα Βλάχου','a.vlachou','Νοσηλευτής/τρια']],
  '11111111-0000-4000-8000-000000000002':[['hospital_admin','invited','Γιώργος Σταύρου','g.stavrou','Διοικητικός Διευθυντής'],['infection_control_lead','active','Δρ. Σοφία Ιωάννου','s.ioannou','ΝΕΛ']],
  '11111111-0000-4000-8000-000000000003':[['hospital_admin','disabled','Πέτρος Λάμπρου','p.lamprou','Διευθυντής']],
 }

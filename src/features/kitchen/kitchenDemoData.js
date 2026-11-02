@@ -131,7 +131,7 @@ export function kitchenDemoState() {
   ].map(row => ({ correctiveAction: '', notes: '', productionId: '', recordedByName: COOK, source: 'demo', ...row }))
   const writeoffs = [{ id: 'kw-1', receiptItemId: 'kri-2', writtenOffOn: day(-2), quantity: '1', reason: 'expired', notes: 'Το υπόλοιπο έληξε· απορρίφθηκε.', recordedByName: CHEF }]
   const state = {
-    settings: { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: day(-340), haccpDocumentId: '', haccpTeam: `${MANAGER} (υπεύθυνη κουζίνας), Υπεύθυνος Ποιότητας, Νοσηλεύτρια Επιτήρησης Λοιμώξεων`, recallDrillMonths: 12, notes: '' },
+    settings: { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: day(-340), haccpDocumentId: '', haccpTeam: `${MANAGER} (υπεύθυνη κουζίνας), Υπεύθυνος Ποιότητας, Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων`, recallDrillMonths: 12, notes: '' },
     limits: DEFAULT_LIMITS.map(item => ({ limitKey: item.limitKey, minValue: item.minValue, maxValue: item.maxValue, withinMinutes: item.withinMinutes, active: true })),
     steps: DEFAULT_HACCP_STEPS.map(step => ({ ...step })),
     products, menus, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, suppliers,
