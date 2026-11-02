@@ -100,7 +100,7 @@ function Change({now,then,direction,el}){
  if(now==null||then==null)return <b>—</b>
  const delta=Number((Number(now)-Number(then)).toFixed(2))
  if(delta===0)return <b className="indicator-change"><Minus size={13}/>0</b>
- const better=direction==='lower'?delta<0:direction==='higher'?delta>0:null
+ const better=direction==='lower'?delta<0:delta>0 // no direction (a plain count): up is green, down is red
  const Icon=delta>0?ArrowUpRight:ArrowDownRight
  return <b className={`indicator-change${better===true?' is-better':better===false?' is-worse':''}`}><Icon size={13}/>{delta>0?'+':'−'}{fmtNumber(Math.abs(delta),el)}</b>
 }

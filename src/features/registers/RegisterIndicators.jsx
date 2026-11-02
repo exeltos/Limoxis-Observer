@@ -142,7 +142,7 @@ function Change({ now, before, indicator, language }) {
   const en = language === 'en'
   if (now == null || before == null) return <span className="register-change">—</span>
   const diff = Number((now - before).toFixed(2))
-  const better = indicator.direction === 'higher' ? diff > 0 : indicator.direction === 'lower' ? diff < 0 : null
+  const better = indicator.direction === 'lower' ? diff < 0 : diff > 0 // no direction (a plain count): up is green, down is red
   const Icon = diff > 0 ? ArrowUpRight : diff < 0 ? ArrowDownRight : Minus
   return <span className={`register-change ${better == null || diff === 0 ? '' : better ? 'is-better' : 'is-worse'}`} title={en ? 'Change' : 'Μεταβολή'}><Icon size={13} />{diff > 0 ? '+' : diff < 0 ? '−' : ''}{formatIndicatorValue(Math.abs(diff), { ...indicator, unit: '', unitEn: '' }, language)}{indicator.unit === '%' ? (en ? ' pts' : ' μον.') : ''}</span>
 }
