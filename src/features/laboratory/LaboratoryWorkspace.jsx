@@ -55,7 +55,7 @@ export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo, role, actualRole, membership } = useTenant()
-  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, repository: labRepository, reload: reloadSamples, createSample: createRepositorySample } = useLaboratoryRegistry()
+  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, repository: labRepository, reload: reloadSamples, createSample: createRepositorySample, recentOnly, showOlder } = useLaboratoryRegistry({ recent: !isDemo })
   const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
@@ -233,6 +233,7 @@ export function LaboratoryWorkspace() {
       </>}/>
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
+      {recentOnly && !samplesLoading && <p className="lab-recent-note">{t('laboratoryRecords.recentOnlyNote')} <button type="button" className="text-button" onClick={showOlder}>{t('laboratoryRecords.olderSamples')}</button></p>}
     </section>
     {duplicateDialog}
   </Page>

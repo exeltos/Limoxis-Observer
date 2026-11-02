@@ -185,10 +185,16 @@ async function hydrateSamples(rows){
 // joined with their patient, department, specimen-library item and results;
 // `environmental` keeps the environmental ones (a superset the screens still filter).
 // The paged reads below stay for a database without it yet.
-export async function loadLaboratorySamples(organizationId,{environmental=false}={}){
+// `since` (YYYY-MM-DD): the lighter list (laboratory_sample_list_lean, 20261231220500) of the samples since then and the
+// older ones not finished yet, without the clinical context and the empty fields; null reads every sample, still light.
+export async function loadLaboratorySamples(organizationId,{environmental=false,since=undefined}={}){
   assertCloud()
   if(!organizationId)return []
   if(typeof supabase.rpc==='function'){
+    if(since!==undefined){
+      const lean=await supabase.rpc('laboratory_sample_list_lean',{p_organization_id:organizationId,p_environmental:environmental,p_since:since})
+      if(!lean?.error&&Array.isArray(lean?.data))return lean.data.map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map(item=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
+    }
     const listed=await supabase.rpc('laboratory_sample_list',{p_organization_id:organizationId,p_environmental:environmental})
     if(!listed?.error&&Array.isArray(listed?.data))return listed.data.map(row=>mapSample(row,row.patient,row.department,(row.results||[]).map(item=>mapMicrobiology(item,item.ast,item.communications,item.amr)),row.specimen_type))
   }
