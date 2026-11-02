@@ -136,9 +136,11 @@ export function RegisterEntryPage() {
   async function fillApache() {
     try {
       const found = isDemo ? null : await findApacheScore(tenant?.id, identity.caseNumber)
-      if (!found) { notify(en ? 'No APACHE II was found in the patient’s scales for this case number.' : 'Δεν βρέθηκε APACHE II στις κλίμακες του ασθενή για αυτόν τον αριθμό περιστατικού.', 'info'); return }
-      set('apache_score', found.score)
-      notify(en ? `APACHE II ${found.score} taken from the patient’s scales.` : `APACHE II ${found.score} από τις κλίμακες του ασθενή.`, 'success')
+      if (found?.score != null) { set('apache_score', found.score); notify(en ? `APACHE II ${found.score} taken from the patient’s scales.` : `APACHE II ${found.score} από τις κλίμακες του ασθενή.`, 'success'); return }
+      if (!found?.patientId) { notify(en ? 'No patient was found for this case number, so the APACHE II cannot be taken or calculated here.' : 'Δεν βρέθηκε ασθενής με αυτόν τον αριθμό περιστατικού· γράψτε το APACHE II χειροκίνητα.', 'info'); return }
+      // No APACHE II saved yet: offer to calculate it. The scale opens in a new tab so what was typed here is kept.
+      const calculate = await confirm({ title: en ? 'No APACHE II for this case' : 'Δεν υπάρχει APACHE II για αυτό το περιστατικό', message: en ? 'Do you want to calculate it now? The patient’s clinical scales open in a new tab; save the APACHE II there and press the button again here.' : 'Θέλετε να υπολογιστεί τώρα; Οι κλίμακες του ασθενή ανοίγουν σε νέα καρτέλα· αποθηκεύστε εκεί το APACHE II και πατήστε ξανά το κουμπί εδώ.', confirmLabel: en ? 'Open the scales' : 'Άνοιγμα κλιμάκων' })
+      if (calculate) window.open(`/patients/${found.patientId}?tab=clinicalScales`, '_blank', 'noopener')
     } catch (error) { console.error(error); notify(en ? 'The patient’s scales could not be read.' : 'Δεν ήταν δυνατή η ανάγνωση των κλιμάκων του ασθενή.', 'error') }
   }
   const cancelEdit = () => { setValues(entry?.values || {}); setIdentity(entry?.identity || { caseNumber: '', patientName: '' }); setEditing(false); setTried(false) }
