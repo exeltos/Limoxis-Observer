@@ -38,6 +38,13 @@ function deviceAssociation(item) {
   return match ? match[0] : null
 }
 
+// Employees whose latest visit has a follow-up date already past (a later visit means the follow-up was done).
+export function overdueFollowUps(visits, today) {
+  const latest = new Map()
+  for (const row of visits) { const known = latest.get(row.employeeId); if (!known || String(row.date || '') > String(known.date || '')) latest.set(row.employeeId, row) }
+  return [...latest.values()].filter(row => row.followUpDate && row.followUpDate < today).length
+}
+
 export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
   const today = new Date().toISOString().slice(0, 10)
   const cases = Object.values(clinicalCases).filter(item => item.lifecycleStatus !== 'voided' && item.status !== 'cancelled' && inRange(item.startedAt, range))
@@ -126,7 +133,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
         byVaccine: [...byVaccine.entries()].map(([key, set]) => [key, set.size]).sort((a, b) => b[1] - a[1]),
         visits: visits.length,
         byVisitType: tally(visits, row => row.type || '—'),
-        followUpsDue: loadOccupationalVisits().filter(row => ids.has(row.employeeId) && row.followUpDate && row.followUpDate < today && row.status !== 'cancelled').length,
+        followUpsDue: overdueFollowUps(loadOccupationalVisits().filter(row => ids.has(row.employeeId) && row.status !== 'cancelled'), today),
         byDepartment: tally(active, row => (en ? row.departmentEn : row.department) || '—'),
         exposuresByType: tally(employeeExposureIncidents.filter(row => inRange(row.incidentDate, range)), row => row.exposureType || '—'),
       }
@@ -353,14 +360,16 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     }
     case 'occupational': { const wf = d.workforce || {}; const coverage = pct(wf.vaccinatedEmployees, wf.activeEmployees); return {
       kpis: [
-        [tx('Ενεργοί εργαζόμενοι', 'Active employees'), wf.activeEmployees ?? 0, tx(`${(wf.byDepartment || []).length} τμήματα`, `${(wf.byDepartment || []).length} departments`)],
-        [tx('Εμβολιαστική κάλυψη', 'Vaccination coverage'), wf.vaccinatedEmployees == null ? '—' : fmtPct(coverage), wf.vaccinatedEmployees == null ? tx('Απαιτείται δικαίωμα Ιατρού Εργασίας', 'Occupational health permission required') : tx(`${wf.vaccinatedEmployees} εργαζόμενοι με ισχύον εμβόλιο`, `${wf.vaccinatedEmployees} employees with a valid vaccine`), coverage != null && coverage < 80 ? 'warning' : ''],
+        // 'now': a count of today (not of the period), left out when two periods are compared.
+        [tx('Ενεργοί εργαζόμενοι', 'Active employees'), wf.activeEmployees ?? 0, tx(`${(wf.byDepartment || []).length} τμήματα`, `${(wf.byDepartment || []).length} departments`), '', 'now'],
+        [tx('Με ισχύον εμβόλιο', 'With a valid vaccine'), wf.vaccinatedEmployees == null ? '—' : `${wf.vaccinatedEmployees} (${fmtPct(coverage)})`, wf.vaccinatedEmployees == null ? tx('Απαιτείται δικαίωμα Ιατρού Εργασίας', 'Occupational health permission required') : tx('εργαζόμενοι με οποιοδήποτε ισχύον εμβόλιο', 'employees with any valid vaccine'), '', 'now'],
         [tx('Επισκέψεις Ιατρού Εργασίας', 'Occupational health visits'), wf.visits ?? '—', tx('στην περίοδο', 'in the period')],
-        [tx('Εκπρόθεσμοι επανέλεγχοι', 'Overdue follow-ups'), wf.followUpsDue ?? '—', tx('επισκέψεις με παρελθούσα ημερομηνία', 'visits past their follow-up date'), wf.followUpsDue ? 'warning' : ''],
+        [tx('Εκπρόθεσμοι επανέλεγχοι', 'Overdue follow-ups'), wf.followUpsDue ?? '—', tx('εργαζόμενοι με περασμένο επανέλεγχο στην τελευταία τους επίσκεψη', 'employees past the follow-up of their latest visit'), wf.followUpsDue ? 'warning' : '', 'now'],
       ],
       charts: [
         { type: 'bars', title: tx('Κάλυψη ανά εμβόλιο', 'Coverage by vaccine'), subtitle: tx('Εργαζόμενοι με ισχύον εμβόλιο.', 'Employees with a valid vaccine.'), rows: wf.byVaccine || [] },
-        { type: 'donut', title: tx('Τύπος επίσκεψης', 'Visit type'), subtitle: tx('Επισκέψεις της περιόδου.', 'Visits in the period.'), rows: named(wf.byVisitType || []), center: tx('επισκέψεις', 'visits') },
+        // One visit type only says what the visit count says already: no chart.
+        ...((wf.byVisitType || []).length > 1 ? [{ type: 'donut', title: tx('Τύπος επίσκεψης', 'Visit type'), subtitle: tx('Επισκέψεις της περιόδου.', 'Visits in the period.'), rows: named(wf.byVisitType || []), center: tx('επισκέψεις', 'visits') }] : []),
         { type: 'bars', title: tx('Εργαζόμενοι ανά τμήμα', 'Employees by department'), subtitle: tx('Ενεργό προσωπικό.', 'Active staff.'), rows: wf.byDepartment || [] },
         { type: 'bars', title: tx('Εκθέσεις εργαζομένων ανά τύπο', 'Staff exposures by type'), subtitle: tx('Τρυπήματα, βλεννογόνοι και άλλες εκθέσεις της περιόδου.', 'Needlesticks, mucosal and other exposures in the period.'), rows: named(wf.exposuresByType) },
       ],
