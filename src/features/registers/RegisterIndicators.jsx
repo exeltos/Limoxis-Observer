@@ -156,12 +156,11 @@ function lastTwelveMonths(register, indicator, entries, period) {
 
 function IndicatorRow({ basis, row, register, entries, period, language, active, onOpen, onDefineTarget }) {
   const en = language === 'en'
-  const { indicator, current, previous, lastYear } = row
+  const { indicator, current, previous } = row
   const target = indicator.target === '' || indicator.target == null ? null : Number(indicator.target)
   const unit = en ? indicator.unitEn || indicator.unit : indicator.unit
-  // The comparison names the periods it compares with and their value, not only a difference.
+  // The comparison: the previous period of the same length, named, with its value and the difference.
   const previousLabel = periodLabel(shiftPeriod(period, -periodLength(period)), language)
-  const lastYearLabel = periodLabel(shiftPeriod(period, -12), language)
   const trend = useMemo(() => lastTwelveMonths(register, indicator, entries, period), [register, indicator, entries, period.key]) // eslint-disable-line react-hooks/exhaustive-deps
   // How the indicator is counted reads on hover, so the row stays short.
   const rule = register.kind === 'case' && indicator.filters?.length > 0 ? indicator.filters.map(filter => filterText(register, filter, language)).join(' · ') : ''
@@ -171,7 +170,7 @@ function IndicatorRow({ basis, row, register, entries, period, language, active,
     <td className="register-num register-indicator-value"><strong>{formatIndicatorValue(current.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}{current.value != null && unit && unit !== '%' && <small> {shortUnit(unit)}</small>}</strong>{ratio && <small>{ratio}</small>}</td>
     <td>{current.status !== 'context' && <StatusBadge tone={indicatorStatusTone(current.status)}>{indicatorStatusLabel(current.status, language)}</StatusBadge>}{target != null && <small>{indicator.direction === 'higher' ? '≥' : '≤'} {formatIndicatorValue(target, { ...indicator, unit: shortUnit(indicator.unit) }, language)}</small>}{target == null && (onDefineTarget ? <button type="button" className="register-define-target" onClick={event => { event.stopPropagation(); onDefineTarget(indicator.id) }}><Target size={12} />{en ? 'Set a target' : 'Ορισμός στόχου'}</button> : current.status === 'context' && <span className="register-muted">—</span>)}</td>
     <td><Sparkline width={110} height={28} points={trend} target={target} label={en ? `${textOf(indicator, language)}: the last 12 months` : `${textOf(indicator, language)}: οι τελευταίοι 12 μήνες`} /></td>
-    <td className="register-change-cell">{[[previousLabel, previous], [lastYearLabel, lastYear]].map(([label, other]) => <span key={label}><small>{label}:</small><b>{formatIndicatorValue(other.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}</b><Change now={current.value} before={other.value} indicator={indicator} language={language} /></span>)}</td>
+    <td className="register-change-cell">{[[previousLabel, previous]].map(([label, other]) => <span key={label}><small>{label}:</small><b>{formatIndicatorValue(other.value, { ...indicator, unit: unit === '%' ? '%' : '', unitEn: '' }, language)}</b><Change now={current.value} before={other.value} indicator={indicator} language={language} /></span>)}</td>
   </tr>
 }
 
