@@ -146,7 +146,7 @@ export function ExecutiveDashboardPage(){
  // The printed report carries the hospital, the period and when it was made.
  const [printing,setPrinting]=useState(false)
  const unfoldAll=()=>flushSync(()=>{setPrinting(true)})
- function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'});setPrinting(false)}
+ function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`,heading:[`${title} · ${tabTitle}`,periodLine]}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'});setPrinting(false)}
  function exportPdf(){
   signalDemoScenario('analysis_export')
   unfoldAll()
