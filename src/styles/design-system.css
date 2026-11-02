@@ -293,18 +293,9 @@
 .platform-maintenance-banner>svg{flex:0 0 auto}.platform-maintenance-banner button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:transparent;color:inherit;cursor:pointer}.platform-maintenance-banner button:hover{background:color-mix(in srgb,var(--lo-status-warning-fg) 10%,transparent)}
 
 .login-briefing-dialog .observer-dialog-body{display:grid;gap:14px}
-.login-briefing-dialog .briefing-summary-v2{display:flex;align-items:center;gap:14px;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-control);background:var(--lo-status-info-bg)}
-.login-briefing-dialog .briefing-summary-v2>div{display:flex;align-items:baseline;gap:8px}.login-briefing-dialog .briefing-summary-v2 strong{font-size:20px;color:var(--lo-color-primary)}
-.login-briefing-dialog .briefing-summary-v2>span{font-size:12px;color:var(--lo-color-muted)}
-.login-briefing-dialog .briefing-sections-v2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.login-briefing-dialog .briefing-sections-v2>section{border:1px solid var(--lo-color-border);border-radius:var(--lo-radius-card);overflow:hidden;background:var(--lo-color-surface)}
-.login-briefing-dialog .briefing-sections-v2>section>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--lo-color-border);background:var(--lo-shell-control-hover)}
-.login-briefing-dialog .briefing-sections-v2>section>header div{display:grid;gap:2px}.login-briefing-dialog .briefing-sections-v2>section>header small{color:var(--lo-color-muted);font-size:11px}
 .login-briefing-dialog .briefing-navigation-row{width:100%;display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:10px;padding:11px 14px;border:0;border-bottom:1px solid var(--lo-color-border);background:var(--lo-color-surface);text-align:left;color:var(--lo-color-text);cursor:pointer}
 .login-briefing-dialog .briefing-navigation-row:hover{background:var(--lo-shell-control-hover)}
 .login-briefing-dialog .briefing-navigation-row>span{display:grid;gap:2px}.login-briefing-dialog .briefing-navigation-row small{color:var(--lo-color-muted)}
-.login-briefing-dialog .briefing-empty{margin:0;padding:18px 14px;color:var(--lo-color-muted)}
-.login-briefing-dialog .briefing-footer-v2{display:flex;align-items:center;gap:7px;color:var(--lo-color-muted);font-size:11px}
 
 /* Shared overflow action language: visible primary workflow, secondary tools behind a single ellipsis. */
 .lo-overflow-menu{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
@@ -324,8 +315,6 @@
 .attachment-file-info>strong.attachment-open-target{cursor:pointer;color:var(--lo-color-text);text-decoration:none}
 .attachment-file-info>strong.attachment-open-target:hover{text-decoration:underline;text-underline-offset:3px;color:var(--lo-color-primary)}
 @media (max-width:760px){
-  .login-briefing-dialog .briefing-sections-v2{grid-template-columns:1fr}
-  .login-briefing-dialog .briefing-summary-v2{align-items:flex-start;flex-direction:column}
   .platform-maintenance-banner{top:8px;width:calc(100vw - 20px);font-size:11px}
   .lo-overflow-popover{min-width:176px}
 }
@@ -1235,3 +1224,6 @@ td>.lo-meter{margin-top:5px}
 
 /* Automatic translation: a quiet tag beside an English text the system translated. */
 .auto-translated-mark{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border:1px dashed var(--lo-color-border);border-radius:999px;color:var(--lo-color-muted);font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;vertical-align:middle}
+/* «Στόχος» column of the indicators list: the year's objective, the default target in grey, or the button to set one. */
+.indicator-registry td small{display:block}.indicator-target-default{color:#8896a2;font-weight:700}.indicator-set-target{display:block;margin-top:2px;padding:0;border:0;background:none;color:#1d5fa8;font:inherit;font-size:12px;font-weight:600;cursor:pointer}.indicator-set-target:hover{text-decoration:underline}
+@media (hover:hover){.indicator-registry tr:not(:hover):not(:focus-within) .indicator-set-target{opacity:0}}

@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react'
-import { Navigate,useParams } from 'react-router-dom'
+import { Navigate,useLocation,useParams } from 'react-router-dom'
 import { Target } from 'lucide-react'
 import { RouteLoading } from '../../../design-system/RouteLoading'
 import { Page } from '../../../design-system/Page'
@@ -26,9 +26,10 @@ export function ObjectiveCreatePage() {
   const canManage = can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities || [], membership?.customCapabilities || [])
   const { goBack } = useContextualNavigation('/quality')
   const { objectiveId } = useParams()
+  const prefill = useLocation().state?.prefill
   const { objectives, registers, definitions, levels, loading } = useObjectives(tenant?.id)
   const existing = objectiveId ? objectives.find(item => item.id === objectiveId) : null
-  const [objective, setObjective] = useState(newObjective)
+  const [objective, setObjective] = useState(() => ({ ...newObjective(), ...(prefill || {}) }))
   // Editing: the form starts from the saved objective, without the values computed for display.
   useEffect(() => { if (existing) { const { register: _r, indicator: _i, current: _c, platformIndicator: _p, months: _m, department: _d, committee: _k, targetFromIndicator, ...clean } = existing; setObjective(targetFromIndicator ? { ...clean, target: '' } : clean) } }, [existing]) // eslint-disable-line no-unused-vars
   const [saving, setSaving] = useState(false)
