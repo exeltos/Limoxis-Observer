@@ -164,7 +164,7 @@ export function ReasonDialog({
   )
 }
 
-export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
+export function MemberDialog({ staff, initial, busy, onClose, onSave, en, teamName = '' }) {
   const seed = initial
     ? {
         ...initial,
@@ -324,32 +324,26 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
           />
         </label>
         <div className="committee-member-options-row">
-          <label className="committee-check-option">
-            <input
-              type="checkbox"
-              checked={v.voting}
-              onChange={e => set('voting', e.target.checked)}
-            />
-            <span>{en ? 'Voting member' : 'Δικαίωμα ψήφου'}</span>
-          </label>
+          <CheckboxField
+            className="committee-check-option"
+            checked={v.voting}
+            onChange={checked => set('voting', checked)}
+            label={en ? 'Voting member' : 'Δικαίωμα ψήφου'}
+          />
           <CheckboxField
             className="committee-check-option"
             checked={v.inControlTeam === true}
             onChange={checked => set('inControlTeam', checked)}
-            label={en ? 'Control team member' : 'Μέλος της ομάδας ελέγχου'}
+            label={en ? `Member of the ${teamName || 'working team'}` : `Μέλος της ${(teamName || 'Ομάδα εργασίας').replace(/^Ομάδα/, 'Ομάδας')}`}
           />
           {!initial && (
-            <label className="committee-check-option">
-              <input
-                type="checkbox"
-                disabled={!v.employeeId}
-                checked={v.approvalRequired}
-                onChange={e => set('approvalRequired', e.target.checked)}
-              />
-              <span>
-                {en ? 'Participation approval required' : 'Απαιτείται έγκριση συμμετοχής'}
-              </span>
-            </label>
+            <CheckboxField
+              className="committee-check-option"
+              disabled={!v.employeeId}
+              checked={v.approvalRequired}
+              onChange={checked => set('approvalRequired', checked)}
+              label={en ? 'Participation approval required' : 'Απαιτείται έγκριση συμμετοχής'}
+            />
           )}
         </div>
       </div>

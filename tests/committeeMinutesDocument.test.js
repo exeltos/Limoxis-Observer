@@ -23,9 +23,9 @@ describe('Committee minutes as a document (PDF export)', () => {
     expect(doc.title).toBe('ΠΡΑΚΤΙΚΟ ΣΥΝΕΔΡΙΑΣΗΣ αρ. 8/2026')
     expect(doc.subtitle).toBe('Συνεδρίαση της ολομέλειας της επιτροπής')
   })
-  it('names the infection control team when only the team met', () => {
+  it('names the working and intervention team when only the team met', () => {
     const doc = committeeMinutesReport({ committeeName: 'Επιτροπή Νοσοκομειακών Λοιμώξεων', minutes: { title: 'Ομάδα', date: '2026-09-03', composition: 'control_team', attendanceRecords: [], topics: [] }, en: false })
-    expect(doc.subtitle).toBe('Συνεδρίαση της Ομάδας Ελέγχου Λοιμώξεων')
-    expect(doc.meta.find(row => row[0] === 'Σύνθεση')[1]).toBe('Ομάδα Ελέγχου Λοιμώξεων')
+    expect(doc.subtitle).toBe('Συνεδρίαση της Ομάδας Εργασίας και Επέμβασης (ΟΕΕ)')
+    expect(doc.meta.find(row => row[0] === 'Σύνθεση')[1]).toBe('Ομάδα Εργασίας και Επέμβασης (ΟΕΕ)')
   })
 })

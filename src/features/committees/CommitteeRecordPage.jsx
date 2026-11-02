@@ -50,7 +50,7 @@ import {
 } from './committeeWorkflowService'
 import { cancelCommitteeMeetingAsync } from './committeeMeetingLifecycleService'
 import { externalMinutesActionAsync } from './committeeExternalApprovalService'
-import { fmtDate, createTopic, controlTeamName } from './committeeRecordFormat'
+import { fmtDate, createTopic, controlTeamName, controlTeamShort } from './committeeRecordFormat'
 import { rolesFromTitle } from './committeeMemberRoles'
 import {
   Head,
@@ -702,6 +702,7 @@ export function CommitteeRecordPage() {
         {tab === 'overview' && <Overview record={record} members={activeMembers} en={en} />}
         {tab === 'members' && (
           <Members
+            teamShort={controlTeamShort(record.name, en)}
             rows={record.memberRefs || []}
             canManage={canMembers && !busy}
             onAdd={() => setDialog({ type: 'member' })}
@@ -793,6 +794,7 @@ export function CommitteeRecordPage() {
       )}
       {dialog?.type === 'member' && (
         <MemberDialog
+          teamName={controlTeamName(record.name, en)}
           staff={staff}
           initial={dialog.value}
           busy={busy}
