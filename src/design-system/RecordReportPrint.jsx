@@ -4,8 +4,8 @@ import { cloudAttachmentsEnabled, loadAttachments } from '../core/attachments/at
 import { CONFIDENTIAL_LINE, eventLine, normalizeReport, pageLabel } from './recordReport'
 import '../styles/record-report.css'
 
-// The printed record as a clinical report: letterhead, title, summary and numbered
-// sections, black on white, serif, no controls. The record page supplies the
+// The printed record as a report with the look of the shared documents (reportDocument, owner 2/11/2026): letterhead,
+// title, summary and numbered sections, the facts in a two-column table, signatures, no controls. The record page supplies the
 // description (see recordReport.js); this component only lays it out.
 const cssString = value => JSON.stringify(String(value || '')).replace(/</g, '\\3c ')
 
@@ -36,7 +36,7 @@ export function RecordReportPrint({ report, branding, printedAt, printedBy, lang
   const printedOn = printedAt ? fmtDateTime(printedAt) : ''
   const printedLine = `${L('Εκτυπώθηκε από', 'Printed by')} ${printedBy || '—'} · ${printedOn}`
   const headerLine = [branding?.name, [doc.kind, doc.code].filter(Boolean).join(' ')].filter(Boolean).join(' · ')
-  const pageRules = `@media print{@page{size:A4;margin:22mm 20mm 20mm;@top-left{content:${cssString(headerLine)};font:9pt Georgia,"Times New Roman",serif;color:#000}@top-right{content:${cssString(printedOn)};font:9pt Georgia,"Times New Roman",serif;color:#000}@bottom-left{content:${cssString(CONFIDENTIAL_LINE(en))};font:9pt Georgia,"Times New Roman",serif;color:#000}@bottom-right{content:${cssString(pageLabel(en))} " " counter(page) " ${en ? 'of' : 'από'} " counter(pages);font:9pt Georgia,"Times New Roman",serif;color:#000}}@page :first{@top-left{content:none}@top-right{content:none}}}`
+  const pageRules = `@media print{@page{size:A4;margin:22mm 20mm 20mm;@top-left{content:${cssString(headerLine)};font:9pt Arial,Helvetica,sans-serif;color:#000}@top-right{content:${cssString(printedOn)};font:9pt Arial,Helvetica,sans-serif;color:#000}@bottom-left{content:${cssString(CONFIDENTIAL_LINE(en))};font:9pt Arial,Helvetica,sans-serif;color:#000}@bottom-right{content:${cssString(pageLabel(en))} " " counter(page) " ${en ? 'of' : 'από'} " counter(pages);font:9pt Arial,Helvetica,sans-serif;color:#000}}@page :first{@top-left{content:none}@top-right{content:none}}}`
   return <article className="record-report" lang={en ? 'en' : 'el'} data-record-report="">
     <style>{pageRules}</style>
     <header className="record-report-letterhead">
@@ -80,6 +80,7 @@ export function RecordReportPrint({ report, branding, printedAt, printedBy, lang
       {section.documents && <Documents source={section.documents} empty={section.documentsEmpty} />}
       {section.empty && <p className="record-report-empty">{section.empty}</p>}
     </section>)}
+    {doc.signatures.length > 0 && <section className="record-report-signatures" aria-label={L('Υπογραφές', 'Signatures')}>{doc.signatures.map((role, index) => <div key={index} className="record-report-signature"><strong>{role}</strong><p>{L('Ονοματεπώνυμο', 'Name')}:</p><p>{L('Ημερομηνία', 'Date')}:</p><p>{L('Υπογραφή', 'Signature')}:</p></div>)}</section>}
     <footer className="record-report-end">
       <p>{printedLine}</p>
       <p>{CONFIDENTIAL_LINE(en)}</p>
