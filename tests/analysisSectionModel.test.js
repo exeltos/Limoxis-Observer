@@ -126,3 +126,16 @@ describe('Overdue follow-ups', () => {
     expect(overdueFollowUps(visits, '2026-11-02')).toBe(1)
   })
 })
+
+describe('Antimicrobials section', () => {
+  it('says nothing is recorded instead of empty charts, and adds the pharmacy consumption when there is some', async () => {
+    const { buildSectionModel: build } = await import('../src/features/analysis/analysisDomains')
+    const say = (el) => el
+    const empty = build('antimicrobials', { domains: { antimicrobial: { total: 0 } } }, say)
+    expect(empty.charts.map(chart => chart.type)).toEqual(['note'])
+    const used = build('antimicrobials', { domains: { antimicrobial: { total: 3, byApproval: [['approved', 2], ['pending', 1]] }, consumption: { ddd: 500, accessDdd: 300, patientDays: 1000 } } }, say)
+    expect(used.kpis.find(row => row[0] === 'DDD / 100 ασθενοημέρες')[1]).toBe('50')
+    expect(used.kpis.find(row => row[0] === 'Access (AWaRe)')[1]).toBe('60%')
+    expect(used.charts.some(chart => chart.title === 'Συχνότερες ουσίες')).toBe(false)
+  })
+})

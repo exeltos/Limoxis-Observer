@@ -308,19 +308,28 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: null,
     }
-    case 'antimicrobials': return {
+    case 'antimicrobials': {
+      // The pharmacy's consumption (dispensing): DDD per 100 patient days and the Access share, when it is recorded.
+      const use = d.consumption || {}
+      const ddd = Number(use.ddd) > 0 ? Number(use.ddd) : null
+      const dddRate = ddd != null && Number(use.patientDays) > 0 ? Math.round((ddd / Number(use.patientDays)) * 1000) / 10 : null
+      const access = ddd != null && use.accessDdd != null ? Math.round((Number(use.accessDdd) / ddd) * 1000) / 10 : null
+      const recorded = (a.total ?? 0) > 0 || ddd != null
+      return {
       kpis: [
         [tx('Αντιμικροβιακές αγωγές', 'Antimicrobial therapies'), a.total ?? 0, tx(`${a.active ?? 0} ενεργές`, `${a.active ?? 0} active`)],
         [tx('Σε αναμονή έγκρισης', 'Pending approval'), a.pending ?? 0, tx('αντιβιοτικά περιορισμένης χρήσης', 'restricted antibiotics'), a.pending ? 'warning' : ''],
         [tx('Διαφορετικές ουσίες', 'Distinct agents'), (a.byAgent || []).length, tx('στην περίοδο', 'in the period')],
+        ...(dddRate != null ? [[tx('DDD / 100 ασθενοημέρες', 'DDD / 100 patient days'), String(dddRate).replace('.', en ? '.' : ','), tx('από τη διάθεση του φαρμακείου', 'from pharmacy dispensing')]] : []),
+        ...(access != null ? [[tx('Access (AWaRe)', 'Access (AWaRe)'), `${String(access).replace('.', en ? '.' : ',')}%`, tx('των DDD της περιόδου', 'of the period’s DDD')]] : []),
       ],
       charts: [
-        { type: 'bars', title: tx('Συχνότερες ουσίες', 'Most used agents'), subtitle: tx('Αγωγές ανά αντιμικροβιακό.', 'Therapies per antimicrobial.'), rows: a.byAgent },
+        ...(recorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αντιμικροβιακές αγωγές ούτε διάθεση φαρμακείου: η καρτέλα γεμίζει όταν καταχωριστούν.', 'No antimicrobial therapies or pharmacy dispensing are recorded: the tab fills once they are.') }]),
         { type: 'donut', title: tx('Κατάσταση έγκρισης', 'Approval status'), subtitle: tx('Έγκριση ανά αγωγή.', 'Approval per therapy.'), rows: named(a.byApproval), center: tx('αγωγές', 'therapies') },
         { type: 'matrix', wide: true, title: tx('Ουσίες ανά τμήμα', 'Agents by department'), subtitle: tx('Πού χορηγείται κάθε αντιμικροβιακό.', 'Where each antimicrobial is given.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentDepartment },
         { type: 'matrix', wide: true, title: tx('Ουσίες ανά μικροοργανισμό', 'Agents by organism'), subtitle: tx('Ποια αγωγή δόθηκε για κάθε μικροοργανισμό του επεισοδίου.', 'Which therapy was given for each episode\'s organism.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentOrganism },
-      ],
-    }
+      ].filter(chart => recorded || chart.type === 'note'),
+    } }
     case 'prevention': return {
       kpis: [
         [tx('Συμμόρφωση δεσμών μέτρων', 'Bundle compliance'), fmtPct(b.averageScore), tx(`${b.assessments ?? 0} αξιολογήσεις`, `${b.assessments ?? 0} assessments`), b.averageScore != null && b.averageScore < 90 ? 'warning' : 'good'],
