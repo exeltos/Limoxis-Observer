@@ -14,7 +14,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { CAPABILITIES,ROLES,can } from '../../core/permissions/roles'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
 import { exportElementAsPdf } from '../../core/export/pdfReportExport'
-import { INDICATOR_MORE_TABS,INDICATOR_TABS,TAB_MODULES,fmtDate,indicatorTabOf } from '../analysis/analysisPageModel'
+import { INDICATOR_MORE_TABS,INDICATOR_TABS,TABS,TAB_MODULES,fmtDate,indicatorTabOf } from '../analysis/analysisPageModel'
 import { collectAnalysisDemoSnapshot } from '../analysis/analysisDemoSnapshot'
 import { collectDemoDomainMetrics } from '../analysis/analysisDomains'
 import { AnalysisPage } from '../analysis/AnalysisPage'
@@ -164,6 +164,11 @@ export function ExecutiveDashboardPage(){
  const mainTabs=[...INDICATOR_TABS.filter(tabVisible),...(dataItems.length?[DATA_TAB]:[])],moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
  const activeTab=[...mainTabs,...moreTabs].find(([id])=>id===pageTab)||mainTabs[0]
  const activeSections=activeTab[4].filter(sectionVisible)
+ // A tab of three or more sections («Organisation») shows one at a time, under its own small tabs, so it never runs long; all
+ // stay loaded (hidden), and printing or the PDF unfold them all.
+ const [subSection,setSubSection]=useState('')
+ const subTabs=activeSections.length>2?activeSections.map(id=>{const row=TABS.find(([key])=>key===id);return {value:id,label:row?(en?row[2]:row[1]):id,icon:row?.[3]}}):[]
+ const shownSection=subTabs.some(item=>item.value===subSection)?subSection:subTabs[0]?.value||''
  const tabTitle=en?activeTab[2]:activeTab[1]
  const compareOf={previous:{title:tx('Σύγκριση με την προηγούμενη περίοδο','Compared with the previous period'),subtitle:tx('Ίδιο εύρος, η ίσης διάρκειας περίοδος πριν.','Same scope, the period of equal length before.'),currentLabel:periodLabel,compareLabel:previousLabel},departments:{title:tx('Τμήμα έναντι νοσοκομείου','Department against the hospital'),subtitle:tx('Ίδια περίοδος· το τμήμα και όλο το νοσοκομείο.','Same period; the department and the whole hospital.'),currentLabel:departmentName,compareLabel:tx('Όλο το νοσοκομείο','Whole hospital')}}
  const analysisCompare=previous&&compareOf[compareMode]?{range:previous,departmentId:previousDepartment,...compareOf[compareMode]}:null
@@ -183,7 +188,7 @@ export function ExecutiveDashboardPage(){
  return <Page className="exec-page" title={title} subtitle={activeTab[0]==='data'?hospital:periodLine} actions={pageActions}>
   {mainTabs.length+moreTabs.length>1&&<CanonicalTabs className="exec-view-tabs" value={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} items={mainTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))} moreItems={moreTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))}/>}
   {activeTab[0]==='data'?<IndicatorDataPanel initial={query.get('item')}/>:<>
-  {activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{activeSections.map(id=><AnalysisPage key={`${id}:${compareMode}`} embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/>)}</section>:<section ref={reportRef} className="exec-report">
+  {activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{subTabs.length>0&&!printing&&<CanonicalTabs className="exec-sub-tabs" value={shownSection} onChange={setSubSection} ariaLabel={tabTitle} items={subTabs}/>}{activeSections.map(id=><div key={`${id}:${compareMode}`} hidden={Boolean(shownSection)&&id!==shownSection&&!printing}><AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/></div>)}</section>:<section ref={reportRef} className="exec-report">
    {printing&&<header className="exec-report-head"><div><strong>{reportLines[0]}</strong><span>{reportLines.slice(1).join(' · ')}</span></div>{isDemo&&<span className="status-badge temporary">{tx('ΔΕΔΟΜΕΝΑ DEMO','DEMO DATA')}</span>}</header>}
    <Card className="exec-card exec-measures-card">
     <table className="exec-measures">

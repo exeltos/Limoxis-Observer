@@ -74,7 +74,7 @@ describe('Workforce, training and governance sections', () => {
   })
   it('reports training completion and pending minutes', () => {
     expect(buildSectionModel('training', snap, tx).kpis[0][1]).toBe('75%')
-    expect(buildSectionModel('training', snap, tx).charts[0].rows).toEqual([['ΜΕΘ', 50]])
+    expect(buildSectionModel('training', snap, tx).charts[0].rows).toEqual([['ΜΕΘ', 50, '1/2']])
     expect(buildSectionModel('governance', snap, tx).kpis[3][1]).toBe(1)
   })
   it('keeps occupational health aggregated and permission-gated in the database', () => {

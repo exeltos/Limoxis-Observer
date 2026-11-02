@@ -244,7 +244,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
   const d = snapshot?.domains || {}, s = d.surveillance || {}, hh = d.handHygiene || {}, b = d.bundles || {}, w = d.waste || {}, c = d.controls || {}, q = d.quality || {}, a = d.antimicrobial || {}
   const micro = snapshot?.microbiology || {}
   const hhRate = pct(hh.compliant, hh.observations)
-  const rateRows = rows => (rows || []).map(([key, total, part]) => [label(key), pct(part, total) ?? 0]).filter(([, value]) => value != null)
   // The rate with how many it rests on («· 52»), or how many out of how many («· 12/263»).
   const rateRowsWithTotal = rows => (rows || []).map(([key, total, part]) => [label(key), pct(part, total) ?? 0, String(total ?? 0)]).filter(([, value]) => value != null)
   const mdro = (micro.resistance || []).filter(([key]) => ['MDR', 'XDR', 'PDR'].includes(key)).reduce((sum, [, value]) => sum + (Number(value) || 0), 0)
@@ -377,8 +376,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
-        { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.severityByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
-        { type: 'donut', title: tx('Σοβαρότητα συμβάντων', 'Incident severity'), subtitle: tx('Συμβάντα της περιόδου.', 'Incidents in the period.'), rows: named(q.bySeverity), center: tx('συμβάντα', 'incidents') },
+        { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), columnOrder: ['low', 'medium', 'high', 'critical'].map(label), cells: q.severityByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
+        // No severity donut: it repeated the «Total» row of the table above.
         { type: 'bars', title: tx('Κατάσταση συμβάντων', 'Incident status'), subtitle: tx('Πού βρίσκεται η διερεύνηση.', 'Where investigation stands.'), rows: named(q.byStatus) },
       ],
     }
@@ -405,8 +404,8 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Μέση βαθμολογία', 'Average score'), tr.averageScore == null ? '—' : fmtPct(tr.averageScore), tx('στις αξιολογήσεις', 'in assessments')],
       ],
       charts: [
-        { type: 'rate', title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ποσοστό ολοκληρωμένων αναθέσεων.', 'Share of completed assignments.'), rows: rateRows(tr.byDepartment) },
-        { type: 'bars', title: tx('Αναθέσεις ανά τμήμα', 'Assignments by department'), subtitle: tx('Πλήθος αναθέσεων στην περίοδο.', 'Assignments in the period.'), rows: (tr.byDepartment || []).map(([key, n]) => [key, n]) },
+        // One card: the share completed and «how many of how many» (the assignments), as in hand hygiene.
+        { type: 'rate', wide: true, title: tx('Ολοκλήρωση ανά τμήμα', 'Completion by department'), subtitle: tx('Ολοκληρωμένες αναθέσεις προς τις αναθέσεις της περιόδου.', 'Completed assignments over the assignments of the period.'), rows: (tr.byDepartment || []).map(([key, total, done]) => [label(key), pct(done, total) ?? 0, `${done ?? 0}/${total ?? 0}`]) },
       ],
     } }
     case 'governance': { const g = d.governance || {}; return {

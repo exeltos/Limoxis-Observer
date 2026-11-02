@@ -147,9 +147,14 @@ describe('Quality & food safety metrics', () => {
     expect(kpi('Υψηλοί κίνδυνοι')[1]).toBe('2')
     expect(model.charts.find(chart => chart.title === 'Συμμόρφωση ανά πρότυπο').rows).toEqual([['ISO 9001', 50], ['HACCP', 100]])
     expect(model.charts.find(chart => chart.title === 'Κίνδυνοι ανά επίπεδο').rows[0]).toEqual(['Πολύ υψηλός', 1])
-    // A one-month trend is left out; two months are drawn.
-    expect(qualityFoodSection({ ...q, receiptsMonthly: [['2026-10', 2, 1]] }, tx).charts.some(chart => chart.title.startsWith('Παραλαβές εκτός ορίων ανά μήνα'))).toBe(false)
-    expect(model.charts.some(chart => chart.title.startsWith('Παραλαβές εκτός ορίων ανά μήνα'))).toBe(true)
+    // The receipts trend needs three months; fewer read as a line «too few receipts».
+    const receiptsTrend = section => section.charts.some(chart => chart.type === 'trend' && chart.title.startsWith('Παραλαβές εκτός ορίων ανά μήνα'))
+    const twoMonths = qualityFoodSection({ ...q, receiptsMonthly: [['2026-09', 2, 0], ['2026-10', 2, 1]] }, tx)
+    expect(receiptsTrend(twoMonths)).toBe(false)
+    expect(twoMonths.charts.find(chart => chart.type === 'note' && chart.text.startsWith('Παραλαβές')).text).toContain('λίγες παραλαβές (2 μήνες)')
+    expect(receiptsTrend(qualityFoodSection({ ...q, receiptsMonthly: [['2026-08', 3, 0], ['2026-09', 2, 0], ['2026-10', 2, 1]] }, tx))).toBe(true)
+    // The suppliers in one line of numbers.
+    expect(model.charts.find(chart => chart.type === 'note' && chart.text.startsWith('Προμηθευτές:'))).toBeTruthy()
     expect(buildSectionModel('qualityfood', { domains: { qualityFood: q } }, tx).kpis).toHaveLength(6)
   })
 
