@@ -6,7 +6,7 @@
 // occurred (the same reason CDC/state-health cluster algorithms look for
 // the tightest interval between cases rather than a fixed lookback from
 // query time). `lastEventDate` lets a caller judge staleness separately.
-import { isSkinFloraOrganism } from './skinFloraOrganisms'
+import { isContaminationNote, isSkinFloraOrganism } from './skinFloraOrganisms'
 
 const DAY_MS = 86400000
 
@@ -40,6 +40,7 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
   const groups = new Map()
   for (const record of records || []) {
     if (!record?.organism || !record?.department || !record?.date) continue
+    if (isContaminationNote(record.organism)) continue
     const key = `${record.department}|||${normalizeOrganism(record.organism)}`
     if (!groups.has(key)) groups.set(key, { department: record.department, organism: record.organism, items: [] })
     groups.get(key).items.push({ date: String(record.date).slice(0, 10), resistance: record.resistance || null, patientId: record.patientId || null, sampleId: record.sampleId || null })
