@@ -73,6 +73,8 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
      if(indicator.archived)continue
      const result=computeIndicator(register,indicator,entries,period)
      const target=indicator.target===''||indicator.target==null?null:Number(indicator.target)
+     // A register's indicator without a target only informs (counts, shares, means): it stays in its register, not in this list or its print.
+     if(target==null)continue
      out.push({id:`register:${register.id}:${indicator.id}`,registerId:register.id,indicatorKey:indicator.id,titleEl:registerText(indicator,'el'),titleEn:registerText(indicator,'en'),category:'register',source:el?register.name:(register.nameEn||register.name),value:result.value,unit:indicator.unit||'',unitEn:indicator.unitEn||indicator.unit||'',status:result.status==='breach'?'attention':result.status,target,direction:indicator.direction,evidence:result.denominator!=null?`${result.numerator} / ${result.denominator}`:'',calculation:'auto'})
     }
    }
