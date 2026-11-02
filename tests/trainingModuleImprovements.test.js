@@ -15,8 +15,11 @@ describe('training program record: scrolls like other record pages instead of cl
 
   it('still lets Participants/Assessment/Results manage their own internal registry scroll', () => {
     expect(productionPage).toContain("tab==='participants'&&<Participants")
+    // Material and the knowledge test are two tabs of their own; no tabs inside a tab.
+    expect(productionPage).toContain("tab==='materials'&&<RecordTabPanel")
     expect(productionPage).toContain("tab==='assessment'&&<TrainingAssessmentEditor")
     expect(productionPage).toContain("tab==='results'&&<TrainingResultsReview")
+    expect(productionPage).not.toContain('SubTabs')
   })
 })
 

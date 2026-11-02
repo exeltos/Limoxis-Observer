@@ -1,6 +1,7 @@
 // Shared pieces of the risk assessment screens: level chips, the 5×5 heat map,
 // the L/C pickers and the legend. Colours are the NHS bands (see riskAssessment.css).
 import { useState } from 'react'
+import { useTableSort } from '../../../design-system/useTableSort'
 import { Pencil,Trash2 } from 'lucide-react'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { ActionButton } from '../../../design-system/ActionButton'
@@ -20,15 +21,18 @@ export function useReturnedRow(key){
 }
 // Pages of a table with the registries' pager. A new filter (resetOn) goes back
 // to page 1; on the way back from a record the page holding it is shown.
-export function usePaged(list,{en=false,resetOn='',startIndex=-1}={}){
+// sortBy (column key → value reader) gives the table's arrows: the whole list is sorted, then the page is cut.
+export function usePaged(list,{en=false,resetOn='',startIndex=-1,sortBy=null}={}){
+ const {sorted,sort,onSort}=useTableSort(list,sortBy||{})
  const [pageSize,setPageSize]=useState(15)
  const [page,setPage]=useState(()=>startIndex>=0?Math.floor(startIndex/15)+1:1)
- const [seen,setSeen]=useState(resetOn)
- if(seen!==resetOn){setSeen(resetOn);setPage(1)}
- const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages)
- const items=list.slice((safePage-1)*pageSize,safePage*pageSize)
- const pager=<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
- return {items,pager}
+ const resetKey=`${resetOn}|${sort.key}|${sort.dir}`
+ const [seen,setSeen]=useState(resetKey)
+ if(seen!==resetKey){setSeen(resetKey);setPage(1)}
+ const totalPages=Math.max(1,Math.ceil(sorted.length/pageSize)),safePage=Math.min(page,totalPages)
+ const items=sorted.slice((safePage-1)*pageSize,safePage*pageSize)
+ const pager=<RegistryPagination language={en?'en':'el'} page={safePage} totalPages={totalPages} totalItems={sorted.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}}/>
+ return {items,pager,sort,onSort,sorted}
 }
 // A tab outside the assessment page (tests, a standalone use) renders its KPIs
 // and content one after the other.

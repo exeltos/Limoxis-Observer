@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, BarChart3, Grid3X3 } from 'lucide-react'
+import { MoreSection } from '../../../design-system/MoreSection'
+import { formatDay } from '../../../core/i18n/formatDay'
 import { PeriodStepper } from '../../../design-system/PeriodStepper'
 import { FilterSelect } from '../../../design-system/FilterBar'
 import { RecordMetricStrip } from '../../../design-system/RecordMetricStrip'
@@ -10,7 +12,7 @@ import { useDepartments } from '../../management/useLibraries'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { useAuditTemplates } from './useAuditTemplates'
 import { FINDING_CLASSES, findingClassTone, standardLabel, standardShort } from './auditStandards'
-import { auditDashboard, clauseCoverage } from './auditModel'
+import { auditDashboard, auditReadiness, clauseCoverage } from './auditModel'
 import './audits.css'
 
 const L = (en, el, english) => (en ? english : el)
@@ -99,5 +101,51 @@ export function AuditDashboard({ audits = [], findings = [], language }) {
         <ul className="audit-class-counts">{FINDING_CLASSES.map(item => <li key={item.value}><StatusBadge tone={findingClassTone(item.value)}>{item.label[en ? 1 : 0]}</StatusBadge><strong>{data.openByClass[item.value]}</strong></li>)}{data.openByClass.unclassified > 0 && <li><StatusBadge tone="neutral">{L(en, 'Χωρίς κατάταξη', 'Unclassified')}</StatusBadge><strong>{data.openByClass.unclassified}</strong></li>}</ul>
       </section>
     </div>
+  </div>
+}
+
+// Readiness: every standard in one table (the latest audit of each department
+// that covered it), what is still missing, and the detail (clause coverage and
+// the dashboard) folded under it.
+export function AuditReadiness({ audits = [], findings = [], language, onOpenFinding, onOpenAudit }) {
+  const en = language === 'en'
+  const data = useMemo(() => auditReadiness(audits, findings), [audits, findings])
+  const { missing } = data
+  const items = [
+    missing.major.length > 0 && { id: 'major', tone: 'danger', text: (missing.major.length === 1 ? L(en, '1 ανοιχτό μείζον εύρημα', '1 open major finding') : L(en, `${missing.major.length} ανοιχτά μείζονα ευρήματα`, `${missing.major.length} open major findings`)), go: () => onOpenFinding?.(missing.major[0]) },
+    missing.lateFindings.length > 0 && { id: 'late', tone: 'danger', text: (missing.lateFindings.length === 1 ? L(en, '1 εύρημα πέρασε την προθεσμία του', '1 finding past its due date') : L(en, `${missing.lateFindings.length} ευρήματα πέρασαν την προθεσμία τους`, `${missing.lateFindings.length} findings past their due date`)), go: () => onOpenFinding?.(missing.lateFindings[0]) },
+    missing.lateAudits.length > 0 && { id: 'lateAudits', tone: 'danger', text: (missing.lateAudits.length === 1 ? L(en, '1 επιθεώρηση εκπρόθεσμη', '1 overdue audit') : L(en, `${missing.lateAudits.length} επιθεωρήσεις εκπρόθεσμες`, `${missing.lateAudits.length} overdue audits`)), go: () => onOpenAudit?.(missing.lateAudits[0]) },
+    missing.noAuditThisYear.length > 0 && { id: 'none', tone: 'warning', text: L(en, `Χωρίς επιθεώρηση φέτος: ${missing.noAuditThisYear.join(', ')}`, `No audit this year: ${missing.noAuditThisYear.join(', ')}`) },
+    missing.noNext.length > 0 && { id: 'next', tone: 'warning', text: L(en, `Χωρίς επόμενη επιθεώρηση: ${missing.noNext.join(', ')}`, `No next audit: ${missing.noNext.join(', ')}`) },
+  ].filter(Boolean)
+  return <div className="audit-view audit-readiness">
+    {data.rows.length ? <div className="quality-programme-scroll">
+      <table className="quality-programme-table audit-readiness-table">
+        <thead><tr>
+          <th scope="col">{L(en, 'Πρότυπο', 'Standard')}</th>
+          <th scope="col">{L(en, 'Ετοιμότητα', 'Readiness')}</th>
+          <th scope="col">{L(en, 'Τμήματα', 'Departments')}</th>
+          <th scope="col">{L(en, 'Φέτος', 'This year')}</th>
+          <th scope="col">{L(en, 'Ανοιχτά ευρήματα', 'Open findings')}</th>
+          <th scope="col">{L(en, 'Πιο αδύναμα κεφάλαια', 'Weakest chapters')}</th>
+          <th scope="col">{L(en, 'Τελευταία', 'Latest')}</th>
+        </tr></thead>
+        <tbody>{data.rows.map(row => <tr key={row.standard}>
+          <th scope="row">{standardLabel(row.standard, language) || standardShort(row.standard)}</th>
+          <td className="audit-readiness-rate">{row.rate == null ? '—' : <><strong>{row.rate}%</strong><Meter value={row.rate} tone={meterTone(row.rate)} label={`${standardShort(row.standard)} ${row.rate}%`} /></>}</td>
+          <td>{row.departments}</td>
+          <td className={row.thisYear < row.departments ? 'quality-overdue-text' : ''}>{row.thisYear}/{row.departments}</td>
+          <td className={row.major ? 'quality-overdue-text' : ''}>{row.open}{row.major ? <small>{L(en, `${row.major} μείζονα`, `${row.major} major`)}</small> : null}</td>
+          <td>{row.weakest.length ? row.weakest.map(chapter => <small key={chapter.key} className="audit-readiness-chapter" title={chapter.title}>{chapter.ref} · {chapter.title} <b>{chapter.rate}%</b></small>) : '—'}</td>
+          <td className="nowrap-cell">{row.last ? formatDay(row.last, language) : '—'}</td>
+        </tr>)}</tbody>
+      </table>
+    </div> : <div className="inline-empty">{L(en, 'Δεν υπάρχει ακόμη ολοκληρωμένη επιθεώρηση με απαντήσεις.', 'No completed audit with answers yet.')}</div>}
+    <section className="audit-readiness-missing">
+      <h4>{L(en, 'Τι λείπει', 'What is missing')}</h4>
+      {items.length ? <ul>{items.map(item => <li key={item.id} className={`is-${item.tone}`}>{item.go ? <button type="button" onClick={item.go}>{item.text}</button> : item.text}</li>)}</ul> : <p>{L(en, 'Τίποτα: όλα τα τμήματα έχουν επιθεώρηση φέτος και επόμενη στο πρόγραμμα.', 'Nothing: every department was audited this year and has its next audit planned.')}</p>}
+    </section>
+    <MoreSection moreLabel={L(en, 'Κάλυψη άρθρων ανά πρότυπο', 'Clause coverage by standard')} lessLabel={L(en, 'Λιγότερα', 'Less')}><AuditCoverage audits={audits} language={language} /></MoreSection>
+    <MoreSection moreLabel={L(en, 'Πίνακας και τάση 12 μηνών', 'Dashboard and 12-month trend')} lessLabel={L(en, 'Λιγότερα', 'Less')}><AuditDashboard audits={audits} findings={findings} language={language} /></MoreSection>
   </div>
 }

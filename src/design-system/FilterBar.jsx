@@ -9,7 +9,8 @@ const POPOVER_GAP = 8
 const VIEWPORT_MARGIN = 12
 
 // end: optional content at the right of the row (e.g. a view switch).
-export function FilterBar({query='',onQueryChange,placeholder,children,advanced,activeAdvancedCount=0,onClear,compact=false,end=null}){
+// activeFilters: [{ key, label, onRemove }] — the filters in force, as removable chips under the search row.
+export function FilterBar({query='',onQueryChange,placeholder,children,advanced,activeAdvancedCount=0,onClear,compact=false,end=null,activeFilters=[]}){
   const {t}=useLanguage()
   const [open,setOpen]=useState(false)
   const [placement,setPlacement]=useState(null)
@@ -79,9 +80,10 @@ export function FilterBar({query='',onQueryChange,placeholder,children,advanced,
       {showClear&&<ActionButton label={clearLabel} tone="neutral" className="filter-clear-button" onClick={onClear}><X size={14}/><span>{clearLabel}</span></ActionButton>}
       {end&&<div className="filter-end">{end}</div>}
     </div>
+    {activeFilters.length>0&&<div className="filter-active-row">{activeFilters.map(item=><button key={item.key} type="button" className="filter-active-chip" onClick={item.onRemove} aria-label={`${clearLabel}: ${item.label}`}>{item.label}<X size={12} aria-hidden="true"/></button>)}</div>}
     {popover}
   </div>
 }
 
-export function FilterSelect({label,value,onChange,children}){return <label className="filter-field"><span className="lo-field-label">{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>}
+export function FilterSelect({label,value,onChange,children,className=''}){return <label className={`filter-field ${className}`.trim()}><span className="lo-field-label">{label}</span><select value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>}
 export function FilterDate({label,value,onChange}){return <ManualDateField className="filter-field" label={label} value={value} onChange={onChange}/>}

@@ -2,6 +2,7 @@
 // headers and rows of what the list currently shows (after its filters), so
 // the file matches the screen an inspector is looking at.
 import { downloadCsv } from './csvExport'
+import { printReport } from './reportDocument'
 
 const day=(value,en)=>{
  if(!value)return ''
@@ -49,7 +50,7 @@ export function controlsExport(rows,{en,frequencyLabel=()=>'' ,stateLabel=value=
    const assignment=item.assignments?.[department]||{}
    // Counted in the database (control_assignment_summary, voided entries left out).
    const summary=assignment.summary||{}
-   lines.push([item.id,item.title,item.category,department,frequencyLabel(item.frequency),criticalityLabel(criticality(item)),item.owner,summary.executions||0,summary.findings||0,day(assignment.lastCompletedAt,en),day(assignment.nextDueAt,en),stateLabel(assignment)])
+   lines.push([item.id,item.title,item.category,department,frequencyLabel(assignment.frequency||item.frequency),criticalityLabel(criticality(item)),item.owner,summary.executions||0,summary.findings||0,day(assignment.lastCompletedAt,en),day(assignment.nextDueAt,en),stateLabel(assignment)])
   }
  }
  return {
@@ -111,4 +112,11 @@ export function patientsListExport(rows,{language,t,fmt}){
     headers:en?['Patient','Patient code','Record number','Department','Admission','Status']:['Ασθενής','Κωδικός ασθενούς','Αριθμός φακέλου','Τμήμα','Εισαγωγή','Κατάσταση'],
     rows:rows.map(p=>[en?(p.nameEn||p.name):p.name,p.id,p.hospitalRecordNumber||'',en?p.departmentEn:p.department,fmt(p.admissionDate),t(p.status)]),
   }
+}
+
+// The same list as the spreadsheet, on the shared document layout (landscape), to
+// print or keep as PDF: so «Export» offers print and Excel on every list.
+// Returns false when the browser blocked the window.
+export function printRegistry({name,headers,rows},{language='el',kind='',title='',pdf=false}={}){
+ return printReport({language,orientation:'landscape',kind,title,meta:[[language==='en'?'Records':'Εγγραφές',String(rows.length)]],sections:[{title,table:{columns:headers,rows:rows.map(row=>row.map(cell=>cell==null?'':String(cell))),empty:language==='en'?'No records.':'Δεν υπάρχουν εγγραφές.'}}],filename:name},{pdf})
 }

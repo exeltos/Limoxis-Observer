@@ -7,6 +7,8 @@ function mapRecord(row,employee,department){
   return {
     id:row.surveillance_code,
     recordId:row.id,
+    // Who entered the screening: only they (and the admin / infection control lead) may delete it.
+    createdBy:row.created_by||null,
     organizationId:row.organization_id,
     employeeDbId:row.employee_id,
     employeeId:employee?.employee_code||row.employee_id,

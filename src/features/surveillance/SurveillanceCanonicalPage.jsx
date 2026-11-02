@@ -11,19 +11,19 @@ import {
 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
+import { MetricCard } from '../../design-system/MetricCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { useSectionTabs } from '../../design-system/SectionTabs'
 import { Button } from '../../design-system/Button'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry, surveillanceListExport } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
-import { MetricCard } from '../../design-system/MetricCard'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
-import { formatSurveillanceCultureCount } from '../../core/i18n/surveillanceCultureCount'
 import { UI_ACTIONS, canPerform } from '../../core/actions/actionPolicy'
 import { CAPABILITIES, ROLES } from '../../core/permissions/roles'
 import { useRegistryMemory } from '../../core/navigation/useRegistryMemory'
@@ -97,7 +97,10 @@ export function SurveillanceCanonicalPage() {
     setTenantByMembership,
     canAccessRecord,
     canSeeSensitiveEmployeeHealth,
+    uxPolicy,
   } = useTenant()
+  // A ward role sees only its own department: no department column or filter.
+  const ownDepartmentOnly = uxPolicy?.scope === 'department'
   const { t, language } = useLanguage(),
     { notify, notifyError } = useFeedback()
   const restored = location.state?.surveillanceView || {}
@@ -161,7 +164,6 @@ export function SurveillanceCanonicalPage() {
   const { employees: canEmployees, environment: canEnvironment } = surveillanceTabAccess({
     role,
     actualRole,
-    isDemo,
     canSeeSensitiveEmployeeHealth,
   })
   const load = useCallback(async () => {
@@ -244,6 +246,7 @@ export function SurveillanceCanonicalPage() {
       )
     if (mode === 'employees')
       return employeeRows
+        .filter(x => !quick || matchesEmployeeQuick(x, quick))
         .filter(x =>
           `${x.employeeName || ''} ${x.employeeNameEn || ''} ${x.employeeId || ''}`
             .toLowerCase()
@@ -257,6 +260,7 @@ export function SurveillanceCanonicalPage() {
         .filter(x => inPeriod(x.startedAt, period))
         .filter(x => status === 'all' || x.resultStatus === status || x.status === status)
     return environmentRows
+      .filter(x => !quick || matchesEnvironmentQuick(x, quick))
       .filter(x =>
         `${x.type || ''} ${x.source || ''} ${x.department || ''} ${x.organism || ''}`
           .toLowerCase()
@@ -278,9 +282,26 @@ export function SurveillanceCanonicalPage() {
     canAccessRecord,
     quick,
   ])
+  // The arrows in the headers sort the whole filtered list; the page is cut afterwards.
+  const { sorted: sortedRows, sort, onSort } = useTableSort(filtered, {
+    patient: x => (language === 'el' ? x.patient : x.patientEn),
+    name: x => (language === 'en' ? x.employeeNameEn : x.employeeName),
+    department: x => (language === 'el' ? x.department : x.departmentEn),
+    started: x => x.startedAt,
+    date: x => (mode === 'environment' ? x.collectedAt || x.requestedAt : x.startedAt),
+    micro: x => (x.episodes || [x]).map(latestOrganism).find(Boolean),
+    status: x => x.status,
+    review: x => (x.status === 'active' ? x.groupReviewDue ?? x.reviewDue : null),
+    screening: x => (x.screeningTypes || []).map(id => employeeScreeningLabel(id, language)).join(', '),
+    result: x => (mode === 'environment' ? x.result : x.resultStatus),
+    surveillance: x => x.code || x.id,
+    point: x => [x.location, x.point].filter(Boolean).join(' · '),
+    batch: x => x.environmentalBatchId,
+  })
+  useEffect(() => { setPage(1) }, [sort])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)),
     safePage = Math.min(page, totalPages),
-    rows = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+    rows = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const departmentNames = useMemo(
     () =>
       unique(
@@ -304,13 +325,24 @@ export function SurveillanceCanonicalPage() {
     : getCloudEmployeeSurveillanceKpis(employeeRows)
   const environmentKpis = {
     ...getEnvironmentalKpis(environmentRows),
-    critical: environmentRows.filter(x => x.critical || environmentalNeedsAction(x)).length,
+    // Points that need action (a result outside the acceptable limits) and the critical findings, apart.
+    outside: environmentRows.filter(x => environmentalNeedsAction(x)).length,
+    critical: environmentRows.filter(x => x.critical).length,
   }
   const environmentDepartmentOptions = departments.map(x => ({
     value: x.id,
     label: x.name,
     labelEn: x.nameEn || x.name,
   }))
+  // «Resample» is started from inside the environmental sample's record, which sends the sample here.
+  const resampleRequest = location.state?.resampleOf || null
+  useEffect(() => {
+    if (!resampleRequest || !canEnvironment || !environmentDepartmentOptions.length) return
+    setMode('environmental')
+    setResample(environmentalResampleInitial(resampleRequest, environmentDepartmentOptions))
+    setCreation('environmental')
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: { ...location.state, resampleOf: undefined } })
+  }, [resampleRequest, canEnvironment, environmentDepartmentOptions.length]) // eslint-disable-line react-hooks/exhaustive-deps
   const saveView = () => ({ mode, page: safePage, pageSize, query, department, status, period })
   const openCase = item =>
     registry.openRecord(
@@ -464,10 +496,10 @@ export function SurveillanceCanonicalPage() {
     <Page
       fill
       title={t('clinicalRecords.surveillanceCenter')}
-      subtitle={t('surveillanceSubtitleV051')}
+      subtitle={t({ employees: 'svSubtitleEmployees', environmental: 'svSubtitleEnvironmental' }[mode] || 'surveillanceSubtitleV051')}
       actions={
         <div className="record-actions">
-            <ExportMenu onExcel={filtered.length ? () => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) })) : undefined} disabled={!filtered.length} />
+            <ExportMenu onExcel={() => exportRegistry(surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }))} disabled={!filtered.length} />
             {canCreate && (
             <Button variant="primary" onClick={() => startCreation(mode)}>
               <Plus size={15} aria-hidden="true" />
@@ -477,21 +509,24 @@ export function SurveillanceCanonicalPage() {
           </div>
       }
     >
+      {!section && (
+        <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
+      )}
       <div className="workspace-summary surveillance-summary">
         <div className="module-summary-strip">
           {mode === 'employees' ? (
             <>
-              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck} />
+              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive} quickKey="positive" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention} quickKey="intervention" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck} quickKey="recheck" quick={quick} onQuick={setQuick} />
             </>
           ) : mode === 'environmental' ? (
             <>
-              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEnvironmentalPoints')} value={environmentKpis.positive} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} />
+              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} quickKey="pending" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.outsideLimitsPoints')} value={environmentKpis.outside} quickKey="outside" quick={quick} onQuick={setQuick} />
+              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} quickKey="critical" quick={quick} onQuick={setQuick} />
             </>
           ) : (
             <>
@@ -506,9 +541,6 @@ export function SurveillanceCanonicalPage() {
           )}
         </div>
       </div>
-      {!section && (
-        <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
-      )}
       <div className="surface registry-workspace workspace-fill">
         <FilterBar
           query={query}
@@ -523,10 +555,10 @@ export function SurveillanceCanonicalPage() {
           }}
           advanced={
             <>
-              <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
+              {!ownDepartmentOnly && <FilterSelect label={t('department')} value={department} onChange={setDepartment}>
                 <option value="all">{t('allDepartments')}</option>
                 {departmentNames.map(x => <option key={x} value={x}>{x}</option>)}
-              </FilterSelect>
+              </FilterSelect>}
               <FilterSelect label={t('status')} value={status} onChange={setStatus}>
                 <option value="all">{t('all')}</option>
                 <option value="active">{t('active')}</option>
@@ -566,12 +598,13 @@ export function SurveillanceCanonicalPage() {
               }}
             />
           )
-        ) : loading ? <TableSkeleton /> : mode === 'patients' ? (
-          <PatientRows rows={rows} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} />
+        ) : mode === 'patients' ? (
+          <PatientRows loading={loading} rows={rows} showDepartment={!ownDepartmentOnly} openRuns={openRuns} epiIndex={epiIndex} empty={empty} registry={registry} t={t} language={language} fmt={fmt} onOpen={openCase} sort={sort} onSort={onSort} />
         ) : mode === 'employees' ? (
-          <EmployeeRows rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} />
+          <EmployeeRows loading={loading} rows={rows} empty={empty} registry={registry} language={language} fmt={fmt} t={t} onOpen={openEmployee} sort={sort} onSort={onSort} />
         ) : (
           <EnvironmentalRegistry
+            loading={loading}
             rows={rows}
             empty={empty}
             summaryRows={filtered}
@@ -579,12 +612,10 @@ export function SurveillanceCanonicalPage() {
             language={language}
             fmt={fmt}
             onOpenSample={id => registry.openRecord(navigate, `/surveillance/environment/${id}`, String(id), filtered.map(x => String(x.code || x.id)), { returnState: { surveillanceView: saveView() } })}
-            onResample={canEnvironment ? row => {
-              setResample(environmentalResampleInitial(row, environmentDepartmentOptions))
-              setCreation('environmental')
-            } : undefined}
             highlightId={registry.highlightId}
             scrollRef={registry.scrollRef}
+            sort={sort}
+            onSort={onSort}
           />
         )}
         {filtered.length > 0 && !showWorklist && (
@@ -614,9 +645,8 @@ export function SurveillanceCanonicalPage() {
             setCreation(null)
             setResample(null)
           }}
+          // The window stays open on its confirmation (print the recording sheet); «Close» closes it.
           onCreated={async () => {
-            setCreation(null)
-            setResample(null)
             await load()
             setMode('environmental')
           }}
@@ -669,7 +699,7 @@ function groupByPatient(list) {
         String(b.startedAt || '').localeCompare(String(a.startedAt || '')),
     )
 }
-function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
+function PatientRows({ sort, onSort, loading = false, rows, showDepartment = true, openRuns = [], epiIndex = null, empty, registry, t, language, fmt, onOpen }) {
   const openRunOf = x =>
     (x.episodes || [x])
       .map(ep => openRuns.find(run => String(run.caseId) === String(ep.recordId || ep.id)))
@@ -678,13 +708,16 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
         bare
+        loading={loading}
+        sort={sort}
+        onSort={onSort}
         columns={[
-          { key: 'patient', label: t('patient') },
-          { key: 'department', label: t('department') },
-          { key: 'started', label: t('clinicalRecords.startedAt') },
-          { key: 'micro', label: t('microbiology') },
-          { key: 'status', label: t('status') },
-          { key: 'review', label: t('reassessment') },
+          { key: 'patient', label: t('patient'), sortable: true },
+          ...(showDepartment ? [{ key: 'department', label: t('department'), sortable: true }] : []),
+          { key: 'started', label: t('clinicalRecords.startedAt'), sortable: true },
+          { key: 'micro', label: t('microbiology'), sortable: true },
+          { key: 'status', label: t('status'), sortable: true },
+          { key: 'review', label: t('reassessment'), sortable: true },
         ]}
         rows={rows}
         emptyTitle={empty?.title}
@@ -702,12 +735,10 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
           <>
             <td>
               <strong>{language === 'el' ? x.patient : x.patientEn}</strong>
-              <small>
-                {x.patientId || '—'} · {formatSurveillanceCultureCount(x.sampleCount, language)}
-              </small>
+              <small>{x.patientId || '—'}</small>
               <ProtocolBadge entry={openRunOf(x)} t={t} language={language} />
             </td>
-            <td>{language === 'el' ? x.department : x.departmentEn}</td>
+            {showDepartment && <td>{language === 'el' ? x.department : x.departmentEn}</td>}
             <td>{fmt(x.startedAt)}</td>
             <td>
               <strong>{(x.episodes || [x]).map(latestOrganism).find(Boolean) || '—'}</strong>
@@ -726,19 +757,22 @@ function PatientRows({ rows, openRuns = [], epiIndex = null, empty, registry, t,
     </div>
   )
 }
-function EmployeeRows({ rows, empty, registry, language, fmt, t, onOpen }) {
+function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, language, fmt, t, onOpen }) {
   const rowId = x => String(x.recordId || x.id)
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
         bare
+        loading={loading}
+        sort={sort}
+        onSort={onSort}
         columns={[
-          { key: 'name', label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el') },
-          { key: 'department', label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el') },
-          { key: 'date', label: translate('copy.surveillanceCopy.started', language === 'en' ? 'en' : 'el') },
-          { key: 'screening', label: translate('copy.surveillanceCopy.screening', language === 'en' ? 'en' : 'el') },
-          { key: 'result', label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el') },
-          { key: 'status', label: t('status') },
+          { key: 'name', label: translate('copy.surveillanceCopy.employee', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'department', label: translate('copy.surveillanceCopy.department', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'date', label: translate('copy.surveillanceCopy.started', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'screening', label: translate('copy.surveillanceCopy.screening', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'result', label: translate('copy.surveillanceCopy.result', language === 'en' ? 'en' : 'el'), sortable: true },
+          { key: 'status', label: t('status'), sortable: true },
         ]}
         rows={rows}
         emptyTitle={empty?.title}
@@ -789,18 +823,35 @@ function EmployeeStatusBadge({ row, t }) {
   const state = employeeFollowupState(row)
   return <StatusBadge tone={statusTone(state)}>{state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}</StatusBadge>
 }
-function SummaryMetric({ icon: Icon, label, value, quickKey, quick, onQuick, loading = false }) {
+// One count of the row of cards above the list; with a quick key it filters the list, pressing it again shows everything.
+function SummaryMetric({ icon, label, value, quickKey, quick, onQuick, loading = false }) {
   return (
     <MetricCard
       className="summary-metric"
       loading={loading}
-      icon={Icon}
+      icon={icon}
       label={label}
       value={value}
       onClick={quickKey && onQuick ? () => onQuick(quick === quickKey ? null : quickKey) : undefined}
       active={Boolean(quickKey) && quick === quickKey}
     />
   )
+}
+const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
+function matchesEmployeeQuick(row, quick) {
+  const today = new Date().toISOString().slice(0, 10)
+  if (quick === 'active') return row.status === 'active'
+  if (quick === 'positive') return row.resultStatus === 'positive'
+  if (quick === 'intervention') return ['required', 'in_progress'].includes(row.interventionStatus)
+  if (quick === 'recheck') return Boolean(row.recheckDue) && row.recheckDue <= today && row.status === 'active'
+  return true
+}
+function matchesEnvironmentQuick(row, quick) {
+  if (quick === 'active') return SAMPLE_PENDING_STATUSES.includes(row.status)
+  if (quick === 'pending') return SAMPLE_PENDING_STATUSES.includes(row.status) && !row.result
+  if (quick === 'outside') return environmentalNeedsAction(row)
+  if (quick === 'critical') return Boolean(row.critical)
+  return true
 }
 function matchesQuick(x, quick) {
   const active = x.status === 'active'

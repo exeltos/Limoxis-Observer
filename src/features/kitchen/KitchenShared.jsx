@@ -91,7 +91,7 @@ export function KitchenList({ rows, query, onQueryChange, placeholder, filters =
   return <>
     <FilterBar query={query} onQueryChange={onQueryChange} placeholder={placeholder} activeAdvancedCount={activeFilters} onClear={onClear} end={end}>{filters}</FilterBar>
     <div className="scroll-table">
-      <RegistryTable bare className={`kitchen-table ${className}`.trim()} rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id || row.receiptItemId} columns={columns} renderRow={renderRow} rowProps={rowProps}
+      <RegistryTable sortable={false} bare className={`kitchen-table ${className}`.trim()} rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={row => row.id || row.receiptItemId} columns={columns} renderRow={renderRow} rowProps={rowProps}
         empty={empty} emptyFiltered={empty && (Boolean(query) || activeFilters > 0)} onClearFilters={onClear} emptyTitle={emptyTitle} emptyText={emptyText} emptyIcon={emptyIcon} emptyAction={emptyAction} />
     </div>
     {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}

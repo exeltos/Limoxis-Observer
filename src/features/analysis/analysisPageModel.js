@@ -25,7 +25,7 @@ export function organismBySiteRows(rows,tx,limit=12){
  }
  return [...grouped.entries()].sort((a,b)=>b[1]-a[1]).slice(0,limit)
 }
-export const TABS=[['overview','Σύνοψη','Overview',Activity],['surveillance','Επιτήρηση & HAI','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['qualityfood','Ποιότητα & ασφάλεια τροφίμων','Quality & food safety',ChefHat],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen],['pps','Μελέτη επιπολασμού','Prevalence survey',Gauge],['lira','LIRA & AI','LIRA & AI',BrainCircuit]]
+export const TABS=[['overview','Σύνοψη','Overview',Activity],['surveillance','Επιτήρηση & ΛΣΦΥ','Surveillance & HAI',Stethoscope],['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical],['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill],['prevention','Πρόληψη','Prevention',ShieldCheck],['controls','Έλεγχοι','Controls',ClipboardCheck],['occupational','Εργαζόμενοι','Employees',Users],['quality','Ποιότητα','Quality',BriefcaseMedical],['qualityfood','Ποιότητα & ασφάλεια τροφίμων','Quality & food safety',ChefHat],['training','Εκπαίδευση','Training',GraduationCap],['governance','Διακυβέρνηση','Governance',BookOpen],['pps','Μελέτη επιπολασμού','Prevalence survey',Gauge],['lira','LIRA & AI','LIRA & AI',BrainCircuit]]
 // Module each tab needs in the organization's operating profile; tabs not listed are always shown.
 // The kitchen is not a module of the profile (it is gated by view_kitchen), so
 // «Ποιότητα & ασφάλεια τροφίμων» follows the Quality module.
@@ -73,8 +73,8 @@ export function buildProductionRows(tab,snapshot,tx){const summary=snapshot?.sum
 // «Περισσότερα» at the end of the strip.
 export const INDICATOR_TABS=[
  ['summary','Σύνοψη','Overview',Gauge,[]],
- ['infections','Λοιμώξεις','Infections',Stethoscope,['surveillance']],
- ['laboratory','Μικροβιολογία & AMR','Microbiology & AMR',FlaskConical,['laboratory']],
+ // Infections and the microbiology (AMR) in one tab: the episodes and the cultures behind them.
+ ['infections','Λοιμώξεις & μικροβιολογία','Infections & microbiology',Stethoscope,['surveillance','laboratory']],
  ['antimicrobials','Αντιμικροβιακά','Antimicrobials',Pill,['antimicrobials']],
  ['prevention','Πρόληψη & έλεγχοι','Prevention & controls',ShieldCheck,['prevention','controls']],
  ['organisation','Οργανισμός','Organisation',Users,['occupational','quality','qualityfood','training','governance']],

@@ -28,7 +28,9 @@ describe('English titles of quality records', () => {
   it('saves title_en from the editors and the objective dialog', () => {
     expect(source('src/features/quality/qualityService.js')).toContain('title_en:own(record.titleEn,record.title)')
     expect(source('src/features/quality/review/reviewService.js')).toContain('title_en: objective.titleEn?.trim() || null')
-    expect(source('src/features/quality/QualityRecordPage.jsx')).toContain('Τίτλος (αγγλικά)')
-    expect(source('src/features/quality/review/QualityObjectives.jsx')).toContain('Τίτλος (αγγλικά)')
+    // The record editor asks for one title: its English copy follows it until a translation is stored.
+    expect(source('src/features/quality/QualityRecordPage.jsx')).not.toContain('Τίτλος (αγγλικά)')
+    expect(source('src/features/quality/QualityRecordPage.jsx')).toContain("x[`${k}En`]===x[k]")
+    expect(source('src/features/quality/review/QualityObjectives.jsx')).not.toContain('Τίτλος (αγγλικά)')
   })
 })

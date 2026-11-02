@@ -56,7 +56,7 @@ describe('source patient note «Πηγή έκθεσης προσωπικού»',
         </LanguageProvider>
       </MemoryRouter>,
     )
-    expect(screen.getByText(/Πηγή έκθεσης προσωπικού:/)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Πηγή έκθεσης προσωπικού' })).toBeInTheDocument()
     expect(container.textContent).toContain('2 εργαζόμενοι')
     fireEvent.click(screen.getByRole('button', { name: 'Προβολή' }))
     expect(goTo).toHaveBeenCalledWith('/occupational-health', { returnTab: 'episodeForms' })

@@ -1,7 +1,9 @@
+import { binMemoryRow, binServerRecord, describeDeleted } from '../../core/recycleBin/recycleBinService'
 import { createDemoLabSample } from '../laboratory/laboratoryDemoData'
 import {
   clinicalCases,
   createClinicalSurveillance,
+  demoClinicalDocuments,
   deleteClinicalSurveillance,
   findCasesByPatient,
   getClinicalCase,
@@ -14,6 +16,7 @@ import {
   createClinicalCase,
   endAntimicrobialTherapy,
   endIsolation,
+  loadActorNames,
   loadClinicalCase,
   loadClinicalCasesForPatient,
   markIsolationNotRequired,
@@ -56,16 +59,24 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     const links=await loadSurveillanceAdmissionLinks(organizationId,rows.map(row=>row.recordId||row.id))
     return rows.map(row=>({...row,admissionId:links.get(row.recordId||row.id)||null}))
   }
+  // «Recorded by»: the name of each person in the history, from their id.
+  async function withActorNames(rows){
+    const ids=rows.flatMap(row=>(row.timeline||[]).map(item=>item.actorId))
+    if(!ids.some(Boolean))return rows
+    const names=await loadActorNames(organizationId,ids).catch(()=>null)
+    if(!names?.size)return rows
+    return rows.map(row=>({...row,timeline:(row.timeline||[]).map(item=>item.actor||!names.has(String(item.actorId))?item:{...item,actor:names.get(String(item.actorId))})}))
+  }
   async function loadForPatient(patient){
     if(isDemo)return clone(findCasesByPatient(patient?.id||patient?.patientId||''))
     if(!organizationId||!patient?.recordId)return []
-    return withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId))
+    return withActorNames(await withAdmissionLinks(await loadClinicalCasesForPatient(organizationId,patient.recordId)))
   }
   async function loadCase(caseId){
     if(isDemo)return clone(getClinicalCase(caseId))
     if(!organizationId||!caseId)return null
     const row=await loadClinicalCase(organizationId,caseId)
-    return row?(await withAdmissionLinks([row]))[0]:null
+    return row?(await withActorNames(await withAdmissionLinks([row])))[0]:null
   }
   async function createCase(patient,draft){
     if(!isDemo){
@@ -168,5 +179,41 @@ export function createClinicalRepository({isDemo,organizationId,actor}){
     if(!isDemo){await voidClinicalCase(organizationId,record.recordId,reason);return true}
     return deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason})
   }
-  return {loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase}
+  // «Delete»: the episode and everything under it go to the deleter's recycle bin.
+  async function deleteCase(record,reason){
+    const {label,detail}=describeDeleted('Επιτήρηση',{code:record.patientId,date:record.startedAt,department:record.department})
+    if(isDemo){
+      const before=clinicalCases[record.id]?{...clinicalCases[record.id]}:null
+      if(!deleteClinicalSurveillance(record.id,{actor:actor?.name,actorId:actor?.id,reason}))return false
+      await binMemoryRow(null,{module:'clinical',kind:'surveillance_cases',label,detail,store:'clinical_cases',row:before})
+      return true
+    }
+    await binServerRecord(organizationId,{table:'surveillance_cases',id:record.recordId,label,detail,reason})
+    return true
+  }
+  // «Delete» of one entry of the episode (assessment, HAI, isolation, therapy, reassessment, device, outcome): it goes to the deleter's recycle bin.
+  const ENTRY_KINDS={
+    assessment:{table:'clinical_assessments',field:'assessment',label:'Κλινική εκτίμηση'},
+    hai:{table:'hai_classifications',field:'haiClassification',label:'Ταξινόμηση ΛΑΝ'},
+    isolation:{table:'isolation_episodes',field:'isolation',label:'Απομόνωση'},
+    outcome:{table:'surveillance_outcomes',field:'outcome',label:'Έκβαση'},
+    therapy:{table:'antimicrobial_therapies',field:'therapy',list:true,label:'Αντιμικροβιακή θεραπεία'},
+    reassessment:{table:'surveillance_reassessments',field:'reassessments',list:true,label:'Επαναξιολόγηση'},
+    device:{table:'surveillance_devices',field:'devices',list:true,label:'Συσκευή'},
+  }
+  async function deleteEntry(record,kind,row){
+    const spec=ENTRY_KINDS[kind];if(!spec||!row?.id)return false
+    const {label,detail}=describeDeleted(spec.label,{code:record.patientId,date:record.startedAt,department:record.department})
+    if(isDemo){
+      const target=demoRecord(clinicalCases[record.id]);const item=target[spec.field]&&!spec.list?target[spec.field]:(target[spec.field]||[]).find(x=>String(x.id)===String(row.id))
+      if(!item)return false
+      if(spec.list)target[spec.field]=target[spec.field].filter(x=>String(x.id)!==String(row.id))
+      else{target[spec.field]=null;if(kind==='outcome'){target.status='active';target.completedAt=null}}
+      await binMemoryRow(null,{module:'clinical',kind:spec.table,label,detail,store:'clinical_case_entries',row:{caseId:record.id,field:spec.field,list:Boolean(spec.list),item:clone(item)}})
+      return true
+    }
+    await binServerRecord(organizationId,{table:spec.table,id:row.id,label,detail})
+    return true
+  }
+  return {demoDocuments:demoClinicalDocuments,deleteEntry,loadForPatient,loadCase,createCase,updateCase,saveAssessment,saveHai,requestSample,setIsolationNotRequired,beginIsolation,finishIsolation,addTherapy,finishTherapy,updateTherapyApproval,recordAdministration,addDevice,removeDevice,reassess,complete,reopen,voidCase,deleteCase}
 }

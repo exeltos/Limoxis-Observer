@@ -12,6 +12,7 @@ export const PATIENT_CLINICAL_RECORD_FILES = [
   'src/features/surveillance/ClinicalAdmissions.jsx',
   'src/features/surveillance/ClinicalSurveillanceWorkspace.jsx',
   'src/features/surveillance/ClinicalJourney.jsx',
+  'src/features/surveillance/ClinicalJourneyParts.jsx',
   'src/features/surveillance/clinicalRecordLabels.js',
   'src/features/surveillance/ClinicalRecordViews.jsx',
   'src/features/surveillance/ClinicalRecordDialogs.jsx',

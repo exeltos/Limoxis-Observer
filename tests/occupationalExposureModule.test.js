@@ -25,7 +25,10 @@ describe('occupational exposure / needlestick-injury tracking module', () => {
   })
 
   it('requires employee, incident date and exposure type before allowing save', () => {
-    expect(editor).toContain('draft.employeeId&&draft.incidentDate&&draft.exposureType')
+    expect(editor).toContain("key:'incidentDate'")
+    expect(editor).toContain("key:'exposureType'")
+    expect(editor).toContain("!prefillItems&&{key:'employeeId'")
+    expect(editor).toContain('<FormSubmit form={form}')
   })
 
   it('demo and production paths both go through the same service module', () => {

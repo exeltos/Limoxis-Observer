@@ -16,10 +16,13 @@ describe('role dashboards', () => {
     expect(page).not.toContain('dashboard-notification-summary')
   })
 
-  it('shows charts for analysis-oriented roles and role-specific demo KPIs', () => {
+  it('keeps the home to one list of work, the announcements and the week (no figures, no charts)', () => {
     const page = read('src/features/dashboard/DashboardPage.jsx')
-    expect(page).toContain('<TrendChart')
-    expect(page).toContain('<DonutChart')
+    expect(page).not.toContain('<TrendChart')
+    expect(page).not.toContain('<KpiStrip')
+    expect(page).toContain("tr('Για μένα σήμερα','For me today')")
+    expect(page).toContain("tr('Επόμενες 7 ημέρες','Next 7 days')")
+    // The role's counts still feed the list.
     expect(page).toContain('case ROLES.PHARMACY:')
   })
 

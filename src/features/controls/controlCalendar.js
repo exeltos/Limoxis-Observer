@@ -91,14 +91,14 @@ export function programmeCalendar(rows, year, now = new Date(), monthsByAssignme
       const assignment = item.assignments?.[department]
       if (!assignment) continue
       const months = assignmentCalendar({
-        frequency: item.frequency,
+        frequency: assignment.frequency || item.frequency,
         history: assignment.history || [],
         startedAt: assignment.createdAt || item.createdAt,
         nextDueAt: assignment.nextDueAt,
         paused: assignment.status === 'paused',
         monthCounts: monthsByAssignment ? monthsByAssignment.get(assignment.dbId) || [] : null,
       }, year, now)
-      lines.push({ item, department, months })
+      lines.push({ item, department, frequency: assignment.frequency || item.frequency, months })
     }
   }
   lines.sort((a, b) => String(a.item.title).localeCompare(String(b.item.title), 'el') || a.department.localeCompare(b.department, 'el'))

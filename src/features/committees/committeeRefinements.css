@@ -2,14 +2,12 @@
   display:none!important;
 }
 
-.committee-meeting-dialog .observer-dialog-body{
-  padding:12px 14px!important;
-}
-.committee-meeting-dialog .observer-form-section{
-  padding:10px!important;
-  margin-bottom:10px!important;
-}
-.committee-meeting-meta .entry-grid{gap:8px 10px!important}
+/* The minutes page: each tab's content with the record's inner margin. */
+.committee-meeting-record .committee-meeting-meta,
+.committee-meeting-record .committee-topics-section,
+.committee-meeting-record .committee-meeting-notes{padding:12px 14px}
+.committee-meeting-notes{display:grid;gap:10px}
+.committee-meeting-record .record-tab-panel-body{flex:1 0 auto}
 .committee-attendance-wrap{
   overflow:hidden!important;
 }
@@ -29,9 +27,6 @@
   border-radius:7px;
   background:#fff;
   padding:6px 9px;
-}
-.committee-topics-section .record-section-header{
-  margin-bottom:8px!important;
 }
 .committee-topic-card-compact{
   padding:9px!important;
@@ -123,3 +118,8 @@
 .committee-approval-panel .data-table{min-width:0!important;width:100%;table-layout:auto}
 
 /* The minutes as a document, off screen until "Export PDF" captures it. */
+/* Committee record: the record card is the body itself, so its sections and tables sit on it
+   without a second frame (as in the other records). !important only to undo the framed
+   .record-section / .scroll-table of foundation.css. */
+.committee-record-shell .entity-record-body>.record-section:is(section,#lo-committee-record){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
+.committee-record-shell .entity-record-body .scroll-table:is(div,#lo-committee-record){border:0!important;border-radius:0!important}

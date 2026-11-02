@@ -2,7 +2,7 @@
 // consents (the same texts as private.hr_application_consents in
 // supabase/migrations/20261129300000_hr_application_tablet.sql) and the payload that
 // hr_application_submit takes. Pure: the page and the tests read these.
-import { EMPLOYMENT_TYPES, GENDERS, LEVELS, MARITAL, MILITARY, todayKey } from './interviewsModel'
+import { EMPLOYMENT_TYPES, GENDERS, LEVELS, MARITAL, MILITARY, PROFESSIONAL_CATEGORIES, todayKey } from './interviewsModel'
 
 export const APPLICATION_STEPS = Object.freeze([
   ['welcome', 'Καλωσόρισμα', 'Welcome'], ['personal', 'Προσωπικά στοιχεία', 'Personal details'], ['contact', 'Επικοινωνία', 'Contact'],
@@ -37,7 +37,7 @@ export const newEducationRow = () => ({ title: '', school: '', year: '' })
 export const newLanguageRow = (language = '') => ({ language, speaking: '', reading: '', writing: '', certificate: false, certificateName: '' })
 export const newEmployerRow = () => ({ employer: '', from: '', to: '', current: false, jobTitle: '', leavingReason: '' })
 export const newApplication = (position = '') => ({ lastName: '', firstName: '', fatherName: '', motherName: '', birthDate: '', birthPlace: '', gender: '', nationality: '', maritalStatus: '', children: '', militaryService: '',
-  workPermit: null, practiceLicence: null, address: '', area: '', postcode: '', phoneMobile: '', phoneLandline: '', email: '', requestedPosition: position, employmentType: '',
+  workPermit: null, practiceLicence: null, address: '', area: '', postcode: '', phoneMobile: '', phoneLandline: '', email: '', requestedPosition: position, professionalCategory: '', employmentType: '',
   educationLevel: '', education: [newEducationRow()], languages: [newLanguageRow('el')], employers: [], itSkills: '', activities: '', whyUs: '',
   consents: { gdpr: false, future: false, references: false, truth: false }, signature: '' })
 
@@ -141,7 +141,7 @@ export function cleanApplication(draft, { language = 'el' } = {}) {
     children: /^\d{1,2}$/.test(children) && Number(children) <= 30 ? children : '', militaryService: oneOf(MILITARY, draft.militaryService),
     workPermit: yesNoValue(draft.workPermit), practiceLicence: yesNoValue(draft.practiceLicence),
     address: cleanLine(draft.address, 200), area: cleanLine(draft.area), postcode: cleanLine(draft.postcode, 12), phoneMobile: cleanLine(draft.phoneMobile, 40), phoneLandline: cleanLine(draft.phoneLandline, 40), email: cleanLine(draft.email, 160).toLowerCase(),
-    requestedPosition: cleanLine(draft.requestedPosition, 160), employmentType: oneOf(EMPLOYMENT_TYPES, draft.employmentType), educationLevel: cleanLine(draft.educationLevel),
+    requestedPosition: cleanLine(draft.requestedPosition, 160), professionalCategory: oneOf(PROFESSIONAL_CATEGORIES, draft.professionalCategory), employmentType: oneOf(EMPLOYMENT_TYPES, draft.employmentType), educationLevel: cleanLine(draft.educationLevel),
     education: (draft.education || []).filter(row => filled(row.title) || filled(row.school)).slice(0, LIMITS.education)
       .map(row => ({ title: cleanLine(row.title, 160), school: cleanLine(row.school, 160), year: /^\d{4}$/.test(String(row.year || '').trim()) ? String(row.year).trim() : '', completed: true })),
     languages: (draft.languages || []).filter(row => filled(row.language)).slice(0, LIMITS.languages)

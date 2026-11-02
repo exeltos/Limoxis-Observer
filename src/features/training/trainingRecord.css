@@ -1,0 +1,23 @@
+/* Training programme record: the record card is the body itself, so its sections and tables
+   sit on it without a second frame (as in Prevention, Controls and Employees).
+   !important only to undo the framed .record-section / .scroll-table of foundation.css. */
+.training-record-shell .training-program-overview:is(section,#lo-training-record){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
+.training-record-shell .training-participants-registry:is(section,#lo-training-record){border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+.training-record-shell .entity-record-body .scroll-table:is(div,#lo-training-record){border:0!important;border-radius:0!important}
+/* «More details» of the new-programme form: a quiet text button under the essentials. */
+.entry-grid .training-form-more{display:inline-flex;align-items:center;gap:6px;justify-self:start;padding:4px 2px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--lo-color-primary);cursor:pointer}
+.entry-grid .training-form-more:hover{text-decoration:underline}
+/* Inside a programme the sections sit on the tab itself, without a second frame (as in the other records). */
+.training-record-shell .training-section{display:grid;gap:10px;padding:12px 4px}
+/* The reader of the personal training link: the file inside the page, with its reading-time line. */
+.training-reader-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center}
+.training-reader-frame{display:grid;gap:6px;margin-top:10px}
+.training-reader-status{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--lo-color-muted)}
+.training-reader-frame iframe{width:100%;height:70vh;border:1px solid var(--lo-color-border);border-radius:10px;background:#fff}
+.training-reader-frame img{max-width:100%;border:1px solid var(--lo-color-border);border-radius:10px}
+/* The tabs of a programme are record-tab panels (title, one line, actions, a table edge to edge) like the other records. */
+.training-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.training-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.training-content-stack{display:grid;gap:12px;padding:12px 20px 18px;align-content:start}
+.training-participants-view .record-tab-panel-body,.training-results-panel .record-tab-panel-body{padding:0}
+.training-effectiveness .record-tab-panel-body{padding:12px 20px 16px}

@@ -1,7 +1,7 @@
 import { useEffect,useMemo,useState } from 'react'
-import { ArrowDown,ArrowUp,CheckCircle2,ClipboardCheck,Pencil,Plus,Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
-import { MetricCard } from '../../design-system/MetricCard'
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -18,20 +18,18 @@ export function TrainingAssessmentEditor({program,state,onPersist,busy=false,en=
  async function saveQuestions(next,message){const nextProgram={...program,assessmentQuestions:next,updatedAt:new Date().toISOString()};return onPersist({...state,programs:state.programs.map(x=>x.id===program.id?nextProgram:x)},message)}
  async function removeQuestion(question){await saveQuestions(questions.filter(x=>x.id!==question.id),en?'Question removed.':'Η ερώτηση αφαιρέθηκε.')}
  async function moveQuestion(index,direction){const target=index+direction;if(target<0||target>=questions.length)return;const next=[...questions];[next[index],next[target]]=[next[target],next[index]];await saveQuestions(next,en?'Question order updated.':'Η σειρά των ερωτήσεων ενημερώθηκε.')}
- return <div className="training-assessment-view workspace-column workspace-fill">
-  <div className="section-toolbar training-assessment-toolbar"><div className="training-assessment-heading"><span className="eyebrow">{en?'Assessment builder':'Δημιουργία αξιολόγησης'}</span><h3>{en?'Knowledge assessment':'Αξιολόγηση γνώσεων'}</h3></div><Button disabled={busy} onClick={()=>setDialog({mode:'new',question:createTrainingQuestion()})}><Plus size={15}/>{en?'Add question':'Νέα ερώτηση'}</Button></div>
-  <div className="module-summary-strip"><MetricCard icon={ClipboardCheck} value={questions.length} label={en?'Questions':'Ερωτήσεις'}/><MetricCard icon={CheckCircle2} value={scored} label={en?'Auto-scored':'Αυτόματη βαθμολόγηση'}/><MetricCard icon={ClipboardCheck} value={maxScore||'—'} label={en?'Total points':'Σύνολο βαθμών'}/><MetricCard icon={CheckCircle2} value={program.requiresAssessment?`≥ ${program.passScore||0}%`:'—'} label={en?'Pass threshold':'Όριο επιτυχίας'}/></div>
-  <section className="surface registry-workspace workspace-column workspace-fill training-assessment-registry">
+ const subtitle=` ${questions.length} ${en?'questions':'ερωτήσεις'}${scored?` · ${scored} ${en?'auto-scored':'με αυτόματη βαθμολόγηση'}`:''}${maxScore?` · ${maxScore} ${en?'points':'βαθμοί'}`:''}${program.requiresAssessment?` · ${en?'pass':'όριο επιτυχίας'} ≥ ${program.passScore||0}%`:''}`.trim()
+ return <RecordTabPanel className="training-assessment-view" title={en?'Knowledge test':'Τεστ γνώσεων'} subtitle={questions.length?subtitle:(en?'The questions the participants answer on their personal link.':'Οι ερωτήσεις που απαντούν οι συμμετέχοντες στον προσωπικό τους σύνδεσμο.')} actions={<Button disabled={busy} onClick={()=>setDialog({mode:'new',question:createTrainingQuestion()})}><Plus size={15}/>{en?'Question':'Ερώτηση'}</Button>} footer={<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={questions.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}>
+  <section className="training-assessment-registry">
    <div className="scroll-table"><table className="data-table sticky-table"><thead><tr><th>#</th><th>{en?'Question':'Ερώτηση'}</th><th>{en?'Type':'Τύπος'}</th><th>{en?'Points':'Βαθμοί'}</th><th>{en?'Required':'Υποχρεωτική'}</th><th>{en?'Correct answer / guidance':'Σωστή απάντηση / οδηγία'}</th><th></th></tr></thead><tbody>{pagedQuestions.map((raw,pageIndex)=>{const q=normalizeTrainingQuestion(raw),index=(safePage-1)*pageSize+pageIndex;let answer='—';if(q.type==='single_choice'||q.type==='multiple_choice')answer=q.options.filter(option=>option.correct).map(option=>option.text).filter(Boolean).join(', ')||'—';else if(q.type==='true_false')answer=q.correctBoolean?(en?'True':'Σωστό'):(en?'False':'Λάθος');else if(q.type==='free_text')answer=q.manualReview?(q.modelAnswer||(en?'Manual review':'Χειροκίνητος έλεγχος')):(q.modelAnswer||(en?'Recorded without blocking completion':'Καταγραφή χωρίς αναμονή ελέγχου'));return <tr key={q.id}><td><strong>{index+1}</strong></td><td><strong>{q.text||'—'}</strong></td><td>{trainingAssessmentTypeLabel(q.type,language)}</td><td>{q.points}</td><td>{q.required?(en?'Yes':'Ναι'):(en?'No':'Όχι')}</td><td>{answer}</td><td className="open-record-cell"><OverflowMenu label={en?'Question actions':'Ενέργειες ερώτησης'} items={[
     {id:'up',label:en?'Move up':'Μετακίνηση πάνω',icon:ArrowUp,disabled:index===0||busy,onClick:()=>moveQuestion(index,-1)},
     {id:'down',label:en?'Move down':'Μετακίνηση κάτω',icon:ArrowDown,disabled:index===questions.length-1||busy,onClick:()=>moveQuestion(index,1)},
     {id:'edit',label:en?'Edit':'Επεξεργασία',icon:Pencil,disabled:busy,onClick:()=>setDialog({mode:'edit',question:q})},
     {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:()=>removeQuestion(q)},
    ]}/></td></tr>})}</tbody></table>{!questions.length&&<div className="registry-empty-state"><strong>{en?'No assessment questions yet.':'Δεν υπάρχουν ακόμη ερωτήσεις αξιολόγησης.'}</strong><span>{en?'Add the first question to build the assessment.':'Προσθέστε την πρώτη ερώτηση για να δημιουργηθεί η αξιολόγηση.'}</span></div>}</div>
-   <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={questions.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
   </section>
   {dialog&&<TrainingQuestionDialog en={en} language={language} value={dialog.question} mode={dialog.mode} busy={busy} onClose={()=>setDialog(null)} onSave={async question=>{const normalized=normalizeTrainingQuestion(question),next=dialog.mode==='edit'?questions.map(x=>x.id===normalized.id?normalized:x):[...questions,normalized];if(await saveQuestions(next,en?'Assessment saved.':'Η αξιολόγηση αποθηκεύτηκε.'))setDialog(null)}}/>}
- </div>
+ </RecordTabPanel>
 }
 
 function TrainingQuestionDialog({en,language,value,mode,busy,onClose,onSave}){

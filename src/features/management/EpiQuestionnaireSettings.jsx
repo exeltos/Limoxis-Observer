@@ -26,14 +26,11 @@ export function EpiQuestionnaireRegistryCells({ version }) {
   return (
     <>
       <td>
-        <strong>{t('epiQuestionnaire.name')}</strong>
+        <strong>{t('epiQuestionnaire.name')} <Lock size={12} className="library-lock" aria-label={t('epiQuestionnaire.settings.system')} /></strong>
         <small className="epi-sub">{fill(t('epiQuestionnaire.settings.subtitle'), { version })}</small>
       </td>
       <td>{t('epiQuestionnaire.settings.category')}</td>
       <td>{fill(t('epiQuestionnaire.settings.count'), { n: EPI_QUESTION_COUNT, core: EPI_CORE_KEYS.length })}</td>
-      <td>
-        <span className="status-badge active">{t('active')}</span> <span className="epi-lock"><Lock size={12} aria-hidden="true" />{t('epiQuestionnaire.settings.system')}</span>
-      </td>
     </>
   )
 }
@@ -70,7 +67,7 @@ function WordingDialog({ question, setting, nextVersion, onClose, onSave }) {
   })
   const set = key => event => setDraft(current => ({ ...current, [key]: event.target.value }))
   const days = draft.windowDays === '' ? null : Number(draft.windowDays)
-  const valid = draft.labelEl.trim() && draft.labelEn.trim() && (days === null || (Number.isInteger(days) && days > 0))
+  const valid = draft.labelEl.trim() && (days === null || (Number.isInteger(days) && days > 0))
   const number = question.index + 1
   return (
     <ObserverDialog
@@ -89,14 +86,8 @@ function WordingDialog({ question, setting, nextVersion, onClose, onSave }) {
         <Field label={t('epiQuestionnaire.settings.labelEl')} required>
           <input value={draft.labelEl} onChange={set('labelEl')} />
         </Field>
-        <Field label={t('epiQuestionnaire.settings.labelEn')} required>
-          <input value={draft.labelEn} onChange={set('labelEn')} />
-        </Field>
         <Field label={t('epiQuestionnaire.settings.helpEl')}>
           <input value={draft.helpEl} onChange={set('helpEl')} />
-        </Field>
-        <Field label={t('epiQuestionnaire.settings.helpEn')}>
-          <input value={draft.helpEn} onChange={set('helpEn')} />
         </Field>
         <Field label={t('epiQuestionnaire.settings.windowDays')}>
           <input inputMode="numeric" value={draft.windowDays} onChange={set('windowDays')} />
@@ -195,7 +186,7 @@ export function EpiQuestionnaireSettings({ onBack }) {
           nextVersion={version + 1}
           onClose={() => setEditing(null)}
           onSave={async patch => {
-            const ok = await persist(editing, { labelEl: patch.labelEl.trim(), labelEn: patch.labelEn.trim(), helpEl: patch.helpEl.trim(), helpEn: patch.helpEn.trim(), windowDays: patch.windowDays })
+            const ok = await persist(editing, { labelEl: patch.labelEl.trim(), labelEn: patch.labelEn.trim() || patch.labelEl.trim(), helpEl: patch.helpEl.trim(), helpEn: patch.helpEn.trim(), windowDays: patch.windowDays })
             if (ok) setEditing(null)
           }}
         />

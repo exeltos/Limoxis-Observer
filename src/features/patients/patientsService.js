@@ -1,6 +1,7 @@
 import { selectAllPages, selectInChunks } from '../../core/data/inChunks'
 import { supabase } from '../../core/supabase/client'
 import { patientDemoData, demoAdmissionsForPatient } from './patientDemoData'
+import { clinicalCases } from '../surveillance/clinicalDemoData'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 
 function mapRow(row, departmentLabel){
@@ -25,8 +26,26 @@ function mapRow(row, departmentLabel){
     dischargeDate: row.discharge_date,
     status: row.status,
     notes: row.notes,
+    // The hospital record number of this admission (a new admission has a number of its own).
+    caseNumber: row.case_number||'',
     updatedAt: row.updated_at || null,
+    // Who entered the patient: only they (and the admin / infection control lead) may delete it.
+    createdBy: row.created_by || null,
   }
+}
+
+// Demo: the bin takes a patient, with the surveillance episodes under it, out of the session lists and puts them back on restore.
+export function removeDemoPatient(code){
+  const index=patientDemoData.findIndex(item=>item.id===code)
+  if(index<0)return null
+  const [patient]=patientDemoData.splice(index,1)
+  const cases=Object.values(clinicalCases).filter(item=>item.patientId===patient.id)
+  for(const item of cases)delete clinicalCases[item.id]
+  return {patient,cases}
+}
+export function restoreDemoPatient({patient,cases=[]}){
+  if(patient&&!patientDemoData.some(item=>item.id===patient.id))patientDemoData.unshift(patient)
+  for(const item of cases)clinicalCases[item.id]=item
 }
 
 // A write in production needs the hospital and the database; it never «succeeds» locally.
@@ -38,7 +57,12 @@ export async function loadPatients(organizationId, {isDemo=false,includeArchived
   if(!organizationId || !supabase) return []
   // Reports need archived patients too: their past isolates still count.
   const data=await selectAllPages(()=>{let query=supabase.from('patients').select('*, department:departments(name,department_type)').eq('organization_id',organizationId);if(!includeArchived)query=query.is('archived_at',null);return query.order('admission_date',{ascending:false}).order('id',{ascending:true})})
-  return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null}))
+  // Which patients have an admission at all (a patient born of a laboratory import may have none), and the latest one's date.
+  // Unknown (the read failed) is never shown as «no admission».
+  const admissions=await selectAllPages(()=>supabase.from('patient_admissions').select('patient_id,admission_date').eq('organization_id',organizationId).order('id',{ascending:true})).catch(()=>null)
+  const latest=new Map()
+  for(const row of admissions||[]){const seen=latest.get(row.patient_id);if(!seen||String(row.admission_date||'')>seen)latest.set(row.patient_id,String(row.admission_date||''))}
+  return data.map(row=>({...mapRow(row,row.department?.name),departmentType:row.department?.department_type||null,hasAdmission:admissions?latest.has(row.id):undefined,lastAdmissionDate:latest.get(row.id)||null}))
 }
 
 // Only the patients a record opens (by patient code or record id), in the
@@ -96,7 +120,7 @@ export async function createPatient(organizationId, existing, draft, {isDemo=fal
     notes:draft.notes||null,
   }).select().single()
   if(error){
-    if(error.code==='23505')error.duplicateCode=true
+    if(!markRecordNumberTaken(error)&&error.code==='23505')error.duplicateCode=true
     throw error
   }
   // The patients_create_initial_admission DB trigger already inserted the admission row.
@@ -130,6 +154,13 @@ export async function archivePatient(organizationId, patient, reason, {isDemo=fa
   if(error) throw error
 }
 
+// The database refuses a record number another admission of the hospital already has.
+export function markRecordNumberTaken(error){
+  if(!String(error?.message||'').includes('ADMISSION_CASE_NUMBER_TAKEN'))return false
+  error.duplicateRecordNumber=true
+  return true
+}
+
 function mapAdmission(row, departmentLabel, departmentType){
   return {
     id: row.id,
@@ -144,6 +175,9 @@ function mapAdmission(row, departmentLabel, departmentType){
     // Where the patient came from (home, other_hospital, ltcf, other): prefills the questionnaire's transfer question.
     admissionSource: row.admission_source || null,
     sourceFacility: row.source_facility || '',
+    // The patient arrived already carrying a multidrug-resistant organism (admission screening, or a resistant result within 2 days).
+    mdrOnAdmission: Boolean(row.mdr_on_admission),
+    mdrOnAdmissionDate: row.mdr_on_admission_date || null,
   }
 }
 
@@ -165,19 +199,20 @@ export async function loadAdmissions(patientOrRecordId, {isDemo=false}={}){
 export async function createAdmission(organizationId, patient, draft, {isDemo=false}={}){
   if(!isDemo){requireLive(organizationId);if(!patient.recordId)throw new Error('PATIENT_NOT_SAVED')}
   if(isDemo){
-    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null},draft.department)
+    return mapAdmission({id:`ADM-${Date.now()}`,department_id:draft.departmentId||null,admission_date:draft.admissionDate,discharge_date:draft.dischargeDate||null,status:draft.status||'active',notes:draft.notes||null,case_number:draft.caseNumber||null},draft.department)
   }
   const department=await resolveDepartment(organizationId,draft.departmentId)
-  const {data,error}=await supabase.rpc('create_patient_admission',{
+  const {data,error}=await supabase.rpc('create_patient_admission_numbered',{
     p_organization_id:organizationId,
     p_patient_id:patient.recordId,
     p_department_id:department?.id||null,
     p_admission_date:draft.admissionDate,
+    p_case_number:draft.caseNumber||null,
     p_discharge_date:draft.dischargeDate||null,
     p_status:draft.status||'active',
     p_notes:draft.notes||null,
   })
-  if(error) throw error
+  if(error){markRecordNumberTaken(error);throw error}
   return mapAdmission(data,department?.name||draft.department)
 }
 
@@ -211,4 +246,31 @@ export async function deleteAdmission(organizationId,patient,admission,reason,{i
   if(message.includes('only admission'))throw Object.assign(new Error(message),{code:'last_admission'})
   if(message.includes('surveillance episodes'))throw Object.assign(new Error(message),{code:'has_surveillance'})
   throw error
+}
+
+// The next patient code, from the most recent code that ends in a number (PT-260190 → PT-260191).
+export function suggestPatientCode(patients=[]){
+  const parts=patients.map(item=>/^(\D*)(\d+)$/.exec(String(item.id||item.patientCode||'').trim())).filter(Boolean)
+  if(!parts.length)return ''
+  const prefix=parts[0][1]
+  const same=parts.filter(part=>part[1]===prefix)
+  const top=same.reduce((best,part)=>Number(part[2])>Number(best[2])?part:best,same[0])
+  return `${prefix}${String(Number(top[2])+1).padStart(top[2].length,'0')}`
+}
+
+// Possible duplicates of a patient about to be created: the same last and first name (without
+// accents or case) with the same date of birth (or none given), or the same hospital record number.
+const foldName=value=>String(value||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim()
+export function findPatientMatches(patients=[],draft={}){
+  const last=foldName(draft.lastName),first=foldName(draft.firstName),full=foldName(draft.fullName)
+  const record=foldName(draft.hospitalRecordNumber),born=String(draft.dateOfBirth||'').slice(0,10)
+  return patients.filter(patient=>{
+    if(record&&foldName(patient.hospitalRecordNumber)===record)return true
+    const sameName=last&&first
+      ?foldName(patient.lastName)===last&&foldName(patient.firstName)===first
+      :Boolean(full)&&[foldName(`${patient.lastName||''} ${patient.firstName||''}`),foldName(`${patient.firstName||''} ${patient.lastName||''}`),foldName(patient.name)].includes(full)
+    if(!sameName)return false
+    const theirs=String(patient.dateOfBirth||'').slice(0,10)
+    return !born||!theirs||born===theirs
+  })
 }

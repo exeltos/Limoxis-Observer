@@ -3,10 +3,13 @@
 // clarity, time taken), stored by demo_submit_scenario_feedback, and its
 // fallback to the plain rating while that migration is not yet applied.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import fs from 'node:fs'
+
+// The evaluation's windows and tours load on demand (dynamic imports): give them time in a test run.
+configure({ asyncUtilTimeout: 8000 })
 
 const rpc = vi.fn()
 const selects = []
@@ -97,8 +100,7 @@ describe('questionnaire in the guide', () => {
     // The first visit opens the welcome; its tour starts the role's first scenario.
     fireEvent.click(await screen.findByRole('button', { name: /^Ξενάγηση/ }))
     // The scenario's tour runs over the screen; ended, the scenario card is back.
-    const endTour = screen.queryByRole('button', { name: 'Τέλος ξενάγησης' })
-    if (endTour) fireEvent.click(endTour)
+    fireEvent.click(await screen.findByRole('button', { name: 'Τέλος ξενάγησης' }))
     now += 95_000
     // A scenario the screens did not pick up is marked done from the quiet link.
     fireEvent.click(await screen.findByRole('button', { name: /Σημειώστε το ως ολοκληρωμένο/ }))

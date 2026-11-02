@@ -35,15 +35,15 @@ export const meetingDepartmentKey = meeting => meeting?.departmentId || meeting?
 
 // A new meeting of a department: a month after its previous one (if it set
 // the next date), reviewing the month before, with the previous open decisions.
-export function newMeetingFor(department, meetings = [], day = today()) {
+export function newMeetingFor(department, meetings = [], day = today(), group = null) {
   const key = department?.id || department?.name || ''
-  const previous = previousMeeting(meetings, key)
+  const previous = group ? meetings.filter(meeting => meetingInGroup(meeting, group) && String(meeting.meetingDate) <= String(day)).sort((a, b) => String(b.meetingDate).localeCompare(String(a.meetingDate)))[0] || null : previousMeeting(meetings, key)
   return {
-    id: '', code: '', departmentId: key, department: department?.name || '', departmentEn: department?.nameEn || department?.name || '',
+    id: '', code: '', groupId: group?.id || '', departmentId: key, department: department?.name || '', departmentEn: department?.nameEn || department?.name || '',
     title: 'Συνάντηση τμήματος', kind: 'regular', meetingDate: day, periodMonth: previousMonth(day),
     agenda: previous ? 'Εκκρεμότητες της προηγούμενης συνάντησης\nΔείκτες του μήνα\nΣυμβάντα και διορθωτικές ενέργειες\nΆλλα θέματα' : 'Δείκτες του μήνα\nΣυμβάντα και διορθωτικές ενέργειες\nΆλλα θέματα',
-    minutes: '', nextMeetingDate: addDays(day, 30), status: 'draft', finalizedAt: null, finalizedByLabel: '',
-    decisions: carriedDecisions(previous), participants: (previous?.participants || []).map(person => ({ name: person.name, role: person.role, attended: true })),
+    minutes: '', nextMeetingDate: addDays(day, Number(group?.frequencyDays) || 30), status: 'draft', finalizedAt: null, finalizedByLabel: '',
+    decisions: [], participants: (previous?.participants || []).map(person => ({ name: person.name, role: person.role, attended: true })),
   }
 }
 
@@ -77,8 +77,32 @@ export function meetingAccess(access, canManageQuality) {
   const member = meeting => access.isMember({ departmentId: meeting?.departmentId, department: meeting?.department })
   return {
     canSee: meeting => access.seesAll || member(meeting),
-    canWrite: meeting => Boolean(meeting) && meeting.status !== 'final' && (canManageQuality || member(meeting)),
-    canReopen: meeting => Boolean(meeting) && meeting.status === 'final' && canManageQuality,
+    canWrite: meeting => Boolean(meeting) && (canManageQuality || member(meeting)),
     canCreateCapa: () => canManageQuality,
   }
 }
+
+// --- Meeting groups --------------------------------------------------------------------
+// A department's meeting group («Συναντήσεις ΜΕΘ»): how often the administration wants it to
+// meet; its meetings, the last one and when the next is due.
+
+export const MEETING_FREQUENCIES = [7, 14, 30, 60, 90, 180, 365]
+export function frequencyLabel(days, language = 'el') {
+  const en = language === 'en'
+  const named = { 7: ['Κάθε εβδομάδα', 'Weekly'], 14: ['Κάθε 2 εβδομάδες', 'Every 2 weeks'], 30: ['Κάθε μήνα', 'Monthly'], 60: ['Κάθε 2 μήνες', 'Every 2 months'], 90: ['Κάθε 3 μήνες', 'Every 3 months'], 180: ['Κάθε 6 μήνες', 'Every 6 months'], 365: ['Κάθε χρόνο', 'Yearly'] }[Number(days)]
+  return named ? named[en ? 1 : 0] : (en ? `Every ${days} days` : `Κάθε ${days} ημέρες`)
+}
+// A meeting is in its group; one recorded before the groups existed is in its department's.
+export const meetingInGroup = (meeting, group) => (meeting.groupId ? meeting.groupId === group.id : Boolean(group.departmentId) && meeting.departmentId === group.departmentId)
+export function groupStatus(group, meetings = [], day = today()) {
+  const own = meetings.filter(meeting => meetingInGroup(meeting, group)).sort((a, b) => String(b.meetingDate).localeCompare(String(a.meetingDate)))
+  const last = own.find(meeting => String(meeting.meetingDate) <= day) || null
+  const nextDue = last ? addDays(last.meetingDate, Number(group.frequencyDays) || 90) : null
+  // The open decisions are followed on the latest meeting (earlier ones were carried into it).
+  const latest = own[0] || null
+  return { meetings: own, last, nextDue, overdue: Boolean(group.active !== false && (!last || (nextDue && nextDue < day))), open: latest ? openDecisions(latest) : [], late: latest ? lateDecisions(latest, day) : [], trainings: own.filter(meeting => meeting.trainingHeld) }
+}
+export const newMeetingGroup = () => ({ id: '', departmentId: '', name: '', frequencyDays: 90, durationHours: '', managerLabel: '', active: true })
+
+// The corrective actions opened from a meeting's decisions (their source is «DM:<meeting code>#<decision id>»).
+export const meetingCapas = (capas = [], meeting) => capas.filter(capa => String(capa.sourceId || '').startsWith(`DM:${meeting.code}#`))

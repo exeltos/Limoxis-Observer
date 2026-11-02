@@ -1,0 +1,5 @@
+.duplicate-patient-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.duplicate-patient-list li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--lo-color-border,#dfe6ec);border-radius:12px;background:var(--lo-color-surface,#fff)}
+.duplicate-patient-list li>div:first-child{display:grid;gap:3px;min-width:0}
+.duplicate-patient-list small{color:#5f6f7c;font-size:12px}
+.duplicate-patient-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}

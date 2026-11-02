@@ -105,8 +105,9 @@ export function progressRow(entry = {}) {
 
 // --- Audit checklist ---------------------------------------------------------------------------
 
+const STANDARDS = ['iso9001', 'iso15224', 'haccp', 'iso15189', 'temos', 'jci', 'other']
 export const CHECKLIST_SELECT = 'checklist:quality_audit_checklist_items(*,finding:quality_findings!quality_audit_checklist_items_finding_id_organization_id_fkey(code))'
-export const CHECKLIST_FIELDS = ['position', 'item', 'item_en', 'required', 'answer', 'result', 'note', 'finding_id', 'template_question_id', 'chapter_ref', 'chapter_title', 'clause_ref', 'guidance', 'evidence_required', 'evidence', 'weight', 'critical', 'finding_class', 'ad_hoc']
+export const CHECKLIST_FIELDS = ['position', 'item', 'item_en', 'required', 'answer', 'result', 'note', 'finding_id', 'template_question_id', 'chapter_ref', 'chapter_title', 'clause_ref', 'guidance', 'evidence_required', 'evidence', 'weight', 'critical', 'finding_class', 'ad_hoc', 'standard']
 const ANSWERS = ['yes', 'partial', 'no', 'na']
 const CLASSES = ['major', 'minor', 'observation', 'opportunity']
 
@@ -118,7 +119,7 @@ export function checklistFromRows(rows) {
       id: row.id, item: row.item || '', itemEn: row.item_en || row.item || '', required: row.required !== false, answer: row.result || row.answer || '', note: row.note || '',
       templateQuestionId: row.template_question_id || null, chapterRef: row.chapter_ref || '', chapterTitle: row.chapter_title || '', clauseRef: row.clause_ref || '',
       guidance: row.guidance || '', evidenceRequired: row.evidence_required || '', evidence: row.evidence || '', weight: Number(row.weight) || 1, critical: Boolean(row.critical),
-      findingClass: row.finding_class || '', adHoc: Boolean(row.ad_hoc),
+      findingClass: row.finding_class || '', adHoc: Boolean(row.ad_hoc), standard: row.standard || '',
       ...(findingId ? { findingId } : {}),
     }
   })
@@ -136,6 +137,7 @@ export function checklistRows(checklist = [], findingIds = new Map()) {
     guidance: text(row.guidance), evidence_required: text(row.evidenceRequired), evidence: text(row.evidence),
     weight: Number(row.weight) > 0 ? Number(row.weight) : 1, critical: Boolean(row.critical),
     finding_class: CLASSES.includes(row.findingClass) ? row.findingClass : null, ad_hoc: Boolean(row.adHoc),
+    standard: STANDARDS.includes(row.standard) ? row.standard : null,
   }))
 }
 

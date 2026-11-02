@@ -54,6 +54,15 @@ function demoSeed() {
 }
 const demoRows = new Map(Object.entries(demoSeed()))
 const demoSettings = new Map()
+// Demo: the bin takes a questionnaire out of the session list and puts it back on restore.
+export function removeDemoEpiQuestionnaire(caseId) {
+  const row = demoRows.get(String(caseId))
+  demoRows.delete(String(caseId))
+  return row || null
+}
+export function restoreDemoEpiQuestionnaire(row) {
+  if (row?.caseId) demoRows.set(String(row.caseId), row)
+}
 
 const needsCloud = organizationId => Boolean(supabase && organizationId)
 

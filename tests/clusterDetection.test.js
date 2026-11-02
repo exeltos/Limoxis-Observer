@@ -98,3 +98,35 @@ describe('skin flora rule', () => {
     expect(sql).toContain(`'${SKIN_FLORA_PATTERN_SOURCE}'`)
   })
 })
+
+describe('clusters count patients', () => {
+  it('counts a patient with repeated cultures once, however many isolates share a day', async () => {
+    const { detectOrganismClusters } = await import('../src/features/surveillance/clusterDetection')
+    const records = []
+    for (const patientId of ['p1', 'p2', 'p3', 'p4']) for (const day of ['2025-10-16', '2025-10-16', '2025-10-20']) records.push({ organism: 'Staphylococcus aureus', department: 'Χειρουργική', date: day, patientId, sampleId: `${patientId}-${day}-${records.length}` })
+    const [cluster] = detectOrganismClusters(records, { windowDays: 14, threshold: 3 })
+    expect(cluster.count).toBe(4)
+    expect(cluster.sampleCount).toBe(12)
+  })
+  it('starts each database window on a distinct day and counts distinct patients', () => {
+    const sql = fs.readFileSync('supabase/migrations/20261231220200_cluster_count_patients.sql', 'utf8')
+    expect(sql).toContain('select distinct i.department_id, i.department_name, lower(i.organism) as org_key, i.event_date as window_start')
+    expect(sql).toContain("count(*) filter (where not p.is_flora or p.n_samples >= 2)::bigint as window_count")
+    expect(sql).toContain(`'${SKIN_FLORA_PATTERN_SOURCE}'`)
+  })
+})
+
+describe('clusters of patients only', () => {
+  it('leaves out the contaminated cultures and pins the rule to the database', async () => {
+    const { isContaminationNote, CONTAMINATION_PATTERN_SOURCE } = await import('../src/features/surveillance/skinFloraOrganisms')
+    expect(isContaminationNote('Αναπτύχθηκαν 3 είδη μικροβίων >= 10^5 cfu/ml - επιμόλυνση')).toBe(true)
+    expect(isContaminationNote('ΑΝΑΠΤΥΞΗ 3 ΕΙΔΩΝ ΜΙΚΡΟΒΙΩΝ')).toBe(true)
+    expect(isContaminationNote('Staphylococcus aureus')).toBe(false)
+    const records = ['p1', 'p2', 'p3'].map(patientId => ({ organism: 'ΑΝΑΠΤΥΞΗ 3 ΕΙΔΩΝ ΜΙΚΡΟΒΙΩΝ', department: 'Παθολογική', date: '2025-07-23', patientId }))
+    expect(detectOrganismClusters(records)).toEqual([])
+    const sql = fs.readFileSync('supabase/migrations/20261231220300_cluster_patients_only.sql', 'utf8')
+    expect(sql).toContain(`m.organism !~* '${CONTAMINATION_PATTERN_SOURCE}'`)
+    expect(sql).toContain("and l.patient_id is not null")
+    expect(sql).toContain("not in ('surface', 'water', 'equipment', 'air', 'environment')")
+  })
+})

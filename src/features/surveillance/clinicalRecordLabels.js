@@ -231,8 +231,14 @@ export function timelineLabel(type, language, t) {
     surveillance_close: ['Ολοκλήρωση επιτήρησης', 'Surveillance closed'],
     surveillance_closed: ['Ολοκλήρωση επιτήρησης', 'Surveillance closed'],
   }
+  // A stored event type is snake_case (device_added), the translated key camelCase (deviceAdded).
+  const camel = String(type || '').replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+  const translated = key => {
+    const text = t(key)
+    return text && text !== key ? text : ''
+  }
   return (
-    labels[type]?.[language === 'el' ? 0 : 1] || t(type) || String(type || '—').replaceAll('_', ' ')
+    labels[type]?.[language === 'el' ? 0 : 1] || translated(type) || translated(camel) || String(type || '—').replaceAll('_', ' ')
   )
 }
 

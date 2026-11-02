@@ -45,7 +45,7 @@ export function wizardAdmin(draft){
 function demoContents(en){
   return en
     ?['8 departments, 48 patients and their stays','Surveillance with HAI, isolation, microbiology and antibiograms','Hand hygiene, bundles, waste and antiseptics','Recurring controls with findings, training with certificates','Pharmacy DDD, quality incidents and CAPA, committees and documents','Occupational health: vaccinations, visits, exposures']
-    :['8 τμήματα, 48 ασθενείς με τις νοσηλείες τους','Επιτήρηση με HAI, απομονώσεις, μικροβιολογικά και αντιβιογράμματα','Υγιεινή χεριών, bundles, απόβλητα και αντισηπτικά','Επαναλαμβανόμενοι έλεγχοι με ευρήματα, εκπαιδεύσεις με πιστοποιητικά','Φαρμακείο DDD, συμβάντα ποιότητας και διορθωτικές ενέργειες, επιτροπές και έγγραφα','Επαγγελματική υγεία: εμβολιασμοί, επισκέψεις, εκθέσεις']
+    :['8 τμήματα, 48 ασθενείς με τις νοσηλείες τους','Επιτήρηση με ΛΣΦΥ, απομονώσεις, μικροβιολογικά και αντιβιογράμματα','Υγιεινή χεριών, δέσμες μέτρων, απόβλητα και αντισηπτικά','Επαναλαμβανόμενοι έλεγχοι με ευρήματα, εκπαιδεύσεις με πιστοποιητικά','Φαρμακείο DDD, συμβάντα ποιότητας και διορθωτικές ενέργειες, επιτροπές και έγγραφα','Επαγγελματική υγεία: εμβολιασμοί, επισκέψεις, εκθέσεις']
 }
 
 export function DemoCreateWizard({language,defaultDurationDays=30,maxUsers=5,saving=false,result=null,onSubmit,onClose,initialStep=0,initialDraft=null}){

@@ -32,9 +32,9 @@ describe('unified "scope" terminology (Εύρος, not Πεδίο)', () => {
     }
   })
 
-  it('translates the bundle library scope column/field consistently', () => {
+  it('translates the bundle library scope field consistently', () => {
     const panel = read('src/features/management/BundleLibraryPanel.jsx')
-    expect(panel).toContain("label:en?'Scope':'Εύρος'")
+    expect(panel).toContain("en?'Scope':'Εύρος'")
   })
 
   it('does not leave a hardcoded, untranslated "Scope" label in the Analysis report summary', () => {

@@ -37,18 +37,14 @@ export function IncidentEventFields({ record, onChange, language }) {
   const fall = block('fall')
   return <div className="quality-event-details">
     {blocks.includes('fall') && <>
-      <FormGrid columns={2}>
+      <FormGrid columns={3}>
         {choice('fall', 'injuryCategory', en ? 'Injury category' : 'Κατηγορία τραυματισμού', INJURY_CATEGORIES)}
         {select('fall', 'injurySubcategory', en ? 'Subcategory' : 'Υποκατηγορία', INJURY_SUBCATEGORIES)}
         <ChoiceField label={en ? 'Who was injured' : 'Ποιος τραυματίστηκε'} value={fall.injuredPersonType} options={detailOptions(INJURED_PERSON_TYPES, language)} onChange={value => set('fall', { injuredPersonType: value, injuredEmployeeId: value === 'employee' ? fall.injuredEmployeeId : '' })} />
         {fall.injuredPersonType === 'employee' && <SearchableSelect label={en ? 'Employee' : 'Εργαζόμενος'} value={fall.injuredEmployeeId || ''} options={employees} onChange={value => set('fall', { injuredEmployeeId: value || '' })} placeholder={en ? 'Choose from the staff list' : 'Επιλογή από το προσωπικό'} {...selectText(en)} />}
-      </FormGrid>
-      <FormGrid columns={3}>
         {choice('fall', 'fallType', en ? 'Type of fall' : 'Είδος πτώσης', FALL_TYPES)}
         {choice('fall', 'floorCondition', en ? 'Floor' : 'Δάπεδο', FLOOR_CONDITIONS)}
         {choice('fall', 'bedRails', en ? 'Bed rails' : 'Προστατευτικά κλίνης', BED_RAILS)}
-      </FormGrid>
-      <FormGrid columns={2}>
         {input('fall', 'location', en ? 'Location' : 'Σημείο')}
         {yesNo('fall', 'examinedByDoctor', en ? 'Examined by a doctor' : 'Εξετάστηκε από ιατρό')}
       </FormGrid>

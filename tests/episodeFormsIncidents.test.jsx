@@ -32,9 +32,9 @@ describe('incident report from an episode', () => {
     expect(incidentSource({ ...ctx, record: null }).linkedSurveillance).toBe('')
   })
 
-  it('the existing form starts from it: a clinical report with the links, the episode department and today', () => {
+  it('the existing form starts from it: a neutral report with the links, the episode department and today', () => {
     const draft = incidentPrefill({ episodeSource: incidentSource(ctx) }, 'el')
-    expect(draft).toMatchObject({ reportKind: 'clinical', linkedPatient: 'patient-uuid', linkedSurveillance: 'case-uuid', linkedAdmission: 'adm-uuid', departmentId: 'dep-1' })
+    expect(draft).toMatchObject({ reportKind: 'report', linkedPatient: 'patient-uuid', linkedSurveillance: 'case-uuid', linkedAdmission: 'adm-uuid', departmentId: 'dep-1' })
     expect(draft.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
     expect(draft.episodeSource.patientLabel).toBe('PT-260184 · Ελένη Παπαδοπούλου')
   })

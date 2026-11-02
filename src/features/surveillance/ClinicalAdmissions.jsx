@@ -1,8 +1,8 @@
 import { DueDate } from '../../design-system/DueDate'
+import { AttentionList } from '../../design-system/AttentionList'
 import { Fragment, useState } from 'react'
 import { stayDays } from './patientRecordScope'
 import {
-  AlertTriangle,
   ArrowRightLeft,
   CalendarDays,
   Check,
@@ -34,9 +34,10 @@ import { PatientSummaryActions } from '../patients/PatientSummaryActions'
 import { PatientFormFields, usePatientForm } from '../patients/PatientsPage'
 import { FormSubmit } from '../../design-system/FormValidation'
 import { SimpleDialog } from './ClinicalRecordDialogs'
+import { Field } from '../../design-system/Field'
 import { AdmissionDischargeDialog } from './AdmissionDischargeDialog'
 import { formatDay } from '../../core/i18n/formatDay'
-import { clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
+import { ISOLATION_STATUS, clinicalTerm, clinicalValueLabel, timelineLabel } from './clinicalRecordLabels'
 import { departmentOptions, listTexts } from './surveillanceOptions'
 import { isAwaitingResult, summaryAttention } from './recordAttention'
 import { clinicalRiskFlags, scaleShortName } from '../clinical-scales/ClinicalRiskFlags'
@@ -65,6 +66,8 @@ export function PatientDetailsSection({
   // stay and the questionnaire's origin and risk factors (`extraItems`) in it.
   compact = false,
   extraItems = [],
+  // The card's own heading when it is not «Patient & admission» (a patient with no admission).
+  title = null,
 }) {
   const { notify } = useFeedback()
   // «Edit patient» turns the patient details into the form, in place.
@@ -74,10 +77,11 @@ export function PatientDetailsSection({
   const canEditPatient = can(role, CAPABILITIES.EDIT_PATIENT, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   // One rule: «Edit» is the visible button; the «…» menu keeps only the other actions
   // (never a second «Edit patient»), and the missing-fields line has no second link.
+  // The record summary has a single «…» menu, with «Edit patient» first.
   const actions = editing ? null : (
     <>
       {leadingActions}
-      {canEditPatient && (
+      {canEditPatient && !compact && (
         <Button variant="secondary" onClick={() => setEditing(true)}>
           <Pencil size={15} />
           {t('edit')}
@@ -85,6 +89,7 @@ export function PatientDetailsSection({
       )}
       <PatientSummaryActions
         patient={patient}
+        onEdit={compact ? () => setEditing(true) : undefined}
         onDeleted={onDeleted}
         extraItems={extraMenuItems}
       />
@@ -183,9 +188,10 @@ export function PatientDetailsSection({
       {!editing && (
         <SectionHeader
           title={
-            stayFields || compact
+            title ||
+            (stayFields || compact
               ? t('clinicalRecords.patientAndAdmission')
-              : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en')
+              : translate('copy.clinicalRecordCopy.patientDetails', language === 'el' ? 'el' : 'en'))
           }
           subtitle={
             stayFields || compact
@@ -284,9 +290,11 @@ export function CanonicalSummary({
       : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}${dischargedAt ? ` · ${t('clinicalRecords.dischargedOn')} ${fmtDate(dischargedAt)}` : ''}`
   const details = admission
     ? [
+        [t('hospitalRecordNumber'), admission.caseNumber || '—'],
         [t('admissionDate'), fmtDate(admission.admissionDate)],
         [t('department'), admission.department || '—'],
         [t('clinicalRecords.lengthOfStay'), daysLabel],
+        ...(admission.mdrOnAdmission ? [[t('labSampleFlow.mdrOnAdmission'), admission.mdrOnAdmissionDate ? fmtDate(admission.mdrOnAdmissionDate) : t('yes')]] : []),
       ]
     : [
         [
@@ -331,7 +339,7 @@ export function CanonicalSummary({
   const isolationValue = record?.isolation
     ? record.isolation.status === 'active'
       ? badge(t('clinicalRecords.isolationInPlace'), 'temporary')
-      : badge(t(record.isolation.status))
+      : badge(t(ISOLATION_STATUS[record.isolation.status] || record.isolation.status))
     : t('no')
   const lifecycle = useAdmissionLifecycle({
     patient,
@@ -422,30 +430,10 @@ export function CanonicalSummary({
   // the patient and the stay on the left, the current surveillance on the right; one screen.
   return (
     <div className="patient-summary-layout record-summary">
-      {attention.length > 0 && (
-        <div
-          className="record-summary-attention"
-          role={attention.some(item => item.tone === 'danger') ? 'alert' : 'status'}
-        >
-          <div className="record-summary-attention-title">
-            <AlertTriangle size={15} aria-hidden="true" />
-            <strong>{t('clinicalRecords.attentionNeeded')}</strong>
-            <span>{attention.length}</span>
-          </div>
-          <ul>
-            {attention.map(item => (
-              <li key={item.id} className={`tone-${item.tone === 'warning' ? 'warning' : 'danger'}`}>
-                <span>{item.text}</span>
-                {onOpenStage && item.action && (
-                  <button type="button" className="record-summary-link" aria-label={`${item.action}: ${item.text}`} onClick={() => onOpenStage(item.stage)}>
-                    {item.action} →
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <AttentionList
+        title={t('clinicalRecords.attentionNeeded')}
+        items={attention.map(item => ({ id: item.id, text: item.text, tone: item.tone === 'warning' ? 'warning' : 'danger', action: onOpenStage && item.action ? item.action : null, onClick: onOpenStage && item.action ? () => onOpenStage(item.stage) : null }))}
+      />
       <div className="record-summary-grid">
         {patient ? (
           <PatientDetailsSection
@@ -473,7 +461,6 @@ export function CanonicalSummary({
           <section className="clinical-panel patient-summary-card record-summary-card">
             <SectionHeader
               title={t('clinicalRecords.currentSurveillance')}
-              actions={badge(t(record.status), record.status === 'active' ? 'active' : '')}
             />
             <DetailList
               sections={[
@@ -827,6 +814,7 @@ export function NewAdmissionDialog({
     admissionDate: today,
     departmentId: '',
     dischargeDate: today,
+    caseNumber: '',
   })
   async function save() {
     try {
@@ -848,6 +836,7 @@ export function NewAdmissionDialog({
           departmentId: draft.departmentId,
           department: dept?.name || '',
           admissionDate: draft.admissionDate,
+          caseNumber: draft.caseNumber.trim(),
           status: 'active',
         },
         { isDemo },
@@ -855,12 +844,14 @@ export function NewAdmissionDialog({
       await onAdmitted?.(row, discharged)
       notify(t('saved'), 'success')
     } catch (error) {
-      notify(error?.message || t('actionFailed'), 'danger')
+      notify(error?.duplicateRecordNumber ? t('recordNumberTaken') : error?.message || t('actionFailed'), 'danger')
     } finally {
       setBusy(false)
     }
   }
+  // Every admission has a record number of its own (a patient back after discharge gets a new one).
   const invalid =
+    !draft.caseNumber.trim() ||
     !draft.admissionDate ||
     (departments.length > 0 && !draft.departmentId) ||
     (activeAdmission &&
@@ -890,6 +881,9 @@ export function NewAdmissionDialog({
           onChange={v => setDraft(d => ({ ...d, dischargeDate: v }))}
         />
       )}
+      <Field label={t('hospitalRecordNumber')} required>
+        <input value={draft.caseNumber} onChange={event => setDraft(d => ({ ...d, caseNumber: event.target.value }))} />
+      </Field>
       <ManualDateField
         label={t('admissionDate')}
         value={draft.admissionDate}
@@ -918,7 +912,7 @@ export function AdmissionPicker({ admissions, selected, onSelect, onNew, t, fmtD
       current: String(row.id) === String(selected?.id),
       icon: String(row.id) === String(selected?.id) ? Check : CalendarDays,
       label: `${fmtDate(row.admissionDate)} – ${row.dischargeDate ? fmtDate(row.dischargeDate) : t('clinicalRecords.admissionOngoing')}`,
-      description: `${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
+      description: `${row.caseNumber ? `${t('recordNumberShort')} ${row.caseNumber} · ` : ''}${row.department || '—'} · ${days == null ? '—' : `${days} ${t(days === 1 ? 'clinicalRecords.stayDayOne' : 'clinicalRecords.stayDayMany')}`} · ${t(row.status)}`,
       onClick: () => onSelect(row.id),
     }
   })

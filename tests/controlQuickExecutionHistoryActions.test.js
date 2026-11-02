@@ -6,14 +6,13 @@ const record=readFileSync(new URL('../src/features/controls/ControlRecordPage.js
 const cancellation=readFileSync(new URL('../src/features/controls/ControlCancellationModal.jsx',import.meta.url),'utf8')
 
 describe('control quick execution and history actions',()=>{
- it('keeps row click for specification and adds a dedicated quick execution action',()=>{
+ it('opens the control on a row click, with no execute button in the row (the execution is entered from the control)',()=>{
   expect(registry).toContain('function openControl(item)')
   expect(registry).toContain('registry.openRecord(navigate,`/controls/${item.id}`')
   expect(registry).toContain('onClick={()=>openControl(item)}')
-  expect(registry).toContain('function quickExecute(item,deps,e)')
+  expect(registry).not.toContain('function quickExecute')
   expect(registry).not.toContain('Τα στοιχεία του ελεγκτή θα συμπληρωθούν αυτόματα.')
-  expect(registry).toContain('IconButton')
-  expect(registry).toContain('?department=${encodeURIComponent(dep)}&execute=1')
+  expect(registry).not.toContain('control-action-col')
  })
 
  it('uses the standard execution registry with a three-dot action menu per history row',()=>{

@@ -96,7 +96,7 @@ describe('kitchen by date window', () => {
     expect(service).toContain('export async function loadKitchenReceipt(organizationId, receiptId)')
     expect(service).toContain('export async function loadKitchenDay(organizationId, productionId)')
     expect(service).toContain('export async function loadKitchenTrace(organizationId,')
-    expect(read('src/features/calendar/CalendarPage.jsx')).toContain("loadKitchen(organizationId,{since:addDays(todayKey(),-30)})")
+    expect(read('src/features/calendar/useCalendarSources.js')).toContain("loadKitchen(organizationId,{since:addDays(todayKey(),-30)})")
   })
 })
 

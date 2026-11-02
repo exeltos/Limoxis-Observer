@@ -20,8 +20,9 @@ describe('WHO AWaRe (Access/Watch/Reserve) antimicrobial classification', () => 
   })
 
   it('labels each category', () => {
-    expect(awareCategoryLabel('access')).toBe('Access')
-    expect(awareCategoryLabel('watch')).toBe('Watch')
-    expect(awareCategoryLabel('reserve')).toBe('Reserve')
+    expect(awareCategoryLabel('access')).toBe('Πρόσβαση')
+    expect(awareCategoryLabel('watch')).toBe('Επιτήρηση')
+    expect(awareCategoryLabel('reserve')).toBe('Εφεδρικά')
+    expect(awareCategoryLabel('watch', 'en')).toBe('Watch')
   })
 })

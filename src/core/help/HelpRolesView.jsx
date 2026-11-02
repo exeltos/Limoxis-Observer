@@ -8,7 +8,7 @@ const l=(el,en)=>({el,en})
 // Who each hospital role is and what it does. What it sees is its menu, read
 // from the navigation itself, so the table never drifts from the app.
 export const ROLE_GUIDE=Object.freeze({
-  hospital_admin:{who:l('Ο διαχειριστής του νοσοκομείου, που ορίζει ο Platform Owner.','The hospital administrator, named by the Platform Owner.'),
+  hospital_admin:{who:l('Ο διαχειριστής του νοσοκομείου, που ορίζει ο Ιδιοκτήτης πλατφόρμας.','The hospital administrator, named by the Platform Owner.'),
     does:l('Χρήστες, ρόλοι και προσαρμοσμένοι ρόλοι, τμήματα, βιβλιοθήκες, κλινοημέρες και ρυθμίσεις του οργανισμού. Βλέπει όλες τις ενότητες του νοσοκομείου.','Users, roles and custom roles, departments, libraries, patient days and organization settings. Sees every area of the hospital.')},
   infection_control_lead:{who:l('Ο επικεφαλής της Ομάδας Ελέγχου Λοιμώξεων.','The head of the Infection Control team.'),
     does:l('Επιτήρηση και ταξινόμηση λοιμώξεων, MDRO, πρόληψη, έλεγχοι, δείκτες, επιτροπή λοιμώξεων και αναφορές.','Infection surveillance and classification, MDRO, prevention, inspections, indicators, the infection committee and reports.')},
@@ -34,6 +34,8 @@ export const ROLE_GUIDE=Object.freeze({
     does:l('Κλινική αξιολόγηση και επανεκτίμηση περιστατικών επιτήρησης, αντιμικροβιακή θεραπεία και έκβαση.','Clinical assessment and reassessment of surveillance cases, antimicrobial therapy and outcome.')},
   quality_manager:{who:l('Ο Υπεύθυνος Ποιότητας.','The quality manager.'),
     does:l('Συμβάντα, ευρήματα, διορθωτικές ενέργειες, επιθεωρήσεις, έλεγχοι και δείκτες.','Incidents, findings, corrective actions (CAPA), audits, inspections and indicators.')},
+  division_director:{who:l('Ο Διευθυντής μιας διεύθυνσης (π.χ. Νοσηλευτικής Υπηρεσίας).','The head of a division (e.g. the Nursing Directorate).'),
+    does:l('Βλέπει μόνο τους υποψηφίους των θέσεων της διεύθυνσής του, με τα επαγγελματικά τους στοιχεία και το βιογραφικό, και δίνει τη γνώμη του. Δεν βλέπει ταυτότητα, οικογένεια ή στοιχεία υγείας.','Sees only the candidates for the positions of the own division, with their professional data and CV, and gives an opinion. Does not see ID, family or health data.')},
   hospital_director:{who:l('Ο Διευθυντής / Διοικητής του νοσοκομείου.','The hospital director.'),
     does:l('Βλέπει την πλήρη εικόνα του νοσοκομείου στους Δείκτες, με φίλτρα, σύγκριση και εξαγωγή αναφοράς. Δεν καταχωρεί.','Sees the whole hospital in Indicators, with filters, comparison and a report to export. Records nothing.')},
 })

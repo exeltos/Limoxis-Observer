@@ -44,7 +44,8 @@ export function SearchableSelect({
     [query, setQuery] = useState(null),
     [activeIndex, setActiveIndex] = useState(-1)
   const listRef = useRef(null),
-    controlRef = useRef(null)
+    controlRef = useRef(null),
+    openOnPress = useRef(false)
   const [place, setPlace] = useState(null)
   const text = query ?? selected?.label ?? ''
   const matches = useMemo(() => {
@@ -180,7 +181,16 @@ export function SearchableSelect({
           onFocus={event => {
             if (!event.target.dataset.quietFocus) setOpen(true)
           }}
-          onClick={() => setOpen(true)}
+          // Focus opens the list on the press itself, so whether it was already open
+          // is read before that: a second click on an open field closes it.
+          onMouseDown={() => {
+            openOnPress.current = open
+          }}
+          onClick={() => {
+            if (openOnPress.current) close()
+            else setOpen(true)
+            openOnPress.current = false
+          }}
           onBlur={() => {
             // A typed name is kept on leaving the field: the library entry it
             // spells, or the text itself where custom values are allowed.

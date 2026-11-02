@@ -55,7 +55,7 @@ export function TenantProvider({ children }) {
     if(typeof window==='undefined')return null
     const params=new URLSearchParams(window.location.search)
     const requested=params.get('helpRole')
-    return params.get('helpPreview')==='1'&&isPreviewableRole(requested)?{role:requested,department:''}:null
+    return params.get('helpPreview')==='1'&&isPreviewableRole(requested)?{role:requested,department:params.get('helpDept')||''}:null
   })
 
   const membershipContextKey = authLoading

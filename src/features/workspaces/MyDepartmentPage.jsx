@@ -10,7 +10,7 @@ export function MyDepartmentPage(){
   const {language}=useLanguage();const en=language==='en'
   const department=membership?.previewDepartment || membership?.departmentName || (en?'My department':'Το τμήμα μου')
   const isManager=role===ROLES.DEPARTMENT_MANAGER
-  // The manager's tiles count the department only: in the Demo its sample department, in a hospital the departments of the membership.
-  const departmentCounts=isManager&&(isDemo?Boolean(membership?.previewDepartment):Boolean(membership?.departmentIds?.length))
+  // The manager's and the Link Nurse's tiles count the department only: in the Demo its sample department, in a hospital the departments of the membership.
+  const departmentCounts=(isManager||role===ROLES.LINK_NURSE)&&(isDemo?Boolean(membership?.previewDepartment):Boolean(membership?.departmentIds?.length))
   return <DashboardPage showKpis={departmentCounts} department={isDemo?membership?.previewDepartment||null:null} title={department} subtitle={isManager?(en?'Department overview, pending work and actions matching your role.':'Τμηματική εικόνα, εκκρεμότητες και ενέργειες που αντιστοιχούν στον ρόλο σας.'):(en?'Personal and departmental work relevant to you.':'Οι προσωπικές και τμηματικές εργασίες που σας αφορούν.')}/>
 }

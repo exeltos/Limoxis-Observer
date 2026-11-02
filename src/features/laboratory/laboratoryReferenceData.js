@@ -28,7 +28,6 @@ export const PATIENT_SAMPLE_TYPES=[
   {id:'respiratorySample',sources:['sputum','trachealAspirate','bal','other'],library:{'Πτύελα':'sputum',Sputum:'sputum','Τραχειακό αναρρόφημα':'trachealAspirate','Tracheal aspirate':'trachealAspirate',BAL:'bal'}},
   {id:'woundCulture',sources:['woundSwab','deepTissue','drainage','other'],library:{'Τραύμα / επίχρισμα':'woundSwab','Wound / swab':'woundSwab','Βαθύς ιστός':'deepTissue','Deep tissue':'deepTissue'}},
   {id:'specimen',sources:[],library:{}},
-  {id:'surveillanceSpecimen',sources:[],library:{}},
 ]
 export const patientSampleSources=type=>PATIENT_SAMPLE_TYPES.find(item=>item.id===type)?.sources||[]
 
@@ -45,7 +44,6 @@ export function technicalPatientSampleType(item={}){
   if(code==='SAMPLE-URINE'||/ούρ|ουρ|urine/i.test(text))return 'urineCulture'
   if(RESPIRATORY_LIBRARY_CODES.has(code)||/πτύελ|πτυελ|sputum|\bbal\b|βρογχ|bronch|ρινοφάρ|ρινοφαρ|nasopharyn|ρινικό|nasal|φαρυγγ|throat|αναπνευσ|respir/i.test(text))return 'respiratorySample'
   if(WOUND_LIBRARY_CODES.has(code)||/τραύμ|τραυμ|wound|πύο|πυο|\bpus\b|παροχέτευ|drainage|ράμμα|ραμμα|suture/i.test(text))return 'woundCulture'
-  if(code==='SAMPLE-SURVEILLANCE'||/δείγμα επιτήρησης|surveillance specimen/i.test(text))return 'surveillanceSpecimen'
   return 'specimen'
 }
 
@@ -82,7 +80,7 @@ export function patientSampleTypeOptions(items=[],language='el',t=key=>key){
       specimenEn:item.en||item.el,
     }
   })
-  return mapped.length?mapped:PATIENT_SAMPLE_TYPES.filter(type=>!['specimen','surveillanceSpecimen'].includes(type.id)).map(type=>({value:type.id,label:t(type.id),type:type.id,source:'',specimenTypeId:null}))
+  return mapped.length?mapped:PATIENT_SAMPLE_TYPES.filter(type=>type.id!=='specimen').map(type=>({value:type.id,label:t(type.id),type:type.id,source:'',specimenTypeId:null}))
 }
 
 export const EMPLOYEE_SCREENING_TYPES=[...SURVEILLANCE_SCREENING_TYPES,OTHER_EMPLOYEE_SCREENING]

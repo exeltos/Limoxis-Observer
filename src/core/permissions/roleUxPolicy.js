@@ -36,7 +36,8 @@ export function recordWithinRoleScope({role, membership, userId, record}={}){
     const allowed=[...(membership?.departmentIds??[]), membership?.departmentId].filter(Boolean)
     const recordDepartment=record.departmentId ?? null
     const previewDepartment=membership?.previewDepartment ?? null
-    if(previewDepartment && recordDepartment) return recordDepartment===previewDepartment
+    // The sample data names its departments (record.department), as the preview does.
+    if(previewDepartment) return [recordDepartment, record.department].includes(previewDepartment)
     // Department-scoped roles must never gain access merely because a record is
     // missing its department key. RLS follows the same fail-closed principle.
     return Boolean(recordDepartment) && allowed.includes(recordDepartment)

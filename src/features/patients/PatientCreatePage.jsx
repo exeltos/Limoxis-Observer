@@ -9,7 +9,8 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useDepartments } from '../management/useLibraries'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
-import { createPatient,loadPatients } from './patientsService'
+import { createPatient,findPatientMatches,loadPatients } from './patientsService'
+import { DuplicatePatientDialog } from './DuplicatePatientDialog'
 import { PatientFormFields,usePatientForm } from './PatientsPage'
 
 // «New patient» is a page of its own (like «New employee»), not a window over
@@ -22,6 +23,7 @@ export function PatientCreatePage(){
   const [patients,setPatients]=useState([])
   const {departments,error:departmentsError}=useDepartments()
   const [saving,setSaving]=useState(false)
+  const [matches,setMatches]=useState([])
   useEffect(()=>{
     let alive=true
     loadPatients(tenant?.id,{isDemo}).then(list=>{if(alive)setPatients(list)}).catch(()=>{})
@@ -29,8 +31,12 @@ export function PatientCreatePage(){
   },[tenant?.id,isDemo])
   useEffect(()=>{if(departmentsError)notify(departmentsError==='load_failed'?t('actionFailed'):departmentsError,'danger')},[departmentsError,notify,t])
   const form=usePatientForm({departments,existingPatients:patients})
-  async function save(){
+  // A patient who already exists is not created again: the same person gets a new admission instead.
+  async function save(confirmed=false){
     if(form.invalid||saving)return
+    const found=confirmed?[]:findPatientMatches(patients,form.payload())
+    if(found.length){setMatches(found);return}
+    setMatches([])
     setSaving(true)
     try{
       const {record}=await createPatient(tenant?.id,patients,form.payload(),{isDemo})
@@ -38,13 +44,17 @@ export function PatientCreatePage(){
       signalDemoScenario('patient_admission')
       navigate(`/patients/${record.id}`,{replace:true})
     }catch(error){
-      notify(error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')
+      notify(error?.duplicateRecordNumber?t('recordNumberTaken'):error?.duplicateCode?t('patientCodeDuplicate'):(error?.message||t('patientSaveFailed')),'danger')
     }finally{setSaving(false)}
   }
   return <Page fill><EntityRecordShell className="patient-create-shell workspace-fill" avatar={<UserPlus size={19}/>} eyebrow={t('patients')} title={t('newPatient')} subtitle={t('newPatientHelp')} tabs={[]} activeTab="" onTabChange={()=>{}} onBack={()=>navigate('/surveillance?tab=registry')}>
     <section className="record-section patient-create-form">
       <PatientFormFields form={form} t={t} language={language} departments={departments}/>
-      <div className="inline-edit-footer"><FormSubmit form={form.validation} loading={saving} onSubmit={save}>{t('save')}</FormSubmit></div>
+      <div className="inline-edit-footer"><FormSubmit form={form.validation} loading={saving} onSubmit={()=>save()}>{t('save')}</FormSubmit></div>
     </section>
+    {matches.length>0&&<DuplicatePatientDialog matches={matches} onClose={()=>setMatches([])} onContinue={()=>save(true)} actions={[
+      {key:'admission',label:t('patientDuplicate.newAdmission'),onClick:patient=>navigate(`/patients/${patient.id}`,{state:{openNewAdmission:true}})},
+      {key:'open',label:t('patientDuplicate.open'),onClick:patient=>navigate(`/patients/${patient.id}`)},
+    ]}/>}
   </EntityRecordShell></Page>
 }

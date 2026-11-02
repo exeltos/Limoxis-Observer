@@ -33,6 +33,11 @@ const KNOWN_CAPABILITY_DIFFERENCES = {
   // Umbrella key referenced by no policy or screen; IPC Lead already holds every
   // granular committee capability in both the UI and SQL.
   'manage_committees:infection_control_lead': 'unused umbrella capability',
+  // Departments see and request cultures of their own department through the dedicated
+  // laboratory_samples_*_department policies (department scope), not through the view_lab role list.
+  'view_lab:link_nurse': 'department-scope policies on laboratory_samples',
+  'view_lab:department_manager': 'department-scope policies on laboratory_samples',
+  'view_lab:department_user': 'department-scope policies on laboratory_samples',
 }
 
 function latestDefinition(fn) {

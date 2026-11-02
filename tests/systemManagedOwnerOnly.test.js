@@ -17,6 +17,6 @@ describe('system-managed library governance',()=>{
     expect(bundles).toContain('const readOnly=(item.system&&!isPlatformOwner)||immutable')
     expect(bundles).toContain('setSelected({...clone(item),readOnly})')
     expect(bundles).toContain('Σύστημα · Μόνο ιδιοκτήτης')
-    expect(bundles).toContain('Μόνο ο Platform Owner μπορεί να το τροποποιήσει ή να το διαγράψει.')
+    expect(bundles).toContain('Μόνο ο Ιδιοκτήτης πλατφόρμας μπορεί να το τροποποιήσει ή να το διαγράψει.')
   })
 })

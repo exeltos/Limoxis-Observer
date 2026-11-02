@@ -41,6 +41,8 @@ function isUtilityAction(action){
 
 function recordActionKind(action){
   if(!isValidElement(action))return null
+  // A record command that belongs in the «…» too (e.g. «Κλείσιμο ερωτηματολογίου»): <Button recordMenu …>.
+  if(action.props.recordMenu)return 'menu'
   const className=String(action.props.className||'').toLowerCase()
   const aria=String(action.props['aria-label']||'').toLowerCase()
   const title=String(action.props.title||'').toLowerCase()
@@ -55,6 +57,7 @@ function recordActionKind(action){
 }
 
 function actionLabel(action,kind,en){
+  if(kind==='menu'&&!action.props.label&&!action.props['aria-label']&&!action.props.title)return Children.toArray(action.props.children).filter(child=>typeof child==='string').join('').trim()
   return action.props.label||action.props['aria-label']||action.props.title||(kind==='delete'?(en?'Delete':'Διαγραφή'):(en?'Edit':'Επεξεργασία'))
 }
 
@@ -165,7 +168,9 @@ export function EntityRecordShell({
 
   const utilityActions=[]
   const rawGeneralActions=isPlatformOwnerRecord?[]:flattenActions(headerActions,[],utilityActions)
-  utilityActions.sort((a,b)=>(a.type===ExportMenu)-(b.type===ExportMenu))
+  // «Εξαγωγή» after the other utilities, and the page's main action (tone primary) last at the right, as on the Quality Center page.
+  const utilityRank=action=>action.props?.tone==='primary'?2:action.type===ExportMenu?1:0
+  utilityActions.sort((a,b)=>utilityRank(a)-utilityRank(b))
   const printAllTabs=hasTabs&&typeof renderTab==='function'
   // The record's «Εκτύπωση» prints the whole record (every tab), not the screen as it is.
   const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint?cloneElement(action,{onPrint:printRecord}):action)
@@ -174,6 +179,9 @@ export function EntityRecordShell({
   const cssText=value=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
   const printedTabs=printing&&printAllTabs?tabs.filter(tab=>!tab.disabled):null
   const reportDescription=printing&&printReport?(typeof printReport==='function'?printReport():printReport):null
+  // Record commands first, then edit, then delete (with its separator) last.
+  const menuRank=action=>{const kind=recordActionKind(action);return kind==='menu'?0:kind==='edit'?1:2}
+  rawGeneralActions.sort((a,b)=>menuRank(a)-menuRank(b))
   const generalMenuItems=rawGeneralActions.map((action,index)=>toOverflowItem(action,index,en)).filter(Boolean)
   const ownerHeaderActions=isPlatformOwnerRecord?headerActions:null
   const actionClass=generalMenuItems.length?'record-has-general-actions':'record-no-general-actions'
@@ -218,7 +226,8 @@ export function EntityRecordShell({
       {tabs.map(({id,label,icon:Icon,disabled=false,lockedLabel})=><button key={id} role="tab" aria-selected={activeTab===id} aria-disabled={disabled} disabled={disabled} title={disabled?(lockedLabel||t('locked')):undefined} className={`${activeTab===id?'active':''} ${disabled?'locked':''}`.trim()} onClick={()=>!disabled&&onTabChange?.(id)}>{Icon&&<Icon size={16}/>}<span>{label}</span>{disabled&&<small className="tab-lock">🔒</small>}</button>)}
     </nav>}
     <section className="entity-record-body surface" style={secondaryBodyStyle}>
-      {primaryTabActive&&generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
+      {/* The record's «…» (edit, archive, delete) is the law of every record: the top right corner of the record card, never the header. */}
+      {generalMenuItems.length>0&&<div className="entity-record-general-actions" aria-label={en?'Record actions':'Ενέργειες εγγραφής'}><OverflowMenu label={en?'Record actions':'Ενέργειες εγγραφής'} items={generalMenuItems}/></div>}
       {printedTabs?printedTabs.map(tab=><section key={tab.id} className="record-print-section" data-print-tab={tab.id}>
         <h3 className="record-print-section-title">{tab.label}</h3>
         {renderTab(tab.id)}

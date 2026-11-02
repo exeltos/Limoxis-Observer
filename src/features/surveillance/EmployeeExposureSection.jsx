@@ -7,6 +7,7 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { formatDay } from '../../core/i18n/formatDay'
 import { CAPABILITIES, can } from '../../core/permissions/roles'
 import { ROLES } from '../../core/permissions/systemRoleMatrix'
 import { useEmployeesData } from '../employees/useEmployeesData'
@@ -35,11 +36,16 @@ export function exposureStatus(row, today = athensToday()) {
 async function episodeOptions({ isDemo, organizationId, language }) {
   const rows = isDemo ? Object.values(clinicalCases) : await loadClinicalCases(organizationId, { summary: true })
   const en = language === 'en'
-  return rows.map(row => ({
-    value: isDemo ? row.id : row.recordId || row.id,
-    label: [row.patientId, en ? row.departmentEn || row.department : row.department, row.startedAt && String(row.startedAt).slice(0, 10)].filter(Boolean).join(' · '),
-    description: row.id,
-  }))
+  // The patient and the episode in words (name, code, department, start date), never an internal id.
+  return rows.map(row => {
+    const name = en ? row.patientEn || row.patient : row.patient
+    return {
+      value: isDemo ? row.id : row.recordId || row.id,
+      label: [name, row.patientId].filter(Boolean).join(' · ') || row.patientId || '',
+      description: [en ? row.departmentEn || row.department : row.department, row.startedAt && formatDay(row.startedAt, language)].filter(Boolean).join(' · '),
+      keywords: [row.patient, row.patientEn, row.patientId].filter(Boolean).join(' '),
+    }
+  })
 }
 
 function ExposureSectionBody({ record, department }) {
@@ -137,7 +143,7 @@ function ExposureSectionBody({ record, department }) {
           prefillItems={[
             { label: t('episodeForms.exposure.employee'), value: [record.employeeId, name].filter(Boolean).join(' · ') },
             { label: t('episodeForms.exposure.department'), value: department },
-            { label: t('episodeForms.exposure.record'), value: [record.id, record.startedAt && fmt(record.startedAt)].filter(Boolean).join(' · ') },
+            { label: t('episodeForms.exposure.surveillanceRecord'), value: [record.id, record.startedAt && fmt(record.startedAt)].filter(Boolean).join(' · ') },
           ]}
           sourceCaseOptions={canLinkEpisode ? caseOptions : []}
         />

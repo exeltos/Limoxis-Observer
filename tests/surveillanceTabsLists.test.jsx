@@ -76,8 +76,8 @@ describe('Outbreak investigations tab', () => {
 
   it('words the cluster as count, window and the dates of that same window', () => {
     const c = { count: 13, windowDays: 14, firstDate: '2025-05-25', lastDate: '2025-06-07' }
-    expect(clusterWindowText(c, false)).toMatch(/^13 περιστατικά σε 14 ημέρες \(25\/5 → 7\/6\/2025\)$/)
-    expect(clusterWindowText(c, true)).toContain('13 cases in 14 days')
+    expect(clusterWindowText(c, false)).toMatch(/^13 ασθενείς σε 14 ημέρες \(25\/5 → 7\/6\/2025\)$/)
+    expect(clusterWindowText(c, true)).toContain('13 patients in 14 days')
   })
 
   it('builds the cluster pre-fill from the cluster fields only', () => {
@@ -158,8 +158,8 @@ describe('List pattern of the Surveillance tabs', () => {
   it('uses the shared status component for the environment and the patient status, with the patient first like the episodes', () => {
     expect(read('src/features/surveillance/EnvironmentalSurveillanceFlow.jsx')).toContain('<StatusBadge tone={status.tone}>')
     const patients = read('src/features/patients/PatientsPage.jsx')
-    expect(patients).toContain("<StatusBadge tone={PATIENT_STATUS_TONES[patient.status]||'neutral'}>{t(patient.status)}</StatusBadge>")
-    expect(patients).toContain("columns={[{key:'name',label:t('patient')},{key:'department',label:t('department')}")
+    expect(patients).toContain("<StatusBadge tone={PATIENT_STATUS_TONES[effectiveStatus(patient)]||'neutral'}>")
+    expect(patients).toContain("columns={[{key:'name',label:t('patient'),sortable:true},{key:'department',label:t('department'),sortable:true}")
     // The clinical safety signals (isolation / MDR) keep their badge component.
     expect(patients).toContain('<PatientInfectionFlags')
     expect(patients).toContain('<ClinicalRiskText')

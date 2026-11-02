@@ -1174,3 +1174,19 @@ export function deleteClinicalSurveillance(
 shiftDemoDatesInPlace([clinicalCases])
 // Empty-hospital preview (?helpEmpty=1): no sample records.
 emptyInPreview(clinicalCases)
+
+// Demo: the one sample attachment every episode's «Documents» tab starts with (a text file that opens).
+export const demoClinicalDocuments = () =>
+  Object.keys(clinicalCases).length === 0
+    ? []
+    : [
+  {
+    id: 'demo-document-1',
+    name: 'Συνοδευτικό ιστορικό νοσηλείας.txt',
+    size: 96,
+    type: 'text/plain',
+    dataUrl: `data:text/plain;charset=utf-8,${encodeURIComponent('Δείγμα επισύναψης του demo: συνοδευτικό ιστορικό νοσηλείας.')}`,
+    category: 'other',
+    description: 'Δείγμα επισύναψης demo',
+  },
+]

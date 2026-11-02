@@ -413,6 +413,36 @@
       "authenticated": true,
       "reason": "Management › Users: the members of one organization with their profile (name, username, contact email); the organization's admin or the Platform Owner only, since member and profile RLS show an admin only its own row."
     },
+    "bin_delete": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: moves a clinical record and every row under it to the bin in one transaction; the Platform Owner, Hospital Admin or Infection Control Lead any record of the hospital, anyone else only what they entered (created_by)."
+    },
+    "bin_restore": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: puts a deleted record back exactly as it was; only the person who deleted it, while the entry has not expired."
+    },
+    "bin_list_mine": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: the caller's own deletions in one hospital, without the expired ones."
+    },
+    "bin_purge_mine": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Recycle bin: deletes one of the caller's own entries for good."
+    },
+    "organization_member_names": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Clinical history: the full names of the people who recorded entries of one organization (its members and the Platform Owner), for «recorded by»; an active member of that organization or the Platform Owner only, since profile RLS shows a user only its own row."
+    },
+    "organization_member_departments": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Management › Users: the department of each member of one organization (organization_member_scopes); the organization's admin or the Platform Owner only, since scope RLS shows a user only its own rows."
+    },
     "set_member_screen_guides": {
       "category": "rpc",
       "authenticated": true,
@@ -449,6 +479,18 @@
       "anon": true,
       "authenticated": true,
       "reason": "Records one anonymous response through the survey's public link: open surveys only, answers checked against the questions, departments the survey covers, at most 60 a minute."
+    },
+    "training_access_files": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Lists the files of the programme behind a participant's personal link, with that participant's time on each; the access token identifies the assignment."
+    },
+    "training_track_time": {
+      "category": "public-token",
+      "anon": true,
+      "authenticated": true,
+      "reason": "Adds the participant's active seconds on one file of the programme; the access token identifies the assignment, a call counts at most the time that passed since the previous one."
     },
     "training_email_access": {
       "category": "public-token",
@@ -496,7 +538,17 @@
     "quality_supplier_certificate_requests_create": {
       "category": "rpc",
       "authenticated": true,
-      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+      "reason": "Creates renewal requests for expired supplier certificates, one per supplier and address with one item per certificate: e-mailed at once only by the Platform Owner, Hospital Admin, Quality Manager or a member with the add-on supplier_renewal_sender, otherwise only proposed by a Quality reader."
+    },
+    "quality_supplier_renewal_settings_set": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Switches the nightly e-mailing of suppliers with expired certificates on or off for a hospital (and its reminder days); only whoever may send the requests (Platform Owner, Hospital Admin, Quality Manager, designated sender)."
+    },
+    "quality_self_assessment_save": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "A department answers (or submits) the self-assessment released to it, and the Quality team may too before it closes: only the answers, notes and evidence of existing rows are merged, never the questions; progress and score are recomputed."
     },
     "review_laboratory_sample": {
       "category": "rpc",
@@ -508,10 +560,35 @@
       "authenticated": true,
       "reason": "Grants or removes a member's add-on supplier_renewal_sender (may e-mail suppliers for their expired certificates); Platform Owner only."
     },
+    "set_translation_settings": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Turns the automatic translation of a hospital's own texts on or off and sets its monthly limit of characters; checks itself that the caller is the Platform Owner or a Hospital Admin / Quality Manager of the organisation."
+    },
     "surveillance_case_exposure_count": {
       "category": "rpc",
       "authenticated": true,
       "reason": "Number of employees exposed to the source patient of a surveillance episode (counts only, never names), for whoever can view the episode (can_view_surveillance_record); 0 when the occupational-health module is locked."
+    },
+    "hr_division_candidates": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Candidates of the caller's own division (Division Director), professional data and CV only; no identity, family, health or contact data."
+    },
+    "hr_candidate_opinions": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Opinions of the interview roles on a candidate; only HR office / Hospital Admin or the competent Division Director; others' opinions are shown only after the reader has submitted his or her own."
+    },
+    "hr_save_opinion": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Saves or submits the caller's own opinion on a candidate; checks the caller's role (HR office / Hospital Admin or the competent Division Director) itself."
+    },
+    "hr_application_link_set": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Sets the area and type of employment of a not yet used tablet application link; checks manage_interviews of the link's organisation itself."
     }
   }
 }

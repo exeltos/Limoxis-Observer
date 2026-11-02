@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, Info, TriangleAlert, X, XCircle } from 'lucide-react'
 import { useLanguage } from '../i18n/LanguageContext'
 import { sanitizeUserMessage, userFacingError } from './userFacingError'
@@ -17,6 +17,13 @@ export function FeedbackProvider({ children }) {
   const [confirmState, setConfirmState] = useState(null)
   const [confirmInput,setConfirmInput]=useState('')
   const { t, language } = useLanguage()
+  // The timers that remove a message: cleared with the provider, so none fires after it is gone.
+  const timers = useRef(new Set())
+  useEffect(() => { const pending = timers.current; return () => { pending.forEach(timer => window.clearTimeout(timer)); pending.clear() } }, [])
+  const dismissLater = useCallback((id, delay) => {
+    const timer = window.setTimeout(() => { timers.current.delete(timer); setItems((current) => current.filter((item) => item.id !== id)) }, delay)
+    timers.current.add(timer)
+  }, [])
   const notify = useCallback((message, tone = 'info', meta={}) => {
     const id = nextId++
     const safeMessage=sanitizeUserMessage(message,{language})
@@ -24,22 +31,22 @@ export function FeedbackProvider({ children }) {
     // A successful save ends the screen's unsaved changes (src/app/UnsavedChangesGuard.jsx).
     if(tone==='success')window.dispatchEvent(new Event('limoxis:saved'))
     emitDiagnostic({message:safeMessage,severity:tone==='danger'?'error':tone,operation:meta?.operation||null,eventType:meta?.eventType||'ui_feedback',diagnosticCode:meta?.diagnosticCode||null})
-    window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 4200)
-  }, [language])
+    dismissLater(id, 4200)
+  }, [language, dismissLater])
   const notifyError = useCallback((error, context='generic', meta={}) => {
     const id = nextId++
     const message=userFacingError(error,{language,context})
     setItems((current) => [...current, { id, message, tone:'danger' }])
     emitDiagnostic({message,severity:meta?.severity||'error',operation:meta?.operation||context,eventType:meta?.eventType||'operation_error',diagnosticCode:diagnosticCodeFromError(error)})
-    window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), 5200)
-  }, [language])
+    dismissLater(id, 5200)
+  }, [language, dismissLater])
   const notifyUndo = useCallback((message, onUndo, timeout = 7000) => {
     const id = nextId++
     const safeMessage=sanitizeUserMessage(message,{language})
     setItems((current) => [...current, { id, message:safeMessage, tone:'success', actionLabel:t('undo'), onAction:()=>{onUndo?.();setItems(rows=>rows.filter(x=>x.id!==id))} }])
     emitDiagnostic({message:safeMessage,severity:'success',operation:'undoable_action',eventType:'ui_feedback',diagnosticCode:null})
-    window.setTimeout(() => setItems((current) => current.filter((item) => item.id !== id)), timeout)
-  }, [t,language])
+    dismissLater(id, timeout)
+  }, [t,language,dismissLater])
   const confirm = useCallback((options) => new Promise((resolve) => {
     setConfirmInput(options?.inputDefault||'')
     setConfirmState({ ...options, resolve })

@@ -399,14 +399,14 @@ export function WhoHandHygieneEditor({
 
             <div className="who-choice-block">
               <div className="who-choice-heading">
-                <span>WHO 5 Moments</span>
+                <span>{en ? 'WHO 5 Moments' : '5 Στιγμές του ΠΟΥ'}</span>
                 <small>
                   {en
                     ? 'Select one or more indications observed in this opportunity'
                     : 'Επιλέξτε μία ή περισσότερες ενδείξεις που συνυπάρχουν στην ίδια ευκαιρία'}
                 </small>
               </div>
-              <div className="who-moment-picker" role="group" aria-label="WHO 5 Moments">
+              <div className="who-moment-picker" role="group" aria-label={en ? 'WHO 5 Moments' : '5 Στιγμές του ΠΟΥ'}>
                 {WHO_MOMENTS.map(moment => {
                   const selected = currentMoments.includes(moment.id)
                   return (
@@ -448,7 +448,7 @@ export function WhoHandHygieneEditor({
                 >
                   <span>
                     <strong>{en ? 'Alcohol-based hand rub' : 'Αλκοολούχο αντισηπτικό'}</strong>
-                    <small>{en ? 'Hand Rub · HR' : 'Αντισηπτικό · HR'}</small>
+                    <small>{en ? 'Hand rub' : 'Αντισηπτικό χεριών'}</small>
                   </span>
                 </button>
                 <button
@@ -462,7 +462,7 @@ export function WhoHandHygieneEditor({
                     <strong>
                       {en ? 'Hand wash with soap & water' : 'Πλύσιμο με σαπούνι & νερό'}
                     </strong>
-                    <small>{en ? 'Hand Wash · HW' : 'Πλύσιμο · HW'}</small>
+                    <small>{en ? 'Hand wash' : 'Πλύσιμο χεριών'}</small>
                   </span>
                 </button>
                 <button
@@ -507,7 +507,7 @@ export function WhoHandHygieneEditor({
               </div>
             </div>
             <div className="who-compliance-hero">
-              <strong>{stats.compliance}%</strong>
+              <strong>{stats.opportunities ? `${stats.compliance}%` : '—'}</strong>
               <span>{en ? 'Compliance' : 'Συμμόρφωση'}</span>
               <div className="who-compliance-track">
                 <i style={{ width: `${Math.min(100, Math.max(0, stats.compliance))}%` }} />

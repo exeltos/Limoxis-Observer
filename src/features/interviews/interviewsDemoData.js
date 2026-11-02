@@ -16,7 +16,18 @@ const candidate = (id, code, offset, fields) => ({
 const interview = (id, fields) => ({ id, scheduledAt: '', location: 'Γραφείο Προσωπικού', status: 'scheduled', interviewers: [], scores: {}, overallRating: null, outcome: '', recommendation: '', strengths: '', weaknesses: '', salaryExpectation: '', offeredSalary: '', benefits: '', availableFrom: '', evaluatedAt: '', evaluatedByName: '', notes: '', source: 'demo', ...fields })
 
 export function interviewsDemoState() {
+  const state = demoCandidatesAndDivisions()
+  const category = text => (/Νοσηλ|Μαία/.test(text) ? 'nursing' : /Μάγειρ|Κουζίν|Τραυματιοφ/.test(text) ? 'support' : '')
+  return { ...state, candidates: state.candidates.map(item => ({ ...item, professionalCategory: item.professionalCategory || category(item.requestedPosition || '') })) }
+}
+
+function demoCandidatesAndDivisions() {
   return {
+    divisions: [
+      { id: 'demo-div-1', name: 'Νοσηλευτική Υπηρεσία', categories: ['nursing', 'medical', 'paramedical'], members: [] },
+      { id: 'demo-div-2', name: 'Διεύθυνση Λειτουργιών', categories: ['technical', 'support', 'administrative'], members: [] },
+    ],
+    opinions: {},
     candidates: [
       candidate('demo-cand-1', 'ΥΠ-0001', -2, { fullName: 'Κωνσταντίνου Δήμητρα', gender: 'female', birthDate: '1996-04-12', area: 'Λάρισα', phoneMobile: '6900000101', email: 'd.konstantinou@example.org', requestedPosition: 'ΤΕ Νοσηλευτική', maritalStatus: 'single', educationLevel: 'Λύκειο', education: [{ level: 'ΤΕΙ', school: 'Νοσηλευτική ΤΕΙ Λάρισας', year: '2019', completed: true }], practiceLicence: true, itSkills: 'Office, ηλεκτρονικός φάκελος ασθενούς', whyUs: 'Κοντά στο σπίτι και καλή φήμη της κλινικής.',
         languages: [{ id: 'demo-lang-1', language: 'en', reading: 'good', writing: 'good', speaking: 'fair', certificate: true, certificateName: 'B2' }],

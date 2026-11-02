@@ -217,7 +217,7 @@ export const SURVEY_TEMPLATES = [
   { key: 'inpatient', audience: 'patients', title: 'Ικανοποίηση νοσηλευόμενων ασθενών', titleEn: 'Inpatient satisfaction', description: 'Πείτε μας πώς ήταν η νοσηλεία σας. Συμπληρώνεται κατά την έξοδο.', descriptionEn: 'Tell us how your stay was. Filled in on discharge.', sections: sectionList(['admission', 'nursing', 'medical', 'environment', 'discharge', 'safety', 'overall', 'comments']), questions: INPATIENT },
   { key: 'outpatient', audience: 'patients', title: 'Ικανοποίηση εξωτερικών ασθενών και ΤΕΠ', titleEn: 'Outpatient and emergency satisfaction', description: 'Πείτε μας πώς ήταν η επίσκεψή σας στα εξωτερικά ιατρεία ή στο ΤΕΠ.', descriptionEn: 'Tell us how your visit to the outpatient clinics or the emergency department was.', sections: sectionList(['access', 'care', 'overall', 'comments']), questions: OUTPATIENT },
   { key: 'staff', audience: 'staff', title: 'Ικανοποίηση προσωπικού', titleEn: 'Staff satisfaction', description: 'Ετήσια έρευνα για το εργασιακό περιβάλλον και την κουλτούρα ασφάλειας.', descriptionEn: 'Yearly survey of the work environment and safety culture.', sections: sectionList(['work', 'team', 'safety', 'overall', 'comments']), questions: STAFF },
-  { key: 'blank', audience: 'patients', title: 'Νέα έρευνα', titleEn: 'New survey', description: '', descriptionEn: '', sections: [], questions: [] },
+  { key: 'blank', audience: 'patients', title: 'Νέο ερωτηματολόγιο', titleEn: 'New questionnaire', description: '', descriptionEn: '', sections: [], questions: [] },
 ]
 
 // hospital: the name that takes the place of «{hospital}» in the questions.
@@ -401,4 +401,14 @@ export function responsesExport(survey, responses = [], language = 'el') {
     headers: [en ? 'Date' : 'Ημερομηνία', en ? 'Department' : 'Τμήμα', en ? 'Channel' : 'Τρόπος', ...(survey.questions || []).map(question => textOf(question, language))],
     rows: responses.map(response => [String(response.submittedAt || '').slice(0, 10), (en ? response.departmentEn : response.department) || response.department || '', channelLabel(response.channel, language), ...(survey.questions || []).map(question => value(question, response.answers?.[question.id]))]),
   }
+}
+
+// One answer as text (the response's page and the Excel file write it the same way).
+export function answerText(question, answer, language = 'el') {
+  const en = language === 'en'
+  if (answer === undefined || answer === null || answer === '') return ''
+  if (question.type === 'yesno') return answer ? (en ? 'Yes' : 'Ναι') : (en ? 'No' : 'Όχι')
+  if (question.type === 'single') return textOf((question.options || []).find(item => item.value === answer), language) || String(answer)
+  if (question.type === 'multiple') return (Array.isArray(answer) ? answer : [answer]).map(item => textOf((question.options || []).find(option => option.value === item), language) || item).join(', ')
+  return String(answer)
 }

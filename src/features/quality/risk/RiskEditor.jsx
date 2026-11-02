@@ -13,16 +13,16 @@ import { IndicatorPicker } from './RiskIndicatorsUi'
 const STAGES=[['inherent','Εγγενής κίνδυνος','Inherent risk','Χωρίς κανένα μέτρο','Before any control'],['residual','Υπολειπόμενος κίνδυνος','Residual risk','Με τα μέτρα που ήδη λαμβάνονται','With the controls already in place'],['target','Κίνδυνος-στόχος','Target risk','Μετά τα πρόσθετα μέτρα','After the additional measures']]
 
 // One risk of an assessment, on its own page. The score, level and warnings update as L and C change.
-export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,onDelete=null,onCreateCapa=null,saving=false,indicatorValues=null,assessmentLabel=''}){
+export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,onDelete=null,onCreateCapa=null,saving=false,indicatorValues=null,assessmentLabel='',startEditing=false,onCancel=null}){
  const [draft,setDraft]=useState(()=>({section:'clinical',...risk,process:txt(risk,'process',en),scope:txt(risk,'scope',en),hazard:txt(risk,'hazard',en),existingControls:txt(risk,'existingControls',en),additionalMeasures:txt(risk,'additionalMeasures',en),owner:txt(risk,'owner',en),reviewFrequency:txt(risk,'reviewFrequency',en)}))
  const set=(key,value)=>setDraft(current=>({...current,[key]:value}))
  const isNew=!risk?.id
- const [editing,setEditing]=useState(isNew&&!readOnly)
+ const [editing,setEditing]=useState((isNew||startEditing)&&!readOnly)
  const locked=readOnly||!editing
  const [initial]=useState(draft)
  // Cancel remounts the fields, so lists with their own state (the measures) drop the edits too.
  const [version,setVersion]=useState(0)
- const cancel=()=>{if(isNew){onClose();return};setDraft(initial);setEditing(false);setVersion(v=>v+1)}
+ const cancel=()=>{if(isNew){onClose();return};if(onCancel){onCancel();return};setDraft(initial);setEditing(false);setVersion(v=>v+1)}
  const s=useMemo(()=>scored(draft),[draft])
  const warnings=useMemo(()=>riskWarnings(draft),[draft])
  const residualLevel=levelInfo(s.residual.level)
@@ -32,12 +32,11 @@ export function RiskEditor({risk,processes=[],en,readOnly=false,onClose,onSave,o
  const short=String(draft.hazard||'').trim()
  const title=short?(short.length>90?`${short.slice(0,88)}…`:short):L(en,'Νέος κίνδυνος','New risk')
  const sectionLabel=SECTIONS.find(x=>x.id===draft.section)
- const path=STAGES.map(([kind])=>s[kind].score??'—').join(' → ')
  const alerts=warnings.filter(w=>w.tone!=='info'),notes=warnings.filter(w=>w.tone==='info')
  return <EntityRecordShell className="quality-record-shell risk-editor-shell workspace-fill" avatar={<ShieldAlert size={19}/>}
   eyebrow={[draft.lineageKey||L(en,'Νέος κίνδυνος','New risk'),sectionLabel&&(en?sectionLabel.en:sectionLabel.el),assessmentLabel].filter(Boolean).join(' · ')}
   title={title} subtitle={[draft.process,draft.scope].filter(Boolean).join(' · ')||undefined}
-  status={<span className="risk-editor-path" title={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{path}</span>}
+  status={<span className="risk-editor-path" aria-label={L(en,'Εγγενής → υπολειπόμενος → στόχος','Inherent → residual → target')}>{STAGES.map(([kind],i)=><span key={kind} className="risk-editor-path-step">{i>0&&<span className="risk-editor-path-arrow" aria-hidden="true">→</span>}<small>{{inherent:L(en,'Εγγενής','Inherent'),residual:L(en,'Υπολειπόμενος','Residual'),target:L(en,'Στόχος','Target')}[kind]}</small><LevelChip score={s[kind].score} level={s[kind].level} en={en} compact/></span>)}</span>}
   headerActions={recordActions({en,canEdit:!readOnly,editing,isNew,onEdit:()=>setEditing(true),onDelete})}
   onBack={onClose} backLabel={L(en,'Πίσω στην εκτίμηση','Back to the assessment')}>
   <div className="risk-editor" key={version}>

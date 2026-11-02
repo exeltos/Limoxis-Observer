@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
+import { FormPage } from '../../design-system/FormPage'
 import { FormGrid } from '../../design-system/FormCard'
 import { Field } from '../../design-system/Field'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -19,7 +20,7 @@ import { createEmployeeAsync } from '../employees/employeeService'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { useInterviewsActor } from './InterviewsShared'
-import { CRITERIA, DECISIONS, EMPLOYMENT_TYPES, GENDERS, INTERVIEWER_ROLES, LANGUAGES, LEVELS, MARITAL, MILITARY, OUTCOMES, SCORES, candidateProblems, decisionProblems, employeeDraftFor, fmtRating, interviewProblems, matchingEmployees, newEducation, newEmployer, newLanguage, options, overallRating, ratingTone, todayKey } from './interviewsModel'
+import { PROFESSIONAL_CATEGORIES, CRITERIA, DECISIONS, EMPLOYMENT_TYPES, GENDERS, INTERVIEWER_ROLES, LANGUAGES, LEVELS, MARITAL, MILITARY, OUTCOMES, SCORES, candidateProblems, decisionProblems, employeeDraftFor, fmtRating, interviewProblems, matchingEmployees, newEducation, newEmployer, newLanguage, options, overallRating, ratingTone, todayKey } from './interviewsModel'
 import { decide, interviewsErrorMessage, markHired, saveCandidate, saveInterview } from './interviewsService'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -54,11 +55,12 @@ export function CandidateDialog({ initial, organizationId, positions = [], onClo
   const set = next => setDraft(current => ({ ...current, ...next }))
   const problems = candidateProblems(draft, language)
   const save = () => run(async () => { const id = await saveCandidate(organizationId, draft); onClose(); return id }, en ? 'Application saved.' : 'Η αίτηση αποθηκεύτηκε.')
-  return <ObserverDialog width="wide" title={initial.id ? `${en ? 'Application' : 'Αίτηση'} ${initial.code || ''}`.trim() : (en ? 'New application' : 'Νέα αίτηση εργασίας')} subtitle={en ? 'Personal data of a candidate: kept only with their consent and seen only by HR.' : 'Προσωπικά δεδομένα υποψηφίου: τηρούνται μόνο με τη συναίνεσή του και τα βλέπει μόνο το Γραφείο Προσωπικού.'} onClose={onClose}
+  return <FormPage title={initial.id ? `${en ? 'Application' : 'Αίτηση'} ${initial.code || ''}`.trim() : (en ? 'New application' : 'Νέα αίτηση εργασίας')} subtitle={en ? 'Personal data of a candidate: kept only with their consent and seen only by HR.' : 'Προσωπικά δεδομένα υποψηφίου: τηρούνται μόνο με τη συναίνεσή του και τα βλέπει μόνο το Γραφείο Προσωπικού.'} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={en ? 'Save' : 'Αποθήκευση'}><Missing problems={problems} en={en} /></DialogActions>}>
     <SectionHeader title={en ? 'Position' : 'Θέση'} />
     <FormGrid columns={3}>
       <SearchableSelect label={en ? 'Position applied for' : 'Αιτούμενη θέση εργασίας'} value={draft.requestedPosition} allowCustom options={positions.map(value => ({ value, label: value }))} onChange={value => set({ requestedPosition: value || '' })} {...selectText(en)} />
+      <ChoiceField label={en ? 'Area / category' : 'Χώρος / κατηγορία'} value={draft.professionalCategory || ''} options={withEmpty(options(PROFESSIONAL_CATEGORIES, language))} onChange={value => set({ professionalCategory: value })} />
       <ChoiceField label={en ? 'Employment type' : 'Είδος απασχόλησης'} value={draft.employmentType} options={withEmpty(options(EMPLOYMENT_TYPES, language))} onChange={value => set({ employmentType: value })} />
       <ManualDateField label={en ? 'Application date' : 'Ημερομηνία αίτησης'} value={draft.appliedOn} onChange={value => set({ appliedOn: value })} />
     </FormGrid>
@@ -103,7 +105,7 @@ export function CandidateDialog({ initial, organizationId, positions = [], onClo
       <CheckboxField label={en ? 'The candidate consents to the processing of personal data (GDPR) *' : 'Ο υποψήφιος συναινεί στην επεξεργασία των προσωπικών δεδομένων (GDPR) *'} checked={draft.consentGiven} onChange={value => set({ consentGiven: value })} />
       <Text label={en ? 'Consent form / note' : 'Έντυπο / σημείωση συναίνεσης'} value={draft.consentText} onChange={value => set({ consentText: value })} />
     </FormGrid>
-  </ObserverDialog>
+  </FormPage>
 }
 
 // Education, IT skills and languages of an application.
@@ -118,7 +120,7 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved })
   const removeRow = (key, index) => setDraft(current => ({ ...current, [key]: current[key].filter((_, at) => at !== index) }))
   const levels = withEmpty(options(LEVELS, language))
   const save = () => run(async () => { await saveCandidate(organizationId, draft); onClose() })
-  return <ObserverDialog width="wide" title={en ? 'Education and languages' : 'Εκπαίδευση και γλώσσες'} subtitle={candidate.fullName} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving} />}>
+  return <FormPage title={en ? 'Education and languages' : 'Εκπαίδευση και γλώσσες'} subtitle={candidate.fullName} onClose={onClose} footer={<DialogActions onSave={save} disabled={saving} />}>
     <FormGrid columns={2}>
       <Text label={en ? 'Secondary education' : 'Βασική εκπαίδευση'} value={draft.educationLevel} onChange={value => set({ educationLevel: value })} />
       <Text label={en ? 'IT skills' : 'Γνώσεις πληροφορικής'} value={draft.itSkills} onChange={value => set({ itSkills: value })} />
@@ -147,7 +149,7 @@ export function EducationDialog({ candidate, organizationId, onClose, onSaved })
         <div className="interviews-row-end"><CheckboxField label={en ? 'Certificate' : 'Πιστοποιητικό'} checked={Boolean(row.certificate)} onChange={value => setRow('languages', index, { certificate: value })} />{row.certificate && <input aria-label={en ? 'Certificate title' : 'Τίτλος πιστοποιητικού'} placeholder={en ? 'e.g. B2, Proficiency' : 'π.χ. B2, Proficiency'} value={row.certificateName || ''} onChange={e => setRow('languages', index, { certificateName: e.target.value })} />}<IconButton tone="danger" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => removeRow('languages', index)}><Trash2 size={15} /></IconButton></div>
       </div>)}
     </div>
-  </ObserverDialog>
+  </FormPage>
 }
 
 // Previous employers («ΠΡΟΫΠΗΡΕΣΙΑ»): employer, period, position, salary, reason for leaving.
@@ -159,7 +161,7 @@ export function EmployersDialog({ candidate, organizationId, onClose, onSaved })
   const setRow = (index, next) => setRows(current => current.map((row, at) => (at === index ? { ...row, ...next } : row)))
   const problems = candidateProblems({ ...candidate, employers: rows }, language)
   const save = () => run(async () => { await saveCandidate(organizationId, { ...candidate, employers: rows }); onClose() })
-  return <ObserverDialog width="wide" title={en ? 'Previous employers' : 'Προϋπηρεσία'} subtitle={candidate.fullName} onClose={onClose}
+  return <FormPage title={en ? 'Previous employers' : 'Προϋπηρεσία'} subtitle={candidate.fullName} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0}><Missing problems={problems} en={en} /></DialogActions>}>
     <SectionHeader title={en ? 'Employers' : 'Εργοδότες'} actions={<Button variant="secondary" onClick={() => setRows(current => [...current, newEmployer()])}><Plus size={15} />{en ? 'Add' : 'Προσθήκη'}</Button>} />
     <div className="interviews-row-list">
@@ -175,7 +177,7 @@ export function EmployersDialog({ candidate, organizationId, onClose, onSaved })
         <div className="interviews-row-end"><IconButton tone="danger" label={en ? 'Remove' : 'Αφαίρεση'} onClick={() => setRows(current => current.filter((_, at) => at !== index))}><Trash2 size={15} /></IconButton></div>
       </div>)}
     </div>
-  </ObserverDialog>
+  </FormPage>
 }
 
 // --- Interview -------------------------------------------------------------------------------
@@ -239,7 +241,7 @@ export function EvaluationDialog({ candidate, initial, organizationId, employees
   const problems = interviewProblems(entry, language, { evaluation: true })
   const scoreOptions = [{ value: '', label: '—' }, ...SCORES.map(([value, el, enText]) => ({ value: String(value), label: `${value} · ${en ? enText : el}` }))]
   const save = () => run(async () => { await saveInterview(organizationId, candidate, entry, { actor }); onClose() }, en ? 'Evaluation recorded.' : 'Η αξιολόγηση καταχωρίστηκε.')
-  return <ObserverDialog width="wide" title={en ? 'Interview evaluation' : 'Αξιολόγηση συνέντευξης'} subtitle={`${candidate.fullName}${candidate.requestedPosition ? ` · ${candidate.requestedPosition}` : ''}`} onClose={onClose}
+  return <FormPage title={en ? 'Interview evaluation' : 'Αξιολόγηση συνέντευξης'} subtitle={`${candidate.fullName}${candidate.requestedPosition ? ` · ${candidate.requestedPosition}` : ''}`} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={en ? 'Record evaluation' : 'Καταχώριση αξιολόγησης'}>
       <span className="interviews-dialog-result"><StatusBadge tone={ratingTone(rating)}>{fmtRating(rating, language)}</StatusBadge>{problems.length > 0 && <small>{en ? 'Missing' : 'Λείπει'}: {problems.join(' · ')}</small>}</span>
     </DialogActions>}>
@@ -263,16 +265,16 @@ export function EvaluationDialog({ candidate, initial, organizationId, employees
       <Text label={en ? 'Strengths' : 'Δυνατά σημεία'} rows={2} value={draft.strengths} onChange={value => set({ strengths: value })} />
       <Text label={en ? 'Areas to improve' : 'Σημεία προς βελτίωση'} rows={2} value={draft.weaknesses} onChange={value => set({ weaknesses: value })} />
     </FormGrid>
-  </ObserverDialog>
+  </FormPage>
 }
 
 // --- Decision and hiring ----------------------------------------------------------------------
 
-export function DecisionDialog({ candidate, organizationId, onClose, onSaved }) {
+export function DecisionDialog({ candidate, organizationId, initialDecision = '', onClose, onSaved }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const actor = useInterviewsActor()
-  const [draft, setDraft] = useState(() => ({ decision: candidate.decision || '', decisionOn: candidate.decisionOn || todayKey(), decisionByName: candidate.decisionByName || actor.name, decisionNotes: candidate.decisionNotes || '', withdrawn: candidate.status === 'withdrawn' }))
+  const [draft, setDraft] = useState(() => ({ decision: candidate.decision || initialDecision || '', decisionOn: candidate.decisionOn || todayKey(), decisionByName: candidate.decisionByName || actor.name, decisionNotes: candidate.decisionNotes || '', withdrawn: candidate.status === 'withdrawn' }))
   const [saving, run] = useSave(onSaved)
   const set = next => setDraft(current => ({ ...current, ...next }))
   const problems = draft.withdrawn ? [] : decisionProblems(draft, language)
@@ -325,7 +327,7 @@ export function HireDialog({ candidate, organizationId, employees = [], onClose,
     return employee
   }, en ? 'The candidate was hired.' : 'Ο υποψήφιος προσλήφθηκε.')
   const employeeOptions = employees.map(item => ({ value: String(item.dbId || item.id), label: `${item.lastName} ${item.firstName}`.trim(), description: [item.id, item.department].filter(Boolean).join(' · ') }))
-  return <ObserverDialog width="wide" title={en ? 'Hire' : 'Πρόσληψη'} subtitle={`${candidate.fullName}${candidate.requestedPosition ? ` · ${candidate.requestedPosition}` : ''}`} onClose={onClose}
+  return <FormPage title={en ? 'Hire' : 'Πρόσληψη'} subtitle={`${candidate.fullName}${candidate.requestedPosition ? ` · ${candidate.requestedPosition}` : ''}`} onClose={onClose}
     footer={<DialogActions onSave={save} disabled={saving || problems.length > 0} saveLabel={mode === 'create' ? (en ? 'Create employee and hire' : 'Δημιουργία εργαζομένου και πρόσληψη') : (en ? 'Link and hire' : 'Σύνδεση και πρόσληψη')}><Missing problems={problems} en={en} /></DialogActions>}>
     <FormGrid columns={2}>
       <ChoiceField label={en ? 'Employee' : 'Εργαζόμενος'} value={mode} options={[{ value: 'create', label: en ? 'New employee from the application' : 'Νέος εργαζόμενος από την αίτηση' }, { value: 'link', label: en ? 'Already in the staff registry' : 'Υπάρχει ήδη στο μητρώο προσωπικού' }]} onChange={setMode} />
@@ -344,5 +346,5 @@ export function HireDialog({ candidate, organizationId, employees = [], onClose,
       <Text label={en ? 'Phone' : 'Τηλέφωνο'} value={draft.phone} onChange={value => set({ phone: value })} />
     </FormGrid>}
     {duplicate && <p className="interviews-muted">{en ? 'This code already belongs to another employee record.' : 'Ο κωδικός αυτός ανήκει ήδη σε άλλη καρτέλα εργαζομένου.'}</p>}
-  </ObserverDialog>
+  </FormPage>
 }

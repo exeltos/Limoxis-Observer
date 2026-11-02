@@ -1,3 +1,4 @@
+import { DetailFields } from '../../design-system/DetailList'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { PROTOCOL_KINDS } from './protocolFields'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
@@ -38,4 +39,25 @@ export function DocumentForm({value,onChange,language='el',departments=[],ownerN
   {v.effectiveDate&&v.reviewDate&&v.reviewDate<v.effectiveDate&&<div className="source-truth-note document-span-3">{licence?(en?'Expiry date cannot be before the issue date.':'Η ημερομηνία λήξης δεν μπορεί να προηγείται της ημερομηνίας έκδοσης.'):(en?'Review date cannot be before the effective date.':'Η ημερομηνία επανεξέτασης δεν μπορεί να προηγείται της ημερομηνίας ισχύος.')}</div>}
   {showAttachmentHint&&<div className="source-truth-note document-span-3">{en?'Save the document first. Attachments are then uploaded to the saved record from the Files tab.':'Αποθηκεύστε πρώτα το έγγραφο. Τα συνημμένα ανεβαίνουν στη συνέχεια στην πραγματική εγγραφή από την καρτέλα «Αρχεία».'}</div>}
  </div>
+}
+
+// The document as read (Overview): the filled fields only; «Edit» opens the form.
+export function DocumentDetails({value,language='el',departments=[],ownerName=''}){
+ const en=language==='en',v=value||createEmptyDocumentDraft(),types=DOCUMENT_TYPES[language]||DOCUMENT_TYPES.el,requiredLabels=REQUIRED_BY[language]||REQUIRED_BY.el
+ const licence=v.type==='licence',protocol=v.type==='protocol'
+ const day=iso=>iso?new Intl.DateTimeFormat(en?'en-GB':'el-GR').format(new Date(`${String(iso).slice(0,10)}T12:00:00`)):''
+ const department=departments.find(d=>d.id===v.departmentId)?.name||v.department||(en?'Whole hospital':'Όλο το νοσοκομείο')
+ return <DetailFields fields={[
+  {label:en?'Type':'Τύπος',value:types[v.type]||v.type},
+  {label:en?'Version':'Έκδοση',value:v.version},
+  {label:en?'Department / scope':'Τμήμα / πεδίο εφαρμογής',value:department},
+  {label:en?'Owner':'Υπεύθυνος',value:ownerName,hidden:!ownerName},
+  {label:en?'Protocol kind':'Είδος πρωτοκόλλου',value:(PROTOCOL_KINDS[language]||PROTOCOL_KINDS.el)[v.protocolKind]||v.protocolKind,hidden:!protocol||!v.protocolKind},
+  {label:en?'Clinical area':'Κλινικό πεδίο',value:v.clinicalArea,hidden:!protocol||!v.clinicalArea},
+  {label:en?'Renewal every':'Ανανέωση κάθε',value:`${v.renewalMonths} ${en?'months':'μήνες'}`,hidden:!licence||!v.renewalMonths},
+  {label:en?'Required by':'Απαιτείται από',value:(v.requiredBy||[]).map(key=>requiredLabels[key]||key).join(', '),hidden:!licence||!(v.requiredBy||[]).length},
+  {label:licence?(en?'Issue date':'Ημερομηνία έκδοσης'):(en?'Effective date':'Ημερομηνία ισχύος'),value:day(v.effectiveDate),hidden:!v.effectiveDate},
+  {label:licence?(en?'Expiry date':'Ημερομηνία λήξης'):(en?'Review date':'Ημερομηνία επανεξέτασης'),value:day(v.reviewDate),hidden:!v.reviewDate},
+  {label:en?'Description':'Περιγραφή',value:v.description,hidden:!v.description},
+ ]}/>
 }

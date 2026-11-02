@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Archive, BookOpenCheck, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Archive, BookOpenCheck, CheckCircle2, FileClock, Paperclip, Pencil, RotateCcw, Send, Trash2 } from 'lucide-react'
+import './documentsList.css'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
@@ -32,13 +33,16 @@ import {
   getDocumentFamily,
   groupDocumentFamilies,
 } from './documentService'
-import { DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentForm'
+import { DocumentDetails, DocumentForm, DOCUMENT_TYPES, documentDraftIsValid } from './DocumentForm'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { ProtocolReviewPanel } from './protocolReview/ProtocolReviewPanel'
 import { useProtocolSuggestions } from './protocolReview/useProtocolSuggestions'
 import { existingSuggestedRevision } from './protocolReview/protocolReviewModel'
+
+// A header command kept beside «Export» (not moved into the record's «…»).
+const HeaderAction = ({ children }) => children
 
 const labels = {
   el: {
@@ -112,6 +116,7 @@ function formatDateTime(value, en) {
 export function DocumentRecordPage() {
   const { documentId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const actor = useAuditActor()
   const { notify, confirm } = useFeedback()
   const { role, actualRole, isRolePreview, membership, tenant, isDemo } = useTenant()
@@ -378,22 +383,32 @@ export function DocumentRecordPage() {
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
   ]
 
+  const nextStep = record.status === 'draft' && canSubmitReview ? { label: en ? 'Submit for review' : 'Υποβολή για έλεγχο', run: submitReview, icon: <Send size={15} /> }
+    : record.status === 'review' && canApprove ? { label: en ? 'Approve' : 'Έγκριση', run: approve, icon: <CheckCircle2 size={15} /> }
+      : record.status === 'approved' && canPublish ? { label: en ? 'Publish' : 'Δημοσίευση', run: publish, icon: <Send size={15} /> }
+        : record.status === 'published' && canSupersede ? { label: en ? 'New revision' : 'Νέα αναθεώρηση', run: createRevision, icon: <Pencil size={15} /> }
+          : null
   const headerActions = <>
     {canManage && !editing && record.status === 'draft' && <>
       <IconButton tone="edit" onClick={() => setEditing(true)} label={en ? 'Edit' : 'Επεξεργασία'}><Pencil size={16} /></IconButton>
       <ActionButton tone="danger" label={en ? 'Delete' : 'Διαγραφή'} onClick={removeDraft} disabled={busy}><Trash2 size={16} /></ActionButton>
     </>}
     <ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} />
+    {/* The next step of the document's workflow, in the header; the way back and archiving in the «…». */}
+    {!editing && nextStep && <HeaderAction utility tone="primary"><ActionButton tone="primary" label={nextStep.label} onClick={nextStep.run} disabled={busy}>{nextStep.icon}{nextStep.label}</ActionButton></HeaderAction>}
+    {!editing && ['review', 'approved'].includes(record.status) && (canManage || canApprove) && <Button recordMenu variant="secondary" onClick={returnToDraft} disabled={busy}><RotateCcw size={15} />{en ? 'Return to draft' : 'Επιστροφή σε πρόχειρο'}</Button>}
+    {!editing && record.status === 'published' && canArchive && <ActionButton tone="danger" label={en ? 'Archive' : 'Αρχειοθέτηση'} onClick={archive} disabled={busy}><Archive size={16} /></ActionButton>}
   </>
 
   return <Page fill><EntityRecordShell
+    className="document-record-shell"
     avatar={<BookOpenCheck size={19} />}
     eyebrow={record.id}
     title={record.title}
     subtitle={`${typeLabels[record.type] || record.type} · ${en ? 'Version' : 'Έκδοση'} ${record.version || '—'}`}
     status={<span className={`status-badge ${record.status === 'published' ? 'active' : record.status === 'draft' ? 'temporary' : ''}`}>{statusLabels[record.status] || record.status}</span>}
     recordNavigation={recordNavigation}
-    onBack={() => navigate('/documents')}
+    onBack={location.state?.limoxisFrom ? undefined : () => navigate('/documents')}
     headerActions={headerActions}
     tabs={tabs}
     activeTab={tab}
@@ -403,55 +418,20 @@ export function DocumentRecordPage() {
       {!editing && <ProtocolReviewPanel record={record} suggestions={protocolSuggestions.data} organizationId={organizationId} actor={actor} canDecide={canManage || canSupersede} canRevise={record.status === 'published' && canSupersede} language={language} onStartRevision={startSuggestedRevision} onChanged={async (revision) => { await protocolSuggestions.reload(); if (revision) navigate(`/documents/${revision.id}`) }} />}
       <section className="record-section">
         <div className="record-section-header"><div>
-          <span className="eyebrow">{en ? 'Document' : 'Έγγραφο'}</span>
           <h3>{en ? 'Document details' : 'Στοιχεία εγγράφου'}</h3>
-          <p>{en ? 'Core metadata and scope for this controlled document.' : 'Βασικά στοιχεία και πεδίο εφαρμογής του ελεγχόμενου εγγράφου.'}</p>
         </div></div>
-        <DocumentForm value={draft} onChange={setDraft} language={language} departments={departments} ownerName={ownerName} readOnly={!editing} />
+        {editing ? <DocumentForm value={draft} onChange={setDraft} language={language} departments={departments} ownerName={ownerName} /> : <DocumentDetails value={record} language={language} departments={departments} ownerName={ownerName} />}
+        {!editing && (record.revisionReason || record.approvedAt || record.publishedAt) && <div className="document-version-history-events">
+          {record.revisionReason && <div className="timeline-line"><strong>{en ? 'Revision reason' : 'Λόγος αναθεώρησης'}</strong><span>{record.revisionReason}</span></div>}
+          {record.approvedAt && <div className="timeline-line"><strong>{en ? 'Approved' : 'Έγκριση'}</strong><span>{formatDateTime(record.approvedAt, en)} · {approvalEvent?.actor || '—'}</span></div>}
+          {record.publishedAt && <div className="timeline-line"><strong>{en ? 'Published' : 'Δημοσίευση'}</strong><span>{formatDateTime(record.publishedAt, en)} · {publishEvent?.actor || '—'}</span></div>}
+        </div>}
         {editing && <div className="inline-edit-footer">
           <Button variant="secondary" onClick={cancelEdit} disabled={busy}>{en ? 'Cancel' : 'Ακύρωση'}</Button>
           <SaveButton loading={busy} disabled={!documentDraftIsValid(draft) || busy} onClick={saveEdit}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton>
         </div>}
       </section>
 
-      {!editing && <section className="record-section">
-        <div className="record-section-header"><div>
-          <span className="eyebrow">{en ? 'Governance' : 'Διακυβέρνηση'}</span>
-          <h3>{en ? 'Controlled version' : 'Ελεγχόμενη έκδοση'}</h3>
-          <p>{en ? 'Ownership, approval and publication evidence for this version.' : 'Υπευθυνότητα και στοιχεία έγκρισης/δημοσίευσης για την έκδοση.'}</p>
-        </div></div>
-        <div className="document-version-history-events">
-          <div className="timeline-line"><strong>{en ? 'Document owner' : 'Υπεύθυνος εγγράφου'}</strong><span>{ownerName || '—'}</span></div>
-          <div className="timeline-line"><strong>{en ? 'Version state' : 'Κατάσταση έκδοσης'}</strong><span>{versionState}</span></div>
-          {record.revisionReason && <div className="timeline-line"><strong>{en ? 'Revision reason' : 'Λόγος αναθεώρησης'}</strong><span>{record.revisionReason}</span></div>}
-          {record.approvedAt && <div className="timeline-line"><strong>{en ? 'Approved' : 'Έγκριση'}</strong><span>{formatDateTime(record.approvedAt, en)} · {approvalEvent?.actor || '—'}</span></div>}
-          {record.publishedAt && <div className="timeline-line"><strong>{en ? 'Published' : 'Δημοσίευση'}</strong><span>{formatDateTime(record.publishedAt, en)} · {publishEvent?.actor || '—'}</span></div>}
-        </div>
-      </section>}
-
-      {!editing && <section className="record-section document-lifecycle-section">
-        <div className="record-section-header"><div>
-          <span className="eyebrow">{en ? 'Workflow' : 'Ροή έγκρισης'}</span>
-          <h3>{en ? 'Next action' : 'Επόμενη ενέργεια'}</h3>
-          <p>{record.status === 'draft'
-            ? (en ? 'The document is editable and can be submitted for review.' : 'Το έγγραφο είναι επεξεργάσιμο και μπορεί να υποβληθεί για έλεγχο.')
-            : record.status === 'review'
-              ? (en ? 'The document is under review. It may be approved or returned to draft for corrections.' : 'Το έγγραφο βρίσκεται σε έλεγχο. Μπορεί να εγκριθεί ή να επιστρέψει σε πρόχειρο για διορθώσεις.')
-              : record.status === 'approved'
-                ? (en ? 'The document is approved. It may be published or returned to draft before publication.' : 'Το έγγραφο έχει εγκριθεί. Μπορεί να δημοσιευτεί ή να επιστρέψει σε πρόχειρο πριν τη δημοσίευση.')
-                : record.status === 'published'
-                  ? (en ? 'The published document is locked. Create a revision for changes.' : 'Το δημοσιευμένο έγγραφο είναι κλειδωμένο. Για αλλαγές δημιουργήστε νέα αναθεώρηση.')
-                  : (en ? 'No further workflow action is available.' : 'Δεν υπάρχει διαθέσιμη επόμενη ενέργεια.')}</p>
-        </div></div>
-        <div className="record-actions">
-          {record.status === 'draft' && canSubmitReview && <ActionButton tone="primary" label={en ? 'Submit for review' : 'Υποβολή για έλεγχο'} onClick={submitReview} disabled={busy}>{en ? 'Submit for review' : 'Υποβολή για έλεγχο'}</ActionButton>}
-          {record.status === 'review' && canApprove && <ActionButton tone="success" label={en ? 'Approve' : 'Έγκριση'} onClick={approve} disabled={busy}>{en ? 'Approve' : 'Έγκριση'}</ActionButton>}
-          {['review', 'approved'].includes(record.status) && (canManage || canApprove) && <ActionButton tone="neutral" label={en ? 'Return to draft' : 'Επιστροφή σε πρόχειρο'} onClick={returnToDraft} disabled={busy}><RotateCcw size={15} />{en ? 'Return to draft' : 'Επιστροφή σε πρόχειρο'}</ActionButton>}
-          {record.status === 'approved' && canPublish && <ActionButton tone="success" label={en ? 'Publish' : 'Δημοσίευση'} onClick={publish} disabled={busy}>{en ? 'Publish' : 'Δημοσίευση'}</ActionButton>}
-          {record.status === 'published' && canSupersede && <ActionButton tone="edit" label={en ? 'New revision' : 'Νέα αναθεώρηση'} onClick={createRevision} disabled={busy}><Pencil size={15} />{en ? 'New revision' : 'Νέα αναθεώρηση'}</ActionButton>}
-          {record.status === 'published' && canArchive && <ActionButton tone="danger" label={en ? 'Archive' : 'Αρχειοθέτηση'} onClick={archive} disabled={busy}><Archive size={16} />{en ? 'Archive' : 'Αρχειοθέτηση'}</ActionButton>}
-        </div>
-      </section>}
     </div>}
 
     {tab === 'files' && <section className="record-section">

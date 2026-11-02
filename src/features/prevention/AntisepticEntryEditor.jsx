@@ -3,24 +3,19 @@ import { Save } from 'lucide-react'
 import { useAuth } from '../../core/auth/AuthContext'
 import { controlActorFromAuth } from '../controls/controlActor'
 import { ActionButton } from '../../design-system/ActionButton'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import { MonthField } from '../../design-system/MonthField'
 import { Field } from '../../design-system/Field'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { useLanguage } from '../../core/i18n/LanguageContext'
-import { ANTISEPTIC_METHODS, isAbhrProduct } from './antisepticMethods'
+import { ANTISEPTIC_METHODS, antisepticPeriodBounds, antisepticPeriodKind, antisepticPeriodLabel, isAbhrProduct } from './antisepticMethods'
 import { PreventionDepartmentField, selectTexts, usePreventionDepartments, usePreventionLibrary } from './PreventionFields'
 
 export const HOSPITAL_SCOPE = '__hospital__'
 
-function monthRange(period) {
-  if (!period) return null
-  const [y, m] = period.split('-').map(Number)
-  if (!y || !m) return null
-  const from = `${y}-${String(m).padStart(2, '0')}-01`
-  const last = new Date(y, m, 0).getDate()
-  const to = `${y}-${String(m).padStart(2, '0')}-${String(last).padStart(2, '0')}`
-  return { from, to }
-}
+// A whole year is kept as «YYYY-01 – YYYY-12»; a month as «YYYY-MM».
+const yearPeriod = year => `${year}-01 – ${year}-12`
+const yearOf = period => String(period || '').slice(0, 4)
 
 export function AntisepticEntryEditor({
   onSave,
@@ -45,8 +40,15 @@ export function AntisepticEntryEditor({
   const initialProduct = initialRecord?.product || products[0]?.el || ''
   const [draft, setDraft] = useState(() =>
     initialRecord
-      ? JSON.parse(JSON.stringify({ ...initialRecord, departmentEl: initialDepartment }))
+      ? JSON.parse(
+          JSON.stringify({
+            ...initialRecord,
+            departmentEl: initialDepartment,
+            periodKind: antisepticPeriodKind(initialRecord.period) || 'month',
+          }),
+        )
       : {
+          periodKind: 'month',
           period: currentMonth,
           departmentEl: initialDepartment,
           product: initialProduct,
@@ -75,7 +77,7 @@ export function AntisepticEntryEditor({
   )
   const departmentEn = hospitalScope ? 'Whole hospital' : departmentInfo?.en || draft.departmentEl
   const productEn = productInfo?.en || draft.product
-  const range = useMemo(() => monthRange(draft.period), [draft.period])
+  const range = useMemo(() => antisepticPeriodBounds(draft.period), [draft.period])
 
   useEffect(() => {
     if (draft.antisepticItemId || draft.product || !products.length) return
@@ -132,6 +134,22 @@ export function AntisepticEntryEditor({
     draft.method,
   )
 
+  const thisYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 8 }, (_, index) => String(thisYear - index))
+  const startYear = yearOf(draft.period)
+  if (startYear && !yearOptions.includes(startYear)) yearOptions.push(startYear)
+  function changePeriodKind(kind) {
+    setDraft(state => {
+      const year = yearOf(state.period) || String(thisYear)
+      return {
+        ...state,
+        periodKind: kind,
+        period: kind === 'year' ? yearPeriod(year) : kind === 'month' ? `${year}-${String(state.period || '').slice(5, 7) || currentMonth.slice(5, 7)}` : state.period,
+        patientDays: '',
+        patientDaysSource: '',
+      }
+    })
+  }
   function changeProduct(value) {
     const selected = products.find(item => item.id === value)
     if (!selected) return
@@ -151,6 +169,8 @@ export function AntisepticEntryEditor({
     const now = new Date().toISOString()
     const record = {
       ...draft,
+      periodStart: draft.periodKind === 'range' ? draft.periodStart : undefined,
+      periodEnd: draft.periodKind === 'range' ? draft.periodEnd : undefined,
       departmentScope: hospitalScope ? 'hospital' : 'department',
       departmentEl: hospitalScope ? 'Όλο το νοσοκομείο' : draft.departmentEl,
       antisepticItemId: selectedProduct?.id || draft.antisepticItemId || '',
@@ -186,7 +206,7 @@ export function AntisepticEntryEditor({
         <main className="antiseptic-entry-main">
           <section className="antiseptic-form-section">
             <div className="antiseptic-form-heading">
-              <strong>{en ? 'Monthly consumption' : 'Μηνιαία κατανάλωση'}</strong>
+              <strong>{en ? 'Consumption' : 'Κατανάλωση'}</strong>
               <small>
                 {en
                   ? 'Product is selected from the central antiseptic Library.'
@@ -194,12 +214,33 @@ export function AntisepticEntryEditor({
               </small>
             </div>
             <div className="entry-grid antiseptic-consumption-grid">
-              <MonthField
-                label={en ? 'Reporting month' : 'Μήνας αναφοράς'}
-                required
-                value={draft.period}
-                onChange={value => set('period', value)}
+              <ChoiceField
+                label={en ? 'Reporting period' : 'Περίοδος αναφοράς'}
+                value={draft.periodKind}
+                onChange={changePeriodKind}
+                options={[
+                  { value: 'month', label: en ? 'One month' : 'Ένας μήνας' },
+                  { value: 'year', label: en ? 'Whole year' : 'Ολόκληρο έτος' },
+                  ...(draft.periodKind === 'range'
+                    ? [{ value: 'range', label: antisepticPeriodLabel(draft.period) }]
+                    : []),
+                ]}
               />
+              {draft.periodKind === 'year' ? (
+                <ChoiceField
+                  label={en ? 'Year *' : 'Έτος *'}
+                  value={yearOf(draft.period)}
+                  onChange={value => set('period', yearPeriod(value))}
+                  options={yearOptions.map(year => ({ value: year, label: year }))}
+                />
+              ) : draft.periodKind === 'month' ? (
+                <MonthField
+                  label={en ? 'Reporting month' : 'Μήνας αναφοράς'}
+                  required
+                  value={draft.period}
+                  onChange={value => set('period', value)}
+                />
+              ) : null}
               <PreventionDepartmentField
                 label={en ? 'Scope / department *' : 'Εύρος / Τμήμα *'}
                 placeholder={en ? 'Select scope' : 'Επιλέξτε εύρος'}
@@ -316,16 +357,16 @@ export function AntisepticEntryEditor({
               <small>
                 {hospitalScope
                   ? en
-                    ? 'Hospital-wide patient-days are used for the same approved reporting month.'
-                    : 'Χρησιμοποιούνται οι συνολικές νοσηλευτικές ημέρες του νοσοκομείου για τον ίδιο εγκεκριμένο μήνα.'
+                    ? 'Hospital-wide patient-days are used for the same approved reporting period.'
+                    : 'Χρησιμοποιούνται οι συνολικές νοσηλευτικές ημέρες του νοσοκομείου για την ίδια εγκεκριμένη περίοδο.'
                   : en
-                    ? 'Library patient-days are offered only for the exact approved reporting month.'
-                    : 'Οι νοσηλευτικές ημέρες προτείνονται μόνο για τον ίδιο ακριβώς εγκεκριμένο μήνα.'}
+                    ? 'Library patient-days are offered only for the exact approved reporting period.'
+                    : 'Οι νοσηλευτικές ημέρες προτείνονται μόνο για την ίδια ακριβώς εγκεκριμένη περίοδο.'}
               </small>
             </div>
             <label className="field">
               <span className="lo-field-label">
-                {en ? 'Patient-days for reporting month' : 'Νοσηλευτικές ημέρες μήνα αναφοράς'}
+                {en ? 'Patient-days of the period' : 'Νοσηλευτικές ημέρες περιόδου'}
               </span>
               <div className="antiseptic-patient-days-field">
                 <input
@@ -343,8 +384,8 @@ export function AntisepticEntryEditor({
                     suggestedPatientDays
                       ? String(suggestedPatientDays)
                       : en
-                        ? 'No approved matching month'
-                        : 'Δεν βρέθηκε εγκεκριμένος ίδιος μήνας'
+                        ? 'No approved matching period'
+                        : 'Δεν βρέθηκε εγκεκριμένη ίδια περίοδος'
                   }
                 />
                 {suggestedPatientDays && (
@@ -376,8 +417,8 @@ export function AntisepticEntryEditor({
             {usingLibraryDays && (
               <small className="antiseptic-source-note">
                 {en
-                  ? `${suggestedPatientDays} patient-days from the approved matching month are used.`
-                  : `Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από τον εγκεκριμένο ίδιο μήνα.`}
+                  ? `${suggestedPatientDays} patient-days from the approved matching period are used.`
+                  : `Χρησιμοποιούνται ${suggestedPatientDays} νοσηλευτικές ημέρες από την εγκεκριμένη ίδια περίοδο.`}
               </small>
             )}
           </section>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { attendanceFor, finalizationBlocker, meetingQuorum } from './committeeMeetingRules'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   CalendarDays,
   CheckCircle2,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { MeetingRecord } from './CommitteeMeetingRecord'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { downloadRecordJson } from '../../core/export/recordExport'
 import { Button } from '../../design-system/Button'
@@ -58,7 +59,6 @@ import {
   Meetings,
   Decisions,
   Plan,
-  Framework,
   History,
 } from './CommitteeRecordSections'
 import {
@@ -66,7 +66,6 @@ import {
   ReasonDialog,
   MemberDialog,
   NewMeetingDialog,
-  MeetingDialog,
   DecisionDialog,
   PlanDialog,
   FrameworkDialog,
@@ -88,6 +87,11 @@ export function CommitteeRecordPage() {
   const [tab, setTab] = useState('overview')
   const [dialog, setDialog] = useState(null)
   const [busy, setBusy] = useState(false)
+  // An open meeting is a page of its own (?minutes=<id>), so «back» returns to the committee's meetings.
+  const [params, setParams] = useSearchParams()
+  const minutesId = params.get('minutes') || ''
+  const openMeeting = id => { const next = new URLSearchParams(params); next.set('minutes', id); setParams(next) }
+  const closeMeeting = () => { const next = new URLSearchParams(params); next.delete('minutes'); setParams(next); setTab('meetings') }
 
   const recordNavigation = useRecordSequenceNavigation({
     registry: 'committees',
@@ -181,13 +185,13 @@ export function CommitteeRecordPage() {
     )
 
   const activeMembers = (record.memberRefs || []).filter(x => x.active !== false)
+  const activePlan = (record.annualPlan || []).filter(x => x.status !== 'cancelled')
   const tabs = [
     { id: 'overview', label: en ? 'Overview' : 'Σύνοψη', icon: CheckCircle2 },
-    { id: 'members', label: en ? 'Members' : 'Μέλη', icon: Users },
-    { id: 'plan', label: en ? 'Annual plan' : 'Ετήσιο σχέδιο', icon: Target },
-    { id: 'meetings', label: en ? 'Meetings' : 'Συνεδριάσεις', icon: CalendarDays },
-    { id: 'decisions', label: en ? 'Decisions' : 'Αποφάσεις', icon: ClipboardList },
-    { id: 'framework', label: en ? 'Framework' : 'Θεσμικό πλαίσιο', icon: ShieldCheck },
+    { id: 'members', label: `${en ? 'Members' : 'Μέλη'} ${activeMembers.length}`, icon: Users },
+    { id: 'plan', label: `${en ? 'Annual plan' : 'Ετήσιο σχέδιο'}${activePlan.length ? ` ${activePlan.filter(x => x.status === 'completed').length}/${activePlan.length}` : ''}`, icon: Target },
+    { id: 'meetings', label: `${en ? 'Meetings' : 'Συνεδριάσεις'} ${(record.meetings || []).length}`, icon: CalendarDays },
+    { id: 'decisions', label: `${en ? 'Decisions' : 'Αποφάσεις'} ${(record.decisions || []).filter(x => !['completed', 'closed', 'cancelled'].includes(x.status)).length}`, icon: ClipboardList },
     { id: 'documents', label: en ? 'Documents' : 'Έγγραφα', icon: Paperclip },
     { id: 'history', label: en ? 'History' : 'Ιστορικό', icon: FileClock },
   ]
@@ -343,7 +347,7 @@ export function CommitteeRecordPage() {
       success: en ? 'Meeting created.' : 'Η συνεδρίαση δημιουργήθηκε.',
     })
     if (result) {
-      setDialog({ type: 'meeting', id })
+      openMeeting(id)
       signalDemoStep('committee_minutes', 'meeting')
       await notifyUpcomingMeeting(next)
     }
@@ -625,6 +629,17 @@ export function CommitteeRecordPage() {
               <Pencil size={16} />
             </IconButton>
           )}
+          {/* The institutional framework (role, basis, mandate) shows in the Overview; it is edited from the record's «…». */}
+          {canFramework && (
+            <IconButton
+              tone="edit"
+              label={en ? 'Edit institutional framework' : 'Επεξεργασία θεσμικού πλαισίου'}
+              disabled={busy}
+              onClick={() => setDialog({ type: 'framework' })}
+            >
+              <ShieldCheck size={16} />
+            </IconButton>
+          )}
           {canArchive && (
             <ActionButton
               tone="danger"
@@ -641,9 +656,32 @@ export function CommitteeRecordPage() {
     </>
   )
 
+  const openedMeeting = minutesId ? (record.meetings || []).find(x => x.id === minutesId) : null
+  if (openedMeeting)
+    return (
+      <Page fill>
+        <MeetingRecord
+          key={openedMeeting.id}
+          meeting={openedMeeting}
+          committeeName={record.name}
+          members={activeMembers}
+          actorId={actor.id}
+          canSave={canMinutes && !busy}
+          canFinalize={canFinalize && !busy}
+          busy={busy}
+          onBack={closeMeeting}
+          onSave={saveMeeting}
+          onApproval={answerApproval}
+          onExternalAction={externalAction}
+          en={en}
+        />
+      </Page>
+    )
+
   return (
     <Page fill>
       <EntityRecordShell
+        className="committee-record-shell"
         avatar={<Users size={19} />}
         eyebrow={record.id}
         title={record.name}
@@ -687,7 +725,7 @@ export function CommitteeRecordPage() {
             canCreate={canMeeting && !busy}
             canCancel={canMeeting && !busy}
             onAdd={() => setDialog({ type: 'newMeeting' })}
-            onOpen={x => setDialog({ type: 'meeting', id: x.id })}
+            onOpen={x => openMeeting(x.id)}
             onCancel={cancelMeeting}
             en={en}
           />
@@ -699,14 +737,6 @@ export function CommitteeRecordPage() {
             onAdd={() => setDialog({ type: 'decision' })}
             onEdit={x => setDialog({ type: 'decision', value: x })}
             onStatus={decisionStatus}
-            en={en}
-          />
-        )}
-        {tab === 'framework' && (
-          <Framework
-            record={record}
-            canManage={canFramework && !busy}
-            onEdit={() => setDialog({ type: 'framework' })}
             en={en}
           />
         )}
@@ -788,23 +818,6 @@ export function CommitteeRecordPage() {
       )}
       {dialog?.type === 'newMeeting' && (
         <NewMeetingDialog busy={busy} onClose={() => setDialog(null)} onSave={addMeeting} en={en} />
-      )}
-      {dialog?.type === 'meeting' && (
-        <MeetingDialog
-          key={dialog.id}
-          meeting={(record.meetings || []).find(x => x.id === dialog.id)}
-          committeeName={record.name}
-          members={activeMembers}
-          actorId={actor.id}
-          canSave={canMinutes && !busy}
-          canFinalize={canFinalize && !busy}
-          busy={busy}
-          onClose={() => setDialog(null)}
-          onSave={saveMeeting}
-          onApproval={answerApproval}
-          onExternalAction={externalAction}
-          en={en}
-        />
       )}
       {dialog?.type === 'cancelMeeting' && (
         <ReasonDialog

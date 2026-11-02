@@ -6,19 +6,18 @@ import {
   Activity,
   AlertTriangle,
   BedDouble,
-  FileClock,
   Microscope,
   Pill,
   RefreshCcw,
   ShieldCheck,
 } from 'lucide-react'
-import { translate } from '../../core/i18n/LanguageContext'
+import { translate, useLanguage } from '../../core/i18n/LanguageContext'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import {
   RESISTANCE_ALERT,
   episodeTypeLabel,
   clinicalTerm,
   libraryLabel,
-  clinicalValueLabel,
   timelineLabel,
   ISOLATION_STATUS,
   termLabel,
@@ -30,7 +29,8 @@ import {
 // A sample's result as a status-badge tone (sampleTone: positive / negative / pending).
 export const SAMPLE_TONES = { positive: 'danger', negative: 'success', pending: 'warning' }
 
-export function StagePanel({ icon: Icon, title, action, children }) {
+export function StagePanel({ icon: Icon, title, action, menu = [], children }) {
+  const { t } = useLanguage()
   return (
     <section className="clinical-panel full-panel">
       <div className="record-section-header">
@@ -38,7 +38,14 @@ export function StagePanel({ icon: Icon, title, action, children }) {
           {Icon && <Icon size={17} />}
           <strong>{title}</strong>
         </div>
-        {action}
+        {menu.filter(Boolean).length > 0 ? (
+          <div className="row-actions">
+            {action}
+            <OverflowMenu label={t('episodeForms.rowActions')} items={menu} />
+          </div>
+        ) : (
+          action
+        )}
       </div>
       {children}
     </section>
@@ -59,6 +66,10 @@ export function TagList({ title, items = [], rows = [], t, language }) {
     </>
   )
 }
+// Who recorded it: the person's name, never their id (an unresolved id shows nothing).
+const UUID_TEXT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const personLabel = x => x.actor || (UUID_TEXT.test(String(x.actorId || '')) ? '' : x.actorId || '')
+
 // `title`/`subtitle` replace the surveillance heading (an admission without surveillance).
 export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) {
   const tr = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
@@ -67,13 +78,14 @@ export function Timeline({ record, t, language, fmtDateTime, title, subtitle }) 
     // One line says what happened ("Reassessment: clinical improvement"), the next who and which sample.
     .map(x => ({
       at: x.at,
-      title: [timelineLabel(x.type, language, t), x.detail ? clinicalValueLabel(x.detail, language, t) : ''].filter(Boolean).join(': '),
+      // The detail may hold several stored values ("CLABSI · confirmed"): each is put into words.
+      title: [timelineLabel(x.type, language, t), x.detail ? String(x.detail).split(' · ').map(part => termLabel(part, t, language)).join(' · ') : ''].filter(Boolean).join(': '),
       detail: null,
-      meta: [x.actor || x.actorId, x.sampleId && `${tr('sample')}: ${x.sampleId}`],
+      meta: [personLabel(x), x.sampleId && `${tr('sample')}: ${x.sampleId}`],
     }))
   return (
     <HistoryTimeline
-      title={title || tr('surveillanceHistory')}
+      title={title === undefined ? tr('surveillanceHistory') : title}
       subtitle={subtitle || tr('chronologicalAuditTrailOfClinicalActions')}
       events={events}
       when={fmtDateTime}
@@ -85,7 +97,6 @@ export function CompletedReport({
   record,
   t,
   fmtDate,
-  fmtDateTime,
   language = 'el',
   libraries = {},
 }) {
@@ -127,9 +138,6 @@ export function CompletedReport({
         <div>
           <span className="eyebrow">{t('clinicalRecords.finalSurveillanceReport')}</span>
           <h2>{episodeTypeLabel(record, t) || record.patient}</h2>
-          <p>
-            {record.patient} · {record.department || '—'} · {record.id}
-          </p>
         </div>
         <div className="final-report-hero-facts">
           <div>
@@ -228,9 +236,6 @@ export function CompletedReport({
                   </strong>
                 </div>
               </div>
-              {hai.definitionSet && (
-                <small className="final-report-note">{hai.definitionSet}</small>
-              )}
               {(hai.rationale || hai.rationaleEn) && (
                 <p>{el ? hai.rationale : hai.rationaleEn || hai.rationale}</p>
               )}
@@ -276,7 +281,7 @@ export function CompletedReport({
               {therapy.map(x => (
                 <li key={x.id}>
                   <strong>{x.antimicrobial}</strong>
-                  <span>{[x.dose, x.route].filter(Boolean).join(' · ') || '—'}</span>
+                  {[x.dose, x.route].filter(Boolean).length > 0 && <span>{[x.dose, x.route].filter(Boolean).join(' · ')}</span>}
                   <small>
                     {fmtDate(x.startedAt)}
                     {x.plannedEnd || x.endedAt ? ` → ${fmtDate(x.endedAt || x.plannedEnd)}` : ''}
@@ -330,7 +335,7 @@ export function CompletedReport({
               {reassessments.map(x => (
                 <li key={x.id || x.date}>
                   <strong>{termLabel(x.status, t, language)}</strong>
-                  <span>{x.notes || '—'}</span>
+                  {x.notes && <span>{x.notes}</span>}
                   <small>{fmtDate(x.date)}</small>
                 </li>
               ))}
@@ -358,22 +363,6 @@ export function CompletedReport({
             </>
           ) : (
             <Empty text={t('clinicalRecords.notDocumented')} />
-          )}
-        </Section>
-        <Section icon={FileClock} title={t('clinicalRecords.courseSummary')} wide>
-          {(record.timeline || []).length ? (
-            <div className="course-timeline">
-              {record.timeline.map((x, i) => (
-                <div key={`${x.at}-${i}`} className="course-event">
-                  <time>{fmtDateTime(x.at)}</time>
-                  <span>{termLabel(x.type, t, language)}</span>
-                  <strong>{x.actor || x.actorId || '—'}</strong>
-                  <p>{x.detail || '—'}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty text={t('finalReport.noEvents')} />
           )}
         </Section>
       </div>

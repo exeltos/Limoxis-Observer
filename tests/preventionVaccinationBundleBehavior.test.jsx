@@ -39,6 +39,7 @@ const { NotificationProvider } = await import('../src/core/notifications/Notific
 const { isDemoDataEnvironment } = await import('../src/core/data/dataEnvironment')
 const { PreventionPage } = await import('../src/features/prevention/PreventionPage')
 const { PreventionRecordPage } = await import('../src/features/prevention/PreventionRecordPage')
+const { VaccinationRecordPage } = await import('../src/features/prevention/VaccinationRecordPage')
 const { BundleFollowUpDialog } = await import('../src/features/prevention/BundleFollowUpDialog')
 const { loadBundlesLocal, saveBundlesLocal } = await import('../src/features/prevention/preventionStore')
 const vaccinationService = await import('../src/features/occupational-health/vaccinationService')
@@ -58,11 +59,11 @@ function Gate({ children }) {
   return ready ? children : null
 }
 
-async function renderOnDemo(path, element, routePath, seed) {
+async function renderOnDemo(path, element, routePath, seed, extraRoutes = []) {
   let api
   function Capture() { api = useTenant(); return null }
   render(<MemoryRouter initialEntries={[path]}><LanguageProvider><FeedbackProvider><TenantProvider><NotificationProvider><Capture/><LocationProbe/>
-    <Gate><Routes><Route path={routePath} element={element}/></Routes></Gate>
+    <Gate><Routes><Route path={routePath} element={element}/>{extraRoutes.map(([extraPath, extraElement]) => <Route key={extraPath} path={extraPath} element={extraElement}/>)}</Routes></Gate>
   </NotificationProvider></TenantProvider></FeedbackProvider></LanguageProvider></MemoryRouter>)
   await waitFor(() => expect(api?.enterSampleDemo).toBeTypeOf('function'))
   act(() => { api.enterSampleDemo() })
@@ -76,8 +77,14 @@ const tableRows = () => [...document.querySelectorAll('tbody tr')]
 const rowOf = text => tableRows().find(row => within(row).queryByText(text))
 
 async function openVaccinations() {
-  await renderOnDemo('/prevention?tab=vaccinations', <PreventionPage/>, '/prevention')
+  await renderOnDemo('/prevention?tab=vaccinations', <PreventionPage/>, '/prevention', undefined, [['/prevention/vaccinations/:recordId', <VaccinationRecordPage/>]])
   await waitFor(() => expect(rowOf('Παπαδοπούλου Μαρία')).toBeTruthy(), { timeout: 5000 })
+}
+
+// A vaccination (new or existing) is a page of its own: its body is the former dialog's content.
+async function findVaccinationPage() {
+  await waitFor(() => expect(document.querySelector('.vaccination-page-body')).not.toBeNull(), { timeout: 5000 })
+  return document.querySelector('.vaccination-page-body')
 }
 
 beforeEach(() => {
@@ -135,7 +142,7 @@ describe('new vaccination: individual and bulk entry', () => {
   async function openNewVaccination() {
     await openVaccinations()
     fireEvent.click(screen.getByRole('button', { name: /Νέα καταχώρηση εμβολιασμού/ }))
-    return screen.findByRole('dialog')
+    return findVaccinationPage()
   }
 
   it('offers individual entry with a single employee picker', async () => {
@@ -206,7 +213,7 @@ describe('vaccination record of an inactive employee', () => {
   it('shows the inactive employee in the record viewer', async () => {
     await openVaccinations()
     fireEvent.click(rowOf('Αντωνίου Γεώργιος'))
-    const dialog = await screen.findByRole('dialog')
+    const dialog = await findVaccinationPage()
     const person = dialog.querySelector('.record-view-stack .lo-section-header')
     expect(within(person).getByText('Αντωνίου Γεώργιος')).toBeInTheDocument()
     expect(person).toHaveTextContent('EMP-004')
@@ -219,7 +226,7 @@ describe('vaccination record actions follow the manage capability', () => {
   it('offers Edit and Delete to a user who can manage occupational health', async () => {
     await openVaccinations()
     fireEvent.click(rowOf('Παπαδοπούλου Μαρία'))
-    const dialog = await screen.findByRole('dialog')
+    const dialog = await findVaccinationPage()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
     expect(screen.getByRole('menuitem', { name: 'Επεξεργασία' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Διαγραφή' })).toBeInTheDocument()
@@ -230,7 +237,7 @@ describe('vaccination record actions follow the manage capability', () => {
     await openVaccinations()
     expect(screen.queryByRole('button', { name: /Νέα καταχώρηση εμβολιασμού/ })).toBeNull()
     fireEvent.click(rowOf('Παπαδοπούλου Μαρία'))
-    const dialog = await screen.findByRole('dialog')
+    const dialog = await findVaccinationPage()
     expect(within(dialog).getByText('Παπαδοπούλου Μαρία')).toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: 'Περισσότερες ενέργειες' })).toBeNull()
     expect(within(dialog).queryByRole('button', { name: 'Επεξεργασία' })).toBeNull()

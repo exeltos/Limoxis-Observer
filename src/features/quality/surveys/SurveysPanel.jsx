@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { useSortedPaging, withSort } from '../useSortedPaging'
 import { RegistryTable } from '../../../design-system/RegistryTable'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
 import { formatDay } from '../../../core/i18n/formatDay'
-import { loadSurveys } from './surveyService'
-import { SURVEY_AUDIENCES, SURVEY_STATUSES, audienceLabel, isSurveyOpen, surveyStatusLabel, surveyStatusTone } from './surveyModel'
+import { loadResponses, loadSurveys } from './surveyService'
+import { SURVEY_AUDIENCES, SURVEY_STATUSES, audienceLabel, isSurveyOpen, satisfactionCounts, surveyStatusLabel, surveyStatusTone } from './surveyModel'
 
 // The surveys the user may see (the database returns a department only the
 // surveys that cover it).
@@ -15,16 +16,32 @@ export function useSurveys(enabled = true) {
   const { tenant } = useTenant()
   const [surveys, setSurveys] = useState([])
   const [loading, setLoading] = useState(enabled)
+  const [error, setError] = useState(false)
   const reload = useCallback(() => {
     if (!enabled) { setLoading(false); return }
     setLoading(true)
-    loadSurveys(tenant?.id).then(setSurveys).catch(() => setSurveys([])).finally(() => setLoading(false))
+    loadSurveys(tenant?.id).then(rows => { setSurveys(rows); setError(false) }).catch(() => { setSurveys([]); setError(true) }).finally(() => setLoading(false))
   }, [tenant?.id, enabled])
   useEffect(() => { reload() }, [reload])
-  return { surveys, loading, reload }
+  return { surveys, loading, error, reload }
 }
 
 const SOON_DAYS = 14
+// The share of satisfied answers (4 or 5) of each questionnaire in the list, read once the list is on screen.
+function useSatisfaction(surveys) {
+  const { tenant } = useTenant()
+  const [byId, setById] = useState(() => new Map())
+  const key = surveys.map(survey => `${survey.id}:${survey.responseCount || 0}`).join(',')
+  useEffect(() => {
+    if (!key) return undefined
+    let live = true
+    Promise.all(surveys.filter(survey => survey.responseCount).map(survey => loadResponses(tenant?.id, survey.id).then(responses => [survey.id, satisfactionCounts(survey, responses)]).catch(() => [survey.id, null])))
+      .then(rows => { if (live) setById(new Map(rows)) })
+    return () => { live = false }
+  }, [key, tenant?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  return byId
+}
+const percentText = (value, en) => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
 const daysUntil = day => (day ? Math.round((Date.parse(`${day}T00:00:00Z`) - Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`)) / 86400000) : null)
 export const surveyClosingSoon = survey => { const days = daysUntil(survey.closesOn); return isSurveyOpen(survey) && days != null && days >= 0 && days <= SOON_DAYS }
 
@@ -54,39 +71,40 @@ export function surveysExport(surveys, language) {
   const en = language === 'en'
   return {
     name: en ? 'satisfaction-surveys' : 'erevnes-ikanopoiisis',
-    headers: en ? ['Code', 'Survey', 'Asks', 'From', 'To', 'Responses', 'Last 30 days', 'Target', 'Status'] : ['Κωδικός', 'Έρευνα', 'Απευθύνεται σε', 'Από', 'Έως', 'Απαντήσεις', 'Τελευταίες 30 ημέρες', 'Στόχος απαντήσεων', 'Κατάσταση'],
+    headers: en ? ['Code', 'Questionnaire', 'Asks', 'From', 'To', 'Responses', 'Last 30 days', 'Target', 'Status'] : ['Κωδικός', 'Ερωτηματολόγιο', 'Απευθύνεται σε', 'Από', 'Έως', 'Απαντήσεις', 'Τελευταίες 30 ημέρες', 'Στόχος απαντήσεων', 'Κατάσταση'],
     rows: surveys.map(survey => [survey.code, en ? survey.titleEn || survey.title : survey.title, audienceLabel(survey.audience, language), formatDay(survey.opensOn, language), formatDay(survey.closesOn, language), survey.responseCount || 0, survey.recentCount || 0, survey.targetResponses || '', surveyStatusLabel(survey.status, language)]),
   }
 }
 
-export function SurveysList({ list, filters, setFilters, onOpen, filterEnd = null }) {
+export function SurveysList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(15)
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSurveys(list.surveys, filters), [list.surveys, filters])
-  useEffect(() => setPage(1), [filters, pageSize])
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize)), safePage = Math.min(page, totalPages)
+  const sortBy = { code: survey => survey.code, survey: survey => (en ? survey.titleEn || survey.title : survey.title), period: survey => survey.opensOn, responses: survey => survey.responseCount || 0, status: survey => survey.status }
+  const satisfaction = useSatisfaction(list.surveys)
+  const satisfiedOf = survey => { const counts = satisfaction.get(survey.id); return counts?.answered ? Math.round((counts.satisfied / counts.answered) * 1000) / 10 : null }
+  sortBy.satisfaction = satisfiedOf
+  const paging = useSortedPaging(rows, JSON.stringify(filters), sortBy)
   const advanced = ['audience', 'status'].filter(key => filters[key] !== 'all').length
   return <>
-    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search surveys…' : 'Αναζήτηση έρευνας…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))} end={filterEnd}>
+    <FilterBar query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search questionnaires…' : 'Αναζήτηση ερωτηματολογίου…'} activeAdvancedCount={advanced} onClear={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))} end={filterEnd}>
       <FilterSelect label={en ? 'Asks' : 'Απευθύνεται σε'} value={filters.audience} onChange={value => set('audience', value)}><option value="all">{t('all')}</option>{SURVEY_AUDIENCES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
       <FilterSelect label={t('status')} value={filters.status} onChange={value => set('status', value)}><option value="all">{t('all')}</option>{SURVEY_STATUSES.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}</FilterSelect>
     </FilterBar>
-    <div className="scroll-table">
-      <RegistryTable bare className="quality-table quality-register-table" rows={rows.slice((safePage - 1) * pageSize, safePage * pageSize)} rowKey={survey => survey.id} empty={!list.loading && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
-        columns={[{ key: 'code', label: t('code') }, { key: 'survey', label: en ? 'Survey' : 'Έρευνα' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'responses', label: en ? 'Responses' : 'Απαντήσεις' }, { key: 'status', label: t('status') }]}
-        emptyTitle={en ? 'No surveys yet' : 'Δεν υπάρχουν έρευνες'} emptyText={en ? 'Start one from a template: inpatients, outpatients and emergency, or staff.' : 'Ξεκινήστε από πρότυπο: νοσηλευόμενοι, εξωτερικοί ασθενείς και ΤΕΠ, ή προσωπικό.'}
-        rowProps={survey => ({ className: 'registry-row-clickable', onClick: () => onOpen(survey) })}
+    <div className="scroll-table" ref={registry?.scrollRef}>
+      <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={survey => survey.id} error={list.error} onRetry={list.reload} empty={!list.loading && !list.error && !rows.length} emptyFiltered={list.surveys.length > 0} onClearFilters={() => setFilters(current => ({ ...current, query: '', audience: 'all', status: 'all', quick: null }))}
+        columns={withSort([{ key: 'survey', label: en ? 'Questionnaire' : 'Ερωτηματολόγιο' }, { key: 'period', label: en ? 'Period' : 'Περίοδος' }, { key: 'responses', label: en ? 'Responses' : 'Απαντήσεις' }, { key: 'satisfaction', label: en ? 'Satisfaction' : 'Ικανοποίηση' }, { key: 'status', label: t('status') }], sortBy)}
+        emptyTitle={en ? 'No questionnaires yet' : 'Δεν υπάρχουν ερωτηματολόγια'} emptyText={en ? 'Start one from a template: inpatients, outpatients and emergency, or staff.' : 'Ξεκινήστε από πρότυπο: νοσηλευόμενοι, εξωτερικοί ασθενείς και ΤΕΠ, ή προσωπικό.'}
+        rowProps={survey => ({ ...(registry?.rowProps(survey.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(survey) })}
         renderRow={survey => { const closing = surveyClosingSoon(survey); return <>
-          <td><strong>{survey.code || '—'}</strong><small>{audienceLabel(survey.audience, language)}</small></td>
-          <td>{en ? survey.titleEn || survey.title : survey.title}<small>{survey.questions?.length || 0} {en ? 'questions' : 'ερωτήσεις'}</small></td>
+          <td><strong>{en ? survey.titleEn || survey.title : survey.title}</strong><small>{[survey.code, audienceLabel(survey.audience, language), `${survey.questions?.length || 0} ${en ? 'questions' : 'ερωτήσεις'}`].filter(Boolean).join(' · ')}</small></td>
           <td className="nowrap-cell">{[formatDay(survey.opensOn, language), formatDay(survey.closesOn, language)].filter(Boolean).join(' – ') || '—'}{closing && <small className="quality-overdue-text">{en ? 'Closes soon' : 'Λήγει σύντομα'}</small>}</td>
           <td>{survey.responseCount || 0}{survey.targetResponses ? ` / ${survey.targetResponses}` : ''}<small>{en ? `${survey.recentCount || 0} in 30 days` : `${survey.recentCount || 0} σε 30 ημέρες`}</small></td>
+          <td>{(() => { const value = satisfiedOf(survey); return value == null ? <span className="indicator-approval-none">—</span> : <><strong className={value < (survey.satisfiedTarget || 0) ? 'quality-overdue-text' : undefined}>{percentText(value, en)}%</strong><small>{en ? 'target' : 'στόχος'} {survey.satisfiedTarget || 80}%</small></> })()}</td>
           <td><StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge></td>
         </> }} />
     </div>
-    {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />}
+    {rows.length > 0 && <RegistryPagination language={language} {...paging.props} />}
   </>
 }

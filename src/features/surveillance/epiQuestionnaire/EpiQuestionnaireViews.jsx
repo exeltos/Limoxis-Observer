@@ -36,7 +36,7 @@ const OPTIONS = t => [
 ]
 
 // One question: the wording, Ναι / Όχι / Άγνωστο, an optional detail and where a prefilled answer came from.
-function QuestionRow({ question, entry, suggestion, onChange, form, withDetail = true, disabled = false }) {
+function QuestionRow({ question, entry, suggestion, onChange, form, withDetail = true, disabled = false, optional = false }) {
   const { t, language } = useLanguage()
   const key = `question:${question.key}`
   const answer = entry?.a || null
@@ -49,7 +49,7 @@ function QuestionRow({ question, entry, suggestion, onChange, form, withDetail =
       <div className="epi-q-text">
         <strong>
           {label}
-          {question.core && <span className="lo-required-mark" aria-hidden="true" />}
+          {question.core && !optional && <span className="lo-required-mark" aria-hidden="true" />}
         </strong>
         {help && <small>{help}</small>}
         {form?.errorFor(key) && <span className="field-error">{form.errorFor(key)}</span>}
@@ -98,7 +98,8 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, o
   const [busy, setBusy] = useState(false)
   const counts = epiCounts(answers, shown)
   const form = useFormValidation(
-    EPI_CORE_KEYS.map(key => ({ key: `question:${key}`, label: epiText(questions.find(question => question.key === key)?.label, language), valid: Boolean(answerOf(answers, key)) })),
+    EPI_CORE_KEYS.map(key => ({ key: `question:${key}`, // The question's own «;» or «?» stays out of the «Συμπληρώστε: …» line.
+ label: String(epiText(questions.find(question => question.key === key)?.label, language) || '').replace(/\s*[;?]+\s*$/, ''), valid: Boolean(answerOf(answers, key)) })),
   )
   const patch = (key, change) => setAnswers(current => setEpiAnswer(current, key, change, suggestions[key]))
   async function save() {
@@ -171,7 +172,8 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, o
 // `useEpiMini` keeps the three answers of a form. With an episode it loads the stored questionnaire
 // (prefilled from the episode) and `save()` writes the same stored data; without one the answers
 // go into the sample (`clinicalContext`) and prefill the questionnaire when an episode is opened.
-export function useEpiMini({ episode = null, admission = null, samples = [], enabled = true } = {}) {
+// optional: a department requesting a culture may leave the questions blank; the infection control officer completes them with the episode.
+export function useEpiMini({ episode = null, admission = null, samples = [], enabled = true, optional = false } = {}) {
   const { language } = useLanguage()
   // Optional: the mini version also renders in dialogs opened outside a tenant (tests, previews).
   const { tenant, isDemo } = useContext(TenantContext) || {}
@@ -202,7 +204,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
     // The episode and its prefill sources are read once when the form opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseKey, tenant?.id, isDemo, enabled])
-  const rules = enabled
+  const rules = enabled && !optional
     ? core.map(question => ({ key: `question:${question.key}`, label: epiText(question.label, language), valid: Boolean(answerOf(state.answers, question.key)) }))
     : []
   return {
@@ -211,6 +213,7 @@ export function useEpiMini({ episode = null, admission = null, samples = [], ena
     suggestions: state.suggestions,
     loaded: state.loaded,
     rules,
+    optional,
     complete: isCoreComplete(state.answers),
     patch: (key, change) => setState(current => ({ ...current, answers: setEpiAnswer(current.answers, key, change, current.suggestions[key]) })),
     // Writes the three answers to the episode's questionnaire (the same stored data as the full dialog).
@@ -237,7 +240,7 @@ export function EpiMiniQuestions({ mini, form, episodeCode = '', className = '' 
       </p>
       <ul className="epi-q-list">
         {mini.core.map(question => (
-          <QuestionRow key={question.key} question={question} entry={mini.answers[question.key]} suggestion={mini.suggestions[question.key]} form={form} withDetail={false} onChange={change => mini.patch(question.key, change)} />
+          <QuestionRow key={question.key} question={question} entry={mini.answers[question.key]} suggestion={mini.suggestions[question.key]} form={form} withDetail={false} optional={mini.optional} onChange={change => mini.patch(question.key, change)} />
         ))}
       </ul>
       <p className="field-hint">{fill(t('epiQuestionnaire.miniCount'), { n: counts })}</p>

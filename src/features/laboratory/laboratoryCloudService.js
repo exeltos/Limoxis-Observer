@@ -69,6 +69,9 @@ function mapSample(row,patient,department,microbiology=[],specimenType=null){
   return {
     id:row.sample_code,
     recordId:row.id,
+    // Who entered the sample: only they (and the admin / infection control lead) may delete it.
+    createdBy:row.created_by||null,
+    requestedBy:row.requested_by||null,
     organizationId:row.organization_id,
     patientRecordId:row.patient_id,
     patientId:patient?.patient_code||subjectCode||row.patient_id,
@@ -93,6 +96,9 @@ function mapSample(row,patient,department,microbiology=[],specimenType=null){
     location:row.location||'',
     point:row.point||'',
     environmentalBatchId:row.environmental_batch_id||null,
+    // The plate («τρυβλίο», e.g. A) and the spot on it («θέση», e.g. 1) of an environmental specimen.
+    environmentalPlate:row.environmental_plate||'',
+    environmentalPosition:row.environmental_position||'',
     collectedAt:row.collected_at,
     requestedAt:row.requested_at,
     receivedAt:row.received_at,
@@ -276,6 +282,8 @@ export async function createLaboratorySample(organizationId,patientRecordId,draf
     location:draft.location||null,
     point:draft.point||null,
     environmental_batch_id:draft.environmentalBatchId||null,
+    environmental_plate:draft.environmentalPlate||null,
+    environmental_position:draft.environmentalPosition||null,
     collected_at:iso(draft.collectedAt),
     requested_at:iso(draft.requestedAt||new Date()),
     requested_by:actorId,
@@ -448,8 +456,17 @@ export function getLaboratoryKpis(rows){
     today:(rows||[]).filter(row=>String(row.requestedAt||row.collectedAt||'').slice(0,10)===today).length,
     pending:(rows||[]).filter(row=>['requested','collected','received','processing'].includes(row.status)).length,
     positive:(rows||[]).filter(row=>row.result==='positive').length,
+    // Positives of the last 30 days: what is happening now, beside «today» and «pending».
+    positive30:(rows||[]).filter(row=>row.result==='positive'&&Date.now()-new Date(row.collectedAt||row.requestedAt||0).getTime()<=30*86400000).length,
     amr:(rows||[]).filter(row=>Boolean(row.resistance)).length,
     critical:(rows||[]).filter(row=>row.critical&&!(row.microbiologyResults||[]).some(result=>result.communications?.length)).length,
     avgTatHours:turnaroundHours.length?turnaroundHours.reduce((sum,hours)=>sum+hours,0)/turnaroundHours.length:null,
   }
+}
+
+// The name of who entered a sample (empty when the profile is not readable by the viewer).
+export async function loadSampleRequesterName(userId){
+  if(!userId||!supabase)return ''
+  const {data,error}=await supabase.from('profiles').select('full_name').eq('id',userId).maybeSingle()
+  return error?'':(data?.full_name||'')
 }

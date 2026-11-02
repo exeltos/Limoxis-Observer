@@ -5,8 +5,10 @@ import { DAILY_OWNER_LIMIT, MAX_CHUNK_ITEMS, accessLinkExpiry, failureCode, isDe
 import type { BulkItem, EmployeeRow, ExistingAccount } from '../_shared/bulkAccounts.ts'
 import { accountCreatedEmail } from '../_shared/accountCreatedEmail.ts'
 
-// N1 · Bulk creation of accounts from a hospital's employee roster. Platform Owner
-// ONLY: a Hospital Admin is refused here (403), unlike create-organization-user.
+// N1 · Bulk creation of accounts from a hospital's employee roster, by the Platform
+// Owner or the hospital's own active Hospital Admin. Only the Platform Owner links an
+// account another organization already uses (confirmed one by one); for the admin
+// such a person is skipped as ACCOUNT_IN_USE, as in create-organization-user.
 // verify_jwt = true (config.toml); the caller is checked again here.
 //
 // action
@@ -42,7 +44,7 @@ const STALE_QUEUED_MS=15*60000
 type Admin=any
 
 type Org={id:string,name:string,status:string,is_demo:boolean,contact_email:string|null,contact_phone:string|null}
-type Context={admin:Admin,org:Org,callerId:string,callerName:string,appUrl:string,departments:Map<string,string>}
+type Context={admin:Admin,org:Org,callerId:string,callerName:string,appUrl:string,departments:Map<string,string>,actorRole:string,canLinkExisting:boolean}
 
 const fullName=(employee:EmployeeRow)=>[employee.first_name,employee.last_name].map(part=>String(part||'').trim()).filter(Boolean).join(' ')
 
@@ -77,11 +79,11 @@ async function loadContext(admin:Admin,organizationId:string,items:BulkItem[]){
   return {byId,existingByEmail,emailCount,departments:new Map<string,string>((departments||[]).map((d:Admin)=>[d.id,d.name]))}
 }
 
-function planWithDuplicates(item:BulkItem,ctx:Awaited<ReturnType<typeof loadContext>>,confirmed:boolean){
+function planWithDuplicates(item:BulkItem,ctx:Awaited<ReturnType<typeof loadContext>>,confirmed:boolean,allowLink:boolean){
   const employee=ctx.byId.get(item.employeeId)
   const email=normalizeEmail(employee?.email)
   if(employee&&!employee.user_id&&email&&(ctx.emailCount.get(email)||0)>1)return {action:'skip' as const,code:'DUPLICATE_EMAIL',departmentId:null,email}
-  return planItem(item,employee,email?ctx.existingByEmail.get(email):null,confirmed)
+  return planItem(item,employee,email?ctx.existingByEmail.get(email):null,confirmed,allowLink)
 }
 
 function accountEmail(ctx:Context,{name,username,role,departmentId,expiresAt,token,kind='send'}:{name:string,username:string,role:string,departmentId:string|null,expiresAt:string,token:string,kind?:string}){
@@ -96,7 +98,7 @@ async function preview(ctx:Context,request:ReturnType<typeof validateBulkRequest
   const create:Admin[]=[],existing:Admin[]=[],skipped:Admin[]=[],counted:{role:string,departmentName:string|null}[]=[]
   for(const item of r.items){
     const employee=loaded.byId.get(item.employeeId)
-    const plan=planWithDuplicates(item,loaded,true)
+    const plan=planWithDuplicates(item,loaded,true,ctx.canLinkExisting)
     const name=employee?fullName(employee):''
     const departmentName=plan.departmentId?loaded.departments.get(plan.departmentId)||null:null
     if(plan.action==='skip'){skipped.push({employeeId:item.employeeId,name,code:plan.code});continue}
@@ -113,8 +115,8 @@ async function createOne(ctx:Context,batchId:string,item:BulkItem,loaded:Awaited
   const {admin,org,callerId}=ctx
   const employee=loaded.byId.get(item.employeeId)
   const name=employee?fullName(employee):''
-  const plan=planWithDuplicates(item,loaded,confirmed)
-  const base={organization_id:org.id,actor_user_id:callerId,entity_type:'employee',entity_id:item.employeeId}
+  const plan=planWithDuplicates(item,loaded,confirmed&&ctx.canLinkExisting,ctx.canLinkExisting)
+  const base={organization_id:org.id,actor_user_id:callerId,actor_role:ctx.actorRole,entity_type:'employee',entity_id:item.employeeId}
   // One row per person of the run; a retry of the same chunk finds it again.
   const row={batch_id:batchId,organization_id:org.id,employee_id:item.employeeId,role:item.role,department_id:plan.departmentId,status:plan.action==='skip'?'failed':'queued',error_code:plan.code}
   let {data:inserted,error:insertError}=await admin.from('account_creation_items').insert(row).select('id').maybeSingle()
@@ -139,7 +141,7 @@ async function createOne(ctx:Context,batchId:string,item:BulkItem,loaded:Awaited
   const itemId=inserted.id
   const failed=async(code:string)=>{
     await admin.from('account_creation_items').update({status:'failed',error_code:code,updated_at:new Date().toISOString()}).eq('id',itemId)
-    await admin.from('system_audit_log').insert({...base,actor_role:'platform_owner',event_type:'organization.user.creation_failed',metadata:{batch_id:batchId,role:item.role,error_code:code}})
+    await admin.from('system_audit_log').insert({...base,event_type:'organization.user.creation_failed',metadata:{batch_id:batchId,role:item.role,error_code:code}})
     return {employeeId:item.employeeId,status:'failed',code}
   }
   if(plan.action==='skip')return failed(plan.code||'SKIPPED')
@@ -167,7 +169,7 @@ async function createOne(ctx:Context,batchId:string,item:BulkItem,loaded:Awaited
   if(createError||!created?.user){
     const code=failureCode(createError)
     // Registered meanwhile (or without a profile e-mail): the owner decides, never a second account.
-    return failed(code==='EMAIL_ALREADY_REGISTERED'?'EXISTING_ACCOUNT_NEEDS_CONFIRMATION':code)
+    return failed(code==='EMAIL_ALREADY_REGISTERED'?(ctx.canLinkExisting?'EXISTING_ACCOUNT_NEEDS_CONFIRMATION':'ACCOUNT_IN_USE'):code)
   }
   const userId=created.user.id
   let membershipLinked=false,invitationId:string|null=null,outboxId:string|null=null
@@ -232,7 +234,7 @@ async function create(ctx:Context,request:ReturnType<typeof validateBulkRequest>
     if(inserted){
       batch=inserted
       const roles=Object.fromEntries(summarizeByRole(r.items).map(row=>[row.role,row.count]))
-      try{await audit(admin,{organization_id:org.id,actor_user_id:callerId,event_type:'platform.accounts.bulk_started',entity_type:'account_creation_batch',entity_id:inserted.id,metadata:{batch_id:inserted.id,total:runTotal||r.items.length,roles}})}
+      try{await audit(admin,{organization_id:org.id,actor_user_id:callerId,actor_role:ctx.actorRole,event_type:'platform.accounts.bulk_started',entity_type:'account_creation_batch',entity_id:inserted.id,metadata:{batch_id:inserted.id,total:runTotal||r.items.length,roles}})}
       catch{await admin.from('account_creation_batches').delete().eq('id',inserted.id);return fail('AUDIT_FAILED',500)}
     }else{
       const again=await admin.from('account_creation_batches').select('id,organization_id,status').eq('batch_key',r.batchKey).maybeSingle()
@@ -259,7 +261,7 @@ async function finish(ctx:Context,batchKey:string){
   const totals=await refreshTotals(admin,batch.id)
   if(batch.status!=='finished'){
     await admin.from('account_creation_batches').update({status:'finished',finished_at:new Date().toISOString()}).eq('id',batch.id).eq('status','running')
-    await audit(admin,{organization_id:org.id,actor_user_id:callerId,event_type:'platform.accounts.bulk_finished',entity_type:'account_creation_batch',entity_id:batch.id,metadata:{batch_id:batch.id,...totals}}).catch(()=>{})
+    await audit(admin,{organization_id:org.id,actor_user_id:callerId,actor_role:ctx.actorRole,event_type:'platform.accounts.bulk_finished',entity_type:'account_creation_batch',entity_id:batch.id,metadata:{batch_id:batch.id,...totals}}).catch(()=>{})
   }
   let summaries=0
   if(!batch.summary_sent_at){
@@ -324,7 +326,7 @@ async function resend(ctx:Context,employeeIds:string[]){
     const {payload,message}=accountEmail(ctxWithDepartments,{name,username,role:membership.role,departmentId,expiresAt,token,kind:'resend'})
     const {error:outboxError}=await admin.from('notification_outbox').insert({organization_id:org.id,recipient_user_id:userId,recipient_email:email,notification_type:'account_created',entity_type:'account_invitation',entity_id:invitation.id,subject:message.subject,payload,status:'pending'})
     if(outboxError){await admin.from('account_invitations').delete().eq('id',invitation.id);done('failed','OUTBOX_FAILED');continue}
-    try{await audit(admin,{organization_id:org.id,actor_user_id:callerId,event_type:'organization.user.access_resent',entity_type:'user',entity_id:userId,metadata:{employee_id:employeeId,invitation_id:invitation.id}})}
+    try{await audit(admin,{organization_id:org.id,actor_user_id:callerId,actor_role:ctx.actorRole,event_type:'organization.user.access_resent',entity_type:'user',entity_id:userId,metadata:{employee_id:employeeId,invitation_id:invitation.id}})}
     catch{await admin.from('notification_outbox').delete().eq('entity_id',invitation.id).eq('notification_type','account_created');await admin.from('account_invitations').delete().eq('id',invitation.id);done('failed','AUDIT_FAILED');continue}
     const {data:item}=await admin.from('account_creation_items').select('id,send_count').eq('employee_id',employeeId).eq('user_id',userId).order('created_at',{ascending:false}).limit(1).maybeSingle()
     if(item)await admin.from('account_creation_items').update({send_count:Number(item.send_count||0)+1,last_sent_at:now,invitation_id:invitation.id,updated_at:now}).eq('id',item.id)
@@ -344,15 +346,19 @@ serveWithCors(async(req)=>{
   const caller=createClient(supabaseUrl,anonKey,{global:{headers:{Authorization:`Bearer ${jwt}`}}})
   const {data:callerData}=await caller.auth.getUser();if(!callerData?.user)return fail('INVALID_SESSION',401)
   const admin=createClient(supabaseUrl,serviceRoleKey,{auth:{autoRefreshToken:false,persistSession:false}})
-  // Platform Owner only: a Hospital Admin (or anyone else) is refused.
+  // The Platform Owner, or the hospital's own active Hospital Admin; anyone else is refused.
   const {data:profile}=await admin.from('profiles').select('is_platform_owner,full_name').eq('id',callerData.user.id).maybeSingle()
-  if(!profile?.is_platform_owner)return fail('NOT_AUTHORIZED',403)
   if(!isUuid(body?.organizationId))return fail('ORGANIZATION_REQUIRED')
+  const isOwner=Boolean(profile?.is_platform_owner)
+  if(!isOwner){
+    const {data:member}=await admin.from('organization_members').select('role,status').eq('organization_id',body.organizationId).eq('user_id',callerData.user.id).maybeSingle()
+    if(member?.role!=='hospital_admin'||member?.status!=='active')return fail('NOT_AUTHORIZED',403)
+  }
   const {data:org}=await admin.from('organizations').select('id,name,status,is_demo,contact_email,contact_phone').eq('id',body.organizationId).maybeSingle()
   if(!org)return fail('ORGANIZATION_NOT_FOUND',404)
   if(org.status!=='active')return fail('ORGANIZATION_PAUSED',409)
   const appUrl=(Deno.env.get('APP_URL')||Deno.env.get('APP_BASE_URL')||'https://www.limoxis.com').replace(/\/$/,'')
-  const ctx:Context={admin,org,callerId:callerData.user.id,callerName:profile.full_name||'',appUrl,departments:new Map()}
+  const ctx:Context={admin,org,callerId:callerData.user.id,callerName:profile?.full_name||'',appUrl,departments:new Map(),actorRole:isOwner?'platform_owner':'hospital_admin',canLinkExisting:isOwner}
   const action=String(body.action||(body.dryRun?'preview':'create'))
   try{
     if(action==='finish')return isUuid(body.batchKey)?await finish(ctx,body.batchKey):fail('BATCH_KEY_REQUIRED')

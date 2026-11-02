@@ -1,4 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
+import { isOutsideLimit } from './environmentalLimit'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
@@ -7,6 +8,7 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { Button } from '../../design-system/Button'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { GovernedReasonDialog } from '../../design-system/GovernedReasonDialog'
 import { EmptyState } from '../../design-system/EmptyState'
@@ -25,10 +27,12 @@ import { downloadRecordJson } from '../../core/export/recordExport'
 import {
   ENVIRONMENTAL_CATEGORIES,
   resolveEnvironmentalStandard,
+  loadSampleRequesterName,
   sampleTypeLabel,
 } from './laboratoryCloudService'
-import { LaboratoryStatus as Status } from './LaboratoryStatus'
-import { LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
+import { LaboratoryStatus as Status, labSampleStatus } from './LaboratoryStatus'
+import { LaboratoryRelatedSamples, LaboratorySampleSummary, LaboratoryWorkflow } from './LaboratorySampleSummary'
+import { loadAdmissions } from '../patients/patientsService'
 import { useLaboratoryRepository } from './hooks/useLaboratoryRepository'
 import { useLibraries } from '../management/useLibraries'
 import { sampleProgress, workflowStates } from './laboratorySampleProgress'
@@ -44,7 +48,7 @@ export function LaboratorySampleRecordFunctionalView() {
   const { t, language } = useLanguage()
   const tx = key => copy[language]?.[key] || copy.en[key] || key
   const { notify } = useFeedback()
-  const { role, membership, tenant, canAccessRecord } = useTenant()
+  const { role, membership, tenant, canAccessRecord, isDemo } = useTenant()
   const { libraries } = useLibraries()
   const repository = useLaboratoryRepository()
   // An environmental sample opened from the Surveillance Center stays there:
@@ -52,6 +56,7 @@ export function LaboratorySampleRecordFunctionalView() {
   const inSurveillance = useLocation().pathname.startsWith('/surveillance/')
   const navigate = useNavigate()
   const { goBack } = useContextualNavigation(inSurveillance ? '/surveillance' : '/laboratory')
+  const deleteItem = useRecordDelete()
   const recordNavigation = useRecordSequenceNavigation({
     registry: inSurveillance ? 'surveillance-environmental' : 'laboratory',
     currentId: sampleId,
@@ -84,8 +89,39 @@ export function LaboratorySampleRecordFunctionalView() {
   useEffect(() => {
     reload()
   }, [sampleId, repository]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Samples that belong together, the admission the sample falls in, and who entered it (read-only extras of the card).
+  const [related, setRelated] = useState({ visit: [], plate: [] })
+  const [extras, setExtras] = useState({})
+  useEffect(() => {
+    if (!sample) return undefined
+    let alive = true
+    const isPatient = sample.subjectType !== 'environment' && Boolean(sample.patientId)
+    const hasPlate = Boolean(sample.environmentalPlate)
+    const read = isPatient || hasPlate ? repository.list(isPatient && sample.patientRecordId ? { patientRecordId: sample.patientRecordId } : undefined) : Promise.resolve({ data: [] })
+    read.then(result => {
+      if (!alive) return
+      const rows = (result?.data || []).filter(item => item.id !== sample.id)
+      setRelated({
+        visit: isPatient && sample.collectedAt ? rows.filter(item => item.patientId === sample.patientId && item.collectedAt === sample.collectedAt) : [],
+        plate: hasPlate ? rows.filter(item => item.environmentalBatchId === sample.environmentalBatchId && item.environmentalPlate === sample.environmentalPlate && item.departmentId === sample.departmentId) : [],
+      })
+    }).catch(() => { if (alive) setRelated({ visit: [], plate: [] }) })
+    if (!isDemo) {
+      loadSampleRequesterName(sample.requestedBy).then(name => { if (alive) setExtras(current => ({ ...current, requesterName: name })) }).catch(() => {})
+      if (isPatient && sample.patientRecordId)
+        loadAdmissions(sample.patientRecordId).then(admissions => {
+          const day = String(sample.collectedAt || '').slice(0, 10)
+          const own = [...admissions].filter(item => item.admissionDate && String(item.admissionDate).slice(0, 10) <= day).sort((a, b) => String(b.admissionDate).localeCompare(String(a.admissionDate)))[0]
+          if (alive) setExtras(current => ({ ...current, mdrOnAdmission: Boolean(own?.mdrOnAdmission), mdrOnAdmissionDate: own?.mdrOnAdmissionDate || null }))
+        }).catch(() => {})
+    }
+    return () => { alive = false }
+  }, [sample, repository, isDemo])
   const isEnvironmental =
     sample?.subjectType === 'environment' || ENVIRONMENTAL_CATEGORIES.includes(sample?.type)
+  // Same rule as the environmental surveillance list (environmentalNeedsAction): a result outside its limits on a sample that is not closed.
+  const environmentNeedsAction =
+    isEnvironmental && !['cancelled', 'rejected', 'voided'].includes(sample?.status) && (sample?.microbiologyResults || []).some(item => isOutsideLimit(item))
   useEffect(() => {
     if (isEnvironmental)
       repository
@@ -263,13 +299,7 @@ export function LaboratorySampleRecordFunctionalView() {
           : null,
     },
   ]
-  const steps = workflowStates(pending).map(step => ({
-    ...step,
-    hint:
-      step.action || step.state !== 'next'
-        ? step.hint
-        : `${step.hint} — ${tx('awaitingPermission')}`,
-  }))
+  const steps = workflowStates(pending)
   const closedNote = rejected ? (
     <>
       <AlertTriangle size={16} />
@@ -348,8 +378,10 @@ export function LaboratorySampleRecordFunctionalView() {
             t={t}
             language={language}
             fmt={fmt}
-            menu={<OverflowMenu items={sampleMenu} />}
+            menu={<OverflowMenu items={[...sampleMenu, sampleDelete].filter(Boolean)} />}
+            extras={extras}
           />
+          <LaboratoryRelatedSamples related={related} sample={sample} t={t} language={language} hrefFor={item => (inSurveillance ? `/surveillance/environment/${item.id}` : `/laboratory/${item.id}`)} />
         </div>
       )}
       {tabId === 'result' && (
@@ -598,6 +630,16 @@ export function LaboratorySampleRecordFunctionalView() {
       statusWord: rejected ? t('rejected') : finalized ? t('completed') : t(sample.status),
       documents: { organizationId: tenant?.id, entityType: 'laboratory_sample', entityId: sample.recordId },
     })
+  // «Delete» of the sample (with its results) is made from inside the record, in its «…» menu.
+  const sampleDelete = deleteItem({
+    createdBy: sample.createdBy,
+    table: 'laboratory_samples',
+    id: sample.recordId,
+    label: sample.id,
+    detail: language === 'el' ? sample.patient : sample.patientEn,
+    demo: () => repository.remove(sample.id),
+    onDone: goBack,
+  })
   return (
     <Page fill>
       <EntityRecordShell
@@ -610,10 +652,12 @@ export function LaboratorySampleRecordFunctionalView() {
         subtitle={`${sample.subjectName || sample.patient || '—'}${sample.subjectCode || sample.patientId ? ` · ${sample.subjectCode || sample.patientId}` : ''} · ${sample.department || '—'}`}
         status={
           <>
-            <Status
-              text={rejected ? t('rejected') : finalized ? t('completed') : t(sample.status)}
-              kind={rejected ? 'rejected' : finalized ? 'completed' : sample.status}
-            />
+            {/* An environmental point outside its limits needs action whatever the laboratory status says: the header reads as the surveillance list does. */}
+            {environmentNeedsAction
+              ? <StatusBadge tone="warning">{t('surveillanceList.actionNeeded')}</StatusBadge>
+              : rejected || finalized
+                ? <Status text={rejected ? t('rejected') : t('completed')} kind={rejected ? 'rejected' : 'completed'} />
+                : <Status {...labSampleStatus(sample, language)} />}
             {reviewTag(sample, language) && <StatusBadge tone="neutral">{reviewTag(sample, language)}</StatusBadge>}
           </>
         }
@@ -622,6 +666,12 @@ export function LaboratorySampleRecordFunctionalView() {
         renderTab={renderTab}
         onTabChange={setTab}
         headerActions={<>
+          {/* «Επαναδειγματοληψία»: an environmental point outside its limits is sampled again, from the surveillance list's create flow. */}
+          {environmentNeedsAction && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && (
+            <Button variant="secondary" title={t('surveillanceList.resampleHelp')} onClick={() => navigate('/surveillance?tab=environmental', { state: { resampleOf: sample } })}>
+              <RotateCcw size={15} />{t('surveillanceList.resample')}
+            </Button>
+          )}
           {/* «Άνοιγμα επεισοδίου»: here only (not also in the menu) — a positive patient sample with no episode, for the infection-control roles. */}
           {canReviewSamples(role) && can(role, CAPABILITIES.CREATE_SURVEILLANCE, membership?.capabilities ?? [], membership?.customCapabilities ?? []) && sample.subjectType === 'patient' && !sample.surveillanceCase && sample.result === 'positive' && (
             <Button variant="secondary" className="sample-open-episode" onClick={() => { const target = sampleEpisodeTarget(sample); navigate(target.path, { state: target.state }) }}>
@@ -656,6 +706,7 @@ export function LaboratorySampleRecordFunctionalView() {
           libraries={libraries}
           organisms={organisms}
           initialOrganism={String(dialog).slice(4)}
+          defaultVersion={result?.interpretationVersion || (result?.ast || []).map(row => row.version).find(Boolean) || ''}
           onClose={() => setDialog(null)}
           onSave={draft =>
             run(async () => {

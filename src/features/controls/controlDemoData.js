@@ -49,7 +49,7 @@ const definition2={
 function demoExpiryCatalogue(){
  const on=days=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
  return [['Adrenaline 1mg/ml',10,'ampoule',-6,''],['Atropine 0.5mg/ml',6,'ampoule',12,''],['Amiodarone 150mg/3ml',4,'ampoule',75,''],['Φυσιολογικός ορός 0,9% 500ml',24,'bottle',160,''],['Ηπαρίνη 5.000 IU/ml',8,'vial',25,'Στο ψυγείο'],['Midazolam 5mg/ml',5,'ampoule',-2,'Ελεγχόμενο'],['Παρακεταμόλη 500mg',40,'tablet',210,''],['Σύριγγες 10ml',120,'piece',400,''],['Χλωρεξιδίνη 2% διάλυμα',12,'flacon',48,''],['Naloxone 0.4mg/ml',3,'ampoule',19,'Τροχήλατο ανάνηψης']]
-  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[]}))
+  .map(([item,quantity,form,days,note],index)=>({id:`cat-demo-${index+1}`,item,quantity:String(quantity),form,expiry:on(days),note,departments:[],category:form==='piece'?'supply':'medicine'}))
 }
 const definition3={...definition2,id:'ctrl-def-expiry',code:'CTRL-DEMO-0003',title:'Έλεγχος λήξεων φαρμάκων και υλικών',category:'Λήξεις',description:'Περιοδικός έλεγχος λήξεων φαρμάκων και αναλωσίμων.',response_config:{mode:'list',template:'medication_expiry',label:'Ευρήματα',expiryBeforeDays:30,expiryAfterDays:7,expiryCatalogue:demoExpiryCatalogue(),__meta:{titleEn:'Medication and supply expiry check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control'}},frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
 // A weekly checklist audit: every item is answered Yes / No / N/A and the
@@ -68,7 +68,9 @@ const definition4={...definition2,created_at:iso(-24*58),id:'ctrl-def-audit',cod
 // Four times a day: the ICU has done today's four, the internal ward three, so
 // the list shows «4/4 σήμερα» / «3/4 σήμερα» and the entry screen the guard.
 const definition5={...definition1,id:'ctrl-def-hand-rub',code:'CTRL-DEMO-0005',title:'Έλεγχος διαθεσιμότητας αλκοολούχου αντισηπτικού',category:'Υγιεινή χεριών',description:'Έλεγχος ότι κάθε σημείο φροντίδας έχει αντισηπτικό σε επάρκεια, σε κάθε βάρδια.',response_config:{mode:'choice',options:['Συμμορφώνεται','Μη συμμόρφωση'],label:'Κατάσταση',criticality:'medium',__meta:{titleEn:'Alcohol hand rub availability check',ownerLabel:'Προϊστάμενος τμήματος',createdByScope:'infection_control',createdForDepartment:null,createdByName:'',updatedByName:''}},frequency_config:{kind:'daily',timesPerDay:4,times:['07:00','11:00','15:00','19:00'],interval:1},created_at:iso(-24*41)}
-export const controlDefinitionRows=[definition1,definition2,definition3,definition4,definition5]
+// The monthly culture sampling programme: it is not part of the Controls, its annual plan is in the environmental surveillance.
+const definition6={...definition2,id:'ctrl-def-cultures',code:'CTRL-DEMO-0006',title:'Καλλιέργειες επιφανειών',category:'Περιβαλλοντικός μικροβιολογικός έλεγχος',description:'Μηνιαία δειγματοληψία επιφανειών για καλλιέργεια.',frequency_config:{kind:'monthly',interval:1,timesPerDay:1,times:['10:00']}}
+export const controlDefinitionRows=[definition1,definition2,definition3,definition4,definition5,definition6]
 
 const assignment1={
  id:'ctrl-asg-fridge-icu',
@@ -214,12 +216,15 @@ const programmeAssignments=[
  [newAssignment('ctrl-asg-expiry-ed',definition3,'ΤΕΠ',16,30),definition3,'ΤΕΠ','Ανδρέας Μάρκου',30],
  [newAssignment('ctrl-asg-expiry-cardio',definition3,'Καρδιολογική',20,30),definition3,'Καρδιολογική','Σοφία Οικονόμου',30],
  [newAssignment('ctrl-asg-expiry-nicu',definition3,'Νεογνολογική / ΜΕΝΝ',6,30),definition3,'Νεογνολογική / ΜΕΝΝ','Γεωργία Φωτίου',30],
+ [newAssignment('ctrl-asg-cultures-icu',definition6,'ΜΕΘ',14,30),definition6,'ΜΕΘ','Ελένη Παπαδοπούλου',30],
+ [newAssignment('ctrl-asg-cultures-surgery',definition6,'Χειρουργική',9,30),definition6,'Χειρουργική','Νίκος Δημητρίου',30],
+ [newAssignment('ctrl-asg-cultures-nicu',definition6,'Νεογνολογική / ΜΕΝΝ',21,30),definition6,'Νεογνολογική / ΜΕΝΝ','Γεωργία Φωτίου',30],
 ]
 controlAssignmentRows.push(...programmeAssignments.map(([assignment])=>assignment))
 // Existing assignments get the rest of their year too.
 programmeAssignments.push([assignment3,definition2,'Χειρουργική','Νίκος Δημητρίου',7,17],[assignment5,definition2,'ΤΕΠ','Ανδρέας Μάρκου',7,9],[assignment4,definition3,'Παθολογική','Νίκος Δημητρίου',30,25])
-const FINDING_VALUE={[definition2.id]:['Μη συμμόρφωση','Υπολείμματα σε επιφάνειες υψηλής επαφής.'],[definition3.id]:['Κοντόληκτο','Κοντόληκτα υλικά αποσύρθηκαν και ενημερώθηκε το φαρμακείο.']}
-const OK_VALUE={[definition2.id]:'Συμμορφώνεται',[definition3.id]:'Χωρίς εύρημα'}
+const FINDING_VALUE={[definition2.id]:['Μη συμμόρφωση','Υπολείμματα σε επιφάνειες υψηλής επαφής.'],[definition3.id]:['Κοντόληκτο','Κοντόληκτα υλικά αποσύρθηκαν και ενημερώθηκε το φαρμακείο.'],[definition6.id]:['Μη συμμόρφωση','Θετική καλλιέργεια επιφάνειας· επαναλήφθηκε ο καθαρισμός και η δειγματοληψία.']}
+const OK_VALUE={[definition2.id]:'Συμμορφώνεται',[definition3.id]:'Χωρίς εύρημα',[definition6.id]:'Συμμορφώνεται'}
 // The medicines and supplies each ward listed at its latest expiry check:
 // dates relative to today, so some expire soon and a few have already expired.
 const dayFromNow=days=>{const d=new Date();d.setDate(d.getDate()+days);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}

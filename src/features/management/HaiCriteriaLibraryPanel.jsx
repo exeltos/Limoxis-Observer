@@ -28,7 +28,7 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
   if(!global&&!tenant?.id)return
   let active=true;setLoading(true)
   const loader=global?loadGlobalHaiCriteriaLibraryItems():loadHaiCriteriaLibraryItems(tenant.id)
-  loader.then(data=>{if(active)setRows(data)}).catch(error=>{if(active)notify(error?.message||(en?'Could not load the HAI criteria library.':'Δεν ήταν δυνατή η φόρτωση της βιβλιοθήκης κριτηρίων HAI.'),'error')}).finally(()=>{if(active)setLoading(false)})
+  loader.then(data=>{if(active)setRows(data)}).catch(error=>{if(active)notify(error?.message||(en?'Could not load the HAI criteria library.':'Δεν ήταν δυνατή η φόρτωση της βιβλιοθήκης κριτηρίων ΛΣΦΥ.'),'error')}).finally(()=>{if(active)setLoading(false)})
   return()=>{active=false}
  },[global,isDemo,tenant?.id,en,notify])
 
@@ -45,7 +45,7 @@ export function HaiCriteriaLibraryPanel({global=false}={}){
  }
 
  return <div className="bundle-library-panel hai-criteria-library-panel">
-  <div className="section-toolbar bundle-library-toolbar"><div><h2>{en?'HAI Surveillance Criteria':'Κριτήρια Επιτήρησης HAI'}</h2><p>{en?'CDC/NHSN-based checklists (CLABSI/CAUTI/VAP/SSI) offered in the HAI classification dialog.':'Λίστες ελέγχου βάσει CDC/NHSN (CLABSI/CAUTI/VAP/SSI) που εμφανίζονται στον διάλογο ταξινόμησης HAI.'}</p></div></div>
+  <div className="section-toolbar bundle-library-toolbar"><div><h2>{en?'HAI Surveillance Criteria':'Κριτήρια Επιτήρησης ΛΣΦΥ'}</h2><p>{en?'CDC/NHSN-based checklists (CLABSI/CAUTI/VAP/SSI) offered in the HAI classification dialog.':'Λίστες ελέγχου βάσει CDC/NHSN (CLABSI/CAUTI/VAP/SSI) που εμφανίζονται στον διάλογο ταξινόμησης ΛΣΦΥ.'}</p></div></div>
   {loading&&<div className="inline-empty">{en?'Loading...':'Φόρτωση...'}</div>}
   <RegistryTable
     wrapperClassName="table-wrap scroll-table bundle-library-table-wrap"
@@ -74,10 +74,9 @@ function HaiCriteriaEditor({draft,onClose,onSave,language,ruleLabels}){
  function addGroup(){setValue(x=>({...x,groups:[...x.groups,{id:`group_${Date.now()}`,rule:'any',items:[]}]}))}
  function removeGroup(gi){setValue(x=>({...x,groups:x.groups.filter((_,i)=>i!==gi)}))}
  function submit(){onSave(value)}
- return <ObserverDialog width="wide" className="hai-criteria-dialog" eyebrow={en?'HAI CRITERIA':'ΚΡΙΤΗΡΙΑ HAI'} title={locked?(en?'Read-only criteria set':'Προβολή σετ κριτηρίων'):(en?'Edit criteria set':'Επεξεργασία σετ κριτηρίων')} subtitle={locked?(en?'Only platform administration can edit a system criteria set.':'Μόνο η διαχείριση της πλατφόρμας μπορεί να επεξεργαστεί ένα σετ κριτηρίων συστήματος.'):(en?'Changes apply immediately to every hospital using this criteria set.':'Οι αλλαγές ισχύουν αμέσως για κάθε νοσοκομείο που χρησιμοποιεί αυτό το σετ κριτηρίων.')} onClose={onClose} footer={<DialogActions cancelLabel={locked?(en?'Close':'Κλείσιμο'):undefined} onCancel={onClose} onSave={locked?undefined:submit}/>}>
+ return <ObserverDialog width="wide" className="hai-criteria-dialog" eyebrow={en?'HAI CRITERIA':'ΚΡΙΤΗΡΙΑ ΛΣΦΥ'} title={locked?(en?'Read-only criteria set':'Προβολή σετ κριτηρίων'):(en?'Edit criteria set':'Επεξεργασία σετ κριτηρίων')} subtitle={locked?(en?'Only platform administration can edit a system criteria set.':'Μόνο η διαχείριση της πλατφόρμας μπορεί να επεξεργαστεί ένα σετ κριτηρίων συστήματος.'):(en?'Changes apply immediately to every hospital using this criteria set.':'Οι αλλαγές ισχύουν αμέσως για κάθε νοσοκομείο που χρησιμοποιεί αυτό το σετ κριτηρίων.')} onClose={onClose} footer={<DialogActions cancelLabel={locked?(en?'Close':'Κλείσιμο'):undefined} onCancel={onClose} onSave={locked?undefined:submit}/>}>
   <section className="record-section hai-editor-meta"><div className="record-section-header"><div><span className="eyebrow">{en?'IDENTITY':'ΣΤΟΙΧΕΙΑ'}</span><h3>{en?'Criteria set':'Σετ κριτηρίων'}</h3></div></div><div className="entry-grid hai-editor-meta-grid">
-   <label><span>{en?'Label (EL) *':'Ετικέτα (EL) *'}</span><input disabled={locked} value={value.labelEl||''} onChange={e=>set('labelEl',e.target.value)}/></label>
-   <label><span>{en?'Label (EN)':'Ετικέτα (EN)'}</span><input disabled={locked} value={value.labelEn||''} onChange={e=>set('labelEn',e.target.value)}/></label>
+   <label><span>{en?'Label *':'Ετικέτα *'}</span><input disabled={locked} value={value.labelEl||''} onChange={e=>set('labelEl',e.target.value)}/></label>
    <label className="entry-span-2"><span>{en?'Source':'Πηγή'}</span><input disabled={locked} value={value.source||''} onChange={e=>set('source',e.target.value)}/></label>
   </div></section>
   <section className="record-section hai-editor-groups"><div className="record-section-header"><div><span className="eyebrow">{en?'LOGIC':'ΛΟΓΙΚΗ'}</span><h3>{en?'Criteria groups':'Ομάδες κριτηρίων'}</h3><p>{en?'Each group is satisfied according to its rule; the checklist is met only when every group is satisfied.':'Κάθε ομάδα ικανοποιείται σύμφωνα με τον κανόνα της· η λίστα ελέγχου πληρείται μόνο όταν ικανοποιούνται όλες οι ομάδες.'}</p></div>{!locked&&<Button variant="secondary" onClick={addGroup}><Plus size={14}/>{en?'Add group':'Νέα ομάδα'}</Button>}</div>
@@ -89,10 +88,9 @@ function HaiCriteriaEditor({draft,onClose,onSave,language,ruleLabels}){
      {!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeGroup(gi)} label={en?'Remove group':'Αφαίρεση ομάδας'}><Trash2 size={15}/></IconButton>}
     </div>
     <div className="hai-item-table">
-     <div className="hai-item-row hai-item-head"><span>{en?'Criterion (EL)':'Κριτήριο (EL)'}</span><span>{en?'Criterion (EN)':'Κριτήριο (EN)'}</span>{!locked&&<span/>}</div>
+     <div className="hai-item-row hai-item-head"><span>{en?'Criterion':'Κριτήριο'}</span>{!locked&&<span/>}</div>
      {(group.items||[]).map((item,ii)=><div className="hai-item-row" key={item.id||ii}>
-      <textarea rows={rowsFor(item.textEl)} disabled={locked} value={item.textEl||''} aria-label={en?'Criterion (EL)':'Κριτήριο (EL)'} onChange={e=>itemChange(gi,ii,'textEl',e.target.value)}/>
-      <textarea rows={rowsFor(item.textEn)} disabled={locked} value={item.textEn||''} aria-label={en?'Criterion (EN)':'Κριτήριο (EN)'} onChange={e=>itemChange(gi,ii,'textEn',e.target.value)}/>
+      <textarea rows={rowsFor(item.textEl)} disabled={locked} value={item.textEl||''} aria-label={en?'Criterion':'Κριτήριο'} onChange={e=>itemChange(gi,ii,'textEl',e.target.value)}/>
       {!locked&&<IconButton tone="danger" size="sm" onClick={()=>removeItem(gi,ii)} label={en?'Remove':'Αφαίρεση'}><Trash2 size={15}/></IconButton>}
      </div>)}
      {!(group.items||[]).length&&<div className="inline-empty">{en?'No criteria yet.':'Δεν υπάρχουν ακόμη κριτήρια.'}</div>}

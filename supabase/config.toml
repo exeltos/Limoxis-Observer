@@ -33,6 +33,10 @@ verify_jwt = false
 [functions.supplier-certificate-submit]
 verify_jwt = false
 
+# Public: a participant's personal training link opens one file of the programme (the token is checked inside the function).
+[functions.training-material-url]
+verify_jwt = false
+
 # Platform Owner only (checked inside too): bulk creation of accounts from the employee roster.
 [functions.platform-bulk-create-accounts]
 verify_jwt = true

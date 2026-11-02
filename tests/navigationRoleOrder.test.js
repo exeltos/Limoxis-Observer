@@ -14,7 +14,7 @@ describe('sidebar order per role', () => {
       'overview:dashboard', 'overview:executiveDashboard', 'overview:calendar',
       'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
       'operations:controls', 'operations:kitchen',
-      'quality:quality', 'quality:meetings', 'quality:documents', 'quality:library',
+      'quality:quality', 'quality:qualityMeasures', 'quality:meetings', 'quality:documents', 'quality:library',
       'staff:employees', 'staff:training', 'staff:interviews',
       'management:management',
     ])
@@ -38,7 +38,24 @@ describe('sidebar order per role', () => {
     const labels = role => navigationFor({ role }).map(item => item.label || item.key)
     expect(labels(ROLES.HOSPITAL_ADMIN).slice(0, 2)).toEqual(['sidebarNav.home', 'sidebarNav.indicators'])
     for (const role of [ROLES.HOSPITAL_ADMIN, ROLES.PLATFORM_OWNER, ROLES.HOSPITAL_DIRECTOR]) expect(order(role).join(' '), role).not.toMatch(/(^|[: ])indicators( |$)/)
-    for (const role of [ROLES.INFECTION_CONTROL_LEAD, ROLES.QUALITY_MANAGER, ROLES.PHARMACY]) expect(navigationFor({ role }).map(item => item.key), role).toContain('indicators')
+    for (const role of [ROLES.INFECTION_CONTROL_MEMBER, ROLES.PHARMACY]) expect(navigationFor({ role }).map(item => item.key), role).toContain('indicators')
+    // «Indicators & objectives» holds the indicators: one entry, never both.
+    for (const role of [ROLES.INFECTION_CONTROL_LEAD, ROLES.QUALITY_MANAGER]) {
+      const keys = navigationFor({ role }).map(item => item.key)
+      expect(keys, role).toContain('qualityMeasures')
+      expect(keys, role).not.toContain('indicators')
+    }
+  })
+
+  it('gives the department roles one calendar (their own), and the demo the grouped menu', () => {
+    for (const role of [ROLES.DEPARTMENT_MANAGER, ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE]) {
+      const keys = navigationFor({ role }).map(item => item.key)
+      expect(keys, role).toContain('departmentCalendar')
+      expect(keys, role).not.toContain('calendar')
+      // Their meetings have an entry of their own, right after the calendar.
+      expect(keys.indexOf('departmentMeetings'), role).toBe(keys.indexOf('departmentCalendar') + 1)
+    }
+    expect(sidebarLayout(ROLES.DEMO, navigationFor({ role: ROLES.DEMO })).every(block => block.kind === 'group')).toBe(true)
   })
 
   it('puts the staff screens of every role that sees two or more of them under one «Staff» group', () => {

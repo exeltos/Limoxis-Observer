@@ -9,7 +9,7 @@ import { rowId } from '../qualityRelations'
 
 export const SUPPLIER_SELECT = '*,certifications:quality_supplier_certifications(*),evaluations:quality_supplier_evaluations(*,scores:quality_supplier_evaluation_scores(*)),nonconformities:quality_supplier_nonconformities(*),contacts:quality_supplier_contacts(*)'
 export const TEMPLATE_SELECT = '*,criteria:quality_supplier_eval_template_criteria(*)'
-export const CERTIFICATION_FIELDS = ['certificate_type', 'title', 'document_kind', 'certificate_number', 'issuer', 'expires_on']
+export const CERTIFICATION_FIELDS = ['certificate_type', 'title', 'document_kind', 'certificate_number', 'issuer', 'expires_on', 'attachment_id']
 export const EVALUATION_FIELDS = ['evaluated_on', 'evaluator', 'notes', 'template_id', 'template_name', 'template_version', 'pass_threshold', 'conditional_threshold', 'score_scale', 'total_score', 'result', 'criteria_scores']
 export const SCORE_FIELDS = ['criterion', 'criterion_id', 'criterion_label', 'position', 'weight', 'score_scale', 'score']
 export const NONCONFORMITY_FIELDS = ['occurred_on', 'description', 'severity', 'status', 'capa_code', 'closed_on']
@@ -61,7 +61,7 @@ export function supplierListsFromRow(row = {}) {
   }
 }
 
-export const certificationRows = (list = []) => list.filter(item => String(item?.type || '').trim()).map(item => ({ id: rowId(item.id), certificate_type: String(item.type).trim(), title: text(item.title), document_kind: item.kind || 'certificate', certificate_number: text(item.number), issuer: text(item.issuer), expires_on: item.expiresOn || null }))
+export const certificationRows = (list = []) => list.filter(item => String(item?.type || '').trim()).map(item => ({ id: rowId(item.id), certificate_type: String(item.type).trim(), title: text(item.title), document_kind: item.kind || 'certificate', certificate_number: text(item.number), issuer: text(item.issuer), expires_on: item.expiresOn || null, attachment_id: isUuid(item.attachmentId) ? item.attachmentId : null }))
 export const nonconformityRows = (list = []) => list.filter(item => item?.date && String(item.description || '').trim()).map(item => {
   const status = item.status === 'closed' ? 'closed' : 'open'
   return { id: rowId(item.id), occurred_on: item.date, description: String(item.description).trim(), severity: item.severity === 'major' ? 'major' : 'minor', status, capa_code: text(item.capaCode), closed_on: status === 'closed' ? item.closedOn || null : null }

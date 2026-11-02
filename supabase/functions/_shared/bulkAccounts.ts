@@ -1,5 +1,5 @@
 // The rules of the bulk creation of accounts from a hospital's employee roster
-// (N1, Platform Owner only), without I/O so that they are unit tested:
+// (N1, Platform Owner or the hospital's Hospital Admin), without I/O so that they are unit tested:
 // what a request may contain, what happens to each person, the 7-day validity
 // of the «Ορισμός κωδικού» link, the limits of «Ξαναστείλε» and the error codes
 // shown per person. Used by platform-bulk-create-accounts and redeem-access-token.
@@ -80,7 +80,8 @@ export type ExistingAccount={userId:string,fullName:string,username:string,isDem
 export type Plan={action:'create'|'link_existing'|'skip',code:string|null,departmentId:string|null,email:string}
 
 // What happens to one person of the request.
-export function planItem(item:BulkItem,employee:EmployeeRow|null|undefined,existing:ExistingAccount|null|undefined,confirmed:boolean):Plan{
+// allowLink: only the Platform Owner links an account another organization uses.
+export function planItem(item:BulkItem,employee:EmployeeRow|null|undefined,existing:ExistingAccount|null|undefined,confirmed:boolean,allowLink=true):Plan{
   const email=normalizeEmail(employee?.email)
   const scoped=DEPARTMENT_ROLES.includes(item.role)
   const departmentId=scoped?(item.departmentId||employee?.department_id||null):null
@@ -93,6 +94,7 @@ export function planItem(item:BulkItem,employee:EmployeeRow|null|undefined,exist
   if(scoped&&!departmentId)return skip('DEPARTMENT_REQUIRED')
   if(existing){
     if(existing.memberHere)return skip('EMAIL_IN_THIS_ORG')
+    if(!allowLink)return skip('ACCOUNT_IN_USE')
     if(existing.isDemo)return skip('EXISTING_ACCOUNT_CONFLICT')
     if(!confirmed)return skip('EXISTING_ACCOUNT_NEEDS_CONFIRMATION')
     return {action:'link_existing',code:null,departmentId,email}

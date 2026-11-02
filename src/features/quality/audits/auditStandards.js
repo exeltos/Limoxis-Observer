@@ -53,6 +53,14 @@ export const TEAM_ROLES = [
   { value: 'observer', label: ['Παρατηρητής', 'Observer'] },
 ]
 
+// Who carried the audit out (FileMaker «AuditOrganization»).
+export const AUDIT_BODIES = [
+  { value: 'internal', label: ['Εσωτερικός φορέας', 'Internal'] },
+  { value: 'consultant', label: ['Σύμβουλος', 'Consultant'] },
+  { value: 'certification', label: ['Φορέας πιστοποίησης', 'Certification body'] },
+  { value: 'other', label: ['Άλλος', 'Other'] },
+]
+
 // Risk-based frequency: how often a department is audited for a standard.
 export const RISK_LEVELS = [
   { value: 'high', label: ['Υψηλός κίνδυνος', 'High risk'], months: 6 },

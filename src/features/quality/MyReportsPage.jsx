@@ -16,7 +16,7 @@ import { INCIDENT_CLASSES, incidentCategoryLabel, qualityStatusTone, vocabularyL
 import './quality.css'
 
 // The reports the signed-in user sent, and where each one stands. Anonymous
-// reports carry no name, so they never appear here.
+// reports carry no name, so they never appear here; a confidential one does.
 export function isOwnReport(record, userId) {
   return Boolean(userId && record && !record.anonymous && record.reportedById === userId)
 }
@@ -50,8 +50,8 @@ export function MyReportsPage() {
   const title = row => (en ? row.titleEn || row.title : row.title)
   return <Page fill className="quality-my-reports" title={en ? 'My incident reports' : 'Οι αναφορές συμβάντων μου'} subtitle={en ? 'Incidents, near misses and complaints you reported, and where each one stands.' : 'Τα συμβάντα, παρ’ ολίγον συμβάντα και παράπονα που αναφέρατε και σε ποια κατάσταση βρίσκεται το καθένα.'} actions={<ActionButton tone="primary" label={en ? 'New incident report' : 'Νέα αναφορά συμβάντος'} onClick={newReport}><Plus size={18} /><span>{en ? 'New incident report' : 'Νέα αναφορά συμβάντος'}</span></ActionButton>}>
     <div className="surface registry-workspace workspace-column workspace-fill">
-      <RegistryTable className="quality-table" rows={mine} empty={!loading && !mine.length} emptyTitle={en ? 'You have not reported any incident yet' : 'Δεν έχετε αναφέρει ακόμη συμβάν'} emptyText={en ? 'Anything that went wrong or almost did: reporting helps the hospital learn.' : 'Ό,τι πήγε στραβά ή παραλίγο: η αναφορά βοηθά το νοσοκομείο να μαθαίνει.'} columns={[{ key: 'code', label: t('code') }, { key: 'title', label: t('title') }, { key: 'category', label: en ? 'Category' : 'Κατηγορία' }, { key: 'date', label: t('date') }, { key: 'status', label: t('status') }]} rowProps={row => ({ className: 'clickable-row', onClick: () => setOpen(row) })} renderRow={row => <>
-        <td><strong>{row.displayId || row.id}</strong></td>
+      <RegistryTable className="quality-table" rows={mine} empty={!loading && !mine.length} emptyTitle={en ? 'You have not reported any incident yet' : 'Δεν έχετε αναφέρει ακόμη συμβάν'} emptyText={en ? 'Anything that went wrong or almost did: reporting helps the hospital learn.' : 'Ό,τι πήγε στραβά ή παραλίγο: η αναφορά βοηθά το νοσοκομείο να μαθαίνει.'} columns={[{ key: 'code', label: t('code'), sortValue: row => row.displayId || row.id }, { key: 'title', label: t('title'), sortValue: title }, { key: 'category', label: en ? 'Category' : 'Κατηγορία', sortValue: row => incidentCategoryLabel(row.category, categories, language) }, { key: 'date', label: t('date'), sortValue: row => row.date }, { key: 'status', label: t('status'), sortValue: row => row.status }]} rowProps={row => ({ className: 'clickable-row', onClick: () => setOpen(row) })} renderRow={row => <>
+        <td><strong>{row.displayId || row.id}</strong>{row.privacy === 'confidential' && <> <StatusBadge tone="neutral">{en ? 'Confidential' : 'Εμπιστευτική'}</StatusBadge></>}</td>
         <td>{title(row)}</td>
         <td>{incidentCategoryLabel(row.category, categories, language) || '—'}</td>
         <td>{formatDay(row.date, language) || '—'}</td>

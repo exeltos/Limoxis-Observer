@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Briefcase, Check, CheckCircle2, Clock3, GraduationCap, KeyRound, Languages, Lock, Maximize2, Minimize2, PenLine, Plus, Send, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { readSessionJson, removeSessionValue, writeSessionJson } from '../../../core/storage/browserStorage'
-import { EMPLOYMENT_TYPES, GENDERS, LANGUAGES, LANGUAGE_SKILLS, LEVELS, MARITAL, MILITARY, certificateLabel, employmentLabel, genderLabel, levelLabel, maritalLabel, militaryLabel, todayKey, yesNo } from '../interviewsModel'
+import { EMPLOYMENT_TYPES, GENDERS, PROFESSIONAL_CATEGORIES, categoryLabel, LANGUAGES, LANGUAGE_SKILLS, LEVELS, MARITAL, MILITARY, certificateLabel, employmentLabel, genderLabel, levelLabel, maritalLabel, militaryLabel, todayKey, yesNo } from '../interviewsModel'
 import { APPLICATION_STEPS, CONSENTS, LIMITS, applicationErrorText, applicationPath, cleanApplication, consentText, demoApplication, draftKey, firstStepWithProblems, formatCode, isDemoToken, maskDay, maskMonth, newApplication, newEducationRow, newEmployerRow, newLanguageRow, normalizeCode, parseMonth, stepKey, stepProblems, stepTitle, validCode } from '../applicationModel'
 import { loadApplicationLink, submitApplication } from '../applicationService'
 import { SignaturePad } from './SignaturePad'
@@ -104,7 +104,7 @@ function ApplicationForm({ token }) {
       {current === 'experience' && <ExperienceStep {...common} />}
       {current === 'about' && <AboutStep {...common} />}
       {current === 'consents' && <ConsentsStep {...common} server={info.consents} today={today} />}
-      {current === 'review' && <ReviewStep {...common} position={position} onEdit={goTo} today={today} />}
+      {current === 'review' && <ReviewStep {...common} info={info} position={position} onEdit={goTo} today={today} />}
       {tried && problems.length > 0 && <p className="apply-alert" role="alert">{L(en, 'Συμπληρώστε ό,τι σημειώνεται με κόκκινο για να συνεχίσετε.', 'Complete what is marked in red to continue.')}</p>}
       {failed && <p className="apply-alert" role="alert">{failed}</p>}
       <footer className="apply-actions">
@@ -185,7 +185,7 @@ function WelcomeStep({ draft, set, en, info, position }) {
       {info.logo ? <img className="apply-welcome-logo" src={info.logo} alt="" /> : <span className="apply-welcome-mark"><Briefcase size={40} /></span>}
       <h1>{L(en, 'Καλώς ήρθατε', 'Welcome')}</h1>
       <p>{L(en, `Αίτηση εργασίας στο ${info.organizationName || 'Νοσοκομείο'}`, `Job application at ${info.organizationName || 'the Hospital'}`)}</p>
-      {position && <span className="apply-position"><Briefcase size={18} />{position}</span>}
+      {(position || info.professionalCategory) && <span className="apply-position"><Briefcase size={18} />{[position, categoryLabel(info.professionalCategory, en ? 'en' : 'el')].filter(Boolean).join(' · ')}</span>}
     </div>
     <ul className="apply-welcome-list">
       <li><Clock3 size={22} /><span>{L(en, 'Χρειάζονται περίπου 10 λεπτά. Τα βήματα φαίνονται στην μπάρα πάνω.', 'It takes about 10 minutes. The bar at the top shows the steps.')}</span></li>
@@ -193,8 +193,9 @@ function WelcomeStep({ draft, set, en, info, position }) {
       <li><PenLine size={22} /><span>{L(en, 'Στο τέλος διαβάζετε τις συναινέσεις και υπογράφετε με το δάχτυλο.', 'At the end you read the consents and sign with your finger.')}</span></li>
     </ul>
     <div className="apply-grid">
+      {!info.professionalCategory && <Chips wide label={L(en, 'Σε ποιον χώρο θέλετε να εργαστείτε;', 'Which area do you want to work in?')} value={draft.professionalCategory} options={pairs(PROFESSIONAL_CATEGORIES, en)} onChange={value => set({ professionalCategory: value })} />}
       {!position && <Field wide label={L(en, 'Θέση που σας ενδιαφέρει', 'Position you are interested in')}><Text value={draft.requestedPosition} onChange={value => set({ requestedPosition: value })} placeholder={L(en, 'π.χ. Νοσηλευτής/τρια', 'e.g. Nurse')} /></Field>}
-      <Chips wide label={L(en, 'Είδος απασχόλησης', 'Type of employment')} value={draft.employmentType} options={pairs(EMPLOYMENT_TYPES, en)} onChange={value => set({ employmentType: value })} />
+      {!info.employmentType && <Chips wide label={L(en, 'Είδος απασχόλησης', 'Type of employment')} value={draft.employmentType} options={pairs(EMPLOYMENT_TYPES, en)} onChange={value => set({ employmentType: value })} />}
     </div>
   </>
 }
@@ -328,7 +329,7 @@ function ConsentsStep({ draft, set, errorOf, en, language, server, today }) {
   </>
 }
 
-function ReviewStep({ draft, en, language, position, onEdit, today }) {
+function ReviewStep({ draft, info, en, language, position, onEdit, today }) {
   const pending = stepProblems('review', draft, language, today)
   const join = (...values) => values.filter(value => String(value ?? '').trim()).join(' · ')
   const section = (index, title, rows) => <section className="apply-review-block" key={index}>
@@ -340,7 +341,7 @@ function ReviewStep({ draft, en, language, position, onEdit, today }) {
     <StepHead icon={CheckCircle2} title={L(en, 'Επισκόπηση & υποβολή', 'Review & submit')} text={L(en, 'Ελέγξτε τα στοιχεία σας. Με «Αλλαγή» επιστρέφετε στο βήμα.', 'Check your details. «Change» takes you back to the step.')} />
     {pending.length > 0 && <p className="apply-alert" role="alert">{L(en, 'Λείπουν ακόμη:', 'Still missing:')} {pending.map(([, message]) => message).join(' ')}</p>}
     <div className="apply-review">
-      {section(0, L(en, 'Θέση', 'Position'), [[L(en, 'Θέση', 'Position'), position || draft.requestedPosition], [L(en, 'Απασχόληση', 'Employment'), employmentLabel(draft.employmentType, language)]])}
+      {section(0, L(en, 'Θέση', 'Position'), [[L(en, 'Χώρος', 'Area'), categoryLabel(draft.professionalCategory || info.professionalCategory, language)], [L(en, 'Θέση', 'Position'), position || draft.requestedPosition], [L(en, 'Απασχόληση', 'Employment'), employmentLabel(draft.employmentType || info.employmentType, language)]])}
       {section(1, L(en, 'Προσωπικά στοιχεία', 'Personal details'), [[L(en, 'Ονοματεπώνυμο', 'Full name'), join(draft.lastName, draft.firstName)], [L(en, 'Γονείς', 'Parents'), join(draft.fatherName, draft.motherName)], [L(en, 'Γέννηση', 'Birth'), join(draft.birthDate, draft.birthPlace)],
         [L(en, 'Φύλο', 'Gender'), genderLabel(draft.gender, language)], [L(en, 'Υπηκοότητα', 'Nationality'), draft.nationality], [L(en, 'Οικογένεια', 'Family'), join(maritalLabel(draft.maritalStatus, language), draft.children !== '' ? `${draft.children} ${L(en, 'παιδιά', 'children')}` : '')],
         [L(en, 'Στρατιωτικές υποχρεώσεις', 'Military service'), militaryLabel(draft.militaryService, language)], [L(en, 'Άδεια εργασίας', 'Work permit'), draft.workPermit == null ? '' : yesNo(draft.workPermit, language)], [L(en, 'Άδεια άσκησης', 'Licence to practise'), draft.practiceLicence == null ? '' : yesNo(draft.practiceLicence, language)]])}

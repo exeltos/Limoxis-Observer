@@ -1,7 +1,9 @@
 // Recycle bin: a deleted record is kept for 30 days, as it was, so it can be
-// restored or deleted for good. Production keeps the entries in the
-// recycle_bin table; Demo (and records that live only in this browser) keep
-// them locally. An entry's payload holds what the deletion removed:
+// restored or deleted for good. Each person sees, restores and empties only
+// their own deletions. Production keeps the entries in the recycle_bin table;
+// Demo (and records that live only in this browser) keep them locally.
+// An entry's payload holds what the deletion removed:
+//   server entry (bin_delete)     the server keeps the rows and restores them itself
 //   { parts: [{ table, rows }] }  cloud rows, in deletion order (children first)
 //   { local: { table, row } }     one row of a local repository table
 //   { memory: { store, row } }    one row of an in-memory Demo list (see MEMORY_STORES)
@@ -14,21 +16,16 @@ const DAY_MS = 86_400_000
 const LOCAL_TABLE = 'recycle_bin_local'
 const CHANGE_EVENT = 'limoxis:recycle-bin'
 
-// Which roles see the entries of each module (the Hospital Admin sees them all).
-export const BIN_MODULE_ROLES = Object.freeze({
-  clinical: ['infection_control_lead'],
-  quality: ['quality_manager'],
-  occupational: ['occupational_physician'],
-  administration: [],
-})
-const BIN_ADMIN_ROLES = ['hospital_admin', 'platform_owner', 'demo']
+// Everyone with a role in the hospital has a bin: their own deletions.
+export const canUseRecycleBin = role => Boolean(role)
 
-export function canUseRecycleBin(role) {
-  return BIN_ADMIN_ROLES.includes(role) || Object.values(BIN_MODULE_ROLES).some(roles => roles.includes(role))
-}
-export function binModulesFor(role) {
-  if (BIN_ADMIN_ROLES.includes(role)) return Object.keys(BIN_MODULE_ROLES)
-  return Object.entries(BIN_MODULE_ROLES).filter(([, roles]) => roles.includes(role)).map(([module]) => module)
+// Who deletes what: the Platform Owner, the Hospital Admin and the Infection
+// Control Lead any record; anyone else only a record they entered (bin_delete
+// checks the same on the server).
+const DELETE_ANY_ROLES = ['platform_owner', 'hospital_admin', 'infection_control_lead', 'demo']
+export function canDeleteRecord({ role, actualRole, userId, createdBy }) {
+  if (DELETE_ANY_ROLES.includes(role) || actualRole === 'platform_owner') return true
+  return Boolean(userId) && Boolean(createdBy) && String(createdBy) === String(userId)
 }
 
 let actor = { name: null }
@@ -54,6 +51,32 @@ const newId = () =>
 
 // Demo lists that live only in memory, and how a row goes back into each.
 const MEMORY_STORES = {
+  employee_surveillance: () =>
+    import('../../features/surveillance/employeeSurveillanceData').then(m => row => m.restoreDemoEmployeeSurveillance(row)),
+  patients: () =>
+    import('../../features/patients/patientsService').then(m => row => m.restoreDemoPatient(row)),
+  protocol_runs: () =>
+    import('../../features/surveillance/protocols/protocolService').then(m => row => m.restoreDemoProtocolRun(row)),
+  clinical_case_entries: () =>
+    import('../../features/surveillance/clinicalDemoData').then(m => ({caseId, field, list, item}) => {
+      const target = m.clinicalCases[caseId]
+      if (!target) return
+      if (!list) target[field] = item
+      else if (!(target[field] || []).some(entry => String(entry.id) === String(item.id))) target[field] = [item, ...(target[field] || [])]
+    }),
+  epi_questionnaires: () =>
+    import('../../features/surveillance/epiQuestionnaire/epiQuestionnaireService').then(m => row => m.restoreDemoEpiQuestionnaire(row)),
+  notification_reports: () =>
+    import('../../features/reporting/notificationReportsService').then(m => row => m.restoreDemoNotificationReport(row)),
+  scale_assessments: () =>
+    import('../../features/clinical-scales/patientClinicalScalesService').then(m => row => {
+      const list = m.demoPatientScaleAssessments()
+      if (!list.some(item => String(item.id) === String(row.id))) list.unshift(row)
+    }),
+  clinical_cases: () =>
+    import('../../features/surveillance/clinicalDemoData').then(m => row => {
+      m.clinicalCases[row.id] = row
+    }),
   laboratory_samples: () =>
     import('../../features/laboratory/laboratoryDemoData').then(m => row => {
       if (!m.laboratorySamples.some(item => String(item.id) === String(row.id))) m.laboratorySamples.unshift(row)
@@ -74,6 +97,7 @@ const fromRow = row => ({
   deletedAt: row.deleted_at,
   deletedByName: row.deleted_by_name || '',
   expiresAt: row.expires_at,
+  server: Boolean(row.server),
 })
 
 async function fileEntry(organizationId, { module, kind, label, detail = '', payload }) {
@@ -115,6 +139,20 @@ export async function binCloudRows(organizationId, { module, kind, label, detail
   await fileEntry(organizationId, { module, kind, label, detail, payload: { parts: snapshot } })
 }
 
+// Deletes a record of the database to the bin, with everything under it, in one
+// transaction on the server; only the person who deleted it can restore it.
+export async function binServerRecord(organizationId, { table, id, label, detail = '', reason = '' }) {
+  const { error } = await supabase.rpc('bin_delete', {
+    p_table: table,
+    p_id: id,
+    p_label: String(label || table).slice(0, 300),
+    p_detail: detail ? String(detail).slice(0, 300) : null,
+    p_reason: reason || null,
+  })
+  if (error) throw error
+  notify()
+}
+
 // Files one row of an in-memory Demo list (a key of MEMORY_STORES).
 export async function binMemoryRow(organizationId, { module, kind, label, detail, store, row }) {
   if (!row) return
@@ -127,32 +165,23 @@ export async function binLocalRow(organizationId, { module, kind, label, detail,
   await fileEntry(organizationId, { module, kind, label, detail, payload: { local: { table, row } } })
 }
 
-// The entries the role may see, newest first; expired ones are left out.
+// The person's own entries, newest first; expired ones are left out.
 export async function listRecycleBin(organizationId, role) {
-  const modules = binModulesFor(role)
-  if (!modules.length) return []
+  if (!canUseRecycleBin(role)) return []
   let rows
   if (keepsLocally(organizationId)) rows = loadLocalBin()
   else {
-    const { data, error } = await supabase
-      .from('recycle_bin')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .in('module', modules)
-      .order('deleted_at', { ascending: false })
-    if (error) {
-      if (['42P01', 'PGRST205'].includes(error.code)) return []
-      throw error
-    }
+    const { data, error } = await supabase.rpc('bin_list_mine', { p_organization_id: organizationId })
+    if (error) throw error
     rows = (data || []).map(fromRow)
   }
-  return rows.filter(entry => modules.includes(entry.module) && !isExpired(entry))
+  return rows.filter(entry => !isExpired(entry))
 }
 
 async function dropEntry(organizationId, entry) {
   if (keepsLocally(organizationId)) saveLocalBin(loadLocalBin().filter(row => row.id !== entry.id))
   else {
-    const { error } = await supabase.from('recycle_bin').delete().eq('organization_id', organizationId).eq('id', entry.id)
+    const { error } = await supabase.rpc('bin_purge_mine', { p_entry: entry.id })
     if (error) throw error
   }
   notify()
@@ -160,6 +189,12 @@ async function dropEntry(organizationId, entry) {
 
 // Puts the record back as it was and removes it from the bin.
 export async function restoreFromBin(organizationId, entry) {
+  if (entry.server) {
+    const { error } = await supabase.rpc('bin_restore', { p_entry: entry.id })
+    if (error) throw error
+    notify()
+    return
+  }
   const { parts, local, memory } = entry.payload || {}
   if (memory) {
     const put = await MEMORY_STORES[memory.store]?.()

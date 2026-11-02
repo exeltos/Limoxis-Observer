@@ -21,7 +21,7 @@ export function structuredSummary(execution,{record,language='el'}={}){
  if(!rows.length){
   if(!execution?.value)return en?'Completed':'Ολοκληρώθηκε'
   const unit=record?.responseConfig?.mode==='numeric'&&record.responseConfig.unit?` ${record.responseConfig.unit}`:''
-  return `${record?.responseConfig?.mode==='choice'?answerLabel(execution.value,language):execution.value}${unit}`
+  return `${['choice','list'].includes(record?.responseConfig?.mode)?answerLabel(execution.value,language):execution.value}${unit}`
  }
  const findings=rows.filter(r=>r.finding||r.action).length
  return en?`${rows.length} rows${findings?` · ${findings} findings`:''}`:`${rows.length} εγγραφές${findings?` · ${findings} ευρήματα`:''}`

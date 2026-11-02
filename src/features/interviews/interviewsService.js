@@ -9,6 +9,7 @@ import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { isEmptyPreview } from '../../core/preview/emptyPreview'
 import { interviewsDemoState } from './interviewsDemoData'
 import { overallRating, statusAfterDecision, statusAfterEvaluation, statusAfterSchedule } from './interviewsModel'
+import { DIVISION_CANDIDATE_FIELDS } from './divisionsModel'
 
 const isLocal = () => isDemoDataEnvironment() || isOwnerPreview()
 const LOCAL_KEY = 'interviews_local_state'
@@ -20,7 +21,7 @@ const must = ({ data, error }) => { if (error) throw error; return data }
 const COLUMNS = {
   hr_candidates: { code: ['code', 't'], fullName: ['full_name', 't'], gender: ['gender', 't'], fatherName: ['father_name', 't'], motherName: ['mother_name', 't'], birthDate: ['birth_date', 'd'], birthPlace: ['birth_place', 't'], nationality: ['nationality', 't'], citizenship: ['citizenship', 't'],
     idNumber: ['id_number', 't'], idAuthority: ['id_authority', 't'], idIssuedOn: ['id_issued_on', 'd'], address: ['address', 't'], area: ['area', 't'], postcode: ['postcode', 't'], phoneLandline: ['phone_landline', 't'], phoneMobile: ['phone_mobile', 't'], email: ['email', 't'],
-    requestedPosition: ['requested_position', 't'], employmentType: ['employment_type', 't'], militaryService: ['military_service', 't'], workPermit: ['work_permit', 'b'], practiceLicence: ['practice_licence', 'b'], smoker: ['smoker', 'b'], maritalStatus: ['marital_status', 't'], children: ['children', 'n'],
+    requestedPosition: ['requested_position', 't'], professionalCategory: ['professional_category', 't'], employmentType: ['employment_type', 't'], militaryService: ['military_service', 't'], workPermit: ['work_permit', 'b'], practiceLicence: ['practice_licence', 'b'], smoker: ['smoker', 'b'], maritalStatus: ['marital_status', 't'], children: ['children', 'n'],
     educationLevel: ['education_level', 't'], education: ['education', 'j'], itSkills: ['it_skills', 't'], activities: ['activities', 't'], whyUs: ['why_us', 't'], applicationReason: ['application_reason', 't'], appliedOn: ['applied_on', 'd'],
     consentGiven: ['consent_given', 'b'], consentAt: ['consent_at', 'd'], consentText: ['consent_text', 't'], status: ['status', 't'], decision: ['decision', 't'], decisionOn: ['decision_on', 'd'], decisionByName: ['decision_by_name', 't'], decisionNotes: ['decision_notes', 't'],
     employeeId: ['employee_id', 'u'], source: ['source', 't'], notes: ['notes', 't'],
@@ -175,9 +176,12 @@ export async function loadCandidateSignature(organizationId, candidate) {
 
 // «Αίτηση από tablet»: a single-use link for one candidate (24 hours). The code comes back
 // once; the database keeps only its SHA-256. The demo gets the sample form («demo»).
-export async function createApplicationLink(organizationId, position = '') {
-  if (isLocal()) return { id: '', token: 'demo', position: String(position || '').trim(), expiresAt: new Date(Date.now() + 864e5).toISOString() }
-  return must(await supabase.rpc('hr_application_link_create', { p_organization_id: organizationId, p_position: String(position || '').trim() || null }))
+export async function createApplicationLink(organizationId, position = '', { category = '', employment = '' } = {}) {
+  if (isLocal()) return { id: '', token: 'demo', position: String(position || '').trim(), professionalCategory: category, employmentType: employment, expiresAt: new Date(Date.now() + 864e5).toISOString() }
+  const link = must(await supabase.rpc('hr_application_link_create', { p_organization_id: organizationId, p_position: String(position || '').trim() || null }))
+  // The area and the type of employment are chosen here, before the tablet is handed over; the candidate does not fill them in.
+  if (category || employment) must(await supabase.rpc('hr_application_link_set', { p_link_id: link.id, p_category: category || null, p_employment: employment || null }))
+  return { ...link, professionalCategory: category, employmentType: employment }
 }
 export async function cancelApplicationLink(linkId) {
   if (isLocal() || !isUuid(linkId)) return
@@ -191,6 +195,77 @@ export async function removeCandidate(organizationId, candidateId) {
 export async function removeInterview(organizationId, candidate, interviewId) {
   if (isLocal()) { updateLocalCandidate(candidate.id, item => ({ interviews: (item.interviews || []).filter(row => row.id !== interviewId) })); return }
   must(await supabase.from('hr_interviews').delete().eq('id', interviewId).eq('organization_id', organizationId))
+}
+
+// --- Divisions and opinions (20261231190100_interview_divisions_opinions.sql) -------------------
+
+// The hospital's divisions with the professional categories that belong to each and the
+// users who direct it: { divisions: [{ id, name, categories: [], members: [userId] }] }.
+export async function loadDivisions(organizationId) {
+  if (isLocal()) return { divisions: local().divisions || [] }
+  if (!organizationId) return { divisions: [] }
+  const [divisions, categories, members] = await Promise.all([byOrg('hr_divisions', organizationId, 'name'), byOrg('hr_division_categories', organizationId, 'professional_category'), byOrg('hr_division_members', organizationId)])
+  return { divisions: divisions.map(row => ({ id: row.id, name: row.name, categories: categories.filter(item => item.division_id === row.id).map(item => item.professional_category), members: members.filter(item => item.division_id === row.id).map(item => item.user_id) })) }
+}
+export async function saveDivision(organizationId, division) {
+  const name = String(division.name || '').trim()
+  if (isLocal()) {
+    const state = local(), id = division.id || localId('div')
+    const next = { id, name, categories: division.categories || [], members: division.members || [] }
+    state.divisions = (state.divisions || []).some(item => item.id === id) ? state.divisions.map(item => (item.id === id ? next : item)) : [...(state.divisions || []), next]
+    saveLocal(state); return id
+  }
+  const row = isUuid(division.id)
+    ? must(await supabase.from('hr_divisions').update({ name }).eq('id', division.id).eq('organization_id', organizationId).select('id').single())
+    : must(await supabase.from('hr_divisions').insert({ organization_id: organizationId, name }).select('id').single())
+  const existing = must(await supabase.from('hr_division_categories').select('id, professional_category').eq('organization_id', organizationId).eq('division_id', row.id)) || []
+  const wanted = [...new Set((division.categories || []).map(item => String(item).trim()).filter(Boolean))]
+  const remove = existing.filter(item => !wanted.includes(item.professional_category)).map(item => item.id)
+  if (remove.length) must(await supabase.from('hr_division_categories').delete().eq('organization_id', organizationId).in('id', remove))
+  const add = wanted.filter(category => !existing.some(item => item.professional_category === category))
+  // A category belongs to one division only: moving it takes it from the previous one.
+  if (add.length) {
+    must(await supabase.from('hr_division_categories').delete().eq('organization_id', organizationId).in('professional_category', add))
+    must(await supabase.from('hr_division_categories').insert(add.map(category => ({ organization_id: organizationId, division_id: row.id, professional_category: category }))))
+  }
+  const currentMembers = must(await supabase.from('hr_division_members').select('id, user_id').eq('organization_id', organizationId).eq('division_id', row.id)) || []
+  const wantedMembers = division.members || []
+  const dropMembers = currentMembers.filter(item => !wantedMembers.includes(item.user_id)).map(item => item.id)
+  if (dropMembers.length) must(await supabase.from('hr_division_members').delete().eq('organization_id', organizationId).in('id', dropMembers))
+  const addMembers = wantedMembers.filter(userId => !currentMembers.some(item => item.user_id === userId))
+  if (addMembers.length) must(await supabase.from('hr_division_members').insert(addMembers.map(userId => ({ organization_id: organizationId, division_id: row.id, user_id: userId }))))
+  return row.id
+}
+export async function removeDivision(organizationId, divisionId) {
+  if (isLocal()) { const state = local(); state.divisions = (state.divisions || []).filter(item => item.id !== divisionId); saveLocal(state); return }
+  must(await supabase.from('hr_divisions').delete().eq('id', divisionId).eq('organization_id', organizationId))
+}
+
+// The users who can be given a division: active «Division Director» members of the hospital.
+export async function loadDivisionDirectors(organizationId) {
+  if (isLocal()) return [{ userId: 'demo-user-1', name: 'Μαρία Παπαδοπούλου (παράδειγμα)' }, { userId: 'demo-user-2', name: 'Νίκος Αλεξίου (παράδειγμα)' }]
+  if (!organizationId) return []
+  const members = must(await supabase.from('organization_members').select('user_id, status').eq('organization_id', organizationId).eq('role', 'division_director')) || []
+  if (!members.length) return []
+  const profiles = must(await supabase.from('profiles').select('id, full_name, contact_email').in('id', members.map(item => item.user_id))) || []
+  return members.map(item => { const profile = profiles.find(row => row.id === item.user_id); return { userId: item.user_id, name: profile?.full_name || profile?.contact_email || item.user_id } })
+}
+
+// What a Division Director reads: the candidates of the own division, professional data and CV only.
+export async function loadDivisionCandidates(organizationId) {
+  if (isLocal()) {
+    const state = local(), mapped = new Set((state.divisions || []).flatMap(item => item.categories || []))
+    return state.candidates.filter(item => mapped.has(item.professionalCategory)).map(item => Object.fromEntries(DIVISION_CANDIDATE_FIELDS.map(key => [key, item[key] ?? ''])))
+  }
+  if (!organizationId) return []
+  return must(await supabase.rpc('hr_division_candidates', { p_organization_id: organizationId })) || []
+}
+
+// The notes written while the application is discussed with the candidate.
+export async function saveCandidateNotes(organizationId, candidate, notes) {
+  const value = String(notes || '').trim() || null
+  if (isLocal()) { updateLocalCandidate(candidate.id, () => ({ notes: value || '' })); return }
+  must(await supabase.from('hr_candidates').update({ notes: value }).eq('id', candidate.id).eq('organization_id', organizationId))
 }
 
 export function interviewsErrorMessage(error, language = 'el') {

@@ -1,11 +1,11 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
-import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
 import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { EpiReminder } from './epiQuestionnaire/EpiQuestionnaireViews'
 import { epiPending, useEpiIndex } from './epiQuestionnaire/useEpiIndex'
 import { canWriteEpi, rowLine } from './epiQuestionnaire/epiQuestionnaireText'
@@ -21,7 +21,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { translate } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { RESISTANCE_ALERT, printSurveillanceReport, episodeTypeLabel } from './clinicalRecordLabels'
+import { RESISTANCE_ALERT, episodeTypeLabel } from './clinicalRecordLabels'
 import { CanonicalJourney } from './ClinicalJourney'
 import { SimpleDialog, SampleRequestDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { SAMPLE_TONES } from './ClinicalRecordViews'
@@ -37,11 +37,12 @@ export function SurveillanceWorkspace({
   onCreate,
   onCreateFromSample,
   onCreateSample,
-  onClearTestData,
   canCreate,
   canCreateSample,
   repository,
   onReload,
+  // The episode went to the recycle bin (the page may leave it, e.g. when it was opened from the list).
+  onEpisodeDeleted,
   t,
   language,
   fmtDate,
@@ -73,24 +74,7 @@ export function SurveillanceWorkspace({
       reason: '',
       suspectedSource: '',
     })
-  // The surveillance report window serves Print and PDF (save as PDF).
-  const printDetailReport = () => {
-                      if (
-                        !printSurveillanceReport(detailRecord, {
-                          language,
-                          fmtDate,
-                          fmtDateTime,
-                          t,
-                          libraries,
-                        })
-                      )
-                        notify(
-                          language === 'el'
-                            ? 'Το πρόγραμμα περιήγησης εμπόδισε το άνοιγμα της αναφοράς. Επιτρέψτε τα αναδυόμενα παράθυρα για το Limoxis Observer.'
-                            : 'The browser blocked the report window. Allow pop-ups for Limoxis Observer.',
-                          'error',
-                        )
-                    }
+  const deleteItem = useRecordDelete()
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
   const episodeKey = episodes.map(ep => ep.id).join(',')
   // The epidemiological questionnaire: a grey reminder, or the origin and risk factors in words, on each episode row.
@@ -173,12 +157,13 @@ export function SurveillanceWorkspace({
   async function removeEpisode() {
     if (!detailRecord || !deleteReason.trim()) return
     try {
-      await repository.voidCase(detailRecord, deleteReason.trim())
+      await repository.deleteCase(detailRecord, deleteReason.trim())
       setDeleteOpen(false)
       setDeleteReason('')
       setDetailId('')
-      await onReload()
       notify(t('clinicalRecords.surveillanceDeleted'), 'success')
+      if (onEpisodeDeleted?.(detailRecord)) return
+      await onReload()
     } catch (error) {
       notify(error?.message || t('actionFailed'), 'danger')
     }
@@ -248,7 +233,7 @@ export function SurveillanceWorkspace({
                   </Button>
                 </span>
               )}
-              <ExportMenu onPrint={printDetailReport} onPdf={printDetailReport} /><OverflowMenu
+              <OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',
                   language === 'el' ? 'el' : 'en',
@@ -267,7 +252,7 @@ export function SurveillanceWorkspace({
                     : null,
                   
                   
-                  permissions.canDelete
+                  permissions.canDelete?.(detailRecord)
                     ? {
                         id: 'delete',
                         label: translate(
@@ -309,6 +294,7 @@ export function SurveillanceWorkspace({
               fmtDateTime={fmtDateTime}
               permissions={permissions}
               deviceBundles={deviceBundles}
+              deleteItem={deleteItem}
             />
           </div>
         </section>
@@ -376,6 +362,9 @@ export function SurveillanceWorkspace({
               setDeleteReason('')
             }}
             onSave={removeEpisode}
+            saveLabel={t('moveToRecycleBin')}
+            note={t('moveToRecycleBinNote')}
+            danger
           />
         )}
       </div>
@@ -383,22 +372,8 @@ export function SurveillanceWorkspace({
   return (
     <RecordTabPanel
       className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
-      title={translate(
-        'copy.clinicalRecordCopy.surveillanceSamples',
-        language === 'el' ? 'el' : 'en',
-      )}
-      subtitle={translate(
-        'copy.clinicalRecordCopy.unifiedClinicalFlowLinkedSamplesAppear',
-        language === 'el' ? 'el' : 'en',
-      )}
       actions={
         <>
-          {onClearTestData && (
-            <Button variant="ghost" onClick={onClearTestData}>
-              <Trash2 size={15} />
-              {translate('copy.clinicalRecordCopy.clearTestData', language === 'el' ? 'el' : 'en')}
-            </Button>
-          )}
           {canCreate && (
             <Button className="clinical-primary-action" onClick={onCreate}>
               <PlayCircle size={15} />{' '}

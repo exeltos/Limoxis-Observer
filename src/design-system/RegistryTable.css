@@ -1,0 +1,5 @@
+.registry-sort{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;padding:0;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer}
+.registry-sort:hover{color:var(--nav)}
+.registry-sort-arrows{display:inline-flex;flex-direction:column;line-height:.8;font-size:7px;font-style:normal}
+.registry-sort-arrows i{font-style:normal;opacity:.35}
+.registry-sort-arrows i.on{opacity:1;color:var(--nav)}

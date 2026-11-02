@@ -42,7 +42,7 @@ vi.mock('../src/features/committees/useCommitteesData', () => ({
 }))
 
 const { CommitteeRecordPage } = await import('../src/features/committees/CommitteeRecordPage')
-const { MeetingDialog } = await import('../src/features/committees/CommitteeRecordDialogs')
+const { MeetingRecord } = await import('../src/features/committees/CommitteeMeetingRecord')
 const { saveCommittees } = await import('../src/features/committees/committeeData')
 
 const ROLE = 'infection_control_lead'
@@ -93,16 +93,20 @@ describe('committee record: members', () => {
 })
 
 describe('committee record: institutional framework', () => {
+  // The framework shows in the Overview and is edited from the record's «…» (no tab of its own).
   it('lets a role with create-committee rights edit the framework', () => {
-    openPage(); openTab('Θεσμικό πλαίσιο')
-    fireEvent.click(screen.getByRole('button', { name: /Ενέργειες/ }))
+    openPage()
+    expect(screen.queryByRole('tab', { name: /Θεσμικό πλαίσιο/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Ενέργειες εγγραφής/ }))
     expect(screen.getByRole('menuitem', { name: /Επεξεργασία θεσμικού πλαισίου/ })).toBeInTheDocument()
   })
 
   it('keeps framework edits away from the committee secretariat', () => {
     tenant = { ...tenant, role: 'committee_secretariat' }
-    openPage(); openTab('Θεσμικό πλαίσιο')
-    expect(screen.queryByRole('button', { name: /Ενέργειες/ })).not.toBeInTheDocument()
+    openPage()
+    const menu = screen.queryByRole('button', { name: /Ενέργειες εγγραφής/ })
+    if (menu) fireEvent.click(menu)
+    expect(screen.queryByRole('menuitem', { name: /Επεξεργασία θεσμικού πλαισίου/ })).not.toBeInTheDocument()
   })
 })
 
@@ -159,25 +163,30 @@ describe('committee record: meetings', () => {
     const listener = event => steps.push(event.detail.step)
     window.addEventListener(DEMO_STEP_EVENT, listener)
     fireEvent.click(within(form).getByRole('button', { name: /Δημιουργία & συνέχεια/ }))
-    await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('Πρακτικά συνεδρίασης'))
-    expect(dialog()).toHaveTextContent('Έκτακτη συνεδρίαση')
+    // The meeting opens as a page of its own, with its tabs.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Έκτακτη συνεδρίαση' })).toBeInTheDocument())
+    expect(screen.getByText(/Πρακτικά συνεδρίασης/)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     // The Demo guide's committee scenario: meeting scheduled, then minutes saved.
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Αποθήκευση' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Αποθήκευση' }))
     await waitFor(() => expect(steps).toEqual(['meeting', 'minutes']))
     window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(notifications.addAnnouncement).toHaveBeenCalledWith(expect.objectContaining({ audienceType: 'user', audienceValues: ['u-anna', 'u-vasilis'] }))
   })
 
-  it('closes only from the header and lets an accidental agenda topic be removed', () => {
+  it('opens the minutes as a page and lets an accidental agenda topic be removed', () => {
     rows = [committee({ meetings: [meeting()] })]
     openPage(); openTab('Συνεδριάσεις')
     fireEvent.click(screen.getByText('Μηνιαία συνεδρίαση'))
-    const minutes = dialog()
-    expect(within(minutes).getAllByRole('button', { name: 'Κλείσιμο' })).toHaveLength(1)
-    expect(within(minutes).getByDisplayValue('Δεύτερο θέμα')).toBeInTheDocument()
-    fireEvent.click(within(minutes).getAllByRole('button', { name: 'Διαγραφή θέματος' })[1])
-    expect(within(minutes).queryByDisplayValue('Δεύτερο θέμα')).not.toBeInTheDocument()
-    expect(within(minutes).getByDisplayValue('Πρώτο θέμα')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    openTab('Θέματα & αποφάσεις')
+    expect(screen.getByDisplayValue('Δεύτερο θέμα')).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Διαγραφή θέματος' })[1])
+    expect(screen.queryByDisplayValue('Δεύτερο θέμα')).not.toBeInTheDocument()
+    expect(screen.getByDisplayValue('Πρώτο θέμα')).toBeInTheDocument()
+    // «Back» returns to the committee's meetings.
+    fireEvent.click(screen.getByRole('button', { name: 'Επιτροπή' }))
+    expect(screen.getByRole('tab', { name: /Συνεδριάσεις/, selected: true })).toBeInTheDocument()
   })
 
   it('cancels a meeting through a governed reason dialog', () => {
@@ -192,22 +201,23 @@ describe('committee record: meetings', () => {
     rows = [committee({ meetings: [meeting({ status: 'cancelled', cancellationReason: 'Έλλειψη απαρτίας' })] })]
     openPage(); openTab('Συνεδριάσεις')
     fireEvent.click(screen.getByText('Μηνιαία συνεδρίαση'))
-    expect(within(dialog()).getByDisplayValue('Πρώτο θέμα')).toBeDisabled()
-    expect(within(dialog()).queryByRole('button', { name: 'Διαγραφή θέματος' })).not.toBeInTheDocument()
+    openTab('Θέματα & αποφάσεις')
+    expect(screen.getByDisplayValue('Πρώτο θέμα')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Διαγραφή θέματος' })).not.toBeInTheDocument()
   })
 
   it('shows the requested corrections when minutes return to draft', () => {
     rows = [committee({ meetings: [meeting({ status: 'draft', approvals: [{ id: 'AP-1', status: 'rejected', comment: 'Λάθος ημερομηνία στο θέμα 1' }] })] })]
     openPage(); openTab('Συνεδριάσεις')
     fireEvent.click(screen.getByText('Μηνιαία συνεδρίαση'))
-    expect(within(dialog()).getByText('Ζητήθηκαν διορθώσεις στα πρακτικά')).toBeInTheDocument()
-    expect(within(dialog()).getByText('Λάθος ημερομηνία στο θέμα 1')).toBeInTheDocument()
+    expect(screen.getByText('Ζητήθηκαν διορθώσεις στα πρακτικά')).toBeInTheDocument()
+    expect(screen.getByText('Λάθος ημερομηνία στο θέμα 1')).toBeInTheDocument()
   })
 
   it('sends a change request with its comment from the shared approval panel', async () => {
     const onApproval = vi.fn()
     const pending = meeting({ status: 'approval_pending', approvals: [{ id: 'AP-1', status: 'pending', approverId: 'u-actor', approverName: 'Actor' }] })
-    render(<LanguageProvider><MeetingDialog meeting={pending} members={members} actorId="u-actor" canSave canFinalize busy={false} onClose={() => {}} onSave={() => {}} onApproval={onApproval} onExternalAction={() => {}} en={false}/></LanguageProvider>)
+    render(<LanguageProvider><MemoryRouter><MeetingRecord meeting={pending} members={members} actorId="u-actor" canSave canFinalize busy={false} onBack={() => {}} onSave={() => {}} onApproval={onApproval} onExternalAction={() => {}} en={false}/></MemoryRouter></LanguageProvider>)
     fireEvent.click(screen.getByRole('button', { name: /Αίτημα διορθώσεων/ }))
     fireEvent.change(await screen.findByPlaceholderText('Περιγράψτε τις απαιτούμενες διορθώσεις…'), { target: { value: 'Συμπληρώστε το θέμα 2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Αποστολή αιτήματος' }))
@@ -255,13 +265,15 @@ describe('committee record: documents', () => {
 })
 
 describe('committee record: layout', () => {
-  it('uses the compact meeting layout with an attendance block that does not scroll sideways', () => {
+  it('lays the minutes out as tabs: attendance and compact topic cards', () => {
     rows = [committee({ meetings: [meeting()] })]
     openPage(); openTab('Συνεδριάσεις')
     fireEvent.click(screen.getByText('Μηνιαία συνεδρίαση'))
-    expect(dialog()).toHaveClass('committee-meeting-dialog')
-    expect(dialog().querySelector('.committee-attendance-wrap')).not.toBeNull()
-    expect(dialog().querySelectorAll('.committee-topic-card-compact')).toHaveLength(2)
+    expect(document.querySelector('.committee-meeting-record')).not.toBeNull()
+    openTab('Παρουσίες')
+    expect(document.querySelector('.committee-attendance-wrap')).not.toBeNull()
+    openTab('Θέματα & αποφάσεις')
+    expect(document.querySelectorAll('.committee-topic-card-compact')).toHaveLength(2)
   })
 
   it('styles the decisions section through the shared committee-decisions class', () => {

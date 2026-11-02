@@ -2,7 +2,7 @@
    platform update bar. Loaded after the global sheets by ManagementPage. */
 
 /* ---------- Platform update bar ---------- */
-.management-shell>.management-center-update-bar{display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:14px 16px;border:1px solid #cfe0ee;border-radius:14px;background:linear-gradient(135deg,#f3f8fc 0%,#ffffff 55%,#f1f6fb 100%);box-shadow:0 1px 2px rgba(22,52,78,.06);margin-bottom:12px}
+.page>.management-center-update-bar{display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:14px 16px;border:1px solid #cfe0ee;border-radius:14px;background:linear-gradient(135deg,#f3f8fc 0%,#ffffff 55%,#f1f6fb 100%);box-shadow:0 1px 2px rgba(22,52,78,.06);margin-bottom:12px}
 .management-center-update-bar .management-update-emblem{flex:0 0 auto;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#1f5f8b,#2f86b8);color:#fff;box-shadow:0 4px 10px rgba(31,95,139,.25)}
 .management-center-update-bar .management-update-copy{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
 .management-center-update-bar .management-update-copy strong{font-size:14.5px;color:#183a55}
@@ -19,7 +19,7 @@
 .management-center-update-bar .management-update-pending{border:1px solid #f0cf8a;background:#fff8e8;color:#8a5a00}
 .management-center-update-bar .management-update-pending b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#e39b12;color:#fff;font-size:11px}
 @keyframes management-update-spin{to{transform:rotate(360deg)}}
-@media(max-width:900px){.management-shell>.management-center-update-bar{flex-wrap:wrap}.management-center-update-bar .management-update-actions{width:100%;justify-content:flex-start}}
+@media(max-width:900px){.page>.management-center-update-bar{flex-wrap:wrap}.management-center-update-bar .management-update-actions{width:100%;justify-content:flex-start}}
 
 /* ---------- Shared panel header ---------- */
 .management-shell .section-toolbar,.management-shell .bundle-library-toolbar{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;margin:0 0 12px!important;padding:4px 0 12px!important;border-bottom:1px solid #e3e9ef!important}
@@ -30,26 +30,8 @@
 .observer-dialog .section-toolbar{border-bottom:0!important;padding:0!important}
 
 /* ---------- LIRA & AI ---------- */
-.management-lira-ai .management-card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
-.management-lira-ai .record-section{padding:14px!important;border:1px solid #dbe2e8!important;border-radius:12px!important;background:#fff!important}
-.management-lira-ai .record-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
-.management-lira-ai .record-section-header h3{display:flex;align-items:center;gap:7px;margin:2px 0 0;font-size:15px;color:#1d3a52}
-.management-lira-ai .entry-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.management-lira-ai .entry-form-grid .field-wide{grid-column:1/-1}
-.management-lira-ai .field small{display:block;margin-top:5px;font-size:11.5px;color:#5f6e7c}
-.management-lira-ai .management-ai-permissions{display:flex;flex-direction:column;gap:10px}
-.management-lira-ai .management-ai-permission{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid #dbe2e8;border-radius:10px;background:#fbfcfd;cursor:pointer;transition:border-color .12s ease,background .12s ease}
-.management-lira-ai .management-ai-permission.selected{border-color:#9cc3de;background:#f2f8fc}
-.management-lira-ai .management-ai-permission input{width:18px;height:18px;margin:0;accent-color:#1f5f8b}
-.management-lira-ai .management-ai-permission strong{display:block;font-size:13px;color:#1d3a52}
-.management-lira-ai .management-ai-permission small{display:block;margin-top:2px;font-size:11.5px;color:#5f6e7c}
-.management-lira-ai .dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
-@media(max-width:900px){.management-lira-ai .management-card-grid,.management-lira-ai .entry-form-grid{grid-template-columns:1fr}}
-.management-lira-ai .management-card-grid>.record-section{margin:0!important}
-.management-lira-ai .management-lira-demo-note{margin-top:12px;font-size:12px;color:#5f6e7c;text-align:right}
-.management-lira-ai .management-lira-demo-note+.dialog-actions{margin-top:6px}
 /* modules.css turns every direct child div of the bar into a column. */
-.management-shell>.management-center-update-bar>.management-update-actions{flex-direction:row!important;gap:8px!important}
+.page>.management-center-update-bar>.management-update-actions{flex-direction:row!important;gap:8px!important}
 
 
 /* ---------- LIRA knowledge source dialog ---------- */
@@ -87,7 +69,7 @@
 .hai-criteria-dialog .hai-group-head input,.hai-criteria-dialog .hai-group-head select{height:38px;width:100%}
 .hai-criteria-dialog .hai-group-index{display:grid;place-items:center;width:30px;height:38px;border-radius:8px;background:#e6f0f7;color:#0b6097;font-weight:800;font-size:13px}
 .hai-criteria-dialog .hai-item-table{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-.hai-criteria-dialog .hai-item-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;align-items:start;gap:10px}
+.hai-criteria-dialog .hai-item-row{display:grid;grid-template-columns:minmax(0,1fr) 36px;align-items:start;gap:10px}
 .hai-criteria-dialog .hai-item-row.hai-item-head{align-items:end;padding:0 2px}
 .hai-criteria-dialog .hai-item-row textarea{width:100%;min-height:52px;padding:8px 10px;resize:vertical;font:inherit;font-size:13px;line-height:1.4;border:1px solid #cfd9e2;border-radius:8px;background:#fff}
 .hai-criteria-dialog .hai-item-row>button{margin-top:8px}
@@ -95,7 +77,7 @@
 .hai-criteria-dialog .hai-group-actions{display:flex;justify-content:flex-start;margin-top:10px}
 @media(max-width:760px){.hai-criteria-dialog .hai-editor-meta-grid,.external-source-form{grid-template-columns:1fr!important}.hai-criteria-dialog .hai-group-head{grid-template-columns:30px 1fr 36px}.hai-criteria-dialog .hai-group-head label:nth-of-type(2){grid-column:2}.hai-criteria-dialog .hai-item-row{grid-template-columns:1fr 36px}.hai-criteria-dialog .hai-item-head{display:none}}
 .hai-criteria-dialog .hai-group-card.is-locked .hai-group-head{grid-template-columns:30px minmax(0,1fr) minmax(0,1fr)}
-.hai-criteria-dialog .hai-group-card.is-locked .hai-item-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.hai-criteria-dialog .hai-group-card.is-locked .hai-item-row{grid-template-columns:minmax(0,1fr)}
 .hai-criteria-dialog .hai-item-row textarea:disabled{background:#fbfcfd;color:#33495f;opacity:1}
 .lira-knowledge-dialog .lira-knowledge-summary .record-details-grid>.detail-item{padding:12px 14px!important;margin:0!important;border:0!important;border-right:1px solid #eef2f5!important;border-bottom:1px solid #eef2f5!important;border-radius:0!important;background:#fff!important;gap:6px!important;justify-content:flex-start!important}
 .lira-knowledge-dialog .lira-knowledge-summary .record-details-grid>.detail-item>strong{display:block!important;margin:0!important}
@@ -108,41 +90,6 @@
 @media(max-width:760px){.lira-knowledge-dialog .lira-knowledge-new-version{grid-template-columns:1fr}}
 
 /* ---------- Outbreak investigation workspace ---------- */
-.outbreak-workspace{display:flex;flex-direction:column;gap:14px}
-.outbreak-workspace>.record-section{margin:0!important;padding:14px 16px!important;border:1px solid #dbe2e8!important;border-radius:12px!important;background:#fff!important}
-.outbreak-workspace .record-section-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
-.outbreak-workspace .record-section-header h3{display:flex;align-items:center;gap:7px;margin:2px 0 0;font-size:15px;color:#1d3a52}
-.outbreak-workspace .record-section-header p{margin:4px 0 0;font-size:12px;color:#5f6e7c;max-width:760px}
-.outbreak-workspace .outbreak-summary .record-details-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:0!important;border:1px solid #eef2f5;border-radius:10px;overflow:hidden;padding:0!important;margin:0!important;background:#fff!important}
-.outbreak-workspace .outbreak-summary .record-details-grid>.detail-item{padding:10px 12px!important;margin:0!important;border:0!important;border-right:1px solid #eef2f5!important;border-radius:0!important;background:#fff!important;display:flex;flex-direction:column;gap:5px}
-.outbreak-workspace .outbreak-summary .detail-item>span{font-size:11px;font-weight:700;color:#5f6e7c}
-.outbreak-workspace .outbreak-summary .detail-item>strong{font-size:13.5px;color:#1d3a52}
-.outbreak-workspace .outbreak-summary .status-badge{display:inline-flex!important;width:auto!important;max-width:max-content}
-.outbreak-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
-.outbreak-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
-.outbreak-metric{padding:10px 12px;border:1px solid #e3e9ef;border-radius:10px;background:#fbfcfd}
-.outbreak-metric span{display:block;font-size:11.5px;color:#5f6e7c}
-.outbreak-metric strong{display:block;margin-top:4px;font-size:22px;color:#1d3a52;font-variant-numeric:tabular-nums}
-.outbreak-metric.is-warning{border-color:#f0cf8a;background:#fff8e8}
-.outbreak-metric.is-warning strong{color:#8a5a00}
-.outbreak-blockers{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.outbreak-workspace .table-wrap{border:1px solid #e3e9ef;border-radius:10px;overflow:auto}
-.outbreak-workspace td small{display:block;font-size:11.5px;color:#5f6e7c}
-.outbreak-status-select{height:34px;min-width:150px;padding:0 10px;border:1px solid #cfd9e2;border-radius:8px;background:#fff;font:inherit;font-size:13px}
-.outbreak-timeline,.outbreak-evidence{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid #dbe7f1;display:flex;flex-direction:column;gap:10px}
-.outbreak-timeline li{display:grid;grid-template-columns:100px auto minmax(0,1fr);align-items:center;gap:10px;position:relative;font-size:13px;color:#33495f}
-.outbreak-timeline li::before,.outbreak-evidence li::before{content:'';position:absolute;left:-20px;top:9px;width:10px;height:10px;border-radius:50%;background:#2582bd;box-shadow:0 0 0 3px #fff}
-.outbreak-timeline time{font-weight:700;color:#1d3a52;font-variant-numeric:tabular-nums}
-.outbreak-evidence li{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px}
-.outbreak-evidence li strong{display:block;font-size:13px;color:#1d3a52;font-weight:600}
-.outbreak-evidence li time{display:block;margin-top:2px;font-size:11.5px;color:#5f6e7c}
-.outbreak-note{width:100%;padding:10px 12px;border:1px solid #cfd9e2;border-radius:10px;font:inherit;font-size:13px;resize:vertical}
-.outbreak-note-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
-@media(max-width:900px){.outbreak-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.outbreak-workspace .outbreak-summary .record-details-grid{grid-template-columns:1fr 1fr!important}}
-.outbreak-workspace .outbreak-status-select{width:170px!important;max-width:170px}
-.outbreak-evidence li{grid-template-columns:150px minmax(0,1fr)!important}
-.outbreak-evidence li>.status-badge{justify-self:start}
-.outbreak-workspace #lira-investigation-capa td:first-child{min-width:220px}
 
 /* Platform update center: one row per detected source change. */
 .security-setting{display:grid;gap:6px;max-width:460px;padding:4px 0 8px}
@@ -162,22 +109,68 @@
 .identity-preview-band small{font-size:12px;color:#5d7891}
 @media(max-width:800px){.identity-settings{grid-template-columns:1fr}}
 /* «Ορισμοί δεικτών»: the hospital indicator list under the definitions, one tab. */
-.management-indicator-list{margin-top:18px;padding-top:14px;border-top:1px solid var(--lo-color-border,#e2e8ef)}
-.outbreak-investigations{margin-top:14px}
-.page-fill>.outbreak-investigations{margin-top:0}
-.outbreak-clusters{margin:0 0 14px;padding:10px 14px;border:1px solid #e3e9ef;border-radius:10px;background:#fbfcfd}
-.outbreak-clusters h3{margin:0 0 6px;font-size:13px;font-weight:750;color:#1d3a52}
-.outbreak-clusters ul{margin:0;padding:0;list-style:none}
-.outbreak-clusters li{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid #eef2f5}
-.outbreak-clusters li:first-child{border-top:0}
-.outbreak-clusters li>div{min-width:0}
-.outbreak-clusters li strong{display:block;font-size:13px;color:#1d3a52}
-.outbreak-clusters li span{display:block;margin-top:2px;font-size:12px;color:#5f6e7c}
-.outbreak-toolbar{display:flex;justify-content:flex-end;margin:0 0 10px}
-.outbreak-section-title{margin:0 0 6px;font-size:13px;font-weight:750;color:#1d3a52}
-.outbreak-clusters li .outbreak-start{flex:none;min-height:30px;padding:3px 12px;font-size:12.5px}
-.outbreak-cluster-note{margin:0 0 12px;font-size:12.5px;color:#4a5f6c}
-.outbreak-clusters li small.outbreak-cluster-rule{display:block;margin-top:2px;font-size:12px;color:#7a5a00}
-.outbreak-create-form{min-width:0;max-width:100%}
-.outbreak-create-form .lo-form-grid>*{min-width:0}
-@media(max-width:640px){.outbreak-clusters li{flex-direction:column;align-items:flex-start}}
+/* The tab above already names the panel: its own title stays for screen readers only. */
+.management-shell .section-toolbar>div>h2{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* A settings screen opened from the left list of a group (Νοσοκομείο, Λίστες): it scrolls on its own. */
+.library-extra-scroll{height:100%;min-height:0;overflow:auto}
+/* A user (or a new user) opens as a record in place of the list: back arrow, «…» on the card, Save at the bottom. */
+.management-user-body{padding:14px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.management-user-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
+.management-user-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
+.management-user-shell .record-tab-panel-body{flex:1 1 auto;overflow:auto}
+.management-role-editor-count-text{margin-right:auto;color:var(--color-text-secondary,#64748b);font-size:13px}
+/* In a record the whole tab scrolls once: the permission groups take their full height. */
+.management-user-body>*{flex:none}
+.management-user-body .management-role-capability-groups{max-height:none;overflow:visible}
+.management-user-body .management-role-capability{grid-template-columns:18px minmax(0,1fr) auto;align-items:center}
+/* Inside a group (Νοσοκομείο, Λίστες) each screen shows its own title, with its button on the right. */
+.management-shell .library-extra-scroll .section-toolbar>div>h2,.management-shell .library-content>.section-toolbar>div>h2,.management-shell .bed-days-panel>.section-toolbar>div>h2{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal}
+.announcement-row-text{display:block;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.library-extra-scroll>.management-section{padding-left:0;padding-right:0}
+/* Lists: a search over the names and titled groups that open and close. */
+.library-rail-search{display:flex;align-items:center;gap:6px;margin:0 0 6px;padding:0 8px;height:34px;border:1px solid var(--lo-color-border,#e2e8f0);border-radius:8px;background:#fff;color:var(--lo-color-muted,#64748b)}
+.library-rail-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:12.5px}
+.library-rail-group{display:flex;flex-direction:column;gap:2px}
+.library-categories-v2 .library-rail-group-head{display:flex;align-items:center;gap:6px;min-height:30px;padding:6px 6px 4px;border:0;background:transparent;color:var(--lo-color-muted,#5d7891);font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-align:left;cursor:pointer}
+.library-categories-v2 .library-rail-group-head span{flex:1}
+.library-categories-v2 .library-rail-group-head small{font-size:10.5px;font-weight:700}
+.management-section .library-categories-v2 .library-rail-group>button:not(.library-rail-group-head){min-height:34px;padding:4px 8px}
+.management-section .library-categories-v2 .library-rail-group>button>b{font-size:11px}
+.management-section .library-categories-v2 .library-rail-group .library-category-icon{width:24px;height:24px;border-radius:7px}
+.management-section .library-categories-v2 .library-rail-group .library-category-copy strong{font-size:11.5px}
+/* Κλινοημέρες: «Φίλτρα» beside «Νέα καταχώρηση», not on a row of its own over the list. */
+.bed-days-actions{flex-wrap:nowrap}
+.bed-days-actions .filter-system{margin:0;padding:0;border:0;background:transparent}
+/* A system entry (read-only for the hospital): a small lock beside its name instead of a badge. */
+.library-lock{margin-left:6px;vertical-align:-1px;color:var(--lo-color-muted,#64748b)}
+/* Lists › Indicator definitions: the group's heading, the list's actions on its right, the table filling the rest. */
+.library-extra-scroll>.management-section:has(>.indicator-defs-embedded){height:100%;min-height:0}
+
+.management-lira-ai .lira-ai-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #e3e8ee}
+.management-lira-ai .lira-ai-head h2{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:700;color:#1d3a52}
+.management-lira-ai .lira-ai-head p{margin:4px 0 0;font-size:13px;color:#5f6e7c}
+.management-lira-ai .lira-ai-actions{display:flex;gap:8px;flex:none}
+.management-lira-ai .lira-ai-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;border-bottom:1px solid #e3e8ee}
+.management-lira-ai .lira-ai-block{padding:16px 0}
+.management-lira-ai .lira-ai-block h3{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:15px;color:#1d3a52}
+.management-lira-ai .lira-ai-block h3 .status-badge{margin-left:auto}
+.management-lira-ai .lira-ai-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.management-lira-ai .lira-ai-wide{grid-column:1/-1}
+.management-lira-ai .field small,.management-lira-ai .lira-ai-check small{display:block;margin-top:3px;font-size:11.5px;color:#5f6e7c}
+.management-lira-ai .lira-ai-check{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer}
+.management-lira-ai .lira-ai-check input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:#1f5f8b}
+.management-lira-ai .lira-ai-check strong{display:block;font-size:13px;color:#1d3a52}
+.management-lira-ai .lira-ai-translation-row{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:32px;align-items:start}
+@media(max-width:900px){.management-lira-ai .lira-ai-grid,.management-lira-ai .lira-ai-fields,.management-lira-ai .lira-ai-translation-row{grid-template-columns:1fr;gap:12px}.management-lira-ai .lira-ai-head{flex-direction:column}}
+.bed-days-record-shell .bed-days-num{text-align:right;font-variant-numeric:tabular-nums}
+.bed-days-num-head{display:block;text-align:right}
+.bed-days-record-shell .bed-days-sum td{color:var(--lo-color-muted)}
+.bed-days-record-shell .bed-days-total td{font-weight:700;border-top:2px solid var(--lo-color-border)}
+.bed-days-editor{display:flex;flex-direction:column;gap:18px;padding:12px 14px 0}
+.bed-days-period-fields{display:grid;grid-template-columns:repeat(3,minmax(0,220px));gap:12px}
+.bed-days-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;border-top:1px solid var(--lo-color-border)}
+.bed-days-lines-total{grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:0;margin-top:-18px}
+.bed-days-line{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--lo-color-border);font-size:13.5px}
+.bed-days-line input{height:36px;text-align:right}
+.bed-days-line-total{font-weight:700}
+@media(max-width:760px){.bed-days-period-fields,.bed-days-lines{grid-template-columns:1fr}}

@@ -8,7 +8,8 @@ import { FORM_STATUS } from '../formStatus'
 import { EpiQuestionnaireDialog } from '../../epiQuestionnaire/EpiQuestionnaireViews'
 import { activeEpiQuestions, applyEpiSettings, answerOf, epiCounts, epiSummary, epiText } from '../../epiQuestionnaire/epiQuestionnaireModel'
 import { canWriteEpi, fill, originWords, riskWords } from '../../epiQuestionnaire/epiQuestionnaireText'
-import { loadEpiQuestionnaires, loadEpiSettings } from '../../epiQuestionnaire/epiQuestionnaireService'
+import { binMemoryRow } from '../../../../core/recycleBin/recycleBinService'
+import { loadEpiQuestionnaires, loadEpiSettings, removeDemoEpiQuestionnaire } from '../../epiQuestionnaire/epiQuestionnaireService'
 
 // «Επιδημιολογικό ιστορικό»: the epidemiological questionnaire of the episode, as a section of the
 // «Φόρμες & ερωτηματολόγια» tab. One row per episode (the questionnaire is one per episode); the
@@ -67,6 +68,21 @@ function EpiQuestionnaireSection({ ctx, section, reload }) {
                 date={updated ? ctx.fmtDate(updated) : ''}
                 dateLabel={updated ? t('epiQuestionnaire.updatedOn') : ''}
                 action={{ label: t('episodeForms.open'), onClick: () => setOpen(item) }}
+                menu={[
+                  item.row &&
+                    ctx.deleteItem?.({
+                      createdBy: item.row.answeredBy,
+                      table: 'surveillance_case_questionnaires',
+                      id: item.row.id,
+                      label: t('epiQuestionnaire.sectionTitle'),
+                      detail: item.episode.id,
+                      demo: async () => {
+                        const removed = removeDemoEpiQuestionnaire(item.key)
+                        if (removed) await binMemoryRow(null, { module: 'clinical', kind: 'surveillance_case_questionnaires', label: t('epiQuestionnaire.sectionTitle'), detail: item.episode.id, store: 'epi_questionnaires', row: removed })
+                      },
+                      onDone: reload,
+                    }),
+                ]}
               />
             )
           })}

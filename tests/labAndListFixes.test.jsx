@@ -78,7 +78,7 @@ describe('staff surveillance record page', () => {
     await openRecord()
     await waitFor(() => expect(screen.queryAllByRole('tab').length).toBeGreaterThan(0), { timeout: 5000 })
     fireEvent.click(screen.getByRole('tab', { name: 'Ιστορικό' }))
-    expect(await screen.findByText('Έναρξη επιτήρησης')).toBeInTheDocument()
+    expect(await screen.findByText('Έναρξη ελέγχου')).toBeInTheDocument()
   })
 
   it('says when the record does not exist', async () => {

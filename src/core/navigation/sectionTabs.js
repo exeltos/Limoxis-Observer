@@ -26,6 +26,7 @@ export const SECTION_TABS = Object.freeze({
       { id: 'documents', label: 'sidebarNav.tabDocuments', capability: CAPABILITIES.VIEW_DOCUMENTS },
       { id: 'regulations', label: 'sidebarNav.tabRegulations', capability: CAPABILITIES.VIEW_DOCUMENTS, anyCapabilities: [CAPABILITIES.VIEW_DOCUMENTS, CAPABILITIES.VIEW_QUALITY] },
       { id: 'legislation', label: 'sidebarNav.tabLegislation', capability: CAPABILITIES.VIEW_QUALITY },
+      { id: 'acknowledgements', label: 'sidebarNav.tabAcknowledgements', capability: CAPABILITIES.VIEW_DOCUMENTS },
     ],
   },
   meetings: {

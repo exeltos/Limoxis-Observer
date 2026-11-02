@@ -8,12 +8,12 @@ const demoReports = new Map()
 const DEMO_NOTIFIED_AT = new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10)
 demoReports.set('clinical|demo-1', { id: 'clinical|demo-1', findingKey: 'clinical|demo-1', status: 'notified', notifiedAt: DEMO_NOTIFIED_AT, reference: 'ΕΟΔΥ-2026-0147', notes: '', updatedAt: `${DEMO_NOTIFIED_AT}T10:00:00Z`, sampleId: '', patientRecordId: 'PT-260231', disease: 'Ελονοσία', diseaseCode: 'malaria', createdAt: `${DEMO_NOTIFIED_AT}T09:30:00Z` })
 
-const mapRow = row => ({ id: row.id, findingKey: row.finding_key, status: row.status, notifiedAt: row.notified_at || '', reference: row.reference || '', notes: row.notes || '', updatedAt: row.updated_at, sampleId: row.sample_id || '', patientRecordId: row.patient_id || '', disease: row.disease_label || '', diseaseCode: row.disease_code || '', createdAt: row.created_at || '' })
+const mapRow = row => ({ id: row.id, findingKey: row.finding_key, status: row.status, notifiedAt: row.notified_at || '', reference: row.reference || '', notes: row.notes || '', updatedBy: row.updated_by || null, updatedAt: row.updated_at, sampleId: row.sample_id || '', patientRecordId: row.patient_id || '', disease: row.disease_label || '', diseaseCode: row.disease_code || '', createdAt: row.created_at || '' })
 
 export async function loadNotificationReports(organizationId, { isDemo = false } = {}) {
   if (isDemo) return [...demoReports.values()]
   if (!supabase || !organizationId) return []
-  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at').eq('organization_id', organizationId)
+  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').eq('organization_id', organizationId)
   if (error) throw error
   return (data || []).map(mapRow)
 }
@@ -41,7 +41,7 @@ export async function saveNotificationReport(organizationId, finding, draft, { i
     reference: report.reference || null,
     notes: report.notes || null,
     updated_at: report.updatedAt,
-  }, { onConflict: 'organization_id,finding_key' }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at').single()
+  }, { onConflict: 'organization_id,finding_key' }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').single()
   if (error) throw error
   return mapRow(data)
 }
@@ -54,7 +54,7 @@ export async function loadRecordNotificationReports(organizationId, { sampleReco
   const ids = [...new Set(sampleRecordIds.filter(Boolean))]
   const filters = [ids.length && `sample_id.in.(${ids.join(',')})`, patientRecordId && `patient_id.eq.${patientRecordId}`].filter(Boolean)
   if (!filters.length) return []
-  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at').eq('organization_id', organizationId).or(filters.join(',')).order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('notifiable_disease_reports').select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').eq('organization_id', organizationId).or(filters.join(',')).order('created_at', { ascending: false })
   if (error) throw error
   return (data || []).map(mapRow)
 }
@@ -80,7 +80,7 @@ export async function createClinicalNotificationReport(organizationId, { patient
     disease_label: entry.el,
     status: 'pending',
     notification_deadline: { '24h': '24h', weekly: 'week' }[entry.deadline] || null,
-  }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at').single()
+  }).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').single()
   if (error) throw error
   return mapRow(data)
 }
@@ -89,7 +89,17 @@ export async function createClinicalNotificationReport(organizationId, { patient
 export async function updateNotificationReport(organizationId, id, draft, { isDemo = false } = {}) {
   const patch = { status: draft.status, notified_at: draft.status === 'notified' ? (draft.notifiedAt || new Date().toISOString().slice(0, 10)) : null, reference: draft.reference || null, notes: draft.notes || null, updated_at: new Date().toISOString() }
   if (isDemo || !supabase) return { id, status: draft.status, notifiedAt: patch.notified_at || '', reference: draft.reference || '', notes: draft.notes || '' }
-  const { data, error } = await supabase.from('notifiable_disease_reports').update(patch).eq('organization_id', organizationId).eq('id', id).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at').single()
+  const { data, error } = await supabase.from('notifiable_disease_reports').update(patch).eq('organization_id', organizationId).eq('id', id).select('id,finding_key,status,notified_at,reference,notes,updated_at,sample_id,patient_id,disease_label,disease_code,created_at,updated_by').single()
   if (error) throw error
   return mapRow(data)
+}
+
+// Demo only: the saved report leaves the session list (and comes back on «Restore» from the recycle bin).
+export function removeDemoNotificationReport(findingKey) {
+  const report = demoReports.get(findingKey)
+  demoReports.delete(findingKey)
+  return report || null
+}
+export function restoreDemoNotificationReport(report) {
+  if (report?.findingKey) demoReports.set(report.findingKey, report)
 }

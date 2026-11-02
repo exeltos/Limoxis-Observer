@@ -2,6 +2,7 @@ import { supabase } from '../../core/supabase/client'
 import { selectAllPages } from '../../core/data/inChunks'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { loadQualityLocal, saveQualityLocal } from './qualityStore'
+import { missingNextAudits, spreadAuditRound } from './audits/auditModel'
 import { expectVersion, guardedSingle } from '../../core/data/recordVersion'
 import { DETAIL_TABLES, INCIDENT_DETAIL_SELECT, incidentDetailRows, incidentDetailsFromRow, keptDetails } from './incidentDetails'
 import { CHECKLIST_FIELDS, CHECKLIST_SELECT, ROOT_CAUSE_SELECT, TEAM_FIELDS, teamFromRows, teamRows, SUB_ACTION_FIELDS, analysisFromRow, analysisRows, checklistFromRows, checklistRows, diffChildRows, newRowId, progressFromRows, progressRow, sameAnalysis, subActionRows, subActionsFromRows } from './qualityRelations'
@@ -87,7 +88,7 @@ export function mapRow(section,row){
     descriptionEn:row.description_en||row.description||'',
     reportedBy:row.reported_by_label||'',
     reportedById:row.reported_by||null,
-    anonymous:Boolean(row.is_anonymous),
+    anonymous:Boolean(row.is_anonymous),privacy:row.privacy||(row.is_anonymous?'anonymous':'named'),visibility:row.visibility||'',visibleTo:row.visible_to||null,
     reportKind:row.report_kind||'',
     sentinel:Boolean(row.is_sentinel),
     rcaDueDate:row.rca_due_date||'',
@@ -156,6 +157,8 @@ export function mapRow(section,row){
     templateTitle:row.template_title||'',
     templateVersion:row.template_version||null,
     standard:row.standard||'',
+    standards:row.standards||[],
+    extraTemplateIds:row.extra_template_ids||[],
     clausesScope:row.clauses_scope||[],
     plannedMonthOnly:Boolean(row.planned_month_only),
     riskLevel:row.risk_level||'',
@@ -166,6 +169,11 @@ export function mapRow(section,row){
     conclusion:row.conclusion||'',
     followUpOf:row.follow_up_code||'',
     origin:row.source||'app',
+    durationDays:row.duration_days??null,
+    auditBody:row.audit_body||'',
+    notes:row.notes||'',
+    reportSentOn:row.report_sent_on||'',
+    correctionsDueOn:row.corrections_due_on||'',
     team:teamFromRows(row.team),
   }
 }
@@ -242,6 +250,17 @@ async function syncChildRows({table,parentColumn,parentId,organizationId,rows,fi
   if(upsert.length)must(await supabase.from(table).upsert(upsert.map(row=>({...row,organization_id:organizationId,[parentColumn]:parentId}))))
 }
 
+// How private a staff report is: 'named' (default), 'confidential' (the reporter is kept but not shown)
+// or 'anonymous' (no reporter). The columns are sent only for a private report, so a named report
+// still saves before the privacy migration is applied.
+function reportPrivacy(draft){return draft.privacy||(draft.anonymous?'anonymous':'named')}
+function reportPrivacyColumns(draft){
+  const privacy=reportPrivacy(draft)
+  if(privacy==='named') return {}
+  const visibility=draft.visibility||'admin'
+  return {privacy,visibility,visible_to:visibility==='person'&&isUuid(draft.visibleTo)?draft.visibleTo:null}
+}
+
 // An incident's event details: one row per block its event type records; a
 // block the record had and no longer records is removed. A new report only
 // inserts (an anonymous reporter may not read the incident back).
@@ -314,6 +333,8 @@ function auditProgrammePayload(record){
     template_title:record.templateTitle||null,
     template_version:Number(record.templateVersion)||null,
     standard:STANDARD_VALUES.includes(record.standard)?record.standard:null,
+    standards:(record.standards||[]).filter(value=>STANDARD_VALUES.includes(value)&&value!==record.standard),
+    extra_template_ids:(record.extraTemplateIds||[]).filter(isUuid),
     clauses_scope:Array.isArray(record.clausesScope)?record.clausesScope:[],
     planned_month_only:Boolean(record.plannedMonthOnly),
     risk_level:['low','medium','high'].includes(record.riskLevel)?record.riskLevel:null,
@@ -324,6 +345,11 @@ function auditProgrammePayload(record){
     closing_attendees:record.closingMeeting?.attendees||null,
     auditee_representative:record.auditeeRepresentative||null,
     conclusion:record.conclusion||null,
+    duration_days:Number(record.durationDays)>=0&&record.durationDays!==''&&record.durationDays!=null?Math.min(60,Math.round(Number(record.durationDays))):null,
+    audit_body:['internal','consultant','certification','other'].includes(record.auditBody)?record.auditBody:null,
+    notes:record.notes||null,
+    report_sent_on:record.reportSentOn||null,
+    corrections_due_on:record.correctionsDueOn||null,
   }
 }
 function findingAuditPayload(record){
@@ -339,7 +365,7 @@ function findingAuditPayload(record){
     verification_note:record.verificationNote||null,
   }
 }
-const AUDIT_PROGRAMME_DEFAULTS=draft=>({templateId:draft.templateId||null,templateTitle:draft.templateTitle||'',templateVersion:draft.templateVersion||null,standard:draft.standard||'',clausesScope:draft.clausesScope||[],plannedMonthOnly:Boolean(draft.plannedMonthOnly),riskLevel:draft.riskLevel||'',frequencyMonths:draft.frequencyMonths||null,openingMeeting:draft.openingMeeting||{date:'',attendees:''},closingMeeting:draft.closingMeeting||{date:'',attendees:''},auditeeRepresentative:draft.auditeeRepresentative||'',conclusion:draft.conclusion||'',followUpOf:draft.followUpOf||'',origin:'app',team:draft.team||[]})
+const AUDIT_PROGRAMME_DEFAULTS=draft=>({templateId:draft.templateId||null,templateTitle:draft.templateTitle||'',templateVersion:draft.templateVersion||null,standard:draft.standard||'',standards:draft.standards||[],clausesScope:draft.clausesScope||[],plannedMonthOnly:Boolean(draft.plannedMonthOnly),riskLevel:draft.riskLevel||'',frequencyMonths:draft.frequencyMonths||null,openingMeeting:draft.openingMeeting||{date:'',attendees:''},closingMeeting:draft.closingMeeting||{date:'',attendees:''},auditeeRepresentative:draft.auditeeRepresentative||'',conclusion:draft.conclusion||'',followUpOf:draft.followUpOf||'',origin:'app',durationDays:draft.durationDays??null,auditBody:draft.auditBody||'',notes:draft.notes||'',reportSentOn:draft.reportSentOn||'',correctionsDueOn:draft.correctionsDueOn||'',team:draft.team||[]})
 const AUDIT_FINDING_DEFAULTS=draft=>({findingClass:draft.findingClass||'',auditItemId:draft.auditItemId||null,clauseRef:draft.clauseRef||'',standard:draft.standard||'',dueDate:draft.dueDate||'',verificationStatus:draft.verificationStatus||'pending',verifiedOn:'',verifiedBy:'',verificationNote:'',followUpAuditId:draft.followUpAuditId||''})
 
 // A code from the time to the second; several records made in the same second
@@ -368,7 +394,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
     const department=draft.department||draft.departmentId||''
     const common={id:code,displayId:compactCode(code),title:draft.title||draft.titleEn||'',titleEn:draft.titleEn||draft.title||'',department,departmentEn:draft.departmentEn||department,departmentId:draft.departmentId||'',owner:ownerLabels(draft)[0]||'',owners:ownerLabels(draft),ownerId:draft.ownerId||null,lifecycleStatus:'active',attachments:[],history:draft.history||[]}
     let record=common
-    if(section==='incidents'){const details=keptDetails(draft);record={...common,severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),linkedPatient:draft.linkedPatient||'',linkedSurveillance:draft.linkedSurveillance||'',linkedAdmission:draft.linkedAdmission||'',category:draft.category||'clinical',eventType:details.eventType,fall:details.fall,sharp:details.sharp,blueCode:details.blueCode,obstetric:details.obstetric,eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:draft.anonymous?'':draft.reportedByLabel||'',reportedById:draft.anonymous?null:userId||null,anonymous:Boolean(draft.anonymous),reportKind:draft.reportKind||'clinical',sentinel:Boolean(draft.sentinel),rcaDueDate:draft.rcaDueDate||''}}
+    if(section==='incidents'){const details=keptDetails(draft);record={...common,severity:draft.severity||'medium',incidentClass:draft.incidentClass||'nearMiss',reachedPatient:Boolean(draft.reachedPatient),harmOccurred:Boolean(draft.harmOccurred),linkedPatient:draft.linkedPatient||'',linkedSurveillance:draft.linkedSurveillance||'',linkedAdmission:draft.linkedAdmission||'',category:draft.category||'clinical',eventType:details.eventType,fall:details.fall,sharp:details.sharp,blueCode:details.blueCode,obstetric:details.obstetric,eventTime:draft.eventTime||'',impact:draft.impact||'none',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'reported',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',immediateActions:draft.immediateActions||draft.immediateActionsEn||'',rootCause:draft.rootCause||'',contributingFactors:draft.contributingFactors||'',reportedBy:reportPrivacy(draft)==='named'?draft.reportedByLabel||'':'',reportedById:reportPrivacy(draft)==='anonymous'?null:userId||null,anonymous:reportPrivacy(draft)==='anonymous',privacy:reportPrivacy(draft),visibility:draft.visibility||'',visibleTo:draft.visibleTo||null,reportKind:draft.reportKind||'clinical',sentinel:Boolean(draft.sentinel),rcaDueDate:draft.rcaDueDate||''}}
     if(section==='findings')record={...common,severity:draft.severity||'medium',date:draft.date||new Date().toISOString().slice(0,10),status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'manual',sourceId:draft.sourceId||'',...AUDIT_FINDING_DEFAULTS(draft)}
     if(section==='capas')record={...common,severity:draft.priority||'medium',priority:draft.priority||'medium',actionType:draft.actionType||'corrective',dueDate:draft.dueDate||'',effectivenessDue:draft.effectivenessDue||'',effectivenessStatus:draft.effectivenessStatus||'pending',status:draft.status||'open',description:draft.description||'',descriptionEn:draft.descriptionEn||draft.description||'',source:draft.source||'other',sourceId:draft.sourceId||'',subActions:draft.subActions||[],rootCauseAnalysis:null,progress:[]}
     if(section==='audits')record={...common,auditType:draft.auditType||'internal',plannedDate:draft.plannedDate||'',completedDate:'',status:draft.status||'planned',leadAuditor:draft.leadAuditor||'',leadAuditorId:draft.leadAuditorId||null,checklist:draft.checklist||[],checklistSource:draft.checklistSource||'',scope:draft.scope||'',scopeEn:draft.scopeEn||draft.scope||'',findingIds:[],...AUDIT_PROGRAMME_DEFAULTS(draft)}
@@ -383,17 +409,17 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   // The id is chosen here, so the details can follow even an anonymous report.
   const id=newRowId()
   let payload={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),...englishColumns(draft,section),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
-  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',linked_patient_id:isUuid(draft.linkedPatient)?draft.linkedPatient:null,linked_surveillance_id:isUuid(draft.linkedSurveillance)?draft.linkedSurveillance:null,linked_admission_id:isUuid(draft.linkedAdmission)?draft.linkedAdmission:null,event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:draft.anonymous?null:userId||null,reported_by_label:draft.anonymous?null:draft.reportedByLabel||null,is_anonymous:Boolean(draft.anonymous),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
+  if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,incident_class:draft.incidentClass||'nearMiss',reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',linked_patient_id:isUuid(draft.linkedPatient)?draft.linkedPatient:null,linked_surveillance_id:isUuid(draft.linkedSurveillance)?draft.linkedSurveillance:null,linked_admission_id:isUuid(draft.linkedAdmission)?draft.linkedAdmission:null,event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||'medium',status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:reportPrivacy(draft)==='anonymous'?null:userId||null,reported_by_label:reportPrivacy(draft)==='named'?draft.reportedByLabel||null:null,is_anonymous:reportPrivacy(draft)==='anonymous',...reportPrivacyColumns(draft),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
   if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,...findingAuditPayload(draft),follow_up_audit_id:await auditIdOf(organizationId,draft.followUpAuditId)}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
   if(section==='audits') payload={...payload,...auditTypePayload(draft.auditType),scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null,checklist_source:draft.checklistSource||null,...auditProgrammePayload(draft),follow_up_of:await auditIdOf(organizationId,draft.followUpOf)}
 
   // An anonymous report carries no reporter, so the reporter may not read it
   // back: it is inserted without returning the row.
-  if(section==='incidents'&&draft.anonymous){
+  if(section==='incidents'&&reportPrivacy(draft)==='anonymous'){
     must(await supabase.from(config.table).insert(payload))
     await writeIncidentDetails(organizationId,id,draft,{creating:true})
-    return {id:code,code,displayId:compactCode(code),anonymous:true}
+    return {id:code,code,dbId:id,displayId:compactCode(code),anonymous:true}
   }
   must(await supabase.from(config.table).insert(payload))
   await writeDetails(section,organizationId,id,{...draft,rootCauseAnalysis:undefined},{creating:true})
@@ -514,3 +540,56 @@ export async function removeCapaProgress(organizationId,record,entryId){
   return reloadById('capas',organizationId,record.dbId)
 }
 
+
+// The next audit of every department that has none planned. In production the
+// database plans them (the same rule runs when an audit is completed); the demo
+// plans them on its own copy. Returns how many were planned.
+export async function fillAuditProgramme(organizationId,audits=[],userId=null){
+  if(isDemoDataEnvironment()){
+    const planned=missingNextAudits(audits)
+    for(const audit of planned)await createQualityRecord('audits',organizationId,{...audit,id:undefined,code:undefined},userId)
+    return planned.length
+  }
+  assertReady(organizationId)
+  const {data,error}=await supabase.rpc('quality_fill_audit_programme',{p_organization_id:organizationId})
+  if(error)throw error
+  return Number(data)||0
+}
+
+// An audit round: the month's planned audits spread over a few working days from
+// `start`. The database does it in production; the demo on its own copy.
+// Returns how many audits got a day.
+// An audit round arranged by hand: `items` are the departments with their day. An existing planned audit
+// gets the day; a department without one gets a new audit from the basic questionnaire. Returns how many.
+export async function applyAuditRound(organizationId,items=[],{template=null,userId=null,days=3}={}){
+  const existing=items.filter(item=>item.auditId),fresh=items.filter(item=>!item.auditId)
+  if(isDemoDataEnvironment()){
+    const dates=new Map(existing.map(item=>[item.auditId,item.plannedDate]))
+    saveQualityLocal('audits',loadQualityLocal('audits').map(row=>dates.has(row.id)?{...row,plannedDate:dates.get(row.id),plannedMonthOnly:false}:row))
+  }else{
+    assertReady(organizationId)
+    for(const item of existing)must(await supabase.from('quality_audits').update({planned_date:item.plannedDate,planned_month_only:false}).eq('id',item.auditId).eq('organization_id',organizationId))
+  }
+  for(const item of fresh){
+    await createQualityRecord('audits',organizationId,{
+      title:`Επιθεώρηση τμήματος · ${item.department}`,titleEn:`Department audit · ${item.departmentEn||item.department}`,
+      department:item.department,departmentEn:item.departmentEn||item.department,departmentId:item.departmentId,auditType:'internal',plannedDate:item.plannedDate,status:'planned',
+      ...(template?{templateId:template.id,templateTitle:template.title,templateVersion:template.version,standard:template.standard,standards:[],checklistSource:`template:${template.id}`,scope:template.scope}:{}),
+      durationDays:days,riskLevel:'medium',frequencyMonths:6,history:[]
+    },userId)
+  }
+  return items.length
+}
+
+export async function planAuditRound(organizationId,audits=[],start,days=3){
+  if(isDemoDataEnvironment()){
+    const {assignments}=spreadAuditRound(audits,start,days)
+    const ids=new Map(assignments.map(item=>[item.audit.id,item.plannedDate]))
+    saveQualityLocal('audits',loadQualityLocal('audits').map(row=>ids.has(row.id)?{...row,plannedDate:ids.get(row.id),plannedMonthOnly:false}:row))
+    return assignments.length
+  }
+  assertReady(organizationId)
+  const {data,error}=await supabase.rpc('quality_plan_audit_round',{p_organization_id:organizationId,p_start:start,p_days:days})
+  if(error)throw error
+  return Number(data)||0
+}

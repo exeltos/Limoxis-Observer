@@ -13,11 +13,10 @@ const t = key => key
 
 describe('integration: owner decisions', () => {
   afterEach(cleanup)
-  it('keeps the incident report only at the foot of the sidebar', () => {
+  it('has no incident report button in the top bar or at the foot of the sidebar; the reports stay in Quality', () => {
     const shell = read('src/app/AppShell.jsx')
     expect(shell).not.toContain('topbar-report')
-    expect(shell).toContain('<SidebarIncidentReport t={t}')
-    expect(read('src/app/SidebarIncidentReport.jsx')).toContain("go('/quality/my-reports')")
+    expect(shell).not.toContain('SidebarIncidentReport')
     expect(read('src/app/App.jsx')).toContain('path="quality/my-reports"')
   })
 
@@ -54,12 +53,12 @@ describe('integration: owner decisions', () => {
   })
 
   it('gives «Δείκτες» one row of tabs, «Περισσότερα» last, and maps every old Analysis tab', () => {
-    expect(INDICATOR_TABS.map(tab => tab[1])).toEqual(['Σύνοψη', 'Λοιμώξεις', 'Μικροβιολογία & AMR', 'Αντιμικροβιακά', 'Πρόληψη & έλεγχοι', 'Οργανισμός'])
+    expect(INDICATOR_TABS.map(tab => tab[1])).toEqual(['Σύνοψη', 'Λοιμώξεις & μικροβιολογία', 'Αντιμικροβιακά', 'Πρόληψη & έλεγχοι', 'Οργανισμός'])
     expect(INDICATOR_MORE_TABS.map(tab => tab[0])).toEqual(['pps', 'reporting', 'lira'])
     expect(['overview', 'surveillance', 'laboratory', 'antimicrobials', 'prevention', 'controls', 'quality', 'qualityfood', 'training', 'governance', 'occupational', 'pps', 'reporting', 'lira'].map(indicatorTabOf))
-      .toEqual(['summary', 'infections', 'laboratory', 'antimicrobials', 'prevention', 'prevention', 'organisation', 'organisation', 'organisation', 'organisation', 'organisation', 'pps', 'reporting', 'lira'])
+      .toEqual(['summary', 'infections', 'infections', 'antimicrobials', 'prevention', 'prevention', 'organisation', 'organisation', 'organisation', 'organisation', 'organisation', 'pps', 'reporting', 'lira'])
     const page = read('src/features/executive/ExecutiveDashboardPage.jsx')
-    expect(page).toContain("const title=tx('Δείκτες','Indicators')")
+    expect(page).toContain("const title=tx('Εικόνα νοσοκομείου','Hospital overview')")
     expect(page).not.toContain('CheckboxField')
     expect(read('src/features/analysis/AnalysisRoute.jsx')).toContain("pathname: '/executive'")
     expect(navigationFor({ role: ROLES.HOSPITAL_ADMIN }).map(item => item.key)).not.toContain('platformAnalyticsNav')
@@ -79,14 +78,15 @@ describe('integration: owner decisions', () => {
     const dashboard = read('src/features/dashboard/DashboardPage.jsx')
     expect(dashboard).toContain("inpatients:[BedDouble,'/surveillance?tab=registry']")
     expect(dashboard).toContain("upcomingMeetings:[CalendarDays,'/meetings']")
-    expect(dashboard).toContain('const open=to&&canOpen(to);')
+    expect(dashboard).toContain('to:to&&canOpen(to)?to:null')
     expect(dashboard).not.toMatch(/'\/(patients|committees|indicators)'\]/)
   })
 
-  it('merges the two indicator tabs of the Management Center into «Ορισμοί δεικτών»', () => {
+  it('moves the indicator definitions of the Management Center to «Δείκτες & Στόχοι»', () => {
     const management = read('src/features/management/ManagementPage.jsx')
     expect(management).not.toContain("id:'indicatorDefinitions'")
-    expect(management).toContain("{id:'indicators',label:t('sidebarNav.indicatorDefinitions')")
+    expect(management).not.toContain("{id:'indicators',label:t('sidebarNav.indicatorDefinitions')")
+    expect(management).toContain("navigate('/quality/measures',{replace:true})")
   })
 
   it('gives the staff user its home and the Library, and documents only with view_documents', () => {

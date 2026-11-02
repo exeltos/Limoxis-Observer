@@ -4,6 +4,8 @@ import { Check, ShieldCheck, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTable } from '../../design-system/RegistryTable'
+import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
@@ -16,7 +18,7 @@ const fmtDay = value => { const [y, m, d] = String(value || '').slice(0, 10).spl
 
 // «Εγκρίσεις αντιβιοτικών»: the restricted antimicrobial therapies waiting for (or given) stewardship approval,
 // the same approvals the surveillance record decides. Approve / reject only with the therapy capability.
-export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord }) {
+export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord, onCounts, status = 'pending', onStatusChange }) {
   const navigate = useNavigate()
   const actor = useAuditActor()
   const { notify, notifyError } = useFeedback()
@@ -24,7 +26,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState('')
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('pending')
+  const setStatus = value => onStatusChange?.(value)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
 
@@ -47,10 +49,21 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   }
 
   const filtered = useMemo(() => rows.filter(row => (status === 'all' || row.approvalStatus === status) && `${row.antimicrobial} ${row.patientCode} ${row.department} ${row.indication}`.toLowerCase().includes(query.trim().toLowerCase())), [rows, status, query])
-  useEffect(() => setPage(1), [query, status, pageSize])
+  // The arrows in the headers sort the whole filtered list (newest start first); then the page is cut.
+  const { sorted: sortedRows, sort, onSort } = useTableSort(filtered, {
+    started: row => row.startedAt,
+    antibiotic: row => row.antimicrobial,
+    dose: row => [row.dose, row.route].filter(Boolean).join(' · '),
+    indication: row => row.indication,
+    patient: row => row.patientCode,
+    department: row => (en ? row.departmentEn : row.department),
+    approval: row => row.approvalStatus,
+  }, { key: 'started', dir: 'desc' })
+  useEffect(() => setPage(1), [query, status, pageSize, sort])
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize)), safePage = Math.min(page, totalPages)
-  const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const paged = sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
   const counts = rows.reduce((acc, row) => ({ ...acc, [row.approvalStatus]: (acc[row.approvalStatus] || 0) + 1 }), {})
+  useEffect(() => { onCounts?.({ loading: loading && !rows.length, pending: counts.pending || 0, approved: counts.approved || 0, rejected: counts.rejected || 0 }) }, [onCounts, loading, rows.length, counts.pending, counts.approved, counts.rejected])
   const clear = () => { setQuery(''); setStatus('pending') }
 
   return <>
@@ -64,17 +77,28 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
     </FilterBar>
     {!canDecide && <div className="inline-empty">{en ? 'Read only: approving needs the antimicrobial therapy permission.' : 'Μόνο ανάγνωση: η έγκριση χρειάζεται το δικαίωμα αντιμικροβιακής αγωγής.'}</div>}
     {loading && !rows.length ? <TableSkeleton /> : <div className="scroll-table" tabIndex={0} role="region" aria-label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'}>
-      <table className="data-table sticky-table">
-        <thead><tr><th>{en ? 'Started' : 'Έναρξη'}</th><th>{en ? 'Antibiotic' : 'Αντιβιοτικό'}</th><th>{en ? 'Dose / route' : 'Δόση / οδός'}</th><th>{en ? 'Indication' : 'Ένδειξη'}</th><th>{en ? 'Patient' : 'Ασθενής'}</th><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Approval' : 'Έγκριση'}</th>{canDecide && <th />}</tr></thead>
-        <tbody>{paged.map(row => { const badge = STATUS[row.approvalStatus] || STATUS.pending; return <tr key={row.id} className={canOpenRecord && row.caseId ? 'clickable-row' : ''} onClick={canOpenRecord && row.caseId ? () => navigate(`/surveillance/${row.caseId}`) : undefined}>
-          <td>{fmtDay(row.startedAt)}</td><td><strong>{row.antimicrobial}</strong></td><td>{[row.dose, row.route].filter(Boolean).join(' · ') || '—'}</td><td>{row.indication || '—'}</td><td>{row.patientCode || '—'}</td><td>{(en ? row.departmentEn : row.department) || '—'}</td>
+      <RegistryTable bare sort={sort} onSort={onSort}
+        columns={[
+          { key: 'started', label: en ? 'Started' : 'Έναρξη', sortable: true },
+          { key: 'antibiotic', label: en ? 'Antibiotic' : 'Αντιβιοτικό', sortable: true },
+          { key: 'dose', label: en ? 'Dose / route' : 'Δόση / οδός', sortable: true },
+          { key: 'indication', label: en ? 'Indication' : 'Ένδειξη', sortable: true },
+          { key: 'patient', label: en ? 'Patient' : 'Ασθενής', sortable: true },
+          { key: 'department', label: en ? 'Department' : 'Τμήμα', sortable: true },
+          { key: 'approval', label: en ? 'Approval' : 'Έγκριση', sortable: true },
+          ...(canDecide ? [{ key: 'actions', label: '' }] : []),
+        ]}
+        rows={paged}
+        rowKey={row => row.id}
+        rowProps={row => (canOpenRecord && row.caseId ? { className: 'clickable-row', onClick: () => navigate(`/surveillance/${row.caseId}`) } : {})}
+        renderRow={row => { const badge = STATUS[row.approvalStatus] || STATUS.pending; return <>
+          <td>{fmtDay(row.startedAt)}</td><td><strong>{row.antimicrobial}</strong></td><td>{[row.dose, row.route].filter(Boolean).join(' · ') || '—'}</td><td>{row.indication || '—'}</td><td style={{ whiteSpace: 'nowrap' }}>{row.patientCode || '—'}</td><td>{(en ? row.departmentEn : row.department) || '—'}</td>
           <td><StatusBadge tone={badge[2]}>{badge[en ? 1 : 0]}</StatusBadge></td>
           {canDecide && <td onClick={event => event.stopPropagation()}>{row.approvalStatus === 'pending' && <div className="row-actions">
             <Button variant="secondary" disabled={busyId === row.id} onClick={() => decide(row, 'approved')}><Check size={15} />{en ? 'Approve' : 'Έγκριση'}</Button>
             <Button variant="secondary" disabled={busyId === row.id} onClick={() => decide(row, 'rejected')}><X size={15} />{en ? 'Reject' : 'Απόρριψη'}</Button>
           </div>}</td>}
-        </tr> })}</tbody>
-      </table>
+        </> }} />
       {!loading && !filtered.length && (rows.length ? <RegistryEmptyState filtered onClearFilters={clear} language={en ? 'en' : 'el'} /> : <RegistryEmptyState icon={ShieldCheck} language={en ? 'en' : 'el'} title={en ? 'No antibiotic approvals' : 'Δεν υπάρχουν εγκρίσεις αντιβιοτικών'} text={en ? 'Restricted antibiotics recorded in surveillance appear here for stewardship approval.' : 'Τα προωθημένα αντιβιοτικά που καταγράφονται στην επιτήρηση εμφανίζονται εδώ για έγκριση.'} />)}
     </div>}
     <RegistryPagination language={en ? 'en' : 'el'} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />

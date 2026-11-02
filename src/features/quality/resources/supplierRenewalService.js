@@ -208,3 +208,19 @@ export async function setSupplierRenewalSender(organizationId, { membershipId, u
   }
   return must(await client('sender').rpc('set_member_supplier_renewal_sender', { p_organization_id: organizationId, p_user_id: userId, p_enabled: Boolean(enabled) }))
 }
+
+// --- The nightly automatic e-mailing (quality_supplier_renewal_settings) ----------------
+
+// Off by default. The demo keeps the choice in the browser and never e-mails.
+export const DEFAULT_RENEWAL_SETTINGS = { autoEnabled: false, remindAfterDays: 7, maxReminders: 2, lastRunAt: '', lastResult: null }
+const SETTINGS_KEY = 'limoxis.supplierRenewalSettings.demo'
+export async function loadRenewalSettings(organizationId) {
+  if (isLocal()) { try { return { ...DEFAULT_RENEWAL_SETTINGS, ...JSON.parse(window.localStorage.getItem(SETTINGS_KEY) || '{}') } } catch { return { ...DEFAULT_RENEWAL_SETTINGS } } }
+  if (!organizationId || !hasSupabaseConfig || !supabase) return { ...DEFAULT_RENEWAL_SETTINGS }
+  const row = must(await supabase.from('quality_supplier_renewal_settings').select('*').eq('organization_id', organizationId).maybeSingle())
+  return row ? { autoEnabled: Boolean(row.auto_enabled), remindAfterDays: row.remind_after_days, maxReminders: row.max_reminders, lastRunAt: row.last_run_at || '', lastResult: row.last_result || null } : { ...DEFAULT_RENEWAL_SETTINGS }
+}
+export async function saveRenewalSettings(organizationId, settings) {
+  if (isLocal()) { try { window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } catch { /* the demo choice is not kept */ } return { ok: true, simulated: true } }
+  return must(await supabase.rpc('quality_supplier_renewal_settings_set', { p_organization_id: organizationId, p_auto_enabled: Boolean(settings.autoEnabled), p_remind_after_days: Number(settings.remindAfterDays) || 7, p_max_reminders: Number(settings.maxReminders) }))
+}

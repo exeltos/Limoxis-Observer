@@ -12,7 +12,7 @@ export function DemoApplicationDialog({language,organizationName='',defaultName=
   const [phone,setPhone]=useState('')
   const [message,setMessage]=useState('')
   const ready=name.trim().length>0&&!working
-  if(sentAt)return <ObserverDialog width="compact" className="demo-application-dialog" title={tx('Το αίτημα στάλθηκε','Request sent')} onClose={onClose} footer={<Button onClick={onClose}>{tx('Κλείσιμο','Close')}</Button>}>
+  if(sentAt)return <ObserverDialog width="compact" className="demo-application-dialog" title={tx('Το αίτημα στάλθηκε','Request sent')} onClose={onClose}>
     <div className="demo-application-sent"><CheckCircle2 size={34}/><p>{tx('Ευχαριστούμε για το ενδιαφέρον σας. Θα επικοινωνήσουμε μαζί σας σύντομα για την ενεργοποίηση της εφαρμογής στο νοσοκομείο σας.','Thank you for your interest. We will contact you shortly about setting up the application for your hospital.')}</p></div>
   </ObserverDialog>
   return <ObserverDialog width="standard" className="demo-application-dialog" eyebrow={organizationName} title={tx('Θέλω την εφαρμογή','I want the application')}

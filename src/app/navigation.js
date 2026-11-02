@@ -1,4 +1,4 @@
-import { Activity, Award, BarChart3, Beaker, BookOpenCheck, Building2, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -35,27 +35,37 @@ export const navigation=[
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
+  // «Indicators & objectives» of the Quality Center on its own page: indicators, registers, objectives, surveys.
+  {to:'/quality/measures',key:'qualityMeasures',label:'sidebarNav.qualityMeasures',icon:Target,capability:CAPABILITIES.VIEW_QUALITY},
   // No «Incident reports» entry: the report form and «My reports» open from the button at the foot of the sidebar (route /quality/my-reports).
   // Department staff record their registers (NICU cases, monthly sheets) here; Quality opens them from its Center.
-  {to:'/registers',key:'departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  {to:'/registers',key:'departmentRegisters',label:'sidebarNav.departmentRegisters',icon:ClipboardList,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The suppliers the Quality team assigned to the department (read only).
+  {to:'/my-department/suppliers',key:'departmentSuppliers',label:'sidebarNav.departmentSuppliers',icon:Truck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The self-assessments the Quality team released to the department (a preparation for the audit).
+  // The department's own calendar: what concerns the department (the culture sampling first), month by month.
+  {to:'/my-department/calendar',key:'departmentCalendar',label:'sidebarNav.departmentCalendar',icon:CalendarCheck,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  // The department's meetings: topics discussed, decisions and the training that came up.
+  {to:'/my-department/meetings',key:'departmentMeetings',label:'sidebarNav.departmentMeetings',icon:MessagesSquare,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
+  {to:'/my-department/self-assessment',key:'departmentSelfAssessment',label:'sidebarNav.departmentSelfAssessment',icon:ListChecks,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
-  {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS},
+  {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS,anyCapabilities:[CAPABILITIES.VIEW_INTERVIEWS,CAPABILITIES.VIEW_DIVISION_INTERVIEWS]},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   // Roles without the executive dashboard keep the indicators list as «Δείκτες»; for the others it is Management › Indicator definitions.
   {to:'/indicators',key:'indicators',icon:LineChart,capability:CAPABILITIES.VIEW_INDICATORS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
   {to:'/training',key:'training',icon:GraduationCap,capability:CAPABILITIES.VIEW_TRAINING},
   // «Συνεδριάσεις & αποφάσεις»: committees, department meetings and the management review.
-  {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsDecisions',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
+  {to:'/meetings',key:'meetings',label:'sidebarNav.meetingsShort',icon:BookOpenCheck,capability:CAPABILITIES.VIEW_COMMITTEES,section:'meetings'},
   // «Έγγραφα & Κανονισμοί»: documents, regulations and legislation.
-  {to:'/documents',key:'documents',label:'sidebarNav.documentsRegulations',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
+  {to:'/documents',key:'documents',label:'sidebarNav.documentsShort',icon:FileText,capability:CAPABILITIES.VIEW_DOCUMENTS,section:'documents'},
   // «Βιβλιοθήκη»: trusted sources (links, guidelines, clinical guides, news) for every role, staff users included.
   {to:'/library',key:'library',label:'libraryNav.menu',icon:LibraryBig,everyone:true},
   {to:'/kitchen',key:'kitchen',icon:ChefHat,capability:CAPABILITIES.VIEW_KITCHEN,anyCapabilities:kitchenCapabilities},
   {to:'/pharmacy',key:'pharmacy',icon:Pill,capability:CAPABILITIES.VIEW_PHARMACY},
   {to:'/occupational-health',key:'occupationalHealth',icon:Stethoscope,capability:CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH},
   {to:'/calendar',key:'calendar',icon:CalendarDays,capability:CAPABILITIES.VIEW_DOCUMENTS,anyCapabilities:calendarCapabilities},
-  {to:'/management',key:'management',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
+  {to:'/management',key:'management',label:'sidebarNav.managementShort',icon:Building2,capability:CAPABILITIES.MANAGE_ORGANIZATION,anyCapabilities:MANAGEMENT_CAPABILITIES},
 ]
 
 const policy=(primaryOrder=[],moreOrder=[],hidden=[])=>Object.freeze({
@@ -81,7 +91,7 @@ export const NAV_GROUP_LABELS=Object.freeze({
   quality:'sidebarNav.groupQuality',
   staff:'sidebarNav.groupStaff',
   management:'sidebarNav.groupManagement',
-  more:'more',
+  more:'sidebarNav.more',
 })
 
 // Hospital leadership (Administrator, Platform Owner inside a hospital).
@@ -89,7 +99,7 @@ const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
   ['clinical',['surveillance','laboratory','prevention','pharmacy']],
   ['operations',['controls','kitchen']],
-  ['quality',['quality','meetings','documents','library']],
+  ['quality',['quality','qualityMeasures','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
   ['management',['management']],
 ]
@@ -100,6 +110,8 @@ const hospitalLeadershipGroups=[
 const roleMenuPolicy=Object.freeze({
   [ROLES.PLATFORM_OWNER]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.HOSPITAL_ADMIN]:groupedPolicy(hospitalLeadershipGroups),
+  // The demo account sees every module: the same headed groups, so the menu never scrolls.
+  [ROLES.DEMO]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
     ['dashboard','surveillance','laboratory','prevention','controls','indicators','meetings','calendar'],
     ['platformAnalyticsNav','quality','employees','training','documents','library','kitchen'],
@@ -116,17 +128,17 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
-    ['myDepartment','employees','controls','surveillance','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
     ['indicators','training','documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
-    ['myDepartment','surveillance','prevention','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','surveillance','prevention','controls','calendar'],
     ['employees','indicators','training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
-    ['myDepartment','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','controls','calendar'],
     ['training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
@@ -141,7 +153,7 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy'],
   ),
   [ROLES.QUALITY_MANAGER]:policy(
-    ['dashboard','quality','controls','kitchen','indicators','documents','library','calendar'],
+    ['dashboard','quality','qualityMeasures','controls','kitchen','indicators','documents','library','calendar'],
     ['meetings'],
     ['pharmacy','occupationalHealth'],
   ),
@@ -160,6 +172,11 @@ const roleMenuPolicy=Object.freeze({
     ['executiveDashboard','indicators','documents','library','calendar'],
     [],
     ['dashboard','platformAnalyticsNav','management','pharmacy','occupationalHealth'],
+  ),
+  [ROLES.DIVISION_DIRECTOR]:policy(
+    ['dashboard','interviews','calendar'],
+    ['documents','library'],
+    ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.COMMITTEE_SECRETARIAT]:policy(
     ['dashboard','meetings','documents','library','calendar'],
@@ -227,8 +244,11 @@ function applyRoleMenuPolicy(role,items){
   return [...groupStaff([...primary,...more],primary.length),...management]
 }
 
+// One entry per destination: the department's calendar replaces the general one, and «Indicators & objectives» holds the indicators.
+const SUPERSEDED=[['departmentCalendar','calendar'],['qualityMeasures','indicators']]
+
 export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignments=false}={}){
-  const allowed=navigation.filter(item=>
+  const permitted=navigation.filter(item=>
     item.excludeRoles&&item.excludeRoles.includes(role)?false:
     item.roles&&!item.roles.includes(role)?false:
     // Open to every member of a hospital, whatever the role (no capability of its own).
@@ -241,6 +261,8 @@ export function navigationFor({role,addOns=[],customCapabilities=[],hasAssignmen
     item.anyCapabilities?canAny(role,item.anyCapabilities,addOns,customCapabilities):
     can(role,item.capability,addOns,customCapabilities)
   )
+  const keys=new Set(permitted.map(item=>item.key))
+  const allowed=permitted.filter(item=>!SUPERSEDED.some(([by,gone])=>gone===item.key&&keys.has(by)))
   return applyRoleMenuPolicy(role,allowed)
 }
 

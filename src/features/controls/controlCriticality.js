@@ -1,3 +1,5 @@
+import { assignmentResponse } from './controlResponse'
+
 // Criticality, required evidence and deviation instructions live in the
 // control's response_config, so they need no schema change.
 export const CRITICALITY_LEVELS=['high','medium','low']
@@ -13,7 +15,7 @@ export function criticalityLabel(level,language='el'){
 }
 function criticalityRank(record){return RANK[controlCriticality(record)]}
 export function requiresEvidence(record){return Boolean(record?.responseConfig?.requiresEvidence)}
-export function deviationActions(record){return String(record?.responseConfig?.deviationActions||'').trim()}
+export function deviationActions(record,department){return String(assignmentResponse(record,department).deviationActions||'').trim()}
 
 // Registry order: overdue first, then due soon; within each, high criticality first.
 export function compareControlPriority(a,b){

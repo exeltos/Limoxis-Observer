@@ -6,7 +6,7 @@
 // occurred (the same reason CDC/state-health cluster algorithms look for
 // the tightest interval between cases rather than a fixed lookback from
 // query time). `lastEventDate` lets a caller judge staleness separately.
-import { isSkinFloraOrganism } from './skinFloraOrganisms'
+import { isContaminationNote, isSkinFloraOrganism } from './skinFloraOrganisms'
 
 const DAY_MS = 86400000
 
@@ -40,6 +40,7 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
   const groups = new Map()
   for (const record of records || []) {
     if (!record?.organism || !record?.department || !record?.date) continue
+    if (isContaminationNote(record.organism)) continue
     const key = `${record.department}|||${normalizeOrganism(record.organism)}`
     if (!groups.has(key)) groups.set(key, { department: record.department, organism: record.organism, items: [] })
     groups.get(key).items.push({ date: String(record.date).slice(0, 10), resistance: record.resistance || null, patientId: record.patientId || null, sampleId: record.sampleId || null })
@@ -54,8 +55,9 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
       const windowEnd = addDays(sorted[i].date, windowDays)
       let j = i
       while (j + 1 < sorted.length && sorted[j + 1].date <= windowEnd) j++
-      let count = j - i + 1
+      // Patients, not isolates: a patient with repeated cultures counts once (as in private.detect_organism_clusters).
       let items = sorted.slice(i, j + 1)
+      let count = new Set(items.map((item, index) => item.patientId || item.sampleId || `row-${i + index}`)).size
       if (skinFlora) ({ count, items } = skinFloraWindow(sorted, i, j))
       if (count >= threshold && (!best || count > best.count)) {
         best = { count, firstDate: items[0].date, lastDate: items[items.length - 1].date, items }
@@ -66,6 +68,8 @@ export function detectOrganismClusters(records, { windowDays = 14, threshold = 3
       department: group.department,
       organism: group.organism,
       count: best.count,
+      patientCount: new Set(best.items.map(x => x.patientId).filter(Boolean)).size || best.count,
+      sampleCount: best.items.length,
       windowDays,
       firstDate: best.firstDate,
       lastDate: best.lastDate,

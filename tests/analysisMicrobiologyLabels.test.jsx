@@ -134,8 +134,8 @@ describe('the CSV export carries the same labels', () => {
     const [, , rows] = downloadCsv.mock.calls[0]
     expect(rows.map(row => [row[0], row[1], row[4]])).toEqual([
       ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Καλλιέργεια ούρων'],
-      ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Επιφάνεια'],
-      ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Επίχρισμα χεριών'],
+      ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Περιβαλλοντικό δείγμα (επιφάνεια)'],
+      ['Χωρίς ταυτοποίηση', 'Δεν ελέγχθηκε', 'Επιτήρηση προσωπικού'],
     ])
   })
 })
@@ -148,7 +148,7 @@ describe('cloud status and type codes on the other Δείκτες tabs read in G
     expect(chart('quality', 'Κατάσταση συμβάντων').rows).toEqual([['Υπό διερεύνηση', 4], ['Αναφέρθηκε', 179]])
   })
   it('HAI types keep their acronym, while the bundles of the same name read as bundles', () => {
-    expect(chart('surveillance', 'Τύπος λοίμωξης (HAI)').rows.map(row => row[0])).toEqual(['CLABSI', 'VAP'])
+    expect(chart('surveillance', 'Τύπος λοίμωξης (ΛΣΦΥ)').rows.map(row => row[0])).toEqual(['CLABSI', 'VAP'])
     expect(chart('prevention', 'Συμμόρφωση ανά δέσμη').rows.map(row => row[0])).toEqual(['Δέσμη CLABSI', 'Δέσμη PIV (περιφερικός φλεβικός καθετήρας)', 'Δέσμη HD (αιμοκάθαρση)'])
   })
 })

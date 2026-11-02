@@ -90,7 +90,81 @@ export function glanceItems(recordType,record,{language,t,linked=[]}){
   return []
 }
 
+// An incident «at a glance» as one line under the title (the figures of the other records are still boxes).
+export function incidentSummary(record,{language,t}){
+  const en=language==='en'
+  const kind=reportKindOf(record)
+  const open=!isClosed(record)
+  const items=[]
+  if(['clinical','nonClinical'].includes(kind)){
+    const harmful=record.incidentClass==='harmful'
+    items.push({text:harmful?`${vocabularyLabel(IMPACTS,harmLevel(record.impact),language)} (WHO)`:vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?'danger':undefined})
+  }
+  items.push({text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined})
+  if(record.sentinel)items.push({text:'Sentinel',tone:'danger'})
+  const since=-daysUntil(record.date)
+  if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτό ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστό')})
+  if(record.sentinel&&open&&record.rcaDueDate){
+    const left=daysUntil(record.rcaDueDate)
+    items.push(left<0
+      ?{text:en?`root cause analysis ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')} late`:`ανάλυση αιτίας: εκπρόθεσμη ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')}`,tone:'danger'}
+      :{text:en?`root cause analysis by ${formatDay(record.rcaDueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`:`ανάλυση αιτίας έως ${formatDay(record.rcaDueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`,tone:left<=7?'danger':undefined})
+  }
+  return items
+}
+
+// A finding «at a glance» as one line under the title.
+export function findingSummary(record,{language,t,linked=[]}){
+  const en=language==='en'
+  const open=!isClosed(record)
+  const items=[{text:`${t('severity')}: ${t(record.severity)}`,tone:['high','critical'].includes(record.severity)?'danger':undefined}]
+  const since=-daysUntil(record.date)
+  if(Number.isFinite(since))items.push({text:open?(en?`open ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`:`ανοιχτή ${Math.max(0,since)} ${plural(since,en,'ημέρα','ημέρες','day','days')}`):(en?'closed':'κλειστή')})
+  const done=linked.filter(isClosed).length
+  items.push(linked.length?{text:en?`${done}/${linked.length} corrective actions done`:`${done}/${linked.length} διορθωτικές ενέργειες ολοκληρώθηκαν`}:{text:en?'no corrective action yet':'χωρίς διορθωτική ενέργεια',tone:open?'danger':undefined})
+  items.push({text:`${en?'Source':'Πηγή'}: ${vocabularyLabel(FINDING_SOURCES,record.source||'manual',language)}${record.sourceId?` ${record.sourceId}`:''}`})
+  return items
+}
+
+// A corrective action «at a glance» as one line under the title.
+export function capaSummary(record,{language}){
+  const en=language==='en'
+  const open=!isClosed(record)
+  const steps=subActionProgress(record.subActions||[])
+  const causes=analysisProgress(record.rootCauseAnalysis)
+  const items=[{text:steps.total?(en?`${steps.done}/${steps.total} steps`:`${steps.done}/${steps.total} βήματα`):(en?'no steps':'χωρίς βήματα')}]
+  const left=daysUntil(record.dueDate)
+  if(!open)items.push({text:en?'done':'ολοκληρώθηκε'})
+  else if(left!=null)items.push(left<0?{text:en?`${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')} overdue`:`εκπρόθεσμη ${-left} ${plural(-left,en,'ημέρα','ημέρες','day','days')}`,tone:'danger'}:{text:en?`due ${formatDay(record.dueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`:`προθεσμία ${formatDay(record.dueDate,language)} (${left} ${plural(left,en,'ημέρα','ημέρες','day','days')})`,tone:left<=7?'danger':undefined})
+  items.push({text:`${en?'causes':'αιτίες'}: ${causes.concluded?(en?'documented':'τεκμηριώθηκαν'):causes.started?(en?'in progress':'σε εξέλιξη'):(en?'pending':'εκκρεμούν')}`})
+  items.push({text:`${en?'effectiveness':'αποτελεσματικότητα'}: ${vocabularyLabel(EFFECTIVENESS,record.effectivenessStatus||'pending',language).toLowerCase()}${record.effectivenessDue?` (${en?'by':'έως'} ${formatDay(record.effectivenessDue,language)})`:''}`})
+  return items
+}
+
+// An audit «at a glance» as one line under the title.
+export function auditSummary(record,{language,linked=[]}){
+  const en=language==='en'
+  const score=auditCompliance(record)
+  const total=(record.checklist||[]).length
+  const items=[]
+  if(score.rate!=null)items.push({text:en?`compliance ${score.rate}% (${score.yes} yes · ${score.no} no)`:`συμμόρφωση ${score.rate}% (${score.yes} ναι · ${score.no} όχι)`,tone:score.rate<70?'danger':undefined})
+  else items.push({text:total?(en?`${total} questions, none answered`:`${total} ερωτήσεις, καμία δεν απαντήθηκε`):(en?'no questionnaire answers yet':'χωρίς απαντήσεις ερωτηματολογίου')})
+  const open=linked.filter(row=>!isClosed(row)).length
+  items.push(linked.length?{text:en?`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} open)`:`${linked.length} ${plural(linked.length,en,'εύρημα','ευρήματα','finding','findings')} (${open} ανοιχτά)`,tone:open?'danger':undefined}:{text:en?'no findings':'χωρίς ευρήματα'})
+  if(record.completedDate)items.push({text:en?`completed ${formatDay(record.completedDate,language)}`:`ολοκληρώθηκε ${formatDay(record.completedDate,language)}`})
+  else{
+    const until=daysUntil(record.plannedDate)
+    const when=record.plannedMonthOnly?String(record.plannedDate||'').slice(0,7):formatDay(record.plannedDate,language)
+    if(until!=null)items.push(until<0&&!record.plannedMonthOnly?{text:en?`planned ${when} (${-until} ${plural(-until,en,'ημέρα','ημέρες','day','days')} late)`:`προγραμματισμένη ${when} (εκπρόθεσμη ${-until} ${plural(-until,en,'ημέρα','ημέρες','day','days')})`,tone:'danger'}:{text:en?`planned ${when}`:`προγραμματισμένη ${when}`})
+  }
+  return items
+}
+
 export function QualityGlance({recordType,record,language,t,linked}){
+  if(recordType==='capas')return <p className="quality-summary-line quality-record-line">{capaSummary(record,{language}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
+  if(recordType==='audits')return <p className="quality-summary-line quality-record-line">{auditSummary(record,{language,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
+  if(recordType==='findings')return <p className="quality-summary-line quality-record-line">{findingSummary(record,{language,t,linked}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
+  if(recordType==='incidents')return <p className="quality-summary-line quality-record-line">{incidentSummary(record,{language,t}).map((item,index)=><span key={index} className={item.tone==='danger'?'is-late':undefined}>{item.text}</span>)}</p>
   const items=glanceItems(recordType,record,{language,t,linked})
   if(!items.length)return null
   return <RecordMetricStrip className="quality-glance" items={items}/>

@@ -12,12 +12,12 @@ const parityAudit=fs.readFileSync('tools/check-frontend-parity.mjs','utf8')
 const workflow=fs.readFileSync('.github/workflows/ci.yml','utf8')
 
 describe('Demo uses canonical product UI',()=>{
-  it('renders the same organization-users registry and dialogs in Demo and Production',()=>{
+  it('renders the same organization-users registry and user pages in Demo and Production',()=>{
     expect(users).not.toMatch(/if\s*\(\s*isDemo\s*\)\s*return\s*</)
     expect(users).toContain('DEMO_USERS')
     expect(users).toContain('<RegistryTable')
-    expect(users).toContain('<CreateUserDialog')
-    expect(users).toContain('<UserAccessDialog')
+    expect(users).toContain('<CreateUserView')
+    expect(users).toContain('<UserAccessView')
     expect(users).toContain("if(isDemo){")
   })
 

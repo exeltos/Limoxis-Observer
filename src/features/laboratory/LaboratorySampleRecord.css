@@ -10,11 +10,6 @@
 .laboratory-record-shell .lab-record-card{box-sizing:border-box;width:100%;margin:0;padding:0;border:0;border-radius:0;background:transparent}
 
 /* Sample details */
-.laboratory-record-shell .laboratory-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 24px;padding:0;border:0;background:transparent}
-.laboratory-record-shell .laboratory-summary-grid .detail-item{min-width:0;padding:11px 0;border:0;border-bottom:1px solid var(--lo-color-border);background:transparent}
-.laboratory-record-shell .laboratory-summary-grid .detail-item>span{display:block;margin-bottom:4px;font-size:11px;font-weight:700;color:var(--lo-color-muted)}
-.laboratory-record-shell .laboratory-summary-grid .detail-item>strong{font-size:14px}
-.laboratory-record-shell .laboratory-summary-grid .detail-item>small{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
 
 /* Workflow */
 .laboratory-record-shell .lab-workflow-count{padding:4px 10px;border-radius:999px;background:var(--lo-color-surface-subtle,#f1f5f9);font-size:12px;font-weight:800;color:var(--lo-color-text)}
@@ -32,13 +27,13 @@
 .laboratory-record-shell .lab-workflow-next{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;padding:8px 14px;border-radius:10px;background:var(--lo-color-surface-subtle,#f1f6fa)}
 .laboratory-record-shell .lab-workflow-next>div{min-width:0}
 .laboratory-record-shell .lab-workflow-next span{display:block;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted)}
-.laboratory-record-shell .lab-workflow-next strong{display:block;margin-top:2px;font-size:13.5px;color:var(--lo-color-text)}
+.laboratory-record-shell .lab-workflow-next strong{display:block;margin-top:2px;font-size:13px;font-weight:500;color:var(--lo-color-text)}
 .laboratory-record-shell .lab-workflow-next .button{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px}
 .laboratory-record-shell .lab-workflow-next.is-closed{justify-content:flex-start;gap:9px;font-size:13px;font-weight:700;color:var(--lo-color-text)}
 .laboratory-record-shell .lab-workflow-next.is-closed span{display:inline;font-size:13px;letter-spacing:0;text-transform:none;color:inherit}
 
 /* Result: the same detail grid as the sample details, the outcome coloured. */
-.laboratory-record-shell .lab-result-value{font-size:inherit!important;font-weight:inherit!important}
+.laboratory-record-shell .lab-result-value{font-size:inherit;font-weight:inherit}
 .laboratory-record-shell .lab-result-value.is-positive{color:#b42318}
 .laboratory-record-shell .lab-result-value.is-negative{color:#166534}
 .laboratory-record-shell .lab-result-critical{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:2px 8px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:11px;font-weight:700}
@@ -80,7 +75,6 @@
 .laboratory-record-shell .lab-inline-action strong{display:block;font-size:13.5px}
 .laboratory-record-shell .lab-inline-action span{display:block;margin-top:2px;font-size:12.5px;color:var(--lo-color-muted)}
 .laboratory-record-shell .lab-inline-action .button{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto}
-.laboratory-record-shell .lab-history-row{grid-template-columns:150px minmax(220px,360px) minmax(0,1fr);padding:9px 0;font-size:12.5px}
 
 /* Dialogs (rendered outside the shell) */
 .lab-dialog-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;align-items:end}
@@ -98,22 +92,26 @@
 /* S/I/R keeps its colours on the shared switch (ModeSwitch.css forces the active
    look, so these must too). */
 .lab-sir-choice .lo-mode-switch>button{min-width:56px;justify-content:center}
-.lab-sir-choice .lo-mode-switch>button.active:nth-child(1){background:color-mix(in srgb,#16a34a 14%,white)!important;color:#166534!important}
-.lab-sir-choice .lo-mode-switch>button.active:nth-child(2){background:color-mix(in srgb,#d97706 16%,white)!important;color:#92400e!important}
-.lab-sir-choice .lo-mode-switch>button.active:nth-child(3){background:color-mix(in srgb,#dc2626 13%,white)!important;color:#991b1b!important}
+/* : the shared mode switch sets its active colours with  (ModeSwitch.css). */
+.lab-sir-choice .lo-mode-switch>button.active:nth-child(1){background:color-mix(in srgb,#16a34a 14%,white);color:#166534}
+.lab-sir-choice .lo-mode-switch>button.active:nth-child(2){background:color-mix(in srgb,#d97706 16%,white);color:#92400e}
+.lab-sir-choice .lo-mode-switch>button.active:nth-child(3){background:color-mix(in srgb,#dc2626 13%,white);color:#991b1b}
 
-@media(max-width:1250px){.laboratory-record-shell .lab-workflow-steps{grid-template-columns:repeat(3,minmax(0,1fr))}.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1250px){.laboratory-record-shell .lab-workflow-steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){.laboratory-record-shell.workspace-fill{height:auto;overflow:visible}.laboratory-record-shell.workspace-fill>.entity-record-body{overflow:visible;padding:12px}.laboratory-record-shell .lab-workflow-steps,.laboratory-record-shell .laboratory-summary-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-workflow-next,.laboratory-record-shell .lab-inline-action,.laboratory-record-shell .lab-communication-row{flex-direction:column;align-items:stretch}.lab-dialog-form{grid-template-columns:1fr}}
 
 /* Fit the Sample tab on one laptop screen (~1500×815): the sample details use
    the shared read-only info sheet, made a little shorter here. The body keeps
    overflow:auto, so longer content still scrolls. */
-.canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid){margin-top:0!important;padding:0!important}
-.canonical-detail-screen.record-general-tab-active.laboratory-record-shell .laboratory-summary-grid:not(.employee-inline-edit):not(.editable-grid)>.detail-item{min-height:52px!important;padding:8px 16px!important}
 /* The result uses the same read-only info sheet as the sample details tab. */
-.laboratory-record-shell .lab-result-grid.lab-result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0!important;margin:0;padding:0;border:1px solid #e2e9ef;border-radius:11px;background:#fff;overflow:hidden}
-.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{min-width:0;min-height:52px;padding:8px 16px!important;border:0;border-right:1px solid #e9eef2;border-bottom:1px solid #edf1f4;border-radius:0;background:#fff;box-shadow:none}
-.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item:nth-child(3n){border-right:0}
-.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item>strong{display:block;margin:0;color:#173650;font-size:13px!important;font-weight:750!important}
-.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item>strong .status-badge{display:inline-flex;width:auto}
-@media(max-width:720px){.laboratory-record-shell .lab-result-grid.lab-result-grid{grid-template-columns:1fr}.laboratory-record-shell .lab-result-grid.lab-result-grid>.detail-item{border-right:0}}
+/* Σχετικά δείγματα: ίδια λήψη και άλλα σημεία του ίδιου τρυβλίου */
+.lab-related-group+.lab-related-group{margin-top:14px;padding-top:14px;border-top:1px solid var(--lo-color-border,#edf1f5)}
+.lab-related-hint{display:block;margin:-4px 0 8px;color:var(--lo-color-text-muted,#5f6f7c);font-size:11.5px}
+.lab-related-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 18px;margin:0;padding:0;list-style:none}
+.lab-related-list li{display:flex;align-items:baseline;gap:10px;min-width:0;font-size:12.5px}
+.lab-related-list li strong{font-size:12.5px}
+.lab-related-list li span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--lo-color-text-muted,#5f6f7c)}
+.lab-related-list li small{margin-left:auto;color:var(--lo-color-text-muted,#5f6f7c)}
+.lab-related-list a{flex:none;white-space:nowrap;text-decoration:none;color:var(--lo-color-primary,#176b9a)}
+.lab-related-list a:hover{text-decoration:underline}
+.lab-related-list{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}

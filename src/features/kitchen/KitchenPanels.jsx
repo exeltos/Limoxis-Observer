@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { FigureCards } from '../../design-system/FigureCards'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ChefHat, ClipboardCheck, Package, Pencil, Plus, Route, Trash2, Truck, Undo2 } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -54,11 +55,11 @@ export function OverviewPanel({ state, summary, access, onOpenDay, onTab, onStoc
     ...summary.pureeing.map(row => ({ id: `p-${row.id}`, kind: en ? 'Pureeing' : 'Πολτοποίηση', what: row.productName, when: '', status: row.limitStatus, path: row.productionId ? `/kitchen/days/${row.productionId}` : '' })),
   ]
   return <div className="kitchen-overview">
-    <nav className="kitchen-attention" aria-label={en ? 'What needs action' : 'Τι χρειάζεται ενέργεια'}>
+    <FigureCards className="kitchen-attention" label={en ? 'What needs action' : 'Τι χρειάζεται ενέργεια'}>
       <span className={summary.outOfLimits.length ? 'is-alert' : ''}><strong>{summary.outOfLimits.length}</strong>{en ? 'out of limits (30 d)' : 'εκτός ορίων (30 ημ.)'}</span>
       <button type="button" className={summary.expiring.length ? 'is-alert' : ''} onClick={onStockAttention}><strong>{summary.expiring.length}</strong>{en ? 'expire soon / expired' : 'λήγουν / έληξαν'}</button>
       <button type="button" className={summary.toVerify ? 'is-alert' : ''} onClick={() => onTab('safety')}><strong>{summary.toVerify}</strong>{en ? 'days to verify' : 'ημέρες προς επαλήθευση'}</button>
-    </nav>
+    </FigureCards>
     <section className="kitchen-card">
       <SectionHeader title={`${en ? 'Today' : 'Σήμερα'} · ${weekdayLabel(weekdayOf(summary.today), language)} ${fmtDay(summary.today)}`} subtitle={production ? (production.verifiedAt ? `${en ? 'Signed off by' : 'Επαληθεύτηκε από'} ${production.verifiedByName || '—'}` : (en ? 'Production day open' : 'Η ημέρα παραγωγής είναι ανοιχτή')) : (en ? 'No production day yet' : 'Δεν έχει ανοίξει ημέρα παραγωγής')} />
       {production?.menuText && <pre className="kitchen-menu-text is-compact">{production.menuText}</pre>}

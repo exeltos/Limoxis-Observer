@@ -1,6 +1,6 @@
 import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { useLibraries } from '../management/useLibraries'
-import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, reportKindOf, vocabularyLabel } from './qualityVocabulary'
+import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, reportKindOf, reporterText, vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
 import { glanceItems } from './QualityGlance'
@@ -34,7 +34,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
       reachesPatient && [L('Βλάβη (WHO)', 'Harm (WHO)'), vocabularyLabel(IMPACTS, harmLevel(record.impact), language)],
       [t('severity'), t(record.severity)],
       [L('Ημερομηνία και ώρα', 'Date and time'), [day(record.date), record.eventTime].filter(Boolean).join(' · ')],
-      [L('Αναφέρθηκε από', 'Reported by'), record.anonymous ? L('Ανώνυμη αναφορά', 'Anonymous report') : record.reportedBy],
+      [L('Αναφέρθηκε από', 'Reported by'), reporterText(record, en) || '—'],
       [L('Υπεύθυνος', 'Responsible'), owners],
       record.sentinel && [L('Συμβάν-φρουρός: ανάλυση έως', 'Sentinel: analysis due'), day(record.rcaDueDate)],
       ...(reachesPatient ? incidentDetailFacts(record, language) : []),

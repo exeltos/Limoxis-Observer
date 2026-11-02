@@ -1,6 +1,7 @@
 import { supabase } from '../../core/supabase/client'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { antisepticLibrary } from './preventionDemoData'
+import { antisepticPeriodBounds } from './antisepticMethods'
 import { loadAntisepticLocal, saveAntisepticLocal } from './preventionStore'
 import { assertCloud, currentUserId } from '../../core/supabase/cloudContext'
 import { deletePreventionRecord, findApprovedPatientDayRows, loadPreventionDepartments } from './preventionCloud'
@@ -139,14 +140,13 @@ export async function saveAntisepticRecord(organizationId, record, { existingId 
     x => x.id === record.antisepticItemId || x.el === record.product,
   )
   if (!product) throw new Error('Selected antiseptic is not available in the central library.')
-  const [year, month] = String(record.period || '')
-    .slice(0, 7)
-    .split('-')
-    .map(Number)
-  if (!year || !month) throw new Error('A valid month is required.')
-  const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const periodEnd = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+  const bounds =
+    record.periodKind === 'range' && record.periodStart && record.periodEnd
+      ? { from: record.periodStart, to: record.periodEnd }
+      : antisepticPeriodBounds(record.period)
+  if (!bounds) throw new Error('A valid period is required.')
+  const periodStart = bounds.from
+  const periodEnd = bounds.to
   const payload = {
     organization_id: organizationId,
     department_id: department?.id || null,

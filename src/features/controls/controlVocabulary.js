@@ -64,8 +64,8 @@ export function isFindingAnswer(response,value,answerItems=[]){
 }
 
 // Findings of an expiry row, stored as codes.
-export const EXPIRY_FINDINGS=['expired','expiring','other']
-const EXPIRY_FINDING_LABEL={expired:['Ληγμένο','Expired'],expiring:['Κοντόληκτο','Near expiry'],other:['Άλλο','Other']}
+export const EXPIRY_FINDINGS=['expired','expiring','shortage','other']
+const EXPIRY_FINDING_LABEL={expired:['Ληγμένο','Expired'],expiring:['Κοντόληκτο','Near expiry'],shortage:['Έλλειψη','Shortage'],other:['Άλλο','Other']}
 export function expiryFindingCode(value){
  const text=String(value||'').trim()
  if(!text)return ''

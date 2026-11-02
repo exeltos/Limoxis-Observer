@@ -7,7 +7,6 @@ import { CAPABILITIES, ROLES } from '../src/core/permissions/roles'
 import { SECTION_TABS, resolveSectionTab, sectionCapabilities, sectionTabPath, sectionTabsFor } from '../src/core/navigation/sectionTabs'
 import { navigationFor } from '../src/app/navigation'
 import { SidebarNavigation } from '../src/app/SidebarNavigation'
-import { SidebarIncidentReport } from '../src/app/SidebarIncidentReport'
 import { calendarFilterOf, calendarFiltersFor, controlExecutionEvents, parseCalendarFilter } from '../src/features/calendar/calendarEvents'
 
 const read = path => fs.readFileSync(path, 'utf8')
@@ -16,13 +15,13 @@ const ids = (section, role) => sectionTabsFor(section, { role }).map(tab => tab.
 describe('merged sections: one menu entry, the tabs the role may open', () => {
   it('names the tabs of Surveillance, Documents & regulations and Meetings & decisions in order', () => {
     expect(SECTION_TABS.surveillance.tabs.map(tab => tab.id)).toEqual(['episodes', 'registry', 'outbreaks', 'employees', 'environmental'])
-    expect(SECTION_TABS.documents.tabs.map(tab => tab.id)).toEqual(['documents', 'regulations', 'legislation'])
+    expect(SECTION_TABS.documents.tabs.map(tab => tab.id)).toEqual(['documents', 'regulations', 'legislation', 'acknowledgements'])
     expect(SECTION_TABS.meetings.tabs.map(tab => tab.id)).toEqual(['committees', 'departments', 'reviews'])
   })
 
   it('keeps each tab behind the gate its screen had', () => {
-    expect(ids('documents', ROLES.HOSPITAL_ADMIN)).toEqual(['documents', 'regulations', 'legislation'])
-    expect(ids('documents', ROLES.HOSPITAL_DIRECTOR)).toEqual(['documents', 'regulations'])
+    expect(ids('documents', ROLES.HOSPITAL_ADMIN)).toEqual(['documents', 'regulations', 'legislation', 'acknowledgements'])
+    expect(ids('documents', ROLES.HOSPITAL_DIRECTOR)).toEqual(['documents', 'regulations', 'acknowledgements'])
     expect(ids('meetings', ROLES.COMMITTEE_SECRETARIAT)).toEqual(['committees'])
     expect(ids('meetings', ROLES.QUALITY_MANAGER)).toEqual(['committees', 'departments', 'reviews'])
     expect(ids('meetings', ROLES.HOSPITAL_DIRECTOR)).toEqual([])
@@ -94,7 +93,7 @@ describe('grouped sidebar', () => {
   it('labels a merged entry with the section name', () => {
     renderMenu()
     expect(screen.getByRole('link', { name: 'sidebarNav.surveillanceSection' }).getAttribute('href')).toBe('/surveillance')
-    expect(screen.getByRole('link', { name: 'sidebarNav.documentsRegulations' }).getAttribute('href')).toBe('/documents')
+    expect(screen.getByRole('link', { name: 'sidebarNav.documentsShort' }).getAttribute('href')).toBe('/documents')
   })
 })
 
@@ -134,24 +133,18 @@ describe('one calendar', () => {
 
 describe('incident report button and indicators', () => {
   afterEach(cleanup)
-  it('pins «+ Incident report» at the foot of the sidebar for whoever may report, with a new report and my reports', () => {
+  it('has no incident report button at the foot of the sidebar any more (owner decision 29/10)', () => {
     const shell = read('src/app/AppShell.jsx')
-    expect(shell).toContain('const canReportIncident=!platformMode&&can(role,CAPABILITIES.REPORT_INCIDENT,')
-    expect(shell.indexOf('<SidebarIncidentReport')).toBeLessThan(shell.indexOf('<div className="sidebar-footer">'))
-    render(<MemoryRouter><SidebarIncidentReport t={key => key} /></MemoryRouter>)
-    const trigger = screen.getByRole('button', { name: 'sidebarNav.reportIncident' })
-    expect(trigger.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.click(trigger)
-    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual(['sidebarNav.newIncidentReport', 'sidebarNav.myIncidentReports'])
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.queryByRole('menu')).toBe(null)
+    expect(shell).not.toContain('SidebarIncidentReport')
+    expect(shell).not.toContain('canReportIncident')
   })
 
-  it('sends old /indicators links of the leadership to the Management tab (or the dashboard) and keeps the list for the others', () => {
+  it('sends old /indicators links of the leadership to Indicators & objectives (or the dashboard) and keeps the list for the others', () => {
     const route = read('src/features/indicators/IndicatorsRoute.jsx')
-    expect(route).toContain("'/management?tab=indicators' : '/executive'")
+    expect(route).toContain("'/quality/measures' : '/executive'")
     const management = read('src/features/management/ManagementPage.jsx')
-    expect(management).toContain("{id:'indicators',label:t('sidebarNav.indicatorDefinitions')")
+    expect(management).not.toContain("{id:'indicators',label:t('sidebarNav.indicatorDefinitions')")
+    expect(management).toContain("navigate('/quality/measures',{replace:true})")
     expect(management).toContain('<PageEmbedProvider><IndicatorsPage/></PageEmbedProvider>')
     expect(read('src/app/App.jsx')).toContain('<Route path="indicators" element={gateAny([CAPABILITIES.VIEW_INDICATORS,CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD],<IndicatorsRoute/>)}/>')
   })

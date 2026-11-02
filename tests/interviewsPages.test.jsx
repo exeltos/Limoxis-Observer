@@ -27,26 +27,28 @@ describe('Interviews screens (demo)', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); configureDataEnvironment({ mode: 'demo', demoAccountId: `interviews-ui-${Math.random()}` }) })
   afterEach(cleanup)
 
-  it('shows the pipeline counters, the open applications and filters by a counter', async () => {
+  it('shows the pipeline cards, the open applications and filters by status', async () => {
     renderAt('/interviews')
     expect(await screen.findByText('Κωνσταντίνου Δήμητρα')).toBeInTheDocument()
     expect(screen.queryByText('Παππά Χριστίνα')).not.toBeInTheDocument()
-    fireEvent.click(screen.getAllByText('Απορρίφθηκε')[0].closest('[role="button"]'))
+    // The closed applications are one choice of «Filters».
+    fireEvent.click(screen.getByRole('button', { name: /Φίλτρα/ }))
+    fireEvent.change(screen.getByLabelText('Κατάσταση'), { target: { value: 'rejected' } })
     expect(await screen.findByText('Παππά Χριστίνα')).toBeInTheDocument()
-    expect(screen.getByText('Επόμενες συνεντεύξεις')).toBeInTheDocument()
+    // No cards above the list: the steps that ask for something are counted in the status choices.
+    expect(screen.queryByText('Επόμενες συνεντεύξεις')).not.toBeInTheDocument()
+    expect(screen.getByRole('option', { name: /Νέα αίτηση \(\d+\)/ })).toBeInTheDocument()
   })
 
-  it('opens an application with its tabs and records an evaluation', async () => {
+  it('opens an application as one screen: details, CV, notes and the three answers', async () => {
     renderAt('/interviews/demo-cand-3')
     expect(await screen.findByRole('heading', { name: 'Μιχαηλίδου Άννα' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Εκπαίδευση & γλώσσες/ }))
+    // Education, languages and previous employers are on the same screen.
     expect(screen.getByText('Νοσηλευτική Πανεπιστημίου Θεσσαλίας')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Προϋπηρεσία/ }))
     expect(screen.getByText('Γενικό Νοσοκομείο (παράδειγμα)')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Συνεντεύξεις/ }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Αξιολόγηση' })[0])
-    expect(await screen.findByText('Βαθμολογία ανά κριτήριο')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('tab', { name: /Απόφαση/ }))
+    // One screen: the application, the notes of the discussion and the three answers.
+    expect(screen.getByText('Σημειώσεις συζήτησης')).toBeInTheDocument()
+    for (const name of ['Πρόσληψη', 'Αναμονή', 'Απόρριψη']) expect(screen.getByRole('button', { name })).toBeInTheDocument()
   })
 
   it('offers «Hire» for an application decided for hiring', async () => {

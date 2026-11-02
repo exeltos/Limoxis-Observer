@@ -143,6 +143,34 @@ export async function createOccupationalVisitAsync(organizationId, employee, dra
   return visitFromRow(data)
 }
 
+// The visit of the Occupational Health registry changed or removed (RLS: the occupational physician and the
+// holders of manage_occupational_health). `employee` is the one the visit belongs to.
+export async function updateOccupationalVisitAsync(organizationId, visit, draft) {
+  if (!draft?.date || !draft?.type) throw new Error('OCCUPATIONAL_VISIT_FIELDS_REQUIRED')
+  const done = draft.status === 'completed'
+  const fitStatus = done ? (draft.fitStatus || 'pending') : 'pending'
+  const notes = String(draft.clinicalNotes || '').trim()
+  if (isDemoDataEnvironment()) {
+    const next = { ...visit, date: draft.date, type: draft.type, status: draft.status || 'scheduled', followUpDate: done ? draft.followUpDate || null : null, fitStatus, clinicalNotes: notes }
+    saveVisitsLocal(loadVisitsLocal().map(item => (item.id === visit.id ? next : item)))
+    return next
+  }
+  const { data, error } = await supabase
+    .from('occupational_health_visits')
+    .update({ visit_date: draft.date, visit_type: draft.type, status: draft.status || 'scheduled', fitness_status: fitStatus, follow_up_date: done ? draft.followUpDate || null : null, clinical_notes: notes || null })
+    .eq('organization_id', organizationId)
+    .eq('id', visit.id)
+    .select('id,employee_id,visit_date,visit_type,status,follow_up_date,fitness_status,clinical_notes,created_at,updated_at')
+    .single()
+  if (error) throw error
+  return visitFromRow(data)
+}
+export async function deleteOccupationalVisitAsync(organizationId, visitId) {
+  if (isDemoDataEnvironment()) { saveVisitsLocal(loadVisitsLocal().filter(item => item.id !== visitId)); return }
+  const { error } = await supabase.from('occupational_health_visits').delete().eq('organization_id', organizationId).eq('id', visitId)
+  if (error) throw error
+}
+
 // --- Vaccinations ---
 function vaccinationFromRow(row) {
   return {

@@ -126,7 +126,8 @@ describe('printing a record page', () => {
       <p>{content.one}</p>
     </EntityRecordShell></LanguageProvider></MemoryRouter>)
     expect(screen.queryByText(content.two)).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Εξαγωγή: Εκτύπωση' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Εξαγωγή' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Εκτύπωση/ }))
     expect(pagePrint).not.toHaveBeenCalled()
     const sections = [...document.querySelectorAll('.record-print-section')]
     expect(sections.map(section => section.textContent)).toEqual(['ΣύνοψηΠεριεχόμενο σύνοψης', 'ΔείγματαΠεριεχόμενο δειγμάτων', 'ΙστορικόΠεριεχόμενο ιστορικού'])

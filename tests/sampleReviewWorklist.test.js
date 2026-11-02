@@ -173,6 +173,6 @@ describe('one action, one place', () => {
     expect(record.match(/'Άνοιγμα επεισοδίου'/g)).toHaveLength(1)
     expect(read('src/features/laboratory/LaboratoryWorkspace.jsx')).not.toContain('Άνοιγμα επεισοδίου')
     // The home card only leads to the list view.
-    expect(read('src/features/dashboard/DashboardPage.jsx')).toContain("navigate('/surveillance?tab=episodes&review=1')")
+    expect(read('src/features/dashboard/DashboardPage.jsx')).toContain("to:'/surveillance?tab=episodes&review=1'")
   })
 })

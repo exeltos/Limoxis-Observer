@@ -27,10 +27,10 @@ describe('committee decisions: owner linked to a real account', () => {
 })
 
 describe('committees list: overdue-action filter and sortable columns', () => {
-  it('makes the overdue-actions metric a dedicated filter instead of only counting', () => {
+  it('keeps the overdue actions as a filter of the list', () => {
     expect(listPage).toContain('overdueOnly')
     expect(listPage).toContain('isOverdue')
-    expect(listPage).toContain('onClick={()=>setOverdueOnly(v=>!v)}')
+    expect(listPage).toContain("setOverdueOnly(value==='overdue')")
   })
 
   it('sorts every column', () => {

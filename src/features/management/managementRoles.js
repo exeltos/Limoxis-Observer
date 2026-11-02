@@ -13,6 +13,7 @@ export const managementRoleNames={
   doctor_reviewer:'doctorReviewerRole',
   quality_manager:'qualityManagerRole',
   hospital_director:'hospitalDirectorRole',
+  division_director:'divisionDirectorRole',
   link_nurse:'linkNurseRole',
   staff_user:'staffUserRole',
   demo:'demoRole',
@@ -21,7 +22,7 @@ export const managementRoleNames={
 export const creatableManagementRoles=[
   'hospital_admin','infection_control_lead','infection_control_member','department_manager',
   'department_user','laboratory','committee_secretariat','hr_office','pharmacy',
-  'occupational_physician','doctor_reviewer','quality_manager','hospital_director','link_nurse','staff_user',
+  'occupational_physician','doctor_reviewer','quality_manager','hospital_director','division_director','link_nurse','staff_user',
 ]
 
 export function managementMemberStatusLabel(status,language){

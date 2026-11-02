@@ -87,8 +87,8 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
  const kpis=<div className="risk-compare-head">
   <div className="module-summary-strip risk-kpi-strip">
    {kpi(ClipboardList,cur.total,L(en,'Κίνδυνοι','Risks'),cur.total-prev.total,false)}
-   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (υπολ.)','Very high (residual)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
-   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (υπολ.)','High (residual)'),cur.levels.residual.high-prev.levels.residual.high)}
+   {kpi(AlertOctagon,cur.levels.residual.very_high,L(en,'Πολύ υψηλοί (μετά τα μέτρα)','Very high (after measures)'),cur.levels.residual.very_high-prev.levels.residual.very_high)}
+   {kpi(AlertTriangle,cur.levels.residual.high,L(en,'Υψηλοί (μετά τα μέτρα)','High (after measures)'),cur.levels.residual.high-prev.levels.residual.high)}
    {kpi(Gauge,num(cur.averages.residual,en),L(en,'Μέσος υπολειπόμενος','Average residual'),avgDelta)}
   </div>
   {actions}
@@ -99,7 +99,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <section className="risk-panel risk-trend-panel"><header><h3>{L(en,'Πορεία σε όλες τις περιόδους','Course over all periods')}</h3><small>{L(en,'Επιλέξτε δύο περιόδους για σύγκριση','Tick two periods to compare')}</small></header>
    {trend.length>=3&&<TrendChart trend={trend} en={en} currentId={current.id}/>}
    <ChoiceChips className="risk-period-picks" label={L(en,'Περίοδοι σύγκρισης','Periods compared')} options={trend.map(p=>({value:p.id,label:p.label}))} selected={[current.id,other.id]} onToggle={pick}/>
-   <RegistryTable className="risk-trend" rows={trend} rowKey={p=>p.id}
+   <RegistryTable sortable={false} className="risk-trend" rows={trend} rowKey={p=>p.id}
     columns={[{key:'pick',label:'',ariaLabel:L(en,'Επιλογή','Pick'),className:'risk-pick-col'},{key:'period',label:L(en,'Περίοδος','Period')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'avg',label:L(en,'Μέσος υπολ.','Avg. residual')},{key:'veryHigh',label:L(en,'Πολύ υψ.','Very high')},{key:'high',label:L(en,'Υψηλοί','High')},{key:'moderate',label:L(en,'Μέτριοι','Moderate')},{key:'low',label:L(en,'Χαμηλοί','Low')}]}
     rowProps={p=>({className:`is-openable${p.id===current.id||p.id===other.id?' is-current':''}`,onClick:()=>pick(p.id)})}
     renderRow={p=><><td className="risk-pick-col">{(p.id===current.id||p.id===other.id)&&<Check size={15} aria-hidden="true"/>}</td><td><strong>{p.label}</strong><small>{fmtDate(p.assessedOn,locale)}</small></td><td>{p.total}</td><td><LevelChip score={Math.round(p.residualAverage||0)||null} level={levelForScore(Math.round(p.residualAverage||0))} en={en} compact title={num(p.residualAverage,en)}/> {num(p.residualAverage,en)}</td><td>{p.levels.very_high}</td><td>{p.levels.high}</td><td>{p.levels.moderate}</td><td>{p.levels.low}</td></>}/>
@@ -111,7 +111,7 @@ export function RiskComparison({assessment,assessments,en,locale,onOpen,actions=
   <section className="risk-panel"><header><h3>{L(en,'Μεταβολή ανά κίνδυνο','Change per risk')}</h3>
    <div className="risk-status-chips">{['all','improved','worsened','unchanged','new','removed'].map(id=><button key={id} type="button" className={show===id?'active':''} onClick={()=>setShow(id)}>{id==='all'?L(en,'Όλοι','All'):label(id,en)} <b>{id==='all'?result.rows.length:result.counts[id]}</b></button>)}</div></header>
    <div className="risk-registry-frame">
-   <RegistryTable className="risk-table risk-compare-table" rows={pageRows} rowKey={r=>r.key}
+   <RegistryTable sortable={false} className="risk-table risk-compare-table" rows={pageRows} rowKey={r=>r.key}
     columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'before',label:nameOf(other)},{key:'current',label:nameOf(current)},{key:'delta',label:L(en,'Μεταβολή','Change')},{key:'axis',label:L(en,'Τι άλλαξε','What changed')},{key:'status',label:L(en,'Κατάσταση','Status')},{key:'open',label:''}]}
     rowProps={r=>{const openable=r.status!=='removed'&&onOpen;return {className:`${openable?'is-openable':''}${current.id===assessment.id?returnedClass(returned,r.risk.lineageKey):''}`||undefined,onClick:()=>openable&&onOpen(r.risk,current),title:openable?L(en,'Άνοιγμα του κινδύνου','Open the risk'):undefined}}}
     renderRow={r=><>

@@ -5,6 +5,8 @@
 // identity table beside it. The screens keep one shape for a register and an
 // entry; this module translates between that shape and the rows.
 
+import { dailyStart } from './registerEngine'
+
 const TYPE_TO_DB = { yesNo: 'yes_no', multiChoice: 'multi_choice' }
 const TYPE_FROM_DB = { yes_no: 'yesNo', multi_choice: 'multiChoice' }
 const COMPUTED_TO_DB = { ageDays: 'age_days', ageYears: 'age_years', apacheII: 'apache_ii' }
@@ -39,7 +41,7 @@ export function registerFromRows({ register, sections = [], fields = [], options
     history: register.history || [],
     updatedAt: register.updated_at,
     fields: fields.filter(row => !row.archived).sort(byPosition).map(row => fieldFromRow(row, optionsOf(row.id))),
-    sheet: register.kind === 'sheet' ? { period: register.sheet_period || 'month', rows: axis('row'), measures: axis('measure'), groups: axis('group') } : {},
+    sheet: register.kind === 'sheet' ? { period: register.sheet_period || 'month', ...(register.daily_from ? { dailyFrom: String(register.daily_from).slice(0, 10) } : {}), rows: axis('row'), measures: axis('measure'), groups: axis('group') } : {},
     indicators: indicators.filter(row => !row.archived).sort(byPosition).map(row => indicatorFromRow(row, filtersOf(row.id, 'numerator'), filtersOf(row.id, 'denominator'))),
     settings: {
       sections: sections.sort(byPosition).map(row => ({ key: row.key, label: row.label_el, labelEn: row.label_en || row.label_el })),
@@ -77,6 +79,7 @@ function indicatorFromRow(row, filters, denominatorFilters) {
   add('field', row.field_key); add('dateField', row.date_field_key); add('denominatorField', row.denominator_field_key); add('multiplier', num(row.multiplier))
   add('rows', row.sheet_rows); add('measure', row.sheet_measure); add('denominatorRows', row.denominator_rows); add('denominatorMeasure', row.denominator_measure)
   add('unit', row.unit_el); add('unitEn', row.unit_en); add('target', num(row.target)); add('threshold', num(row.threshold)); add('note', row.note_el); add('noteEn', row.note_en)
+  if (row.daily_only) indicator.dailyOnly = true
   if (!indicator.rows) indicator.rows = []
   return indicator
 }
@@ -97,6 +100,7 @@ export function registerRow(register, organizationId) {
     version: Number(register.version) || 1,
     template_key: register.templateKey || null,
     entry_date_field: register.kind === 'case' ? register.settings?.entryDateField || null : null,
+    daily_from: register.kind === 'sheet' && register.sheet?.dailyFrom ? dailyStart(register.sheet.dailyFrom) : null,
     identity_case_number: Boolean(register.settings?.identity?.caseNumber),
     identity_patient_name: Boolean(register.settings?.identity?.patientName),
     history: register.history || [],
@@ -156,6 +160,7 @@ export function definitionRows(register, organizationId, registerId) {
     sheet_measure: orNull(indicator.measure),
     denominator_rows: indicator.denominatorRows || [],
     denominator_measure: orNull(indicator.denominatorMeasure),
+    daily_only: Boolean(indicator.dailyOnly),
     unit_el: orNull(indicator.unit),
     unit_en: orNull(indicator.unitEn),
     target: num(indicator.target),

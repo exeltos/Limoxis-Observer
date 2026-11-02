@@ -1,15 +1,18 @@
 import { supabase, invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { previewCreateAccounts, previewEmail, previewEmployeeAccounts, previewResend } from '../../core/preview/bulkAccountsPreview'
 import { CHUNK_SIZE, RESEND_CHUNK_SIZE, chunk, normalizeRosterRow } from './bulkAccountsModel'
 
-// N1 · bulk creation of accounts from the employee roster (Platform Owner only;
-// the RPC and the Edge Function refuse anyone else).
+// N1 · bulk creation of accounts from the employee roster (the Platform Owner or the
+// hospital's own Hospital Admin; the RPC and the Edge Function refuse anyone else).
 const FUNCTION = 'platform-bulk-create-accounts'
+// The owner's preview frame and the Demo run on sample people: nothing is sent.
+const simulated = () => isOwnerPreview() || isDemoDataEnvironment()
 
 export async function loadEmployeeAccounts(organizationId) {
-  const data = isOwnerPreview()
-    ? previewEmployeeAccounts(organizationId)
+  const data = simulated()
+    ? previewEmployeeAccounts(organizationId, { anyOrganization: isDemoDataEnvironment() })
     : await (async () => {
         if (!supabase) return { employees: [], departments: [] }
         const { data: result, error } = await supabase.rpc('platform_employee_accounts', { p_organization_id: organizationId })
@@ -25,7 +28,7 @@ export async function loadEmployeeAccounts(organizationId) {
 // The confirmation (dryRun): people per role, who is skipped, e-mails that already
 // have an account in another hospital, the link's validity, the e-mail preview.
 export async function previewBulkAccounts(organization, items, rows) {
-  if (isOwnerPreview()) {
+  if (simulated()) {
     const byId = new Map(rows.map(row => [row.employeeId, row]))
     const existing = items
       .map(item => byId.get(item.employeeId))
@@ -44,7 +47,7 @@ export async function previewBulkAccounts(organization, items, rows) {
 // rows; the server never makes two accounts for one employee), then «finish»
 // (audit, summary to the hospital's administrators). onProgress(done, total).
 export async function createBulkAccounts(organizationId, items, { confirmExisting = [], onProgress } = {}) {
-  if (isOwnerPreview()) {
+  if (simulated()) {
     onProgress?.(items.length, items.length)
     return previewCreateAccounts(items, confirmExisting)
   }
@@ -74,7 +77,7 @@ async function invokeWithRetry(body) {
 
 // «Ξαναστείλε»: a new link (the old one stops working) for people who have not activated.
 export async function resendAccountAccess(organizationId, employeeIds) {
-  if (isOwnerPreview()) return previewResend(employeeIds)
+  if (simulated()) return previewResend(employeeIds)
   const results = []
   for (const part of chunk(employeeIds, RESEND_CHUNK_SIZE)) {
     const data = await invokeAuthenticatedFunction(FUNCTION, { action: 'resend', organizationId, employeeIds: part })

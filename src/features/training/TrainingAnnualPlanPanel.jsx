@@ -1,4 +1,4 @@
-import { AlertTriangle,ChevronLeft,ChevronRight,Plus } from 'lucide-react'
+import { ChevronLeft,ChevronRight,Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -14,13 +14,13 @@ const monthEnd=(year,month)=>`${year}-${pad(month+1)}-${pad(new Date(year,month+
 // month for one year) and "Retraining" (what the competence requirements call
 // for, with what is still not scheduled). The page owns the year and the plan,
 // so its Download button sits in the page header.
-export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canManage,section='programmes',onShowRetraining}){
+export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canManage,section='programmes'}){
  const en=language==='en'
  const navigate=useNavigate()
  const months=MONTHS[en?'en':'el']
  const today=new Date().toISOString().slice(0,10)
  const currentMonth=today.slice(0,4)===String(year)?Number(today.slice(5,7))-1:-1
- const {rows,needs,totals}=plan
+ const {rows,needs}=plan
 
  function schedule(need){
   const first=Math.max(need.months.findIndex(n=>n>0),currentMonth,0)
@@ -39,16 +39,6 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
     <strong>{year}</strong>
     <IconButton label={en?'Next year':'Επόμενο έτος'} onClick={()=>onYearChange(year+1)}><ChevronRight size={16}/></IconButton>
    </div>
-   {retraining?<>
-    <span><strong>{needs.length}</strong>{en?'requirements':'απαιτήσεις'}</span>
-    <span><strong>{totals.due}</strong>{en?'people need retraining':'άτομα χρειάζονται επανεκπαίδευση'}</span>
-    {totals.uncovered>0&&<span className="training-plan-alert"><AlertTriangle size={14}/><strong>{totals.uncovered}</strong>{en?'not scheduled':'χωρίς προγραμματισμό'}</span>}
-   </>:<>
-    <span><strong>{totals.programmes}</strong>{en?'programmes':'προγράμματα'}</span>
-    <span><strong>{totals.done}</strong>{en?'completed':'ολοκληρώθηκαν'}</span>
-    <span><strong>{totals.completed} / {totals.participants}</strong>{en?'participants completed':'συμμετέχοντες ολοκλήρωσαν'}</span>
-    {totals.uncovered>0&&<button type="button" className="training-plan-alert" onClick={onShowRetraining}><AlertTriangle size={14}/><strong>{totals.uncovered}</strong>{en?'retraining not scheduled':'επανεκπαιδεύσεις χωρίς προγραμματισμό'}</button>}
-   </>}
   </div>
   <div className="scroll-table">
    <table className="data-table sticky-table training-plan-table">

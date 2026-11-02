@@ -27,7 +27,7 @@ export function AuditFindingDialog({ row, audit, language, saving, onClose, onCr
     return merged
   })
   return <ObserverDialog width="wide" title={L(en, 'Εύρημα από την επιθεώρηση', 'Finding from the audit')} subtitle={`${standardShort(audit.standard)} ${row.clauseRef || ''}`.trim()} onClose={onClose}
-    footer={<DialogActions onSave={() => onCreate(values)} disabled={saving} saveLabel={values.withCapa ? L(en, 'Δημιουργία ευρήματος και CAPA', 'Create finding and CAPA') : L(en, 'Δημιουργία ευρήματος', 'Create finding')} />}>
+    footer={<DialogActions onSave={() => onCreate(values)} disabled={saving} saveLabel={values.withCapa ? L(en, 'Δημιουργία ευρήματος και διορθωτικής ενέργειας', 'Create finding and CAPA') : L(en, 'Δημιουργία ευρήματος', 'Create finding')} />}>
     <RecordDetailsGrid fields={[
       { id: 'q', label: L(en, 'Ερώτηση', 'Question'), value: row.item, className: 'is-wide' },
       { id: 'a', label: L(en, 'Αποτέλεσμα', 'Result'), value: resultLabel(row.answer, language) },
@@ -38,9 +38,9 @@ export function AuditFindingDialog({ row, audit, language, saving, onClose, onCr
       <ChoiceField label={L(en, 'Κατάταξη', 'Class')} value={values.findingClass} options={FINDING_CLASSES.filter(item => classes.includes(item.value)).map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} onChange={findingClass => set({ findingClass })} />
       <QualityPersonField label={L(en, 'Υπεύθυνος ευρήματος', 'Finding owner')} name={values.owner} department={audit.department} onChange={({ name }) => set({ owner: name })} />
       <ManualDateField label={L(en, 'Προθεσμία', 'Due date')} value={values.dueDate} onChange={dueDate => set({ dueDate })} />
-      <CheckboxField label={L(en, 'Άνοιγμα διορθωτικής ενέργειας (CAPA)', 'Open a corrective action (CAPA)')} checked={values.withCapa} onChange={withCapa => set({ withCapa })} />
-      {values.withCapa && <QualityPersonField label={L(en, 'Υπεύθυνος CAPA', 'CAPA owner')} name={values.capaOwner || values.owner} department={audit.department} onChange={({ name }) => set({ capaOwner: name })} />}
-      {values.withCapa && <ManualDateField label={L(en, 'Προθεσμία CAPA', 'CAPA due date')} value={values.capaDueDate} onChange={capaDueDate => set({ capaDueDate })} />}
+      <CheckboxField label={L(en, 'Άνοιγμα διορθωτικής ενέργειας', 'Open a corrective action (CAPA)')} checked={values.withCapa} onChange={withCapa => set({ withCapa })} />
+      {values.withCapa && <QualityPersonField label={L(en, 'Υπεύθυνος διορθωτικής ενέργειας', 'CAPA owner')} name={values.capaOwner || values.owner} department={audit.department} onChange={({ name }) => set({ capaOwner: name })} />}
+      {values.withCapa && <ManualDateField label={L(en, 'Προθεσμία διορθωτικής ενέργειας', 'CAPA due date')} value={values.capaDueDate} onChange={capaDueDate => set({ capaDueDate })} />}
     </FormGrid>
   </ObserverDialog>
 }

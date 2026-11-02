@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react'
-import { Activity, BookMarked, BookOpenCheck, ClipboardList, ClipboardSignature, FileText, HeartPulse, Microscope, Radar, Scale, Users } from 'lucide-react'
+import { Activity, BookMarked, BookOpenCheck, ClipboardList, ClipboardSignature, FileText, HeartPulse, ListChecks, Microscope, Radar, Scale, Users } from 'lucide-react'
 import { SectionRoute } from '../../core/navigation/SectionRoute'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -9,6 +9,7 @@ import { SurveillanceCanonicalPage } from '../surveillance/SurveillanceCanonical
 import { surveillanceTabAccess } from '../surveillance/surveillanceTabAccess'
 import { LiraOutbreakInvestigationsPanel } from '../management/LiraOutbreakInvestigationsPanel'
 import { DocumentsPage } from '../documents/DocumentsPage'
+import { DocumentAcknowledgementsPage } from '../documents/DocumentAcknowledgementsPage'
 import { RegulationsPage } from '../regulations/RegulationsPage'
 import { LegislationPage } from '../legislation/LegislationPage'
 import { CommitteesPage } from '../committees/CommitteesPage'
@@ -17,7 +18,7 @@ import { DepartmentMeetingsScreen, ManagementReviewsScreen } from '../quality/me
 // The merged sections of the menu (core/navigation/sectionTabs.js): each tab
 // is the screen it always was, with its own gate.
 const SURVEILLANCE_ICONS = Object.freeze({ registry: HeartPulse, episodes: Activity, employees: Users, environmental: Microscope, outbreaks: Radar })
-const DOCUMENT_ICONS = Object.freeze({ documents: FileText, regulations: BookMarked, legislation: Scale })
+const DOCUMENT_ICONS = Object.freeze({ documents: FileText, regulations: BookMarked, legislation: Scale, acknowledgements: ListChecks })
 const MEETING_ICONS = Object.freeze({ committees: BookOpenCheck, departments: ClipboardList, reviews: ClipboardSignature })
 
 // The outbreak investigations (formerly Management Center › LIRA & AI), now a tab of Surveillance.
@@ -31,14 +32,14 @@ function OutbreakInvestigationsScreen() {
 }
 
 export function SurveillanceSectionPage() {
-  const { role, actualRole, isDemo, canSeeSensitiveEmployeeHealth } = useTenant()
-  const access = useMemo(() => surveillanceTabAccess({ role, actualRole, isDemo, canSeeSensitiveEmployeeHealth }), [role, actualRole, isDemo, canSeeSensitiveEmployeeHealth])
+  const { role, actualRole, canSeeSensitiveEmployeeHealth } = useTenant()
+  const access = useMemo(() => surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth }), [role, actualRole, canSeeSensitiveEmployeeHealth])
   const allow = useCallback(id => (id === 'employees' ? access.employees : id === 'environmental' ? access.environment : true), [access])
   return <SectionRoute sectionId="surveillance" icons={SURVEILLANCE_ICONS} allow={allow} render={tab => tab === 'registry' ? <PatientsPage /> : tab === 'outbreaks' ? <OutbreakInvestigationsScreen /> : <SurveillanceCanonicalPage />} />
 }
 
 export function DocumentsSectionPage() {
-  return <SectionRoute sectionId="documents" icons={DOCUMENT_ICONS} render={tab => tab === 'regulations' ? <RegulationsPage /> : tab === 'legislation' ? <LegislationPage /> : <DocumentsPage />} />
+  return <SectionRoute sectionId="documents" icons={DOCUMENT_ICONS} render={tab => tab === 'regulations' ? <RegulationsPage /> : tab === 'legislation' ? <LegislationPage /> : tab === 'acknowledgements' ? <DocumentAcknowledgementsPage /> : <DocumentsPage />} />
 }
 
 export function MeetingsSectionPage() {

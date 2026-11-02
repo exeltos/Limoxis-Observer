@@ -37,6 +37,7 @@ function mapRun(row, steps = [], events = []) {
     recognitionSource: row.recognition_source || '',
     weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
     status: row.status,
+    startedBy: row.started_by || '',
     startedByName: row.started_by_name || '',
     startedAt: row.started_at,
     completedAt: row.completed_at,
@@ -119,6 +120,14 @@ function demoEvent(run, actor, event) {
   run.events = [{ id: demoId('EV'), ...event, detail: event.detail || {}, reason: event.reason || '', actorName: actor?.name || 'Demo user', at: nowIso() }, ...(run.events || [])]
 }
 const demoRun = runId => demoProtocolRuns.find(run => run.id === runId)
+// Demo: the bin takes a protocol run out of the session list and puts it back on restore.
+export function removeDemoProtocolRun(runId) {
+  const index = demoProtocolRuns.findIndex(run => run.id === runId)
+  return index < 0 ? null : demoProtocolRuns.splice(index, 1)[0]
+}
+export function restoreDemoProtocolRun(row) {
+  if (row && !demoProtocolRuns.some(run => run.id === row.id)) demoProtocolRuns.unshift(row)
+}
 
 export async function startProtocolRun(organizationId, record, draft, { isDemo = false, actor = null } = {}) {
   if (!protocolByKey(draft.protocolKey)) throw new Error('Unknown protocol')

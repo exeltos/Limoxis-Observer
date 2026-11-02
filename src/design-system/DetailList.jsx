@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import './DetailList.css'
 import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 
@@ -15,12 +16,18 @@ import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 // «Δεν έχουν καταχωριστεί: Πατρώνυμο, Φύλο» (with `onEditMissing` as a link).
 export const isBlankValue = value => value == null || value === false || (typeof value === 'string' && !value.trim()) || value === '—'
 
+const LONG_TEXT = 600
+
 export function DetailItem({ label, value, wide = false, className = '' }) {
   const blank = isBlankValue(value)
+  const en = useOptionalLanguage()?.language === 'en'
+  const [open, setOpen] = useState(false)
+  const long = wide && typeof value === 'string' && value.length > LONG_TEXT
   return (
     <div className={`lo-detail-item${wide ? ' is-wide' : ''}${blank ? ' is-empty' : ''} ${className}`.trim()}>
       <dt>{label}</dt>
-      <dd>{blank ? '—' : value}</dd>
+      <dd className={long && !open ? 'is-clamped' : undefined}>{blank ? '—' : value}</dd>
+      {long && <button type="button" className="lo-detail-more" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? (en ? 'Show less' : 'Λιγότερα') : (en ? 'Show more' : 'Περισσότερα')}</button>}
     </div>
   )
 }
@@ -55,4 +62,13 @@ export function DetailList({ sections = [], className = '' }) {
       {sections.filter(Boolean).map((section, index) => <DetailSection key={section.key || section.title || index} {...section} />)}
     </div>
   )
+}
+
+// The same list from RecordDetailsGrid-style fields ({ id, label, value, meta, hidden }),
+// so a record can move to the one look without reshaping its fields.
+export function DetailFields({ fields = [], className = '' }) {
+  const items = fields
+    .filter(field => field && field.hidden !== true)
+    .map(field => ({ label: field.label, value: field.meta ? <>{field.value === 0 ? 0 : field.value || '—'} <small className="lo-detail-meta">{field.meta}</small></> : field.value }))
+  return <DetailList className={className} sections={[{ items }]} />
 }

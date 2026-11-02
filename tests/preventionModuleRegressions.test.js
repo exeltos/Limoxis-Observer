@@ -39,8 +39,8 @@ describe('demo antiseptic seed data uses a valid ANTISEPTIC_METHODS id', () => {
 })
 
 describe('the antiseptic methods module (formerly the misnamed AntisepticEntryModal.jsx)', () => {
-  it('exports only the method list and its helpers, and the old file name is gone', () => {
-    expect(Object.keys(antisepticMethods).sort()).toEqual(['ANTISEPTIC_METHODS', 'antisepticMethodLabel', 'isAbhrProduct'])
+  it('exports only the method list, the period helpers and their helpers, and the old file name is gone', () => {
+    expect(Object.keys(antisepticMethods).sort()).toEqual(['ANTISEPTIC_METHODS', 'antisepticMethodLabel', 'antisepticPeriodBounds', 'antisepticPeriodKind', 'antisepticPeriodLabel', 'isAbhrProduct'])
     expect(fs.existsSync('src/features/prevention/AntisepticEntryModal.jsx')).toBe(false)
   })
 })

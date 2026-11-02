@@ -122,6 +122,13 @@ function startOf(value) {
   return Date.parse(`${text}T00:00:00${zone.replace('GMT', '') || '+00:00'}`)
 }
 
+// When a notification with a timed deadline is due (null for «immediately» or no deadline).
+export function deadlineDueAt(deadline, startIso) {
+  const start = startOf(startIso)
+  const limit = LIMIT_HOURS[deadline]
+  return limit && !Number.isNaN(start) ? new Date(start + limit * 3600000) : null
+}
+
 export function deadlineStatusText(deadline, startIso, { now = Date.now(), language = 'el' } = {}) {
   const start = startOf(startIso)
   if (!deadline || Number.isNaN(start)) return { overdue: false, text: '' }

@@ -67,7 +67,7 @@ describe('protocols are data-driven and timed against the hour', () => {
       expect(stringsEl.sepsis.protocols[protocol.key].name).toBeTruthy()
       expect(stringsEn.sepsis.protocols[protocol.key].name).toBeTruthy()
     }
-    expect(stringsEl.sepsis.protocols.sepsis_hour1.name).toBe('Bundle Σήψης 1ης ώρας')
+    expect(stringsEl.sepsis.protocols.sepsis_hour1.name).toBe('Δέσμη σήψης 1ης ώρας')
     expect(stringsEl.sepsis.protocols.septic_shock.name).toBe('Σηπτικό shock')
     expect(protocolByKey('septic_shock').steps.find(step => step.key === 'vasopressor').emphasis).toBe(true)
   })
@@ -101,9 +101,9 @@ describe('protocols are data-driven and timed against the hour', () => {
     expect(protocolStages([], t, 'el')).toEqual([])
     const run = { id: 'R1', protocolKey: 'sepsis_hour1', recognizedAt: ZERO, status: 'open', steps: [] }
     const [tab] = protocolStages([run], t, 'el', new Date(at(ZERO, 42)))
-    expect(tab).toMatchObject({ id: 'protocol:R1', label: 'Σήψη', meta: 'Hour-1 · 42΄', protocol: true })
+    expect(tab).toMatchObject({ id: 'protocol:R1', label: 'Σήψη', meta: '1η ώρα · 42΄', protocol: true })
     const cues = protocolCues([run], { therapy: [] }, [], t, { canProtocol: true, canTherapy: true, now: new Date(at(ZERO, 42)) })
-    expect(cues[0]).toMatchObject({ id: 'protocol:R1', title: 'Hour-1: εκκρεμεί γαλακτικό' })
+    expect(cues[0]).toMatchObject({ id: 'protocol:R1', title: '1η ώρα: εκκρεμεί γαλακτικό' })
   })
 })
 

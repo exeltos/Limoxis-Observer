@@ -1,13 +1,13 @@
 import { useEffect,useMemo,useState } from 'react'
-import { AlertOctagon,ExternalLink,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
-import { ActionButton } from '../../design-system/ActionButton'
-import { IconButton } from '../../design-system/IconButton'
+import { KpiFigures } from '../../design-system/KpiCard'
+import { AlertOctagon,AlertTriangle,CalendarClock,Clock3,SearchCheck,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
+import { useSortedPaging,withSort } from './useSortedPaging'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
-import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadControlProgramme } from '../controls/controlCloudService'
 import { loadBundleAssessments } from '../prevention/bundleCloudService'
@@ -47,7 +47,7 @@ const STAGE_TONE={toAssess:'warning',investigating:'info',action:'info',effectiv
 export function StageTrack({stage,language}){
  const reached=stage==='closed'?5:INCIDENT_STAGES.indexOf(stage)+1
  return <span className="quality-stage">
-  <span className="quality-stage-track" aria-hidden="true">{[1,2,3,4,5].map(step=><i key={step} className={step<reached?'is-done':step===reached?'is-current':''}/>)}</span>
+  {stage!=='closed'&&stage!=='voided'&&<span className="quality-stage-track" aria-hidden="true">{[1,2,3,4,5].map(step=><i key={step} className={step<reached?'is-done':step===reached?'is-current':''}/>)}</span>}
   <StatusBadge tone={STAGE_TONE[stage]||'neutral'}>{stageLabel(stage,language)}</StatusBadge>
  </span>
 }
@@ -70,7 +70,7 @@ export function useDeviationQueue(organizationId,enabled=true){
  return {sources,loading}
 }
 
-const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null}
+const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,period:'all',origin:'all'}
 const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',quick:null}
 const departmentsOf=(rows,language)=>[...new Set(rows.map(row=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
@@ -182,13 +182,6 @@ export function deviationsExport(rows,{language,t}){
  }
 }
 
-function usePage(items,resetKey){
- const [page,setPage]=useState(1)
- const [pageSize,setPageSize]=useState(15)
- useEffect(()=>setPage(1),[resetKey,pageSize])
- const totalPages=Math.max(1,Math.ceil(items.length/pageSize)),safePage=Math.min(page,totalPages)
- return {rows:items.slice((safePage-1)*pageSize,safePage*pageSize),props:{page:safePage,totalPages,totalItems:items.length,pageSize,onPageChange:setPage,onPageSizeChange:setPageSize}}
-}
 
 function ageText(row,language){
  const days=-daysUntil(row.date)
@@ -196,65 +189,140 @@ function ageText(row,language){
  return language==='en'?`${days} ${days===1?'day':'days'} open`:`${days} ${days===1?'ημέρα':'ημέρες'} ανοιχτή`
 }
 
-export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport}){
+const WAITING_DAYS=7
+const waitingDays=row=>{const days=-daysUntil(row.date);return row.stage==='closed'||row.stage==='voided'||!Number.isFinite(days)?null:Math.max(0,days)}
+const PERIOD_DAYS={today:0,'7d':7,'30d':30}
+const SEVERITY_RANK={critical:4,high:3,medium:2,low:1}
+// Open records first (sentinel events, then the more severe, then the newest), closed ones after.
+// Deviations: those still without a corrective action first, then the open ones by priority, closed ones last.
+const deviationOrder=(a,b)=>{
+ const rank=row=>row.type==='finding'&&row.status==='closed'?2:row.type==='finding'&&!row.hasCapa?0:1
+ return rank(a)-rank(b)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
+}
+const openFirst=(a,b)=>{
+ const closed=row=>row.stage==='closed'||row.stage==='voided'?1:0
+ return closed(a)-closed(b)||(b.sentinel?1:0)-(a.sentinel?1:0)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
+}
+
+// The line above a register, outside its card (as in Controls): what waits, in figures that filter the list.
+export function ReportSummary({view,loading,language,inbox=false}){
  const en=language==='en'
  const {filters,set}=view
- const items=view.filtered
- const paging=usePage(items,JSON.stringify(filters))
- const advanced=['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
- return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search…':'Αναζήτηση…'} activeAdvancedCount={advanced} onClear={view.clear}>
+ const quick=filters.quick
+ const stageCount=view.counts.stages
+ const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
+ const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
+ const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
+ const toggle=key=>()=>set('quick',quick===key?null:key)
+ if(inbox)return <KpiFigures className="quality-kpis" label={en?'Reports':'Αναφορές'} loading={loading} figures={[
+  {key:'toAssess',icon:Clock3,value:waits.length,label:en?'To assess':'Προς αξιολόγηση',tone:'warning',active:!quick,go:()=>view.clear()},
+  {key:'waiting',icon:AlertTriangle,value:longWaiting,label:en?`Waiting over ${WAITING_DAYS} days`:`Αναμένουν πάνω από ${WAITING_DAYS} ημέρες`,status:longWaiting?'danger':'good',target:en?'target: 0':'στόχος: 0',active:quick==='waiting',go:toggle('waiting')},
+  {key:'oldest',icon:CalendarClock,value:waits.length?oldest:null,unit:dayWord(oldest),label:en?'Oldest waiting':'Παλαιότερη αναμονή',status:waits.length?(oldest>WAITING_DAYS?'danger':'good'):null,target:en?`target ≤ ${WAITING_DAYS} days`:`στόχος ≤ ${WAITING_DAYS} ημέρες`},
+ ]}/>
+ // The open stages (closed ones are a filter), then the sentinel events.
+ const stageIcons={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:ShieldCheck,toClose:ClipboardCheck}
+ const open=INCIDENT_STAGES.filter(stage=>stage!=='closed'&&stageCount?.[stage])
+ return <KpiFigures className="quality-kpis" label={en?'Incidents':'Συμβάντα'} loading={loading} figures={[
+  ...open.slice(0,3).map(stage=>({key:stage,icon:stageIcons[stage],value:stageCount[stage],label:stageLabel(stage,language),active:quick===stage,go:toggle(stage)})),
+  {key:'sentinel',icon:AlertOctagon,value:view.counts.sentinel,label:en?'Sentinel events':'Συμβάντα-φρουροί',status:view.counts.sentinel?'danger':'good',target:en?'target: 0':'στόχος: 0',active:quick==='sentinel',go:toggle('sentinel')},
+ ]}/>
+}
+
+// The inbox (`inbox`): staff reports Quality has not classified yet, as one
+// summary line and the usual filter popover instead of boxes and extra columns.
+export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false}){
+ const en=language==='en'
+ const {filters,set}=view
+ const quick=inbox?filters.quick:null
+ const items=useMemo(()=>inbox?view.filtered.filter(row=>{
+  const age=-daysUntil(row.date),days=waitingDays(row)
+  return (!quick||(days!=null&&(quick==='waiting'?days>=WAITING_DAYS:quick==='new'?days<WAITING_DAYS:true)))
+   &&(filters.period==='all'||(Number.isFinite(age)&&age<=PERIOD_DAYS[filters.period]))
+   &&(filters.origin==='all'||(filters.origin==='anonymous')===Boolean(row.anonymous))
+ }):compact?[...view.filtered].sort(openFirst):view.filtered,[view.filtered,inbox,compact,quick,filters.period,filters.origin])
+ const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),kind:row=>row.kind,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,stage:row=>row.stage,owner:row=>row.owner,reporter:row=>(row.anonymous?'':row.reporter)}
+ const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
+ const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
+ const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
+ const columns=inbox
+  ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
+  :compact
+   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Kind':'Είδος'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'owner',label:t('owner')}]
+   :null
+ const inboxSelects=<>
+   <FilterSelect label={en?'Period':'Περίοδος'} value={filters.period} onChange={value=>set('period',value)}><option value="all">{en?'All':'Όλες'}</option><option value="today">{en?'Today':'Σήμερα'}</option><option value="7d">{en?'Last 7 days':'Τελευταίες 7 ημέρες'}</option><option value="30d">{en?'Last 30 days':'Τελευταίες 30 ημέρες'}</option></FilterSelect>
+   <FilterSelect label={en?'Wait':'Αναμονή'} value={quick==='waiting'||quick==='new'?quick:'all'} onChange={value=>set('quick',value==='all'?null:value)}><option value="all">{en?'All':'Όλες'}</option><option value="waiting">{en?`Over ${WAITING_DAYS} days`:`Πάνω από ${WAITING_DAYS} ημέρες`}</option><option value="new">{en?'New':'Νέες'}</option></FilterSelect>
+   <FilterSelect label={en?'Reported by':'Αναφέρων'} value={filters.origin} onChange={value=>set('origin',value)}><option value="all">{en?'All':'Όλοι'}</option><option value="named">{en?'Named':'Ονομαστικές'}</option><option value="anonymous">{en?'Anonymous':'Ανώνυμες'}</option></FilterSelect>
+   <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+  </>
+ const popover=inbox?inboxSelects:<>
    <FilterSelect label={en?'Classification':'Ταξινόμηση'} value={filters.kind} onChange={value=>set('kind',value)}><option value="all">{en?'All':'Όλες'}</option>{REPORT_KINDS.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
    <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+  </>
+ return <>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear}>
+   {popover}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
-   <RegistryTable bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}]}
+   <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>row.key} empty={!loading&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
+    columns={withSort(columns||[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'kind',label:en?'Classification':'Ταξινόμηση'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Stage':'Στάδιο'},{key:'owner',label:t('owner')}],sortBy)}
     emptyTitle={en?'No records':'Δεν υπάρχουν εγγραφές'} emptyText={en?'Reports appear in the inbox first; after Quality classifies them they move to the incident register.':'Οι νέες αναφορές εμφανίζονται πρώτα στο inbox· μετά την ταξινόμηση από την Ποιότητα μεταφέρονται στο μητρώο Συμβάντων.'}
-    rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,items)})}
+    rowProps={row=>({...(registry?.rowProps(row.id)||{}),className:`${registry?.rowProps(row.id)?.className||''}${row.sentinel&&row.stage!=='closed'?' quality-row-sentinel':''}`.trim(),onClick:()=>onOpenReport(row,paging.sorted)})}
     renderRow={row=>{const Icon=KIND_ICON[row.kind]||FileWarning;return <>
      <td><strong>{row.code}</strong>{row.sentinel?<StatusBadge tone="danger" icon={AlertOctagon}>Sentinel</StatusBadge>:row.severity&&<small>{t(row.severity)}</small>}</td>
      <td>{en?row.titleEn:row.title}{row.category&&row.kind!=='report'&&<small>{incidentCategoryLabel(row.category,categories,language)}</small>}</td>
-     <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>
+     {!inbox&&<td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{kindText(row.kind,language)}</span></td>}
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}{ageText(row,language)&&<small>{ageText(row,language)}</small>}</td>
-     <td><StageTrack stage={row.stage} language={language}/></td>
-     <td>{roleTitleText(row.owner,language)||'—'}</td>
+     <td>{inbox?<StatusBadge tone={STAGE_TONE[row.stage]||'neutral'}>{stageLabel(row.stage,language)}</StatusBadge>:<StageTrack stage={row.stage} language={language}/>}</td>
+     <td>{inbox?(row.anonymous?(en?'Anonymous':'Ανώνυμη'):row.reporter||'—'):roleTitleText(row.owner,language)||'—'}</td>
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}
  </>
 }
 
-export function DeviationQueue({view,loading,language,t,onCreateCapa}){
+export function DeviationSummary({view,language}){
  const en=language==='en'
- const {goTo}=useContextualNavigation('/quality')
  const {filters,set}=view
- const items=view.filtered
- const paging=usePage(items,`${JSON.stringify(filters)}:${view.days}`)
- const advanced=['scope','source','department','priority','status'].filter(key=>filters[key]!=='all'&&!(key==='scope'&&filters.scope==='registry')).length+(view.days!==90?1:0)
+ const counts=view.counts
+ const pendingView=filters.scope==='pending'
+ const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
+ return <KpiFigures className="quality-kpis" label={en?'Deviations':'Αποκλίσεις'} loading={view.loading} figures={[
+  {key:'all',icon:FileWarning,value:counts.total,label:en?'Deviations':'Αποκλίσεις',hint:en?`${counts.closed} closed`:`${counts.closed} κλειστές`,active:!pendingView&&filters.status==='all'&&!filters.quick,go:()=>showRegistry({})},
+  {key:'progress',icon:Wrench,value:counts.inProgress,label:en?'In progress':'Σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',go:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
+  {key:'withoutCapa',icon:AlertOctagon,value:counts.withoutCapa,label:en?'Without corrective action':'Χωρίς διορθωτική ενέργεια',status:counts.withoutCapa?'danger':'good',target:en?'target: 0':'στόχος: 0',active:!pendingView&&filters.quick==='withoutCapa',go:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
+  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Automatic signals':'Αυτόματα σήματα',tone:'warning',hint:en?'from other modules':'από άλλες ενότητες',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
+ ]}/>
+}
+
+export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}){
+ const en=language==='en'
+ const {filters,set}=view
+ const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])
+ const severityRank={critical:4,high:3,medium:2,low:1}
+ const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),source:row=>row.source,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,status:row=>row.status,priority:row=>severityRank[row.severity]||0}
+ const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
+ const advanced=['source','department','priority','status'].filter(key=>filters[key]!=='all').length+(view.days!==90?1:0)
  const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
- const openRow=row=>row.type==='finding'?goTo(`/quality/findings/${row.id}`,{returnTo:'/quality',returnTab:'deviations'}):goTo(row.item.path,{returnTo:'/quality',returnTab:'deviations'})
+ const pendingView=filters.scope==='pending'
+ const needsAction=row=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
+ const showActions=pendingView||items.some(needsAction)
  return <>
   <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear}>
-   <FilterSelect label={en?'View':'Προβολή'} value={filters.scope} onChange={value=>set('scope',value)}>
-    <option value="registry">{en?'Deviation register':'Μητρώο αποκλίσεων'}</option>
-    <option value="pending">{en?`New to assess (${view.counts.pending})`:`Νέες προς αξιολόγηση (${view.counts.pending})`}</option>
-    <option value="all">{en?'All':'Όλα'}</option>
-   </FilterSelect>
    <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={value=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={value=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
    <FilterSelect label={t('priority')} value={filters.priority} onChange={value=>set('priority',value)}><option value="all">{t('all')}</option>{['critical','high','medium','low'].map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
-   {(filters.scope==='pending'||filters.scope==='all')&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
+   {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
-  <div className="scroll-table">
-   <RegistryTable bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},{key:'actions',label:''}]}
-    emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “New to assess” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στις «Νέες προς αξιολόγηση» μέχρι να τις εξετάσει η Ποιότητα.'}
-    rowProps={row=>({className:'quality-register-deviation',onClick:()=>openRow(row)})}
+  <div className="scroll-table" ref={registry?.scrollRef}>
+   <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
+    columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])],sortBy)}
+    emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “Signals from other modules” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στα «Σήματα από άλλες ενότητες» μέχρι να τις εξετάσει η Ποιότητα.'}
+    rowProps={row=>({...(registry?.rowProps(row.type==='finding'?row.id:row.key)||{}),onClick:()=>onOpenRow(row,paging.sorted)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
      <td><strong>{row.code}</strong></td>
      <td>{en?row.titleEn:row.title}{row.type==='finding'&&!row.hasCapa&&row.status!=='closed'&&<small>{en?'No corrective action linked':'Χωρίς συνδεδεμένη διορθωτική ενέργεια'}</small>}{row.type==='deviation'&&row.item.notes&&<small>{row.item.notes}</small>}</td>
@@ -263,10 +331,12 @@ export function DeviationQueue({view,loading,language,t,onCreateCapa}){
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}</td>
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
      <td><StatusBadge tone={row.severity==='critical'?'danger':row.severity==='high'?'warning':'neutral'}>{t(row.severity)}</StatusBadge></td>
-     <td><div className="row-actions quality-register-actions" onClick={event=>event.stopPropagation()}>
-      <IconButton size="sm" label={row.type==='finding'?(en?'Open deviation':'Άνοιγμα απόκλισης'):(en?'Open source record':'Άνοιγμα εγγραφής προέλευσης')} onClick={()=>openRow(row)}><ExternalLink size={15}/></IconButton>
-      {row.type==='deviation'&&<ActionButton tone="primary" label={en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας'} onClick={()=>onCreateCapa(capaPrefill(row.item,language))}><Plus size={15}/><span>{en?'Action':'Ενέργεια'}</span></ActionButton>}
-     </div></td>
+     {showActions&&<td className="quality-register-actions" onClick={event=>event.stopPropagation()}>
+      <OverflowMenu label={en?'Actions':'Ενέργειες'} items={[
+       row.type==='deviation'?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateCapa(capaPrefill(row.item,language))}:null,
+       needsAction(row)?{label:en?'Create corrective action':'Δημιουργία διορθωτικής ενέργειας',icon:Plus,onClick:()=>onCreateFindingCapa(row.item)}:null,
+      ]}/>
+     </td>}
     </>}}/>
   </div>
   {items.length>0&&<RegistryPagination language={language} {...paging.props}/>}

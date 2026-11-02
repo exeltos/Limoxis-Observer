@@ -41,6 +41,20 @@ export function questionsForAudit(template, { department = '', scope = [], allAr
     .map((question, index) => answerRow(question, index))
 }
 
+// An audit that covers several standards: the questions of each standard's
+// questionnaire one after the other, each row tagged with its standard.
+export function questionsForStandards(templates = [], options = {}) {
+  const rows = []
+  for (const template of templates.filter(Boolean)) {
+    for (const row of questionsForAudit(template, options)) rows.push({ ...row, id: `q-${template.standard}-${row.templateQuestionId || rows.length + 1}`, standard: template.standard || '', position: rows.length + 1 })
+  }
+  return rows
+}
+
+// The key of a question's chapter: its standard and chapter (the same chapter
+// number means different things in two standards).
+export const chapterKey = row => `${row.standard || ''}|${row.chapterRef || row.clauseRef?.split('.')[0] || ''}`
+
 export function answerRow(question, index = 0) {
   return {
     id: `q-${question.id || index + 1}`,
@@ -108,14 +122,19 @@ function tally(rows) {
 
 export function auditScore(rows = []) {
   const chapters = new Map()
+  const standards = new Map()
   for (const row of rows) {
-    const key = row.chapterRef || row.clauseRef?.split('.')[0] || ''
-    if (!chapters.has(key)) chapters.set(key, { ref: key, title: row.chapterTitle || '', rows: [] })
+    const key = chapterKey(row)
+    if (!chapters.has(key)) chapters.set(key, { key, ref: row.chapterRef || row.clauseRef?.split('.')[0] || '', title: row.chapterTitle || '', standard: row.standard || '', rows: [] })
     chapters.get(key).rows.push(row)
+    const standard = row.standard || ''
+    if (!standards.has(standard)) standards.set(standard, [])
+    standards.get(standard).push(row)
   }
   return {
     overall: tally(rows),
-    chapters: [...chapters.values()].map(chapter => ({ ref: chapter.ref, title: chapter.title, ...tally(chapter.rows) })),
+    chapters: [...chapters.values()].map(chapter => ({ key: chapter.key, ref: chapter.ref, title: chapter.title, standard: chapter.standard, ...tally(chapter.rows) })),
+    standards: [...standards.entries()].map(([standard, list]) => ({ standard, ...tally(list) })),
     criticalFailed: rows.filter(row => row.critical && row.answer === 'no').length,
   }
 }
@@ -168,7 +187,7 @@ export function findingDraftFromAnswer(audit, row, { language = 'el', owner = ''
     sourceId: audit.id,
     auditItemId: row.dbId || row.id,
     clauseRef: row.clauseRef || '',
-    standard: audit.standard || '',
+    standard: row.standard || audit.standard || '',
     owners: owner ? [owner] : [],
     owner,
     dueDate: dueDate || addDays(date, cls.days),
@@ -232,9 +251,49 @@ export function competenceWarnings(team = [], { certificates = [], assignments =
 
 export const nextAuditDate = (lastDate, riskLevel) => (lastDate ? addMonths(lastDate, riskMonths(riskLevel)) : '')
 
+// Without a planned next audit: the completed one's date plus its frequency (6 months unless set).
+export const followingAuditDate = audit => (audit.status === 'completed' && audit.completedDate ? addMonths(audit.completedDate, audit.frequencyMonths || 6) : '')
+
+// A department is audited twice a year (every 6 months unless its audit says
+// otherwise) and always has its next audit planned. The database does the same
+// when an audit is completed (quality_schedule_next_audit).
+const isLiveInternal = audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled' && (audit.auditType || 'internal') === 'internal' && Boolean(audit.department)
+const isOpenAudit = audit => audit.status === 'planned' || audit.status === 'in_progress'
+
+// Per department: audits of the year (done or planned) and whether one is still planned.
+export function auditCoverage(audits = [], year = today().slice(0, 4)) {
+  const byDepartment = new Map()
+  audits.filter(isLiveInternal).forEach(audit => {
+    const entry = byDepartment.get(audit.department) || { department: audit.department, inYear: 0, hasNext: false }
+    if (String(audit.completedDate || audit.plannedDate || '').startsWith(String(year))) entry.inYear += 1
+    if (isOpenAudit(audit)) entry.hasNext = true
+    byDepartment.set(audit.department, entry)
+  })
+  const rows = [...byDepartment.values()]
+  return { rows, full: rows.filter(row => row.inYear >= 2).length, half: rows.filter(row => row.inYear === 1).length, none: rows.filter(row => row.inYear === 0).length, noNext: rows.filter(row => !row.hasNext).length }
+}
+
+// The next audit of every department that has none open: its last audit's
+// standard, questionnaire and lead auditor, a month (the 15th), never in the past.
+export function missingNextAudits(audits = [], on = today()) {
+  const latest = new Map()
+  audits.filter(isLiveInternal).forEach(audit => {
+    const key = `${audit.department}|${audit.standard || ''}`
+    const when = audit.completedDate || audit.plannedDate || ''
+    if (!latest.has(key) || when > (latest.get(key).completedDate || latest.get(key).plannedDate || '')) latest.set(key, audit)
+  })
+  const open = new Set(audits.filter(audit => isLiveInternal(audit) && isOpenAudit(audit)).map(audit => `${audit.department}|${audit.standard || ''}`))
+  return [...latest.entries()].filter(([key]) => !open.has(key)).map(([, last]) => {
+    const months = last.frequencyMonths || 6
+    const base = String(last.completedDate || last.plannedDate || on).slice(0, 7)
+    let due = `${addMonths(`${base}-15`, months).slice(0, 7)}-15`
+    if (due < on) due = `${addMonths(`${on.slice(0, 7)}-15`, 1).slice(0, 7)}-15`
+    return { ...last, plannedDate: due, completedDate: null, status: 'planned', plannedMonthOnly: true, frequencyMonths: months, findingIds: [], history: [], checklist: [], checklistSource: '' }
+  })
+}
+
 // The year's planned audits as plans: one per department and month, or the
 // month alone when the day is not fixed yet.
-export const plannedDay = (year, month, day = 1) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
 // Clause coverage of a standard in a year: for each chapter of its
 // questionnaire and each department audited for it, whether the chapter was
@@ -370,4 +429,99 @@ export function fmQuestionClause(question) {
 // The question text cleaned (typos FileMaker kept), and its topic split off.
 export function fmQuestionText(question) {
   return text(question).replace(/Γγνωρίζει/g, 'Γνωρίζει').replace(/σύφωνα/g, 'σύμφωνα').replace(/\s+/g, ' ')
+}
+
+// An audit round: the department audits of one month spread over a few working
+// days (three by default), as even as possible, in the departments' order, so
+// that not every department is audited on the same day. Returns the working days
+// and, for each open audit of the round's month, the day it gets. The database
+// does the same (quality_plan_audit_round).
+export function workingDays(start, count = 3) {
+  const days = []
+  const date = new Date(`${String(start).slice(0, 10)}T12:00:00Z`)
+  while (days.length < Math.max(1, count)) {
+    const weekday = date.getUTCDay()
+    if (weekday !== 0 && weekday !== 6) days.push(date.toISOString().slice(0, 10))
+    date.setUTCDate(date.getUTCDate() + 1)
+  }
+  return days
+}
+export function spreadAuditRound(audits = [], start, count = 3) {
+  const days = workingDays(start, count)
+  const monthOf = String(start).slice(0, 7)
+  const open = audits
+    .filter(audit => audit.status === 'planned' && audit.lifecycleStatus !== 'voided' && (audit.auditType || 'internal') === 'internal' && audit.department && String(audit.plannedDate || '').slice(0, 7) === monthOf)
+    .sort((a, b) => String(a.department).localeCompare(String(b.department), 'el'))
+  return { days, assignments: open.map((audit, index) => ({ audit, plannedDate: days[Math.min(days.length - 1, Math.floor(index * days.length / open.length))] })) }
+}
+
+// An audit round to arrange: the days, and every department with the day it goes on (an index into
+// `days`) or none. The departments with a planned audit in the month of the first day start on a
+// day, spread evenly; the others start outside the round and can be added.
+export function roundPlan(audits = [], departments = [], start, count = 3) {
+  const days = workingDays(start, count)
+  const { assignments } = spreadAuditRound(audits, start, count)
+  const planned = new Map(assignments.map(item => [String(item.audit.department).trim(), item]))
+  const items = assignments.map(item => ({ key: `audit:${item.audit.id}`, auditId: item.audit.id, department: item.audit.department, departmentEn: item.audit.departmentEn || item.audit.department, departmentId: item.audit.departmentId || '', day: days.indexOf(item.plannedDate) }))
+  for (const department of departments) {
+    if (planned.has(String(department.name).trim())) continue
+    items.push({ key: `department:${department.id || department.name}`, auditId: null, department: department.name, departmentEn: department.nameEn || department.name, departmentId: department.id || '', day: null })
+  }
+  return { days, items: items.sort((a, b) => String(a.department).localeCompare(String(b.department), 'el')) }
+}
+
+// Readiness: for every standard, the compliance of each department's latest
+// completed audit that covered it (one audit may cover several standards), how
+// many departments were audited for it this year, its open findings and its
+// weakest chapters; and what is still missing across all standards.
+// The standards a question counts for: the ones its clause reference names («JCI IPSG.1 · ISO 9001 8.5»,
+// as the basic questionnaire writes them), else its own standard, else the audit's.
+const TAGS = [['iso9001', /ISO ?9001/], ['jci', /\bJCI\b/], ['temos', /TEMOS/]]
+export function rowStandards(row, audit = {}) {
+  const text = String(row.clauseRef || '')
+  const tagged = TAGS.filter(([, pattern]) => pattern.test(text)).map(([value]) => value)
+  if (tagged.length) return tagged
+  const own = row.standard || audit.standard
+  return own ? [own] : []
+}
+export const READINESS_ORDER = ['iso9001', 'iso15224', 'jci', 'temos', 'iso15189', 'haccp']
+export function auditReadiness(audits = [], findings = [], on = today()) {
+  const year = on.slice(0, 4)
+  const live = audits.filter(audit => audit.lifecycleStatus !== 'voided' && audit.status !== 'cancelled')
+  const completed = live.filter(audit => audit.status === 'completed').sort((a, b) => String(b.completedDate || b.plannedDate).localeCompare(String(a.completedDate || a.plannedDate)))
+  const standardsOf = audit => {
+    const tagged = new Set((audit.checklist || []).flatMap(row => (row.standard || row.clauseRef ? rowStandards(row, audit) : [])).filter(Boolean))
+    return tagged.size ? [...tagged] : [audit.standard, ...(audit.standards || [])].filter(Boolean)
+  }
+  const found = new Set(live.flatMap(standardsOf))
+  const standards = [...READINESS_ORDER.filter(value => found.has(value)), ...[...found].filter(value => !READINESS_ORDER.includes(value))]
+  const openFindings = findings.filter(finding => finding.lifecycleStatus !== 'voided' && finding.status !== 'closed' && (finding.source === 'audit' || finding.sourceId?.startsWith?.('AUD-')))
+  const rows = standards.map(standard => {
+    const latest = new Map()
+    for (const audit of completed) {
+      if (!standardsOf(audit).includes(standard)) continue
+      const key = audit.department || ''
+      if (!latest.has(key)) latest.set(key, audit)
+    }
+    const answers = [...latest.values()].flatMap(audit => (audit.checklist || []).filter(row => rowStandards(row, audit).includes(standard)))
+    const score = auditScore(answers)
+    const departments = [...latest.keys()]
+    const thisYear = [...latest.values()].filter(audit => String(audit.completedDate || audit.plannedDate || '').startsWith(year)).length
+    const own = openFindings.filter(finding => (finding.standard || '') === standard)
+    const weakest = score.chapters.filter(chapter => chapter.rate != null && chapter.rate < 100).sort((a, b) => a.rate - b.rate).slice(0, 3)
+    return { standard, rate: score.overall.rate, departments: departments.length, thisYear, open: own.length, major: own.filter(finding => finding.findingClass === 'major').length, weakest, last: [...latest.values()][0]?.completedDate || '' }
+  })
+  const coverage = auditCoverage(live, year)
+  const lateAudits = live.filter(audit => audit.status === 'planned' && !audit.plannedMonthOnly && audit.plannedDate && audit.plannedDate < on)
+  const lateFindings = openFindings.filter(finding => finding.dueDate && finding.dueDate < on)
+  return {
+    rows,
+    missing: {
+      major: openFindings.filter(finding => finding.findingClass === 'major'),
+      lateFindings,
+      noAuditThisYear: coverage.rows.filter(row => row.inYear === 0).map(row => row.department),
+      noNext: coverage.rows.filter(row => !row.hasNext).map(row => row.department),
+      lateAudits,
+    },
+  }
 }

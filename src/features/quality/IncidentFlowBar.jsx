@@ -23,9 +23,10 @@ const isDone = capa => ['closed', 'completed', 'cancelled'].includes(capa.status
 function stepNote(id, status, { record, capas, language, t }) {
   const en = language === 'en'
   if (status === 'skipped') return en ? 'Not needed' : 'Δεν χρειάστηκε'
-  if (id === 'reported') return [formatDay(record.date, language), record.anonymous ? (en ? 'Anonymous' : 'Ανώνυμα') : record.reportedBy].filter(Boolean).join(' · ')
+  if (id === 'reported') return [formatDay(record.date, language), record.privacy === 'confidential' ? (en ? 'Confidential' : 'Εμπιστευτικά') : record.anonymous ? (en ? 'Anonymous' : 'Ανώνυμα') : record.reportedBy].filter(Boolean).join(' · ')
   if (id === 'assessment') return status === 'done' ? [t(record.severity), record.sentinel ? 'Sentinel' : ''].filter(Boolean).join(' · ') : en ? 'Severity, harm, root cause' : 'Σοβαρότητα, βλάβη, βασική αιτία'
   if (id === 'capa') return capas.length ? (en ? `${capas.filter(isDone).length}/${capas.length} completed` : `${capas.filter(isDone).length}/${capas.length} ολοκληρώθηκαν`) : record.sentinel ? (en ? 'Root cause analysis required' : 'Απαιτείται ανάλυση ριζικής αιτίας') : (en ? 'If the assessment calls for one' : 'Αν η αξιολόγηση το ζητά')
+  if (id === 'effectiveness' && status !== 'done' && capas.some(capa => !isDone(capa))) return en ? 'After the action is completed' : 'Μετά την ολοκλήρωση της ενέργειας'
   if (id === 'effectiveness') return status === 'done' ? (en ? 'Effective' : 'Αποτελεσματική') : capas.length ? vocabularyLabel(EFFECTIVENESS, capas[0].effectivenessStatus || 'pending', language) : ''
   if (id === 'closed') return status === 'done' ? (en ? 'The incident is closed' : 'Το συμβάν έκλεισε') : ''
   return ''
@@ -63,7 +64,7 @@ export function IncidentFlowPanel({ steps = [], record, capas = [], language = '
           {next.hint && <small>{next.hint}</small>}
         </div>}
       </section>
-      <section className="risk-panel quality-panel">
+      {capas.length > 0 && <section className="risk-panel quality-panel">
         <header><h3>{en ? 'Corrective actions' : 'Διορθωτικές ενέργειες'}{capas.length > 0 && <span className="quality-panel-count">{capas.length}</span>}</h3></header>
         {capas.length ? <ul className="quality-capa-cards">{capas.map(capa => {
           const progress = subActionProgress(capa.subActions || [])
@@ -74,8 +75,8 @@ export function IncidentFlowPanel({ steps = [], record, capas = [], language = '
             </span>
             <StatusBadge tone={qualityStatusTone(capa.status)}>{t(capa.status)}</StatusBadge><ChevronRight size={15} aria-hidden="true" />
           </button></li>
-        })}</ul> : <p className="risk-empty-note">{en ? 'No corrective action yet.' : 'Καμία διορθωτική ενέργεια ακόμη.'}</p>}
-      </section>
+        })}</ul> : null}
+      </section>}
     </aside>
   )
 }

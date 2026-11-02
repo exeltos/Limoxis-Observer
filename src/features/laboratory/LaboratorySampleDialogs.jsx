@@ -165,12 +165,19 @@ export function ResultDialog({
   )
 }
 
+// How the susceptibility was measured; the code is what is stored.
+const AST_METHODS = [
+  { id: 'MIC', el: 'Ελάχιστη ανασταλτική συγκέντρωση (MIC)', en: 'Minimum inhibitory concentration (MIC)' },
+  { id: 'DISK', el: 'Δίσκοι (διάμετρος ζώνης)', en: 'Disk diffusion (zone diameter)' },
+]
+
 export function AstDialog({
   tx,
   language,
   libraries,
   organisms,
   initialOrganism,
+  defaultVersion = '',
   onClose,
   onSave,
 }) {
@@ -180,9 +187,9 @@ export function AstDialog({
       drug: '',
       code: '',
       method: 'MIC',
-      sir: 'S',
+      sir: '',
       standard: 'EUCAST',
-      version: '',
+      version: defaultVersion || '',
       mic: '',
       notes: '',
     })
@@ -242,9 +249,12 @@ export function AstDialog({
         <Field label="MIC">
           <input value={draft.mic} onChange={e => set('mic', e.target.value)} />
         </Field>
-        <Field label={tx('method')}>
-          <input value={draft.method} onChange={e => set('method', e.target.value)} />
-        </Field>
+        <ChoiceField
+          label={tx('method')}
+          value={draft.method}
+          onChange={value => set('method', value)}
+          options={AST_METHODS.map(item => ({ value: item.id, label: item[language === 'el' ? 'el' : 'en'] }))}
+        />
         <Field label={tx('standard')}>
           <input value={draft.standard} onChange={e => set('standard', e.target.value)} />
         </Field>

@@ -12,3 +12,13 @@ export function isSkinFloraOrganism(organism) {
 export function skinFloraRuleNote(en) {
   return en ? 'Skin organism: only patients with 2+ samples are counted' : 'Μικρόβιο δέρματος: μετράνε μόνο ασθενείς με 2+ δείγματα'
 }
+
+// A contaminated culture whose «organism» is the laboratory's note, not an organism: never part of a cluster.
+// Pinned to private.detect_organism_clusters (20261231220300) by tests/clusterDetection.test.js.
+export const CONTAMINATION_PATTERN_SOURCE = '(επιμ[οό]λυνσ|αναπτ[υύ]χθηκαν [0-9]+ ε[ιί]δη|αν[αά]πτυξη [0-9]+ ειδ[ωώ]ν|contaminat|mixed flora|μικτ[ηή] χλωρ[ιί]δα)'
+const CONTAMINATION_PATTERN = new RegExp(CONTAMINATION_PATTERN_SOURCE, 'i')
+export function isContaminationNote(organism) {
+  return CONTAMINATION_PATTERN.test(String(organism || '').toLocaleLowerCase('el'))
+}
+// Environmental samples (surfaces, water, equipment, air) are no infection.
+export const ENVIRONMENTAL_SAMPLE_TYPES = Object.freeze(['surface', 'water', 'equipment', 'air', 'environment'])
