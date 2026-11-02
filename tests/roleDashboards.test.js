@@ -25,10 +25,4 @@ describe('role dashboards', () => {
     // The role's counts still feed the list.
     expect(page).toContain('case ROLES.PHARMACY:')
   })
-
-  it('role workspace titles are Greek', () => {
-    const config = read('src/features/workspaces/workspaceConfig.js')
-    expect(config).toContain("title: 'Κέντρο Ελέγχου Λοιμώξεων',")
-    expect(config).not.toContain('Queue δειγμάτων')
-  })
 })

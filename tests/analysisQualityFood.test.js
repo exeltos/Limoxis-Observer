@@ -215,7 +215,8 @@ describe('Quality & food safety indicators', () => {
   const latest = fs.readdirSync(dir).filter(name => name.endsWith('.sql') && fs.readFileSync(path.join(dir, name), 'utf8').includes('function private.indicator_metric_snapshot')).sort().at(-1)
   const sql = fs.readFileSync(path.join(dir, latest), 'utf8')
   const KEYS = ['audit-answers-compliance', 'kitchen-receipts-out-of-limits', 'kitchen-days-haccp-verified', 'supplier-evaluation-average', 'patient-satisfaction', 'quality-risks-high']
-  const METRICS = Object.keys(qualityFoodIndicatorMetrics({}))
+  // audit_major_findings came later, in a migration of its own (tested below).
+  const METRICS = Object.keys(qualityFoodIndicatorMetrics({})).filter(metric => metric !== 'audit_major_findings')
 
   it('the latest snapshot body carries the six new metrics in a chunk of their own', () => {
     expect(latest).toBe('20261126100100_quality_food_indicators.sql')
@@ -248,5 +249,19 @@ describe('Quality & food safety indicators', () => {
     const metrics = collectIndicatorMetrics()
     for (const metric of METRICS) expect(typeof metrics[metric]).toBe('number')
     expect(metrics.audit_answers_applicable).toBeGreaterThan(0)
+  })
+})
+
+describe('Major non-conformities indicator', () => {
+  const sql = fs.readFileSync('supabase/migrations/20261231220700_audit_major_findings_objectives.sql', 'utf8')
+  it('counts the year\'s major audit findings and links the hospital objectives that already have a platform indicator', () => {
+    expect(sql).toContain("f.finding_class=''major'' and f.voided_at is null")
+    expect(sql).toContain("''audit_major_findings'',v_major)")
+    expect(sql).toContain("'audit-major-findings', '2026.5', 'quality', 'Μείζονες μη συμμορφώσεις'")
+    expect(sql).toContain("('QO-2026-015', 'audit-major-findings', 'Μείζονες μη συμμορφώσεις — μηδέν')")
+    expect(sql).not.toContain("('QO-2026-018'")
+    const demo = indicatorDefinitionRows.find(row => row.indicator_key === 'audit-major-findings')
+    expect(demo.numerator_metric).toBe('audit_major_findings')
+    expect(typeof collectIndicatorMetrics().audit_major_findings).toBe('number')
   })
 })

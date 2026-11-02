@@ -4,7 +4,8 @@ import { loadEntries } from '../../registers/registerService'
 import { monthlySeries } from '../../registers/registerEngine'
 import { formatObjectiveValue, objectiveState } from './reviewTemplate'
 import { objectiveLevelText, objectiveMeasureSource, objectiveMeasureText, objectiveStateLabel, objectiveTitle } from './QualityObjectives'
-import { monthsSoFar, objectiveLevel, planStatusLabel, platformMonthlyValues, platformValuesForYears } from './objectiveSources'
+import { monthsSoFar, objectiveLevel, planStatusLabel, platformMonthlyValues } from './objectiveSources'
+import { loadDossierIndicators, loadRegisterIndicators, missingDataTable, platformIndicatorsTable, registerIndicatorsTable } from './dossierIndicators'
 import { loadResponses, loadSurveys } from '../surveys/surveyService'
 import { surveySummary } from '../surveys/surveyModel'
 
@@ -71,8 +72,9 @@ export function objectiveSection(objective, history, language) {
 
 // The rest of the year's file: the platform's indicators for the year so far and the satisfaction surveys of the year.
 export async function loadDossierExtras(organizationId, year, definitions = []) {
-  const [values, surveys] = await Promise.all([
-    platformValuesForYears(organizationId, definitions, [year]).then(map => map.get(year) || new Map()).catch(() => new Map()),
+  const [indicatorRows, registerRows, surveys] = await Promise.all([
+    loadDossierIndicators(organizationId, year, definitions).catch(() => definitions.map(def => ({ def, value: null, missing: null }))),
+    loadRegisterIndicators(organizationId, year).catch(() => []),
     loadSurveys(organizationId).catch(() => []),
   ])
   const inYear = survey => (!survey.opensOn || Number(survey.opensOn.slice(0, 4)) <= year) && (!survey.closesOn || Number(survey.closesOn.slice(0, 4)) >= year)
@@ -80,8 +82,7 @@ export async function loadDossierExtras(organizationId, year, definitions = []) 
     const responses = (await loadResponses(organizationId, survey.id).catch(() => [])).filter(row => String(row.submittedAt || row.createdAt || '').startsWith(String(year)))
     return { survey, summary: surveySummary(survey, responses) }
   }))
-  const indicatorRows = definitions.map(def => ({ def, value: values.get(def.id) ?? null }))
-  return { year, indicatorRows, surveyRows }
+  return { year, indicatorRows, registerRows, surveyRows }
 }
 
 const LEVEL_ORDER = ['hospital', 'department', 'committee']
@@ -109,7 +110,11 @@ export function objectivesDossier({ objectives, committeeTargets = [], histories
     ]
   })
   const indicatorRows = (extras?.year === year ? extras.indicatorRows : []) || []
-  const indicators = indicatorRows.length ? { title: en ? `The indicators of ${year}` : `Οι δείκτες του ${year}`, text: en ? 'Every indicator of the platform for the year so far, against its target (the hospital’s objective where it has one).' : 'Όλοι οι δείκτες της πλατφόρμας για το έτος έως σήμερα, απέναντι στον στόχο τους (τον στόχο του νοσοκομείου, όπου έχει ορίσει).', table: { columns: [en ? 'Indicator' : 'Δείκτης', en ? 'Value' : 'Τιμή', en ? 'Target' : 'Στόχος', en ? 'Status' : 'Κατάσταση'], rows: indicatorRows.map(({ def: base, value }) => { const own = rows.find(objective => objective.platformIndicatorKey === base.id && objective.target !== '' && objective.target != null); const def = own ? { ...base, target: Number(own.target), direction: own.direction } : base; const met = value == null || def.target == null ? null : def.direction === 'lower' ? value <= def.target : value >= def.target; return [en ? def.titleEn || def.titleEl : def.titleEl, value == null ? '—' : `${String(value).replace('.', en ? '.' : ',')}${def.unit && def.unit !== '%' ? `${def.unit.startsWith('/') ? '' : ' '}${def.unit}` : def.unit || ''}`, def.target == null ? '—' : `${def.direction === 'lower' ? '≤' : '≥'} ${def.target}${def.unit === '%' ? '%' : ''}`, met == null ? { text: value == null ? (en ? 'No data' : 'Χωρίς δεδομένα') : (en ? 'No target' : 'Χωρίς στόχο'), className: '' } : { text: met ? (en ? 'On target' : 'Εντός στόχου') : (en ? 'Off target' : 'Εκτός στόχου'), className: met ? 'rd-good' : 'rd-bad' }] }) } } : null
+  const indicators = indicatorRows.length ? { title: en ? `The indicators of ${year}` : `Οι δείκτες του ${year}`, text: en ? 'Every indicator of the platform for the year so far, against its target (the hospital’s objective where it has one), with the figures it is computed from. Where an indicator has no value, the status says what is missing.' : 'Όλοι οι δείκτες της πλατφόρμας για το έτος έως σήμερα, απέναντι στον στόχο τους (τον στόχο του νοσοκομείου, όπου έχει ορίσει), με τους αριθμούς από τους οποίους υπολογίζονται. Όπου ένας δείκτης δεν έχει τιμή, η κατάσταση λέει τι λείπει.', table: platformIndicatorsTable(indicatorRows, rows, language) } : null
+  const registerRows = (extras?.year === year ? extras.registerRows : []) || []
+  const registerIndicators = registerRows.length ? { title: en ? 'Department register indicators' : 'Δείκτες μητρώων τμημάτων', text: en ? 'The indicators of every active register for the year so far, computed from its entries.' : 'Οι δείκτες κάθε ενεργού μητρώου για το έτος έως σήμερα, από τις καταχωρίσεις του.', table: registerIndicatorsTable(registerRows, language) } : null
+  const missingTable = missingDataTable({ indicatorRows, registerRows, objectives: rows }, language)
+  const missing = { title: en ? 'Missing data' : 'Δεδομένα που λείπουν', pageBreak: true, text: missingTable ? (en ? 'What the platform does not record, and the indicators and objectives it leaves without a value: what to start recording.' : 'Τι δεν καταγράφεται στην πλατφόρμα και ποιους δείκτες και στόχους αφήνει χωρίς τιμή: τι πρέπει να αρχίσει να καταγράφεται.') : (en ? 'Every indicator and objective of the year has a value.' : 'Όλοι οι δείκτες και οι στόχοι του έτους έχουν τιμή.'), ...(missingTable ? { table: missingTable } : {}) }
   const surveyRows = (extras?.year === year ? extras.surveyRows : []) || []
   const surveys = surveyRows.length ? { title: en ? 'Satisfaction surveys' : 'Ερωτηματολόγια ικανοποίησης', table: { columns: [en ? 'Questionnaire' : 'Ερωτηματολόγιο', en ? 'Responses' : 'Απαντήσεις', en ? 'Satisfied' : 'Ικανοποιημένοι', en ? 'Target' : 'Στόχος', 'NPS'], rows: surveyRows.map(({ survey, summary: result }) => [`${survey.code} · ${en ? survey.titleEn || survey.title : survey.title}`, String(result.responses), { text: percent(result.satisfied), className: result.satisfied == null ? '' : result.satisfied >= result.target ? 'rd-good' : 'rd-bad' }, `≥ ${result.target}%`, result.nps == null ? '—' : String(result.nps)]) } } : null
   return {
@@ -123,8 +128,10 @@ export function objectivesDossier({ objectives, committeeTargets = [], histories
       summary,
       ...levelSections,
       ...(indicators ? [indicators] : []),
+      ...(registerIndicators ? [registerIndicators] : []),
       ...(surveys ? [surveys] : []),
       review ? { title: en ? `Management review ${review.code}` : `Ανασκόπηση διοίκησης ${review.code}`, text: `${formatDay(review.reviewDate, language)}${review.summary ? `\n\n${review.summary}` : ''}`, table: review.actions?.length ? { columns: [en ? 'Decision' : 'Απόφαση', en ? 'Owner' : 'Υπεύθυνος', en ? 'Due' : 'Προθεσμία', en ? 'Status' : 'Κατάσταση'], rows: review.actions.map(action => [action.title, roleTitleText(action.ownerLabel, language) || '—', action.dueDate ? formatDay(action.dueDate, language) : '—', action.status === 'done' ? (en ? 'Done' : 'Ολοκληρώθηκε') : (en ? 'Open' : 'Ανοιχτή')]) } : null } : { title: en ? 'Management review' : 'Ανασκόπηση διοίκησης', text: en ? 'No management review has been recorded yet.' : 'Δεν έχει καταγραφεί ακόμη ανασκόπηση διοίκησης.' },
+      missing,
     ].filter(Boolean),
     signatures: [en ? 'Prepared by' : 'Συντάχθηκε από', en ? 'Approved by' : 'Εγκρίθηκε από'],
     filename: `${en ? 'objectives-indicators' : 'stoxoi-deiktes'}-${year}`,

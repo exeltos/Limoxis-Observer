@@ -10,7 +10,7 @@ describe('database speed fixes', () => {
     }
   })
   it('evaluates the read rules of samples and training assignments once per query, not per row', () => {
-    const sql = fs.readFileSync('docs/sql/perf_rls_fast_read_policies.sql', 'utf8')
+    const sql = fs.readFileSync('docs/sql/done/perf_rls_fast_read_policies.sql', 'utf8')
     expect(sql).toContain('create policy laboratory_samples_read_department')
     expect(sql).toContain('create policy training_assignments_read')
     expect(sql).not.toMatch(/using \([\s\S]*current_user_has_org_role\(organization_id/)

@@ -68,6 +68,14 @@ function deltaOf(item,tx,en,against){
  const amount=item.unit==='%'?`${sign}${formatValue(d.diff,'',en)} ${tx('μον.','pts')}`:d.change!=null?`${sign}${formatValue(d.change,'%',en)}`:`${sign}${formatValue(d.diff,'',en)}`
  return {text:`${amount} ${d.good==null?tx('σταθερό','unchanged'):d.good?tx('βελτίωση','better'):tx('επιδείνωση','worse')}`,trend:d.trend,good:d.good,title:against||tx('Μεταβολή έναντι της προηγούμενης περιόδου','Change against the previous period')}
 }
+
+// While a measure is being calculated: a small bar that fills as its sources arrive (and creeps meanwhile), instead of «…».
+function LoadBar({ parts, label }) {
+ const done=parts.filter(part=>part&&part.status!=='loading').length
+ const share=parts.length?Math.round((done/parts.length)*100):0
+ return <span className="exec-loadbar" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={share}><span style={{width:`${share}%`}}/></span>
+}
+
 export function ExecutiveDashboardPage(){
  const {tenant,role,membership,isDemo:contextIsDemo,moduleEnabled}=useTenant()
  const isDemo=contextIsDemo||isOwnerPreview()
@@ -184,7 +192,7 @@ export function ExecutiveDashboardPage(){
       <tr className="exec-area"><th colSpan={5}>{tx(...area.label)}</th></tr>
       {area.rows.map(item=>{const parts=kpiParts(item);const busy=parts.some(part=>!part||part.status==='loading');const failed=parts.some(part=>part?.status==='error');const open=openAnalysis(item.tab);const change=deltaOf(item,tx,en,against);const tone=item.value==null?'neutral':item.tone||'neutral';return <tr key={item.id} className={open?'exec-row-link':undefined} onClick={open} tabIndex={open?0:undefined} onKeyDown={open?event=>{if(event.key==='Enter')open()}:undefined}>
        <td><strong>{tx(...item.label)}</strong><small>{tx(...item.hint).replace(/^(στόχος|target) [≥≤][^·]*· /,'')}</small></td>
-       <td className="exec-num"><b>{busy?'…':failed?'—':formatValue(item.value,item.unit,en)}</b></td>
+       <td className="exec-num">{busy?<LoadBar parts={parts} label={tx('Υπολογισμός…','Calculating…')}/>:<b>{failed?'—':formatValue(item.value,item.unit,en)}</b>}</td>
        <td>{item.target||'—'}</td>
        <td className={change?(change.good?'exec-better':change.good===false?'exec-worse':''):''}>{change?(change.good==null?tx('σταθερό','unchanged'):change.text):''}</td>
        <td><span className={`exec-dot exec-dot-${tone}`} aria-hidden="true"/>{tone==='danger'?tx('Εκτός στόχου','Off target'):tone==='warning'?tx('Προσοχή','Attention'):tone==='good'?tx('Εντός στόχου','On target'):'—'}</td>

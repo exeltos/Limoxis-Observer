@@ -14,7 +14,7 @@ export function trainingCategoryLabel(value,language='el'){const row=TRAINING_CA
 export function trainingDeliveryKindLabel(value,language='el'){const row=TRAINING_DELIVERY_KIND_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
 export function trainingMethodLabel(value,language='el'){const row=TRAINING_METHOD_OPTIONS.find(x=>x[0]===value);return row?(language==='en'?row[2]:row[1]):value||'—'}
 function normalizeTrainingProgramDraft(value={}){return {...TRAINING_PROGRAM_DEFAULTS,...value}}
-export function trainingProgramIsValid(v){return Boolean(v?.title?.trim()&&v?.owner?.trim()&&v?.trainer?.trim()&&v?.audience?.trim()&&v?.dueDate&&(!v.startDate||v.dueDate>=v.startDate)&&(!v.requiresAssessment||Number(v.passScore)>=0&&Number(v.passScore)<=100))}
+export function trainingProgramIsValid(v){return Boolean(v?.title?.trim()&&v?.trainer?.trim()&&v?.audience?.trim()&&v?.dueDate&&(!v.startDate||v.dueDate>=v.startDate)&&(!v.requiresAssessment||Number(v.passScore)>=0&&Number(v.passScore)<=100))}
 function unique(values){return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))]}
 
 // `compact` (a new programme): the essentials first, the rest under «More details». The status is not asked: it follows the start date.
@@ -23,11 +23,14 @@ export function TrainingProgramForm({value,onChange,language='el',readOnly=false
  const en=language==='en',v=normalizeTrainingProgramDraft(value),set=(key,next)=>onChange?.({...v,[key]:next}),datesInvalid=Boolean(v.startDate&&v.dueDate&&v.dueDate<v.startDate)
  const people=unique(employees.map(x=>`${x.firstName||''} ${x.lastName||''}`.trim()))
  const personOptions=people.map(x=>({value:x,label:x}))
+ // The organizer may be a whole department or service (e.g. «Ιατρική Υπηρεσία»), a person, or anything typed.
+ const departmentNames=unique(departments.map(x=>x.name||x.label||x.title))
+ const organizerOptions=[...departmentNames.map(x=>({value:x,label:x,description:en?'Department':'Τμήμα'})),...personOptions.filter(option=>!departmentNames.includes(option.value))]
  const audiences=unique([en?'All staff':'Όλο το προσωπικό',...departments.map(x=>x.name||x.label||x.title),...employees.map(x=>x.department)])
  return <div className="entry-grid">
   <label className="entry-span-2"><span>{en?'Title *':'Τίτλος *'}</span><input autoFocus={!readOnly} disabled={readOnly} value={v.title} onChange={e=>set('title',e.target.value)}/></label>
   <SearchableSelect label={en?'Audience *':'Κοινό *'} disabled={readOnly} value={v.audience} onChange={x=>set('audience',x||'')} options={audiences.map(x=>({value:x,label:x}))} allowCustom placeholder={en?'Select a department or type freely':'Επιλέξτε τμήμα ή πληκτρολογήστε ελεύθερα'}/>
-  <SearchableSelect label={en?'Organizer / owner *':'Υπεύθυνος / διοργανωτής *'} disabled={readOnly} value={v.owner} onChange={x=>set('owner',x||'')} options={personOptions} allowCustom placeholder={en?'Select or type a name':'Επιλέξτε ή πληκτρολογήστε όνομα'}/>
+  <SearchableSelect label={en?'Organizer / owner':'Υπεύθυνος / διοργανωτής'} disabled={readOnly} value={v.owner} onChange={x=>set('owner',x||'')} options={organizerOptions} allowCustom customLabel={text=>en?`Use «${text}»`:`Χρήση «${text}»`} placeholder={en?'A department, a person, or type freely':'Τμήμα, πρόσωπο ή ελεύθερο κείμενο'}/>
   <SearchableSelect label={en?'Instructor *':'Εκπαιδευτής *'} disabled={readOnly} value={v.trainer} onChange={x=>set('trainer',x||'')} options={personOptions} allowCustom placeholder={en?'Select or type a name':'Επιλέξτε ή πληκτρολογήστε όνομα'}/>
   <ManualDateField label={en?'Start date':'Ημερομηνία έναρξης'} value={v.startDate} onChange={x=>set('startDate',x)} optional disabled={readOnly}/><ManualDateField label={en?'Completion / due date *':'Ημερομηνία ολοκλήρωσης / προθεσμία *'} value={v.dueDate} onChange={x=>set('dueDate',x)} disabled={readOnly}/>
   {datesInvalid&&<div className="source-truth-note entry-span-2">{en?'The due date cannot precede the start date.':'Η προθεσμία δεν μπορεί να προηγείται της ημερομηνίας έναρξης.'}</div>}

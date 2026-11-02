@@ -7,14 +7,18 @@ const initialState = { rows: [], loading: true, error: null, readiness: READINES
 // enabled:false skips the read (a screen that loads the samples itself and
 // only needs the repository's actions). `scope` ({ patientRecordId, caseIds },
 // kept stable by the caller) narrows the production read to one patient.
-export function useLaboratoryRegistry({ enabled = true, scope = null } = {}) {
+// `recent`: the laboratory's own list reads the last 12 months (and what is still open); showOlder() reads every sample.
+export const RECENT_MONTHS = 12
+const sinceDate = () => { const day = new Date(); day.setMonth(day.getMonth() - RECENT_MONTHS); return day.toISOString().slice(0, 10) }
+export function useLaboratoryRegistry({ enabled = true, scope = null, recent = false } = {}) {
   const repository = useLaboratoryRepository()
   const [state, setState] = useState(enabled ? initialState : { ...initialState, loading: false })
+  const [older, setOlder] = useState(false)
 
   const reload = useCallback(async () => {
     setState(current => ({ ...current, loading: true, error: null }))
     try {
-      const result = await (scope ? repository.list(scope) : repository.list())
+      const result = await (scope ? repository.list(scope) : recent ? repository.list(null, { since: older ? null : sinceDate() }) : repository.list())
       setState({
         rows: result.data,
         loading: false,
@@ -27,7 +31,7 @@ export function useLaboratoryRegistry({ enabled = true, scope = null } = {}) {
       setState(current => ({ ...current, loading: false, error }))
       return null
     }
-  }, [repository, scope])
+  }, [repository, scope, recent, older])
 
   useEffect(() => { if (enabled) void reload() }, [reload, enabled])
 
@@ -37,5 +41,5 @@ export function useLaboratoryRegistry({ enabled = true, scope = null } = {}) {
     return created
   }, [repository, reload])
 
-  return { ...state, repository, reload, createSample }
+  return { ...state, repository, reload, createSample, recentOnly: recent && !older, showOlder: () => setOlder(true) }
 }

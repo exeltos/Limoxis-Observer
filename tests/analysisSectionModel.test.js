@@ -62,7 +62,10 @@ describe('Workforce, training and governance sections', () => {
     governance: { documents: 5, published: 3, reviewOverdue: 1, byType: [['policy', 2]], byStatus: [], committees: 2, meetings: 4, minutesFinalized: 2, minutesPending: 1 },
   } }
   it('reports vaccination coverage and hides it without health permission', () => {
-    expect(buildSectionModel('occupational', snap, tx).kpis[1][1]).toBe('80%')
+    expect(buildSectionModel('occupational', snap, tx).kpis[1][1]).toBe('8 (80%)')
+    // Today's counts are marked so a comparison of two periods leaves them out; one visit type draws no donut.
+    expect(buildSectionModel('occupational', snap, tx).kpis.map(row => row[4] === 'now')).toEqual([true, true, false, true])
+    expect(buildSectionModel('occupational', snap, tx).charts.some(chart => chart.type === 'donut')).toBe(false)
     const restricted = { ...snap, domains: { ...snap.domains, workforce: { ...snap.domains.workforce, vaccinatedEmployees: null } } }
     expect(buildSectionModel('occupational', restricted, tx).kpis[1][1]).toBe('—')
   })
@@ -112,5 +115,13 @@ describe('add-on analysis sections', () => {
     expect(model.kpis[0].slice(1, 3)).toEqual([2, '1 ενεργές'])
     expect(model.kpis[1][2]).toContain('10')
     expect(model.kpis[2][1]).toBe(2)
+  })
+})
+
+describe('Overdue follow-ups', () => {
+  it('counts each employee once, by the latest visit', async () => {
+    const { overdueFollowUps } = await import('../src/features/analysis/analysisDomains')
+    const visits = [{ employeeId: 'a', date: '2026-01-10', followUpDate: '2026-03-01' }, { employeeId: 'a', date: '2026-04-01', followUpDate: '2027-04-01' }, { employeeId: 'b', date: '2026-02-01', followUpDate: '2026-05-01' }, { employeeId: 'b', date: '2026-01-01', followUpDate: '2026-02-01' }]
+    expect(overdueFollowUps(visits, '2026-11-02')).toBe(1)
   })
 })

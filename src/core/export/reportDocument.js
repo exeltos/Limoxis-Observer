@@ -123,7 +123,7 @@ function sectionHtml(section, number, en) {
   const title = section.title
     ? `<h2>${number ? `${number}. ` : ''}${escapeHtml(section.title)}</h2>`
     : ''
-  return `<section class="rd-section${section.keepTogether ? ' rd-keep' : ''}">${title}${parts.join('')}</section>`
+  return `<section class="rd-section${section.keepTogether ? ' rd-keep' : ''}${section.pageBreak ? ' rd-page' : ''}">${title}${parts.join('')}</section>`
 }
 
 const REPORT_CSS = `
@@ -168,9 +168,11 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-table .rd-cal{text-align:center;white-space:nowrap;font-size:8pt}
 .rd-table .rd-bad{color:#b42318;font-weight:700}
 .rd-table .rd-good{color:#067647;font-weight:700}
+.rd-table .rd-muted{color:#5d7083}
 .rd-table .rd-warn{color:#b54708;font-weight:700}
 .rd-empty,.rd-note{color:#5d7083;font-size:9pt}
 .rd-keep{break-inside:avoid}
+.rd-page{break-before:page}
 .rd-signatures{width:100%;border-collapse:separate;border-spacing:16px 0;margin:22px -16px 0;break-inside:avoid}
 .rd-signatures td{vertical-align:top;border-top:1px solid #17324a;padding-top:6px;font-size:9.5pt;width:33%}
 .rd-signatures strong,.rd-signatures span{display:block;margin-bottom:12px}

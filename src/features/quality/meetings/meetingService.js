@@ -84,6 +84,8 @@ async function departmentNames(organizationId) {
 // unless they see the whole Quality Center.
 export async function loadMeetings(organizationId) {
   if (isLocal()) return local()
+  // Before the hospital is known there is nothing to read (no «organization_id=undefined» request).
+  if (!organizationId) return []
   // The meetings with their decisions and participants embedded, beside the
   // department names: one round trip instead of two in a row.
   const [rows, departments] = await Promise.all([
@@ -151,6 +153,7 @@ const toGroup = (row, departments = new Map()) => ({
 // The groups the user may see: the database returns only their department's, unless they see the whole Quality Center.
 export async function loadMeetingGroups(organizationId) {
   if (isLocal()) return localGroups()
+  if (!organizationId) return []
   const [rows, departments] = await Promise.all([
     supabase.from('quality_department_meeting_groups').select('*').eq('organization_id', organizationId).order('name').then(must),
     departmentNames(organizationId),

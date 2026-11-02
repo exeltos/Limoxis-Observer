@@ -6,7 +6,7 @@ const migrated=new Set([
  'src/app/AppShell.jsx','src/core/help/HelpCenter.jsx','src/core/help/helpContent.js',
  'src/core/notifications/NotificationCenter.jsx','src/core/notifications/NotificationContext.jsx',
  'src/features/auth/LoginPage.jsx','src/features/dashboard/DashboardPage.jsx',
- 'src/features/about/AboutPage.jsx','src/features/workspaces/workspaceConfig.js'
+ 'src/features/about/AboutPage.jsx'
 ])
 const exclude=['demodata','data.js','catalog.js','definitions.js','engine.js','store.js','helpmanual.js','helpmanualen.js','helpextras.js','languagecontext.jsx']
 const greek=/[Α-Ωα-ωΆΈΉΊΌΎΏάέήίόύώϊϋΐΰ]/

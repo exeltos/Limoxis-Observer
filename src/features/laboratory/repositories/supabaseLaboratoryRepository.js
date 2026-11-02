@@ -9,8 +9,9 @@ export function createSupabaseLaboratoryRepository({ organizationId } = {}) {
   return defineLaboratoryRepository({
     environment: 'production',
     // `scope` ({ patientRecordId, caseIds }) reads one patient's samples only.
-    async list(scope) {
-      const rows = scope ? await loadPatientLaboratorySamples(organizationId, scope) : await loadLaboratorySamples(organizationId)
+    // `options.since` (YYYY-MM-DD or null for every sample): the lighter list of the laboratory screen.
+    async list(scope, options = {}) {
+      const rows = scope ? await loadPatientLaboratorySamples(organizationId, scope) : await loadLaboratorySamples(organizationId, { since: options.since })
       return repositoryResult(normalizeLaboratorySamples(rows))
     },
     async listAll() {

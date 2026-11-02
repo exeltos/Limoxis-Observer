@@ -1,7 +1,7 @@
 -- ΕΦΑΡΜΟΣΤΗΚΕ 31/10/2026 στον ΙΑΣΩ ΘΕΣΣΑΛΙΑΣ (REG-002 «Μητρώο ασθενών ΜΕΘ», με ρητό ΟΚ του ιδιοκτήτη).
 -- 1) «% με κατάκλιση»: μετριέται στον μήνα εξόδου (date_field_key = discharge_date), παρονομαστής μόνο όσοι βγήκαν.
 -- 2) Νέος δείκτης «SMR (θνησιμότητα προς προβλεπόμενη)» μετά τη «Θνησιμότητα ασθενών με APACHE II» (χωρίς στόχο).
--- Προϋπόθεση: το constraint department_register_indicators_aggregation_check δέχεται 'smr' (docs/sql/register_indicator_smr.sql).
+-- Προϋπόθεση: το constraint department_register_indicators_aggregation_check δέχεται 'smr' (docs/sql/done/register_indicator_smr.sql).
 -- Σημ.: η έκδοση του μητρώου ανέβηκε και από το προηγούμενο script, που έτρεξε δύο φορές (το περιεχόμενο δεν διπλασιάστηκε).
 do $$
 declare
