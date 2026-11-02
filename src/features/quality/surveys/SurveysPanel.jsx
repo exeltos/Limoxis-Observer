@@ -1,3 +1,4 @@
+import { useDepartments } from '../../management/useLibraries'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
@@ -79,6 +80,9 @@ export function surveysExport(surveys, language) {
 export function SurveysList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
+  const { departments } = useDepartments()
+  // The departments a questionnaire is about, by name (up to three; otherwise how many).
+  const departmentsOf = survey => { const names = (survey.departmentIds || []).map(id => departments.find(item => (item.id || item.name) === id)).filter(Boolean).map(item => (en ? item.nameEn || item.name : item.name)); return names.length > 3 ? `${names.length} ${en ? 'departments' : 'τμήματα'}` : names.join(', ') }
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSurveys(list.surveys, filters), [list.surveys, filters])
   const sortBy = { code: survey => survey.code, survey: survey => (en ? survey.titleEn || survey.title : survey.title), period: survey => survey.opensOn, responses: survey => survey.responseCount || 0, status: survey => survey.status }
@@ -98,7 +102,7 @@ export function SurveysList({ list, registry = null, filters, setFilters, onOpen
         emptyTitle={en ? 'No questionnaires yet' : 'Δεν υπάρχουν ερωτηματολόγια'} emptyText={en ? 'Start one from a template: inpatients, outpatients and emergency, or staff.' : 'Ξεκινήστε από πρότυπο: νοσηλευόμενοι, εξωτερικοί ασθενείς και ΤΕΠ, ή προσωπικό.'}
         rowProps={survey => ({ ...(registry?.rowProps(survey.id) || { className: 'registry-row-clickable' }), onClick: () => onOpen(survey) })}
         renderRow={survey => { const closing = surveyClosingSoon(survey); return <>
-          <td><strong>{en ? survey.titleEn || survey.title : survey.title}</strong><small>{[survey.code, audienceLabel(survey.audience, language), `${survey.questions?.length || 0} ${en ? 'questions' : 'ερωτήσεις'}`].filter(Boolean).join(' · ')}</small></td>
+          <td><strong>{en ? survey.titleEn || survey.title : survey.title}</strong><small>{[survey.code, audienceLabel(survey.audience, language), departmentsOf(survey), `${survey.questions?.length || 0} ${en ? 'questions' : 'ερωτήσεις'}`].filter(Boolean).join(' · ')}</small></td>
           <td className="nowrap-cell">{survey.opensOn && !survey.closesOn ? `${en ? 'from' : 'από'} ${formatDay(survey.opensOn, language)}` : [formatDay(survey.opensOn, language), formatDay(survey.closesOn, language)].filter(Boolean).join(' – ') || '—'}{closing && <small className="quality-overdue-text">{en ? 'Closes soon' : 'Λήγει σύντομα'}</small>}</td>
           <td>{survey.responseCount || 0}{survey.targetResponses ? ` / ${survey.targetResponses}` : ''}<small>{en ? `${survey.recentCount || 0} in 30 days` : `${survey.recentCount || 0} σε 30 ημέρες`}</small></td>
           <td>{(() => { const value = satisfiedOf(survey); return value == null ? <span className="indicator-approval-none">—</span> : <><strong className={value < (survey.satisfiedTarget || 0) ? 'quality-overdue-text' : undefined}>{percentText(value, en)}%</strong><small>{en ? 'target' : 'στόχος'} {survey.satisfiedTarget || 80}%</small></> })()}</td>
