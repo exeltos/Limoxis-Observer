@@ -5,7 +5,7 @@ import { monthlySeries } from '../../registers/registerEngine'
 import { formatObjectiveValue, objectiveState } from './reviewTemplate'
 import { objectiveLevelText, objectiveMeasureSource, objectiveMeasureText, objectiveStateLabel, objectiveTitle } from './QualityObjectives'
 import { monthsSoFar, objectiveLevel, planStatusLabel, platformMonthlyValues } from './objectiveSources'
-import { loadDossierIndicators, loadRegisterIndicators, missingDataTable, platformIndicatorsTable, registerIndicatorsTable } from './dossierIndicators'
+import { loadRegisterIndicators, missingDataTable, registerIndicatorsTable } from './dossierIndicators'
 import { loadResponses, loadSurveys } from '../surveys/surveyService'
 import { surveySummary } from '../surveys/surveyModel'
 
@@ -70,10 +70,10 @@ export function objectiveSection(objective, history, language) {
   }
 }
 
-// The rest of the year's file: the platform's indicators for the year so far and the satisfaction surveys of the year.
-export async function loadDossierExtras(organizationId, year, definitions = []) {
-  const [indicatorRows, registerRows, surveys] = await Promise.all([
-    loadDossierIndicators(organizationId, year, definitions).catch(() => definitions.map(def => ({ def, value: null, missing: null }))),
+// The rest of the year's file: the department registers' indicators for the year so far and the satisfaction surveys of the year.
+export async function loadDossierExtras(organizationId, year) {
+  // The platform's own indicators (infections, microbiology, controls) are not in this file: each has its own report.
+  const [registerRows, surveys] = await Promise.all([
     loadRegisterIndicators(organizationId, year).catch(() => []),
     loadSurveys(organizationId).catch(() => []),
   ])
@@ -82,7 +82,7 @@ export async function loadDossierExtras(organizationId, year, definitions = []) 
     const responses = (await loadResponses(organizationId, survey.id).catch(() => [])).filter(row => String(row.submittedAt || row.createdAt || '').startsWith(String(year)))
     return { survey, summary: surveySummary(survey, responses) }
   }))
-  return { year, indicatorRows, registerRows, surveyRows }
+  return { year, indicatorRows: [], registerRows, surveyRows }
 }
 
 const LEVEL_ORDER = ['hospital', 'department', 'committee']
@@ -90,7 +90,7 @@ const levelHeading = (level, en) => (en ? { hospital: 'Hospital objectives', dep
 const percent = value => (value == null ? '—' : `${Math.round(value)}%`)
 
 // The whole file of one year, everything in it: the summary by level, the objectives of the hospital, the departments and
-// the committees (with the committees' annual plans), each objective with its months, the platform's indicators for the year,
+// the committees (with the committees' annual plans), each objective with its months, the department registers' indicators for the year,
 // the satisfaction surveys and what the last management review decided.
 export function objectivesDossier({ objectives, committeeTargets = [], histories, reviews, extras = null, year, language }) {
   const en = language === 'en'
@@ -109,8 +109,7 @@ export function objectivesDossier({ objectives, committeeTargets = [], histories
       ...(planTable ? [planTable] : []),
     ]
   })
-  const indicatorRows = (extras?.year === year ? extras.indicatorRows : []) || []
-  const indicators = indicatorRows.length ? { title: en ? `The indicators of ${year}` : `Οι δείκτες του ${year}`, text: en ? 'Every indicator of the platform for the year so far, against its target (the hospital’s objective where it has one), with the figures it is computed from. Where an indicator has no value, the status says what is missing.' : 'Όλοι οι δείκτες της πλατφόρμας για το έτος έως σήμερα, απέναντι στον στόχο τους (τον στόχο του νοσοκομείου, όπου έχει ορίσει), με τους αριθμούς από τους οποίους υπολογίζονται. Όπου ένας δείκτης δεν έχει τιμή, η κατάσταση λέει τι λείπει.', table: platformIndicatorsTable(indicatorRows, rows, language) } : null
+  const indicatorRows = []
   const registerRows = (extras?.year === year ? extras.registerRows : []) || []
   const registerIndicators = registerRows.length ? { title: en ? 'Department register indicators' : 'Δείκτες μητρώων τμημάτων', text: en ? 'The indicators of every active register for the year so far, computed from its entries.' : 'Οι δείκτες κάθε ενεργού μητρώου για το έτος έως σήμερα, από τις καταχωρίσεις του.', table: registerIndicatorsTable(registerRows, language) } : null
   const missingTable = missingDataTable({ indicatorRows, registerRows, objectives: rows }, language)
@@ -122,12 +121,11 @@ export function objectivesDossier({ objectives, committeeTargets = [], histories
     kind: en ? 'Annual objectives file' : 'Ετήσιος φάκελος στοχοθεσίας',
     code: String(year),
     title: en ? `Objectives and indicators ${year}` : `Στόχοι και δείκτες ${year}`,
-    subtitle: en ? 'For the auditor: every objective of the hospital, the departments and the committees, how each is measured, who owns it and its value over time; the year’s indicators, the satisfaction surveys and the management review.' : 'Για τον επιθεωρητή: όλοι οι στόχοι του νοσοκομείου, των τμημάτων και των επιτροπών, πώς μετριέται ο καθένας, ποιος τον υπηρετεί και η τιμή του στον χρόνο· οι δείκτες του έτους, τα ερωτηματολόγια ικανοποίησης και η ανασκόπηση της διοίκησης.',
-    meta: [[en ? 'Objectives' : 'Στόχοι', String(rows.length + plans.length)], [en ? 'Met' : 'Επιτυγχάνονται', String(count(rows, 'met'))], [en ? 'Not met' : 'Δεν επιτυγχάνονται', String(count(rows, 'missed'))], [en ? 'Indicators' : 'Δείκτες', String(indicatorRows.length)]],
+    subtitle: en ? 'For the auditor: every objective of the hospital, the departments and the committees, how each is measured, who owns it and its value over time; the department registers’ indicators, the satisfaction surveys and the management review.' : 'Για τον επιθεωρητή: όλοι οι στόχοι του νοσοκομείου, των τμημάτων και των επιτροπών, πώς μετριέται ο καθένας, ποιος τον υπηρετεί και η τιμή του στον χρόνο· οι δείκτες των μητρώων των τμημάτων, τα ερωτηματολόγια ικανοποίησης και η ανασκόπηση της διοίκησης.',
+    meta: [[en ? 'Objectives' : 'Στόχοι', String(rows.length + plans.length)], [en ? 'Met' : 'Επιτυγχάνονται', String(count(rows, 'met'))], [en ? 'Not met' : 'Δεν επιτυγχάνονται', String(count(rows, 'missed'))], [en ? 'Register indicators' : 'Δείκτες μητρώων', String(registerRows.length)]],
     sections: [
       summary,
       ...levelSections,
-      ...(indicators ? [indicators] : []),
       ...(registerIndicators ? [registerIndicators] : []),
       ...(surveys ? [surveys] : []),
       review ? { title: en ? `Management review ${review.code}` : `Ανασκόπηση διοίκησης ${review.code}`, text: `${formatDay(review.reviewDate, language)}${review.summary ? `\n\n${review.summary}` : ''}`, table: review.actions?.length ? { columns: [en ? 'Decision' : 'Απόφαση', en ? 'Owner' : 'Υπεύθυνος', en ? 'Due' : 'Προθεσμία', en ? 'Status' : 'Κατάσταση'], rows: review.actions.map(action => [action.title, roleTitleText(action.ownerLabel, language) || '—', action.dueDate ? formatDay(action.dueDate, language) : '—', action.status === 'done' ? (en ? 'Done' : 'Ολοκληρώθηκε') : (en ? 'Open' : 'Ανοιχτή')]) } : null } : { title: en ? 'Management review' : 'Ανασκόπηση διοίκησης', text: en ? 'No management review has been recorded yet.' : 'Δεν έχει καταγραφεί ακόμη ανασκόπηση διοίκησης.' },

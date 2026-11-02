@@ -34,11 +34,9 @@ describe('the quality objectives file for the auditor', () => {
     const titles = doc.sections.map(section => section.title)
     expect(titles).toContain('Στόχοι τμημάτων')
     expect(titles).toContain('Τα ετήσια σχέδια των επιτροπών')
-    expect(titles).toContain('Οι δείκτες του 2026')
+    expect(titles).not.toContain('Οι δείκτες του 2026')
     expect(titles).toContain('Ερωτηματολόγια ικανοποίησης')
-    // The indicator is judged against the hospital's objective (≥ 80), not the definition's 85.
-    const indicators = doc.sections.find(section => section.title === 'Οι δείκτες του 2026')
-    expect(indicators.table.rows[0][3]).toBe('≥ 80%')
+    // The platform's indicators have their own reports: the file holds the objectives, the registers and the surveys.
     expect(doc.meta[0]).toEqual(['Στόχοι', '3'])
   })
   it('shows the numerator and denominator, and what is missing where an indicator has no value', () => {
