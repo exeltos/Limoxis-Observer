@@ -192,7 +192,7 @@ export function entryFromRow(register, row, identity = null) {
       values[field.key] = ['number', 'computed', 'gestation'].includes(field.type) ? Number(cell) : cell
     }
   }
-  return { id: row.id, registerId: register.id, entryDate: row.entry_date, periodStart: row.period_start, version: row.definition_version, values, status: row.status, locked: row.locked, createdBy: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at, identity }
+  return { id: row.id, registerId: register.id, entryDate: row.entry_date, periodStart: row.period_start, periodEnd: row.period_end || null, version: row.definition_version, values, status: row.status, locked: row.locked, createdBy: row.created_by, createdAt: row.created_at, updatedAt: row.updated_at, identity }
 }
 
 // The columns an entry writes (computed columns are filled by the database).

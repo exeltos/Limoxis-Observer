@@ -122,7 +122,7 @@ export function Overview({ record, members, en }) {
   )
 }
 
-export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
+export function Members({ rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }) {
   // Former members stay on record (attendance history points at them) but are
   // hidden from the list unless asked for.
   const [showFormer, setShowFormer] = useState(false)
@@ -195,7 +195,7 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
                         {memberRoleLabel(role, en)}
                       </span>
                     ))}
-                    {m.inControlTeam && <span className="status-badge committee-role-badge">{en ? 'Control team' : 'Ομάδα ελέγχου'}</span>}
+                    {m.inControlTeam && <span className="status-badge committee-role-badge">{teamShort || (en ? 'Working team' : 'Ομάδα εργασίας')}</span>}
                   </span>
                   {m.committeeTitle && !memberBadgeRoles(m).some(role => memberRoleLabel(role, en) === m.committeeTitle) && <small>{m.committeeTitle}</small>}
                 </td>

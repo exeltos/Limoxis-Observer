@@ -221,9 +221,12 @@ export const matchesAll = (filters = [], values = {}) => filters.every(filter =>
 // (e.g. the discharge date for length of stay), else the entry date.
 const entryDay = (entry, indicator) => (indicator?.dateField ? entry.values?.[indicator.dateField] : null) || entry.periodStart || entry.entryDate
 
+// A sheet entry that holds the total of several months (periodEnd, e.g. a year imported as one figure) counts only in a
+// period that holds all of it (the year), never in one of its months.
 export const entriesInPeriod = (entries = [], period, indicator) => entries.filter(entry => {
   const day = String(entryDay(entry, indicator) || '').slice(0, 10)
-  return day && day >= period.from && day <= period.to
+  if (!day || day < period.from || day > period.to) return false
+  return !entry.periodEnd || indicator?.dateField || String(entry.periodEnd).slice(0, 10) <= period.to
 })
 
 // A register of treatments (chemotherapy): «Active patients» is a picture on the last day of the period, not the patients

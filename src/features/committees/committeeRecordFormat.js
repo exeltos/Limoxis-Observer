@@ -71,11 +71,15 @@ export const COMMITTEE_ROLE_OPTIONS = [
   ['Παρατηρητής', 'Observer'],
 ]
 
-// The control team of a committee (its members marked so): «Ομάδα Ελέγχου Λοιμώξεων» in the infection committee.
+// The working team of a committee (its members marked so): in the infection committee the law's «Ομάδα Εργασίας και
+// Επέμβασης (ΟΕΕ)»; elsewhere a working team.
+const isInfectionCommittee = name => /λοιμ|infection/i.test(String(name || ''))
 export const controlTeamName = (committeeName, en) =>
-  /λοιμ|infection/i.test(String(committeeName || ''))
-    ? (en ? 'Infection Control Team' : 'Ομάδα Ελέγχου Λοιμώξεων')
-    : (en ? 'Control team' : 'Ομάδα ελέγχου')
-// Who met: the whole committee or its control team.
+  isInfectionCommittee(committeeName)
+    ? (en ? 'Working and Intervention Team (WIT)' : 'Ομάδα Εργασίας και Επέμβασης (ΟΕΕ)')
+    : (en ? 'Working team' : 'Ομάδα εργασίας')
+export const controlTeamShort = (committeeName, en) =>
+  isInfectionCommittee(committeeName) ? (en ? 'WIT' : 'ΟΕΕ') : (en ? 'Working team' : 'Ομάδα εργασίας')
+// Who met: the whole committee or its working team.
 export const compositionLabel = (composition, teamName, en) =>
   composition === 'control_team' ? teamName : (en ? 'Whole committee' : 'Ολομέλεια επιτροπής')

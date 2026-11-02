@@ -155,7 +155,7 @@ describe('committee record: meetings', () => {
     openPage(); openTab('Συνεδριάσεις')
     fireEvent.click(screen.getByRole('button', { name: /Νέα συνεδρίαση/ }))
     const form = dialog()
-    fireEvent.change(within(form).getAllByRole('textbox')[0], { target: { value: 'Έκτακτη συνεδρίαση' } })
+    fireEvent.change(within(form).getByRole('textbox', { name: /Τίτλος/ }), { target: { value: 'Έκτακτη συνεδρίαση' } })
     const date = within(form).getByPlaceholderText('ηη/μμ/εεεε')
     fireEvent.change(date, { target: { value: '25/10/2026' } })
     fireEvent.blur(date)
