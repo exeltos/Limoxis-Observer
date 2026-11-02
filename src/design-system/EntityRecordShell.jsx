@@ -173,7 +173,8 @@ export function EntityRecordShell({
   utilityActions.sort((a,b)=>utilityRank(a)-utilityRank(b))
   const printAllTabs=hasTabs&&typeof renderTab==='function'
   // The record's «Εκτύπωση» prints the whole record (every tab), not the screen as it is.
-  const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint?cloneElement(action,{onPrint:printRecord}):action)
+  // A page with a printed document of its own (ExportMenu ownPrint) keeps it.
+  const shownUtilities=utilityActions.map(action=>(printAllTabs||printReport)&&action.type===ExportMenu&&action.props.onPrint&&!action.props.ownPrint?cloneElement(action,{onPrint:printRecord}):action)
   const branding=getReportBranding()
   const printedLine=printedAt?[`${en?'Printed by':'Εκτυπώθηκε από'} ${branding?.printedBy||'—'}`,formatDateTime(printedAt,language)].join(' · '):''
   const cssText=value=>JSON.stringify(String(value||'')).replace(/</g,'\\3c ')
