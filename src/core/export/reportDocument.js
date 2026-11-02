@@ -70,6 +70,7 @@ function cell(value, tag = 'td') {
   return `<${tag}>${text(value, '')}</${tag}>`
 }
 
+const DENSE_COLUMNS = 11
 export function reportTableHtml({ columns = [], rows = [], foot = null, empty } = {}, en = false) {
   if (!rows.length)
     return `<p class="rd-empty">${escapeHtml(empty || (en ? 'No entries.' : 'Δεν υπάρχουν εγγραφές.'))}</p>`
@@ -78,7 +79,10 @@ export function reportTableHtml({ columns = [], rows = [], foot = null, empty } 
     : ''
   const body = rows.map(row => `<tr>${row.map(value => cell(value)).join('')}</tr>`).join('')
   const footer = foot ? `<tfoot><tr>${foot.map(value => cell(value)).join('')}</tr></tfoot>` : ''
-  return `<table class="rd-table" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
+  // A table of many columns (a long list such as the legislation) is dense: smaller type, fixed widths, words may break,
+  // so it always fits the page instead of running off its right edge.
+  const dense = columns.length >= DENSE_COLUMNS ? ' rd-dense' : ''
+  return `<table class="rd-table${dense}" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
 }
 
 function factsHtml(facts = [], columns = 2) {
@@ -161,6 +165,8 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-table th{background:#eef3f7;font-weight:700}
 .rd-table tfoot td{font-weight:700;background:#f6f9fb}
 .rd-table tr{break-inside:avoid}
+.rd-dense{font-size:7pt;table-layout:fixed}
+.rd-dense th,.rd-dense td{padding:2px 3px;overflow-wrap:anywhere;word-break:break-word}
 .rd-table td small{display:block;color:#5d7083}
 .rd-table .rd-num{text-align:right;white-space:nowrap}
 .rd-table .rd-sub-cell{padding-left:18px;color:#4c6378}

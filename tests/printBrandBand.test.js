@@ -22,3 +22,13 @@ describe('brand band of printed screens', () => {
     expect(fs.readFileSync('src/features/executive/ExecutiveDashboardPage.jsx', 'utf8')).toContain('heading:[`${title} · ${tabTitle}`,periodLine]')
   })
 })
+
+// A list with many columns (the legislation) is dense, so it fits the page (owner, 2/11/2026).
+describe('wide tables of the printed documents', () => {
+  it('make a table of 11 columns or more dense, a narrower one not', async () => {
+    const { reportTableHtml } = await import('../src/core/export/reportDocument.js')
+    const row = n => Array.from({ length: n }, (_, i) => `c${i}`)
+    expect(reportTableHtml({ columns: row(17), rows: [row(17)] })).toContain('class="rd-table rd-dense"')
+    expect(reportTableHtml({ columns: row(10), rows: [row(10)] })).toContain('class="rd-table"')
+  })
+})
