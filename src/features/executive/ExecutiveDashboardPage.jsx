@@ -149,7 +149,7 @@ export function ExecutiveDashboardPage(){
  const [printing,setPrinting]=useState(false)
  const unfoldAll=()=>flushSync(()=>{setPrinting(true)})
  // «Infections» also has its annual report, a document of its own (the window opens in the click, the data is read after).
- function printInfectionReport(pdf){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({rows:await loadInfectionReportRows(organizationId,year),year,language}),{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
+ function printInfectionReport(pdf){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({...await loadInfectionReportRows(organizationId,year),year,language}),{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
  function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`,heading:[`${title} · ${tabTitle}`,periodLine]}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'});setPrinting(false)}
  function exportPdf(){
   signalDemoScenario('analysis_export')
