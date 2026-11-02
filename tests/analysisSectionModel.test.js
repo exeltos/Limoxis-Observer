@@ -21,9 +21,11 @@ const snapshot = {
 describe('Analysis section model', () => {
   it('computes hand hygiene compliance as a rate, not a record count', () => {
     const model = buildSectionModel('prevention', snapshot, tx)
-    expect(model.kpis[1][1]).toBe('75%')
-    expect(model.kpis[1][3]).toBe('warning')
-    expect(model.charts.find(chart => chart.title === 'Υγιεινή χεριών ανά τμήμα').rows).toEqual([['ΜΕΘ', 80]])
+    // Bundles with no assessment drop out of the figures: hand hygiene comes first.
+    expect(model.kpis[0][1]).toBe('75%')
+    expect(model.kpis[0][3]).toBe('warning')
+    // The rate with the opportunities it rests on.
+    expect(model.charts.find(chart => chart.title === 'Υγιεινή χεριών ανά τμήμα').rows).toEqual([['ΜΕΘ', 80, '10']])
   })
 
   it('shows confirmed HAI, isolations and translated classification labels', () => {

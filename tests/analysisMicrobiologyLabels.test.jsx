@@ -143,7 +143,7 @@ describe('the CSV export carries the same labels', () => {
 
 describe('cloud status and type codes on the other Δείκτες tabs read in Greek', () => {
   const t = key => key
-  const snapshot = { microbiology: {}, domains: { quality: { byStatus: [['under_review', 4], ['reported', 179]] }, surveillance: { byHaiType: [['CLABSI', 20], ['VAP', 12]] }, bundles: { byBundle: [['CLABSI', 36, 91], ['PIV', 72, 88], ['HD', 36, 95]] } } }
+  const snapshot = { microbiology: {}, domains: { quality: { byStatus: [['under_review', 4], ['reported', 179]] }, surveillance: { byHaiType: [['CLABSI', 20], ['VAP', 12]] }, bundles: { assessments: 144, byBundle: [['CLABSI', 36, 91], ['PIV', 72, 88], ['HD', 36, 95]] } } }
   const chart = (tab, title) => buildSectionModel(tab, snapshot, el, t).charts.find(item => item.title === title)
   it('an incident under review is «Υπό διερεύνηση», not under_review', () => {
     expect(chart('quality', 'Κατάσταση συμβάντων').rows).toEqual([['Υπό διερεύνηση', 4], ['Αναφέρθηκε', 179]])
