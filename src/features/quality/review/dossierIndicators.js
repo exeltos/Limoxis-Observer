@@ -24,6 +24,7 @@ const MISSING = {
   surgical_procedures: ['Δεν καταγράφονται χειρουργικές επεμβάσεις', 'Surgical procedures are not recorded'],
   manual: ['Δεν έχει καταχωριστεί τιμή για το έτος', 'No value has been entered for the year'],
   register: ['Δεν υπάρχουν καταχωρίσεις στο μητρώο για το έτος', 'The register has no entries for the year'],
+  register_field: ['Το πεδίο δεν καταγράφεται στο μητρώο', 'The field is not recorded in the register'],
   zero: ['Ο παρονομαστής είναι μηδέν', 'The denominator is zero'],
 }
 const missingKey = metric => {
@@ -86,7 +87,7 @@ export async function loadRegisterIndicators(organizationId, year) {
       unit: indicator.unit || '', unitEn: indicator.unitEn || indicator.unit || '',
       target: indicator.target === '' || indicator.target == null ? null : Number(indicator.target), direction: indicator.direction,
       value: result.value, evidence: result.denominator != null && result.value != null ? [result.numerator ?? 0, result.denominator] : null,
-      status: result.status, missing: result.value == null ? 'register' : null,
+      status: result.status, missing: result.value == null ? (result.notRecorded ? 'register_field' : 'register') : null,
     }
   }))
 }
@@ -142,7 +143,7 @@ export function missingDataTable({ indicatorRows = [], registerRows = [], object
   const groups = new Map()
   const add = (key, name) => { const list = groups.get(key) || []; if (!list.includes(name)) list.push(name); groups.set(key, list) }
   for (const row of indicatorRows) if (row.value == null && row.missing) add(row.missing, en ? row.def.titleEn || row.def.titleEl : row.def.titleEl)
-  for (const row of registerRows) if (row.value == null) add('register', `${en ? row.titleEn || row.titleEl : row.titleEl} (${en ? row.register.nameEn : row.register.name})`)
+  for (const row of registerRows) if (row.value == null) add(row.missing || 'register', `${en ? row.titleEn || row.titleEl : row.titleEl} (${en ? row.register.nameEn : row.register.name})`)
   const noValue = (objectives || []).filter(objective => objective.current?.value == null)
   const rows = [...groups.entries()].map(([key, names]) => [missingText(key, en), String(names.length), names.join(' · ')])
   if (noValue.length) rows.push([en ? 'Objectives with no value yet' : 'Στόχοι χωρίς τιμή ακόμα', String(noValue.length), noValue.map(objective => objective.code).join(' · ')])
