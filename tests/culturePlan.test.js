@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
-import { cultureItems, cultureYear, everyMonths, offProgramme, roundMatches, samplingRounds } from '../src/features/surveillance/culturePlan'
+import { CULTURE_CATEGORY, cultureItems, cultureYear, everyMonths, offProgramme, roundMatches, samplingRounds } from '../src/features/surveillance/culturePlan'
 
 const sample = (department, day, type = 'surface', outside = false) => ({ department, collectedAt: `${day}T09:00:00Z`, type, outside })
 
@@ -59,5 +59,19 @@ describe('culture programme before the first sample', () => {
     expect(months.slice(0, 9).every(cell => cell.state === '')).toBe(true)
     expect(months[9].state).toBe('done')
     expect(months[10].state).toBe('due')
+  })
+})
+
+describe('culture programme categories (staff, air, network water)', () => {
+  const definitions = [
+    { code: 'D', title: 'Νερό αιμοκάθαρσης', category: CULTURE_CATEGORY, status: 'active', frequency: { kind: 'monthly', interval: 1 }, cultureDepartment: 'ΜΤΝ', cultureSampleTypes: ['water'] },
+    { code: 'W', title: 'Νερό δικτύου', category: CULTURE_CATEGORY, status: 'active', frequency: { kind: 'monthly', interval: 6 }, cultureGroup: 'network_water' },
+  ]
+  it('puts a group after the departments and takes its kind of sample from any department not claiming it', () => {
+    const items = cultureItems(definitions)
+    expect(items.map(item => item.group || item.department)).toEqual(['ΜΤΝ', 'network_water'])
+    const rounds = samplingRounds([sample('ΜΤΝ', '2026-03-02', 'water'), sample('Αποστείρωση', '2026-03-10', 'water')])
+    expect(rounds.filter(round => roundMatches(items[1], round)).map(round => round.department)).toEqual(['Αποστείρωση'])
+    expect(offProgramme(items, rounds, 2026)).toEqual([])
   })
 })

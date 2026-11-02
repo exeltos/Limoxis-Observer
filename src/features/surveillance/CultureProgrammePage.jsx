@@ -9,7 +9,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { environmentalMethodLabel } from '../laboratory/laboratoryCloudService'
 import { isOutsideLimit } from '../laboratory/environmentalLimit'
-import { cultureItems, cultureYear, offProgramme, samplingRounds } from './culturePlan'
+import { CULTURE_GROUPS, cultureItems, cultureYear, offProgramme, samplingRounds } from './culturePlan'
 import { loadCultureControls, loadCultureSamples } from './cultureProgrammeService'
 import './cultureProgramme.css'
 
@@ -24,6 +24,8 @@ const STATE_LABEL = {
   done: ['Έγινε', 'Done'], missed: ['Χάθηκε', 'Missed'], due: ['Οφείλεται', 'Due'], planned: ['Προγραμματισμένη', 'Planned'],
 }
 const fmtDay = (day, en) => new Date(`${day}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR', { day: 'numeric', month: 'numeric' })
+// The name of a culture's row: its department, or its group (staff, air, network water).
+const rowName = (item, en) => (item.group ? CULTURE_GROUPS[item.group].label[en ? 1 : 0] : item.department)
 const everyText = (every, en) => (every === 1 ? (en ? 'monthly' : 'κάθε μήνα') : every === 12 ? (en ? 'yearly' : 'κάθε χρόνο') : en ? `every ${every} months` : `κάθε ${every} μήνες`)
 
 export function CultureProgrammePage() {
@@ -87,14 +89,14 @@ function YearTable({ lines, extra, year, en, onOpen }) {
     <table className="data-table culture-year">
       <thead><tr><th>{en ? 'Culture' : 'Καλλιέργεια'}</th>{months.map(name => <th key={name} className="culture-month">{name}</th>)}</tr></thead>
       <tbody>
-        {lines.map(({ item, months: cells }) => <tr key={item.id}>
-          <td><strong>{item.department}</strong><small>{item.title} · {everyText(item.every, en)}</small></td>
+        {lines.map(({ item, months: cells }, index) => [item.group && !lines[index - 1]?.item.group && <tr key="groups-head" className="culture-extra-head"><th colSpan={13}>{en ? 'By category' : 'Ανά κατηγορία'}</th></tr>, <tr key={item.id}>
+          <td><strong>{rowName(item, en)}</strong><small>{item.title} · {everyText(item.every, en)}</small></td>
           {cells.map(cell => <td key={cell.month} className={`culture-cell is-${cell.state || 'none'}`}>
             {cell.state === 'done'
-              ? cell.rounds.map(round => <button key={round.key} type="button" className={`culture-round${round.outside ? ' is-outside' : ''}`} title={`${round.department} · ${fmtDay(round.day, en)}`} onClick={() => onOpen({ item, round })}>{fmtDay(round.day, en)}</button>)
+              ? cell.rounds.map(round => <button key={round.key} type="button" className={`culture-round${round.outside ? ' is-outside' : ''}`} title={`${round.department} · ${fmtDay(round.day, en)}`} onClick={() => onOpen({ item, round })}>{fmtDay(round.day, en)}{item.group && <small> {round.department}</small>}</button>)
               : cell.state ? <span title={STATE_LABEL[cell.state][en ? 1 : 0]}>{cell.state === 'missed' ? '✗' : cell.state === 'due' ? '!' : '◦'}</span> : null}
           </td>)}
-        </tr>)}
+        </tr>])}
         {extra.length > 0 && <tr className="culture-extra-head"><th colSpan={13}>{en ? 'Out of programme' : 'Εκτός προγράμματος'}</th></tr>}
         {groupByDepartment(extra).map(([department, rounds]) => <tr key={`extra-${department}`}>
           <td><strong>{department}</strong><small>{en ? 'no culture of the programme' : 'χωρίς καλλιέργεια στο πρόγραμμα'}</small></td>
@@ -116,7 +118,7 @@ function MonthCalendar({ lines, extra, year, month, en, onOpen }) {
   const pending = lines.filter(line => ['due', 'planned', 'missed'].includes(line.months[month].state))
   const weekdays = en ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Δευ', 'Τρί', 'Τετ', 'Πέμ', 'Παρ', 'Σάβ', 'Κυρ']
   return <div className="culture-month-view">
-    {pending.length > 0 && <div className="culture-pending"><strong>{en ? 'Not yet done this month' : 'Δεν έχουν γίνει ακόμα αυτόν τον μήνα'}:</strong> {pending.map(line => <span key={line.item.id} className={`culture-chip is-${line.months[month].state}`}>{line.item.department} · {line.item.title}</span>)}</div>}
+    {pending.length > 0 && <div className="culture-pending"><strong>{en ? 'Not yet done this month' : 'Δεν έχουν γίνει ακόμα αυτόν τον μήνα'}:</strong> {pending.map(line => <span key={line.item.id} className={`culture-chip is-${line.months[month].state}`}>{rowName(line.item, en)} · {line.item.title}</span>)}</div>}
     <div className="culture-calendar" role="grid">
       {weekdays.map(day => <div key={day} className="culture-weekday">{day}</div>)}
       {Array.from({ length: offset }, (_, index) => <div key={`empty-${index}`} className="culture-day is-empty" />)}

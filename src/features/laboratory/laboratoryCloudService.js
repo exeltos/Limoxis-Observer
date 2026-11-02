@@ -240,6 +240,14 @@ export async function reviewLaboratorySample(organizationId,sampleRecordId,{stat
   return true
 }
 
+// The employees' screening samples since a day (the staff cultures of the culture programme).
+export async function loadStaffCultureSamples(organizationId,since){
+  assertCloud()
+  if(!organizationId)return []
+  const rows=await selectAllPages(()=>supabase.from('laboratory_samples').select('*').eq('organization_id',organizationId).not('employee_surveillance_id','is',null).gte('collected_at',since).order('created_at',{ascending:false}).order('id',{ascending:true}))
+  return hydrateSamples(rows)
+}
+
 // The samples of one patient record: the patient's own and those of its
 // surveillance episodes, instead of the organization's whole list.
 const UUID_PATTERN=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

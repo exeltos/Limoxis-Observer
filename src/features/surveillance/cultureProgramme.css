@@ -30,3 +30,4 @@
 .culture-day.is-empty{border-style:dashed;background:transparent}
 .culture-day-number{font-size:11.5px;font-weight:700;color:#5d7083}
 .culture-results td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}
+.culture-round small{font-weight:500;opacity:.8}
