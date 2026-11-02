@@ -1,0 +1,32 @@
+/* Surveillance › Culture programme. */
+.culture-programme{display:flex;flex-direction:column;gap:12px;padding:4px 0 16px}
+.culture-programme-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.culture-programme-tabs{flex:1 1 320px;min-width:0}
+.culture-programme-period{display:inline-flex;align-items:center;gap:8px}
+.culture-programme-period strong{min-width:96px;text-align:center;font-size:14px}
+.culture-programme-figures{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;padding:10px 14px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
+.culture-programme-figures b{font-size:15px;color:#1d3a52;font-variant-numeric:tabular-nums}
+.culture-programme-figures .is-bad b{color:#a32121}
+.culture-programme-figures .is-warn b{color:#8a5a00}
+.culture-year td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}
+.culture-year th.culture-month{text-align:center;width:58px}
+.culture-cell{text-align:center;vertical-align:middle;white-space:nowrap}
+.culture-cell.is-missed span{color:#a32121;font-weight:700}
+.culture-cell.is-due span{color:#8a5a00;font-weight:800}
+.culture-cell.is-planned span{color:var(--lo-color-muted)}
+.culture-round{display:inline-block;margin:1px;padding:2px 6px;border:1px solid #9fd3b4;border-radius:999px;background:#e9f7ef;color:#1f6b40;font:inherit;font-size:11.5px;font-weight:650;cursor:pointer}
+.culture-round.is-outside{border-color:#f0b4b4;background:#fdecec;color:#a32121}
+.culture-extra-head th{background:var(--lo-color-surface-muted,#f6f9fb);font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#5d7083}
+.culture-legend{margin:8px 2px 0;font-size:12px;color:var(--lo-color-muted)}
+.culture-pending{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px}
+.culture-chip{display:inline-block;padding:2px 8px;border:1px solid var(--lo-color-border);border-radius:999px;background:var(--lo-color-surface);font:inherit;font-size:11.5px;text-align:left}
+.culture-chip.is-done{border-color:#9fd3b4;background:#e9f7ef;color:#1f6b40;cursor:pointer}
+.culture-chip.is-done.is-outside{border-color:#f0b4b4;background:#fdecec;color:#a32121}
+.culture-chip.is-missed{border-color:#f0b4b4;color:#a32121}
+.culture-chip.is-due{border-color:#efd08a;color:#8a5a00}
+.culture-calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:8px}
+.culture-weekday{padding:4px;font-size:11px;font-weight:700;text-transform:uppercase;color:#5d7083;text-align:center}
+.culture-day{min-height:76px;padding:4px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);display:flex;flex-direction:column;gap:3px}
+.culture-day.is-empty{border-style:dashed;background:transparent}
+.culture-day-number{font-size:11.5px;font-weight:700;color:#5d7083}
+.culture-results td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}

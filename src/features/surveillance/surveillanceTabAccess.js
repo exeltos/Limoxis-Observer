@@ -10,5 +10,7 @@ export function surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmploye
     [ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD, ROLES.INFECTION_CONTROL_MEMBER, ROLES.OCCUPATIONAL_PHYSICIAN].includes(role) ||
     Boolean(canSeeSensitiveEmployeeHealth)
   const environment = ![ROLES.DEPARTMENT_MANAGER, ROLES.DEPARTMENT_USER, ROLES.DOCTOR_REVIEWER].includes(role)
-  return { employees, environment }
+  // The culture programme: the infection control lead and the hospital administrator (and the platform owner).
+  const cultures = actualRole === ROLES.PLATFORM_OWNER || [ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD].includes(role)
+  return { employees, environment, cultures }
 }

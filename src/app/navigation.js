@@ -1,4 +1,4 @@
-import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, CalendarRange, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -31,6 +31,8 @@ export const navigation=[
   {to:'/my-department',key:'myDepartment',icon:Home,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   // «Επιτήρηση» (Surveillance): the patient registry, the surveillance episodes and the outbreak investigations, one section with tabs.
   {to:'/surveillance',key:'surveillance',label:'sidebarNav.surveillanceSection',icon:Activity,capability:CAPABILITIES.VIEW_SURVEILLANCE,section:'surveillance'},
+  // «Πρόγραμμα καλλιεργειών» (Culture programme): an entry of its own under «Surveillance» (indented), for the infection control lead and the administrator.
+  {to:'/surveillance/cultures',key:'cultureProgramme',label:'sidebarNav.culturesShort',icon:CalendarRange,capability:CAPABILITIES.VIEW_SURVEILLANCE,roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD],parent:'surveillance'},
   {to:'/laboratory',key:'laboratory',icon:Beaker,capability:CAPABILITIES.VIEW_LAB},
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
@@ -97,7 +99,7 @@ export const NAV_GROUP_LABELS=Object.freeze({
 // Hospital leadership (Administrator, Platform Owner inside a hospital).
 const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
-  ['clinical',['surveillance','laboratory','prevention','pharmacy']],
+  ['clinical',['surveillance','cultureProgramme','laboratory','prevention','pharmacy']],
   ['operations',['controls','kitchen']],
   ['quality',['quality','qualityMeasures','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
@@ -113,7 +115,7 @@ const roleMenuPolicy=Object.freeze({
   // The demo account sees every module: the same headed groups, so the menu never scrolls.
   [ROLES.DEMO]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
-    ['dashboard','surveillance','laboratory','prevention','controls','indicators','meetings','calendar'],
+    ['dashboard','surveillance','cultureProgramme','laboratory','prevention','controls','indicators','meetings','calendar'],
     ['platformAnalyticsNav','quality','employees','training','documents','library','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),

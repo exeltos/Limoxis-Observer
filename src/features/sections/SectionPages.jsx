@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { Navigate } from 'react-router-dom'
 import { Activity, BookMarked, BookOpenCheck, ClipboardList, ClipboardSignature, FileText, HeartPulse, ListChecks, Microscope, Radar, Scale, Users } from 'lucide-react'
 import { SectionRoute } from '../../core/navigation/SectionRoute'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -7,6 +8,7 @@ import { Page } from '../../design-system/Page'
 import { PatientsPage } from '../patients/PatientsPage'
 import { SurveillanceCanonicalPage } from '../surveillance/SurveillanceCanonicalPage'
 import { surveillanceTabAccess } from '../surveillance/surveillanceTabAccess'
+import { CultureProgrammePage } from '../surveillance/CultureProgrammePage'
 import { LiraOutbreakInvestigationsPanel } from '../management/LiraOutbreakInvestigationsPanel'
 import { DocumentsPage } from '../documents/DocumentsPage'
 import { DocumentAcknowledgementsPage } from '../documents/DocumentAcknowledgementsPage'
@@ -29,6 +31,15 @@ function OutbreakInvestigationsScreen() {
     {summary}
     {children}
   </Page>} />
+}
+
+// Surveillance › Culture programme (its own entry under «Surveillance» in the menu): the environmental cultures due and
+// done, for the infection control lead and the administrator; any other role goes back to Surveillance.
+export function CultureProgrammeScreen() {
+  const { t } = useLanguage()
+  const { role, actualRole, canSeeSensitiveEmployeeHealth } = useTenant()
+  if (!surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth }).cultures) return <Navigate to="/surveillance" replace />
+  return <Page fill title={t('sidebarNav.cultureProgramme')} subtitle={t('sidebarNav.culturesSubtitle')}><CultureProgrammePage /></Page>
 }
 
 export function SurveillanceSectionPage() {
