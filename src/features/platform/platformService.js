@@ -55,10 +55,13 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   if(organizationId)departmentQuery=departmentQuery.eq('organization_id',organizationId)
   let organizationQuery=supabase.from('organizations').select('id,name')
   if(organizationId)organizationQuery=organizationQuery.eq('id',organizationId)
-  const [{data,error},{data:departmentRows,error:departmentError},{data:organizationRows,error:organizationError}]=await Promise.all([
+  // One hospital: the patients with a multidrug-resistant isolate, the one MDR count of every screen (analysis_mdr_patients).
+  const mdrPatientsRequest=organizationId?supabase.rpc('analysis_mdr_patients',{p_organization_id:organizationId,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}).then(({data:count,error:mdrError})=>mdrError?null:count,()=>null):Promise.resolve(null)
+  const [{data,error},{data:departmentRows,error:departmentError},{data:organizationRows,error:organizationError},mdrPatients]=await Promise.all([
     supabase.rpc('analysis_microbiology_findings',{p_organization_id:organizationId||null,p_from:from||null,p_to:to||null,p_department_id:departmentId||null}),
     departmentQuery,
     organizationQuery.order('name'),
+    mdrPatientsRequest,
   ])
   if(error)throw error
   if(departmentError)throw departmentError
@@ -79,7 +82,7 @@ async function loadMicrobiologyAnalytics({organizationId='',from='',to='',depart
   const orgTotals=countBy(resultRows,row=>row.organization_id)
   const orgResistant=countBy(resultRows.filter(row=>['MDR','XDR','PDR'].includes(row.resistance_class)),row=>row.organization_id)
   const byOrganization=Object.entries(orgTotals).map(([id,total])=>[names.get(id)||id,total,orgResistant[id]||0]).sort((a,b)=>b[1]-a[1]).slice(0,12)
-  return {microorganisms,resistance,monthly,byOrganization,byDepartment,bySource,bySite,nationalRows,totalPositive:resultRows.length,totalCritical:resultRows.filter(row=>row.is_critical).length,departmentCount:new Set(resultRows.map(row=>row.department).filter(name=>name&&name!=='—')).size,departments:departments.map(row=>({id:row.id,organizationId:row.organization_id,name:row.name}))}
+  return {microorganisms,resistance,monthly,byOrganization,byDepartment,bySource,bySite,nationalRows,mdrPatients:Number.isFinite(Number(mdrPatients))&&mdrPatients!=null?Number(mdrPatients):null,totalPositive:resultRows.length,totalCritical:resultRows.filter(row=>row.is_critical).length,departmentCount:new Set(resultRows.map(row=>row.department).filter(name=>name&&name!=='—')).size,departments:departments.map(row=>({id:row.id,organizationId:row.organization_id,name:row.name}))}
 }
 
 async function loadAmrSusceptibility({organizationId='',from='',to='',departmentId=''}){

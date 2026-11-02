@@ -14,8 +14,9 @@ describe('login page and public legal pages', () => {
     expect(login).toContain('to="/terms"')
     expect(login).toContain('mailto:${notice.supportEmail}')
   })
-  it('keeps username-or-email sign-in, recovery, caps lock and an announced error', () => {
-    expect(login).toContain("'Σύνδεση με username ή email'")
+  it('keeps username sign-in (an email still works, unannounced), recovery, caps lock and an announced error', () => {
+    expect(login).toContain("{greek?'Όνομα χρήστη':'Username'}")
+    expect(login).not.toContain('email\'')
     expect(login).toContain('autoComplete="username"')
     expect(login).toContain("getModifierState?.('CapsLock')")
     expect(login).toContain('to="/forgot-access"')

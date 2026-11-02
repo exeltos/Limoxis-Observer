@@ -66,6 +66,8 @@ export function filtersToQuery(filters){
 const num=value=>{if(value==null||value==='')return null;const n=Number(value);return Number.isFinite(n)?n:null}
 export const pct=(part,whole)=>{const p=num(part),w=num(whole);return w?Math.round(p/w*1000)/10:null}
 const mdro=micro=>(micro?.resistance||[]).filter(([key])=>['MDR','XDR','PDR'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
+// The one MDR count of every screen: patients with a multidrug-resistant isolate (the results where the patients are not known).
+export const mdroPatients=micro=>Number.isFinite(Number(micro?.mdrPatients))&&micro?.mdrPatients!=null?Number(micro.mdrPatients):mdro(micro)
 const severe=quality=>(quality?.bySeverity||[]).filter(([key])=>['critical','high'].includes(key)).reduce((sum,[,n])=>sum+(Number(n)||0),0)
 
 // Change against the previous period. better: 'up' | 'down' — which way is good.
@@ -133,7 +135,7 @@ function measures(snapshot={},governance=null,targets=TARGETS,rates={}){
  const classified=(s.byCaseStatus||[]).reduce((sum,[,n])=>sum+(Number(n)||0),0),unclassified=num(s.total)>0&&classified===0
  return [
   {id:'hai',modules:['surveillance'],parts:['domains'],label:['Επιβεβαιωμένες ΛΣΦΥ','Confirmed HAI'],value:unclassified?null:num(s.haiConfirmed),missing:unclassified?['Δεν γίνεται ταξινόμηση','Not classified']:null,hint:[`${s.active??0} ενεργές επιτηρήσεις · ${s.total??0} στην περίοδο`,`${s.active??0} active surveillance · ${s.total??0} in period`],tone:countTone(s.haiConfirmed,{warning:1,danger:5}),better:'down',tab:'surveillance'},
-  {id:'mdro',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά στελέχη','MDR isolates'],value:micro.totalPositive==null?null:mdro(micro),hint:[`MDR/XDR/PDR · ${micro.totalPositive??0} θετικές καλλιέργειες`,`MDR/XDR/PDR · ${micro.totalPositive??0} positive cultures`],tone:countTone(mdro(micro),{warning:1,danger:10}),better:'down',tab:'laboratory'},
+  {id:'mdro',modules:['laboratory'],parts:['microbiology'],label:['Ασθενείς με πολυανθεκτικό στέλεχος','Patients with a multidrug-resistant isolate'],value:micro.totalPositive==null?null:mdroPatients(micro),hint:[`MDR/XDR/PDR · ${micro.totalPositive??0} θετικές καλλιέργειες`,`MDR/XDR/PDR · ${micro.totalPositive??0} positive cultures`],tone:countTone(mdroPatients(micro),{warning:1,danger:10}),better:'down',tab:'laboratory'},
   {id:'handHygiene',modules:['prevention'],parts:['domains'],label:['Υγιεινή χεριών','Hand hygiene'],value:hand,unit:'%',target:`≥ ${TARGET.handHygiene}%`,hint:[`στόχος ≥ ${TARGET.handHygiene}% · ${hh.observations??0} ευκαιρίες`,`target ≥ ${TARGET.handHygiene}% · ${hh.observations??0} opportunities`],tone:rateTone(hand,TARGET.handHygiene,70),better:'up',tab:'prevention'},
   {id:'bundles',modules:['prevention'],parts:['domains'],label:['Δέσμες μέτρων','Bundle score'],value:bundle,unit:'%',target:`≥ ${TARGET.bundles}%`,hint:[`στόχος ≥ ${TARGET.bundles}% · ${b.assessments??0} αξιολογήσεις`,`target ≥ ${TARGET.bundles}% · ${b.assessments??0} assessments`],tone:rateTone(bundle,TARGET.bundles,80),better:'up',tab:'prevention'},
   {id:'overdueControls',modules:['controls'],parts:['domains'],pointInTime:true,label:['Εκπρόθεσμοι έλεγχοι','Overdue controls'],target:'0',value:num(c.overdueAssignments),hint:[`${done==null?'—':`${done}%`} ολοκληρωμένες · ${c.executions??0} εκτελέσεις`,`${done==null?'—':`${done}%`} completed · ${c.executions??0} executions`],tone:countTone(c.overdueAssignments,{warning:1,danger:10}),better:'down',tab:'controls'},

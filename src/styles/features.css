@@ -3703,7 +3703,6 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .login-input-wrap:focus-within .login-input-icon{color:var(--lo-color-primary)}
 .login-visibility{position:absolute;right:6px;width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--lo-color-muted);cursor:pointer;transition:background-color .15s,color .15s}
 .login-visibility:hover{background:var(--lo-color-primary-soft);color:var(--lo-color-primary)}
-.login-hint{font-size:12px;line-height:1.4;color:var(--lo-color-muted)}
 .login-caps{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:650;color:var(--lo-status-warning-fg)}
 .login-error{display:flex;align-items:flex-start;gap:10px;padding:11px 13px;border:1px solid var(--lo-status-danger-border);border-radius:var(--login-radius);background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg);font-size:13px;font-weight:550;line-height:1.45;animation:login-in .22s ease-out}
 .login-error svg{flex:none;margin-top:1px}

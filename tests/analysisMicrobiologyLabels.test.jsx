@@ -90,7 +90,8 @@ describe('clinical, environmental and staff findings are told apart by sample ty
 
 describe('the line list on Μικροβιολογία & AMR', () => {
   afterEach(cleanup)
-  const renderPanel = () => render(<LanguageProvider><NationalSurveillance details={{ nationalRows: ROWS, bySource: [['centralLine', 3], ['surface', 12]], bySite: [], resistance: [], monthly: [] }} clusters={[]} amr={[]} tx={el}/></LanguageProvider>)
+  // The detailed line list opens on demand («Αναλυτική λίστα»).
+  const renderPanel = () => { const view = render(<LanguageProvider><NationalSurveillance details={{ nationalRows: ROWS, bySource: [['centralLine', 3], ['surface', 12]], bySite: [], resistance: [], monthly: [] }} clusters={[]} amr={[]} tx={el}/></LanguageProvider>); fireEvent.click(screen.getByRole('button', { name: /Αναλυτική λίστα/ })); return view }
   const lineList = () => screen.getByRole('radiogroup', { name: 'Είδος ευρημάτων' }).closest('article')
 
   it('opens on the clinical findings, with translated specimens and no raw keys', () => {
@@ -148,7 +149,8 @@ describe('cloud status and type codes on the other Δείκτες tabs read in G
     expect(chart('quality', 'Κατάσταση συμβάντων').rows).toEqual([['Υπό διερεύνηση', 4], ['Αναφέρθηκε', 179]])
   })
   it('HAI types keep their acronym, while the bundles of the same name read as bundles', () => {
-    expect(chart('surveillance', 'Τύπος λοίμωξης (ΛΣΦΥ)').rows.map(row => row[0])).toEqual(['CLABSI', 'VAP'])
+    // Without any HAI classified, one line replaces the empty infection charts.
+    expect(buildSectionModel('surveillance', snapshot, el, t).charts.some(item => item.type === 'note')).toBe(true)
     expect(chart('prevention', 'Συμμόρφωση ανά δέσμη').rows.map(row => row[0])).toEqual(['Δέσμη CLABSI', 'Δέσμη PIV (περιφερικός φλεβικός καθετήρας)', 'Δέσμη HD (αιμοκάθαρση)'])
   })
 })

@@ -48,7 +48,8 @@ describe('microbiology analysis separates the technical category from the exact 
   })
 
   it('keeps the broad technical category visible but clearly labels it as a category, not an infection site', () => {
-    expect(page).toContain("tx('Κατηγορία κλινικού δείγματος','Clinical specimen category')")
+    // The category distribution card is gone (it repeated the specimen matrix); the line list keeps the category.
+    expect(page).not.toContain("tx('Κατηγορία κλινικού δείγματος','Clinical specimen category')")
     expect(page).toContain("key:'category',label:tx('Κατηγορία δείγματος','Specimen category')")
     expect(page).not.toContain("key:'site',label:tx('Σημείο λοίμωξης','Infection site')")
   })
@@ -68,9 +69,7 @@ describe('non-clinical sample types remain classification-only', () => {
     expect(page).toContain('surface:')
   })
 
-  it('the category distribution is restricted to clinical sites while the specimen matrix uses library source values', () => {
-    expect(page).toContain('const CLINICAL_SITES=')
-    expect(page).toContain('(details?.bySite||[]).filter(([value])=>CLINICAL_SITES.includes(value))')
+  it('the specimen matrix uses library source values', () => {
     expect(page).toContain('specimenLabel(source,tx)')
   })
 })

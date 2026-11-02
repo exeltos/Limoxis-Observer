@@ -31,7 +31,8 @@ describe('Analysis section model', () => {
     expect(model.kpis.map(row => row[1])).toEqual([6, 2, 1, 1])
     const overview = buildSectionModel('overview', snapshot, tx)
     expect(overview.charts.find(chart => chart.type === 'donut').rows).toEqual([['Επιβεβαιωμένη', 2], ['Υπό διερεύνηση', 1]])
-    expect(model.charts.find(chart => chart.title === 'Τύπος λοίμωξης (ΛΣΦΥ)').rows).toEqual([['Λοίμωξη αιματικής ροής', 2]])
+    // The infection-type bars repeated the totals of the department × type table: left out.
+    expect(model.charts.some(chart => chart.title === 'Τύπος λοίμωξης (ΛΣΦΥ)')).toBe(false)
   })
 
   it('returns null when the section metrics are not available', () => {

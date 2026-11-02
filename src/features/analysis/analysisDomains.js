@@ -276,27 +276,33 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         ].filter(([, n]) => n > 0) },
       ],
     }
-    case 'surveillance': return {
+    case 'surveillance': {
+      // No HAI classified (or no device recorded) in the period: one line instead of empty charts.
+      const classified = (s.byCaseStatus || []).reduce((sum, [, n]) => sum + (Number(n) || 0), 0)
+      const hasDevices = (s.byDevice || []).length > 0 || (s.deviceAssociated || []).length > 0
+      return {
       kpis: [
         [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
-        [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), s.haiConfirmed ?? 0, tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`), s.haiConfirmed ? 'warning' : ''],
+        [tx('Επιβεβαιωμένες ΛΣΦΥ', 'Confirmed HAI'), classified ? (s.haiConfirmed ?? 0) : '—', classified ? tx(`${s.haiProbable ?? 0} πιθανές / υπό διερεύνηση`, `${s.haiProbable ?? 0} probable / suspected`) : tx('δεν γίνεται ταξινόμηση', 'not classified'), s.haiConfirmed ? 'warning' : ''],
         [tx('Ενεργές απομονώσεις', 'Active isolations'), s.isolationActive ?? 0, s.isolationReviewOverdue ? tx(`${s.isolationReviewOverdue} με εκπρόθεσμη επανεκτίμηση`, `${s.isolationReviewOverdue} with overdue review`) : tx('Χωρίς εκπρόθεσμες επανεκτιμήσεις', 'No overdue reviews'), s.isolationReviewOverdue ? 'danger' : ''],
         [tx('Ενεργές επεμβατικές συσκευές', 'Active invasive devices'), s.devicesActive ?? 0, tx('σε ενεργές επιτηρήσεις', 'in surveillance episodes')],
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
-        { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
-        { type: 'bars', title: tx('Τύπος λοίμωξης (ΛΣΦΥ)', 'Infection type (HAI)'), subtitle: tx('Από την ταξινόμηση ΛΣΦΥ κάθε επεισοδίου.', 'From each episode’s HAI classification.'), rows: named(s.byHaiType) },
+        ...(classified ? [] : [{ type: 'note', text: tx('Δεν γίνεται ταξινόμηση ΛΣΦΥ: τα γραφήματα των λοιμώξεων εμφανίζονται όταν ταξινομηθούν επεισόδια.', 'No HAI is classified: the infection charts appear once episodes are classified.') }]),
+        ...(classified && !hasDevices ? [{ type: 'note', text: tx('Δεν καταγράφονται επεμβατικές συσκευές: οι λοιμώξεις από συσκευές εμφανίζονται όταν καταγραφούν.', 'No invasive devices are recorded: device-associated infections appear once they are.') }] : []),
+        classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
-        { type: 'matrix', title: tx('Λοιμώξεις από συσκευές', 'Device-associated infections'), subtitle: tx('CLABSI, CAUTI και VAP ανά τμήμα.', 'CLABSI, CAUTI and VAP by department.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.deviceAssociated },
-        { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
-        { type: 'bars', title: tx('Επεμβατικές συσκευές', 'Invasive devices'), subtitle: tx('Ενεργές συσκευές ανά τύπο.', 'Active devices by type.'), rows: s.byDevice },
-      ],
-    }
+        classified && hasDevices && { type: 'matrix', title: tx('Λοιμώξεις από συσκευές', 'Device-associated infections'), subtitle: tx('CLABSI, CAUTI και VAP ανά τμήμα.', 'CLABSI, CAUTI and VAP by department.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.deviceAssociated },
+        classified && { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
+      ].filter(Boolean),
+    } }
     case 'laboratory': return {
       kpis: [
         [tx('Θετικές καλλιέργειες', 'Positive cultures'), micro.totalPositive ?? 0, tx('επικυρωμένα αποτελέσματα', 'validated results')],
-        [tx('MDR / XDR / PDR', 'MDR / XDR / PDR'), mdro, tx(`${pct(mdro, micro.totalPositive) ?? 0}% των θετικών`, `${pct(mdro, micro.totalPositive) ?? 0}% of positives`), mdro ? 'danger' : ''],
+        micro.mdrPatients != null
+          ? [tx('Ασθενείς με πολυανθεκτικό στέλεχος', 'Patients with a multidrug-resistant isolate'), micro.mdrPatients, tx(`${mdro} αποτελέσματα MDR / XDR / PDR`, `${mdro} MDR / XDR / PDR results`), micro.mdrPatients ? 'danger' : '']
+          : [tx('MDR / XDR / PDR', 'MDR / XDR / PDR'), mdro, tx(`${pct(mdro, micro.totalPositive) ?? 0}% των θετικών`, `${pct(mdro, micro.totalPositive) ?? 0}% of positives`), mdro ? 'danger' : ''],
         [tx('Κρίσιμα αποτελέσματα', 'Critical results'), micro.totalCritical ?? 0, tx('απαιτούν άμεση επικοινωνία', 'require immediate communication'), micro.totalCritical ? 'warning' : ''],
         [tx('Τμήματα με εύρημα', 'Departments with findings'), (micro.byDepartment || []).length, tx(`από ${micro.departmentCount ?? '—'} τμήματα`, `of ${micro.departmentCount ?? '—'} departments`)],
       ],

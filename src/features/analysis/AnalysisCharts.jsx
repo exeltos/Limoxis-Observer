@@ -69,6 +69,11 @@ export function TrendChart({points,en,label}){
  const max=Math.max(1,...data.map(([,v])=>v)),niceMax=Math.ceil(max/4)*4||4
  const x=i=>pl+i*(w-pl-pr)/(data.length-1),y=v=>pt+(1-v/niceMax)*(h-pt-pb)
  const line=data.map(([,v],i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ')
+ // The month still running (the last point is this month): its segment dashed and «έως 2/11», so a few days do not read as a drop.
+ const now=new Date(),thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
+ const partial=String(data[data.length-1][0]).slice(0,7)===thisMonth
+ const solid=data.slice(0,-1).map(([,v],i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ')
+ const partialLabel=en?`to ${now.getDate()}/${now.getMonth()+1}`:`έως ${now.getDate()}/${now.getMonth()+1}`
  const area=`${line} L${x(data.length-1)},${y(0)} L${x(0)},${y(0)} Z`
  const ticks=[0,1,2,3,4].map(k=>niceMax*k/4)
  const step=(w-pl-pr)/(data.length-1)
@@ -79,7 +84,9 @@ export function TrendChart({points,en,label}){
    {ticks.map(t=><g key={t}><line x1={pl} x2={w-pr} y1={y(t)} y2={y(t)} className="viz-grid"/><text x={pl-8} y={y(t)+4} textAnchor="end" className="viz-axis">{fmt(t,en)}</text></g>)}
    {data.map(([key],i)=>i%labelEvery===0&&<text key={key} x={x(i)} y={h-8} textAnchor={i===data.length-1?'end':i===0?'start':'middle'} className="viz-axis">{monthLabel(key,en)}</text>)}
    <path d={area} fill="url(#vizTrendFill)"/>
-   <path d={line} fill="none" stroke={MAGNITUDE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+   <path d={partial?solid:line} fill="none" stroke={MAGNITUDE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+   {partial&&<path d={`M${x(data.length-2)},${y(data[data.length-2][1])} L${x(data.length-1)},${y(data[data.length-1][1])}`} fill="none" stroke={MAGNITUDE} strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round"/>}
+   {partial&&<text x={x(data.length-1)} y={Math.max(pt+10,y(data[data.length-1][1])-10)} textAnchor="end" className="viz-axis">{partialLabel}</text>}
    {hover!=null&&<line x1={x(hover)} x2={x(hover)} y1={pt} y2={h-pb} className="viz-crosshair"/>}
    {data.map(([,v],i)=><circle key={i} cx={x(i)} cy={y(v)} r={hover===i?6:4} fill="#fff" stroke={MAGNITUDE} strokeWidth="2"/>)}
    {data.map(([key],i)=><rect key={`hit-${key}`} x={x(i)-step/2} y={pt} width={step} height={h-pt-pb} fill="transparent" onMouseEnter={()=>setHover(i)}/>)}
