@@ -118,5 +118,22 @@ export function patientsListExport(rows,{language,t,fmt}){
 // print or keep as PDF: so «Export» offers print and Excel on every list.
 // Returns false when the browser blocked the window.
 export function printRegistry({name,headers,rows},{language='el',kind='',title='',pdf=false}={}){
- return printReport({language,orientation:'landscape',kind,title,meta:[[language==='en'?'Records':'Εγγραφές',String(rows.length)]],sections:[{title,table:{columns:headers,rows:rows.map(row=>row.map(cell=>cell==null?'':String(cell))),empty:language==='en'?'No records.':'Δεν υπάρχουν εγγραφές.'}}],filename:name},{pdf})
+ return printReport({language,orientation:'landscape',kind,title,metaColumns:1,meta:[[language==='en'?'Records':'Εγγραφές',String(rows.length)]],sections:[{title,table:{columns:headers,rows:rows.map(row=>row.map(cell=>cell==null?'':String(cell))),empty:language==='en'?'No records.':'Δεν υπάρχουν εγγραφές.'}}],filename:name},{pdf})
+}
+
+// «Export» of a list (owner, 2/11/2026): print and PDF on the shared landscape document and Excel, all from the one
+// description the list builds on click (what it shows now, after its filters). Spread it into an ExportMenu:
+// <ExportMenu {...registryMenu(() => patientsListExport(...), { language, kind, title, onBlocked })} />
+export function registryMenu(build,{language='el',kind='',title='',onBlocked}={}){
+ const print=pdf=>()=>{if(!printRegistry(build(),{language,kind,title:title||kind,pdf}))onBlocked?.()}
+ return {onPrint:print(false),onPdf:print(true),onExcel:()=>exportRegistry(build())}
+}
+
+// The same for a menu of several lists: the print and Excel items of one list, to spread into ExportMenu `items`.
+export function registryItems(id,label,build,{language='el',kind='',title='',onBlocked,disabled=false}={}){
+ const en=language==='en',menu=registryMenu(build,{language,kind,title:title||label,onBlocked})
+ return [
+  {id:`${id}-print`,kind:'print',label:`${en?'Print':'Εκτύπωση'}: ${label}`,disabled,onClick:menu.onPrint},
+  {id:`${id}-excel`,kind:'excel',label:`Excel: ${label}`,disabled,onClick:menu.onExcel},
+ ]
 }

@@ -16,7 +16,7 @@ import { StatusCards } from '../../design-system/StatusCards'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
-import { exportRegistry, patientsListExport } from '../../core/export/registryExports'
+import { patientsListExport, registryMenu } from '../../core/export/registryExports'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useTableSort } from '../../design-system/useTableSort'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -90,7 +90,7 @@ export function PatientsPage(){
     // In production a transfer between departments keeps the patient active, so the card counts isolations in place.
     isolation:scopedPatients.filter(p=>isolated(p)).length,
   }
-  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu onExcel={rows.length?()=>exportRegistry(patientsListExport(sortedRows,{language,t,fmt})):undefined} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
+  return <Page fill title={t('patientRegistry')} subtitle={t('patientRegistrySubtitle')} actions={<div className="record-actions"><ExportMenu {...registryMenu(()=>patientsListExport(sortedRows,{language,t,fmt}),{language,kind:t('patientRegistry'),onBlocked:()=>notify(t('indicatorsRecords.allowPopups'),'error')})} disabled={!rows.length}/><RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={pageCaps} onAction={pageAction} actionLabels={{[UI_ACTIONS.CREATE]:t('newPatient')}}/></div>}>
     <StatusCards label={t('patientRegistry')} loading={loading} items={[['all',UsersRound,'patientsCountAll',patientSummary.total],['active',Activity,'patientsCountActive',patientSummary.active],['discharged',LogOut,'patientsCountDischarged',patientSummary.discharged],['isolation',ShieldAlert,'patientsCountIsolation',patientSummary.isolation]].map(([filter,icon,key,value])=>{const active=filter!=='all'&&status===filter;return {key:filter,icon,label:t(key),value,active,onToggle:()=>setStatus(filter==='all'||active?'all':filter)}})}/>
     <div className="surface clinical-surface workspace-fill patient-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchPatients')} activeAdvancedCount={activeAdvancedCount} activeFilters={[department!=='all'&&{key:'department',label:`${t('department')}: ${department}`,onRemove:()=>setDepartment('all')},period!=='all'&&{key:'period',label:`${t('svPeriod')}: ${t(`svPeriod${period}`)}`,onRemove:()=>setPeriod('all')}].filter(Boolean)} onClear={()=>{setQuery('');setDepartment('all');setStatus('all');setPeriod('all')}}>

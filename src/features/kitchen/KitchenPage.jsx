@@ -14,7 +14,8 @@ import { useKitchen, useKitchenAccess } from './KitchenShared'
 import { HaccpPanel, OverviewPanel, PlanPanel, ReceiptsPanel, SettingsDialog, StockPanel, TraceDialog, VerificationPanel, fmtDay } from './KitchenPanels'
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
 import { KITCHEN_PRIMARY_ACTION, addDays, categoryLabel, newProduction, newReceipt, overview, productionForDay, resolveKitchenLocation, stockRows, todayKey } from './kitchenModel'
-import { dailyHaccpDocument, exportKitchenList, receiptsLogDocument } from './kitchenReports'
+import { dailyHaccpDocument, exportKitchenList, kitchenListExport, receiptsLogDocument } from './kitchenReports'
+import { registryMenu } from '../../core/export/registryExports'
 import { RecallDialog, RecallPanel } from './KitchenRecall'
 import { drillSubject, newRecallDrill, recallSummary } from './kitchenRecallModel'
 
@@ -66,20 +67,27 @@ export function KitchenPage() {
   const [receiptFilters] = filtersFor('receipts')
   const receiptsInView = state.receipts.filter(row => (!receiptFilters.from || row.receivedOn >= receiptFilters.from) && (!receiptFilters.to || row.receivedOn <= receiptFilters.to)).sort((a, b) => String(a.receivedOn).localeCompare(String(b.receivedOn)))
   const logFrom = receiptFilters.from || addDays(today, -30), logTo = receiptFilters.to || today
-  const productsExcel = () => exportKitchenList('products', state.products.map(item => ({ ...item, supplierName: state.suppliers.find(s => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) })), language)
+  const productRows = () => state.products.map(item => ({ ...item, supplierName: state.suppliers.find(s => s.id === item.supplierId)?.name || '', categoryLabel: categoryLabel(item.category, language) }))
+  // A kitchen list: print, PDF and Excel from the same rows (rowsOf is read on click).
+  const kitchenListMenu = (kind, rowsOf, title) => registryMenu(() => kitchenListExport(kind, rowsOf(), language), { language, kind: en ? 'Kitchen' : 'Κουζίνα', title: `${en ? 'Kitchen' : 'Κουζίνα'} · ${title}`, onBlocked: blocked })
   const dayDocument = todayProduction ? reportExports(() => dailyHaccpDocument(state, todayProduction, { language }), { word: true, onBlocked: blocked }) : {}
   const exportsFor = {
     today: dayDocument,
     // The period lists of the records (heat, defrosting, pureeing, materials in use) are Excel files here: they are recorded in the production day.
     days: { ...dayDocument, items: [
-      { id: 'x-thermal', kind: 'excel', label: en ? 'Excel · Heat treatments' : 'Excel · Θερμικές επεξεργασίες', onClick: () => exportKitchenList('thermal', state.thermal, language) },
-      { id: 'x-defrost', kind: 'excel', label: en ? 'Excel · Defrosting' : 'Excel · Αποψύξεις', onClick: () => exportKitchenList('defrosting', state.defrosting, language) },
-      { id: 'x-pureeing', kind: 'excel', label: en ? 'Excel · Pureeing' : 'Excel · Πολτοποιήσεις', onClick: () => exportKitchenList('pureeing', state.pureeing, language) },
-      { id: 'x-usage', kind: 'excel', label: en ? 'Excel · Materials in use' : 'Excel · Υλικά σε χρήση', onClick: () => exportKitchenList('usage', state.usage.map(row => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) })), language) },
+      ...[
+        ['thermal', en ? 'Heat treatments' : 'Θερμικές επεξεργασίες', () => state.thermal],
+        ['defrosting', en ? 'Defrosting' : 'Αποψύξεις', () => state.defrosting],
+        ['pureeing', en ? 'Pureeing' : 'Πολτοποιήσεις', () => state.pureeing],
+        ['usage', en ? 'Materials in use' : 'Υλικά σε χρήση', () => state.usage.map(row => ({ ...row, batch: stock.find(item => item.receiptItemId === row.receiptItemId) }))],
+      ].flatMap(([kind, label, rowsOf]) => [
+        { id: `p-${kind}`, kind: 'print', label: `${en ? 'Print' : 'Εκτύπωση'} · ${label}`, onClick: () => kitchenListMenu(kind, rowsOf, label).onPrint() },
+        { id: `x-${kind}`, kind: 'excel', label: `Excel · ${label}`, onClick: () => exportKitchenList(kind, rowsOf(), language) },
+      ]),
     ] },
     storage: view === 'receipts' ? { ...reportExports(() => receiptsLogDocument(receiptsInView.filter(row => row.receivedOn >= logFrom && row.receivedOn <= logTo), { from: logFrom, to: logTo, language }), { onBlocked: blocked }), onExcel: () => exportKitchenList('receipts', receiptsInView, language) }
-      : { onExcel: view === 'products' ? productsExcel : () => exportKitchenList('stock', stock, language) },
-    safety: { onExcel: () => exportKitchenList('recall', (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), language) },
+      : view === 'products' ? kitchenListMenu('products', productRows, en ? 'Products' : 'Προϊόντα') : kitchenListMenu('stock', () => stock, en ? 'Stock' : 'Απόθεμα'),
+    safety: kitchenListMenu('recall', () => (state.recallDrills || []).map(row => ({ ...row, subject: drillSubject(row, state, language) })), en ? 'Recall drills' : 'Ασκήσεις ανάκλησης'),
     haccp: {},
   }
   const exportProps = exportsFor[tab] || {}
