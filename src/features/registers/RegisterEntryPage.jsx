@@ -18,6 +18,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { formatDay } from '../../core/i18n/formatDay'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { deleteEntry, loadEntry, loadRegister, saveEntry } from './registerService'
+import { findApacheScore } from './registerScaleLookup'
 import { useRegisterAccess } from './registerAccess'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { computeValues, fieldVisible, formatValue, gestationText, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
@@ -35,7 +36,7 @@ export function RegisterEntryPage() {
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const { user, profile } = useAuth()
-  const { tenant } = useTenant()
+  const { tenant, isDemo } = useTenant()
   const access = useRegisterAccess()
   const [register, setRegister] = useState(null)
   const [entry, setEntry] = useState(null)
@@ -131,6 +132,15 @@ export function RegisterEntryPage() {
     if (!ok) return
     try { await deleteEntry(tenant?.id, register, entry.id); notify(en ? 'Case deleted.' : 'Το περιστατικό διαγράφηκε.', 'success'); back() } catch (error) { console.error(error); notify(en ? 'The case could not be deleted.' : 'Δεν ήταν δυνατή η διαγραφή.', 'error') }
   }
+  // «From the patient's scales»: the APACHE II saved for this case number in the clinical scales; the score can still be typed.
+  async function fillApache() {
+    try {
+      const found = isDemo ? null : await findApacheScore(tenant?.id, identity.caseNumber)
+      if (!found) { notify(en ? 'No APACHE II was found in the patient’s scales for this case number.' : 'Δεν βρέθηκε APACHE II στις κλίμακες του ασθενή για αυτόν τον αριθμό περιστατικού.', 'info'); return }
+      set('apache_score', found.score)
+      notify(en ? `APACHE II ${found.score} taken from the patient’s scales.` : `APACHE II ${found.score} από τις κλίμακες του ασθενή.`, 'success')
+    } catch (error) { console.error(error); notify(en ? 'The patient’s scales could not be read.' : 'Δεν ήταν δυνατή η ανάγνωση των κλιμάκων του ασθενή.', 'error') }
+  }
   const cancelEdit = () => { setValues(entry?.values || {}); setIdentity(entry?.identity || { caseNumber: '', patientName: '' }); setEditing(false); setTried(false) }
   const caseCode = entry ? String(entry.id).slice(-6).toUpperCase() : ''
   const title = isNew ? (en ? 'New case' : 'Νέο περιστατικό') : (showIdentity && identity.patientName) || `${en ? 'Case' : 'Περιστατικό'} ${caseCode}`
@@ -168,7 +178,7 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' && identity.caseNumber ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
             </section>
           })}
         </div>
@@ -189,7 +199,7 @@ const formHelp = text => (/filemaker|ίδιος κανόνας σε όλα τα 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
 // One field of a register, drawn with the shared controls.
-export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false }) {
+export function RegisterField({ field, value, onChange, disabled, error, warning, required = field.required, language, cards = false, action = null }) {
   const en = language === 'en'
   const label = `${textOf(field, language)}${required ? ' *' : ''}`
   const help = formHelp(en ? field.helpEn || field.help : field.help)
@@ -208,7 +218,7 @@ export function RegisterField({ field, value, onChange, disabled, error, warning
   }
   if (field.type === 'gestation') return <GestationField label={label} value={value} onChange={onChange} disabled={disabled} error={error} hint={hint} />
   if (field.type === 'text') return <div className="register-field register-field-wide"><Field label={label} error={error} hint={hint}><textarea rows={2} value={value || ''} disabled={disabled} onChange={event => onChange(event.target.value)} /></Field></div>
-  return <div className={`register-field ${warning ? 'has-warning' : ''}`}><Field label={label} error={error} hint={hint}><span className="register-number"><input inputMode="decimal" value={value ?? ''} disabled={disabled} onChange={event => { const text = event.target.value.replace(',', '.'); onChange(text === '' ? '' : Number.isFinite(Number(text)) ? Number(text) : text) }} />{unit && <em>{unit}</em>}</span></Field></div>
+  return <div className={`register-field ${warning ? 'has-warning' : ''}`}><Field label={label} error={error} hint={hint}><span className="register-number"><input inputMode="decimal" value={value ?? ''} disabled={disabled} onChange={event => { const text = event.target.value.replace(',', '.'); onChange(text === '' ? '' : Number.isFinite(Number(text)) ? Number(text) : text) }} />{unit && <em>{unit}</em>}</span></Field>{action}</div>
 }
 
 // Weeks + days typed as «37+4», stored as days.
