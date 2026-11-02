@@ -5,6 +5,7 @@ import { Button } from '../../design-system/Button'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { printReport } from '../../core/export/reportDocument'
+import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { ExpiryBadge } from './ControlExpiryEntry'
 import { compareExpiryItems,expiryCounts,expiryItems,expiryWindow,formLabel } from './controlExpiry'
@@ -91,13 +92,18 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
  // One «Export» per tab: the page's own menu (top bar or record header) offers the
  // return form; this panel only reports it, and draws its own menu when nobody takes it.
  // It reports two prints: the whole list (to sign) and the return form.
- const printRef=useRef(null);printRef.current={list:()=>printList(several?'all':departmentOptions[0]||'all',searched),returnForm:()=>printReturnForm()}
+ const printRef=useRef(null);printRef.current={list:()=>printList(several?'all':departmentOptions[0]||'all',searched),returnForm:()=>printReturnForm(),excel:()=>exportList(searched)}
+ // The same list as the print (department and search as chosen), as a sheet.
+ function exportList(list){
+  exportRegistry({name:en?'expiry-list':'lixeis',headers:[en?'Item / Medicine':'Υλικό / Φάρμακο',en?'Department':'Τμήμα',en?'Control':'Έλεγχος',en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση'],rows:list.map(item=>[item.row.item,item.department,controlTitle(item.record,language),item.row.quantity||'',item.row.lot||'',day(item.row.expiry),statusText(item,language)])})
+ }
  const returnCount=returnItems.length,listCount=searched.length
  useEffect(()=>{
   if(!onExportChange)return undefined
   onExportChange([
-   {id:'list',kind:'print',label:en?`Expiry list (${listCount})`:`Λίστα λήξεων (${listCount})`,disabled:!listCount,onClick:()=>printRef.current.list()},
-   {id:'return',kind:'print',label:en?`Return & replacement form (${returnCount})`:`Έντυπο επιστροφής (${returnCount})`,disabled:!returnCount,onClick:()=>printRef.current.returnForm()},
+   {id:'list',kind:'print',label:en?`Print: expiry list (${listCount})`:`Εκτύπωση: λίστα λήξεων (${listCount})`,disabled:!listCount,onClick:()=>printRef.current.list()},
+   {id:'return',kind:'print',label:en?`Print: return & replacement form (${returnCount})`:`Εκτύπωση: έντυπο επιστροφής (${returnCount})`,disabled:!returnCount,onClick:()=>printRef.current.returnForm()},
+   {id:'list-excel',kind:'excel',label:en?`Excel: expiry list (${listCount})`:`Excel: λίστα λήξεων (${listCount})`,disabled:!listCount,onClick:()=>printRef.current.excel()},
   ])
   return()=>onExportChange(null)
  },[onExportChange,returnCount,listCount,en])

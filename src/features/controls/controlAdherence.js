@@ -6,7 +6,7 @@
 // on time follow the due rules (controlDueRules.executionMarks): the first N
 // entries of a day by their slot deadline; otherwise by the deadline the
 // previous entry set. Extra entries never count.
-import { executionMarks, isWeekdaysOnly, periodUnit, requiredPerPeriod, slotDeadline, slotStarts, zonedInstant, zonedParts } from './controlDueRules'
+import { executionMarks, isDailyFrequency, isWeekdaysOnly, periodUnit, requiredPerPeriod, slotDeadline, slotStarts, zonedInstant, zonedParts } from './controlDueRules'
 import { assignmentProgress } from './controlScheduling'
 
 const HOUR = 3600000, DAY = 24 * HOUR
@@ -333,6 +333,8 @@ const entriesOf = (value) => (Array.isArray(value) ? value.length : Number(value
 export function missedDays(frequency = {}, entryDays = new Map(), { from, to }, startedAt = null) {
   const unit = periodUnit(frequency)
   if (unit !== 'day' && unit !== 'week') return []
+  // «Every N days» is none of the two: it names no day (the days between its executions are not missed).
+  if (unit === 'day' && !isDailyFrequency(frequency)) return []
   const start = new Date(Math.max(new Date(from).getTime(), startedAt ? new Date(startedAt).getTime() : -Infinity))
   const end = new Date(to).getTime()
   const required = unit === 'day' ? requiredPerPeriod(frequency) : 1

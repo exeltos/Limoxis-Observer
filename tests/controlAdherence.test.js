@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ADHERENCE_PERIODS, assignmentAdherence, expectedOccurrences, periodAdherence, periodRange, periodShort, programmeAdherence, slotLength, todayProgress } from '../src/features/controls/controlAdherence'
+import { ADHERENCE_PERIODS, assignmentAdherence, expectedOccurrences, missedDays, periodAdherence, periodRange, periodShort, programmeAdherence, slotLength, todayProgress } from '../src/features/controls/controlAdherence'
 
 const day = 86400000
 const now = new Date('2026-10-08T12:00:00Z')
@@ -119,5 +119,14 @@ describe('the page period', () => {
     expect(todayProgress(row({ kind: 'weekly', interval: 1 }, []).item, 'ΜΕΘ', now)).toBeNull()
     expect(todayProgress(row(daily2, [], { status: 'paused' }).item, 'ΜΕΘ', now)).toBeNull()
     expect(todayProgress(row({ ...daily2, weekdaysOnly: true }, []).item, 'ΜΕΘ', sunday)).toBeNull()
+  })
+})
+
+describe('the missed days of a control every N days', () => {
+  it('names no day: the days between two executions are not missed', () => {
+    const range = { from: '2026-10-01T00:00:00+03:00', to: '2026-11-02T00:00:00+02:00' }
+    expect(missedDays({ kind: 'custom', interval: 4 }, new Map(), range, null)).toEqual([])
+    // a daily control with no entry still names its days
+    expect(missedDays({ kind: 'daily', timesPerDay: 1 }, new Map(), range, null).length).toBeGreaterThan(20)
   })
 })

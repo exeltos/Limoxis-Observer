@@ -12,6 +12,8 @@ import { collectDeviceDaySources, collectNeonatalDeviceDaySourcesByBand, BIRTH_W
 import { calculateHaiRate } from '../lira/liraHaiMetrics'
 import { collectDemoQualityFood } from '../analysis/analysisDomains'
 import { qualityFoodIndicatorMetrics } from '../analysis/analysisQualityFood'
+import { foodSatisfactionMetrics } from '../analysis/foodSatisfaction'
+import { loadSurveysLocal } from '../quality/surveys/surveyService'
 
 const round=(n,d=1)=>Number.isFinite(n)?Number(n.toFixed(d)):null
 
@@ -128,5 +130,6 @@ export function collectIndicatorMetrics(){
   neonatal_central_line_cases_missing_birth_weight:countNeonatalCentralLineCasesMissingBirthWeight(),
   // Quality & food safety: audits, kitchen, suppliers, patient satisfaction, risks (same rules as the Analysis section).
   ...qualityFoodIndicatorMetrics(collectDemoQualityFood()),
+  ...foodSatisfactionMetrics(loadSurveysLocal().surveys, loadSurveysLocal().responses),
  }
 }

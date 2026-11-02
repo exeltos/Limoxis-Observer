@@ -1,7 +1,7 @@
 import { useCallback,useEffect,useMemo,useRef,useState } from 'react'
 import { STALE_DAYS,isStaleRegister as isStale } from '../registers/registerFigures'
 import { KpiFigures } from '../../design-system/KpiCard'
-import { AlertOctagon,AlertTriangle,CalendarClock,CheckCircle2,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck,Users } from 'lucide-react'
+import { AlertOctagon,AlertTriangle,CalendarClock,CheckSquare2,ClipboardCheck,ClipboardList,Clock3,FileSpreadsheet,FileWarning,Gauge,LayoutDashboard,ListChecks,Plus,ShieldAlert,ShieldCheck,Smile,Star,Stethoscope,Target,TrendingDown,Truck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Page,PageEmbedProvider } from '../../design-system/Page'
 import { ActionButton } from '../../design-system/ActionButton'
@@ -40,7 +40,7 @@ import { ObjectivesTable,objectivesExport,useObjectives } from './review/Quality
 import { loadDossierExtras,loadObjectiveHistories,objectivesDossier } from './review/objectiveDossier'
 import { OBJECTIVE_LEVELS,levelLabel } from './review/objectiveSources'
 import { loadReviews } from './review/reviewService'
-import { SurveysList,filterSurveys,surveyCounts,surveysExport,useSurveys } from './surveys/SurveysPanel'
+import { SurveysList,filterSurveys,surveysExport,useSurveys } from './surveys/SurveysPanel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExport,filterEquipment,filterSuppliers,supplierCounts,suppliersExport } from './resources/resourceModel'
 import './quality.css'
@@ -217,12 +217,8 @@ export function QualityPage({section=''}={}){
    {key:'evaluationDue',icon:Star,value:dash(count.evaluationDue),label:L('Οφείλεται αξιολόγηση','Evaluation due'),tone:'warning',active:supplierFilters.quick==='evaluationDue',go:()=>quick('evaluationDue')},
    {key:'certificates',icon:ShieldCheck,value:dash(count.certificates),label:L('Πιστοποιητικά που λήγουν','Certificates expiring'),tone:'warning',active:supplierFilters.quick==='certificates',go:()=>quick('certificates')},
    {key:'nonconformities',icon:FileWarning,value:dash(count.nonconformities),label:L('Ανοιχτές μη συμμορφώσεις','Open nonconformities'),status:resources.loading?null:count.nonconformities?'danger':'good',target:L('στόχος: 0','target: 0'),active:supplierFilters.quick==='nonconformities',go:()=>quick('nonconformities')}]})(),
-  surveys:(()=>{const count=surveyCounts(surveys.surveys);const toggleSurvey=key=>setSurveyFilters(current=>({...current,quick:current.quick===key?null:key}));return [
-   {key:'all',icon:Smile,value:surveys.loading?'—':surveys.surveys.length,label:L('Ερωτηματολόγια','Questionnaires'),hint:count.drafts?L(`${count.drafts} προσχέδια`,`${count.drafts} drafts`):null,active:!surveyFilters.quick,go:()=>setSurveyFilters(current=>({...current,quick:null}))},
-   {key:'open',icon:CheckCircle2,value:count.open,label:L('Σε εξέλιξη','Open'),active:surveyFilters.quick==='open',go:()=>toggleSurvey('open')},
-   {key:'recent',icon:Users,value:count.recent,label:L('Απαντήσεις 30 ημερών','Responses in 30 days'),hint:L(`${count.responses} συνολικά`,`${count.responses} in all`)},
-   {key:'closing',icon:CalendarClock,value:count.closing,label:L('Λήγουν σε 14 ημέρες','Close within 14 days'),tone:'warning',active:surveyFilters.quick==='closing',go:()=>toggleSurvey('closing')},
-   ]})(),
+  // The questionnaires list has no cards: its filters are the search and «Φίλτρα».
+  surveys:[],
  }
  const figures=({
   overview:[],
