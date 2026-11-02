@@ -31,11 +31,11 @@ export const navigation=[
   {to:'/my-department',key:'myDepartment',icon:Home,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   // «Επιτήρηση» (Surveillance): the patient registry, the surveillance episodes and the outbreak investigations, one section with tabs.
   {to:'/surveillance',key:'surveillance',label:'sidebarNav.surveillanceSection',icon:Activity,capability:CAPABILITIES.VIEW_SURVEILLANCE,section:'surveillance'},
-  // «Πρόγραμμα καλλιεργειών» (Culture programme): an entry of its own under «Surveillance» (indented), for the infection control lead and the administrator.
-  {to:'/surveillance/cultures',key:'cultureProgramme',label:'sidebarNav.culturesShort',icon:CalendarRange,capability:CAPABILITIES.VIEW_SURVEILLANCE,roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD],parent:'surveillance'},
   {to:'/laboratory',key:'laboratory',icon:Beaker,capability:CAPABILITIES.VIEW_LAB},
   {to:'/prevention',key:'prevention',icon:ShieldCheck,capability:CAPABILITIES.VIEW_PREVENTION,anyCapabilities:preventionAccessCapabilities},
   {to:'/controls',key:'controls',icon:ClipboardCheck,capability:CAPABILITIES.VIEW_CONTROLS},
+  // «Καλλιέργειες» (Culture programme): an entry of its own under «Controls» (indented), for the infection control lead and the administrator.
+  {to:'/controls/cultures',key:'cultureProgramme',label:'sidebarNav.culturesShort',icon:CalendarRange,capability:CAPABILITIES.VIEW_CONTROLS,roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.INFECTION_CONTROL_LEAD],parent:'controls'},
   {to:'/quality',key:'quality',icon:Award,capability:CAPABILITIES.VIEW_QUALITY},
   // «Indicators & objectives» of the Quality Center on its own page: indicators, registers, objectives, surveys.
   {to:'/quality/measures',key:'qualityMeasures',label:'sidebarNav.qualityMeasures',icon:Target,capability:CAPABILITIES.VIEW_QUALITY},
@@ -99,8 +99,8 @@ export const NAV_GROUP_LABELS=Object.freeze({
 // Hospital leadership (Administrator, Platform Owner inside a hospital).
 const hospitalLeadershipGroups=[
   ['overview',['dashboard','executiveDashboard','indicators','platformAnalyticsNav','calendar']],
-  ['clinical',['surveillance','cultureProgramme','laboratory','prevention','pharmacy']],
-  ['operations',['controls','kitchen']],
+  ['clinical',['surveillance','laboratory','prevention','pharmacy']],
+  ['operations',['controls','cultureProgramme','kitchen']],
   ['quality',['quality','qualityMeasures','meetings','documents','library']],
   ['staff',['employees','training','interviews','occupationalHealth']],
   ['management',['management']],
@@ -115,7 +115,7 @@ const roleMenuPolicy=Object.freeze({
   // The demo account sees every module: the same headed groups, so the menu never scrolls.
   [ROLES.DEMO]:groupedPolicy(hospitalLeadershipGroups),
   [ROLES.INFECTION_CONTROL_LEAD]:policy(
-    ['dashboard','surveillance','cultureProgramme','laboratory','prevention','controls','indicators','meetings','calendar'],
+    ['dashboard','surveillance','laboratory','prevention','controls','cultureProgramme','indicators','meetings','calendar'],
     ['platformAnalyticsNav','quality','employees','training','documents','library','kitchen'],
     ['pharmacy','occupationalHealth'],
   ),

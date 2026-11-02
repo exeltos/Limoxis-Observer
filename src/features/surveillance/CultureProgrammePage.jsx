@@ -7,8 +7,9 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
-import { environmentalMethodLabel } from '../laboratory/laboratoryCloudService'
-import { isOutsideLimit } from '../laboratory/environmentalLimit'
+import { environmentalMethodLabel, resolveEnvironmentalStandard } from '../laboratory/laboratoryCloudService'
+import { useLaboratoryRepository } from '../laboratory/hooks/useLaboratoryRepository'
+import { isOutsideLimit, resultLimit } from '../laboratory/environmentalLimit'
 import { CULTURE_GROUPS, cultureItems, cultureYear, offProgramme, samplingRounds } from './culturePlan'
 import { loadCultureControls, loadCultureSamples } from './cultureProgrammeService'
 import './cultureProgramme.css'
@@ -133,28 +134,36 @@ function MonthCalendar({ lines, extra, year, month, en, onOpen }) {
   </div>
 }
 
-// The results of one sampling round at once: every sample with its plate, method, organism and colonies against the limit.
+// The results of one sampling round at once: every sample with its plate, method, organism and colonies against the limit
+// (the one the result was assessed with, else the protocol's). Positive results first, then by plate and position.
+const isGrowth = result => Boolean(result && (result.result === 'positive' || result.organism || Number(result.cfuCount) > 0))
 function ResultsDialog({ open, en, t, onClose }) {
   const navigate = useNavigate()
+  const repository = useLaboratoryRepository()
+  const [standards, setStandards] = useState([])
+  useEffect(() => { let live = true; Promise.resolve(repository.loadStandards?.()).then(rows => { if (live) setStandards(rows || []) }).catch(() => {}); return () => { live = false } }, [repository])
   const { item, round } = open
   const rows = round.samples.flatMap(sample => {
     const results = sample.microbiologyResults?.length ? sample.microbiologyResults : [null]
-    return results.map((result, index) => ({ key: `${sample.id}-${index}`, sample, result }))
-  })
-  return <ObserverDialog width="wide" eyebrow={en ? 'Culture results' : 'Αποτελέσματα καλλιέργειας'} title={`${round.department} · ${new Date(`${round.day}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR')}`} subtitle={item ? item.title : (en ? 'Out of programme' : 'Εκτός προγράμματος')} onClose={onClose}>
+    const standard = resolveEnvironmentalStandard(standards, sample.type, sample.environmentalMethod)
+    return results.map((result, index) => ({ key: `${sample.id}-${index}`, sample, result, limit: result ? resultLimit(result, standard) : null }))
+  }).sort((a, b) => Number(isGrowth(b.result)) - Number(isGrowth(a.result)) || String(a.sample.environmentalPlate || '').localeCompare(String(b.sample.environmentalPlate || '')) || Number(a.sample.environmentalPosition || 0) - Number(b.sample.environmentalPosition || 0))
+  const positives = rows.filter(row => isGrowth(row.result)).length
+  return <ObserverDialog width="wide" eyebrow={en ? 'Culture results' : 'Αποτελέσματα καλλιέργειας'} title={`${round.department} · ${new Date(`${round.day}T12:00:00`).toLocaleDateString(en ? 'en-GB' : 'el-GR')}`} subtitle={`${item ? item.title : (en ? 'Out of programme' : 'Εκτός προγράμματος')} · ${rows.length} ${en ? 'points' : 'σημεία'} · ${positives} ${en ? 'positive' : 'θετικά'}`} onClose={onClose}>
     <div className="scroll-table">
       <table className="data-table culture-results">
-        <thead><tr><th>{en ? 'Point' : 'Σημείο λήψης'}</th><th>{en ? 'Plate' : 'Τρυβλίο'}</th><th>{en ? 'Method' : 'Μέθοδος'}</th><th>{en ? 'Organism' : 'Μικροοργανισμός'}</th><th className="register-num">{en ? 'Colonies / limit' : 'Αποικίες / όριο'}</th><th>{en ? 'Result' : 'Αποτέλεσμα'}</th></tr></thead>
-        <tbody>{rows.map(({ key, sample, result }) => {
-          const outside = result ? isOutsideLimit(result) : false
+        <thead><tr><th>{en ? 'Point' : 'Σημείο λήψης'}</th><th>{en ? 'Plate' : 'Τρυβλίο'}</th><th>{en ? 'Method' : 'Μέθοδος'}</th><th>{en ? 'Organism' : 'Μικροοργανισμός'}</th><th className="culture-cfu">{en ? 'Colonies / limit' : 'Αποικίες / όριο'}</th><th>{en ? 'Result' : 'Αποτέλεσμα'}</th></tr></thead>
+        <tbody>{rows.map(({ key, sample, result, limit }) => {
+          const outside = result ? isOutsideLimit(result, limit == null ? null : { limitCfu: limit }) : false
           const pending = !result || result.resultStatus === 'draft'
+          const growth = isGrowth(result)
           return <tr key={key} className="registry-row-clickable" tabIndex={0} onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)}>
             <td><strong>{sample.point || sample.location || sample.source || '—'}</strong>{sample.environmentalPosition && <small>{en ? 'spot' : 'θέση'} {sample.environmentalPosition}</small>}</td>
             <td>{sample.environmentalPlate || '—'}</td>
             <td>{environmentalMethodLabel(sample.environmentalMethod, t) || '—'}</td>
-            <td>{result?.organism || (pending ? (en ? 'Pending' : 'Σε εξέλιξη') : (en ? 'No growth' : 'Χωρίς ανάπτυξη'))}</td>
-            <td className="register-num">{result?.cfuCount ?? '—'}{result?.cfuLimit != null ? ` / ${result.cfuLimit}` : ''}</td>
-            <td>{pending ? '—' : <span className={`status-badge ${outside ? 'danger' : 'active'}`}>{outside ? (en ? 'Out of limit' : 'Εκτός ορίου') : (en ? 'Within limit' : 'Εντός ορίου')}</span>}</td>
+            <td>{result?.organism || (pending ? (en ? 'Pending' : 'Σε εξέλιξη') : growth ? (en ? 'Growth, not identified' : 'Ανάπτυξη χωρίς ταυτοποίηση') : (en ? 'No growth' : 'Χωρίς ανάπτυξη'))}</td>
+            <td className="culture-cfu"><b>{result?.cfuCount ?? (pending ? '—' : 0)}</b><span>/</span><span>{limit ?? (en ? 'no limit' : 'χωρίς όριο')}</span></td>
+            <td>{pending ? '—' : <span className="culture-verdict"><span className={`status-badge ${growth ? 'warning' : 'neutral'}`}>{growth ? (en ? 'Positive' : 'Θετικό') : (en ? 'Negative' : 'Αρνητικό')}</span>{limit != null && <span className={`status-badge ${outside ? 'danger' : 'active'}`}>{outside ? (en ? 'Out of limit' : 'Εκτός ορίου') : (en ? 'Within limit' : 'Εντός ορίου')}</span>}</span>}</td>
           </tr>
         })}</tbody>
       </table>

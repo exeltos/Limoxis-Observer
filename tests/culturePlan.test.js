@@ -43,10 +43,10 @@ describe('the culture programme', () => {
     // The surfaces of the sterilisation unit are not in the programme here (only its autoclaves): out of programme too.
     expect(offProgramme(items, rounds, 2026).map(round => round.department)).toEqual(['Αποστείρωση', 'ΤΕΠ'])
   })
-  it('is an entry of its own under Surveillance in the menu, for the infection control lead and the administrator only', () => {
+  it('is an entry of its own under Controls in the menu, for the infection control lead and the administrator only', () => {
     expect(fs.readFileSync('src/core/navigation/sectionTabs.js', 'utf8')).not.toContain("id: 'cultures'")
-    expect(fs.readFileSync('src/app/navigation.js', 'utf8')).toContain("{to:'/surveillance/cultures',key:'cultureProgramme'")
-    expect(fs.readFileSync('src/app/App.jsx', 'utf8')).toContain('<Route path="surveillance/cultures"')
+    expect(fs.readFileSync('src/app/navigation.js', 'utf8')).toContain("{to:'/controls/cultures',key:'cultureProgramme'")
+    expect(fs.readFileSync('src/app/App.jsx', 'utf8')).toContain('<Route path="controls/cultures"')
     expect(fs.readFileSync('src/features/surveillance/surveillanceTabAccess.js', 'utf8')).toContain('[ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD].includes(role)')
   })
 })

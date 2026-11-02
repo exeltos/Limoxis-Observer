@@ -422,6 +422,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     } }
     case 'pps': { const p = d.pps || {}; const months = p.byMonth || []; const last = months[months.length - 1], prev = months[months.length - 2]
       const rate = (row, index) => (row ? pct(row[index], row[1]) : null)
+      const surveyMonth = key => { const [y, m] = String(key).split('-'); const names = tx('Ιαν Φεβ Μαρ Απρ Μάι Ιουν Ιουλ Αυγ Σεπ Οκτ Νοε Δεκ', 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec').split(' '); return m ? `${names[Number(m) - 1] || m} ${y}` : String(key) }
       const delta = (now, before) => (now == null || before == null ? tx('Χωρίς προηγούμενη μέτρηση', 'No earlier survey') : tx(`${before > now ? '↓' : before < now ? '↑' : '='} από ${fmtPct(before)} στην προηγούμενη`, `${before > now ? '↓' : before < now ? '↑' : '='} from ${fmtPct(before)} in the previous`))
       const haiNow = rate(last, 2), haiBefore = rate(prev, 2), abxNow = rate(last, 3), abxBefore = rate(prev, 3)
       return {
@@ -434,7 +435,10 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'trend', wide: true, sparse: true, title: tx('Επιπολασμός ΛΣΦΥ ανά μέτρηση (%)', 'HAI prevalence by survey (%)'), subtitle: tx('Ασθενείς με ΛΣΦΥ προς ασθενείς της μέτρησης.', 'Patients with HAI over patients surveyed.'), points: months.map(([key, total, hai]) => [key, pct(hai, total) ?? 0]) },
         { type: 'trend', wide: true, sparse: true, title: tx('Χρήση αντιβιοτικών ανά μέτρηση (%)', 'Antibiotic use by survey (%)'), subtitle: tx('Ασθενείς υπό αντιβιοτικά προς ασθενείς της μέτρησης.', 'Patients on antibiotics over patients surveyed.'), points: months.map(([key, total, , abx]) => [key, pct(abx, total) ?? 0]) },
-        { type: 'bars', title: tx('Ασθενείς που μετρήθηκαν', 'Patients surveyed'), subtitle: tx('Πλήθος ασθενών ανά μέτρηση.', 'Patients per survey.'), rows: months.map(([key, total]) => [key, total]) },
+        // One row per survey, in time order: the month, the patients and the two rates (not bars of «2026-07» sorted by size).
+        { type: 'scoreboard', wide: true, title: tx('Οι μετρήσεις', 'The surveys'), subtitle: tx('Μία γραμμή ανά μέτρηση επιπολασμού.', 'One row per prevalence survey.'), rowLabel: tx('Μέτρηση', 'Survey'),
+          columns: [{ key: 'patients', label: tx('Ασθενείς', 'Patients'), shade: false }, { key: 'hai', label: tx('ΛΣΦΥ', 'HAI'), format: fmtPct }, { key: 'abx', label: tx('Αντιβιοτικά', 'Antibiotics'), format: fmtPct }],
+          rows: months.map((row, index) => ({ key: row[0], name: surveyMonth(row[0]), patients: row[1] ?? 0, hai: rate(row, 2), abx: rate(row, 3), index })) },
       ],
     } }
     case 'lira': { const l = d.lira || {}; const averageDays = l.closedWithDates ? Math.round(l.closedDaysTotal / l.closedWithDates * 10) / 10 : null; return {

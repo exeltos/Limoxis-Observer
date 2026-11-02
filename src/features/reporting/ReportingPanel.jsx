@@ -105,7 +105,8 @@ function EarsNetExport({ samples, patients, tenant, year, tx }) {
   </section>
 }
 
-export function ReportingPanel({ tenant, isDemo, year, tx, en }) {
+// parts: which of the three to show (the laboratory shows the data checks and the EARS-Net export apart, in a dialog each).
+export function ReportingPanel({ tenant, isDemo, year, tx, en, parts = ['quality', 'notifications', 'ears'] }) {
   const repository = useLaboratoryRepository()
   const { notify } = useFeedback()
   const [state, setState] = useState({ loading: true, error: '', samples: [], patients: [], reports: [], reportsUnavailable: false })
@@ -138,8 +139,8 @@ export function ReportingPanel({ tenant, isDemo, year, tx, en }) {
   if (state.loading) return <div className="analysis-chart-empty">{tx('Φόρτωση εργαστηριακών δεδομένων…', 'Loading laboratory data…')}</div>
   if (state.error) return <p className="reporting-warning"><AlertTriangle size={15} aria-hidden="true"/>{tx('Δεν ήταν δυνατή η φόρτωση των εργαστηριακών δεδομένων.', 'Laboratory data could not be loaded.')} {state.error}</p>
   return <div className="reporting-panel">
-    <QualityChecks checks={checks} tx={tx}/>
-    <Notifications findings={findings} tx={tx} en={en} onSave={onSave} unavailable={state.reportsUnavailable && !isDemo}/>
-    <EarsNetExport samples={state.samples} patients={state.patients} tenant={tenant} year={year} tx={tx}/>
+    {parts.includes('quality') && <QualityChecks checks={checks} tx={tx}/>}
+    {parts.includes('notifications') && <Notifications findings={findings} tx={tx} en={en} onSave={onSave} unavailable={state.reportsUnavailable && !isDemo}/>}
+    {parts.includes('ears') && <EarsNetExport samples={state.samples} patients={state.patients} tenant={tenant} year={year} tx={tx}/>}
   </div>
 }

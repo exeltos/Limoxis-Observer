@@ -12,8 +12,8 @@ describe('sidebar order per role', () => {
   it('groups the Hospital Administrator menu under headed groups, the Management Center last', () => {
     expect(order(ROLES.HOSPITAL_ADMIN)).toEqual([
       'overview:dashboard', 'overview:executiveDashboard', 'overview:calendar',
-      'clinical:surveillance', 'clinical:cultureProgramme', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
-      'operations:controls', 'operations:kitchen',
+      'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
+      'operations:controls', 'operations:cultureProgramme', 'operations:kitchen',
       'quality:quality', 'quality:qualityMeasures', 'quality:meetings', 'quality:documents', 'quality:library',
       'staff:employees', 'staff:training', 'staff:interviews',
       'management:management',

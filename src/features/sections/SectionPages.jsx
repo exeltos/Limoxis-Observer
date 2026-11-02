@@ -33,12 +33,12 @@ function OutbreakInvestigationsScreen() {
   </Page>} />
 }
 
-// Surveillance › Culture programme (its own entry under «Surveillance» in the menu): the environmental cultures due and
+// Culture programme (its own entry «Cultures» under «Controls» in the menu): the environmental cultures due and
 // done, for the infection control lead and the administrator; any other role goes back to Surveillance.
 export function CultureProgrammeScreen() {
   const { t } = useLanguage()
   const { role, actualRole, canSeeSensitiveEmployeeHealth } = useTenant()
-  if (!surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth }).cultures) return <Navigate to="/surveillance" replace />
+  if (!surveillanceTabAccess({ role, actualRole, canSeeSensitiveEmployeeHealth }).cultures) return <Navigate to="/controls" replace />
   return <Page fill title={t('sidebarNav.cultureProgramme')} subtitle={t('sidebarNav.culturesSubtitle')}><CultureProgrammePage /></Page>
 }
 
