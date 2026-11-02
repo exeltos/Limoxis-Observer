@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { normalizeTrainingQuestion } from '../training/trainingAssessment'
+import { formatActiveTime, loadProgramMaterialTimes } from '../training/trainingMaterialTime'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
@@ -34,6 +35,18 @@ export function EmployeeTrainingTab({
     employee.id,
   )
   const [selected, setSelected] = useState(null)
+  // The active time the employee spent on the programme's files (only the personal link records it; imported
+  // attendance has none, so «—»).
+  const [watched, setWatched] = useState(null)
+  useEffect(() => {
+    setWatched(null)
+    if (!selected?.programDbId || !selected?.assignmentDbId) return undefined
+    let live = true
+    loadProgramMaterialTimes(selected.programDbId)
+      .then(rows => { if (live) setWatched(rows.filter(row => row.assignment_id === selected.assignmentDbId).reduce((sum, row) => sum + (row.active_seconds || 0), 0)) })
+      .catch(() => {})
+    return () => { live = false }
+  }, [selected?.programDbId, selected?.assignmentDbId])
   const registry = useRegistryRows(state.data)
   const paging = registry.paging
   return (
@@ -136,61 +149,15 @@ export function EmployeeTrainingTab({
             ) : undefined
           }
         >
-          <div className="employee-training-detail">
-            <div className="employee-training-summary">
-              <div>
-                <span className="eyebrow">
-                  {language === 'en' ? 'TRAINING STATUS' : 'ΚΑΤΑΣΤΑΣΗ ΕΚΠΑΙΔΕΥΣΗΣ'}
-                </span>
-                <strong>{label(selected.status, t)}</strong>
-                <small>
-                  {language === 'en' ? 'Assigned' : 'Ανάθεση'}: {fmt(selected.assignedDate)}
-                </small>
-              </div>
-              {selected.score != null && (
-                <div className="employee-training-score">
-                  <span>{language === 'en' ? 'Assessment score' : 'Βαθμολογία αξιολόγησης'}</span>
-                  <strong>{selected.score}%</strong>
-                  <em>
-                    {selected.score >= 80
-                      ? language === 'en'
-                        ? 'Successful'
-                        : 'Επιτυχής'
-                      : language === 'en'
-                        ? 'Review required'
-                        : 'Απαιτείται επανέλεγχος'}
-                  </em>
-                </div>
-              )}
-            </div>
-            <div className="employee-training-timeline">
-              <div>
-                <span>1</span>
-                <section>
-                  <small>{language === 'en' ? 'Assigned' : 'Ανάθεση'}</small>
-                  <strong>{fmt(selected.assignedDate)}</strong>
-                </section>
-              </div>
-              <div className={selected.completedDate ? 'is-complete' : ''}>
-                <span>2</span>
-                <section>
-                  <small>{language === 'en' ? 'Completed' : 'Ολοκλήρωση'}</small>
-                  <strong>{fmt(selected.completedDate)}</strong>
-                </section>
-              </div>
-            </div>
-            {selected.score != null && (
-              <div className="employee-training-progress">
-                <div>
-                  <span>{language === 'en' ? 'Knowledge assessment' : 'Αξιολόγηση γνώσεων'}</span>
-                  <strong>{selected.score}%</strong>
-                </div>
-                <div>
-                  <i style={{ width: `${Math.max(0, Math.min(100, selected.score))}%` }} />
-                </div>
-              </div>
-            )}
-          </div>
+          <dl className="employee-training-facts">
+            <div><dt>{language === 'en' ? 'Status' : 'Κατάσταση'}</dt><dd><span className={`status-badge ${statusClass(selected.status)}`}>{label(selected.status, t)}</span></dd></div>
+            <div><dt>{language === 'en' ? 'Assigned' : 'Ανάθεση'}</dt><dd>{fmt(selected.assignedDate)}</dd></div>
+            <div><dt>{language === 'en' ? 'Completed' : 'Ολοκλήρωση'}</dt><dd>{fmt(selected.completedDate)}</dd></div>
+            {selected.dueDate && <div><dt>{language === 'en' ? 'Due' : 'Προθεσμία'}</dt><dd>{fmt(selected.dueDate)}</dd></div>}
+            {selected.score != null && <div><dt>{language === 'en' ? 'Knowledge assessment' : 'Αξιολόγηση γνώσεων'}</dt><dd>{selected.score}% · {selected.score >= 80 ? (language === 'en' ? 'Successful' : 'Επιτυχής') : (language === 'en' ? 'Review required' : 'Απαιτείται επανέλεγχος')}</dd></div>}
+            <div><dt>{language === 'en' ? 'Time on the material' : 'Χρόνος παρακολούθησης'}</dt><dd>{formatActiveTime(watched, language === 'en')}</dd></div>
+            {selected.materialCount > 0 && <div><dt>{language === 'en' ? 'Material' : 'Υλικό'}</dt><dd>{selected.materialCount} {language === 'en' ? (selected.materialCount === 1 ? 'file' : 'files') : (selected.materialCount === 1 ? 'αρχείο' : 'αρχεία')}</dd></div>}
+          </dl>
         </ObserverDialog>
       )}
     </section>
