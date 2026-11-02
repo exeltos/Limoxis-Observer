@@ -157,11 +157,14 @@ const CATH_LAB = {
     yes('to_surgery', 'Προς καρδιοχειρουργείο', 'Referred to cardiac surgery', { section: 'outcome', aliases: ['Προς Χ/Ο', 'ΠΡΟΣ ΧΕΙΡΟΥΡΓΕΙΟ'] }),
   ],
   indicators: [
-    count('patients', 'Ασθενείς', 'Patients'),
+    // One card is one procedure (a patient may have several), so it counts «procedures», not «patients» (owner, 2/11/2026).
+    count('patients', 'Πράξεις', 'Procedures'),
     count('angiographies', 'Στεφανιογραφίες', 'Coronary angiographies', { filters: [{ field: 'procedures', op: 'eq', value: 'angiography' }] }),
     count('angioplasties', 'Αγγειοπλαστικές', 'Angioplasties', { filters: [{ field: 'procedures', op: 'eq', value: 'angioplasty' }] }),
-    share('angioplasty_share', '% με αγγειοπλαστική', '% with angioplasty', [{ field: 'procedures', op: 'eq', value: 'angioplasty' }]),
+    share('angioplasty_share', '% αγγειοπλαστικής στις στεφανιογραφίες', '% angioplasty among coronary angiographies', [{ field: 'procedures', op: 'eq', value: 'angioplasty' }], { denominatorFilters: [{ field: 'procedures', op: 'eq', value: 'angiography' }], note: 'Αγγειοπλαστικές προς στεφανιογραφίες· οι βηματοδότες και οι άλλες πράξεις δεν μπαίνουν στον παρονομαστή.', noteEn: 'Angioplasties over coronary angiographies; pacemakers and other procedures are not in the denominator.' }),
     count('devices', 'Βηματοδότες', 'Pacemakers', { filters: [{ field: 'procedures', op: 'eq', value: 'pacemaker' }] }),
+    count('ep_studies', 'Ηλεκτροφυσιολογικές μελέτες', 'Electrophysiology studies', { filters: [{ field: 'procedures', op: 'eq', value: 'ep_study' }] }),
+    count('icds', 'Απινιδωτές (ICD)', 'Defibrillators (ICD)', { filters: [{ field: 'procedures', op: 'eq', value: 'icd' }] }),
     average('mean_age', 'Μέση ηλικία', 'Mean age', 'age', { unit: 'έτη', unitEn: 'years' }),
     share('urgent_share', '% επείγουσες πράξεις', '% urgent procedures', [{ field: 'urgent', op: 'yes' }], { denominatorFilters: [{ field: 'urgent', op: 'filled' }], note: 'Μόνο όσες πράξεις έχουν καταγραφή (ναι/όχι).', noteEn: 'Only procedures with the answer recorded (yes/no).' }),
     share('stemi_share', '% με οξύ έμφραγμα (ανάσπαση ST)', '% with ST-elevation infarction', [{ field: 'indication', op: 'eq', value: 'stemi' }], { denominatorFilters: [{ field: 'indication', op: 'filled' }], note: 'Μόνο όσες πράξεις έχουν καταγεγραμμένη ένδειξη.', noteEn: 'Only procedures with the indication recorded.' }),
@@ -273,6 +276,8 @@ const EMERGENCY = {
     { id: 'daily_cases', title: 'Μέσος αριθμός περιστατικών ανά ημέρα', titleEn: 'Mean cases per day', aggregation: 'mean', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], dailyOnly: true, direction: 'context', note: 'Από τα ημερήσια φύλλα· οι μήνες που καταχωρίστηκαν με ένα σύνολο δεν μετράνε.', noteEn: 'From the daily sheets; months recorded as one total do not count.' },
     { id: 'night_share', title: '% περιστατικών στη νυχτερινή βάρδια', titleEn: '% of cases on the night shift', aggregation: 'percent', rows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], measure: 'night', denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context' },
     { id: 'septic', title: 'Σηπτικά', titleEn: 'Septic', aggregation: 'sum', rows: ['septic'], direction: 'context' },
+    // Recorded but not part of the total cases (they are procedures on cases already counted).
+    { id: 'dressings', title: 'Αλλαγές τραυμάτων', titleEn: 'Wound dressings', aggregation: 'sum', rows: ['dressings'], direction: 'context', note: 'Δεν περιλαμβάνονται στο σύνολο περιστατικών.', noteEn: 'Not part of the total cases.' },
     { id: 'left_without_seen_rate', title: '% αποχωρήσεων χωρίς εξέταση', titleEn: '% left without being seen', aggregation: 'percent', rows: ['left_without_seen'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 2, direction: 'lower', note: 'Οι ασθενείς που έφυγαν πριν εξεταστούν, ως ποσοστό των περιστατικών του ΤΕΠ.', noteEn: "Patients who left before being seen, as a share of the emergency department's cases." },
     { id: 'revisit_72h_rate', title: '% επανεπισκέψεων εντός 72 ωρών', titleEn: '% return visits within 72 hours', aggregation: 'percent', rows: ['revisit_72h'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', target: 5, direction: 'lower', note: 'Ασθενείς που ξαναήρθαν στο ΤΕΠ εντός 72 ωρών από προηγούμενη επίσκεψη.', noteEn: 'Patients who came back to the emergency department within 72 hours of a previous visit.' },
     { id: 'transfer_rate', title: '% διακομιδών σε άλλο νοσοκομείο', titleEn: '% transfers to another hospital', aggregation: 'percent', rows: ['transfers'], denominatorRows: ['surgical', 'urgent', 'checkup', 'preop', 'assessments', 'septic'], unit: '%', direction: 'context', note: 'Πληροφοριακός δείκτης: δεν κρίνεται ως καλός ή κακός.', noteEn: 'Informative: it is not judged as good or bad.' },

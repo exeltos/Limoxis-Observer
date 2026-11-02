@@ -269,7 +269,46 @@ export function sheetTotal(entries = [], rows = [], measures = []) {
 //     that match `filters`; percent and rate divide by the denominator
 //     (entries matching denominator.filters, or the sum of denominator.field).
 //   sheet: sum of numerator rows × measure, as a share of the denominator rows.
+// An indicator that rests on something the register never records (a field no entry has filled, a sheet row no day has a
+// number for) is «not recorded» (owner, 2/11/2026), not a 0 or a rate that looks judged: its value is empty and it is never
+// judged against a target. Read over the whole register, so a quiet period of a register that does record it still counts 0.
+const recordedCache = new WeakMap()
+const isFilled = value => value != null && value !== '' && !(Array.isArray(value) && !value.length)
+function recordedFields(register, entries) {
+  let known = recordedCache.get(entries)
+  if (known?.register === register) return known.fields
+  const fields = new Set()
+  for (const entry of entries) {
+    const values = computeValues(register.fields, entry.values || {})
+    for (const key of Object.keys(values)) if (isFilled(values[key])) fields.add(key)
+  }
+  recordedCache.set(entries, { register, fields })
+  return fields
+}
+export function indicatorNotRecorded(register, indicator, entries = []) {
+  if (!entries.length) return false
+  if (register.kind === 'sheet') {
+    if (indicator.aggregation === 'count' || !indicator.rows?.length) return false
+    const measures = indicator.measure ? [indicator.measure] : (register.sheet?.measures || []).map(measure => measure.key)
+    return sheetTotal(entries, indicator.rows, measures) == null
+  }
+  if (isActiveCensus(register, indicator)) return false
+  const need = new Set([...(indicator.denominatorFilters || []).map(filter => filter.field), indicator.field, indicator.denominatorField].filter(Boolean))
+  // A date-based count of a treatment register rests on the start dates (no one ended yet is a real 0, no dates at all is not).
+  if (indicator.dateField) need.add(isTreatmentRegister(register) ? 'start_date' : indicator.dateField)
+  if (!need.size) return false
+  const recorded = recordedFields(register, entries)
+  return [...need].some(key => !recorded.has(key))
+}
+
 export function computeIndicator(register, indicator, entries = [], period) {
+  const result = computeIndicatorValue(register, indicator, entries, period)
+  return indicatorNotRecorded(register, indicator, entries)
+    ? { ...result, value: null, numerator: null, denominator: null, small: false, status: 'context', notRecorded: true }
+    : result
+}
+
+function computeIndicatorValue(register, indicator, entries = [], period) {
   const inPeriod = periodEntries(register, entries, period, indicator)
   const result = { id: indicator.id, value: null, numerator: null, denominator: null, n: inPeriod.length, small: false }
   if (register.kind === 'sheet') {
