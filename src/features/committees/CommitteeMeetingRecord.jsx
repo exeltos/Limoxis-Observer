@@ -3,12 +3,14 @@ import { CalendarDays, ClipboardList, NotebookPen, Plus, Send, Trash2, Users } f
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { ChoiceField } from '../../design-system/ChoiceField'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { Field } from '../../design-system/Field'
 import { FormGrid } from '../../design-system/FormCard'
 import { attendanceFor } from './committeeMeetingRules'
+import { compositionLabel, controlTeamName } from './committeeRecordFormat'
 import { CommitteeApprovalPanel } from './CommitteeApprovalPanel'
 import { membersWithoutAccount } from './committeeExternalApprovalService'
 import { ExternalApproversDialog } from './ExternalApproversDialog'
@@ -37,17 +39,24 @@ export function MeetingRecord({ meeting, committeeName = '', members, actorId, c
   // Topic suggestions from the hospital's library (Management > Libraries).
   const { libraries } = useLibraries()
   const topicLibrary = libraries.committeeTopics || []
+  // A committee with a control team (members marked so) meets as a whole or as the team: the attendance, and so the
+  // quorum, is then only the team's.
+  const team = members.filter(member => member.inControlTeam)
+  const teamName = controlTeamName(committeeName, en)
+  const membersOf = composition => (composition === 'control_team' && team.length ? team : members)
   const [v, setV] = useState(() => ({
     ...meeting,
-    attendanceRecords: attendanceFor(members, meeting.attendanceRecords || []),
+    composition: meeting.composition === 'control_team' ? 'control_team' : 'plenary',
+    attendanceRecords: attendanceFor(membersOf(meeting.composition), meeting.attendanceRecords || []),
     topics: meeting.topics?.length ? meeting.topics : [createTopic()],
   }))
   const latestChangeRequest = (meeting.approvals || []).find(x => x.status === 'rejected')
   const locked = ['finalized', 'approval_pending', 'cancelled'].includes(meeting.status)
   // The approval (or the corrections asked for) is what a pending or returned meeting needs first.
-  const [tab, setTab] = useState(meeting.status === 'approval_pending' || (meeting.status === 'draft' && latestChangeRequest) ? 'notes' : 'details')
+  const [tab, setTab] = useState(meeting.status === 'approval_pending' || (meeting.status === 'draft' && latestChangeRequest) ? 'notes' : 'attendance')
   const editable = canSave && !locked
   const set = (k, x) => setV(s => ({ ...s, [k]: x }))
+  const setComposition = composition => setV(s => ({ ...s, composition, attendanceRecords: attendanceFor(membersOf(composition), s.attendanceRecords) }))
   const attendance = (id, status) => setV(s => ({ ...s, attendanceRecords: s.attendanceRecords.map(x => ((x.id || x.memberId) === id ? { ...x, status } : x)) }))
   const topic = (id, k, x) => setV(s => ({ ...s, topics: s.topics.map(t => (t.id === id ? { ...t, [k]: x } : t)) }))
   const removeTopic = id => setV(s => ({ ...s, topics: s.topics.filter(t => t.id !== id) }))
@@ -65,31 +74,24 @@ export function MeetingRecord({ meeting, committeeName = '', members, actorId, c
   const present = v.attendanceRecords.filter(x => x.status === 'present').length
   const footer = editable && <div className="inline-edit-footer"><Button variant="secondary" className="committee-minutes-save" disabled={busy} onClick={() => onSave(v, false)}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>
   const tabs = [
-    { id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: CalendarDays },
     { id: 'attendance', label: `${en ? 'Attendance' : 'Παρουσίες'} ${present}/${v.attendanceRecords.length}`, icon: Users },
     { id: 'topics', label: `${en ? 'Topics & decisions' : 'Θέματα & αποφάσεις'} ${v.topics.length}`, icon: ClipboardList },
     { id: 'notes', label: en ? 'Notes & approval' : 'Σημειώσεις & έγκριση', icon: NotebookPen },
   ]
   const headerActions = <div className="row-actions">
-    <ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} />
+    <ExportMenu items={[{ id: 'minutes-print', kind: 'print', label: en ? 'Print the minutes' : 'Εκτύπωση πρακτικού', onClick: () => exportPdf(false) }, { id: 'minutes-pdf', kind: 'pdf', label: en ? 'Minutes as PDF' : 'PDF πρακτικού', onClick: () => exportPdf(true) }]} />
     {canFinalize && !locked && <HeaderAction utility tone="primary"><Button disabled={busy} onClick={submit}><Send size={15} />{en ? 'Submit / finalize minutes' : 'Υποβολή / οριστικοποίηση'}</Button></HeaderAction>}
   </div>
 
   return <>
     <EntityRecordShell className="committee-meeting-record workspace-fill" avatar={<CalendarDays size={19} />} eyebrow={en ? `Meeting minutes · ${committeeName}` : `Πρακτικά συνεδρίασης · ${committeeName}`} title={meeting.title}
-      subtitle={[fmtDate(meeting.date), meeting.time].filter(Boolean).join(' · ')}
+      subtitle={[fmtDate(meeting.date), meeting.time, v.minutesNo && `${en ? 'Minutes' : 'Πρακτικό'} ${v.minutesNo}`, v.location, v.composition === 'control_team' && compositionLabel('control_team', teamName, en)].filter(Boolean).join(' · ')}
       status={<span className={`status-badge ${STATUS_TONE[meeting.status] ?? ''}`.trim()}>{statusLabel(meeting.status, en)}</span>}
       onBack={onBack} backLabel={en ? 'Committee' : 'Επιτροπή'} headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab}>
-      {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} footer={footer}>
-        <div className="committee-meeting-meta">
-          <FormGrid columns={3}>
-            <Field label={en ? 'Date' : 'Ημερομηνία'}><input disabled value={[fmtDate(meeting.date), meeting.time].filter(Boolean).join(' · ')} /></Field>
-            <Field label={en ? 'Minutes number' : 'Αρ. πρακτικού'}><input disabled={!editable} value={v.minutesNo || ''} onChange={e => set('minutesNo', e.target.value)} /></Field>
-            <Field label={en ? 'Location' : 'Χώρος'}><input disabled={!editable} value={v.location || ''} onChange={e => set('location', e.target.value)} /></Field>
-          </FormGrid>
-        </div>
-      </RecordTabPanel>}
       {tab === 'attendance' && <RecordTabPanel title={en ? 'Attendance' : 'Παρουσίες'} subtitle={en ? 'The quorum is counted from the present voting members.' : 'Η απαρτία μετριέται από τα παρόντα μέλη με ψήφο.'} footer={footer}>
+        {(team.length > 0 || v.composition === 'control_team') && <div className="committee-composition">
+          <ChoiceField label={en ? 'Who met' : 'Σύνθεση'} disabled={!editable} value={v.composition} onChange={setComposition} options={[{ value: 'plenary', label: compositionLabel('plenary', teamName, en) }, { value: 'control_team', label: compositionLabel('control_team', teamName, en) }]} />
+        </div>}
         <div className="scroll-table committee-attendance-wrap">
           <table className="data-table committee-attendance-table">
             <thead><tr><th>{en ? 'Member' : 'Μέλος'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
@@ -121,6 +123,10 @@ export function MeetingRecord({ meeting, committeeName = '', members, actorId, c
         <div className="committee-meeting-notes">
           {meeting.status === 'cancelled' && meeting.cancellationReason && <div className="source-truth-note"><strong>{en ? 'Meeting cancelled' : 'Η συνεδρίαση ακυρώθηκε'}</strong><p>{meeting.cancellationReason}</p></div>}
           {meeting.status === 'draft' && latestChangeRequest && <div className="source-truth-note"><strong>{en ? 'Changes requested' : 'Ζητήθηκαν διορθώσεις στα πρακτικά'}</strong><p>{latestChangeRequest.comment || (en ? 'Review the requested corrections before resubmitting.' : 'Ελέγξτε τις ζητούμενες διορθώσεις πριν από την επανυποβολή.')}</p></div>}
+          <FormGrid columns={2}>
+            <Field label={en ? 'Minutes number' : 'Αρ. πρακτικού'}><input disabled={!editable} value={v.minutesNo || ''} onChange={e => set('minutesNo', e.target.value)} /></Field>
+            <Field label={en ? 'Location' : 'Χώρος'}><input disabled={!editable} value={v.location || ''} onChange={e => set('location', e.target.value)} /></Field>
+          </FormGrid>
           <label className="field committee-general-notes"><span>{en ? 'General notes' : 'Γενικές σημειώσεις'}</span><textarea disabled={!editable} rows="4" value={v.generalNotes || ''} onChange={e => set('generalNotes', e.target.value)} /></label>
           {meeting.status === 'approval_pending' && <>
             <div className="source-truth-note"><strong>{en ? 'Minutes awaiting approval' : 'Τα πρακτικά βρίσκονται σε έγκριση'}</strong><p>{en ? 'They will be finalized automatically when every required approver accepts.' : 'Θα οριστικοποιηθούν αυτόματα όταν εγκρίνουν όλοι οι απαιτούμενοι χρήστες.'}</p></div>

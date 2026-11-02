@@ -24,6 +24,13 @@ import { CheckboxField } from '../../design-system/CheckboxField'
 import { memberBadgeRoles, memberRoleLabel, sortMembersByRole } from './committeeMemberRoles'
 
 // Tab sections of the committee record page (CommitteeRecordPage.jsx).
+// The mandate is often one long text with «•» between its points: one line per point.
+export function mandateList(text) {
+  const points = String(text || '').split(/\s*[•▪]\s*|\n+/).map(point => point.trim()).filter(Boolean)
+  if (points.length < 2) return text
+  return <ul className="committee-mandate-list">{points.map((point, index) => <li key={index}>{point}</li>)}</ul>
+}
+
 export function Head({ title, subtitle, action }) {
   return (
     <div className="record-section-header">
@@ -85,8 +92,8 @@ export function Overview({ record, members, en }) {
               { label: en ? 'Meeting frequency' : 'Συχνότητα', value: frequencyLabel(record.meetingFrequency, en) },
               { label: en ? 'Quorum' : 'Απαρτία', value: quorumLabel(record.quorumRule, en) },
               { label: en ? 'Committee role' : 'Ρόλος επιτροπής', value: record.committeeRole },
-              { label: en ? 'Responsibilities / mandate' : 'Αρμοδιότητες / σκοπός', value: record.mandate },
-              { label: en ? 'Legal basis' : 'Νομική / θεσμική βάση', value: record.legalBasis },
+              { label: en ? 'Responsibilities / mandate' : 'Αρμοδιότητες / σκοπός', value: mandateList(record.mandate), wide: true },
+              { label: en ? 'Legal basis' : 'Νομική / θεσμική βάση', value: record.legalBasis, wide: true },
             ]}
           />
         </div>
@@ -188,6 +195,7 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
                         {memberRoleLabel(role, en)}
                       </span>
                     ))}
+                    {m.inControlTeam && <span className="status-badge committee-role-badge">{en ? 'Control team' : 'Ομάδα ελέγχου'}</span>}
                   </span>
                   {m.committeeTitle && !memberBadgeRoles(m).some(role => memberRoleLabel(role, en) === m.committeeTitle) && <small>{m.committeeTitle}</small>}
                 </td>
@@ -239,7 +247,7 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en }) {
   )
 }
 
-export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, en }) {
+export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, en, teamName = '' }) {
   return (
     <section className="record-section">
       <Head
@@ -292,6 +300,7 @@ export function Meetings({ rows, canCreate, canCancel, onAdd, onOpen, onCancel, 
                         ? 'Regular'
                         : 'Τακτική'}
                     {x.location ? ` · ${x.location}` : ''}
+                    {x.composition === 'control_team' && teamName ? ` · ${teamName}` : ''}
                   </small>
                   {x.status === 'cancelled' && x.cancellationReason && (
                     <small>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { TimeField } from '../../design-system/TimeField'
@@ -185,6 +186,7 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
         responsibilities: '',
         memberType: 'regular',
         voting: true,
+        inControlTeam: false,
         approvalRequired: false,
       }
   const [v, setV] = useState(seed)
@@ -330,6 +332,12 @@ export function MemberDialog({ staff, initial, busy, onClose, onSave, en }) {
             />
             <span>{en ? 'Voting member' : 'Δικαίωμα ψήφου'}</span>
           </label>
+          <CheckboxField
+            className="committee-check-option"
+            checked={v.inControlTeam === true}
+            onChange={checked => set('inControlTeam', checked)}
+            label={en ? 'Control team member' : 'Μέλος της ομάδας ελέγχου'}
+          />
           {!initial && (
             <label className="committee-check-option">
               <input

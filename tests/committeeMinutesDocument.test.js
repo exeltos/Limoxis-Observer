@@ -19,5 +19,13 @@ describe('Committee minutes as a document (PDF export)', () => {
     expect(doc.sections.find(section => section.title === 'Θέματα & συμπεράσματα').table.rows).toHaveLength(1)
     // Signature lines for the chair and the secretary close the minutes.
     expect(text).toContain('Ο/Η Πρόεδρος')
+    // It says plainly that it is the minutes, with their number, and that the whole committee met.
+    expect(doc.title).toBe('ΠΡΑΚΤΙΚΟ ΣΥΝΕΔΡΙΑΣΗΣ αρ. 8/2026')
+    expect(doc.subtitle).toBe('Συνεδρίαση της ολομέλειας της επιτροπής')
+  })
+  it('names the infection control team when only the team met', () => {
+    const doc = committeeMinutesReport({ committeeName: 'Επιτροπή Νοσοκομειακών Λοιμώξεων', minutes: { title: 'Ομάδα', date: '2026-09-03', composition: 'control_team', attendanceRecords: [], topics: [] }, en: false })
+    expect(doc.subtitle).toBe('Συνεδρίαση της Ομάδας Ελέγχου Λοιμώξεων')
+    expect(doc.meta.find(row => row[0] === 'Σύνθεση')[1]).toBe('Ομάδα Ελέγχου Λοιμώξεων')
   })
 })
