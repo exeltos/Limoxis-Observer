@@ -1,14 +1,14 @@
 import { ChevronRight, ListChecks } from 'lucide-react'
 import { formatDay } from '../../core/i18n/formatDay'
 import { RateMeter } from './ControlAdherencePanel'
-import { periodShort } from './controlAdherence'
+import { DEFAULT_PERIOD, isToday, periodShort } from './controlAdherence'
 
 // The adherence a card shows under its numbers: of the chosen period, or done today.
 // The missed executions, with their dates, are in «Adherence».
 function CardFigures({ figures, period, language }) {
   const en = language === 'en'
   return <>
-    <span className="control-department-card-rate"><span>{period === 'today' ? (en ? 'Done today' : 'Έγιναν σήμερα') : `${en ? 'Adherence' : 'Τήρηση'} · ${periodShort(period, language)}`}</span><RateMeter rate={figures.rate} /></span>
+    <span className="control-department-card-rate"><span>{isToday(period) ? (en ? 'Done today' : 'Έγιναν σήμερα') : `${en ? 'Adherence' : 'Τήρηση'} · ${periodShort(period, language)}`}</span><RateMeter rate={figures.rate} /></span>
   </>
 }
 
@@ -18,7 +18,7 @@ const todayText = (done, required) => (required ? `${done}/${required}` : '—')
 // rows of cards). The first card opens the whole list; any other opens the
 // list of that department's controls. `single`: the one card of a department
 // above its own list (a department manager), wide and not a link.
-export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = '30d', loading = false, language = 'el', onOpen, single = false }) {
+export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = DEFAULT_PERIOD, loading = false, language = 'el', onOpen, single = false }) {
   const en = language === 'en'
   const numbers = (card) => <span className="control-department-card-numbers">
     <span><b>{card.controls}</b>{en ? 'controls' : 'έλεγχοι'}</span>

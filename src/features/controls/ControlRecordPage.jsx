@@ -35,7 +35,8 @@ import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequenc
 import { slotStarts,slotWindowMinutes,zonedInstant,zonedParts } from './controlDueRules'
 import { RateMeter,useAdherenceLines } from './ControlAdherencePanel'
 import { ControlMissedDialog,missedText } from './ControlMissedDialog'
-import { periodRange,periodShort } from './controlAdherence'
+import { DEFAULT_PERIOD,periodRange,periodShort } from './controlAdherence'
+import { ControlPeriodPicker } from './ControlPeriodPicker'
 import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
@@ -68,7 +69,7 @@ export function ControlRecordPage(){
  const [historyPageSize,setHistoryPageSize]=useState(15)
  const [historyDepartment,setHistoryDepartment]=useState('all')
  // The period of this control's rates and of its executions list (the same choices as the Controls page).
- const [period,setPeriod]=useState('30d')
+ const [period,setPeriod]=useState(DEFAULT_PERIOD)
  const [withMissed,setWithMissed]=useState(false)
  // The order of the executions (newest first by default): the arrow of the date column; the database orders the whole list.
  const [historyOrder,setHistoryOrder]=useState('desc')
@@ -100,7 +101,7 @@ export function ControlRecordPage(){
  useEffect(()=>{
   if(!tenant?.id||!historyOpen||!historyAssignmentIds.length)return undefined
   let active=true
-  loadControlHistoryPage(tenant.id,historyAssignmentIds,{page:historyPage,pageSize:historyPageSize,from:periodRange(period,new Date()).from,order:historyOrder})
+  loadControlHistoryPage(tenant.id,historyAssignmentIds,{page:historyPage,pageSize:historyPageSize,from:periodRange(period,new Date()).from,to:new Date(periodRange(period,new Date()).to.getTime()+1000),order:historyOrder})
    .then(result=>{if(active)setHistoryData({key:historyKey,...result})})
    .catch(error=>{if(active){setHistoryData({key:historyKey,rows:[],total:0});notifyError(error,'load',{operation:'control_history_load'})}})
   return()=>{active=false}
@@ -142,8 +143,9 @@ export function ControlRecordPage(){
  const historySafePage=Math.min(historyPage,historyTotalPages)
  const pagedHistory=historyRows
  // One «Filters» button (as in the lists): the period (and, in the executions, the department and the missed ones) sit inside it.
- const periodSelect=<FilterSelect label={en?'Period':'Περίοδος'} value={period} onChange={setPeriod}>{['today','30d','60d','6m','12m'].map(key=><option key={key} value={key}>{periodShort(key,language)}</option>)}</FilterSelect>
- const periodChips=<FilterBar activeAdvancedCount={period!=='30d'?1:0} onClear={()=>setPeriod('30d')}>{periodSelect}</FilterBar>
+ const periodSelect=<ControlPeriodPicker value={period} onChange={value=>{setPeriod(value);setHistoryPage(1)}} language={language}/>
+ // Always in sight (owner, 2/11/2026): the period is chosen every time.
+ const periodChips=periodSelect
  const lineOf=dep=>adherence.lines.find(line=>line.department===dep)
  const hhmm=minutes=>`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')}`
  // The set time an entry belongs to (the nearest) and whether it fell inside that time's window.
@@ -310,7 +312,7 @@ export function ControlRecordPage(){
    {listDepartment&&<ControlDepartmentListDialog record={record} department={listDepartment} language={language} onClose={()=>setListDepartment(null)}/>}
   </div>}
   {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} onExportChange={setExpiryExport} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
-  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar"><FilterBar activeAdvancedCount={(historyDepartment!=='all'?1:0)+(period!=='30d'?1:0)+(withMissed?1:0)} onClear={()=>{setHistoryDepartment('all');setHistoryPage(1);setPeriod('30d');setWithMissed(false)}}>{periodSelect}{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<FilterSelect label={en?'Executions':'Εκτελέσεις'} value={withMissed?'missed':'done'} onChange={value=>setWithMissed(value==='missed')}><option value="done">{en?'Recorded only':'Μόνο καταχωρημένες'}</option><option value="missed">{en?'With the missed':'Με τα χαμένα'}</option></FilterSelect></FilterBar></div><div className="record-tab-panel-body"><RegistryTable sort={{key:'at',dir:historyOrder}} onSort={()=>{setHistoryOrder(order=>order==='desc'?'asc':'desc');setHistoryPage(1)}}
+  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar"><FilterBar end={periodSelect} activeAdvancedCount={(historyDepartment!=='all'?1:0)+(withMissed?1:0)} onClear={()=>{setHistoryDepartment('all');setHistoryPage(1);setWithMissed(false)}}>{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<FilterSelect label={en?'Executions':'Εκτελέσεις'} value={withMissed?'missed':'done'} onChange={value=>setWithMissed(value==='missed')}><option value="done">{en?'Recorded only':'Μόνο καταχωρημένες'}</option><option value="missed">{en?'With the missed':'Με τα χαμένα'}</option></FilterSelect></FilterBar></div><div className="record-tab-panel-body"><RegistryTable sort={{key:'at',dir:historyOrder}} onSort={()=>{setHistoryOrder(order=>order==='desc'?'asc':'desc');setHistoryPage(1)}}
     wrapperClassName="scroll-table"
     className="control-history-table"
     columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα',sortable:true},{key:'department',label:en?'Department':'Τμήμα'},{key:'slot',label:en?'Control time':'Ώρα ελέγχου'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}

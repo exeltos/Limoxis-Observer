@@ -11,7 +11,9 @@ describe('control programme adherence', () => {
     expect(expectedOccurrences({ kind: 'daily', times: ['09:00'] }, ago(30), now)).toBe(30)
     expect(expectedOccurrences({ kind: 'weekly', interval: 1 }, ago(28), now)).toBe(4)
     expect(expectedOccurrences({ kind: 'weekly', interval: 2 }, ago(28), now)).toBe(2)
-    expect(expectedOccurrences({ kind: 'monthly', interval: 1 }, ago(365), now)).toBe(11)
+    // A year holds 12 calendar months, a 30-day month one, although the nominal month is 30.44 days.
+    expect(expectedOccurrences({ kind: 'monthly', interval: 1 }, ago(365), now)).toBe(12)
+    expect(expectedOccurrences({ kind: 'monthly', interval: 1 }, ago(30), now)).toBe(1)
   })
 
   it('counts performed, on-time and missed executions in the period', () => {
@@ -60,8 +62,7 @@ describe('control programme adherence', () => {
 
   it('offers fixed reporting periods', () => {
     const range = periodRange('year', now)
-    expect(range.from.getMonth()).toBe(0)
-    expect(range.from.getDate()).toBe(1)
+    expect(range.from.toISOString()).toBe('2025-12-31T22:00:00.000Z') // 1/1/2026 00:00 Athens
     expect(Math.round((now - periodRange('90d', now).from) / day)).toBe(90)
   })
   it('uses the counts from the database instead of the loaded history', () => {
@@ -75,7 +76,9 @@ describe('reports end on the last day with entries', () => {
   it('ends today when entries are recent, else at the end of the last day with entries', async () => {
     const { reportEnd } = await import('../src/features/controls/controlAdherence')
     const now = new Date('2026-10-27T10:00:00Z')
-    expect(reportEnd('2026-10-26T18:00:00Z', now).toISOString()).toBe(now.toISOString())
+    expect(reportEnd('2026-10-27T06:00:00Z', now).toISOString()).toBe(now.toISOString())
+    // No entry in the hospital for 6 hours: the entries come in once a day, the report ends with the last day that has them.
+    expect(reportEnd('2026-10-26T18:00:00Z', now).toISOString()).toBe('2026-10-26T21:59:59.000Z')
     expect(reportEnd('2026-10-18T21:01:15Z', now).toISOString()).toBe('2026-10-19T20:59:59.000Z') // 19/10 23:59:59 Athens
     expect(reportEnd(null, now).toISOString()).toBe(now.toISOString())
   })
@@ -85,10 +88,21 @@ describe('the page period', () => {
   const now = new Date('2026-10-27T10:30:00Z') // Tuesday, 12:30 Athens
   const daily2 = { kind: 'daily', timesPerDay: 2, times: ['08:00', '16:00'] }
   const row = (frequency, history, extra = {}) => ({ item: { id: 'A', title: 'A', frequency, assignments: { ΜΕΘ: { frequency, history, ...extra } } }, departments: ['ΜΕΘ'] })
-  it('starts «today» at midnight in Athens and offers today, 30 and 60 days, 6 and 12 months', () => {
-    expect(ADHERENCE_PERIODS).toEqual(['today', '30d', '60d', '6m', '12m'])
+  it('starts «today» at midnight in Athens and offers a day, month, quarter, half-year or year, stepped back', () => {
+    expect(ADHERENCE_PERIODS).toEqual(['day', 'month', 'quarter', 'half', 'year'])
     expect(periodRange('today', now).from.toISOString()).toBe('2026-10-26T22:00:00.000Z')
+    expect(periodRange('day', now).from.toISOString()).toBe('2026-10-26T22:00:00.000Z')
     expect(periodShort('6m')).toBe('6 μήνες')
+    expect(periodShort('day', 'el', now)).toBe('Σήμερα')
+    expect(periodShort('day@-1', 'el', now)).toBe('26/10/2026')
+    expect(periodShort('month', 'el', now)).toBe('Οκτ 2026')
+    expect(periodShort('month@-10', 'el', now)).toBe('Δεκ 2025')
+    expect(periodShort('quarter@-1', 'el', now)).toBe('3ο τρίμ. 2026')
+    expect(periodShort('half', 'el', now)).toBe('2ο εξάμ. 2026')
+    // A past month ends on its last second; the current one now.
+    const september = periodRange('month@-1', now)
+    expect([september.from.toISOString(), september.to.toISOString()]).toEqual(['2026-08-31T21:00:00.000Z', '2026-09-30T20:59:59.000Z'])
+    expect(periodRange('month', now).to.toISOString()).toBe(now.toISOString())
   })
   it('counts today only what is already due: a set time still to come is not missed', () => {
     // 12:30 Athens: 08:00 is due (done at 08:10), 16:00 not yet.

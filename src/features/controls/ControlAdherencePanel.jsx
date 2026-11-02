@@ -9,7 +9,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { frequencyLabel, linesFrequencyLabel } from './controlScheduling'
 import { ChoiceChips } from '../../design-system/ChoiceChips'
-import { adherenceTone, entryDaysFromHistory, groupAdherenceByDepartment, groupAdherenceLines, missedDays, monthRanges, periodAdherence, periodRange, programmeAdherence } from './controlAdherence'
+import { DEFAULT_PERIOD, isToday, adherenceTone, entryDaysFromHistory, groupAdherenceByDepartment, groupAdherenceLines, missedDays, monthRanges, periodAdherence, periodRange, programmeAdherence } from './controlAdherence'
 import { loadControlAdherenceCounts, loadControlEntryTimes } from './controlCloudService'
 import { isDemoDataEnvironment } from '../../core/data/dataEnvironment'
 import { ControlMissedDialog } from './ControlMissedDialog'
@@ -48,7 +48,7 @@ function useEntryDays(organizationId, period, refreshKey, now) {
   const nowIso = now ? new Date(now).toISOString() : ''
   const key = `${organizationId || ''}|${period}|${nowIso}`
   useEffect(() => {
-    if (!organizationId || period === 'today') return undefined
+    if (!organizationId || isToday(period)) return undefined
     let active = true
     loadControlEntryTimes(organizationId, periodRange(period, nowIso ? new Date(nowIso) : new Date()))
       .then((days) => { if (active) setState({ key, days }) })
@@ -92,7 +92,7 @@ export function useAdherenceLines(rows, organizationId, period, refreshKey, now 
   const entryDays = useEntryDays(organizationId, period, refreshKey, now)
   // The days each line missed (daily controls) or the weeks (weekly ones).
   const lines = useMemo(() => {
-    if (period === 'today') return periodLines
+    if (isToday(period)) return periodLines
     const range = periodRange(period, now || new Date())
     return periodLines.map((line) => {
       const assignment = line.item.assignments?.[line.department] || {}
@@ -112,7 +112,7 @@ export function useAdherenceLines(rows, organizationId, period, refreshKey, now 
   return { lines, totals, failed }
 }
 
-export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null, period = '30d') {
+export function useControlAdherenceReport(rows, tx, language, organizationId, refreshKey, now = null, period = DEFAULT_PERIOD) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const reportRef = useRef(null)
@@ -207,6 +207,9 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const [open, setOpen] = useState(() => new Set())
   const toggle = (key) => setOpen((current) => { const next = new Set(current); if (next.has(key)) next.delete(key); else next.add(key); return next })
   const byDepartment = (mode || (departments > 1 ? 'department' : 'control')) === 'department' && departments > 1
+  // «Stopped» (owner, 2/11/2026): the daily and weekly controls with no entry for 7 days or more, or never, as of the
+  // report's end (the last day with entries while those come in from elsewhere): who to call to start them again.
+  const stopped = useMemo(() => stoppedControls(lines, until || new Date()), [lines, until])
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
   const title = (item) => (en ? item.titleEn || item.title : item.title)
@@ -238,10 +241,12 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   }
   return <div className="control-adherence" ref={reportRef}>
     <div className="control-adherence-toolbar">
-      {departments > 1 && <ChoiceChips className="control-adherence-mode" label="" options={[{ value: 'department', label: en ? 'Per department' : 'Ανά τμήμα' }, { value: 'control', label: en ? 'Per control' : 'Ανά έλεγχο' }]} selected={[byDepartment ? 'department' : 'control']} onToggle={(value) => { setMode(value); setPage(1) }} />}
+      {departments > 1 && <ChoiceChips className="control-adherence-mode" label="" options={[{ value: 'department', label: en ? 'Per department' : 'Ανά τμήμα' }, { value: 'control', label: en ? 'Per control' : 'Ανά έλεγχο' }, ...(stopped.length ? [{ value: 'stopped', label: `${en ? 'Stopped' : 'Σταμάτησαν'} (${stopped.length})` }] : [])]} selected={[mode === 'stopped' ? 'stopped' : byDepartment ? 'department' : 'control']} onToggle={(value) => { setMode(value); setPage(1) }} />}
+      {departments <= 1 && stopped.length > 0 && <ChoiceChips className="control-adherence-mode" label="" options={[{ value: 'stopped', label: `${en ? 'Stopped' : 'Σταμάτησαν'} (${stopped.length})` }]} selected={mode === 'stopped' ? ['stopped'] : []} onToggle={(value) => { setMode(mode === value ? '' : value); setPage(1) }} />}
       {until && <UntilNote until={until} language={language} />}
       <span className="control-info-tip" tabIndex={0} title={tx.adherenceNote} aria-label={tx.adherenceNote} data-pdf-ignore=""><Info size={15} aria-hidden="true" /></span>
     </div>
+    {mode === 'stopped' ? <StoppedTable rows={stopped} language={language} onOpen={onOpen} /> : <>
     <AdherenceTrend months={trend} language={language} />
     <RegistryTable sort={sort} onSort={onSort}
       className="control-adherence-table"
@@ -267,5 +272,42 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
     />
     {missed && <ControlMissedDialog lines={missed.lines} title={missed.title} language={language} onClose={() => setMissed(null)} />}
     {groups.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={groups.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1) }} />}
+    </>}
   </div>
+}
+
+const STOPPED_DAYS = 7
+// The daily and weekly controls of the lines that have no entry for STOPPED_DAYS days or more (or none at all), per
+// department, the longest silence first.
+export function stoppedControls(lines = [], asOf = new Date()) {
+  const seen = new Set(), out = []
+  for (const line of lines) {
+    const key = `${line.item.id}|${line.department}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    const assignment = line.item.assignments?.[line.department] || {}
+    const frequency = line.frequency || assignment.frequency || line.item.frequency || {}
+    if (!['daily', 'weekly'].includes(frequency.kind) || assignment.status === 'paused') continue
+    const history = (assignment.history || []).filter((row) => row?.at && !row.cancelledAt && row.status !== 'cancelled')
+    const last = assignment.lastCompletedAt || history.map((row) => row.at).sort().pop() || null
+    const days = last ? Math.floor((new Date(asOf) - new Date(last)) / 86400000) : null
+    if (last && days < STOPPED_DAYS) continue
+    out.push({ key, item: line.item, department: line.department, frequency, last, days })
+  }
+  return out.sort((a, b) => a.department.localeCompare(b.department, 'el') || (b.days ?? Infinity) - (a.days ?? Infinity))
+}
+
+function StoppedTable({ rows, language, onOpen }) {
+  const en = language === 'en'
+  return <RegistryTable className="control-adherence-table control-stopped-table"
+    columns={[{ key: 'department', label: en ? 'Department' : 'Τμήμα' }, { key: 'control', label: en ? 'Control' : 'Έλεγχος' }, { key: 'last', label: en ? 'Last entry' : 'Τελευταία καταχώριση' }, { key: 'days', label: en ? 'Days without entry' : 'Ημέρες χωρίς καταχώριση' }]}
+    rows={rows} rowKey={(row) => row.key}
+    emptyTitle={en ? 'No control has stopped.' : 'Κανένας έλεγχος δεν έχει σταματήσει.'}
+    renderRow={(row) => <tr className="registry-row-clickable" onClick={() => onOpen?.(row.item)}>
+      <td><strong>{row.department}</strong></td>
+      <td>{en ? row.item.titleEn || row.item.title : row.item.title}<small>{frequencyLabel(row.frequency, language)}</small></td>
+      <td>{row.last ? formatDay(row.last, language) : <span className="status-badge danger">{en ? 'Never' : 'Ποτέ'}</span>}</td>
+      <td>{row.days == null ? '—' : <b className={row.days >= 30 ? 'control-stopped-long' : ''}>{row.days}</b>}</td>
+    </tr>}
+  />
 }

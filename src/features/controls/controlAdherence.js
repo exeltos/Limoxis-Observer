@@ -24,11 +24,14 @@ export function slotLength(frequency = {}) {
   return DAY * interval
 }
 
+// A monthly (weekly, yearly) control counts a whole calendar period it covers even though the nominal month (30.44 days) is a
+// little longer than 30 or 31 days: a calendar month expects 1, a year 12 (not 11), a quarter 3.
+const SLACK = 0.05
 export function expectedOccurrences(frequency, from, to) {
   const span = new Date(to) - new Date(from)
   if (!(span > 0)) return 0
   if (isWeekdaysOnly(frequency)) return Math.floor(weekdayTime(from, to) / slotLength(frequency))
-  return Math.floor(span / slotLength(frequency))
+  return Math.floor(span / slotLength(frequency) + (frequency?.kind === 'daily' ? 0 : SLACK))
 }
 
 // The part of [from, to] that falls on Monday to Friday (Athens), in milliseconds.
@@ -154,26 +157,71 @@ export function todayAdherence(rows, countsByAssignment = null, now = new Date()
   return { lines, totals: adherenceTotals(lines) }
 }
 
-// The adherence of any period the page offers.
+// The adherence of any period the page offers: today as it stands, any other period up to its end (or now).
 export function periodAdherence(rows, period, countsByAssignment = null, now = new Date()) {
-  return period === 'today' ? todayAdherence(rows, countsByAssignment, now) : programmeAdherence(rows, periodRange(period, now), countsByAssignment)
+  return isToday(period) ? todayAdherence(rows, countsByAssignment, now) : programmeAdherence(rows, periodRange(period, now), countsByAssignment)
 }
 
-export const ADHERENCE_PERIODS = ['today', '30d', '60d', '6m', '12m']
+// The periods of the page (owner, 2/11/2026): a calendar day, month, quarter, half-year or year, stepped back with ‹ ›.
+// A period is «unit» (the current one) or «unit@-n» (n back): «month@-1» is last month. The old rolling keys (30d, 60d,
+// 6m, 12m) still read, for saved views and the internal reports.
+export const ADHERENCE_PERIODS = ['day', 'month', 'quarter', 'half', 'year']
+export const DEFAULT_PERIOD = 'month'
+const LEGACY = { today: 'day', '30d': 'month', '60d': 'month', '6m': 'half', '12m': 'year' }
+export function parsePeriod(key = DEFAULT_PERIOD) {
+  const [unit, offset] = String(key || DEFAULT_PERIOD).split('@')
+  if (ADHERENCE_PERIODS.includes(unit)) return { unit, offset: Math.min(0, Number(offset) || 0) }
+  return { unit: LEGACY[unit] || DEFAULT_PERIOD, offset: 0, legacy: unit }
+}
+export const periodKey = (unit, offset = 0) => (offset ? `${unit}@${offset}` : unit)
+export const isToday = (key) => { const { unit, offset, legacy } = parsePeriod(key); return unit === 'day' && offset === 0 && (!legacy || legacy === 'today') }
+// Moves a period back (-1) or forward (+1), never past the current one.
+export const stepPeriod = (key, delta) => { const { unit, offset } = parsePeriod(key); return periodKey(unit, Math.min(0, offset + delta)) }
+export const normalizePeriod = (key) => { const { unit, offset } = parsePeriod(key); return periodKey(unit, offset) }
 
-// The short name of a period, for the chips and the column headings.
-export const periodShort = (key, language = 'el') => ({
-  el: { today: 'Σήμερα', '30d': '30 ημ.', '60d': '60 ημ.', '6m': '6 μήνες', '12m': '12 μήνες', '90d': '90 ημ.', year: 'Έτος' },
-  en: { today: 'Today', '30d': '30 days', '60d': '60 days', '6m': '6 months', '12m': '12 months', '90d': '90 days', year: 'Year' },
-})[language === 'en' ? 'en' : 'el'][key] || key
+// [start, end) of a calendar period in Athens.
+function calendarBounds(unit, offset, now) {
+  const p = zonedParts(now)
+  if (unit === 'day') { const s = zonedInstant(p.year, p.month, p.day + offset, 0); const e = zonedInstant(p.year, p.month, p.day + offset + 1, 0); return { from: s, end: e } }
+  const months = { month: 1, quarter: 3, half: 6, year: 12 }[unit]
+  const index = Math.floor((p.year * 12 + p.month - 1) / months) + offset
+  const startMonth = index * months
+  const from = zonedInstant(Math.floor(startMonth / 12), (startMonth % 12) + 1, 1, 0)
+  const next = startMonth + months
+  return { from, end: zonedInstant(Math.floor(next / 12), (next % 12) + 1, 1, 0) }
+}
 
-// Where the reports end: today, or, while the entries are still kept elsewhere
-// (an import that stops on a day more than 2 days ago), the end of that day,
-// so the rates do not fall day by day for want of data.
+const ROLLING = {
+  el: { '30d': '30 ημ.', '60d': '60 ημ.', '6m': '6 μήνες', '12m': '12 μήνες', '90d': '90 ημ.' },
+  en: { '30d': '30 days', '60d': '60 days', '6m': '6 months', '12m': '12 months', '90d': '90 days' },
+}
+const MONTHS = { el: ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μάι', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'], en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] }
+// The units' names, for the period selector.
+export const periodUnitLabel = (unit, language = 'el') => ({ el: { day: 'Ημέρα', month: 'Μήνας', quarter: 'Τρίμηνο', half: 'Εξάμηνο', year: 'Έτος' }, en: { day: 'Day', month: 'Month', quarter: 'Quarter', half: 'Half-year', year: 'Year' } })[language === 'en' ? 'en' : 'el'][unit] || unit
+
+// The short name of a period, for the chips and the column headings: «Σήμερα», «1/11», «Οκτ 2026», «3ο τρίμ. 2026», «2ο εξάμ. 2026», «2026».
+export function periodShort(key, language = 'el', now = new Date()) {
+  const en = language === 'en', lang = en ? 'en' : 'el'
+  if (ROLLING[lang][key]) return ROLLING[lang][key]
+  const { unit, offset } = parsePeriod(key)
+  if (isToday(key)) return en ? 'Today' : 'Σήμερα'
+  const { from } = calendarBounds(unit, offset, now)
+  const p = zonedParts(from)
+  if (unit === 'day') return `${p.day}/${p.month}/${p.year}`
+  if (unit === 'month') return `${MONTHS[lang][p.month - 1]} ${p.year}`
+  if (unit === 'quarter') { const q = Math.floor((p.month - 1) / 3) + 1; return en ? `Q${q} ${p.year}` : `${q}ο τρίμ. ${p.year}` }
+  if (unit === 'half') { const h = p.month > 6 ? 2 : 1; return en ? `H${h} ${p.year}` : `${h}ο εξάμ. ${p.year}` }
+  return String(p.year)
+}
+
+// Where the reports end: now, or, while the entries come in from elsewhere once a day
+// (no entry at all in the hospital for 6 hours), the end of the last day with entries,
+// so the day the import has not reached yet is not counted as missed.
+export const REPORT_GAP_HOURS = 6
 export function reportEnd(lastEntryAt, now = new Date()) {
   if (!lastEntryAt) return new Date(now)
   const last = new Date(lastEntryAt)
-  if (now - last <= 2 * DAY) return new Date(now)
+  if (now - last <= REPORT_GAP_HOURS * HOUR) return new Date(now)
   const p = zonedParts(last)
   return new Date(zonedInstant(p.year, p.month, p.day + 1, 0).getTime() - 1000)
 }
@@ -181,7 +229,13 @@ export function reportEnd(lastEntryAt, now = new Date()) {
 export function periodRange(key, now = new Date()) {
   const to = new Date(now)
   const from = new Date(now)
-  if (key === 'today') { const p = zonedParts(now); return { from: zonedInstant(p.year, p.month, p.day, 0), to, now } }
+  const calendar = parsePeriod(key)
+  if (!calendar.legacy && !isToday(key)) {
+    // The period's end, or now while it runs; the time it starts holds the whole first day.
+    const bounds = calendarBounds(calendar.unit, calendar.offset, now)
+    return { from: bounds.from, to: new Date(Math.min(bounds.end.getTime() - 1000, now.getTime())), now }
+  }
+  if (isToday(key)) { const p = zonedParts(now); return { from: zonedInstant(p.year, p.month, p.day, 0), to, now } }
   if (key === '60d') from.setDate(from.getDate() - 60)
   else if (key === '6m') from.setMonth(from.getMonth() - 6)
   else if (key === '90d') from.setDate(from.getDate() - 90)
