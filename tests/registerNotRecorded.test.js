@@ -22,8 +22,8 @@ describe('indicators that the register never records', () => {
     expect(computeIndicator(caseRegister, share, entries, period)).toMatchObject({ value: 100 })
     expect(computeIndicator(caseRegister, share, entries, periodOf('month', '2026-09-10')).notRecorded).toBeUndefined()
   })
-  it('counts nothing when the register has no entries at all', () => {
-    expect(computeIndicator(caseRegister, share, [], period).notRecorded).toBeUndefined()
+  it('is not recorded when the register has no entries at all: nothing was measured yet, so no result meets a target', () => {
+    expect(computeIndicator(caseRegister, share, [], period)).toMatchObject({ value: null, notRecorded: true, status: 'context' })
   })
   it('is not recorded when a sheet row has no number in any day', () => {
     const sheet = { kind: 'sheet', sheet: { period: 'month', rows: [{ key: 'seen' }, { key: 'left' }], measures: [{ key: 'count' }] } }
