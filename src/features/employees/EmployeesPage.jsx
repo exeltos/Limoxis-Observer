@@ -19,9 +19,10 @@ import { RouteLoading } from '../../design-system/RouteLoading'
 import { Button } from '../../design-system/Button'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { printReport } from '../../core/export/reportDocument'
-import { exportRegistry,registryItems } from '../../core/export/registryExports'
+import { exportRegistry,printRegistry } from '../../core/export/registryExports'
 import { can } from '../../core/permissions/roles'
 import { EmployeeImportDialog } from './EmployeeImportDialog'
+import { EmployeeExcelDialog } from './EmployeeExcelDialog'
 import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
 
 export function EmployeesPage(){
@@ -32,6 +33,7 @@ export function EmployeesPage(){
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
   const [importOpen,setImportOpen]=useState(false)
+  const [excelMode,setExcelMode]=useState(null)
   // The occupational physician sees each employee's latest completed visit and its fitness in the list.
   const showHealth=role===ROLES.OCCUPATIONAL_PHYSICIAN
   const [visits,setVisits]=useState([])
@@ -50,16 +52,38 @@ export function EmployeesPage(){
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   // The list as filtered (print / Excel), and the same people grouped by department (print / PDF / Excel).
-  const exportHeaders=[t('name'),t('employeeCode'),t('department'),t('professionalCategory'),t('status'),'Email']
-  const exportRow=x=>[displayName(x),x.id,(language==='el'?x.department:x.departmentEn)||'—',(language==='el'?x.profession:x.professionEn)||'—',t(x.employmentStatus),x.email||'']
+  // Excel asks which fields the file has; the print and the PDF carry the fixed set below.
+  const unit=x=>(language==='el'?x.department:x.departmentEn)||'—'
+  const excelFields=[
+    {key:'name',label:t('name'),initial:true,value:displayName},
+    {key:'code',label:t('employeeCode'),initial:true,value:x=>x.id},
+    {key:'department',label:t('department'),initial:true,value:unit},
+    {key:'category',label:t('professionalCategory'),initial:true,value:x=>(language==='el'?x.profession:x.professionEn)||'—'},
+    {key:'position',label:t('employeesRecords.exportPosition'),initial:false,value:x=>(language==='el'?x.position:(x.positionEn||x.position))||''},
+    {key:'status',label:t('status'),initial:true,value:x=>t(x.employmentStatus)},
+    {key:'mobile',label:t('employeesRecords.exportMobile'),initial:true,value:x=>x.phone||''},
+    {key:'email',label:t('employeesRecords.exportEmail'),initial:false,value:x=>x.email||''},
+    {key:'hireDate',label:t('employeesRecords.exportHireDate'),initial:false,value:x=>x.hireDate?String(x.hireDate).slice(0,10).split('-').reverse().join('/'):''},
+  ]
+  const printKeys=['name','code','department','category','mobile','status']
+  const tableOf=(keys,list)=>{const used=excelFields.filter(field=>keys.includes(field.key));return {headers:used.map(field=>field.label),rows:list.map(x=>used.map(field=>field.value(x)))}}
   const departmentLabel=department==='all'?t('allDepartments'):department
-  const byDepartment=()=>{const groups=new Map();for(const x of rows){const key=(language==='el'?x.department:x.departmentEn)||'—';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)}return [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],language==='en'?'en':'el'))}
-  const listBuild=()=>({name:`${language==='en'?'employees':'ergazomenoi'}${department==='all'?'':`_${department}`}`,headers:exportHeaders,rows:rows.map(exportRow)})
-  const groupedBuild=()=>({name:`${language==='en'?'employees-by-department':'ergazomenoi-ana-tmima'}`,headers:exportHeaders,rows:byDepartment().flatMap(([,list])=>list.map(exportRow))})
+  const byDepartment=()=>{const groups=new Map();for(const x of rows){const key=unit(x);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)}return [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],language==='en'?'en':'el'))}
+  const listBuild=()=>({name:`${language==='en'?'employees':'ergazomenoi'}${department==='all'?'':`_${department}`}`,...tableOf(printKeys,rows)})
   const printGrouped=pdf=>{const ok=printReport({language,orientation:'landscape',kind:t('employees'),code:departmentLabel,title:`${t('employees')} · ${t('employeesRecords.exportByDepartment')}`,
     meta:[[t('department'),departmentLabel],[t('status'),status==='all'?t('all'):t(status==='new'?'employeesRecords.newHires':status)],[t('employees'),String(rows.length)]],
-    sections:byDepartment().map(([name,list])=>({title:`${name} (${list.length})`,table:{columns:exportHeaders,rows:list.map(exportRow)}})),filename:`${t('employees')}_${t('employeesRecords.exportByDepartment')}`},{pdf:pdf===true});if(!ok)notify(t('indicatorsRecords.allowPopups'),'error')}
-  const exportMenu=<ExportMenu disabled={!rows.length} items={[...registryItems('employees',t('employeesRecords.exportOne'),listBuild,{language,kind:t('employees'),title:t('employees')}),{id:'grouped-print',kind:'print',label:t('employeesRecords.exportPrintByDepartment'),onClick:()=>printGrouped(false)},{id:'grouped-pdf',kind:'pdf',label:t('employeesRecords.exportPdfByDepartment'),onClick:()=>printGrouped(true)},{id:'grouped-excel',kind:'excel',label:t('employeesRecords.exportExcelByDepartment'),onClick:()=>exportRegistry(groupedBuild())}]}/>
+    sections:byDepartment().map(([name,list])=>({title:`${name} (${list.length})`,table:{columns:tableOf(printKeys,list).headers,rows:tableOf(printKeys,list).rows}})),filename:`${t('employees')}_${t('employeesRecords.exportByDepartment')}`},{pdf:pdf===true});if(!ok)notify(t('indicatorsRecords.allowPopups'),'error')}
+  // The Excel file: one sheet with everyone, or one sheet per department, with the chosen fields.
+  const excelFile=(keys,grouped)=>exportRegistry(grouped
+    ?{name:language==='en'?'employees-by-department':'ergazomenoi-ana-tmima',sheets:byDepartment().map(([name,list])=>({name,...tableOf(keys,list)}))}
+    :{name:`${language==='en'?'employees':'ergazomenoi'}${department==='all'?'':`_${department}`}`,...tableOf(keys,rows)})
+  const exportMenu=<ExportMenu disabled={!rows.length} items={[
+    {id:'employees-print',kind:'print',label:t('employeesRecords.exportPrintList'),onClick:()=>{if(!printRegistry(listBuild(),{language,kind:t('employees'),title:t('employees')}))notify(t('indicatorsRecords.allowPopups'),'error')}},
+    {id:'employees-excel',kind:'excel',label:t('employeesRecords.exportExcelList'),onClick:()=>setExcelMode('list')},
+    {id:'grouped-print',kind:'print',label:t('employeesRecords.exportPrintByDepartment'),onClick:()=>printGrouped(false)},
+    {id:'grouped-pdf',kind:'pdf',label:t('employeesRecords.exportPdfByDepartment'),onClick:()=>printGrouped(true)},
+    {id:'grouped-excel',kind:'excel',label:t('employeesRecords.exportExcelByDepartment'),onClick:()=>setExcelMode('grouped')},
+  ]}/>
   function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t(showHealth?'employeesRecords.registrySubtitlePhysician':'employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{exportMenu}{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
@@ -76,6 +100,7 @@ export function EmployeesPage(){
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </section>
+    {excelMode&&<EmployeeExcelDialog fields={excelFields} onClose={()=>setExcelMode(null)} onConfirm={keys=>{excelFile(keys,excelMode==='grouped');setExcelMode(null)}}/>}
     {importOpen&&<EmployeeImportDialog existing={employeeRows} language={language} onClose={()=>setImportOpen(false)} onImported={reload}/>}
   </Page>
 }
