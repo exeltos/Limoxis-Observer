@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RegistryTable } from '../../../design-system/RegistryTable'
+import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { useTableSort } from '../../../design-system/useTableSort'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { Meter } from '../../../design-system/MiniCharts'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
@@ -140,7 +142,21 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
   const { language } = useLanguage()
   const en = language === 'en'
   const plan = row => row.kind === 'plan'
-  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: row => (plan(row) ? row.indicator : objectiveMeasureText(row, language)) }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: row => (plan(row) ? null : targetReach(row)) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: row => roleTitleText(row.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: row => (plan(row) ? row.status : row.current.status) }]}
+  // The whole list is sorted by the header arrows, then cut into pages.
+  const { sorted, sort, onSort } = useTableSort(rows, {
+    title: row => (plan(row) ? row.title : objectiveTitle(row, language)),
+    source: row => (plan(row) ? row.indicator : objectiveMeasureText(row, language)),
+    value: row => (plan(row) ? null : targetReach(row)),
+    owner: row => roleTitleText(row.ownerLabel, language),
+    state: row => (plan(row) ? row.status : row.current.status),
+  })
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+  useEffect(() => setPage(1), [rows.length, pageSize, sort])
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paged = sorted.slice((safePage - 1) * pageSize, safePage * pageSize)
+  return <><RegistryTable className="quality-table" rows={paged} sort={sort} onSort={onSort} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος', sortable: true }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortable: true }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortable: true }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortable: true }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortable: true }]}
     rowKey={row => (plan(row) ? `plan-${row.id}` : row.id)}
     rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(row) })}
     renderRow={row => plan(row) ? <>
@@ -157,6 +173,7 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
       <td><StatusBadge tone={objectiveStateTone(row.current.status)}>{objectiveStateLabel(row.current.status, en)}</StatusBadge></td>
     </>}
     emptyTitle={!loading && !rows.length ? (en ? 'No objectives' : 'Δεν υπάρχουν στόχοι') : ''} emptyText={en ? 'Set the year’s objectives of the hospital, the departments and the committees.' : 'Ορίστε τους στόχους του έτους για το νοσοκομείο, τα τμήματα και τις επιτροπές.'} />
+    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={sorted.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} /></>
 }
 
 // The management reviews (ISO 9001 §9.3).
