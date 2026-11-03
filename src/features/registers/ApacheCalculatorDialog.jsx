@@ -16,7 +16,9 @@ export function ApacheCalculatorDialog({ age, onUse, onClose }) {
   const en = language === 'en'
   const [answers, setAnswers] = useState({ age: age ?? '', chronicHealthPoints: 0, acuteRenalFailure: false })
   const set = (key, value) => setAnswers(current => ({ ...current, [key]: value }))
-  const result = useMemo(() => calculateClinicalScale('apache-ii', answers), [answers])
+  // A blank input would count as 0 in the engine, so the score is only accepted when every parameter is filled.
+  const blank = ['age', 'chronicHealthPoints', ...clinicalScaleFields('apache-ii').map(([key]) => key)].some(key => answers[key] === '' || answers[key] == null)
+  const result = useMemo(() => { const worked = calculateClinicalScale('apache-ii', answers); return blank ? { ...worked, score: null, complete: false } : worked }, [answers, blank])
   return <ObserverDialog width="large" title={en ? 'APACHE II calculator' : 'Υπολογισμός APACHE II'} subtitle={en ? 'Worst values of the first 24 hours in the ICU.' : 'Οι δυσμενέστερες τιμές των πρώτων 24 ωρών στη ΜΕΘ.'} onClose={onClose}
     footer={<DialogActions><Button variant="secondary" onClick={onClose}>{en ? 'Cancel' : 'Ακύρωση'}</Button><Button disabled={result.score == null} onClick={() => onUse(result.score)}>{en ? 'Use this score' : 'Χρήση του score'}</Button></DialogActions>}>
     <div className="record-section">
