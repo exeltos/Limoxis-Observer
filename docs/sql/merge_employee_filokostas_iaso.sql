@@ -1,9 +1,25 @@
 -- ΙΑΣΩ: συγχώνευση του διπλού εργαζομένου «Φιλοκώστας Αριστείδης».
 -- Ο εργαζόμενος 433 (ΦΙΛΟΚΩΣΤΑΣ ΑΡΙΣΤΕΙΔΗΣ, 32 εκπαιδεύσεις, Νοσηλευτική Διεύθυνση) μένει και παίρνει τον λογαριασμό του
 -- διαχειριστή· το αυτόματο στέλεχος ADM-0859A80A… (χωρίς εκπαιδεύσεις και χωρίς άλλες συνδέσεις) σβήνεται.
--- Τρέξε το στο SQL Editor του Supabase. Αν κάποια εγγραφή αναφέρεται ακόμα στο στέλεχος, η διαγραφή σταματά με σφάλμα και δεν αλλάζει τίποτα.
+-- Τρέξε το στο SQL Editor του Supabase. Ο έλεγχος εξαρτήσεων παρακάτω σταματά τη συγχώνευση αν οποιαδήποτε εγγραφή (σε οποιονδήποτε πίνακα) αναφέρεται ακόμα στο στέλεχος.
 begin;
 select set_config('request.jwt.claims', '{"sub":"84066ee0-57b7-4cae-9186-09e491d3ea6d","role":"authenticated"}', true);
+
+-- Έλεγχος εξαρτήσεων: αν οποιοσδήποτε πίνακας αναφέρεται ακόμα στο στέλεχος (και όσοι πίνακες έχουν ON DELETE CASCADE / SET NULL),
+-- η συγχώνευση σταματά πριν σβηστεί οτιδήποτε.
+do $check$
+declare r record; n bigint;
+begin
+  for r in
+    select c.conrelid::regclass::text as tbl, a.attname as col
+    from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+    where c.contype = 'f' and c.confrelid = 'public.employees'::regclass
+  loop
+    execute format('select count(*) from %s where %I = %L', r.tbl, r.col, '800674fd-2d5a-4461-8aa7-10e9962af813') into n;
+    if n > 0 then raise exception 'Το στέλεχος έχει % εγγραφές στον πίνακα % (%) — η συγχώνευση σταμάτησε', n, r.tbl, r.col; end if;
+  end loop;
+end
+$check$;
 
 delete from public.employees
 where id = '800674fd-2d5a-4461-8aa7-10e9962af813'
