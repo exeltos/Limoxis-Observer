@@ -38,6 +38,8 @@ export function formatObjectiveValue(value, unit, language = 'el') {
   const text = new Intl.NumberFormat(language === 'en' ? 'en-GB' : 'el-GR', { maximumFractionDigits: 2 }).format(number)
   return unit === '%' ? `${text}%` : unit ? `${text} ${unit}` : text
 }
+// An objective's value for lists and exports: a missing value is said to be «not measured», never left as a dash that reads like a zero.
+export const objectiveValueText = (value, unit, language = 'el') => (value == null || value === '' ? (language === 'en' ? 'Not measured' : 'Δεν μετριέται') : formatObjectiveValue(value, unit, language))
 export const addDays = (day, days) => { const date = new Date(`${day}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10) }
 const inPeriod = (day, period) => { const value = String(day || '').slice(0, 10); return Boolean(value) && value >= period.from && value <= period.to }
 const dmy = day => { const [y, m, d] = String(day || '').slice(0, 10).split('-'); return y ? `${Number(d)}/${Number(m)}/${y}` : '' }

@@ -15,7 +15,7 @@ import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
 import { loadObjectiveValues, loadObjectives, loadReviews } from './reviewService'
 import { OBJECTIVE_LEVELS, levelLabel, planStatusLabel, loadCommitteeTargets, loadIndicatorDefinitions, loadLevelNames, monthlyMean, objectiveLevel, objectiveSource, platformValuesForYears } from './objectiveSources'
-import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
+import { formatObjectiveValue, objectiveState, objectiveValueText, reviewStatusLabel, toNumber } from './reviewTemplate'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { QualityPersonField } from '../QualityFields'
 
@@ -103,7 +103,7 @@ export function useReviews(organizationId) {
   return { reviews, loading }
 }
 
-export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'No value yet' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Χωρίς τιμή ακόμα' })[state]
+export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'Not measured yet' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Δεν μετριέται ακόμα' })[state]
 // How close the value is to the target (100 = met): value / target when more is
 // better, target / value when less is better.
 export function targetReach(objective) {
@@ -123,7 +123,7 @@ export function objectivesExport(rows, language) {
     headers: en ? ['Code', 'Year', 'Level', 'Objective', 'Measured by', 'Value', 'Target', 'Owner', 'Due', 'Status'] : ['Κωδικός', 'Έτος', 'Επίπεδο', 'Στόχος', 'Μετριέται με', 'Τιμή', 'Στόχος (τιμή)', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
     rows: rows.map(objective => objective.kind === 'plan'
       ? [objective.committeeCode, objective.year, objective.committeeName, objective.title, objective.indicator, objective.baseline, objective.target, objective.ownerLabel, formatDay(objective.dueDate, language), planStatusLabel(objective.status, en)]
-      : [objective.code, objective.year, objectiveLevelText(objective, language), objectiveTitle(objective, language), objectiveMeasureText(objective, language), formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
+      : [objective.code, objective.year, objectiveLevelText(objective, language), objectiveTitle(objective, language), objectiveMeasureText(objective, language), objectiveValueText(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
   }
 }
 
@@ -168,7 +168,7 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
     </> : <>
       <td><strong>{objectiveTitle(row, language)}</strong><small>{objectiveLevelText(row, language)} · {row.code}</small></td>
       <td>{objectiveMeasureText(row, language)}<small>{objectiveMeasureSource(row, language)}</small></td>
-      <td><strong>{formatObjectiveValue(row.current.value, row.unit, language)}</strong><small>{row.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(row.target, row.unit, language)}</small><Meter value={targetReach(row)} tone={objectiveStateTone(row.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
+      <td><strong>{objectiveValueText(row.current.value, row.unit, language)}</strong><small>{row.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(row.target, row.unit, language)}</small><Meter value={targetReach(row)} tone={objectiveStateTone(row.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
       <td>{roleTitleText(row.ownerLabel, language) || '—'}<small>{formatDay(row.dueDate, language)}</small></td>
       <td><StatusBadge tone={objectiveStateTone(row.current.status)}>{objectiveStateLabel(row.current.status, en)}</StatusBadge></td>
     </>}

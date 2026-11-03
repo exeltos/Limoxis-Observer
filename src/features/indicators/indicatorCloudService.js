@@ -71,11 +71,15 @@ export function visibleForDepartment(def,departmentId){
 }
 
 const metricValue=(metrics,key)=>key?metrics[key]:null
+// Consumption quantities: 0 litres / 0 DDD means no consumption data was entered.
+const NOT_MEASURED_WHEN_ZERO=new Set(['abhr_litres','antibiotic_ddd_total','aware_access_ddd_total'])
 export function calculateCloudDefinition(def,metrics){
  const numerator=metricValue(metrics,def.numerator),denominator=def.denominator?metricValue(metrics,def.denominator):null
  let value=null
  if(def.calculation==='manual')value=Number.isFinite(Number(def.manualValue))?Number(def.manualValue):null
- else if(def.denominator)value=denominator?round(Number(numerator||0)/Number(denominator)*Number(def.multiplier||1),1):null
+ // No value is not zero: a numerator the source never reported (or a quantity that reads 0 because nothing is recorded) means «not measured», never a result that meets the target.
+ else if(numerator==null||(NOT_MEASURED_WHEN_ZERO.has(def.numerator)&&Number(numerator)===0))value=null
+ else if(def.denominator)value=denominator?round(Number(numerator)/Number(denominator)*Number(def.multiplier||1),1):null
  else value=Number.isFinite(Number(numerator))?round(Number(numerator)*Number(def.multiplier||1),1):null
  const status=value==null||def.target==null?'context':def.direction==='higher'?(value>=def.target?'onTarget':'attention'):def.direction==='lower'?(value<=def.target?'onTarget':'attention'):'context'
  return {...def,value,numerator,denominator,status,evidence:def.calculation==='manual'?'manual':def.denominator?`${numerator??'—'} / ${denominator??'—'}`:`${numerator??'—'}`}
