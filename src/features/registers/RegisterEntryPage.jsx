@@ -19,6 +19,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { auditActorFromAuth } from '../../core/audit/actor'
 import { deleteEntry, loadEntry, loadRegister, saveEntry } from './registerService'
 import { findApacheScore } from './registerScaleLookup'
+import { ApacheCalculatorDialog } from './ApacheCalculatorDialog'
 import { useRegisterAccess } from './registerAccess'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { computeValues, fieldVisible, formatValue, gestationText, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
@@ -46,6 +47,7 @@ export function RegisterEntryPage() {
   const [saving, setSaving] = useState(false)
   const [tried, setTried] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [apacheOpen, setApacheOpen] = useState(false)
   // The section the page is at (the side index follows the scrolling).
   const [activeSection, setActiveSection] = useState(null)
   const pageRef = useRef(null)
@@ -135,12 +137,11 @@ export function RegisterEntryPage() {
   // «From the patient's scales»: the APACHE II saved for this case number in the clinical scales; the score can still be typed.
   async function fillApache() {
     try {
-      const found = isDemo ? null : await findApacheScore(tenant?.id, identity.caseNumber)
+      const found = isDemo || !String(identity.caseNumber ?? '').trim() ? null : await findApacheScore(tenant?.id, identity.caseNumber)
       if (found?.score != null) { set('apache_score', found.score); notify(en ? `APACHE II ${found.score} taken from the patient’s scales.` : `APACHE II ${found.score} από τις κλίμακες του ασθενή.`, 'success'); return }
-      if (!found?.patientId) { notify(en ? 'No patient was found for this case number, so the APACHE II cannot be taken or calculated here.' : 'Δεν βρέθηκε ασθενής με αυτόν τον αριθμό περιστατικού· γράψτε το APACHE II χειροκίνητα.', 'info'); return }
-      // No APACHE II saved yet: offer to calculate it. The scale opens in a new tab so what was typed here is kept.
-      const calculate = await confirm({ title: en ? 'No APACHE II for this case' : 'Δεν υπάρχει APACHE II για αυτό το περιστατικό', message: en ? 'Do you want to calculate it now? The patient’s clinical scales open in a new tab; save the APACHE II there and press the button again here.' : 'Θέλετε να υπολογιστεί τώρα; Οι κλίμακες του ασθενή ανοίγουν σε νέα καρτέλα· αποθηκεύστε εκεί το APACHE II και πατήστε ξανά το κουμπί εδώ.', confirmLabel: en ? 'Open the scales' : 'Άνοιγμα κλιμάκων' })
-      if (calculate) window.open(`/patients/${found.patientId}?tab=clinicalScales`, '_blank', 'noopener')
+      // Nothing saved (or no such patient): the registers are independent of the surveillance's patients, so offer to calculate it here.
+      const calculate = await confirm({ title: en ? 'No APACHE II saved' : 'Δεν υπάρχει αποθηκευμένο APACHE II', message: en ? 'Do you want to calculate it now? The APACHE II calculator opens here and the result fills the score.' : 'Θέλετε να υπολογιστεί τώρα; Ανοίγει ο υπολογισμός APACHE II εδώ και το αποτέλεσμα γεμίζει το score.', confirmLabel: en ? 'Calculate' : 'Υπολογισμός' })
+      if (calculate) setApacheOpen(true)
     } catch (error) { console.error(error); notify(en ? 'The patient’s scales could not be read.' : 'Δεν ήταν δυνατή η ανάγνωση των κλιμάκων του ασθενή.', 'error') }
   }
   const cancelEdit = () => { setValues(entry?.values || {}); setIdentity(entry?.identity || { caseNumber: '', patientName: '' }); setEditing(false); setTried(false) }
@@ -180,13 +181,13 @@ export function RegisterEntryPage() {
             const info = sectionIndex[position]
             return <section key={section.key || 'main'} id={`register-section-${info.id}`} data-register-section={info.id} className="register-entry-section">
               <header><span className="register-entry-badge">{info.no}</span><h3>{info.label}</h3>{info.wrong > 0 ? <small className="is-wrong">{en ? `to correct ${info.wrong}` : `προς διόρθωση ${info.wrong}`}</small> : <small>{info.filled}/{info.total}</small>}</header>
-              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' && identity.caseNumber ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
+              <div className={`register-entry-grid${editable ? '' : ' is-readonly'}`}>{fields.filter(field => !(categoryField && field.key === 'category')).map(field => !editable ? <RegisterValue key={field.key} field={field} value={full[field.key]} language={language} /> : <RegisterField key={field.key} cards={theme === 'cathlab'} field={field} value={full[field.key]} onChange={value => set(field.key, value)} disabled={!editable} error={tried || values[field.key] !== undefined ? check.errors[field.key] : ''} warning={check.warnings[field.key]} required={isRequired(field, entryDate)} language={language} action={field.key === 'apache_score' ? <button type="button" className="register-field-action" onClick={fillApache}>{en ? 'From the patient’s scales' : 'Από τις κλίμακες του ασθενή'}</button> : null} />)}</div>
             </section>
           })}
         </div>
       </div>
     </div>{editable && <div className="inline-edit-footer">{tried && errorCount > 0 && <span className="register-form-errors">{en ? `${errorCount} field(s) need attention` : `${errorCount} πεδί${errorCount === 1 ? 'ο θέλει' : 'α θέλουν'} διόρθωση`}</span>}<Button variant="secondary" onClick={isNew ? back : cancelEdit}>{en ? 'Cancel' : 'Ακύρωση'}</Button><SaveButton loading={saving} disabled={saving} onClick={save}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>}</div>
-  </EntityRecordShell></Page>
+  </EntityRecordShell>{apacheOpen && <ApacheCalculatorDialog age={full.age} onClose={() => setApacheOpen(false)} onUse={score => { set('apache_score', score); setApacheOpen(false); notify(en ? `APACHE II ${score} calculated.` : `APACHE II ${score} υπολογίστηκε.`, 'success') }} />}</Page>
 }
 
 // A field of a saved case, read-only: its label and value, compact.
