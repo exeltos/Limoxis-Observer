@@ -315,3 +315,5 @@
 .register-procedure-cards button.is-selected>i{border-color:var(--reg-accent);background:var(--reg-accent)}
 .register-procedure-field{display:grid;gap:8px}
 .register-field-action{display:block;margin-top:4px;padding:0;border:0;background:none;color:#1d5fa8;font:inherit;font-size:12px;font-weight:600;cursor:pointer}.register-field-action:hover{text-decoration:underline}
+/* The «⋯» menu of the case sits at the top right of its card: the entry starts below it, not under it. */
+.register-form-page.register-entry-form{padding-top:26px}
