@@ -13,9 +13,13 @@ import { loadAllOccupationalVisitsAsync } from './employeeSubRecordsService'
 import { fitnessLabel } from '../occupational-health/occupationalVisitModel'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
+import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useEmployeesData } from './useEmployeesData'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Button } from '../../design-system/Button'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { printReport } from '../../core/export/reportDocument'
+import { exportRegistry,registryItems } from '../../core/export/registryExports'
 import { can } from '../../core/permissions/roles'
 import { EmployeeImportDialog } from './EmployeeImportDialog'
 import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
@@ -24,6 +28,7 @@ export function EmployeesPage(){
   const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership,tenant}=useTenant()
   const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
+  const {notify}=useFeedback()
   const saved=registry.loadViewState({query:'',department:'all',status:'all'})
   const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
   const [importOpen,setImportOpen]=useState(false)
@@ -44,9 +49,20 @@ export function EmployeesPage(){
   const scopedEmployees=employeeRows.filter(x=>canAccessRecord(x))
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
   function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
+  // The list as filtered (print / Excel), and the same people grouped by department (print / PDF / Excel).
+  const exportHeaders=[t('name'),t('employeeCode'),t('department'),t('professionalCategory'),t('status'),'Email']
+  const exportRow=x=>[displayName(x),x.id,(language==='el'?x.department:x.departmentEn)||'—',(language==='el'?x.profession:x.professionEn)||'—',t(x.employmentStatus),x.email||'']
+  const departmentLabel=department==='all'?t('allDepartments'):department
+  const byDepartment=()=>{const groups=new Map();for(const x of rows){const key=(language==='el'?x.department:x.departmentEn)||'—';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(x)}return [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0],language==='en'?'en':'el'))}
+  const listBuild=()=>({name:`${language==='en'?'employees':'ergazomenoi'}${department==='all'?'':`_${department}`}`,headers:exportHeaders,rows:rows.map(exportRow)})
+  const groupedBuild=()=>({name:`${language==='en'?'employees-by-department':'ergazomenoi-ana-tmima'}`,headers:exportHeaders,rows:byDepartment().flatMap(([,list])=>list.map(exportRow))})
+  const printGrouped=pdf=>{const ok=printReport({language,orientation:'landscape',kind:t('employees'),code:departmentLabel,title:`${t('employees')} · ${t('employeesRecords.exportByDepartment')}`,
+    meta:[[t('department'),departmentLabel],[t('status'),status==='all'?t('all'):t(status==='new'?'employeesRecords.newHires':status)],[t('employees'),String(rows.length)]],
+    sections:byDepartment().map(([name,list])=>({title:`${name} (${list.length})`,table:{columns:exportHeaders,rows:list.map(exportRow)}})),filename:`${t('employees')}_${t('employeesRecords.exportByDepartment')}`},{pdf:pdf===true});if(!ok)notify(t('indicatorsRecords.allowPopups'),'error')}
+  const exportMenu=<ExportMenu disabled={!rows.length} items={[...registryItems('employees',t('employeesRecords.exportOne'),listBuild,{language,kind:t('employees'),title:t('employees')}),{id:'grouped-print',kind:'print',label:t('employeesRecords.exportPrintByDepartment'),onClick:()=>printGrouped(false)},{id:'grouped-pdf',kind:'pdf',label:t('employeesRecords.exportPdfByDepartment'),onClick:()=>printGrouped(true)},{id:'grouped-excel',kind:'excel',label:t('employeesRecords.exportExcelByDepartment'),onClick:()=>exportRegistry(groupedBuild())}]}/>
   function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
   function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
-  return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t(showHealth?'employeesRecords.registrySubtitlePhysician':'employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
+  return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t(showHealth?'employeesRecords.registrySubtitlePhysician':'employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{exportMenu}{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={clearFilters}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
