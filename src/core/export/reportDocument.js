@@ -223,7 +223,7 @@ function pageCss(doc, branding, printedOn, en) {
   const demo = branding?.demo ? ` · ${en ? 'DEMO' : 'DEMO'}` : ''
   const center = `${en ? 'Printed' : 'Εκτύπωση'} ${printedOn}${demo}`
   const top = branding?.name || ''
-  return `@page{size:${size};margin:12mm 11mm 14mm;@top-right{content:${cssString(top)};font:7.5pt Arial,sans-serif;color:#8296a8}@bottom-left{content:${cssString(left)};font:7.5pt Arial,sans-serif;color:#5d7083}@bottom-center{content:${cssString(center)};font:7.5pt Arial,sans-serif;color:${branding?.demo ? '#9a3412' : '#5d7083'}}@bottom-right{content:${cssString(en ? 'Page ' : 'Σελίδα ')} counter(page) " / " counter(pages);font:7.5pt Arial,sans-serif;color:#5d7083}}@page:first{@top-right{content:none}}`
+  return `@page{size:${size};margin:12mm 11mm 14mm;@top-right{content:${cssString(top)};font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:#8296a8}@bottom-left{content:${cssString(left)};font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:#5d7083}@bottom-center{content:${cssString(center)};font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:${branding?.demo ? '#9a3412' : '#5d7083'}}@bottom-right{content:${cssString(en ? 'Page ' : 'Σελίδα ')} counter(page) " / " counter(pages);font-family:Arial,sans-serif;font-size:7.5pt;line-height:1.2;color:#5d7083}}@page:first{@top-right{content:none}}`
 }
 
 export function buildReportHtml(

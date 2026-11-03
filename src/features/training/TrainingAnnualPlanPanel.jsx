@@ -10,6 +10,7 @@ export const planStateText=(state,en)=>({done:en?'Completed':'Ολοκληρώθ
 const pad=n=>String(n).padStart(2,'0')
 const monthEnd=(year,month)=>`${year}-${pad(month+1)}-${pad(new Date(year,month+1,0).getDate())}`
 
+// A programme is marked once, in the month it is due (not as a bar from its start to its end).
 // Two views of Training share this panel: "Annual plan" (programmes month by
 // month for one year) and "Retraining" (what the competence requirements call
 // for, with what is still not scheduled). The page owns the year and the plan,
@@ -60,7 +61,7 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
     <tbody>
      {!retraining&&rows.map(row=><tr key={row.program.id} className="training-plan-row" onClick={()=>navigate(`/training/${row.program.id}`)}>
       <td><strong>{row.program.title}</strong><small>{[row.program.audience,row.participants?`${row.completed}/${row.participants} ${en?'completed':'ολοκλήρωσαν'}`:''].filter(Boolean).join(' · ')}</small></td>
-      {monthCells(row,m=>row.months.includes(m)&&<span className={`training-plan-bar ${row.state}${row.months[0]===m?' first':''}${row.months[row.months.length-1]===m?' last':''}`}/>)}
+      {monthCells(row,m=>row.months[row.months.length-1]===m&&<span className={`training-plan-bar ${row.state} first last`}/>)}
       <td><span className={`training-plan-state ${row.state}`}>{planStateText(row.state,en)}</span></td>
      </tr>)}
      {!retraining&&!rows.length&&<tr><td colSpan={14} className="training-plan-empty">{en?`No programmes in ${year}.`:`Δεν υπάρχουν προγράμματα για το ${year}.`}</td></tr>}
@@ -73,6 +74,6 @@ export function TrainingAnnualPlanPanel({plan,year,onYearChange,language,canMana
     </tbody>
    </table>
   </div>
-  <p className="training-plan-note">{retraining?(en?'People per month whose training required by the Competence tab expires that month; missing or expired training counts in the current month.':'Άτομα ανά μήνα που λήγει η εκπαίδευση που απαιτεί η καρτέλα Επάρκεια· όσοι δεν την έχουν ή έχει λήξει μετρώνται στον τρέχοντα μήνα.'):(en?'Bars run from each programme’s start to its due date.':'Οι μπάρες δείχνουν από την έναρξη ως την προθεσμία κάθε προγράμματος.')}</p>
+  <p className="training-plan-note">{retraining?(en?'People per month whose training required by the Competence tab expires that month; missing or expired training counts in the current month.':'Άτομα ανά μήνα που λήγει η εκπαίδευση που απαιτεί η καρτέλα Επάρκεια· όσοι δεν την έχουν ή έχει λήξει μετρώνται στον τρέχοντα μήνα.'):(en?'Each programme is marked in the month it is due.':'Κάθε πρόγραμμα σημειώνεται στον μήνα της προθεσμίας του.')}</p>
  </div>
 }

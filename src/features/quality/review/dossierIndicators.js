@@ -25,12 +25,17 @@ const MISSING = {
   manual: ['Δεν έχει καταχωριστεί τιμή για το έτος', 'No value has been entered for the year'],
   register: ['Δεν υπάρχουν καταχωρίσεις στο μητρώο για το έτος', 'The register has no entries for the year'],
   register_field: ['Το πεδίο δεν καταγράφεται στο μητρώο', 'The field is not recorded in the register'],
+  microbiology_results_in_period: ['Δεν υπάρχουν αποτελέσματα μικροβιολογίας στο έτος', 'There are no microbiology results in the year'],
+  audit_answers_applicable: ['Δεν ολοκληρώθηκε εσωτερικός έλεγχος στο έτος', 'No internal audit was completed in the year'],
+  source: ['Η πηγή του δείκτη δεν καταγράφεται ακόμα', 'The indicator’s source is not recorded yet'],
   zero: ['Ο παρονομαστής είναι μηδέν', 'The denominator is zero'],
 }
 const missingKey = metric => {
   if (!metric) return 'zero'
   if (metric.startsWith('amr_tested')) return 'amr_tested'
   if (metric.startsWith('central_line_days')) return 'central_line_days'
+  if (/^(bacteremia_|mdr_isolation_|mdro_bsi)/.test(metric)) return 'microbiology_results_in_period'
+  if (metric === 'audit_major_findings') return 'audit_answers_applicable'
   return MISSING[metric] ? metric : 'zero'
 }
 // Metrics that read 0 when their source is not recorded at all: a value of 0 from them is no value.
@@ -52,7 +57,7 @@ export function dossierIndicatorResult(def, metrics, manual = null) {
   const result = calculateCloudDefinition(def, metrics || {})
   if (SOURCE_METRICS.has(def.numerator) && !Number(result.numerator)) return { value: null, numerator: result.numerator, evidence: null, missing: 'antibiotic_ddd_total' }
   if (def.denominator && !Number(result.denominator)) return { value: null, numerator: result.numerator, denominator: result.denominator, evidence: null, missing: missingKey(def.denominator) }
-  return { value: result.value, numerator: result.numerator, denominator: result.denominator, evidence: def.denominator ? [result.numerator ?? 0, result.denominator] : null, missing: result.value == null ? missingKey(def.numerator) : null }
+  return { value: result.value, numerator: result.numerator, denominator: result.denominator, evidence: def.denominator ? [result.numerator ?? 0, result.denominator] : null, missing: result.value == null ? (result.numerator == null ? 'source' : missingKey(def.numerator)) : null }
 }
 
 // The value entered by hand for a manual indicator in the year: the whole year if entered so, else the latest period of the year.

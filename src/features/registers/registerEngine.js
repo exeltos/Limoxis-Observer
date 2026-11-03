@@ -285,8 +285,11 @@ function recordedFields(register, entries) {
   recordedCache.set(entries, { register, fields })
   return fields
 }
+// The indicators that read the entries of a case register (a sheet's counts, and the census of those still in treatment, stand on their own).
+const indicatorNeedsEntries = (register, indicator) => register.kind !== 'sheet' && !isActiveCensus(register, indicator)
 export function indicatorNotRecorded(register, indicator, entries = []) {
-  if (!entries.length) return false
+  // A register with no entry at all measures nothing yet: its counts are not zeros that meet a target.
+  if (!entries.length) return indicatorNeedsEntries(register, indicator)
   if (register.kind === 'sheet') {
     if (indicator.aggregation === 'count' || !indicator.rows?.length) return false
     const measures = indicator.measure ? [indicator.measure] : (register.sheet?.measures || []).map(measure => measure.key)

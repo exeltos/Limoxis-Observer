@@ -1,7 +1,7 @@
 // Excel (.csv) exports of the main registries. Each builder returns the
 // headers and rows of what the list currently shows (after its filters), so
 // the file matches the screen an inspector is looking at.
-import { downloadCsv } from './csvExport'
+import { downloadXlsx } from './xlsxExport'
 import { printReport } from './reportDocument'
 
 const day=(value,en)=>{
@@ -11,8 +11,9 @@ const day=(value,en)=>{
 }
 const stamp=()=>new Date().toISOString().slice(0,10)
 
-export function exportRegistry({name,headers,rows}){
- downloadCsv(`${name}_${stamp()}.csv`,headers,rows)
+// «Excel» of a list: a real .xlsx (column widths that fit the text, a header row, filters). `sheets` gives one sheet per group.
+export function exportRegistry({name,headers,rows,sheets}){
+ downloadXlsx(`${name}_${stamp()}.xlsx`,sheets||[{name:String(name||'Sheet').slice(0,31),headers,rows}])
 }
 
 export function documentsExport(families,{en,typeLabels={},statusLabels={}}){

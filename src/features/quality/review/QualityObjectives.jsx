@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RegistryTable } from '../../../design-system/RegistryTable'
+import { RegistryPagination } from '../../../design-system/RegistryPagination'
+import { useTableSort } from '../../../design-system/useTableSort'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { Meter } from '../../../design-system/MiniCharts'
 import { FormCard, FormGrid } from '../../../design-system/FormCard'
@@ -13,7 +15,7 @@ import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, periodOf, textOf } from '../../registers/registerEngine'
 import { loadObjectiveValues, loadObjectives, loadReviews } from './reviewService'
 import { OBJECTIVE_LEVELS, levelLabel, planStatusLabel, loadCommitteeTargets, loadIndicatorDefinitions, loadLevelNames, monthlyMean, objectiveLevel, objectiveSource, platformValuesForYears } from './objectiveSources'
-import { formatObjectiveValue, objectiveState, reviewStatusLabel, toNumber } from './reviewTemplate'
+import { formatObjectiveValue, objectiveState, objectiveValueText, reviewStatusLabel, toNumber } from './reviewTemplate'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { QualityPersonField } from '../QualityFields'
 
@@ -101,7 +103,7 @@ export function useReviews(organizationId) {
   return { reviews, loading }
 }
 
-export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'No value yet' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Χωρίς τιμή ακόμα' })[state]
+export const objectiveStateLabel = (state, en) => (en ? { met: 'Met', missed: 'Not met', pending: 'Not measured yet' } : { met: 'Επιτυγχάνεται', missed: 'Δεν επιτυγχάνεται', pending: 'Δεν μετριέται ακόμα' })[state]
 // How close the value is to the target (100 = met): value / target when more is
 // better, target / value when less is better.
 export function targetReach(objective) {
@@ -121,7 +123,7 @@ export function objectivesExport(rows, language) {
     headers: en ? ['Code', 'Year', 'Level', 'Objective', 'Measured by', 'Value', 'Target', 'Owner', 'Due', 'Status'] : ['Κωδικός', 'Έτος', 'Επίπεδο', 'Στόχος', 'Μετριέται με', 'Τιμή', 'Στόχος (τιμή)', 'Υπεύθυνος', 'Προθεσμία', 'Κατάσταση'],
     rows: rows.map(objective => objective.kind === 'plan'
       ? [objective.committeeCode, objective.year, objective.committeeName, objective.title, objective.indicator, objective.baseline, objective.target, objective.ownerLabel, formatDay(objective.dueDate, language), planStatusLabel(objective.status, en)]
-      : [objective.code, objective.year, objectiveLevelText(objective, language), objectiveTitle(objective, language), objectiveMeasureText(objective, language), formatObjectiveValue(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
+      : [objective.code, objective.year, objectiveLevelText(objective, language), objectiveTitle(objective, language), objectiveMeasureText(objective, language), objectiveValueText(objective.current.value, objective.unit, language), `${objective.direction === 'lower' ? '≤' : '≥'} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objective.ownerLabel || '', formatDay(objective.dueDate, language), objectiveStateLabel(objective.current.status, en)]),
   }
 }
 
@@ -140,7 +142,21 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
   const { language } = useLanguage()
   const en = language === 'en'
   const plan = row => row.kind === 'plan'
-  return <RegistryTable className="quality-table" rows={rows} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος' }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortValue: row => (plan(row) ? row.indicator : objectiveMeasureText(row, language)) }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortValue: row => (plan(row) ? null : targetReach(row)) }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortValue: row => roleTitleText(row.ownerLabel, language) }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortValue: row => (plan(row) ? row.status : row.current.status) }]}
+  // The whole list is sorted by the header arrows, then cut into pages.
+  const { sorted, sort, onSort } = useTableSort(rows, {
+    title: row => (plan(row) ? row.title : objectiveTitle(row, language)),
+    source: row => (plan(row) ? row.indicator : objectiveMeasureText(row, language)),
+    value: row => (plan(row) ? null : targetReach(row)),
+    owner: row => roleTitleText(row.ownerLabel, language),
+    state: row => (plan(row) ? row.status : row.current.status),
+  })
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+  useEffect(() => setPage(1), [rows.length, pageSize, sort])
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const paged = sorted.slice((safePage - 1) * pageSize, safePage * pageSize)
+  return <><RegistryTable className="quality-table" rows={paged} sort={sort} onSort={onSort} error={error} onRetry={onRetry} columns={[{ key: 'title', label: en ? 'Objective' : 'Στόχος', sortable: true }, { key: 'source', label: en ? 'Measured by' : 'Μετριέται με', sortable: true }, { key: 'value', label: en ? 'Value / target' : 'Τιμή / στόχος', sortable: true }, { key: 'owner', label: en ? 'Owner' : 'Υπεύθυνος', sortable: true }, { key: 'state', label: en ? 'Status' : 'Κατάσταση', sortable: true }]}
     rowKey={row => (plan(row) ? `plan-${row.id}` : row.id)}
     rowProps={row => ({ className: 'registry-row-clickable', onClick: () => onOpen?.(row) })}
     renderRow={row => plan(row) ? <>
@@ -152,11 +168,12 @@ export function ObjectivesTable({ rows, loading, error = false, onRetry, onOpen 
     </> : <>
       <td><strong>{objectiveTitle(row, language)}</strong><small>{objectiveLevelText(row, language)} · {row.code}</small></td>
       <td>{objectiveMeasureText(row, language)}<small>{objectiveMeasureSource(row, language)}</small></td>
-      <td><strong>{formatObjectiveValue(row.current.value, row.unit, language)}</strong><small>{row.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(row.target, row.unit, language)}</small><Meter value={targetReach(row)} tone={objectiveStateTone(row.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
+      <td><strong>{objectiveValueText(row.current.value, row.unit, language)}</strong><small>{row.direction === 'lower' ? '≤' : '≥'} {formatObjectiveValue(row.target, row.unit, language)}</small><Meter value={targetReach(row)} tone={objectiveStateTone(row.current.status)} label={en ? 'How close to the target' : 'Πόσο κοντά στον στόχο'} /></td>
       <td>{roleTitleText(row.ownerLabel, language) || '—'}<small>{formatDay(row.dueDate, language)}</small></td>
       <td><StatusBadge tone={objectiveStateTone(row.current.status)}>{objectiveStateLabel(row.current.status, en)}</StatusBadge></td>
     </>}
     emptyTitle={!loading && !rows.length ? (en ? 'No objectives' : 'Δεν υπάρχουν στόχοι') : ''} emptyText={en ? 'Set the year’s objectives of the hospital, the departments and the committees.' : 'Ορίστε τους στόχους του έτους για το νοσοκομείο, τα τμήματα και τις επιτροπές.'} />
+    <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={sorted.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} /></>
 }
 
 // The management reviews (ISO 9001 §9.3).
