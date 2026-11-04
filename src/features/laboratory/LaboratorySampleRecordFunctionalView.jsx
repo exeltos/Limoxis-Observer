@@ -1,6 +1,7 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { isOutsideLimit, limitAssessment, resultLimit } from './environmentalLimit'
+import { isOutsideLimit } from './environmentalLimit'
 import { printReport as printReportDocument } from '../../core/export/reportDocument'
+import { buildPlateReport } from './plateReport'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
@@ -620,41 +621,7 @@ export function LaboratorySampleRecordFunctionalView() {
   // every other position of the plate, one section per position, in the same document style.
   const plateSamples = sample?.environmentalPlate ? [sample, ...(related.plate || [])].sort((a, b) => String(a.environmentalPosition || '').localeCompare(String(b.environmentalPosition || ''), undefined, { numeric: true })) : []
   const printWholePlate = () => {
-    const en = language === 'en'
-    const L = (el, enText) => (en ? enText : el)
-    const assessmentWord = item => {
-      const found = item.microbiologyResults?.[0]
-      const verdict = found ? limitAssessment(found) : null
-      return verdict === true ? L('Εντός αποδεκτών ορίων', 'Within acceptable limits') : verdict === false ? L('Εκτός αποδεκτών ορίων', 'Outside acceptable limits') : found ? L('Χωρίς όριο', 'No limit') : ''
-    }
-    const doc = {
-      language,
-      kind: L('Εργαστήριο', 'Laboratory'),
-      code: `${t('clinicalRecords.envPlate')} ${sample.environmentalPlate}`,
-      title: `${t('clinicalRecords.envPlate')} ${sample.environmentalPlate}`,
-      subtitle: [sample.department, sample.collectedAt && fmt(sample.collectedAt), sample.environmentalBatchId && `${L('Παρτίδα', 'Batch')} ${sample.environmentalBatchId}`].filter(Boolean).join(' · '),
-      summaryText: L(`Τρυβλίο ${sample.environmentalPlate} με ${plateSamples.length} θέσεις.`, `Plate ${sample.environmentalPlate} with ${plateSamples.length} positions.`),
-      sections: plateSamples.map(item => {
-        const found = item.microbiologyResults?.[0]
-        return {
-          id: item.id,
-          title: `${L('Θέση', 'Position')} ${item.environmentalPosition || '—'} · ${[item.location, item.point].filter(Boolean).join(' · ') || item.id}`,
-          pairs: [
-            [L('Δείγμα', 'Sample'), item.id],
-            [t('status'), labSampleStatus(item, language).text],
-            found && [t('result'), t(found.result)],
-            found && assessmentWord(item) && [L('Αξιολόγηση', 'Assessment'), assessmentWord(item)],
-            found && found.cfuCount != null && ['CFU', String(found.cfuCount)],
-            found && resultLimit(found) != null && [L('Όριο', 'Limit'), `${resultLimit(found)} CFU`],
-            found?.organism && [L('Μικροοργανισμός', 'Organism'), found.organism],
-          ].filter(Boolean),
-          keep: true,
-        }
-      }),
-      signatures: [L('Επικυρώθηκε από', 'Validated by')],
-      filename: `${en ? 'plate' : 'trivlio'}-${sample.environmentalPlate}`,
-    }
-    if (!printReportDocument(doc)) notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'Allow pop-ups to print.'), 'error')
+    if (!printReportDocument(buildPlateReport({ samples: plateSamples, standards, language, t, fmt }))) notify(language === 'en' ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
   // The printed report (EntityRecordShell printReport): a document, not the screen.
   const printReport = () =>

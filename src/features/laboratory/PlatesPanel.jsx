@@ -13,7 +13,9 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { StatusCards } from '../../design-system/StatusCards'
-import { formatDay } from '../../core/i18n/formatDay'
+import { formatDay, formatDateTime } from '../../core/i18n/formatDay'
+import { printReport } from '../../core/export/reportDocument'
+import { buildPlateReport } from './plateReport'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
@@ -174,6 +176,21 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
   const { notify } = useFeedback()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
+  const [standards, setStandards] = useState([])
+  useEffect(() => {
+    let alive = true
+    repository?.loadStandards?.().then(rows => { if (alive) setStandards(rows || []) }).catch(() => {})
+    return () => { alive = false }
+  }, [repository])
+  // Print and PDF are the detailed document of the plate (every position with its organism, CFU, limit and assessment, as the
+  // sample's own report); Excel keeps the table of positions.
+  const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  const detailed = pdf => () => { if (!printReport(buildPlateReport({ samples: plate.samples, standards, language, t, fmt: value => formatDateTime(value, language) }), { pdf })) blocked() }
+  const plateMenu = {
+    ...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map(row => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate}`, onBlocked: blocked }),
+    onPrint: detailed(false),
+    onPdf: detailed(true),
+  }
   async function receive() {
     setBusy(true)
     try {
@@ -193,7 +210,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
       title={`${t('clinicalRecords.envPlate')} ${plate.plate}`}
       subtitle={subtitle}
       onClose={onClose}
-      headerActions={<ExportMenu {...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map(row => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate} · ${subtitle}`, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} />}
+      headerActions={<ExportMenu {...plateMenu} />}
       footer={
         canManage ? (
         <Button disabled={busy || !plate.awaiting.length} loading={busy} onClick={receive} title={plate.awaiting.length ? undefined : t('labPlates.receiveNone')}>
