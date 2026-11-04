@@ -48,15 +48,20 @@
 /* Running an audit */
 .audit-run{display:flex;flex-direction:column;gap:12px}
 .audit-run>*,.audit-view>*,.audit-questionnaire-editor>*{flex:0 0 auto}
-.audit-chapter-strip{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-bottom:4px}
-.audit-chapter-strip button{display:flex;align-items:center;gap:8px;flex:0 0 auto;max-width:210px;min-height:44px;padding:5px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;line-height:1.25;text-align:left;cursor:pointer}
-.audit-chapter-strip button>span{display:grid;gap:1px;min-width:0}
-.audit-chapter-strip button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.audit-chapter-strip button small{font-size:11px;color:var(--lo-color-muted)}
-.audit-chapter-strip button.is-success small{color:var(--lo-status-success-fg)}
-.audit-chapter-strip button.is-warning small{color:var(--lo-status-warning-fg)}
-.audit-chapter-strip button.is-danger small{color:var(--lo-status-danger-fg)}
-.audit-chapter-strip button.is-active{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary)}
+.audit-chapter-strip{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:2px 2px 6px}
+.audit-chapter-strip button{display:flex;align-items:center;gap:8px;flex:0 0 auto;max-width:230px;min-height:46px;padding:6px 12px 6px 11px;border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border-strong);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;line-height:1.25;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(15,35,55,.06);transition:box-shadow .15s,background .15s}
+.audit-chapter-strip button:hover{background:var(--lo-color-surface-soft);box-shadow:0 2px 6px rgba(15,35,55,.1)}
+.audit-chapter-strip button>svg{flex:none;color:var(--lo-color-muted)}
+.audit-chapter-strip button>span{display:flex;align-items:center;gap:8px;min-width:0}
+.audit-chapter-strip button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.audit-chapter-strip button small{flex:none;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:var(--lo-status-neutral-bg);color:var(--lo-status-neutral-fg)}
+.audit-chapter-strip button.is-success{border-left-color:var(--lo-status-success-border)}
+.audit-chapter-strip button.is-success small{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
+.audit-chapter-strip button.is-warning{border-left-color:var(--lo-status-warning-border)}
+.audit-chapter-strip button.is-warning small{background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.audit-chapter-strip button.is-danger{border-left-color:var(--lo-status-danger-border)}
+.audit-chapter-strip button.is-danger small{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
+.audit-chapter-strip button.is-active{border-color:var(--lo-color-primary);background:var(--lo-color-primary-soft);box-shadow:inset 0 0 0 1px var(--lo-color-primary)}
 .audit-run-filters{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
 .audit-questions{display:grid;gap:0;margin:0;padding:0;list-style:none;border:1px solid var(--lo-color-border);border-radius:12px;overflow:hidden;background:var(--lo-color-surface)}
 .audit-question{display:grid;gap:8px;border-top:1px solid #edf1f4;box-shadow:inset 3px 0 0 transparent;background:var(--lo-color-surface)}

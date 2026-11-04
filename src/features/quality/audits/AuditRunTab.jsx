@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Bug, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, FileText, Globe, Info, LayoutGrid, ListChecks, MessageSquare, Paperclip, Pencil, Plus, SearchCheck, ShieldCheck, Users, Wrench } from 'lucide-react'
+import { AlertTriangle, Bug, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, FileText, Globe, Info, LayoutGrid, MessageSquare, Paperclip, Pencil, Plus, SearchCheck, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { Field } from '../../../design-system/Field'
@@ -276,8 +276,8 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
 // A small symbol for the chapters of the basic questionnaire (any other chapter gets the list symbol).
 const CHAPTER_ICONS = { ΑΣΦ: ShieldCheck, ΛΟΙ: Bug, ΕΞΟ: Wrench, ΤΕΚ: FileText, ΠΡΟ: Users, ΣΥΜ: AlertTriangle, ΠΑΡ: MessageSquare, ΔΙΕ: Globe }
 const chapterIcon = ref => {
-  const Icon = CHAPTER_ICONS[String(ref || '').trim().toUpperCase()] || ListChecks
-  return <Icon size={16} aria-hidden="true" />
+  const Icon = CHAPTER_ICONS[String(ref || '').trim().toUpperCase()]
+  return Icon ? <Icon size={16} aria-hidden="true" /> : null
 }
 
 // What to open on: the first standard still to answer and its first chapter with an answer missing
