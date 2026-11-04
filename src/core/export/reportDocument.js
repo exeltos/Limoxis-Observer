@@ -85,7 +85,7 @@ export function reportTableHtml({ columns = [], rows = [], foot = null, empty } 
   return `<table class="rd-table${dense}" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
 }
 
-function factsHtml(facts = [], columns = 2) {
+export function factsHtml(facts = [], columns = 2) {
   const items = facts.filter(Boolean).filter(([label]) => label)
   if (!items.length) return ''
   const rows = []

@@ -15,6 +15,7 @@ export function ObserverDialog({
   onClose,
   children,
   footer,
+  headerActions=null,
   width='standard',
   presentation='modal',
   // Forms whose content switches (existing/new, single/batch) do not shrink
@@ -81,7 +82,7 @@ export function ObserverDialog({
             {subtitle&&<p>{subtitle}</p>}
           </div>
         </div>
-        {!workspace&&<IconButton label={en?'Close':'Κλείσιμο'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><X size={17}/></IconButton>}
+        {(headerActions||!workspace)&&<div className="observer-dialog-header-actions">{headerActions}{!workspace&&<IconButton label={en?'Close':'Κλείσιμο'} tone="neutral" className="entity-record-icon-button" onClick={requestClose}><X size={17}/></IconButton>}</div>}
       </header>
       <div className="observer-dialog-body">{children}</div>
       {footer&&<footer>{footer}</footer>}

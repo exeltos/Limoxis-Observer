@@ -1227,3 +1227,5 @@ td>.lo-meter{margin-top:5px}
 /* «Στόχος» column of the indicators list: the year's objective, the default target in grey, or the button to set one. */
 .indicator-registry td small{display:block}.indicator-target-default{color:#566471;font-weight:700}.indicator-set-target{display:block;margin-top:2px;padding:0;border:0;background:none;color:#1d5fa8;font:inherit;font-size:12px;font-weight:600;cursor:pointer}.indicator-set-target:hover{text-decoration:underline}
 @media (hover:hover){.indicator-registry tr:not(:hover):not(:focus-within) .indicator-set-target{opacity:0}}
+
+.observer-dialog-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}

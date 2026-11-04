@@ -1,5 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { CheckCircle2,FilePlus2,Pencil,RotateCcw } from 'lucide-react'
+import { CheckCircle2,FilePlus2,Globe2,Pencil,RotateCcw } from 'lucide-react'
+import { useLocation,useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RecordDetailsGrid } from '../../design-system/RecordDetailsGrid'
@@ -16,7 +17,7 @@ const ingestionLabel=(value,en)=>({ingested:en?'Ready':'Έτοιμη',pending:en
 const badgeClass=value=>value==='approved'||value==='ingested'?'active':value==='retired'||value==='failed'?'danger':'temporary'
 
 export function LiraKnowledgePanel(){
- const {language}=useLanguage();const en=language==='en';const {tenant}=useTenant();const {notify}=useFeedback()
+ const {language}=useLanguage();const en=language==='en';const navigate=useNavigate();const platformScreen=useLocation().pathname.startsWith('/platform');const {tenant}=useTenant();const {notify}=useFeedback()
  const [rows,setRows]=useState([]);const [loading,setLoading]=useState(true);const [selected,setSelected]=useState(null);const [chunks,setChunks]=useState([]);const [edit,setEdit]=useState(null);const [version,setVersion]=useState('');const [query,setQuery]=useState('');const [authority,setAuthority]=useState('all');const [status,setStatus]=useState('all')
  const load=useCallback(async()=>{if(!supabase||isOwnerPreview()){setRows([]);setLoading(false);return}setLoading(true);const {data,error}=await supabase.from('lira_knowledge_sources').select('id,title,authority,source_version,source_url,status,ingestion_status,effective_from,effective_to,approved_at,review_notes').order('authority').order('title');if(error)notify(error.message,'error');else setRows(data||[]);setLoading(false)},[notify])
  // Reload when the organization changes (RLS decides which sources it sees).
@@ -39,6 +40,9 @@ export function LiraKnowledgePanel(){
    rowProps={x=>({className:`clickable-row ${selected?.id===x.id?'is-selected':''}`,tabIndex:0,onClick:()=>open(x),onKeyDown:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(x)}}})}
    renderRow={x=><><td><strong>{x.authority}</strong></td><td>{x.title}</td><td>{x.source_version||'—'}</td><td><span className={`status-badge ${badgeClass(x.status)}`}>{statusLabel(x.status,en)}</span></td><td><span className={`status-badge ${badgeClass(x.ingestion_status)}`}>{ingestionLabel(x.ingestion_status,en)}</span></td></>}
    emptyTitle={rows.length?(en?'No sources match the filters.':'Δεν βρέθηκαν πηγές με αυτά τα φίλτρα.'):(en?'No knowledge sources yet.':'Δεν υπάρχουν ακόμη πηγές γνώσης.')}
+   emptyText={rows.length?undefined:(en?'Sources are imported from the External sources with «Check & update platform».':'Οι πηγές εισάγονται από τις Εξωτερικές πηγές με το «Έλεγχος & ενημέρωση πλατφόρμας».')}
+   emptyIcon={rows.length?undefined:Globe2}
+   emptyAction={rows.length||!platformScreen?undefined:{label:en?'Open external sources':'Άνοιγμα εξωτερικών πηγών',icon:Globe2,onClick:()=>navigate('/platform#management?group=sources')}}
   />}
   {selected&&<ObserverDialog onClose={()=>setSelected(null)} eyebrow={en?'KNOWLEDGE SOURCE':'ΠΗΓΗ ΓΝΩΣΗΣ'} title={selected.title||''} subtitle={[selected.authority,selected.source_version].filter(Boolean).join(' · ')} width="wide" className="lira-knowledge-dialog" footer={<DialogActions>
     

@@ -1,5 +1,7 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { isOutsideLimit } from './environmentalLimit'
+import { printReport as printReportDocument } from '../../core/export/reportDocument'
+import { buildPlateReport } from './plateReport'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, FileClock, FileSearch, FlaskConical, LockKeyhole, Microscope, FolderOpen, Pencil, PhoneCall, PlayCircle, RotateCcw, ShieldAlert } from 'lucide-react'
@@ -615,6 +617,13 @@ export function LaboratorySampleRecordFunctionalView() {
       {tabId === 'history' && <LabHistory sample={sample} t={t} tx={tx} fmt={fmt} />}
     </>
   )
+  // «Εκτύπωση τρυβλίου»: a sample from a culture plate prints on its own (the record's «Εκτύπωση») or together with
+  // every other position of the plate, one section per position, in the same document style.
+  const plateSamples = sample?.environmentalPlate ? [sample, ...(related.plate || [])].sort((a, b) => String(a.environmentalPosition || '').localeCompare(String(b.environmentalPosition || ''), undefined, { numeric: true })) : []
+  // A sample from a culture plate prints in the same short document as the plate: this point only, or every position.
+  const printPlateDocument = (samples, pdf = false) => () => {
+    if (!printReportDocument(buildPlateReport({ samples, standards, language, t, fmt }), { pdf })) notify(language === 'en' ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  }
   // The printed report (EntityRecordShell printReport): a document, not the screen.
   const printReport = () =>
     buildLaboratorySampleReport({
@@ -678,7 +687,7 @@ export function LaboratorySampleRecordFunctionalView() {
               <PlayCircle size={15} />{language === 'en' ? 'Open episode' : 'Άνοιγμα επεισοδίου'}
             </Button>
           )}
-          <ExportMenu onPrint={() => window.print()} items={[{ id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} />
+          <ExportMenu onPrint={sample.environmentalPlate ? printPlateDocument([sample]) : () => window.print()} onPdf={sample.environmentalPlate ? printPlateDocument([sample], true) : undefined} ownPrint={Boolean(sample.environmentalPlate)} items={[...(plateSamples.length > 1 ? [{ id: 'plate-print', kind: 'print', label: language === 'en' ? `Print plate (${plateSamples.length})` : `Εκτύπωση τρυβλίου (${plateSamples.length})`, onClick: printPlateDocument(plateSamples) }] : []), { id: 'json', kind: 'data', label: 'JSON', onClick: () => downloadRecordJson(sample, { filename: sample.id }) }]} />
         </>}
         onBack={goBack}
         backLabel={inSurveillance ? t('clinicalRecords.backToSurveillance') : t('backToLaboratory')}

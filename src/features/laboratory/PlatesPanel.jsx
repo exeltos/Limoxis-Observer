@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { limitAssessment } from './environmentalLimit'
+import { limitAssessment, resultLimit } from './environmentalLimit'
 import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { registryMenu } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -11,7 +13,9 @@ import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { StatusCards } from '../../design-system/StatusCards'
-import { formatDay } from '../../core/i18n/formatDay'
+import { formatDay, formatDateTime } from '../../core/i18n/formatDay'
+import { printReport } from '../../core/export/reportDocument'
+import { buildPlateReport } from './plateReport'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
@@ -31,8 +35,35 @@ function PlateResults({ plate, t }) {
   return assessed ? <StatusBadge tone="success">{t('labPlates.allWithin')}</StatusBadge> : <StatusBadge tone="neutral">{t('labPlates.noLimitShort')}</StatusBadge>
 }
 
+const plateExportHeaders = en => en
+  ? ['Department', 'Plate', 'Position', 'Point', 'Sampled', 'Status', 'Result', 'CFU', 'CFU limit', 'Assessment', 'Organism']
+  : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'Αποτέλεσμα', 'CFU', 'Όριο CFU', 'Αξιολόγηση', 'Μικροοργανισμός']
+
+// One row per plate position: what was sampled, the colony count (CFU), its limit and the assessment.
+function plateExportRows(plates, departmentOf, t, language) {
+  const en = language === 'en'
+  return plates.flatMap(plate => plate.samples.map(sample => {
+    const result = sample.microbiologyResults?.[0]
+    const assessed = result ? limitAssessment(result) : null
+    return [
+      departmentOf(plate),
+      `${t('clinicalRecords.envPlate')} ${plate.plate}`,
+      sample.environmentalPosition || '',
+      [sample.location, sample.point].filter(Boolean).join(' · '),
+      plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
+      labSampleStatus(sample, language).text || '',
+      result ? t(result.result) : '',
+      result?.cfuCount ?? '',
+      result?.cfuLimit ?? '',
+      assessed === true ? (en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων') : assessed === false ? (en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων') : result ? (en ? 'No limit' : 'Χωρίς όριο') : '',
+      result?.organism || '',
+    ]
+  }))
+}
+
 export function PlatesPanel({ samples = [], loading = false, canManage = false, repository, reload }) {
   const { t, language } = useLanguage()
+  const { notify } = useFeedback()
   const en = language === 'en'
   const [query, setQuery] = useState('')
   const [quick, setQuick] = useState('all')
@@ -76,6 +107,8 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
   const totalPages = Math.max(1, Math.ceil(shown.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pagedPlates = sortedPlates.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const plateExport = () => ({ name: en ? 'culture-plates' : 'trivlia', headers: plateExportHeaders(en), rows: plateExportRows(sortedPlates, departmentOf, t, language) })
+  const exportMenu = <ExportMenu {...registryMenu(plateExport, { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: en ? 'Culture plates' : 'Τρυβλία', onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} disabled={!shown.length} />
   const toggle = key => setQuick(current => (current === key ? 'all' : key))
   const positionsText = plate => `${plate.counts.total} ${t(plate.counts.total === 1 ? 'labPlates.positionOne' : 'labPlates.positionMany')}`
   const clear = () => {
@@ -100,7 +133,7 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
         { key: 'outside', icon: AlertTriangle, label: t('labPlatesExtra.outside30'), value: counts.outside, tone: counts.outside > 0 ? 'danger' : '', active: quick === 'outside' && period === '30', onToggle: toggleOutside },
       ]} />
       <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+        <FilterBar end={exportMenu} query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
           department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') },
           status !== 'all' && { key: 'status', label: `${t('status')}: ${statusName(status)}`, onRemove: () => setStatus('all') },
           period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },
@@ -139,9 +172,25 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
 // One plate with every position side by side: the point, the sample, its state and result with the CFU count.
 function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClose }) {
   const { t, language } = useLanguage()
+  const en = language === 'en'
   const { notify } = useFeedback()
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
+  const [standards, setStandards] = useState([])
+  useEffect(() => {
+    let alive = true
+    repository?.loadStandards?.().then(rows => { if (alive) setStandards(rows || []) }).catch(() => {})
+    return () => { alive = false }
+  }, [repository])
+  // Print and PDF are the detailed document of the plate (every position with its organism, CFU, limit and assessment, as the
+  // sample's own report); Excel keeps the table of positions.
+  const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
+  const detailed = pdf => () => { if (!printReport(buildPlateReport({ samples: plate.samples, standards, language, t, fmt: value => formatDateTime(value, language) }), { pdf })) blocked() }
+  const plateMenu = {
+    ...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map(row => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate}`, onBlocked: blocked }),
+    onPrint: detailed(false),
+    onPdf: detailed(true),
+  }
   async function receive() {
     setBusy(true)
     try {
@@ -161,9 +210,10 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
       title={`${t('clinicalRecords.envPlate')} ${plate.plate}`}
       subtitle={subtitle}
       onClose={onClose}
+      headerActions={<ExportMenu {...plateMenu} />}
       footer={
         canManage ? (
-          <Button disabled={busy || !plate.awaiting.length} loading={busy} onClick={receive} title={plate.awaiting.length ? undefined : t('labPlates.receiveNone')}>
+        <Button disabled={busy || !plate.awaiting.length} loading={busy} onClick={receive} title={plate.awaiting.length ? undefined : t('labPlates.receiveNone')}>
             <PackageCheck size={15} aria-hidden="true" />
             {t('labPlates.receive')}
             {plate.awaiting.length > 0 && ` (${plate.awaiting.length})`}
@@ -191,10 +241,10 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                 <td>
                   {result ? (
                     <>
-                      {limitAssessment(result) === true && <StatusBadge tone="success">{t('clinicalRecords.withinLimitsShort')}</StatusBadge>}
-                      {limitAssessment(result) === false && <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>}
-                      {limitAssessment(result) == null && <strong>{t(result.result)}</strong>}
-                      <small>{[limitAssessment(result) != null && t(result.result), result.organism, result.cfuCount != null && `${result.cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
+                      <strong>{t(result.result)}</strong>{' '}
+                      {limitAssessment(result) === true && <StatusBadge tone="success">{en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>}
+                      {limitAssessment(result) === false && <StatusBadge tone="danger">{en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων'}</StatusBadge>}
+                      <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, limitAssessment(result) != null && resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (
                     <span className="plate-no-result">{t('labPlates.noResult')}</span>

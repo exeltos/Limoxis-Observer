@@ -59,12 +59,12 @@ export function workflowStates(steps) {
 }
 
 // A result can be saved once it has an outcome (and, for an environmental
-// positive, a CFU count); a positive clinical result needs at least one
-// organism before it can be validated.
+// positive, a CFU count); every positive result (clinical or from a culture plate)
+// needs at least one organism before it can be validated.
 export function resultDraftChecks(draft, isEnvironmental) {
   return {
     complete: Boolean(draft.result) && (!isEnvironmental || draft.result === 'negative' || draft.cfuCount !== ''),
-    needsOrganism: !isEnvironmental && draft.result === 'positive' && !draft.organisms.length,
+    needsOrganism: draft.result === 'positive' && !draft.organisms.length,
   }
 }
 

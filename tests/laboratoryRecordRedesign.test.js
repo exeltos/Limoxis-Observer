@@ -44,6 +44,6 @@ describe('laboratory record follows the app-wide card + ⋯ menu pattern', () =>
   it('requires an organism before a positive result can be validated', () => {
     expect(resultDraftChecks({ result: 'positive', organisms: [], cfuCount: '' }, false)).toEqual({ complete: true, needsOrganism: true })
     expect(resultDraftChecks({ result: 'positive', organisms: ['E. coli'], cfuCount: '' }, false).needsOrganism).toBe(false)
-    expect(resultDraftChecks({ result: 'positive', organisms: [], cfuCount: '' }, true).needsOrganism).toBe(false)
+    expect(resultDraftChecks({ result: 'positive', organisms: [], cfuCount: '' }, true).needsOrganism).toBe(true)
   })
 })

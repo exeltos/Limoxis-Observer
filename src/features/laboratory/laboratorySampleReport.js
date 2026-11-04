@@ -1,5 +1,5 @@
 import { sirWord } from '../../design-system/recordReport'
-import { limitAssessment } from './environmentalLimit'
+import { limitAssessment, resultLimit } from './environmentalLimit'
 import { sampleSummaryFields } from './LaboratorySampleSummary'
 import { labHistoryEvents } from './LaboratorySampleViews'
 import { methodLabel } from './laboratorySampleFormat'
@@ -22,12 +22,13 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
     ? [
         [t('result'), result.result && t(result.result)],
         [tx('critical'), result.critical ? L('Ναι', 'Yes') : ''],
-        [tx('organisms'), organisms.join(', ')],
+        [tx('organisms'), organisms.join(', ') || (result.result === 'positive' ? L('Δεν έχει καταχωριστεί', 'Not recorded') : '')],
         [tx('method'), methodLabel(result.method, language)],
         [tx('status'), tx(result.resultStatus || 'draft')],
         isEnvironmental && [tx('cfu'), cfu],
-        isEnvironmental && [tx('assessment'), limitAssessment(result, standard) === true ? tx('within') : limitAssessment(result, standard) === false ? tx('outside') : tx('noLimit')],
-        isEnvironmental && hasLimit && [tx('protocol'), `${standard.protocolCode || ''} · ${standard.limitCfu} ${standard.unit || 'CFU'}`],
+        isEnvironmental && [tx('assessment'), limitAssessment(result, standard) === true ? L('Εντός αποδεκτών ορίων', 'Within acceptable limits') : limitAssessment(result, standard) === false ? L('Εκτός αποδεκτών ορίων', 'Outside acceptable limits') : tx('noLimit')],
+        isEnvironmental && resultLimit(result, standard) != null && [L('Όριο', 'Limit'), `${resultLimit(result, standard)} ${standard?.unit || 'CFU'}`],
+        isEnvironmental && hasLimit && standard.protocolCode && [L('Πρωτόκολλο', 'Protocol'), standard.protocolCode],
       ].filter(Boolean)
     : []
   const isolates = organisms.map(name => {
