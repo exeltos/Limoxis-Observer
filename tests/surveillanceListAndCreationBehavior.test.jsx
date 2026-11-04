@@ -103,7 +103,7 @@ describe('Environment tab: results outside limits', () => {
     await openCenter()
     await openTab(/Περιβάλλον/)
     const row = rowOf('ENV-260824-003')
-    expect(row).toHaveTextContent('Εκτός ορίων')
+    expect(row).toHaveTextContent('Εκτός αποδεκτών ορίων')
     const badge = within(statusCell(row)).getByText('Χρειάζεται ενέργεια')
     expect(badge).toHaveClass('status-badge', 'warning')
     expect(statusCell(row)).not.toHaveTextContent('Ολοκληρώθηκε')
