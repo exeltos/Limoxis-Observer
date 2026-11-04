@@ -13,10 +13,14 @@ describe('platform owner screens', () => {
     }
   })
 
-  it('the platform overview adds status and region charts', () => {
+  it('the platform overview has a line of counts, what needs action and the hospital health: no number cards, no charts', () => {
     const view = read('src/features/platform/PlatformDashboardView.jsx')
-    expect(view).toContain('<DonutChart')
-    expect(view).toContain('<BarList')
+    expect(view).toContain('platform-dashboard-summary')
+    expect(view).toContain('<ActionList')
+    expect(view).toContain('<HospitalHealth')
+    expect(view).not.toContain('<MetricCard')
+    expect(view).not.toContain('<DonutChart')
+    expect(view).not.toContain('<BarList')
   })
 
   it('organization type is translated in the registry', () => {
