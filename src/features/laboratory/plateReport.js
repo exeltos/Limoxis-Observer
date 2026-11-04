@@ -1,7 +1,8 @@
-import { limitAssessment, resultLimit } from './environmentalLimit'
+import { environmentalResultWord, resultLimit } from './environmentalLimit'
 import { sampleProgress } from './laboratorySampleProgress'
 import { resolveEnvironmentalStandard } from './laboratoryCloudService'
 import { labSampleStatus } from './LaboratoryStatus'
+import { platePointLabel } from './laboratoryPlates'
 import { sirWord } from '../../design-system/recordReport'
 
 // The printed document of a whole culture plate, on one page: a row per position (point, result, organism, CFU, limit,
@@ -14,19 +15,17 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
     const progress = sampleProgress(item)
     const result = progress.result
     const standard = resolveEnvironmentalStandard(standards, item.type, item.environmentalMethod)
-    const verdict = result ? limitAssessment(result, standard) : null
     const limit = result ? resultLimit(result, standard) : null
     const cfu = result ? (result.result === 'negative' && result.cfuCount == null ? 0 : result.cfuCount) : null
     return {
       item, progress,
       cells: [
         item.environmentalPosition || '—',
-        [item.location, item.point].filter(Boolean).join(' · ') || item.id,
-        result?.result ? t(result.result) : L('Χωρίς αποτέλεσμα', 'No result'),
+        (point => [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · ') || item.id)(platePointLabel(item, language)),
+        result?.result ? environmentalResultWord(result, language, standard) || t(result.result) : L('Χωρίς αποτέλεσμα', 'No result'),
         progress.organisms.join(', ') || (result?.result === 'positive' ? L('Δεν έχει καταχωριστεί', 'Not recorded') : '—'),
         cfu != null && cfu !== '' ? String(cfu) : '—',
         limit != null ? String(limit) : '—',
-        verdict === true ? L('Εντός αποδεκτών ορίων', 'Within acceptable limits') : verdict === false ? L('Εκτός αποδεκτών ορίων', 'Outside acceptable limits') : result ? L('Χωρίς όριο', 'No limit') : '—',
         progress.rejected ? t('rejected') : progress.finalized ? t('completed') : labSampleStatus(item, language).text,
       ],
     }
@@ -38,7 +37,7 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
     id: 'positions',
     title: L('Αποτελέσματα ανά θέση', 'Results by position'),
     table: {
-      columns: [L('Θέση', 'Pos.'), L('Σημείο', 'Point'), L('Αποτέλεσμα', 'Result'), L('Μικροοργανισμός', 'Organism'), 'CFU', L('Όριο', 'Limit'), L('Αξιολόγηση', 'Assessment'), L('Κατάσταση', 'Status')],
+      columns: [L('Θέση', 'Pos.'), L('Σημείο', 'Point'), L('Αποτέλεσμα', 'Result'), L('Μικροοργανισμός', 'Organism'), 'CFU', L('Όριο', 'Limit'), L('Κατάσταση', 'Status')],
       rows: rows.map(row => row.cells),
     },
     keepTogether: true,

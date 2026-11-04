@@ -1,5 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { limitAssessment, resultLimit } from './environmentalLimit'
+import { environmentalResultWord, resultLimit } from './environmentalLimit'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { AlertTriangle } from 'lucide-react'
 import { DetailList } from '../../design-system/DetailList'
@@ -48,7 +48,7 @@ export function ResultCard({
               id: 'result',
               label: t('result'),
               value: result.result ? (
-                <span className={`lab-result-value is-${result.result}`}>{t(result.result)}</span>
+                <span className={`lab-result-value is-${result.result}`}>{(isEnvironmental && environmentalResultWord(result, language, standard)) || t(result.result)}</span>
               ) : null,
               meta: result.critical ? (
                 <span className="lab-result-critical">
@@ -77,16 +77,6 @@ export function ResultCard({
               label: tx('cfu'),
               value:
                 result.result === 'negative' && result.cfuCount == null ? '0' : result.cfuCount,
-            },
-            isEnvironmental && {
-              id: 'assessment',
-              label: tx('assessment'),
-              value:
-                limitAssessment(result, standard) === true
-                  ? tx('within')
-                  : limitAssessment(result, standard) === false
-                    ? tx('outside')
-                    : tx('noLimit'),
             },
           ].filter(field => field && !field.hidden).map(field => ({ label: field.label, value: field.meta ? <>{field.value}{' '}{field.meta}</> : field.value })) }]}
         />

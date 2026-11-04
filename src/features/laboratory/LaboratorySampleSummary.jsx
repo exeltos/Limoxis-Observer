@@ -1,6 +1,7 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
 import { Check, Minus } from 'lucide-react'
 import { OUTCOME_RESULTS } from './LaboratoryStatus'
+import { environmentalResultWord } from './environmentalLimit'
 import { Button } from '../../design-system/Button'
 import { DetailList } from '../../design-system/DetailList'
 import { ENVIRONMENTAL_CATEGORIES, environmentalMethodLabel, sampleTypeLabel } from './laboratoryCloudService'
@@ -25,16 +26,16 @@ export function LaboratorySampleSummary({ sample, t, language, fmt, menu, banner
     <SectionHeader title={en ? 'Sample details' : 'Στοιχεία δείγματος'} actions={menu}/>
     {banners}
     <DetailList sections={sampleSummarySections(fields, language)}/>
-    <DetailList sections={resultSummarySections(sample, t)}/>
+    <DetailList sections={resultSummarySections(sample, t, language)}/>
   </section>
 }
 
 // The outcome at a glance (full detail stays on the Result tab): outcome, organism, count, critical communication.
-export function resultSummarySections(sample, t) {
+export function resultSummarySections(sample, t, language = 'el') {
   if (!OUTCOME_RESULTS.includes(sample.result)) return []
   const communicated = (sample.microbiologyResults || []).some(result => (result.communications || []).length > 0)
   const items = [
-    { key: 'outcome', label: t('result'), value: t(sample.result) },
+    { key: 'outcome', label: t('result'), value: (sample.subjectType && sample.subjectType !== 'patient' && environmentalResultWord(sample.microbiologyResults?.[0], language)) || t(sample.result) },
     (sample.organism || sample.result === 'positive') && { key: 'organism', label: t('organism'), value: sample.organism || t('laboratoryRecords.organismNotRecorded') },
     sample.cfuCount != null && { key: 'cfu', label: 'CFU', value: sample.cfuLimit != null ? `${sample.cfuCount} / ${sample.cfuLimit}` : String(sample.cfuCount) },
     sample.critical && { key: 'critical', label: t('criticalResult'), value: communicated ? t('communicated') : t('laboratoryRecords.uncommunicatedCritical') },

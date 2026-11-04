@@ -12,3 +12,21 @@ export const limitAssessment = (result, standard = null) =>
   resultLimit(result, standard) == null ? null : typeof result?.withinLimit === 'boolean' ? result.withinLimit : null
 
 export const isOutsideLimit = (result, standard = null) => limitAssessment(result, standard) === false
+
+// What a screen or a document SHOWS about a result: the assessment against a known limit and, for a result without one
+// (e.g. imported from the old system), the verdict the laboratory recorded with it. It is only for display: what needs
+// action (isOutsideLimit, the lists, the indicators) still counts only the results assessed against a known limit.
+// The result of an environmental or staff-check sample reads one of three ways: Θετικό, Αρνητικό, Εντός αποδεκτών ορίων
+// (a positive, i.e. growth, that the laboratory found within the acceptable limits).
+export const environmentalResultWord = (result, language = 'el', standard = null) => {
+  const en = language === 'en'
+  if (result?.result === 'negative') return en ? 'Negative' : 'Αρνητικό'
+  if (result?.result !== 'positive') return ''
+  return shownAssessment(result, standard) === true ? (en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων') : en ? 'Positive' : 'Θετικό'
+}
+
+export const shownAssessment = (result, standard = null) => {
+  const assessed = limitAssessment(result, standard)
+  if (assessed != null) return assessed
+  return typeof result?.withinLimit === 'boolean' ? result.withinLimit : null
+}

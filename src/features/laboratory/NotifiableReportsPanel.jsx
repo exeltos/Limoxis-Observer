@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Clock3, Megaphone } from 'lucide-react'
-import { ExportMenu } from '../../design-system/ExportMenu'
-import { registryMenu } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -36,7 +34,7 @@ function NotificationDeadline({ row, language, t }) {
   return <>{text}{row.waitingText && <small>{row.waitingText}</small>}</>
 }
 
-export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], canCreate = false, creating = false, onCreatingChange }) {
+export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], canCreate = false, creating = false, onCreatingChange, exportRef }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const deleteItem = useRecordDelete()
@@ -109,7 +107,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
     headers: language === 'en' ? ['Disease', 'Patient', 'Patient code', 'Source', 'Date', 'Deadline', 'Status', 'Reference'] : ['Νόσημα', 'Ασθενής', 'Κωδικός ασθενούς', 'Προέλευση', 'Ημερομηνία', 'Προθεσμία', 'Κατάσταση', 'Αρ. αναφοράς'],
     rows: sortedRows.map(row => [row.title, row.patientName, row.patientCode, row.finding ? [t('labNotifiable.fromLab'), row.sample, row.organism].filter(Boolean).join(' · ') : t('labNotifiable.clinical'), row.date ? fmtDate(row.date) : '', row.waitingText || '', row.overdue ? t('episodeForms.status.overdue') : statusLabel(row), row.report?.reference || '']),
   })
-  const exportMenu = <ExportMenu {...registryMenu(exportRows, { language, kind: language === 'en' ? 'Laboratory' : 'Εργαστήριο', title: language === 'en' ? 'Notifiable diseases' : 'Δηλωτέα νοσήματα', onBlocked: () => notify(language === 'en' ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} disabled={!shown.length} />
+  if (exportRef) exportRef.current = { build: exportRows, kind: language === 'en' ? 'Laboratory' : 'Εργαστήριο', title: language === 'en' ? 'Notifiable diseases' : 'Δηλωτέα νοσήματα' }
   const diseases = [...new Set(rows.map(row => row.title).filter(Boolean))].sort((a, b) => a.localeCompare(b, language))
   const statusOptions = [['pending', t('labNotifiable.pending')], ['overdue', t('labNotifiable.overdue')], ['notified', t('labNotifiable.notified')], ['not_required', t('episodeForms.notifiable.notRequired')]]
   const clearAll = () => { setQuery(''); setQuick('all'); setDisease('all'); setStatus('all'); setPeriod('all') }
@@ -156,7 +154,7 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
         { key: 'notified', icon: Megaphone, label: t('labNotifiable.notified'), value: counts.notified, active: quick === 'notified', onToggle: () => toggle('notified') },
       ]} />
       <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-        <FilterBar end={exportMenu} query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={clearAll} activeAdvancedCount={(disease !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={clearAll} activeAdvancedCount={(disease !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
           disease !== 'all' && { key: 'disease', label: `${t('labNotifiable.colDisease')}: ${disease}`, onRemove: () => setDisease('all') },
           status !== 'all' && { key: 'status', label: `${t('status')}: ${statusOptions.find(([value]) => value === status)?.[1] || status}`, onRemove: () => setStatus('all') },
           period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },
