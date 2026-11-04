@@ -20,7 +20,7 @@ const STATE_BADGE = { active: 'active', pending: 'temporary', expired: 'warning'
 // The Platform Owner's "Users": everyone on the platform, what they are (role)
 // and where from (hospital, Demo or the platform itself), with where their
 // account stands. A row opens its organization or Demo.
-export function PlatformUsersRegistry({ language = 'el', users = [], loading = false, onOpenUser }) {
+export function PlatformUsersRegistry({ tabs = null, language = 'el', users = [], loading = false, onOpenUser }) {
   const en = language === 'en', tx = (el, enText) => (en ? enText : el)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
@@ -48,8 +48,9 @@ export function PlatformUsersRegistry({ language = 'el', users = [], loading = f
       rows: visible.map(user => [user.name, user.email, user.username, roleText(user), user.organization?.name || '', kindLabel(user.kind), stateLabel(platformUserState(user)), fmtDay(user.createdAt, language)]) })
   }
   const canOpen = user => Boolean(user.organization?.id)
-  return <Page title={tx('Χρήστες', 'Users')} subtitle={tx('Όλοι οι χρήστες της πλατφόρμας: τι ρόλο έχουν, σε ποιον οργανισμό ή Demo ανήκουν και αν έχουν ενεργοποιήσει τον λογαριασμό τους.', 'Everyone on the platform: their role, the organization or Demo they belong to, and whether they have activated their account.')}
+  return <Page title={tx('Οργανισμοί', 'Organizations')} subtitle={tx('Όλοι οι χρήστες της πλατφόρμας: τι ρόλο έχουν, σε ποιον οργανισμό ή Demo ανήκουν και αν έχουν ενεργοποιήσει τον λογαριασμό τους.', 'Everyone on the platform: their role, the organization or Demo they belong to, and whether they have activated their account.')}
     actions={<ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>}>
+    {tabs}
     <div className="platform-registry-shell workspace-column">
       <div className="platform-demo-toolbar">
         <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση χρήστη, email ή οργανισμού…', 'Search user, email or organization…')}/>

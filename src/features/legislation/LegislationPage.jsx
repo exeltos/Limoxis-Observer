@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BookMarked, ExternalLink, FilePlus2, Inbox, Link2, Pencil, Plus, Radar, RefreshCw, Scale, Trash2, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { PlatformLibrariesTabs } from '../platform/PlatformLibrariesTabs'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -72,7 +73,7 @@ export function LegislationPage() {
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 
-  return <Page fill className="registry-fill-page" title={en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>
+  return <Page fill className="registry-fill-page" title={en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{access.isPlatformOwner && location.pathname.startsWith('/platform') && <PlatformLibrariesTabs />}
     {tabs.length > 1 && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
     <section className="surface registry-workspace workspace-column workspace-fill">
       {tab === 'register' && <RegisterList entries={visible} counts={counts} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}

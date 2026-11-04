@@ -6,7 +6,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, LibraryBig, Menu, Pin, PinOff, Scale, Settings, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Menu, Pin, PinOff, Settings, ShieldCheck, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -68,21 +68,17 @@ export function AppShell(){
   const platformNavigation=[
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
-    {key:'platformNav.demos',label:'platformNav.menuDemos',path:'/platform',hash:'demo',icon:FlaskConical},
-    {key:'platformNav.users',label:'platformNav.menuUsers',path:'/platform',hash:'users',icon:Users},
+    {key:'platformNav.libraries',label:'platformNav.menuLibraries',path:'/platform',hash:'management?group=libraries',icon:Database},
     {key:'platformNav.analysis',label:'platformNav.menuAnalysis',path:'/platform',hash:'reports',icon:BarChart3},
-    {key:'platformNav.legislation',label:'platformNav.menuLegislation',path:'/platform/legislation',hash:'',icon:Scale},
-    {key:'libraryNav.admin',label:'libraryNav.menu',path:'/platform/library',hash:'',icon:LibraryBig},
-    {key:'platformNav.management',label:'platformNav.menuManagement',path:'/platform',hash:'management',icon:Database,children:[
-      {key:'managementGroupLibraries',label:'managementGroupLibraries',path:'/platform',hash:'management?group=libraries'},
-      {key:'managementGroupData',label:'managementGroupData',path:'/platform',hash:'management?group=data'},
-      {key:'managementGroupLira',label:'managementGroupLira',path:'/platform',hash:'management?group=lira'},
-    ]},
     {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,governance:true},
     {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,governance:true},
   ]
-  const platformHashFull=location.hash.replace(/^#/,'')
-  const platformActive=item=>(item.path==='/platform/legislation'&&location.pathname.startsWith('/platform/legislation'))||(item.path==='/platform/library'&&location.pathname.startsWith('/platform/library'))||location.pathname===item.path&&(item.path!=='/platform'||(item.hash.includes('?')?platformHashFull===item.hash||(item.hash.endsWith('=libraries')&&platformHashFull==='management'):platformHashKey===item.hash))
+  // Organizations also covers Demo and Users (tabs of one screen); Libraries covers the central management groups, Legislation and the Library sources.
+  const platformActive=item=>{
+    if(item.key==='platformNav.libraries')return location.pathname.startsWith('/platform/legislation')||location.pathname.startsWith('/platform/library')||(location.pathname==='/platform'&&platformHashKey==='management')
+    if(item.key==='platformNav.organizations')return location.pathname==='/platform'&&['organizations','demo','users'].includes(platformHashKey)
+    return location.pathname===item.path&&(item.path!=='/platform'||platformHashKey===item.hash)
+  }
   const selectedMembership=membership||memberships.find(item=>item?.organization?.id===tenant?.id)||null
   const currentOrganization=selectedMembership?.organization||tenant||null
   const idleLockMinutes=useIdleLockMinutes(tenant,isDemo)

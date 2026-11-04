@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { PlatformLibrariesTabs } from '../platform/PlatformLibrariesTabs'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -51,6 +52,7 @@ export function LibraryAdminPage() {
 
   return <Page fill className="registry-fill-page" title={L('Διαχείριση βιβλιοθήκης', 'Library management')} subtitle={L('Το περιεχόμενο της «Βιβλιοθήκης» σε επίπεδο πλατφόρμας. Τα νοσοκομεία βλέπουν ό,τι δημοσιεύετε και προσθέτουν δικά τους.', 'The Library content at platform level. Hospitals see what you publish and add their own.')}
     actions={<Button onClick={() => setEditing({ item: null, kind: filter === 'guideline' || filter === 'clinical_guide' || filter === 'news_source' ? filter : 'link' })}><Plus size={16} />{L('Νέα εγγραφή', 'New entry')}</Button>}>
+    <PlatformLibrariesTabs />
     <section className="surface registry-workspace workspace-fill lib-workspace">
       <div className="lib-admin-toolbar">
         <FilterBar query={query} onQueryChange={setQuery} placeholder={L('Αναζήτηση εγγραφής…', 'Search entries…')} onClear={query ? () => setQuery('') : undefined} />
