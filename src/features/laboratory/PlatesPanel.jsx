@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { limitAssessment } from './environmentalLimit'
+import { limitAssessment, resultLimit } from './environmentalLimit'
 import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
@@ -34,8 +34,8 @@ function PlateResults({ plate, t }) {
 }
 
 const plateExportHeaders = en => en
-  ? ['Department', 'Plate', 'Position', 'Point', 'Sampled', 'Status', 'CFU', 'CFU limit', 'Assessment', 'Organism']
-  : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'CFU', 'Όριο CFU', 'Αξιολόγηση', 'Μικροοργανισμός']
+  ? ['Department', 'Plate', 'Position', 'Point', 'Sampled', 'Status', 'Result', 'CFU', 'CFU limit', 'Assessment', 'Organism']
+  : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'Αποτέλεσμα', 'CFU', 'Όριο CFU', 'Αξιολόγηση', 'Μικροοργανισμός']
 
 // One row per plate position: what was sampled, the colony count (CFU), its limit and the assessment.
 function plateExportRows(plates, departmentOf, t, language) {
@@ -50,9 +50,10 @@ function plateExportRows(plates, departmentOf, t, language) {
       [sample.location, sample.point].filter(Boolean).join(' · '),
       plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
       labSampleStatus(sample, language).text || '',
+      result ? t(result.result) : '',
       result?.cfuCount ?? '',
       result?.cfuLimit ?? '',
-      assessed === true ? (en ? 'Within limits' : 'Εντός ορίων') : assessed === false ? (en ? 'Outside limits' : 'Εκτός ορίων') : result ? (en ? 'No limit' : 'Χωρίς όριο') : '',
+      assessed === true ? (en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων') : assessed === false ? (en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων') : result ? (en ? 'No limit' : 'Χωρίς όριο') : '',
       result?.organism || '',
     ]
   }))
@@ -225,10 +226,10 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                 <td>
                   {result ? (
                     <>
-                      {limitAssessment(result) === true && <StatusBadge tone="success">{t('clinicalRecords.withinLimitsShort')}</StatusBadge>}
-                      {limitAssessment(result) === false && <StatusBadge tone="danger">{t('clinicalRecords.outsideLimitsShort')}</StatusBadge>}
-                      {limitAssessment(result) == null && <strong>{t(result.result)}</strong>}
-                      <small>{[limitAssessment(result) != null && t(result.result), result.organism, result.cfuCount != null && `${result.cfuCount} CFU`].filter(Boolean).join(' · ')}</small>
+                      <strong>{t(result.result)}</strong>{' '}
+                      {limitAssessment(result) === true && <StatusBadge tone="success">{en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>}
+                      {limitAssessment(result) === false && <StatusBadge tone="danger">{en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων'}</StatusBadge>}
+                      <small>{[result.organism, result.cfuCount != null && `${result.cfuCount} CFU`, limitAssessment(result) != null && resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (
                     <span className="plate-no-result">{t('labPlates.noResult')}</span>
