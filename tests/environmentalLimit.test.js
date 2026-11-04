@@ -1,10 +1,18 @@
 // An environmental result is within / outside limits only against a known limit
 // (the one saved with it, or the protocol's); without one it has no assessment.
 import { describe, expect, it } from 'vitest'
-import { isOutsideLimit, limitAssessment, resultLimit } from '../src/features/laboratory/environmentalLimit'
+import { environmentalResultWord, isOutsideLimit, limitAssessment, resultLimit } from '../src/features/laboratory/environmentalLimit'
 import { environmentalNeedsAction } from '../src/features/surveillance/EnvironmentalSurveillanceFlow'
 
 describe('environmental limits', () => {
+  it('reads the result in three words: Θετικό, Αρνητικό, Εντός αποδεκτών ορίων', () => {
+    expect(environmentalResultWord({ result: 'negative' })).toBe('Αρνητικό')
+    expect(environmentalResultWord({ result: 'positive', withinLimit: true })).toBe('Εντός αποδεκτών ορίων')
+    expect(environmentalResultWord({ result: 'positive', withinLimit: false })).toBe('Θετικό')
+    expect(environmentalResultWord({ result: 'positive' })).toBe('Θετικό')
+    expect(environmentalResultWord({ result: 'positive', withinLimit: true }, 'en')).toBe('Within acceptable limits')
+    expect(environmentalResultWord({ result: 'draft' })).toBe('')
+  })
   it('uses the limit saved with the result, then the protocol', () => {
     expect(resultLimit({ cfuLimit: 5 }, { limitCfu: 10 })).toBe(5)
     expect(resultLimit({}, { limitCfu: '10' })).toBe(10)

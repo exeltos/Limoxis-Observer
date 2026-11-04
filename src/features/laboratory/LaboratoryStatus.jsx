@@ -1,5 +1,6 @@
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { sampleProgress } from './laboratorySampleProgress'
+import { environmentalResultWord } from './environmentalLimit'
 
 // The one laboratory status label (sample status, result, result validation),
 // on the shared StatusBadge: done / negative green, in progress blue,
@@ -33,4 +34,4 @@ export function labSampleStatus(sample,language='el'){
 }
 // A result that is not yet an outcome (empty or only a draft) reads «Αναμένεται».
 export const OUTCOME_RESULTS=['positive','negative','inconclusive','contaminated']
-export const labResultLabel=(sample,t,language='el')=>OUTCOME_RESULTS.includes(sample?.result)?t(sample.result):(['rejected','cancelled'].includes(sample?.status)?'':(language==='en'?'Awaiting result':'Αναμένεται'))
+export const labResultLabel=(sample,t,language='el')=>OUTCOME_RESULTS.includes(sample?.result)?((sample?.subjectType&&sample.subjectType!=='patient'&&environmentalResultWord(sample.microbiologyResults?.[0],language))||t(sample.result)):(['rejected','cancelled'].includes(sample?.status)?'':(language==='en'?'Awaiting result':'Αναμένεται'))

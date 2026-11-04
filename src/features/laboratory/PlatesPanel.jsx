@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { limitAssessment, resultLimit, shownAssessment } from './environmentalLimit'
+import { environmentalResultWord, resultLimit } from './environmentalLimit'
 import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
@@ -26,28 +26,26 @@ import { groupPlates, platePointLabel, receivePlate } from './laboratoryPlates'
 // result and CFU count; a row opens the plate with all its positions side by side.
 const STATUS_TONE = { awaiting: 'warning', processing: 'info', completed: 'success', rejected: 'neutral' }
 
-// A plate's results at a glance: how many points are outside their limits; once it is done,
-// «all within limits», or «no limit» when no point had one to be assessed against.
-function PlateResults({ plate, t }) {
-  // The count of points outside their limits (the action counter) uses only results assessed against a known limit; a verdict the
-  // laboratory recorded without a limit is shown too, as points outside, so a plate is never called «all within» with one outside.
-  const shown = plate.samples.flatMap(sample => sample.microbiologyResults || []).map(result => shownAssessment(result))
-  const outside = Math.max(plate.counts.outside, shown.filter(verdict => verdict === false).length)
-  if (outside) return <StatusBadge tone="danger">{t('labPlates.outsideN').replace('{n}', String(outside))}</StatusBadge>
+// A plate's results at a glance, in the three words of the laboratory: how many positions are Θετικό, otherwise «Εντός αποδεκτών
+// ορίων» when some grew within the acceptable limits, otherwise «Αρνητικό» once the plate is done.
+function PlateResults({ plate, language }) {
+  const results = plate.samples.flatMap(sample => sample.microbiologyResults || [])
+  const positive = results.filter(result => environmentalResultWord(result, 'el') === 'Θετικό').length
+  const within = results.filter(result => environmentalResultWord(result, 'el') === 'Εντός αποδεκτών ορίων').length
+  if (positive) return <StatusBadge tone="danger">{language === 'en' ? `${positive} positive` : `${positive} θετικά`}</StatusBadge>
   if (plate.status !== 'completed') return '—'
-  return shown.some(verdict => verdict != null) ? <StatusBadge tone="success">{t('labPlates.allWithin')}</StatusBadge> : <StatusBadge tone="neutral">{t('labPlates.noLimitShort')}</StatusBadge>
+  if (within) return <StatusBadge tone="success">{language === 'en' ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>
+  return results.length ? <StatusBadge tone="neutral">{language === 'en' ? 'Negative' : 'Αρνητικό'}</StatusBadge> : '—'
 }
 
 const plateExportHeaders = en => en
-  ? ['Department', 'Plate', 'Position', 'Point', 'Sampled', 'Status', 'Result', 'CFU', 'CFU limit', 'Assessment', 'Organism']
-  : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'Αποτέλεσμα', 'CFU', 'Όριο CFU', 'Αξιολόγηση', 'Μικροοργανισμός']
+  ? ['Department', 'Plate', 'Position', 'Point', 'Sampled', 'Status', 'Result', 'CFU', 'CFU limit', 'Organism']
+  : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'Αποτέλεσμα', 'CFU', 'Όριο CFU', 'Μικροοργανισμός']
 
 // One row per plate position: what was sampled, the colony count (CFU), its limit and the assessment.
 function plateExportRows(plates, departmentOf, t, language) {
-  const en = language === 'en'
   return plates.flatMap(plate => plate.samples.map(sample => {
     const result = sample.microbiologyResults?.[0]
-    const assessed = result ? shownAssessment(result) : null
     return [
       departmentOf(plate),
       `${t('clinicalRecords.envPlate')} ${plate.plate}`,
@@ -55,10 +53,9 @@ function plateExportRows(plates, departmentOf, t, language) {
       (point => [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · '))(platePointLabel(sample, language)),
       plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
       labSampleStatus(sample, language).text || '',
-      result ? t(result.result) : '',
+      result ? environmentalResultWord(result, language) || t(result.result) : '',
       result?.cfuCount ?? '',
       result?.cfuLimit ?? '',
-      assessed === true ? (en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων') : assessed === false ? (en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων') : result ? (en ? 'No limit' : 'Χωρίς όριο') : '',
       result?.organism || '',
     ]
   }))
@@ -161,7 +158,7 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
             <td>{positionsText(plate)}<small>{plate.samples.map(sample => sample.environmentalPosition).filter(Boolean).join(', ')}</small></td>
             <td>{plate.collectedAt ? formatDay(plate.collectedAt, language) : '—'}</td>
             <td><StatusBadge tone={STATUS_TONE[plate.status]}>{t(`labPlates.status${plate.status[0].toUpperCase()}${plate.status.slice(1)}`)}</StatusBadge>{plate.status === 'awaiting' && <small>{`${plate.counts.awaiting}/${plate.counts.total}`}</small>}</td>
-            <td><PlateResults plate={plate} t={t} /></td>
+            <td><PlateResults plate={plate} language={language} /></td>
           </>} />
         </div>
         {shown.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shown.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}
@@ -243,10 +240,8 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                 <td>
                   {result ? (
                     <>
-                      <strong>{t(result.result)}</strong>{' '}
-                      {shownAssessment(result) === true && <StatusBadge tone="success">{en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>}
-                      {shownAssessment(result) === false && <StatusBadge tone="danger">{en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων'}</StatusBadge>}
-                      <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, limitAssessment(result) != null && resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
+                      <strong>{environmentalResultWord(result, language) || t(result.result)}</strong>
+                      <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (
                     <span className="plate-no-result">{t('labPlates.noResult')}</span>
