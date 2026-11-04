@@ -30,7 +30,7 @@ export function PlatformAuditSecurityPage(){
     className="platform-history-tabs"
     activeId={view}
     onChange={id=>navigate(id==='events'?'/platform/audit?view=events':'/platform/audit')}
-    ariaLabel={en?'Audit & Security':'Ιστορικό & Ασφάλεια'}
+    ariaLabel={en?'History & Health':'Ιστορικό & Υγεία'}
     tabs={[
       {id:'actions',label:en?'Actions & access':'Ενέργειες & πρόσβαση',icon:History},
       {id:'events',label:en?'Events & errors':'Συμβάντα & σφάλματα',icon:Activity},

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Activity, ArrowRight, Building2, CalendarClock, FlaskConical, PauseCircle, Trash2 } from 'lucide-react'
+import { Activity, ArrowRight, CalendarClock, Trash2 } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { MetricCard } from '../../design-system/MetricCard'
-import { BarList, DonutChart } from '../analysis/AnalysisCharts'
 import { loadHospitalHealth } from './platformHealthService'
 import './platformDashboard.css'
 
@@ -41,24 +39,19 @@ function HospitalHealth({tx,organizations,onNavigate}){
 
 export function PlatformDashboardView({tx,organizations,activeOrganizations,activeDemos,expiringDemos=[],loadingStats,demoProgress,onOpenDemo,onNavigate}) {
   const inactive=Math.max(0,organizations.length-activeOrganizations)
-  // The overview: the four counts (each opening its registry), what needs action, then the charts.
-  // The work areas themselves are in the menu.
+  // The overview: one line of counts (each opening its registry), what needs action and the health of the hospitals.
+  // No number cards and no charts; the work areas themselves are in the menu.
   return <Page title={tx('Επισκόπηση','Overview')} subtitle={tx('Οργανισμοί, Demo και ό,τι χρειάζεται ενέργεια στην πλατφόρμα.','Organizations, Demos and what needs action on the platform.')} actions={<span className="platform-live-pill"><i/>{tx('Πλατφόρμα ενεργή','Platform active')}</span>}>
     <div className="platform-dashboard">
-      <div className="kpi-grid platform-dashboard-kpis">
-        <MetricCard icon={Building2} label={`${tx('Οργανισμοί','Organizations')} · ${activeOrganizations} ${tx('ενεργοί','active')}`} value={organizations.length} onClick={()=>onNavigate('/platform#organizations')}/>
-        <MetricCard icon={PauseCircle} label={tx('Ανενεργοί οργανισμοί','Inactive organizations')} value={inactive} tone={inactive?'warning':'neutral'} onClick={()=>onNavigate('/platform#organizations')}/>
-        <MetricCard icon={FlaskConical} label={tx('Ενεργά Demo','Active Demos')} value={loadingStats?'—':activeDemos.length} onClick={()=>onNavigate('/platform#demo')}/>
-        <MetricCard icon={CalendarClock} label={tx('Demo που λήγουν σε 14 ημέρες','Demos ending within 14 days')} value={loadingStats?'—':expiringDemos.length} tone={expiringDemos.length?'warning':'neutral'} onClick={()=>onNavigate('/platform#demo')}/>
-      </div>
+      <p className="platform-dashboard-summary">
+        <button type="button" onClick={()=>onNavigate('/platform#organizations')}>{organizations.length} {tx('οργανισμοί','organizations')} · {activeOrganizations} {tx('ενεργοί','active')}{inactive?` · ${inactive} ${tx('ανενεργοί','inactive')}`:''}</button>
+        <span aria-hidden="true">|</span>
+        <button type="button" onClick={()=>onNavigate('/platform#demo')}>{loadingStats?'—':activeDemos.length} {tx('ενεργά Demo','active Demos')}{expiringDemos.length?` · ${expiringDemos.length} ${tx('λήγουν σε 14 ημέρες','end within 14 days')}`:''}</button>
+      </p>
 
       <ActionList tx={tx} demos={expiringDemos} organizations={organizations} demoProgress={demoProgress} onOpenDemo={onOpenDemo} onNavigate={onNavigate}/>
       <HospitalHealth tx={tx} organizations={organizations} onNavigate={onNavigate}/>
 
-      <div className="platform-dashboard-charts">
-        <section className="platform-dashboard-panel"><header><div><h3>{tx('Κατάσταση οργανισμών','Organization status')}</h3><p>{tx('Ενεργοί, σε παύση και προσβάσεις demo.','Active, suspended and demo access.')}</p></div></header><div className="platform-dashboard-chart-body"><DonutChart en={tx('el','en')==='en'} centerLabel={tx('σύνολο','total')} rows={[[tx('Ενεργοί','Active'),activeOrganizations],[tx('Ανενεργοί / σε παύση','Inactive / suspended'),inactive],['Demo',loadingStats?0:activeDemos.length]]}/></div></section>
-        <section className="platform-dashboard-panel"><header><div><h3>{tx('Οργανισμοί ανά περιφέρεια','Organizations by region')}</h3><p>{tx('Πού βρίσκονται οι οργανισμοί της πλατφόρμας.','Where the platform organizations are.')}</p></div></header><div className="platform-dashboard-chart-body"><BarList en={tx('el','en')==='en'} rows={Object.entries(organizations.reduce((acc,org)=>{const key=org.region||tx('Χωρίς περιφέρεια','No region');acc[key]=(acc[key]||0)+1;return acc},{})).sort((a,b)=>b[1]-a[1])}/></div></section>
-      </div>
     </div>
   </Page>
 }

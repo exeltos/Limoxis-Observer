@@ -71,7 +71,7 @@ export function PlatformSettingsPage(){
   }
 
   return <Page
-    title={tx('Ρυθμίσεις Πλατφόρμας','Platform Settings')}
+    title={tx('Ρυθμίσεις','Settings')}
     subtitle={tx('Μόνο καθολικές ρυθμίσεις που ισχύουν για όλη την εγκατάσταση Limoxis Observer.','Only global settings that apply across the entire Limoxis Observer installation.')}
     actions={dirty||saving?<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση αλλαγών','Save changes')}</SaveButton>:<span className="platform-settings-saved" role="status">{tx('Χωρίς αλλαγές','No changes')}</span>}
   >

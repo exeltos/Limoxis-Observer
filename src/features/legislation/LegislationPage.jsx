@@ -36,6 +36,7 @@ export function LegislationPage() {
   const en = language === 'en'
   const { tenant } = useTenant()
   const access = useLegislationAccess()
+  const ownerRoute = access.isPlatformOwner && location.pathname.startsWith('/platform')
   const base = location.pathname.startsWith('/platform') ? '/platform/legislation' : '/legislation'
   const tabs = [
     ...(tenant?.id || access.isDemo ? [{ value: 'register', icon: Scale, label: en ? 'Hospital register' : 'Μητρώο νοσοκομείου' }] : []),
@@ -73,8 +74,21 @@ export function LegislationPage() {
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 
-  return <Page fill className="registry-fill-page" title={en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{access.isPlatformOwner && location.pathname.startsWith('/platform') && <PlatformLibrariesTabs />}
-    {tabs.length > 1 && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
+  return <Page fill className="registry-fill-page" title={ownerRoute ? (en ? 'Settings' : 'Ρυθμίσεις') : en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{ownerRoute && <PlatformLibrariesTabs />}
+    {tabs.length > 1 && ownerRoute && (
+      <div className="platform-settings-switch" role="group" aria-label={en ? 'Legislation' : 'Νομοθεσία'}>
+        {tabs.map(item => {
+          const count = item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0
+          return (
+            <button key={item.value} type="button" className={tab === item.value ? 'is-active' : ''} aria-pressed={tab === item.value} onClick={() => setTab(item.value)}>
+              {item.label}
+              {count > 0 ? ` ${count}` : ''}
+            </button>
+          )
+        })}
+      </div>
+    )}
+    {tabs.length > 1 && !ownerRoute && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
     <section className="surface registry-workspace workspace-column workspace-fill">
       {tab === 'register' && <RegisterList entries={visible} counts={counts} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}
       {tab === 'library' && access.isPlatformOwner && <LibraryList library={library} language={language} onOpen={item => navigate(`${base}/library/${item.id}`)} />}

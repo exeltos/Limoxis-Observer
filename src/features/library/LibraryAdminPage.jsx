@@ -50,7 +50,7 @@ export function LibraryAdminPage() {
   // The form of an entry is a page of its own: it takes the place of the list.
   if (editing) return <LibraryItemDialog scope="platform" item={editing.item} kind={editing.kind} source={editing.source} language={language} onClose={() => setEditing(null)} onSaved={reload} />
 
-  return <Page fill className="registry-fill-page" title={L('Διαχείριση βιβλιοθήκης', 'Library management')} subtitle={L('Το περιεχόμενο της «Βιβλιοθήκης» σε επίπεδο πλατφόρμας. Τα νοσοκομεία βλέπουν ό,τι δημοσιεύετε και προσθέτουν δικά τους.', 'The Library content at platform level. Hospitals see what you publish and add their own.')}
+  return <Page fill className="registry-fill-page" title={L('Ρυθμίσεις', 'Settings')} subtitle={L('Το περιεχόμενο της «Βιβλιοθήκης» σε επίπεδο πλατφόρμας. Τα νοσοκομεία βλέπουν ό,τι δημοσιεύετε και προσθέτουν δικά τους.', 'The Library content at platform level. Hospitals see what you publish and add their own.')}
     actions={<Button onClick={() => setEditing({ item: null, kind: filter === 'guideline' || filter === 'clinical_guide' || filter === 'news_source' ? filter : 'link' })}><Plus size={16} />{L('Νέα εγγραφή', 'New entry')}</Button>}>
     <PlatformLibrariesTabs />
     <section className="surface registry-workspace workspace-fill lib-workspace">

@@ -30,3 +30,7 @@
 /* Record actions: labelled buttons, then the "More" menu. */
 .platform-record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .platform-record-actions .button{display:inline-flex;align-items:center;gap:6px}
+.platform-dashboard-summary{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 14px;color:var(--lo-color-muted);font-size:14px}
+.platform-dashboard-summary>button{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--lo-color-text);cursor:pointer}
+.platform-dashboard-summary>button:hover{text-decoration:underline}
+.platform-history-summary{margin:0 0 12px;color:var(--lo-color-muted);font-size:14px;font-weight:600}
