@@ -161,7 +161,7 @@
    edges (as in Prevention and Controls), one heading, row lines only. !important only to undo the framed .record-section of foundation.css. */
 .employee-record-shell .employee-details-overview:is(section,#lo-employee-details){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
 .employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit):is(div,#lo-employee-details){border:0!important;border-radius:0!important;padding:0!important}
-.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding:12px 18px 12px 18px!important;background:transparent!important}
-.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:nth-child(3n+1):is(div,#lo-employee-details){padding-left:0!important}
-@media(max-width:1050px){.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding-left:18px!important}.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:nth-child(2n+1):is(div,#lo-employee-details){padding-left:0!important}}
+.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding:12px 18px;background:transparent!important}
+.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:nth-child(3n+1):is(div,#lo-employee-details){padding-left:0}
+@media(max-width:1050px){.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding-left:18px}.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:nth-child(2n+1):is(div,#lo-employee-details){padding-left:0}}
 
