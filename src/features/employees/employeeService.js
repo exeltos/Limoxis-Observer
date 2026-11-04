@@ -14,7 +14,7 @@ const localStore = () => import('./employeeStore')
 // both a proper uuid primary key AND a separate `employee_code` text column with
 // its own per-organization uniqueness constraint — map frontend `id` to
 // `employee_code`, not to the uuid, so every existing consumer keeps working.
-const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,position_name,position_name_en,employment_status,email,phone,hire_date,birth_date,photo_path,created_at,updated_at'
+const EMPLOYEE_COLUMNS = 'id,user_id,employee_code,department_id,first_name,first_name_en,last_name,last_name_en,father_name,department_name,department_name_en,profession_name,profession_name_en,position_name,position_name_en,hr_department_name,directorate_name,employment_status,email,phone,hire_date,birth_date,photo_path,created_at,updated_at'
 
 function productionContext(organizationId,operation){
   if(isDemoDataEnvironment())return false
@@ -43,6 +43,8 @@ function fromRow(row) {
     professionEn: row.profession_name_en || row.profession_name || '',
     position: row.position_name || '',
     positionEn: row.position_name_en || row.position_name || '',
+    hrDepartment: row.hr_department_name || '',
+    directorate: row.directorate_name || '',
     employmentStatus: row.employment_status,
     email: row.email || '',
     phone: row.phone || '',
@@ -75,11 +77,20 @@ function toWriteRow(organizationId, v) {
     phone: v.phone || null,
     hire_date: v.hireDate || null,
     birth_date: v.birthDate || null,
+    ...(v.hrDepartment!==undefined?{hr_department_name:v.hrDepartment||null}:{}),
+    ...(v.directorate!==undefined?{directorate_name:v.directorate||null}:{}),
   }
 }
 
 export function cloudEnabled() {
   return hasSupabaseConfig && Boolean(supabase) && !isDemoDataEnvironment()
+}
+
+// The HR department and directorate values this hospital already uses (a hospital without them has no such fields).
+export async function loadEmployeeHrOptionsAsync(organizationId) {
+  const rows = await loadEmployeesAsync(organizationId)
+  const unique = key => [...new Set(rows.map(row => String(row[key] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
+  return { hrDepartments: unique('hrDepartment'), directorates: unique('directorate') }
 }
 
 export async function loadEmployeesAsync(organizationId) {

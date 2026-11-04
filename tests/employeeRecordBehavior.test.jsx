@@ -89,8 +89,8 @@ describe('employee record tabs', () => {
 
   it('offers the demo departments when editing the employee', async () => {
     await openEmployee()
-    fireEvent.click(await screen.findByRole('button', { name: 'Ενέργειες εργαζομένου' }))
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Επεξεργασία εργαζομένου' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Ενέργειες εγγραφής' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Επεξεργασία' }))
     const department = within(body()).getByText('Τμήμα').closest('.detail-field').querySelector('input[role="combobox"]')
     fireEvent.focus(department)
     const options = await screen.findAllByRole('option')

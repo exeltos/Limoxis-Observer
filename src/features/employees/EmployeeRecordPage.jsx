@@ -18,7 +18,6 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { printReport } from '../../core/export/reportDocument'
 import { Button } from '../../design-system/Button'
-import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { SaveButton } from '../../design-system/SaveButton'
 import { ObserverDialog, DialogActions } from '../../design-system/ObserverDialog'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -35,6 +34,7 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import {
   createEmployeeAccountAsync,
   deleteEmployeeAsync,
+  loadEmployeeHrOptionsAsync,
   updateEmployeeAsync,
 } from './employeeService'
 import { useEmployeeRecordData } from './useEmployeeRecordData'
@@ -245,6 +245,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         ? 'exposures'
         : 'visits',
   )
+  const [editingDetails, setEditingDetails] = useState(false)
   const [tab, setTab] = useState(() =>
     ['vaccinations', 'exposureIncidents'].includes(restored?.tab)
       ? 'occupational'
@@ -458,6 +459,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
         [t('department'), pick(employee.department, employee.departmentEn)],
         [t('professionalCategory'), pick(employee.profession, employee.professionEn)],
         [en ? 'Job position' : 'Θέση εργασίας', pick(employee.position, employee.positionEn)],
+        [en ? 'HR department' : 'Τμήμα HR', employee.hrDepartment],
+        [en ? 'Directorate' : 'Διεύθυνση', employee.directorate],
         [t('employeesRecords.hireDate'), employee.hireDate ? fmt(employee.hireDate) : ''],
         [t('employeesRecords.email'), employee.email],
         [t('phone'), employee.phone],
@@ -476,6 +479,19 @@ export function EmployeeRecordPage({ selfMode = false }) {
   }
   const headerActions = (
     <>
+      {canAdmin && !editingDetails && (
+        <Button
+          variant="secondary"
+          tone="edit"
+          onClick={() => {
+            setTab('details')
+            setEditingDetails(true)
+          }}
+        >
+          <Pencil size={15} />
+          {t('employeesRecords.editEmployee')}
+        </Button>
+      )}
       {canManageUsers && !employee.accountLinked && (
         <Button recordMenu variant="secondary" onClick={() => setAccountOpen(true)}>
           <KeyRound size={15} />
@@ -483,6 +499,12 @@ export function EmployeeRecordPage({ selfMode = false }) {
         </Button>
       )}
       <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />
+      {canAdmin && !editingDetails && (
+        <Button variant="secondary" tone="danger" onClick={deleteEmployee}>
+          <Trash2 size={15} />
+          {t('employeesRecords.deleteEmployee')}
+        </Button>
+      )}
     </>
   )
 
@@ -543,8 +565,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
             t={t}
             language={language}
             fmt={fmt}
-            canAdmin={canAdmin}
-            deleteEmployee={deleteEmployee}
+            editing={editingDetails}
+            setEditing={setEditingDetails}
             notify={notify}
             organizationId={tenant?.id}
             departmentOptions={departmentOptions}
@@ -756,8 +778,8 @@ function Details({
   t,
   language,
   fmt,
-  canAdmin,
-  deleteEmployee,
+  editing,
+  setEditing,
   notify,
   organizationId,
   departmentOptions,
@@ -766,8 +788,17 @@ function Details({
   reloadEmployees,
   onCodeChanged,
 }) {
-  const [editing, setEditing] = useState(false),
-    [saving, setSaving] = useState(false),
+  const [hrOptions, setHrOptions] = useState({ hrDepartments: [], directorates: [] })
+  useEffect(() => {
+    let active = true
+    loadEmployeeHrOptionsAsync(organizationId)
+      .then(options => active && setHrOptions(options))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [organizationId])
+  const [saving, setSaving] = useState(false),
     [record, setRecord] = useState({ ...employee })
   useEffect(() => setRecord({ ...employee }), [employee])
   const set = (key, value) => setRecord(current => ({ ...current, [key]: value }))
@@ -819,37 +850,12 @@ function Details({
       setSaving(false)
     }
   }
-  const actions =
-    canAdmin && !editing
-      ? [
-          {
-            id: 'edit',
-            label: t('employeesRecords.editEmployee'),
-            icon: Pencil,
-            onClick: () => setEditing(true),
-          },
-          {
-            id: 'delete',
-            label: t('employeesRecords.deleteEmployee'),
-            icon: Trash2,
-            tone: 'danger',
-            separatorBefore: true,
-            onClick: deleteEmployee,
-          },
-        ]
-      : []
   return (
     <section className="record-section committee-overview employee-details-overview">
       <div className="record-section-header">
         <div>
           <h3>{t('employeesRecords.basicDetails')}</h3>
         </div>
-        {actions.length > 0 && (
-          <OverflowMenu
-            label={language === 'en' ? 'Employee actions' : 'Ενέργειες εργαζομένου'}
-            items={actions}
-          />
-        )}
       </div>
       <div
         className={`committee-detail-grid employee-full-grid ${editing ? 'employee-inline-edit' : ''}`}
@@ -902,6 +908,17 @@ function Details({
           language={language}
           onChange={value => set('department', value)}
         />
+        {(hrOptions.hrDepartments.length > 0 || record.hrDepartment) && (
+          <InlineSelect
+            editing={editing}
+            label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
+            value={record.hrDepartment}
+            display={record.hrDepartment}
+            options={hrOptions.hrDepartments.map(name => [name, name])}
+            language={language}
+            onChange={value => set('hrDepartment', value)}
+          />
+        )}
         <InlineSelect
           editing={editing}
           label={t('professionalCategory')}
@@ -911,21 +928,23 @@ function Details({
           language={language}
           onChange={value => set('profession', value)}
         />
-        <InlineSelect
-          editing={editing}
-          label={language === 'en' ? 'Job position' : 'Θέση εργασίας'}
-          value={record.position}
-          display={(language === 'el' ? record.position : record.positionEn) || '—'}
-          options={positionOptions}
-          language={language}
-          onChange={value =>
-            setRecord(current => ({
-              ...current,
-              position: value,
-              positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
-            }))
-          }
-        />
+        {(editing || record.position) && (
+          <InlineSelect
+            editing={editing}
+            label={language === 'en' ? 'Job position' : 'Θέση εργασίας'}
+            value={record.position}
+            display={(language === 'el' ? record.position : record.positionEn) || '—'}
+            options={positionOptions}
+            language={language}
+            onChange={value =>
+              setRecord(current => ({
+                ...current,
+                position: value,
+                positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
+              }))
+            }
+          />
+        )}
         <InlineDetail
           editing={editing}
           label={t('employeesRecords.email')}
@@ -938,6 +957,17 @@ function Details({
           value={record.phone}
           onChange={value => set('phone', value)}
         />
+        {(hrOptions.directorates.length > 0 || record.directorate) && (
+          <InlineSelect
+            editing={editing}
+            label={language === 'en' ? 'Directorate' : 'Διεύθυνση'}
+            value={record.directorate}
+            display={record.directorate}
+            options={hrOptions.directorates.map(name => [name, name])}
+            language={language}
+            onChange={value => set('directorate', value)}
+          />
+        )}
       </div>
       {editing && (
         <div className="inline-edit-footer">
@@ -1062,7 +1092,7 @@ function InlineSelect({ editing, label, value, display, options = [], language, 
           value={value || ''}
           onChange={next => onChange(next || '')}
           options={[
-            ...(value && !hasCurrent ? [{ value, label: display || value }] : []),
+            ...(value && !hasCurrent ? [{ value, label: (typeof display === 'string' && display) || value }] : []),
             ...rows.map(row => {
               const el = row?.[0] ?? row?.name ?? String(row || ''),
                 en = row?.[1] ?? row?.nameEn ?? el
