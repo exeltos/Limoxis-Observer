@@ -29,10 +29,13 @@ const STATUS_TONE = { awaiting: 'warning', processing: 'info', completed: 'succe
 // A plate's results at a glance: how many points are outside their limits; once it is done,
 // «all within limits», or «no limit» when no point had one to be assessed against.
 function PlateResults({ plate, t }) {
-  if (plate.counts.outside) return <StatusBadge tone="danger">{t('labPlates.outsideN').replace('{n}', String(plate.counts.outside))}</StatusBadge>
+  // The count of points outside their limits (the action counter) uses only results assessed against a known limit; a verdict the
+  // laboratory recorded without a limit is shown too, as points outside, so a plate is never called «all within» with one outside.
+  const shown = plate.samples.flatMap(sample => sample.microbiologyResults || []).map(result => shownAssessment(result))
+  const outside = Math.max(plate.counts.outside, shown.filter(verdict => verdict === false).length)
+  if (outside) return <StatusBadge tone="danger">{t('labPlates.outsideN').replace('{n}', String(outside))}</StatusBadge>
   if (plate.status !== 'completed') return '—'
-  const assessed = plate.samples.some(sample => (sample.microbiologyResults || []).some(result => shownAssessment(result) != null))
-  return assessed ? <StatusBadge tone="success">{t('labPlates.allWithin')}</StatusBadge> : <StatusBadge tone="neutral">{t('labPlates.noLimitShort')}</StatusBadge>
+  return shown.some(verdict => verdict != null) ? <StatusBadge tone="success">{t('labPlates.allWithin')}</StatusBadge> : <StatusBadge tone="neutral">{t('labPlates.noLimitShort')}</StatusBadge>
 }
 
 const plateExportHeaders = en => en
