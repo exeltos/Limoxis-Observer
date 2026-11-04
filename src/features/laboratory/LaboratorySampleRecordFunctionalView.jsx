@@ -64,12 +64,14 @@ export function LaboratorySampleRecordFunctionalView() {
     currentId: sampleId,
     pathForId: id => (inSurveillance ? `/surveillance/environment/${id}` : `/laboratory/${id}`),
   })
-  const [sample, setSample] = useState(null),
+  const [rawSample, setSample] = useState(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
     [tab, setTab] = useState('sample'),
     [dialog, setDialog] = useState(null),
     [standards, setStandards] = useState([])
+  // The names of staff-check samples follow the role in use now (also when it is switched with «Προβολή ως ρόλος»).
+  const sample = useMemo(() => (rawSample ? maskStaffSamples([rawSample], role)[0] : null), [rawSample, role])
   const has = cap =>
     can(role, cap, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   const canManage = has(CAPABILITIES.MANAGE_LAB_SAMPLES),
@@ -81,7 +83,7 @@ export function LaboratorySampleRecordFunctionalView() {
     setLoading(true)
     setError('')
     try {
-      setSample(maskStaffSamples([await repository.get(sampleId)], role)[0])
+      setSample(await repository.get(sampleId))
     } catch (err) {
       setError(err?.message || t('actionFailed'))
     } finally {
@@ -619,7 +621,7 @@ export function LaboratorySampleRecordFunctionalView() {
   )
   // «Εκτύπωση τρυβλίου»: a sample from a culture plate prints on its own (the record's «Εκτύπωση») or together with
   // every other position of the plate, one section per position, in the same document style.
-  const plateSamples = sample?.environmentalPlate ? [sample, ...(related.plate || [])].sort((a, b) => String(a.environmentalPosition || '').localeCompare(String(b.environmentalPosition || ''), undefined, { numeric: true })) : []
+  const plateSamples = sample?.environmentalPlate ? [sample, ...maskStaffSamples(related.plate || [], role)].sort((a, b) => String(a.environmentalPosition || '').localeCompare(String(b.environmentalPosition || ''), undefined, { numeric: true })) : []
   // A sample from a culture plate prints in the same short document as the plate: this point only, or every position.
   const printPlateDocument = (samples, pdf = false) => () => {
     if (!printReportDocument(buildPlateReport({ samples, standards, language, t, fmt }), { pdf })) notify(language === 'en' ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
