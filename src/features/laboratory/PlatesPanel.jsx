@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { limitAssessment, resultLimit } from './environmentalLimit'
+import { limitAssessment, resultLimit, shownAssessment } from './environmentalLimit'
 import { AlertTriangle, Clock3, FlaskConical, PackageCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../design-system/Button'
@@ -31,7 +31,7 @@ const STATUS_TONE = { awaiting: 'warning', processing: 'info', completed: 'succe
 function PlateResults({ plate, t }) {
   if (plate.counts.outside) return <StatusBadge tone="danger">{t('labPlates.outsideN').replace('{n}', String(plate.counts.outside))}</StatusBadge>
   if (plate.status !== 'completed') return '—'
-  const assessed = plate.samples.some(sample => (sample.microbiologyResults || []).some(result => limitAssessment(result) != null))
+  const assessed = plate.samples.some(sample => (sample.microbiologyResults || []).some(result => shownAssessment(result) != null))
   return assessed ? <StatusBadge tone="success">{t('labPlates.allWithin')}</StatusBadge> : <StatusBadge tone="neutral">{t('labPlates.noLimitShort')}</StatusBadge>
 }
 
@@ -44,7 +44,7 @@ function plateExportRows(plates, departmentOf, t, language) {
   const en = language === 'en'
   return plates.flatMap(plate => plate.samples.map(sample => {
     const result = sample.microbiologyResults?.[0]
-    const assessed = result ? limitAssessment(result) : null
+    const assessed = result ? shownAssessment(result) : null
     return [
       departmentOf(plate),
       `${t('clinicalRecords.envPlate')} ${plate.plate}`,
@@ -242,8 +242,8 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                   {result ? (
                     <>
                       <strong>{t(result.result)}</strong>{' '}
-                      {limitAssessment(result) === true && <StatusBadge tone="success">{en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>}
-                      {limitAssessment(result) === false && <StatusBadge tone="danger">{en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων'}</StatusBadge>}
+                      {shownAssessment(result) === true && <StatusBadge tone="success">{en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>}
+                      {shownAssessment(result) === false && <StatusBadge tone="danger">{en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων'}</StatusBadge>}
                       <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, limitAssessment(result) != null && resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (

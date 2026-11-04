@@ -1,5 +1,5 @@
 import { SectionHeader } from '../../design-system/SectionHeader'
-import { limitAssessment, resultLimit } from './environmentalLimit'
+import { resultLimit, shownAssessment } from './environmentalLimit'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { AlertTriangle } from 'lucide-react'
 import { DetailList } from '../../design-system/DetailList'
@@ -82,9 +82,9 @@ export function ResultCard({
               id: 'assessment',
               label: tx('assessment'),
               value:
-                limitAssessment(result, standard) === true
+                shownAssessment(result, standard) === true
                   ? tx('within')
-                  : limitAssessment(result, standard) === false
+                  : shownAssessment(result, standard) === false
                     ? tx('outside')
                     : tx('noLimit'),
             },

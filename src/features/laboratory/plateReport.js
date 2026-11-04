@@ -1,4 +1,4 @@
-import { limitAssessment, resultLimit } from './environmentalLimit'
+import { resultLimit, shownAssessment } from './environmentalLimit'
 import { sampleProgress } from './laboratorySampleProgress'
 import { resolveEnvironmentalStandard } from './laboratoryCloudService'
 import { labSampleStatus } from './LaboratoryStatus'
@@ -14,7 +14,7 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
     const progress = sampleProgress(item)
     const result = progress.result
     const standard = resolveEnvironmentalStandard(standards, item.type, item.environmentalMethod)
-    const verdict = result ? limitAssessment(result, standard) : null
+    const verdict = result ? shownAssessment(result, standard) : null
     const limit = result ? resultLimit(result, standard) : null
     const cfu = result ? (result.result === 'negative' && result.cfuCount == null ? 0 : result.cfuCount) : null
     return {
