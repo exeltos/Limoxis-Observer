@@ -193,17 +193,15 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
       title={`${t('clinicalRecords.envPlate')} ${plate.plate}`}
       subtitle={subtitle}
       onClose={onClose}
+      headerActions={<ExportMenu {...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map(row => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate} · ${subtitle}`, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} />}
       footer={
-        <>
-          <ExportMenu {...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map(row => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate} · ${subtitle}`, onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} />
-          {canManage && (
-          <Button disabled={busy || !plate.awaiting.length} loading={busy} onClick={receive} title={plate.awaiting.length ? undefined : t('labPlates.receiveNone')}>
-              <PackageCheck size={15} aria-hidden="true" />
-              {t('labPlates.receive')}
-              {plate.awaiting.length > 0 && ` (${plate.awaiting.length})`}
-            </Button>
-          )}
-        </>
+        canManage ? (
+        <Button disabled={busy || !plate.awaiting.length} loading={busy} onClick={receive} title={plate.awaiting.length ? undefined : t('labPlates.receiveNone')}>
+            <PackageCheck size={15} aria-hidden="true" />
+            {t('labPlates.receive')}
+            {plate.awaiting.length > 0 && ` (${plate.awaiting.length})`}
+          </Button>
+        ) : null
       }
     >
       <table className="plate-positions">
