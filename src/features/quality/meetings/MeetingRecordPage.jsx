@@ -1,3 +1,4 @@
+import { InactiveEmployeeBadge } from '../../../design-system/InactiveEmployeeBadge'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { CheckSquare2, ClipboardList, GraduationCap, MessagesSquare, Paperclip, Plus, Trash2, Users } from 'lucide-react'
@@ -244,8 +245,8 @@ export function MeetingRecordPage() {
         </div>
         : <RegistryTable sortable={false} className="quality-table meeting-attendance-table" rows={meeting.participants} rowKey={(person, index) => person.id || person.employeeId || index}
           columns={[{ key: 'name', label: en ? 'Name' : 'Ονοματεπώνυμο' }, { key: 'role', label: en ? 'Role' : 'Ιδιότητα' }, { key: 'attended', label: en ? 'Attendance' : 'Παρουσία' }]}
-          renderRow={(person, index) => { const former = person.employeeId && employeeById.get(person.employeeId) && employeeById.get(person.employeeId).employmentStatus && employeeById.get(person.employeeId).employmentStatus !== 'active'; return <>
-            <td>{person.employeeId || locked ? <strong>{person.name}</strong> : <input aria-label={en ? 'Name' : 'Ονοματεπώνυμο'} value={person.name} placeholder={en ? 'Name' : 'Ονοματεπώνυμο'} onChange={event => setPerson(index, { name: event.target.value })} />}{former && <small>{en ? 'Former employee' : 'Πρώην εργαζόμενος'}</small>}</td>
+          renderRow={(person, index) => { const former = person.employeeId && employeeById.get(person.employeeId) && employeeById.get(person.employeeId).employmentStatus && employeeById.get(person.employeeId).employmentStatus === 'inactive'; return <>
+            <td>{person.employeeId || locked ? <strong>{person.name}</strong> : <input aria-label={en ? 'Name' : 'Ονοματεπώνυμο'} value={person.name} placeholder={en ? 'Name' : 'Ονοματεπώνυμο'} onChange={event => setPerson(index, { name: event.target.value })} />}<InactiveEmployeeBadge inactive={Boolean(former)} /></td>
             <td>{person.employeeId || locked ? (person.role || cleanRole(employeeById.get(person.employeeId)?.position || employeeById.get(person.employeeId)?.profession) || '—') : <input aria-label={en ? 'Role' : 'Ιδιότητα'} value={person.role} onChange={event => setPerson(index, { role: event.target.value })} />}</td>
             <td className="meeting-attendance-cell">
               <ModeSwitch ariaLabel={`${en ? 'Attendance' : 'Παρουσία'}: ${person.name}`} disabled={locked} value={person.attended === false ? 'no' : 'yes'} options={[{ value: 'yes', label: en ? 'Present' : 'Παρών' }, { value: 'no', label: en ? 'Absent' : 'Απών' }]} onChange={value => setPerson(index, { attended: value === 'yes' })} />

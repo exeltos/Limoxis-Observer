@@ -1,5 +1,6 @@
+import './platformDashboard.css'
 import { useCallback,useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,History,KeyRound,RefreshCw,UserRoundCog } from 'lucide-react'
+import { AlertTriangle,RefreshCw,UserRoundCog } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
@@ -8,7 +9,6 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { listPlatformAuditEvents } from './platformAuditService'
-import { MetricCard } from '../../design-system/MetricCard'
 
 function fmtDate(value){
   if(!value)return '—'
@@ -78,14 +78,9 @@ export function PlatformAuditSecurityView({organizations=[],language='el',tabs=n
   const destructive=rows.filter(row=>/delete|purge|remove|revoke/i.test(row.eventType)).length
   const accessChanges=rows.filter(row=>/member|user|role|admin|invite|access/i.test(`${row.eventType} ${row.entityType}`)).length
 
-  return <Page title={tx('Ιστορικό & Ασφάλεια','Audit & Security')} subtitle={tx('Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων της πλατφόρμας.','Traceability of actions, access changes and operational events across the platform.')} actions={<div className="row-actions"><ExportMenu items={[{id:'audit',label:tx('Excel: ιστορικό ενεργειών','Excel: audit trail'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('istoriko-energeion','audit-trail'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Χρήστης','User'),tx('Ρόλος','Role'),tx('Ενέργεια','Action'),tx('Αντικείμενο','Entity'),'ID'],rows:filtered.map(row=>{const org=organizationMap.get(row.organizationId);return [fmtDate(row.createdAt),org?.name||tx('Επίπεδο πλατφόρμας','Platform level'),row.actorName||'',row.actorRole?roleLabel(row.actorRole,language):'',eventLabel(row.eventType,en),entityLabel(row.entityType,en),row.entityId||'']})})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}>
+  return <Page title={tx('Ιστορικό & Υγεία','History & Health')} subtitle={tx('Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων της πλατφόρμας.','Traceability of actions, access changes and operational events across the platform.')} actions={<div className="row-actions"><ExportMenu items={[{id:'audit',label:tx('Excel: ιστορικό ενεργειών','Excel: audit trail'),disabled:!filtered.length,onClick:()=>exportRegistry({name:tx('istoriko-energeion','audit-trail'),headers:[tx('Ημερομηνία / ώρα','Date / time'),tx('Οργανισμός','Organization'),tx('Χρήστης','User'),tx('Ρόλος','Role'),tx('Ενέργεια','Action'),tx('Αντικείμενο','Entity'),'ID'],rows:filtered.map(row=>{const org=organizationMap.get(row.organizationId);return [fmtDate(row.createdAt),org?.name||tx('Επίπεδο πλατφόρμας','Platform level'),row.actorName||'',row.actorRole?roleLabel(row.actorRole,language):'',eventLabel(row.eventType,en),entityLabel(row.entityType,en),row.entityId||'']})})}]}/><IconButton label={tx('Ανανέωση','Refresh')} onClick={load} disabled={loading}><RefreshCw size={16}/></IconButton></div>}>
     {tabs}
-    <div className="workspace-summary"><div className="module-summary-strip">
-      <MetricCard icon={History} value={rows.length} label={tx('Καταγεγραμμένες ενέργειες','Recorded actions')}/>
-      <MetricCard icon={UserRoundCog} value={ownerActions} label={tx('Ενέργειες Ιδιοκτήτη Πλατφόρμας','Platform Owner actions')}/>
-      <MetricCard icon={KeyRound} value={accessChanges} label={tx('Αλλαγές πρόσβασης','Access changes')}/>
-      <MetricCard icon={AlertTriangle} value={destructive} label={tx('Κρίσιμες / διαγραφές','Critical / destructive')}/>
-    </div></div>
+    <p className="platform-history-summary">{rows.length} {tx('καταγεγραμμένες ενέργειες','recorded actions')} · {ownerActions} {tx('του Ιδιοκτήτη Πλατφόρμας','by the Platform Owner')} · {accessChanges} {tx('αλλαγές πρόσβασης','access changes')}{destructive?` · ${destructive} ${tx('κρίσιμες / διαγραφές','critical / destructive')}`:''}</p>
     <div className="platform-registry-shell workspace-column">
       <FilterBar query={query} onQueryChange={setQuery} placeholder={tx('Αναζήτηση οργανισμού, χρήστη ή ενέργειας…','Search organization, user or action…')} activeAdvancedCount={(organizationId!=='all'?1:0)+(eventType!=='all'?1:0)} onClear={()=>{setQuery('');setOrganizationId('all');setEventType('all')}}>
         <FilterSelect label={tx('Οργανισμός','Organization')} value={organizationId} onChange={setOrganizationId}><option value="all">{tx('Όλοι','All')}</option><option value="platform">{tx('Επίπεδο πλατφόρμας','Platform level')}</option>{organizations.map(org=><option key={org.id} value={org.id}>{org.name||org.code}</option>)}</FilterSelect>

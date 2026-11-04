@@ -1,3 +1,4 @@
+import { inactiveEmployeeCodes } from '../../design-system/InactiveEmployeeBadge'
 import { useMemo, useState } from 'react'
 import { attendanceFor, finalizationBlocker, meetingQuorum } from './committeeMeetingRules'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -662,6 +663,7 @@ export function CommitteeRecordPage() {
     return (
       <Page fill>
         <MeetingRecord
+          inactiveCodes={inactiveEmployeeCodes(employeeRows)}
           key={openedMeeting.id}
           meeting={openedMeeting}
           committeeName={record.name}
@@ -702,6 +704,7 @@ export function CommitteeRecordPage() {
         {tab === 'overview' && <Overview record={record} members={activeMembers} en={en} />}
         {tab === 'members' && (
           <Members
+            inactiveCodes={inactiveEmployeeCodes(employeeRows)}
             teamShort={controlTeamShort(record.name, en)}
             rows={record.memberRefs || []}
             canManage={canMembers && !busy}

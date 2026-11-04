@@ -1,3 +1,5 @@
+import { InactiveEmployeeBadge, inactiveEmployeeCodes } from '../../design-system/InactiveEmployeeBadge'
+import { useEmployeesData } from '../employees/useEmployeesData'
 import { DueDate } from '../../design-system/DueDate'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -759,6 +761,8 @@ function PatientRows({ sort, onSort, loading = false, rows, showDepartment = tru
 }
 function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, language, fmt, t, onOpen }) {
   const rowId = x => String(x.recordId || x.id)
+  const { data: staffRows } = useEmployeesData()
+  const inactiveCodes = useMemo(() => inactiveEmployeeCodes(staffRows || []), [staffRows])
   return (
     <div className="scroll-table" ref={registry.scrollRef}>
       <RegistryTable
@@ -784,12 +788,13 @@ function EmployeeRows({ sort, onSort, loading = false, rows, empty, registry, la
         rowKey={rowId}
         rowProps={x => {
           const rp = registry.rowProps(rowId(x), () => onOpen(x))
-          return { ...rp, className: `${rp.className} clickable-row` }
+          return { ...rp, className: `${rp.className} clickable-row${inactiveCodes.has(String(x.employeeId || '')) ? ' inactive-employee-row' : ''}` }
         }}
         renderRow={x => (
           <>
             <td>
               <strong>{language === 'en' ? x.employeeNameEn : x.employeeName}</strong>
+              <InactiveEmployeeBadge inactive={inactiveCodes.has(String(x.employeeId || ''))} />
               <small>{x.employeeId || '—'}</small>
             </td>
             <td>{language === 'en' ? x.departmentEn : x.department}</td>

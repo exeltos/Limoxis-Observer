@@ -10,6 +10,7 @@ import { exportRegistry } from '../../core/export/registryExports'
 import './platformLifecycle.css'
 
 export function PlatformOrganizationsRegistry({
+  tabs = null,
   tx,
   query,
   onQueryChange,
@@ -47,6 +48,7 @@ export function PlatformOrganizationsRegistry({
       )}
       actions={<div className="row-actions"><ExportMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!organizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
     >
+      {tabs}
       <div className="platform-registry-shell">
         <FilterBar
           query={query}

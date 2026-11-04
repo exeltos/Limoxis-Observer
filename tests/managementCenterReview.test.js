@@ -46,11 +46,12 @@ describe('Management Center review', () => {
     expect(read('src/features/management/ClinicalScalesPanel.jsx')).toContain('setRows(demoClinicalScaleDefinitions.map')
   })
 
-  it('the platform update bar has distinctive update and history buttons', () => {
+  it('the platform update buttons (check and update, history, pending reviews) sit in the page header', () => {
     const page = read('src/features/management/ManagementPage.jsx')
-    expect(page).toContain('management-update-run')
-    expect(page).toContain('management-update-history')
-    expect(read('src/features/management/managementCenter.css')).toContain('.management-update-run{')
+    expect(page).toContain('const updateActions=isPlatformOwner?')
+    expect(page).toContain("t('managementPanel.platformUpdateAction')")
+    expect(page).toContain("t('managementPanel.updateHistory')")
+    expect(page).toContain('<Page fill actions={updateActions}')
   })
 
   it('management tabs use the record-tab underline style', () => {

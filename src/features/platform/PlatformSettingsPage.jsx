@@ -1,3 +1,4 @@
+import { PlatformLibrariesTabs } from './PlatformLibrariesTabs'
 import { useEffect,useMemo,useState } from 'react'
 import { AlertTriangle,Building2,Globe2,History,Megaphone,ShieldCheck,SlidersHorizontal } from 'lucide-react'
 import { Card,CardHeader } from '../../design-system/Card'
@@ -70,10 +71,11 @@ export function PlatformSettingsPage(){
   }
 
   return <Page
-    title={tx('Ρυθμίσεις Πλατφόρμας','Platform Settings')}
+    title={tx('Ρυθμίσεις','Settings')}
     subtitle={tx('Μόνο καθολικές ρυθμίσεις που ισχύουν για όλη την εγκατάσταση Limoxis Observer.','Only global settings that apply across the entire Limoxis Observer installation.')}
     actions={dirty||saving?<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση αλλαγών','Save changes')}</SaveButton>:<span className="platform-settings-saved" role="status">{tx('Χωρίς αλλαγές','No changes')}</span>}
   >
+    <PlatformLibrariesTabs />
     <div className="platform-registry-shell platform-settings-page">
       {loading?<div className="inline-empty">{tx('Φόρτωση ρυθμίσεων…','Loading settings…')}</div>:error?<div className="data-access-state warning"><AlertTriangle size={16}/><span>{tx('Δεν ήταν δυνατή η φόρτωση των ρυθμίσεων πλατφόρμας.','Platform settings could not be loaded.')}</span></div>:<div className="platform-settings-layout">
         <div className="platform-settings-main">

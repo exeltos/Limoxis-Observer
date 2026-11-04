@@ -30,7 +30,7 @@ describe('Platform Owner global (all-hospitals) Central Management',()=>{
 
   it('adds a Central Management entry point reachable without entering a hospital', () => {
     // Reached from the Platform Owner's menu.
-    expect(shell).toContain("path:'/platform',hash:'management'")
+    expect(shell).toContain("path:'/platform',hash:'management?group=libraries'")
     expect(center).toContain("if(activeKey==='management')return <PlatformGlobalManagement")
     expect(globalManagement).toContain('<ManagementPage global group={group}/>')
   })
@@ -48,7 +48,7 @@ describe('Platform Owner global (all-hospitals) Central Management',()=>{
 
   it('restricts the global Management view to platform-wide tabs and forwards global to child panels', () => {
     expect(managementPage).toContain("if(global)return [{id:'libraries'")
-    expect(managementPage).toContain('<LibrariesPanel global={global}/>')
+    expect(managementPage).toContain('<LibrariesPanel global={global} extraItems={global?globalListsExtra:[]} groups={global?GLOBAL_LIST_GROUPS:null}/>')
     expect(managementPage).toContain('<IndicatorsPanel global={global}/>')
     expect(managementPage).toContain('<BundleLibraryPanel global={global}/>')
     expect(managementPage).toContain('loadGlobalExternalReferences')

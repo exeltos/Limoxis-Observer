@@ -1,3 +1,4 @@
+import { InactiveEmployeeBadge } from '../../design-system/InactiveEmployeeBadge'
 import { useState } from 'react'
 import {
   CheckCircle2,
@@ -122,7 +123,7 @@ export function Overview({ record, members, en }) {
   )
 }
 
-export function Members({ rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }) {
+export function Members({ inactiveCodes, rows, canManage, onAdd, onEdit, onEnd, en, teamShort = '' }) {
   // Former members stay on record (attendance history points at them) but are
   // hidden from the list unless asked for.
   const [showFormer, setShowFormer] = useState(false)
@@ -175,9 +176,18 @@ export function Members({ rows, canManage, onAdd, onEdit, onEnd, en, teamShort =
           </thead>
           <tbody>
             {visible.map(m => (
-              <tr key={m.id} className={m.active === false ? 'committee-member-inactive' : ''}>
+              <tr
+                key={m.id}
+                className={[
+                  m.active === false && 'committee-member-inactive',
+                  inactiveCodes?.has(String(m.employeeId || '')) && 'inactive-employee-row',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
                 <td>
                   <strong>{m.name}</strong>
+                  <InactiveEmployeeBadge inactive={inactiveCodes?.has(String(m.employeeId || ''))} />
                   {m.external && (
                     <span className="status-badge temporary">
                       {en ? 'Outside staff' : 'Εκτός προσωπικού'}

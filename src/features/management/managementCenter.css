@@ -2,24 +2,7 @@
    platform update bar. Loaded after the global sheets by ManagementPage. */
 
 /* ---------- Platform update bar ---------- */
-.page>.management-center-update-bar{display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:14px 16px;border:1px solid #cfe0ee;border-radius:14px;background:linear-gradient(135deg,#f3f8fc 0%,#ffffff 55%,#f1f6fb 100%);box-shadow:0 1px 2px rgba(22,52,78,.06);margin-bottom:12px}
-.management-center-update-bar .management-update-emblem{flex:0 0 auto;display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#1f5f8b,#2f86b8);color:#fff;box-shadow:0 4px 10px rgba(31,95,139,.25)}
-.management-center-update-bar .management-update-copy{flex:1 1 auto;display:flex;flex-direction:column;gap:3px;min-width:0}
-.management-center-update-bar .management-update-copy strong{font-size:14.5px;color:#183a55}
-.management-center-update-bar .management-update-copy small{font-size:12px;color:#6a7d8e}
-.management-center-update-bar .management-update-actions{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.management-center-update-bar .management-update-actions button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:7px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;transition:background .12s ease;white-space:nowrap}
-.management-center-update-bar .management-update-run{border:1px solid #256b9b;background:#256b9b;color:#fff}
-.management-center-update-bar .management-update-run:hover:not(:disabled){background:#1f5f8a}
-.management-center-update-bar .management-update-run:disabled{opacity:.75;cursor:progress}
-.management-center-update-bar .management-update-run.is-running svg{animation:management-update-spin 1s linear infinite}
-.management-center-update-bar .management-update-history{border:1px solid var(--lo-color-border);background:#fff;color:#41566a}
-.management-center-update-bar .management-update-history svg{color:currentColor}
-.management-center-update-bar .management-update-history:hover{background:#f2f7fb;border-color:#8fb3cf}
-.management-center-update-bar .management-update-pending{border:1px solid #f0cf8a;background:#fff8e8;color:#8a5a00}
-.management-center-update-bar .management-update-pending b{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#e39b12;color:#fff;font-size:11px}
 @keyframes management-update-spin{to{transform:rotate(360deg)}}
-@media(max-width:900px){.page>.management-center-update-bar{flex-wrap:wrap}.management-center-update-bar .management-update-actions{width:100%;justify-content:flex-start}}
 
 /* ---------- Shared panel header ---------- */
 .management-shell .section-toolbar,.management-shell .bundle-library-toolbar{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;margin:0 0 12px!important;padding:4px 0 12px!important;border-bottom:1px solid #e3e9ef!important}
@@ -31,7 +14,6 @@
 
 /* ---------- LIRA & AI ---------- */
 /* modules.css turns every direct child div of the bar into a column. */
-.page>.management-center-update-bar>.management-update-actions{flex-direction:row!important;gap:8px!important}
 
 
 /* ---------- LIRA knowledge source dialog ---------- */
