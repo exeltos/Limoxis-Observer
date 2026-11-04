@@ -48,12 +48,12 @@
 /* Running an audit */
 .audit-run{display:flex;flex-direction:column;gap:12px}
 .audit-run>*,.audit-view>*,.audit-questionnaire-editor>*{flex:0 0 auto}
-.audit-chapter-strip{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:2px 2px 6px}
-.audit-chapter-strip button{display:flex;align-items:center;gap:8px;flex:0 0 auto;max-width:230px;min-height:46px;padding:6px 12px 6px 11px;border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border-strong);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;line-height:1.25;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(15,35,55,.06);transition:box-shadow .15s,background .15s}
+.audit-chapter-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:8px;padding:2px 2px 6px}
+.audit-chapter-strip button{display:flex;align-items:center;gap:8px;min-width:0;min-height:58px;padding:6px 12px 6px 11px;border:1px solid var(--lo-color-border);border-left:4px solid var(--lo-color-border-strong);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;line-height:1.25;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(15,35,55,.06);transition:box-shadow .15s,background .15s}
 .audit-chapter-strip button:hover{background:var(--lo-color-surface-soft);box-shadow:0 2px 6px rgba(15,35,55,.1)}
 .audit-chapter-strip button>svg{flex:none;color:var(--lo-color-muted)}
-.audit-chapter-strip button>span{display:flex;align-items:center;gap:8px;min-width:0}
-.audit-chapter-strip button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.audit-chapter-strip button>span{display:grid;gap:3px;min-width:0;justify-items:start}
+.audit-chapter-strip button strong{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;white-space:normal;overflow-wrap:break-word;font-weight:600;font-size:12.5px;line-height:1.2}
 .audit-chapter-strip button small{flex:none;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;background:var(--lo-status-neutral-bg);color:var(--lo-status-neutral-fg)}
 .audit-chapter-strip button.is-success{border-left-color:var(--lo-status-success-border)}
 .audit-chapter-strip button.is-success small{background:var(--lo-status-success-bg);color:var(--lo-status-success-fg)}
