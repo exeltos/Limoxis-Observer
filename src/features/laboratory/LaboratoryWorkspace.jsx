@@ -49,7 +49,7 @@ import { OUTCOME_RESULTS } from './LaboratoryStatus'
 import { PERIOD_DAYS, inPeriod } from '../surveillance/surveillanceOptions'
 import { ChoiceField } from '../../design-system/ChoiceField'
 import { environmentalPlateText } from '../surveillance/environmentalSamplingSheet'
-import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, reviewTag } from './sampleReviewModel'
+import { LAB_RESULT_SCOPES, defaultLabScope, matchesLabScope, maskStaffSamples, reviewTag } from './sampleReviewModel'
 import { SampleReviewTag } from '../surveillance/SampleReviewWorklist'
 import './LaboratoryWorkspace.css'
 
@@ -60,7 +60,9 @@ export function LaboratoryWorkspace() {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { canAccessRecord, tenant, isDemo, role, actualRole, membership } = useTenant()
-  const { rows: repositoryRows, loading: samplesLoading, error: samplesError, repository: labRepository, reload: reloadSamples, createSample: createRepositorySample, recentOnly, showOlder } = useLaboratoryRegistry({ recent: !isDemo })
+  const { rows: registryRows, loading: samplesLoading, error: samplesError, repository: labRepository, reload: reloadSamples, createSample: createRepositorySample, recentOnly, showOlder } = useLaboratoryRegistry({ recent: !isDemo })
+  // Staff-check samples show the employee's name only to the administrator and the head of infection control.
+  const repositoryRows = useMemo(() => maskStaffSamples(registryRows, role || actualRole), [registryRows, role, actualRole])
   const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
@@ -258,7 +260,7 @@ export function LaboratoryWorkspace() {
         {key:'sample',label:t('sampleCode'),sortable:true},{key:'subject',label:t('laboratoryRecords.subject'),sortable:true},{key:'type',label:t('sampleType'),sortable:true},{key:'source',label:t('clinicalSource'),className:'lab-col-secondary',sortable:true},{key:'result',label:t('result'),sortable:true},{key:'status',label:t('status'),sortable:true}
       ]} rows={pagedRows} loading={samplesLoading} rowKey={sample => sample.id} rowProps={sample => { const rp = registry.rowProps(sample.id, () => openSample(sample)); return { ...rp, className: `${rp.className} clickable-row` } }} emptyTitle={empty.title} emptyText={empty.text} emptyFiltered={Boolean(empty.filtered)} onClearFilters={empty.onClear} emptyIcon={empty.icon} emptyAction={empty.action} renderRow={sample => <>
         <td><strong>{displaySampleCode(sample)}</strong><small>{[fmt(sample.collectedAt), computeTurnaroundHours(sample) != null && formatTurnaround(computeTurnaroundHours(sample), language)].filter(Boolean).join(' · ')}</small></td>
-        <td><strong>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
+        <td><strong className={sample.staffMasked ? 'lab-staff-masked' : undefined}>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}{environmentalPlateText(sample, t) && <small>{environmentalPlateText(sample, t)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
         <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={labResultLabel(sample, t, language) === 'Εντός αποδεκτών ορίων' || labResultLabel(sample, t, language) === 'Within acceptable limits' ? 'negative' : sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !['rejected', 'cancelled'].includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>

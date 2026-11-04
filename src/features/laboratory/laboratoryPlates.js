@@ -89,7 +89,15 @@ const SWAB = { handSwab: { el: 'Επίχρισμα χεριών', en: 'Hand swab
 export function platePointLabel(sample, language = 'el') {
   if (isStaffSample(sample)) {
     const swab = SWAB[sample.source]?.[language === 'en' ? 'en' : 'el'] || ''
-    return { title: clean(sample.subjectName) || '—', detail: swab }
+    return { title: clean(sample.subjectName) || '—', detail: [swab, clean(sample.subjectCode) && `${language === 'en' ? 'Employee' : 'Κωδ. εργαζομένου'} ${clean(sample.subjectCode)}`].filter(Boolean).join(' · '), masked: Boolean(sample.staffMasked) }
   }
   return { title: [sample.location, sample.point].filter(Boolean).join(' · ') || '—', detail: '' }
+}
+
+// The point of a position as text for a print or an export: a staff-check position shows the employee's name only to those who may see it
+// (and only when the print asks for names); otherwise the swab and the employee code.
+export function platePointText(sample, language = 'el', withNames = true) {
+  const point = platePointLabel(sample, language)
+  if (isStaffSample(sample) && (point.masked || !withNames)) return point.detail || '—'
+  return [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · ') || '—'
 }

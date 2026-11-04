@@ -19,7 +19,7 @@ import { buildPlateReport } from './plateReport'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
-import { groupPlates, platePointLabel, receivePlate } from './laboratoryPlates'
+import { groupPlates, isStaffSample, platePointLabel, platePointText, receivePlate } from './laboratoryPlates'
 
 // «Τρυβλία» of the laboratory: the environmental samples grouped by culture plate. A plate is read
 // and received as one thing (every position at once), while each position keeps its own sample,
@@ -43,14 +43,14 @@ const plateExportHeaders = en => en
   : ['Τμήμα', 'Τρυβλίο', 'Θέση', 'Σημείο', 'Δειγματοληψία', 'Κατάσταση', 'Αποτέλεσμα', 'CFU', 'Όριο CFU', 'Μικροοργανισμός']
 
 // One row per plate position: what was sampled, the colony count (CFU), its limit and the assessment.
-function plateExportRows(plates, departmentOf, t, language) {
+function plateExportRows(plates, departmentOf, t, language, withNames = true) {
   return plates.flatMap(plate => plate.samples.map(sample => {
     const result = sample.microbiologyResults?.[0]
     return [
       departmentOf(plate),
       `${t('clinicalRecords.envPlate')} ${plate.plate}`,
       sample.environmentalPosition || '',
-      (point => [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · '))(platePointLabel(sample, language)),
+      platePointText(sample, language, withNames),
       plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
       labSampleStatus(sample, language).text || '',
       result ? environmentalResultWord(result, language) || t(result.result) : '',
@@ -184,11 +184,14 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
   // Print and PDF are the detailed document of the plate (every position with its organism, CFU, limit and assessment, as the
   // sample's own report); Excel keeps the table of positions.
   const blocked = () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
-  const detailed = pdf => () => { if (!printReport(buildPlateReport({ samples: plate.samples, standards, language, t, fmt: value => formatDateTime(value, language) }), { pdf })) blocked() }
+  const detailed = (pdf, withNames = true) => () => { if (!printReport(buildPlateReport({ samples: plate.samples, standards, language, t, fmt: value => formatDateTime(value, language), withNames }), { pdf })) blocked() }
+  // A staff-check plate prints with the employees' names only for those who may see them, and they may leave the names out.
+  const canChooseNames = plate.samples.some(isStaffSample) && !plate.samples.some(sample => sample.staffMasked)
   const plateMenu = {
     ...registryMenu(() => ({ name: `${en ? 'plate' : 'trivlio'}-${plate.plate}`, headers: plateExportHeaders(en).slice(2), rows: plateExportRows([plate], departmentOf, t, language).map(row => row.slice(2)) }), { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: `${t('clinicalRecords.envPlate')} ${plate.plate}`, onBlocked: blocked }),
     onPrint: detailed(false),
     onPdf: detailed(true),
+    items: canChooseNames ? [{ id: 'print-no-names', kind: 'print', label: en ? 'Print without staff names' : 'Εκτύπωση χωρίς ονόματα προσωπικού', onClick: detailed(false, false) }] : undefined,
   }
   async function receive() {
     setBusy(true)
@@ -235,7 +238,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
             return (
               <tr key={sample.id} tabIndex={0} aria-label={`${t('labPlates.openSample')} ${sample.id}`} onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)} onKeyDown={event => { if (event.key === 'Enter') navigate(`/laboratory/${encodeURIComponent(sample.id)}`) }}>
                 <td><strong>{sample.environmentalPosition || '—'}</strong></td>
-                <td>{platePointLabel(sample, language).title}<small>{[platePointLabel(sample, language).detail, sample.id].filter(Boolean).join(' · ')}</small></td>
+                <td><span className={platePointLabel(sample, language).masked ? 'lab-staff-masked' : undefined}>{platePointLabel(sample, language).title}</span><small>{[platePointLabel(sample, language).detail, sample.id].filter(Boolean).join(' · ')}</small></td>
                 <td><LaboratoryStatus {...labSampleStatus(sample, language)} /></td>
                 <td>
                   {result ? (

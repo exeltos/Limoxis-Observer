@@ -43,7 +43,7 @@ import { ResultCard, LabHistory } from './LaboratorySampleViews'
 import { ResultDialog, AstDialog, AmrDialog, CommunicationDialog } from './LaboratorySampleDialogs'
 import { buildLaboratorySampleReport } from './laboratorySampleReport'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
-import { canReviewSamples, reviewTag, sampleEpisodeTarget } from './sampleReviewModel'
+import { canReviewSamples, maskStaffSamples, reviewTag, sampleEpisodeTarget } from './sampleReviewModel'
 
 export function LaboratorySampleRecordFunctionalView() {
   const { sampleId } = useParams()
@@ -81,7 +81,7 @@ export function LaboratorySampleRecordFunctionalView() {
     setLoading(true)
     setError('')
     try {
-      setSample(await repository.get(sampleId))
+      setSample(maskStaffSamples([await repository.get(sampleId)], role)[0])
     } catch (err) {
       setError(err?.message || t('actionFailed'))
     } finally {
