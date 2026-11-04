@@ -1,3 +1,4 @@
+import '../features/platform/platformFocus.css'
 import { BrandMark } from '../design-system/BrandMark'
 import { Suspense, useEffect, useState } from 'react'
 import { lazyPage } from '../core/errors/chunkRecovery'
@@ -6,7 +7,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, BarChart3, Bell, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Menu, Pin, PinOff, Settings, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, BarChart3, Bell, Building2, ChevronDown, Eye, FlaskConical, LayoutDashboard, Layers3, Menu, Pin, PinOff, Settings, ShieldCheck, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -68,14 +69,15 @@ export function AppShell(){
   const platformNavigation=[
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
-    {key:'platformNav.libraries',label:'platformNav.menuLibraries',path:'/platform',hash:'management?group=libraries',icon:Database},
     {key:'platformNav.analysis',label:'platformNav.menuAnalysis',path:'/platform',hash:'reports',icon:BarChart3},
     {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,governance:true},
-    {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,governance:true},
+    {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform',hash:'management?group=libraries',icon:Settings,governance:true},
   ]
-  // Organizations also covers Demo and Users (tabs of one screen); Libraries covers the central management groups, Legislation and the Library sources.
+  // Organizations also covers Demo and Users (tabs of one screen). Settings covers the libraries (lists, indicator data, LIRA & AI),
+  // Legislation, the Library's guides and sources, and the platform settings: one screen of tabs.
+  const platformSettingsScreen=location.pathname.startsWith('/platform/legislation')||location.pathname.startsWith('/platform/library')||location.pathname.startsWith('/platform/settings')||(location.pathname==='/platform'&&platformHashKey==='management')
   const platformActive=item=>{
-    if(item.key==='platformNav.libraries')return location.pathname.startsWith('/platform/legislation')||location.pathname.startsWith('/platform/library')||(location.pathname==='/platform'&&platformHashKey==='management')
+    if(item.key==='platformNav.settings')return platformSettingsScreen
     if(item.key==='platformNav.organizations')return location.pathname==='/platform'&&['organizations','demo','users'].includes(platformHashKey)
     return location.pathname===item.path&&(item.path!=='/platform'||platformHashKey===item.hash)
   }
@@ -134,7 +136,7 @@ navigate('/');await reloadMemberships()}catch(error){notifyError(error,'save',{o
   const rolePreviewPopover=<div className="role-preview-popover"><strong>{t(demoEvaluator?'demoRoleTitle':'previewAsRole')}</strong><small>{t(demoEvaluator?'demoRoleHint':realDemoTenant?'previewDemoHint':'previewSafeHint')}</small><label><span>{t('roleLabel')}</span><select disabled={roleSwitching} value={demoEvaluator?(actualRole||''):(rolePreview?.role||'')} onChange={e=>handlePreviewRoleChange(e.target.value)}><option value="">{t('selectRole')}</option>{previewRoles.map(([value,key])=><option key={value} value={value}>{t(key)}</option>)}</select></label>{pickerNeedsDepartment&&<label><span>{t('departmentScope')}</span><select disabled={roleSwitching} value={demoEvaluator?(membership?.departmentIds?.[0]||''):(rolePreview?.department||'')} onChange={e=>handlePreviewDepartmentChange(e.target.value)}>{realTenant?realDepartments.map(item=><option key={item.id} value={item.id}>{item.name}</option>):previewDepartments.map(([value,key])=><option key={key} value={value}>{t(key)}</option>)}</select></label>}<div className="preview-popover-actions">{demoEvaluator&&actualRole!==ROLES.HOSPITAL_ADMIN&&<button disabled={roleSwitching} onClick={()=>void switchEvaluatorRole(ROLES.HOSPITAL_ADMIN)}>{t('demoRoleBackToAdmin')}</button>}{isRolePreview&&<button onClick={()=>{stopRolePreview();setPreviewOpen(false)}}>{t('exitPreview')}</button>}<button onClick={()=>setPreviewOpen(false)}>{t('close')}</button></div></div>
   if(closedDemoAccess)return <Suspense fallback={null}><DemoClosedScreen access={closedDemoAccess} language={language} onLogout={()=>{clearIdleLock();void logout().then(()=>navigate('/login',{replace:true}))}}/></Suspense>
   const PlatformNavEntry=({item,nested=false})=>{const Icon=item.icon;const active=platformActive(item);const go=target=>navigate({pathname:target.path,search:'',hash:target.hash?`#${target.hash}`:''});const button=<button type="button" title={t(item.key)} aria-current={active&&!item.children?'page':undefined} className={`nav-item ${nested?'nested':''} ${active&&!item.children?'active':''} ${active&&item.children?'active-group':''}`} onClick={()=>go(item.children?item.children[0]:item)}>{Icon&&<Icon size={nested?16:18}/>}<span>{t(item.label)}</span>{item.children&&<ChevronDown className="nav-group-chevron" size={14}/>}</button>;if(!item.children)return button;return <div className={`sidebar-nav-group ${active?'open':''}`}>{button}{active&&<div className="sidebar-nav-children">{item.children.map(child=><PlatformNavEntry key={child.hash} item={child} nested/>)}</div>}</div>}
-  return <div className={`app-shell ${platformMode?'platform-mode':''} ${helpPreviewMode?'help-preview-mode':''}${sidebarRail.rail&&(!platformMode||!sidebarRail.wide)?' sidebar-rail':''}`}>
+  return <div className={`app-shell ${platformMode?'platform-mode':''}${platformMode&&platformSettingsScreen?' platform-focus':''} ${helpPreviewMode?'help-preview-mode':''}${sidebarRail.rail&&(!platformMode||!sidebarRail.wide)?' sidebar-rail':''}`}>
     <aside id="app-sidebar" className={`sidebar${navOpen?' sidebar-open':''}`} {...(platformMode?{}:sidebarRail.handlers)}>{!platformMode&&sidebarRail.wide&&<button type="button" className="sidebar-pin" aria-pressed={sidebarRail.pinned} aria-label={sidebarRail.pinned?t('unpinMenu'):t('pinMenu')} title={sidebarRail.pinned?t('unpinMenu'):t('pinMenu')} onClick={sidebarRail.togglePin}>{sidebarRail.pinned?<PinOff size={15}/>:<Pin size={15}/>}</button>}<button type="button" className="sidebar-toggle" aria-expanded={navOpen} aria-controls="app-sidebar" aria-label={navOpen?t('closeMenu'):t('openMenu')} title={navOpen?t('closeMenu'):t('openMenu')} onClick={()=>setNavOpen(v=>!v)}>{navOpen?<X size={20}/>:<Menu size={20}/>}</button><div className="brand"><BrandMark size={30} tone="light" className="brand-mark-logo"/><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
       {platformMode&&<>{platformNavigation.filter(item=>!item.governance).map(item=><PlatformNavEntry key={item.key} item={item}/>)}<div className="sidebar-nav-management">{platformNavigation.filter(item=>item.governance).map(item=><PlatformNavEntry key={item.key} item={item}/>)}</div></>}
       {!platformMode&&<SidebarNavigation role={role} items={visibleNavigation} t={t} userKey={profile?.id||user?.id}/>}

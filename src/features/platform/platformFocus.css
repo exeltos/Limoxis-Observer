@@ -1,0 +1,5 @@
+/* Settings & libraries: one large screen, the application menu out of the way (the tabs carry an «Exit»). */
+.app-shell.platform-focus{grid-template-columns:minmax(0,1fr)!important}
+.app-shell.platform-focus>.sidebar{display:none}
+.platform-settings-tabs-row{display:flex;align-items:center;gap:12px}
+.platform-settings-tabs-row>.tabs{flex:1;min-width:0}
