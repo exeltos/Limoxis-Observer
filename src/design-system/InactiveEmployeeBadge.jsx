@@ -1,11 +1,11 @@
 import { StatusBadge } from './StatusBadge'
-import { useLanguage } from '../core/i18n/LanguageContext'
+import { useOptionalLanguage } from '../core/i18n/LanguageContext'
 import './InactiveEmployeeBadge.css'
 
 // An employee who has left stays in the history (trainings, committees, records): the red «Inactive» label
 // next to the name says so, and the row is dimmed with `inactive-employee-row`.
 export function InactiveEmployeeBadge({ inactive = true }) {
-  const { language } = useLanguage()
+  const language = useOptionalLanguage()?.language
   if (!inactive) return null
   return (
     <StatusBadge tone="danger" className="inactive-employee-badge">
