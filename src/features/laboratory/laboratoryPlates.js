@@ -83,3 +83,13 @@ export async function receivePlate(repository, plate, now = new Date()) {
   }
   return received
 }
+
+// What a plate position is «about»: the sampled point of a department plate, or, on a staff-check plate, the employee and the swab.
+const SWAB = { handSwab: { el: 'Επίχρισμα χεριών', en: 'Hand swab' }, nasalSwab: { el: 'Ρινικό επίχρισμα', en: 'Nasal swab' } }
+export function platePointLabel(sample, language = 'el') {
+  if (isStaffSample(sample)) {
+    const swab = SWAB[sample.source]?.[language === 'en' ? 'en' : 'el'] || ''
+    return { title: clean(sample.subjectName) || '—', detail: swab }
+  }
+  return { title: [sample.location, sample.point].filter(Boolean).join(' · ') || '—', detail: '' }
+}

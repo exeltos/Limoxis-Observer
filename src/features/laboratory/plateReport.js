@@ -2,6 +2,7 @@ import { resultLimit, shownAssessment } from './environmentalLimit'
 import { sampleProgress } from './laboratorySampleProgress'
 import { resolveEnvironmentalStandard } from './laboratoryCloudService'
 import { labSampleStatus } from './LaboratoryStatus'
+import { platePointLabel } from './laboratoryPlates'
 import { sirWord } from '../../design-system/recordReport'
 
 // The printed document of a whole culture plate, on one page: a row per position (point, result, organism, CFU, limit,
@@ -21,7 +22,7 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
       item, progress,
       cells: [
         item.environmentalPosition || '—',
-        [item.location, item.point].filter(Boolean).join(' · ') || item.id,
+        (point => [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · ') || item.id)(platePointLabel(item, language)),
         result?.result ? t(result.result) : L('Χωρίς αποτέλεσμα', 'No result'),
         progress.organisms.join(', ') || (result?.result === 'positive' ? L('Δεν έχει καταχωριστεί', 'Not recorded') : '—'),
         cfu != null && cfu !== '' ? String(cfu) : '—',

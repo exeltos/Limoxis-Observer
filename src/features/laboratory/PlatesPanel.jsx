@@ -19,7 +19,7 @@ import { buildPlateReport } from './plateReport'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
-import { groupPlates, receivePlate } from './laboratoryPlates'
+import { groupPlates, platePointLabel, receivePlate } from './laboratoryPlates'
 
 // «Τρυβλία» of the laboratory: the environmental samples grouped by culture plate. A plate is read
 // and received as one thing (every position at once), while each position keeps its own sample,
@@ -52,7 +52,7 @@ function plateExportRows(plates, departmentOf, t, language) {
       departmentOf(plate),
       `${t('clinicalRecords.envPlate')} ${plate.plate}`,
       sample.environmentalPosition || '',
-      [sample.location, sample.point].filter(Boolean).join(' · '),
+      (point => [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · '))(platePointLabel(sample, language)),
       plate.collectedAt ? formatDay(plate.collectedAt, language) : '',
       labSampleStatus(sample, language).text || '',
       result ? t(result.result) : '',
@@ -238,7 +238,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
             return (
               <tr key={sample.id} tabIndex={0} aria-label={`${t('labPlates.openSample')} ${sample.id}`} onClick={() => navigate(`/laboratory/${encodeURIComponent(sample.id)}`)} onKeyDown={event => { if (event.key === 'Enter') navigate(`/laboratory/${encodeURIComponent(sample.id)}`) }}>
                 <td><strong>{sample.environmentalPosition || '—'}</strong></td>
-                <td>{[sample.location, sample.point].filter(Boolean).join(' · ') || '—'}<small>{sample.id}</small></td>
+                <td>{platePointLabel(sample, language).title}<small>{[platePointLabel(sample, language).detail, sample.id].filter(Boolean).join(' · ')}</small></td>
                 <td><LaboratoryStatus {...labSampleStatus(sample, language)} /></td>
                 <td>
                   {result ? (
