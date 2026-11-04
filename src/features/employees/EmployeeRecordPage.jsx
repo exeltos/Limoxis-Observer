@@ -899,11 +899,26 @@ function Details({
           editing={editing}
           label={t('department')}
           value={record.department}
-          display={language === 'el' ? record.department : record.departmentEn}
+          display={
+            <>
+              {language === 'el' ? record.department : record.departmentEn}
+              {record.hrDepartment ? (
+                <small className="employee-hr-line">HR: {record.hrDepartment}</small>
+              ) : null}
+            </>
+          }
           options={departmentOptions}
           language={language}
           onChange={value => set('department', value)}
         />
+        {editing && (
+          <InlineDetail
+            editing
+            label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
+            value={record.hrDepartment}
+            onChange={value => set('hrDepartment', value)}
+          />
+        )}
         <InlineSelect
           editing={editing}
           label={t('professionalCategory')}
@@ -930,18 +945,6 @@ function Details({
         />
         <InlineDetail
           editing={editing}
-          label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
-          value={record.hrDepartment}
-          onChange={value => set('hrDepartment', value)}
-        />
-        <InlineDetail
-          editing={editing}
-          label={language === 'en' ? 'Directorate' : 'Διεύθυνση'}
-          value={record.directorate}
-          onChange={value => set('directorate', value)}
-        />
-        <InlineDetail
-          editing={editing}
           label={t('employeesRecords.email')}
           value={record.email}
           onChange={value => set('email', value)}
@@ -951,6 +954,12 @@ function Details({
           label={t('phone')}
           value={record.phone}
           onChange={value => set('phone', value)}
+        />
+        <InlineDetail
+          editing={editing}
+          label={language === 'en' ? 'Directorate' : 'Διεύθυνση'}
+          value={record.directorate}
+          onChange={value => set('directorate', value)}
         />
       </div>
       {editing && (
@@ -1076,7 +1085,7 @@ function InlineSelect({ editing, label, value, display, options = [], language, 
           value={value || ''}
           onChange={next => onChange(next || '')}
           options={[
-            ...(value && !hasCurrent ? [{ value, label: display || value }] : []),
+            ...(value && !hasCurrent ? [{ value, label: (typeof display === 'string' && display) || value }] : []),
             ...rows.map(row => {
               const el = row?.[0] ?? row?.name ?? String(row || ''),
                 en = row?.[1] ?? row?.nameEn ?? el

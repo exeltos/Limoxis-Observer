@@ -162,3 +162,5 @@
 .employee-record-shell .employee-details-overview:is(section,#lo-employee-details){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
 .employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit):is(div,#lo-employee-details){border:0!important;border-radius:0!important;padding:0!important}
 .employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding-left:0!important;background:transparent!important}
+
+.employee-details-overview .employee-hr-line{display:block;margin-top:2px;font-size:12px;font-weight:400;color:#566471}
