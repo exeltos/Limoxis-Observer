@@ -9,12 +9,15 @@ const CLOSED_STATUSES = ['cancelled', 'rejected', 'voided']
 const clean = value => String(value ?? '').trim()
 const day = value => String(value || '').slice(0, 10)
 
+export const isStaffSample = sample => sample?.subjectType === 'employee'
 export const isPlateSample = sample => Boolean(clean(sample?.environmentalPlate))
 
 // One plate of one sampling: the batch (or, without one, the sampling day), the department and the letter.
 export function plateKey(sample) {
   if (!isPlateSample(sample)) return null
   const where = clean(sample.environmentalBatchId) || day(sample.collectedAt || sample.requestedAt)
+  // A plate of the staff check (hands, nose) carries employees of several departments: it is one plate per day, kind of swab and letter.
+  if (isStaffSample(sample)) return [where, 'staff', clean(sample.source), clean(sample.environmentalPlate).toLowerCase()].join('|')
   return [where, clean(sample.departmentId || sample.department), clean(sample.environmentalPlate).toLowerCase()].join('|')
 }
 
@@ -52,8 +55,8 @@ export function groupPlates(samples = []) {
         key,
         plate: clean(first.environmentalPlate),
         batchId: first.environmentalBatchId || '',
-        department: first.department || '',
-        departmentEn: first.departmentEn || first.department || '',
+        department: isStaffSample(first) ? 'Έλεγχος προσωπικού' : first.department || '',
+        departmentEn: isStaffSample(first) ? 'Staff check' : first.departmentEn || first.department || '',
         collectedAt: sorted.map(sample => sample.collectedAt).filter(Boolean).sort()[0] || null,
         samples: sorted,
         awaiting,

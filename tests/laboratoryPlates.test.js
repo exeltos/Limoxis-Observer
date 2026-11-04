@@ -4,6 +4,15 @@ import { groupPlates, needsReceipt, plateKey, receivePlate } from '../src/featur
 const sample = (id, extra = {}) => ({ id, subjectType: 'environment', type: 'surface', department: 'ΜΕΘ', departmentId: 'd1', environmentalBatchId: 'ENV-B-1', environmentalPlate: 'Α', environmentalPosition: '1', collectedAt: '2026-10-01T08:00:00+03:00', status: 'collected', microbiologyResults: [], ...extra })
 
 describe('culture plates in the laboratory', () => {
+  it('puts the employees of several departments on one staff plate (per day, swab and letter)', () => {
+    const staff = (id, extra = {}) => sample(id, { subjectType: 'employee', environmentalBatchId: '', source: 'handSwab', collectedAt: '2026-10-01T05:00:00Z', ...extra })
+    const plates = groupPlates([staff('E1', { departmentId: 'd1', department: 'ΜΕΘ' }), staff('E2', { departmentId: 'd2', department: 'ΤΕΠ', environmentalPosition: '2' }), staff('E3', { source: 'nasalSwab' })])
+    expect(plates).toHaveLength(2)
+    const hands = plates.find(plate => plate.samples.length === 2)
+    expect(hands.samples.map(item => item.id)).toEqual(['E1', 'E2'])
+    expect(hands.department).toBe('Έλεγχος προσωπικού')
+    expect(hands.departmentEn).toBe('Staff check')
+  })
   it('groups the samples of one plate of one sampling, by position', () => {
     const plates = groupPlates([sample('S3', { environmentalPosition: '10' }), sample('S1', { environmentalPosition: '2' }), sample('S2', { environmentalPosition: '1' }), sample('X', { environmentalPlate: 'Β' })])
     expect(plates.map(plate => [plate.plate, plate.samples.map(s => s.id)])).toEqual(expect.arrayContaining([['Α', ['S2', 'S1', 'S3']], ['Β', ['X']]]))
