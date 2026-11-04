@@ -3840,3 +3840,9 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .notifiable-forms-link{margin:12px 0 0;font-size:.875rem}
 .notifiable-forms-link a{display:inline-flex;align-items:center;gap:6px;font-weight:600;text-decoration:none}
 .notifiable-forms-link a:hover{text-decoration:underline}
+
+/* Platform reports: the chosen hospital's own screens, one click away. */
+.analysis-hospital-shortcuts{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 30px 10px;padding:8px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);font-size:13px;color:var(--lo-color-muted)}
+.analysis-hospital-shortcuts>span{margin-right:auto}
+.analysis-hospital-shortcuts>button{height:30px;padding:0 12px;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font-weight:600;cursor:pointer}
+.analysis-hospital-shortcuts>button:hover{background:var(--lo-shell-control-hover)}
