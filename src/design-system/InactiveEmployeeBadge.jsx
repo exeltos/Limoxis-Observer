@@ -18,5 +18,6 @@ export function InactiveEmployeeBadge({ inactive = true }) {
 export const isInactiveEmployee = employee => String(employee?.employmentStatus || '').toLowerCase() === 'inactive'
 
 // The codes of the inactive employees, to mark them in lists that only carry the employee code.
+// Only people who are employees get the label: an outside member or a name typed by hand has no code and never matches.
 export const inactiveEmployeeCodes = (employees = []) =>
-  new Set(employees.filter(isInactiveEmployee).map(employee => String(employee.id || employee.employeeCode || '')))
+  new Set(employees.filter(isInactiveEmployee).map(employee => String(employee.id || employee.employeeCode || '')).filter(Boolean))
