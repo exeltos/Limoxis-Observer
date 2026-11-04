@@ -86,6 +86,13 @@ export function cloudEnabled() {
   return hasSupabaseConfig && Boolean(supabase) && !isDemoDataEnvironment()
 }
 
+// The HR department and directorate values this hospital already uses (a hospital without them has no such fields).
+export async function loadEmployeeHrOptionsAsync(organizationId) {
+  const rows = await loadEmployeesAsync(organizationId)
+  const unique = key => [...new Set(rows.map(row => String(row[key] || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'))
+  return { hrDepartments: unique('hrDepartment'), directorates: unique('directorate') }
+}
+
 export async function loadEmployeesAsync(organizationId) {
   if(isDemoDataEnvironment())return (await localStore()).loadEmployees()
   if(isOwnerPreview())return []
