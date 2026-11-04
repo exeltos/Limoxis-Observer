@@ -30,7 +30,7 @@ describe('Platform Owner global (all-hospitals) Central Management',()=>{
 
   it('adds a Central Management entry point reachable without entering a hospital', () => {
     // Reached from the Platform Owner's menu.
-    expect(shell).toContain("path:'/platform',hash:'management'")
+    expect(shell).toContain("path:'/platform',hash:'management?group=libraries'")
     expect(center).toContain("if(activeKey==='management')return <PlatformGlobalManagement")
     expect(globalManagement).toContain('<ManagementPage global group={group}/>')
   })
