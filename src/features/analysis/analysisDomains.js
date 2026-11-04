@@ -121,7 +121,7 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       capaOpen: capas.filter(row => !CLOSED_QUALITY.has(row.status)).length,
       capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status) && row.dueDate && row.dueDate < today).length,
       monthly: tally(incidents, row => month(row.date)).sort((a, b) => a[0].localeCompare(b[0])),
-      severityByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || '—', row.severity || '—', 1]),
+      severityByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.severity || '—', 1]),
     },
     workforce: (() => {
       const active = employeeRows.filter(row => (row.employmentStatus || 'active') === 'active')
