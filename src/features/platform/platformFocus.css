@@ -7,3 +7,6 @@
 .platform-settings-switch>button{height:30px;padding:0 14px;border:1px solid var(--lo-color-border);border-radius:99px;background:var(--lo-color-surface);color:var(--lo-color-text);font-size:13px;font-weight:600;cursor:pointer}
 .platform-settings-switch>button.is-active{background:#17324a;border-color:#17324a;color:#fff}
 .library-title-lock{margin-left:8px;vertical-align:middle;color:var(--lo-color-muted)}
+.platform-settings-switch-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:10px 0}
+.platform-settings-switch-row>.platform-settings-switch{margin:0}
+.platform-settings-divider{width:1px;height:22px;background:var(--lo-color-border)}

@@ -18,7 +18,7 @@ const LEGAL_TARGETS = {
   sources: '/platform#management?group=sources',
 }
 
-export function PlatformLibrariesTabs() {
+export function PlatformLibrariesTabs({ extra = null }) {
   const { language } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
@@ -53,16 +53,24 @@ export function PlatformLibrariesTabs() {
         />
       </div>
       {legal && (
-        <div className="platform-settings-switch" role="group" aria-label={en ? 'Legislation & sources' : 'Νομοθεσία & πηγές'}>
-          {[
-            ['legislation', en ? 'Legislation' : 'Νομοθεσία'],
-            ['guides', en ? 'Guides & sources' : 'Οδηγίες & πηγές'],
-            ['sources', en ? 'External sources' : 'Εξωτερικές πηγές'],
-          ].map(([id, label]) => (
-            <button key={id} type="button" className={legal === id ? 'is-active' : ''} aria-pressed={legal === id} onClick={() => navigate(LEGAL_TARGETS[id])}>
-              {label}
-            </button>
-          ))}
+        <div className="platform-settings-switch-row">
+          <div className="platform-settings-switch" role="group" aria-label={en ? 'Legislation & sources' : 'Νομοθεσία & πηγές'}>
+            {[
+              ['legislation', en ? 'Legislation' : 'Νομοθεσία'],
+              ['guides', en ? 'Guides & links' : 'Οδηγίες & σύνδεσμοι'],
+              ['sources', en ? 'External sources' : 'Εξωτερικές πηγές'],
+            ].map(([id, label]) => (
+              <button key={id} type="button" className={legal === id ? 'is-active' : ''} aria-pressed={legal === id} onClick={() => navigate(LEGAL_TARGETS[id])}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {extra && (
+            <>
+              <span className="platform-settings-divider" aria-hidden="true" />
+              {extra}
+            </>
+          )}
         </div>
       )}
     </>
