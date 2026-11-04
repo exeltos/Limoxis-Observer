@@ -1383,8 +1383,6 @@ body:has(.public-flow-page){min-width:0;height:auto;background:#f5f7fa}.public-f
 /* v0.26.30 Indicator actions — common icon pattern */
 
 /* v0.26.31 Management libraries governance */
-.library-governance-strip{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd}
-.library-governance-strip>div{display:grid;gap:2px}.library-governance-strip strong{font-size:9.5px}.library-governance-strip span{font-size:8.5px;color:var(--muted);line-height:1.4}
 .library-source{font-size:9.5px}
 
 /* v0.26.32 Management Center normalization */
