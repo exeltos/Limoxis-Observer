@@ -35,7 +35,7 @@ export function resultSummarySections(sample, t) {
   const communicated = (sample.microbiologyResults || []).some(result => (result.communications || []).length > 0)
   const items = [
     { key: 'outcome', label: t('result'), value: t(sample.result) },
-    sample.organism && { key: 'organism', label: t('organism'), value: sample.organism },
+    (sample.organism || sample.result === 'positive') && { key: 'organism', label: t('organism'), value: sample.organism || t('laboratoryRecords.organismNotRecorded') },
     sample.cfuCount != null && { key: 'cfu', label: 'CFU', value: sample.cfuLimit != null ? `${sample.cfuCount} / ${sample.cfuLimit}` : String(sample.cfuCount) },
     sample.critical && { key: 'critical', label: t('criticalResult'), value: communicated ? t('communicated') : t('laboratoryRecords.uncommunicatedCritical') },
   ].filter(Boolean)

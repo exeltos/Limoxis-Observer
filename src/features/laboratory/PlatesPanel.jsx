@@ -244,7 +244,7 @@ function PlateDialog({ plate, departmentOf, canManage, repository, reload, onClo
                       <strong>{t(result.result)}</strong>{' '}
                       {limitAssessment(result) === true && <StatusBadge tone="success">{en ? 'Within acceptable limits' : 'Εντός αποδεκτών ορίων'}</StatusBadge>}
                       {limitAssessment(result) === false && <StatusBadge tone="danger">{en ? 'Outside acceptable limits' : 'Εκτός αποδεκτών ορίων'}</StatusBadge>}
-                      <small>{[result.organism, result.cfuCount != null && `${result.cfuCount} CFU`, limitAssessment(result) != null && resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
+                      <small>{[result.organism || (result.result === 'positive' ? (en ? 'Organism not recorded' : 'Δεν έχει καταχωριστεί μικροοργανισμός') : ''), result.cfuCount != null && `${result.cfuCount} CFU`, limitAssessment(result) != null && resultLimit(result) != null && `${en ? 'limit' : 'όριο'} ${resultLimit(result)}`].filter(Boolean).join(' · ')}</small>
                     </>
                   ) : (
                     <span className="plate-no-result">{t('labPlates.noResult')}</span>

@@ -22,7 +22,7 @@ export function buildLaboratorySampleReport({ sample, steps = [], progress, isEn
     ? [
         [t('result'), result.result && t(result.result)],
         [tx('critical'), result.critical ? L('Ναι', 'Yes') : ''],
-        [tx('organisms'), organisms.join(', ')],
+        [tx('organisms'), organisms.join(', ') || (result.result === 'positive' ? L('Δεν έχει καταχωριστεί', 'Not recorded') : '')],
         [tx('method'), methodLabel(result.method, language)],
         [tx('status'), tx(result.resultStatus || 'draft')],
         isEnvironmental && [tx('cfu'), cfu],
