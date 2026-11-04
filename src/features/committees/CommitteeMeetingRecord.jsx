@@ -1,3 +1,4 @@
+import { InactiveEmployeeBadge } from '../../design-system/InactiveEmployeeBadge'
 import { useState } from 'react'
 import { CalendarDays, ClipboardList, NotebookPen, Plus, Send, Trash2, Users } from 'lucide-react'
 import { Button } from '../../design-system/Button'
@@ -33,7 +34,7 @@ const STATUS_TONE = { finalized: 'active', approval_pending: 'temporary', cancel
 // A committee meeting and its minutes as a record of its own (opened from the committee's
 // «Meetings» tab): the details, the attendance, the topics with their conclusions, and the
 // notes with the approval, each on its own tab, instead of one long window.
-export function MeetingRecord({ meeting, committeeName = '', members, actorId, canSave, canFinalize, busy, onBack, onSave, onApproval, onExternalAction, en }) {
+export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', members, actorId, canSave, canFinalize, busy, onBack, onSave, onApproval, onExternalAction, en }) {
   const [externalApprovers, setExternalApprovers] = useState(null)
   const { notifyError } = useFeedback()
   // Topic suggestions from the hospital's library (Management > Libraries).
@@ -43,6 +44,8 @@ export function MeetingRecord({ meeting, committeeName = '', members, actorId, c
   // quorum, is then only the team's.
   const team = members.filter(member => member.inControlTeam)
   const teamName = controlTeamName(committeeName, en)
+  // Members who are inactive employees now (they stay in the history of the meeting).
+  const inactiveMemberIds = new Set(members.filter(member => inactiveCodes?.has(String(member.employeeId || ''))).map(member => String(member.id)))
   const membersOf = composition => (composition === 'control_team' && team.length ? team : members)
   const [v, setV] = useState(() => ({
     ...meeting,
@@ -95,8 +98,8 @@ export function MeetingRecord({ meeting, committeeName = '', members, actorId, c
         <div className="scroll-table committee-attendance-wrap">
           <table className="data-table committee-attendance-table">
             <thead><tr><th>{en ? 'Member' : 'Μέλος'}</th><th>{en ? 'Status' : 'Κατάσταση'}</th></tr></thead>
-            <tbody>{v.attendanceRecords.map(x => <tr key={x.id || x.memberId}>
-              <td>{x.name}</td>
+            <tbody>{v.attendanceRecords.map(x => <tr key={x.id || x.memberId} className={inactiveMemberIds.has(String(x.memberId || '')) ? 'inactive-employee-row' : undefined}>
+              <td>{x.name}<InactiveEmployeeBadge inactive={inactiveMemberIds.has(String(x.memberId || ''))} /></td>
               <td><SearchableSelect hideLabel label={`${en ? 'Attendance' : 'Παρουσία'}: ${x.name}`} disabled={!editable} value={x.status || 'not_recorded'} onChange={status => status && attendance(x.id || x.memberId, status)} options={ATTENDANCE.map(([value, el, enText]) => ({ value, label: en ? enText : el }))} /></td>
             </tr>)}</tbody>
           </table>
