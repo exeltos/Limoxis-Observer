@@ -73,10 +73,10 @@ export function ManagementPage({global=false,group=null}={}){
  useEffect(()=>{if(tabs.length&&!tabs.some(item=>item.id===tab))setTab(tabs[0].id)},[tabs,tab]);
  const okCap=cap=>can(role,cap,addOns,customCaps),onModule=cap=>!isProfileDisabled(cap)
  const scroll=node=><section className="management-section management-scroll-section">{node}</section>
- const hospitalLead=okCap(CAPABILITIES.MANAGE_USERS)?[{id:'identity',label:t('managementIdentityLabel'),icon:Building2,tone:'blue',render:()=><IdentityPanel tenant={tenant} isDemo={isDemo}/>}]:[]
- const hospitalExtra=[...(okCap(CAPABILITIES.MANAGE_USERS)?[{id:'security',label:t('managementSecurityLabel'),icon:Lock,tone:'slate',render:()=><SecurityPanel tenant={tenant} isDemo={isDemo}/>}]:[]),...(okCap(CAPABILITIES.MANAGE_ANNOUNCEMENTS)?[{id:'announcements',label:t('announcements'),icon:Bell,tone:'amber',render:()=><AnnouncementsPanel/>}]:[])]
  // The platform's lists: the prevention bundles, the HAI criteria and the indicator definitions are entries of the same left list (no second row of tabs).
  const globalListsExtra=[{id:'bundles',label:t('managementPanel.preventionBundlesLabel'),icon:Layers3,tone:'green',render:()=>scroll(<BundleLibraryPanel global/>)},{id:'haiCriteria',label:t('managementPanel.haiCriteriaLabel'),icon:ShieldAlert,tone:'rose',render:()=>scroll(<HaiCriteriaLibraryPanel global/>)},{id:'indicators',label:t('indicators'),icon:Activity,tone:'blue',render:()=>scroll(<IndicatorsPanel global/>)}]
+ const hospitalLead=okCap(CAPABILITIES.MANAGE_USERS)?[{id:'identity',label:t('managementIdentityLabel'),icon:Building2,tone:'blue',render:()=><IdentityPanel tenant={tenant} isDemo={isDemo}/>}]:[]
+ const hospitalExtra=[...(okCap(CAPABILITIES.MANAGE_USERS)?[{id:'security',label:t('managementSecurityLabel'),icon:Lock,tone:'slate',render:()=><SecurityPanel tenant={tenant} isDemo={isDemo}/>}]:[]),...(okCap(CAPABILITIES.MANAGE_ANNOUNCEMENTS)?[{id:'announcements',label:t('announcements'),icon:Bell,tone:'amber',render:()=><AnnouncementsPanel/>}]:[])]
  const listsExtra=[
   ...(okCap(CAPABILITIES.MANAGE_LIBRARIES)&&onModule(CAPABILITIES.VIEW_CONTROLS)?[{id:'questionnaires',label:t('managementQuestionnairesLabel'),icon:ClipboardList,tone:'teal',render:()=>scroll(<QuestionnairesPanel/>)}]:[]),
   ...(okCap(CAPABILITIES.MANAGE_LIBRARIES)&&onModule(CAPABILITIES.VIEW_SURVEILLANCE)?[{id:'clinicalScales',label:t('managementClinicalScalesLabel'),icon:Activity,tone:'blue',render:()=>scroll(<ClinicalScalesPanel/>)}]:[]),
