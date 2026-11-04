@@ -14,11 +14,11 @@ describe('employee role/scope alignment',()=>{
     expect(can(ROLES.LINK_NURSE,CAPABILITIES.VIEW_STAFF)).toBe(true)
   })
 
-  it('keeps Laboratory employee access inside its department scope',()=>{
-    expect(uxPolicyFor(ROLES.LABORATORY).scope).toBe(SCOPES.DEPARTMENT)
+  it('treats Laboratory as an organization-wide role (the database lets it read every sample of the hospital)',()=>{
+    expect(uxPolicyFor(ROLES.LABORATORY).scope).toBe(SCOPES.ORGANIZATION)
     expect(can(ROLES.LABORATORY,CAPABILITIES.VIEW_STAFF)).toBe(true)
     expect(recordWithinRoleScope({role:ROLES.LABORATORY,membership,record:labEmployee})).toBe(true)
-    expect(recordWithinRoleScope({role:ROLES.LABORATORY,membership,record:otherEmployee})).toBe(false)
+    expect(recordWithinRoleScope({role:ROLES.LABORATORY,membership,record:otherEmployee})).toBe(true)
   })
 
   it('keeps Department Manager employee access inside its department scope',()=>{
@@ -28,7 +28,7 @@ describe('employee role/scope alignment',()=>{
   })
 
   it('fails closed when a department-scoped record has no department id',()=>{
-    expect(recordWithinRoleScope({role:ROLES.LABORATORY,membership,record:{organizationId:'org-1'}})).toBe(false)
+    expect(recordWithinRoleScope({role:ROLES.LINK_NURSE,membership,record:{organizationId:'org-1'}})).toBe(false)
   })
 
   it('keeps Platform Owner global',()=>{

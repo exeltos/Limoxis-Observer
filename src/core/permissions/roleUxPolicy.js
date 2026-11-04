@@ -11,7 +11,7 @@ const ROLE_UX_POLICY = Object.freeze({
   [ROLES.LINK_NURSE]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Link Nurse' },
   [ROLES.DEPARTMENT_MANAGER]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Department Manager' },
   [ROLES.DEPARTMENT_USER]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Department User' },
-  [ROLES.LABORATORY]: { scope: SCOPES.DEPARTMENT, sensitiveEmployeeHealth: false, label: 'Laboratory' },
+  [ROLES.LABORATORY]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Laboratory' },
   [ROLES.COMMITTEE_SECRETARIAT]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Committee Secretariat' },
   [ROLES.HR_OFFICE]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'HR Office' },
   [ROLES.PHARMACY]: { scope: SCOPES.ORGANIZATION, sensitiveEmployeeHealth: false, label: 'Pharmacy' },
