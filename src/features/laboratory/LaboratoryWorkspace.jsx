@@ -1,6 +1,6 @@
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { registryMenu } from '../../core/export/registryExports'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTableSort } from '../../design-system/useTableSort'
 import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
 import { isCultureSampleType } from '../surveillance/epiQuestionnaire/epiQuestionnaireModel'
@@ -194,17 +194,25 @@ export function LaboratoryWorkspace() {
     registry.openRecord(navigate, `/laboratory/${sample.id}`, sample.id, rows.map(item => item.id))
   }
 
+  // «Εξαγωγή» of the Plates and Notifiable tabs sits in the page header (as in the Samples tab); each panel tells here what it shows now.
+  const tabExport = useRef(null)
+  const tabExportRun = key => () => {
+    const current = tabExport.current
+    if (!current) return
+    registryMenu(current.build, { language, kind: current.kind, title: current.title, onBlocked: () => notify(language === 'el' ? 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.' : 'Allow pop-ups to print.', 'error') })[key]()
+  }
+  const tabExportMenu = <ExportMenu onPrint={tabExportRun('onPrint')} onPdf={tabExportRun('onPdf')} onExcel={tabExportRun('onExcel')} />
   const tabs = <CanonicalTabs items={[{ value: 'samples', label: t('labNotifiable.samplesTab'), icon: FlaskConical }, { value: 'plates', label: t('labPlates.tab'), icon: PackageCheck }, ...(showNotifiable ? [{ value: 'notifiable', label: t('labNotifiable.tab'), icon: Megaphone }] : [])]} value={tab} onChange={setTab} ariaLabel={t('labNotifiable.tabsLabel')} />
-  if (tab === 'plates') return <Page fill title={t('laboratory')} subtitle={t('labPlates.subtitle')}>
+  if (tab === 'plates') return <Page fill title={t('laboratory')} subtitle={t('labPlates.subtitle')} actions={tabExportMenu}>
     {tabs}
-    <PlatesPanel samples={repositoryRows.filter(sample => canAccessRecord(sample))} loading={samplesLoading} canManage={canCreate} repository={labRepository} reload={reloadSamples} />
+    <PlatesPanel exportRef={tabExport} samples={repositoryRows.filter(sample => canAccessRecord(sample))} loading={samplesLoading} canManage={canCreate} repository={labRepository} reload={reloadSamples} />
   </Page>
-  if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<><Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button><OverflowMenu label={language === 'en' ? 'More actions' : 'Περισσότερες ενέργειες'} items={[{ label: language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων', onClick: () => setReportingPart('quality') }, { label: language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net', onClick: () => setReportingPart('ears') }]} /></>}>
+  if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<>{tabExportMenu}<Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button><OverflowMenu label={language === 'en' ? 'More actions' : 'Περισσότερες ενέργειες'} items={[{ label: language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων', onClick: () => setReportingPart('quality') }, { label: language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net', onClick: () => setReportingPart('ears') }]} /></>}>
     {tabs}
     {reportingPart && <ObserverDialog width="wide" title={reportingPart === 'quality' ? (language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων') : (language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net')} onClose={() => setReportingPart('')}>
       <ReportingPanel tenant={tenant} isDemo={isDemo} year={new Date().getFullYear()} tx={(el, enText) => (language === 'en' ? enText : el)} en={language === 'en'} parts={[reportingPart]} />
     </ObserverDialog>}
-    <NotifiableReportsPanel organizationId={tenant?.id} isDemo={isDemo} samples={repositoryRows.filter(sample => canAccessRecord(sample))} canCreate creating={notifiableNew} onCreatingChange={setNotifiableNew} />
+    <NotifiableReportsPanel exportRef={tabExport} organizationId={tenant?.id} isDemo={isDemo} samples={repositoryRows.filter(sample => canAccessRecord(sample))} canCreate creating={notifiableNew} onCreatingChange={setNotifiableNew} />
   </Page>
 
   const duplicateDialog = duplicate && <DuplicatePatientDialog matches={duplicate.matches} onClose={() => setDuplicate(null)} onContinue={() => createSample(duplicate.draft, true)} actions={[

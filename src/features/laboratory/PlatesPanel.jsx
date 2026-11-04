@@ -64,9 +64,8 @@ function plateExportRows(plates, departmentOf, t, language) {
   }))
 }
 
-export function PlatesPanel({ samples = [], loading = false, canManage = false, repository, reload }) {
+export function PlatesPanel({ samples = [], loading = false, canManage = false, repository, reload, exportRef }) {
   const { t, language } = useLanguage()
-  const { notify } = useFeedback()
   const en = language === 'en'
   const [query, setQuery] = useState('')
   const [quick, setQuick] = useState('all')
@@ -111,7 +110,7 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
   const safePage = Math.min(page, totalPages)
   const pagedPlates = sortedPlates.slice((safePage - 1) * pageSize, safePage * pageSize)
   const plateExport = () => ({ name: en ? 'culture-plates' : 'trivlia', headers: plateExportHeaders(en), rows: plateExportRows(sortedPlates, departmentOf, t, language) })
-  const exportMenu = <ExportMenu {...registryMenu(plateExport, { language, kind: en ? 'Laboratory' : 'Εργαστήριο', title: en ? 'Culture plates' : 'Τρυβλία', onBlocked: () => notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error') })} disabled={!shown.length} />
+  if (exportRef) exportRef.current = { build: plateExport, kind: en ? 'Laboratory' : 'Εργαστήριο', title: en ? 'Culture plates' : 'Τρυβλία' }
   const toggle = key => setQuick(current => (current === key ? 'all' : key))
   const positionsText = plate => `${plate.counts.total} ${t(plate.counts.total === 1 ? 'labPlates.positionOne' : 'labPlates.positionMany')}`
   const clear = () => {
@@ -136,7 +135,7 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
         { key: 'outside', icon: AlertTriangle, label: t('labPlatesExtra.outside30'), value: counts.outside, tone: counts.outside > 0 ? 'danger' : '', active: quick === 'outside' && period === '30', onToggle: toggleOutside },
       ]} />
       <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-        <FilterBar end={exportMenu} query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
           department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') },
           status !== 'all' && { key: 'status', label: `${t('status')}: ${statusName(status)}`, onRemove: () => setStatus('all') },
           period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },
