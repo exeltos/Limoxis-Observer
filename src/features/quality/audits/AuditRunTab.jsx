@@ -183,7 +183,7 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     </div>}
     {shownChapters.length > 1 && <div className="audit-chapter-strip" role="group" aria-label={L(en, 'Κεφάλαια', 'Chapters')}>
       <button type="button" className={chapter === 'all' ? 'is-active' : ''} onClick={() => setChapter('all')}><strong>{L(en, 'Όλα', 'All')}</strong><small>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</small></button>
-      {shownChapters.map(item => <button type="button" key={item.key} className={`${chapter === item.key ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.key)}><strong>{item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
+      {shownChapters.map(item => <button type="button" key={item.key} className={`${chapter === item.key ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.key)}><strong>{item.title || item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
     </div>}
 
     <MeetingLine title={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} summary={[meetings.opening.date && formatDay(meetings.opening.date, language), meetings.representative, meetings.opening.attendees].filter(Boolean).join(' · ')} language={language}>
