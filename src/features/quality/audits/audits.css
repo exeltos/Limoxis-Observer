@@ -48,8 +48,10 @@
 /* Running an audit */
 .audit-run{display:flex;flex-direction:column;gap:12px}
 .audit-run>*,.audit-view>*,.audit-questionnaire-editor>*{flex:0 0 auto}
-.audit-chapter-strip{display:flex;flex-wrap:wrap;gap:6px}
-.audit-chapter-strip button{display:grid;gap:2px;flex:1 1 150px;max-width:240px;min-width:58px;min-height:52px;padding:6px 12px;align-content:center;border:1px solid var(--lo-color-border);border-radius:8px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;line-height:1.25;text-align:left;cursor:pointer}
+.audit-chapter-strip{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-bottom:4px}
+.audit-chapter-strip button{display:flex;align-items:center;gap:8px;flex:0 0 auto;max-width:210px;min-height:44px;padding:5px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;line-height:1.25;text-align:left;cursor:pointer}
+.audit-chapter-strip button>span{display:grid;gap:1px;min-width:0}
+.audit-chapter-strip button strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .audit-chapter-strip button small{font-size:11px;color:var(--lo-color-muted)}
 .audit-chapter-strip button.is-success small{color:var(--lo-status-success-fg)}
 .audit-chapter-strip button.is-warning small{color:var(--lo-status-warning-fg)}

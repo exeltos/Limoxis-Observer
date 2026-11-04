@@ -43,6 +43,9 @@ import { IncidentFlowPanel } from './IncidentFlowBar'
 import { QualityGlance } from './QualityGlance'
 import { AuditRunTab } from './audits/AuditRunTab'
 import { AuditPlanPanel } from './audits/AuditPlanPanel'
+import { AuditPlanFields } from './audits/AuditPlanFields'
+import { useAuditTemplates,useAuditorCompetence } from './audits/useAuditTemplates'
+import { independenceBlocks } from './audits/auditModel'
 import { auditAnswersExport, auditReportDocument } from './audits/auditReport'
 import { FINDING_CLASSES, standardLabel } from './audits/auditStandards'
 import { exportRegistry } from '../../core/export/registryExports'
@@ -254,6 +257,11 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
   const capaRead=recordType==='capas'&&view==='details'&&!editing
   const auditRead=recordType==='audits'&&view==='details'&&!editing
   const [draft,setDraft]=useState({...record})
+  // An audit is edited with the whole of its planning (questionnaire, date, team, auditor, execution), as on the planning page.
+  const auditPlanEdit=recordType==='audits'&&editing&&!assessment
+  const {templates:auditTemplates}=useAuditTemplates(auditPlanEdit?organizationId:false)
+  const auditCompetence=useAuditorCompetence(auditPlanEdit?organizationId:false)
+  const auditTeamBlocked=auditPlanEdit&&independenceBlocks(draft.team||[],{id:draft.departmentId,name:draft.department})
   const [governedAction,setGovernedAction]=useState(null)
   const [correctionReason,setCorrectionReason]=useState('')
   const [saving,setSaving]=useState(false)
@@ -330,7 +338,7 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
       </>:<>
       {/* Code, title and status are in the record's header; the form edits them. */}
       {editing&&<div className="quality-edit-wide"><EditText editing={editing} label={t('title')} value={language==='el'?draft.title:draft.titleEn} onChange={v=>set(language==='el'?'title':'titleEn',v)}/></div>}
-      {editing?<div className="detail-item editable"><QualityDepartmentField value={departmentRef(draft)} onChange={patch}/></div>:<Detail label={t('department')} value={en?draft.departmentEn||draft.department:draft.department}/>}
+      {editing&&recordType!=='audits'?<div className="detail-item editable"><QualityDepartmentField value={departmentRef(draft)} onChange={patch}/></div>:recordType==='audits'&&editing?null:<Detail label={t('department')} value={en?draft.departmentEn||draft.department:draft.department}/>}
       {recordType!=='incidents'&&editing&&<EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>}
       {recordType==='incidents'&&<>
         <EditChoice editing={editing} label={en?'Kind':'Είδος'} value={reportKindOf(draft)} onChange={v=>set('reportKind',v)} options={vocabularyOptions(REPORT_KINDS,language)}/>
@@ -367,8 +375,9 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
         {editing&&<EditChoice editing={editing} label={t('qualityRecords.effectiveness')} value={draft.effectivenessStatus} onChange={v=>set('effectivenessStatus',v)} options={vocabularyOptions(EFFECTIVENESS,language)}/>}
         <EditOwners editing={editing} draft={draft} patch={patch} en={en} label={t('owner')}/>
       </>}
-      {/* An audit's kind, date, standard and team are its planning (AuditPlanPanel, below). */}
+      {/* An audit's kind, date, standard and team are its planning (AuditPlanPanel, below; edited with AuditPlanFields). */}
     </div>}
+    {auditPlanEdit&&<AuditPlanFields flat draft={draft} setDraft={setDraft} templates={auditTemplates} competence={auditCompetence} language={language} titleField={false}/>}
     {!assessment&&recordType==='incidents'&&['clinical','nonClinical'].includes(reportKindOf(draft))&&editing&&(editing||draft.eventType)&&<div className="quality-event-section">
       <div className="quality-subsection-heading"><div><strong>{en?'Event details':'Στοιχεία συμβάντος'}</strong></div></div>
       {editing?<div className="quality-event-type"><IncidentEventTypeField value={draft.eventType} onChange={v=>set('eventType',v)} language={language}/></div>:null}
@@ -376,7 +385,7 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
     </div>}
     {!assessment&&!incidentRead&&!findingRead&&!capaRead&&!auditRead&&<div className={recordType==='incidents'?'quality-incident-narrative':'quality-record-narrative'}><div className="quality-description"><span>{t(recordType==='audits'?'qualityRecords.auditScope':'description')}</span>{editing?<textarea rows={3} value={language==='el'?(draft.description??draft.scope??''):(draft.descriptionEn??draft.scopeEn??'')} onChange={e=>set(language==='el'?(recordType==='audits'?'scope':'description'):(recordType==='audits'?'scopeEn':'descriptionEn'),e.target.value)}/>:<p>{language==='el'?(record.description??record.scope??'—'):(record.descriptionEn??record.scopeEn??'—')}</p>}</div>{recordType==='incidents'&&(editing||record.immediateActions||record.immediateActionsEn)&&<div className="quality-description quality-readonly-text"><span>{en?'Immediate actions taken':'Άμεσες ενέργειες που πραγματοποιήθηκαν'}</span>{editing?<textarea rows={2} value={language==='el'?(draft.immediateActions||''):(draft.immediateActionsEn||'')} onChange={e=>set(language==='el'?'immediateActions':'immediateActionsEn',e.target.value)}/>:<p>{language==='el'?(record.immediateActions||'—'):(record.immediateActionsEn||record.immediateActions||'—')}</p>}</div>}</div>}{assessment&&(draft.sentinel||editing||record.rootCause||record.contributingFactors)&&<div className="quality-investigation-card">{draft.sentinel&&<div className="governance-banner warning quality-sentinel-banner"><AlertOctagon size={17}/><span>{en?`Sentinel event: a root cause analysis is required${draft.rcaDueDate?` by ${formatDay(draft.rcaDueDate,language)}`:''}.`:`Σοβαρό ανεπιθύμητο (sentinel): απαιτείται ανάλυση ριζικής αιτίας${draft.rcaDueDate?` έως ${formatDay(draft.rcaDueDate,language)}`:''}.`}</span>{canManage&&!finalized&&!editing&&<Button variant="primary" onClick={()=>linked.length?goTo(`/quality/capas/${linked[0].id}`,{returnTo:`/quality/incidents/${record.id}`,returnTab:'assessment'}):goTo('/quality/capas/new',{returnTo:`/quality/incidents/${record.id}`,returnTab:'assessment',state:{qualitySource:capaSourceFor('incidents',record,language)}})}><CheckSquare2 size={15}/>{linked.length?(en?'Open the root cause analysis':'Άνοιγμα ανάλυσης ριζικής αιτίας'):(en?'Start the root cause analysis':'Έναρξη ανάλυσης ριζικής αιτίας')}</Button>}</div>}{(editing||record.rootCause||record.contributingFactors)&&<><div className="quality-subsection-heading"><div><strong>{en?'Investigation & root cause':'Διερεύνηση & βασική αιτία'}</strong><span>{en?'Document the analysis before closing the incident.':'Καταγραφή της ανάλυσης πριν από την ολοκλήρωση του συμβάντος.'}</span></div></div><div className="quality-investigation-grid"><div className="quality-description quality-readonly-text"><span>{en?'Root cause':'Βασική αιτία (Root Cause)'}</span>{editing?<textarea rows={2} value={language==='el'?(draft.rootCause||''):(draft.rootCauseEn||'')} onChange={e=>set(language==='el'?'rootCause':'rootCauseEn',e.target.value)}/>:<p>{language==='el'?(record.rootCause||'—'):(record.rootCauseEn||record.rootCause||'—')}</p>}</div><div className="quality-description quality-readonly-text"><span>{en?'Contributing factors':'Συνεισφέροντες παράγοντες'}</span>{editing?<textarea rows={2} value={language==='el'?(draft.contributingFactors||''):(draft.contributingFactorsEn||'')} onChange={e=>set(language==='el'?'contributingFactors':'contributingFactorsEn',e.target.value)}/>:<p>{language==='el'?(record.contributingFactors||'—'):(record.contributingFactorsEn||record.contributingFactors||'—')}</p>}</div></div></>}</div>}
     {auditRead&&extra}
-    {editing&&<div className="inline-edit-footer"><Button variant="secondary" disabled={saving} onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><SaveButton loading={saving} onClick={save}>{t('save')}</SaveButton></div>}
+    {editing&&<div className="inline-edit-footer"><Button variant="secondary" disabled={saving} onClick={()=>{setDraft({...record});setEditing(false);setCorrectionReason('')}}>{t('cancel')}</Button><SaveButton loading={saving} disabled={auditTeamBlocked} onClick={save}>{t('save')}</SaveButton></div>}
     <GovernedReasonDialog open={Boolean(governedAction)} title={governedAction==='correct'?(en?'Correct finalized record':'Διόρθωση ολοκληρωμένης εγγραφής'):(en?'Void record':'Ακύρωση εγγραφής')} description={governedAction==='correct'?(en?'The original record remains in history. Enter the reason for the correction.':'Η αρχική εγγραφή παραμένει στο ιστορικό. Καταγράψτε τον λόγο της διόρθωσης.'):(en?'The record will not be physically deleted. It will be marked as voided and retained in the audit trail.':'Η εγγραφή δεν θα διαγραφεί φυσικά. Θα χαρακτηριστεί ως ακυρωμένη και θα παραμείνει στο ιστορικό ενεργειών.')} confirmLabel={governedAction==='correct'?(en?'Start correction':'Έναρξη διόρθωσης'):(en?'Void record':'Ακύρωση εγγραφής')} danger={governedAction==='void'} onCancel={()=>setGovernedAction(null)} onConfirm={governedConfirm}/>
   </div>
 }

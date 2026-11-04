@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Info, MessageSquare, Paperclip, Pencil, Plus, SearchCheck, Users } from 'lucide-react'
+import { AlertTriangle, Bug, CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, FileText, Globe, Info, LayoutGrid, ListChecks, MessageSquare, Paperclip, Pencil, Plus, SearchCheck, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { SaveButton } from '../../../design-system/SaveButton'
 import { Field } from '../../../design-system/Field'
@@ -182,8 +182,8 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
       {score.standards.map(item => <button type="button" key={item.standard || 'none'} className={`${standardView === item.standard ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} onClick={() => { setStandardView(item.standard); setChapter('all') }}><strong>{standardShort(item.standard) || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
     </div>}
     {shownChapters.length > 1 && <div className="audit-chapter-strip" role="group" aria-label={L(en, 'Κεφάλαια', 'Chapters')}>
-      <button type="button" className={chapter === 'all' ? 'is-active' : ''} onClick={() => setChapter('all')}><strong>{L(en, 'Όλα', 'All')}</strong><small>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</small></button>
-      {shownChapters.map(item => <button type="button" key={item.key} className={`${chapter === item.key ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.key)}><strong>{item.title || item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></button>)}
+      <button type="button" className={chapter === 'all' ? 'is-active' : ''} onClick={() => setChapter('all')}><LayoutGrid size={16} aria-hidden="true" /><span><strong>{L(en, 'Όλα', 'All')}</strong><small>{score.overall.rate == null ? '—' : `${score.overall.rate}%`}</small></span></button>
+      {shownChapters.map(item => <button type="button" key={item.key} className={`${chapter === item.key ? 'is-active' : ''} is-${item.rate == null ? 'neutral' : meterTone(item.rate)}`} title={item.title} onClick={() => setChapter(item.key)}>{chapterIcon(item.ref)}<span><strong>{item.title || item.ref || '—'}</strong><small>{item.rate == null ? `${item.answered}/${item.total}` : `${item.rate}%`}</small></span></button>)}
     </div>}
 
     <MeetingLine title={L(en, 'Εναρκτήρια σύσκεψη', 'Opening meeting')} summary={[meetings.opening.date && formatDay(meetings.opening.date, language), meetings.representative, meetings.opening.attendees].filter(Boolean).join(' · ')} language={language}>
@@ -271,6 +271,13 @@ export function AuditRunTab({ record, setRecord, organizationId, canManage, fina
     </div>}
     {findingFor && <AuditFindingDialog row={findingFor} audit={record} language={language} saving={saving} onClose={() => setFindingFor(null)} onCreate={values => raise(findingFor, values)} />}
   </div>
+}
+
+// A small symbol for the chapters of the basic questionnaire (any other chapter gets the list symbol).
+const CHAPTER_ICONS = { ΑΣΦ: ShieldCheck, ΛΟΙ: Bug, ΕΞΟ: Wrench, ΤΕΚ: FileText, ΠΡΟ: Users, ΣΥΜ: AlertTriangle, ΠΑΡ: MessageSquare, ΔΙΕ: Globe }
+const chapterIcon = ref => {
+  const Icon = CHAPTER_ICONS[String(ref || '').trim().toUpperCase()] || ListChecks
+  return <Icon size={16} aria-hidden="true" />
 }
 
 // What to open on: the first standard still to answer and its first chapter with an answer missing
