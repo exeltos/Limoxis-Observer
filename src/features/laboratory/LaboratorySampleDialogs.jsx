@@ -71,7 +71,7 @@ export function ResultDialog({
   const form = useFormValidation([
     { key: 'result', label: t('result'), valid: Boolean(draft.result), message: en ? 'Choose the result' : 'Επιλέξτε αποτέλεσμα' },
     isEnvironmental && draft.result === 'positive' && { key: 'cfu', label: tx('cfu'), valid: draft.cfuCount !== '' },
-    !isEnvironmental && draft.result === 'positive' && { key: 'organisms', label: tx('organisms'), valid: !needsOrganism, message: tx('organismRequired') },
+    draft.result === 'positive' && { key: 'organisms', label: tx('organisms'), valid: !needsOrganism, message: tx('organismRequired') },
   ])
   const saveDraft = () => (complete ? save('draft') : form.submit(() => {})())
   const title = isEnvironmental
