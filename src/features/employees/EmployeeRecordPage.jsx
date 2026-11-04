@@ -899,26 +899,17 @@ function Details({
           editing={editing}
           label={t('department')}
           value={record.department}
-          display={
-            <>
-              {language === 'el' ? record.department : record.departmentEn}
-              {record.hrDepartment ? (
-                <small className="employee-hr-line">HR: {record.hrDepartment}</small>
-              ) : null}
-            </>
-          }
+          display={language === 'el' ? record.department : record.departmentEn}
           options={departmentOptions}
           language={language}
           onChange={value => set('department', value)}
         />
-        {editing && (
-          <InlineDetail
-            editing
-            label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
-            value={record.hrDepartment}
-            onChange={value => set('hrDepartment', value)}
-          />
-        )}
+        <InlineDetail
+          editing={editing}
+          label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
+          value={record.hrDepartment}
+          onChange={value => set('hrDepartment', value)}
+        />
         <InlineSelect
           editing={editing}
           label={t('professionalCategory')}
@@ -928,21 +919,23 @@ function Details({
           language={language}
           onChange={value => set('profession', value)}
         />
-        <InlineSelect
-          editing={editing}
-          label={language === 'en' ? 'Job position' : 'Θέση εργασίας'}
-          value={record.position}
-          display={(language === 'el' ? record.position : record.positionEn) || '—'}
-          options={positionOptions}
-          language={language}
-          onChange={value =>
-            setRecord(current => ({
-              ...current,
-              position: value,
-              positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
-            }))
-          }
-        />
+        {(editing || record.position) && (
+          <InlineSelect
+            editing={editing}
+            label={language === 'en' ? 'Job position' : 'Θέση εργασίας'}
+            value={record.position}
+            display={(language === 'el' ? record.position : record.positionEn) || '—'}
+            options={positionOptions}
+            language={language}
+            onChange={value =>
+              setRecord(current => ({
+                ...current,
+                position: value,
+                positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
+              }))
+            }
+          />
+        )}
         <InlineDetail
           editing={editing}
           label={t('employeesRecords.email')}
