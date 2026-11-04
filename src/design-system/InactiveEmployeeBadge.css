@@ -1,0 +1,3 @@
+.inactive-employee-badge{margin-left:8px;vertical-align:middle}
+tr.inactive-employee-row>td{opacity:.72}
+tr.inactive-employee-row>td:last-child{opacity:1}
