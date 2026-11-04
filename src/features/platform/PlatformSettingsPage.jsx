@@ -1,7 +1,7 @@
 import { PlatformLibrariesTabs } from './PlatformLibrariesTabs'
 import { useEffect,useMemo,useState } from 'react'
-import { AlertTriangle,Building2,Globe2,History,Megaphone,ShieldCheck,SlidersHorizontal } from 'lucide-react'
-import { Card,CardHeader } from '../../design-system/Card'
+import { AlertTriangle } from 'lucide-react'
+import { Card } from '../../design-system/Card'
 import { Page } from '../../design-system/Page'
 import { SaveButton } from '../../design-system/SaveButton'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -72,15 +72,15 @@ export function PlatformSettingsPage(){
 
   return <Page
     title={tx('Ρυθμίσεις','Settings')}
-    subtitle={tx('Μόνο καθολικές ρυθμίσεις που ισχύουν για όλη την εγκατάσταση Limoxis Observer.','Only global settings that apply across the entire Limoxis Observer installation.')}
-    actions={dirty||saving?<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση αλλαγών','Save changes')}</SaveButton>:<span className="platform-settings-saved" role="status">{tx('Χωρίς αλλαγές','No changes')}</span>}
+    subtitle={tx('Ισχύει για όλα τα νοσοκομεία · κάθε αλλαγή καταγράφεται στο Ιστορικό & Υγεία.','Applies to every hospital · every change is recorded in History & Health.')}
+    actions={dirty||saving?<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση αλλαγών','Save changes')}</SaveButton>:<span className="platform-settings-saved" role="status">{tx('Δεν υπάρχουν αλλαγές','No changes')}</span>}
   >
     <PlatformLibrariesTabs />
     <div className="platform-registry-shell platform-settings-page">
       {loading?<div className="inline-empty">{tx('Φόρτωση ρυθμίσεων…','Loading settings…')}</div>:error?<div className="data-access-state warning"><AlertTriangle size={16}/><span>{tx('Δεν ήταν δυνατή η φόρτωση των ρυθμίσεων πλατφόρμας.','Platform settings could not be loaded.')}</span></div>:<div className="platform-settings-layout">
         <div className="platform-settings-main">
           <Card className="platform-settings-card">
-            <CardHeader icon={SlidersHorizontal} title={tx('Λειτουργικές προεπιλογές','Operational defaults')} subtitle={tx('Τιμές που χρησιμοποιούνται σε όλη την εγκατάσταση.','Values used across the whole installation.')}/>
+            <h3 className="platform-settings-section-title">{tx('Προεπιλογές','Defaults')}</h3>
             <div className="platform-settings-grid">
               <FieldBlock label={tx('Email υποστήριξης','Support email')} hint={tx('Κεντρικό email αναφοράς για την εγκατάσταση.','Central support contact for this installation.')}>
                 <input type="email" value={draft.supportEmail} placeholder="support@example.org" onChange={event=>setDraft(current=>({...current,supportEmail:event.target.value}))}/>
@@ -99,10 +99,8 @@ export function PlatformSettingsPage(){
                 {!graceValid?<small className="field-error">{tx('Επιτρέπονται 1–365 ημέρες.','Allowed range is 1–365 days.')}</small>:null}
               </FieldBlock>
             </div>
-          </Card>
-
-          <Card className="platform-settings-card">
-            <CardHeader icon={Megaphone} title={tx('Ανακοίνωση συντήρησης','Maintenance notice')} subtitle={tx('Καθολικό λειτουργικό μήνυμα προς τους χρήστες της πλατφόρμας.','Platform-wide operational message shown to users.')} actions={<span className={`status-badge ${draft.maintenanceNoticeEnabled?'temporary':''}`}>{draft.maintenanceNoticeEnabled?tx('Ενεργή','Enabled'):tx('Ανενεργή','Disabled')}</span>}/>
+            <div className="platform-settings-section-divider"/>
+            <h3 className="platform-settings-section-title">{tx('Ανακοίνωση συντήρησης','Maintenance notice')} <span className={`status-badge ${draft.maintenanceNoticeEnabled?'temporary':''}`}>{draft.maintenanceNoticeEnabled?tx('Ενεργή','Enabled'):tx('Ανενεργή','Disabled')}</span></h3>
             <div className="platform-settings-grid">
               <FieldBlock label={tx('Κατάσταση ανακοίνωσης','Notice status')}>
                 <select value={draft.maintenanceNoticeEnabled?'enabled':'disabled'} onChange={event=>setDraft(current=>({...current,maintenanceNoticeEnabled:event.target.value==='enabled'}))}>
@@ -128,15 +126,6 @@ export function PlatformSettingsPage(){
           </Card>
         </div>
 
-        <Card className="platform-settings-card platform-settings-aside">
-          <CardHeader icon={ShieldCheck} title={tx('Εμβέλεια & ασφάλεια','Scope & security')}/>
-          <ul className="platform-settings-facts">
-            <li><Globe2 size={15}/><span>{tx('Οι ρυθμίσεις ισχύουν για όλους τους οργανισμούς της εγκατάστασης.','Settings apply to every organization in this installation.')}</span></li>
-            <li><ShieldCheck size={15}/><span>{tx('Μόνο ο Ιδιοκτήτης Πλατφόρμας μπορεί να τις αλλάξει.','Only the Platform Owner can change them.')}</span></li>
-            <li><History size={15}/><span>{tx('Κάθε αλλαγή καταγράφεται στο Ιστορικό & Ασφάλεια.','Every change is recorded in Audit & Security.')}</span></li>
-            <li><Building2 size={15}/><span>{tx('Οι ρυθμίσεις κάθε νοσοκομείου παραμένουν στο Κέντρο Διαχείρισης του οργανισμού.','Hospital settings stay in each organization’s Management Center.')}</span></li>
-          </ul>
-        </Card>
       </div>}
     </div>
   </Page>
