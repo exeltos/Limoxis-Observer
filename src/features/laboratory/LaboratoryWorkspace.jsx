@@ -1,3 +1,5 @@
+import { ExportMenu } from '../../design-system/ExportMenu'
+import { registryMenu } from '../../core/export/registryExports'
 import { useEffect, useMemo, useState } from 'react'
 import { useTableSort } from '../../design-system/useTableSort'
 import { EpiMiniQuestions, useEpiMini } from '../surveillance/epiQuestionnaire/EpiQuestionnaireViews'
@@ -212,7 +214,22 @@ export function LaboratoryWorkspace() {
     <NewSampleCard scopedDepartmentIds={canRequestOnly ? membership?.departmentIds ?? [] : []} optionalQuestions={canRequestOnly} t={t} language={language} patients={patients} employees={employees} recentSamples={repositoryRows} onClose={() => setNewOpen(false)} onSave={createSample}/>
     {duplicateDialog}
   </>
-  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: canRequestOnly ? CAPABILITIES.REQUEST_LAB_SAMPLES : CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} />}>
+  // «Export» of the list as it is shown now (after the filters): print, PDF and Excel on the shared layout.
+  const exportSamples = () => ({
+    name: language === 'el' ? 'dimata-ergastiriou' : 'laboratory-samples',
+    headers: language === 'el' ? ['Κωδικός', 'Υποκείμενο', 'Τμήμα', 'Τύπος δείγματος', 'Πηγή', 'Αποτέλεσμα', 'Κατάσταση'] : ['Code', 'Subject', 'Department', 'Sample type', 'Source', 'Result', 'Status'],
+    rows: sortedRows.map(sample => [
+      displaySampleCode(sample),
+      language === 'el' ? sample.patient : sample.patientEn,
+      language === 'el' ? sample.department : sample.departmentEn,
+      sampleTypeLabel(sample, t, language),
+      [sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · '),
+      labResultLabel(sample, t, language) || '',
+      labSampleStatus(sample, language)?.text || '',
+    ]),
+  })
+  const exportActions = <ExportMenu {...registryMenu(exportSamples, { language, kind: language === 'el' ? 'Εργαστήριο' : 'Laboratory', title: language === 'el' ? 'Δείγματα εργαστηρίου' : 'Laboratory samples', onBlocked: () => notify(language === 'el' ? 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.' : 'Allow pop-ups to print.', 'error') })} disabled={!sortedRows.length} />
+  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<>{exportActions}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: canRequestOnly ? CAPABILITIES.REQUEST_LAB_SAMPLES : CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} /></>}>
     {tabs}
     <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
       { key: 'today', icon: FlaskConical, label: t('laboratoryRecords.samplesToday'), value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
