@@ -1,52 +1,56 @@
-import { escapeHtml, factsHtml, reportTableHtml } from '../../core/export/reportDocument'
-import { resolveEnvironmentalStandard } from './laboratoryCloudService'
-import { buildLaboratorySampleReport } from './laboratorySampleReport'
-import { copy } from './laboratorySampleFormat'
+import { limitAssessment, resultLimit } from './environmentalLimit'
 import { sampleProgress } from './laboratorySampleProgress'
+import { resolveEnvironmentalStandard } from './laboratoryCloudService'
 import { labSampleStatus } from './LaboratoryStatus'
+import { sirWord } from '../../design-system/recordReport'
 
-// The printed document of a whole culture plate: every position prints as the sample's own report does (details,
-// microbiology result with organism, CFU, limit and assessment, antibiogram, communication, history), one after the
-// other, in the shared report style. samples: the plate's samples; standards: the environmental protocols.
+// The printed document of a whole culture plate, on one page: a row per position (point, result, organism, CFU, limit,
+// assessment, status) and, only when a position has one, its antibiogram below. Shared report style.
 export function buildPlateReport({ samples, standards = [], language = 'el', t, fmt }) {
   const en = language === 'en'
   const L = (el, enText) => (en ? enText : el)
-  const tx = key => copy[language]?.[key] || copy.en[key] || key
   const first = samples[0]
-  const sections = samples.flatMap(item => {
+  const rows = samples.map(item => {
     const progress = sampleProgress(item)
-    const own = buildLaboratorySampleReport({
-      sample: item,
-      steps: [],
-      progress: { result: progress.result, ast: progress.ast, amr: progress.amr, communications: progress.communications, organisms: progress.organisms },
-      isEnvironmental: true,
-      standard: resolveEnvironmentalStandard(standards, item.type, item.environmentalMethod),
-      language, t, tx, fmt,
-      statusWord: progress.rejected ? t('rejected') : progress.finalized ? t('completed') : labSampleStatus(item, language).text,
-    })
-    const position = `${L('Θέση', 'Position')} ${item.environmentalPosition || '—'}`
-    const heading = `${position} · ${[item.location, item.point].filter(Boolean).join(' · ') || item.id}`
-    return own.sections
-      .filter(section => !['progress', 'documents'].includes(section.id))
-      .map((section, index) => {
-        const facts = (section.pairs || []).filter(pair => pair && pair[1] != null && pair[1] !== '' && pair[1] !== '—')
-        const isolates = (section.items || []).map(isolate => ({
-          title: isolate.title,
-          facts: (isolate.pairs || []).filter(pair => pair && pair[1]),
-          table: isolate.table?.length ? { columns: [L('Αντιβιοτικό', 'Antibiotic'), L('Ευαισθησία', 'Susceptibility')], rows: isolate.table } : null,
-        }))
-        const isolateHtml = isolates.map(isolate => `<h3>${escapeHtml(isolate.title)}</h3>${isolate.facts.length ? factsHtml(isolate.facts) : ''}${isolate.table ? reportTableHtml(isolate.table, en) : ''}`).join('')
-        const events = (section.events || []).map(event => [event.when, event.title, event.by].filter(Boolean).join(' · '))
-        const nothing = !facts.length && !isolates.length && !events.length && !(section.list || []).length
-        return {
-          id: `${item.id}-${section.id}`,
-          title: index === 0 ? `${heading} — ${section.title}` : `${position} — ${section.title}`,
-          facts,
-          list: [...(section.list || []), ...events],
-          html: isolateHtml || undefined,
-          note: nothing ? section.emptyText || L('Δεν υπάρχουν καταχωρίσεις.', 'No entries.') : undefined,
-        }
-      })
+    const result = progress.result
+    const standard = resolveEnvironmentalStandard(standards, item.type, item.environmentalMethod)
+    const verdict = result ? limitAssessment(result, standard) : null
+    const limit = result ? resultLimit(result, standard) : null
+    const cfu = result ? (result.result === 'negative' && result.cfuCount == null ? 0 : result.cfuCount) : null
+    return {
+      item, progress,
+      cells: [
+        item.environmentalPosition || '—',
+        [item.location, item.point].filter(Boolean).join(' · ') || item.id,
+        result?.result ? t(result.result) : L('Χωρίς αποτέλεσμα', 'No result'),
+        progress.organisms.join(', ') || '—',
+        cfu != null && cfu !== '' ? String(cfu) : '—',
+        limit != null ? String(limit) : '—',
+        verdict === true ? L('Εντός αποδεκτών ορίων', 'Within acceptable limits') : verdict === false ? L('Εκτός αποδεκτών ορίων', 'Outside acceptable limits') : result ? L('Χωρίς όριο', 'No limit') : '—',
+        progress.rejected ? t('rejected') : progress.finalized ? t('completed') : labSampleStatus(item, language).text,
+      ],
+    }
+  })
+  const antibiograms = rows.flatMap(({ item, progress }) => progress.organisms
+    .map(name => ({ name, tagged: progress.ast.filter(row => row.organism === name), item }))
+    .filter(entry => entry.tagged.length))
+  const sections = [{
+    id: 'positions',
+    title: L('Αποτελέσματα ανά θέση', 'Results by position'),
+    table: {
+      columns: [L('Θέση', 'Pos.'), L('Σημείο', 'Point'), L('Αποτέλεσμα', 'Result'), L('Μικροοργανισμός', 'Organism'), 'CFU', L('Όριο', 'Limit'), L('Αξιολόγηση', 'Assessment'), L('Κατάσταση', 'Status')],
+      rows: rows.map(row => row.cells),
+    },
+    keepTogether: true,
+  }]
+  if (antibiograms.length) sections.push({
+    id: 'antibiograms',
+    title: L('Αντιβιογράμματα', 'Antibiograms'),
+    tables: antibiograms.map(entry => ({
+      title: `${L('Θέση', 'Position')} ${entry.item.environmentalPosition || '—'} · ${entry.name}`,
+      columns: [L('Αντιβιοτικό', 'Antibiotic'), L('Ευαισθησία', 'Susceptibility')],
+      rows: entry.tagged.map(row => [`${row.drug}${row.mic != null && row.mic !== '' ? ` (MIC ${row.operator || ''}${row.mic})` : row.zone != null ? ` (${row.zone} mm)` : ''}`, sirWord(row.sir, en)]),
+    })),
   })
   return {
     language,
