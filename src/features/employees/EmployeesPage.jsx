@@ -63,6 +63,8 @@ export function EmployeesPage(){
     {key:'status',label:t('status'),initial:true,value:x=>t(x.employmentStatus)},
     {key:'mobile',label:t('employeesRecords.exportMobile'),initial:true,value:x=>x.phone||''},
     {key:'email',label:t('employeesRecords.exportEmail'),initial:false,value:x=>x.email||''},
+    {key:'hrDepartment',label:t('employeesRecords.exportHrDepartment'),initial:false,value:x=>x.hrDepartment||''},
+    {key:'directorate',label:t('employeesRecords.exportDirectorate'),initial:false,value:x=>x.directorate||''},
     {key:'hireDate',label:t('employeesRecords.exportHireDate'),initial:false,value:x=>x.hireDate?String(x.hireDate).slice(0,10).split('-').reverse().join('/'):''},
   ]
   const printKeys=['name','code','department','category','mobile','status']

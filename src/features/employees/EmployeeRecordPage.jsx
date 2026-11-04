@@ -458,6 +458,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
         [t('department'), pick(employee.department, employee.departmentEn)],
         [t('professionalCategory'), pick(employee.profession, employee.professionEn)],
         [en ? 'Job position' : 'Θέση εργασίας', pick(employee.position, employee.positionEn)],
+        [en ? 'HR department' : 'Τμήμα HR', employee.hrDepartment],
+        [en ? 'Directorate' : 'Διεύθυνση', employee.directorate],
         [t('employeesRecords.hireDate'), employee.hireDate ? fmt(employee.hireDate) : ''],
         [t('employeesRecords.email'), employee.email],
         [t('phone'), employee.phone],
@@ -925,6 +927,18 @@ function Details({
               positionEn: positionOptions.find(row => row?.[0] === value)?.[1] || value,
             }))
           }
+        />
+        <InlineDetail
+          editing={editing}
+          label={language === 'en' ? 'HR department' : 'Τμήμα HR'}
+          value={record.hrDepartment}
+          onChange={value => set('hrDepartment', value)}
+        />
+        <InlineDetail
+          editing={editing}
+          label={language === 'en' ? 'Directorate' : 'Διεύθυνση'}
+          value={record.directorate}
+          onChange={value => set('directorate', value)}
         />
         <InlineDetail
           editing={editing}
