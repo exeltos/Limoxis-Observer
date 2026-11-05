@@ -114,7 +114,7 @@ export function AppShell(){
   async function switchEvaluatorRole(nextRole,departmentId=null){if(roleSwitching||!tenant?.id)return;setRoleSwitching(true);try{await switchDemoRole(tenant.id,nextRole,departmentId);setPreviewOpen(false);// The new role starts from its own home page; the current page may not be open to it.
 navigate('/');await reloadMemberships()}catch(error){notifyError(error,'save',{operation:'demo_switch_role'})}finally{setRoleSwitching(false)}}
   const closedDemoAccess=!isPlatformOwner&&!tenant&&!tenantLoading?(profile?.demoAccess||[]).find(item=>!item.open)||null:null
-  const departmentScopedPreviewRoles=new Set([ROLES.DEPARTMENT_MANAGER,ROLES.LINK_NURSE,ROLES.DEPARTMENT_USER,ROLES.LABORATORY])
+  const departmentScopedPreviewRoles=new Set([ROLES.DEPARTMENT_MANAGER,ROLES.LINK_NURSE,ROLES.DEPARTMENT_USER])
   const previewNeedsDepartment=Boolean(rolePreview?.role&&departmentScopedPreviewRoles.has(rolePreview.role))
   // The incident report is a button at the foot of the sidebar, not a menu entry.
   const visibleNavigation=platformMode?[]:navigationFor({role,addOns:membership?.capabilities??[],customCapabilities:membership?.customCapabilities??[],hasAssignments:Boolean(membership?.assignments?.length)})

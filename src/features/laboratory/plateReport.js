@@ -2,12 +2,12 @@ import { environmentalResultWord, resultLimit } from './environmentalLimit'
 import { sampleProgress } from './laboratorySampleProgress'
 import { resolveEnvironmentalStandard } from './laboratoryCloudService'
 import { labSampleStatus } from './LaboratoryStatus'
-import { platePointLabel } from './laboratoryPlates'
+import { platePointText } from './laboratoryPlates'
 import { sirWord } from '../../design-system/recordReport'
 
 // The printed document of a whole culture plate, on one page: a row per position (point, result, organism, CFU, limit,
 // assessment, status) and, only when a position has one, its antibiogram below. Shared report style.
-export function buildPlateReport({ samples, standards = [], language = 'el', t, fmt }) {
+export function buildPlateReport({ samples, standards = [], language = 'el', t, fmt, withNames = true }) {
   const en = language === 'en'
   const L = (el, enText) => (en ? enText : el)
   const first = samples[0]
@@ -21,7 +21,7 @@ export function buildPlateReport({ samples, standards = [], language = 'el', t, 
       item, progress,
       cells: [
         item.environmentalPosition || '—',
-        (point => [point.title === '—' ? '' : point.title, point.detail].filter(Boolean).join(' · ') || item.id)(platePointLabel(item, language)),
+        platePointText(item, language, withNames) === '—' ? item.id : platePointText(item, language, withNames),
         result?.result ? environmentalResultWord(result, language, standard) || t(result.result) : L('Χωρίς αποτέλεσμα', 'No result'),
         progress.organisms.join(', ') || (result?.result === 'positive' ? L('Δεν έχει καταχωριστεί', 'Not recorded') : '—'),
         cfu != null && cfu !== '' ? String(cfu) : '—',

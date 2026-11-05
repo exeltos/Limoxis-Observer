@@ -71,3 +71,13 @@ export function sampleEpisodeTarget(sample) {
     },
   }
 }
+
+// The names of staff-check samples (employees) are shown only to the hospital administrator and the head of infection control;
+// everyone else sees a blurred placeholder and the employee code (the code is not a name).
+export const STAFF_NAME_ROLES = Object.freeze([ROLES.HOSPITAL_ADMIN, ROLES.INFECTION_CONTROL_LEAD])
+export const canSeeStaffNames = role => STAFF_NAME_ROLES.includes(role) || role === ROLES.PLATFORM_OWNER
+export const STAFF_NAME_MASK = '●●●●●●● ●●●●●●●'
+export const maskStaffSample = sample => (sample?.subjectType === 'employee'
+  ? { ...sample, patient: STAFF_NAME_MASK, patientEn: STAFF_NAME_MASK, subjectName: STAFF_NAME_MASK, subjectNameEn: STAFF_NAME_MASK, staffMasked: true }
+  : sample)
+export const maskStaffSamples = (rows, role) => (canSeeStaffNames(role) || !rows.some(row => row?.subjectType === 'employee') ? rows : rows.map(maskStaffSample))
