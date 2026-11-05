@@ -46,7 +46,7 @@ describe('Chart and comparison views never coerce the "—" sentinel back into a
   })
 
   it('ScopeComparison reports the difference as "—" (not a numeric diff) when either side is unavailable', () => {
-    expect(page).toContain("current==='—'||previous==='—'?'—':numberValue(current)-numberValue(previous)")
+    expect(page).toContain("current==='—'||previous==='—'?'—':Math.round((numberValue(current)-numberValue(previous))*10)/10")
   })
 })
 
