@@ -43,7 +43,7 @@ function Section({kind,title,subtitle,details,tx,en}){
  </>
 }
 
-export function CulturesReport({organizationId='',range,departmentId='',tx,en=false}){
+export function CulturesReport({organizationId='',range,departmentId='',onLoadingChange,tx,en=false}){
  const [details,setDetails]=useState(empty),[loading,setLoading]=useState(true),[error,setError]=useState('')
  const rangeFrom=range?.from||'',rangeTo=range?.to||''
  useEffect(()=>{
@@ -55,6 +55,7 @@ export function CulturesReport({organizationId='',range,departmentId='',tx,en=fa
    .finally(()=>{if(live)setLoading(false)})
   return()=>{live=false}
  },[organizationId,rangeFrom,rangeTo,departmentId])
+ useEffect(()=>{onLoadingChange?.(loading);return()=>onLoadingChange?.(false)},[loading,onLoadingChange])
  if(loading)return <div className="analysis-chart-empty">{tx('Φόρτωση καλλιεργειών…','Loading cultures…')}</div>
  if(error||(!details.rows.length))return null
  return <section className="analysis-cultures" aria-label={tx('Καλλιέργειες','Cultures')}>

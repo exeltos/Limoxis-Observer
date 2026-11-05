@@ -31,7 +31,7 @@ begin
   end if;
 
   with latest as (
-    select distinct on (r.sample_id) r.sample_id, r.result_status, r.within_limit, r.organism
+    select distinct on (r.sample_id) r.id as result_id, r.sample_id, r.result_status, r.within_limit, r.organism
     from public.microbiology_results r
     where r.validation_status <> 'draft'
       and (p_organization_id is null or r.organization_id = p_organization_id)
@@ -46,6 +46,7 @@ begin
         when l.result_status = 'positive' and l.within_limit is true then 'within'
         else 'positive'
       end as outcome,
+      l.result_id,
       nullif(trim(l.organism), '') as organism
     from public.laboratory_samples ls
     join latest l on l.sample_id = ls.id
@@ -68,9 +69,11 @@ begin
       ) x), '[]'::jsonb),
     'organisms', coalesce((select jsonb_agg(jsonb_build_array(kind, organism, n) order by kind, n desc)
       from (
-        select kind, organism, count(*) n from s
-        where organism is not null and outcome <> 'negative'
-        group by kind, organism
+        select s.kind, coalesce(nullif(trim(o.organism), ''), s.organism) as organism, count(*) n
+        from s
+        left join public.microbiology_result_organisms o on o.microbiology_result_id = s.result_id
+        where coalesce(nullif(trim(o.organism), ''), s.organism) is not null and s.outcome <> 'negative'
+        group by 1, 2
       ) y), '[]'::jsonb)
   ) into r;
   return r;
