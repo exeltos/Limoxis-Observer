@@ -36,6 +36,11 @@
       "authenticated": true,
       "reason": "Staff analytics; Platform Owner or Hospital Admin / IPC Lead / Hospital Director; health data gated by view_occupational_health."
     },
+    "analysis_culture_metrics": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Culture analytics aggregates (environmental and staff-check samples by department and organism, staff counted without names); Platform Owner or Hospital Admin / IPC Lead / Hospital Director of the organisation."
+    },
     "analysis_training_metrics": {
       "category": "rpc",
       "authenticated": true,
