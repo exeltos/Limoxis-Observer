@@ -26,14 +26,14 @@ describe('training program record: scrolls like other record pages instead of cl
 describe('training programs list: sortable columns', () => {
   it('sorts every column', () => {
     expect(productionPage).toContain('function toggleProgramSort(key)')
-    expect(productionPage).toContain('function programSortIndicator(key)')
+    expect(productionPage).toContain('function SortTh(')
     expect(productionPage).toContain('programSortAccessors')
   })
 
   it('wires the sort handlers into the Programs table headers', () => {
-    expect(productionPage).toContain("onClick={()=>toggleSort('title')}")
-    expect(productionPage).toContain("onClick={()=>toggleSort('trainer')}")
-    expect(productionPage).toContain("onClick={()=>toggleSort('status')}")
+    expect(productionPage).toContain('<SortTh k="title"')
+    expect(productionPage).toContain('<SortTh k="trainer"')
+    expect(productionPage).toContain('<SortTh k="status"')
   })
 })
 

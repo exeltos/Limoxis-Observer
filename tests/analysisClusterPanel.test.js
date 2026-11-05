@@ -32,7 +32,7 @@ describe('Analysis page cluster panel', () => {
     const page = readAnalysisPageSource()
     expect(page).toContain('function ClusterAlerts(')
     expect(page).toContain('<ClusterAlerts clusters={clusters} tx={tx}/>')
-    expect(page).toContain("tab==='laboratory'?<NationalSurveillance details={micro} clusters={clusters}")
+    expect(page).toContain("tab==='laboratory'?<><NationalSurveillance details={micro} clusters={clusters}")
   })
 
   it('plumbs clusters through the production analysis snapshot service', () => {
