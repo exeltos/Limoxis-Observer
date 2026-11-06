@@ -83,7 +83,9 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   return ()=>{live=false}
  },[withRegisters,tenant?.id,from,to,el])
  const listRows=useMemo(()=>(withRegisters?[...rows,...registerRows]:rows),[withRegisters,rows,registerRows])
- const [targetFilter,setTargetFilter]=useState('all')
+ // «Indicators & objectives» opens on the indicators with a target; «All» shows the informative ones too.
+ const defaultTargetFilter=withRegisters?'with':'all'
+ const [targetFilter,setTargetFilter]=useState(defaultTargetFilter)
  const hasTarget=r=>r.target!=null&&r.target!==''
  // The year's objective of each indicator (Indicators & objectives): its target and code are shown in the list, and a missing one is set from the row.
  const [objectives,setObjectives]=useState([])
@@ -117,8 +119,8 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
  })
  useEffect(()=>setPage(1),[query,category,kpi,targetFilter,effectiveDepartment,from,to,pageSize,sort])
  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize);const sequenceIds=sortedRows.map(r=>r.definitionId).filter(Boolean)
- const activeFilterCount=(category!=='all'?1:0)+(targetFilter!=='all'?1:0)+(kpi!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
- function clearFilters(){setQuery('');setCategory('all');setTargetFilter('all');setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
+ const activeFilterCount=(category!=='all'?1:0)+(targetFilter!==defaultTargetFilter?1:0)+(kpi!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
+ function clearFilters(){setQuery('');setCategory('all');setTargetFilter(defaultTargetFilter);setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
  // A card narrows the list to its rows (like Employees and Controls); clicking it again shows them all.
  function toggleKpi(next){setKpi(current=>current===next?'all':next)}
  // Opened from the Quality Center, the back arrow returns to its Indicators view.
