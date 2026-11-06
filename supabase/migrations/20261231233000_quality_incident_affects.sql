@@ -14,3 +14,6 @@ comment on column public.quality_incidents.affects is 'Who the incident concerns
 --   sharps, exposures, allergic and transfusion reactions), and affects from «WhoInjured_type».
 -- * private.risk_indicator_metric_snapshot: falls and medication count both the earlier and the ΟΔΙΠΥ keys
 --   (category in ('fall','odipy-fall'), category in ('medication','odipy-medication')).
+
+-- With incident_class nullable (docs/sql/incident_class_optional.sql, run by the owner), private.fm_sync_incidents
+-- writes 'harmful' for a death, 'nearMiss' only for FileMaker «Παρ'ολίγον Τραυματισμός», and nothing otherwise.
