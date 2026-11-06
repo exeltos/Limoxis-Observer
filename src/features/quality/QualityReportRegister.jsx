@@ -172,8 +172,8 @@ export function reportRegisterExport(rows,{language,t,categories}){
  const en=language==='en'
  return {
   name:en?'reports':'anafores',
-  headers:en?['Code','Date','Classification','Category','Title','Department','Responsible','Stage','Status','Sentinel']:['Κωδικός','Ημερομηνία','Ταξινόμηση','Κατηγορία','Τίτλος','Τμήμα','Υπεύθυνος','Στάδιο','Κατάσταση','Sentinel'],
-  rows:rows.map(row=>[row.code,row.date,kindText(row.kind,language),incidentCategoryLabel(row.category,categories,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.owner,stageLabel(row.stage,language),t(row.status),row.sentinel?(en?'Yes':'Ναι'):'']),
+  headers:en?['Code','Date','Classification','Category','Title','Department','Responsible','Stage','Status','Sentinel','Description','People involved','Patient record no.','Room','Causes','Notes']:['Κωδικός','Ημερομηνία','Ταξινόμηση','Κατηγορία','Τίτλος','Τμήμα','Υπεύθυνος','Στάδιο','Κατάσταση','Sentinel','Περιγραφή','Εμπλεκόμενοι','Κωδικός ασθενή','Θάλαμος','Αίτια','Σημειώσεις'],
+  rows:rows.map(row=>{const r=row.record||{};return [row.code,row.date,kindText(row.kind,language),incidentCategoryLabel(row.category,categories,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.owner,stageLabel(row.stage,language),t(row.status),row.sentinel?(en?'Yes':'Ναι'):'',(en?r.descriptionEn:r.description)||'',r.involvedPeople||'',r.patientReference||'',r.room||'',r.rootCause||'',r.notes||'']}),
  }
 }
 

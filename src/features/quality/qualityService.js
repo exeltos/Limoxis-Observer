@@ -79,7 +79,8 @@ export function mapRow(section,row){
   }
   if(section==='incidents') return {
     ...common,
-    severity:row.severity||'medium',
+    // Left empty when it was never set (imported without «Σημαντικότητα»): Quality sets it.
+    severity:row.severity||'',
     incidentClass:row.incident_class||'nearMiss',
     reachedPatient:Boolean(row.reached_patient),
     harmOccurred:Boolean(row.harm_occurred),
@@ -106,6 +107,10 @@ export function mapRow(section,row){
     rootCauseEn:row.root_cause||'',
     contributingFactors:row.contributing_factors||'',
     contributingFactorsEn:row.contributing_factors||'',
+    involvedPeople:row.involved_people||'',
+    patientReference:row.patient_reference||'',
+    room:row.room||'',
+    notes:row.notes||'',
   }
   if(section==='findings') return {
     ...common,
@@ -463,6 +468,10 @@ function buildPersistPayload(section,record){
     immediate_actions:record.immediateActions||record.immediateActionsEn||null,
     root_cause:record.rootCause||record.rootCauseEn||null,
     contributing_factors:record.contributingFactors||record.contributingFactorsEn||null,
+    ...(record.involvedPeople!==undefined?{involved_people:record.involvedPeople||null}:{}),
+    ...(record.patientReference!==undefined?{patient_reference:record.patientReference||null}:{}),
+    ...(record.room!==undefined?{room:record.room||null}:{}),
+    ...(record.notes!==undefined?{notes:record.notes||null}:{}),
     ...(record.reportKind?{report_kind:record.reportKind}:{}),
     is_sentinel:Boolean(record.sentinel),
     rca_due_date:record.rcaDueDate||null,

@@ -66,6 +66,9 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
     recordType === 'incidents' && [L('Άμεσες ενέργειες', 'Immediate actions'), text(record.immediateActions, record.immediateActionsEn)],
     recordType === 'incidents' && [L('Βασική αιτία', 'Root cause'), text(record.rootCause, record.rootCauseEn)],
     recordType === 'incidents' && [L('Συνεισφέροντες παράγοντες', 'Contributing factors'), text(record.contributingFactors, record.contributingFactorsEn)],
+    recordType === 'incidents' && [L('Εμπλεκόμενοι', 'People involved'), record.involvedPeople],
+    recordType === 'incidents' && [L('Κωδικός ασθενή / θάλαμος', 'Patient record / room'), [record.patientReference, record.room].filter(Boolean).join(' · ')],
+    recordType === 'incidents' && [L('Σημειώσεις', 'Notes'), record.notes],
   ].filter(item => item && String(item[1] || '').trim())
   const steps = recordType === 'capas' ? record.subActions || [] : []
   const progress = recordType === 'capas' ? record.progress || [] : []

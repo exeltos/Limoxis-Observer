@@ -173,6 +173,11 @@ function IncidentReadDetails({record,categories,language,t}){
       {label:en?'Category':'Κατηγορία συμβάντος',value:incidentCategoryLabel(record.category||'clinical',categories,language)},
       {label:en?'Description':'Περιγραφή',value:text(record.description,record.descriptionEn),wide:true},
       record.immediateActions||record.immediateActionsEn?{label:en?'Immediate actions taken':'Άμεσες ενέργειες που πραγματοποιήθηκαν',value:text(record.immediateActions,record.immediateActionsEn),wide:true}:null,
+      record.patientReference?{label:en?'Patient record no.':'Κωδικός ασθενή',value:record.patientReference}:null,
+      record.room?{label:en?'Room':'Θάλαμος',value:record.room}:null,
+      record.involvedPeople?{label:en?'People involved':'Εμπλεκόμενοι',value:record.involvedPeople,wide:true}:null,
+      record.rootCause?{label:en?'Causes':'Αίτια',value:record.rootCause,wide:true}:null,
+      record.notes?{label:en?'Notes':'Σημειώσεις',value:record.notes,wide:true}:null,
     ]},
     facts.length?{title:en?'Event details':'Στοιχεία συμβάντος',items:facts.map(([label,value])=>({label,value}))}:null,
     {title:en?'Report and ownership':'Αναφορά και ιδιοκτησία',items:[
@@ -346,6 +351,13 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
         <EditChoice editing={editing} label={en?'Category':'Κατηγορία συμβάντος'} value={draft.category||'clinical'} onChange={v=>set('category',v)} options={incidentCategoryOptions(categories,language,reportKindOf(draft)==='suggestion'?null:reportKindOf(draft))} display={incidentCategoryLabel(draft.category||'clinical',categories,language)}/>
         <div className="detail-item editable"><TimeField label={en?'Time':'Ώρα'} value={draft.eventTime||''} onChange={v=>set('eventTime',v)}/></div>
         <EditOwners editing={editing} draft={draft} patch={patch} en={en}/>
+        {editing&&<>
+          <EditText editing label={en?'Patient record no.':'Κωδικός ασθενή'} value={draft.patientReference} onChange={v=>set('patientReference',v)}/>
+          <EditText editing label={en?'Room':'Θάλαμος'} value={draft.room} onChange={v=>set('room',v)}/>
+          <EditArea label={en?'People involved':'Εμπλεκόμενοι'} value={draft.involvedPeople} onChange={v=>set('involvedPeople',v)}/>
+          <EditArea label={en?'Causes':'Αίτια'} value={draft.rootCause} onChange={v=>set('rootCause',v)}/>
+          <EditArea label={en?'Notes':'Σημειώσεις'} value={draft.notes} onChange={v=>set('notes',v)}/>
+        </>}
         <p className="quality-edit-note">{en?'Reported by':'Αναφέρθηκε από'} <strong>{reporterText(draft,en)||'—'}</strong> · {formatDay(draft.date,language)}</p>
       </>}
       </>}
@@ -453,6 +465,8 @@ const historyTitle=(entry,t,en)=>{const text=entry.action?t(entry.action):'';ret
 const historyActor=(actor,en)=>String(actor||'').replace(/^Reconciliation (?:από|from)\s+/i,en?'Reconciled with the file ':'Συμφωνήθηκε με το αρχείο ')
 function QualityHistory({record,t,language}){const en=language==='en';const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={events} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
 function Detail({label,value}){if(!value&&value!==0)return null;return <div className="detail-item"><span className="lo-field-label">{label}</span><strong>{value||'—'}</strong></div>}
+// A longer text (people involved, causes, notes): a few lines, the full width of the form.
+function EditArea({label,value,onChange}){return <div className="detail-item editable quality-edit-wide"><Field label={label}><textarea rows={3} value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>}
 function EditText({editing,label,value,onChange}){return editing?<div className="detail-item editable"><Field label={label}><input value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>:<Detail label={label} value={value}/>}
 function EditDate({editing,label,value,onChange,language}){return editing?<div className="detail-item editable"><ManualDateField label={label} value={value||''} onChange={onChange}/></div>:<Detail label={label} value={formatDay(value,language)}/>}
 // Up to three answers: the mode switch; a longer list: a searchable list.
