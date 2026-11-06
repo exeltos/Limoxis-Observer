@@ -1229,3 +1229,13 @@ td>.lo-meter{margin-top:5px}
 @media (hover:hover){.indicator-registry tr:not(:hover):not(:focus-within) .indicator-set-target{opacity:0}}
 
 .observer-dialog-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+/* Registry totals beside the search and filters (RegistryTotals). */
+.registry-totals{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
+.registry-total{display:inline-flex;align-items:baseline;gap:5px;height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font:inherit;font-size:12px;line-height:28px;white-space:nowrap}
+.registry-total strong{color:var(--lo-color-text);font-size:13px;font-weight:700}
+button.registry-total{cursor:pointer}
+button.registry-total:hover{border-color:var(--accent);color:var(--lo-color-text)}
+button.registry-total.is-active{border-color:var(--accent);background:var(--lo-color-primary-soft);color:var(--lo-color-text)}
+/* Field choice of an Excel export (ExcelFieldsDialog). */
+.excel-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 16px;margin-top:10px}
+@media (max-width:560px){.excel-fields{grid-template-columns:1fr}}
