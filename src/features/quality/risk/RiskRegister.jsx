@@ -1,5 +1,6 @@
 import { useMemo,useState } from 'react'
-import { FigureCards } from '../../../design-system/FigureCards'
+import { RegistryTotals } from '../../../design-system/RegistryTotals'
+import { formatDay } from '../../../core/i18n/formatDay'
 import { AlertTriangle,ChevronRight,Star } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -8,7 +9,9 @@ import { L,LevelChip,defaultFrame,returnedClass,txt,usePaged } from './riskUi'
 import { IndicatorBadge } from './RiskIndicatorsUi'
 
 // What each KPI card of the register keeps.
-const QUICK={highOrAbove:x=>['high','very_high'].includes(x.s.residual.level),veryHigh:x=>x.s.residual.level==='very_high',high:x=>x.s.residual.level==='high',noPlan:x=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:x=>!x.s.target.score,noIndicator:x=>!(x.risk.indicatorKeys||[]).length}
+const QUICK={highOrAbove:x=>['high','very_high'].includes(x.s.residual.level),veryHigh:x=>x.s.residual.level==='very_high',high:x=>x.s.residual.level==='high',noPlan:x=>x.warnings.some(w=>w.id==='action_plan_required'),noTarget:x=>!x.s.target.score,noIndicator:x=>!(x.risk.indicatorKeys||[]).length,
+ // High or very high after the measures, with no owner or no due date for the plan.
+ noOwnerDue:x=>['high','very_high'].includes(x.s.residual.level)&&(!String(x.risk.owner||'').trim()||!x.risk.dueDate)}
 
 // The register: every risk of the assessment with its three scores.
 // What happened in practice in the last twelve months: the incidents of the
@@ -52,18 +55,20 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
  // The table's rows: each section's heading, then its risks.
  const tableRows=groups.flatMap(({section:g,rows:list})=>[{heading:g},...list])
  const active=(section!=='all')+(process!=='all')+(level!=='all')+(jci!=='all')+(flag!=='all')
- const figure=(id,value,label,late=false)=><button key={id} type="button" className={`${late&&value?'is-late':''}${quick===id?' is-active':''}`.trim()} onClick={()=>toggleQuick(id)}><b>{value}</b> {label}</button>
- const kpis=<FigureCards className="quality-summary-line risk-summary-line">
-   <button type="button" className={!quick?'is-active':undefined} onClick={()=>setQuick(null)}><b>{all.length}</b> {L(en,'κίνδυνοι','risks')}</button>
-   {figure('veryHigh',counts.veryHigh,L(en,'πολύ υψηλοί (μετά τα μέτρα)','very high (after measures)'),true)}
-   {figure('high',counts.high,L(en,'υψηλοί (μετά τα μέτρα)','high (after measures)'))}
-   {figure('noPlan',counts.noPlan,L(en,'υψηλοί χωρίς σχέδιο δράσης','high without an action plan'),true)}
-   {figure('noTarget',counts.noTarget,L(en,'χωρίς κίνδυνο-στόχο','without a target'),true)}
-   {figure('noIndicator',counts.noIndicator,L(en,'χωρίς δείκτη','without an indicator'),true)}
- </FigureCards>
- return frame(kpis,<>
+ // The totals beside the search: each one filters the register, a second click clears it.
+ const total=(id,label)=>({key:id,value:counts[id],label,active:quick===id,onClick:()=>toggleQuick(id)})
+ const totals=<RegistryTotals label={L(en,'Σύνολα','Totals')} items={[
+  {key:'all',always:true,value:all.length,label:L(en,'κίνδυνοι','risks'),active:!quick,onClick:()=>setQuick(null)},
+  total('veryHigh',L(en,'πολύ υψηλοί','very high')),
+  total('high',L(en,'υψηλοί','high')),
+  total('noPlan',L(en,'υψηλοί χωρίς σχέδιο δράσης','high without an action plan')),
+  total('noOwnerDue',L(en,'υψηλοί χωρίς υπεύθυνο / προθεσμία','high without owner / due date')),
+  total('noTarget',L(en,'χωρίς κίνδυνο-στόχο','without a target')),
+  total('noIndicator',L(en,'χωρίς δείκτη','without an indicator')),
+ ]}/>
+ return frame(null,<>
   <div className="risk-toolbar">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση κινδύνου, διεργασίας, τμήματος…','Search risk, process, department…')} activeAdvancedCount={active+(quick?1:0)} onClear={()=>{setQuery('');setSection('all');setProcess('all');setLevel('all');setJci('all');setFlag('all');setQuick(null);onClearCell?.()}}>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση κινδύνου, διεργασίας, τμήματος…','Search risk, process, department…')} activeAdvancedCount={active} end={totals} onClear={()=>{setQuery('');setSection('all');setProcess('all');setLevel('all');setJci('all');setFlag('all');setQuick(null);onClearCell?.()}}>
     <FilterSelect label={L(en,'Ενότητα','Section')} value={section} onChange={setSection}><option value="all">{L(en,'Όλες','All')}</option>{SECTIONS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Διεργασία','Process')} value={process} onChange={setProcess}><option value="all">{L(en,'Όλες','All')}</option>{processes.map(p=><option key={p} value={p}>{p}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Υπολειπόμενος κίνδυνος','Residual risk')} value={level} onChange={setLevel}><option value="all">{L(en,'Όλα τα επίπεδα','All levels')}</option>{LEVELS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
@@ -76,10 +81,10 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
   </div>
   {cell&&<div className="risk-cell-filter"><span>{L(en,'Φίλτρο από τον χάρτη','Filter from the heat map')}: L{cell.l} × C{cell.c}</span><button type="button" onClick={onClearCell}>{L(en,'Καθαρισμός','Clear')}</button></div>}
   <RegistryTable sortable={false} wrapperClassName="scroll-table risk-table-wrap" className="risk-table" rows={tableRows} rowKey={row=>row.heading?`section-${row.heading.id}`:row.risk.id||row.risk.lineageKey}
-   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'inherent',label:L(en,'Εγγενής','Inherent')},{key:'residual',label:L(en,'Υπολειπόμενος','Residual'),className:'risk-step'},{key:'target',label:L(en,'Στόχος','Target'),className:'risk-step'},{key:'owner',label:L(en,'Υπεύθυνος','Owner')},{key:'open',label:''}]}
+   columns={[{key:'code',label:L(en,'Κωδ.','Code')},{key:'risk',label:L(en,'Κίνδυνος','Risk')},{key:'inherent',label:L(en,'Εγγενής','Inherent')},{key:'residual',label:L(en,'Υπολειπόμενος','Residual'),className:'risk-step'},{key:'target',label:L(en,'Στόχος','Target'),className:'risk-step'},{key:'owner',label:L(en,'Υπεύθυνος','Owner')},{key:'due',label:L(en,'Προθεσμία','Due')},{key:'open',label:''}]}
    rowProps={row=>row.heading?{}:{className:`risk-row-clickable${returnedClass(returned,row.risk.lineageKey)}`,onClick:()=>onOpen(row.risk)}}
    emptyTitle={risks.length?L(en,'Κανένας κίνδυνος με αυτά τα φίλτρα','No risk matches these filters'):L(en,'Δεν υπάρχουν κίνδυνοι','No risks yet')} emptyText={risks.length?L(en,'Αλλάξτε ή καθαρίστε τα φίλτρα.','Change or clear the filters.'):L(en,'Προσθέστε κινδύνους ή εισαγάγετε το μητρώο από Excel.','Add risks or import the register from Excel.')}
-   renderRow={row=>row.heading?<tr className="risk-section-row"><td colSpan={7}><strong>{en?row.heading.en:row.heading.el}</strong><span>{sectionTotals[row.heading.id]}</span></td></tr>:<>
+   renderRow={row=>row.heading?<tr className="risk-section-row"><td colSpan={8}><strong>{en?row.heading.en:row.heading.el}</strong><span>{sectionTotals[row.heading.id]}</span></td></tr>:<>
      <td><strong>{row.risk.lineageKey}</strong>{row.risk.prioritized&&<Star size={13} className="risk-star" aria-label="FMEA"/>}</td>
      <td className="risk-hazard"><span className="risk-hazard-text">{txt(row.risk,'hazard',en)}</span>
       <small className="risk-hazard-where">{[txt(row.risk,'process',en),txt(row.risk,'scope',en)].filter(Boolean).join(' · ')||'—'}</small>
@@ -89,6 +94,7 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
      <td className="risk-step"><LevelChip score={row.s.residual.score} level={row.s.residual.level} en={en}/></td>
      <td className="risk-step"><LevelChip score={row.s.target.score} level={row.s.target.level} en={en} compact/></td>
      <td>{txt(row.risk,'owner',en)||'—'}</td>
+     <td className="nowrap-cell">{row.risk.dueDate?formatDay(row.risk.dueDate,en?'en':'el'):'—'}</td>
      <td className="risk-open-cell"><button type="button" className="risk-open-button" aria-label={L(en,'Άνοιγμα κινδύνου','Open the risk')} onClick={e=>{e.stopPropagation();onOpen(row.risk)}}><ChevronRight size={15}/></button></td>
     </>}/>
   {rows.length>0&&pager}

@@ -1,5 +1,5 @@
 import { useMemo,useState } from 'react'
-import { FigureCards } from '../../../design-system/FigureCards'
+import { RegistryTotals } from '../../../design-system/RegistryTotals'
 import { ChevronRight } from 'lucide-react'
 import { FilterBar,FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -35,16 +35,17 @@ export function RiskOpportunities({items,en,onOpen,actions=null,returned='',fram
  })
  const active=(rating!=='all')+(effect!=='all')+(owner!=='all')
  const {items:pageRows,pager}=usePaged(rows,{en,resetOn:JSON.stringify([query,rating,effect,owner,quick]),startIndex:rows.findIndex(x=>String(x.item.id)===returned)})
- const line=(id,value,label,late=false)=><button key={id} type="button" className={`${late&&value?'is-late':''}${quick===id?' is-active':''}`.trim()} onClick={()=>toggleQuick(id)}><b>{value}</b> {label}</button>
- const kpis=<FigureCards className="quality-summary-line risk-summary-line">
-   <button type="button" className={!quick?'is-active':undefined} onClick={()=>setQuick(null)}><b>{all.length}</b> {L(en,'ευκαιρίες','opportunities')}</button>
-   {line('high',counts.high,L(en,'υψηλής απόδοσης','high yield'))}
-   {line('noPlan',counts.noPlan,L(en,'χωρίς σχέδιο δράσης','without an action plan'),true)}
-   {line('unassessed',counts.unassessed,L(en,'χωρίς αξιολόγηση αποτελεσματικότητας','effectiveness not assessed'),true)}
- </FigureCards>
- return frame(kpis,<>
+ // The totals beside the search: each one filters the list, a second click clears it.
+ const line=(id,label)=>({key:id,value:counts[id],label,active:quick===id,onClick:()=>toggleQuick(id)})
+ const totals=<RegistryTotals label={L(en,'Σύνολα','Totals')} items={[
+  {key:'all',always:true,value:all.length,label:L(en,'ευκαιρίες','opportunities'),active:!quick,onClick:()=>setQuick(null)},
+  line('high',L(en,'υψηλής απόδοσης','high yield')),
+  line('noPlan',L(en,'χωρίς σχέδιο δράσης','without an action plan')),
+  line('unassessed',L(en,'χωρίς αξιολόγηση αποτελεσματικότητας','effectiveness not assessed')),
+ ]}/>
+ return frame(null,<>
   <div className="risk-toolbar">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση ευκαιρίας, σχεδίου δράσης, υπευθύνου…','Search opportunity, action plan, owner…')} activeAdvancedCount={active+(quick?1:0)} onClear={()=>{setQuery('');setRating('all');setEffect('all');setOwner('all');setQuick(null)}}>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση ευκαιρίας, σχεδίου δράσης, υπευθύνου…','Search opportunity, action plan, owner…')} activeAdvancedCount={active} end={totals} onClear={()=>{setQuery('');setRating('all');setEffect('all');setOwner('all');setQuick(null)}}>
     <FilterSelect label={L(en,'Απόδοση','Yield')} value={rating} onChange={setRating}><option value="all">{L(en,'Όλες','All')}</option>{OPPORTUNITY_RATINGS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Αποτελεσματικότητα','Effectiveness')} value={effect} onChange={setEffect}><option value="all">{L(en,'Όλες','All')}</option>{EFFECTIVENESS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}<option value="none">{L(en,'Δεν αξιολογήθηκε','Not assessed')}</option></FilterSelect>
     <FilterSelect label={L(en,'Υπεύθυνος','Owner')} value={owner} onChange={setOwner}><option value="all">{L(en,'Όλοι','All')}</option>{owners.map(x=><option key={x} value={x}>{x}</option>)}</FilterSelect>

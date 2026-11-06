@@ -31,7 +31,7 @@ function RiskSplit({counts,en}){
   </div>
 }
 
-export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onCreatingChange,fileRef,onRowsChange}){
+export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onCreatingChange,fileRef,onRowsChange,totals=null}){
  const navigate=useNavigate()
  const {profile,user}=useAuth()
  const {notify}=useFeedback()
@@ -70,7 +70,7 @@ export function RiskAssessmentsPanel({list,organizationId,en,locale,creating,onC
  // The tab sits in the Quality Center card: filter row, table and pager are its rows.
  return <>
   <input ref={fileRef} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden onChange={pickFile}/>
-  <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση εκτίμησης ή περιόδου','Search assessment or period')} onClear={()=>setQuery('')}/>
+  <FilterBar query={query} onQueryChange={setQuery} placeholder={L(en,'Αναζήτηση εκτίμησης ή περιόδου','Search assessment or period')} onClear={()=>setQuery('')} end={totals}/>
   <RegistryTable sort={sort} onSort={onSort} wrapperClassName="scroll-table risk-assessments-table" className="risk-table" rows={pageRows} rowKey={({a})=>a.id}
    columns={[{key:'period',label:L(en,'Περίοδος','Period')},{key:'title',label:L(en,'Εκτίμηση','Assessment')},{key:'date',label:L(en,'Ημερομηνία','Date')},{key:'risks',label:L(en,'Κίνδυνοι','Risks')},{key:'residual',label:L(en,'Κατανομή μετά τα μέτρα','Split after measures')},{key:'status',label:L(en,'Κατάσταση','Status')}].map(column=>({...column,sortable:true}))}
    rowProps={({a})=>({className:`risk-row-clickable${returnedClass(assessmentRow.returned,a.code)}`,onClick:()=>open(a.code)})}
