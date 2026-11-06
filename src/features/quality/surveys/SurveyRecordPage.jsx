@@ -24,7 +24,7 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useDepartments } from '../../management/useLibraries'
 import { addResponse, deleteResponse, deleteSurvey, loadResponses, loadSurvey, saveSurvey } from './surveyService'
 import { RESPONSE_CHANNELS, answerText, audienceLabel, channelLabel, filterResponses, responsesExport, surveyFromTemplate, surveyProblems, surveyStatusLabel, surveyStatusTone, textOf } from './surveyModel'
-import { SurveyResults } from './SurveyResults'
+import { SurveyResults, SurveyResultsLine } from './SurveyResults'
 import { SurveyCollect } from './SurveyCollect'
 import { SurveyEditor } from './SurveyEditor'
 import { SurveyForm, missingAnswers } from './SurveyForm'
@@ -150,11 +150,12 @@ export function SurveyRecordPage() {
     subtitle={[audienceLabel(survey.audience, language), survey.opensOn && !survey.closesOn ? `${en ? 'From' : 'Από'} ${formatDay(survey.opensOn, language)}` : [survey.opensOn && formatDay(survey.opensOn, language), survey.closesOn && formatDay(survey.closesOn, language)].filter(Boolean).join(' – ')].filter(Boolean).join(' · ')}
     status={!isNew && <StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'}>
-      {filterBar}
-      <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} />
+    {/* Results: no heading of its own (the tab says it); the figures beside the filters, the definitions in their tooltips. */}
+    {tab === 'results' && <section className="record-tab-panel survey-results-panel"><div className="record-tab-panel-body">
+      <FilterBar query={filters.query} onQueryChange={query => setFilters(current => ({ ...current, query }))} placeholder={en ? 'Search the comments…' : 'Αναζήτηση στα σχόλια…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)} end={<SurveyResultsLine survey={survey} responses={shown} language={language} />}>{departmentFilter}</FilterBar>
+      <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} showLine={false} />
       {survey.code && <LinkedActions sourceId={`SRV:${survey.code}`} organizationId={tenant?.id} returnTab="results" />}
-    </RecordTabPanel>}
+    </div></section>}
     {viewing && <ObserverDialog title={en ? 'Response' : 'Απάντηση'} subtitle={[formatDay(viewing.submittedAt, language), (en ? viewing.departmentEn : viewing.department) || '', channelLabel(viewing.channel, language)].filter(Boolean).join(' · ')} onClose={() => setViewing(null)}
       footer={canManage && <Button variant="danger" onClick={() => removeResponse(viewing)}><Trash2 size={15} />{en ? 'Delete response' : 'Διαγραφή απάντησης'}</Button>}>
       <dl className="survey-response-answers">{survey.questions.filter(question => answerText(question, viewing.answers?.[question.id], language)).map(question => <div key={question.id}><dt>{textOf(question, language)}</dt><dd>{answerText(question, viewing.answers?.[question.id], language)}</dd></div>)}</dl>

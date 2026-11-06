@@ -12,7 +12,7 @@ const toneFor = (value, target) => meterTone(value, { good: target, fair: Math.m
 
 // What the answers say: the headline figures, what falls below the target (each
 // can open a corrective action), each department, the trend and every question.
-export function SurveyResults({ survey, responses, language = 'el', canAct = false, onAction }) {
+export function SurveyResults({ survey, responses, language = 'el', canAct = false, onAction, showLine = true }) {
   const en = language === 'en'
   const summary = surveySummary(survey, responses)
   const departments = departmentBreakdown(survey, responses, language)
@@ -23,14 +23,7 @@ export function SurveyResults({ survey, responses, language = 'el', canAct = fal
   const shown = views.some(item => item.value === view) ? view : 'summary'
   if (!responses.length) return <p className="risk-empty-note">{en ? 'No responses for this selection yet.' : 'Δεν υπάρχουν απαντήσεις για αυτή την επιλογή.'}</p>
   return <div className="survey-results">
-    {/* The headline figures in one line (no cards inside the card). */}
-    <p className="survey-results-line">{[
-      `${survey.targetResponses ? `${summary.responses} / ${survey.targetResponses}` : summary.responses} ${en ? 'responses' : 'απαντήσεις'}`,
-      <span key="satisfied" className={summary.satisfied != null && summary.satisfied < summary.target ? 'quality-overdue-text' : undefined}>{pct(summary.satisfied, en)} {en ? `satisfied (target ${summary.target}%)` : `ικανοποιημένοι (στόχος ${summary.target}%)`}</span>,
-      (survey.questions || []).some(question => question.type === 'nps') ? `${en ? 'recommendation score' : 'δείκτης σύστασης'} ${npsText(summary.nps)}` : null,
-      <span key="below" className={summary.below.length ? 'quality-overdue-text' : undefined}>{summary.below.length} {en ? 'questions below target' : 'ερωτήσεις κάτω από τον στόχο'}</span>,
-      `${summary.comments} ${en ? 'comments' : 'σχόλια'}`,
-    ].filter(Boolean).flatMap((part, index) => (index ? [<span key={`sep-${index}`} aria-hidden="true"> · </span>, part] : [part]))}</p>
+    {showLine && <SurveyResultsLine survey={survey} responses={responses} language={language} />}
     <CanonicalTabs items={views} value={shown} onChange={setView} ariaLabel={en ? 'Results view' : 'Προβολή αποτελεσμάτων'} />
     <div className="survey-results-grid">
       {shown === 'summary' && <section className="quality-panel survey-flat-section survey-below-panel">
@@ -91,4 +84,18 @@ function QuestionResult({ result, language, target }) {
     {question.type === 'yesno' && <><span className="survey-meter-cell"><Meter value={result.yes} tone={meterTone(result.yes)} label={pct(result.yes, en)} />{en ? `${pct(result.yes, en)} yes` : `${pct(result.yes, en)} ναι`}</span><span /></>}
     {['single', 'multiple'].includes(question.type) && <ul className="quality-bars survey-option-bars">{result.options.map(option => <li key={option.value}><span>{textOf(option, language)}</span><span className="quality-bar"><i style={{ width: `${(option.count * 100) / max}%` }} /></span><strong>{option.count}</strong><small>{pct(option.share, en)}</small></li>)}</ul>}
   </li>
+}
+
+// The headline figures in one line (beside the filters on the Results tab); the definitions are in the tooltips.
+export function SurveyResultsLine({ survey, responses, language = 'el' }) {
+  const en = language === 'en'
+  const summary = surveySummary(survey, responses)
+  if (!responses.length) return null
+  return <p className="survey-results-line">{[
+      `${survey.targetResponses ? `${summary.responses} / ${survey.targetResponses}` : summary.responses} ${en ? 'responses' : 'απαντήσεις'}`,
+      <span key="satisfied" title={en ? 'Satisfied = share answering 4 or 5' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5'} className={summary.satisfied != null && summary.satisfied < summary.target ? 'quality-overdue-text' : undefined}>{pct(summary.satisfied, en)} {en ? `satisfied (target ${summary.target}%)` : `ικανοποιημένοι (στόχος ${summary.target}%)`}</span>,
+      (survey.questions || []).some(question => question.type === 'nps') ? <span key="nps" title={en ? 'Recommendation score = promoters (9–10) minus detractors (0–6)' : 'Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6)'}>{en ? 'recommendation score' : 'δείκτης σύστασης'} {npsText(summary.nps)}</span> : null,
+      <span key="below" className={summary.below.length ? 'quality-overdue-text' : undefined}>{summary.below.length} {en ? 'questions below target' : 'ερωτήσεις κάτω από τον στόχο'}</span>,
+      `${summary.comments} ${en ? 'comments' : 'σχόλια'}`,
+    ].filter(Boolean).flatMap((part, index) => (index ? [<span key={`sep-${index}`} aria-hidden="true"> · </span>, part] : [part]))}</p>
 }
