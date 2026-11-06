@@ -506,7 +506,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
       )}
       <ExportMenu items={[
         { id: 'employee-print', kind: 'print', label: language === 'en' ? 'Print: details' : 'Εκτύπωση: στοιχεία', onClick: () => printEmployee(false) },
-        ...(tab === 'training' ? tabExports : []),
+        ...tabExports,
       ]} />
       {canAdmin && onDetails && !editingDetails && (
         <Button variant="secondary" tone="danger" onClick={deleteEmployee}>
@@ -533,7 +533,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         }
         eyebrow={employee.id}
         title={name}
-        subtitle={`${language === 'el' ? employee.profession : employee.professionEn || employee.profession} · ${language === 'el' ? employee.department : employee.departmentEn || employee.department}`}
+        subtitle={[language === 'el' ? employee.profession : employee.professionEn || employee.profession, language === 'el' ? employee.department : employee.departmentEn || employee.department].filter(Boolean).join(' · ')}
         status={
           <span
             className={`status-badge ${employee.employmentStatus === 'active' ? 'active' : ''}`}
@@ -590,6 +590,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'position' && (
           <EmployeePositionTab
             employee={employee}
+            onExportItems={setTabExports}
             positions={positionOptions}
             language={language}
             organizationId={tenant?.id}
@@ -600,6 +601,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'occupational' && (
           <EmployeeHealthTab
             employee={employee}
+            onExportItems={setTabExports}
             t={t}
             language={language}
             fmt={fmt}
@@ -610,6 +612,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'surveillance' && (
           <EmployeeSurveillanceTab
             employee={employee}
+            onExportItems={setTabExports}
             t={t}
             language={language}
             fmt={fmt}
@@ -635,6 +638,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'evaluations' && (
           <EmployeeEvaluationsTab
             employee={employee}
+            onExportItems={setTabExports}
             t={t}
             language={language}
             fmt={fmt}
@@ -650,6 +654,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
           <div className="employee-documents-tab">
           <EmployeeCertificatesTab
             employee={employee}
+            onExportItems={setTabExports}
             language={language}
             fmt={fmt}
             organizationId={tenant?.id}
@@ -667,7 +672,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         )}
           </div>
         )}
-        {tab === 'history' && <EmployeeHistoryTab employee={employee} language={language} />}
+        {tab === 'history' && <EmployeeHistoryTab employee={employee} language={language} onExportItems={setTabExports} />}
       </EntityRecordShell>
       {surveillanceOpen && !selfReadOnly && (
         <EmployeeSurveillanceFlow

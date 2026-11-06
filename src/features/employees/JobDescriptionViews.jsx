@@ -5,6 +5,7 @@ import { Button } from '../../design-system/Button'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { JOB_DESCRIPTION_FIELDS,acknowledgePosition,acknowledgementState,emptyJobDescription,hasJobDescription,loadPositionAcknowledgements,positionRow } from './jobDescription'
 import './jobDescription.css'
+import { employeeReportHead,useRecordTabExport } from './employeeTabExport'
 
 // Edit a position's job description (Management > Libraries > Job positions).
 export function JobDescriptionDialog({row,language,onClose,onSave,saving=false}){
@@ -21,7 +22,7 @@ export function JobDescriptionDialog({row,language,onClose,onSave,saving=false})
 
 // Employee record > Position: the description of the employee's position and
 // the employee's acceptance of the current version.
-export function EmployeePositionTab({employee,positions=[],language,organizationId,canAcknowledge,actorName}){
+export function EmployeePositionTab({employee,positions=[],language,organizationId,canAcknowledge,actorName,onExportItems}){
  const en=language==='en'
  const {notify,notifyError}=useFeedback()
  const row=positionRow(positions,employee.position)
@@ -32,14 +33,23 @@ export function EmployeePositionTab({employee,positions=[],language,organization
  const forPosition=useMemo(()=>acks.filter(a=>a.position===employee.position),[acks,employee.position])
  const {state,latest}=acknowledgementState(jd,forPosition)
  const fmt=v=>v?new Intl.DateTimeFormat(en?'en-GB':'el-GR',{dateStyle:'medium',timeStyle:'short', hourCycle: 'h23'}).format(new Date(v)):'—'
+ // Print: the job description with the employee's acceptance and a place to sign (no Excel: it is a text, not a list).
+ const exportDialog=useRecordTabExport({onExportItems,id:'position',label:{el:'Περιγραφή θέσης',en:'Job description'},employee,language,excel:false,count:hasJobDescription(jd)?1:0,
+  doc:()=>{const head=employeeReportHead(employee,language);const title=en?(row?.[1]||employee.positionEn||employee.position):employee.position
+   return {language,kind:en?'Job description':'Περιγραφή θέσης εργασίας',code:head.code,title:`${title} · ${head.name}`,filename:`perigrafi-thesis-${employee.id}`,
+    meta:[...head.meta,[en?'Version':'Έκδοση',jd?.version?String(jd.version):''],[en?'Accepted':'Αποδοχή',latest?fmt(latest.acknowledgedAt):(en?'Not yet':'Εκκρεμεί')]].filter(([,v])=>v),
+    sections:JOB_DESCRIPTION_FIELDS.filter(([key])=>String(jd?.[key]||'').trim()).map(([key,el,enLabel])=>key==='reportsTo'||key==='purpose'?{title:en?enLabel:el,text:jd[key]}:{title:en?enLabel:el,list:String(jd[key]).split('\n').map(line=>line.replace(/^\s*[-•*]\s*/,'').trim()).filter(Boolean)}),
+    signatures:[{role:en?'Employee':'Εργαζόμενος',name:head.name},{role:en?'Supervisor':'Προϊστάμενος'}]}},
+  table:()=>({headers:[],rows:[]})})
  async function accept(){
   setBusy(true)
   try{const saved=await acknowledgePosition(organizationId,employee,{position:employee.position,version:jd.version,actorName});setAcks(current=>[saved,...current]);notify(en?'Job description accepted.':'Η περιγραφή θέσης έγινε αποδεκτή.','success')}
   catch(error){notifyError(error,'save',{operation:'position_acknowledgement'})}
   finally{setBusy(false)}
  }
- if(!employee.position)return <div className="record-section"><div className="inline-empty">{en?'No job position is set for this employee.':'Δεν έχει οριστεί θέση εργασίας για τον εργαζόμενο.'}</div></div>
+ if(!employee.position)return <div className="record-section">{exportDialog}<div className="inline-empty">{en?'No job position is set for this employee.':'Δεν έχει οριστεί θέση εργασίας για τον εργαζόμενο.'}</div></div>
  return <div className="record-section job-description-view">
+  {exportDialog}
   <div className="record-section-header"><div><span className="eyebrow">{en?'JOB POSITION':'ΘΕΣΗ ΕΡΓΑΣΙΑΣ'}</span><h3>{en?(row?.[1]||employee.positionEn||employee.position):employee.position}</h3>{jd?.version>0&&<p>{en?`Version ${jd.version} · updated ${fmt(jd.updatedAt)}`:`Έκδοση ${jd.version} · ενημέρωση ${fmt(jd.updatedAt)}`}{jd.updatedBy?` · ${jd.updatedBy}`:''}</p>}</div></div>
   {state!=='none'&&<div className={`job-description-ack ${state}`}>
    {state==='acknowledged'?<CheckCircle2 size={18} aria-hidden="true"/>:<Clock3 size={18} aria-hidden="true"/>}

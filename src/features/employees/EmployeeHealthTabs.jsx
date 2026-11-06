@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
+import { useRecordTabExport } from './employeeTabExport'
 import {
   loadOccupationalVisitsAsync,
   loadVaccinationsAsync,
@@ -34,6 +35,7 @@ export function EmployeeHealthTab({
   fmt,
   organizationId,
   initialSection = 'visits',
+  onExportItems,
 }) {
   const en = language === 'en'
   const navigate = useNavigate()
@@ -57,9 +59,14 @@ export function EmployeeHealthTab({
   const kindLabel = value => ({ visit: en ? 'Visit' : 'Επίσκεψη', vaccination: en ? 'Vaccination' : 'Εμβολιασμός', exposure: en ? 'Exposure' : 'Έκθεση' })[value]
   const loading = visits.loading || vaccinations.loading || exposures.loading
   const failed = visits.error || vaccinations.error || exposures.error
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'occupational', label: { el: 'Ιατρός Εργασίας', en: 'Occupational health' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: en ? ['Date', 'Kind', 'Description', 'Details', 'Status'] : ['Ημερομηνία', 'Είδος', 'Περιγραφή', 'Λεπτομέρειες', 'Κατάσταση'], rows: registry.filtered.map(row => [fmt(row.date), kindLabel(row.kind), row.title, row.detail, row.status]) }),
+  })
   const open = row => { if (row.kind === 'visit') navigate(`/occupational-health/visits/${encodeURIComponent(row.raw.id)}`); else setSelected(row) }
   return (
     <section className="record-section record-secondary-registry employee-health-tab">
+      {exportDialog}
       <SectionTitle
         title={en ? 'Occupational health' : 'Ιατρός Εργασίας'}
         subtitle={en ? 'Visits, vaccinations and exposure incidents of the employee, newest first.' : 'Επισκέψεις, εμβολιασμοί και περιστατικά έκθεσης του εργαζομένου, τα νεότερα πρώτα.'}

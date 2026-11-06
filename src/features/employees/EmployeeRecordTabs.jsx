@@ -4,6 +4,9 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
+import { useRecordTabExport } from './employeeTabExport'
+import { employeeDocumentCategories } from '../../design-system/AttachmentField'
+import { loadAttachments } from '../../core/attachments/attachmentService'
 import { loadEmployeeHistoryAsync } from './employeeHistoryService'
 import { demoEmployeeDocuments } from './employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
@@ -42,13 +45,32 @@ export function EmployeeCertificatesTab({
   organizationId,
   canEdit = false,
   isDemo = false,
+  onExportItems,
 }) {
+  const en = language === 'en'
   const [demoFiles, setDemoFiles] = useState(() =>
     isDemo
       ? demoEmployeeDocuments(employee, loadTrainingState().certificates, language === 'en')
       : [],
   )
+  // The list of files for the print and the Excel (the files card keeps its own copy).
+  const [cloudFiles, setCloudFiles] = useState([])
+  useEffect(() => {
+    if (isDemo || !organizationId) return undefined
+    let active = true
+    loadAttachments(organizationId, 'employee-certificate', employee.dbId || employee.id).then(rows => { if (active) setCloudFiles(rows || []) }).catch(() => { if (active) setCloudFiles([]) })
+    return () => { active = false }
+  }, [isDemo, organizationId, employee.dbId, employee.id])
+  const files = isDemo ? demoFiles : cloudFiles
+  const categoryText = code => employeeDocumentCategories[en ? 'en' : 'el'].find(([value]) => value === code)?.[1] || code || ''
+  const day = value => (value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(value)) : '')
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'documents', label: { el: 'Έγγραφα', en: 'Documents' }, employee, language, count: files.length,
+    table: () => ({ headers: en ? ['Document', 'Kind', 'Notes', 'Added'] : ['Έγγραφο', 'Είδος', 'Σημειώσεις', 'Καταχώριση'], rows: files.map(file => [file.name, categoryText(file.category), file.description || '', day(file.createdAt)]) }),
+  })
   return (
+    <>
+    {exportDialog}
     <DocumentsWorkspace
       title={language === 'en' ? 'Documents & certifications' : 'Έγγραφα & Πιστοποιήσεις'}
       subtitle={
@@ -63,6 +85,7 @@ export function EmployeeCertificatesTab({
       value={isDemo ? demoFiles : undefined}
       onChange={isDemo ? setDemoFiles : undefined}
     />
+    </>
   )
 }
 
@@ -77,6 +100,7 @@ export function EmployeeSurveillanceTab({
   isDemo = false,
   organizationId = null,
   canManageFollowup = false,
+  onExportItems,
 }) {
   const demoRows = isDemo ? getEmployeeSurveillanceForEmployee(employee.id) : []
   const [cloudRecords, setCloudRecords] = useState([])
@@ -122,6 +146,10 @@ export function EmployeeSurveillanceTab({
   const rows = isDemo ? demoRows : cloudRecords
   const registry = useRegistryRows(rows)
   const paging = registry.paging
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'surveillance', label: { el: 'Επιτήρηση', en: 'Surveillance' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: language === 'en' ? ['Episode', 'Start date', 'Screening', 'Status'] : ['Επεισόδιο', 'Έναρξη', 'Έλεγχος', 'Κατάσταση'], rows: registry.filtered.map(row => [compactEpisodeCode(row.id), fmt(row.startedAt), row.screeningTypes?.map(type => label(type, t)).join(', ') || '', label(row.status, t)]) }),
+  })
   if (loadError)
     return (
       <section className="record-section record-secondary-registry">
@@ -159,6 +187,7 @@ export function EmployeeSurveillanceTab({
     )
   return (
     <section className="record-section record-secondary-registry">
+      {exportDialog}
       <SectionTitle
         title={language === 'en' ? 'Surveillance' : 'Επιτήρηση'}
         subtitle={
@@ -261,7 +290,7 @@ export function EmployeeSurveillanceTab({
   )
 }
 
-export function EmployeeHistoryTab({ employee, language }) {
+export function EmployeeHistoryTab({ employee, language, onExportItems }) {
   const state = useEmployeeSubRecords(
     loadEmployeeHistoryAsync,
     employee.organizationId,
@@ -363,8 +392,13 @@ export function EmployeeHistoryTab({ employee, language }) {
     row.actorName
       ? `${row.actorName}${row.actorRole ? ` · ${row.actorRole.replaceAll('_', ' ')}` : ''}`
       : '—'
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'history', label: { el: 'Ιστορικό', en: 'History' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: language === 'en' ? ['Event', 'Details', 'User', 'Date'] : ['Είδος', 'Περιγραφή', 'Χρήστης', 'Ημερομηνία'], rows: registry.filtered.map(row => [rowLabel(row), row.action === 'update' ? changedLabel(row.changedFields) : '', row.actorName ? actorLabel(row) : '', formatRow(row)]) }),
+  })
   return (
     <section className="record-section record-secondary-registry">
+      {exportDialog}
       <SectionTitle
         title={language === 'en' ? 'History' : 'Ιστορικό'}
         subtitle={

@@ -10,6 +10,7 @@ import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
+import { useRecordTabExport } from './employeeTabExport'
 import {
   loadEvaluationsAsync,
   createEmployeeEvaluationAsync,
@@ -57,6 +58,7 @@ export function EmployeeEvaluationsTab({
   canHrApprove = false,
   canAdminApprove = false,
   selfReadOnly = false,
+  onExportItems,
 }) {
   const state = useEmployeeSubRecords(
     loadEvaluationsAsync,
@@ -141,8 +143,14 @@ export function EmployeeEvaluationsTab({
       setSaving(false)
     }
   }
+  const scoreText = row => (row.overallScore != null ? `${row.overallScore.toFixed(2)} / 5` : row.score != null ? `${row.score}%` : row.source === 'training' ? '' : (en ? row.resultEn : row.resultEl) || '')
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'evaluations', label: { el: 'Αξιολογήσεις', en: 'Evaluations' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: en ? ['Evaluation', 'Period', 'Evaluator', 'Date', 'Score', 'Status'] : ['Αξιολόγηση', 'Περίοδος', 'Αξιολογητής', 'Ημερομηνία', 'Βαθμολογία', 'Κατάσταση'], rows: registry.filtered.map(row => [en ? row.titleEn : row.titleEl, row.period || '', row.source === 'training' ? (en ? 'Training' : 'Εκπαίδευση') : row.evaluatorName || '', fmt(row.date), scoreText(row), statusLabel(row.status)]) }),
+  })
   return (
     <section className="record-section record-secondary-registry">
+      {exportDialog}
       <SectionTitle
         title={en ? 'Evaluations' : 'Αξιολογήσεις'}
         subtitle={
