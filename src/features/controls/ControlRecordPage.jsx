@@ -42,6 +42,7 @@ import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,loadControlsOnTimeFrom,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
+import { LinkedActions } from '../quality/LinkedActions'
 import './controlRecord.css'
 
 export function ControlRecordPage(){
@@ -318,6 +319,7 @@ export function ControlRecordPage(){
      deviationActions(record,visibleDepartments[0])&&{label:en?'Actions on deviation':'Ενέργειες σε απόκλιση',value:deviationActions(record,visibleDepartments[0]),wide:true},
     ].filter(Boolean)}]}/>
    </section>
+   {record.id&&<LinkedActions sourceId={`${record.id}#`} prefix organizationId={tenant?.id} returnTab="details"/>}
   </div>}
   {currentTab==='departments'&&<div className="record-view-stack control-record-view workspace-fill">
    <section className="control-record-departments">

@@ -26,6 +26,7 @@ import { formatObjectiveValue,objectiveState } from './reviewTemplate'
 import { objectiveLevelText,objectiveMeasureSource,objectiveMeasureText,objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
+import { LinkedActions } from '../LinkedActions'
 
 const tone=state=>({met:'success',missed:'danger'})[state]||'info'
 
@@ -35,7 +36,9 @@ export function ObjectiveRecordPage(){
  const {objectives,definitions,loading,reload}=useObjectives(tenant?.id)
  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
  const back=()=>{rememberQualitySection('indicators:objectives');navigate('/quality',{replace:true})}
- const target_=objectives.find(item=>item.id===objectiveId)
+ const target_=objectives.find(item=>item.id===objectiveId||item.code===objectiveId)
+ // Opened by its code (from a corrective action): continue at its own address.
+ useEffect(()=>{if(target_&&target_.id!==objectiveId)navigate(`/quality/objectives/${target_.id}`,{replace:true})},[target_,objectiveId,navigate])
  // The value month by month for the objective's year, up to the current month, only the months with a value:
  // from the register, from the platform's indicator or the values entered by the owner.
  const [history,setHistory]=useState([])
@@ -54,7 +57,7 @@ export function ObjectiveRecordPage(){
  }
  const auto=useAutoTranslated('quality_objectives',[objectiveId],{enabled:en&&!isDemo})
  if(loading)return <RouteLoading/>
- const objective=objectives.find(item=>item.id===objectiveId)
+ const objective=objectives.find(item=>item.id===objectiveId||item.code===objectiveId)
  if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
  const {current,register,unit}=objective
  const monthly=objectiveSource(objective)==='monthly'
@@ -104,6 +107,7 @@ export function ObjectiveRecordPage(){
     {!(monthly&&canManage)&&<table className="objective-history objective-history-compact"><thead><tr><th>{en?'Month':'Μήνας'}</th><th>{en?'Value':'Τιμή'}</th></tr></thead>
      <tbody>{history.map(row=><tr key={row.month}><td>{new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'long',year:'numeric'}).format(new Date(objective.year,row.month-1,1))}</td><td className={objectiveState(objective,row.value)==='missed'?'is-late':undefined}>{formatObjectiveValue(row.value,unit,language)}</td></tr>)}</tbody></table>}
    </>}
+   <LinkedActions sourceId={objective.code} organizationId={tenant?.id}/>
   </section>
  </EntityRecordShell>
  </Page>

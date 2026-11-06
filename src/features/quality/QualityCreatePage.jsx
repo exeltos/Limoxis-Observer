@@ -29,6 +29,7 @@ import { independenceBlocks } from './audits/auditModel'
 import './quality.css'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { capaSourceInfo,sourceKindLabel } from './capaSources'
 
 const config={findings:{icon:ShieldCheck,title:['Νέα απόκλιση','New deviation']},capas:{icon:CheckSquare2,title:'newCapa'},audits:{icon:ClipboardCheck,title:'newAudit'}}
 
@@ -64,7 +65,15 @@ function QualityRecordCreate({recordType}){
    }).catch(()=>{if(active)setOrigins([])})
    return()=>{active=false}
   },[recordType,tenant?.id])
-  const originOptions=useMemo(()=>origins.map(({row,kind})=>({value:row.id,label:`${qualityCode(row,language)} · ${(en?row.titleEn:row.title)||row.title||''}`,keywords:kind})),[origins,en,language])
+  // The record the action is opened from, named in words when it is not a deviation or incident of the list
+  // («Επιτροπή · COM-001», not its reference).
+  const givenSource=location.state?.qualitySource?.sourceId||''
+  const originOptions=useMemo(()=>{
+   const options=origins.map(({row,kind})=>({value:row.id,label:`${qualityCode(row,language)} · ${(en?row.titleEn:row.title)||row.title||''}`,keywords:kind}))
+   if(!givenSource||options.some(option=>option.value===givenSource))return options
+   const info=capaSourceInfo(givenSource)
+   return [{value:givenSource,label:[sourceKindLabel(info.kind,language),info.code].filter(Boolean).join(' · ')},...options]
+  },[origins,en,language,givenSource])
   const originKind=value=>origins.find(({row})=>row.id===value)?.kind||'other'
   const [draft,setDraft]=useState(()=>({title:'',titleEn:'',departmentId:'',department:'',departmentEn:'',status:initialStatus[recordType],severity:'medium',owners:[],owner:'',ownerId:null,description:'',descriptionEn:'',date:new Date().toISOString().slice(0,10),source:recordType==='capas'?'other':'manual',sourceId:'',actionType:'corrective',priority:'medium',dueDate:'',effectivenessDue:'',effectivenessStatus:'pending',auditType:'internal',plannedDate:'',scope:'',scopeEn:'',leadAuditor:'',leadAuditorId:null,checklist:[],checklistSource:'',standard:'',templateId:null,clausesScope:[],team:[],riskLevel:'medium',frequencyMonths:12,plannedMonthOnly:false,...prefillFrom(location.state?.qualitySource)}))
   const addOns=membership?.capabilities??[],custom=membership?.customCapabilities??[];const ownerFullAccess=!isRolePreview&&actualRole===ROLES.PLATFORM_OWNER;const canManage=ownerFullAccess||can(role,CAPABILITIES.MANAGE_QUALITY,addOns,custom)

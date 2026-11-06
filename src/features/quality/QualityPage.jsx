@@ -32,6 +32,7 @@ import { auditDetailedBatchDocument,auditFindingsExport } from './audits/auditRe
 import { QualityOverview } from './QualityOverview'
 import { ActionsList,AUDIT_VIEWS,AuditsList,AuditsSummary,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
 import { capaSourceFor } from './qualityDeviations'
+import { sourceKindLabel } from './capaSources'
 import { useLibraries } from '../management/useLibraries'
 import { RiskAssessmentsPanel } from './risk/RiskAssessmentsPanel'
 import { useRiskAssessmentList } from './risk/useRiskAssessmentList'
@@ -73,7 +74,7 @@ const RESOURCE_OPTIONS=[
  {value:'equipment',icon:Stethoscope,label:['Εξοπλισμός','Equipment']},
  {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
-const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',quick:null,dueFrom:'',dueTo:''}
+const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',source:'all',quick:null,dueFrom:'',dueTo:''}
 const AUDIT_DEFAULTS={query:'',status:'all',type:'all',standard:'all',department:'all',cycle:'all',mode:'programme',quick:null}
 
 function useQualityRecords(organizationId){
@@ -261,7 +262,7 @@ export function QualityPage({section=''}={}){
  // The actions the list shows (its search and filters), for the print and the Excel.
  const actionCapas=()=>filterActions(actions,actionView.filters,en).filter(row=>row.kind==='capa')
  const actionPeriod=[actionView.filters.dueFrom,actionView.filters.dueTo].some(Boolean)?`${actionView.filters.dueFrom?formatDay(actionView.filters.dueFrom,language):'…'} – ${actionView.filters.dueTo?formatDay(actionView.filters.dueTo,language):'…'}`:''
- const actionSource=kind=>({finding:L('Απόκλιση','Deviation'),incident:L('Συμβάν','Incident'),control:L('Έλεγχος','Control'),bundle:'Bundle',training:L('Εκπαίδευση','Training'),risk:L('Κίνδυνος','Risk'),review:L('Ανασκόπηση','Review'),audit:L('Επιθεώρηση','Audit'),survey:L('Έρευνα ικανοποίησης','Survey'),equipment:L('Εξοπλισμός','Equipment'),supplier:L('Προμηθευτής','Supplier'),legislation:L('Νομοθεσία','Legislation'),manual:L('Χειροκίνητη','Manual')})[kind]||kind||''
+ const actionSource=kind=>sourceKindLabel(kind,language)
  const printActions=({groupBy})=>{setIncidentDialog(null);if(!printReport(actionsReportDoc({rows:actionCapas(),groupBy,language,t,sourceLabel:actionSource,period:actionPeriod})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const actionTable=()=>qualityExport('capas',actionCapas(),{en,t})
  const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
@@ -327,6 +328,7 @@ export function QualityPage({section=''}={}){
     onCreateCapa={prefill=>{writeSessionValue(RETURN_KEY,'deviations');goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:prefill}})}}/>}
    {tab==='actions'&&<ActionsList rows={actions} view={actionView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord(row.kind==='capa'?'capas':'findings',row.id,same.map(item=>item.id))}
+    onOpenSource={row=>{remember();goTo(row.sourcePath)}}
     onCreateCapa={canManage?finding=>{remember();goTo('/quality/capas/new',{registry:'quality.actions',state:{qualitySource:capaSourceFor('findings',finding,language)}})}:null}/>} 
    {tab==='audits'&&<AuditsList canManageSelf={canManage} onPrintSummary={printAuditSummary} rows={audits} view={auditView} loading={records.loading} language={language} t={t} registry={registry}
     onOpen={(row,same)=>openRecord('audits',row.id,same.map(item=>item.id))}

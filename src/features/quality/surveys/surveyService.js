@@ -136,9 +136,9 @@ export async function loadSurveys(organizationId) {
 }
 
 export async function loadSurvey(organizationId, id) {
-  if (isLocal()) return local().surveys.find(survey => survey.id === id) || null
-  if (!isUuid(id)) return null
-  const row = must(await supabase.from('quality_surveys').select('*').eq('id', id).eq('organization_id', organizationId).maybeSingle())
+  if (isLocal()) return local().surveys.find(survey => survey.id === id || survey.code === id) || null
+  // By id, or by its code (a corrective action keeps the survey's code).
+  const row = must(await supabase.from('quality_surveys').select('*').eq(isUuid(id) ? 'id' : 'code', id).eq('organization_id', organizationId).maybeSingle())
   return row ? toSurvey(row) : null
 }
 

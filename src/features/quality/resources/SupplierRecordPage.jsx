@@ -38,6 +38,7 @@ import { itemStatusLabel, itemStatusTone, renewalQueue } from './supplierRenewal
 import { attachSupplierFile, certificationFromFile, openSupplierFile, removeSupplierFile, supplierDocumentRows, useSupplierFiles } from './supplierDocuments'
 import '../quality.css'
 import './resources.css'
+import { LinkedActions } from '../LinkedActions'
 
 // The record shell keeps only the export control and the edit / delete actions of the
 // header (these go to «…»); a primary domain action marked `utility` stays visible
@@ -78,7 +79,9 @@ function SupplierRecord({ supplierId }) {
   const renewals = useCertificateRequests(!isNew && access.canViewAll)
   const supplierFiles = useSupplierFiles(tenant?.id, isNew ? null : supplierId)
 
-  const row = useMemo(() => (isNew ? null : list.suppliers.find(item => item.id === supplierId) || null), [isNew, list.suppliers, supplierId])
+  const row = useMemo(() => (isNew ? null : list.suppliers.find(item => item.id === supplierId || item.code === supplierId) || null), [isNew, list.suppliers, supplierId])
+  // Opened by its code (from a corrective action): continue at its own address.
+  useEffect(() => { if (row && row.id !== supplierId) navigate(`/quality/suppliers/${row.id}`, { replace: true }) }, [row, supplierId, navigate])
   useEffect(() => { if (isNew) setDraft(current => current || newSupplier()); else if (row) setDraft(current => (current?.id === row.id ? current : structuredClone(row))) }, [isNew, row])
   const devices = useMemo(() => list.equipment.filter(item => item.supplierId === supplierId), [list.equipment, supplierId])
   const templates = list.templates || []
@@ -224,6 +227,7 @@ function SupplierRecord({ supplierId }) {
           <td><StatusBadge tone={item.status === 'closed' ? 'success' : 'info'}>{item.status === 'closed' ? (en ? 'Closed' : 'Έκλεισε') : (en ? 'Open' : 'Ανοιχτή')}</StatusBadge>{item.closedOn && <small>{formatDay(item.closedOn, language)}</small>}</td>
           {!locked && <td className="resource-menu-cell">{rowMenu([item.status !== 'closed' && { id: 'capa', label: en ? 'Corrective action' : 'Διορθωτική ενέργεια', icon: CheckSquare2, onClick: () => openCapa(item) }, ...editDelete('nonconformities', item)].filter(Boolean))}</td>}
         </>} />
+      <LinkedActions sourceId={`SUP:${row.code}`} organizationId={tenant?.id} returnTab="nonconformities" />
     </RecordTabPanel>}
     {tab === 'documents' && row && <RecordTabPanel title={en ? 'Documents' : 'Έγγραφα'} subtitle={en ? 'Certificates, licences, contracts and other files of the supplier: the list warns 60 days before expiry.' : 'Πιστοποιητικά, άδειες, συμβάσεις και άλλα αρχεία του προμηθευτή: η λίστα ειδοποιεί 60 ημέρες πριν τη λήξη.'}>
       {/* The same box as every record's attachments: one card per document, its «⋯», and «Add» at the foot. */}

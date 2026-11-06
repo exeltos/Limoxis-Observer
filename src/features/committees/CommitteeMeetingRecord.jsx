@@ -1,6 +1,6 @@
 import { InactiveEmployeeBadge } from '../../design-system/InactiveEmployeeBadge'
 import { useState } from 'react'
-import { CalendarDays, ClipboardList, NotebookPen, Plus, Send, Trash2, Users } from 'lucide-react'
+import { CalendarDays, CheckSquare2, ClipboardList, NotebookPen, Plus, Send, Trash2, Users } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
@@ -20,6 +20,9 @@ import { committeeMinutesReport } from './CommitteeMinutesDocument'
 import { printReport } from '../../core/export/reportDocument'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useLibraries } from '../management/useLibraries'
+import { StatusBadge } from '../../design-system/StatusBadge'
+import { actionsOfSource, committeeDecisionSourceId } from '../quality/capaSources'
+import { qualityStatusTone } from '../quality/qualityVocabulary'
 
 const ATTENDANCE = [
   ['not_recorded', 'Δεν καταγράφηκε', 'Not recorded'],
@@ -34,7 +37,7 @@ const STATUS_TONE = { finalized: 'active', approval_pending: 'temporary', cancel
 // A committee meeting and its minutes as a record of its own (opened from the committee's
 // «Meetings» tab): the details, the attendance, the topics with their conclusions, and the
 // notes with the approval, each on its own tab, instead of one long window.
-export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', members, actorId, canSave, canFinalize, busy, onBack, onSave, onApproval, onExternalAction, en }) {
+export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', committeeCode = '', members, actorId, canSave, canFinalize, busy, onBack, onSave, onApproval, onExternalAction, initialTab = null, capas = [], canCreateCapa = false, onCreateCapa, onOpenCapa, actionStatus = value => value, en }) {
   const [externalApprovers, setExternalApprovers] = useState(null)
   const { notifyError } = useFeedback()
   // Topic suggestions from the hospital's library (Management > Libraries).
@@ -56,7 +59,7 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', memb
   const latestChangeRequest = (meeting.approvals || []).find(x => x.status === 'rejected')
   const locked = ['finalized', 'approval_pending', 'cancelled'].includes(meeting.status)
   // The approval (or the corrections asked for) is what a pending or returned meeting needs first.
-  const [tab, setTab] = useState(meeting.status === 'approval_pending' || (meeting.status === 'draft' && latestChangeRequest) ? 'notes' : 'attendance')
+  const [tab, setTab] = useState(initialTab || (meeting.status === 'approval_pending' || (meeting.status === 'draft' && latestChangeRequest) ? 'notes' : 'attendance'))
   const editable = canSave && !locked
   const set = (k, x) => setV(s => ({ ...s, [k]: x }))
   const setComposition = composition => setV(s => ({ ...s, composition, attendanceRecords: attendanceFor(membersOf(composition), s.attendanceRecords) }))
@@ -73,6 +76,21 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', memb
   function exportPdf(pdf) {
     if (!printReport(committeeMinutesReport({ committeeName, minutes: { ...v, approvals: meeting.approvals || [] }, en }), { pdf: pdf === true }))
       notifyError(new Error(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'), 'export', { operation: 'committee_minutes_pdf' })
+  }
+  // The actions opened from a decision of these minutes (source «COM:<committee>:<meeting>#<topic>»), with their
+  // status; a saved decision can open a new one.
+  const savedTopics = new Set((meeting.topics || []).filter(item => String(item.decision || '').trim()).map(item => item.id))
+  const decisionActions = item => {
+    const linked = committeeCode && meeting.id ? actionsOfSource(capas, committeeDecisionSourceId(committeeCode, meeting.id, item.id)) : []
+    const canAdd = canCreateCapa && savedTopics.has(item.id) && meeting.status !== 'cancelled'
+    if (!linked.length && !canAdd) return null
+    return <div className="committee-topic-actions">
+      {linked.map(capa => <button type="button" key={capa.id} className="committee-topic-action" onClick={() => onOpenCapa(capa)}>
+        <CheckSquare2 size={14} aria-hidden="true" /><strong>{capa.code || capa.id}</strong><span>{en ? capa.titleEn || capa.title : capa.title}</span>
+        <StatusBadge tone={qualityStatusTone(capa.status)}>{actionStatus(capa.status)}</StatusBadge>
+      </button>)}
+      {canAdd && <Button variant="secondary" onClick={() => onCreateCapa(item)}><Plus size={14} />{en ? 'Create an action' : 'Δημιουργία ενέργειας'}</Button>}
+    </div>
   }
   const present = v.attendanceRecords.filter(x => x.status === 'present').length
   const footer = editable && <div className="inline-edit-footer"><Button variant="secondary" className="committee-minutes-save" disabled={busy} onClick={() => onSave(v, false)}>{en ? 'Save' : 'Αποθήκευση'}</Button></div>
@@ -117,6 +135,7 @@ export function MeetingRecord({ inactiveCodes, meeting, committeeName = '', memb
               <label><span>{en ? 'Subject' : 'Θέμα'}</span><input disabled={!editable} list={topicLibrary.length ? 'committee-topic-library' : undefined} value={t.subject || ''} onChange={e => topic(t.id, 'subject', e.target.value)} /></label>
               <label><span>{en ? 'Decision / conclusion' : 'Απόφαση / συμπέρασμα'}</span><textarea disabled={!editable} rows="2" value={t.decision || ''} onChange={e => topic(t.id, 'decision', e.target.value)} /></label>
             </div>
+            {decisionActions(t)}
           </div>)}
           {topicLibrary.length > 0 && <datalist id="committee-topic-library">{topicLibrary.map(item => <option key={item.meta?.id || item.value} value={en ? item.en : item.el} label={item.meta?.category || undefined} />)}</datalist>}
           {!v.topics.length && <div className="inline-empty committee-topics-empty">{en ? 'No topics. Add one only when needed.' : 'Δεν υπάρχουν θέματα. Προσθέστε μόνο όσα χρειάζονται.'}</div>}

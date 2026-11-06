@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { addMonths, approvalFor, equipmentCapaSource, equipmentCounts, equipmentExport, equipmentProblems, equipmentStatus, eventProblems, evaluationScore, filterEquipment, filterSuppliers, newEquipment, nextEquipmentCode, nextSupplierCode, supplierCapaSource, supplierCounts, supplierStatus, withEquipmentStatus, withSupplierStatus, NO_EQUIPMENT_FILTERS, NO_SUPPLIER_FILTERS } from '../src/features/quality/resources/resourceModel'
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { qualityTabOf } from '../src/features/quality/qualityReturnSection'
+import { capaSourceInfo } from '../src/features/quality/capaSources'
 
 const TODAY = '2026-10-18'
 const device = (extra = {}) => ({ ...newEquipment(), id: 'eq1', code: 'EQ-0001', name: 'Απινιδωτής', maintenanceMonths: 6, calibrationMonths: '', safetyMonths: 12, installedOn: '2024-01-10', ...extra })
@@ -94,9 +95,9 @@ describe('Corrective actions and the Center', () => {
   it('a failure and a supplier nonconformity open a corrective action that names them', () => {
     expect(equipmentCapaSource(device({ departmentId: 'ΜΕΘ', model: 'D-300' }), event('failure', '2026-10-01', 'out_of_service', { description: 'Δεν φορτίζει' }))).toMatchObject({ sourceId: 'EQ:EQ-0001', departmentId: 'ΜΕΘ', title: 'Βλάβη: Απινιδωτής D-300' })
     expect(supplierCapaSource({ code: 'SUP-002', name: 'Αναλώσιμα' }, { date: '2026-09-01', severity: 'major', description: 'Σχισμένα γάντια' }, 'en').sourceId).toBe('SUP:SUP-002')
-    const lists = fs.readFileSync('src/features/quality/QualityLists.jsx', 'utf8')
-    expect(lists).toContain("if(id.startsWith('EQ:'))return 'equipment'")
-    expect(lists).toContain("if(id.startsWith('SUP:'))return 'supplier'")
+    // The action list names them and opens them (one map of sources for every screen).
+    expect(capaSourceInfo('EQ:EQ-0001')).toMatchObject({ kind: 'equipment', code: 'EQ-0001', path: '/quality/equipment/EQ-0001' })
+    expect(capaSourceInfo('SUP:SUP-002')).toMatchObject({ kind: 'supplier', code: 'SUP-002', path: '/quality/suppliers/SUP-002' })
   })
 
   it('comes back to the right view of the resources tab', () => {

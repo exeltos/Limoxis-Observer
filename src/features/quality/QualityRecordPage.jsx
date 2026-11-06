@@ -56,7 +56,8 @@ import { QualityCapaProgress } from './QualityCapaProgress'
 import { QualityFilesRow } from './QualityFiles'
 import { IncidentEventFields, IncidentEventSummary, IncidentEventTypeField } from './IncidentEventDetails'
 import { analysisProgress } from './rootCauseAnalysis'
-import { capaSourceFor,sourcePath,subActionProgress } from './qualityDeviations'
+import { capaSourceFor,subActionProgress } from './qualityDeviations'
+import { capaSourceInfo,sourceKindLabel } from './capaSources'
 import { incidentFlow,incidentStage,isFinalizedQualityRecord,openStepsBlockingCapa,recordOwners,statusOptions,withHarm,withIncidentClass } from './qualityRecordRules'
 import { stageLabel } from './QualityReportRegister'
 import './quality.css'
@@ -224,12 +225,17 @@ function FindingReadDetails({record,language,t}){
 }
 
 // A corrective action as the platform's one list of values; what is not filled in is not shown.
-function CapaReadDetails({record,language,t}){
+function CapaReadDetails({record,language,t,onOpenSource}){
   const en=language==='en'
+  // Where it came from, opening the source (a deviation, a report, a committee decision, a meeting…).
+  const source=record.sourceId?capaSourceInfo(record.sourceId,record.sourceType):null
+  const sourceText=source&&[sourceKindLabel(source.kind,language),source.code].filter(Boolean).join(' · ')
+  const origin=!source||source.kind==='manual'?'':source.path?<button type="button" className="lo-detail-missing-link" onClick={()=>onOpenSource(source.path)}>{sourceText}</button>:sourceText
   const text=(value,valueEn)=>language==='en'?(valueEn||value):value
   const some=items=>items.filter(item=>item&&item.value)
   return <DetailList className="quality-incident-details" sections={[
     {title:en?'Action':'Ενέργεια',items:some([
+      {label:en?'Came from':'Προέλευση',value:origin},
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
       {label:t('actionType'),value:vocabularyLabel(CAPA_TYPES,record.actionType||'corrective',language)},
       {label:t('priority'),value:record.priority?t(record.priority):''},
@@ -338,7 +344,7 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
     <div className="record-section-header"><h3>{assessment?(en?'Assessment':'Αξιολόγηση'):t('details')}</h3>{actionItems.length>0&&<OverflowMenu items={actionItems}/>}</div>
     {!assessment&&!editing&&<QualityGlance recordType={recordType} record={record} language={language} t={t} linked={linked}/>}
     {!assessment&&!editing&&recordType==='findings'&&canManage&&!finalized&&record.status!=='closed'&&!linked.length&&<div className="quality-next-step quality-finding-next"><Button variant="primary" onClick={()=>goTo('/quality/capas/new',{returnTo:`/quality/findings/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor('findings',record,language)}})}><Plus size={15}/>{en?'New corrective action':'Νέα διορθωτική ενέργεια'}</Button><small>{en?'This deviation has no corrective action yet.':'Η απόκλιση δεν έχει ακόμη διορθωτική ενέργεια.'}</small></div>}
-    {incidentRead?<IncidentReadDetails record={record} categories={categories} language={language} t={t}/>:findingRead?<FindingReadDetails record={record} language={language} t={t}/>:capaRead?<CapaReadDetails record={record} language={language} t={t}/>:auditRead?<AuditReadDetails record={record} language={language} t={t}/>:<div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
+    {incidentRead?<IncidentReadDetails record={record} categories={categories} language={language} t={t}/>:findingRead?<FindingReadDetails record={record} language={language} t={t}/>:capaRead?<CapaReadDetails record={record} language={language} t={t} onOpenSource={path=>goTo(path,{returnTo:`/quality/capas/${record.id}`})}/>:auditRead?<AuditReadDetails record={record} language={language} t={t}/>:<div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
       {assessment?<>
         <EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>
         <EditChoice editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={severityOptions(t)}/>
@@ -421,7 +427,8 @@ function QualityLinks({recordType,record,t,language,organizationId}){
     if(recordType==='findings'){
       loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'capas'})))}).catch(()=>{if(active)setRelated([])})
     }else if(recordType==='audits'){
-      loadQualityRecords('findings',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})))}).catch(()=>{if(active)setRelated([])})
+      // Its deviations, and any action opened from the audit itself.
+      Promise.all(['findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([findings,capas])=>{if(active)setRelated([...findings.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})),...capas.filter(x=>x.sourceId===record.id&&x.lifecycleStatus!=='voided').map(x=>({...x,kind:'capas'}))])})
     }else{
       setRelated([])
     }
@@ -440,9 +447,13 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   // A production link holds the patient's record id, which has no page of its own (the patient page opens by code).
   if(record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
-  if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':record.sourceId.startsWith('TRAINING:')?(language==='en'?'Training':'Εκπαίδευση'):record.sourceId.startsWith('RISK:')?(language==='en'?'Risk assessment':'Εκτίμηση κινδύνου'):(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση δέσμης μέτρων'):record.sourceId.startsWith('TRAINING:')?record.sourceId.slice(9):record.sourceId.startsWith('RISK:')?record.sourceId.split(':').slice(1).join(' · '):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
-  // A source that is one of our records opens it; a bare number is the reference of an imported record (nothing to open).
-  else if(record.sourceId&&/^(AUD|FND|INC)-/.test(record.sourceId))links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  // The record it came from (one map for every kind of source): ours open with their title, the others on their page.
+  const source=record.sourceId?capaSourceInfo(record.sourceId,record.sourceType):null
+  if(source&&/^(AUD|FND|INC)-/.test(record.sourceId))links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  else if(source?.path)links.push({label:sourceKindLabel(source.kind,language),id:source.code||record.sourceId,path:source.path})
+  // A committee decision brought over without its meeting has no page to open.
+  else if(source?.kind==='committee')links.push({label:sourceKindLabel('committee',language),id:language==='en'?'Committee decision (brought over without its meeting)':'Απόφαση επιτροπής (μεταφέρθηκε χωρίς τη συνεδρίαση)',external:true})
+  // A bare number is the reference of an imported record (nothing to open).
   else if(record.sourceId)links.push({label:language==='en'?'Source':'Πηγή',id:`${language==='en'?'Imported from the source file · no. ':'Εισαγωγή από το αρχείο πηγής · αρ. '}${record.sourceId}`,external:true})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
   const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}

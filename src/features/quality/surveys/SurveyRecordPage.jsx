@@ -30,6 +30,7 @@ import { SurveyEditor } from './SurveyEditor'
 import { SurveyForm, missingAnswers } from './SurveyForm'
 import '../quality.css'
 import './surveys.css'
+import { LinkedActions } from '../LinkedActions'
 
 const NO_FILTERS = { query: '', department: 'all', channel: 'all', from: '', to: '' }
 
@@ -147,6 +148,7 @@ export function SurveyRecordPage() {
     {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'}>
       {filterBar}
       <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} />
+      {survey.code && <LinkedActions sourceId={`SRV:${survey.code}`} organizationId={tenant?.id} returnTab="results" />}
     </RecordTabPanel>}
     {viewing && <ObserverDialog title={en ? 'Response' : 'Απάντηση'} subtitle={[formatDay(viewing.submittedAt, language), (en ? viewing.departmentEn : viewing.department) || '', channelLabel(viewing.channel, language)].filter(Boolean).join(' · ')} onClose={() => setViewing(null)}
       footer={canManage && <Button variant="danger" onClick={() => removeResponse(viewing)}><Trash2 size={15} />{en ? 'Delete response' : 'Διαγραφή απάντησης'}</Button>}>
