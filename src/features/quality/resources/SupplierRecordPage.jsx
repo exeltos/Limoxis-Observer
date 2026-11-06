@@ -397,7 +397,7 @@ function TemplateEvaluationForm({ item, set, templates, category, language }) {
       <ManualDateField label={en ? 'Date *' : 'Ημερομηνία *'} value={item.evaluatedOn} onChange={value => set({ evaluatedOn: value })} />
       <Field label={en ? 'Evaluated by' : 'Αξιολογητής'}><input value={item.evaluator || ''} onChange={e => set({ evaluator: e.target.value })} /></Field>
     </FormGrid>
-    {!recorded && <p className="resource-import-note">{en ? 'From FileMaker: total score only.' : 'Από το FileMaker: μόνο συνολική βαθμολογία.'}</p>}
+    {!recorded && <p className="resource-import-note">{en ? 'Total score only.' : 'Μόνο συνολική βαθμολογία.'}</p>}
     <div className="resource-criteria">{(item.criteria || []).map((criterion, index) => <ChoiceField key={criterion.criterionId || criterion.id || index} className="resource-criterion" disabled={!recorded}
       label={`${index + 1}. ${criterion.label} · ${en ? 'weight' : 'βάρος'} ${String(criterion.weight).replace('.', en ? '.' : ',')}`} value={criterion.score === '' || criterion.score == null ? '' : Number(criterion.score)} options={scoreOptions(item.scoreScale, en)}
       onChange={value => set({ criteria: item.criteria.map((entry, at) => (at === index ? { ...entry, score: value } : entry)) })} />)}</div>

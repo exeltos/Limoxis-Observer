@@ -25,7 +25,7 @@ function demoReviews() {
   return [{
     id: 'mr-demo-1', code: `MR-${reviewDate.slice(0, 4)}-01`, title: 'Ανασκόπηση Διοίκησης', reviewDate, periodFrom: addDays(reviewDate, -90), periodTo: reviewDate, frequencyDays: 90, nextReviewDate: addDays(reviewDate, 90), status: 'approved', summary: 'Το σύστημα λειτουργεί αποτελεσματικά· προτεραιότητα η εκπαίδευση του προσωπικού.', approvedAt: `${reviewDate}T12:00:00Z`, approvedByLabel: 'Διευθυντής Κλινικής',
     sections: REVIEW_SECTIONS.map((section, position) => ({ key: section.key, position, title: section.title, body: text[section.key] || '' })),
-    actions: [{ id: 'mra-1', position: 0, sectionKey: 'resources', title: 'Πρόγραμμα εκπαίδευσης νέου νοσηλευτικού προσωπικού', ownerLabel: 'Διεύθυνση Νοσηλευτικής', dueDate: addDays(reviewDate, 60), status: 'open' }, { id: 'mra-2', position: 1, sectionKey: 'improvements', title: 'Μετάβαση των μητρώων τμημάτων από το FileMaker', ownerLabel: 'Ομάδα Ποιότητας', dueDate: addDays(reviewDate, 30), status: 'done' }],
+    actions: [{ id: 'mra-1', position: 0, sectionKey: 'resources', title: 'Πρόγραμμα εκπαίδευσης νέου νοσηλευτικού προσωπικού', ownerLabel: 'Διεύθυνση Νοσηλευτικής', dueDate: addDays(reviewDate, 60), status: 'open' }, { id: 'mra-2', position: 1, sectionKey: 'improvements', title: 'Μετάβαση των μητρώων τμημάτων στην πλατφόρμα', ownerLabel: 'Ομάδα Ποιότητας', dueDate: addDays(reviewDate, 30), status: 'done' }],
     participants: ['Διευθυντής Κλινικής', 'Υπεύθυνος Ποιότητας', 'Διευθύντρια Νοσηλευτικής', 'Ιατρός Λοιμώξεων'].map((role, position) => ({ id: `mrp-${position}`, position, name: role, role, attended: true, signedAt: `${reviewDate}T12:00:00Z` })),
   }]
 }

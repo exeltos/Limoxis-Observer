@@ -54,7 +54,7 @@ export function supplierEvaluationDocument(supplier, evaluation, { language = 'e
           foot: sheet ? ['', L('Σύνολο', 'Total'), { text: comma(Math.round(weights * 1000) / 1000, language), align: 'right' }, '', { text: formatPercent(score, language), align: 'right' }] : null,
           empty: L('Δεν υπάρχει αξιολόγηση.', 'No evaluation yet.'),
         },
-        note: partial ? L('Από το FileMaker μεταφέρθηκε η συνολική βαθμολογία και μόνο ο βαθμός του πρώτου κριτηρίου· τα υπόλοιπα κριτήρια δεν καταγράφηκαν ανά κριτήριο. Το αποτέλεσμα είναι το σύνολο του FileMaker.', 'FileMaker kept the total and only the first criterion\'s score; the other criteria were not recorded one by one. The result is the FileMaker total.') : `${L('Αποτέλεσμα', 'Result')} = Σ (${L('βαθμός', 'score')} / ${scale} × ${L('βάρος', 'weight')}) / Σ ${L('βάρος', 'weight')} × 100.`,
+        note: partial ? L('Καταγράφηκε η συνολική βαθμολογία και μόνο ο βαθμός του πρώτου κριτηρίου· τα υπόλοιπα κριτήρια δεν καταγράφηκαν ανά κριτήριο. Το αποτέλεσμα είναι η συνολική βαθμολογία.', 'Only the total and the first criterion\'s score were recorded; the other criteria were not recorded one by one. The result is the total score.') : `${L('Αποτέλεσμα', 'Result')} = Σ (${L('βαθμός', 'score')} / ${scale} × ${L('βάρος', 'weight')}) / Σ ${L('βάρος', 'weight')} × 100.`,
       },
       { title: L('Παρατηρήσεις', 'Remarks'), text: evaluation?.notes || '—' },
       {

@@ -14,3 +14,8 @@ comment on column public.quality_incidents.notes is 'Notes and proposed improvem
 --   insert columns: … created_at, involved_people, patient_reference, room, notes, owner_label, owner_labels, root_cause
 --   values: «Emplekomenoi Ginc» + «EmplekomenoiBlue», «Patient ID», «Room No», «Notes» + «Proposed Improvements»,
 --           «Evaluator» (owner_label and owner_labels), «Causes».
+
+-- The FileMaker syncs no longer write the migration into what people see: no «Μεταφορά από ISOWISE (FileMaker)»
+-- history entry (private.fm_sync_incidents writes '[]'), «Επιπλέον καταγραφή» without «στο FileMaker»
+-- (private.fm_sync_controls), decision notes without «FileMaker: » (private.hr_fm_import_candidates), and an
+-- incident without «Σημαντικότητα» keeps no severity (severity is nullable: docs/sql/incident_severity_optional.sql).
