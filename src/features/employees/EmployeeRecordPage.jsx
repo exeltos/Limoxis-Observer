@@ -480,9 +480,12 @@ export function EmployeeRecordPage({ selfMode = false }) {
         'error',
       )
   }
+  // The record's «⋯» (account, edit, delete) belongs to the employee's details, so it shows on «Στοιχεία» only;
+  // on the other tabs it would sit over the tab's own button (e.g. «Νέος έλεγχος»).
+  const onDetails = tab === 'details'
   const headerActions = (
     <>
-      {canAdmin && !editingDetails && (
+      {canAdmin && onDetails && !editingDetails && (
         <Button
           variant="secondary"
           tone="edit"
@@ -495,7 +498,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
           {t('employeesRecords.editEmployee')}
         </Button>
       )}
-      {canManageUsers && !employee.accountLinked && (
+      {canManageUsers && onDetails && !employee.accountLinked && (
         <Button recordMenu variant="secondary" onClick={() => setAccountOpen(true)}>
           <KeyRound size={15} />
           {language === 'en' ? 'Create user account' : 'Δημιουργία λογαριασμού χρήστη'}
@@ -505,7 +508,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         { id: 'employee-print', kind: 'print', label: language === 'en' ? 'Print: details' : 'Εκτύπωση: στοιχεία', onClick: () => printEmployee(false) },
         ...(tab === 'training' ? tabExports : []),
       ]} />
-      {canAdmin && !editingDetails && (
+      {canAdmin && onDetails && !editingDetails && (
         <Button variant="secondary" tone="danger" onClick={deleteEmployee}>
           <Trash2 size={15} />
           {t('employeesRecords.deleteEmployee')}
