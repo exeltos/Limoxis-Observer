@@ -119,20 +119,29 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
       <Field label={en ? 'Description' : 'Περιγραφή'}><textarea rows={2} value={draft.description || ''} disabled={locked} onChange={e => set({ description: e.target.value })} /></Field>
       <SectionHeader title={en ? `Criteria ${draft.criteria.length}` : `Κριτήρια ${draft.criteria.length}`} subtitle={en ? `Weights add up to ${comma(total, en)}; the result is the weighted share of the points, so they need not add up to 1.` : `Τα βάρη αθροίζουν ${comma(total, en)}· το αποτέλεσμα είναι το σταθμισμένο ποσοστό, οπότε δεν χρειάζεται να αθροίζουν 1.`}
         actions={!locked && <Button variant="secondary" onClick={() => set({ criteria: [...draft.criteria, newCriterion()] })}><Plus size={15} />{en ? 'Criterion' : 'Κριτήριο'}</Button>} />
-      <ol className="supplier-template-criteria">
-        {draft.criteria.map((item, index) => <li key={item.id || index}>
-          <span className="supplier-template-index">{index + 1}</span>
-          <Field label={en ? 'Criterion *' : 'Κριτήριο *'}><input value={item.label} disabled={locked} onChange={e => setCriterion(index, { label: e.target.value })} /></Field>
-          <Field label={en ? 'Question / guidance' : 'Ερώτηση / οδηγία'}><input value={item.description || ''} placeholder={en ? 'What the evaluator checks' : 'Τι ελέγχει ο αξιολογητής'} disabled={locked} onChange={e => setCriterion(index, { description: e.target.value })} /></Field>
-          <Field label={en ? 'Weight *' : 'Βάρος *'}><input type="number" min="0" step="0.01" value={item.weight} disabled={locked} onChange={e => setCriterion(index, { weight: e.target.value })} /></Field>
-          <CheckboxField label={en ? 'Optional' : 'Προαιρετικό'} checked={Boolean(item.optional)} disabled={locked} onChange={value => setCriterion(index, { optional: value })} />
-          {!locked && <div className="row-actions supplier-template-moves">
+      {/* The criteria as one table: a line each, the column names once on top. */}
+      {draft.criteria.length > 0 && <div className="supplier-template-criteria" role="table" aria-label={en ? 'Criteria' : 'Κριτήρια'}>
+        <div className="supplier-template-row supplier-template-head" role="row">
+          <span role="columnheader">#</span>
+          <span role="columnheader">{en ? 'Criterion *' : 'Κριτήριο *'}</span>
+          <span role="columnheader">{en ? 'Question / guidance' : 'Ερώτηση / οδηγία'}</span>
+          <span role="columnheader">{en ? 'Weight *' : 'Βάρος *'}</span>
+          <span role="columnheader">{en ? 'Optional' : 'Προαιρετικό'}</span>
+          <span role="columnheader" aria-label={en ? 'Actions' : 'Ενέργειες'} />
+        </div>
+        {draft.criteria.map((item, index) => <div className="supplier-template-row" role="row" key={item.id || index}>
+          <span className="supplier-template-index" role="cell">{index + 1}</span>
+          <input role="cell" aria-label={`${en ? 'Criterion' : 'Κριτήριο'} ${index + 1}`} value={item.label} disabled={locked} onChange={e => setCriterion(index, { label: e.target.value })} />
+          <input role="cell" aria-label={`${en ? 'Question / guidance' : 'Ερώτηση / οδηγία'} ${index + 1}`} value={item.description || ''} placeholder={en ? 'What the evaluator checks' : 'Τι ελέγχει ο αξιολογητής'} disabled={locked} onChange={e => setCriterion(index, { description: e.target.value })} />
+          <input role="cell" aria-label={`${en ? 'Weight' : 'Βάρος'} ${index + 1}`} type="number" min="0" step="0.01" value={item.weight} disabled={locked} onChange={e => setCriterion(index, { weight: e.target.value })} />
+          <span className="supplier-template-optional" role="cell"><CheckboxField label="" ariaLabel={`${en ? 'Optional' : 'Προαιρετικό'} ${index + 1}`} checked={Boolean(item.optional)} disabled={locked} onChange={value => setCriterion(index, { optional: value })} /></span>
+          <span className="row-actions supplier-template-moves" role="cell">{!locked && <>
             <IconButton size="sm" label={en ? 'Move up' : 'Μετακίνηση πάνω'} disabled={index === 0} onClick={() => set({ criteria: moveCriterion(draft.criteria, index, -1) })}><ArrowUp size={14} /></IconButton>
             <IconButton size="sm" label={en ? 'Move down' : 'Μετακίνηση κάτω'} disabled={index === draft.criteria.length - 1} onClick={() => set({ criteria: moveCriterion(draft.criteria, index, 1) })}><ArrowDown size={14} /></IconButton>
             <IconButton size="sm" tone="danger" label={en ? 'Remove criterion' : 'Αφαίρεση κριτηρίου'} onClick={() => set({ criteria: draft.criteria.filter((_, at) => at !== index) })}><Trash2 size={14} /></IconButton>
-          </div>}
-        </li>)}
-      </ol>
+          </>}</span>
+        </div>)}
+      </div>}
       {!draft.criteria.length && <p className="inline-empty"><ListChecks size={15} /> {en ? 'Add the criteria of the template.' : 'Προσθέστε τα κριτήρια του προτύπου.'}</p>}
     </div>
   </ObserverDialog>
