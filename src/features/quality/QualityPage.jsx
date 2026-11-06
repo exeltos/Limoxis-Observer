@@ -51,6 +51,7 @@ import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExpor
 import { deviationsReportDoc } from './deviationReports'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { groupedListDoc } from './listReports'
+import { supplierEvaluationsSheet } from './resources/supplierEvaluationReport'
 import './quality.css'
 
 // Intake and governance are deliberately separate:
@@ -313,6 +314,8 @@ export function QualityPage({section=''}={}){
   indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'),[{id:'dossier',kind:'pdf',label:L('Ετήσιος φάκελος στόχων','Annual objectives file'),disabled:!dossierData||(!activeObjectives.length&&!objectives.committeeTargets.length),onClick:()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,committeeTargets:objectives.committeeTargets,histories:dossierData.histories,reviews:dossierData.reviews,extras:dossierData.extras,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]),
   resources:(()=>{const kind=resourceView==='equipment'?'equipment':'suppliers';const rows=kind==='equipment'?visibleEquipment:visibleSuppliers;return <ExportMenu items={[
    {id:`${kind}-print`,kind:'print',label:kind==='equipment'?L('Εκτύπωση: εξοπλισμός','Print: equipment'):L('Εκτύπωση: προμηθευτές','Print: suppliers'),disabled:!rows.length,onClick:()=>setIncidentDialog(`${kind}-print`)},
+   // The suppliers' evaluations on one sheet (the form «Αξιολόγηση εξωτερικών παρόχων»), the questions once per template.
+   ...(kind==='suppliers'?[{id:'suppliers-evaluations',kind:'print',label:L('Εκτύπωση: φύλλο αξιολόγησης προμηθευτών','Print: supplier evaluation sheet'),disabled:!rows.length,onClick:()=>{if(!printReport(supplierEvaluationsSheet(rows,resources.templates||[],{language})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]:[]),
    {id:`${kind}-excel`,kind:'excel',label:t('exportFields.menuLabel'),disabled:!rows.length,onClick:()=>setIncidentDialog(`${kind}-excel`)},
   ]}/>})(),
  })[tab]

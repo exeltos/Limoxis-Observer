@@ -44,6 +44,8 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
   if(jci!=='all'&&risk.jci!==jci)return false
   if(flag==='warnings'&&!warnings.some(w=>w.tone!=='info'))return false
   if(flag==='prioritized'&&!risk.prioritized)return false
+  if(flag==='noTarget'&&!QUICK.noTarget({risk,s}))return false
+  if(flag==='noIndicator'&&!QUICK.noIndicator({risk}))return false
   if(cell&&(s[cell.kind].l!==cell.l||s[cell.kind].c!==cell.c))return false
   return true
  }),[all,quick,en,query,section,process,level,jci,flag,cell])
@@ -61,10 +63,8 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
   {key:'all',always:true,value:all.length,label:L(en,'κίνδυνοι','risks'),active:!quick,onClick:()=>setQuick(null)},
   total('veryHigh',L(en,'πολύ υψηλοί','very high')),
   total('high',L(en,'υψηλοί','high')),
-  total('noPlan',L(en,'υψηλοί χωρίς σχέδιο δράσης','high without an action plan')),
-  total('noOwnerDue',L(en,'υψηλοί χωρίς υπεύθυνο / προθεσμία','high without owner / due date')),
-  total('noTarget',L(en,'χωρίς κίνδυνο-στόχο','without a target')),
-  total('noIndicator',L(en,'χωρίς δείκτη','without an indicator')),
+  total('noPlan',L(en,'χωρίς σχέδιο','no plan')),
+  total('noOwnerDue',L(en,'χωρίς υπεύθυνο / προθεσμία','no owner / due')),
  ]}/>
  return frame(null,<>
   <div className="risk-toolbar">
@@ -73,7 +73,7 @@ export function RiskRegister({risks,en,onOpen,cell,onClearCell,actions=null,indi
     <FilterSelect label={L(en,'Διεργασία','Process')} value={process} onChange={setProcess}><option value="all">{L(en,'Όλες','All')}</option>{processes.map(p=><option key={p} value={p}>{p}</option>)}</FilterSelect>
     <FilterSelect label={L(en,'Υπολειπόμενος κίνδυνος','Residual risk')} value={level} onChange={setLevel}><option value="all">{L(en,'Όλα τα επίπεδα','All levels')}</option>{LEVELS.map(x=><option key={x.id} value={x.id}>{en?x.en:x.el}</option>)}</FilterSelect>
     <FilterSelect label="JCI" value={jci} onChange={setJci}><option value="all">{L(en,'Όλα','All')}</option>{JCI_CHAPTERS.map(x=><option key={x.id} value={x.id}>{x.id} · {en?x.en:x.el}</option>)}</FilterSelect>
-    <FilterSelect label={L(en,'Εμφάνιση','Show')} value={flag} onChange={setFlag}><option value="all">{L(en,'Όλους','All')}</option><option value="warnings">{L(en,'Με εκκρεμότητες','With open points')}</option><option value="prioritized">{L(en,'Επιλεγμένους για FMEA','Selected for FMEA')}</option></FilterSelect>
+    <FilterSelect label={L(en,'Εμφάνιση','Show')} value={flag} onChange={setFlag}><option value="all">{L(en,'Όλους','All')}</option><option value="warnings">{L(en,'Με εκκρεμότητες','With open points')}</option><option value="prioritized">{L(en,'Επιλεγμένους για FMEA','Selected for FMEA')}</option><option value="noTarget">{L(en,`Χωρίς κίνδυνο-στόχο (${counts.noTarget})`,`Without a target (${counts.noTarget})`)}</option><option value="noIndicator">{L(en,`Χωρίς δείκτη (${counts.noIndicator})`,`Without an indicator (${counts.noIndicator})`)}</option></FilterSelect>
    </FilterBar>
    <div className="risk-toolbar-actions">
     {actions}
