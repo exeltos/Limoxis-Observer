@@ -888,9 +888,13 @@ function Details({
         <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
           <span>{t('employeesRecords.staffCategory')}</span>
           {editing ? (
-            <select aria-label={t('employeesRecords.staffCategory')} value={staffCategoryOf(record)} onChange={event => set('staffCategory', event.target.value)}>
-              {STAFF_CATEGORIES.map(item => <option key={item.value} value={item.value}>{staffCategoryLabel(item.value, language)}</option>)}
-            </select>
+            <SearchableSelect
+              hideLabel
+              label={t('employeesRecords.staffCategory')}
+              value={staffCategoryOf(record)}
+              onChange={next => set('staffCategory', next || 'employee')}
+              options={STAFF_CATEGORIES.map(item => ({ value: item.value, label: staffCategoryLabel(item.value, language) }))}
+            />
           ) : (
             <strong>{staffCategoryLabel(staffCategoryOf(record), language)}</strong>
           )}
