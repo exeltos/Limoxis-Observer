@@ -1,6 +1,6 @@
 import { useEffect,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
-import { ClipboardList,Pencil,Target } from 'lucide-react'
+import { ClipboardList,Gauge,Pencil,Target } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { DetailList } from '../../../design-system/DetailList'
@@ -86,7 +86,7 @@ export function ObjectiveRecordPage(){
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${en?'Quality objective':'Στόχος ποιότητας'} · ${objective.year}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
-  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<Button recordMenu variant="secondary" onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={15}/>{en?'Edit':'Επεξεργασία'}</Button>}</>}>
+  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{objective.platformIndicator?.definitionId&&<IconButton size="sm" label={en?'Open the indicator':'Άνοιγμα δείκτη'} onClick={()=>navigate(`/indicators/${objective.platformIndicator.definitionId}`)}><Gauge size={16}/></IconButton>}{canManage&&<Button recordMenu variant="secondary" onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={15}/>{en?'Edit':'Επεξεργασία'}</Button>}</>}>
   <section className="record-section">
    <div className="indicator-result-hero">
     <div className="indicator-result-value"><strong>{value}</strong></div>

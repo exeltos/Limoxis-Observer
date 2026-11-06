@@ -46,6 +46,7 @@ import { loadDossierExtras,loadObjectiveHistories,objectivesDossier } from './re
 import { OBJECTIVE_LEVELS,levelLabel } from './review/objectiveSources'
 import { loadReviews } from './review/reviewService'
 import { SurveysList,filterSurveys,surveysExport,useSurveys } from './surveys/SurveysPanel'
+import { isSurveyOpen } from './surveys/surveyModel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExport,filterEquipment,filterSuppliers,supplierCounts,suppliersExport } from './resources/resourceModel'
 import { deviationsReportDoc } from './deviationReports'
@@ -75,6 +76,8 @@ const INDICATOR_OPTIONS=[
  {value:'objectives',icon:Target,label:['Στόχοι','Objectives']},
  {value:'surveys',icon:Smile,label:['Ερωτηματολόγια','Questionnaires']},
 ]
+// «Create» in Indicators & objectives makes what the open tab lists (owner, 6/11/2026).
+const MEASURE_CREATE={indicators:'indicator',registers:'register',objectives:'objective',surveys:'survey'}
 const EQUIPMENT_SHOWN=false
 const RESOURCE_OPTIONS=[
  ...(EQUIPMENT_SHOWN?[{value:'equipment',icon:Stethoscope,label:['Εξοπλισμός','Equipment']}]:[]),
@@ -184,6 +187,10 @@ export function QualityPage({section=''}={}){
  const isMissed=item=>(item.status||'active')==='active'&&item.current.status==='missed'
  // All the hospital's objectives in one list: its own, the departments' and the committees' (with the committees' annual plans).
  const planRows=useMemo(()=>objectives.committeeTargets.map(item=>({...item,kind:'plan',level:'committee'})),[objectives.committeeTargets])
+ // The objectives' totals count what the year, level and search leave; each one sets the state filter.
+ const setObjectiveState=state=>setObjectiveFilters(current=>({...current,state:current.state===state?'all':state}))
+ const objectivesLoaded=!objectives.loading
+ const objectiveBase=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();return [...objectives.objectives,...planRows].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
  const visibleObjectives=useMemo(()=>{const q=objectiveFilters.query.trim().toLowerCase();const plans=objectiveFilters.state==='all'?planRows:[];return [...objectives.objectives,...plans].filter(item=>objectiveYear==='all'||String(item.year)===objectiveYear).filter(item=>objectiveFilters.level==='all'||item.level===objectiveFilters.level).filter(item=>!q||`${item.code||''} ${item.title} ${item.titleEn||''} ${item.ownerLabel||''} ${item.committeeName||''}`.toLowerCase().includes(q)).filter(item=>item.kind==='plan'||objectiveFilters.state==='all'||(objectiveFilters.state==='missed'?isMissed(item):item.current.status===objectiveFilters.state))},[objectives.objectives,planRows,objectiveFilters,objectiveYear])
  const todayIso=new Date().toISOString().slice(0,10)
 
@@ -241,7 +248,7 @@ export function QualityPage({section=''}={}){
   deviations:[],
   risks:[],
   resources:[],
- })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'?tabFigures[measureView]:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
+ })[tab]||(tab==='indicators'?[]:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
  // What each tab asks for: reports and incidents still open, deviations, overdue actions and audits, the high residual risks of the latest assessment, objectives not met and registers gone quiet, equipment and suppliers that need attention.
  const resourcesAttention=(()=>{const equipmentNow=equipmentCounts(resources.equipment),suppliersNow=supplierCounts(resources.suppliers);return (EQUIPMENT_SHOWN?equipmentNow.overdue+equipmentNow.down:0)+suppliersNow.attention+suppliersNow.certificates})()
@@ -260,7 +267,7 @@ export function QualityPage({section=''}={}){
   actions:canManage?[{id:'capa',label:L('Διορθωτική ενέργεια','Corrective action'),icon:CheckSquare2,onClick:create('/quality/capas/new')}]:[],
   audits:[...(canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')},{id:'round',label:L('Κύκλος επιθεώρησης','Audit round'),icon:ListChecks,onClick:create('/quality/audits/round')}]:[]),{id:'questionnaires',label:L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires'),icon:ListChecks,onClick:()=>{remember();goTo('/quality/audit-questionnaires')}}],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
-  indicators:[...(canManageIndicators?[{id:'indicator',label:L('Δείκτης','Indicator'),icon:Gauge,onClick:()=>{remember();goTo('/indicators/new')}}]:[]),...(canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');writeSessionValue(RETURN_KEY,'indicators:objectives');goTo('/quality/objectives/new')}},{id:'survey',label:L('Ερωτηματολόγιο ικανοποίησης','Satisfaction questionnaire'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[])],
+  indicators:[...(canManageIndicators?[{id:'indicator',label:L('Δείκτης','Indicator'),icon:Gauge,onClick:()=>{remember();goTo('/indicators/new')}}]:[]),...(canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');writeSessionValue(RETURN_KEY,'indicators:objectives');goTo('/quality/objectives/new')}},{id:'survey',label:L('Ερωτηματολόγιο ικανοποίησης','Satisfaction questionnaire'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[])].filter(option=>option.id===MEASURE_CREATE[measureView]),
   resources:canManage?[...(EQUIPMENT_SHOWN?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}}]:[]),...(suppliersOn?[{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}},{id:'templates',label:L('Πρότυπα αξιολόγησης','Evaluation templates'),icon:ListChecks,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}},{id:'renewals',label:L('Πιστοποιητικά προς ανανέωση','Certificates to renew'),icon:ShieldCheck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/renewals')}}]:[])]:[],
  })[tab]
 
@@ -287,7 +294,8 @@ export function QualityPage({section=''}={}){
  }
  const printResources=(kind,{groupBy})=>{setIncidentDialog(null);const spec=RESOURCE_PRINT[kind];const column=spec.groups.find(([key])=>key===groupBy)?.[1]??null;if(!printReport(groupedListDoc({title:spec.title,filename:spec.file,table:resourceTable(kind),columns:spec.columns,groupBy:column,language})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
- const listExport=(rows,data,title,items=[])=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>{if(!printRegistry(data(),{language,kind:t('quality'),title}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} onExcel={()=>exportRegistry(data())}/>
+ const printList=(data,title,pdf)=>{if(!printRegistry(data(),{language,kind:t('quality'),title,pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
+ const listExport=(rows,data,title,items=[])=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>printList(data,title,false)} onPdf={()=>printList(data,title,true)} onExcel={()=>exportRegistry(data())}/>
  const download=({
   overview:null,
   deviations:<ExportMenu items={[
@@ -365,16 +373,26 @@ export function QualityPage({section=''}={}){
     onPlan={canManage?source=>{remember();goTo('/quality/audits/new',{registry:'quality.audits',state:{qualitySource:source}})}:null} onRound={canManage?()=>{remember();goTo('/quality/audits/round')}:null} findings={records.data.findings}
     onOpenFinding={finding=>openRecord('findings',finding.id,[finding.id])}/>}
    {tab==='risks'&&<RiskAssessmentsPanel totals={asTotals(tabFigures.risks,L('Κίνδυνοι','Risks'))} list={riskList} organizationId={tenant?.id} en={en} locale={locale} creating={riskCreating} onCreatingChange={setRiskCreating} fileRef={riskFile} onRowsChange={setRiskRows}/>}
-   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} onRowsChange={setRegisterRows}/>}
+   {tab==='indicators'&&measureView==='registers'&&<RegistersPanel filterEnd={asTotals(tabFigures.registers,L('Μητρώα','Registers'))} list={registerList} only={staleOnly?isStaleRegister:null} onBeforeOpen={remember} onRowsChange={setRegisterRows}/>}
    {tab==='indicators'&&measureView==='objectives'&&<>
-    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)+(objectiveFilters.level!=='all'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto',level:'all'})} end={null}>
+    <FilterBar query={objectiveFilters.query} onQueryChange={query=>setObjectiveFilters(current=>({...current,query}))} placeholder={L('Αναζήτηση στόχου ή υπευθύνου','Search objective or owner')} activeAdvancedCount={(objectiveFilters.state!=='all'?1:0)+(objectiveFilters.year!=='auto'?1:0)+(objectiveFilters.level!=='all'?1:0)} onClear={()=>setObjectiveFilters({query:'',state:'all',year:'auto',level:'all'})} end={objectivesLoaded&&<RegistryTotals label={L('Σύνολα','Totals')} items={[
+     {key:'all',always:true,value:objectiveBase.length,label:L('στόχοι','objectives'),active:objectiveFilters.state==='all',onClick:()=>setObjectiveState('all')},
+     {key:'met',value:objectiveBase.filter(item=>item.current?.status==='met').length,label:L('επιτυγχάνονται','met'),active:objectiveFilters.state==='met',onClick:()=>setObjectiveState('met')},
+     {key:'missed',value:objectiveBase.filter(item=>item.kind!=='plan'&&isMissed(item)).length,label:L('δεν επιτυγχάνονται','not met'),active:objectiveFilters.state==='missed',onClick:()=>setObjectiveState('missed')},
+     {key:'pending',value:objectiveBase.filter(item=>item.kind!=='plan'&&item.current?.status==='pending').length,label:L('σε εξέλιξη','in progress'),active:objectiveFilters.state==='pending',onClick:()=>setObjectiveState('pending')},
+    ]}/>}>
      <FilterSelect label={L('Έτος','Year')} value={objectiveYear} onChange={year=>setObjectiveFilters(current=>({...current,year}))}><option value="all">{L('Όλα τα έτη','All years')}</option>{objectiveYears.map(year=>{const value=String(year);return <option key={value} value={value}>{value}</option>})}</FilterSelect>
      <FilterSelect label={L('Επίπεδο','Level')} value={objectiveFilters.level} onChange={level=>setObjectiveFilters(current=>({...current,level}))}><option value="all">{L('Όλα τα επίπεδα','All levels')}</option>{OBJECTIVE_LEVELS.map(level=><option key={level} value={level}>{levelLabel(level,en)}</option>)}</FilterSelect>
      <FilterSelect label={t('status')} value={objectiveFilters.state} onChange={state=>setObjectiveFilters(current=>({...current,state}))}><option value="all">{t('all')}</option><option value="missed">{L('Δεν επιτυγχάνεται','Not met')}</option><option value="met">{L('Επιτυγχάνεται','Met')}</option><option value="pending">{L('Σε εξέλιξη','In progress')}</option></FilterSelect>
     </FilterBar>
     <ObjectivesTable rows={visibleObjectives} loading={objectives.loading} error={objectives.error} onRetry={objectives.reload} onOpen={objective=>{if(objective.kind==='plan'){writeSessionValue(RETURN_KEY,'indicators:objectives');navigate(`/committees/${objective.committeeCode}`);return}openRecord('objectives',objective.id,visibleObjectives.filter(item=>item.kind!=='plan').map(item=>item.id))}}/>
    </>}
-   {tab==='indicators'&&measureView==='surveys'&&<SurveysList list={surveys} registry={registry} filters={surveyFilters} setFilters={setSurveyFilters} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');registry.openRecord(navigate,`/quality/surveys/${survey.id}`,survey.id)}}/>}
+   {tab==='indicators'&&measureView==='surveys'&&<SurveysList filterEnd={(()=>{const all=surveys.surveys||[];const quick=key=>setSurveyFilters(current=>({...current,status:'all',quick:current.quick===key?null:key}));return <RegistryTotals label={L('Σύνολα','Totals')} items={[
+    {key:'all',always:true,value:all.length,label:L('ερωτηματολόγια','questionnaires'),active:!surveyFilters.quick&&surveyFilters.status==='all',onClick:()=>setSurveyFilters(current=>({...current,status:'all',quick:null}))},
+    {key:'open',value:all.filter(item=>isSurveyOpen(item)).length,label:L('σε εξέλιξη','open'),active:surveyFilters.quick==='open',onClick:()=>quick('open')},
+    {key:'closed',value:all.filter(item=>item.status==='closed').length,label:L('ολοκληρώθηκαν','closed'),active:surveyFilters.status==='closed',onClick:()=>setSurveyFilters(current=>({...current,quick:null,status:current.status==='closed'?'all':'closed'}))},
+    {key:'draft',value:all.filter(item=>item.status==='draft').length,label:L('προσχέδια','drafts'),active:surveyFilters.quick==='draft',onClick:()=>quick('draft')},
+   ]}/>})()} list={surveys} registry={registry} filters={surveyFilters} setFilters={setSurveyFilters} onOpen={survey=>{writeSessionValue(RETURN_KEY,'indicators:surveys');registry.openRecord(navigate,`/quality/surveys/${survey.id}`,survey.id)}}/>}
    {tab==='resources'&&resourceView==='equipment'&&<EquipmentList filterEnd={asTotals(tabFigures.equipment,L('Εξοπλισμός','Equipment'))} list={resources} registry={registry} filters={equipmentFilters} setFilters={setEquipmentFilters} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:equipment');registry.openRecord(navigate,`/quality/equipment/${row.id}`,row.id)}}/>}
    {tab==='resources'&&resourceView==='suppliers'&&suppliersOn&&<SuppliersList filterEnd={asTotals(tabFigures.suppliers,L('Προμηθευτές','Suppliers'))} list={resources} registry={registry} filters={supplierFilters} setFilters={setSupplierFilters} onOpen={row=>{writeSessionValue(RETURN_KEY,'resources:suppliers');registry.openRecord(navigate,`/quality/suppliers/${row.id}`,row.id)}}/>}
   </section>}</>}
