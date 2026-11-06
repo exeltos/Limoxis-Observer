@@ -2,7 +2,8 @@ import { useEffect,useMemo,useState } from 'react'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { AlertOctagon,AlertTriangle,CalendarClock,Clock3,SearchCheck,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
+import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useSortedPaging,withSort } from './useSortedPaging'
@@ -70,7 +71,7 @@ export function useDeviationQueue(organizationId,enabled=true){
  return {sources,loading}
 }
 
-const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,period:'all',origin:'all'}
+const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,period:'all',origin:'all',dateFrom:'',dateTo:''}
 const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',quick:null}
 const departmentsOf=(rows,language)=>[...new Set(rows.map(row=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
@@ -78,11 +79,14 @@ function useClassifiedRegister(incidents,capas,language,mode){
  const [filters,setFilters]=useState(REPORT_DEFAULTS)
  const set=(key,value)=>setFilters(current=>({...current,[key]:value}))
  const rows=useMemo(()=>registerRows(incidents,[],capas).filter(row=>mode==='reports'?row.kind==='report':row.kind!=='report'),[incidents,capas,mode])
- const filtered=useMemo(()=>filterRegister(rows,{...filters,language}),[rows,filters,language])
+ // «Από / Έως» on the incident date; `base` is the list without the quick figure, for the totals beside the search.
+ const inRange=row=>{const day=String(row.date||'').slice(0,10);return (!filters.dateFrom||day>=filters.dateFrom)&&(!filters.dateTo||day<=filters.dateTo)}
+ const base=useMemo(()=>filterRegister(rows,{...filters,quick:null,language}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
+ const filtered=useMemo(()=>filterRegister(rows,{...filters,language}).filter(inRange),[rows,filters,language]) // eslint-disable-line react-hooks/exhaustive-deps
  const counts=useMemo(()=>registerCounts(rows),[rows])
  const departments=useMemo(()=>departmentsOf(rows,language),[rows,language])
  const categories=useMemo(()=>[...new Set(rows.map(row=>row.category).filter(Boolean))],[rows])
- return {rows,filtered,counts,filters,set,clear:()=>setFilters(REPORT_DEFAULTS),departments,categories}
+ return {rows,base,filtered,counts,filters,set,clear:()=>setFilters(REPORT_DEFAULTS),departments,categories}
 }
 
 // Inbox: only neutral submissions that Quality has not classified yet.
@@ -230,7 +234,7 @@ export function ReportSummary({view,loading,language,inbox=false}){
 
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
 // summary line and the usual filter popover instead of boxes and extra columns.
-export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false}){
+export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false,totals=false}){
  const en=language==='en'
  const {filters,set}=view
  const quick=inbox?filters.quick:null
@@ -243,7 +247,7 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),kind:row=>row.kind,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,stage:row=>row.stage,owner:row=>row.owner,reporter:row=>(row.anonymous?'':row.reporter)}
  const paging=useSortedPaging(items,JSON.stringify(filters),sortBy)
  const inboxFilters=(quick==='waiting'||quick==='new'?1:0)+(filters.period!=='all')+(filters.origin!=='all')+(filters.department!=='all')
- const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length
+ const advanced=inbox?inboxFilters:['kind','stage','department','category'].filter(key=>filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)
  const columns=inbox
   ?[{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'stage',label:en?'Status':'Κατάσταση'},{key:'reporter',label:en?'Reported by':'Αναφέρων'}]
   :compact
@@ -260,9 +264,21 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
    <FilterSelect label={en?'Stage':'Στάδιο'} value={filters.stage} onChange={value=>set('stage',value)}><option value="all">{en?'All':'Όλα'}</option>{INCIDENT_STAGES.map(id=><option key={id} value={id}>{stageLabel(id,language)}</option>)}</FilterSelect>
    <FilterSelect label={en?'Category':'Κατηγορία'} value={filters.category} onChange={value=>set('category',value)}><option value="all">{en?'All':'Όλες'}</option>{view.categories.map(value=><option key={value} value={value}>{incidentCategoryLabel(value,categories,language)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterDate label={en?'From':'Από'} value={filters.dateFrom} onChange={value=>set('dateFrom',value)}/>
+   <FilterDate label={en?'To':'Έως'} value={filters.dateTo} onChange={value=>set('dateTo',value)}/>
   </>
+ // The incident register's totals beside the search: all it shows, the open and the closed ones, the sentinel events.
+ const base=view.base||view.filtered
+ const toggle=key=>()=>set('quick',filters.quick===key?null:key)
+ const isOpen=row=>!['closed','voided'].includes(row.stage)
+ const end=totals&&!inbox?<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
+  {key:'all',always:true,value:base.length,label:en?'incidents':'συμβάντα',active:!filters.quick,onClick:()=>set('quick',null)},
+  {key:'open',value:base.filter(isOpen).length,label:en?'open':'ανοιχτά',active:filters.quick==='open',onClick:toggle('open')},
+  {key:'closed',value:base.filter(row=>row.stage==='closed').length,label:en?'closed':'κλειστά',active:filters.quick==='closed',onClick:toggle('closed')},
+  {key:'sentinel',value:base.filter(row=>row.sentinel&&isOpen(row)).length,label:'sentinel',active:filters.quick==='sentinel',onClick:toggle('sentinel')},
+ ]}/>:null
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={inbox?(en?'Search code, title, department, reporter…':'Αναζήτηση σε κωδικό, τίτλο, τμήμα, αναφέροντα…'):(en?'Search…':'Αναζήτηση…')} activeAdvancedCount={advanced} onClear={view.clear} end={end}>
    {popover}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>

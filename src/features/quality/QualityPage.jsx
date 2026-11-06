@@ -24,6 +24,9 @@ import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSe
 import { fillAuditProgramme,loadQualityRecords } from './qualityService'
 import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { printReport } from '../../core/export/reportDocument'
+import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
+import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/ExcelFieldsDialog'
+import { incidentRegisterDoc,incidentStatisticsDoc } from './incidentReports'
 import { auditDetailedBatchDocument,auditFindingsExport } from './audits/auditReport'
 import { QualityOverview } from './QualityOverview'
 import { ActionsList,ActionsSummary,AUDIT_VIEWS,AuditsList,AuditsSummary,actionCounts,actionRows,auditCounts,auditRows,filterActions,filterAudits,isOverdueAction,useListFilters } from './QualityLists'
@@ -97,6 +100,7 @@ export function QualityPage({section=''}={}){
  const {t,language,locale}=useLanguage()
  const en=language==='en'
  const L=(el,enText)=>en?enText:el
+ const [incidentDialog,setIncidentDialog]=useState(null)
  const {role,membership,tenant,actualRole,isRolePreview,moduleEnabled}=useTenant()
  const {notify,confirm}=useFeedback()
  // Where «Indicators» puts its «Export» and «⋯» (the top bar).
@@ -250,13 +254,20 @@ export function QualityPage({section=''}={}){
  })[tab]
 
  // Every list exports the same rows to print and to Excel.
+ const incidentPeriod=[incidents.filters.dateFrom,incidents.filters.dateTo].some(Boolean)?`${incidents.filters.dateFrom?formatDay(incidents.filters.dateFrom,language):'…'} – ${incidents.filters.dateTo?formatDay(incidents.filters.dateTo,language):'…'}`:''
+ const printIncidents=({groupBy})=>{setIncidentDialog(null);if(!printReport(incidentRegisterDoc({rows:incidents.filtered,groupBy,language,categories,period:incidentPeriod})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
+ const incidentTable=()=>reportRegisterExport(incidents.filtered,{language,t,categories})
  const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const listExport=(rows,data,title,items=[])=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>{if(!printRegistry(data(),{language,kind:t('quality'),title}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} onExcel={()=>exportRegistry(data())}/>
  const download=({
   overview:null,
   deviations:listExport(deviations.filtered,()=>deviationsExport(deviations.filtered,{language,t}),L('Αποκλίσεις','Deviations')),
   reports:listExport(register.filtered,()=>reportRegisterExport(register.filtered,{language,t,categories}),L('Αναφορές προς αξιολόγηση','Reports to assess')),
-  incidents:listExport(incidents.filtered,()=>reportRegisterExport(incidents.filtered,{language,t,categories}),L('Μητρώο συμβάντων','Incident register')),
+  incidents:<ExportMenu items={[
+   {id:'incidents-print',kind:'print',label:L('Εκτύπωση: μητρώο συμβάντων','Print: incident register'),disabled:!incidents.filtered.length,onClick:()=>setIncidentDialog('print')},
+   {id:'incidents-stats',kind:'print',label:L('Εκτύπωση: στατιστικά συμβάντων','Print: incident statistics'),disabled:!incidents.filtered.length,onClick:()=>{if(!printReport(incidentStatisticsDoc({rows:incidents.filtered,language,categories,period:incidentPeriod})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}},
+   {id:'incidents-excel',kind:'excel',label:t('exportFields.menuLabel'),disabled:!incidents.filtered.length,onClick:()=>setIncidentDialog('excel')},
+  ]}/>,
   actions:(()=>{const rows=filterActions(actions,actionView.filters,en);const findings=rows.filter(row=>row.kind==='finding'),capas=rows.filter(row=>row.kind==='capa');return <ExportMenu disabled={!rows.length} onPrint={()=>{if(!printRegistry(qualityExport('capas',capas,{en,t}),{language,kind:t('quality'),title:L('Διορθωτικές ενέργειες','Corrective actions')}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} items={[{id:'findings',label:L('Αποκλίσεις (.csv)','Deviations (.csv)'),disabled:!findings.length,onClick:()=>exportRegistry(qualityExport('findings',findings,{en,t}))},{id:'capas',label:L('Διορθωτικές ενέργειες (.csv)','Corrective actions (.csv)'),disabled:!capas.length,onClick:()=>exportRegistry(qualityExport('capas',capas,{en,t}))}]}/>})(),
   audits:(()=>{const rows=filterAudits(audits,auditView.filters,en);return <ExportMenu disabled={!rows.length} items={[
    {id:'summary-print',kind:'print',label:L('Συγκεντρωτική έκθεση','Summary report'),onClick:()=>printAuditSummary(rows)},
@@ -286,8 +297,9 @@ export function QualityPage({section=''}={}){
    {records.loading?<PageSkeleton metrics={0}/>:<QualityOverview reports={[...register.rows,...incidents.rows]} capas={records.data.capas} audits={records.data.audits} findings={records.data.findings} objectives={objectives.objectives} onMeetings={()=>navigate('/meetings?tab=departments')} language={language} categories={categories}
     onOpen={(type,id)=>openRecord(type,id,[id])} onGo={target=>target==='readiness'?(auditView.set('mode','readiness'),setTab('audits')):target==='objectives'?goObjectives():target==='actions'?goActions('dueSoon'):target==='incidents'?setTab('incidents'):setTab(target)}/>}
   </div>:<>
+  {incidentDialog==='print'&&<PrintOptionsDialog storageKey="limoxis.quality.incidents.print" title={L('Μητρώο συμβάντων','Incident register')} options={[{key:'groupBy',label:L('Ομαδοποίηση','Group'),choices:[{value:'none',label:L('Χωρίς ομαδοποίηση','No grouping')},{value:'department',label:L('Ανά τμήμα','By department')},{value:'kind',label:L('Ανά είδος','By kind')},{value:'month',label:L('Ανά μήνα','By month')}]}]} onConfirm={printIncidents} onClose={()=>setIncidentDialog(null)}/>}
+  {incidentDialog==='excel'&&<ExcelFieldsDialog storageKey="limoxis.quality.incidents.excel" fields={tableFields(incidentTable())} onClose={()=>setIncidentDialog(null)} onConfirm={keys=>{exportRegistry(pickColumns(incidentTable(),keys));setIncidentDialog(null)}}/>}
   {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
-  {tab==='incidents'&&<ReportSummary view={incidents} loading={records.loading} language={language}/>}
   {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
   {tab==='audits'&&!['programme','self'].includes(auditView.filters.mode||'programme')&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
   {tab==='risks'&&<KpiFigures className="quality-kpis" label={L('Κίνδυνοι','Risks')} figures={tabFigures.risks||[]}/>}
@@ -296,7 +308,7 @@ export function QualityPage({section=''}={}){
   {!(tab==='indicators'&&measureView==='indicators')&&<section className="surface registry-workspace workspace-column workspace-fill">
    {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
-   {tab==='incidents'&&<ReportRegister compact view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
+   {tab==='incidents'&&<ReportRegister compact totals view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='deviations'&&canManage&&<DeviationQueue view={deviations} loading={queue.loading} language={language} t={t}
     registry={registry} onOpenRow={(row,rows)=>row.type==='finding'?openRecord('findings',row.id,rows.filter(item=>item.type==='finding').map(item=>item.id)):(remember(),registry.openRecord(navigate,row.item.path,row.key,[]))}
