@@ -81,12 +81,12 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
 
  function matrixExport(){
   return ({name:en?'training-competence':'eparkeia-ekpaideusis',
-   headers:[en?'Person':'Άτομο',en?'Department':'Τμήμα',en?'Category':'Κατηγορία',en?'Position':'Θέση',...matrix.requirements.map(r=>r.title)],
+   headers:[en?'Employee':'Ονοματεπώνυμο',en?'Department':'Τμήμα',en?'Category':'Κατηγορία',en?'Position':'Θέση',...matrix.requirements.map(r=>r.title)],
    rows:matrix.rows.map(row=>[name(row.employee),row.employee.department,row.employee.profession,row.employee.position||'',...row.cells.map(cell=>cell?`${stateText(cell.state,en)}${cell.validUntil?` (${fmt(cell.validUntil)})`:''}`:'')])})
  }
  function planExport(){
   return ({name:en?'retraining-plan':'plano-epanekpaideusis',
-   headers:en?['Due by','Person','Department','Category','Required training','Status','Valid until']:['Έως','Άτομο','Τμήμα','Κατηγορία','Απαιτούμενη εκπαίδευση','Κατάσταση','Ισχύς έως'],
+   headers:en?['Due by','Person','Department','Category','Required training','Status','Valid until']:['Έως','Ονοματεπώνυμο','Τμήμα','Κατηγορία','Απαιτούμενη εκπαίδευση','Κατάσταση','Ισχύς έως'],
    rows:plan.map(item=>[fmt(item.due),name(item.employee),item.employee.department,item.employee.profession,item.requirement.title,stateText(item.state,en),fmt(item.validUntil)])})
  }
 
@@ -106,7 +106,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  return <div className="training-competence">
   {dialog==='print'&&<PrintOptionsDialog storageKey="limoxis.training.competence.print" title={en?'Print competence':'Εκτύπωση επάρκειας'} options={[{key:'content',label:en?'Content':'Περιεχόμενο',choices:contentChoices,initial:view==='plan'?'plan':'matrix'}]} onConfirm={printCompetence} onClose={()=>setDialog(null)}/>}
   {dialog==='excel'&&<ExcelFieldsDialog storageKey="limoxis.training.competence.excel" layouts={contentChoices} fields={content=>tableFields(tableOf(content))} onClose={()=>setDialog(null)} onConfirm={(keys,content)=>{exportRegistry(pickColumns(tableOf(content),keys));setDialog(null)}}/>}
-  {view!=='rules'&&view!=='monthly'&&<FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search person or department…':'Αναζήτηση ατόμου ή τμήματος…'} activeAdvancedCount={department==='all'?0:1} onClear={()=>{setQuery('');setDepartment('all');setStateFilter('')}}
+  {view!=='rules'&&view!=='monthly'&&<FilterBar query={query} onQueryChange={setQuery} placeholder={en?'Search employee or department…':'Αναζήτηση εργαζομένου ή τμήματος…'} activeAdvancedCount={department==='all'?0:1} onClear={()=>{setQuery('');setDepartment('all');setStateFilter('')}}
    end={<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
     {key:'rate',always:true,value:matrix.rate??0,display:`${matrix.rate??0}%`,label:en?'covered':'κάλυψη'},
     ...['valid','expiring','expired','missing'].map(key=>({key,value:matrix.counts[key],label:stateText(key,en).toLocaleLowerCase(en?'en':'el'),active:stateFilter===key,onClick:()=>setStateFilter(current=>current===key?'':key)})),
@@ -118,7 +118,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
 
   {view==='matrix'&&<div className="scroll-table">
    {matrix.requirements.length?<table className="data-table sticky-table training-competence-matrix">
-    <thead><tr><th>{en?'Person':'Άτομο'}</th>{matrix.requirements.map(r=><th key={r.id} title={r.title}><span>{r.title}</span><small>{renewalText(r.renewalMonths,en)}</small></th>)}</tr></thead>
+    <thead><tr><th>{en?'Employee':'Ονοματεπώνυμο'}</th>{matrix.requirements.map(r=><th key={r.id} title={r.title}><span>{r.title}</span><small>{renewalText(r.renewalMonths,en)}</small></th>)}</tr></thead>
     <tbody>{paged(shownRows).map(row=><tr key={row.employee.id}><td><strong>{name(row.employee)}</strong><small>{[row.employee.department,row.employee.position||row.employee.profession].filter(Boolean).join(' · ')}</small></td>{row.cells.map((cell,index)=>{if(!cell)return <td key={index} className="training-competence-na">—</td>;const Icon=STATE_ICON[cell.state];return <td key={index} className={`training-competence-cell ${cell.state}`} title={`${stateText(cell.state,en)}${cell.completedOn?` · ${en?'completed':'ολοκλήρωση'} ${fmt(cell.completedOn)}`:''}${cell.validUntil?` · ${en?'valid until':'ισχύει έως'} ${fmt(cell.validUntil)}`:''}`}><span className={`training-competence-chip ${cell.state}`}><Icon size={14} aria-hidden="true"/>{cell.state==='missing'||cell.state==='expired'&&!cell.validUntil?stateText(cell.state,en):fmt(cell.validUntil)||stateText(cell.state,en)}</span></td>})}</tr>)}</tbody>
    </table>:<div className="registry-empty-state"><strong>{en?'No required training yet':'Δεν έχουν οριστεί απαιτούμενες εκπαιδεύσεις'}</strong><span>{en?'Add requirements in the Requirements tab: which training each professional category or department needs and how often.':'Ορίστε στην καρτέλα «Απαιτήσεις» ποια εκπαίδευση χρειάζεται κάθε επαγγελματική κατηγορία ή τμήμα και κάθε πότε.'}</span></div>}
    {matrix.requirements.length>0&&!shownRows.length&&<div className="registry-empty-state"><strong>{matrix.rows.length?(en?'No one matches the search':'Κανείς δεν ταιριάζει στην αναζήτηση'):(en?'No staff match the requirements':'Κανένας εργαζόμενος δεν αντιστοιχεί στις απαιτήσεις')}</strong></div>}
@@ -128,7 +128,7 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
   {view==='monthly'&&monthly}
 
   {view==='plan'&&<div className="scroll-table"><table className="data-table sticky-table">
-   <thead><tr><th>{en?'Due by':'Έως'}</th><th>{en?'Person':'Άτομο'}</th><th>{en?'Department':'Τμήμα'}</th><th>{en?'Required training':'Απαιτούμενη εκπαίδευση'}</th><th>{en?'Last completed':'Τελευταία φορά'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead>
+   <thead><tr><th>{en?'Due by':'Έως'}</th><th>{en?'Employee':'Ονοματεπώνυμο'}</th><th>{en?'Department':'Τμήμα'}</th><th>{en?'Required training':'Απαιτούμενη εκπαίδευση'}</th><th>{en?'Last completed':'Τελευταία φορά'}</th><th>{en?'Status':'Κατάσταση'}</th></tr></thead>
    <tbody>{paged(shownPlan).map(item=><tr key={item.key}><td><span className={item.due<=today?'training-competence-late':''}>{item.state==='missing'?(en?'Now':'Άμεσα'):fmt(item.due)}</span></td><td><strong>{name(item.employee)}</strong><small>{item.employee.profession}</small></td><td>{item.employee.department||'—'}</td><td>{item.requirement.title}<small>{renewalText(item.requirement.renewalMonths,en)}</small></td><td>{item.completedOn?fmt(item.completedOn):(en?'Never':'Ποτέ')}</td><td><span className={`status-badge ${item.state==='expiring'?'warning':'danger'}`}>{stateText(item.state,en)}</span></td></tr>)}</tbody>
   </table>{!shownPlan.length&&<div className="registry-empty-state"><strong>{plan.length?(en?'No one matches the search':'Κανείς δεν ταιριάζει στην αναζήτηση'):(en?'Everyone is covered':'Όλοι καλύπτονται')}</strong></div>}</div>}
   {view==='plan'&&<RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shownPlan.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>}

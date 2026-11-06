@@ -43,11 +43,15 @@ export function EmployeeHealthTab({
   const [kind, setKind] = useState(KIND_FOR_SECTION[initialSection] || 'all')
   const [selected, setSelected] = useState(null)
   const pick = (map, value) => map[value]?.[en ? 1 : 0] || value || '—'
+  // Imported visits carry no fitness («pending» on a completed visit says nothing) and repeat the person's next
+  // follow-up on every visit: the follow-up is shown on the latest visit only.
+  const latestVisitId = useMemo(() => [...visits.data].sort((x, y) => String(y.date || '').localeCompare(String(x.date || '')))[0]?.id, [visits.data])
+  const visitDetail = row => [row.fitStatus && !(row.fitStatus === 'pending' && row.status === 'completed') ? label(row.fitStatus, t) : '', row.followUpDate && row.id === latestVisitId && `${en ? 'Next check' : 'Επόμενος έλεγχος'} ${fmt(row.followUpDate)}`].filter(Boolean).join(' · ')
   const all = useMemo(() => [
-    ...visits.data.map(row => ({ kind: 'visit', id: `v-${row.id}`, date: row.date, title: label(row.type, t), detail: [label(row.fitStatus, t), row.followUpDate && `${en ? 'Follow-up' : 'Επανέλεγχος'} ${fmt(row.followUpDate)}`].filter(Boolean).join(' · '), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
+    ...visits.data.map(row => ({ kind: 'visit', id: `v-${row.id}`, date: row.date, title: label(row.type, t), detail: visitDetail(row), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
     ...vaccinations.data.map(row => ({ kind: 'vaccination', id: `x-${row.id}`, date: row.date, title: row.vaccine || '—', detail: [row.dose, row.validUntil && `${en ? 'Valid until' : 'Ισχύει έως'} ${fmt(row.validUntil)}`].filter(Boolean).join(' · '), status: label(row.status, t), tone: statusClass(row.status), raw: row })),
     ...exposures.data.map(row => ({ kind: 'exposure', id: `e-${row.id}`, date: row.incidentDate, title: pick(EXPOSURE_TYPES, row.exposureType), detail: pick(FOLLOW_UPS, row.followUpStatus), status: row.status === 'open' ? (en ? 'Open' : 'Ανοικτό') : (en ? 'Closed' : 'Κλειστό'), tone: row.status === 'open' ? 'temporary' : '', raw: row })),
-  ].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))), [visits.data, vaccinations.data, exposures.data, en, fmt, t]) // eslint-disable-line react-hooks/exhaustive-deps
+  ].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))), [visits.data, vaccinations.data, exposures.data, en, fmt, t, latestVisitId]) // eslint-disable-line react-hooks/exhaustive-deps
   const byKind = useMemo(() => (kind === 'all' ? all : all.filter(row => row.kind === kind)), [all, kind])
   const registry = useRegistryRows(byKind)
   const kindLabel = value => ({ visit: en ? 'Visit' : 'Επίσκεψη', vaccination: en ? 'Vaccination' : 'Εμβολιασμός', exposure: en ? 'Exposure' : 'Έκθεση' })[value]

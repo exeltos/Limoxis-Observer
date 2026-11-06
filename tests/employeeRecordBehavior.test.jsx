@@ -157,7 +157,7 @@ describe('documents and history', () => {
   it('lists the audit history as a paged registry with changes and user', async () => {
     await openEmployee()
     openTab('Ιστορικό')
-    await waitFor(() => expect(within(body()).getByText('Μεταβολές')).toBeInTheDocument())
+    await waitFor(() => expect(within(body()).getByText('Περιγραφή')).toBeInTheDocument())
     expect(within(body()).getByText('Χρήστης')).toBeInTheDocument()
     expect(body().querySelector('.scroll-table table')).not.toBeNull()
     expect(body().querySelector('.registry-pagination')).toHaveTextContent('1–3 από 3')

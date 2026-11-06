@@ -77,7 +77,8 @@ export async function loadEmployeeHistoryAsync(organizationId,employeeDbId,emplo
     historyKind:'training',
   }))
 
-  const evaluationRows=(evaluations||[]).map(row=>({
+  // A training's knowledge test is already the training's own line: only formal evaluations are listed here.
+  const evaluationRows=(evaluations||[]).filter(row=>row.source!=='training').map(row=>({
     id:`evaluation-${row.id}`,
     action:'update',
     at:asDateTime(row.date),

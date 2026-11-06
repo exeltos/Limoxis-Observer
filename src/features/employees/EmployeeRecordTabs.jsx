@@ -333,10 +333,32 @@ export function EmployeeHistoryTab({ employee, language }) {
     birth_date: ['Ημερομηνία γέννησης', 'Birth date'],
     user_id: ['Σύνδεση λογαριασμού', 'Account link'],
   }
+  // A related record (training, visit, vaccination…) is stored as «history_<kind>:<detail>»: the detail is shown as is.
   const changedLabel = fields =>
     fields?.length
-      ? fields.map(key => fieldLabels[key]?.[language === 'en' ? 1 : 0] || key).join(' · ')
+      ? fields.map(key => (String(key).startsWith('history_') ? relatedText(String(key)) : fieldLabels[key]?.[language === 'en' ? 1 : 0] || key)).join(' · ')
       : '—'
+  const visitTypes = { periodic: ['Περιοδική εξέταση', 'Periodic examination'], preEmployment: ['Προπρόσληψη εξέταση', 'Pre-employment examination'], followUp: ['Επανέλεγχος', 'Follow-up'], vaccinationReview: ['Έλεγχος εμβολιασμού', 'Vaccination review'] }
+  const relatedText = key => {
+    const detail = key.split(':').slice(1).join(':')
+    if (key.startsWith('history_occupational:')) return visitTypes[detail]?.[language === 'en' ? 1 : 0] || detail || '—'
+    return detail || '—'
+  }
+  const kindLabels = {
+    training: ['Εκπαίδευση', 'Training'],
+    evaluation: ['Αξιολόγηση', 'Evaluation'],
+    occupational: ['Ιατρός Εργασίας', 'Occupational health'],
+    vaccination: ['Εμβολιασμός', 'Vaccination'],
+    certificate: ['Έγγραφο / πιστοποίηση', 'Document / certification'],
+    surveillance: ['Επιτήρηση', 'Surveillance'],
+  }
+  const rowLabel = row => kindLabels[row.historyKind]?.[language === 'en' ? 1 : 0] || eventLabel(row.action)
+  // Related records carry a day, not a time (their «12:00» is only a placeholder).
+  const formatRow = row => (kindLabels[row.historyKind] ? formatDay(row.at) : format(row.at))
+  const formatDay = value => {
+    const d = new Date(value || '')
+    return Number.isNaN(d.getTime()) ? '—' : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { dateStyle: 'medium' }).format(d)
+  }
   const actorLabel = row =>
     row.actorName
       ? `${row.actorName}${row.actorRole ? ` · ${row.actorRole.replaceAll('_', ' ')}` : ''}`
@@ -347,8 +369,8 @@ export function EmployeeHistoryTab({ employee, language }) {
         title={language === 'en' ? 'History' : 'Ιστορικό'}
         subtitle={
           language === 'en'
-            ? 'Administrative lifecycle of the employee record. Clinical events remain in their own governed tabs.'
-            : 'Διοικητικό ιστορικό της καρτέλας εργαζομένου. Τα κλινικά συμβάντα παραμένουν στις αντίστοιχες ελεγχόμενες καρτέλες.'
+            ? 'Changes to the record and the employee\'s training, visits and evaluations, newest first.'
+            : 'Αλλαγές της καρτέλας και οι εκπαιδεύσεις, επισκέψεις και αξιολογήσεις του εργαζομένου, τα νεότερα πρώτα.'
         }
       />
       <State {...state} language={language} onRetry={state.reload} />
@@ -368,8 +390,8 @@ export function EmployeeHistoryTab({ employee, language }) {
               <table className="data-table sticky-table">
                 <thead>
                   <tr>
-                    <th>{language === 'en' ? 'Event' : 'Ενέργεια'}</th>
-                    <th>{language === 'en' ? 'Changes' : 'Μεταβολές'}</th>
+                    <th>{language === 'en' ? 'Event' : 'Είδος'}</th>
+                    <th>{language === 'en' ? 'Details' : 'Περιγραφή'}</th>
                     <th>{language === 'en' ? 'User' : 'Χρήστης'}</th>
                     <th>{language === 'en' ? 'Date / time' : 'Ημερομηνία / ώρα'}</th>
                   </tr>
@@ -378,11 +400,11 @@ export function EmployeeHistoryTab({ employee, language }) {
                   {paging.paged.map(row => (
                     <tr key={row.id}>
                       <td>
-                        <strong>{eventLabel(row.action)}</strong>
+                        <strong>{rowLabel(row)}</strong>
                       </td>
                       <td>{row.action === 'update' ? changedLabel(row.changedFields) : '—'}</td>
                       <td>{actorLabel(row)}</td>
-                      <td>{format(row.at)}</td>
+                      <td>{formatRow(row)}</td>
                     </tr>
                   ))}
                 </tbody>

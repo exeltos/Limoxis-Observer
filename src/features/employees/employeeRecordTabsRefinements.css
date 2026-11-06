@@ -165,3 +165,7 @@
 .employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:nth-child(3n+1):is(div,#lo-employee-details){padding-left:0}
 @media(max-width:1050px){.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:is(div,#lo-employee-details){padding-left:18px}.employee-record-shell .employee-details-overview .employee-full-grid:not(.employee-inline-edit)>.detail-item:nth-child(2n+1):is(div,#lo-employee-details){padding-left:0}}
 
+.training-assessment-note{margin:0;padding:12px 16px;border:1px dashed var(--border-color,#dbe4ec);border-radius:12px;color:var(--text-muted,#607487)}
+/* Documents tab: the files and the protocols scroll together, each at its full height. */
+.employee-documents-tab{display:flex;flex-direction:column;gap:14px;flex:1 1 auto;min-height:0;overflow:auto}
+.employee-documents-tab>*{flex:0 0 auto;min-height:auto;max-height:none;overflow:visible}

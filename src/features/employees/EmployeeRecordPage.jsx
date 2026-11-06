@@ -645,7 +645,9 @@ export function EmployeeRecordPage({ selfMode = false }) {
             selfReadOnly={selfReadOnly}
           />
         )}
+        {/* Files and protocols one under the other, scrolling together (the file list used to run over the protocols). */}
         {tab === 'certificates' && (
+          <div className="employee-documents-tab">
           <EmployeeCertificatesTab
             employee={employee}
             language={language}
@@ -654,8 +656,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
             canEdit={canAdmin}
             isDemo={isDemo}
           />
-        )}
-        {tab === 'certificates' && (canSeeProtocols || selfMode) && (
+          {(canSeeProtocols || selfMode) && (
           <EmployeeProtocolsTab
             employee={employee}
             language={language}
@@ -663,6 +664,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
             isDemo={isDemo}
             selfMode={selfReadOnly && !canSeeProtocolsAsManager}
           />
+        )}
+          </div>
         )}
         {tab === 'history' && <EmployeeHistoryTab employee={employee} language={language} />}
       </EntityRecordShell>
