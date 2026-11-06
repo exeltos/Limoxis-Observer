@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { accessComplete, filterRenewals, latestItemByCertificate, linkState, noResponseDays, pendingItems, recipientsFor, renewalCounts, renewalGroups, renewalPermissions, renewalQueue, requestFromRow, sendGroups, sendItems, senderOnlyHint, submissionProblems, submissionProblemText, submitErrorMessage } from '../src/features/quality/resources/supplierRenewalModel'
+import { accessComplete, filterRenewals, isSuperseded, latestItemByCertificate, linkState, noResponseDays, pendingItems, recipientsFor, renewalCounts, renewalGroups, renewalPermissions, renewalQueue, requestFromRow, sendGroups, sendItems, senderOnlyHint, submissionProblems, submissionProblemText, submitErrorMessage } from '../src/features/quality/resources/supplierRenewalModel'
 import { demoRequests, demoSupplierAccess, isDemoAccessToken } from '../src/features/quality/resources/supplierRenewalService'
 import { demoResources } from '../src/features/quality/resources/resourceDemoData'
 import { ADD_ON_CAPABILITIES, CAPABILITIES, ROLES, can, isCustomRoleEligible } from '../src/core/permissions/roles'
@@ -9,7 +9,7 @@ const TODAY = '2026-10-19'
 const NOW = new Date('2026-10-19T12:00:00Z')
 const read = path => fs.readFileSync(path, 'utf8')
 const supplier = (id, extra = {}) => ({ id, code: id.toUpperCase(), name: `Supplier ${id}`, status: 'active', email: '', contacts: [], certifications: [], ...extra })
-const cert = (id, expiresOn, extra = {}) => ({ id, type: 'ISO 9001', title: '', number: `N-${id}`, issuer: 'Body', expiresOn, ...extra })
+const cert = (id, expiresOn, extra = {}) => ({ id, type: 'CE', title: '', number: `N-${id}`, issuer: 'Body', expiresOn, ...extra })
 const item = (id, certificationId, status, extra = {}) => ({ id, certificationId, status, submittedAt: '', ...extra })
 const request = (id, supplierId, status, items, extra = {}) => ({ id, supplierId, status, requestedAt: '2026-10-01T10:00:00Z', recipientEmail: 'a@b.gr', tokenExpiresAt: '', firstSentAt: '', items, ...extra })
 
@@ -34,6 +34,12 @@ describe('Supplier certificate renewal: the queue by supplier', () => {
     expect(groups[0].selectable.map(row => row.key)).toEqual(['c6', 'c1', 'c2'])
     // No address: still selectable, the address is typed in the approval; not counted as ready.
     expect(renewalCounts(groups, [], NOW)).toMatchObject({ expired: 3, suppliers: 2, toSend: 1, noEmail: 1 })
+  })
+
+  it('skips an expired ISO certificate replaced by a later one of the same standard', () => {
+    const certs = [cert('o1', '2025-01-01', { type: 'ISO 9001' }), cert('o2', '2028-01-01', { type: 'ISO 9001' }), cert('o3', '2025-01-01', { type: 'ISO 13485' }), cert('o4', '2025-01-01'), cert('o5', '2028-01-01')]
+    expect(certs.map(item => isSuperseded(item, certs))).toEqual([true, false, false, false, false])
+    expect(renewalQueue([supplier('s9', { certifications: certs })], [], { today: TODAY }).map(row => row.key)).toEqual(['o3', 'o4'])
   })
 
   it('a certificate with an item in progress cannot be selected again; a submitted one stays listed', () => {

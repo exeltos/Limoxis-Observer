@@ -56,8 +56,11 @@
 .supplier-renewal-send{display:grid;gap:10px}
 .supplier-renewal-send-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:12px;align-items:end;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px}
 .supplier-renewal-send-row small{display:block;color:var(--lo-color-muted)}
-.supplier-renewal-certs{display:grid;gap:4px;margin:0;padding:0;list-style:none}
-.supplier-renewal-certs li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px}
+.supplier-renewal-certs{display:grid;gap:6px;min-width:380px;margin:0;padding:0;list-style:none}
+.supplier-renewal-table td:nth-child(2){width:220px}
+.supplier-renewal-certs li{display:grid;grid-template-columns:minmax(0,1fr) 84px 160px;align-items:center;gap:4px 10px}
+.supplier-renewal-cert-title{min-width:0;overflow-wrap:anywhere}
+.supplier-renewal-cert-state{display:flex;flex-wrap:wrap;gap:4px}
 .supplier-renewal-locked{display:inline-flex;cursor:not-allowed}
 .supplier-renewal-locked>*{pointer-events:none}
 .supplier-renewal-locked-note{display:flex;align-items:center;gap:8px;margin:0;padding:10px 16px;border-bottom:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:13px}
