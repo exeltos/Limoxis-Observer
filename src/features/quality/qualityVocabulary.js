@@ -1,5 +1,6 @@
 import { findLibraryItem, libraryLabel } from '../management/useLibraries'
 import { demoLibrarySeed } from '../management/managementData'
+import { isOdipyCategory, odipyGroupOf, odipyLabel } from './odipyCategories'
 
 // The closed vocabularies of the Quality Center, written once: the create
 // form, the report form, the record sheet, the registry and the exports read
@@ -86,7 +87,9 @@ const CATEGORY_KIND = {
   equipment: 'nonClinical', process: 'nonClinical', staff: 'nonClinical', facility: 'nonClinical', security: 'nonClinical', supplier: 'nonClinical', it: 'nonClinical', other: 'nonClinical',
   complaint: 'complaint', complaintcare: 'complaint', complaintcommunication: 'complaint', complaintwaiting: 'complaint', complainthygiene: 'complaint',
 }
-export const categoryKind = key => CATEGORY_KIND[String(key || '').toLowerCase()] || null
+// A category of the ΟΔΙΠΥ form: patient care, patient safety and clinical outcomes are clinical, the rest are not.
+const odipyKind = key => { const group = odipyGroupOf(key); return !group || !isOdipyCategory(key) ? null : ['care', 'safety', 'outcome'].includes(group.key) ? 'clinical' : 'nonClinical' }
+export const categoryKind = key => odipyKind(key) || CATEGORY_KIND[String(key || '').toLowerCase()] || null
 // The kind an older record has, from its category (records before kinds existed).
 export const reportKindOf = record => record?.reportKind || categoryKind(record?.category) || 'clinical'
 
@@ -110,6 +113,7 @@ export function incidentCategoryOptions(items = [], language = 'el', kind = null
 
 export function incidentCategoryLabel(value, items = [], language = 'el') {
   if (!value) return ''
+  if (isOdipyCategory(value)) return odipyLabel(value, language)
   const item = findLibraryItem(items, incidentCategoryCode(value)) || findLibraryItem(items, value)
   if (item) return libraryLabel(item, language)
   const builtIn = DEFAULT_INCIDENT_CATEGORIES.find(([key]) => key === value)

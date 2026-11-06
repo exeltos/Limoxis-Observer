@@ -136,7 +136,8 @@ export function QualityOverview({reports,capas,audits,findings=[],objectives,lan
   const byMonth=months.map((month,index)=>({...month,value:monthCount(month.key),prev:compare?monthCount(before[index].key):undefined}))
   const current=rows()
   const patientOf=list=>list?.filter(row=>['clinical','nonClinical'].includes(reportKindOf(row.record)))
-  const patientIncidents=patientOf(current)
+  // Only incidents whose outcome was recorded (the ΟΔΙΠΥ form does not ask for it).
+  const patientIncidents=patientOf(current)?.filter(row=>row.record.incidentClass)
   const outcomeOf=row=>row.record.incidentClass==='harmful'?harmLevel(row.record.impact):row.record.incidentClass||'nearMiss'
   const outcomeLabel=key=>INCIDENT_CLASSES.some(item=>item.value===key)?vocabularyLabel(INCIDENT_CLASSES,key,language):`${L(en,'Βλάβη','Harm')}: ${vocabularyLabel(IMPACTS,key,language)}`
   const ORDER=['nearMiss','noHarm','mild','moderate','severe','death']

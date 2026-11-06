@@ -2,6 +2,7 @@ import { formatDateTime, formatDay } from '../../core/i18n/formatDay'
 import { useLibraries } from '../management/useLibraries'
 import { AUDIT_TYPES, CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, reportKindOf, reporterText, vocabularyLabel } from './qualityVocabulary'
 import { recordOwners } from './qualityRecordRules'
+import { AFFECTS, odipyGroupOf, odipyItem, odipyLabel } from './odipyCategories'
 import { ISHIKAWA_CATEGORIES, normalizeAnalysis } from './rootCauseAnalysis'
 import { glanceItems } from './QualityGlance'
 import { incidentDetailFacts } from './incidentDetails'
@@ -30,7 +31,7 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
     incidents: [
       [L('Είδος', 'Kind'), vocabularyLabel(REPORT_KINDS, reportKindOf(record), language)],
       [L('Κατηγορία', 'Category'), incidentCategoryLabel(record.category || 'clinical', libraries.incidentCategories || [], language)],
-      reachesPatient && [L('Έφτασε στον ασθενή', 'Reached the patient'), vocabularyLabel(INCIDENT_CLASSES, record.incidentClass || 'nearMiss', language)],
+      reachesPatient && record.incidentClass && [L('Έφτασε στον ασθενή', 'Reached the patient'), vocabularyLabel(INCIDENT_CLASSES, record.incidentClass, language)],
       reachesPatient && [L('Βλάβη (WHO)', 'Harm (WHO)'), vocabularyLabel(IMPACTS, harmLevel(record.impact), language)],
       [t('severity'), t(record.severity)],
       [L('Ημερομηνία και ώρα', 'Date and time'), [day(record.date), record.eventTime].filter(Boolean).join(' · ')],
@@ -77,6 +78,51 @@ export function QualityRecordDocument({ recordType, record, linked = [], languag
   // The whole audit trail, as in the History tab.
   const history = [...(record.history || [])].sort((a, b) => new Date(b.at) - new Date(a.at))
   const linkedTitle = recordType === 'audits' ? L('Ευρήματα', 'Findings') : L('Διορθωτικές ενέργειες', 'Corrective actions')
+
+  // An incident: the ΟΔΙΠΥ «Αναφορά Συμβάντος» — the report, the event, its description, the people involved,
+  // the actions after it and Quality's review (the three signatures are added by the print layout).
+  if (recordType === 'incidents') {
+    const group = odipyGroupOf(record.category)
+    const reportFacts = [
+      [L('Α/Α αναφοράς', 'Report no.'), qualityCode(record, language)],
+      [L('Ημερομηνία αναφοράς', 'Report date'), formatDateTime(record.createdAt, language) || day(record.date)],
+      [L('Η αναφορά έγινε από', 'Reported by'), reporterText(record, en) || '—'],
+      [L('Αφορά σε', 'Concerns'), vocabularyLabel(AFFECTS, record.affects, language) || '—'],
+    ]
+    const eventFacts = [
+      [L('Ημερομηνία συμβάντος', 'Date of the event'), day(record.date)],
+      [L('Ώρα συμβάντος', 'Time of the event'), record.eventTime || '—'],
+      [L('Τμήμα που συνέβη', 'Department'), (en ? record.departmentEn || record.department : record.department) || '—'],
+      [L('Κατηγορία συμβάντος', 'Category'), group ? `${en ? group.en : group.el} · ${odipyLabel(odipyItem(record.category)?.key, language, false)}` : incidentCategoryLabel(record.category, libraries.incidentCategories || [], language) || '—'],
+      ...(reachesPatient ? incidentDetailFacts(record, language) : []),
+    ]
+    const people = [record.involvedPeople, [record.patientReference && `${L('Αρ. μητρώου ασθενή', 'Patient record no.')}: ${record.patientReference}`, record.room && `${L('Θάλαμος', 'Room')}: ${record.room}`].filter(Boolean).join(' · ')].filter(Boolean).join('\n')
+    const review = [
+      record.rootCause && `${L('Αίτια', 'Causes')}: ${text(record.rootCause, record.rootCauseEn)}`,
+      record.contributingFactors && `${L('Συνεισφέροντες παράγοντες', 'Contributing factors')}: ${text(record.contributingFactors, record.contributingFactorsEn)}`,
+      record.notes,
+    ].filter(Boolean).join('\n')
+    const block = (title, value, hint) => <section><h3>{title}</h3>{hint && <p className="quality-document-hint">{hint}</p>}{String(value || '—').split(/\n+/).filter(Boolean).map((line, index) => <p key={index}>{line}</p>)}</section>
+    const factList = list => <dl className="quality-document-details">{list.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '—'}</dd></div>)}</dl>
+    return <div className="quality-record-document" ref={documentRef} aria-hidden="true">
+      <p className="quality-document-eyebrow">{L('Αναφορά συμβάντος', 'Incident report')} · {qualityCode(record, language)}</p>
+      <h1>{text(record.title, record.titleEn)}</h1>
+      {voided && <p className="quality-document-voided">{L('Ακυρώθηκε', 'Voided')} {formatDateTime(record.voidedAt, language)}{record.voidReason ? ` · ${L('Λόγος', 'Reason')}: ${record.voidReason}` : ''}</p>}
+      {factList(reportFacts)}
+      <h3>{L('Πληροφορίες που αφορούν το συμβάν', 'About the event')}</h3>
+      {factList(eventFacts)}
+      {block(L('Περιγραφή συμβάντος', 'Description of the event'), text(record.description, record.descriptionEn))}
+      {block(L('Ονοματεπώνυμο και ιδιότητες εμπλεκομένων', 'People involved'), people)}
+      {block(L('Δράσεις μετά το συμβάν', 'Actions after the event'), text(record.immediateActions, record.immediateActionsEn), L('Συμπληρώνεται από τον Προϊστάμενο ή Τομεάρχη', 'Completed by the head of the department or sector'))}
+      {block(L('Ανασκόπηση από το Γραφείο Ποιότητας', 'Review by the Quality Office'), review)}
+      {linked.length > 0 && <>
+        <h3>{L('Διορθωτικές ενέργειες', 'Corrective actions')}</h3>
+        <table><thead><tr><th>{L('Κωδικός', 'Code')}</th><th>{L('Τίτλος', 'Title')}</th><th>{L('Κατάσταση', 'Status')}</th></tr></thead>
+          <tbody>{linked.map(item => <tr key={item.id}><td>{qualityCode(item, language)}</td><td>{text(item.title, item.titleEn)}</td><td>{t(item.status)}</td></tr>)}</tbody></table>
+      </>}
+      <p className="quality-document-hint">{L('Η συμπλήρωση της αναφοράς δεν αποτελεί αποδοχή ευθύνης οποιουδήποτε είδους για οποιοδήποτε άτομο. Οποιοδήποτε υλικό ή εξοπλισμός που ενεπλάκη στο συμβάν πρέπει να κρατηθεί για εξέταση.', 'Completing this report is not an acceptance of liability of any kind by anyone. Any material or equipment involved in the event must be kept for examination.')}</p>
+    </div>
+  }
 
   return <div className="quality-record-document" ref={documentRef} aria-hidden="true">
     <p className="quality-document-eyebrow">{KIND[recordType]?.[en ? 1 : 0]} · {qualityCode(record, language)}</p>

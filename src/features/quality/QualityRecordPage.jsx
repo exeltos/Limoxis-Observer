@@ -27,6 +27,7 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
+import { AFFECTS,isOdipyCategory,odipyGroupOf,odipyGroupOptions,odipyItem,odipyItemOptions } from './odipyCategories'
 import { CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
@@ -86,8 +87,11 @@ export function QualityRecordPage(){
   function downloadPdf(pdf){
     if(!documentRef.current)return
     const en=language==='en'
-    const ok=printReport({language,kind:{incidents:en?'Incident':'Συμβάν',findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
-     body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε'],filename:record.displayId||record.id}, { pdf: pdf === true })
+    // An incident prints as the ΟΔΙΠΥ «Αναφορά Συμβάντος»: signed by the reporter, the head of the department and Quality.
+    const incident=recordType==='incidents'
+    const signatures=incident?[{role:en?'Reported by':'Αναφέρων το συμβάν',name:reporterText(record,en)||''},{role:en?'Head of department / sector':'Προϊστάμενος / Τομεάρχης'},{role:en?'Quality manager':'Υπεύθυνος Ποιότητας',name:recordOwners(record).join(', ')}]:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε']
+    const ok=printReport({language,kind:incident?(en?'Incident report':'Αναφορά συμβάντος'):{findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
+     body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures,filename:record.displayId||record.id}, { pdf: pdf === true })
     if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
   }
   function printAudit(pdf){
@@ -171,6 +175,7 @@ function IncidentReadDetails({record,categories,language,t}){
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
       {label:en?'Kind':'Είδος',value:vocabularyLabel(REPORT_KINDS,kind,language)},
       {label:en?'Category':'Κατηγορία συμβάντος',value:incidentCategoryLabel(record.category||'clinical',categories,language)},
+      record.affects?{label:en?'Concerns':'Αφορά σε',value:vocabularyLabel(AFFECTS,record.affects,language)}:null,
       {label:en?'Description':'Περιγραφή',value:text(record.description,record.descriptionEn),wide:true},
       record.immediateActions||record.immediateActionsEn?{label:en?'Immediate actions taken':'Άμεσες ενέργειες που πραγματοποιήθηκαν',value:text(record.immediateActions,record.immediateActionsEn),wide:true}:null,
       record.patientReference?{label:en?'Patient record no.':'Κωδικός ασθενή',value:record.patientReference}:null,
@@ -347,8 +352,13 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
       {recordType!=='incidents'&&editing&&<EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>}
       {recordType==='incidents'&&<>
         <EditChoice editing={editing} label={en?'Kind':'Είδος'} value={reportKindOf(draft)} onChange={v=>set('reportKind',v)} options={vocabularyOptions(REPORT_KINDS,language)}/>
-        {editing&&['clinical','nonClinical'].includes(reportKindOf(draft))&&<EditChoice editing={editing} label={en?'Reached the patient':'Έφτασε στον ασθενή'} value={draft.incidentClass||'nearMiss'} onChange={v=>setDraft(x=>withIncidentClass(x,v))} options={vocabularyOptions(INCIDENT_CLASSES,language)}/>}
-        <EditChoice editing={editing} label={en?'Category':'Κατηγορία συμβάντος'} value={draft.category||'clinical'} onChange={v=>set('category',v)} options={incidentCategoryOptions(categories,language,reportKindOf(draft)==='suggestion'?null:reportKindOf(draft))} display={incidentCategoryLabel(draft.category||'clinical',categories,language)}/>
+        {editing&&['clinical','nonClinical'].includes(reportKindOf(draft))&&<EditChoice editing={editing} label={en?'Reached the patient':'Έφτασε στον ασθενή'} value={draft.incidentClass||''} onChange={v=>setDraft(x=>withIncidentClass(x,v))} options={vocabularyOptions(INCIDENT_CLASSES,language)}/>}
+        {/* Clinical and non-clinical incidents use the categories of the ΟΔΙΠΥ form: the group first, then the item. */}
+        {['clinical','nonClinical'].includes(reportKindOf(draft))&&editing?<>
+          <EditChoice editing label={en?'Category group':'Ομάδα κατηγορίας'} value={odipyGroupOf(draft.category)?.key||''} onChange={v=>set('category',odipyItemOptions(v,language).at(-1)?.value||'')} options={odipyGroupOptions(language)}/>
+          <EditChoice editing label={en?'Category':'Κατηγορία συμβάντος'} value={isOdipyCategory(draft.category)?draft.category:odipyItem(draft.category)?.key||''} onChange={v=>set('category',v)} options={odipyItemOptions(odipyGroupOf(draft.category)?.key,language)}/>
+        </>:<EditChoice editing={editing} label={en?'Category':'Κατηγορία συμβάντος'} value={draft.category||'clinical'} onChange={v=>set('category',v)} options={incidentCategoryOptions(categories,language,reportKindOf(draft)==='suggestion'?null:reportKindOf(draft))} display={incidentCategoryLabel(draft.category||'clinical',categories,language)}/>}
+        <EditChoice editing={editing} label={en?'Concerns':'Αφορά σε'} value={draft.affects||''} onChange={v=>set('affects',v)} options={vocabularyOptions(AFFECTS,language)} display={vocabularyLabel(AFFECTS,draft.affects,language)||'—'}/>
         <div className="detail-item editable"><TimeField label={en?'Time':'Ώρα'} value={draft.eventTime||''} onChange={v=>set('eventTime',v)}/></div>
         <EditOwners editing={editing} draft={draft} patch={patch} en={en}/>
         {editing&&<>
