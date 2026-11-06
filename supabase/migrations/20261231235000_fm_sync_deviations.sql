@@ -73,6 +73,36 @@ begin
     returning 1
   )
   select count(*) into v_count from links;
+
+  -- Each deviation or complaint has its corrective action (as those brought over on 27/10): the correction as its
+  -- title and text, the evaluator as owner, the date of the correction as due date.
+  insert into public.quality_capa_actions (id, organization_id, code, title, department_id, source_type, source_id, action_type, priority,
+    status, description, owner_label, owner_labels, due_date, effectiveness_status, lifecycle_status, history, created_at)
+  select md5('fm-DeviationCapa-' || r.record_id)::uuid, private.fm_org(),
+         'CAPA-' || to_char(nullif(r.data->>'Dev Date', '')::date, 'YYMMDD') || '-' || right(r.data->>'Dev ID', 6),
+         coalesce(nullif(left(trim(split_part(regexp_replace(coalesce(private.fm_text(r.data->>'Dev Correction'), ''), '\r', E'\n', 'g'), E'\n', 1)), 120), ''),
+                  'Διορθωτική ενέργεια για ' || coalesce(f.code, i.code)),
+         coalesce(f.department_id, i.department_id),
+         case when f.id is not null then 'finding' else 'incident' end, coalesce(f.code, i.code), 'corrective',
+         coalesce(f.severity, 'medium'),
+         case r.data->>'Dev Status' when 'Ολοκληρωμένη' then 'closed' else 'in_progress' end,
+         nullif(concat_ws(E'\n\n', private.fm_text(r.data->>'Dev Correction'), 'Αίτια: ' || private.fm_text(r.data->>'Dev Cause Analysis')), ''),
+         coalesce(private.fm_text(r.data->>'Evaluator'), private.fm_text(r.data->>'Evaluator 2'), private.fm_text(r.data->>'Evaluator 3'), private.fm_text(r.data->>'Technical Dept')),
+         case when coalesce(private.fm_text(r.data->>'Evaluator'), private.fm_text(r.data->>'Evaluator 2'), private.fm_text(r.data->>'Evaluator 3'), private.fm_text(r.data->>'Technical Dept')) is null then '{}'::text[]
+              else array[coalesce(private.fm_text(r.data->>'Evaluator'), private.fm_text(r.data->>'Evaluator 2'), private.fm_text(r.data->>'Evaluator 3'), private.fm_text(r.data->>'Technical Dept'))] end,
+         coalesce(nullif(r.data->>'Dev Corrections Date', '')::date, nullif(r.data->>'Dev answer Date', '')::date),
+         'pending', 'active', '[]'::jsonb, now()
+  from public.fm_stage_records r
+  join public.fm_stage_links l on l.base_table = 'Deviations' and l.record_id = r.record_id
+  left join public.quality_findings f on f.id = l.target_id and l.target_table = 'quality_findings'
+  left join public.quality_incidents i on i.id = l.target_id and l.target_table = 'quality_incidents'
+  where r.base_table = 'Deviations' and nullif(r.data->>'Dev Date', '') is not null and (f.id is not null or i.id is not null)
+    and private.fm_text(r.data->>'Dev Correction') is not null
+    and not exists (select 1 from public.quality_capa_actions c where c.organization_id = private.fm_org()
+                    and (c.source_id = coalesce(f.code, i.code)
+                         or c.code = 'CAPA-' || to_char(nullif(r.data->>'Dev Date', '')::date, 'YYMMDD') || '-' || right(r.data->>'Dev ID', 6)))
+  on conflict do nothing;
+
   return v_count;
 end;
 $fn$;
