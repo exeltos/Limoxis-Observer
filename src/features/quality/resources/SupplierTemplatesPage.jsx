@@ -76,7 +76,7 @@ export function SupplierTemplatesPage() {
 
   // A template opens as a page of its own, as the other records (back returns to the list).
   if (editing) return <TemplateEditor editing={editing} setEditing={setEditing} saving={saving} locked={locked} language={language} onSave={save} onRemove={editing.draft.id && !locked ? remove : null} />
-  return <Page fill className="supplier-templates-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
+  return <Page fill icon={<ListChecks size={19} />} className="supplier-templates-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
     title={en ? 'Supplier evaluation templates' : 'Πρότυπα αξιολόγησης προμηθευτών'}
     subtitle={en ? 'Each kind of supplier is evaluated on its own criteria and weights. A new evaluation takes the template of the supplier’s category.' : 'Κάθε είδος προμηθευτή αξιολογείται με τα δικά του κριτήρια και βάρη. Μια νέα αξιολόγηση παίρνει το πρότυπο της κατηγορίας του προμηθευτή.'}
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={exportTemplates} />{!locked && <Button onClick={() => open(newTemplate())}><Plus size={15} />{en ? 'New template' : 'Νέο πρότυπο'}</Button>}</div>}>

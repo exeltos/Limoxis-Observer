@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RegistryTotals } from '../../../design-system/RegistryTotals'
-import { BellRing, CheckCircle2, FileText, Lock, Moon, RefreshCw, Send, X } from 'lucide-react'
+import { BellRing, CheckCircle2, FileText, Lock, Moon, RefreshCw, Send, ShieldCheck, X } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { BackButton } from '../../../design-system/BackButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -114,7 +114,7 @@ export function SupplierRenewalsPage() {
     { key: 'submitted', value: counts.submitted, label: en ? 'to review' : 'προς έλεγχο' },
   ]} />
 
-  return <Page fill className="supplier-renewals-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
+  return <Page fill icon={<ShieldCheck size={19} />} className="supplier-renewals-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
     title={en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}
     subtitle={en ? 'Expired supplier certificates, by supplier. After approval each supplier gets one e-mail with a personal link listing all its certificates to replace; you then accept each one and it replaces the old one.' : 'Τα ληγμένα πιστοποιητικά, ανά προμηθευτή. Μετά την έγκριση κάθε προμηθευτής λαμβάνει ένα email με προσωπικό σύνδεσμο για όλα τα πιστοποιητικά του· όταν αποδεχθείτε το καθένα, αντικαθιστά το παλιό.'}
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={exportQueue} />
