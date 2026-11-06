@@ -21,6 +21,8 @@ export function SurveyResults({ survey, responses, language = 'el', canAct = fal
   const [view, setView] = useState('summary')
   const views = [{ value: 'summary', icon: BarChart3, label: en ? 'Summary' : 'Σύνοψη' }, { value: 'departments', icon: Building2, label: en ? 'By department' : 'Ανά τμήμα' }, ...(trend.length > 1 ? [{ value: 'months', icon: CalendarDays, label: en ? 'Month by month' : 'Ανά μήνα' }] : [])]
   const shown = views.some(item => item.value === view) ? view : 'summary'
+  // The recommendation score only when the questionnaire asks it.
+  const hasNps = (survey.questions || []).some(question => question.type === 'nps')
   if (!responses.length) return <p className="risk-empty-note">{en ? 'No responses for this selection yet.' : 'Δεν υπάρχουν απαντήσεις για αυτή την επιλογή.'}</p>
   return <div className="survey-results">
     {showLine && <SurveyResultsLine survey={survey} responses={responses} language={language} />}
@@ -37,16 +39,16 @@ export function SurveyResults({ survey, responses, language = 'el', canAct = fal
         </ul>}
       </section>}
       {shown === 'departments' && <section className="quality-panel survey-flat-section">
-        <header><h3>{en ? 'By department' : 'Ανά τμήμα'}</h3><small>{en ? 'Satisfied and recommendation score' : 'Ικανοποιημένοι και δείκτης σύστασης'}</small></header>
-        <table className="data-table survey-table"><thead><tr><th>{en ? 'Department' : 'Τμήμα'}</th><th className="register-num">{en ? 'Responses' : 'Απαντήσεις'}</th><th>{en ? 'Satisfied' : 'Ικανοποιημένοι'}</th><th className="register-num">NPS</th></tr></thead><tbody>
-          {departments.map(row => <tr key={row.key}><td>{row.department}</td><td className="register-num">{row.responses}</td><td><span className="survey-meter-cell"><Meter value={row.satisfied} tone={toneFor(row.satisfied, summary.target)} label={pct(row.satisfied, en)} />{pct(row.satisfied, en)}</span></td><td className="register-num">{npsText(row.nps)}</td></tr>)}
+        <header><h3>{en ? 'By department' : 'Ανά τμήμα'}</h3><small>{hasNps ? (en ? 'Satisfied and recommendation score' : 'Ικανοποιημένοι και δείκτης σύστασης') : (en ? 'Satisfied' : 'Ικανοποιημένοι')}</small></header>
+        <table className="data-table survey-table"><thead><tr><th>{en ? 'Department' : 'Τμήμα'}</th><th>{en ? 'Responses' : 'Απαντήσεις'}</th><th>{en ? 'Satisfied' : 'Ικανοποιημένοι'}</th>{hasNps && <th className="register-num">NPS</th>}</tr></thead><tbody>
+          {departments.map(row => <tr key={row.key}><td>{row.department}</td><td>{row.responses}</td><td><span className="survey-meter-cell"><Meter value={row.satisfied} tone={toneFor(row.satisfied, summary.target)} label={pct(row.satisfied, en)} />{pct(row.satisfied, en)}</span></td>{hasNps && <td className="register-num">{npsText(row.nps)}</td>}</tr>)}
         </tbody></table>
       </section>}
       {shown === 'months' && trend.length > 1 && <section className="quality-panel survey-flat-section">
         <header><h3>{en ? 'Month by month' : 'Ανά μήνα'}</h3><small>{en ? 'Satisfied, with the target dashed' : 'Ικανοποιημένοι, ο στόχος με διακεκομμένη'}</small></header>
-        <div className="survey-trend"><Sparkline points={trend.map(row => row.satisfied)} target={summary.target} width={320} height={60} label={en ? 'Satisfied by month' : 'Ικανοποιημένοι ανά μήνα'} /></div>
-        <table className="data-table survey-table"><thead><tr><th>{en ? 'Month' : 'Μήνας'}</th><th className="register-num">{en ? 'Responses' : 'Απαντήσεις'}</th><th className="register-num">{en ? 'Satisfied' : 'Ικανοποιημένοι'}</th><th className="register-num">NPS</th></tr></thead><tbody>
-          {[...trend].reverse().map(row => <tr key={row.month}><td>{new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${row.month}-01T00:00:00Z`))}</td><td className="register-num">{row.responses}</td><td className="register-num">{pct(row.satisfied, en)}</td><td className="register-num">{npsText(row.nps)}</td></tr>)}
+        <div className="survey-trend"><Sparkline points={trend.map(row => row.satisfied)} target={summary.target} width={720} height={70} label={en ? 'Satisfied by month' : 'Ικανοποιημένοι ανά μήνα'} /></div>
+        <table className="data-table survey-table"><thead><tr><th>{en ? 'Month' : 'Μήνας'}</th><th>{en ? 'Responses' : 'Απαντήσεις'}</th><th>{en ? 'Satisfied' : 'Ικανοποιημένοι'}</th>{hasNps && <th className="register-num">NPS</th>}</tr></thead><tbody>
+          {[...trend].reverse().map(row => <tr key={row.month}><td>{new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${row.month}-01T00:00:00Z`))}</td><td>{row.responses}</td><td><span className="survey-meter-cell"><Meter value={row.satisfied} tone={toneFor(row.satisfied, summary.target)} label={pct(row.satisfied, en)} />{pct(row.satisfied, en)}</span></td>{hasNps && <td className="register-num">{npsText(row.nps)}</td>}</tr>)}
         </tbody></table>
       </section>}
     </div>
