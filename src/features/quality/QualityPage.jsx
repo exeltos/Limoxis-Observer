@@ -42,7 +42,7 @@ import { RegistersPanel,useRegisterList } from '../registers/RegistersPanel'
 import { registerKindLabel,registerStatusLabel } from '../registers/registerText'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
 import { ObjectivesTable,objectivesExport,useObjectives } from './review/QualityObjectives'
-import { loadDossierExtras,loadObjectiveHistories,objectivesDossier } from './review/objectiveDossier'
+import { loadDossierExtras,loadObjectiveHistories,objectivesDossier,objectivesListDoc } from './review/objectiveDossier'
 import { OBJECTIVE_LEVELS,levelLabel } from './review/objectiveSources'
 import { loadReviews } from './review/reviewService'
 import { SurveysList,filterSurveys,surveysExport,useSurveys } from './surveys/SurveysPanel'
@@ -295,7 +295,9 @@ export function QualityPage({section=''}={}){
  const printResources=(kind,{groupBy})=>{setIncidentDialog(null);const spec=RESOURCE_PRINT[kind];const column=spec.groups.find(([key])=>key===groupBy)?.[1]??null;if(!printReport(groupedListDoc({title:spec.title,filename:spec.file,table:resourceTable(kind),columns:spec.columns,groupBy:column,language})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const printList=(data,title,pdf)=>{if(!printRegistry(data(),{language,kind:t('quality'),title,pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
- const listExport=(rows,data,title,items=[])=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>printList(data,title,false)} onPdf={()=>printList(data,title,true)} onExcel={()=>exportRegistry(data())}/>
+ // `doc`: a list with its own printed layout (the objectives, grouped by place); Excel stays the full table.
+ const printDoc=(doc,pdf)=>{if(!printReport(doc(),{pdf}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
+ const listExport=(rows,data,title,items=[],doc=null)=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>doc?printDoc(doc,false):printList(data,title,false)} onPdf={()=>doc?printDoc(doc,true):printList(data,title,true)} onExcel={()=>exportRegistry(data())}/>
  const download=({
   overview:null,
   deviations:<ExportMenu items={[
@@ -319,7 +321,7 @@ export function QualityPage({section=''}={}){
   ]}/>})(),
   risks:listExport(riskRows,()=>riskAssessmentsExport(riskRows,language),L('Εκτιμήσεις κινδύνου','Risk assessments')),
   // «Indicators» puts its own «Export» here (actionsSlot).
-  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'),[{id:'dossier',kind:'pdf',label:L('Ετήσιος φάκελος στόχων','Annual objectives file'),disabled:!dossierData||(!activeObjectives.length&&!objectives.committeeTargets.length),onClick:()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,committeeTargets:objectives.committeeTargets,histories:dossierData.histories,reviews:dossierData.reviews,extras:dossierData.extras,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}]),
+  indicators:measureView==='indicators'?<div ref={setIndicatorActions} className="row-actions"/>:measureView==='surveys'?listExport(visibleSurveys,()=>surveysExport(visibleSurveys,language),L('Ερωτηματολόγια ικανοποίησης','Satisfaction questionnaires')):measureView==='registers'?listExport(registerRows,()=>registersExport(registerRows,language),L('Μητρώα τμημάτων','Department registers')):listExport(visibleObjectives,()=>objectivesExport(visibleObjectives,language),L('Στόχοι ποιότητας','Quality objectives'),[{id:'dossier',kind:'pdf',label:L('Ετήσιος φάκελος στόχων','Annual objectives file'),disabled:!dossierData||(!activeObjectives.length&&!objectives.committeeTargets.length),onClick:()=>{const year=objectiveYear==='all'?new Date().getFullYear():Number(objectiveYear);if(!printReport(objectivesDossier({objectives:objectives.objectives,committeeTargets:objectives.committeeTargets,histories:dossierData.histories,reviews:dossierData.reviews,extras:dossierData.extras,year,language}),{pdf:true}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}}],()=>objectivesListDoc({rows:visibleObjectives,year:objectiveYear==='all'?null:objectiveYear,language})),
   resources:(()=>{const kind=resourceView==='equipment'?'equipment':'suppliers';const rows=kind==='equipment'?visibleEquipment:visibleSuppliers;return <ExportMenu items={[
    {id:`${kind}-print`,kind:'print',label:kind==='equipment'?L('Εκτύπωση: εξοπλισμός','Print: equipment'):L('Εκτύπωση: προμηθευτές','Print: suppliers'),disabled:!rows.length,onClick:()=>setIncidentDialog(`${kind}-print`)},
    // The suppliers' evaluations on one sheet (the form «Αξιολόγηση εξωτερικών παρόχων»), the questions once per template.
