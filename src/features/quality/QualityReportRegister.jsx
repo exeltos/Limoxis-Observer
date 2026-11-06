@@ -1,6 +1,5 @@
 import { useEffect,useMemo,useState } from 'react'
-import { KpiFigures } from '../../design-system/KpiCard'
-import { AlertOctagon,AlertTriangle,CalendarClock,Clock3,SearchCheck,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
+import { AlertOctagon,FileWarning,Plus,MessageSquareWarning,Lightbulb,Stethoscope,Wrench,GraduationCap,ClipboardCheck,ShieldCheck } from 'lucide-react'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
@@ -221,30 +220,6 @@ const openFirst=(a,b)=>{
  return closed(a)-closed(b)||(b.sentinel?1:0)-(a.sentinel?1:0)||(SEVERITY_RANK[b.severity]||0)-(SEVERITY_RANK[a.severity]||0)||String(b.date).localeCompare(String(a.date))
 }
 
-// The line above a register, outside its card (as in Controls): what waits, in figures that filter the list.
-export function ReportSummary({view,loading,language,inbox=false}){
- const en=language==='en'
- const {filters,set}=view
- const quick=filters.quick
- const stageCount=view.counts.stages
- const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
- const longWaiting=waits.filter(days=>days>=WAITING_DAYS).length,oldest=waits.length?Math.max(...waits):0
- const dayWord=count=>en?(count===1?'day':'days'):(count===1?'ημέρα':'ημέρες')
- const toggle=key=>()=>set('quick',quick===key?null:key)
- if(inbox)return <KpiFigures className="quality-kpis" label={en?'Reports':'Αναφορές'} loading={loading} figures={[
-  {key:'toAssess',icon:Clock3,value:waits.length,label:en?'To assess':'Προς αξιολόγηση',tone:'warning',active:!quick,go:()=>view.clear()},
-  {key:'waiting',icon:AlertTriangle,value:longWaiting,label:en?`Waiting over ${WAITING_DAYS} days`:`Αναμένουν πάνω από ${WAITING_DAYS} ημέρες`,status:longWaiting?'danger':'good',target:en?'target: 0':'στόχος: 0',active:quick==='waiting',go:toggle('waiting')},
-  {key:'oldest',icon:CalendarClock,value:waits.length?oldest:null,unit:dayWord(oldest),label:en?'Oldest waiting':'Παλαιότερη αναμονή',status:waits.length?(oldest>WAITING_DAYS?'danger':'good'):null,target:en?`target ≤ ${WAITING_DAYS} days`:`στόχος ≤ ${WAITING_DAYS} ημέρες`},
- ]}/>
- // The open stages (closed ones are a filter), then the sentinel events.
- const stageIcons={toAssess:Clock3,investigating:SearchCheck,action:Wrench,effectiveness:ShieldCheck,toClose:ClipboardCheck}
- const open=INCIDENT_STAGES.filter(stage=>stage!=='closed'&&stageCount?.[stage])
- return <KpiFigures className="quality-kpis" label={en?'Incidents':'Συμβάντα'} loading={loading} figures={[
-  ...open.slice(0,3).map(stage=>({key:stage,icon:stageIcons[stage],value:stageCount[stage],label:stageLabel(stage,language),active:quick===stage,go:toggle(stage)})),
-  {key:'sentinel',icon:AlertOctagon,value:view.counts.sentinel,label:en?'Sentinel events':'Συμβάντα-φρουροί',status:view.counts.sentinel?'danger':'good',target:en?'target: 0':'στόχος: 0',active:quick==='sentinel',go:toggle('sentinel')},
- ]}/>
-}
-
 // The inbox (`inbox`): staff reports Quality has not classified yet, as one
 // summary line and the usual filter popover instead of boxes and extra columns.
 export function ReportRegister({view,loading,language,t,categories,registry,onOpenReport,inbox=false,compact=false,totals=false}){
@@ -284,7 +259,15 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  const base=view.base||view.filtered
  const toggle=key=>()=>set('quick',filters.quick===key?null:key)
  const isOpen=row=>!['closed','voided'].includes(row.stage)
- const end=totals&&!inbox?<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
+ // The inbox's totals beside the search (instead of cards above it): what waits, how long the oldest has waited.
+ const waits=inbox?view.rows.map(waitingDays).filter(days=>days!=null):[]
+ const oldest=waits.length?Math.max(...waits):0
+ const inboxTotals=inbox&&totals?<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
+  {key:'toAssess',always:true,value:waits.length,label:en?'to assess':'προς αξιολόγηση',active:!filters.quick,onClick:()=>view.clear()},
+  {key:'waiting',value:waits.filter(days=>days>=WAITING_DAYS).length,label:en?`over ${WAITING_DAYS} days`:`πάνω από ${WAITING_DAYS} ημέρες`,active:filters.quick==='waiting',onClick:toggle('waiting')},
+  {key:'oldest',value:oldest,label:en?(oldest===1?'day the oldest':'days the oldest'):(oldest===1?'ημέρα η παλαιότερη':'ημέρες η παλαιότερη')},
+ ]}/>:null
+ const end=inbox?inboxTotals:totals?<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
   {key:'all',always:true,value:base.length,label:en?'incidents':'συμβάντα',active:!filters.quick,onClick:()=>set('quick',null)},
   {key:'open',value:base.filter(isOpen).length,label:en?'open':'ανοιχτά',active:filters.quick==='open',onClick:toggle('open')},
   {key:'closed',value:base.filter(row=>row.stage==='closed').length,label:en?'closed':'κλειστά',active:filters.quick==='closed',onClick:toggle('closed')},

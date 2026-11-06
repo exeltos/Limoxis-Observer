@@ -22,7 +22,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,printRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
 import { fillAuditProgramme,loadQualityRecords } from './qualityService'
-import { DeviationQueue,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
+import { DeviationQueue,ReportRegister,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { printReport } from '../../core/export/reportDocument'
 import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
 import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/ExcelFieldsDialog'
@@ -345,11 +345,10 @@ export function QualityPage({section=''}={}){
   {['equipment','suppliers'].map(kind=>incidentDialog===`${kind}-print`&&<PrintOptionsDialog key={kind} storageKey={`limoxis.quality.${kind}.print`} title={RESOURCE_PRINT[kind].title} options={[{key:'groupBy',label:L('Ομαδοποίηση','Group'),choices:[{value:'none',label:L('Χωρίς ομαδοποίηση','No grouping')},...RESOURCE_PRINT[kind].groups.map(([value,,label])=>({value,label}))]}]} onConfirm={options=>printResources(kind,options)} onClose={()=>setIncidentDialog(null)}/>)}
   {['equipment','suppliers'].map(kind=>incidentDialog===`${kind}-excel`&&<ExcelFieldsDialog key={kind} storageKey={`limoxis.quality.${kind}.excel`} fields={tableFields(resourceTable(kind))} onClose={()=>setIncidentDialog(null)} onConfirm={keys=>{exportRegistry(pickColumns(resourceTable(kind),keys));setIncidentDialog(null)}}/>)}
   {incidentDialog==='excel'&&<ExcelFieldsDialog storageKey="limoxis.quality.incidents.excel" fields={tableFields(incidentTable())} onClose={()=>setIncidentDialog(null)} onConfirm={keys=>{exportRegistry(pickColumns(incidentTable(),keys));setIncidentDialog(null)}}/>}
-  {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
   {tab==='audits'&&!['programme','self'].includes(auditView.filters.mode||'programme')&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
   {tab==='indicators'&&measureView==='indicators'&&<PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" actionsSlot={indicatorActions} withRegisters/></PageEmbedProvider>}
   {!(tab==='indicators'&&measureView==='indicators')&&<section className="surface registry-workspace workspace-column workspace-fill">
-   {tab==='reports'&&<ReportRegister inbox view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
+   {tab==='reports'&&<ReportRegister inbox totals view={register} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
    {tab==='incidents'&&<ReportRegister compact totals view={incidents} loading={records.loading} language={language} t={t} categories={categories} registry={registry}
     onOpenReport={(row,items)=>openRecord('incidents',row.id,items.map(item=>item.id))}/>}
