@@ -10,4 +10,4 @@
 .lo-checkbox-field.lo-checkbox-field>.lo-checkbox-label{margin:0;font-size:13px!important;line-height:1.35;font-weight:600;letter-spacing:0;text-transform:none;color:inherit}
 .lo-checkbox-field.is-disabled{cursor:default;color:#5d7083}
 .lo-checkbox-field.lo-checkbox-field>.field-hint{grid-column:2;margin-top:-6px}
-.entry-grid>.lo-checkbox-field.lo-checkbox-field,.form-grid>.lo-checkbox-field.lo-checkbox-field{align-self:end!important}
+.entry-grid>.lo-checkbox-field.lo-checkbox-field,.form-grid>.lo-checkbox-field.lo-checkbox-field,.lo-form-grid>.lo-checkbox-field.lo-checkbox-field{align-self:end!important}
