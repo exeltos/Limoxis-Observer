@@ -224,6 +224,8 @@ export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, em
       programDbId:program.dbId||null,
       assignmentDbId:assignment.dbId||null,
       materialCount:program.materials?.length||0,
+      organiser:program.owner||'',
+      hours:program.durationHours??null,
       score:assignment.score??null,
       competent:assignment.competent??null,
       source:'training_records',

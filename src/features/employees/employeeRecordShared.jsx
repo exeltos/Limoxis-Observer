@@ -71,7 +71,7 @@ export function Pager({ paging, total, language }) {
     </div>
   )
 }
-export function RegistryFilter({ query, setQuery, language, count }) {
+export function RegistryFilter({ query, setQuery, language, count, end = null }) {
   return (
     <FilterBar
       query={query}
@@ -80,6 +80,7 @@ export function RegistryFilter({ query, setQuery, language, count }) {
       activeAdvancedCount={0}
       onClear={() => setQuery('')}
       resultCount={count}
+      end={end}
     />
   )
 }

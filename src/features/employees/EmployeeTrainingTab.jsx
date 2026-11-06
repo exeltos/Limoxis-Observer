@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeTrainingQuestion } from '../training/trainingAssessment'
 import { formatActiveTime, loadProgramMaterialTimes } from '../training/trainingMaterialTime'
 import { Button } from '../../design-system/Button'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { ExcelFieldsDialog, pickColumns, tableFields } from '../../design-system/ExcelFieldsDialog'
+import { printReport } from '../../core/export/reportDocument'
+import { exportRegistry } from '../../core/export/registryExports'
+import { employeeTrainingDoc } from '../training/trainingReports'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
 import { loadEmployeeTrainingAsync } from './employeeSubRecordsService'
@@ -26,6 +31,7 @@ export function EmployeeTrainingTab({
   fmt,
   organizationId,
   canOpenProgram = false,
+  onExportItems,
 }) {
   const { goTo } = useContextualNavigation('/training')
   const state = useEmployeeSubRecords(
@@ -47,7 +53,27 @@ export function EmployeeTrainingTab({
       .catch(() => {})
     return () => { live = false }
   }, [selected?.programDbId, selected?.assignmentDbId])
-  const registry = useRegistryRows(state.data)
+  // Newest first; the print and the Excel carry the same rows.
+  const rows = useMemo(() => [...(state.data || [])].sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))), [state.data])
+  const registry = useRegistryRows(rows)
+  const [excelOpen, setExcelOpen] = useState(false)
+  const en = language === 'en'
+  const titleOf = row => (en ? row.titleEn || row.titleEl : row.titleEl || row.titleEn)
+  const hoursText = value => (value ? String(Math.round(Number(value) * 10) / 10).replace('.', ',') : '')
+  const historyRows = () => registry.filtered.map(row => ({ title: titleOf(row), organiser: row.organiser, date: row.date, hours: row.hours, done: row.status === 'completed', statusLabel: label(row.status, t), score: row.score != null ? `${row.score}%` : '' }))
+  const employeeName = en ? `${employee.firstNameEn || employee.firstName} ${employee.lastNameEn || employee.lastName}` : `${employee.lastName} ${employee.firstName}`
+  const historyTable = () => ({ name: `${en ? 'training' : 'ekpaideusi'}-${employee.id}`, headers: en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], rows: historyRows().map(r => [r.title, r.organiser || '', fmt(r.date), hoursText(r.hours), r.statusLabel, r.score]) })
+  const exportItems = [
+    { id: 'training-history-print', kind: 'print', disabled: !registry.filtered.length, label: en ? 'Print: training' : 'Εκτύπωση: εκπαιδεύσεις', onClick: () => printReport(employeeTrainingDoc({ employeeName, employeeCode: employee.id, department: en ? employee.departmentEn || employee.department : employee.department, rows: historyRows(), language })) },
+    { id: 'training-history-excel', kind: 'excel', disabled: !registry.filtered.length, label: en ? 'Excel: training' : 'Excel: εκπαιδεύσεις', onClick: () => setExcelOpen(true) },
+  ]
+  // The items go to the page's single «Εξαγωγή» (header), not to a second menu here.
+  const exportRef = useRef(exportItems)
+  exportRef.current = exportItems
+  useEffect(() => {
+    onExportItems?.(exportRef.current.map(item => ({ ...item, onClick: () => exportRef.current.find(current => current.id === item.id)?.onClick() })))
+    return () => onExportItems?.([])
+  }, [onExportItems, registry.filtered.length, language])
   const paging = registry.paging
   return (
     <section className="record-section record-secondary-registry">
@@ -59,6 +85,7 @@ export function EmployeeTrainingTab({
             : 'Οι αναθέσεις και οι ολοκληρώσεις αντλούνται απευθείας από τα προγράμματα Εκπαίδευσης.'
         }
       />
+      {excelOpen && <ExcelFieldsDialog storageKey="limoxis.employee.training.excel" fields={tableFields(historyTable())} onClose={() => setExcelOpen(false)} onConfirm={keys => { exportRegistry(pickColumns(historyTable(), keys)); setExcelOpen(false) }} />}
       <State {...state} language={language} onRetry={state.reload} />
       {!state.loading && !state.error && (
         <RegistryFilter
@@ -66,6 +93,11 @@ export function EmployeeTrainingTab({
           setQuery={registry.setQuery}
           language={language}
           count={registry.filtered.length}
+          end={<><RegistryTotals label={en ? 'Totals' : 'Σύνολα'} items={[
+            { key: 'all', always: true, value: registry.filtered.length, label: en ? 'trainings' : 'εκπαιδεύσεις' },
+            { key: 'done', value: registry.filtered.filter(row => row.status === 'completed').length, label: en ? 'completed' : 'ολοκληρωμένες' },
+            { key: 'hours', value: Math.round(registry.filtered.filter(row => row.status === 'completed').reduce((sum, row) => sum + (Number(row.hours) || 0), 0)), label: en ? 'hours' : 'ώρες' },
+          ]} /></>}
         />
       )}
       {!state.loading &&
@@ -77,7 +109,9 @@ export function EmployeeTrainingTab({
                 <thead>
                   <tr>
                     <th>{language === 'en' ? 'Training' : 'Εκπαίδευση'}</th>
+                    <th>{language === 'en' ? 'Organiser' : 'Διοργανωτής'}</th>
                     <th>{language === 'en' ? 'Date' : 'Ημερομηνία'}</th>
+                    <th>{language === 'en' ? 'Hours' : 'Ώρες'}</th>
                     <th>{language === 'en' ? 'Status' : 'Κατάσταση'}</th>
                     <th>{language === 'en' ? 'Score' : 'Βαθμολογία'}</th>
                   </tr>
@@ -102,7 +136,9 @@ export function EmployeeTrainingTab({
                             : row.titleEn || row.titleEl}
                         </strong>
                       </td>
+                      <td>{row.organiser || '—'}</td>
                       <td>{fmt(row.date)}</td>
+                      <td>{hoursText(row.hours) || '—'}</td>
                       <td>
                         <span className={`status-badge ${statusClass(row.status)}`}>
                           {label(row.status, t)}

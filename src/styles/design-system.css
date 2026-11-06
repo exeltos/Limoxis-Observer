@@ -1239,3 +1239,5 @@ button.registry-total.is-active{border-color:var(--accent);background:var(--lo-c
 /* Field choice of an Excel export (ExcelFieldsDialog). */
 .excel-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 16px;margin-top:10px}
 @media (max-width:560px){.excel-fields{grid-template-columns:1fr}}
+/* Choices of a printout (PrintOptionsDialog). */
+.print-options{display:grid;gap:12px}

@@ -89,6 +89,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
     },
   })
   const [accountOpen, setAccountOpen] = useState(false)
+  // A tab can add its own items to the one «Εξαγωγή» of the page (e.g. the training history).
+  const [tabExports, setTabExports] = useState([])
   const [accountSaving, setAccountSaving] = useState(false)
   const [departments, setDepartments] = useState([])
   const [professionalCategories, setProfessionalCategories] = useState([])
@@ -499,7 +501,10 @@ export function EmployeeRecordPage({ selfMode = false }) {
           {language === 'en' ? 'Create user account' : 'Δημιουργία λογαριασμού χρήστη'}
         </Button>
       )}
-      <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />
+      <ExportMenu items={[
+        { id: 'employee-print', kind: 'print', label: language === 'en' ? 'Print: details' : 'Εκτύπωση: στοιχεία', onClick: () => printEmployee(false) },
+        ...(tab === 'training' ? tabExports : []),
+      ]} />
       {canAdmin && !editingDetails && (
         <Button variant="secondary" tone="danger" onClick={deleteEmployee}>
           <Trash2 size={15} />
@@ -621,6 +626,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
             fmt={fmt}
             organizationId={tenant?.id}
             canOpenProgram={canTraining}
+            onExportItems={setTabExports}
           />
         )}
         {tab === 'evaluations' && (
