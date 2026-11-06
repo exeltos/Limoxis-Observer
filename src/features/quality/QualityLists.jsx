@@ -1,7 +1,8 @@
 import { useEffect,useMemo,useState } from 'react'
 import { KpiFigures } from '../../design-system/KpiCard'
 import { AlertOctagon,AlertTriangle,BarChart3,Building2,CalendarDays,CheckSquare2,ClipboardCheck,ClipboardSignature,GraduationCap,ListChecks,SearchCheck,ShieldAlert,Scale,ShieldCheck,Smile,Stethoscope,Truck } from 'lucide-react'
-import { FilterBar,FilterSelect } from '../../design-system/FilterBar'
+import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useSortedPaging,withSort } from './useSortedPaging'
@@ -51,7 +52,7 @@ export const isDueSoonAction=row=>row.kind==='capa'&&isOpenRecord(row)&&(d=>d!=n
 export const isVerificationAction=row=>row.kind==='capa'&&row.lifecycleStatus!=='voided'&&(row.status==='verification'||(['closed','completed'].includes(row.status)&&(row.effectivenessStatus||'pending')==='pending'&&Boolean(row.effectivenessDue)&&row.effectivenessDue<=today()))
 export const isOrphanFinding=row=>row.kind==='finding'&&isOpenRecord(row)
 
-const SOURCE_KINDS={finding:['Εύρημα','Finding'],incident:['Αναφορά','Report'],control:['Έλεγχος','Control'],bundle:['Bundle','Bundle'],training:['Εκπαίδευση','Training'],risk:['Κίνδυνος','Risk'],review:['Ανασκόπηση','Review'],survey:['Έρευνα ικανοποίησης','Satisfaction survey'],equipment:['Εξοπλισμός','Equipment'],supplier:['Προμηθευτής','Supplier'],legislation:['Νομοθεσία','Legislation'],audit:['Επιθεώρηση','Audit'],manual:['Χωρίς πηγή','No source']}
+const SOURCE_KINDS={finding:['Απόκλιση','Deviation'],incident:['Αναφορά','Report'],control:['Έλεγχος','Control'],bundle:['Bundle','Bundle'],training:['Εκπαίδευση','Training'],risk:['Κίνδυνος','Risk'],review:['Ανασκόπηση','Review'],survey:['Έρευνα ικανοποίησης','Satisfaction survey'],equipment:['Εξοπλισμός','Equipment'],supplier:['Προμηθευτής','Supplier'],legislation:['Νομοθεσία','Legislation'],audit:['Επιθεώρηση','Audit'],manual:['Χωρίς πηγή','No source']}
 function sourceKindOf(capa){
  const id=String(capa.sourceId||'')
  if(id.startsWith('FND-'))return 'finding'
@@ -86,6 +87,8 @@ export function filterActions(rows,filters,en){
   .filter(row=>filters.status==='all'||row.status===filters.status)
   .filter(row=>filters.department==='all'||departmentOf(row,en)===filters.department)
   .filter(row=>!filters.cycle||filters.cycle==='all'||auditCycleKey(row)===filters.cycle)
+  // «Από / Έως» on the due date (an action without one is left out once a range is set).
+  .filter(row=>(!filters.dueFrom||String(row.dueDate||'')>=filters.dueFrom)&&(!filters.dueTo||(row.dueDate&&String(row.dueDate)<=filters.dueTo)))
   .filter(row=>!filters.quick||(filters.quick==='overdue'?isOverdueAction(row):filters.quick==='open'?row.kind==='capa'&&isOpenRecord(row):filters.quick==='dueSoon'?isDueSoonAction(row):filters.quick==='verification'?isVerificationAction(row):filters.quick==='orphans'?isOrphanFinding(row):true))
 }
 
@@ -104,17 +107,6 @@ function dueText(row,en){
  return en?`in ${days} ${days===1?'day':'days'}`:`σε ${days} ${days===1?'ημέρα':'ημέρες'}`
 }
 
-export function ActionsSummary({counts,view,loading,language}){
- const en=language==='en'
- const {filters,set}=view
- const toggle=key=>()=>set('quick',filters.quick===key?null:key)
- return <KpiFigures className="quality-kpis" label={en?'Actions':'Ενέργειες'} loading={loading} figures={[
-  {key:'open',icon:CheckSquare2,value:counts.open,label:en?'Open':'Ανοιχτές',active:filters.quick==='open',go:toggle('open')},
-  {key:'overdue',icon:AlertOctagon,value:counts.overdue,label:en?'Overdue':'Εκπρόθεσμες',status:counts.overdue?'danger':'good',target:en?'target: 0':'στόχος: 0',active:filters.quick==='overdue',go:toggle('overdue')},
-  {key:'dueSoon',icon:CalendarDays,value:counts.dueSoon,label:en?'Due in 14 days':'Λήγουν σε 14 ημέρες',tone:'warning',active:filters.quick==='dueSoon',go:toggle('dueSoon')},
-  {key:'verification',icon:ShieldCheck,value:counts.verification,label:en?'To check for effectiveness':'Για έλεγχο αποτελεσματικότητας',tone:'warning',active:filters.quick==='verification',go:toggle('verification')},
- ]}/>
-}
 
 export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
  const en=language==='en'
@@ -130,11 +122,23 @@ export function ActionsList({rows,view,loading,language,t,registry,onOpen}){
  const paging=useSortedPaging(filtered,JSON.stringify(filters),sortBy)
  const statuses=[...new Set(actions.map(row=>row.status).filter(Boolean))]
  const departments=[...new Set(actions.map(row=>departmentOf(row,en)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
- const advanced=['status','department'].filter(key=>filters[key]!=='all').length
+ const advanced=['status','department'].filter(key=>filters[key]!=='all').length+(filters.dueFrom?1:0)+(filters.dueTo?1:0)
+ // Totals beside the search, counted without the quick figure; each one filters the list.
+ const base=useMemo(()=>filterActions(actions,{...filters,quick:null},en),[actions,filters,en])
+ const toggle=key=>()=>set('quick',filters.quick===key?null:key)
+ const totals=<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
+  {key:'all',always:true,value:base.length,label:en?'actions':'ενέργειες',active:!filters.quick,onClick:()=>set('quick',null)},
+  {key:'open',value:base.filter(row=>isOpenRecord(row)).length,label:en?'open':'ανοιχτές',active:filters.quick==='open',onClick:toggle('open')},
+  {key:'overdue',value:base.filter(isOverdueAction).length,label:en?'overdue':'εκπρόθεσμες',active:filters.quick==='overdue',onClick:toggle('overdue')},
+  {key:'dueSoon',value:base.filter(isDueSoonAction).length,label:en?'due in 14 days':'λήγουν σε 14 ημ.',active:filters.quick==='dueSoon',onClick:toggle('dueSoon')},
+  {key:'verification',value:base.filter(isVerificationAction).length,label:en?'effectiveness check':'έλεγχος αποτελεσματικότητας',active:filters.quick==='verification',onClick:toggle('verification')},
+ ]}/>
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search actions or their source…':'Αναζήτηση ενέργειας ή πηγής…'} activeAdvancedCount={advanced} onClear={clear}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search actions or their source…':'Αναζήτηση ενέργειας ή πηγής…'} activeAdvancedCount={advanced} onClear={clear} end={totals}>
    <FilterSelect label={t('status')} value={filters.status} onChange={value=>set('status',value)}><option value="all">{t('all')}</option>{statuses.map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterDate label={en?'Due from':'Προθεσμία από'} value={filters.dueFrom||''} onChange={value=>set('dueFrom',value)}/>
+   <FilterDate label={en?'Due to':'Προθεσμία έως'} value={filters.dueTo||''} onChange={value=>set('dueTo',value)}/>
   </FilterBar>
   <div className="scroll-table" ref={registry.scrollRef}>
    <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table" rows={paging.rows} rowKey={row=>`${row.kind}:${row.id}`} empty={!loading&&!filtered.length} emptyFiltered={actions.length>0} onClearFilters={clear}
