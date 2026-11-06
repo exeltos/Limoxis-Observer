@@ -65,7 +65,8 @@ const TABS=[
  {value:'audits',icon:ClipboardCheck,label:['Επιθεωρήσεις','Audits']},
  {value:'risks',icon:ShieldAlert,label:['Κίνδυνοι','Risks']},
  {value:'indicators',icon:Target,label:['Δείκτες & Στόχοι','Indicators & objectives']},
- {value:'resources',icon:Stethoscope,label:['Πόροι','Resources']},
+ // Equipment is kept (its pages and data) but not shown here for now: the tab holds the suppliers.
+ {value:'resources',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const INDICATOR_OPTIONS=[
  {value:'indicators',icon:Gauge,label:['Δείκτες','Indicators']},
@@ -73,8 +74,9 @@ const INDICATOR_OPTIONS=[
  {value:'objectives',icon:Target,label:['Στόχοι','Objectives']},
  {value:'surveys',icon:Smile,label:['Ερωτηματολόγια','Questionnaires']},
 ]
+const EQUIPMENT_SHOWN=false
 const RESOURCE_OPTIONS=[
- {value:'equipment',icon:Stethoscope,label:['Εξοπλισμός','Equipment']},
+ ...(EQUIPMENT_SHOWN?[{value:'equipment',icon:Stethoscope,label:['Εξοπλισμός','Equipment']}]:[]),
  {value:'suppliers',icon:Truck,label:['Προμηθευτές','Suppliers']},
 ]
 const ACTION_DEFAULTS={query:'',kind:'all',status:'all',department:'all',source:'all',quick:null,dueFrom:'',dueTo:''}
@@ -123,8 +125,8 @@ export function QualityPage({section=''}={}){
  // its last tab), so the Center never shows the indicators tab (it is not one of its tabs).
  const tab=measures?'indicators':tabState==='indicators'?'overview':tabState
  const [measureView,setMeasureView]=useState(initial.tab==='indicators'&&initial.view||'indicators')
- const [resourceView,setResourceView]=useState(initial.tab==='resources'&&initial.view||'equipment')
- useEffect(()=>{if(!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
+ const [resourceView,setResourceView]=useState(()=>EQUIPMENT_SHOWN?(initial.tab==='resources'&&initial.view||'equipment'):'suppliers')
+ useEffect(()=>{if(EQUIPMENT_SHOWN&&!suppliersOn&&resourceView==='suppliers')setResourceView('equipment')},[suppliersOn,resourceView])
  const [equipmentFilters,setEquipmentFilters]=useState(NO_EQUIPMENT_FILTERS)
  const [supplierFilters,setSupplierFilters]=useState(NO_SUPPLIER_FILTERS)
  const [surveyFilters,setSurveyFilters]=useState({query:'',audience:'all',status:'all',quick:null})
@@ -241,7 +243,7 @@ export function QualityPage({section=''}={}){
  })[tab]||(tab==='indicators'&&measureView==='indicators'?[]:tab==='indicators'?tabFigures[measureView]:tab==='resources'?tabFigures[resourceView]:tabFigures[tab])||[]
 
  // What each tab asks for: reports and incidents still open, deviations, overdue actions and audits, the high residual risks of the latest assessment, objectives not met and registers gone quiet, equipment and suppliers that need attention.
- const resourcesAttention=(()=>{const equipmentNow=equipmentCounts(resources.equipment),suppliersNow=supplierCounts(resources.suppliers);return equipmentNow.overdue+equipmentNow.down+suppliersNow.attention+suppliersNow.certificates})()
+ const resourcesAttention=(()=>{const equipmentNow=equipmentCounts(resources.equipment),suppliersNow=supplierCounts(resources.suppliers);return (EQUIPMENT_SHOWN?equipmentNow.overdue+equipmentNow.down:0)+suppliersNow.attention+suppliersNow.certificates})()
  const tabCounts={reports:register.counts.open,incidents:incidents.counts.open,deviations:deviations.counts.total-deviations.counts.closed,actions:actionCount.open,audits:auditCount.overdue,risks:latestRisks?(latestRisks.levels.residual.very_high||0)+(latestRisks.levels.residual.high||0):0,indicators:missedObjectives+staleRegisters,resources:resourcesAttention}
  const returnValue=tab==='indicators'?`indicators:${measureView}`:tab==='resources'?`resources:${resourceView}`:tab
  const remember=()=>writeSessionValue(RETURN_KEY,returnValue)
@@ -258,7 +260,7 @@ export function QualityPage({section=''}={}){
   audits:[...(canManage?[{id:'audit',label:L('Επιθεώρηση','Audit'),icon:ClipboardCheck,onClick:create('/quality/audits/new')},{id:'round',label:L('Κύκλος επιθεώρησης','Audit round'),icon:ListChecks,onClick:create('/quality/audits/round')}]:[]),{id:'questionnaires',label:L('Ερωτηματολόγια επιθεώρησης','Audit questionnaires'),icon:ListChecks,onClick:()=>{remember();goTo('/quality/audit-questionnaires')}}],
   risks:canManage?[{id:'assessment',label:L('Εκτίμηση κινδύνου','Risk assessment'),icon:ShieldAlert,onClick:()=>setRiskCreating(true)},{id:'import',label:L('Εισαγωγή από Excel','Import from Excel'),icon:FileSpreadsheet,onClick:()=>riskFile.current?.click()}]:[],
   indicators:[...(canManageIndicators?[{id:'indicator',label:L('Δείκτης','Indicator'),icon:Gauge,onClick:()=>{remember();goTo('/indicators/new')}}]:[]),...(canManage?[{id:'register',label:L('Μητρώο τμήματος','Department register'),icon:ClipboardList,onClick:()=>{remember();goTo('/registers/new')}},{id:'objective',label:L('Στόχος ποιότητας','Quality objective'),icon:Target,onClick:()=>{setMeasureView('objectives');writeSessionValue(RETURN_KEY,'indicators:objectives');goTo('/quality/objectives/new')}},{id:'survey',label:L('Ερωτηματολόγιο ικανοποίησης','Satisfaction questionnaire'),icon:Smile,onClick:()=>{setMeasureView('surveys');writeSessionValue(RETURN_KEY,'indicators:surveys');goTo('/quality/surveys/new')}}]:[])],
-  resources:canManage?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}},...(suppliersOn?[{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}},{id:'templates',label:L('Πρότυπα αξιολόγησης','Evaluation templates'),icon:ListChecks,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}},{id:'renewals',label:L('Πιστοποιητικά προς ανανέωση','Certificates to renew'),icon:ShieldCheck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/renewals')}}]:[])]:[],
+  resources:canManage?[...(EQUIPMENT_SHOWN?[{id:'equipment',label:L('Εξοπλισμός','Equipment'),icon:Stethoscope,onClick:()=>{setResourceView('equipment');writeSessionValue(RETURN_KEY,'resources:equipment');goTo('/quality/equipment/new')}}]:[]),...(suppliersOn?[{id:'supplier',label:L('Προμηθευτής','Supplier'),icon:Truck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/new')}},{id:'templates',label:L('Πρότυπα αξιολόγησης','Evaluation templates'),icon:ListChecks,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/templates')}},{id:'renewals',label:L('Πιστοποιητικά προς ανανέωση','Certificates to renew'),icon:ShieldCheck,onClick:()=>{setResourceView('suppliers');writeSessionValue(RETURN_KEY,'resources:suppliers');goTo('/quality/suppliers/renewals')}}]:[])]:[],
  })[tab]
 
  // Every list exports the same rows to print and to Excel.
@@ -321,9 +323,9 @@ export function QualityPage({section=''}={}){
    {download}
    <CreateAction options={createOptions} label={L('Δημιουργία','Create')}/>
   </div>}>
-  {!measures&&<CanonicalTabs items={TABS.filter(item=>item.value!=='indicators'&&(!item.manage||canManage)).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>}
+  {!measures&&<CanonicalTabs items={TABS.filter(item=>item.value!=='indicators'&&(!item.manage||canManage)&&(item.value!=='resources'||EQUIPMENT_SHOWN||suppliersOn)).map(item=>({value:item.value,icon:item.icon,label:item.label[en?1:0],count:tabCounts[item.value]||0}))} value={tab} onChange={setTab} ariaLabel={t('quality')}/>}
   {tab==='indicators'&&<CanonicalTabs items={INDICATOR_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={measureView} onChange={setMeasureView} ariaLabel={L('Δείκτες & Στόχοι','Indicators & objectives')}/>}
-  {tab==='resources'&&suppliersOn&&<CanonicalTabs items={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={resourceView} onChange={setResourceView} ariaLabel={L('Πόροι','Resources')}/>}
+  {tab==='resources'&&suppliersOn&&RESOURCE_OPTIONS.length>1&&<CanonicalTabs items={RESOURCE_OPTIONS.map(option=>({value:option.value,icon:option.icon,label:option.label[en?1:0]}))} value={resourceView} onChange={setResourceView} ariaLabel={L('Πόροι','Resources')}/>}
   {tab==='audits'&&<CanonicalTabs className="lo-subtabs" items={AUDIT_VIEWS.map(item=>({value:item.id,icon:item.icon,label:item.label[en?1:0]}))} value={AUDIT_VIEWS.some(item=>item.id===auditView.filters.mode)?auditView.filters.mode:'programme'} onChange={value=>auditView.set('mode',value)} ariaLabel={L('Επιθεωρήσεις','Audits')}/>}
   <KpiFigures className={`quality-kpis${tab==='indicators'&&figures.length<4?' quality-kpis-quarter':''}`} label={t('quality')} figures={figures}/>
   {tab==='overview'?<div className="workspace-fill quality-overview-scroll">
