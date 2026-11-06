@@ -53,8 +53,10 @@ function periodText(start,due){
 }
 const labels={active:['Ενεργό','Active'],planned:['Προγραμματισμένο','Planned'],completed:['Ολοκληρωμένο','Completed'],assigned:['Ανατέθηκε','Assigned'],in_progress:['Σε εξέλιξη','In progress'],overdue:['Εκπρόθεσμο','Overdue'],cancelled:['Ακυρώθηκε','Cancelled']}
 const blankState={programs:[],assignments:[],certificates:[],emailOutbox:[],history:[]}
-// Hospital staff only: collaborating physicians and external collaborators are not counted in coverage and plans.
-const isActiveEmployee=employee=>isStaffEmployee(employee)&&(!employee?.employmentStatus||String(employee.employmentStatus).toLowerCase()==='active')
+const isActiveEmployee=employee=>!employee?.employmentStatus||String(employee.employmentStatus).toLowerCase()==='active'
+// Hospital staff only: collaborating physicians and external collaborators can attend a training (participant picker)
+// but are not counted in coverage and plans.
+const isActiveStaff=employee=>isStaffEmployee(employee)&&isActiveEmployee(employee)
 // The register holds lean rows; the open programme's details (questions, answers, evaluations) go over them.
 function withProgramDetail(state,detail){
  if(!detail?.program)return state
@@ -83,7 +85,7 @@ export function TrainingProductionPage(){
  const [planYear,setPlanYear]=useState(()=>new Date().getFullYear())
  // «Competence» reports its figures and its «Export» up to the page (cards and top bar).
  const [,setCompetence]=useState(null),[competenceExport,setCompetenceExport]=useState(null)
- const annualPlan=useMemo(()=>annualTrainingPlan({programs:state.programs,assignments:state.assignments,certificates:state.certificates,requirements:state.requirements||[],employees:(employees||[]).filter(isActiveEmployee),year:planYear}),[state,employees,planYear])
+ const annualPlan=useMemo(()=>annualTrainingPlan({programs:state.programs,assignments:state.assignments,certificates:state.certificates,requirements:state.requirements||[],employees:(employees||[]).filter(isActiveStaff),year:planYear}),[state,employees,planYear])
  const assignments=useMemo(()=>state.assignments.map(x=>({...x,computedStatus:computedAssignmentStatus(x)})),[state.assignments])
  const programs=state.programs.filter(x=>(status==='all'||x.status===status)&&(category==='all'||x.category===category)&&programInRange(x,dateFrom,dateTo)&&`${x.id} ${x.title} ${x.owner} ${x.trainer} ${x.audience}`.toLowerCase().includes(query.toLowerCase())),categories=[...new Set(state.programs.map(x=>x.category).filter(Boolean))]
  const participantCounts=useMemo(()=>{const map=new Map();for(const a of assignments){const item=map.get(a.programId)||{total:0,done:0};item.total+=1;if(a.computedStatus==='completed')item.done+=1;map.set(a.programId,item)}return map},[assignments])
