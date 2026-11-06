@@ -79,14 +79,14 @@ export function SupplierTemplatesPage() {
     actions={<div className="row-actions"><ExportMenu disabled={!rows.length} onExcel={exportTemplates} />{!locked && <Button onClick={() => open(newTemplate())}><Plus size={15} />{en ? 'New template' : 'Νέο πρότυπο'}</Button>}</div>}>
     <div className="scroll-table">
       <RegistryTable bare className="quality-table quality-register-table" rows={rows} rowKey={row => row.id} empty={!loading && !rows.length}
-        columns={[{ key: 'name', label: en ? 'Template' : 'Πρότυπο' }, { key: 'categories', label: en ? 'Supplier categories' : 'Κατηγορίες προμηθευτών' }, { key: 'criteria', label: en ? 'Criteria' : 'Κριτήρια' }, { key: 'thresholds', label: en ? 'Approved / conditional' : 'Εγκεκριμένος / υπό όρους' }, { key: 'frequency', label: en ? 'Frequency' : 'Συχνότητα' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
+        columns={[{ key: 'name', label: en ? 'Template' : 'Πρότυπο' }, { key: 'categories', label: en ? 'Supplier categories' : 'Κατηγορίες προμηθευτών' }, { key: 'criteria', label: en ? 'Criteria' : 'Κριτήρια' }, { key: 'thresholds', label: en ? 'Approval threshold' : 'Όριο έγκρισης' }, { key: 'frequency', label: en ? 'Frequency' : 'Συχνότητα' }, { key: 'status', label: en ? 'Status' : 'Κατάσταση' }]}
         emptyTitle={en ? 'No templates' : 'Δεν υπάρχουν πρότυπα'} emptyText={en ? 'Add a template for each kind of supplier: products, services, kitchen, laboratory.' : 'Προσθέστε ένα πρότυπο για κάθε είδος προμηθευτή: προϊόντα, υπηρεσίες, κουζίνα, εργαστήριο.'}
         rowProps={row => ({ className: 'registry-row-clickable', onClick: () => open(row) })}
         renderRow={row => <>
           <td><strong>{row.name}</strong><small>{en ? 'version' : 'έκδοση'} {row.version}{row.description ? ` · ${row.description}` : ''}</small></td>
           <td>{(row.categories || []).length ? <span className="resource-notes">{row.categories.map(value => <StatusBadge key={value} tone="neutral">{supplierCategoryLabel(value, language)}</StatusBadge>)}</span> : (en ? 'Every supplier' : 'Όλοι οι προμηθευτές')}</td>
           <td className="nowrap-cell">{(row.criteria || []).length}<small>{en ? 'weights' : 'βάρη'} {comma(weightTotal(row.criteria), en)} · {row.scoreScale === 10 ? '0–10' : '1–5'}</small></td>
-          <td className="nowrap-cell">{comma(row.passThreshold, en)}% / {comma(row.conditionalThreshold, en)}%</td>
+          <td className="nowrap-cell">{comma(row.passThreshold, en)}%{Number(row.conditionalThreshold) < Number(row.passThreshold) ? ` / ${comma(row.conditionalThreshold, en)}%` : ''}</td>
           <td className="nowrap-cell">{en ? `every ${row.frequencyMonths} months` : `κάθε ${row.frequencyMonths} μήνες`}</td>
           <td><StatusBadge tone={row.active !== false ? 'success' : 'neutral'}>{row.active !== false ? (en ? 'Active' : 'Ενεργό') : (en ? 'Inactive' : 'Ανενεργό')}</StatusBadge></td>
         </>} />
@@ -108,9 +108,11 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
         <Field label={en ? 'Name *' : 'Όνομα *'}><input value={draft.name} disabled={locked} onChange={e => set({ name: e.target.value })} /></Field>
         <MultiSelect label={en ? 'Supplier categories' : 'Κατηγορίες προμηθευτών'} disabled={locked} tags options={SUPPLIER_CATEGORIES.map(item => ({ value: item.value, label: item.label[en ? 1 : 0] }))} selected={draft.categories || []} onChange={value => set({ categories: value })}
           placeholder={en ? 'Every supplier' : 'Όλοι οι προμηθευτές'} searchPlaceholder={en ? 'Search category' : 'Αναζήτηση κατηγορίας'} emptyLabel={en ? 'No match' : 'Δεν βρέθηκε'} selectAllLabel={en ? 'Select all' : 'Επιλογή όλων'} clearAllLabel={en ? 'Clear' : 'Καθαρισμός'} />
-        <ChoiceField label={en ? 'Scale' : 'Κλίμακα'} value={Number(draft.scoreScale) === 10 ? 10 : 5} disabled={locked} options={[{ value: 5, label: en ? '1–5 (house scale)' : '1–5 (κλίμακα Limoxis)' }, { value: 10, label: en ? '0–10' : '0–10' }]} onChange={value => set({ scoreScale: value })} />
-        <Field label={en ? 'Approved from (%)' : 'Εγκεκριμένος από (%)'}><input type="number" min="0" max="100" step="0.5" value={draft.passThreshold} disabled={locked} onChange={e => set({ passThreshold: e.target.value })} /></Field>
-        <Field label={en ? 'Conditional from (%)' : 'Υπό όρους από (%)'}><input type="number" min="0" max="100" step="0.5" value={draft.conditionalThreshold} disabled={locked} onChange={e => set({ conditionalThreshold: e.target.value })} /></Field>
+        <ChoiceField label={en ? 'Scale' : 'Κλίμακα'} value={Number(draft.scoreScale) === 10 ? 10 : 5} disabled={locked} options={[{ value: 5, label: en ? '1–5 (not satisfactory … excellent)' : '1–5 (καθόλου ικανοποιητικό … εξαίρετο)' }, { value: 10, label: en ? '0–10' : '0–10' }]} onChange={value => set({ scoreScale: value })} />
+        <Field label={en ? 'Approved from (%)' : 'Εγκεκριμένος από (%)'}><input type="number" min="0" max="100" step="0.5" value={draft.passThreshold} disabled={locked} onChange={e => set({ passThreshold: e.target.value, ...(Number(draft.conditionalThreshold) >= Number(draft.passThreshold) ? { conditionalThreshold: e.target.value } : {}) })} /></Field>
+        {/* The hospital's form approves or not; «conditional» is a band of its own only when chosen. */}
+        <CheckboxField label={en ? 'Also «conditional» (between two thresholds)' : 'Και «υπό όρους» (ανάμεσα σε δύο όρια)'} checked={Number(draft.conditionalThreshold) < Number(draft.passThreshold)} disabled={locked} onChange={value => set({ conditionalThreshold: value ? Math.max(0, Number(draft.passThreshold) - 20) : draft.passThreshold })} />
+        {Number(draft.conditionalThreshold) < Number(draft.passThreshold) && <Field label={en ? 'Conditional from (%)' : 'Υπό όρους από (%)'}><input type="number" min="0" max="100" step="0.5" value={draft.conditionalThreshold} disabled={locked} onChange={e => set({ conditionalThreshold: e.target.value })} /></Field>}
         <Field label={en ? 'Evaluate every (months)' : 'Αξιολόγηση κάθε (μήνες)'}><input type="number" min="1" max="60" value={draft.frequencyMonths} disabled={locked} onChange={e => set({ frequencyMonths: e.target.value === '' ? '' : Number(e.target.value) })} /></Field>
         <CheckboxField label={en ? 'Active (offered for new evaluations)' : 'Ενεργό (προτείνεται σε νέες αξιολογήσεις)'} checked={draft.active !== false} disabled={locked} onChange={value => set({ active: value })} />
       </FormGrid>
@@ -121,8 +123,9 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
         {draft.criteria.map((item, index) => <li key={item.id || index}>
           <span className="supplier-template-index">{index + 1}</span>
           <Field label={en ? 'Criterion *' : 'Κριτήριο *'}><input value={item.label} disabled={locked} onChange={e => setCriterion(index, { label: e.target.value })} /></Field>
-          <Field label={en ? 'Description' : 'Περιγραφή'}><input value={item.description || ''} disabled={locked} onChange={e => setCriterion(index, { description: e.target.value })} /></Field>
+          <Field label={en ? 'Question / guidance' : 'Ερώτηση / οδηγία'}><input value={item.description || ''} placeholder={en ? 'What the evaluator checks' : 'Τι ελέγχει ο αξιολογητής'} disabled={locked} onChange={e => setCriterion(index, { description: e.target.value })} /></Field>
           <Field label={en ? 'Weight *' : 'Βάρος *'}><input type="number" min="0" step="0.01" value={item.weight} disabled={locked} onChange={e => setCriterion(index, { weight: e.target.value })} /></Field>
+          <CheckboxField label={en ? 'Optional' : 'Προαιρετικό'} checked={Boolean(item.optional)} disabled={locked} onChange={value => setCriterion(index, { optional: value })} />
           {!locked && <div className="row-actions supplier-template-moves">
             <IconButton size="sm" label={en ? 'Move up' : 'Μετακίνηση πάνω'} disabled={index === 0} onClick={() => set({ criteria: moveCriterion(draft.criteria, index, -1) })}><ArrowUp size={14} /></IconButton>
             <IconButton size="sm" label={en ? 'Move down' : 'Μετακίνηση κάτω'} disabled={index === draft.criteria.length - 1} onClick={() => set({ criteria: moveCriterion(draft.criteria, index, 1) })}><ArrowDown size={14} /></IconButton>

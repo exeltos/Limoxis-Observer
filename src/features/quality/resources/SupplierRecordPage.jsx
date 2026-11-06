@@ -402,12 +402,13 @@ function TemplateEvaluationForm({ item, set, templates, category, language }) {
       <Field label={en ? 'Evaluated by' : 'Αξιολογητής'}><input value={item.evaluator || ''} onChange={e => set({ evaluator: e.target.value })} /></Field>
     </FormGrid>
     {!recorded && <p className="resource-import-note">{en ? 'Total score only.' : 'Μόνο συνολική βαθμολογία.'}</p>}
-    <div className="resource-criteria">{(item.criteria || []).map((criterion, index) => <ChoiceField key={criterion.criterionId || criterion.id || index} className="resource-criterion" disabled={!recorded}
-      label={`${index + 1}. ${criterion.label} · ${en ? 'weight' : 'βάρος'} ${String(criterion.weight).replace('.', en ? '.' : ',')}`} value={criterion.score === '' || criterion.score == null ? '' : Number(criterion.score)} options={scoreOptions(item.scoreScale, en)}
-      onChange={value => set({ criteria: item.criteria.map((entry, at) => (at === index ? { ...entry, score: value } : entry)) })} />)}</div>
+    {/* Each criterion with its question (the template's guidance) under it; an optional one counts only when scored. */}
+    <div className="resource-criteria">{(item.criteria || []).map((criterion, index) => <div key={criterion.criterionId || criterion.id || index} className="resource-criterion-item"><ChoiceField className="resource-criterion" disabled={!recorded}
+      label={`${index + 1}. ${criterion.label}${criterion.optional ? (en ? ' (optional)' : ' (προαιρετικό)') : ''} · ${en ? 'weight' : 'βάρος'} ${String(criterion.weight).replace('.', en ? '.' : ',')}`} value={criterion.score === '' || criterion.score == null ? '' : Number(criterion.score)} options={scoreOptions(item.scoreScale, en)}
+      onChange={value => set({ criteria: item.criteria.map((entry, at) => (at === index ? { ...entry, score: value } : entry)) })} />{criterion.description && <small className="resource-criterion-question">{criterion.description}</small>}</div>)}</div>
     <div className="resource-evaluation-score">
       <span>{en ? 'Weighted score' : 'Σταθμισμένη βαθμολογία'}</span><strong>{formatPercent(score, language)}</strong><StatusBadge tone={approvalTone(result)}>{approvalLabel(result, language)}</StatusBadge>
-      <small>{recorded ? `${scored} / ${(item.criteria || []).length} ${en ? 'scored' : 'βαθμολογήθηκαν'} · ` : ''}{en ? `approved ≥ ${item.passThreshold}%, conditional ≥ ${item.conditionalThreshold}%` : `εγκεκριμένος ≥ ${item.passThreshold}%, υπό όρους ≥ ${item.conditionalThreshold}%`}</small>
+      <small>{recorded ? `${scored} / ${(item.criteria || []).length} ${en ? 'scored' : 'βαθμολογήθηκαν'} · ` : ''}{Number(item.conditionalThreshold) < Number(item.passThreshold) ? (en ? `approved ≥ ${item.passThreshold}%, conditional ≥ ${item.conditionalThreshold}%` : `εγκεκριμένος ≥ ${item.passThreshold}%, υπό όρους ≥ ${item.conditionalThreshold}%`) : (en ? `approved ≥ ${item.passThreshold}% (${Number(item.passThreshold) * Number(item.scoreScale || 5) / 100} / ${item.scoreScale || 5})` : `εγκεκριμένος ≥ ${item.passThreshold}% (${String(Number(item.passThreshold) * Number(item.scoreScale || 5) / 100).replace('.', ',')} / ${item.scoreScale || 5})`)}</small>
     </div>
     <Field label={en ? 'Notes' : 'Παρατηρήσεις'}><textarea rows={2} value={item.notes || ''} onChange={e => set({ notes: e.target.value })} /></Field>
   </div>

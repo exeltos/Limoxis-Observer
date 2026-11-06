@@ -35,6 +35,9 @@
 .resource-record-shell .record-tab-panel-body>:is(.resource-pad,.resource-notes-wide){padding:14px 20px}
 .resource-record-shell .record-tab-panel-body>.resource-notes-wide{margin:0;padding-bottom:0}
 .resource-criteria{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:14px 24px}
+/* A criterion's question (the template's guidance) under its scores. */
+.resource-criterion-item{display:grid;gap:4px;min-width:0}
+.resource-criterion-question{color:#536579;font-size:12px;line-height:1.4}
 /* Supplier evaluation templates: the criteria rows of the editor. */
 .supplier-template-criteria{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 .supplier-template-criteria li{display:grid;grid-template-columns:28px minmax(0,2fr) minmax(0,2fr) 110px auto;gap:12px;align-items:end;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
