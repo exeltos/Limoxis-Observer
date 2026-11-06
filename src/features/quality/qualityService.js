@@ -123,6 +123,12 @@ export function mapRow(section,row){
     sourceId:row.source_id||'',
     findingClass:row.finding_class||'',
     auditItemId:row.audit_item_id||null,
+    // The kind, the categories of the causes and their analysis, recurrence and who reported it.
+    deviationKind:row.deviation_kind||'',
+    causeCategories:Array.isArray(row.cause_categories)?row.cause_categories:[],
+    rootCause:row.root_cause||'',
+    recurring:row.recurring??null,
+    reportedBy:row.reported_by_label||'',
     clauseRef:row.clause_ref||'',
     standard:row.standard||'',
     dueDate:row.due_date||'',
@@ -358,6 +364,14 @@ function auditProgrammePayload(record){
     corrections_due_on:record.correctionsDueOn||null,
   }
 }
+// The deviation's kind, causes, recurrence and reporter as stored.
+const findingDetailsPayload=record=>({
+  deviation_kind:record.deviationKind||null,
+  cause_categories:Array.isArray(record.causeCategories)?record.causeCategories:[],
+  root_cause:String(record.rootCause||'').trim()||null,
+  recurring:typeof record.recurring==='boolean'?record.recurring:null,
+  reported_by_label:String(record.reportedBy||'').trim()||null,
+})
 function findingAuditPayload(record){
   return {
     finding_class:CLASS_VALUES.includes(record.findingClass)?record.findingClass:null,
@@ -416,7 +430,7 @@ export async function createQualityRecord(section,organizationId,draft,userId){
   const id=newRowId()
   let payload={id,organization_id:organizationId,code,title:(draft.title||draft.titleEn||'').trim(),...englishColumns(draft,section),department_id:isUuid(draft.departmentId)?draft.departmentId:null,history:draft.history||[],...(section==='audits'?{}:{owner_id:isUuid(draft.ownerId)?draft.ownerId:null}),owner_label:ownerLabels(draft)[0]||null,owner_labels:ownerLabels(draft)}
   if(section==='incidents') payload={...payload,occurred_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,event_time:draft.eventTime||null,...(draft.incidentClass?{incident_class:draft.incidentClass}:{}),reached_patient:Boolean(draft.reachedPatient),harm_occurred:Boolean(draft.harmOccurred),category:draft.category||'clinical',linked_patient_id:isUuid(draft.linkedPatient)?draft.linkedPatient:null,linked_surveillance_id:isUuid(draft.linkedSurveillance)?draft.linkedSurveillance:null,linked_admission_id:isUuid(draft.linkedAdmission)?draft.linkedAdmission:null,event_type:draft.eventType||null,impact:draft.impact||'none',severity:draft.severity||null,status:draft.status||'reported',description:draft.description||draft.descriptionEn||null,immediate_actions:draft.immediateActions||draft.immediateActionsEn||null,root_cause:draft.rootCause||null,contributing_factors:draft.contributingFactors||null,reported_by:reportPrivacy(draft)==='anonymous'?null:userId||null,reported_by_label:reportPrivacy(draft)==='named'?draft.reportedByLabel||null:null,is_anonymous:reportPrivacy(draft)==='anonymous',...reportPrivacyColumns(draft),report_kind:draft.reportKind||'clinical',is_sentinel:Boolean(draft.sentinel),rca_due_date:draft.rcaDueDate||null}
-  if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,...findingAuditPayload(draft),follow_up_audit_id:await auditIdOf(organizationId,draft.followUpAuditId)}
+  if(section==='findings') payload={...payload,identified_at:`${draft.date||new Date().toISOString().slice(0,10)}T12:00:00Z`,severity:draft.severity||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,source_type:draft.source||'manual',source_id:draft.sourceId||null,...findingAuditPayload(draft),...findingDetailsPayload(draft),follow_up_audit_id:await auditIdOf(organizationId,draft.followUpAuditId)}
   if(section==='capas') payload={...payload,source_type:draft.source||'other',source_id:draft.sourceId||null,action_type:draft.actionType||'corrective',priority:draft.priority||'medium',status:draft.status||'open',description:draft.description||draft.descriptionEn||null,due_date:draft.dueDate||null,effectiveness_due:draft.effectivenessDue||null,effectiveness_status:draft.effectivenessStatus||'pending'}
   if(section==='audits') payload={...payload,...auditTypePayload(draft.auditType),scope:draft.scope||draft.scopeEn||null,planned_date:draft.plannedDate||null,status:draft.status||'planned',lead_auditor_id:isUuid(draft.leadAuditorId)?draft.leadAuditorId:null,lead_auditor_label:draft.leadAuditor||null,checklist_source:draft.checklistSource||null,...auditProgrammePayload(draft),follow_up_of:await auditIdOf(organizationId,draft.followUpOf)}
 
@@ -485,6 +499,7 @@ function buildPersistPayload(section,record){
     source_type:record.source||'manual',
     source_id:record.sourceId||null,
     ...findingAuditPayload(record),
+    ...findingDetailsPayload(record),
   })
   if(section==='capas')Object.assign(payload,{
     priority:record.priority||record.severity||'medium',

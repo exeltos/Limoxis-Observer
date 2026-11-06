@@ -57,6 +57,38 @@ export const FINDING_SOURCES = [
   { value: 'control', label: ['Έλεγχος', 'Control'] },
 ]
 
+// What a deviation was (the hospital's own list, kept from its earlier register).
+export const DEVIATION_KINDS = [
+  { value: 'breakdown', label: ['Βλάβη', 'Breakdown'] },
+  { value: 'procedure', label: ['Μη τήρηση διαδικασίας', 'Procedure not followed'] },
+  { value: 'material', label: ['Ακατάλληλο υλικό', 'Unsuitable material'] },
+  { value: 'staff_behaviour', label: ['Συμπεριφορά προσωπικού', 'Staff behaviour'] },
+  { value: 'dispute', label: ['Διαπληκτισμός', 'Altercation'] },
+  { value: 'loss', label: ['Απώλεια αντικειμένων', 'Lost items'] },
+  { value: 'external_audit', label: ['Εξωτερική επιθεώρηση', 'External audit'] },
+  { value: 'risk_assessment', label: ['Αξιολόγηση κινδύνων', 'Risk assessment'] },
+  { value: 'satisfaction', label: ['Μέτρηση ικανοποίησης', 'Satisfaction survey'] },
+  { value: 'inspection', label: ['Επιθεώρηση / έλεγχος', 'Inspection / check'] },
+  { value: 'hotel_equipment', label: ['Ξενοδοχειακός εξοπλισμός', 'Hotel equipment'] },
+  { value: 'quality_control', label: ['Ποιοτικός έλεγχος', 'Quality control'] },
+  { value: 'training_evaluation', label: ['Αξιολόγηση εκπαίδευσης', 'Training evaluation'] },
+  { value: 'other', label: ['Άλλο', 'Other'] },
+]
+
+// The categories of a deviation's causes (one or more).
+export const CAUSE_CATEGORIES = [
+  { value: 'human_error', label: ['Ανθρώπινο λάθος', 'Human error'] },
+  { value: 'procedure', label: ['Μη τήρηση διαδικασίας', 'Procedure not followed'] },
+  { value: 'material', label: ['Αστοχία υλικού', 'Material failure'] },
+  { value: 'equipment', label: ['Αστοχία εξοπλισμού', 'Equipment failure'] },
+  { value: 'method', label: ['Λάθος μέθοδος', 'Wrong method'] },
+  { value: 'measurement', label: ['Λάθος μέτρηση', 'Wrong measurement'] },
+  { value: 'environment', label: ['Περιβαλλοντικές συνθήκες', 'Environmental conditions'] },
+  { value: 'supplier', label: ['Αστοχία προμηθευτή', 'Supplier failure'] },
+  { value: 'other', label: ['Άλλο', 'Other'] },
+]
+export const causeCategoriesText = (values = [], language = 'el') => values.map(value => vocabularyLabel(CAUSE_CATEGORIES, value, language)).join(', ')
+
 export const CAPA_TYPES = [
   { value: 'corrective', label: ['Διορθωτική', 'Corrective'] },
   { value: 'preventive', label: ['Προληπτική', 'Preventive'] },

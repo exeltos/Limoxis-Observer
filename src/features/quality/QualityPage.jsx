@@ -22,7 +22,7 @@ import { formatDay } from '../../core/i18n/formatDay'
 import { exportRegistry,printRegistry,qualityExport } from '../../core/export/registryExports'
 import { QUALITY_RETURN_KEY as RETURN_KEY,qualityTabOf } from './qualityReturnSection'
 import { fillAuditProgramme,loadQualityRecords } from './qualityService'
-import { DeviationQueue,DeviationSummary,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
+import { DeviationQueue,ReportRegister,ReportSummary,deviationsExport,reportRegisterExport,useDeviationQueue,useDeviations,useIncidentRegister,useReportRegister } from './QualityReportRegister'
 import { printReport } from '../../core/export/reportDocument'
 import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
 import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/ExcelFieldsDialog'
@@ -48,6 +48,7 @@ import { loadReviews } from './review/reviewService'
 import { SurveysList,filterSurveys,surveysExport,useSurveys } from './surveys/SurveysPanel'
 import { EquipmentList,SuppliersList,useResources } from './resources/ResourcesPanel'
 import { NO_EQUIPMENT_FILTERS,NO_SUPPLIER_FILTERS,equipmentCounts,equipmentExport,filterEquipment,filterSuppliers,supplierCounts,suppliersExport } from './resources/resourceModel'
+import { deviationsReportDoc } from './deviationReports'
 import './quality.css'
 
 // Intake and governance are deliberately separate:
@@ -265,11 +266,19 @@ export function QualityPage({section=''}={}){
  const actionSource=kind=>sourceKindLabel(kind,language)
  const printActions=({groupBy})=>{setIncidentDialog(null);if(!printReport(actionsReportDoc({rows:actionCapas(),groupBy,language,t,sourceLabel:actionSource,period:actionPeriod})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const actionTable=()=>qualityExport('capas',actionCapas(),{en,t})
+ // The deviations the list shows (its search and filters; the automatic signals are not printed).
+ const deviationRows=()=>deviations.filtered.filter(row=>row.type==='finding')
+ const deviationPeriod=[deviations.filters.dateFrom,deviations.filters.dateTo].some(Boolean)?`${deviations.filters.dateFrom?formatDay(deviations.filters.dateFrom,language):'…'} – ${deviations.filters.dateTo?formatDay(deviations.filters.dateTo,language):'…'}`:''
+ const printDeviations=({groupBy})=>{setIncidentDialog(null);if(!printReport(deviationsReportDoc({rows:deviationRows(),groupBy,language,t,period:deviationPeriod})))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
+ const deviationTable=()=>deviationsExport(deviations.filtered,{language,t})
  const printAuditSummary=list=>{if(!printReport(auditDetailedBatchDocument(list,records.data.findings,{language}),{pdf:false}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}
  const listExport=(rows,data,title,items=[])=><ExportMenu disabled={!rows.length} items={items} menuWidth={items.length?260:220} onPrint={()=>{if(!printRegistry(data(),{language,kind:t('quality'),title}))notify(L('Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','Allow pop-ups to print.'),'error')}} onExcel={()=>exportRegistry(data())}/>
  const download=({
   overview:null,
-  deviations:listExport(deviations.filtered,()=>deviationsExport(deviations.filtered,{language,t}),L('Αποκλίσεις','Deviations')),
+  deviations:<ExportMenu items={[
+   {id:'deviations-print',kind:'print',label:L('Εκτύπωση: αποκλίσεις','Print: deviations'),disabled:!deviationRows().length,onClick:()=>setIncidentDialog('deviations-print')},
+   {id:'deviations-excel',kind:'excel',label:t('exportFields.menuLabel'),disabled:!deviations.filtered.length,onClick:()=>setIncidentDialog('deviations-excel')},
+  ]}/>,
   reports:listExport(register.filtered,()=>reportRegisterExport(register.filtered,{language,t,categories}),L('Αναφορές προς αξιολόγηση','Reports to assess')),
   incidents:<ExportMenu items={[
    {id:'incidents-print',kind:'print',label:L('Εκτύπωση: μητρώο συμβάντων','Print: incident register'),disabled:!incidents.filtered.length,onClick:()=>setIncidentDialog('print')},
@@ -311,9 +320,10 @@ export function QualityPage({section=''}={}){
   {incidentDialog==='print'&&<PrintOptionsDialog storageKey="limoxis.quality.incidents.print" title={L('Μητρώο συμβάντων','Incident register')} options={[{key:'groupBy',label:L('Ομαδοποίηση','Group'),choices:[{value:'none',label:L('Χωρίς ομαδοποίηση','No grouping')},{value:'department',label:L('Ανά τμήμα','By department')},{value:'kind',label:L('Ανά είδος','By kind')},{value:'month',label:L('Ανά μήνα','By month')}]}]} onConfirm={printIncidents} onClose={()=>setIncidentDialog(null)}/>}
   {incidentDialog==='actions-print'&&<PrintOptionsDialog storageKey="limoxis.quality.actions.print" title={L('Διορθωτικές ενέργειες','Corrective actions')} options={[{key:'groupBy',label:L('Ομαδοποίηση','Group'),choices:[{value:'none',label:L('Χωρίς ομαδοποίηση','No grouping')},{value:'status',label:L('Ανά κατάσταση','By status')},{value:'department',label:L('Ανά τμήμα','By department')},{value:'owner',label:L('Ανά υπεύθυνο','By owner')},{value:'source',label:L('Ανά προέλευση','By source')}]}]} onConfirm={printActions} onClose={()=>setIncidentDialog(null)}/>}
   {incidentDialog==='actions-excel'&&<ExcelFieldsDialog storageKey="limoxis.quality.actions.excel" fields={tableFields(actionTable())} onClose={()=>setIncidentDialog(null)} onConfirm={keys=>{exportRegistry(pickColumns(actionTable(),keys));setIncidentDialog(null)}}/>}
+  {incidentDialog==='deviations-print'&&<PrintOptionsDialog storageKey="limoxis.quality.deviations.print" title={L('Αποκλίσεις','Deviations')} options={[{key:'groupBy',label:L('Ομαδοποίηση','Group'),choices:[{value:'none',label:L('Χωρίς ομαδοποίηση','No grouping')},{value:'department',label:L('Ανά τμήμα','By department')},{value:'kind',label:L('Ανά είδος','By kind')},{value:'month',label:L('Ανά μήνα','By month')}]}]} onConfirm={printDeviations} onClose={()=>setIncidentDialog(null)}/>}
+  {incidentDialog==='deviations-excel'&&<ExcelFieldsDialog storageKey="limoxis.quality.deviations.excel" fields={tableFields(deviationTable())} onClose={()=>setIncidentDialog(null)} onConfirm={keys=>{exportRegistry(pickColumns(deviationTable(),keys));setIncidentDialog(null)}}/>}
   {incidentDialog==='excel'&&<ExcelFieldsDialog storageKey="limoxis.quality.incidents.excel" fields={tableFields(incidentTable())} onClose={()=>setIncidentDialog(null)} onConfirm={keys=>{exportRegistry(pickColumns(incidentTable(),keys));setIncidentDialog(null)}}/>}
   {tab==='reports'&&<ReportSummary inbox view={register} loading={records.loading} language={language}/>}
-  {tab==='deviations'&&canManage&&<DeviationSummary view={deviations} language={language}/>}
   {tab==='audits'&&!['programme','self'].includes(auditView.filters.mode||'programme')&&<AuditsSummary rows={audits} counts={auditCount} view={auditView} loading={records.loading} language={language} filling={fillingProgramme} onFill={canManage?fillProgramme:null}/>}
   {tab==='risks'&&<KpiFigures className="quality-kpis" label={L('Κίνδυνοι','Risks')} figures={tabFigures.risks||[]}/>}
   {tab==='indicators'&&measureView==='indicators'&&<PageEmbedProvider><IndicatorsPage defaultPeriod="year" registryKey="quality.indicators" actionsSlot={indicatorActions} withRegisters/></PageEmbedProvider>}

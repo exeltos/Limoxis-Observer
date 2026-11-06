@@ -28,7 +28,7 @@ import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
 import { AFFECTS,isOdipyCategory,odipyGroupOf,odipyGroupOptions,odipyItem,odipyItemOptions } from './odipyCategories'
-import { CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
@@ -60,6 +60,7 @@ import { capaSourceFor,subActionProgress } from './qualityDeviations'
 import { capaSourceInfo,sourceKindLabel } from './capaSources'
 import { incidentFlow,incidentStage,isFinalizedQualityRecord,openStepsBlockingCapa,recordOwners,statusOptions,withHarm,withIncidentClass } from './qualityRecordRules'
 import { stageLabel } from './QualityReportRegister'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import './quality.css'
 
 const iconMap={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,audits:ClipboardCheck}
@@ -209,8 +210,15 @@ function FindingReadDetails({record,language,t}){
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
       {label:t('owner'),value:recordOwners(record).map(name=>roleTitleText(name,language)).join(', ')},
       {label:en?'Found on':'Εντοπίστηκε',value:record.date?formatDay(record.date,language):''},
+      {label:en?'Kind of deviation':'Είδος απόκλισης',value:record.deviationKind?vocabularyLabel(DEVIATION_KINDS,record.deviationKind,language):''},
+      {label:en?'Reported by':'Αναφέρθηκε από',value:record.reportedBy},
+      {label:en?'Recurring':'Επαναλαμβανόμενη',value:record.recurring==null?'':record.recurring?(en?'Yes':'Ναι'):(en?'No':'Όχι')},
       {label:en?'Audit finding class':'Κατάταξη ευρήματος',value:record.findingClass?vocabularyLabel(FINDING_CLASSES,record.findingClass,language):''},
       {label:en?'Description':'Περιγραφή',value:text(record.description,record.descriptionEn),wide:true},
+    ])},
+    {title:en?'Causes':'Αιτίες',items:some([
+      {label:en?'Categories':'Κατηγορίες',value:causeCategoriesText(record.causeCategories||[],language),wide:true},
+      {label:en?'Analysis of the causes':'Ανάλυση αιτιών',value:record.rootCause,wide:true},
     ])},
     audit?{title:en?'Standard and deadlines':'Πρότυπο και προθεσμίες',items:some([
       {label:en?'Standard / clause':'Πρότυπο / άρθρο',value:record.clauseRef?[standardLabel(record.standard,language),record.clauseRef].filter(Boolean).join(' · '):''},
@@ -385,6 +393,11 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
           <EditText editing={editing} label={en?'Follow-up audit (code)':'Επαναληπτική επιθεώρηση (κωδικός)'} value={draft.followUpAuditId} onChange={v=>set('followUpAuditId',v.trim())}/>
         </>}
         <EditOwners editing={editing} draft={draft} patch={patch} en={en} label={t('owner')}/>
+        <EditChoice editing={editing} label={en?'Kind of deviation':'Είδος απόκλισης'} value={draft.deviationKind||''} onChange={v=>set('deviationKind',v)} options={vocabularyOptions(DEVIATION_KINDS,language)}/>
+        <EditText editing={editing} label={en?'Reported by':'Αναφέρθηκε από'} value={draft.reportedBy} onChange={v=>set('reportedBy',v)}/>
+        <EditChoice editing={editing} label={en?'Recurring':'Επαναλαμβανόμενη'} value={draft.recurring==null?'':draft.recurring?'yes':'no'} onChange={v=>set('recurring',v==='yes'?true:v==='no'?false:null)} options={[{value:'yes',label:en?'Yes':'Ναι'},{value:'no',label:en?'No':'Όχι'}]}/>
+        <div className="detail-item editable quality-edit-wide"><MultiSelect label={en?'Categories of the causes':'Κατηγορίες αιτιών'} tags options={vocabularyOptions(CAUSE_CATEGORIES,language)} selected={draft.causeCategories||[]} onChange={v=>set('causeCategories',v)} placeholder={en?'Choose one or more':'Επιλέξτε μία ή περισσότερες'} searchPlaceholder={en?'Search':'Αναζήτηση'} emptyLabel={en?'Nothing found':'Δεν βρέθηκε'}/></div>
+        <EditArea label={en?'Analysis of the causes':'Ανάλυση αιτιών'} value={draft.rootCause} onChange={v=>set('rootCause',v)}/>
         <p className="quality-edit-note">{en?'Found':'Εντοπίστηκε'} <strong>{formatDay(draft.date,language)}</strong> · {en?'Source':'Πηγή'} <strong>{[vocabularyLabel(FINDING_SOURCES,draft.source||'manual',language),draft.sourceId].filter(Boolean).join(' ')}</strong>{draft.clauseRef&&<> · <strong>{[standardLabel(draft.standard,language),draft.clauseRef].filter(Boolean).join(' · ')}</strong></>}</p>
         {(draft.source==='audit'||draft.findingClass)&&<>
           <EditChoice editing={editing} label={en?'Effectiveness verified':'Επαλήθευση αποτελεσματικότητας'} value={draft.verificationStatus||'pending'} onChange={v=>set('verificationStatus',v)} options={VERIFICATION_OPTIONS(en)}/>

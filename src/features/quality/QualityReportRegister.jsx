@@ -18,7 +18,7 @@ import { capaPrefill,deviationQueue } from './qualityDeviations'
 import { REGISTER_SOURCES,filterRegister,registerCounts,registerRows } from './qualityRegister'
 import { INCIDENT_STAGES } from './qualityRecordRules'
 import { daysUntil } from './QualityGlance'
-import { FINDING_SOURCES,REPORT_KINDS,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
+import { CAUSE_CATEGORIES,DEVIATION_KINDS,FINDING_SOURCES,REPORT_KINDS,causeCategoriesText,incidentCategoryLabel,vocabularyLabel } from './qualityVocabulary'
 import { roleTitleText } from '../../core/i18n/roleTitles'
 
 // The Quality Center separates three concepts:
@@ -72,7 +72,7 @@ export function useDeviationQueue(organizationId,enabled=true){
 }
 
 const REPORT_DEFAULTS={query:'',kind:'all',stage:'all',department:'all',category:'all',quick:null,period:'all',origin:'all',dateFrom:'',dateTo:''}
-const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',quick:null}
+const DEVIATION_DEFAULTS={query:'',scope:'registry',source:'all',department:'all',priority:'all',status:'all',deviationKind:'all',cause:'all',recurring:'all',dateFrom:'',dateTo:'',quick:null}
 const departmentsOf=(rows,language)=>[...new Set(rows.map(row=>language==='en'?row.departmentEn:row.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'el'))
 
 function useClassifiedRegister(incidents,capas,language,mode){
@@ -116,8 +116,29 @@ function findingRows(findings,capas){
   status:record.status||'open',
   severity:record.severity||'medium',
   hasCapa:handled.has(record.id),
+  deviationKind:record.deviationKind||'',
+  causeCategories:record.causeCategories||[],
+  recurring:record.recurring??null,
   item:record,
  }))
+}
+
+// The search and the filters of the deviations list (the automatic signals have no kind, causes or recurrence).
+export function filterDeviations(rows,filters,language='el'){
+ const text=String(filters.query||'').trim().toLowerCase()
+ const day=row=>String(row.date||'').slice(0,10)
+ return rows
+  .filter(row=>filters.scope==='all'||(filters.scope==='registry'?row.type==='finding':row.type==='deviation'))
+  .filter(row=>!text||`${row.code} ${row.title} ${row.titleEn} ${row.owner||''} ${row.department||''} ${row.item?.reportedBy||''}`.toLowerCase().includes(text))
+  .filter(row=>filters.source==='all'||row.source===filters.source)
+  .filter(row=>filters.status==='all'||(row.type==='finding'&&row.status===filters.status))
+  .filter(row=>filters.priority==='all'||row.severity===filters.priority)
+  .filter(row=>filters.department==='all'||(language==='en'?row.departmentEn:row.department)===filters.department)
+  .filter(row=>!filters.deviationKind||filters.deviationKind==='all'||row.deviationKind===filters.deviationKind)
+  .filter(row=>!filters.cause||filters.cause==='all'||(row.causeCategories||[]).includes(filters.cause))
+  .filter(row=>!filters.recurring||filters.recurring==='all'||(filters.recurring==='yes'?row.recurring===true:row.recurring===false))
+  .filter(row=>(!filters.dateFrom||day(row)>=filters.dateFrom)&&(!filters.dateTo||day(row)<=filters.dateTo))
+  .filter(row=>!filters.quick||(filters.quick==='withoutCapa'?row.type==='finding'&&row.status!=='closed'&&!row.hasCapa:true))
 }
 
 // Real findings are the register. Automatic deviations are an additional
@@ -140,17 +161,9 @@ export function useDeviations(sources,language){
  const registry=useMemo(()=>findingRows(findings,sources?.capas||[]),[findings,sources?.capas])
  const pending=useMemo(()=>registerRows([],deviationQueue({...sources,days})),[sources,days])
  const rows=useMemo(()=>[...registry,...pending].sort((a,b)=>String(b.date).localeCompare(String(a.date))),[registry,pending])
- const filtered=useMemo(()=>{
-  const text=filters.query.trim().toLowerCase()
-  return rows
-   .filter(row=>filters.scope==='all'||(filters.scope==='registry'?row.type==='finding':row.type==='deviation'))
-   .filter(row=>!text||`${row.code} ${row.title} ${row.titleEn} ${row.owner||''} ${row.department||''}`.toLowerCase().includes(text))
-   .filter(row=>filters.source==='all'||row.source===filters.source)
-   .filter(row=>filters.status==='all'||(row.type==='finding'&&row.status===filters.status))
-   .filter(row=>filters.priority==='all'||row.severity===filters.priority)
-   .filter(row=>filters.department==='all'||(language==='en'?row.departmentEn:row.department)===filters.department)
-   .filter(row=>!filters.quick||(filters.quick==='withoutCapa'?row.type==='finding'&&row.status!=='closed'&&!row.hasCapa:true))
- },[rows,filters,language])
+ // `base` is the list without the status and the quick figure, for the totals beside the search (each one filters).
+ const base=useMemo(()=>filterDeviations(rows,{...filters,status:'all',quick:null},language),[rows,filters,language])
+ const filtered=useMemo(()=>filterDeviations(rows,filters,language),[rows,filters,language])
  const counts=useMemo(()=>({
   total:registry.length,
   pending:pending.length,
@@ -162,7 +175,7 @@ export function useDeviations(sources,language){
   ...Object.fromEntries(['control','bundle','training'].map(source=>[source,pending.filter(row=>row.source===source).length])),
  }),[registry,pending])
  const departments=useMemo(()=>departmentsOf(rows,language),[rows,language])
- return {rows,registry,pending,filtered,counts,filters,set,clear:()=>{setFilters(DEVIATION_DEFAULTS);setDays(90)},days,setDays,departments,loading}
+ return {rows,registry,pending,base,filtered,counts,filters,set,clear:()=>{setFilters(DEVIATION_DEFAULTS);setDays(90)},days,setDays,departments,loading}
 }
 
 const kindText=(kind,language)=>vocabularyLabel(REPORT_KINDS,kind,language)
@@ -181,8 +194,8 @@ export function deviationsExport(rows,{language,t}){
  const en=language==='en'
  return {
   name:en?'deviations':'apokliseis',
-  headers:en?['Code','Date','Source','Title','Department','Status','Priority','Responsible']:['Κωδικός','Ημερομηνία','Πηγή','Τίτλος','Τμήμα','Κατάσταση','Προτεραιότητα','Υπεύθυνος'],
-  rows:rows.map(row=>[row.code,row.date,findingSourceText(row.source,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.type==='finding'?t(row.status):(en?'To assess':'Προς αξιολόγηση'),t(row.severity),row.owner||'']),
+  headers:en?['Code','Date','Kind','Source','Title','Department','Status','Priority','Responsible','Reported by','Recurring','Cause categories','Analysis of the causes','Description']:['Κωδικός','Ημερομηνία','Είδος','Πηγή','Τίτλος','Τμήμα','Κατάσταση','Προτεραιότητα','Υπεύθυνος','Αναφέρθηκε από','Επαναλαμβανόμενη','Κατηγορίες αιτιών','Ανάλυση αιτιών','Περιγραφή'],
+  rows:rows.map(row=>{const r=row.item||{};return [row.code,row.date,row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):'',findingSourceText(row.source,language),en?row.titleEn:row.title,en?row.departmentEn:row.department,row.type==='finding'?t(row.status):(en?'To assess':'Προς αξιολόγηση'),t(row.severity),row.owner||'',r.reportedBy||'',row.recurring==null?'':row.recurring?(en?'Yes':'Ναι'):(en?'No':'Όχι'),causeCategoriesText(row.causeCategories||[],language),r.rootCause||'',(en?r.descriptionEn:r.description)||r.description||'']}),
  }
 }
 
@@ -300,49 +313,51 @@ export function ReportRegister({view,loading,language,t,categories,registry,onOp
  </>
 }
 
-export function DeviationSummary({view,language}){
- const en=language==='en'
- const {filters,set}=view
- const counts=view.counts
- const pendingView=filters.scope==='pending'
- const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
- return <KpiFigures className="quality-kpis" label={en?'Deviations':'Αποκλίσεις'} loading={view.loading} figures={[
-  {key:'all',icon:FileWarning,value:counts.total,label:en?'Deviations':'Αποκλίσεις',hint:en?`${counts.closed} closed`:`${counts.closed} κλειστές`,active:!pendingView&&filters.status==='all'&&!filters.quick,go:()=>showRegistry({})},
-  {key:'progress',icon:Wrench,value:counts.inProgress,label:en?'In progress':'Σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',go:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
-  {key:'withoutCapa',icon:AlertOctagon,value:counts.withoutCapa,label:en?'Without corrective action':'Χωρίς διορθωτική ενέργεια',status:counts.withoutCapa?'danger':'good',target:en?'target: 0':'στόχος: 0',active:!pendingView&&filters.quick==='withoutCapa',go:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
-  {key:'pending',icon:MessageSquareWarning,value:counts.pending,label:en?'Automatic signals':'Αυτόματα σήματα',tone:'warning',hint:en?'from other modules':'από άλλες ενότητες',active:pendingView,go:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
- ]}/>
-}
-
 export function DeviationQueue({view,loading,language,t,registry,onOpenRow,onCreateCapa,onCreateFindingCapa}){
  const en=language==='en'
  const {filters,set}=view
  const items=useMemo(()=>[...view.filtered].sort(deviationOrder),[view.filtered])
  const severityRank={critical:4,high:3,medium:2,low:1}
- const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),source:row=>row.source,department:row=>(en?row.departmentEn:row.department),date:row=>row.date,status:row=>row.status,priority:row=>severityRank[row.severity]||0}
+ const sortBy={code:row=>row.code,title:row=>(en?row.titleEn:row.title),source:row=>row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language),department:row=>(en?row.departmentEn:row.department),date:row=>row.date,status:row=>row.status,priority:row=>severityRank[row.severity]||0}
  const paging=useSortedPaging(items,`${JSON.stringify(filters)}:${view.days}`,sortBy)
- const advanced=['source','department','priority','status'].filter(key=>filters[key]!=='all').length+(view.days!==90?1:0)
- const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
  const pendingView=filters.scope==='pending'
+ const advanced=['source','department','priority','status','deviationKind','cause','recurring'].filter(key=>filters[key]&&filters[key]!=='all').length+(filters.dateFrom?1:0)+(filters.dateTo?1:0)+(view.days!==90?1:0)
+ // Totals beside the search, counted on the list as filtered (without the status and quick figure); each one filters it.
+ const base=view.base.filter(row=>row.type==='finding')
+ const showRegistry=extra=>{set('scope','registry');set('quick',null);set('status','all');Object.entries(extra).forEach(([key,value])=>set(key,value))}
+ const plain=!pendingView&&filters.status==='all'&&!filters.quick
+ const totals=<RegistryTotals label={en?'Totals':'Σύνολα'} items={[
+  {key:'all',always:true,value:base.length,label:en?'deviations':'αποκλίσεις',active:plain,onClick:()=>showRegistry({})},
+  {key:'open',value:base.filter(row=>row.status==='open').length,label:en?'open':'ανοιχτές',active:!pendingView&&filters.status==='open',onClick:()=>showRegistry({status:filters.status==='open'?'all':'open'})},
+  {key:'progress',value:base.filter(row=>row.status==='inProgress').length,label:en?'in progress':'σε εξέλιξη',active:!pendingView&&filters.status==='inProgress',onClick:()=>showRegistry({status:filters.status==='inProgress'?'all':'inProgress'})},
+  {key:'withoutCapa',value:base.filter(row=>row.status!=='closed'&&!row.hasCapa).length,label:en?'without action':'χωρίς ενέργεια',active:!pendingView&&filters.quick==='withoutCapa',onClick:()=>showRegistry({quick:filters.quick==='withoutCapa'?null:'withoutCapa'})},
+  {key:'pending',value:view.counts.pending,label:en?'automatic signals':'αυτόματα σήματα',active:pendingView,onClick:()=>{set('quick',null);set('status','all');set('scope',pendingView?'registry':'pending')}},
+ ]}/>
+ const statusTone=status=>status==='closed'?'success':status==='inProgress'?'info':'warning'
  const needsAction=row=>row.type==='finding'&&!row.hasCapa&&row.status!=='closed'
  const showActions=pendingView||items.some(needsAction)
  return <>
-  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear}>
+  <FilterBar query={filters.query} onQueryChange={value=>set('query',value)} placeholder={en?'Search deviations…':'Αναζήτηση αποκλίσεων…'} activeAdvancedCount={advanced} onClear={view.clear} end={totals}>
+   <FilterSelect label={en?'Kind of deviation':'Είδος απόκλισης'} value={filters.deviationKind} onChange={value=>set('deviationKind',value)}><option value="all">{en?'All':'Όλα'}</option>{DEVIATION_KINDS.filter(item=>view.rows.some(row=>row.deviationKind===item.value)).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Cause':'Αιτία'} value={filters.cause} onChange={value=>set('cause',value)}><option value="all">{en?'All':'Όλες'}</option>{CAUSE_CATEGORIES.filter(item=>view.rows.some(row=>(row.causeCategories||[]).includes(item.value))).map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
+   <FilterSelect label={en?'Recurring':'Επαναλαμβανόμενη'} value={filters.recurring} onChange={value=>set('recurring',value)}><option value="all">{en?'All':'Όλες'}</option><option value="yes">{en?'Yes':'Ναι'}</option><option value="no">{en?'No':'Όχι'}</option></FilterSelect>
    <FilterSelect label={en?'Source':'Πηγή'} value={filters.source} onChange={value=>set('source',value)}><option value="all">{en?'All':'Όλες'}</option>{DEVIATION_SOURCES.map(item=><option key={item.value} value={item.value}>{item.label[en?1:0]}</option>)}</FilterSelect>
    <FilterSelect label={en?'Status':'Κατάσταση'} value={filters.status} onChange={value=>set('status',value)}><option value="all">{en?'All':'Όλες'}</option><option value="open">{en?'Open':'Ανοιχτή'}</option><option value="inProgress">{en?'In progress':'Σε εξέλιξη'}</option><option value="closed">{en?'Closed':'Κλειστή'}</option></FilterSelect>
    <FilterSelect label={t('priority')} value={filters.priority} onChange={value=>set('priority',value)}><option value="all">{t('all')}</option>{['critical','high','medium','low'].map(value=><option key={value} value={value}>{t(value)}</option>)}</FilterSelect>
    <FilterSelect label={t('department')} value={filters.department} onChange={value=>set('department',value)}><option value="all">{t('allDepartments')}</option>{view.departments.map(value=><option key={value} value={value}>{value}</option>)}</FilterSelect>
+   <FilterDate label={en?'From':'Από'} value={filters.dateFrom||''} onChange={value=>set('dateFrom',value)}/>
+   <FilterDate label={en?'To':'Έως'} value={filters.dateTo||''} onChange={value=>set('dateTo',value)}/>
    {pendingView&&<FilterSelect label={en?'Pending period':'Περίοδος νέων'} value={String(view.days)} onChange={value=>view.setDays(Number(value))}>{PERIODS.map(value=><option key={value} value={value}>{en?`Last ${value} days`:`Τελευταίες ${value} ημέρες`}</option>)}</FilterSelect>}
   </FilterBar>
   <div className="scroll-table" ref={registry?.scrollRef}>
    <RegistryTable sort={paging.sort} onSort={paging.onSort} bare className="quality-table quality-register-table quality-deviation-table" rows={paging.rows} rowKey={row=>row.key} empty={!(loading||view.loading)&&!items.length} emptyFiltered={view.rows.length>0} onClearFilters={view.clear}
-    columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Source':'Πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])],sortBy)}
+    columns={withSort([{key:'code',label:t('code')},{key:'title',label:t('title')},{key:'source',label:en?'Kind / source':'Είδος / πηγή'},{key:'department',label:t('department')},{key:'date',label:t('date')},{key:'status',label:t('status')},{key:'priority',label:t('priority')},...(showActions?[{key:'actions',label:''}]:[])],sortBy)}
     emptyTitle={en?'No deviations':'Δεν υπάρχουν αποκλίσεις'} emptyText={en?'The register contains governed findings/deviations. Automatic signals stay in “Signals from other modules” until Quality reviews them.':'Το μητρώο περιέχει τις επίσημες αποκλίσεις/ευρήματα. Οι αυτόματες ενδείξεις παραμένουν στα «Σήματα από άλλες ενότητες» μέχρι να τις εξετάσει η Ποιότητα.'}
     rowProps={row=>({...(registry?.rowProps(row.type==='finding'?row.id:row.key)||{}),onClick:()=>onOpenRow(row,paging.sorted)})}
     renderRow={row=>{const Icon=SOURCE_ICON[row.source]||FileWarning;return <>
      <td><strong>{row.code}</strong></td>
      <td>{en?row.titleEn:row.title}{row.type==='finding'&&!row.hasCapa&&row.status!=='closed'&&<small>{en?'No corrective action linked':'Χωρίς συνδεδεμένη διορθωτική ενέργεια'}</small>}{row.type==='deviation'&&row.item.notes&&<small>{row.item.notes}</small>}</td>
-     <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{findingSourceText(row.source,language)}</span></td>
+     <td><span className="quality-register-kind"><Icon size={14} aria-hidden="true"/>{row.deviationKind?vocabularyLabel(DEVIATION_KINDS,row.deviationKind,language):findingSourceText(row.source,language)}</span>{row.recurring&&<small>{en?'Recurring':'Επαναλαμβανόμενη'}</small>}</td>
      <td>{(en?row.departmentEn:row.department)||'—'}</td>
      <td className="nowrap-cell">{formatDay(row.date,language)||'—'}</td>
      <td>{row.type==='finding'?<StatusBadge tone={statusTone(row.status)}>{t(row.status)}</StatusBadge>:<StatusBadge tone="warning">{en?'To assess':'Προς αξιολόγηση'}</StatusBadge>}</td>
