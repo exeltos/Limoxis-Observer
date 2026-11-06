@@ -1,3 +1,4 @@
+import { STAFF_CATEGORIES, staffCategoryLabel, staffCategoryOf } from './staffCategory'
 import { EmployeePositionTab } from './JobDescriptionViews'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -884,6 +885,16 @@ function Details({
           value={record.id}
           onChange={value => set('id', value)}
         />
+        <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
+          <span>{t('employeesRecords.staffCategory')}</span>
+          {editing ? (
+            <select aria-label={t('employeesRecords.staffCategory')} value={staffCategoryOf(record)} onChange={event => set('staffCategory', event.target.value)}>
+              {STAFF_CATEGORIES.map(item => <option key={item.value} value={item.value}>{staffCategoryLabel(item.value, language)}</option>)}
+            </select>
+          ) : (
+            <strong>{staffCategoryLabel(staffCategoryOf(record), language)}</strong>
+          )}
+        </div>
         <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
           <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
           {editing ? (

@@ -18,16 +18,19 @@ import { useEmployeesData } from './useEmployeesData'
 import { loadDepartments } from '../management/departmentsService'
 import { loadManagementLibraries } from '../management/managementCloudService'
 import { demoLibrarySeed } from '../management/managementData'
+import { STAFF_CATEGORIES, staffCategoryLabel } from './staffCategory'
 
 export function EmployeeCreatePage(){
  const {t,language}=useLanguage();const en=language==='en';const {notify}=useFeedback();const navigate=useNavigate();const {tenant,role,membership,isDemo}=useTenant();const actor=useAuditActor();const {data:employeeRows}=useEmployeesData()
  const [saving,setSaving]=useState(false);const [departments,setDepartments]=useState([]);const [professionalCategories,setProfessionalCategories]=useState([]);const [positions,setPositions]=useState([])
- const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',position:'',employmentStatus:'active',email:'',phone:'',hireDate:''})
+ const [v,setV]=useState({employeeCode:'',firstName:'',lastName:'',fatherName:'',department:'',profession:'',position:'',employmentStatus:'active',staffCategory:'employee',email:'',phone:'',hireDate:''})
  const addOns=membership?.capabilities??[];const custom=membership?.customCapabilities??[];const canCreate=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,addOns,custom)
  const set=(k,x)=>setV(s=>({...s,[k]:x}))
  const normalizedCode=v.employeeCode.trim().toLowerCase()
  const duplicateCode=Boolean(normalizedCode&&employeeRows.some(row=>String(row.id||row.employeeCode||'').trim().toLowerCase()===normalizedCode))
- const valid=Boolean(v.employeeCode.trim()&&!duplicateCode&&v.firstName.trim()&&v.lastName.trim()&&v.department&&v.profession)
+ // A collaborating physician or an external collaborator needs no department or professional category.
+ const collaborator=v.staffCategory!=='employee'
+ const valid=Boolean(v.employeeCode.trim()&&!duplicateCode&&v.firstName.trim()&&v.lastName.trim()&&(collaborator||(v.department&&v.profession)))
 
  useEffect(()=>{
   let active=true
@@ -77,6 +80,7 @@ export function EmployeeCreatePage(){
     <label><span>{en?'First name *':'Όνομα *'}</span><input value={v.firstName} onChange={e=>set('firstName',e.target.value)}/></label>
     <label><span>{en?'Father’s name':'Πατρώνυμο'}</span><input value={v.fatherName} onChange={e=>set('fatherName',e.target.value)}/></label>
     <label><span>{en?'Employee / folder code *':'Κωδικός εργαζομένου / φακέλου *'}</span><input value={v.employeeCode} onChange={e=>set('employeeCode',e.target.value)} placeholder={en?'e.g. 123':'π.χ. 123'} aria-invalid={duplicateCode||undefined}/>{duplicateCode&&<small className="field-error">{en?'This code already belongs to another employee record.':'Ο κωδικός αυτός ανήκει ήδη σε άλλη καρτέλα εργαζομένου.'}</small>}</label>
+    <ChoiceField label={t('employeesRecords.staffCategory')} value={v.staffCategory} onChange={x=>set('staffCategory',x)} options={STAFF_CATEGORIES.map(item=>({value:item.value,label:staffCategoryLabel(item.value,language)}))}/>
     <ChoiceField label={en?'Status':'Κατάσταση'} value={v.employmentStatus} onChange={x=>set('employmentStatus',x)} options={[{value:'active',label:en?'Active':'Ενεργός'},{value:'inactive',label:en?'Inactive':'Ανενεργός'}]}/>
     <ManualDateField label={en?'Hire date':'Ημερομηνία πρόσληψης'} value={v.hireDate} onChange={x=>set('hireDate',x)} optional/>
     <SearchableSelect label={en?'Department *':'Τμήμα *'} value={v.department} onChange={x=>set('department',x||'')} placeholder={en?'Select department…':'Επιλέξτε τμήμα…'} options={departments.map(row=>({value:row.id,label:row.name}))}/>

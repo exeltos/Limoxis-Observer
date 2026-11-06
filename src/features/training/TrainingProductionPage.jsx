@@ -41,6 +41,7 @@ import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { TrainingCompetencePanel } from './TrainingCompetencePanel'
 import { TrainingAnnualPlanPanel,planStateText } from './TrainingAnnualPlanPanel'
 import { annualPlanExport,annualTrainingPlan } from './trainingAnnualPlan'
+import { isStaffEmployee } from '../employees/staffCategory'
 
 const fmt=v=>formatDay(v)
 // «31/7 – 29/8/2026» on one line (the year once when both dates fall in it).
@@ -52,7 +53,8 @@ function periodText(start,due){
 }
 const labels={active:['Ενεργό','Active'],planned:['Προγραμματισμένο','Planned'],completed:['Ολοκληρωμένο','Completed'],assigned:['Ανατέθηκε','Assigned'],in_progress:['Σε εξέλιξη','In progress'],overdue:['Εκπρόθεσμο','Overdue'],cancelled:['Ακυρώθηκε','Cancelled']}
 const blankState={programs:[],assignments:[],certificates:[],emailOutbox:[],history:[]}
-const isActiveEmployee=employee=>!employee?.employmentStatus||String(employee.employmentStatus).toLowerCase()==='active'
+// Hospital staff only: collaborating physicians and external collaborators are not counted in coverage and plans.
+const isActiveEmployee=employee=>isStaffEmployee(employee)&&(!employee?.employmentStatus||String(employee.employmentStatus).toLowerCase()==='active')
 // The register holds lean rows; the open programme's details (questions, answers, evaluations) go over them.
 function withProgramDetail(state,detail){
  if(!detail?.program)return state
