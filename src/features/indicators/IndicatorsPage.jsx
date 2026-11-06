@@ -24,7 +24,7 @@ import { CAPABILITIES,can,scopeFor } from '../../core/permissions/roles'
 import { DATA_SCOPES } from '../../core/permissions/scopeTypes'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
-import { printReport } from '../../core/export/reportDocument'
+import { escapeHtml,printReport } from '../../core/export/reportDocument'
 import { loadRiskAssessments } from '../quality/risk/riskService'
 import { loadObjectives } from '../quality/review/reviewService'
 import { rememberQualitySection } from '../quality/qualityReturnSection'
@@ -137,11 +137,18 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   const resultText=r=>r.value==null&&r.calculation!=='manual'?t('noData'):`${fmtIndicatorValue(r.value,el)}${r.calculation!=='manual'&&r.unit?` ${el?r.unit:(r.unitEn||r.unit)}`:''}`
   const target=r=>r.target==null?'—':`${r.direction==='higher'?'≥ ':r.direction==='lower'?'≤ ':''}${fmtIndicatorValue(Number(r.target),el)}`
   const status=r=>({text:statusText(r.status,t),className:r.status==='attention'?'rd-bad':r.status==='onTarget'?'rd-good':''})
-  const ok=printReport({language,orientation:'landscape',kind:t('indicators'),code:`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`,title:t('indicatorsRecords.reportTitle'),
-   meta:[[t('indicatorsRecords.reportPeriodLabel'),`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`],[t('indicatorsRecords.reportDepartmentLabel'),departmentLabel],[t('indicatorsRecords.reportCategoryLabel'),category!=='all'?categoryLabel(category,t):(t('indicatorsRecords.allFeminine'))],[t('indicatorsRecords.reportSearchLabel'),query.trim()||'—'],
-    [t('indicatorsRecords.onTargetStatus'),String(onTarget)],[t('indicatorsRecords.needAttentionLabel'),String(attention)]],
-   sections:[{title:`${t('indicators')} (${filtered.length})`,table:{columns:[t('indicatorsRecords.tableIndicator'),t('category'),{text:t('indicatorsRecords.tableResult'),align:'right'},t('indicatorsRecords.numeratorDenominatorLabel'),t('indicatorsRecords.targetLabel'),t('indicatorsRecords.sourceVersionLabel'),t('status'),t('indicatorsRecords.approvalLabel')],
-    rows:filtered.map(r=>[el?r.titleEl:(r.titleEn||r.titleEl),categoryLabel(r.category,t),{text:resultText(r),className:'rd-num'},r.calculation==='manual'?translate('copy.indicatorsCopy.manualEntry',language):(r.evidence||'—'),target(r),[r.source,r.version].filter(Boolean).join(' · '),status(r),approvalText(r)])}}],
+  // For an audit (owner, 6/11/2026): four columns, grouped by source, one summary line; the full detail stays in Excel.
+  const sourceOf=r=>r.category==='register'?r.source:categoryLabel(r.category,t)
+  const groups=[...new Set(sortedRows.map(sourceOf))]
+  const withApproval=sortedRows.some(r=>snapshotFor(r)?.status==='approved')
+  const resultCell=r=>({align:'right',className:r.status==='attention'?'rd-bad':r.status==='onTarget'?'rd-good':'',html:`${escapeHtml(resultText(r))}${r.calculation==='manual'?`<small>${escapeHtml(translate('copy.indicatorsCopy.manualEntry',language))}</small>`:r.evidence?`<small>${escapeHtml(r.evidence)}</small>`:''}`})
+  // Fixed widths, so the tables of the groups line up under each other.
+  const columns=[{text:t('indicatorsRecords.tableIndicator'),width:withApproval?'42%':'52%'},{text:t('indicatorsRecords.tableResult'),align:'right',width:'18%'},{text:t('indicatorsRecords.targetLabel'),width:'9%'},{text:t('status'),width:'21%'},...(withApproval?[{text:t('indicatorsRecords.approvalLabel'),width:'10%'}]:[])]
+  const filters=[category!=='all'&&[t('indicatorsRecords.reportCategoryLabel'),categoryLabel(category,t)],query.trim()&&[t('indicatorsRecords.reportSearchLabel'),query.trim()]].filter(Boolean)
+  const summary=`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)} · ${departmentLabel} · ${sortedRows.length} ${t('indicatorsRecords.totalIndicators')} · ${sortedRows.filter(r=>r.status==='onTarget').length} ${t('indicatorsRecords.totalOnTarget')} · ${sortedRows.filter(r=>r.status==='attention').length} ${t('indicatorsRecords.totalAttention')}`
+  const ok=printReport({language,kind:t('indicators'),code:`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`,title:t('indicatorsRecords.reportTitle'),subtitle:summary,metaColumns:2,meta:filters,
+   sections:groups.map(group=>({title:`${group} (${sortedRows.filter(r=>sourceOf(r)===group).length})`,table:{columns,
+    rows:sortedRows.filter(r=>sourceOf(r)===group).map(r=>[el?r.titleEl:(r.titleEn||r.titleEl),resultCell(r),target(r),hasTarget(r)?status(r):'—',...(withApproval?[approvalText(r)]:[])])}})),
    filename:`${tenant?.name||'Indicators'}_${from}_${to}${effectiveDepartment?`_${departmentLabel}`:''}`}, { pdf: pdf === true })
   if(!ok)notify(t('indicatorsRecords.allowPopups'),'error')
  }
