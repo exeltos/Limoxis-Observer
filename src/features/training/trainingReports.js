@@ -10,6 +10,9 @@ const MONTH_NAMES = {
   el: ['Ιανουάριος', 'Φεβρουάριος', 'Μάρτιος', 'Απρίλιος', 'Μάιος', 'Ιούνιος', 'Ιούλιος', 'Αύγουστος', 'Σεπτέμβριος', 'Οκτώβριος', 'Νοέμβριος', 'Δεκέμβριος'],
   en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 }
+// Dates and numbers are centred, under centred headers, so the columns line up.
+const mid = value => ({ text: value, align: 'center' })
+const heads = (list, centred, widths = []) => list.map((label, i) => ({ text: label, ...(centred.includes(i) ? { align: 'center' } : {}), ...(widths[i] ? { width: widths[i] } : {}) }))
 const attended = assignment => assignment.computedStatus === 'completed' || assignment.status === 'completed' || assignment.attendance === true
 
 // Per programme: assigned, attended, person-hours.
@@ -28,10 +31,10 @@ export function programmesReportDoc({ programs, assignments, language = 'el', st
   const en = language === 'en'
   const stats = programStats(programs, assignments)
   const people = new Set(assignments.filter(a => programs.some(p => p.id === a.programId) && attended(a)).map(a => a.employeeId || a.employeeName).filter(Boolean))
-  const columns = en
+  const columns = heads(en
     ? ['Programme', 'Organiser', 'Trainer', 'Date', 'Hours', 'Attended / assigned', 'Person-hours', 'Status']
-    : ['Πρόγραμμα', 'Διοργανωτής', 'Εκπαιδευτής', 'Ημερομηνία', 'Ώρες', 'Παρακολούθησαν / ανατέθηκαν', 'Ανθρωποώρες', 'Κατάσταση']
-  const row = s => [s.program.title, s.program.owner || '', s.program.trainer || '', dmy(s.program.startDate || s.program.dueDate), hours(s.program.durationHours), `${s.done} / ${s.assigned}`, hours(s.personHours), statusLabel(s.program.status)]
+    : ['Πρόγραμμα', 'Διοργανωτής', 'Εκπαιδευτής', 'Ημερομηνία', 'Ώρες', 'Παρακολούθησαν / ανατέθηκαν', 'Ανθρωποώρες', 'Κατάσταση'], [3, 4, 5, 6], ['22%', '15%', '13%', '9%', '6%', '12%', '11%', '12%'])
+  const row = s => [s.program.title, s.program.owner || '', s.program.trainer || '', mid(dmy(s.program.startDate || s.program.dueDate)), mid(hours(s.program.durationHours)), mid(`${s.done} / ${s.assigned}`), mid(hours(s.personHours)), statusLabel(s.program.status)]
   const sorted = [...stats].sort((a, b) => day(a.program.startDate || a.program.dueDate).localeCompare(day(b.program.startDate || b.program.dueDate)))
   const groups = new Map()
   for (const s of sorted) {
@@ -53,7 +56,7 @@ export function programmesReportDoc({ programs, assignments, language = 'el', st
     meta: [
       ...(period ? [[en ? 'Period' : 'Περίοδος', period]] : []),
       [en ? 'Programmes' : 'Προγράμματα', String(stats.length)],
-      [en ? 'Participations (attended / assigned)' : 'Συμμετοχές (παρακολούθησαν / ανατέθηκαν)', `${total.done} / ${total.assigned}`],
+      [en ? 'Attended / assigned' : 'Παρακολούθησαν / ανατέθηκαν', `${total.done} / ${total.assigned}`],
       [en ? 'People trained' : 'Άτομα που εκπαιδεύτηκαν', String(people.size)],
       [en ? 'Person-hours' : 'Ανθρωποώρες', hours(total.hours) || '0'],
     ],
@@ -71,7 +74,7 @@ export function programmesReportDoc({ programs, assignments, language = 'el', st
 export function participantsReportDoc({ programs, assignments, language = 'el', statusLabel = v => v, period = '' }) {
   const en = language === 'en'
   const stats = programStats(programs, assignments).filter(s => s.assigned).sort((a, b) => day(a.program.startDate || a.program.dueDate).localeCompare(day(b.program.startDate || b.program.dueDate)))
-  const columns = en ? ['#', 'Person', 'Department', 'Status', 'Completed'] : ['#', 'Ονοματεπώνυμο', 'Τμήμα', 'Κατάσταση', 'Ολοκλήρωση']
+  const columns = heads(en ? ['#', 'Person', 'Department', 'Status', 'Completed'] : ['#', 'Ονοματεπώνυμο', 'Τμήμα', 'Κατάσταση', 'Ολοκλήρωση'], [0, 4], ['6%', '36%', '24%', '18%', '16%'])
   return {
     language,
     kind: en ? 'Training' : 'Εκπαίδευση',
@@ -80,7 +83,7 @@ export function participantsReportDoc({ programs, assignments, language = 'el', 
     meta: [...(period ? [[en ? 'Period' : 'Περίοδος', period]] : []), [en ? 'Programmes' : 'Προγράμματα', String(stats.length)], [en ? 'Participations' : 'Συμμετοχές', String(stats.reduce((n, s) => n + s.assigned, 0))]],
     sections: stats.map(s => ({
       title: `${s.program.title} · ${dmy(s.program.startDate || s.program.dueDate)} · ${s.done}/${s.assigned}`,
-      table: { columns, rows: [...s.list].sort((a, b) => String(a.employeeName || '').localeCompare(String(b.employeeName || ''), 'el')).map((a, i) => [String(i + 1), a.employeeName || '', a.department || '', statusLabel(a.computedStatus || a.status), dmy(a.completedDate)]) },
+      table: { columns, rows: [...s.list].sort((a, b) => String(a.employeeName || '').localeCompare(String(b.employeeName || ''), 'el')).map((a, i) => [mid(String(i + 1)), a.employeeName || '', a.department || '', statusLabel(a.computedStatus || a.status), mid(dmy(a.completedDate))]) },
     })),
   }
 }
@@ -93,10 +96,10 @@ export function trainingPlanReportDoc({ programs, assignments, year, month = nul
     .map(s => ({ ...s, months: programMonths(s.program, y) }))
     .filter(s => s.months.length && (month == null || s.months.includes(month)))
     .sort((a, b) => a.months[0] - b.months[0] || day(a.program.startDate || a.program.dueDate).localeCompare(day(b.program.startDate || b.program.dueDate)) || String(a.program.title).localeCompare(String(b.program.title), 'el'))
-  const columns = en
+  const columns = heads(en
     ? ['Programme', 'Organiser', 'Audience', 'Start', 'Due', ...(withActual ? ['Attended / assigned', 'Status'] : [])]
-    : ['Πρόγραμμα', 'Διοργανωτής', 'Ομάδα-στόχος', 'Έναρξη', 'Προθεσμία', ...(withActual ? ['Παρακολούθησαν / ανατέθηκαν', 'Κατάσταση'] : [])]
-  const row = s => [s.program.title, s.program.owner || '', s.program.audience || '', dmy(s.program.startDate), dmy(s.program.dueDate), ...(withActual ? [`${s.done} / ${s.assigned}`, stateLabel(s.program.status)] : [])]
+    : ['Πρόγραμμα', 'Διοργανωτής', 'Ομάδα-στόχος', 'Έναρξη', 'Προθεσμία', ...(withActual ? ['Παρακολούθησαν / ανατέθηκαν', 'Κατάσταση'] : [])], [3, 4, 5], withActual ? ['28%', '16%', '14%', '9%', '9%', '12%', '12%'] : ['36%', '20%', '20%', '12%', '12%'])
+  const row = s => [s.program.title, s.program.owner || '', s.program.audience || '', mid(dmy(s.program.startDate)), mid(dmy(s.program.dueDate)), ...(withActual ? [mid(`${s.done} / ${s.assigned}`), stateLabel(s.program.status)] : [])]
   const months = month == null ? [...new Set(stats.map(s => s.months[0]))].sort((a, b) => a - b) : [month]
   const names = MONTH_NAMES[en ? 'en' : 'el']
   return {
@@ -127,7 +130,7 @@ export function employeeTrainingDoc({ employeeName, employeeCode, department, ro
     title: en ? `Training history · ${employeeName}` : `Ιστορικό εκπαίδευσης · ${employeeName}`,
     filename: en ? `training-history-${employeeCode}` : `istoriko-ekpaideusis-${employeeCode}`,
     meta: [[en ? 'Code' : 'Κωδικός', employeeCode || ''], [en ? 'Department' : 'Τμήμα', department || ''], [en ? 'Trainings completed' : 'Ολοκληρωμένες εκπαιδεύσεις', String(rows.filter(r => r.done).length)], [en ? 'Hours' : 'Ώρες', hours(total) || '0']],
-    sections: [{ title: '', table: { columns: en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], rows: rows.map(r => [r.title, r.organiser || '', dmy(r.date), hours(r.hours), r.statusLabel, r.score ?? '']) } }],
+    sections: [{ title: '', table: { columns: heads(en ? ['Training', 'Organiser', 'Date', 'Hours', 'Status', 'Score'] : ['Εκπαίδευση', 'Διοργανωτής', 'Ημερομηνία', 'Ώρες', 'Κατάσταση', 'Βαθμολογία'], [2, 3, 5], ['36%', '20%', '12%', '8%', '14%', '10%']), rows: rows.map(r => [r.title, r.organiser || '', mid(dmy(r.date)), mid(hours(r.hours)), r.statusLabel, mid(r.score ?? '')]) } }],
   }
 }
 

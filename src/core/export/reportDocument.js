@@ -82,7 +82,12 @@ export function reportTableHtml({ columns = [], rows = [], foot = null, empty } 
   // A table of many columns (a long list such as the legislation) is dense: smaller type, fixed widths, words may break,
   // so it always fits the page instead of running off its right edge.
   const dense = columns.length >= DENSE_COLUMNS ? ' rd-dense' : ''
-  return `<table class="rd-table${dense}" border="1" cellspacing="0" cellpadding="4">${head}<tbody>${body}</tbody>${footer}</table>`
+  // Columns that state a width (e.g. '12%') keep it in every table of the report, so the tables of the
+  // sections line up under each other.
+  const widths = columns.map(column => (typeof column === 'object' && column?.width ? String(column.width).replace(/[^\d.%a-z]/gi, '') : ''))
+  const fixed = widths.some(Boolean)
+  const colgroup = fixed ? `<colgroup>${widths.map(width => (width ? `<col style="width:${width}">` : '<col>')).join('')}</colgroup>` : ''
+  return `<table class="rd-table${dense}${fixed ? ' rd-fixed' : ''}" border="1" cellspacing="0" cellpadding="4">${colgroup}${head}<tbody>${body}</tbody>${footer}</table>`
 }
 
 export function factsHtml(facts = [], columns = 2) {
@@ -90,7 +95,7 @@ export function factsHtml(facts = [], columns = 2) {
   if (!items.length) return ''
   const rows = []
   for (let i = 0; i < items.length; i += columns) rows.push(items.slice(i, i + columns))
-  return `<table class="rd-facts" cellspacing="0" cellpadding="0">${rows.map(row => `<tr>${row.map(([label, value]) => `<th>${escapeHtml(label)}</th><td>${text(value)}</td>`).join('')}${'<th></th><td></td>'.repeat(columns - row.length)}</tr>`).join('')}</table>`
+  return `<table class="rd-facts" cellspacing="0" cellpadding="0">${rows.map(row => `<tr>${row.map(([label, value], i) => `<th>${escapeHtml(label)}</th><td${i === row.length - 1 && row.length < columns ? ` colspan="${(columns - row.length) * 2 + 1}"` : ''}>${text(value)}</td>`).join('')}</tr>`).join('')}</table>`
 }
 
 function signaturesHtml(signatures = [], en) {
@@ -152,7 +157,7 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-subtitle{margin:0 0 10px;color:#5d7083}
 .rd-facts{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:9.5pt}
 .rd-facts th,.rd-facts td{border:1px solid #cfdbe5;padding:4px 6px;text-align:left;vertical-align:top}
-.rd-facts th{background:#f1f5f8;color:#4c6378;font-weight:600;width:18%}
+.rd-facts th{background:#f1f5f8;color:#4c6378;font-weight:600;width:22%}
 .rd-facts td{font-weight:600}
 .rd-section{margin:12px 0 0;break-inside:auto}
 .rd-section h2{margin:0 0 6px;padding-bottom:3px;border-bottom:1px solid #cbd8e3;font-size:12pt;break-after:avoid}
@@ -166,6 +171,9 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-table tfoot td{font-weight:700;background:#f6f9fb}
 .rd-table tr{break-inside:avoid}
 .rd-dense{font-size:7pt;table-layout:fixed}
+.rd-fixed{table-layout:fixed}
+.rd-fixed td{overflow-wrap:anywhere}
+.rd-fixed th{vertical-align:middle}
 .rd-dense th,.rd-dense td{padding:2px 3px;overflow-wrap:anywhere;word-break:break-word}
 .rd-table td small{display:block;color:#5d7083}
 .rd-table .rd-num{text-align:right;white-space:nowrap}

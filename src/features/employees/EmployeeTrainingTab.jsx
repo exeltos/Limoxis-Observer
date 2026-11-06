@@ -75,6 +75,10 @@ export function EmployeeTrainingTab({
     return () => onExportItems?.([])
   }, [onExportItems, registry.filtered.length, language])
   const paging = registry.paging
+  // A column that is empty for every training (e.g. no scores in imported history) is not shown.
+  const hasOrganiser = rows.some(row => row.organiser)
+  const hasHours = rows.some(row => Number(row.hours) > 0)
+  const hasScore = rows.some(row => row.score != null)
   return (
     <section className="record-section record-secondary-registry">
       <SectionTitle
@@ -109,11 +113,11 @@ export function EmployeeTrainingTab({
                 <thead>
                   <tr>
                     <th>{language === 'en' ? 'Training' : 'Εκπαίδευση'}</th>
-                    <th>{language === 'en' ? 'Organiser' : 'Διοργανωτής'}</th>
+                    {hasOrganiser && <th>{language === 'en' ? 'Organiser' : 'Διοργανωτής'}</th>}
                     <th>{language === 'en' ? 'Date' : 'Ημερομηνία'}</th>
-                    <th>{language === 'en' ? 'Hours' : 'Ώρες'}</th>
+                    {hasHours && <th>{language === 'en' ? 'Hours' : 'Ώρες'}</th>}
                     <th>{language === 'en' ? 'Status' : 'Κατάσταση'}</th>
-                    <th>{language === 'en' ? 'Score' : 'Βαθμολογία'}</th>
+                    {hasScore && <th>{language === 'en' ? 'Score' : 'Βαθμολογία'}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -136,15 +140,15 @@ export function EmployeeTrainingTab({
                             : row.titleEn || row.titleEl}
                         </strong>
                       </td>
-                      <td>{row.organiser || '—'}</td>
+                      {hasOrganiser && <td>{row.organiser || '—'}</td>}
                       <td>{fmt(row.date)}</td>
-                      <td>{hoursText(row.hours) || '—'}</td>
+                      {hasHours && <td>{hoursText(row.hours) || '—'}</td>}
                       <td>
                         <span className={`status-badge ${statusClass(row.status)}`}>
                           {label(row.status, t)}
                         </span>
                       </td>
-                      <td>{row.score != null ? `${row.score}%` : '—'}</td>
+                      {hasScore && <td>{row.score != null ? `${row.score}%` : '—'}</td>}
                     </tr>
                   ))}
                 </tbody>
@@ -187,11 +191,13 @@ export function EmployeeTrainingTab({
         >
           <dl className="employee-training-facts">
             <div><dt>{language === 'en' ? 'Status' : 'Κατάσταση'}</dt><dd><span className={`status-badge ${statusClass(selected.status)}`}>{label(selected.status, t)}</span></dd></div>
+            {selected.organiser && <div><dt>{language === 'en' ? 'Organiser' : 'Διοργανωτής'}</dt><dd>{selected.organiser}</dd></div>}
+            {Number(selected.hours) > 0 && <div><dt>{language === 'en' ? 'Hours' : 'Ώρες'}</dt><dd>{hoursText(selected.hours)}</dd></div>}
             <div><dt>{language === 'en' ? 'Assigned' : 'Ανάθεση'}</dt><dd>{fmt(selected.assignedDate)}</dd></div>
             <div><dt>{language === 'en' ? 'Completed' : 'Ολοκλήρωση'}</dt><dd>{fmt(selected.completedDate)}</dd></div>
             {selected.dueDate && <div><dt>{language === 'en' ? 'Due' : 'Προθεσμία'}</dt><dd>{fmt(selected.dueDate)}</dd></div>}
             {selected.score != null && <div><dt>{language === 'en' ? 'Knowledge assessment' : 'Αξιολόγηση γνώσεων'}</dt><dd>{selected.score}% · {selected.score >= 80 ? (language === 'en' ? 'Successful' : 'Επιτυχής') : (language === 'en' ? 'Review required' : 'Απαιτείται επανέλεγχος')}</dd></div>}
-            <div><dt>{language === 'en' ? 'Time on the material' : 'Χρόνος παρακολούθησης'}</dt><dd>{formatActiveTime(watched, language === 'en')}</dd></div>
+            {watched > 0 && <div><dt>{language === 'en' ? 'Time on the material' : 'Χρόνος παρακολούθησης'}</dt><dd>{formatActiveTime(watched, language === 'en')}</dd></div>}
             {selected.materialCount > 0 && <div><dt>{language === 'en' ? 'Material' : 'Υλικό'}</dt><dd>{selected.materialCount} {language === 'en' ? (selected.materialCount === 1 ? 'file' : 'files') : (selected.materialCount === 1 ? 'αρχείο' : 'αρχεία')}</dd></div>}
           </dl>
         </ObserverDialog>
