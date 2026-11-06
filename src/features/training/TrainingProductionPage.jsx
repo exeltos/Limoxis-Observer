@@ -40,7 +40,7 @@ import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/E
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
 import { printReport } from '../../core/export/reportDocument'
-import { participantsReportDoc,programmesReportDoc,trainingPlanReportDoc } from './trainingReports'
+import { participantsReportDoc,programSheetDoc,programmesReportDoc,trainingPlanReportDoc } from './trainingReports'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { TrainingCompetencePanel } from './TrainingCompetencePanel'
@@ -134,6 +134,7 @@ export function TrainingProductionPage(){
 }
 
 function ProgramRecord({en,language,organizationId,program,assignments,state,employees,departments,busy,notify,notifyError,confirm,reload,onBack,onPersist,onDelete}){
+ const [sheet,setSheet]=useState(null)
  const [tab,setTab]=useState('overview'),[dialog,setDialog]=useState(null),[mailBusy,setMailBusy]=useState(false),[editing,setEditing]=useState(false),[draft,setDraft]=useState(program)
  useEffect(()=>{setDraft(program);setEditing(false)},[program])
  // The active reading time of each participant on the programme's files (only a saved programme has any).
@@ -157,10 +158,20 @@ function ProgramRecord({en,language,organizationId,program,assignments,state,emp
    {id:'delete',label:en?'Delete':'Διαγραφή',icon:Trash2,tone:'danger',separatorBefore:true,disabled:busy,onClick:onDelete},
  ]}/>:null
  const activeEmployees=employees.filter(isActiveEmployee),assignedEmployeeIds=new Set(assignments.map(a=>String(a.employeeId||'')).filter(Boolean))
+ // The programme's single «Εξαγωγή»: the programme sheet with its attendance list, and its participants in Excel.
+ const statusText=v=>labels[v]?.[en?1:0]||v||''
+ const participantsTable=()=>trainingParticipationExport(assignments,[program],state.certificates||[],{en,statusLabel:statusText})
+ const printSheet=({attendance})=>{setSheet(null);if(!printReport(programSheetDoc({program,assignments,language,withAttendance:attendance==='attended',categoryLabel:v=>trainingCategoryLabel(v,language),methodLabel:v=>trainingMethodLabel(v,language),statusLabel:statusText})))notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')}
+ const programExport=<ExportMenu items={[
+  {id:'program-sheet',kind:'print',label:en?'Print: programme sheet':'Εκτύπωση: φύλλο προγράμματος',onClick:()=>setSheet('print')},
+  {id:'program-participants-excel',kind:'excel',label:en?'Excel: participants':'Excel: συμμετέχοντες',disabled:!assignments.length,onClick:()=>setSheet('excel')},
+ ]}/>
  if(dialog?.type==='participants')return <TrainingParticipantsDialog en={en} departments={departments} employees={activeEmployees} alreadyAssignedIds={[...assignedEmployeeIds]} busy={busy} onClose={()=>setDialog(null)} onSave={addParticipants}/>
  return (
   <Page fill>
-   <EntityRecordShell className="training-record-shell" avatar={<BookOpenCheck size={19}/>} eyebrow={program.id} title={program.title} subtitle={[program.category?trainingCategoryLabel(program.category,language):'',trainingMethodLabel(program.method,language),program.owner?`${en?'Organiser':'Διοργανωτής'}: ${program.owner}`:'',`${en?'Trainer':'Εκπαιδευτής'}: ${program.trainer||'—'}`].filter(part=>part&&part!=='—').join(' · ')} status={<Badge status={program.status}/>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={onBack} backLabel={en?'Back to programs':'Πίσω στα προγράμματα'}>
+   {sheet==='print'&&<PrintOptionsDialog storageKey="limoxis.training.print.sheet" title={en?'Programme sheet':'Φύλλο προγράμματος'} options={[{key:'attendance',label:en?'Attendance list':'Λίστα παρουσιών',choices:[{value:'blank',label:en?'Blank, for signatures':'Κενή, για υπογραφές'},{value:'attended',label:en?'With who attended':'Με όσους παρακολούθησαν'}],initial:program.status==='completed'?'attended':'blank'}]} onConfirm={printSheet} onClose={()=>setSheet(null)}/>}
+   {sheet==='excel'&&<ExcelFieldsDialog storageKey="limoxis.training.program.participants.excel" fields={tableFields(participantsTable())} onClose={()=>setSheet(null)} onConfirm={keys=>{exportRegistry(pickColumns(participantsTable(),keys));setSheet(null)}}/>}
+   <EntityRecordShell className="training-record-shell" headerActions={programExport} avatar={<BookOpenCheck size={19}/>} eyebrow={program.id} title={program.title} subtitle={[program.category?trainingCategoryLabel(program.category,language):'',trainingMethodLabel(program.method,language),program.owner?`${en?'Organiser':'Διοργανωτής'}: ${program.owner}`:'',`${en?'Trainer':'Εκπαιδευτής'}: ${program.trainer||'—'}`].filter(part=>part&&part!=='—').join(' · ')} status={<Badge status={program.status}/>} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={onBack} backLabel={en?'Back to programs':'Πίσω στα προγράμματα'}>
      {tab==='overview'&&<section className="record-section training-program-overview"><div className="record-section-header"><div><h3>{en?'Program details':'Στοιχεία προγράμματος'}</h3></div>{programMenu}</div>{editing?<TrainingProgramForm value={draft} onChange={setDraft} language={language} employees={employees} departments={departments}/>:<TrainingProgramDetails value={program} language={language}/>}{!editing&&<TrainingProgramProgress en={en} program={program} assignments={assignments}/>}{editing&&<div className="inline-edit-footer"><Button variant="secondary" onClick={()=>{setDraft(program);setEditing(false)}} disabled={busy}>{en?'Cancel':'Ακύρωση'}</Button><SaveButton loading={busy} disabled={!trainingProgramIsValid(draft)||busy} onClick={saveProgram}>{en?'Save':'Αποθήκευση'}</SaveButton></div>}</section>}
      {tab==='participants'&&<Participants inactiveCodes={inactiveEmployeeCodes(employees)} materialSeconds={materialSeconds} measured={Boolean(program.materials?.length)||materialSeconds.size>0} rows={assignments} en={en} language={language} busy={busy} mailBusy={mailBusy} onInviteAll={sendForms} onRemove={removeParticipant} onAdd={()=>setDialog({type:'participants'})}/>}
      {tab==='materials'&&<RecordTabPanel className="training-content-panel" title={en?'Material':'Υλικό'} subtitle={en?'Upload presentations, procedures, attendance sheets or supporting material.':'Ανεβάστε παρουσιάσεις, διαδικασίες, παρουσιολόγια ή άλλο υποστηρικτικό υλικό.'}>

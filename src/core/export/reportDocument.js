@@ -174,6 +174,7 @@ h1.rd-title{margin:2px 0 2px;font-size:17pt;line-height:1.25}
 .rd-fixed{table-layout:fixed}
 .rd-fixed td{overflow-wrap:anywhere}
 .rd-fixed th{vertical-align:middle}
+.rd-table .rd-sign{height:26px}
 .rd-dense th,.rd-dense td{padding:2px 3px;overflow-wrap:anywhere;word-break:break-word}
 .rd-table td small{display:block;color:#5d7083}
 .rd-table .rd-num{text-align:right;white-space:nowrap}

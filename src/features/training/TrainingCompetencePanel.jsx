@@ -6,7 +6,12 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { SubTabs } from '../../design-system/SubTabs'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { ObserverDialog,DialogActions } from '../../design-system/ObserverDialog'
-import { registryItems } from '../../core/export/registryExports'
+import { exportRegistry } from '../../core/export/registryExports'
+import { printReport } from '../../core/export/reportDocument'
+import { ExcelFieldsDialog,pickColumns,tableFields } from '../../design-system/ExcelFieldsDialog'
+import { PrintOptionsDialog } from '../../design-system/PrintOptionsDialog'
+import { useLanguage } from '../../core/i18n/LanguageContext'
+import { competenceReportDoc } from './trainingReports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { loadManagementLibraries } from '../management/managementCloudService'
@@ -28,6 +33,8 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  const {notify}=useFeedback()
  const [positionOptions,setPositionOptions]=useState([])
  useEffect(()=>{let active=true;if(isDemo){setPositionOptions(demoLibrarySeed.positions||[]);return()=>{active=false}}if(!tenant?.id)return()=>{active=false};loadManagementLibraries(tenant.id).then(libraries=>{if(active)setPositionOptions(libraries?.positions||[])}).catch(()=>{if(active)setPositionOptions([])});return()=>{active=false}},[isDemo,tenant?.id])
+ const {t}=useLanguage()
+ const [dialog,setDialog]=useState(null)
  const [view,setView]=useState('matrix')
  const [department,setDepartment]=useState('all')
  const [editing,setEditing]=useState(null)
@@ -55,12 +62,21 @@ export function TrainingCompetencePanel({state,employees=[],departments=[],langu
  }
 
  const printBlocked=()=>notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
- const exportItems=[...registryItems('matrix',en?'competence matrix':'πίνακας επάρκειας',matrixExport,{language,kind:en?'Training':'Εκπαίδευση',disabled:!matrix.rows.length,onBlocked:printBlocked}),...registryItems('plan',en?'retraining plan':'πλάνο επανεκπαίδευσης',planExport,{language,kind:en?'Training':'Εκπαίδευση',disabled:!plan.length,onBlocked:printBlocked})]
+ // One print (matrix or retraining plan, chosen in a dialog) and one Excel with a field choice.
+ const exportItems=[
+  {id:'competence-print',kind:'print',label:en?'Print: competence':'Εκτύπωση: επάρκεια',disabled:!matrix.rows.length,onClick:()=>setDialog('print')},
+  {id:'competence-excel',kind:'excel',label:t('exportFields.menuLabel'),disabled:!matrix.rows.length,onClick:()=>setDialog('excel')},
+ ]
+ const tableOf=content=>content==='plan'?planExport():matrixExport()
+ const printCompetence=({content})=>{setDialog(null);if(!printReport(competenceReportDoc({matrix,plan,content,department,language,personName:name,today})))printBlocked()}
  const exportRef=useRef(exportItems);exportRef.current=exportItems
  const summaryKey=`${matrix.rate}|${matrix.counts.missing}|${matrix.counts.expired}|${matrix.counts.expiring}|${matrix.rows.length}|${plan.length}|${department}`
  useEffect(()=>{onSummaryChange?.({rate:matrix.rate,...matrix.counts,people:matrix.rows.length,plan:plan.length,department})},[summaryKey]) // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{if(!onExportChange)return undefined;onExportChange(exportRef.current.map(item=>({...item,onClick:()=>exportRef.current.find(x=>x.id===item.id)?.onClick()})));return()=>onExportChange(null)},[onExportChange,matrix.rows.length,plan.length,en])
+ const contentChoices=[{value:'matrix',label:en?'Competence matrix':'Πίνακας επάρκειας'},{value:'plan',label:en?'Retraining plan (by month)':'Πλάνο επανεκπαίδευσης (ανά μήνα)'}]
  return <div className="training-competence">
+  {dialog==='print'&&<PrintOptionsDialog storageKey="limoxis.training.competence.print" title={en?'Print competence':'Εκτύπωση επάρκειας'} options={[{key:'content',label:en?'Content':'Περιεχόμενο',choices:contentChoices,initial:view==='plan'?'plan':'matrix'}]} onConfirm={printCompetence} onClose={()=>setDialog(null)}/>}
+  {dialog==='excel'&&<ExcelFieldsDialog storageKey="limoxis.training.competence.excel" layouts={contentChoices} fields={content=>tableFields(tableOf(content))} onClose={()=>setDialog(null)} onConfirm={(keys,content)=>{exportRegistry(pickColumns(tableOf(content),keys));setDialog(null)}}/>}
   <div className="training-competence-summary">
    <div className="training-competence-tools">
     <label><span>{en?'Department':'Τμήμα'}</span><select value={department} onChange={e=>setDepartment(e.target.value)}><option value="all">{en?'All':'Όλα'}</option>{departmentNames.map(d=><option key={d} value={d}>{d}</option>)}</select></label>

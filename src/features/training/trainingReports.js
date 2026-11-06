@@ -134,4 +134,90 @@ export function employeeTrainingDoc({ employeeName, employeeCode, department, ro
   }
 }
 
+// «Επάρκεια»: the matrix (who is covered for each required training, per department) or the retraining plan
+// (who has to be trained and by when, per month). matrix/plan come from trainingCompetence.
+export function competenceReportDoc({ matrix, plan, content = 'matrix', department = 'all', language = 'el', personName = e => e.name || '', today = '' }) {
+  const en = language === 'en'
+  const stateText = state => ({ valid: en ? 'Valid' : 'Σε ισχύ', expiring: en ? 'Expiring' : 'Λήγει', expired: en ? 'Expired' : 'Έληξε', missing: en ? 'Missing' : 'Λείπει' })[state] || state
+  const scope = department === 'all' ? (en ? 'All departments' : 'Όλα τα τμήματα') : department
+  const byDepartment = (list, of) => {
+    const groups = new Map()
+    for (const item of list) { const key = of(item) || (en ? 'No department' : 'Χωρίς τμήμα'); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(item) }
+    return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0], en ? 'en' : 'el'))
+  }
+  if (content === 'plan') {
+    const names = MONTH_NAMES[en ? 'en' : 'el']
+    const now = day(today)
+    const keyOf = item => (!item.due || item.due <= now ? 'now' : item.due.slice(0, 7))
+    const groups = new Map()
+    for (const item of plan) { const key = keyOf(item); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(item) }
+    const keys = [...groups.keys()].sort((a, b) => (a === 'now' ? -1 : b === 'now' ? 1 : a.localeCompare(b)))
+    const columns = heads(en ? ['Due by', 'Person', 'Department', 'Category', 'Required training', 'Status'] : ['Έως', 'Ονοματεπώνυμο', 'Τμήμα', 'Κατηγορία', 'Απαιτούμενη εκπαίδευση', 'Κατάσταση'], [0, 5], ['12%', '20%', '15%', '15%', '26%', '12%'])
+    return {
+      language,
+      kind: en ? 'Training' : 'Εκπαίδευση',
+      title: en ? 'Retraining plan' : 'Πλάνο επανεκπαίδευσης',
+      filename: en ? 'retraining-plan' : 'plano-epanekpaideusis',
+      meta: [[en ? 'Department' : 'Τμήμα', scope], [en ? 'To be trained' : 'Προς εκπαίδευση', String(plan.length)], [en ? 'Missing' : 'Λείπει', String(plan.filter(i => i.state === 'missing').length)], [en ? 'Expired / expiring' : 'Έληξε / λήγει', `${plan.filter(i => i.state === 'expired').length} / ${plan.filter(i => i.state === 'expiring').length}`]],
+      sections: keys.map(key => ({
+        title: `${key === 'now' ? (en ? 'Now (missing or expired)' : 'Άμεσα (λείπει ή έληξε)') : `${names[Number(key.slice(5, 7)) - 1]} ${key.slice(0, 4)}`} · ${groups.get(key).length}`,
+        table: { columns, rows: groups.get(key).map(item => [mid(dmy(item.due)), personName(item.employee), item.employee.department || '', item.employee.profession || '', item.requirement.title, mid(stateText(item.state))]) },
+      })),
+    }
+  }
+  const requirements = matrix.requirements
+  const cellText = cell => (!cell ? '' : cell.state === 'valid' ? `✓${cell.validUntil ? ` ${dmy(cell.validUntil)}` : ''}` : cell.state === 'expiring' ? `${stateText('expiring')} ${dmy(cell.validUntil)}` : stateText(cell.state))
+  const columns = [{ text: en ? 'Person' : 'Ονοματεπώνυμο', width: '18%' }, { text: en ? 'Category' : 'Κατηγορία', width: '12%' }, ...requirements.map(r => ({ text: r.title, align: 'center' }))]
+  const count = state => matrix.counts[state] || 0
+  return {
+    language,
+    orientation: 'landscape',
+    kind: en ? 'Training' : 'Εκπαίδευση',
+    title: en ? 'Competence matrix' : 'Πίνακας επάρκειας',
+    filename: en ? 'competence-matrix' : 'pinakas-eparkeias',
+    meta: [[en ? 'Department' : 'Τμήμα', scope], [en ? 'People' : 'Άτομα', String(matrix.rows.length)], [en ? 'Coverage' : 'Κάλυψη', matrix.rate == null ? '—' : `${matrix.rate}%`], [en ? 'Missing / expired / expiring' : 'Λείπει / έληξε / λήγει', `${count('missing')} / ${count('expired')} / ${count('expiring')}`]],
+    sections: byDepartment(matrix.rows, row => row.employee.department).map(([name, rows]) => ({
+      title: `${name} · ${rows.length}`,
+      table: { columns, rows: [...rows].sort((a, b) => personName(a.employee).localeCompare(personName(b.employee), 'el')).map(row => [personName(row.employee), row.employee.profession || '', ...row.cells.map(cell => ({ text: cellText(cell) || '—', align: 'center', className: cell && cell.state !== 'valid' && cell.state !== 'expiring' ? 'rd-bad' : '' }))]) },
+    })),
+  }
+}
+
+// «Φύλλο προγράμματος»: the programme's details and its attendance list — blank, for signatures on the day,
+// or with who attended (for the file). A few empty rows are left for people added on the day.
+export function programSheetDoc({ program, assignments, language = 'el', withAttendance = false, categoryLabel = v => v, methodLabel = v => v, statusLabel = v => v }) {
+  const en = language === 'en'
+  const list = [...assignments].sort((a, b) => String(a.employeeName || '').localeCompare(String(b.employeeName || ''), 'el'))
+  const period = program.startDate && day(program.startDate) !== day(program.dueDate) ? `${dmy(program.startDate)} – ${dmy(program.dueDate)}` : dmy(program.startDate || program.dueDate)
+  const columns = withAttendance
+    ? heads(en ? ['#', 'Person', 'Department', 'Status', 'Completed', 'Signature'] : ['#', 'Ονοματεπώνυμο', 'Τμήμα', 'Κατάσταση', 'Ολοκλήρωση', 'Υπογραφή'], [0, 3, 4], ['5%', '28%', '20%', '14%', '13%', '20%'])
+    : heads(en ? ['#', 'Person', 'Department', 'Signature'] : ['#', 'Ονοματεπώνυμο', 'Τμήμα', 'Υπογραφή'], [0], ['5%', '35%', '25%', '35%'])
+  const rows = list.map((a, i) => [mid(String(i + 1)), a.employeeName || '', a.department || '', ...(withAttendance ? [mid(statusLabel(a.computedStatus || a.status)), mid(dmy(a.completedDate))] : []), { text: '', className: 'rd-sign' }])
+  const blank = withAttendance ? 0 : 5
+  for (let i = 0; i < blank; i += 1) rows.push([mid(String(list.length + i + 1)), '', '', { text: '', className: 'rd-sign' }])
+  return {
+    language,
+    kind: en ? 'Training' : 'Εκπαίδευση',
+    code: program.id,
+    title: program.title,
+    subtitle: en ? (withAttendance ? 'Programme sheet and attendance' : 'Programme sheet · attendance list') : (withAttendance ? 'Φύλλο προγράμματος και παρουσίες' : 'Φύλλο προγράμματος · λίστα παρουσιών'),
+    filename: `${en ? 'programme-sheet' : 'fyllo-programmatos'}-${program.id}`,
+    meta: [
+      [en ? 'Category' : 'Κατηγορία', program.category ? categoryLabel(program.category) : ''],
+      [en ? 'Method' : 'Τρόπος', program.method ? methodLabel(program.method) : ''],
+      [en ? 'Organiser' : 'Διοργανωτής', program.owner || ''],
+      [en ? 'Trainer' : 'Εκπαιδευτής', program.trainer || ''],
+      [en ? 'Date' : 'Ημερομηνία', `${period}${program.startTime ? ` · ${program.startTime}` : ''}`],
+      [en ? 'Duration' : 'Διάρκεια', program.durationHours ? `${hours(program.durationHours)} ${en ? 'h' : 'ώρες'}` : ''],
+      [en ? 'Location' : 'Τόπος', program.location || ''],
+      [en ? 'Audience' : 'Κοινό', program.audience || ''],
+    ].filter(([, value]) => value),
+    sections: [
+      ...(program.description ? [{ title: en ? 'Purpose / description' : 'Σκοπός / περιγραφή', text: program.description }] : []),
+      { title: `${en ? 'Attendance list' : 'Λίστα παρουσιών'} · ${list.length}`, table: { columns, rows, empty: en ? 'No participants yet.' : 'Δεν υπάρχουν ακόμη συμμετέχοντες.' } },
+    ],
+    signatures: [{ role: en ? 'Trainer' : 'Εκπαιδευτής', name: program.trainer || '' }, { role: en ? 'Organiser' : 'Διοργανωτής', name: program.owner || '' }],
+  }
+}
+
 export { MONTHS }
