@@ -14,9 +14,9 @@ export function deviationsReportDoc({ rows, groupBy = 'none', language = 'el', t
   const monthName = key => (key ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' }).format(new Date(`${key}-15T12:00:00Z`)) : (en ? 'No date' : 'Χωρίς ημερομηνία'))
   const keyOf = { department, kind, month }[groupBy]
   const columns = [
-    { text: en ? 'Code' : 'Κωδικός', width: '12%' },
+    { text: en ? 'Code' : 'Κωδικός', width: '14%' },
     { text: en ? 'Date' : 'Ημερομηνία', width: '8%', align: 'center' },
-    { text: en ? 'Deviation' : 'Απόκλιση', width: ['kind', 'department'].includes(groupBy) ? '38%' : '27%' },
+    { text: en ? 'Deviation' : 'Απόκλιση', width: ['kind', 'department'].includes(groupBy) ? '36%' : '25%' },
     ...(groupBy === 'kind' ? [] : [{ text: en ? 'Kind' : 'Είδος', width: '11%' }]),
     ...(groupBy === 'department' ? [] : [{ text: en ? 'Department' : 'Τμήμα', width: '11%' }]),
     { text: en ? 'Causes' : 'Αιτίες', width: '13%' },
