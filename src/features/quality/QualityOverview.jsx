@@ -47,12 +47,15 @@ function Delta({row,en}){
  const diff=row.value-row.prev
  return <small className={`quality-delta${diff>0?' is-up':diff<0?' is-down':''}`} title={L(en,`Προηγούμενη περίοδος: ${row.prev}`,`Previous period: ${row.prev}`)}>{diff>0?'▲ +':diff<0?'▼ −':'= '}{diff===0?0:Math.abs(diff)}</small>
 }
+// «Ομάδα · Κατηγορία» shows the category only (the group is the same for many rows and
+// pushed the category out of sight); the full name is in the row's tooltip.
+const shortLabel=label=>String(label||'').split(' · ').pop()
 function BarList({rows,empty,en,onPick,picked}){
  const max=Math.max(1,...rows.map(row=>Math.max(row.value,row.prev||0)))
  if(!rows.length)return <p className="risk-empty-note">{empty}</p>
  return <ul className="quality-bars">{rows.map(row=>{
   const body=<>
-   <span>{row.label}</span><span className="quality-bar">{row.prev!=null&&<b style={{width:`${row.prev*100/max}%`}}/>}<i style={{width:`${row.value*100/max}%`}}/></span><strong>{row.value}</strong>{row.prev!=null?<Delta row={row} en={en}/>:<small>{row.share!=null?`${row.share}%`:''}</small>}
+   <span>{shortLabel(row.label)}</span><span className="quality-bar">{row.prev!=null&&<b style={{width:`${row.prev*100/max}%`}}/>}<i style={{width:`${row.value*100/max}%`}}/></span><strong>{row.value}</strong>{row.prev!=null?<Delta row={row} en={en}/>:<small>{row.share!=null?`${row.share}%`:''}</small>}
   </>
   return <li key={row.key} title={`${row.label}: ${row.value}`} className={picked===row.key?'is-picked':undefined}>
    {onPick?<button type="button" aria-pressed={picked===row.key} onClick={()=>onPick(picked===row.key?null:row.key)}>{body}</button>:body}
@@ -102,7 +105,7 @@ export function QualityOverview({reports,capas,audits,findings=[],language,categ
   const decide=[...sentinel,...overdue,...toAssess].sort((a,b)=>a.rank-b.rank)
   const dueSoon=openCapas.filter(row=>{const days=daysUntil(row.dueDate);return days!=null&&days>=0&&days<=SOON_DAYS}).sort((a,b)=>String(a.dueDate).localeCompare(String(b.dueDate))).map(row=>{const days=daysUntil(row.dueDate);return {key:`d:${row.id}`,type:'capas',id:row.id,days,kind:L(en,'Λήξη ενέργειας','Action due'),code:qualityCode(row,language),title:titleOf(row,en),chip:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.dueDate,language),departmentOf(row,en)]}})
   // CAPAs whose effectiveness is to be checked: in verification, or due for the check and still pending.
-  const effectiveness=capas.filter(row=>row.lifecycleStatus!=='voided'&&(row.effectivenessStatus||'pending')==='pending'&&(row.status==='verification'||(row.effectivenessDue&&daysUntil(row.effectivenessDue)<=SOON_DAYS))).map(row=>{const days=daysUntil(row.effectivenessDue);return {key:`e:${row.id}`,type:'capas',id:row.id,days:days??0,kind:L(en,'Έλεγχος αποτελεσματικότητας','Effectiveness check'),code:qualityCode(row,language),title:titleOf(row,en),chip:days==null?{value:'✓?',tone:'warning'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days,unit:plural(days,'ημέρα','ημέρες','day','days'),tone:'warning'},meta:[row.status==='verification'?L(en,'Σε επαλήθευση','In verification'):L(en,'Έλεγχος έως','Check by')+' '+formatDay(row.effectivenessDue,language),departmentOf(row,en)]}})
+  const effectiveness=capas.filter(row=>row.lifecycleStatus!=='voided'&&(row.effectivenessStatus||'pending')==='pending'&&(row.effectivenessDue?daysUntil(row.effectivenessDue)<=SOON_DAYS:row.status==='verification')).map(row=>{const days=daysUntil(row.effectivenessDue);return {key:`e:${row.id}`,type:'capas',id:row.id,days:days??0,kind:L(en,'Έλεγχος αποτελεσματικότητας','Effectiveness check'),code:qualityCode(row,language),title:titleOf(row,en),chip:days==null?{value:'✓?',tone:'warning'}:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days,unit:plural(days,'ημέρα','ημέρες','day','days'),tone:'warning'},meta:[row.status==='verification'?L(en,'Σε επαλήθευση','In verification'):L(en,'Έλεγχος έως','Check by')+' '+formatDay(row.effectivenessDue,language),departmentOf(row,en)]}})
   const auditsDue=audits.filter(row=>!['completed','cancelled'].includes(row.status)&&row.lifecycleStatus!=='voided'&&row.plannedDate&&daysUntil(row.plannedDate)<=SOON_DAYS).sort((a,b)=>String(a.plannedDate).localeCompare(String(b.plannedDate))).map(row=>{const days=daysUntil(row.plannedDate);return {key:`a:${row.id}`,type:'audits',id:row.id,days,kind:L(en,'Επιθεώρηση','Audit'),code:qualityCode(row,language),title:titleOf(row,en),chip:days<0?{value:-days,unit:L(en,'ημέρες καθυστέρηση','days late'),tone:'danger'}:{value:days===0?L(en,'Σήμερα','Today'):days,unit:days===0?'':plural(days,'ημέρα','ημέρες','day','days'),tone:days<=7?'warning':'neutral'},meta:[formatDay(row.plannedDate,language),departmentOf(row,en),roleTitleText(row.leadAuditor,language)]}})
 
   // Off-track objectives are not due in 30 days: the «Objectives not met» figure counts and opens them.
