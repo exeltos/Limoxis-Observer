@@ -32,6 +32,8 @@
 .resource-record-shell .entity-record-body:has(>.record-tab-panel){display:flex;flex-direction:column;min-height:0}
 .resource-record-shell .entity-record-body>.record-tab-panel{flex:1 1 auto;min-height:0}
 .resource-record-shell .record-tab-panel-body{flex:1 1 auto}
+/* A supplier evaluation template opened as a record: its fields off the card's edge. */
+.resource-record-shell .supplier-template-editor{padding:4px 16px 16px}
 .resource-record-shell .record-tab-panel-body>:is(.resource-pad,.resource-notes-wide){padding:14px 20px}
 .resource-record-shell .record-tab-panel-body>.resource-notes-wide{margin:0;padding-bottom:0}
 .resource-criteria{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:14px 24px}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, ListChecks, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ClipboardList, ListChecks, Plus, Trash2 } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { BackButton } from '../../../design-system/BackButton'
 import { RegistryTable } from '../../../design-system/RegistryTable'
@@ -7,13 +7,14 @@ import { StatusBadge } from '../../../design-system/StatusBadge'
 import { ExportMenu } from '../../../design-system/ExportMenu'
 import { Button } from '../../../design-system/Button'
 import { IconButton } from '../../../design-system/IconButton'
-import { ObserverDialog, DialogActions } from '../../../design-system/ObserverDialog'
+import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
+import { RecordTabPanel } from '../../../design-system/RecordTabPanel'
+import { SaveButton } from '../../../design-system/SaveButton'
 import { FormGrid } from '../../../design-system/FormCard'
 import { Field } from '../../../design-system/Field'
 import { ChoiceField } from '../../../design-system/ChoiceField'
 import { MultiSelect } from '../../../design-system/MultiSelect'
 import { CheckboxField } from '../../../design-system/CheckboxField'
-import { SectionHeader } from '../../../design-system/SectionHeader'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { useTenant } from '../../../core/tenant/TenantContext'
@@ -73,6 +74,8 @@ export function SupplierTemplatesPage() {
   })
   const open = template => setEditing({ draft: structuredClone(template), before: template.id ? template : null })
 
+  // A template opens as a page of its own, as the other records (back returns to the list).
+  if (editing) return <TemplateEditor editing={editing} setEditing={setEditing} saving={saving} locked={locked} language={language} onSave={save} onRemove={editing.draft.id && !locked ? remove : null} />
   return <Page fill className="supplier-templates-page" navigation={<BackButton onClick={goBack} label={en ? 'Back to suppliers' : 'Πίσω στους προμηθευτές'} />}
     title={en ? 'Supplier evaluation templates' : 'Πρότυπα αξιολόγησης προμηθευτών'}
     subtitle={en ? 'Each kind of supplier is evaluated on its own criteria and weights. A new evaluation takes the template of the supplier’s category.' : 'Κάθε είδος προμηθευτή αξιολογείται με τα δικά του κριτήρια και βάρη. Μια νέα αξιολόγηση παίρνει το πρότυπο της κατηγορίας του προμηθευτή.'}
@@ -91,7 +94,6 @@ export function SupplierTemplatesPage() {
           <td><StatusBadge tone={row.active !== false ? 'success' : 'neutral'}>{row.active !== false ? (en ? 'Active' : 'Ενεργό') : (en ? 'Inactive' : 'Ανενεργό')}</StatusBadge></td>
         </>} />
     </div>
-    {editing && <TemplateEditor editing={editing} setEditing={setEditing} saving={saving} locked={locked} language={language} onSave={save} onRemove={editing.draft.id && !locked ? remove : null} />}
   </Page>
 }
 
@@ -101,8 +103,18 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
   const set = next => setEditing(current => ({ ...current, draft: { ...current.draft, ...next } }))
   const setCriterion = (index, next) => set({ criteria: draft.criteria.map((item, at) => (at === index ? { ...item, ...next } : item)) })
   const total = weightTotal(draft.criteria)
-  return <ObserverDialog width="wide" fixedHeight title={draft.id ? draft.name || (en ? 'Template' : 'Πρότυπο') : (en ? 'New template' : 'Νέο πρότυπο')} subtitle={draft.id ? `${en ? 'version' : 'έκδοση'} ${draft.version}` : undefined} onClose={() => setEditing(null)}
-    footer={!locked && <DialogActions onSave={onSave} saveLabel={en ? 'Save' : 'Αποθήκευση'} disabled={saving}>{onRemove && <Button variant="secondary" onClick={onRemove}><Trash2 size={15} />{en ? 'Delete template' : 'Διαγραφή προτύπου'}</Button>}</DialogActions>}>
+  const [tab, setTab] = useState('details')
+  const title = draft.id ? draft.name || (en ? 'Template' : 'Πρότυπο') : (en ? 'New template' : 'Νέο πρότυπο')
+  const footer = !locked && <div className="inline-edit-footer"><SaveButton loading={saving} disabled={saving} onClick={onSave}>{en ? 'Save' : 'Αποθήκευση'}</SaveButton></div>
+  const headerActions = onRemove && <div className="row-actions"><IconButton tone="danger" label={en ? 'Delete template' : 'Διαγραφή προτύπου'} onClick={onRemove}><Trash2 size={16} /></IconButton></div>
+  return <Page fill><EntityRecordShell className="quality-record-shell resource-record-shell workspace-fill" avatar={<ListChecks size={19} />}
+    eyebrow={en ? 'Supplier evaluation template' : 'Πρότυπο αξιολόγησης προμηθευτών'} title={title}
+    subtitle={[draft.id && `${en ? 'version' : 'έκδοση'} ${draft.version}`, (draft.categories || []).map(value => supplierCategoryLabel(value, language)).join(', ')].filter(Boolean).join(' · ')}
+    status={<StatusBadge tone={draft.active !== false ? 'success' : 'neutral'}>{draft.active !== false ? (en ? 'Active' : 'Ενεργό') : (en ? 'Inactive' : 'Ανενεργό')}</StatusBadge>}
+    onBack={() => setEditing(null)} backLabel={en ? 'Templates' : 'Πρότυπα'} headerActions={headerActions}
+    tabs={[{ id: 'details', label: en ? 'Details' : 'Στοιχεία', icon: ClipboardList }, { id: 'criteria', label: en ? `Criteria ${draft.criteria.length}` : `Κριτήρια ${draft.criteria.length}`, icon: ListChecks }]}
+    activeTab={tab} onTabChange={setTab}>
+    {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} footer={footer}>
     <div className="resource-evaluation supplier-template-editor">
       <FormGrid columns={3}>
         <Field label={en ? 'Name *' : 'Όνομα *'}><input value={draft.name} disabled={locked} onChange={e => set({ name: e.target.value })} /></Field>
@@ -117,8 +129,10 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
         <CheckboxField label={en ? 'Active (offered for new evaluations)' : 'Ενεργό (προτείνεται σε νέες αξιολογήσεις)'} checked={draft.active !== false} disabled={locked} onChange={value => set({ active: value })} />
       </FormGrid>
       <Field label={en ? 'Description' : 'Περιγραφή'}><textarea rows={2} value={draft.description || ''} disabled={locked} onChange={e => set({ description: e.target.value })} /></Field>
-      <SectionHeader title={en ? `Criteria ${draft.criteria.length}` : `Κριτήρια ${draft.criteria.length}`} subtitle={en ? `Weights add up to ${comma(total, en)}; the result is the weighted share of the points, so they need not add up to 1.` : `Τα βάρη αθροίζουν ${comma(total, en)}· το αποτέλεσμα είναι το σταθμισμένο ποσοστό, οπότε δεν χρειάζεται να αθροίζουν 1.`}
-        actions={!locked && <Button variant="secondary" onClick={() => set({ criteria: [...draft.criteria, newCriterion()] })}><Plus size={15} />{en ? 'Criterion' : 'Κριτήριο'}</Button>} />
+    </div></RecordTabPanel>}
+    {tab === 'criteria' && <RecordTabPanel title={en ? 'Criteria' : 'Κριτήρια'} footer={footer}
+      subtitle={en ? `Weights add up to ${comma(total, en)}; the result is the weighted share of the points.` : `Τα βάρη αθροίζουν ${comma(total, en)}· το αποτέλεσμα είναι το σταθμισμένο ποσοστό.`}
+      actions={!locked && <Button variant="secondary" onClick={() => set({ criteria: [...draft.criteria, newCriterion()] })}><Plus size={15} />{en ? 'Criterion' : 'Κριτήριο'}</Button>}><div className="resource-evaluation supplier-template-editor">
       {/* The criteria as one table: a line each, the column names once on top. */}
       {draft.criteria.length > 0 && <div className="supplier-template-criteria" role="table" aria-label={en ? 'Criteria' : 'Κριτήρια'}>
         <div className="supplier-template-row supplier-template-head" role="row">
@@ -143,6 +157,6 @@ function TemplateEditor({ editing, setEditing, saving, locked, language, onSave,
         </div>)}
       </div>}
       {!draft.criteria.length && <p className="inline-empty"><ListChecks size={15} /> {en ? 'Add the criteria of the template.' : 'Προσθέστε τα κριτήρια του προτύπου.'}</p>}
-    </div>
-  </ObserverDialog>
+    </div></RecordTabPanel>}
+  </EntityRecordShell></Page>
 }
