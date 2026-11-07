@@ -163,3 +163,9 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .controls-registry-page .filter-primary-row>.filter-end{flex-wrap:nowrap}
 .controls-registry-page .filter-primary-row>.filter-search{flex:1 1 180px;min-width:160px}
 .control-period-picker .controls-period-select:is(label,div,#lo-period){width:auto;min-width:0;max-width:none}
+/* «Departments I see»: a tick on every card while choosing; the cards left out fade. */
+.control-department-cards.is-picking .control-department-card-head svg.control-department-pick{color:var(--lo-color-primary)}
+.control-department-card.is-hidden{opacity:.45;border-style:dashed}
+.control-department-hidden-line{grid-column:1/-1;margin:0;font-size:13px;color:var(--lo-color-muted)}
+.control-department-hidden-line button{padding:0;font:inherit;font-weight:700;color:var(--lo-color-primary);background:none;border:0;text-decoration:underline;cursor:pointer}
+.controls-pick-departments{display:inline-flex;align-items:center;gap:6px;height:36px}
