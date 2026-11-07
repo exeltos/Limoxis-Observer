@@ -134,7 +134,6 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 /* «Expiry»: a card per department; a card opens its whole list in a dialog. */
 .control-expiry-totals{font-size:13px;color:var(--lo-color-muted)}
 .control-expiry-inline{overflow:auto;flex:1 1 auto;min-height:0;padding:0;display:flex;flex-direction:column}
-.control-expiry-group{border:1px solid var(--lo-color-border);border-radius:12px;margin-top:10px;overflow:hidden}
 .lo-checkbox-field.control-expiry-group-pick{flex:0 0 auto;width:auto;min-height:0;height:auto;margin:0;gap:0}
 .lo-checkbox-field.control-expiry-group-pick .lo-checkbox-label:empty{display:none}
 .control-expiry-empty{display:flex;flex-direction:column;gap:4px;margin:16px}
