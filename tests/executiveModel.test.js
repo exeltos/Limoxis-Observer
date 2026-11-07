@@ -73,7 +73,7 @@ describe('executive dashboard measures', () => {
     expect(byId(executiveKpis({ domains: { surveillance: { total: 10, haiConfirmed: 0, byCaseStatus: [['ruled_out', 3]] } } })).hai.value).toBe(0)
   })
   it('computes the change against the previous period, never for the counts of today', () => {
-    expect(delta(72, 80, 'up')).toEqual({ diff: -8, change: -10, trend: 'down', good: false })
+    expect(delta(72, 80, 'up')).toEqual({ diff: -8, change: -10, trend: 'down', good: false, previous: 80 })
     expect(delta(2, 4, 'down')).toMatchObject({ trend: 'down', good: true, change: -50 })
     expect(delta(3, 0, 'down')).toMatchObject({ diff: 3, change: null, good: false })
     expect(delta(5, 5)).toMatchObject({ trend: 'flat', good: null })

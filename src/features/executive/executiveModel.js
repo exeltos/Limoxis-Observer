@@ -77,7 +77,7 @@ export function delta(current,previous,better='up'){
  const diff=Math.round((c-p)*10)/10
  const change=p?Math.round((c-p)/Math.abs(p)*1000)/10:null
  const trend=diff===0?'flat':diff>0?'up':'down'
- return {diff,change,trend,good:trend==='flat'?null:trend===better}
+ return {diff,change,trend,good:trend==='flat'?null:trend===better,previous:p}
 }
 
 // Traffic light: 'good' | 'warning' | 'danger' | 'neutral'. Rates by target
