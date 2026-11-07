@@ -61,6 +61,7 @@ export function ControlRecordPage(){
  const [tabFor,setTabFor]=useState(controlId)
 
  const [expiryExport,setExpiryExport]=useState(null)
+ const [entryExport,setEntryExport]=useState(null)
  const [listDepartment,setListDepartment]=useState(null)
  const [cancelExecution,setCancelExecution]=useState(null)
  const [deleteExecution,setDeleteExecution]=useState(null)
@@ -270,14 +271,16 @@ export function ControlRecordPage(){
  if(executing){
   if(canExecute&&heldBack(department))return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty"><strong>{heldText(department)}</strong><span>{heldHint(department)}</span></div></Page>
   if(!canExecute)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'This control is not available for execution right now.':'Ο έλεγχος δεν είναι διαθέσιμος για καταχώρηση αυτή τη στιγμή.'}</div></Page>
-  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} onBack={()=>navigate(returnTo||recordUrl,{replace:true})}>
-   <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
+  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} headerActions={entryExport?<ExportMenu items={entryExport}/>:null} onBack={()=>navigate(returnTo||recordUrl,{replace:true})}>
+   <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onExportChange={setEntryExport} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
   </EntityRecordShell></Page>
  }
 
+ // «Record» on the control's details and its executions only, not on every tab (owner, 7/11/2026).
+ const recordTab=currentTab==='details'||currentTab==='history'
  const headerActions=<>
-  {canExecute&&visibleDepartments.length===1&&heldBack(department)&&<ActionButton label={heldHint(department)} title={heldHint(department)} tone="primary" disabled onClick={()=>{}}><PlayCircle size={15}/><span>{heldText(department)}</span></ActionButton>}
-  {canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
+  {canExecute&&visibleDepartments.length===1&&recordTab&&heldBack(department)&&<ActionButton label={heldHint(department)} title={heldHint(department)} tone="primary" disabled onClick={()=>{}}><PlayCircle size={15}/><span>{heldText(department)}</span></ActionButton>}
+  {canExecute&&visibleDepartments.length===1&&recordTab&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
   <ExportMenu menuWidth={expiryExport?440:220} ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />

@@ -1149,8 +1149,6 @@ td>.lo-meter{margin-top:5px}
 .control-record-shell .control-record-departments>.scroll-table:is(div,#lo-record-sheet){flex:none;min-height:0;overflow:visible;border:0;border-radius:0;background:transparent}
 .control-record-shell>.entity-record-body:is(section,#lo-record-sheet){display:flex;flex-direction:column}
 /* Expiry entry: one item on one row; the status sits in a box as tall as the inputs. */
-.control-expiry-entry .control-expiry-single:is(.entry-grid,#lo-control-form){display:grid!important;grid-template-columns:minmax(0,1.8fr) minmax(0,.8fr) minmax(0,.6fr) minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr)!important;gap:12px!important;align-items:end}
-.control-expiry-entry .control-expiry-status-box{display:flex;align-items:center;min-height:40px;padding:0 10px;border:1px dashed #d6e0e8;border-radius:8px;background:#f8fafc}
 .control-expiry-entry .control-expiry-single>.manual-date-field:is(div,#lo-control-form),.control-expiry-entry .control-expiry-single>label:is(label,#lo-control-form){margin:0!important}
 .control-execution-page-editor:has(.control-expiry-entry):is(div,#lo-control-form){gap:12px;padding-top:14px}
 /* Execution times wrap inside their column instead of running past the block. */

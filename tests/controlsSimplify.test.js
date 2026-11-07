@@ -56,7 +56,8 @@ describe('one place per action (Ο6)', () => {
   })
 
   it('records from the header only for one department, otherwise only from the department rows', () => {
-    expect(record).toContain('{canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton')
+    expect(record).toContain('{canExecute&&visibleDepartments.length===1&&recordTab&&!heldBack(department)&&<ActionButton')
+    expect(record).toContain("const recordTab=currentTab==='details'||currentTab==='history'")
     expect(record).toContain('{allowed&&assignments.length>1&&!heldBack(dep)&&<ActionButton')
   })
 

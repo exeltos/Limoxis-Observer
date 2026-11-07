@@ -47,7 +47,7 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
  const formField=(row,index,hideLabel)=><SearchableSelect hideLabel={hideLabel} label={en?'Form':'Είδος'} value={formKey(row.form)} options={forms} onChange={v=>setRow(index,'form',v)} placeholder="—" {...select} clearLabel={en?'Clear':'Καθαρισμός'}/>
  const findingField=(row,index,hideLabel)=><div className="control-finding-cell"><SearchableSelect hideLabel={hideLabel} label={en?'Finding':'Εύρημα'} value={expiryFindingCode(row.finding)} options={findingOptions} onChange={v=>setRow(index,'finding',v)} placeholder={en?'No finding':'Χωρίς εύρημα'} {...select} clearLabel={en?'Clear':'Καθαρισμός'}/>{expiryFindingCode(row.finding)==='other'&&<input className="control-finding-other" aria-label={en?'Describe the finding':'Περιγραφή ευρήματος'} value={row.findingOther||''} onChange={e=>setRow(index,'findingOther',e.target.value)} placeholder={en?'Describe the finding':'Συμπληρώστε το εύρημα'}/>}</div>
  const columns=[
-     {key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο'},{key:'form',label:en?'Form':'Είδος'},{key:'expected',label:en?'Expected':'Προβλεπ.'},{key:'quantity',label:en?'Found':'Βρέθηκε'},{key:'lot',label:en?'Lot':'Παρτίδα'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'status',label:en?'Status':'Κατάσταση'},{key:'finding',label:en?'Finding':'Εύρημα'},{key:'note',label:en?'Note':'Παρατήρηση'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'},
+     {key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο'},{key:'form',label:en?'Form':'Είδος'},{key:'expected',label:en?'Expected':'Προβλεπ.'},{key:'quantity',label:en?'Found':'Βρέθηκε'},{key:'lot',label:en?'Lot':'Παρτίδα'},{key:'expiry',label:en?'Expiry date':'Λήξη'},{key:'finding',label:en?'Finding':'Εύρημα'},{key:'note',label:en?'Item note':'Παρατήρηση υλικού'},{key:'actions',label:'',ariaLabel:en?'Actions':'Ενέργειες',className:'control-exec-action-col'},
     ]
  const renderEntry=(row,index)=><>
      <td>{row.fromCatalogue?<strong className="control-catalogue-item">{row.item}</strong>:itemField(row,index,true)}</td>
@@ -55,10 +55,9 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
      <td className="control-expiry-expected">{row.expected||'—'}</td>
      <td><input type="number" min="0" inputMode="numeric" aria-label={en?'Quantity found':'Ποσότητα που βρέθηκε'} className={quantityShort(row)?'is-out-of-range':undefined} value={row.quantity||''} onChange={e=>setRow(index,'quantity',e.target.value)}/></td>
      <td><input aria-label={en?'Lot':'Παρτίδα'} value={row.lot||''} onChange={e=>setRow(index,'lot',e.target.value)}/></td>
-     <td><ManualDateField className="table-date-field" value={row.expiry||''} onChange={v=>setRow(index,'expiry',v)}/></td>
-     <td><ExpiryBadge row={row} window={window} language={language}/></td>
+     <td className="control-expiry-date-cell"><ManualDateField className="table-date-field" value={row.expiry||''} onChange={v=>setRow(index,'expiry',v)}/>{expiryState(row.expiry,window).state!=='unknown'&&<ExpiryBadge row={row} window={window} language={language}/>}</td>
      <td>{findingField(row,index,true)}</td>
-     <td><input aria-label={en?'Note':'Παρατήρηση'} value={noteText(row,language)} onChange={e=>{setRow(index,'note',e.target.value);setRow(index,'noteEn','')}}/></td>
+     <td><input aria-label={en?'Item note':'Παρατήρηση υλικού'} value={noteText(row,language)} onChange={e=>{setRow(index,'note',e.target.value);setRow(index,'noteEn','')}}/></td>
      <td className="control-exec-action-col">{row.fromCatalogue
       ?<IconButton size="sm" tone={row.removedAt?'primary':'neutral'} label={row.removedAt?(en?'Keep on the list':'Επαναφορά στη λίστα'):(en?'Removed from the list (used, withdrawn)':'Αφαίρεση από τη λίστα (χρησιμοποιήθηκε, αποσύρθηκε)')} onClick={()=>setRow(index,'removedAt',row.removedAt?'':new Date().toISOString())}>{row.removedAt?<Undo2 size={14}/>:<PackageX size={14}/>}</IconButton>
       :<IconButton size="sm" tone="danger" label={en?'Remove row':'Αφαίρεση γραμμής'} onClick={()=>removeRow(index)}><Trash2 size={14}/></IconButton>}</td>
@@ -83,10 +82,9 @@ export function ControlExpiryEntry({record,rows,setRow,addRow,removeRow,keepFirs
      {formField(rows[0]||{},0,false)}
      <Field label={en?'Quantity':'Ποσότητα'}><input type="number" min="0" inputMode="numeric" value={rows[0]?.quantity||''} onChange={e=>setRow(0,'quantity',e.target.value)}/></Field>
      <Field label={en?'Lot':'Παρτίδα'}><input value={rows[0]?.lot||''} onChange={e=>setRow(0,'lot',e.target.value)}/></Field>
-     <ManualDateField label={en?'Expiry date *':'Ημερομηνία λήξης *'} value={rows[0]?.expiry||''} onChange={v=>setRow(0,'expiry',v)}/>
-     <div className="field"><span className="lo-field-label">{en?'Status':'Κατάσταση'}</span><div className="control-expiry-status-box"><ExpiryBadge row={rows[0]} window={window} language={language}/></div></div>
-     {findingField(rows[0]||{},0,false)}
-     <Field label={en?'Note':'Παρατήρηση'}><input value={noteText(rows[0],language)} onChange={e=>{setRow(0,'note',e.target.value);setRow(0,'noteEn','')}}/></Field>
+     <div className="control-expiry-date-cell"><ManualDateField label={en?'Expiry date *':'Ημερομηνία λήξης *'} value={rows[0]?.expiry||''} onChange={v=>setRow(0,'expiry',v)}/>{expiryState(rows[0]?.expiry,window).state!=='unknown'&&<ExpiryBadge row={rows[0]} window={window} language={language}/>}</div>
+     <div className="control-expiry-single-finding">{findingField(rows[0]||{},0,false)}</div>
+     <Field className="control-expiry-single-note" label={en?'Item note':'Παρατήρηση υλικού'}><input value={noteText(rows[0],language)} onChange={e=>{setRow(0,'note',e.target.value);setRow(0,'noteEn','')}}/></Field>
     </div>
    :<div className="control-expiry-groups">{groups.map(([key,entries])=><div key={key||'all'} className="control-expiry-group">
      {key&&<h4 className="control-expiry-group-title">{categoryLabel(key,language)} <small>{entries.length}</small></h4>}
