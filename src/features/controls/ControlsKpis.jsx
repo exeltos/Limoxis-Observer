@@ -8,7 +8,7 @@ export const ADHERENCE_TARGET = 90
 // The key figures of the open tab of «Controls», as totals beside the search and the period (owner, 7/11/2026: no cards
 // above the list). A count that filters the list (overdue, due soon) is a button.
 // expiry: { expired, expiring, departments, withExpired } · timeFit: { changes, rateNow, rateProposed, lines }
-export function ControlsKpis({ view, language, loading, overdue, dueSoon, adherence, expiry, timeFit, status, onStatus }) {
+export function ControlsKpis({ view, language, loading, overdue, dueSoon, adherence, expiry, timeFit, status, onStatus, expiryState = null, onExpiryState }) {
   const en = language === 'en'
   const tr = (el, english) => (en ? english : el)
   const percent = (value) => (value == null ? null : `${value}%`)
@@ -22,8 +22,8 @@ export function ControlsKpis({ view, language, loading, overdue, dueSoon, adhere
       { key: 'missed', value: adherence.expected ? adherence.missed : 0, label: tr('χάθηκαν', 'missed') }]
   } else if (view === 'expiry') {
     items = [
-      { key: 'expired', always: true, value: expiry.expired || 0, label: tr('ληγμένα', 'expired') },
-      { key: 'expiring', value: expiry.expiring || 0, label: tr('λήγουν σύντομα', 'expiring soon') },
+      { key: 'expired', always: true, value: expiry.expired || 0, label: tr('ληγμένα', 'expired'), active: expiryState === 'expired', onClick: onExpiryState && (() => onExpiryState('expired')) },
+      { key: 'expiring', value: expiry.expiring || 0, label: tr('λήγουν σύντομα', 'expiring soon'), active: expiryState === 'expiring', onClick: onExpiryState && (() => onExpiryState('expiring')) },
       { key: 'departments', value: expiry.withExpired || 0, display: expiry.departments ? `${expiry.withExpired}/${expiry.departments}` : undefined, label: tr('τμήματα με ληγμένα', 'departments with expired') }]
   } else if (view === 'times') {
     const busy = (value) => (timeFit.loading ? '—' : value)

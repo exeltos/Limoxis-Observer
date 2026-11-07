@@ -79,8 +79,11 @@ ${items.length?`<table><thead><tr><th>#</th><th>Υλικό / Φάρμακο</th>
 </body></html>`
 }
 
-export function printHtml(html){
+// pdf: a line above the page says to choose «Save as PDF» (hidden on paper).
+export function printHtml(html,{pdf=false}={}){
  const w=window.open('','_blank','width=980,height=760')
  if(!w)return false
- w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),150);return true
+ const hint='<p class="rd-pdf-hint" style="margin:0 0 12px;padding:8px 14px;background:#17324a;color:#fff;font-size:12px;text-align:center">Για αρχείο PDF, επιλέξτε «Αποθήκευση ως PDF» στον εκτυπωτή.</p><style>@media print{.rd-pdf-hint{display:none}}</style>'
+ const page=pdf?html.replace('<body>',`<body>${hint}`):html
+ w.document.open();w.document.write(page);w.document.close();w.focus();setTimeout(()=>w.print(),150);return true
 }
