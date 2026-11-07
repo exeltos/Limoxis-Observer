@@ -224,6 +224,8 @@ export async function loadEmployeeTrainingAsync(organizationId, employeeDbId, em
       programDbId:program.dbId||null,
       assignmentDbId:assignment.dbId||null,
       materialCount:program.materials?.length||0,
+      organiser:program.owner||'',
+      hours:program.durationHours??null,
       score:assignment.score??null,
       competent:assignment.competent??null,
       source:'training_records',
@@ -317,8 +319,13 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
       const title=program.title||a.programTitle||a.programId||'Training'
       const score=a.score!=null?Number(a.score):null
       const competent=a.competent===true
-      const resultEl=score!=null?`Βαθμολογία ${score}%${a.competent!=null?` · ${competent?'Επιτυχής':'Μη επιτυχής'}`:''}`:(a.assessmentReviewStatus||'Υποβλήθηκε')
-      const resultEn=score!=null?`Score ${score}%${a.competent!=null?` · ${competent?'Passed':'Not passed'}`:''}`:(a.assessmentReviewStatus||'Submitted')
+      // Words, never the stored codes (an imported assessment has only «reviewed»).
+      const reviewEl={pending:'Προς έλεγχο',reviewed:'Ελέγχθηκε',not_required:'Υποβλήθηκε'}[a.assessmentReviewStatus]||'Υποβλήθηκε'
+      const reviewEn={pending:'To be reviewed',reviewed:'Reviewed',not_required:'Submitted'}[a.assessmentReviewStatus]||'Submitted'
+      const verdictEl=a.competent!=null?(competent?'Επιτυχής':'Μη επιτυχής'):'',verdictEn=a.competent!=null?(competent?'Passed':'Not passed'):''
+      const resultEl=score!=null?`Βαθμολογία ${score}%${verdictEl?` · ${verdictEl}`:''}`:(verdictEl||reviewEl)
+      const resultEn=score!=null?`Score ${score}%${verdictEn?` · ${verdictEn}`:''}`:(verdictEn||reviewEn)
+      const status=a.competent!=null?(competent?'passed':'failed'):a.assessmentReviewStatus==='pending'?'pending_review':a.assessmentReviewStatus==='reviewed'?'reviewed':'submitted'
       return {
         id:`training-${a.id}`,
         employeeId:employeeDbId,
@@ -335,6 +342,7 @@ export async function loadEvaluationsAsync(organizationId, employeeDbId, employe
         certificateId:a.certificateId||null,
         certificate:trainingContext.certificateMap?.get(a.certificateId)||a.certificate||null,
         program:{title, titleEn:program.titleEn||title},
+        status,
         source:'training',
       }
     })

@@ -1,3 +1,4 @@
+import { STAFF_CATEGORIES, staffCategoryLabel, staffCategoryOf } from './staffCategory'
 import { EmployeePositionTab } from './JobDescriptionViews'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -88,6 +89,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
     },
   })
   const [accountOpen, setAccountOpen] = useState(false)
+  // A tab can add its own items to the one «Εξαγωγή» of the page (e.g. the training history).
+  const [tabExports, setTabExports] = useState([])
   const [accountSaving, setAccountSaving] = useState(false)
   const [departments, setDepartments] = useState([])
   const [professionalCategories, setProfessionalCategories] = useState([])
@@ -477,9 +480,12 @@ export function EmployeeRecordPage({ selfMode = false }) {
         'error',
       )
   }
+  // The record's «⋯» (account, edit, delete) belongs to the employee's details, so it shows on «Στοιχεία» only;
+  // on the other tabs it would sit over the tab's own button (e.g. «Νέος έλεγχος»).
+  const onDetails = tab === 'details'
   const headerActions = (
     <>
-      {canAdmin && !editingDetails && (
+      {canAdmin && onDetails && !editingDetails && (
         <Button
           variant="secondary"
           tone="edit"
@@ -492,14 +498,17 @@ export function EmployeeRecordPage({ selfMode = false }) {
           {t('employeesRecords.editEmployee')}
         </Button>
       )}
-      {canManageUsers && !employee.accountLinked && (
+      {canManageUsers && onDetails && !employee.accountLinked && (
         <Button recordMenu variant="secondary" onClick={() => setAccountOpen(true)}>
           <KeyRound size={15} />
           {language === 'en' ? 'Create user account' : 'Δημιουργία λογαριασμού χρήστη'}
         </Button>
       )}
-      <ExportMenu onPrint={() => printEmployee(false)} onPdf={() => printEmployee(true)} />
-      {canAdmin && !editingDetails && (
+      <ExportMenu items={[
+        { id: 'employee-print', kind: 'print', label: language === 'en' ? 'Print: details' : 'Εκτύπωση: στοιχεία', onClick: () => printEmployee(false) },
+        ...tabExports,
+      ]} />
+      {canAdmin && onDetails && !editingDetails && (
         <Button variant="secondary" tone="danger" onClick={deleteEmployee}>
           <Trash2 size={15} />
           {t('employeesRecords.deleteEmployee')}
@@ -524,7 +533,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         }
         eyebrow={employee.id}
         title={name}
-        subtitle={`${language === 'el' ? employee.profession : employee.professionEn || employee.profession} · ${language === 'el' ? employee.department : employee.departmentEn || employee.department}`}
+        subtitle={[language === 'el' ? employee.profession : employee.professionEn || employee.profession, language === 'el' ? employee.department : employee.departmentEn || employee.department].filter(Boolean).join(' · ')}
         status={
           <span
             className={`status-badge ${employee.employmentStatus === 'active' ? 'active' : ''}`}
@@ -581,6 +590,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'position' && (
           <EmployeePositionTab
             employee={employee}
+            onExportItems={setTabExports}
             positions={positionOptions}
             language={language}
             organizationId={tenant?.id}
@@ -591,6 +601,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'occupational' && (
           <EmployeeHealthTab
             employee={employee}
+            onExportItems={setTabExports}
             t={t}
             language={language}
             fmt={fmt}
@@ -601,6 +612,7 @@ export function EmployeeRecordPage({ selfMode = false }) {
         {tab === 'surveillance' && (
           <EmployeeSurveillanceTab
             employee={employee}
+            onExportItems={setTabExports}
             t={t}
             language={language}
             fmt={fmt}
@@ -620,11 +632,13 @@ export function EmployeeRecordPage({ selfMode = false }) {
             fmt={fmt}
             organizationId={tenant?.id}
             canOpenProgram={canTraining}
+            onExportItems={setTabExports}
           />
         )}
         {tab === 'evaluations' && (
           <EmployeeEvaluationsTab
             employee={employee}
+            onExportItems={setTabExports}
             t={t}
             language={language}
             fmt={fmt}
@@ -635,17 +649,19 @@ export function EmployeeRecordPage({ selfMode = false }) {
             selfReadOnly={selfReadOnly}
           />
         )}
+        {/* Files and protocols one under the other, scrolling together (the file list used to run over the protocols). */}
         {tab === 'certificates' && (
+          <div className="employee-documents-tab">
           <EmployeeCertificatesTab
             employee={employee}
+            onExportItems={setTabExports}
             language={language}
             fmt={fmt}
             organizationId={tenant?.id}
             canEdit={canAdmin}
             isDemo={isDemo}
           />
-        )}
-        {tab === 'certificates' && (canSeeProtocols || selfMode) && (
+          {(canSeeProtocols || selfMode) && (
           <EmployeeProtocolsTab
             employee={employee}
             language={language}
@@ -654,7 +670,9 @@ export function EmployeeRecordPage({ selfMode = false }) {
             selfMode={selfReadOnly && !canSeeProtocolsAsManager}
           />
         )}
-        {tab === 'history' && <EmployeeHistoryTab employee={employee} language={language} />}
+          </div>
+        )}
+        {tab === 'history' && <EmployeeHistoryTab employee={employee} language={language} onExportItems={setTabExports} />}
       </EntityRecordShell>
       {surveillanceOpen && !selfReadOnly && (
         <EmployeeSurveillanceFlow
@@ -884,6 +902,20 @@ function Details({
           value={record.id}
           onChange={value => set('id', value)}
         />
+        <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
+          <span>{t('employeesRecords.staffCategory')}</span>
+          {editing ? (
+            <SearchableSelect
+              hideLabel
+              label={t('employeesRecords.staffCategory')}
+              value={staffCategoryOf(record)}
+              onChange={next => set('staffCategory', next || 'employee')}
+              options={STAFF_CATEGORIES.map(item => ({ value: item.value, label: staffCategoryLabel(item.value, language) }))}
+            />
+          ) : (
+            <strong>{staffCategoryLabel(staffCategoryOf(record), language)}</strong>
+          )}
+        </div>
         <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
           <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
           {editing ? (

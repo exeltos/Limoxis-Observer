@@ -22,15 +22,20 @@ describe('Supplier evaluation templates', () => {
     expect(evaluationTemplates(presets, 'services')[0].name).toBe('Προμηθευτής Υπηρεσιών/Υπεργολάβος')
   })
 
-  it('ships the three FileMaker templates and a laboratory one, each with weights adding up to 1', () => {
+  it('ships the four templates of the hospital form (FS.130): nine equal criteria, the last optional, approved from 3,5', () => {
     const presets = presetTemplates('t')
     expect(presets.map(item => item.name)).toEqual(['Προμηθευτής Προϊόντων', 'Προμηθευτής Υπηρεσιών/Υπεργολάβος', 'Προμηθευτής Κουζίνας', 'Προμηθευτής Εργαστηρίου'])
-    for (const template of presets) expect(weightTotal(template.criteria)).toBe(1)
-    // The FileMaker first criteria keep their weights: products 0,20, kitchen 0,12.
-    expect(presets[0].criteria[0]).toMatchObject({ label: 'Ποιότητα προϊόντων', weight: 0.2 })
-    expect(KITCHEN.criteria[0]).toMatchObject({ label: 'Ποιότητα προσφερόμενων προϊόντων/υπηρεσιών', weight: 0.12 })
-    expect(presets[3].criteria.map(item => item.label).join(' ')).toMatch(/CE-IVD.*ISO 15189|ISO 15189/)
-    expect(presets[3].criteria.map(item => item.label).join(' ')).toMatch(/Ψυχρή αλυσίδα/)
+    for (const template of presets) {
+      expect(template.criteria).toHaveLength(9)
+      expect(weightTotal(template.criteria)).toBe(9)
+      expect(template.criteria.map(item => item.optional)).toEqual([false, false, false, false, false, false, false, false, true])
+      expect(template).toMatchObject({ scoreScale: 5, passThreshold: 70, conditionalThreshold: 70 })
+    }
+    expect(KITCHEN.criteria[0]).toMatchObject({ label: 'Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών', weight: 1 })
+    expect(KITCHEN.criteria[1].label).toMatch(/ασφάλειας τροφίμων/)
+    expect(presets[3].criteria[1].label).toMatch(/ISO 15189/)
+    // Approved or not: no «conditional» band when the two thresholds are the same.
+    expect([resultFor(70, 70, 70), resultFor(69.9, 70, 70)]).toEqual(['approved', 'rejected'])
   })
 
   it('picks the template of the supplier category, a general one after, inactive ones never', () => {
@@ -57,14 +62,15 @@ describe('Supplier evaluation templates', () => {
 
   it('starts an evaluation on the template with its snapshot, and keeps scores when the template is chosen again', () => {
     const evaluation = evaluationFromTemplate(KITCHEN, TODAY)
-    expect(evaluation).toMatchObject({ templateId: 't-kitchen', templateName: 'Προμηθευτής Κουζίνας', templateVersion: 1, passThreshold: 70, conditionalThreshold: 50, scoreScale: 5 })
-    expect(evaluation.criteria).toHaveLength(8)
+    expect(evaluation).toMatchObject({ templateId: 't-kitchen', templateName: 'Προμηθευτής Κουζίνας', templateVersion: 1, passThreshold: 70, conditionalThreshold: 70, scoreScale: 5 })
+    expect(evaluation.criteria).toHaveLength(9)
     expect(everyCriterionScored(evaluation)).toBe(false)
-    const scored = { ...evaluation, criteria: evaluation.criteria.map(item => ({ ...item, score: 4 })) }
+    // «Άλλο» is optional: the evaluation is complete without it, and it does not count.
+    const scored = { ...evaluation, criteria: evaluation.criteria.map(item => ({ ...item, score: item.optional ? '' : 4 })) }
     expect(everyCriterionScored(scored)).toBe(true)
     expect(evaluationTotal(scored)).toBe(80)
     expect(evaluationResult(scored)).toBe('approved')
-    expect(applyTemplate(scored, KITCHEN).criteria.every(item => item.score === 4)).toBe(true)
+    expect(applyTemplate(scored, KITCHEN).criteria.every(item => item.score === (item.optional ? '' : 4))).toBe(true)
     expect(applyTemplate(scored, presetTemplates('t')[0]).criteria.every(item => item.score === '')).toBe(true)
   })
 
@@ -92,7 +98,7 @@ describe('Suppliers on templates', () => {
   it('dates the next evaluation from the latest one and the frequency of the supplier, its template or 12 months', () => {
     const evaluation = { ...evaluationFromTemplate(KITCHEN, '2026-01-10'), criteria: KITCHEN.criteria.map(item => ({ criterionId: item.id, label: item.label, weight: item.weight, score: 3 })) }
     const templates = [{ ...KITCHEN, frequencyMonths: 6 }]
-    expect(supplierStatus(supplier({ evaluations: [evaluation] }), TODAY, templates)).toMatchObject({ score: 60, approval: 'conditional', nextEvaluation: '2026-07-10', evaluationDue: true, evaluationMonths: 6 })
+    expect(supplierStatus(supplier({ evaluations: [evaluation] }), TODAY, templates)).toMatchObject({ score: 60, approval: 'rejected', nextEvaluation: '2026-07-10', evaluationDue: true, evaluationMonths: 6 })
     expect(supplierStatus(supplier({ evaluations: [evaluation], evaluationMonths: 12 }), TODAY, templates)).toMatchObject({ nextEvaluation: '2027-01-10', evaluationDue: false })
     expect(evaluationMonths(supplier(), null, [])).toBe(12)
     // No scored evaluation: the decision recorded on the supplier.
@@ -112,15 +118,15 @@ describe('Suppliers on templates', () => {
     evaluation.criteria = evaluation.criteria.map((item, index) => ({ ...item, score: index === 0 ? 5 : 4 }))
     const [row] = evaluationRows([evaluation])
     expect(row).toMatchObject({ template_id: uuid(1), template_name: 'Προμηθευτής Κουζίνας', template_version: 1, score_scale: 5, pass_threshold: 70, result: 'approved', criteria_scores: 'complete' })
-    expect(row.total_score).toBeCloseTo(82.4, 1)
+    expect(row.total_score).toBeCloseTo(82.2, 1)
     const scores = scoreRows(evaluation, [{ id: uuid(99), criterion_id: uuid(10) }])
-    expect(scores).toHaveLength(8)
-    expect(scores[0]).toMatchObject({ id: uuid(99), criterion: null, criterion_id: uuid(10), criterion_label: 'Ποιότητα προσφερόμενων προϊόντων/υπηρεσιών', weight: 0.12, score_scale: 5, score: 5, position: 0 })
+    expect(scores).toHaveLength(9)
+    expect(scores[0]).toMatchObject({ id: uuid(99), criterion: null, criterion_id: uuid(10), criterion_label: 'Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών', weight: 1, score_scale: 5, score: 5, position: 0 })
     // Read back: the evaluation keeps the label and weight it was scored on.
     const back = evaluationFromRow({ id: uuid(2), evaluated_on: TODAY, template_id: uuid(1), template_name: 'Προμηθευτής Κουζίνας', template_version: 3, pass_threshold: '70.00', conditional_threshold: '50.00', score_scale: 5, total_score: '82.40', criteria_scores: 'complete', scores: scores.map(item => ({ ...item, weight: String(item.weight) })) })
     expect(back).toMatchObject({ templateVersion: 3, passThreshold: 70 })
-    expect(back.criteria[0]).toMatchObject({ label: 'Ποιότητα προσφερόμενων προϊόντων/υπηρεσιών', weight: 0.12, score: 5 })
-    expect(evaluationTotal(back)).toBeCloseTo(82.4, 1)
+    expect(back.criteria[0]).toMatchObject({ label: 'Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών', weight: 1, score: 5 })
+    expect(evaluationTotal(back)).toBeCloseTo(82.2, 1)
   })
 
   it('a template edit raises the version only when what an evaluation keeps changes', () => {
@@ -137,7 +143,7 @@ describe('Suppliers on templates', () => {
     const kitchen = rows.find(item => item.category === 'kitchen' && item.latestEvaluation)
     const doc = supplierEvaluationDocument(kitchen, kitchen.latestEvaluation, { nextEvaluation: kitchen.nextEvaluation, months: kitchen.evaluationMonths })
     expect(doc.kind).toBe('Φύλλο αξιολόγησης προμηθευτή')
-    expect(doc.sections[0].table.rows).toHaveLength(8)
+    expect(doc.sections[0].table.rows).toHaveLength(9)
     expect(evaluationSheetRows({ scoreScale: 5, criteria: [{ label: 'Θ', weight: 0.14, score: 4 }] })[0][4]).toBe('0,112')
     expect(doc.meta.find(([label]) => label === 'Αποτέλεσμα')[1]).toMatch(/%/)
     expect(doc.signatures).toEqual(['Αξιολογητής', 'Υπεύθυνος Ποιότητας'])

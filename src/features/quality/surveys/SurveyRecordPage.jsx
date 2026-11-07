@@ -24,12 +24,13 @@ import { useContextualNavigation } from '../../../core/navigation/useContextualN
 import { useDepartments } from '../../management/useLibraries'
 import { addResponse, deleteResponse, deleteSurvey, loadResponses, loadSurvey, saveSurvey } from './surveyService'
 import { RESPONSE_CHANNELS, answerText, audienceLabel, channelLabel, filterResponses, responsesExport, surveyFromTemplate, surveyProblems, surveyStatusLabel, surveyStatusTone, textOf } from './surveyModel'
-import { SurveyResults } from './SurveyResults'
+import { SurveyResults, SurveyResultsLine } from './SurveyResults'
 import { SurveyCollect } from './SurveyCollect'
 import { SurveyEditor } from './SurveyEditor'
 import { SurveyForm, missingAnswers } from './SurveyForm'
 import '../quality.css'
 import './surveys.css'
+import { LinkedActions } from '../LinkedActions'
 
 const NO_FILTERS = { query: '', department: 'all', channel: 'all', from: '', to: '' }
 
@@ -46,6 +47,8 @@ export function SurveyRecordPage() {
   const { departments } = useDepartments()
   const canManage = (!isRolePreview && actualRole === ROLES.PLATFORM_OWNER) || can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
   // One response opened from the list: its answers, and (for the Quality team) «Delete» in its ⋯.
+  // Header «Export» on the Collection tab: each click prints the posters (counted, so the same click twice prints twice).
+  const [printPosters, setPrintPosters] = useState(0)
   const [viewing, setViewing] = useState(null)
   const [survey, setSurvey] = useState(null)
   const [responses, setResponses] = useState([])
@@ -119,13 +122,16 @@ export function SurveyRecordPage() {
     { id: 'questionnaire', label: en ? `Questions ${survey.questions.length}` : `Ερωτήσεις ${survey.questions.length}`, icon: ClipboardList },
     { id: 'collect', label: en ? 'Collection' : 'Συλλογή', icon: QrIcon },
   ]
-  // Header: export of the tab on screen and, for a draft, the main command; the record's «…» holds close/reopen and delete.
+  // Header: export of the tab on screen and, for a draft, the main command; the record's «…» (close/reopen, delete) only on
+  // the Questions tab, where the questionnaire itself is (owner, 6/11/2026).
   const headerActions = <div className="row-actions">
     {!isNew && (tab === 'results' || tab === 'responses') && <ExportMenu onPrint={tab === 'results' ? () => window.print() : undefined} onExcel={exportResponses} />}
+    {/* Collection: the posters of the QR codes, from the header like every other tab's export. */}
+    {!isNew && tab === 'collect' && survey.departmentIds?.length > 0 && <ExportMenu items={[{ id: 'posters', kind: 'print', label: survey.departmentIds.length > 1 ? (en ? 'Print every poster' : 'Εκτύπωση όλων των αφισών') : (en ? 'Print the poster' : 'Εκτύπωση αφίσας'), onClick: () => setPrintPosters(value => value + 1) }]} />}
     {!isNew && canManage && survey.status === 'draft' && <Button disabled={saving} onClick={openSurvey}><Play size={15} />{en ? 'Open the questionnaire' : 'Άνοιγμα ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && survey.status === 'open' && <Button recordMenu disabled={saving} onClick={closeSurvey}><Lock size={15} />{en ? 'Close the questionnaire' : 'Κλείσιμο ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && survey.status === 'closed' && <Button recordMenu disabled={saving} onClick={reopen}><RotateCcw size={15} />{en ? 'Reopen the questionnaire' : 'Επανάνοιγμα ερωτηματολογίου'}</Button>}
-    {!isNew && canManage && <IconButton tone="danger" label={en ? 'Delete questionnaire' : 'Διαγραφή ερωτηματολογίου'} onClick={remove}><Trash2 size={16} /></IconButton>}
+    {!isNew && canManage && tab === 'questionnaire' && survey.status === 'open' && <Button recordMenu disabled={saving} onClick={closeSurvey}><Lock size={15} />{en ? 'Close the questionnaire' : 'Κλείσιμο ερωτηματολογίου'}</Button>}
+    {!isNew && canManage && tab === 'questionnaire' && survey.status === 'closed' && <Button recordMenu disabled={saving} onClick={reopen}><RotateCcw size={15} />{en ? 'Reopen the questionnaire' : 'Επανάνοιγμα ερωτηματολογίου'}</Button>}
+    {!isNew && canManage && tab === 'questionnaire' && <IconButton tone="danger" label={en ? 'Delete questionnaire' : 'Διαγραφή ερωτηματολογίου'} onClick={remove}><Trash2 size={16} /></IconButton>}
   </div>
   const departmentFilter = <>
     {covered.length > 1 && <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={value => setFilters(current => ({ ...current, department: value }))}><option value="all">{en ? 'All departments' : 'Όλα τα τμήματα'}</option>{covered.map(item => <option key={item.id || item.name} value={item.id || item.name}>{en ? item.nameEn || item.name : item.name}</option>)}</FilterSelect>}
@@ -141,13 +147,15 @@ export function SurveyRecordPage() {
   const comment = survey.questions.find(question => question.type === 'text')
 
   return <Page fill><EntityRecordShell className="register-record-shell survey-record-shell workspace-fill" avatar={<Smile size={19} />} eyebrow={survey.code || (en ? 'New questionnaire' : 'Νέο ερωτηματολόγιο')} title={textOf(survey, language) || (en ? 'New questionnaire' : 'Νέο ερωτηματολόγιο')}
-    subtitle={[audienceLabel(survey.audience, language), [survey.opensOn && formatDay(survey.opensOn, language), survey.closesOn && formatDay(survey.closesOn, language)].filter(Boolean).join(' – ')].filter(Boolean).join(' · ')}
+    subtitle={[audienceLabel(survey.audience, language), survey.opensOn && !survey.closesOn ? `${en ? 'From' : 'Από'} ${formatDay(survey.opensOn, language)}` : [survey.opensOn && formatDay(survey.opensOn, language), survey.closesOn && formatDay(survey.closesOn, language)].filter(Boolean).join(' – ')].filter(Boolean).join(' · ')}
     status={!isNew && <StatusBadge tone={surveyStatusTone(survey.status)}>{surveyStatusLabel(survey.status, language)}</StatusBadge>}
     headerActions={headerActions} tabs={tabs} activeTab={tab} onTabChange={setTab} onBack={goBack}>
-    {tab === 'results' && <RecordTabPanel title={en ? 'Results' : 'Αποτελέσματα'} subtitle={en ? 'Satisfied = share answering 4 or 5. Recommendation score = promoters (9–10) minus detractors (0–6).' : 'Ικανοποιημένοι = ποσοστό που απαντά 4 ή 5. Δείκτης σύστασης = υποστηρικτές (9–10) μείον επικριτές (0–6).'}>
-      {filterBar}
-      <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} />
-    </RecordTabPanel>}
+    {/* Results: no heading of its own (the tab says it); the figures beside the filters, the definitions in their tooltips. */}
+    {tab === 'results' && <section className="record-tab-panel survey-results-panel"><div className="record-tab-panel-body">
+      <FilterBar query={filters.query} onQueryChange={query => setFilters(current => ({ ...current, query }))} placeholder={en ? 'Search the comments…' : 'Αναζήτηση στα σχόλια…'} activeAdvancedCount={advanced} onClear={() => setFilters(NO_FILTERS)} end={<SurveyResultsLine survey={survey} responses={shown} language={language} />}>{departmentFilter}</FilterBar>
+      <SurveyResults survey={survey} responses={shown} language={language} canAct={canManage} onAction={openAction} showLine={false} />
+      {survey.code && <LinkedActions sourceId={`SRV:${survey.code}`} organizationId={tenant?.id} returnTab="results" />}
+    </div></section>}
     {viewing && <ObserverDialog title={en ? 'Response' : 'Απάντηση'} subtitle={[formatDay(viewing.submittedAt, language), (en ? viewing.departmentEn : viewing.department) || '', channelLabel(viewing.channel, language)].filter(Boolean).join(' · ')} onClose={() => setViewing(null)}
       footer={canManage && <Button variant="danger" onClick={() => removeResponse(viewing)}><Trash2 size={15} />{en ? 'Delete response' : 'Διαγραφή απάντησης'}</Button>}>
       <dl className="survey-response-answers">{survey.questions.filter(question => answerText(question, viewing.answers?.[question.id], language)).map(question => <div key={question.id}><dt>{textOf(question, language)}</dt><dd>{answerText(question, viewing.answers?.[question.id], language)}</dd></div>)}</dl>
@@ -173,7 +181,7 @@ export function SurveyRecordPage() {
       <SurveyEditor survey={survey} onChange={setSurvey} onTemplate={key => setSurvey(current => ({ ...surveyFromTemplate(key, { hospital: tenant?.name || '' }), departmentIds: current.departmentIds, opensOn: current.opensOn, closesOn: current.closesOn }))} isNew={isNew} locked={locked} hasResponses={responses.length > 0} departments={departments} language={language} />
     </RecordTabPanel>}
     {tab === 'collect' && <RecordTabPanel title={en ? 'Collection' : 'Συλλογή'} subtitle={en ? 'How patients reach the questionnaire from their phone.' : 'Πώς φτάνουν οι ασθενείς στο ερωτηματολόγιο από το κινητό τους.'}>
-      <SurveyCollect survey={survey} departments={departments} language={language} canOpen={canManage && !saving} onOpen={openSurvey} />
+      <SurveyCollect survey={survey} departments={departments} language={language} canOpen={canManage && !saving} onOpen={openSurvey} printAll={printPosters} />
     </RecordTabPanel>}
     {entry && <ResponseEntry survey={survey} entry={entry} setEntry={setEntry} departments={entryDepartments} language={language} onSaved={response => { setResponses(current => (response ? [response, ...current] : current)); if (!response) void reload() }} tenantId={tenant?.id} />}
   </EntityRecordShell></Page>

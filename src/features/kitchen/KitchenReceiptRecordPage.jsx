@@ -105,7 +105,7 @@ export function KitchenReceiptRecordPage() {
     </RecordTabPanel>}
     {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'}>
       <RecordDetailsGrid fields={[{ label: en ? 'Code' : 'Κωδικός', value: receipt.code }, { label: en ? 'Supplier' : 'Προμηθευτής', value: receipt.supplierName || '—', meta: receipt.supplierId ? '' : (en ? 'Not linked to the suppliers registry' : 'Χωρίς σύνδεση με το μητρώο προμηθευτών') }, { label: en ? 'Date · time' : 'Ημερομηνία · ώρα', value: `${fmtDay(receipt.receivedOn)}${receipt.receivedTime ? ` · ${receipt.receivedTime}` : ''}` },
-        { label: en ? 'Order number (reference)' : 'Αριθμός παραγγελίας (αναφορά)', value: receipt.orderReference || '—' }, { label: en ? 'Received by' : 'Παρέλαβε', value: receipt.receiverName || '—' }, { label: en ? 'Recorded' : 'Καταχωρίστηκε', value: fmtStamp(receipt.createdAt, language) || '—', meta: receipt.source === 'filemaker' ? 'FileMaker' : '' }]} />
+        { label: en ? 'Order number (reference)' : 'Αριθμός παραγγελίας (αναφορά)', value: receipt.orderReference || '—' }, { label: en ? 'Received by' : 'Παρέλαβε', value: receipt.receiverName || '—' }, { label: en ? 'Recorded' : 'Καταχωρίστηκε', value: fmtStamp(receipt.createdAt, language) || '—', meta: '' }]} />
       {receipt.supplierId && <div className="kitchen-pad"><Button variant="secondary" onClick={() => navigate(`/quality/suppliers/${receipt.supplierId}`)}><Truck size={15} />{en ? 'Supplier record' : 'Καρτέλα προμηθευτή'}</Button></div>}
     </RecordTabPanel>}
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={[]} organizationId={organizationId} reload={reload} />

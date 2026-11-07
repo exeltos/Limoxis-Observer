@@ -21,7 +21,7 @@ const number = value => (value === '' || value == null ? NaN : Number(value))
 const round1 = value => Math.round(value * 10) / 10
 
 export function newCriterion(label = '', weight = 1) {
-  return { id: itemId('crit'), label, description: '', weight }
+  return { id: itemId('crit'), label, description: '', weight, optional: false }
 }
 
 export function newTemplate(categories = []) {
@@ -109,13 +109,14 @@ export function applyTemplate(evaluation, template) {
     templateId: template.id, templateName: template.name, templateVersion: template.version || 1,
     passThreshold: Number(template.passThreshold ?? DEFAULT_PASS), conditionalThreshold: Number(template.conditionalThreshold ?? DEFAULT_CONDITIONAL),
     scoreScale: Number(template.scoreScale) || 5, frequencyMonths: Number(template.frequencyMonths) || DEFAULT_FREQUENCY,
-    criteria: (template.criteria || []).map((item, index) => ({ id: '', criterionId: item.id, label: item.label, description: item.description || '', weight: Number(item.weight) || 1, position: index, score: before.get(item.id) ?? '' })),
+    criteria: (template.criteria || []).map((item, index) => ({ id: '', criterionId: item.id, label: item.label, description: item.description || '', weight: Number(item.weight) || 1, optional: Boolean(item.optional), position: index, score: before.get(item.id) ?? '' })),
     criteriaScores: 'complete',
   }
 }
 
 export const isTemplateEvaluation = evaluation => Boolean(evaluation?.templateId || evaluation?.templateName || evaluation?.criteria?.length)
-export const everyCriterionScored = evaluation => (evaluation?.criteria || []).length > 0 && evaluation.criteria.every(item => number(item.score) >= (Number(evaluation.scoreScale) === 10 ? 0 : 1))
+// Every criterion that is not optional has a score (an optional one, «Άλλο», counts only when scored).
+export const everyCriterionScored = evaluation => (evaluation?.criteria || []).length > 0 && evaluation.criteria.every(item => item.optional || number(item.score) >= (Number(evaluation.scoreScale) === 10 ? 0 : 1))
 
 // An evaluation's result in %: worked out from its criteria while they are all
 // recorded; else the total it keeps (FileMaker kept the total and only the first
@@ -149,29 +150,29 @@ export function evaluationMonths(supplier, latest, templates = []) {
 // The defaults of a hospital without templates, and of the demo: the three FileMaker
 // templates of the hospital that started the module (products, services /
 // subcontractors, kitchen) and one for the laboratory built on the products one.
+// The criteria of the hospital's form Ε.Δ.FS.130.Θ-01 «Αξιολόγηση εξωτερικών παρόχων»: nine of equal weight, the
+// ninth («Άλλο») counted only when scored; scale 1–5, approved from 3,5 (70%), approved or not (no «conditional»).
+// The second criterion is the system or licence that matters for each kind of supplier.
+const formCriteria = second => [
+  ['Ποιότητα προσφερόμενων προϊόντων / υπηρεσιών'], [second], ['Φερεγγυότητα και αξιοπιστία'], ['Ταχύτητα εξυπηρέτησης'],
+  ['Πληρότητα συνοδευτικής τεκμηρίωσης'], ['Ευκολία επικοινωνίας / προσωπικής επαφής'], ['Διαθεσιμότητα προϊόντων / υπηρεσιών'],
+  ['Παροχή επιστημονικής υποστήριξης'], ['Άλλο (ανάλογα με την κατηγορία του προμηθευτή)', true],
+]
 export const TEMPLATE_PRESETS = [
-  {
-    key: 'products', name: 'Προμηθευτής Προϊόντων', categories: ['products', 'medical_devices', 'consumables', 'pharmaceuticals'], pass: 70, conditional: 50,
-    criteria: [['Ποιότητα προϊόντων', 0.2], ['Συνέπεια στους χρόνους παράδοσης', 0.2], ['Συμμόρφωση με τις προδιαγραφές της παραγγελίας', 0.2], ['Πιστοποιητικά και τεκμηρίωση (CE, ISO, δηλώσεις συμμόρφωσης)', 0.15], ['Εξυπηρέτηση και διαχείριση παραπόνων', 0.15], ['Τιμή και όροι πληρωμής', 0.1]],
-  },
-  {
-    key: 'services', name: 'Προμηθευτής Υπηρεσιών/Υπεργολάβος', categories: ['services', 'maintenance', 'cleaning', 'laundry', 'waste', 'it', 'certification_body'], pass: 70, conditional: 50,
-    criteria: [['Ποιότητα παρεχόμενων υπηρεσιών', 0.2], ['Τήρηση χρονοδιαγράμματος και ανταπόκριση', 0.2], ['Επάρκεια και εκπαίδευση προσωπικού', 0.2], ['Συμμόρφωση με νομοθεσία, ασφάλεια και τεκμηρίωση', 0.15], ['Επικοινωνία και αναφορές', 0.15], ['Κόστος', 0.1]],
-  },
-  {
-    key: 'kitchen', name: 'Προμηθευτής Κουζίνας', categories: ['kitchen'], pass: 70, conditional: 50,
-    criteria: [['Ποιότητα προσφερόμενων προϊόντων/υπηρεσιών', 0.12], ['Ασφάλεια τροφίμων (HACCP / ISO 22000, άδειες)', 0.16], ['Θερμοκρασία και συνθήκες μεταφοράς', 0.14], ['Υγιεινή οχήματος και προσωπικού παράδοσης', 0.12], ['Επισήμανση, ιχνηλασιμότητα και ημερομηνίες λήξης', 0.12], ['Συνέπεια στους χρόνους παράδοσης', 0.12], ['Πληρότητα παραγγελίας', 0.12], ['Τιμή', 0.1]],
-  },
-  {
-    key: 'laboratory', name: 'Προμηθευτής Εργαστηρίου', categories: ['laboratory'], pass: 70, conditional: 50,
-    criteria: [['Ποιότητα προϊόντων (αντιδραστήρια, αναλώσιμα)', 0.2], ['Πιστοποίηση: CE-IVD / ISO 13485, ISO 15189 όπου απαιτείται', 0.15], ['Ποιοτικός έλεγχος παρτίδας (πιστοποιητικά ανάλυσης, εξωτερικός έλεγχος)', 0.15], ['Ψυχρή αλυσίδα κατά τη μεταφορά και αποθήκευση', 0.15], ['Τεχνική και επιστημονική υποστήριξη αναλυτών', 0.15], ['Συνέπεια στους χρόνους παράδοσης', 0.1], ['Τιμή και όροι', 0.1]],
-  },
+  { key: 'products', name: 'Προμηθευτής Προϊόντων', categories: ['products', 'medical_devices', 'consumables', 'pharmaceuticals'], pass: 70, conditional: 70,
+    criteria: formCriteria('Πιστοποιημένο σύστημα ποιότητας (ISO 9001 / ISO 13485, σήμανση CE)') },
+  { key: 'services', name: 'Προμηθευτής Υπηρεσιών/Υπεργολάβος', categories: ['services', 'maintenance', 'cleaning', 'laundry', 'waste', 'it', 'certification_body'], pass: 70, conditional: 70,
+    criteria: formCriteria('Πιστοποιημένο σύστημα ποιότητας / άδειες λειτουργίας') },
+  { key: 'kitchen', name: 'Προμηθευτής Κουζίνας', categories: ['kitchen'], pass: 70, conditional: 70,
+    criteria: formCriteria('Πιστοποιημένο / διαπιστευμένο σύστημα ποιότητας & ασφάλειας τροφίμων') },
+  { key: 'laboratory', name: 'Προμηθευτής Εργαστηρίου', categories: ['laboratory'], pass: 70, conditional: 70,
+    criteria: formCriteria('Διαπίστευση / πιστοποίηση (ISO 15189 / ISO 17025, CE-IVD)') },
 ]
 
 export function presetTemplates(prefix = 'tpl') {
   return TEMPLATE_PRESETS.map(preset => ({
     id: `${prefix}-${preset.key}`, name: preset.name, description: '', categories: preset.categories, passThreshold: preset.pass, conditionalThreshold: preset.conditional, frequencyMonths: 12, scoreScale: 5, active: true, version: 1,
-    criteria: preset.criteria.map(([label, weight], index) => ({ id: `${prefix}-${preset.key}-${index + 1}`, label, description: '', weight })),
+    criteria: preset.criteria.map(([label, optional = false], index) => ({ id: `${prefix}-${preset.key}-${index + 1}`, label, description: '', weight: 1, optional })),
   }))
 }
 

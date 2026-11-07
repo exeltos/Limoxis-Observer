@@ -76,11 +76,11 @@ function InterviewsListPage() {
           rowProps={item => ({ ...registry.rowProps(item.id), onClick: () => open(item), onKeyDown: event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(item) } } })}
           empty={!rows.length} emptyFiltered={candidates.length > 0} onClearFilters={clear} emptyIcon={Inbox}
           emptyTitle={candidates.length ? (en ? 'No application matches' : 'Καμία αίτηση δεν ταιριάζει') : (en ? 'No applications yet' : 'Δεν υπάρχουν αιτήσεις')}
-          emptyText={candidates.length ? '' : (en ? 'Enter the first application; the FileMaker ones are brought over by the migration.' : 'Καταχωρίστε την πρώτη αίτηση· όσες υπήρχαν στο FileMaker μεταφέρονται με τη μετάπτωση.')}
+          emptyText={candidates.length ? '' : (en ? 'Enter the first application.' : 'Καταχωρίστε την πρώτη αίτηση.')}
           emptyAction={access.canManage && !candidates.length ? { label: en ? 'New application' : 'Νέα αίτηση', icon: Plus, onClick: () => setDialog(newCandidate()) } : null}
           renderRow={item => <>
             <td><strong>{item.fullName}</strong><small>{[item.phoneMobile || item.phoneLandline, item.email].filter(Boolean).join(' · ')}{item.source === 'tablet' && <> <StatusBadge tone="info">{en ? 'From tablet' : 'Από tablet'}</StatusBadge></>}</small></td>
-            <td className="nowrap-cell"><strong>{item.code}</strong>{item.source === 'filemaker' && <small>FileMaker</small>}</td>
+            <td className="nowrap-cell"><strong>{item.code}</strong></td>
             <td>{item.requestedPosition || '—'}{(item.professionalCategory || item.employmentType) && <small>{[categoryLabel(item.professionalCategory, language), employmentLabel(item.employmentType, language)].filter(Boolean).join(' · ')}</small>}</td>
             <td className="nowrap-cell">{fmtDay(item.appliedOn)}</td>
             <td><CandidateStatusBadge status={item.status} language={language} /></td>

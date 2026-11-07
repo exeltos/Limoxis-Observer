@@ -109,7 +109,7 @@ export function ReviewRecordPage() {
     loadReviews(tenant?.id).then(rows => {
       if (!active) return
       setReviews(rows)
-      const found = isNew ? newReviewFrom(rows.find(row => row.status === 'approved') || rows[0]) : rows.find(row => row.id === reviewId)
+      const found = isNew ? newReviewFrom(rows.find(row => row.status === 'approved') || rows[0]) : rows.find(row => row.id === reviewId || row.code === reviewId)
       setReview(found ? structuredClone(found) : null)
     }).catch(() => { if (active) setReviews([]) })
     const add = next => { if (active) setFacts(current => ({ ...current, ...next })) }

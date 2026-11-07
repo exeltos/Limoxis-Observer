@@ -10,6 +10,7 @@ import { Button } from '../../design-system/Button'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
+import { useRecordTabExport } from './employeeTabExport'
 import {
   loadEvaluationsAsync,
   createEmployeeEvaluationAsync,
@@ -57,6 +58,7 @@ export function EmployeeEvaluationsTab({
   canHrApprove = false,
   canAdminApprove = false,
   selfReadOnly = false,
+  onExportItems,
 }) {
   const state = useEmployeeSubRecords(
     loadEvaluationsAsync,
@@ -103,6 +105,10 @@ export function EmployeeEvaluationsTab({
       employee_acknowledged: en ? 'Employee acknowledged' : 'Έλαβε γνώση',
       hr_approved: en ? 'HR approved' : 'Εγκρίθηκε από HR',
       finalized: en ? 'Finalized' : 'Οριστικοποιημένη',
+      passed: en ? 'Passed' : 'Επιτυχής',
+      failed: en ? 'Retraining required' : 'Απαιτείται επανεκπαίδευση',
+      reviewed: en ? 'Reviewed' : 'Ελέγχθηκε',
+      pending_review: en ? 'To be reviewed' : 'Προς έλεγχο',
     })[v] ||
     v ||
     '—'
@@ -137,8 +143,14 @@ export function EmployeeEvaluationsTab({
       setSaving(false)
     }
   }
+  const scoreText = row => (row.overallScore != null ? `${row.overallScore.toFixed(2)} / 5` : row.score != null ? `${row.score}%` : row.source === 'training' ? '' : (en ? row.resultEn : row.resultEl) || '')
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'evaluations', label: { el: 'Αξιολογήσεις', en: 'Evaluations' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: en ? ['Evaluation', 'Period', 'Evaluator', 'Date', 'Score', 'Status'] : ['Αξιολόγηση', 'Περίοδος', 'Αξιολογητής', 'Ημερομηνία', 'Βαθμολογία', 'Κατάσταση'], rows: registry.filtered.map(row => [en ? row.titleEn : row.titleEl, row.period || '', row.source === 'training' ? (en ? 'Training' : 'Εκπαίδευση') : row.evaluatorName || '', fmt(row.date), scoreText(row), statusLabel(row.status)]) }),
+  })
   return (
     <section className="record-section record-secondary-registry">
+      {exportDialog}
       <SectionTitle
         title={en ? 'Evaluations' : 'Αξιολογήσεις'}
         subtitle={
@@ -206,7 +218,7 @@ export function EmployeeEvaluationsTab({
                           ? `${row.overallScore.toFixed(2)} / 5`
                           : row.score != null
                             ? `${row.score}%`
-                            : (en ? row.resultEn : row.resultEl) || '—'}
+                            : row.source === 'training' ? '—' : (en ? row.resultEn : row.resultEl) || '—'}
                       </td>
                       <td>
                         <span className={`status-badge ${statusClass(row.status)}`}>
@@ -307,7 +319,7 @@ export function EmployeeEvaluationsTab({
           width="wide"
           eyebrow={en ? 'Employee evaluation' : 'Αξιολόγηση εργαζομένου'}
           title={en ? selected.titleEn : selected.titleEl}
-          subtitle={`${selected.period || ''} · ${fmt(selected.date)}`}
+          subtitle={[selected.period, fmt(selected.date)].filter(part => part && part !== '—').join(' · ')}
           onClose={() => setSelected(null)}
         >
           {selected.source === 'training' && (
@@ -321,21 +333,11 @@ export function EmployeeEvaluationsTab({
                   <small>{fmt(selected.date)}</small>
                 </div>
                 <div className="training-assessment-score">
-                  <strong>{selected.score != null ? `${selected.score}%` : '—'}</strong>
-                  <span>
-                    {selected.competent === true
-                      ? en
-                        ? 'Successful'
-                        : 'Επιτυχής'
-                      : selected.competent === false
-                        ? en
-                          ? 'Retraining required'
-                          : 'Απαιτείται επανεκπαίδευση'
-                        : '—'}
-                  </span>
+                  {selected.score != null && <strong>{`${selected.score}%`}</strong>}
+                  <span>{statusLabel(selected.status)}</span>
                 </div>
               </div>
-              <section className="training-review-section">
+              {(selected.assessmentQuestions || []).length > 0 ? <section className="training-review-section">
                 <div className="training-review-heading">
                   <div>
                     <span className="eyebrow">{en ? 'ASSESSMENT FORM' : 'ΦΟΡΜΑ ΑΞΙΟΛΟΓΗΣΗΣ'}</span>
@@ -369,7 +371,7 @@ export function EmployeeEvaluationsTab({
                     </article>
                   ))}
                 </div>
-              </section>
+              </section> : <p className="training-assessment-note">{en ? 'The questions and answers of this assessment were not kept (imported from the earlier system).' : 'Οι ερωτήσεις και οι απαντήσεις αυτής της αξιολόγησης δεν έχουν διατηρηθεί (μεταφέρθηκε από το προηγούμενο σύστημα).'}</p>}
               {selected.certificate && (
                 <div className="training-review-certificate-row">
                   <div>

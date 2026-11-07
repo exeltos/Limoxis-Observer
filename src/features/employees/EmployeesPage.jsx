@@ -22,16 +22,18 @@ import { printReport } from '../../core/export/reportDocument'
 import { exportRegistry,printRegistry } from '../../core/export/registryExports'
 import { can } from '../../core/permissions/roles'
 import { EmployeeImportDialog } from './EmployeeImportDialog'
-import { EmployeeExcelDialog } from './EmployeeExcelDialog'
+import { ExcelFieldsDialog } from '../../design-system/ExcelFieldsDialog'
 import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
+import { STAFF_CATEGORIES, isStaffEmployee, staffCategoryLabel, staffCategoryOf } from './staffCategory'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 
 export function EmployeesPage(){
   const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership,tenant}=useTenant()
   const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
   const {notify}=useFeedback()
-  const saved=registry.loadViewState({query:'',department:'all',status:'all'})
-  const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status)
+  const saved=registry.loadViewState({query:'',department:'all',status:'all',category:'all'})
+  const [query,setQuery]=useState(saved.query); const [department,setDepartment]=useState(saved.department); const [status,setStatus]=useState(saved.status); const [category,setCategory]=useState(saved.category||'all')
   const [importOpen,setImportOpen]=useState(false)
   const [excelMode,setExcelMode]=useState(null)
   // The occupational physician sees each employee's latest completed visit and its fitness in the list.
@@ -42,15 +44,15 @@ export function EmployeesPage(){
   const canImport=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,membership?.capabilities??[],membership?.customCapabilities??[])
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
   const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
-  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)),[employeeRows,query,department,status,language,canAccessRecord])
-  useEffect(()=>setPage(1),[query,department,status,pageSize])
+  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)).filter(x=>category==='all'||staffCategoryOf(x)===category),[employeeRows,query,department,status,category,language,canAccessRecord])
+  useEffect(()=>setPage(1),[query,department,status,category,pageSize])
   const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>
   if(error)return <div className="data-access-state error" role="alert"><span>{t('employeesLoadFailed')}</span><button type="button" onClick={reload}>{t('retry')}</button></div>
   const displayName=x=>language==='el'?`${x.lastName} ${x.firstName}`:`${x.firstNameEn} ${x.lastNameEn}`
   const scopedEmployees=employeeRows.filter(x=>canAccessRecord(x))
   const totalPages=Math.max(1,Math.ceil(rows.length/pageSize)); const safePage=Math.min(page,totalPages); const pagedRows=rows.slice((safePage-1)*pageSize,safePage*pageSize)
-  function openEmployee(row){registry.saveViewState({query,department,status});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
+  function openEmployee(row){registry.saveViewState({query,department,status,category});registry.openRecord(navigate,`/employees/${encodeURIComponent(row.id)}`,row.id,rows.map(item=>item.id))}
   // The list as filtered (print / Excel), and the same people grouped by department (print / PDF / Excel).
   // Excel asks which fields the file has; the print and the PDF carry the fixed set below.
   const unit=x=>(language==='el'?x.department:x.departmentEn)||'—'
@@ -61,6 +63,7 @@ export function EmployeesPage(){
     {key:'category',label:t('professionalCategory'),initial:true,value:x=>(language==='el'?x.profession:x.professionEn)||'—'},
     {key:'position',label:t('employeesRecords.exportPosition'),initial:false,value:x=>(language==='el'?x.position:(x.positionEn||x.position))||''},
     {key:'status',label:t('status'),initial:true,value:x=>t(x.employmentStatus)},
+    {key:'staffCategory',label:t('employeesRecords.staffCategory'),initial:false,value:x=>staffCategoryLabel(staffCategoryOf(x),language)},
     {key:'mobile',label:t('employeesRecords.exportMobile'),initial:true,value:x=>x.phone||''},
     {key:'email',label:t('employeesRecords.exportEmail'),initial:false,value:x=>x.email||''},
     {key:'hrDepartment',label:t('employeesRecords.exportHrDepartment'),initial:false,value:x=>x.hrDepartment||''},
@@ -81,28 +84,38 @@ export function EmployeesPage(){
     :{name:`${language==='en'?'employees':'ergazomenoi'}${department==='all'?'':`_${department}`}`,...tableOf(keys,rows)})
   const exportMenu=<ExportMenu disabled={!rows.length} items={[
     {id:'employees-print',kind:'print',label:t('employeesRecords.exportPrintList'),onClick:()=>{if(!printRegistry(listBuild(),{language,kind:t('employees'),title:t('employees')}))notify(t('indicatorsRecords.allowPopups'),'error')}},
-    {id:'employees-excel',kind:'excel',label:t('employeesRecords.exportExcelList'),onClick:()=>setExcelMode('list')},
     {id:'grouped-print',kind:'print',label:t('employeesRecords.exportPrintByDepartment'),onClick:()=>printGrouped(false)},
-    {id:'grouped-pdf',kind:'pdf',label:t('employeesRecords.exportPdfByDepartment'),onClick:()=>printGrouped(true)},
-    {id:'grouped-excel',kind:'excel',label:t('employeesRecords.exportExcelByDepartment'),onClick:()=>setExcelMode('grouped')},
+    {id:'employees-excel',kind:'excel',label:t('exportFields.menuLabel'),onClick:()=>setExcelMode(true)},
   ]}/>
-  function clearFilters(){setQuery('');setDepartment('all');setStatus('all')}
-  function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status});navigate('/employees/new')}}
+  // The counts of the list as filtered, beside the search; each one sets (or clears) its filter.
+  const toggleStatus=value=>setStatus(current=>current===value?'all':value)
+  const toggleCategory=value=>setCategory(current=>current===value?'all':value)
+  const totals=<RegistryTotals label={t('employeesRecords.totals')} items={[
+    {key:'all',always:true,value:rows.length,label:t('employeesRecords.totalPeople')},
+    {key:'active',value:rows.filter(x=>x.employmentStatus==='active').length,label:t('employeesRecords.totalActive'),active:status==='active',onClick:()=>toggleStatus('active')},
+    {key:'inactive',value:rows.filter(x=>x.employmentStatus==='inactive').length,label:t('employeesRecords.totalInactive'),active:status==='inactive',onClick:()=>toggleStatus('inactive')},
+    {key:'new',value:rows.filter(isNewHire).length,label:t('employeesRecords.totalNew'),active:status==='new',onClick:()=>toggleStatus('new')},
+    {key:'physician',value:rows.filter(x=>staffCategoryOf(x)==='physician').length,label:t('employeesRecords.totalPhysicians'),active:category==='physician',onClick:()=>toggleCategory('physician')},
+    {key:'external',value:rows.filter(x=>staffCategoryOf(x)==='external').length,label:t('employeesRecords.totalExternal'),active:category==='external',onClick:()=>toggleCategory('external')},
+  ]}/>
+  function clearFilters(){setQuery('');setDepartment('all');setStatus('all');setCategory('all')}
+  function action(a){if(a===UI_ACTIONS.CREATE){registry.saveViewState({query,department,status,category});navigate('/employees/new')}}
   return <Page fill className="employees-registry-page" title={t('employees')} subtitle={t(showHealth?'employeesRecords.registrySubtitlePhysician':'employeesRecords.employeesRegistrySubtitle')} actions={<div className="row-actions">{exportMenu}{canImport&&<Button variant="secondary" onClick={()=>setImportOpen(true)}><Upload size={15}/>{t('employeesImportAction')}</Button>}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{[UI_ACTIONS.CREATE]:CAPABILITIES.MANAGE_STAFF_ADMIN}} onAction={action}/></div> }>
     <section className="surface registry-workspace workspace-column workspace-fill employee-registry-shell">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)} onClear={clearFilters}>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('searchEmployees')} end={totals} activeAdvancedCount={(department!=='all'?1:0)+(status!=='all'?1:0)+(category!=='all'?1:0)} onClear={clearFilters}>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(x=><option key={x}>{x}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option><option value="new">{t('employeesRecords.newHires')}</option></FilterSelect>
+        <FilterSelect label={t('employeesRecords.staffCategory')} value={category} onChange={setCategory}><option value="all">{t('all')}</option>{STAFF_CATEGORIES.map(item=><option key={item.value} value={item.value}>{staffCategoryLabel(item.value,language)}</option>)}</FilterSelect>
       </FilterBar>
       <div className="scroll-table" ref={registry.scrollRef}>
-        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th>{showHealth&&<th>{t('employeesRecords.lastVisit')}</th>}{showHealth&&<th>{t('employeesRecords.fitnessForWork')}</th>}<th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong><small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td>{showHealth&&<td className="nowrap-cell">{lastVisitOf(x)?new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR').format(new Date(`${String(lastVisitOf(x).date).slice(0,10)}T12:00:00`)):'—'}</td>}{showHealth&&<td>{lastVisitOf(x)?fitnessLabel(lastVisitOf(x).fitStatus,language):'—'}</td>}<td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
+        <table className="data-table sticky-table"><thead><tr><th>{t('name')}</th><th>{t('employeeCode')}</th><th>{t('department')}</th><th>{t('professionalCategory')}</th>{showHealth&&<th>{t('employeesRecords.lastVisit')}</th>}{showHealth&&<th>{t('employeesRecords.fitnessForWork')}</th>}<th>{t('status')}</th></tr></thead><tbody>{pagedRows.map(x=><tr key={x.id} {...registry.rowProps(x.id)} onClick={()=>openEmployee(x)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openEmployee(x)}}}><td><div className="employee-registry-person"><EmployeeAvatar employee={x} url={x.photoPath?photoUrls[x.photoPath]:''}/><div><strong className="employee-registry-name">{displayName(x)}</strong>{!isStaffEmployee(x)&&<span className="status-badge">{staffCategoryLabel(staffCategoryOf(x),language)}</span>}<small>{x.email}</small></div></div></td><td className="nowrap-cell"><strong>{x.id}</strong></td><td>{language==='el'?x.department:x.departmentEn}</td><td>{language==='el'?x.profession:x.professionEn}{x.position&&<small>{language==='el'?x.position:(x.positionEn||x.position)}</small>}</td>{showHealth&&<td className="nowrap-cell">{lastVisitOf(x)?new Intl.DateTimeFormat(language==='en'?'en-GB':'el-GR').format(new Date(`${String(lastVisitOf(x).date).slice(0,10)}T12:00:00`)):'—'}</td>}{showHealth&&<td>{lastVisitOf(x)?fitnessLabel(lastVisitOf(x).fitStatus,language):'—'}</td>}<td><span className={`status-badge ${x.employmentStatus==='active'?'active':''}`}>{t(x.employmentStatus)}</span></td></tr>)}</tbody></table>
         {!rows.length&&(scopedEmployees.length
           ?<RegistryEmptyState filtered onClearFilters={clearFilters}/>
           :<RegistryEmptyState icon={Users} title={t('employeesEmptyTitle')} text={t('employeesEmptyDescription')} action={canImport?{label:t('create'),icon:Plus,onClick:()=>action(UI_ACTIONS.CREATE)}:null}/>)}
       </div>
       <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
     </section>
-    {excelMode&&<EmployeeExcelDialog fields={excelFields} onClose={()=>setExcelMode(null)} onConfirm={keys=>{excelFile(keys,excelMode==='grouped');setExcelMode(null)}}/>}
+    {excelMode&&<ExcelFieldsDialog storageKey="limoxis.employees.excel" fields={excelFields} layouts={[{value:'list',label:t('exportFields.layoutList')},{value:'grouped',label:t('employeesRecords.exportByDepartment')}]} onClose={()=>setExcelMode(null)} onConfirm={(keys,layout)=>{excelFile(keys,layout==='grouped');setExcelMode(null)}}/>}
     {importOpen&&<EmployeeImportDialog existing={employeeRows} language={language} onClose={()=>setImportOpen(false)} onImported={reload}/>}
   </Page>
 }

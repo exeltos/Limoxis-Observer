@@ -27,7 +27,8 @@ import { ChoiceField } from '../../design-system/ChoiceField'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { TimeField } from '../../design-system/TimeField'
 import { useLibraries } from '../management/useLibraries'
-import { CAPA_TYPES, EFFECTIVENESS, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
+import { AFFECTS,isOdipyCategory,odipyGroupOf,odipyGroupOptions,odipyItem,odipyItemOptions } from './odipyCategories'
+import { CAPA_TYPES, CAUSE_CATEGORIES, DEVIATION_KINDS, EFFECTIVENESS, causeCategoriesText, FINDING_SOURCES, IMPACTS, INCIDENT_CLASSES, REPORT_KINDS, harmLevel, incidentCategoryLabel, qualityCode, incidentCategoryOptions, qualityStatusTone, rcaDueDate, reportKindOf, reporterText, severityOptions, vocabularyLabel, vocabularyOptions } from './qualityVocabulary'
 import { CheckboxField } from '../../design-system/CheckboxField'
 import { QualityDepartmentField, QualityOwnerField, departmentRef } from './QualityFields'
 import { loadQualityRecord, loadQualityRecords, saveQualityRecord } from './qualityService'
@@ -55,9 +56,11 @@ import { QualityCapaProgress } from './QualityCapaProgress'
 import { QualityFilesRow } from './QualityFiles'
 import { IncidentEventFields, IncidentEventSummary, IncidentEventTypeField } from './IncidentEventDetails'
 import { analysisProgress } from './rootCauseAnalysis'
-import { capaSourceFor,sourcePath,subActionProgress } from './qualityDeviations'
+import { capaSourceFor,subActionProgress } from './qualityDeviations'
+import { capaSourceInfo,sourceKindLabel } from './capaSources'
 import { incidentFlow,incidentStage,isFinalizedQualityRecord,openStepsBlockingCapa,recordOwners,statusOptions,withHarm,withIncidentClass } from './qualityRecordRules'
 import { stageLabel } from './QualityReportRegister'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import './quality.css'
 
 const iconMap={incidents:AlertTriangle,findings:ShieldCheck,capas:CheckSquare2,audits:ClipboardCheck}
@@ -86,8 +89,11 @@ export function QualityRecordPage(){
   function downloadPdf(pdf){
     if(!documentRef.current)return
     const en=language==='en'
-    const ok=printReport({language,kind:{incidents:en?'Incident':'Συμβάν',findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
-     body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε'],filename:record.displayId||record.id}, { pdf: pdf === true })
+    // An incident prints as the ΟΔΙΠΥ «Αναφορά Συμβάντος»: signed by the reporter, the head of the department and Quality.
+    const incident=recordType==='incidents'
+    const signatures=incident?[{role:en?'Reported by':'Αναφέρων το συμβάν',name:reporterText(record,en)||''},{role:en?'Head of department / sector':'Προϊστάμενος / Τομεάρχης'},{role:en?'Quality manager':'Υπεύθυνος Ποιότητας',name:recordOwners(record).join(', ')}]:[en?'Prepared by':'Συντάχθηκε',en?'Approved by':'Εγκρίθηκε']
+    const ok=printReport({language,kind:incident?(en?'Incident report':'Αναφορά συμβάντος'):{findings:en?'Finding':'Εύρημα',capas:en?'Corrective action':'Διορθωτική ενέργεια',audits:en?'Audit':'Επιθεώρηση'}[recordType],code:record.displayId||record.id,title:en?(record.titleEn||record.title):record.title,
+     body:`<div class="rd-html">${documentRef.current.innerHTML}</div>`,signatures,filename:record.displayId||record.id}, { pdf: pdf === true })
     if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
   }
   function printAudit(pdf){
@@ -171,8 +177,14 @@ function IncidentReadDetails({record,categories,language,t}){
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
       {label:en?'Kind':'Είδος',value:vocabularyLabel(REPORT_KINDS,kind,language)},
       {label:en?'Category':'Κατηγορία συμβάντος',value:incidentCategoryLabel(record.category||'clinical',categories,language)},
+      record.affects?{label:en?'Concerns':'Αφορά σε',value:vocabularyLabel(AFFECTS,record.affects,language)}:null,
       {label:en?'Description':'Περιγραφή',value:text(record.description,record.descriptionEn),wide:true},
       record.immediateActions||record.immediateActionsEn?{label:en?'Immediate actions taken':'Άμεσες ενέργειες που πραγματοποιήθηκαν',value:text(record.immediateActions,record.immediateActionsEn),wide:true}:null,
+      record.patientReference?{label:en?'Patient record no.':'Κωδικός ασθενή',value:record.patientReference}:null,
+      record.room?{label:en?'Room':'Θάλαμος',value:record.room}:null,
+      record.involvedPeople?{label:en?'People involved':'Εμπλεκόμενοι',value:record.involvedPeople,wide:true}:null,
+      record.rootCause?{label:en?'Causes':'Αίτια',value:record.rootCause,wide:true}:null,
+      record.notes?{label:en?'Notes':'Σημειώσεις',value:record.notes,wide:true}:null,
     ]},
     facts.length?{title:en?'Event details':'Στοιχεία συμβάντος',items:facts.map(([label,value])=>({label,value}))}:null,
     {title:en?'Report and ownership':'Αναφορά και ιδιοκτησία',items:[
@@ -198,8 +210,15 @@ function FindingReadDetails({record,language,t}){
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
       {label:t('owner'),value:recordOwners(record).map(name=>roleTitleText(name,language)).join(', ')},
       {label:en?'Found on':'Εντοπίστηκε',value:record.date?formatDay(record.date,language):''},
+      {label:en?'Kind of deviation':'Είδος απόκλισης',value:record.deviationKind?vocabularyLabel(DEVIATION_KINDS,record.deviationKind,language):''},
+      {label:en?'Reported by':'Αναφέρθηκε από',value:record.reportedBy},
+      {label:en?'Recurring':'Επαναλαμβανόμενη',value:record.recurring==null?'':record.recurring?(en?'Yes':'Ναι'):(en?'No':'Όχι')},
       {label:en?'Audit finding class':'Κατάταξη ευρήματος',value:record.findingClass?vocabularyLabel(FINDING_CLASSES,record.findingClass,language):''},
       {label:en?'Description':'Περιγραφή',value:text(record.description,record.descriptionEn),wide:true},
+    ])},
+    {title:en?'Causes':'Αιτίες',items:some([
+      {label:en?'Categories':'Κατηγορίες',value:causeCategoriesText(record.causeCategories||[],language),wide:true},
+      {label:en?'Analysis of the causes':'Ανάλυση αιτιών',value:record.rootCause,wide:true},
     ])},
     audit?{title:en?'Standard and deadlines':'Πρότυπο και προθεσμίες',items:some([
       {label:en?'Standard / clause':'Πρότυπο / άρθρο',value:record.clauseRef?[standardLabel(record.standard,language),record.clauseRef].filter(Boolean).join(' · '):''},
@@ -214,12 +233,17 @@ function FindingReadDetails({record,language,t}){
 }
 
 // A corrective action as the platform's one list of values; what is not filled in is not shown.
-function CapaReadDetails({record,language,t}){
+function CapaReadDetails({record,language,t,onOpenSource}){
   const en=language==='en'
+  // Where it came from, opening the source (a deviation, a report, a committee decision, a meeting…).
+  const source=record.sourceId?capaSourceInfo(record.sourceId,record.sourceType):null
+  const sourceText=source&&[sourceKindLabel(source.kind,language),source.code].filter(Boolean).join(' · ')
+  const origin=!source||source.kind==='manual'?'':source.path?<button type="button" className="lo-detail-missing-link" onClick={()=>onOpenSource(source.path)}>{sourceText}</button>:sourceText
   const text=(value,valueEn)=>language==='en'?(valueEn||value):value
   const some=items=>items.filter(item=>item&&item.value)
   return <DetailList className="quality-incident-details" sections={[
     {title:en?'Action':'Ενέργεια',items:some([
+      {label:en?'Came from':'Προέλευση',value:origin},
       {label:t('department'),value:en?record.departmentEn||record.department:record.department},
       {label:t('actionType'),value:vocabularyLabel(CAPA_TYPES,record.actionType||'corrective',language)},
       {label:t('priority'),value:record.priority?t(record.priority):''},
@@ -328,7 +352,7 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
     <div className="record-section-header"><h3>{assessment?(en?'Assessment':'Αξιολόγηση'):t('details')}</h3>{actionItems.length>0&&<OverflowMenu items={actionItems}/>}</div>
     {!assessment&&!editing&&<QualityGlance recordType={recordType} record={record} language={language} t={t} linked={linked}/>}
     {!assessment&&!editing&&recordType==='findings'&&canManage&&!finalized&&record.status!=='closed'&&!linked.length&&<div className="quality-next-step quality-finding-next"><Button variant="primary" onClick={()=>goTo('/quality/capas/new',{returnTo:`/quality/findings/${record.id}`,returnTab:'details',state:{qualitySource:capaSourceFor('findings',record,language)}})}><Plus size={15}/>{en?'New corrective action':'Νέα διορθωτική ενέργεια'}</Button><small>{en?'This deviation has no corrective action yet.':'Η απόκλιση δεν έχει ακόμη διορθωτική ενέργεια.'}</small></div>}
-    {incidentRead?<IncidentReadDetails record={record} categories={categories} language={language} t={t}/>:findingRead?<FindingReadDetails record={record} language={language} t={t}/>:capaRead?<CapaReadDetails record={record} language={language} t={t}/>:auditRead?<AuditReadDetails record={record} language={language} t={t}/>:<div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
+    {incidentRead?<IncidentReadDetails record={record} categories={categories} language={language} t={t}/>:findingRead?<FindingReadDetails record={record} language={language} t={t}/>:capaRead?<CapaReadDetails record={record} language={language} t={t} onOpenSource={path=>goTo(path,{returnTo:`/quality/capas/${record.id}`})}/>:auditRead?<AuditReadDetails record={record} language={language} t={t}/>:<div className={`detail-grid quality-detail-grid ${editing?'employee-inline-edit':''}`}>
       {assessment?<>
         <EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>
         <EditChoice editing={editing} label={t('severity')} value={draft.severity} onChange={v=>set('severity',v)} options={severityOptions(t)}/>
@@ -342,10 +366,22 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
       {recordType!=='incidents'&&editing&&<EditChoice editing={editing} label={t('status')} value={draft.status} onChange={v=>set('status',v)} options={statusOptions(recordType).map(value=>({value,label:t(value)}))}/>}
       {recordType==='incidents'&&<>
         <EditChoice editing={editing} label={en?'Kind':'Είδος'} value={reportKindOf(draft)} onChange={v=>set('reportKind',v)} options={vocabularyOptions(REPORT_KINDS,language)}/>
-        {editing&&['clinical','nonClinical'].includes(reportKindOf(draft))&&<EditChoice editing={editing} label={en?'Reached the patient':'Έφτασε στον ασθενή'} value={draft.incidentClass||'nearMiss'} onChange={v=>setDraft(x=>withIncidentClass(x,v))} options={vocabularyOptions(INCIDENT_CLASSES,language)}/>}
-        <EditChoice editing={editing} label={en?'Category':'Κατηγορία συμβάντος'} value={draft.category||'clinical'} onChange={v=>set('category',v)} options={incidentCategoryOptions(categories,language,reportKindOf(draft)==='suggestion'?null:reportKindOf(draft))} display={incidentCategoryLabel(draft.category||'clinical',categories,language)}/>
+        {editing&&['clinical','nonClinical'].includes(reportKindOf(draft))&&<EditChoice editing={editing} label={en?'Reached the patient':'Έφτασε στον ασθενή'} value={draft.incidentClass||''} onChange={v=>setDraft(x=>withIncidentClass(x,v))} options={vocabularyOptions(INCIDENT_CLASSES,language)}/>}
+        {/* Clinical and non-clinical incidents use the categories of the ΟΔΙΠΥ form: the group first, then the item. */}
+        {['clinical','nonClinical'].includes(reportKindOf(draft))&&editing?<>
+          <EditChoice editing label={en?'Category group':'Ομάδα κατηγορίας'} value={odipyGroupOf(draft.category)?.key||''} onChange={v=>set('category',odipyItemOptions(v,language).at(-1)?.value||'')} options={odipyGroupOptions(language)}/>
+          <EditChoice editing label={en?'Category':'Κατηγορία συμβάντος'} value={isOdipyCategory(draft.category)?draft.category:odipyItem(draft.category)?.key||''} onChange={v=>set('category',v)} options={odipyItemOptions(odipyGroupOf(draft.category)?.key,language)}/>
+        </>:<EditChoice editing={editing} label={en?'Category':'Κατηγορία συμβάντος'} value={draft.category||'clinical'} onChange={v=>set('category',v)} options={incidentCategoryOptions(categories,language,reportKindOf(draft)==='suggestion'?null:reportKindOf(draft))} display={incidentCategoryLabel(draft.category||'clinical',categories,language)}/>}
+        <EditChoice editing={editing} label={en?'Concerns':'Αφορά σε'} value={draft.affects||''} onChange={v=>set('affects',v)} options={vocabularyOptions(AFFECTS,language)} display={vocabularyLabel(AFFECTS,draft.affects,language)||'—'}/>
         <div className="detail-item editable"><TimeField label={en?'Time':'Ώρα'} value={draft.eventTime||''} onChange={v=>set('eventTime',v)}/></div>
         <EditOwners editing={editing} draft={draft} patch={patch} en={en}/>
+        {editing&&<>
+          <EditText editing label={en?'Patient record no.':'Κωδικός ασθενή'} value={draft.patientReference} onChange={v=>set('patientReference',v)}/>
+          <EditText editing label={en?'Room':'Θάλαμος'} value={draft.room} onChange={v=>set('room',v)}/>
+          <EditArea label={en?'People involved':'Εμπλεκόμενοι'} value={draft.involvedPeople} onChange={v=>set('involvedPeople',v)}/>
+          <EditArea label={en?'Causes':'Αίτια'} value={draft.rootCause} onChange={v=>set('rootCause',v)}/>
+          <EditArea label={en?'Notes':'Σημειώσεις'} value={draft.notes} onChange={v=>set('notes',v)}/>
+        </>}
         <p className="quality-edit-note">{en?'Reported by':'Αναφέρθηκε από'} <strong>{reporterText(draft,en)||'—'}</strong> · {formatDay(draft.date,language)}</p>
       </>}
       </>}
@@ -357,6 +393,11 @@ function QualityDetails({extra=null,autoEdit=false,view='details',recordType,rec
           <EditText editing={editing} label={en?'Follow-up audit (code)':'Επαναληπτική επιθεώρηση (κωδικός)'} value={draft.followUpAuditId} onChange={v=>set('followUpAuditId',v.trim())}/>
         </>}
         <EditOwners editing={editing} draft={draft} patch={patch} en={en} label={t('owner')}/>
+        <EditChoice editing={editing} label={en?'Kind of deviation':'Είδος απόκλισης'} value={draft.deviationKind||''} onChange={v=>set('deviationKind',v)} options={vocabularyOptions(DEVIATION_KINDS,language)}/>
+        <EditText editing={editing} label={en?'Reported by':'Αναφέρθηκε από'} value={draft.reportedBy} onChange={v=>set('reportedBy',v)}/>
+        <EditChoice editing={editing} label={en?'Recurring':'Επαναλαμβανόμενη'} value={draft.recurring==null?'':draft.recurring?'yes':'no'} onChange={v=>set('recurring',v==='yes'?true:v==='no'?false:null)} options={[{value:'yes',label:en?'Yes':'Ναι'},{value:'no',label:en?'No':'Όχι'}]}/>
+        <div className="detail-item editable quality-edit-wide"><MultiSelect label={en?'Categories of the causes':'Κατηγορίες αιτιών'} tags options={vocabularyOptions(CAUSE_CATEGORIES,language)} selected={draft.causeCategories||[]} onChange={v=>set('causeCategories',v)} placeholder={en?'Choose one or more':'Επιλέξτε μία ή περισσότερες'} searchPlaceholder={en?'Search':'Αναζήτηση'} emptyLabel={en?'Nothing found':'Δεν βρέθηκε'}/></div>
+        <EditArea label={en?'Analysis of the causes':'Ανάλυση αιτιών'} value={draft.rootCause} onChange={v=>set('rootCause',v)}/>
         <p className="quality-edit-note">{en?'Found':'Εντοπίστηκε'} <strong>{formatDay(draft.date,language)}</strong> · {en?'Source':'Πηγή'} <strong>{[vocabularyLabel(FINDING_SOURCES,draft.source||'manual',language),draft.sourceId].filter(Boolean).join(' ')}</strong>{draft.clauseRef&&<> · <strong>{[standardLabel(draft.standard,language),draft.clauseRef].filter(Boolean).join(' · ')}</strong></>}</p>
         {(draft.source==='audit'||draft.findingClass)&&<>
           <EditChoice editing={editing} label={en?'Effectiveness verified':'Επαλήθευση αποτελεσματικότητας'} value={draft.verificationStatus||'pending'} onChange={v=>set('verificationStatus',v)} options={VERIFICATION_OPTIONS(en)}/>
@@ -399,7 +440,8 @@ function QualityLinks({recordType,record,t,language,organizationId}){
     if(recordType==='findings'){
       loadQualityRecords('capas',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'capas'})))}).catch(()=>{if(active)setRelated([])})
     }else if(recordType==='audits'){
-      loadQualityRecords('findings',organizationId).then(rows=>{if(active)setRelated(rows.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})))}).catch(()=>{if(active)setRelated([])})
+      // Its deviations, and any action opened from the audit itself.
+      Promise.all(['findings','capas'].map(section=>loadQualityRecords(section,organizationId).catch(()=>[]))).then(([findings,capas])=>{if(active)setRelated([...findings.filter(x=>x.sourceId===record.id).map(x=>({...x,kind:'findings'})),...capas.filter(x=>x.sourceId===record.id&&x.lifecycleStatus!=='voided').map(x=>({...x,kind:'capas'}))])})
     }else{
       setRelated([])
     }
@@ -418,9 +460,13 @@ function QualityLinks({recordType,record,t,language,organizationId}){
   // A production link holds the patient's record id, which has no page of its own (the patient page opens by code).
   if(record.linkedPatient&&!/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(record.linkedPatient))links.push({label:t('patient'),id:record.linkedPatient,path:`/patients/${record.linkedPatient}`})
   if(record.linkedSurveillance)links.push({label:t('surveillance'),id:record.linkedSurveillance,path:`/surveillance/${record.linkedSurveillance}`})
-  if(record.sourceId&&sourcePath(record.sourceId))links.push({label:record.sourceId.startsWith('BND-')?'Bundle':record.sourceId.startsWith('TRAINING:')?(language==='en'?'Training':'Εκπαίδευση'):record.sourceId.startsWith('RISK:')?(language==='en'?'Risk assessment':'Εκτίμηση κινδύνου'):(language==='en'?'Control':'Έλεγχος'),id:record.sourceId.startsWith('BND-')?(language==='en'?'Bundle assessment':'Αξιολόγηση δέσμης μέτρων'):record.sourceId.startsWith('TRAINING:')?record.sourceId.slice(9):record.sourceId.startsWith('RISK:')?record.sourceId.split(':').slice(1).join(' · '):record.sourceId.split('#')[0],path:sourcePath(record.sourceId)})
-  // A source that is one of our records opens it; a bare number is the reference of an imported record (nothing to open).
-  else if(record.sourceId&&/^(AUD|FND|INC)-/.test(record.sourceId))links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  // The record it came from (one map for every kind of source): ours open with their title, the others on their page.
+  const source=record.sourceId?capaSourceInfo(record.sourceId,record.sourceType):null
+  if(source&&/^(AUD|FND|INC)-/.test(record.sourceId))links.push({label:sourceLabel,id:record.sourceId,source:true,title:sourceRecord?(language==='el'?sourceRecord.title:sourceRecord.titleEn):''})
+  else if(source?.path)links.push({label:sourceKindLabel(source.kind,language),id:source.code||record.sourceId,path:source.path})
+  // A committee decision brought over without its meeting has no page to open.
+  else if(source?.kind==='committee')links.push({label:sourceKindLabel('committee',language),id:language==='en'?'Committee decision (brought over without its meeting)':'Απόφαση επιτροπής (μεταφέρθηκε χωρίς τη συνεδρίαση)',external:true})
+  // A bare number is the reference of an imported record (nothing to open).
   else if(record.sourceId)links.push({label:language==='en'?'Source':'Πηγή',id:`${language==='en'?'Imported from the source file · no. ':'Εισαγωγή από το αρχείο πηγής · αρ. '}${record.sourceId}`,external:true})
   if(record.findingIds?.length)record.findingIds.forEach(id=>links.push({label:t('qualityRecords.finding'),id,path:`/quality/findings/${id}`}))
   const navigationOptions={returnTo:`/quality/${recordType}/${record.id||record.code}`,returnTab:'links'}
@@ -453,6 +499,8 @@ const historyTitle=(entry,t,en)=>{const text=entry.action?t(entry.action):'';ret
 const historyActor=(actor,en)=>String(actor||'').replace(/^Reconciliation (?:από|from)\s+/i,en?'Reconciled with the file ':'Συμφωνήθηκε με το αρχείο ')
 function QualityHistory({record,t,language}){const en=language==='en';const events=[...(record.history||[])].sort((a,b)=>new Date(b.at)-new Date(a.at)).map(x=>({at:x.at,title:historyTitle(x,t,en),detail:[x.note,x.detail].find(value=>typeof value==='string'),meta:[historyActor(x.actor,en)]}));return <HistoryTimeline title={t('history')} subtitle={en?'Who changed the record and when.':'Ποιος άλλαξε την εγγραφή και πότε.'} events={events} when={value=>formatDateTime(value,language)} emptyText={t('noData')}/>}
 function Detail({label,value}){if(!value&&value!==0)return null;return <div className="detail-item"><span className="lo-field-label">{label}</span><strong>{value||'—'}</strong></div>}
+// A longer text (people involved, causes, notes): a few lines, the full width of the form.
+function EditArea({label,value,onChange}){return <div className="detail-item editable quality-edit-wide"><Field label={label}><textarea rows={3} value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>}
 function EditText({editing,label,value,onChange}){return editing?<div className="detail-item editable"><Field label={label}><input value={value||''} onChange={e=>onChange(e.target.value)}/></Field></div>:<Detail label={label} value={value}/>}
 function EditDate({editing,label,value,onChange,language}){return editing?<div className="detail-item editable"><ManualDateField label={label} value={value||''} onChange={onChange}/></div>:<Detail label={label} value={formatDay(value,language)}/>}
 // Up to three answers: the mode switch; a longer list: a searchable list.

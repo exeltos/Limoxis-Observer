@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ExportMenu } from '../../../design-system/ExportMenu'
+import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import qrcode from 'qrcode-generator'
-import { Copy, ExternalLink, Play, Smartphone, Tablet } from 'lucide-react'
+import { Copy, ExternalLink, Play, QrCode as QrCodeIcon, Smartphone, Tablet } from 'lucide-react'
 import { Button } from '../../../design-system/Button'
 import { useFeedback } from '../../../core/feedback/FeedbackContext'
 import { printElement } from '../../../design-system/printElement'
@@ -33,7 +33,7 @@ export function QrCode({ text, size = 180, label }) {
 // How a survey's answers come in: one QR code for the survey, which patients
 // scan with their phone; optionally one poster per department, so the answer
 // is recorded for that department without asking; and a tablet at the ward.
-export function SurveyCollect({ survey, departments = [], language = 'el', canOpen = false, onOpen }) {
+export function SurveyCollect({ survey, departments = [], language = 'el', canOpen = false, onOpen, printAll = 0 }) {
   const en = language === 'en'
   const { notify } = useFeedback()
   const sheet = useRef(null)
@@ -52,6 +52,15 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
     setPrinting(null)
   }, [printing, survey.code, title])
   const posterOf = item => ({ id: item.id || item.name, name: nameOf(item) })
+  // «Export › Print» in the record's header: every poster of the survey.
+  const lastPrint = useRef(printAll)
+  const allPosters = useRef([])
+  allPosters.current = covered.map(posterOf)
+  useEffect(() => {
+    if (printAll === lastPrint.current) return
+    lastPrint.current = printAll
+    if (allPosters.current.length) setPrinting(allPosters.current)
+  }, [printAll])
   const single = covered.length === 1 ? covered[0] : null
   const steps = <ol>
     <li>{en ? 'Print the poster and put it where patients see it (room, nursing station, discharge).' : 'Τυπώστε την αφίσα και βάλτε τη εκεί που τη βλέπουν οι ασθενείς (δωμάτιο, στάση νοσηλευτών, εξιτήριο).'}</li>
@@ -71,7 +80,6 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
         <h3>{en ? `QR code · ${nameOf(single)}` : `Κωδικός QR · ${nameOf(single)}`}</h3>
         {steps}
         <div className="survey-collect-buttons">
-          <ExportMenu items={[{ id: 'poster', kind: 'print', label: en ? 'Print the poster' : 'Εκτύπωση αφίσας', onClick: () => setPrinting([posterOf(single)]) }]} />
           <Button variant="secondary" onClick={() => copy(surveyLink(survey, { departmentId: posterOf(single).id }))}><Copy size={15} />{en ? 'Copy the link' : 'Αντιγραφή συνδέσμου'}</Button>
           <Button variant="secondary" onClick={() => window.open(surveyLink(survey, { departmentId: posterOf(single).id }), '_blank', 'noopener')}><Smartphone size={15} />{en ? 'Try it' : 'Δοκιμή'}</Button>
           <Button variant="secondary" onClick={() => window.open(surveyLink(survey, { departmentId: posterOf(single).id, kiosk: true }), '_blank', 'noopener')} title={en ? 'For a tablet at the ward: the form starts again after each answer.' : 'Για tablet στο τμήμα: η φόρμα ξαναρχίζει μετά από κάθε απάντηση.'}><Tablet size={15} />{en ? 'Tablet mode' : 'Λειτουργία tablet'}</Button>
@@ -80,17 +88,17 @@ export function SurveyCollect({ survey, departments = [], language = 'el', canOp
     </section>}
     {covered.length > 1 && <section className="survey-collect-departments">
       <header><div><h3>{en ? `One QR code per department (${covered.length})` : `Ένας κωδικός QR ανά τμήμα (${covered.length})`}</h3><p>{en ? 'Each department has its own poster and form: the answer is recorded for that department.' : 'Κάθε τμήμα έχει τη δική του αφίσα και φόρμα: η απάντηση καταγράφεται σε αυτό.'}</p></div>
-        <ExportMenu items={[{ id: 'posters', kind: 'print', label: en ? 'Print every poster' : 'Εκτύπωση όλων των αφισών', onClick: () => setPrinting(covered.map(posterOf)) }]} />
       </header>
       <div className="survey-collect-how">{steps}</div>
       <ul>{covered.map(item => { const { id } = posterOf(item); const link = surveyLink(survey, { departmentId: id }); return <li key={id}>
         <strong>{nameOf(item)}</strong>
-        <span className="row-actions">
-          <ExportMenu compact items={[{ id: 'poster', kind: 'print', label: en ? 'Poster' : 'Αφίσα', onClick: () => setPrinting([posterOf(item)]) }]} />
-          <button type="button" className="quality-panel-all" onClick={() => copy(link)}><Copy size={13} /> {en ? 'Link' : 'Σύνδεσμος'}</button>
-          <button type="button" className="quality-panel-all" onClick={() => window.open(link, '_blank', 'noopener')}><ExternalLink size={13} /> {en ? 'Try' : 'Δοκιμή'}</button>
-          <button type="button" className="quality-panel-all" onClick={() => window.open(surveyLink(survey, { departmentId: id, kiosk: true }), '_blank', 'noopener')}><Tablet size={13} /> Tablet</button>
-        </span>
+        {/* One «…» per department: poster, link, try, tablet (owner, 6/11/2026). */}
+        <OverflowMenu label={en ? `Actions: ${nameOf(item)}` : `Ενέργειες: ${nameOf(item)}`} width={230} items={[
+          { id: 'poster', label: en ? 'Print the poster' : 'Εκτύπωση αφίσας', icon: QrCodeIcon, onClick: () => setPrinting([posterOf(item)]) },
+          { id: 'link', label: en ? 'Copy the link' : 'Αντιγραφή συνδέσμου', icon: Copy, onClick: () => copy(link) },
+          { id: 'try', label: en ? 'Try it' : 'Δοκιμή', icon: ExternalLink, onClick: () => window.open(link, '_blank', 'noopener') },
+          { id: 'tablet', label: en ? 'Tablet mode' : 'Λειτουργία tablet', icon: Tablet, onClick: () => window.open(surveyLink(survey, { departmentId: id, kiosk: true }), '_blank', 'noopener') },
+        ]} />
       </li> })}</ul>
     </section>}
     {printing && <div className="survey-print-stage" aria-hidden="true"><div className="survey-posters" ref={sheet}>

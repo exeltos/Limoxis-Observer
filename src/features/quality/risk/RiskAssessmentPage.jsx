@@ -184,7 +184,7 @@ export function RiskAssessmentPage(){
  const frame=(kpis,content,{registry=false,name=''}={})=><>
   {tabNav}
   {kpis&&<div className="risk-kpi-row">{kpis}</div>}
-  <div className={`surface risk-workspace${registry?' is-registry':''}${name?` ${name}`:''}`} ref={bodyRef}>{moreMenu}{registry?<>{(origin||(!canEdit&&canManage))&&<div className="risk-notices">{notices}</div>}{content}</>:<div className="risk-tab-scroll">{notices}{content}</div>}</div>
+  <div className={`surface risk-workspace${registry?' is-registry':''}${name?` ${name}`:''}`} ref={bodyRef}>{/* The assessment's actions («⋯») only on «Στοιχεία»: a list opens its rows, no dots. */}{tab==='details'||tab==='methodology'?moreMenu:null}{registry?<>{(origin||(!canEdit&&canManage))&&<div className="risk-notices">{notices}</div>}{content}</>:<div className="risk-tab-scroll">{notices}{content}</div>}</div>
  </>
  return <Page fill className="risk-assessment-page"><EntityRecordShell
   className="quality-record-shell risk-assessment-shell workspace-fill"

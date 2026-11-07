@@ -29,8 +29,8 @@ export function trainingProgramsExport(programs,assignments,{en,statusLabel=valu
  for(const a of assignments){const list=byProgram.get(a.programId)||[];list.push(a);byProgram.set(a.programId,list)}
  return {
   name:en?'training-programmes':'programmata-ekpaideusis',
-  headers:en?['Code','Programme','Category','Trainer','Audience','Start','Due','Valid (months)','Assessment','Pass score','Participants','Completed','Overdue','Completion %','Status']:['Κωδικός','Πρόγραμμα','Κατηγορία','Εκπαιδευτής','Κοινό','Έναρξη','Προθεσμία','Ισχύς (μήνες)','Αξιολόγηση','Βάση','Συμμετέχοντες','Ολοκλήρωσαν','Εκπρόθεσμοι','Ολοκλήρωση %','Κατάσταση'],
-  rows:programs.map(p=>{const list=byProgram.get(p.id)||[];const done=list.filter(a=>a.computedStatus==='completed').length;const late=list.filter(a=>a.computedStatus==='overdue').length;return [p.id,p.title,categoryLabel(p.category),p.trainer||p.owner,p.audience,day(p.startDate,en),day(p.dueDate,en),p.validMonths??'',p.requiresAssessment?(en?'Yes':'Ναι'):(en?'No':'Όχι'),p.requiresAssessment?(p.passScore??''):'',list.length,done,late,list.length?Math.round(done/list.length*100):'',statusLabel(p.status)]}),
+  headers:en?['Code','Programme','Category','Organiser','Trainer','Audience','Start','Due','Hours','Location','Valid (months)','Assessment','Pass score','Participants','Completed','Overdue','Completion %','Status']:['Κωδικός','Πρόγραμμα','Κατηγορία','Διοργανωτής','Εκπαιδευτής','Κοινό','Έναρξη','Προθεσμία','Ώρες','Τόπος','Ισχύς (μήνες)','Αξιολόγηση','Βάση','Συμμετέχοντες','Ολοκλήρωσαν','Εκπρόθεσμοι','Ολοκλήρωση %','Κατάσταση'],
+  rows:programs.map(p=>{const list=byProgram.get(p.id)||[];const done=list.filter(a=>a.computedStatus==='completed').length;const late=list.filter(a=>a.computedStatus==='overdue').length;return [p.id,p.title,p.category?categoryLabel(p.category):'',p.owner||'',p.trainer||'',p.audience,day(p.startDate,en),day(p.dueDate,en),p.durationHours??'',p.location||'',p.validMonths??'',p.requiresAssessment?(en?'Yes':'Ναι'):(en?'No':'Όχι'),p.requiresAssessment?(p.passScore??''):'',list.length,done,late,list.length?Math.round(done/list.length*100):'',statusLabel(p.status)]}),
  }
 }
 

@@ -20,6 +20,7 @@ import {
 } from './employeeSurveillanceCloudService'
 import { employeeScreeningOptions, listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
+import { isStaffEmployee } from '../employees/staffCategory'
 
 // One multi-select: pick one employee or as many as needed. A single pick creates an
 // individual record, more than one a batch.
@@ -36,7 +37,7 @@ export function EmployeeSurveillanceCanonicalFlow({ employee = null, onClose, on
     [notes, setNotes] = useState(''),
     [saving, setSaving] = useState(false)
   const activeEmployees = useMemo(
-    () => employeeRows.filter(row => row.employmentStatus === 'active'),
+    () => employeeRows.filter(row => row.employmentStatus === 'active' && isStaffEmployee(row)),
     [employeeRows],
   )
   const departments = useMemo(

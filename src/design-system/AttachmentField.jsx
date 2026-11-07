@@ -17,7 +17,7 @@ const defaultCategories=[
   ['other','other'],
 ]
 
-const employeeDocumentCategories={
+export const employeeDocumentCategories={
   el:[
     ['certification','Πιστοποίηση'],
     ['employmentCertificate','Βεβαίωση εργασίας'],

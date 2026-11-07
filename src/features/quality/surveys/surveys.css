@@ -80,14 +80,13 @@ body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface
 
 /* Results */
 .survey-results{display:grid;gap:14px}
-.survey-results-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
-.survey-results-grid>.survey-below-panel{grid-column:1 / -1}
-.survey-results-line{margin:0;color:var(--lo-color-muted);font-size:13px}
+.survey-results-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+.survey-results-line{margin:0;min-width:0;color:var(--lo-color-muted);font-size:13px;text-align:right}
+.survey-table th:nth-child(n+2),.survey-table td:nth-child(n+2){width:22%}
 .survey-flat-section{display:grid;gap:10px;padding-top:14px;border-top:1px solid var(--lo-color-border)}
 .survey-flat-section>header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .survey-flat-section h3{margin:0;font-size:14px;color:var(--lo-color-text)}
 .survey-flat-section>header small{font-size:11px;color:var(--lo-color-muted)}
-@media(max-width:1000px){.survey-results-grid{grid-template-columns:1fr}}
 .survey-below{display:grid;gap:8px;margin:0;padding:0;list-style:none}
 .survey-below{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
 .survey-below>li{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px auto;align-items:center;gap:10px;font-size:12.5px}
@@ -99,7 +98,7 @@ body:has(.survey-page){min-width:0;height:auto;background:var(--lo-color-surface
 .record-tab-panel .data-table.survey-table{min-width:0!important}
 .survey-meter-cell{display:inline-flex;align-items:center;gap:8px;min-width:120px;font-weight:700;font-size:12px}
 .survey-meter-cell .lo-meter{flex:1 1 70px}
-.survey-trend{display:flex;justify-content:center;padding:4px 0}
+.survey-trend{display:flex;padding:4px 0}
 .survey-section-results{display:grid;gap:10px}
 .survey-question-results{display:grid;gap:10px;margin:0;padding:0;list-style:none}
 .survey-question-results>li{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(140px,1fr) 90px;align-items:center;gap:14px;padding:8px 0;border-top:1px solid var(--lo-color-border)}

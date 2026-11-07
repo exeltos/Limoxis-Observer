@@ -306,7 +306,7 @@ export const guideContent = {
       users: l('Γραφείο Προσωπικού (HR), Διαχειριστής Νοσοκομείου.', 'HR office, Hospital Admin.'),
       needs: null,
       analysis: l('Δεν έχει καρτέλα Ανάλυσης· ο κατάλογος δείχνει υποψηφίους ανά θέση και απόφαση.', 'No Analysis tab; the list shows candidates by position and decision.'),
-      start: l('Καταχωρήστε τον πρώτο υποψήφιο ή μεταφέρετε τις αιτήσεις από το FileMaker.', 'Enter the first candidate or bring the applications over from FileMaker.'),
+      start: l('Καταχωρήστε τον πρώτο υποψήφιο.', 'Enter the first candidate.'),
     },
     analysis: {
       what: l('Αναλύσεις ανά περίοδο και τμήμα για κάθε ενότητα, με σύγκριση ετών και εκτύπωση.', 'Analyses by period and department for every module, with year comparison and printing.'),

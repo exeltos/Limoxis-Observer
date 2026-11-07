@@ -80,7 +80,7 @@ export function RegisterRecordPage() {
   // The header on Entries and on Indicators: «Export ▾» (the entries, or the indicator report) and the primary action.
   const liveExport = tab === 'indicators' ? indicatorExport : sheet ? sheetExport : null
   const exportMenu = tab === 'indicators' || sheet ? <ExportMenu disabled={!liveExport || liveExport.disabled} onExcel={liveExport?.excel} onPdf={liveExport?.pdf} pdfBusy={Boolean(liveExport?.busy)} /> : casesMenu && <ExportMenu {...casesMenu} />
-  const importButton = tab === 'entries' && !sheet && access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from FileMaker' : 'Εισαγωγή από FileMaker'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>
+  const importButton = tab === 'entries' && !sheet && access.canRecord(register) && withIdentity && <ActionButton label={en ? 'Import from file' : 'Εισαγωγή από αρχείο'} onClick={() => navigate(`/registers/${register.id}/import`)}><Upload size={16} /><span>{en ? 'Import' : 'Εισαγωγή'}</span></ActionButton>
   const beforeDaily = new Date().toISOString().slice(0, 10) < dailyFromOf(register)
   // «New day» opens today's sheet (from the first day of the daily sheets), also from the indicators tab.
   const primaryAction = access.canRecord(register) && (sheet

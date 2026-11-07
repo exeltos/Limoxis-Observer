@@ -101,18 +101,28 @@ export function linkState(request, now = new Date()) {
 // 60 days) of the active suppliers, with their addresses, their latest item and its
 // request. A certificate can be selected when no item is in progress (the address can
 // be typed in the approval when the supplier has none).
+// An ISO certificate is replaced by a later one of the same standard (an old version
+// of a renewed certificate is not to be renewed); other kinds can coexist (many CE).
+const SUPERSEDING_TYPES = ['ISO 9001', 'ISO 13485', 'ISO 14001', 'ISO 45001', 'ISO 22000 / HACCP', 'ISO 15189 / ISO 17025']
+export function isSuperseded(certification, certifications = []) {
+  if (!SUPERSEDING_TYPES.includes(certification?.type) || !certification.expiresOn) return false
+  return certifications.some(other => other !== certification && other.type === certification.type && String(other.expiresOn || '') > String(certification.expiresOn))
+}
+
 export function renewalQueue(suppliers = [], requests = [], { expiring = false, today = todayIso() } = {}) {
   const latest = latestItemByCertificate(requests)
   const rows = []
   for (const supplier of suppliers) {
     if (supplier.status === 'inactive') continue
     const recipients = recipientsFor(supplier)
-    for (const certification of supplier.certifications || []) {
+    const certifications = supplier.certifications || []
+    for (const certification of certifications) {
       const state = certificationState(certification, today)
       const item = latest.get(certification.id) || null
       const request = item?.request || null
       const pending = isOpenItem(item)
       if (state !== 'expired' && !(expiring && state === 'expiring') && !pending) continue
+      if (!pending && isSuperseded(certification, certifications)) continue
       rows.push({
         key: certification.id, supplierId: supplier.id, supplierCode: supplier.code || '', supplierName: supplier.name || '', certification, state,
         days: certification.expiresOn ? daysBetween(today, certification.expiresOn) : null, recipients, recipient: (pending && request?.recipientEmail) || recipients[0] || '', item, request,

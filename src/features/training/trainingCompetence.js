@@ -73,7 +73,7 @@ export function retrainingPlan(matrix,{today=new Date().toISOString().slice(0,10
   row.cells.forEach((cell,index)=>{
    if(!cell||cell.state==='valid')return
    const requirement=matrix.requirements[index]
-   items.push({key:`${requirement.id}:${row.employee.employeeCode||row.employee.id}`,requirement,employee:row.employee,state:cell.state,due:cell.state==='missing'?today:cell.validUntil,validUntil:cell.validUntil})
+   items.push({key:`${requirement.id}:${row.employee.employeeCode||row.employee.id}`,requirement,employee:row.employee,state:cell.state,due:cell.state==='missing'?today:cell.validUntil,validUntil:cell.validUntil,completedOn:cell.completedOn||''})
   })
  }
  return items.sort((a,b)=>a.due.localeCompare(b.due)||String(a.requirement.title).localeCompare(String(b.requirement.title)))

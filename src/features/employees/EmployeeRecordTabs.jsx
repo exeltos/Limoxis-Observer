@@ -4,6 +4,9 @@ import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { DocumentsWorkspace } from '../../design-system/DocumentsWorkspace'
 import { useEmployeeSubRecords } from './useEmployeeSubRecords'
+import { useRecordTabExport } from './employeeTabExport'
+import { employeeDocumentCategories } from '../../design-system/AttachmentField'
+import { loadAttachments } from '../../core/attachments/attachmentService'
 import { loadEmployeeHistoryAsync } from './employeeHistoryService'
 import { demoEmployeeDocuments } from './employeeDemoData'
 import { loadTrainingState } from '../training/trainingData'
@@ -42,13 +45,32 @@ export function EmployeeCertificatesTab({
   organizationId,
   canEdit = false,
   isDemo = false,
+  onExportItems,
 }) {
+  const en = language === 'en'
   const [demoFiles, setDemoFiles] = useState(() =>
     isDemo
       ? demoEmployeeDocuments(employee, loadTrainingState().certificates, language === 'en')
       : [],
   )
+  // The list of files for the print and the Excel (the files card keeps its own copy).
+  const [cloudFiles, setCloudFiles] = useState([])
+  useEffect(() => {
+    if (isDemo || !organizationId) return undefined
+    let active = true
+    loadAttachments(organizationId, 'employee-certificate', employee.dbId || employee.id).then(rows => { if (active) setCloudFiles(rows || []) }).catch(() => { if (active) setCloudFiles([]) })
+    return () => { active = false }
+  }, [isDemo, organizationId, employee.dbId, employee.id])
+  const files = isDemo ? demoFiles : cloudFiles
+  const categoryText = code => employeeDocumentCategories[en ? 'en' : 'el'].find(([value]) => value === code)?.[1] || code || ''
+  const day = value => (value ? new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR').format(new Date(value)) : '')
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'documents', label: { el: 'Έγγραφα', en: 'Documents' }, employee, language, count: files.length,
+    table: () => ({ headers: en ? ['Document', 'Kind', 'Notes', 'Added'] : ['Έγγραφο', 'Είδος', 'Σημειώσεις', 'Καταχώριση'], rows: files.map(file => [file.name, categoryText(file.category), file.description || '', day(file.createdAt)]) }),
+  })
   return (
+    <>
+    {exportDialog}
     <DocumentsWorkspace
       title={language === 'en' ? 'Documents & certifications' : 'Έγγραφα & Πιστοποιήσεις'}
       subtitle={
@@ -63,6 +85,7 @@ export function EmployeeCertificatesTab({
       value={isDemo ? demoFiles : undefined}
       onChange={isDemo ? setDemoFiles : undefined}
     />
+    </>
   )
 }
 
@@ -77,6 +100,7 @@ export function EmployeeSurveillanceTab({
   isDemo = false,
   organizationId = null,
   canManageFollowup = false,
+  onExportItems,
 }) {
   const demoRows = isDemo ? getEmployeeSurveillanceForEmployee(employee.id) : []
   const [cloudRecords, setCloudRecords] = useState([])
@@ -122,6 +146,10 @@ export function EmployeeSurveillanceTab({
   const rows = isDemo ? demoRows : cloudRecords
   const registry = useRegistryRows(rows)
   const paging = registry.paging
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'surveillance', label: { el: 'Επιτήρηση', en: 'Surveillance' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: language === 'en' ? ['Episode', 'Start date', 'Screening', 'Status'] : ['Επεισόδιο', 'Έναρξη', 'Έλεγχος', 'Κατάσταση'], rows: registry.filtered.map(row => [compactEpisodeCode(row.id), fmt(row.startedAt), row.screeningTypes?.map(type => label(type, t)).join(', ') || '', label(row.status, t)]) }),
+  })
   if (loadError)
     return (
       <section className="record-section record-secondary-registry">
@@ -159,6 +187,7 @@ export function EmployeeSurveillanceTab({
     )
   return (
     <section className="record-section record-secondary-registry">
+      {exportDialog}
       <SectionTitle
         title={language === 'en' ? 'Surveillance' : 'Επιτήρηση'}
         subtitle={
@@ -261,7 +290,7 @@ export function EmployeeSurveillanceTab({
   )
 }
 
-export function EmployeeHistoryTab({ employee, language }) {
+export function EmployeeHistoryTab({ employee, language, onExportItems }) {
   const state = useEmployeeSubRecords(
     loadEmployeeHistoryAsync,
     employee.organizationId,
@@ -333,22 +362,49 @@ export function EmployeeHistoryTab({ employee, language }) {
     birth_date: ['Ημερομηνία γέννησης', 'Birth date'],
     user_id: ['Σύνδεση λογαριασμού', 'Account link'],
   }
+  // A related record (training, visit, vaccination…) is stored as «history_<kind>:<detail>»: the detail is shown as is.
   const changedLabel = fields =>
     fields?.length
-      ? fields.map(key => fieldLabels[key]?.[language === 'en' ? 1 : 0] || key).join(' · ')
+      ? fields.map(key => (String(key).startsWith('history_') ? relatedText(String(key)) : fieldLabels[key]?.[language === 'en' ? 1 : 0] || key)).join(' · ')
       : '—'
+  const visitTypes = { periodic: ['Περιοδική εξέταση', 'Periodic examination'], preEmployment: ['Προπρόσληψη εξέταση', 'Pre-employment examination'], followUp: ['Επανέλεγχος', 'Follow-up'], vaccinationReview: ['Έλεγχος εμβολιασμού', 'Vaccination review'] }
+  const relatedText = key => {
+    const detail = key.split(':').slice(1).join(':')
+    if (key.startsWith('history_occupational:')) return visitTypes[detail]?.[language === 'en' ? 1 : 0] || detail || '—'
+    return detail || '—'
+  }
+  const kindLabels = {
+    training: ['Εκπαίδευση', 'Training'],
+    evaluation: ['Αξιολόγηση', 'Evaluation'],
+    occupational: ['Ιατρός Εργασίας', 'Occupational health'],
+    vaccination: ['Εμβολιασμός', 'Vaccination'],
+    certificate: ['Έγγραφο / πιστοποίηση', 'Document / certification'],
+    surveillance: ['Επιτήρηση', 'Surveillance'],
+  }
+  const rowLabel = row => kindLabels[row.historyKind]?.[language === 'en' ? 1 : 0] || eventLabel(row.action)
+  // Related records carry a day, not a time (their «12:00» is only a placeholder).
+  const formatRow = row => (kindLabels[row.historyKind] ? formatDay(row.at) : format(row.at))
+  const formatDay = value => {
+    const d = new Date(value || '')
+    return Number.isNaN(d.getTime()) ? '—' : new Intl.DateTimeFormat(language === 'en' ? 'en-GB' : 'el-GR', { dateStyle: 'medium' }).format(d)
+  }
   const actorLabel = row =>
     row.actorName
       ? `${row.actorName}${row.actorRole ? ` · ${row.actorRole.replaceAll('_', ' ')}` : ''}`
       : '—'
+  const exportDialog = useRecordTabExport({
+    onExportItems, id: 'history', label: { el: 'Ιστορικό', en: 'History' }, employee, language, count: registry.filtered.length,
+    table: () => ({ headers: language === 'en' ? ['Event', 'Details', 'User', 'Date'] : ['Είδος', 'Περιγραφή', 'Χρήστης', 'Ημερομηνία'], rows: registry.filtered.map(row => [rowLabel(row), row.action === 'update' ? changedLabel(row.changedFields) : '', row.actorName ? actorLabel(row) : '', formatRow(row)]) }),
+  })
   return (
     <section className="record-section record-secondary-registry">
+      {exportDialog}
       <SectionTitle
         title={language === 'en' ? 'History' : 'Ιστορικό'}
         subtitle={
           language === 'en'
-            ? 'Administrative lifecycle of the employee record. Clinical events remain in their own governed tabs.'
-            : 'Διοικητικό ιστορικό της καρτέλας εργαζομένου. Τα κλινικά συμβάντα παραμένουν στις αντίστοιχες ελεγχόμενες καρτέλες.'
+            ? 'Changes to the record and the employee\'s training, visits and evaluations, newest first.'
+            : 'Αλλαγές της καρτέλας και οι εκπαιδεύσεις, επισκέψεις και αξιολογήσεις του εργαζομένου, τα νεότερα πρώτα.'
         }
       />
       <State {...state} language={language} onRetry={state.reload} />
@@ -368,8 +424,8 @@ export function EmployeeHistoryTab({ employee, language }) {
               <table className="data-table sticky-table">
                 <thead>
                   <tr>
-                    <th>{language === 'en' ? 'Event' : 'Ενέργεια'}</th>
-                    <th>{language === 'en' ? 'Changes' : 'Μεταβολές'}</th>
+                    <th>{language === 'en' ? 'Event' : 'Είδος'}</th>
+                    <th>{language === 'en' ? 'Details' : 'Περιγραφή'}</th>
                     <th>{language === 'en' ? 'User' : 'Χρήστης'}</th>
                     <th>{language === 'en' ? 'Date / time' : 'Ημερομηνία / ώρα'}</th>
                   </tr>
@@ -378,11 +434,11 @@ export function EmployeeHistoryTab({ employee, language }) {
                   {paging.paged.map(row => (
                     <tr key={row.id}>
                       <td>
-                        <strong>{eventLabel(row.action)}</strong>
+                        <strong>{rowLabel(row)}</strong>
                       </td>
                       <td>{row.action === 'update' ? changedLabel(row.changedFields) : '—'}</td>
                       <td>{actorLabel(row)}</td>
-                      <td>{format(row.at)}</td>
+                      <td>{formatRow(row)}</td>
                     </tr>
                   ))}
                 </tbody>

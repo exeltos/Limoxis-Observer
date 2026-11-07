@@ -61,14 +61,17 @@ export async function loadCommitteesFullAsync(organizationId){
 // closed decisions are read when a committee is opened (loadCommitteeRecordAsync).
 export async function loadCommitteesAsync(organizationId){
   if(!requireProduction(organizationId,'load'))return loadCommitteesLocal()
-  const [{data,error},counted,meetings,decisions]=await Promise.all([
+  const [{data,error},counted,meetings,decisions,held]=await Promise.all([
     supabase.from('committees').select(COMMITTEE_COLUMNS).eq('organization_id',organizationId).order('name'),
     supabase.rpc('committee_overview_counts',{p_organization_id:organizationId}),
     selectRows('committee_meetings',MEETING_LIST_COLUMNS,organizationId,'scheduled_at',openMeetings),
     selectRows('committee_decisions',DECISION_COLUMNS,organizationId,null,openDecisions),
+    // The date of each committee's last meeting held (the list's «Next meeting»).
+    supabase.from('committee_meetings').select('committee_id,scheduled_at').eq('organization_id',organizationId).neq('status','cancelled').lte('scheduled_at',new Date().toISOString()),
   ]);if(counted?.error||!Array.isArray(counted?.data))return loadCommitteesFullAsync(organizationId);if(error)throw error
   const counts=new Map(counted.data.map(x=>[x.committee_id,x]))
-  return (data||[]).map(row=>{const c=counts.get(row.id);return {...fromRow(row,{meetings,decisions}),partial:true,overview:{meetings:Number(c?.meetings_total||0),openMeetings:Number(c?.meetings_open||0),openDecisions:Number(c?.decisions_open||0)}}})
+  const lastHeld=new Map();for(const item of held?.data||[]){const date=String(item.scheduled_at||'').slice(0,10);if(date>(lastHeld.get(item.committee_id)||''))lastHeld.set(item.committee_id,date)}
+  return (data||[]).map(row=>{const c=counts.get(row.id);return {...fromRow(row,{meetings,decisions}),partial:true,overview:{meetings:Number(c?.meetings_total||0),openMeetings:Number(c?.meetings_open||0),openDecisions:Number(c?.decisions_open||0),lastMeetingOn:lastHeld.get(row.id)||''}}})
 }
 // How many meetings a committee has: the count from the list read, else its meetings.
 export function committeeMeetingCount(row){return row?.overview?Number(row.overview.meetings||0):(row?.meetings||[]).length}

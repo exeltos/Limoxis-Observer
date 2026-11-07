@@ -1,6 +1,6 @@
 import { useEffect,useState } from 'react'
 import { useNavigate,useParams } from 'react-router-dom'
-import { ClipboardList,Pencil,Target } from 'lucide-react'
+import { ClipboardList,Gauge,Pencil,Target } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
 import { DetailList } from '../../../design-system/DetailList'
@@ -26,6 +26,7 @@ import { formatObjectiveValue,objectiveState } from './reviewTemplate'
 import { objectiveLevelText,objectiveMeasureSource,objectiveMeasureText,objectiveStateLabel,objectiveTitle,targetReach,useObjectives } from './QualityObjectives'
 import { rememberQualitySection } from '../qualityReturnSection'
 import '../quality.css'
+import { LinkedActions } from '../LinkedActions'
 
 const tone=state=>({met:'success',missed:'danger'})[state]||'info'
 
@@ -35,7 +36,9 @@ export function ObjectiveRecordPage(){
  const {objectives,definitions,loading,reload}=useObjectives(tenant?.id)
  const canManage=can(role,CAPABILITIES.MANAGE_QUALITY,membership?.capabilities||[],membership?.customCapabilities||[])
  const back=()=>{rememberQualitySection('indicators:objectives');navigate('/quality',{replace:true})}
- const target_=objectives.find(item=>item.id===objectiveId)
+ const target_=objectives.find(item=>item.id===objectiveId||item.code===objectiveId)
+ // Opened by its code (from a corrective action): continue at its own address.
+ useEffect(()=>{if(target_&&target_.id!==objectiveId)navigate(`/quality/objectives/${target_.id}`,{replace:true})},[target_,objectiveId,navigate])
  // The value month by month for the objective's year, up to the current month, only the months with a value:
  // from the register, from the platform's indicator or the values entered by the owner.
  const [history,setHistory]=useState([])
@@ -54,7 +57,7 @@ export function ObjectiveRecordPage(){
  }
  const auto=useAutoTranslated('quality_objectives',[objectiveId],{enabled:en&&!isDemo})
  if(loading)return <RouteLoading/>
- const objective=objectives.find(item=>item.id===objectiveId)
+ const objective=objectives.find(item=>item.id===objectiveId||item.code===objectiveId)
  if(!objective)return <Page title={en?'Quality objective':'Στόχος ποιότητας'}><div className="inline-empty">{en?'The objective was not found.':'Ο στόχος δεν βρέθηκε.'}</div></Page>
  const {current,register,unit}=objective
  const monthly=objectiveSource(objective)==='monthly'
@@ -83,7 +86,7 @@ export function ObjectiveRecordPage(){
   if(!ok)notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')
  }
  return <Page fill><EntityRecordShell className="quality-record-shell objective-record-shell workspace-fill" avatar={<Target size={19}/>} eyebrow={objective.code} title={objectiveTitle(objective,language)} subtitle={`${en?'Quality objective':'Στόχος ποιότητας'} · ${objective.year}`} status={<><StatusBadge tone={tone(state)}>{objectiveStateLabel(state,en)}</StatusBadge>{en&&auto.has(`${objective.id}:title`)&&objective.titleEn&&<AutoTranslatedMark/>}</>} onBack={back}
-  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{canManage&&<Button recordMenu variant="secondary" onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={15}/>{en?'Edit':'Επεξεργασία'}</Button>}</>}>
+  headerActions={<><ExportMenu onPrint={()=>printObjective(false)} onPdf={()=>printObjective(true)}/>{register&&<IconButton size="sm" label={en?'Open the register':'Άνοιγμα μητρώου'} onClick={()=>navigate(`/registers/${register.id}`)}><ClipboardList size={16}/></IconButton>}{objective.platformIndicator?.definitionId&&<IconButton size="sm" label={en?'Open the indicator':'Άνοιγμα δείκτη'} onClick={()=>navigate(`/indicators/${objective.platformIndicator.definitionId}`)}><Gauge size={16}/></IconButton>}{canManage&&<Button recordMenu variant="secondary" onClick={()=>navigate(`/quality/objectives/${objective.id}/edit`)}><Pencil size={15}/>{en?'Edit':'Επεξεργασία'}</Button>}</>}>
   <section className="record-section">
    <div className="indicator-result-hero">
     <div className="indicator-result-value"><strong>{value}</strong></div>
@@ -104,6 +107,7 @@ export function ObjectiveRecordPage(){
     {!(monthly&&canManage)&&<table className="objective-history objective-history-compact"><thead><tr><th>{en?'Month':'Μήνας'}</th><th>{en?'Value':'Τιμή'}</th></tr></thead>
      <tbody>{history.map(row=><tr key={row.month}><td>{new Intl.DateTimeFormat(en?'en-GB':'el-GR',{month:'long',year:'numeric'}).format(new Date(objective.year,row.month-1,1))}</td><td className={objectiveState(objective,row.value)==='missed'?'is-late':undefined}>{formatObjectiveValue(row.value,unit,language)}</td></tr>)}</tbody></table>}
    </>}
+   <LinkedActions sourceId={objective.code} organizationId={tenant?.id}/>
   </section>
  </EntityRecordShell>
  </Page>

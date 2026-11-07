@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../../core/export/reportDocument'
 import { calculateCloudDefinition, collectCloudIndicatorMetrics, loadIndicatorSnapshots } from '../../indicators/indicatorCloudService'
 import { loadEntries, loadRegisters } from '../../registers/registerService'
 import { computeIndicator, textOf as registerText } from '../../registers/registerEngine'
@@ -131,15 +132,21 @@ export function platformIndicatorsTable(indicatorRows, objectives, language) {
   }
 }
 
-export function registerIndicatorsTable(registerRows, language) {
+// The registers' indicators with a target, one table per register (the same four columns as the indicators' print);
+// the ones without a target only inform and stay in their register.
+export function registerIndicatorSections(registerRows, language) {
   const en = language === 'en'
-  return {
-    columns: [en ? 'Indicator' : 'Δείκτης', en ? 'Register' : 'Μητρώο', en ? 'Value' : 'Τιμή', en ? 'Computed from' : 'Υπολογισμός', en ? 'Target' : 'Στόχος', en ? 'Status' : 'Κατάσταση'],
-    rows: registerRows.map(row => {
-      const unit = en ? row.unitEn : row.unit
-      return [en ? row.titleEn || row.titleEl : row.titleEl, en ? row.register.nameEn : row.register.name, valueText(row.value, unit, language), evidenceText(row, language), targetText(row.target, row.direction, row.unit), stateCell(row, judged(row.value, row.target, row.direction), en)]
-    }),
+  const columns = [{ text: en ? 'Indicator' : 'Δείκτης', width: '52%' }, { text: en ? 'Value' : 'Τιμή', align: 'right', width: '18%' }, { text: en ? 'Target' : 'Στόχος', width: '9%' }, { text: en ? 'Status' : 'Κατάσταση', width: '21%' }]
+  const groups = []
+  for (const row of registerRows.filter(item => item.target != null && item.target !== '')) {
+    const name = (en ? row.register.nameEn : row.register.name) || row.register.name
+    const group = groups.find(item => item.name === name)
+    if (group) group.rows.push(row); else groups.push({ name, rows: [row] })
   }
+  return groups.map(({ name, rows }) => ({ title: `${name} (${rows.length})`, table: { columns, rows: rows.map(row => {
+    const evidence = evidenceText(row, language)
+    return [en ? row.titleEn || row.titleEl : row.titleEl, { align: 'right', html: `${escapeHtml(valueText(row.value, en ? row.unitEn : row.unit, language))}${evidence && evidence !== '—' ? `<small>${escapeHtml(evidence)}</small>` : ''}` }, targetText(row.target, row.direction, row.unit), stateCell(row, judged(row.value, row.target, row.direction), en)]
+  }) } }))
 }
 
 // The file's last page: what is missing, grouped by reason, with the indicators and objectives it leaves without a value.

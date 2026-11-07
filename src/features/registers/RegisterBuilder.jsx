@@ -269,7 +269,7 @@ function FieldEditor({ field: initial, register, sections, locked, onCancel, onS
         </FormGrid>
       </FormCard>}
       {field.type === 'date' && <FormCard wide title={en ? 'Rule' : 'Κανόνας'}><SearchableSelect label={en ? 'Not before' : 'Όχι πριν από'} value={field.notBefore || ''} options={dates.map(item => ({ value: item.key, label: textOf(item, language) }))} onChange={value => set({ notBefore: value || '' })} {...selectText(en)} /></FormCard>}
-      {isList && <FormCard wide title={en ? 'Values' : 'Τιμές'} hint={en ? '«Import as» lists the beginnings of the old values (FileMaker) each value takes.' : 'Στο «Εισαγωγή ως» γράφετε πώς ξεκινούσε η τιμή στο FileMaker (π.χ. ΔΙΑΚΟΜΙΔΗ), χωρισμένα με κόμμα.'}>
+      {isList && <FormCard wide title={en ? 'Values' : 'Τιμές'} hint={en ? '«Import as» lists how each value began in the imported file.' : 'Στο «Εισαγωγή ως» γράφετε πώς ξεκινά η τιμή στο αρχείο εισαγωγής (π.χ. ΔΙΑΚΟΜΙΔΗ), χωρισμένα με κόμμα.'}>
         <ul className="register-builder-list">{(field.options || []).map((option, index) => <li key={option.value || index}><span className="register-axis-fields">
           <input aria-label={en ? 'Value' : 'Τιμή'} value={option.label} onChange={event => set({ options: field.options.map((item, position) => (position === index ? { ...item, label: event.target.value } : item)) })} />
           <input aria-label={en ? 'Import as' : 'Εισαγωγή ως'} placeholder={en ? 'Import as' : 'Εισαγωγή ως'} value={(option.match || []).join(', ')} onChange={event => set({ options: field.options.map((item, position) => (position === index ? { ...item, match: event.target.value.split(',').map(text => text.trim()).filter(Boolean) } : item)) })} />

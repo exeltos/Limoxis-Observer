@@ -68,6 +68,13 @@ qualityFindings.push(
  finding('FND-2606-010','2026-06-18','Χειρουργική','incident','INC-260616-017','high','inProgress','Προϊστάμενος Χειρουργικής','Καθυστερημένη αφαίρεση ουροκαθετήρων','Late urinary catheter removal','Δεν γίνεται καθημερινή επανεκτίμηση της ανάγκης ουροκαθετήρα.','The need for the urinary catheter is not reviewed daily.'),
  finding('FND-2607-011','2026-07-09','ΤΕΠ','audit','AUD-2607-001','medium','open','Διευθυντής ΤΕΠ','Υπερπλήρεις περιέκτες αιχμηρών','Overfilled sharps containers','4 περιέκτες αιχμηρών πάνω από τη γραμμή πλήρωσης.','4 sharps containers above the fill line.'),
 )
+// The kind of each deviation, the categories of its causes, recurrence and who reported it.
+;[['FND-2510-002','procedure',['procedure','human_error'],false,'Νοσηλευτής/τρια επιτήρησης ΜΕΘ','Τεκμηρίωση που δεν ζητείται από το έντυπο της γραμμής.'],
+  ['FND-2512-004','procedure',['procedure','method'],true,'Υπεύθυνος ΜΕΝΝ','Βήμα που λείπει από την κάρτα οδηγιών της πρόσβασης.'],
+  ['FND-2603-006','material',['material'],false,'Ομάδα επιθεώρησης',''],
+  ['FND-2606-010','procedure',['procedure','human_error'],true,'Νοσηλευτής/τρια Λοιμώξεων','Δεν υπάρχει καθημερινός έλεγχος ανάγκης του καθετήρα.'],
+  ['FND-2607-011','breakdown',['equipment','supplier'],false,'Διευθυντής ΤΕΠ','Καθυστέρηση στην προμήθεια νέων περιεκτών.'],
+].forEach(([id,deviationKind,causeCategories,recurring,reportedBy,rootCause])=>Object.assign(qualityFindings.find(item=>item.id===id),{deviationKind,causeCategories,recurring,reportedBy,rootCause}))
 const capa=(id,sourceType,sourceId,department,owner,dueDate,status,priority,actionType,title,titleEn,description,descriptionEn,effectivenessDue,effectivenessStatus,assignedAt)=>({id,title,titleEn,sourceType,sourceId,department,departmentEn:DEPT_EN[department],owner,dueDate,status,priority,actionType,description,descriptionEn,effectivenessDue,effectivenessStatus,attachments:[],history:[{at:`${assignedAt}T09:30:00+03:00`,action:'capaAssigned',actor:'Υπεύθυνος Ποιότητας'}]})
 qualityCapas.push(
  capa('CAPA-2510-001','finding','FND-2510-002','ΜΕΘ','Προϊστάμενος ΜΕΘ','2025-11-15','closed','high','corrective','Υποχρεωτικό πεδίο ημερομηνίας τοποθέτησης CVC','Mandatory CVC insertion-date field','Ενσωμάτωση στο φύλλο νοσηλείας και έλεγχος σε 4 εβδομάδες.','Added to the care sheet and rechecked after 4 weeks.','2026-01-15','effective','2025-10-15'),

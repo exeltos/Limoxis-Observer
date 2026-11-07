@@ -10,7 +10,9 @@ export function PageEmbedProvider({ children }) {
   return <PageEmbedContext.Provider value={true}>{children}</PageEmbedContext.Provider>
 }
 
-export function Page({navigation,title,subtitle,actions,children,fill=false,className=''}) {
+// `icon` gives the page the record header: a white card with the icon (as on a supplier's
+// page), for screens opened from a record list (e.g. a list's renewals or templates).
+export function Page({navigation,title,subtitle,actions,children,fill=false,className='',icon=null}) {
   // Inside a merged section the page carries the section's name and tabs; pages nested in it do not repeat them.
   const section=useSectionTabs()
   const embedded=useContext(PageEmbedContext)
@@ -22,7 +24,15 @@ export function Page({navigation,title,subtitle,actions,children,fill=false,clas
   )
   return (
     <section className={`page ${fill?'page-fill':''} ${className}`.trim()}>
-      <header className="page-header">
+      {icon&&!section?<header className="entity-record-header surface page-record-header">
+        {navigation}
+        <div className="entity-record-avatar">{icon}</div>
+        <div className="entity-record-identity">
+          <h1>{title}</h1>
+          {subtitle&&<p>{subtitle}</p>}
+        </div>
+        {actions&&<div className="entity-record-header-actions">{actions}</div>}
+      </header>:<header className="page-header">
         <div className="page-heading-group">
           {navigation&&<div className="page-navigation">{navigation}</div>}
           <div className="page-heading-copy">
@@ -31,7 +41,7 @@ export function Page({navigation,title,subtitle,actions,children,fill=false,clas
           </div>
         </div>
         {actions&&<div className="page-actions">{actions}</div>}
-      </header>
+      </header>}
       {section?<><SectionTabStrip section={section}/><SectionTabsProvider value={null}>{children}</SectionTabsProvider></>:children}
     </section>
   )

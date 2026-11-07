@@ -2,8 +2,26 @@
 // it runs, how many are overdue, today's entries done of those due, its
 // programme adherence over the chosen period and when it last recorded. Built from the same scoped rows as the list, so a card and
 // the list it opens always count the same controls.
-import { assignmentStatus, getAssignment } from './controlScheduling'
+import { assignmentFrequency, assignmentStatus, getAssignment } from './controlScheduling'
 import { todayProgress } from './controlAdherence'
+import { isDailyFrequency, isWeekdaysOnly, zonedParts } from './controlDueRules'
+
+// «Today» on a Saturday or Sunday (owner, 7/11/2026): the departments whose daily controls all run Monday–Friday have
+// nothing to do and leave the view. Empty on working days.
+export function weekendClosedDepartments(rows = [], now = new Date()) {
+  const { year, month, day } = zonedParts(now)
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+  if (weekday !== 0 && weekday !== 6) return new Set()
+  const daily = new Map()
+  for (const { item, departments } of rows) {
+    for (const department of departments) {
+      const frequency = assignmentFrequency(item, department)
+      if (!isDailyFrequency(frequency)) continue
+      daily.set(department, (daily.get(department) ?? true) && isWeekdaysOnly(frequency))
+    }
+  }
+  return new Set([...daily].filter(([, closed]) => closed).map(([department]) => department))
+}
 
 const latest = (values) => values.filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0] || null
 
@@ -28,10 +46,10 @@ export function departmentCards(rows = [], adherenceLines = [], now = new Date()
     card.counted += Math.min(line.performed, line.expected)
     card.missed += line.missed
   }
-  // Departments with overdue controls first, then the lowest adherence.
+  // The lowest adherence first (owner, 7/11/2026), then those with overdue controls; without a rate last.
   return [...cards.values()]
     .map((card) => ({ ...card, rate: card.expected ? Math.round((card.counted / card.expected) * 100) : null }))
-    .sort((a, b) => (b.overdue > 0) - (a.overdue > 0) || (a.rate ?? 101) - (b.rate ?? 101) || a.department.localeCompare(b.department, language === 'en' ? 'en' : 'el'))
+    .sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || (b.overdue > 0) - (a.overdue > 0) || a.department.localeCompare(b.department, language === 'en' ? 'en' : 'el'))
 }
 
 // The adherence of each control over the departments the list shows (one bar per row).

@@ -197,6 +197,34 @@ function MissedCell({ row, language, onShow }) {
   </td>
 }
 
+// «Why» a line sits under the 90% target (owner, 7/11/2026): nothing recorded, fewer times a day than set, the
+// weekends missed, or whole days (weeks) missed. null at or above the target.
+export function adherenceReason(line) {
+  if (line.rate == null || adherenceTone(line.rate) === 'good') return null
+  if (!line.performed) return 'none'
+  const frequency = line.frequency || line.item?.frequency || {}
+  const days = line.missedDays || []
+  if (frequency.kind === 'daily' && days.length) {
+    const required = Number(frequency.timesPerDay || 1)
+    if (required > 1 && days.filter((x) => x.missing < required).length >= days.length / 2) return 'perday'
+    const whole = days.filter((x) => x.missing >= required)
+    const weekend = whole.filter((x) => [0, 6].includes(new Date(`${x.day}T12:00:00Z`).getUTCDay())).length
+    if (frequency.weekdaysOnly !== true && whole.length >= 4 && weekend >= whole.length * 0.6) return 'weekdays'
+  }
+  return frequency.kind === 'daily' ? 'days' : 'periods'
+}
+const REASONS = {
+  none: ['No entries', 'Χωρίς καταχώριση'], perday: ['Fewer times a day', 'Λιγότερες φορές την ημέρα'], weekdays: ['Mostly weekdays', 'Κυρίως εργάσιμες'],
+  days: ['Days missed', 'Χάνονται μέρες'], periods: ['Executions missed', 'Χάνονται εκτελέσεις'],
+}
+export const reasonLabel = (reason, language) => (reason ? REASONS[reason][language === 'en' ? 0 : 1] : '')
+// A group (a department or a control in several): the most frequent reason of its lines under the target.
+function groupReason(lines) {
+  const counts = new Map()
+  for (const line of lines) { const reason = adherenceReason(line); if (reason) counts.set(reason, (counts.get(reason) || 0) + 1) }
+  return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] || null
+}
+
 export function ControlAdherencePanel({ report, tx, language, onOpen }) {
   const en = language === 'en'
   const { lines, trend = [], reportRef, failed, loadFailedText, until } = report
@@ -233,6 +261,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
     <td>{pct(row.onTimeRate ?? (row.performed ? Math.round((row.onTime / row.performed) * 100) : null))}{row.late > 0 && <small>{en ? `${row.late} late` : `${row.late} με καθυστέρηση`}</small>}</td>
     <MissedCell row={row} language={language} onShow={() => setMissed({ lines: rowLines, title: label })} />
     <td><RateMeter rate={row.rate} /></td>
+    <td className="control-adherence-reason">{adherenceReason(row) && reasonLabel(rowLines.length === 1 ? adherenceReason(rowLines[0]) : groupReason(rowLines), language)}</td>
   </>
   const frequencyOf = (line) => frequencyLabel(line.frequency || line.item.frequency, language)
   const rowsOf = (group) => {
@@ -250,7 +279,7 @@ export function ControlAdherencePanel({ report, tx, language, onOpen }) {
     <AdherenceTrend months={trend} language={language} />
     <RegistryTable sort={sort} onSort={onSort}
       className="control-adherence-table"
-      columns={[{ key: 'control', label: byDepartment ? (en ? 'Department / control' : 'Τμήμα / έλεγχος') : (en ? 'Control / department' : 'Έλεγχος / τμήμα'), sortable: true }, { key: 'performed', label: tx.performed, sortable: true }, { key: 'onTime', label: tx.onTime, sortable: true }, { key: 'missed', label: tx.missed, sortable: true }, { key: 'rate', label: tx.adherenceRate, sortable: true }]}
+      columns={[{ key: 'control', label: byDepartment ? (en ? 'Department / control' : 'Τμήμα / έλεγχος') : (en ? 'Control / department' : 'Έλεγχος / τμήμα'), sortable: true }, { key: 'performed', label: tx.performed, sortable: true }, { key: 'onTime', label: tx.onTime, sortable: true }, { key: 'missed', label: tx.missed, sortable: true }, { key: 'rate', label: tx.adherenceRate, sortable: true }, { key: 'reason', label: en ? 'Why' : 'Γιατί' }]}
       rows={shown.flatMap(rowsOf)}
       rowKey={(entry) => entry.key}
       emptyTitle={failed ? loadFailedText : lines.length ? undefined : tx.noAdherence}
