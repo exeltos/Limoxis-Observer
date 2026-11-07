@@ -60,7 +60,7 @@ ${unchanged.length?`<h2>Ελέγχθηκαν χωρίς αλλαγή (${unchange
 // return and to replace are left to fill in by hand, with signature boxes.
 export function expiryReturnFormHtml({title,items,actorName,now=new Date()}){
  const departments=[...new Set(items.map(item=>item.department))]
- const status=item=>item.state==='expired'?`Ληγμένο (${-item.days} ημ.)`:`Λήγει σε ${item.days} ημ.`
+ const status=item=>item.state==='finding'?(rowFindingText(item.row)||'Εύρημα'):item.state==='expired'?`Ληγμένο (${-item.days} ημ.)`:`Λήγει σε ${item.days} ημ.`
  const rows=items.map((item,index)=>`<tr class="${item.state}"><td>${index+1}</td><td><strong>${esc(item.row.item)}</strong>${item.row.form?`<small>${esc(formLabel(item.row.form))}</small>`:''}</td>${departments.length>1?`<td>${esc(item.department)}</td>`:''}<td>${esc(item.row.lot||'—')}</td><td>${esc(day(item.row.expiry))}</td><td>${esc(status(item))}</td><td>${esc(item.row.quantity||'')}</td><td class="fill"></td><td class="fill"></td><td>${esc(item.row.note||'')}</td></tr>`).join('')
  const sign=label=>`<div class="sign"><span>${label}</span><div class="line"></div><small>Ονοματεπώνυμο / Υπογραφή / Ημερομηνία</small></div>`
  return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Επιστροφή και αντικατάσταση · ${esc(title)}</title><style>

@@ -4,6 +4,7 @@ import { ChevronDown,ChevronRight,PackageX } from 'lucide-react'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { useTableSort } from '../../design-system/useTableSort'
 import { Button } from '../../design-system/Button'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { printReport } from '../../core/export/reportDocument'
 import { exportRegistry } from '../../core/export/registryExports'
@@ -53,7 +54,7 @@ export function expiryEntries(items){
  }
  return [...out.values()].map(entry=>({...entry,departments:[...new Set(entry.members.map(member=>member.department))]}))
 }
-function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,language,locale,onOpen}){
+function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,language,locale,picked,onPick}){
  const en=language==='en'
  const [opened,setOpened]=useState(()=>new Set())
  // The groups as before (owner, 7/11/2026): expired, expiring soon, the findings check by check (date · who ·
@@ -81,16 +82,16 @@ function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,langua
   return [{kind:'head',key:`head|${group.key}`,group,open,count:group.items.length},...(open?own.flatMap(entry=>entry.members.length===1?[{kind:'single',key:entry.key,entry}]:[{kind:'group',key:entry.key,entry},...(opened.has(entry.key)?entry.members.map(member=>({kind:'member',key:`${entry.key}|${member.key}`,member})):[])]):[])]
  })
  return <RegistryTable sort={sort} onSort={onSort} className="control-expiry-table"
-   columns={[{key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο',sortable:true},{key:'departments',label:en?'Departments':'Τμήματα',sortable:true},{key:'expiry',label:en?'Expiry':'Λήξη',sortable:true},{key:'state',label:en?'Status':'Κατάσταση',sortable:true},{key:'action',label:'',ariaLabel:en?'Removed':'Αφαιρέθηκε'}]}
+   columns={[{key:'item',label:en?'Item / Medicine':'Υλικό / Φάρμακο',sortable:true},...(showDepartment?[{key:'departments',label:en?'Departments':'Τμήματα',sortable:true}]:[]),{key:'expiry',label:en?'Expiry':'Λήξη',sortable:true},{key:'state',label:en?'Status':'Κατάσταση',sortable:true},{key:'action',label:'',ariaLabel:en?'Removed':'Αφαιρέθηκε'}]}
    rows={rows} rowKey={row=>row.key}
    emptyTitle={en?'No items.':'Κανένα υλικό.'}
    renderRow={row=>{
-    if(row.kind==='head')return <tr className={`control-expiry-head ${row.group.head.kind}`} onClick={()=>flip(row.group.key)} aria-expanded={row.open}><td colSpan={5}><strong>{row.open?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>}{title(row.group.head)}</strong><span className="control-expiry-head-count">{row.count}</span></td></tr>
-    if(row.kind==='member')return <tr className={`control-expiry-member${onOpen?' is-link':''}`} onClick={onOpen?()=>onOpen(row.member.record):undefined}><td/><td>{row.member.department}{row.member.row.quantity&&<small>{en?'Qty':'Ποσ.'} {row.member.row.quantity}</small>}</td><td/><td/><td className="control-expiry-action">{action(row.member)}</td></tr>
+    if(row.kind==='head')return <tr className={`control-expiry-head ${row.group.head.kind}`} onClick={()=>flip(row.group.key)} aria-expanded={row.open}><td colSpan={showDepartment?5:4}>{onPick&&<span className="control-expiry-head-pick" onClick={event=>event.stopPropagation()}><CheckboxField className="control-expiry-group-pick" label="" ariaLabel={en?`Print «${title(row.group.head)}»`:`Εκτύπωση «${title(row.group.head)}»`} checked={picked?.has(row.group.key)||false} onChange={()=>onPick(row.group.key)}/></span>}<strong>{row.open?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>}{title(row.group.head)}</strong><span className="control-expiry-head-count">{row.count}</span></td></tr>
+    if(row.kind==='member')return <tr className="control-expiry-member"><td/><td>{row.member.department}{row.member.row.quantity&&<small>{en?'Qty':'Ποσ.'} {row.member.row.quantity}</small>}</td><td/><td/><td className="control-expiry-action">{action(row.member)}</td></tr>
     const {entry}=row,{item}=entry,single=row.kind==='single',open=opened.has(entry.key)
-    return <tr className={`control-expiry-row ${item.state}${single?(onOpen?' is-link':''):' is-group'}`} onClick={single?(onOpen?()=>onOpen(item.record):undefined):()=>toggle(entry.key)} aria-expanded={single?undefined:open}>
+    return <tr className={`control-expiry-row ${item.state}${single?'':' is-group'}`} onClick={single?undefined:()=>toggle(entry.key)} aria-expanded={single?undefined:open}>
      <td><strong>{!single&&(open?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>)}{item.row.item}</strong><small>{details(item,single)}</small></td>
-     <td>{single?item.department:<><strong>{en?`${entry.departments.length} departments`:`${entry.departments.length} τμήματα`}</strong><small>{entry.departments.join(', ')}</small></>}</td>
+     {showDepartment&&<td>{single?item.department:<><strong>{en?`${entry.departments.length} departments`:`${entry.departments.length} τμήματα`}</strong><small>{entry.departments.join(', ')}</small></>}</td>}
      <td className="control-expiry-date">{day(item.row.expiry)}</td>
      <td>{status(item)}</td>
      <td className="control-expiry-action">{single?action(item):null}</td>
@@ -103,7 +104,7 @@ function ExpiryTable({items,canRemove,onRemove,showControl,showDepartment,langua
 // (expired, expiring soon, findings, in date) and printable. One department:
 // its grouped list straight away. «Removed» takes an item off the list.
 // sources: [{record,departments}]
-export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,query='',stateFilter=null,actorName='',language,locale,onExportChange}){
+export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFilter=null,actorName='',language,locale,onExportChange}){
  const en=language==='en'
  const {notify}=useFeedback()
  const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort(compareExpiryItems),[sources])
@@ -117,29 +118,36 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,que
  const manyControls=new Set(sources.map(source=>source.record.id)).size>1
  // The return form lists what has expired or expires soon (of the open department, or all).
  const returnOf=list=>list.filter(item=>item.state==='expired'||item.state==='expiring').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0))
- const returnItems=returnOf(searched)
+ // The groups ticked (owner, 7/11/2026): the return form and the list print only them; none ticked, everything.
+ const [picked,setPicked]=useState(()=>new Set())
+ const pick=key=>setPicked(current=>{const next=new Set(current);if(next.has(key))next.delete(key);else next.add(key);return next})
+ const pickedItems=useMemo(()=>{const keys=new Set(expiryGroups(searched).map(group=>group.key).filter(key=>picked.has(key)));return keys.size?expiryGroups(searched).filter(group=>keys.has(group.key)).flatMap(group=>group.items):null},[searched,picked])
+ // A ticked check's findings go on the form too (its expired / short-dated items as recorded).
+ const returnItems=pickedItems?pickedItems.filter(item=>item.state!=='ok').sort((a,b)=>a.department.localeCompare(b.department,'el')||(a.days??0)-(b.days??0)):returnOf(searched)
+ const listItems=pickedItems||searched
  const formTitle=sources.length===1?sources[0].record.title:(en?'All expiry checks':'Όλοι οι έλεγχοι λήξεων')
  const printReturnForm=(list=returnItems,pdf=false)=>{if(!printHtml(expiryReturnFormHtml({title:formTitle,items:list,actorName}),{pdf}))notify(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.','error')}
  // One «Export» per tab: the page's own menu (top bar or record header) offers the
  // return form; this panel only reports it, and draws its own menu when nobody takes it.
  // It reports two prints: the whole list (to sign) and the return form.
- const printRef=useRef(null);printRef.current={list:(pdf=false)=>printList(several?'all':departmentOptions[0]||'all',searched,'',pdf),returnForm:(pdf=false)=>printReturnForm(returnItems,pdf),excel:()=>exportList(searched)}
+ const printRef=useRef(null);printRef.current={list:(pdf=false)=>printList(several?'all':departmentOptions[0]||'all',listItems,'',pdf),returnForm:(pdf=false)=>printReturnForm(returnItems,pdf),excel:()=>exportList(searched)}
  // The same list as the print (department and search as chosen), as a sheet.
  function exportList(list){
   exportRegistry({name:en?'expiry-list':'lixeis',headers:[en?'Item / Medicine':'Υλικό / Φάρμακο',en?'Department':'Τμήμα',en?'Control':'Έλεγχος',en?'Quantity':'Ποσότητα',en?'Lot':'Παρτίδα',en?'Expiry date':'Ημερομηνία λήξης',en?'Status':'Κατάσταση'],rows:list.map(item=>[item.row.item,item.department,controlTitle(item.record,language),item.row.quantity||'',item.row.lot||'',day(item.row.expiry),statusText(item,language)])})
  }
- const returnCount=returnItems.length,listCount=searched.length
+ const returnCount=returnItems.length,listCount=listItems.length,pickedCount=pickedItems?expiryGroups(searched).filter(group=>picked.has(group.key)).length:0
  useEffect(()=>{
   if(!onExportChange)return undefined
+  const sel=pickedCount?(en?` · ${pickedCount} ${pickedCount===1?'group':'groups'}`:` · ${pickedCount} ${pickedCount===1?'ομάδα':'ομάδες'}`):''
   onExportChange([
-   {id:'list',kind:'print',label:en?`Print: expiry list (${listCount})`:`Εκτύπωση: λίστα λήξεων (${listCount})`,disabled:!listCount,onClick:()=>printRef.current.list()},
-   {id:'list-pdf',kind:'pdf',label:en?`PDF: expiry list (${listCount})`:`PDF: λίστα λήξεων (${listCount})`,disabled:!listCount,onClick:()=>printRef.current.list(true)},
-   {id:'return',kind:'print',label:en?`Print: return & replacement form (${returnCount})`:`Εκτύπωση: έντυπο επιστροφής (${returnCount})`,disabled:!returnCount,onClick:()=>printRef.current.returnForm()},
-   {id:'return-pdf',kind:'pdf',label:en?`PDF: return & replacement form (${returnCount})`:`PDF: έντυπο επιστροφής (${returnCount})`,disabled:!returnCount,onClick:()=>printRef.current.returnForm(true)},
-   {id:'list-excel',kind:'excel',label:en?`Excel: expiry list (${listCount})`:`Excel: λίστα λήξεων (${listCount})`,disabled:!listCount,onClick:()=>printRef.current.excel()},
+   {id:'list',kind:'print',label:en?`Print: expiry list (${listCount}${sel})`:`Εκτύπωση: λίστα λήξεων (${listCount}${sel})`,disabled:!listCount,onClick:()=>printRef.current.list()},
+   {id:'list-pdf',kind:'pdf',label:en?`PDF: expiry list (${listCount}${sel})`:`PDF: λίστα λήξεων (${listCount}${sel})`,disabled:!listCount,onClick:()=>printRef.current.list(true)},
+   {id:'return',kind:'print',label:en?`Print: return & replacement form (${returnCount}${sel})`:`Εκτύπωση: έντυπο επιστροφής (${returnCount}${sel})`,disabled:!returnCount,onClick:()=>printRef.current.returnForm()},
+   {id:'return-pdf',kind:'pdf',label:en?`PDF: return & replacement form (${returnCount}${sel})`:`PDF: έντυπο επιστροφής (${returnCount}${sel})`,disabled:!returnCount,onClick:()=>printRef.current.returnForm(true)},
+   {id:'list-excel',kind:'excel',label:en?`Excel: expiry list (${listCount}${sel})`:`Excel: λίστα λήξεων (${listCount}${sel})`,disabled:!listCount,onClick:()=>printRef.current.excel()},
   ])
   return()=>onExportChange(null)
- },[onExportChange,returnCount,listCount,en])
+ },[onExportChange,returnCount,listCount,pickedCount,en])
  const placeName=place=>place==='all'?(en?'All departments':'Όλα τα τμήματα'):place
  const groupName=(head,place)=>head.kind==='expired'?(en?'Expired':'Έχουν λήξει'):head.kind==='expiring'?(en?'Expire soon':'Λήγουν σύντομα'):head.kind==='ok'?(en?'In date':'Εντός ημερομηνίας'):`${en?'Findings of the check of':'Ευρήματα ελέγχου'} ${day(String(head.execution?.at||'').slice(0,10))}${head.execution?.by?` · ${head.execution.by}`:''}${place==='all'?` · ${head.department}`:''}`
  // The list of a department (all its groups, or one) on the shared document layout, to sign.
@@ -160,7 +168,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,que
   ? {title:en?'No expiry checks yet':'Δεν υπάρχουν έλεγχοι λήξεων',text:en?'Create a control in the «Medicines / Supplies» category and add its list of items.':'Δημιουργήστε έλεγχο με κατηγορία «Φάρμακα / Υλικά» και προσθέστε τη λίστα υλικών του.'}
   : {title:en?'No items yet':'Δεν υπάρχουν υλικά',text:en?'Items appear here once they are on a control’s list or recorded with an expiry date.':'Τα υλικά εμφανίζονται εδώ μόλις μπουν στη λίστα ενός ελέγχου ή καταγραφούν με ημερομηνία λήξης.'}
  const single=sources.length===1?expiryWindow(sources[0].record):null
- const listProps={canRemove,onRemove,showControl:manyControls,language,locale,onOpen:onOpenControl}
+ const listProps={canRemove,onRemove,showControl:manyControls,language,locale,picked,onPick:pick}
  return <RecordTabPanel
   className="control-expiry-panel workspace-fill"
   title={null}
