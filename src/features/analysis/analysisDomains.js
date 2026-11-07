@@ -357,7 +357,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Εκτελέσεις ανά μήνα', 'Executions by month'), subtitle: tx('Έλεγχοι που πραγματοποιήθηκαν κάθε μήνα.', 'Controls performed each month.'), points: c.monthly },
         { type: 'matrix', wide: true, title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
         { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]) => [key, n]) },
         { type: 'rate', relative: true, title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]) => [key, pct(findings, total) ?? 0, `${findings ?? 0}/${total ?? 0}`]) },

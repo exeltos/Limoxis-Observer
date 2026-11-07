@@ -102,3 +102,16 @@ export function departmentGrid(snapshot,previousSnapshot,targets={}){
  const badness=row=>row.cells.reduce((sum,cell)=>sum+(cell.tone==='danger'?3:cell.tone==='warning'?1:0),0)
  return {columns,rows:rows.sort((a,b)=>badness(b)-badness(a)||a.name.localeCompare(b.name,'el'))}
 }
+
+// One department against the average of the departments and against the comparison (the «Τμήματα» tab and its report).
+export function departmentProfile(grid,name){
+ const row=grid.rows.find(item=>item.name===name)
+ if(!row)return []
+ return grid.columns.map((column,index)=>{
+  const values=grid.rows.map(item=>item.cells[index].value).filter(value=>value!=null)
+  const average=values.length?round1(values.reduce((sum,value)=>sum+value,0)/values.length):null
+  const cell=row.cells[index]
+  const versus=cell.value==null||average==null||cell.value===average?null:(cell.value>average)===(column.better==='up')
+  return {key:column.key,label:column.label,unit:column.unit||'',value:cell.value,average,previous:cell.previous,tone:cell.tone,trend:cell.trend,good:cell.good,versus}
+ })
+}

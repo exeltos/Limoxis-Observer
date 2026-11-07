@@ -26,13 +26,18 @@ import { TARGETS,executiveKpis,filtersToQuery,parseFilters,periodRange,previousR
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
-import { yearAgoRange } from './executiveInsights'
+import { changeSentences,departmentGrid,departmentProfile,yearAgoRange } from './executiveInsights'
+import { ExecutiveDepartments } from './ExecutiveDepartments'
+import { boardReportDocument,departmentReportDocument } from './executiveReports'
+import { printReport } from '../../core/export/reportDocument'
 import { ExecutiveSummary } from './ExecutiveSummary'
 import './executive.css'
-import { Database } from 'lucide-react'
+import { Building2,Database } from 'lucide-react'
 import { IndicatorDataPanel, useIndicatorDataItems } from '../indicators/IndicatorDataPanel'
 
 const DATA_TAB=['data','Δεδομένα','Data',Database,[]]
+// «Τμήματα» (owner, 7/11/2026): one department against the departments' average and the comparison.
+const DEPARTMENTS_TAB=['departments','Τμήματα','Departments',Building2,[]]
 
 const PART_KEYS=['domains','people','qualityFood','microbiology','clusters','governance']
 
@@ -75,7 +80,7 @@ export function ExecutiveDashboardPage(){
  // One row of tabs (?tab=); an old ?view=analysis&tab=<analysis tab> opens the tab that shows it.
  // The former «Μικροβιολογία & AMR» tab is part of «Λοιμώξεις & μικροβιολογία».
  const askedTab=query.get('tab')==='laboratory'?'infections':query.get('tab')||''
- const pageTab=[...INDICATOR_TABS,...INDICATOR_MORE_TABS,DATA_TAB].some(([id])=>id===askedTab)?askedTab:query.get('view')==='analysis'?indicatorTabOf(askedTab||'surveillance'):'summary'
+ const pageTab=[...INDICATOR_TABS,...INDICATOR_MORE_TABS,DATA_TAB,DEPARTMENTS_TAB].some(([id])=>id===askedTab)?askedTab:query.get('view')==='analysis'?indicatorTabOf(askedTab||'surveillance'):'summary'
  // Σύγκριση: none, the previous period, or the chosen department against the whole hospital (?vs=departments).
  // The default is the same period a year before («πέρσι», owner 7/11/2026); ?vs=previous the period just before.
  const compareMode=!filters.compare?'none':query.get('vs')==='departments'&&filters.department?'departments':query.get('vs')==='previous'?'previous':'lastYear'
@@ -135,6 +140,10 @@ export function ExecutiveDashboardPage(){
  const unfoldAll=()=>flushSync(()=>{setPrinting(true)})
  // «Infections» also has its annual report, a document of its own (the window opens in the click, the data is read after).
  function printInfectionReport(pdf){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({...await loadInfectionReportRows(organizationId,year),year,language}),{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
+ // «Αναφορά Δ.Σ.» and «Αναφορά τμήματος» (owner, 7/11/2026): short documents of their own, not the screen.
+ function printDocument(doc,pdf){if(!printReport(doc,{pdf:pdf===true}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'})}
+ function boardReport(pdf){printDocument(boardReportDocument({kpis,sentences:previousSnapshot?changeSentences(kpis,snapshot,{en}):[],grid,hospital,periodLine,compareLabel:compareLabelText,language}),pdf)}
+ function departmentReport(pdf){const name=grid.rows.some(row=>row.name===chosenDepartment)?chosenDepartment:grid.rows[0]?.name;if(!name)return;printDocument(departmentReportDocument({department:name,profile:departmentProfile(grid,name),hospital,periodLine,compareLabel:compareLabelText,language}),pdf)}
  function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`,heading:[`${title} · ${tabTitle}`,periodLine]}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'});setPrinting(false)}
  function exportPdf(){
   signalDemoScenario('analysis_export')
@@ -150,7 +159,11 @@ export function ExecutiveDashboardPage(){
  // The Analysis sections this viewer may see (modules of the operating profile; the Director reads aggregates only, no reporting lists).
  const sectionVisible=id=>(!TAB_MODULES[id]||TAB_MODULES[id].some(module=>moduleEnabled(module)))&&!(id==='reporting'&&role===ROLES.HOSPITAL_DIRECTOR)
  const tabVisible=([id,,,,sections])=>id==='summary'||(canAnalysis&&sections.some(sectionVisible))
- const mainTabs=[...INDICATOR_TABS.filter(tabVisible),...(dataItems.length?[DATA_TAB]:[])],moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
+ const grid=useMemo(()=>departmentGrid(snapshot,previousSnapshot,targets),[snapshot,previousSnapshot,targets])
+ const [chosenDepartment,setChosenDepartment]=useState('')
+ const compareLabelText=compareMode==='lastYear'?tx('Πέρσι','Last year'):compareMode==='departments'?tx('Νοσοκομείο','Hospital'):compareMode==='previous'?tx('Προηγ. περίοδος','Previous period'):tx('Σύγκριση','Comparison')
+ const shownTabs=INDICATOR_TABS.filter(tabVisible)
+ const mainTabs=[shownTabs[0],...(grid.rows.length>1?[DEPARTMENTS_TAB]:[]),...shownTabs.slice(1),...(dataItems.length?[DATA_TAB]:[])],moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
  const activeTab=[...mainTabs,...moreTabs].find(([id])=>id===pageTab)||mainTabs[0]
  const activeSections=activeTab[4].filter(sectionVisible)
  // A tab of three or more sections («Organisation») shows one at a time, under its own small tabs, so it never runs long; all
@@ -170,15 +183,15 @@ export function ExecutiveDashboardPage(){
    {!isDemo&&<FilterSelect label={tx('Τμήμα','Department')} value={department} onChange={value=>setFilters({department:value})}><option value="">{tx('Όλα τα τμήματα','All departments')}</option>{departments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</FilterSelect>}
    <FilterSelect label={tx('Σύγκριση','Comparison')} value={compareMode} onChange={value=>setFilters({compare:value!=='none'},value)}><option value="none">{tx('Χωρίς σύγκριση','No comparison')}</option><option value="lastYear">{tx('Ίδια περίοδος πέρσι','Same period last year')}</option><option value="previous">{tx('Προηγούμενη περίοδος','Previous period')}</option>{!isDemo&&<option value="departments" disabled={!department}>{tx('Τμήμα έναντι νοσοκομείου','Department vs hospital')}</option>}</FilterSelect>
   </FilterBar>
-  <ExportMenu disabled={activeTab[0]==='summary'&&loadingAny} pdfBusy={exportingPdf} onPrint={print} onPdf={exportPdf} items={activeTab[0]==='infections'?[{id:'infections-report-print',kind:'print',label:en?'Print: annual infections report':'Εκτύπωση: ετήσια αναφορά λοιμώξεων',onClick:()=>printInfectionReport(false)},{id:'infections-report-pdf',kind:'pdf',label:en?'PDF: annual infections report':'PDF: ετήσια αναφορά λοιμώξεων',onClick:()=>printInfectionReport(true)}]:[]}/>
+  <ExportMenu disabled={activeTab[0]==='summary'&&loadingAny} pdfBusy={exportingPdf} onPrint={print} onPdf={exportPdf} items={activeTab[0]==='summary'?[{id:'board-print',kind:'print',label:en?'Print: report to the Board':'Εκτύπωση: αναφορά Δ.Σ.',onClick:()=>boardReport(false)},{id:'board-pdf',kind:'pdf',label:en?'PDF: report to the Board':'PDF: αναφορά Δ.Σ.',onClick:()=>boardReport(true)}]:activeTab[0]==='departments'?[{id:'department-print',kind:'print',label:en?'Print: department report':'Εκτύπωση: αναφορά τμήματος',onClick:()=>departmentReport(false)},{id:'department-pdf',kind:'pdf',label:en?'PDF: department report':'PDF: αναφορά τμήματος',onClick:()=>departmentReport(true)}]:activeTab[0]==='infections'?[{id:'infections-report-print',kind:'print',label:en?'Print: annual infections report':'Εκτύπωση: ετήσια αναφορά λοιμώξεων',onClick:()=>printInfectionReport(false)},{id:'infections-report-pdf',kind:'pdf',label:en?'PDF: annual infections report':'PDF: ετήσια αναφορά λοιμώξεων',onClick:()=>printInfectionReport(true)}]:[]}/>
  </div>
  const periodLine=`${presetLabels[filters.period]} · ${periodLabel}${department?` · ${departmentName}`:''}${previous?` · ${tx('έναντι','vs')} ${previousLabel}`:''}`
  return <Page className="exec-page" title={title} subtitle={activeTab[0]==='data'?hospital:periodLine} actions={pageActions}>
   {mainTabs.length+moreTabs.length>1&&<CanonicalTabs className="exec-view-tabs" value={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} items={mainTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))} moreItems={moreTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))}/>}
   {activeTab[0]==='data'?<IndicatorDataPanel initial={query.get('item')}/>:<>
-  {activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{subTabs.length>0&&!printing&&<CanonicalTabs className="exec-sub-tabs" value={shownSection} onChange={setSubSection} ariaLabel={tabTitle} items={subTabs}/>}{activeSections.map(id=><div key={`${id}:${compareMode}`} hidden={Boolean(shownSection)&&id!==shownSection&&!printing}><AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/></div>)}</section>:<section ref={reportRef} className="exec-report">
+  {activeTab[0]==='departments'?<section ref={reportRef} className="exec-report"><ExecutiveDepartments grid={grid} department={chosenDepartment} onDepartment={setChosenDepartment} compareLabel={compareLabelText} language={language}/></section>:activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{subTabs.length>0&&!printing&&<CanonicalTabs className="exec-sub-tabs" value={shownSection} onChange={setSubSection} ariaLabel={tabTitle} items={subTabs}/>}{activeSections.map(id=><div key={`${id}:${compareMode}`} hidden={Boolean(shownSection)&&id!==shownSection&&!printing}><AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/></div>)}</section>:<section ref={reportRef} className="exec-report">
    {printing&&<header className="exec-report-head"><div><strong>{reportLines[0]}</strong><span>{reportLines.slice(1).join(' · ')}</span></div>{isDemo&&<span className="status-badge temporary">{tx('ΔΕΔΟΜΕΝΑ DEMO','DEMO DATA')}</span>}</header>}
-   <ExecutiveSummary kpis={kpis} snapshot={snapshot} previousSnapshot={previousSnapshot} range={range} targets={targets} compareLabel={compareMode==='lastYear'?tx('Πέρσι','Last year'):compareMode==='departments'?tx('Νοσοκομείο','Hospital'):compareMode==='previous'?tx('Προηγ. περίοδος','Previous period'):''} partsOf={kpiParts} onOpen={item=>openAnalysis(item.tab)} language={language}/>
+   <ExecutiveSummary kpis={kpis} snapshot={snapshot} previousSnapshot={previousSnapshot} range={range} targets={targets} compareLabel={compareLabelText} partsOf={kpiParts} onOpen={item=>openAnalysis(item.tab)} language={language}/>
    <p className="exec-footnote"><Activity size={13} aria-hidden="true"/>{isDemo?tx('Συνθετικά δεδομένα αποκλειστικά για το Demo περιβάλλον.','Synthetic data for the Demo environment only.'):tx('Πραγματικά δεδομένα του νοσοκομείου· οι εκκρεμότητες (εκπρόθεσμα, ληγμένα, ανοιχτές αποφάσεις) αφορούν τη σημερινή κατάσταση.','Live hospital data; open items (overdue, expired, open decisions) reflect the state today.')}</p>
   </section>}
   </>}
