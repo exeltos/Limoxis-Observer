@@ -41,7 +41,7 @@ export function useControlTimeFitReport(rows, organizationId, language, refreshK
   function exportCsv() {
     downloadCsv(en ? 'control-times.csv' : 'ores-elegxon.csv', columns, lines.map(cells))
   }
-  function exportPrint() {
+  function exportPrint(pdf = false) {
     const ok = printReport({
       language, orientation: 'landscape',
       kind: en ? 'Controls' : 'Έλεγχοι',
@@ -49,7 +49,7 @@ export function useControlTimeFitReport(rows, organizationId, language, refreshK
       meta: [[en ? 'Period' : 'Περίοδος', en ? `Last ${TIME_FIT_DAYS} days` : `Τελευταίες ${TIME_FIT_DAYS} ημέρες`], [en ? 'With a proposal' : 'Με πρόταση αλλαγής', String(lines.filter((line) => line.changed).length)]],
       sections: [{ title: en ? 'Set times and practice' : 'Ώρες ελέγχων και πράξη', note: timeFitNote(language), table: { columns, rows: lines.map(cells), empty: en ? 'No daily controls with set times.' : 'Δεν υπάρχουν ημερήσιοι έλεγχοι με ώρες.' } }],
       filename: en ? 'control-times' : 'ores-elegxon',
-    })
+    }, { pdf: pdf === true })
     if (!ok) notify(en ? 'Allow pop-ups to print.' : 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.', 'error')
   }
   return { lines, loading: !current.loaded, failed: current.failed, exportCsv, exportPrint, until: now }
@@ -100,16 +100,16 @@ export function ControlTimeFitPanel({ report, organizationId, language, canChang
     finally { setBusy('') }
   }
   return <div className="control-adherence control-time-fit">
+    <p className="control-time-fit-intro">{en
+      ? 'Set times vs the times really recorded (last 30 days); «Change» applies the proposed time.'
+      : 'Ορισμένες ώρες σε σύγκριση με τις ώρες που καταγράφονται πράγματι (τελευταίες 30 ημέρες)· το «Αλλαγή» εφαρμόζει την προτεινόμενη.'}</p>
     <div className="control-adherence-toolbar">
       <ChoiceChips className="control-time-fit-filter" label="" options={[{ value: 'changes', label: `${en ? 'Only proposals' : 'Μόνο με πρόταση'} (${changes.length})` }]} selected={onlyChanges ? ['changes'] : []} onToggle={() => { setOnlyChanges(!onlyChanges); setPage(1) }} />
       {until && <UntilNote until={until} language={language} />}
     </div>
-    <p className="control-time-fit-intro">{en
-      ? 'Compares the set times of each daily control with the times it is really done (last 30 days). When they differ, a new time is proposed; «Change» applies it to the department.'
-      : 'Συγκρίνει τις ώρες που ορίστηκαν για κάθε ημερήσιο έλεγχο με τις ώρες που γίνεται πράγματι (τελευταίες 30 ημέρες). Όταν διαφέρουν, προτείνει νέα ώρα· το «Αλλαγή» την εφαρμόζει στο τμήμα.'}</p>
     <RegistryTable sort={sort} onSort={onSort}
       className="control-adherence-table control-time-fit-table"
-      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα', sortable: true }, { key: 'current', label: en ? 'Set time' : 'Ορισμένη ώρα', sortable: true }, { key: 'typical', label: en ? 'Really done' : 'Πράγματι γίνεται', sortable: true }, { key: 'proposed', label: en ? 'Proposed time' : 'Προτεινόμενη ώρα', sortable: true }, { key: 'now', label: en ? 'On time (set time)' : 'Στην ώρα (ορισμένη)', sortable: true }, { key: 'after', label: en ? 'On time (proposed)' : 'Στην ώρα (πρότ.)', sortable: true }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
+      columns={[{ key: 'control', label: en ? 'Control / department' : 'Έλεγχος / τμήμα', sortable: true }, { key: 'current', label: en ? 'Set' : 'Ορισμένη', sortable: true }, { key: 'typical', label: en ? 'Really done' : 'Γίνεται', sortable: true }, { key: 'proposed', label: en ? 'Proposed' : 'Πρόταση', sortable: true }, { key: 'now', label: en ? 'On time now' : 'Στην ώρα τώρα', sortable: true }, { key: 'after', label: en ? 'With the proposal' : 'Με την πρόταση', sortable: true }, ...(canChange ? [{ key: 'action', label: '', ariaLabel: en ? 'Change' : 'Αλλαγή' }] : [])]}
       rows={paged}
       loading={loading}
       rowKey={(line) => `${line.item.id}|${line.department}`}

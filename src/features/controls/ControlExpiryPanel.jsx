@@ -130,9 +130,9 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,showControl=false
  const listProps={canRemove,onRemove,showControl:manyControls,language,locale}
  return <RecordTabPanel
   className="control-expiry-panel workspace-fill"
-  title={showControl?(en?'Medicine and supply expiry':'Λήξεις φαρμάκων και υλικών'):(en?'Items & expiry':'Υλικά & λήξεις')}
+  title={showControl?null:(en?'Items & expiry':'Υλικά & λήξεις')}
   subtitle={single?(en?`Alert ${single.before} days before and up to ${single.after} days after expiry`:`Ειδοποίηση ${single.before} ημέρες πριν και έως ${single.after} ημέρες μετά τη λήξη`):(en?`${sources.length} expiry checks`:`${sources.length} ${sources.length===1?'έλεγχος':'έλεγχοι'} λήξεων`)}
-  actions={<div className="control-expiry-tools">{!onExportChange&&<span className="control-expiry-totals">{en?`${counts.expired} expired · ${counts.expiring} expiring`:`${counts.expired} ληγμένα · ${counts.expiring} λήγουν`}</span>}{!onExportChange&&<ExportMenu disabled={!searched.length} items={[{id:'list',kind:'print',label:en?`Expiry list (${searched.length})`:`Λίστα λήξεων (${searched.length})`,onClick:()=>printRef.current.list()},{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,disabled:!returnItems.length,onClick:()=>printReturnForm()}]}/>}</div>}
+  actions={onExportChange?null:<div className="control-expiry-tools">{!onExportChange&&<span className="control-expiry-totals">{en?`${counts.expired} expired · ${counts.expiring} expiring`:`${counts.expired} ληγμένα · ${counts.expiring} λήγουν`}</span>}{!onExportChange&&<ExportMenu disabled={!searched.length} items={[{id:'list',kind:'print',label:en?`Expiry list (${searched.length})`:`Λίστα λήξεων (${searched.length})`,onClick:()=>printRef.current.list()},{id:'return',kind:'print',label:en?`Return & replacement form (${returnItems.length})`:`Έντυπο επιστροφής (${returnItems.length})`,disabled:!returnItems.length,onClick:()=>printReturnForm()}]}/>}</div>}
  >
   {!searched.length?<div className="inline-empty control-expiry-empty"><strong>{empty.title}</strong><span>{empty.text}</span></div>
   :<div className="control-expiry-inline"><ExpiryGroupList items={searched} showDepartment={several} {...listProps}/></div>}

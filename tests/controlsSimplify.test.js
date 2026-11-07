@@ -25,7 +25,9 @@ describe('controls list: department cards, key figures per tab, no filter popove
   it('the period is always in sight beside the search, the status inside «Filters»; the department is a chip', () => {
     const bar = page.slice(page.indexOf('<FilterBar'), page.indexOf('</FilterBar>'))
     // The period (day, month, quarter, half-year, year with ‹ ›) is chosen every time (owner, 2/11/2026): beside the search.
-    expect(bar).toContain("end={activeView==='expiry'?null:periodSelect}")
+    // The tab's totals and the period beside the search (owner, 7/11/2026: totals instead of cards above the list).
+    expect(bar).toContain("{activeView==='expiry'?null:periodSelect}</>}")
+    expect(bar).toContain('<ControlsKpis view={activeView}')
     expect(page).toContain('const periodSelect=<ControlPeriodPicker value={period} onChange={setPeriod} language={language} label={tx.period}/>')
     expect(bar).toContain("activeFilters={department!=='all'&&showCards?")
     // The status and the department are selects of the same popover on every tab; the culture programme is not part of the Controls.

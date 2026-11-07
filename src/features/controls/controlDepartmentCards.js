@@ -28,10 +28,10 @@ export function departmentCards(rows = [], adherenceLines = [], now = new Date()
     card.counted += Math.min(line.performed, line.expected)
     card.missed += line.missed
   }
-  // Departments with overdue controls first, then the lowest adherence.
+  // The lowest adherence first (owner, 7/11/2026), then those with overdue controls; without a rate last.
   return [...cards.values()]
     .map((card) => ({ ...card, rate: card.expected ? Math.round((card.counted / card.expected) * 100) : null }))
-    .sort((a, b) => (b.overdue > 0) - (a.overdue > 0) || (a.rate ?? 101) - (b.rate ?? 101) || a.department.localeCompare(b.department, language === 'en' ? 'en' : 'el'))
+    .sort((a, b) => (a.rate ?? 101) - (b.rate ?? 101) || (b.overdue > 0) - (a.overdue > 0) || a.department.localeCompare(b.department, language === 'en' ? 'en' : 'el'))
 }
 
 // The adherence of each control over the departments the list shows (one bar per row).

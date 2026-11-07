@@ -32,7 +32,7 @@
 .control-time-fit .control-adherence-toolbar{flex-wrap:nowrap}
 .control-time-fit .control-adherence-meter>i{width:60px}
 .control-time-fit-table td:nth-child(n+5){white-space:nowrap}
-.control-time-fit-intro{margin:0;padding:10px 16px 12px;max-width:none;font-size:12.5px;line-height:1.5;color:var(--lo-color-muted)}
+.control-time-fit-intro{margin:0;padding:8px 16px 4px;max-width:none;font-size:12.5px;line-height:1.4;color:var(--lo-color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .control-time-fit-same{color:var(--lo-color-muted)}
 /* «Up to 18/10/2026»: the reports end on the last day with entries. */
 .control-until-note{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;background:var(--lo-status-warning-bg,var(--lo-color-surface-muted));color:var(--lo-status-warning-fg);font-size:12px;font-weight:700;white-space:nowrap}
@@ -66,3 +66,11 @@
 /* «Stopped»: the days without an entry, red from a month on. */
 .control-stopped-table td small{display:block;font-size:11.5px;color:var(--lo-color-muted)}
 .control-stopped-table .control-stopped-long{color:#a32121}
+.control-adherence-table td.control-adherence-reason{font-size:12.5px;color:var(--lo-color-muted);white-space:nowrap}
+.control-history-adherence{display:flex;flex-wrap:wrap;gap:6px;padding:8px 16px 4px}
+.control-history-adherence-item{display:inline-flex;align-items:center;gap:8px;padding:4px 10px;font:inherit;font-size:12.5px;color:var(--lo-color-text);background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-radius:8px;cursor:pointer}
+.control-history-adherence-item>span{font-weight:600}
+.control-history-adherence-item small{color:var(--lo-color-muted)}
+.control-history-adherence-item.is-active{border-color:var(--lo-color-primary);box-shadow:inset 0 0 0 1px var(--lo-color-primary)}
+.control-history-adherence-item .control-adherence-meter i{width:48px}
+.control-time-fit-table .control-adherence-meter>i{width:52px}
