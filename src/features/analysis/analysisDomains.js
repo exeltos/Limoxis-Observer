@@ -282,7 +282,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'surveillance': {
       // No HAI classified (or no device recorded) in the period: one line instead of empty charts.
       const classified = (s.byCaseStatus || []).reduce((sum, [, n]) => sum + (Number(n) || 0), 0)
-      const hasDevices = (s.byDevice || []).length > 0 || (s.deviceAssociated || []).length > 0
       return {
       kpis: [
         [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
@@ -293,11 +292,9 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
         ...(classified ? [] : [{ type: 'note', text: tx('Δεν γίνεται ταξινόμηση ΛΣΦΥ: τα γραφήματα των λοιμώξεων εμφανίζονται όταν ταξινομηθούν επεισόδια.', 'No HAI is classified: the infection charts appear once episodes are classified.') }]),
-        ...(classified && !hasDevices ? [{ type: 'note', text: tx('Δεν καταγράφονται επεμβατικές συσκευές: οι λοιμώξεις από συσκευές εμφανίζονται όταν καταγραφούν.', 'No invasive devices are recorded: device-associated infections appear once they are.') }] : []),
         classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
-        classified && hasDevices && { type: 'matrix', title: tx('Λοιμώξεις από συσκευές', 'Device-associated infections'), subtitle: tx('CLABSI, CAUTI και VAP ανά τμήμα.', 'CLABSI, CAUTI and VAP by department.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.deviceAssociated },
-        classified && { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
+        classified && { type: 'matrix', wide: true, organisms: 'rows', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
       ].filter(Boolean),
     } }
     case 'laboratory': return {
@@ -330,7 +327,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         ...(recorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αντιμικροβιακές αγωγές ούτε διάθεση φαρμακείου: η καρτέλα γεμίζει όταν καταχωριστούν.', 'No antimicrobial therapies or pharmacy dispensing are recorded: the tab fills once they are.') }]),
         { type: 'donut', title: tx('Κατάσταση έγκρισης', 'Approval status'), subtitle: tx('Έγκριση ανά αγωγή.', 'Approval per therapy.'), rows: named(a.byApproval), center: tx('αγωγές', 'therapies') },
         { type: 'matrix', wide: true, title: tx('Ουσίες ανά τμήμα', 'Agents by department'), subtitle: tx('Πού χορηγείται κάθε αντιμικροβιακό.', 'Where each antimicrobial is given.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentDepartment },
-        { type: 'matrix', wide: true, title: tx('Ουσίες ανά μικροοργανισμό', 'Agents by organism'), subtitle: tx('Ποια αγωγή δόθηκε για κάθε μικροοργανισμό του επεισοδίου.', 'Which therapy was given for each episode\'s organism.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentOrganism },
+        { type: 'matrix', wide: true, organisms: 'columns', title: tx('Ουσίες ανά μικροοργανισμό', 'Agents by organism'), subtitle: tx('Ποια αγωγή δόθηκε για κάθε μικροοργανισμό του επεισοδίου.', 'Which therapy was given for each episode\'s organism.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentOrganism },
       ].filter(chart => recorded || chart.type === 'note'),
     } }
     case 'prevention': {
@@ -349,7 +346,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'rate', title: tx('Υγιεινή χεριών ανά επαγγελματική κατηγορία', 'Hand hygiene by professional category'), subtitle: tx('Ποσοστό συμμόρφωσης · δίπλα οι ευκαιρίες.', 'Compliance rate · beside it the opportunities.'), rows: rateRowsWithTotal(hh.byCategory) },
         hasBundles && { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [BUNDLE_LABELS[key] ? BUNDLE_LABELS[key][en ? 1 : 0] : label(key), score]) },
         hasBundles && { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]) => score != null).map(([key, , score]) => [key, score]) },
-        hasWaste && { type: 'bars', title: tx('Απόβλητα ανά τμήμα (kg)', 'Waste by department (kg)'), subtitle: tx('Βάρος στην περίοδο.', 'Weight in the period.'), rows: w.byDepartment },
         ...(hasBundles ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αξιολογήσεις δεσμών μέτρων στην περίοδο.', 'No care-bundle assessments are recorded in the period.') }]),
         ...(hasWaste ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται μετρήσεις ιατρικών αποβλήτων στην περίοδο.', 'No healthcare-waste measurements are recorded in the period.') }]),
       ].filter(Boolean),
@@ -393,7 +389,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'bars', title: tx('Κάλυψη ανά εμβόλιο', 'Coverage by vaccine'), subtitle: tx('Εργαζόμενοι με ισχύον εμβόλιο.', 'Employees with a valid vaccine.'), rows: wf.byVaccine || [] },
         // One visit type only says what the visit count says already: no chart.
         ...((wf.byVisitType || []).length > 1 ? [{ type: 'donut', title: tx('Τύπος επίσκεψης', 'Visit type'), subtitle: tx('Επισκέψεις της περιόδου.', 'Visits in the period.'), rows: named(wf.byVisitType || []), center: tx('επισκέψεις', 'visits') }] : []),
-        { type: 'bars', title: tx('Εργαζόμενοι ανά τμήμα', 'Employees by department'), subtitle: tx('Ενεργό προσωπικό.', 'Active staff.'), rows: wf.byDepartment || [] },
         { type: 'bars', title: tx('Εκθέσεις εργαζομένων ανά τύπο', 'Staff exposures by type'), subtitle: tx('Τρυπήματα, βλεννογόνοι και άλλες εκθέσεις της περιόδου.', 'Needlesticks, mucosal and other exposures in the period.'), rows: named(wf.exposuresByType) },
       ],
     } }

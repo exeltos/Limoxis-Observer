@@ -14,7 +14,7 @@
 .viz-bar-track>i{display:block;height:100%;border-radius:0 4px 4px 0}
 .viz-bar-value{font-size:12.5px;color:#1d3a52;text-align:right;font-variant-numeric:tabular-nums}
 
-.viz-donut{display:grid;grid-template-columns:180px minmax(0,1fr);align-items:center;gap:18px}
+.viz-donut{display:grid;grid-template-columns:180px minmax(0,1fr);align-items:center;gap:18px;max-width:620px}
 .viz-donut svg{width:180px;height:180px;overflow:visible}
 .viz-donut-value{font-size:26px;font-weight:800;fill:#1d3a52}
 .viz-donut-caption{font-size:11px;font-weight:700;fill:#5f6e7c;text-transform:uppercase;letter-spacing:.04em}
@@ -78,3 +78,14 @@
 .viz-bar-detail{font-size:11px;font-weight:500;color:var(--lo-color-muted);white-space:nowrap}
 /* With «x/y» beside the values, one width for the value column, so every bar ends at the same point. */
 .viz-bars.has-detail .viz-bar-row{grid-template-columns:minmax(90px,min(38%,260px)) minmax(0,1fr) 116px}
+/* The comparison (owner, 7/11/2026): the other period as a grey dashed line, with a small legend. */
+.viz-compare-line{stroke:#9aa8b6;stroke-width:1.75;stroke-dasharray:5 4;stroke-linejoin:round;stroke-linecap:round}
+.viz-compare-legend{display:flex;gap:14px;margin:4px 0 0;font-size:11px;color:var(--lo-color-muted)}
+.viz-compare-legend span::before{content:"";display:inline-block;width:16px;height:0;margin-right:5px;vertical-align:middle;border-top:2px solid #2a78d6}
+.viz-compare-legend span.is-other::before{border-top:2px dashed #9aa8b6}
+.viz-tooltip small{display:block;color:var(--lo-color-muted)}
+/* The rows beyond the first of a long table: on «+N more», always on paper. */
+.analysis-matrix tr.analysis-matrix-extra{display:none}
+@media print{.analysis-matrix tr.analysis-matrix-extra{display:table-row}.analysis-matrix-more{display:none}}
+.analysis-matrix-more{margin:6px 0 0;padding:0;font:inherit;font-size:12px;font-weight:700;color:var(--lo-color-primary);background:none;border:0;cursor:pointer}
+.analysis-empty-charts{margin:4px 0 0;padding:10px 14px;border:1px dashed var(--lo-color-border);border-radius:12px;font-size:12.5px;color:var(--lo-color-muted)}
