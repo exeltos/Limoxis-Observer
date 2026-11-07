@@ -18,7 +18,7 @@ const todayText = (done, required) => (required ? `${done}/${required}` : '—')
 // rows of cards). The first card opens the whole list; any other opens the
 // list of that department's controls. `single`: the one card of a department
 // above its own list (a department manager), wide and not a link.
-export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = DEFAULT_PERIOD, loading = false, language = 'el', onOpen, single = false, picking = false, hidden = null, onToggle, hiddenCount = 0, onShowAll }) {
+export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = DEFAULT_PERIOD, loading = false, language = 'el', onOpen, single = false, picking = false, hidden = null, onToggle, hiddenCount = 0, onShowAll, closedCount = 0 }) {
   const en = language === 'en'
   const numbers = (card) => <span className="control-department-card-numbers">
     <span><b>{card.controls}</b>{en ? 'controls' : 'έλεγχοι'}</span>
@@ -67,5 +67,6 @@ export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, tot
     </button>)}
     {!cards.length && <div className="inline-empty">{en ? 'No departments with controls.' : 'Δεν υπάρχουν τμήματα με ελέγχους.'}</div>}
     {hiddenLine}
+    {closedCount > 0 && <p className="control-department-hidden-line">{en ? `${closedCount} ${closedCount === 1 ? 'department works' : 'departments work'} Monday–Friday: not shown today` : `${closedCount} ${closedCount === 1 ? 'τμήμα λειτουργεί' : 'τμήματα λειτουργούν'} Δευτέρα–Παρασκευή: δεν εμφανίζονται σήμερα`}</p>}
   </div>
 }

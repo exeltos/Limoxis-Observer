@@ -28,8 +28,22 @@ describe('Controls: departments I see', () => {
   it('keeps the choice on the user account and applies it to every tab', () => {
     const page = readFileSync('src/features/controls/ControlsPage.jsx', 'utf8')
     expect(page).toContain("useViewPreference(tenant?.id,user?.id,'controls.hiddenDepartments',NO_HIDDEN)")
-    expect(page).toContain('const scopedControls=useMemo(()=>hidden.size?accessibleControls.map(')
+    expect(page).toContain('const scopedControls=useMemo(()=>hidden.size||closedToday.size?accessibleControls.map(')
     const sql = readFileSync('supabase/migrations/20261231242000_user_view_preferences.sql', 'utf8')
     expect(sql).toContain('user_id = (select auth.uid()) and public.is_org_member(organization_id)')
+  })
+})
+
+describe('Controls: Today on a weekend', () => {
+  it('leaves out the departments whose daily controls all run Monday–Friday, only on Saturday and Sunday', async () => {
+    const { weekendClosedDepartments } = await import('../src/features/controls/controlDepartmentCards')
+    const weekdays = { kind: 'daily', times: ['09:00'], weekdaysOnly: true }
+    const everyDay = { kind: 'daily', times: ['09:00'] }
+    const rows = [
+      { item: { frequency: everyDay, assignments: { 'Απεικονίσεις': { frequency: weekdays }, 'ΜΕΘ': { frequency: everyDay } } }, departments: ['Απεικονίσεις', 'ΜΕΘ'] },
+      { item: { frequency: { kind: 'weekly' }, assignments: {} }, departments: ['Απεικονίσεις'] },
+    ]
+    expect([...weekendClosedDepartments(rows, new Date('2026-11-07T10:00:00Z'))]).toEqual(['Απεικονίσεις'])
+    expect(weekendClosedDepartments(rows, new Date('2026-11-09T10:00:00Z')).size).toBe(0)
   })
 })
