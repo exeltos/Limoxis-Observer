@@ -162,3 +162,8 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-department-hidden-line{grid-column:1/-1;margin:0;font-size:13px;color:var(--lo-color-muted)}
 .control-department-hidden-line button{padding:0;font:inherit;font-weight:700;color:var(--lo-color-primary);background:none;border:0;text-decoration:underline;cursor:pointer}
 .controls-pick-departments{display:inline-flex;align-items:center;gap:6px;height:36px}
+.control-expiry-table tr.control-expiry-head{cursor:pointer}
+.control-expiry-table tr.control-expiry-head td{padding-top:8px;padding-bottom:8px;background:var(--lo-color-surface-muted)}
+.control-expiry-table tbody tr.control-expiry-head.expired td strong{color:var(--lo-status-danger-fg)}
+.control-expiry-table tbody tr.control-expiry-head.expiring td strong{color:var(--lo-status-warning-fg)}
+.control-expiry-head-count{margin-left:8px;padding:1px 8px;border-radius:999px;background:var(--lo-color-surface);border:1px solid var(--lo-color-border);font-size:11.5px;color:var(--lo-color-muted)}

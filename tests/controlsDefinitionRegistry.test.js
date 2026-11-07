@@ -10,7 +10,7 @@ describe('controls definition-centric workflow',()=>{
   expect(registry).toContain('<RegistryTable sort={sort} onSort={onSort} wrapperRef={registry.scrollRef}')
   expect(registry).toContain('renderRow={({item,departments:deps})=>')
   expect(registry).toContain('<tr key={item.id}')
-  expect(registry).toContain('registry.openRecord(navigate,`/controls/${item.id}`')
+  expect(registry).toContain("registry.openRecord(navigate,`/controls/${item.id}${tab?`?tab=${tab}`:''}`")
   expect(registry).toContain('{rows.length>0&&<RegistryPagination language={language}')
   expect(registry).not.toContain('rowKey={row=>`${row.item.id}:${row.department}`}')
  })

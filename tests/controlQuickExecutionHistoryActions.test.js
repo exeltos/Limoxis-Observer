@@ -7,8 +7,8 @@ const cancellation=readFileSync(new URL('../src/features/controls/ControlCancell
 
 describe('control quick execution and history actions',()=>{
  it('opens the control on a row click, with no execute button in the row (the execution is entered from the control)',()=>{
-  expect(registry).toContain('function openControl(item)')
-  expect(registry).toContain('registry.openRecord(navigate,`/controls/${item.id}`')
+  expect(registry).toContain("function openControl(item,tab='')")
+  expect(registry).toContain("registry.openRecord(navigate,`/controls/${item.id}${tab?`?tab=${tab}`:''}`")
   expect(registry).toContain('onClick={()=>openControl(item)}')
   expect(registry).not.toContain('function quickExecute')
   expect(registry).not.toContain('Τα στοιχεία του ελεγκτή θα συμπληρωθούν αυτόματα.')
