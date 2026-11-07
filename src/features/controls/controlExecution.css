@@ -136,10 +136,7 @@
   min-width: 160px;
 }
 /* The items' table fits the window (owner, 7/11/2026): narrow inputs, no sideways scroll. */
-.control-expiry-date-cell .control-expiry-badge {
-  display: inline-block;
-  margin-top: 4px;
-}
+
 .control-expiry-table tr.is-removed td {
   opacity: 0.55;
 }
@@ -159,7 +156,7 @@
 }
 .control-expiry-single {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1.2fr);
   gap: 12px 14px;
   align-items: start;
 }
@@ -167,7 +164,7 @@
   grid-column: span 2;
 }
 .control-expiry-single .control-expiry-single-note {
-  grid-column: span 3;
+  grid-column: span 2;
 }
 @media (max-width: 900px) {
   .control-expiry-single {
