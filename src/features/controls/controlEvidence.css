@@ -167,3 +167,7 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-table tbody tr.control-expiry-head.expiring td strong{color:var(--lo-status-warning-fg)}
 .control-expiry-head-count{margin-left:8px;padding:1px 8px;border-radius:999px;background:var(--lo-color-surface);border:1px solid var(--lo-color-border);font-size:11.5px;color:var(--lo-color-muted)}
 .control-expiry-head-pick{display:inline-flex;vertical-align:middle;margin-right:8px}
+/* Every field of a row on one line; the status under the expiry date hangs below it, not pushing it up (owner, 7/11/2026). */
+.control-expiry-entry .control-expiry-table tbody td::after{content:"";display:block;height:16px}
+.control-expiry-entry .control-expiry-table td.control-expiry-date-cell{position:relative}
+.control-expiry-entry .control-expiry-table td.control-expiry-date-cell .control-expiry-badge{position:absolute;left:10px;bottom:6px;margin:0;font-size:11px;line-height:1.2;white-space:nowrap}
