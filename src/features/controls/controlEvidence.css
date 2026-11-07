@@ -146,7 +146,7 @@ button.control-evidence-link:hover{background:var(--lo-color-primary-soft)}
 .control-expiry-table td strong{display:inline-flex;align-items:center;gap:4px}
 .control-expiry-table td.control-expiry-date{font-weight:700;white-space:nowrap}
 .control-expiry-table td.control-expiry-action{text-align:right;white-space:nowrap}
-.control-expiry-table tr.is-group{cursor:pointer}
+.control-expiry-table tr:is(.is-group,.is-link){cursor:pointer}
 .control-expiry-table tr.control-expiry-member td{padding-top:6px;padding-bottom:6px;background:var(--lo-color-surface-muted)}
 /* The period of the reports: unit, then ‹ name › (ControlPeriodPicker). */
 .control-period-picker{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto}

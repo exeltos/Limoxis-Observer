@@ -54,7 +54,7 @@ export function expiryEntries(items){
  }
  return [...out.values()].map(entry=>({...entry,departments:[...new Set(entry.members.map(member=>member.department))]}))
 }
-function ExpiryTable({items,canRemove,onRemove,showControl,language,locale}){
+function ExpiryTable({items,canRemove,onRemove,showControl,language,locale,onOpen}){
  const en=language==='en'
  const [opened,setOpened]=useState(()=>new Set())
  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(25)
@@ -80,9 +80,9 @@ function ExpiryTable({items,canRemove,onRemove,showControl,language,locale}){
    rows={rows} rowKey={row=>row.key}
    emptyTitle={en?'No items.':'Κανένα υλικό.'}
    renderRow={row=>{
-    if(row.kind==='member')return <tr className="control-expiry-member"><td/><td>{row.member.department}{row.member.row.quantity&&<small>{en?'Qty':'Ποσ.'} {row.member.row.quantity}</small>}</td><td/><td/><td className="control-expiry-action">{action(row.member)}</td></tr>
+    if(row.kind==='member')return <tr className={`control-expiry-member${onOpen?' is-link':''}`} onClick={onOpen?()=>onOpen(row.member.record):undefined}><td/><td>{row.member.department}{row.member.row.quantity&&<small>{en?'Qty':'Ποσ.'} {row.member.row.quantity}</small>}</td><td/><td/><td className="control-expiry-action">{action(row.member)}</td></tr>
     const {entry}=row,{item}=entry,single=row.kind==='single',open=opened.has(entry.key)
-    return <tr className={`control-expiry-row ${item.state}${single?'':' is-group'}`} onClick={single?undefined:()=>toggle(entry.key)} aria-expanded={single?undefined:open}>
+    return <tr className={`control-expiry-row ${item.state}${single?(onOpen?' is-link':''):' is-group'}`} onClick={single?(onOpen?()=>onOpen(item.record):undefined):()=>toggle(entry.key)} aria-expanded={single?undefined:open}>
      <td><strong>{!single&&(open?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>)}{item.row.item}</strong><small>{details(item,single)}</small></td>
      <td>{single?item.department:<><strong>{en?`${entry.departments.length} departments`:`${entry.departments.length} τμήματα`}</strong><small>{entry.departments.join(', ')}</small></>}</td>
      <td className="control-expiry-date">{day(item.row.expiry)}</td>
@@ -99,7 +99,7 @@ function ExpiryTable({items,canRemove,onRemove,showControl,language,locale}){
 // (expired, expiring soon, findings, in date) and printable. One department:
 // its grouped list straight away. «Removed» takes an item off the list.
 // sources: [{record,departments}]
-export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFilter=null,actorName='',language,locale,onExportChange}){
+export function ControlExpiryPanel({sources,canRemove,onRemove,onOpenControl,query='',stateFilter=null,actorName='',language,locale,onExportChange}){
  const en=language==='en'
  const {notify}=useFeedback()
  const items=useMemo(()=>sources.flatMap(({record,departments})=>expiryItems(record,departments).map(item=>({...item,record,window:expiryWindow(record),key:`${record.id}|${item.key}`}))).sort(compareExpiryItems),[sources])
@@ -156,7 +156,7 @@ export function ControlExpiryPanel({sources,canRemove,onRemove,query='',stateFil
   ? {title:en?'No expiry checks yet':'Δεν υπάρχουν έλεγχοι λήξεων',text:en?'Create a control in the «Medicines / Supplies» category and add its list of items.':'Δημιουργήστε έλεγχο με κατηγορία «Φάρμακα / Υλικά» και προσθέστε τη λίστα υλικών του.'}
   : {title:en?'No items yet':'Δεν υπάρχουν υλικά',text:en?'Items appear here once they are on a control’s list or recorded with an expiry date.':'Τα υλικά εμφανίζονται εδώ μόλις μπουν στη λίστα ενός ελέγχου ή καταγραφούν με ημερομηνία λήξης.'}
  const single=sources.length===1?expiryWindow(sources[0].record):null
- const listProps={canRemove,onRemove,showControl:manyControls,language,locale}
+ const listProps={canRemove,onRemove,showControl:manyControls,language,locale,onOpen:onOpenControl}
  return <RecordTabPanel
   className="control-expiry-panel workspace-fill"
   title={null}
