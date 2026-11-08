@@ -390,7 +390,9 @@ export function DeviceDialog({ t, items = [], onAddLibraryItem, onClose, onSave 
 // laboratory receives and completes it, and the result is entered only there.
 // `context` ({ patient, episode, department }) is shown read-only; the extra questions
 // of sampleRequestForm.js are rendered after the core fields.
-export function SampleRequestDialog({ t, title, initialType = '', context = null, epi = null, onClose, onSave }) {
+// inSheet: on the surveillance sheet the patient, episode and department are its header and the questionnaire is
+// its own step, so they are not repeated here (owner, 8/11/2026).
+export function SampleRequestDialog({ t, title, initialType = '', context = null, epi = null, inSheet = false, onClose, onSave }) {
   const { language } = useLanguage(),
     tr = copy(language)
   const en = language === 'en'
@@ -402,7 +404,7 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
   // written to the episode's one questionnaire (or to the sample when there is no episode).
   const role = useContext(TenantContext)?.role
   const notify = useOptionalFeedback()?.notify
-  const miniOn = (epi?.episode ? canWriteEpi(role) : true) && isCultureSampleType(d.type)
+  const miniOn = !inSheet && (epi?.episode ? canWriteEpi(role) : true) && isCultureSampleType(d.type)
   const mini = useEpiMini({ episode: epi?.episode || null, admission: epi?.admission || null, samples: epi?.samples || [], enabled: true })
   const form = useFormValidation([
     { key: 'type', label: t('sampleType'), valid: Boolean(d.type) },
@@ -427,9 +429,9 @@ export function SampleRequestDialog({ t, title, initialType = '', context = null
       saveLabel={tr('sendRequest')}
       form={form}
     >
-      {context?.patient && <ReadOnlyField className="entry-span-2" label={t('patient')} value={context.patient} />}
-      {context?.episode && <ReadOnlyField label={tr('episodeWord')} value={context.episode} />}
-      {context?.department && <ReadOnlyField label={t('department')} value={context.department} />}
+      {!inSheet && context?.patient && <ReadOnlyField className="entry-span-2" label={t('patient')} value={context.patient} />}
+      {!inSheet && context?.episode && <ReadOnlyField label={tr('episodeWord')} value={context.episode} />}
+      {!inSheet && context?.department && <ReadOnlyField label={t('department')} value={context.department} />}
       <SearchableSelect
         label={t('sampleType')}
         {...form.field('type')}

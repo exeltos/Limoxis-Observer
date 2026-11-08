@@ -973,6 +973,7 @@ export function CanonicalJourney({
       )}
       {shownDialog === 'epi' && (
         <EpiQuestionnaireDialog
+          inSheet
           ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map(sample => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
           episode={record}
           row={epi.row}
@@ -1031,6 +1032,7 @@ export function CanonicalJourney({
             department: language === 'el' ? record.department : record.departmentEn || record.department,
           }}
           epi={{ episode: record, admission: null, samples: record.samples || [] }}
+          inSheet
           onClose={closeDialog}
           onSave={draft => run(() => repository.requestSample(record, draft), t('actionCompleted'))}
         />

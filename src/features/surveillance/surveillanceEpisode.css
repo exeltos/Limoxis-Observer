@@ -222,7 +222,7 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
    rules carry an id in :is() for weight; these do the same to apply on the sheet. */
 .sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){align-items:start}
 .sheet-body .observer-dialog-inline .entry-grid>:is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){display:flex;flex-direction:column;justify-content:flex-start;gap:0;margin:0;padding:0;align-self:start}
-.sheet-body .observer-dialog-inline .entry-grid :is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){gap:0!important;row-gap:0!important}
+.sheet-body .observer-dialog-inline .entry-grid :is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){gap:0!important}
 .sheet-body .observer-dialog-inline .entry-grid .lo-field-label:is(span,label,#lo-sheet-form){display:block;height:16px;min-height:16px;line-height:16px;margin:0 0 6px;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* HAI: the definition is long, the status short (owner, 8/11/2026). */
 .sheet-body .observer-dialog-inline.hai-dialog>.observer-dialog-body>.entry-grid{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.2fr)!important}
@@ -231,7 +231,7 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed #dfe7f0;padding-top:12px}
 .sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){padding-top:0!important}
 /* No frame inside the sheet's one card (owner, 8/11/2026): a form on the sheet is flat, whatever window class it carries. */
-html body .surveillance-episode-page .sheet-body .observer-dialog-inline{box-shadow:none!important;border-radius:0!important;background:transparent!important;border-left:0!important;border-right:0!important;border-bottom:0!important;max-width:none!important;width:auto!important;margin:0!important}
+html body .surveillance-episode-page .sheet-body .observer-dialog-inline{box-shadow:none!important;border-radius:0!important;background:transparent!important;border:0!important;border-top:1px solid #edf1f6!important;max-width:none!important;width:auto!important;margin:0!important}
 .sheet-body .observer-dialog-inline>header h3{font-size:14px;color:#1d5f9c}
 .sheet-anchor:empty{display:none}
 /* The 48–72 h review in the therapy step: a part of the step, not a card in the card (owner, 8/11/2026). */
@@ -249,7 +249,7 @@ html body .surveillance-episode-page .sheet-body .sp-card.sp-review{border:0!imp
 .sheet-body .sheet-answer strong{font-weight:600}
 /* Lists (samples, devices, therapy): one soft row per entry, no grid lines. */
 .sheet-body [data-ui=registry-table] table:is(table,#lo-sheet-view){border-collapse:separate;border-spacing:0 6px}
-.sheet-body [data-ui=registry-table] thead th:is(th,#lo-sheet-view){background:transparent;border:0;padding:0 12px;height:auto}
+.sheet-body [data-ui=registry-table] thead th:is(th,#lo-sheet-view){background:transparent!important;border-bottom:0!important;padding:0 12px;height:auto}
 .sheet-body [data-ui=registry-table] tbody td:is(td,#lo-sheet-view){background:#f6f8fb;border:0;padding:10px 12px}
 .sheet-body [data-ui=registry-table] tbody td:first-child:is(td,#lo-sheet-view){border-radius:9px 0 0 9px;font-weight:600}
 .sheet-body [data-ui=registry-table] tbody td:last-child:is(td,#lo-sheet-view){border-radius:0 9px 9px 0}
