@@ -1,4 +1,4 @@
-import { Activity, Award, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, CalendarRange, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
+import { Activity, Award, CalendarClock, Target, Truck, BarChart3, Beaker, BookOpenCheck, Building2, CalendarCheck, CalendarDays, CalendarRange, ChefHat, ClipboardCheck, ClipboardList, FileText, ListChecks, Gauge, GraduationCap, Home, LayoutDashboard, LibraryBig, LineChart, MessagesSquare, Pill, ShieldCheck, Stethoscope, UserSearch, Users } from 'lucide-react'
 import { CAPABILITIES, MANAGEMENT_CAPABILITIES, ROLES, can, canAny, isProfileDisabled } from '../core/permissions/roles'
 import { sectionTabsFor } from '../core/navigation/sectionTabs'
 
@@ -51,6 +51,8 @@ export const navigation=[
   {to:'/my-department/meetings',key:'departmentMeetings',label:'sidebarNav.departmentMeetings',icon:MessagesSquare,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/my-department/self-assessment',key:'departmentSelfAssessment',label:'sidebarNav.departmentSelfAssessment',icon:ListChecks,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
+  // The department's monthly shift roster (owner, 8/11/2026): the manager makes it, the department reads it.
+  {to:'/rosters',key:'rosters',label:'sidebarNav.rosters',icon:CalendarClock,roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.HR_OFFICE,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS,anyCapabilities:[CAPABILITIES.VIEW_INTERVIEWS,CAPABILITIES.VIEW_DIVISION_INTERVIEWS]},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
@@ -102,7 +104,7 @@ const hospitalLeadershipGroups=[
   ['clinical',['surveillance','laboratory','prevention','pharmacy']],
   ['operations',['controls','cultureProgramme','kitchen']],
   ['quality',['quality','qualityMeasures','meetings','documents','library']],
-  ['staff',['employees','training','interviews','occupationalHealth']],
+  ['staff',['employees','rosters','training','interviews','occupationalHealth']],
   ['management',['management']],
 ]
 
@@ -130,22 +132,22 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_MANAGER]:policy(
-    ['myDepartment','departmentCalendar','departmentMeetings','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','rosters','controls','surveillance','laboratory','departmentRegisters','departmentSuppliers','departmentSelfAssessment','employees','calendar'],
     ['indicators','training','documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
-    ['myDepartment','departmentCalendar','departmentMeetings','surveillance','prevention','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','rosters','surveillance','prevention','controls','calendar'],
     ['employees','indicators','training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
-    ['myDepartment','departmentCalendar','departmentMeetings','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','rosters','controls','calendar'],
     ['training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.HR_OFFICE]:policy(
-    ['dashboard','employees','interviews','training','calendar'],
+    ['dashboard','employees','rosters','interviews','training','calendar'],
     ['documents','library'],
     ['management','pharmacy','occupationalHealth'],
   ),

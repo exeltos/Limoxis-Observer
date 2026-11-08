@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pause, Pencil, Play, Plus, Trash2 } from 'lucide-react'
+import { Eye, Pause, Paperclip, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -10,14 +11,17 @@ import { SaveButton } from '../../design-system/SaveButton'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { ObserverDialog } from '../../design-system/ObserverDialog'
+import { InlineDialogContext, ObserverDialog } from '../../design-system/ObserverDialog'
 import { Field } from '../../design-system/Field'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { MultiSelect } from '../../design-system/MultiSelect'
 import { PlatformLibrariesTabs } from './PlatformLibrariesTabs'
+import { PlatformAnnouncementDialog } from './PlatformAnnouncementGate'
 import {
+  ATTACHMENT_ACCEPT,
   deletePlatformAnnouncement,
+  uploadAnnouncementAttachment,
   loadPlatformAnnouncements,
   savePlatformAnnouncement,
   setPlatformAnnouncementStatus,
@@ -25,10 +29,11 @@ import {
 import './platformAnnouncements.css'
 
 // Settings › Announcements (owner, 8/11/2026): the platform owner's announcements and product promotions to the
-// hospital administrators — which hospitals, which period, once or at every visit, and who has seen each.
+// hospital administrators — which hospitals, which period, once or at every visit, and who has seen each. The form
+// opens in the page (not a window), takes an uploaded image or file, and can show the announcement in the demo too.
 const day = value => (value ? String(value).slice(0, 10) : '')
 const fmt = value => (value ? new Date(value).toLocaleDateString('el-GR') : '—')
-const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
+const EMPTY = { kind: 'announcement', titleEl: '', titleEn: '', bodyEl: '', bodyEn: '', ctaLabelEl: '', ctaUrl: '', imageUrl: '', attachmentPath: '', attachmentName: '', attachmentType: '', showInDemo: false, startsAt: '', endsAt: '', audience: [], frequency: 'once', status: 'active' }
 
 export function PlatformAnnouncementsPage() {
   const { user } = useAuth()
@@ -41,6 +46,9 @@ export function PlatformAnnouncementsPage() {
   const [loading, setLoading] = useState(true)
   const [draft, setDraft] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [preview, setPreview] = useState(null)
+  const navigate = useNavigate()
   const organizations = useMemo(
     () => memberships.map(item => item.organization).filter(org => org?.id && org.mode !== 'demo'),
     [memberships],
@@ -95,6 +103,21 @@ export function PlatformAnnouncementsPage() {
       notifyError(error, 'delete', { operation: 'platform_announcement_delete' })
     }
   }
+  async function attach(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setUploading(true)
+    try {
+      const uploaded = await uploadAnnouncementAttachment(file)
+      setDraft(current => ({ ...current, ...uploaded, imageUrl: '' }))
+    } catch (error) {
+      if (error?.message === 'ATTACHMENT_TOO_LARGE') notify(tx('Το αρχείο ξεπερνά τα 10 MB.', 'The file is over 10 MB.'), 'warning')
+      else notifyError(error, 'save', { operation: 'platform_announcement_upload' })
+    } finally {
+      setUploading(false)
+    }
+  }
   const edit = row => setDraft({ ...EMPTY, ...row, startsAt: day(row.startsAt), endsAt: day(row.endsAt) })
   const columns = [
     { key: 'title', label: tx('Τίτλος', 'Title') },
@@ -110,14 +133,16 @@ export function PlatformAnnouncementsPage() {
       title={tx('Ρυθμίσεις', 'Settings')}
       subtitle={tx('Ανακοινώσεις και προωθήσεις προς τους διαχειριστές των νοσοκομείων.', 'Announcements and promotions to the hospital administrators.')}
       actions={
-        <Button onClick={() => setDraft({ ...EMPTY })}>
-          <Plus size={15} aria-hidden="true" />
-          {tx('Νέα ανακοίνωση', 'New announcement')}
-        </Button>
+        !draft && (
+          <Button onClick={() => setDraft({ ...EMPTY })}>
+            <Plus size={15} aria-hidden="true" />
+            {tx('Νέα ανακοίνωση', 'New announcement')}
+          </Button>
+        )
       }
     >
       <PlatformLibrariesTabs />
-      <div className="platform-registry-shell platform-announcements-page">
+      {!draft && <div className="platform-registry-shell platform-announcements-page">
         <RegistryTable
           columns={columns}
           rows={rows}
@@ -140,6 +165,7 @@ export function PlatformAnnouncementsPage() {
                   label={tx('Ενέργειες', 'Actions')}
                   items={[
                     { id: 'edit', label: tx('Επεξεργασία', 'Edit'), icon: Pencil, onClick: () => edit(row) },
+                    { id: 'preview', label: tx('Προεπισκόπηση', 'Preview'), icon: Eye, onClick: () => setPreview(row) },
                     { id: 'toggle', label: row.status === 'active' ? tx('Διακοπή', 'Stop') : tx('Επανενεργοποίηση', 'Resume'), icon: row.status === 'active' ? Pause : Play, onClick: () => toggle(row) },
                     { id: 'delete', label: tx('Διαγραφή', 'Delete'), icon: Trash2, tone: 'danger', separatorBefore: true, onClick: () => remove(row) },
                   ]}
@@ -148,14 +174,23 @@ export function PlatformAnnouncementsPage() {
             </>
           )}
         />
-      </div>
+      </div>}
       {draft && (
+        <InlineDialogContext.Provider value>
         <ObserverDialog
           title={draft.id ? tx('Επεξεργασία ανακοίνωσης', 'Edit announcement') : tx('Νέα ανακοίνωση', 'New announcement')}
           width="wide"
           className="platform-announcement-form"
           onClose={() => setDraft(null)}
-          footer={<SaveButton onClick={save} loading={saving} disabled={!valid}>{tx('Δημοσίευση', 'Publish')}</SaveButton>}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setPreview(draft)} disabled={!valid}>
+                <Eye size={15} aria-hidden="true" />
+                {tx('Προεπισκόπηση', 'Preview')}
+              </Button>
+              <SaveButton onClick={save} loading={saving} disabled={!valid || uploading}>{tx('Δημοσίευση', 'Publish')}</SaveButton>
+            </>
+          }
         >
           <div className="entry-grid">
             <Field className="entry-span-2" label={tx('Τίτλος', 'Title')} required>
@@ -198,12 +233,34 @@ export function PlatformAnnouncementsPage() {
             <Field label={tx('Σύνδεσμος κουμπιού', 'Button link')} hint={tx('π.χ. /about ή https://…', 'e.g. /about or https://…')}>
               <input value={draft.ctaUrl} onChange={event => set('ctaUrl', event.target.value)} />
             </Field>
-            <Field className="entry-span-2" label={tx('Εικόνα (προαιρετικό, https://…)', 'Image (optional, https://…)')}>
-              <input value={draft.imageUrl} onChange={event => set('imageUrl', event.target.value)} />
+            <Field className="entry-span-2" label={tx('Εικόνα ή αρχείο (προαιρετικό)', 'Image or file (optional)')} hint={tx('Εικόνα, PDF, Word, PowerPoint ή Excel έως 10 MB. Η εικόνα εμφανίζεται στην ανακοίνωση· το αρχείο ως σύνδεσμος.', 'Image, PDF, Word, PowerPoint or Excel up to 10 MB. An image shows in the announcement; a file as a link.')}>
+              <div className="platform-announcement-upload">
+                {draft.attachmentPath || draft.imageUrl ? (
+                  <span className="platform-announcement-attached">
+                    <Paperclip size={15} aria-hidden="true" />
+                    {draft.attachmentName || draft.imageUrl}
+                    <button type="button" aria-label={tx('Αφαίρεση', 'Remove')} onClick={() => setDraft(current => ({ ...current, attachmentPath: '', attachmentName: '', attachmentType: '', imageUrl: '' }))}>
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </span>
+                ) : (
+                  <label className={`platform-announcement-pick${uploading ? ' is-busy' : ''}`}>
+                    <Paperclip size={15} aria-hidden="true" />
+                    {uploading ? tx('Ανέβασμα…', 'Uploading…') : tx('Ανέβασμα εικόνας ή αρχείου', 'Upload an image or file')}
+                    <input type="file" accept={ATTACHMENT_ACCEPT} disabled={uploading} onChange={attach} />
+                  </label>
+                )}
+              </div>
             </Field>
+            <label className="platform-announcement-demo entry-span-2">
+              <input type="checkbox" checked={draft.showInDemo} onChange={event => set('showInDemo', event.target.checked)} />
+              {tx('Εμφάνιση και στο demo (σε όποιον μπαίνει στα demo νοσοκομεία)', 'Show in the demo too (to whoever opens the demo hospitals)')}
+            </label>
           </div>
         </ObserverDialog>
+        </InlineDialogContext.Provider>
       )}
+      {preview && <PlatformAnnouncementDialog announcement={preview} onClose={() => setPreview(null)} language={language} navigate={navigate} />}
     </Page>
   )
 }

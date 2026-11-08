@@ -1,0 +1,54 @@
+/* The department's shift roster: the people and the rules on the left, the month on the right. */
+.roster-toolbar{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 12px}
+.roster-department{min-width:260px}
+.roster-period{display:flex;align-items:center;gap:8px}
+.roster-period strong{min-width:120px;text-align:center;font-size:13.5px}
+.roster-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:12px;align-items:start}
+.roster-side{display:grid;gap:12px}
+.roster-card{background:#fff;border:1px solid #e3e9f1;border-radius:14px;padding:12px 14px;min-width:0}
+.roster-card h3{margin:0 0 8px;font-size:13.5px;color:#14253d}
+.roster-card h3:not(:first-child){margin-top:14px}
+.roster-member{display:flex;align-items:center;gap:8px;padding:6px 8px;margin:0 0 4px;border-radius:8px;background:#f6f8fb;font-size:13px;cursor:pointer}
+.roster-member input{margin:0}
+.roster-member span{min-width:0;flex:1 1 auto}
+.roster-member small{margin-left:auto;max-width:96px;overflow:hidden;text-overflow:ellipsis;color:#56677a;font-size:11.5px;white-space:nowrap}
+.roster-member.is-off span{color:#56677a;text-decoration:line-through}
+.roster-demand{display:grid;grid-template-columns:1fr 52px 52px;gap:6px;align-items:center;font-size:12.5px}
+.roster-demand>b{font-size:11.5px;color:#56677a;text-align:center}
+.roster-demand-row{display:contents}
+.roster-demand input{width:52px;height:30px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
+.roster-rules{margin:0;padding-left:18px;font-size:12.5px;color:#3c4c62}
+.roster-rules li{margin:2px 0}
+.roster-muted,.roster-empty{margin:0;color:#56677a;font-size:13px}
+.roster-empty{padding:10px 12px;border-radius:9px;background:#f6f8fb}
+.roster-grid-wrap{overflow-x:auto}
+.roster-grid{border-collapse:separate;border-spacing:2px;font-size:11.5px}
+.roster-grid th{padding:2px 3px;color:#56677a;font-weight:600;text-align:center;line-height:1.25}
+.roster-grid th.is-weekend{color:#a8323d}
+.roster-name-col{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding-right:10px;font-weight:600;white-space:nowrap;font-size:12.5px}
+.roster-cell{width:28px;height:24px;padding:0;border:0;border-radius:6px;font:inherit;font-weight:700;font-size:11px;cursor:pointer;background:#f6f8fb;color:#56677a}
+.roster-cell:disabled{cursor:default}
+.code-M{background:#e6f0fa;color:#1d5f9c}
+.code-I{background:#e3f5ef;color:#1f6b45}
+.code-A{background:#fff3d6;color:#7a5200}
+.code-N{background:#ece7fb;color:#5b3fb0}
+.code-R{background:#f1f4f8;color:#56677a}
+.code-leave{background:#fde8ea;color:#a8323d}
+.code-wish{background:#fff;color:#b7791f}
+.code-none{background:#fff;color:#56677a}
+.roster-cell.has-wish{box-shadow:inset 0 0 0 2px #e0a100}
+.roster-cell.is-bad{box-shadow:inset 0 0 0 2px #c24150}
+.roster-total{font-weight:700;text-align:center;padding:0 6px}
+.roster-coverage td{color:#56677a;font-size:10.5px;text-align:center;white-space:nowrap}
+.roster-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:#3c4c62}
+.roster-legend span{display:inline-flex;align-items:center;gap:5px}
+.roster-legend i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.roster-ok{margin:10px 0 0;padding:8px 12px;border-radius:9px;background:#e3f4ea;color:#1f6b45;font-weight:600;font-size:13px}
+.roster-violations{margin:10px 0 0;padding:8px 12px 8px 28px;border-radius:9px;background:#fdf1f2;color:#8f2c38;font-size:12.5px}
+.roster-cell-backdrop{position:fixed;inset:0;z-index:1100}
+.roster-cell-menu{position:fixed;z-index:1101;width:210px;padding:6px;background:#fff;border:1px solid #d6dee8;border-radius:10px;box-shadow:0 10px 28px rgba(15,35,52,.18)}
+.roster-cell-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:13px;text-align:left;cursor:pointer;color:#14253d}
+.roster-cell-menu button:hover{background:#f2f6fa}
+.roster-cell-menu i{display:inline-grid;place-items:center;width:26px;height:20px;border-radius:5px;font-style:normal;font-weight:700;font-size:11px}
+@media (max-width:900px){.roster-layout{grid-template-columns:1fr}}
+@media print{.roster-side,.roster-toolbar,.roster-legend,.roster-violations,.roster-ok{display:none}.roster-layout{display:block}}

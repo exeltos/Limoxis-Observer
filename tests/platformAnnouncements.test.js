@@ -31,3 +31,18 @@ describe('platform announcements', () => {
     expect(sql).toContain('revoke all on public.platform_announcements from anon')
   })
 })
+
+describe('platform announcements: file and demo (owner, 8/11/2026)', () => {
+  it('keeps the uploaded file and the demo flag', () => {
+    const row = announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο', attachmentPath: '1-a.pdf', attachmentName: 'a.pdf', attachmentType: 'application/pdf', showInDemo: true })
+    expect(row).toMatchObject({ attachment_path: '1-a.pdf', attachment_name: 'a.pdf', attachment_type: 'application/pdf', show_in_demo: true })
+    expect(announcementPayload({ titleEl: 'Νέο', bodyEl: 'Κείμενο' })).toMatchObject({ attachment_path: null, show_in_demo: false })
+  })
+
+  it('opens the form in the page, not a window, and shows the demo ones in a demo hospital', () => {
+    const page = readFileSync('src/features/platform/PlatformAnnouncementsPage.jsx', 'utf8')
+    expect(page).toContain('<InlineDialogContext.Provider value>')
+    const gate = readFileSync('src/features/platform/PlatformAnnouncementGate.jsx', 'utf8')
+    expect(gate).toContain('loadDemoAnnouncements()')
+  })
+})

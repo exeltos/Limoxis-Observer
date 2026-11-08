@@ -3,7 +3,7 @@ import { supabase } from '../../core/supabase/client'
 // Announcements of the platform owner to the hospital administrators (owner, 8/11/2026). The table and its RLS:
 // supabase/migrations/20261231260000_platform_announcements.sql — the owner writes them, a hospital administrator reads
 // the active ones meant for their hospital and records that they saw them.
-const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_label_en,cta_url,image_url,starts_at,ends_at,audience_org_ids,frequency,status,created_at,updated_at'
+const COLUMNS = 'id,kind,title_el,title_en,body_el,body_en,cta_label_el,cta_label_en,cta_url,image_url,attachment_path,attachment_name,attachment_type,show_in_demo,starts_at,ends_at,audience_org_ids,frequency,status,created_at,updated_at'
 
 export function mapAnnouncement(row) {
   return {
@@ -17,6 +17,10 @@ export function mapAnnouncement(row) {
     ctaLabelEn: row.cta_label_en || '',
     ctaUrl: row.cta_url || '',
     imageUrl: row.image_url || '',
+    attachmentPath: row.attachment_path || '',
+    attachmentName: row.attachment_name || '',
+    attachmentType: row.attachment_type || '',
+    showInDemo: Boolean(row.show_in_demo),
     startsAt: row.starts_at || null,
     endsAt: row.ends_at || null,
     audience: row.audience_org_ids || [],
@@ -38,6 +42,10 @@ export function announcementPayload(draft) {
     cta_label_en: blank(draft.ctaLabelEn),
     cta_url: blank(draft.ctaUrl),
     image_url: blank(draft.imageUrl),
+    attachment_path: blank(draft.attachmentPath),
+    attachment_name: blank(draft.attachmentName),
+    attachment_type: blank(draft.attachmentType),
+    show_in_demo: Boolean(draft.showInDemo),
     starts_at: draft.startsAt ? new Date(`${draft.startsAt}T00:00:00`).toISOString() : new Date().toISOString(),
     ends_at: draft.endsAt ? new Date(`${draft.endsAt}T23:59:59`).toISOString() : null,
     audience_org_ids: Array.isArray(draft.audience) ? draft.audience : [],
@@ -89,6 +97,34 @@ export async function loadPendingAnnouncements(organizationId, userId) {
   if (error) throw error
   const seen = new Set((views.data || []).map(row => row.announcement_id))
   return pendingFor((data || []).map(mapAnnouncement), organizationId, seen)
+}
+
+// In a demo hospital (owner, 8/11/2026): the active ones marked «show in the demo too», for whoever is in the demo;
+// the gate shows each once per browser session, nothing is recorded.
+export async function loadDemoAnnouncements() {
+  const { data, error } = await supabase.from('platform_announcements').select(COLUMNS).eq('status', 'active').eq('show_in_demo', true).order('starts_at', { ascending: true })
+  if (error) throw error
+  return (data || []).map(mapAnnouncement).filter(item => pendingFor([{ ...item, audience: [] }], '', new Set()).length)
+}
+
+// The uploaded image or file: a private bucket, read through a short signed link.
+const BUCKET = 'platform-announcements'
+export const ATTACHMENT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf,.docx,.pptx,.xlsx'
+export const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
+export const isImageAttachment = item => /^image\//.test(item?.attachmentType || '')
+export async function uploadAnnouncementAttachment(file) {
+  if (Number(file?.size || 0) > ATTACHMENT_MAX_BYTES) throw new Error('ATTACHMENT_TOO_LARGE')
+  const safe = String(file.name || 'file').normalize('NFKD').replace(/[^\w.-]+/g, '_').slice(-80)
+  const path = `${Date.now()}-${safe}`
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type || undefined, upsert: false })
+  if (error) throw error
+  return { attachmentPath: path, attachmentName: file.name || safe, attachmentType: file.type || '' }
+}
+export async function announcementAttachmentUrl(path) {
+  if (!path) return ''
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)
+  if (error) throw error
+  return data?.signedUrl || ''
 }
 
 // Pure: the announcements to show in a hospital (tested on its own).
