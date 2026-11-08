@@ -1,7 +1,7 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
-import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
+import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, Pencil, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -39,6 +39,7 @@ export function SurveillanceWorkspace({
   onCreateSample,
   canCreate,
   canCreateSample,
+  onOpenSample,
   repository,
   onReload,
   // The episode went to the recycle bin (the page may leave it, e.g. when it was opened from the list).
@@ -504,6 +505,7 @@ export function SurveillanceWorkspace({
                     onCreateFromSample={onCreateFromSample}
                     canCreate={canCreate}
                     canCreateSample={canCreateSample}
+                    onOpenSample={onOpenSample}
                     t={t}
                     language={language}
                     fmtDate={fmtDate}
@@ -552,6 +554,7 @@ export function SurveillanceWorkspace({
                   onCreateFromSample={onCreateFromSample}
                   canCreate={canCreate}
                   canCreateSample={canCreateSample}
+                  onOpenSample={onOpenSample}
                   t={t}
                   language={language}
                   fmtDate={fmtDate}
@@ -637,6 +640,7 @@ function SampleTree({
   onCreateFromSample,
   canCreate,
   canCreateSample,
+  onOpenSample,
   t,
   language,
   fmtDate,
@@ -667,6 +671,7 @@ function SampleTree({
           onCreateFromSample={onCreateFromSample}
           canCreate={canCreate}
           canCreateSample={canCreateSample}
+          onOpenSample={onOpenSample}
           t={t}
           language={language}
           fmtDate={fmtDate}
@@ -689,6 +694,7 @@ function SampleTreeRow({
   onCreateFromSample,
   canCreate,
   canCreateSample,
+  onOpenSample,
   t,
   language,
   fmtDate,
@@ -751,7 +757,7 @@ function SampleTreeRow({
               language === 'el' ? 'el' : 'en',
             )}
           </em>
-        ) : canCreate ? (
+        ) : canCreate && tone !== 'pending' ? (
           <Button
             className="sample-start-action"
             variant="secondary"
@@ -764,6 +770,13 @@ function SampleTreeRow({
             )}
           </Button>
         ) : null}
+        {/* A sample the laboratory has not closed yet (no result) can still be edited, on its laboratory record (owner, 8/11/2026). */}
+        {onOpenSample && tone === 'pending' && (
+          <Button className="sample-edit-action" variant="secondary" onClick={() => onOpenSample(sample)}>
+            <Pencil size={14} />
+            {translate('copy.clinicalRecordCopy.editSample', language === 'el' ? 'el' : 'en')}
+          </Button>
+        )}
         {/* A follow-up repeats a sample that has its result, never one still awaited. */}
         {canCreateSample && tone !== 'pending' && (
           <Button

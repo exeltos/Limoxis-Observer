@@ -10,7 +10,7 @@ import {
   samplesOutsideAdmissions,
 } from './patientRecordScope'
 import { ClipboardList, FileClock, FolderOpen, ListTree, UserRound } from 'lucide-react'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -86,6 +86,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo, role, actualRole, membership, canAccessRecord } = useTenant()
@@ -671,6 +672,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           onCreateSample={patient ? createAdmissionSample : null}
           canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
+          onOpenSample={has(CAPABILITIES.VIEW_LAB) ? sample => navigate(`/laboratory/${encodeURIComponent(sample.id)}`) : null}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
           onEpisodeDeleted={deleted => {
