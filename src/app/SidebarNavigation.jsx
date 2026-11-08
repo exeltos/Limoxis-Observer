@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ChevronDown, Layers3 } from 'lucide-react'
+import { BriefcaseMedical, ChevronDown, Eye, Layers3, Medal, UsersRound, Wrench } from 'lucide-react'
 import { sidebarLayout } from './navigation'
 import { preloadRoute } from './routePreload'
 import { forgetRegistryViewStates } from '../core/navigation/useRegistryMemory'
@@ -25,17 +25,23 @@ function NavEntry({item,t,nested:nestedEntry=false,onNavigate}){
   return <Link to={item.to} onClick={()=>{forgetRegistryViewStates();onNavigate?.()}} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)} title={label} aria-current={here?'page':undefined} className={`nav-item ${nested?'nested':''} ${here?'active':''}`}><Icon size={nested?16:18}/><span>{label}</span></Link>
 }
 
+// The folded rail (a 13" laptop, owner 8/11/2026): one icon per group, and only the open group's entries under it,
+// so the rail fits without scrolling; a click on a group's icon opens it.
+// Icons of their own, never one of an entry's, so a group never reads as a screen.
+const GROUP_ICONS={overview:Eye,clinical:BriefcaseMedical,operations:Wrench,quality:Medal,staff:UsersRound}
+
 // A headed group of the sidebar: the heading folds and unfolds it. One group is open at a time,
 // so the menu never grows long enough to scroll; the group of the open screen stays marked.
 function NavGroup({block,t,open,onToggle,pathname}){
   const active=block.items.some(item=>isUnder(pathname,item.to))
   const listId=`sidebar-group-${block.id}`
   const label=t(block.label)
+  const GroupIcon=GROUP_ICONS[block.id]||Layers3
   // A group of one entry («Management») is not a menu to unfold: its heading opens the screen at once
   // (the folded rail still shows the entry's icon, as it does for every folded group).
   if(block.items.length===1){const item=block.items[0];return <div className={`sidebar-nav-section collapsed sidebar-nav-section-single ${active?'has-active':''}`.trim()}><Link to={item.to} id={`${listId}-heading`} className="nav-section-heading" title={label} aria-current={active?'page':undefined} onClick={()=>forgetRegistryViewStates()} onPointerEnter={()=>void preloadRoute(item.to)} onFocus={()=>void preloadRoute(item.to)}><span>{label}</span></Link><div id={listId} className="sidebar-nav-section-items">{block.items.map(entry=><NavEntry key={entry.to} item={entry} t={t}/>)}</div></div>}
   return <div className={`sidebar-nav-section ${open?'open':'collapsed'} ${active?'has-active':''}`.trim()} role="group" aria-labelledby={`${listId}-heading`}>
-    <button type="button" id={`${listId}-heading`} className="nav-section-heading" aria-expanded={open} aria-controls={listId} title={label} onClick={()=>onToggle(block.id)}><span>{label}</span><ChevronDown className="nav-group-chevron" size={13} aria-hidden="true"/></button>
+    <button type="button" id={`${listId}-heading`} className="nav-section-heading" aria-expanded={open} aria-controls={listId} title={label} onClick={()=>onToggle(block.id)}><GroupIcon className="nav-section-icon" size={18} aria-hidden="true"/><span>{label}</span><ChevronDown className="nav-group-chevron" size={13} aria-hidden="true"/></button>
     <div id={listId} className="sidebar-nav-section-items">{block.items.map(item=><NavEntry key={item.to} item={item} t={t}/>)}</div>
   </div>
 }
