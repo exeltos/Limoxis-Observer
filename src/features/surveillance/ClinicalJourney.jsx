@@ -332,7 +332,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-questionnaire-${record.id}`}>
-        {stage === 'questionnaire' && (
+        {stage === 'questionnaire' && shownDialog !== 'epi' && (
           <StagePanel
             icon={ClipboardList}
             title={t('epiQuestionnaire.sectionTitle')}
@@ -826,7 +826,7 @@ export function CanonicalJourney({
             icon={RefreshCcw}
             title={t('reassessment')}
             action={
-              permissions.canReassess ? (
+              permissions.canReassess && !sheetEdit.reassessment ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -1037,7 +1037,7 @@ export function CanonicalJourney({
       )}{' '}
       {shownDialog === 'endIsolation' && (
         <EndDialog
-          title={t('isolation')}
+          title={translate('copy.clinicalRecordCopy.endIsolation', language === 'el' ? 'el' : 'en')}
           t={t}
           onClose={closeDialog}
           onSave={draft =>

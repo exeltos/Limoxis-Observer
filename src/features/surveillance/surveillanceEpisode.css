@@ -213,7 +213,7 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .episode-detail-actions>button.sheet-done:hover{background:#174f83;color:#fff}
 /* The windows of the sheet (sample, device, HAI, therapy, protocol, a row's details) open under the step, in the page. */
 .sheet-inline-forms:empty{display:none}
-.sheet-inline-forms>.observer-dialog-inline{margin-top:12px;background:#fff;border:1px solid #dfe7f0;border-radius:12px}
+.sheet-inline-forms>.observer-dialog-inline{margin:0;background:transparent;border:0;border-top:1px solid #edf1f6;border-radius:0}
 .sheet-index-step.is-active:hover:not(:disabled){background:#174f83}
 /* One frame only (owner, 8/11/2026): on the sheet the form's body has no grey box of its own. */
 .sheet-body .observer-dialog-inline>.observer-dialog-body{padding:0!important;background:transparent!important}
@@ -229,3 +229,9 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .sheet-body .observer-dialog-inline .therapy-entry-card{border:0;border-radius:0;padding:0;background:none;box-shadow:none}
 .sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed #dfe7f0;padding-top:12px}
 .sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){padding-top:0!important}
+/* No frame inside the sheet's one card (owner, 8/11/2026): a form on the sheet is flat, whatever window class it carries. */
+html body .surveillance-episode-page .sheet-body .observer-dialog-inline{box-shadow:none!important;border-radius:0!important;background:transparent!important;border-left:0!important;border-right:0!important;border-bottom:0!important;max-width:none!important;width:auto!important;margin:0!important}
+.sheet-body .observer-dialog-inline>header h3{font-size:14px;color:#1d5f9c}
+.sheet-anchor:empty{display:none}
+/* The 48–72 h review in the therapy step: a part of the step, not a card in the card (owner, 8/11/2026). */
+html body .surveillance-episode-page .sheet-body .sp-card.sp-review{border:0!important;border-top:1px solid #edf1f6!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;margin:10px 0 0!important;padding:12px 0 0!important}
