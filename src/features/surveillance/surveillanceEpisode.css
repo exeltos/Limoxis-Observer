@@ -215,3 +215,16 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .sheet-inline-forms:empty{display:none}
 .sheet-inline-forms>.observer-dialog-inline{margin-top:12px;background:#fff;border:1px solid #dfe7f0;border-radius:12px}
 .sheet-index-step.is-active:hover:not(:disabled){background:#174f83}
+/* One frame only (owner, 8/11/2026): on the sheet the form's body has no grey box of its own. */
+.sheet-body .observer-dialog-inline>.observer-dialog-body{padding:0!important;background:transparent!important}
+/* Aligned fields (owner, 8/11/2026): every label on the same line, the same gap to its control. The shared form-row
+   rules carry an id in :is() for weight; these do the same to apply on the sheet. */
+.sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){align-items:start}
+.sheet-body .observer-dialog-inline .entry-grid>:is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){display:flex;flex-direction:column;justify-content:flex-start;gap:0;margin:0;padding:0;align-self:start}
+.sheet-body .observer-dialog-inline .entry-grid :is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){gap:0!important;row-gap:0!important}
+.sheet-body .observer-dialog-inline .entry-grid .lo-field-label:is(span,label,#lo-sheet-form){display:block;height:16px;min-height:16px;line-height:16px;margin:0 0 6px;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* HAI: the definition is long, the status short (owner, 8/11/2026). */
+.sheet-body .observer-dialog-inline.hai-dialog>.observer-dialog-body>.entry-grid{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.2fr)!important}
+/* The device / therapy rows: no card inside the form, a dashed line between rows. */
+.sheet-body .observer-dialog-inline .therapy-entry-card{border:0;border-radius:0;padding:0;background:none;box-shadow:none}
+.sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed #dfe7f0;padding-top:12px}

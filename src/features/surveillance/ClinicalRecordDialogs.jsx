@@ -276,6 +276,8 @@ function LibraryMultiSelect({ label, rows = [], selected = [], onChange, languag
   return (
     <MultiSelect
       label={label}
+      // Every choice is shown by name, never «3 selected» (owner, 8/11/2026).
+      tags
       options={options}
       selected={selected}
       onChange={onChange}
@@ -619,6 +621,7 @@ export function HaiDialog({
     <SimpleDialog
       title={tr('haiHealthcareAssociatedInfection')}
       t={t}
+      className="hai-dialog"
       onClose={onClose}
       onSave={() => onSave({ ...d, criteriaMet })}
       disabled={!d.type}
