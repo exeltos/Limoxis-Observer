@@ -100,7 +100,8 @@ function GroupedRail({groups,items,active,renderItem,t}){
  // Lists with nothing in them (and not the open one) are gathered in one closed group at the end.
  const isEmpty=item=>item.count===0&&item.id!==active
  const shown=[...matched.map(group=>({...group,items:group.items.filter(item=>!isEmpty(item))})).filter(group=>group.items.length),...(matched.flatMap(group=>group.items.filter(isEmpty)).length?[{id:'__empty',label:t('librariesPanel.emptyLists'),items:matched.flatMap(group=>group.items.filter(isEmpty))}]:[])]
- const toggle=id=>setOpen(current=>{const next=new Set(current);if(next.has(id))next.delete(id);else next.add(id);return next})
+ // One group open at a time (owner, 8/11/2026): opening a group closes the one open before.
+ const toggle=id=>setOpen(current=>(current.has(id)?new Set():new Set([id])))
  return <>
   <label className="library-rail-search"><Search size={14} aria-hidden="true"/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder={t('librariesPanel.findList')} aria-label={t('librariesPanel.findList')}/></label>
   {shown.map(group=>{const isOpen=Boolean(q)||open.has(group.id);return <div key={group.id} className="library-rail-group">
