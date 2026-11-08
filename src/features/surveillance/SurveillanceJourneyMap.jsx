@@ -1,30 +1,9 @@
-import {
-  Activity,
-  AlertTriangle,
-  BedDouble,
-  CheckCircle2,
-  HeartPulse,
-  Microscope,
-  RefreshCcw,
-  ShieldCheck,
-  Syringe,
-  Stethoscope,
-} from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react'
 import { AttentionList } from '../../design-system/AttentionList'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
-const icons = {
-  assessment: ShieldCheck,
-  devices: Stethoscope,
-  samples: Microscope,
-  isolation: BedDouble,
-  therapy: Syringe,
-  hai: AlertTriangle,
-  reassessment: RefreshCcw,
-  outcome: Activity,
-}
 
-export function buildSurveillanceJourneyStages(record, t, fmtDate) {
+export function buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire = null) {
   const samples = record?.samples || [],
     validatedSamples = samples.filter(sample => Boolean(sample.organism))
   const reassessments = record?.reassessments || [],
@@ -43,7 +22,7 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
     reassessment: true,
     outcome: true,
   }
-  return [
+  const built = [
     {
       id: 'assessment',
       label: t('clinicalRecords.stageAssessment'),
@@ -104,33 +83,44 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
       status: record?.outcome ? 'complete' : 'pending',
       meta: record?.outcome ? t(record.outcome.status) : t('pending'),
     },
-  ].map(stage => ({ ...stage, locked: !unlocked[stage.id] }))
+    // The epidemiological questionnaire of the episode, a step of its own right after the samples (owner, 8/11/2026).
+    ...(questionnaire
+      ? [{
+          id: 'questionnaire',
+          label: t('epiQuestionnaire.sectionTitle'),
+          status: questionnaire.done ? 'complete' : 'pending',
+          meta: questionnaire.done ? t('episodeForms.status.done') : t('epiQuestionnaire.notStarted'),
+        }]
+      : []),
+  ]
+  // The order of the work (owner, 8/11/2026): samples, questionnaire, assessment, HAI, devices, isolation, therapy,
+  // reassessment, outcome.
+  const order = ['samples', 'questionnaire', 'assessment', 'hai', 'devices', 'isolation', 'therapy', 'reassessment', 'outcome']
+  return order
+    .map(id => built.find(stage => stage.id === id))
+    .filter(Boolean)
+    .map(stage => ({ ...stage, locked: !unlocked[stage.id] && stage.id !== 'questionnaire' }))
 }
 
-// extraStages: the sections of the protocols started on the episode (N3), shown
-// after the clinical assessment only once a protocol exists.
-export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [] }) {
+// The episode as one list of steps (owner, 8/11/2026): a coloured dot, the step, a short line on where it stands; a
+// click opens the step right under its row (children) and a second click closes it. extraStages: the protocols
+// started on the episode (N3), right after the clinical assessment.
+export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [], questionnaire = null, children = null }) {
   const { language } = useLanguage()
-  const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate)
-  const stages = extraStages.length ? [baseStages[0], ...extraStages, ...baseStages.slice(1)] : baseStages
+  const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire)
+  const at = baseStages.findIndex(stage => stage.id === 'assessment') + 1
+  const stages = extraStages.length ? [...baseStages.slice(0, at), ...extraStages, ...baseStages.slice(at)] : baseStages
   return (
-    <div
-      className="journey-map strict-journey-map episode-workspace-map"
-      aria-label={t('surveillanceJourney')}
-    >
-      <nav
-        className={`episode-section-tabs${extraStages.length ? ' has-protocol-tabs' : ''}`}
-        aria-label={language === 'el' ? 'Ενότητες επεισοδίου' : 'Episode sections'}
-      >
-        {stages.map(stage => (
-          <EpisodeTab
-            key={stage.id}
-            stage={stage}
-            active={activeStage === stage.id}
-            onSelect={onSelect}
-          />
-        ))}
-      </nav>
+    <div className="episode-steps" aria-label={language === 'el' ? 'Βήματα επιτήρησης' : 'Surveillance steps'}>
+      {stages.map(stage => {
+        const open = activeStage === stage.id
+        return (
+          <div key={stage.id} className={`episode-step${open ? ' is-open' : ''}`}>
+            <EpisodeStep stage={stage} active={open} onSelect={id => onSelect?.(open ? '' : id)} />
+            {open && <div className="episode-step-body">{children}</div>}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -188,26 +178,23 @@ export function SurveillanceJourneyGuidance({
 
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
-function EpisodeTab({ stage, active, onSelect }) {
-  const Icon = stage.protocol ? HeartPulse : icons[stage.id] || Activity
+function EpisodeStep({ stage, active, onSelect }) {
+  const Chevron = active ? ChevronDown : ChevronRight
+  const tone = stage.status === 'complete' ? 'done' : stage.status === 'due' || stage.status === 'waiting' ? 'due' : 'pending'
   return (
     <button
       type="button"
-      className={`episode-section-tab ${active ? 'active' : ''} ${stage.status === 'complete' ? 'complete' : ''} ${stage.locked ? 'locked' : ''} ${stage.protocol ? 'protocol-tab' : ''}`.trim()}
+      className={`episode-step-row tone-${tone}${stage.protocol ? ' is-protocol' : ''}`}
       disabled={stage.locked}
-      title={[stage.label, stage.meta].filter(Boolean).join(' · ')}
-      aria-current={active ? 'page' : undefined}
+      aria-expanded={active}
       data-demo-step={
         DEMO_STEP_STAGES.has(stage.id) ? `clabsi_classification:${stage.id}` : undefined
       }
       onClick={() => onSelect?.(stage.id)}
     >
-      <Icon size={16} />
-      <span>
-        <strong>{stage.label}</strong>
-        <small>{stage.meta}</small>
-      </span>
-      {stage.status === 'complete' && <CheckCircle2 className="episode-tab-check" size={14} />}
+      <i className="episode-step-dot" aria-hidden="true" />
+      <strong><Chevron size={14} aria-hidden="true" />{stage.label}</strong>
+      <span className="episode-step-meta">{stage.meta}</span>
     </button>
   )
 }

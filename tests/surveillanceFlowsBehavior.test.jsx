@@ -101,6 +101,10 @@ describe('new surveillance: inline patient creation', () => {
     fireEvent.click(await screen.findByRole('option', { name: /Παθολογική/ }))
     expect(department).toHaveValue('Παθολογική')
     fireEvent.change(screen.getByLabelText(t('surveillanceReason')), { target: { value: 'Πυρετός' } })
+    // Every surveillance starts from a sample (owner, 8/11/2026): here a new request.
+    const sample = screen.getByRole('combobox', { name: new RegExp(t('svSampleField')) })
+    fireEvent.change(sample, { target: { value: 'Νέο αίτημα' } })
+    fireEvent.click(await screen.findByRole('option', { name: /Νέο αίτημα δείγματος/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Έναρξη επιτήρησης' }))
     return onCreate
   }

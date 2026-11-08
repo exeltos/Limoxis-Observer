@@ -114,6 +114,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [error, setError] = useState(''),
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState(null)
+  // A surveillance started with «new sample request»: its sample dialog opens as soon as it is created.
+  const [askSampleFor, setAskSampleFor] = useState(() => location.state?.askSampleFor || null)
   // "Open episode" from the worklist or the sample record: this page opens the
   // new-episode flow once, with the patient and the sample already chosen.
   const fromSample = location.state?.createFromSample || null
@@ -487,13 +489,18 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           departmentEn: selectedAdmission.department || draft.departmentEn,
         }
       : draft
-    const created = await repository.createCase(targetPatient || patient, scopedDraft)
-    if (sampleToLink) {
+    // The sample the surveillance starts from (owner, 8/11/2026): one of the patient's samples, or a new request
+    // asked right after the start.
+    const { sampleChoice = null, ...caseDraft } = scopedDraft
+    const created = await repository.createCase(targetPatient || patient, caseDraft)
+    const linkTo = sampleToLink || (sampleChoice && sampleChoice !== 'new' ? sampleChoice : null)
+    if (sampleChoice === 'new') setAskSampleFor(created.id)
+    if (linkTo) {
       try {
         // The infection-control roles cannot update a sample: the review function links it.
         if (isDemo || canReviewSamples(role))
-          await laboratory.repository.review(sampleToLink, { status: 'episode_opened', caseId: created.id })
-        else await linkLaboratorySampleToSurveillance(tenant?.id, sampleToLink.recordId, created.id)
+          await laboratory.repository.review(linkTo, { status: 'episode_opened', caseId: created.id })
+        else await linkLaboratorySampleToSurveillance(tenant?.id, linkTo.recordId, created.id)
         await laboratory.reload()
       } catch (linkError) {
         notify(
@@ -676,6 +683,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
           onOpenSample={has(CAPABILITIES.VIEW_LAB) ? sample => navigate(`/laboratory/${encodeURIComponent(sample.id)}`) : null}
           onRemoveSample={sample => laboratory.repository.remove(sample.id)}
+          askSampleFor={askSampleFor}
+          onSampleAsked={() => setAskSampleFor(null)}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
           onEpisodeDeleted={deleted => {
@@ -947,6 +956,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             patients={patients}
             onPatientsChange={setPatients}
             sample={sampleToLink}
+            sampleOptions={(patientMode ? admissionSamples : recordSamples).filter(item => !(item.surveillanceCase || item.surveillanceCaseId))}
             onClose={() => {
               setCreateOpen(false)
               setSampleToLink(null)

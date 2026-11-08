@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, ClipboardList, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
 import { translate } from '../../core/i18n/LanguageContext'
@@ -14,6 +14,11 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { EpiQuestionnaireDialog } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { isCoreComplete } from './epiQuestionnaire/epiQuestionnaireModel'
+import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
+import { loadEpiQuestionnaires, loadEpiSettings } from './epiQuestionnaire/epiQuestionnaireService'
 
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { ProtocolPanel, ProtocolPickerDialog } from './protocols/ProtocolViews'
@@ -42,16 +47,43 @@ export function CanonicalJourney({
   startProtocolRequest = null,
   onProtocolRequestHandled,
   deleteItem = null,
+  patient = null,
+  admission = null,
+  askSample = false,
+  onSampleAsked,
 }) {
   const { notify } = useFeedback()
+  const { role } = useTenant()
   const actor = useAuditActor()
   // N3: protocols started on the episode and the 48–72 h antimicrobial reviews.
   const protocols = useEpisodeProtocols(record, { organizationId, isDemo })
   const [protocolPreset, setProtocolPreset] = useState(null)
-  const [stage, setStage] = useState(initialStage || 'assessment')
+  const [stage, setStage] = useState(initialStage || 'samples')
   useEffect(() => {
     if (initialStage) setStage(initialStage)
   }, [initialStage])
+  useEffect(() => {
+    if (!askSample) return
+    setStage('samples')
+    setDialog('sample')
+    onSampleAsked?.()
+  }, [askSample, onSampleAsked])
+  // The epidemiological questionnaire of the episode, a step of its own (owner, 8/11/2026).
+  const epiKey = isDemo ? record.id : record.recordId || record.id
+  const [epi, setEpi] = useState({ row: null, settings: [], ready: false, nonce: 0 })
+  useEffect(() => {
+    let alive = true
+    Promise.all([
+      loadEpiQuestionnaires(organizationId, [epiKey], { isDemo }),
+      loadEpiSettings(organizationId, { isDemo }).catch(() => []),
+    ])
+      .then(([rows, settings]) => alive && setEpi(current => ({ ...current, row: rows?.[String(epiKey)] || null, settings, ready: true })))
+      .catch(() => alive && setEpi(current => ({ ...current, ready: false })))
+    return () => {
+      alive = false
+    }
+  }, [organizationId, isDemo, epiKey, epi.nonce])
+  const epiDone = Boolean(epi.row && isCoreComplete(epi.row.answers))
   // Demo evaluation guide: reviewing these stages are steps of the CLABSI scenario.
   useEffect(() => {
     if (stage === 'hai' || stage === 'reassessment') signalDemoStep('clabsi_classification', stage)
@@ -186,8 +218,22 @@ export function CanonicalJourney({
         activeStage={stage}
         onSelect={setStage}
         extraStages={extraStages}
-      />
+        questionnaire={epi.ready ? { done: epiDone } : null}
+      >
       <div className="clinical-data-grid">
+        {stage === 'questionnaire' && (
+          <StagePanel
+            icon={ClipboardList}
+            title={t('epiQuestionnaire.sectionTitle')}
+            action={
+              <Button className="clinical-stage-action" variant={epiDone ? 'secondary' : 'primary'} onClick={() => setDialog('epi')}>
+                {epiDone ? t('episodeForms.open') : t('epiQuestionnaire.fillIn')}
+              </Button>
+            }
+          >
+            <p className="clinical-summary">{epiDone ? t('episodeForms.status.done') : t('epiQuestionnaire.rowPendingDetail')}</p>
+          </StagePanel>
+        )}
         {activeRun && (
           <ProtocolPanel
             run={activeRun}
@@ -740,6 +786,21 @@ export function CanonicalJourney({
           </StagePanel>
         )}
       </div>
+      </SurveillanceJourneyMap>
+      {dialog === 'epi' && (
+        <EpiQuestionnaireDialog
+          ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map(sample => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
+          episode={record}
+          row={epi.row}
+          settings={epi.settings}
+          canEdit={canWriteEpi(role)}
+          onClose={() => setDialog(null)}
+          onSaved={() => {
+            setDialog(null)
+            setEpi(current => ({ ...current, nonce: current.nonce + 1 }))
+          }}
+        />
+      )}
       {dialog === 'protocolPicker' && (
         <ProtocolPickerDialog
           t={t}

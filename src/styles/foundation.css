@@ -195,7 +195,6 @@
 .patient-summary-layout{display:flex;flex-direction:column;gap:12px}
 
 .surveillance-journey{display:flex;flex-direction:column;gap:14px;max-width:1220px;margin:0 auto}
-.journey-map{border:1px solid var(--line);border-radius:14px;background:#fbfcfd;padding:14px;display:flex;flex-direction:column;align-items:center}
 .clinical-data-hub{max-width:1220px;margin:0 auto}.clinical-data-heading{margin-bottom:10px}.clinical-data-heading h3{font-size:18px;margin:2px 0}.clinical-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.clinical-data-grid>.clinical-panel{margin:0}
 @media(max-width:800px){.patient-summary-strip,.clinical-data-grid,.journey-nodes{grid-template-columns:1fr}}
 

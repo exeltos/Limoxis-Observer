@@ -10,22 +10,7 @@ html body .surveillance-episode-page .clinical-data-hub{display:flex;flex-direct
 
 /* Attention: a short list, one row per item, each opening the relevant step. */
 
-/* ECDC review uses the full width; stage navigation wraps into two rows so labels are never cut. */
-html body .surveillance-episode-page .episode-workspace-map{margin:0!important}
-/* Compact head: the ECDC assessment is one line and the eight sections one row,
-   so the selected section's content shows without scrolling. */
-html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important;padding:4px!important}
-html body .surveillance-episode-page .episode-section-tab{min-width:0!important;min-height:46px!important;padding:7px 9px!important;gap:7px!important}
-html body .surveillance-episode-page .episode-section-tab>svg{flex:none!important}
-/* In one row there is no room for a separate tick: a completed section shows
-   its own icon in green instead. */
-html body .surveillance-episode-page .episode-section-tab .episode-tab-check{display:none!important}
-html body .surveillance-episode-page .episode-section-tab.complete>svg{color:#368d61!important}
-html body .surveillance-episode-page .episode-workspace-map{gap:8px!important;padding:8px!important}
 html body .surveillance-episode-page .tag-row{margin-bottom:8px!important}
-@media(max-width:1279px){html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
-html body .surveillance-episode-page .episode-section-tab strong{font-size:12px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:break-word!important;line-height:1.3!important}
-html body .surveillance-episode-page .episode-section-tab small{font-size:11px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:break-word!important;line-height:1.3!important}
 
 /* Stage panel: header spacing and readable detail tiles. */
 html body .surveillance-episode-page .clinical-panel{padding:16px 18px!important}
@@ -41,9 +26,6 @@ html body .surveillance-episode-page .detail-item span{display:block!important;m
 html body .surveillance-episode-page .detail-item strong{display:block!important;font-size:13.5px!important;overflow-wrap:anywhere!important}
 html body .surveillance-episode-page .clinical-summary{margin:8px 0 6px!important;font-size:13.5px!important;line-height:1.55!important}
 
-@media (max-width:860px){
-  html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
 @media print{
   html body .episode-overlay.surveillance-episode-page{position:absolute!important;inset:0!important;background:#fff!important}
 }
@@ -169,24 +151,19 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 .record-summary-events li{display:flex;gap:8px;padding:3px 0;font-size:12px;color:#172033}
 .record-summary-events li b{flex:none;font-weight:650}
 @media (max-width:1000px){.record-summary-grid{grid-template-columns:1fr}}
-/* The episode's sections on a desktop: one row in one frame (owner, 28/10: tabs and cards never break into a
-   second row; no box in a box). A long label ends in «…», its full text is the button's title.
-   !important only because the older episode-map rules above and in features.css set these with it. */
-@media (min-width:1101px){
-  html body .journey-map.episode-workspace-map{border:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs{display:grid!important;grid-auto-flow:column!important;grid-template-columns:none!important;grid-auto-columns:minmax(0,1fr)!important;gap:4px!important;overflow:visible!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab{min-width:0!important;min-height:52px!important;padding:6px 8px!important;gap:6px!important;border-color:transparent!important;background:transparent!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.active{border-color:var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 7%,#fff)!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>span{min-width:0!important;overflow:hidden!important}
-  /* A running protocol (sepsis) keeps its alert in the colour of its name, not in a frame of its own. */
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab:not(.active){border-color:transparent!important;background:transparent!important;outline:0!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab strong{color:var(--lo-status-danger-fg)!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>svg:first-child{display:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:1;white-space:normal!important;overflow:hidden!important;line-height:1.2!important;overflow-wrap:anywhere!important;word-break:normal!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-}
-/* A small laptop: the name of each section only (the second line hides), so it fits. */
-@media (min-width:1101px) and (max-width:1320px){
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{font-size:11px!important}
-}
+
+/* The episode as one list of steps (owner, 8/11/2026): a dot, the step, where it stands; the open step shows its
+   content right under its row. */
+.episode-steps{display:flex;flex-direction:column;border:1px solid var(--lo-color-border,#dfe5ee);border-radius:10px;background:#fff}
+.episode-step+.episode-step{border-top:1px solid #edf0f5}
+.episode-step-row{display:grid;grid-template-columns:14px minmax(150px,200px) 1fr;align-items:center;gap:12px;width:100%;padding:10px 14px;border:0;background:transparent;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.episode-step-row:hover:not(:disabled){background:#f6f9fc}
+.episode-step-row:disabled{opacity:.5;cursor:not-allowed}
+.episode-step-row strong{display:inline-flex;align-items:center;gap:4px;font-size:13.5px}
+.episode-step-meta{color:#4a5b70;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.episode-step-dot{width:10px;height:10px;border-radius:50%;background:#c9d2de}
+.episode-step-row.tone-done .episode-step-dot{background:#2f9e66}
+.episode-step-row.tone-due .episode-step-dot{background:#d39200}
+.episode-step-row.is-protocol strong{color:var(--lo-status-danger-fg)}
+.episode-step.is-open>.episode-step-row{background:#f3f7fb}
+.episode-step-body{padding:4px 14px 14px 40px}

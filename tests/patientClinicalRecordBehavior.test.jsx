@@ -63,7 +63,9 @@ const openEpisode = async (title = 'Λοίμωξη αιματικής ροής')
   await screen.findByRole('button', { name: /Ενέργειες επιτήρησης/ })
 }
 const openStage = async name => {
-  fireEvent.click(screen.getAllByRole('button').find(button => button.textContent.startsWith(name)))
+  // The episode's steps open under their row; «Δείγματα» is open from the start (a click would close it).
+  const step = screen.getAllByRole('button').find(button => button.textContent.startsWith(name))
+  if (step.getAttribute('aria-expanded') !== 'true') fireEvent.click(step)
   return document.querySelector('.clinical-panel.full-panel')
 }
 // Lists are SearchableSelect comboboxes: the options live in the listbox the

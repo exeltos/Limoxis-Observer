@@ -41,6 +41,8 @@ export function SurveillanceWorkspace({
   canCreateSample,
   onOpenSample,
   onRemoveSample,
+  askSampleFor = null,
+  onSampleAsked,
   repository,
   onReload,
   // The episode went to the recycle bin (the page may leave it, e.g. when it was opened from the list).
@@ -95,6 +97,10 @@ export function SurveillanceWorkspace({
       }),
     ].filter(Boolean)
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
+  // A surveillance started with «new sample request» opens with its sample dialog (owner, 8/11/2026).
+  useEffect(() => {
+    if (askSampleFor && episodes.some(ep => String(ep.id) === String(askSampleFor))) setDetailId(askSampleFor)
+  }, [askSampleFor, episodes])
   const episodeKey = episodes.map(ep => ep.id).join(',')
   // The epidemiological questionnaire: a grey reminder, or the origin and risk factors in words, on each episode row.
   const epiIndex = useEpiIndex({ organizationId, isDemo, enabled: canWriteEpi(useTenant().role), refreshKey: episodeKey })
@@ -294,6 +300,8 @@ export function SurveillanceWorkspace({
           <div className="episode-detail-scroll progressive-surveillance-scroll">
             <CanonicalJourney
               initialStage={initialStage}
+              askSample={Boolean(askSampleFor) && String(askSampleFor) === String(detailRecord.id)}
+              onSampleAsked={onSampleAsked}
               startProtocolRequest={
                 startRequest && String(startRequest.episodeId) === String(detailRecord.id)
                   ? startRequest
@@ -393,6 +401,13 @@ export function SurveillanceWorkspace({
       className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
       actions={
         <>
+          {/* A sample of the patient on its own, without a surveillance (owner, 8/11/2026). */}
+          {canCreateSample && onCreateSample && (
+            <Button variant="secondary" onClick={() => { setFollowUpParent(null); setSampleOpen(true) }}>
+              <Microscope size={15} />{' '}
+              {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
           {canCreate && (
             <Button className="clinical-primary-action" onClick={onCreate}>
               <PlayCircle size={15} />{' '}

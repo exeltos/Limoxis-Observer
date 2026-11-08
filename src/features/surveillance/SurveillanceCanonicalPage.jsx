@@ -414,9 +414,12 @@ export function SurveillanceCanonicalPage() {
   ]
 
   async function createPatient(draft, patient) {
-    const created = await clinical.createCase(patient, draft)
+    // Here the patient's samples are not on hand: the surveillance opens and asks its sample right away (owner, 8/11/2026).
+    const { sampleChoice = null, ...caseDraft } = draft
+    const created = await clinical.createCase(patient, caseDraft)
     await load()
     notify(t('surveillanceCreated'), 'success')
+    if (sampleChoice === 'new' && created?.id) navigate(`/surveillance/${encodeURIComponent(created.id)}`, { state: { askSampleFor: created.id } })
     return created
   }
   async function createEnvironment({ patientRecordId, draft }) {
