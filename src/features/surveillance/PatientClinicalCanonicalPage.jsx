@@ -673,6 +673,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
           onOpenSample={has(CAPABILITIES.VIEW_LAB) ? sample => navigate(`/laboratory/${encodeURIComponent(sample.id)}`) : null}
+          onRemoveSample={sample => laboratory.repository.remove(sample.id)}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
           onEpisodeDeleted={deleted => {
