@@ -16,8 +16,8 @@ const under=(path,to)=>to==='/'?path==='/':path===to||path.startsWith(`${to}/`)
 const isUnder=(pathname,to)=>{const path=menuPathOf(pathname);if(to==='/quality'&&under(path,'/quality/measures'))return false;if(to==='/controls'&&under(path,'/controls/cultures'))return false;if(to==='/my-department'&&['/my-department/calendar','/my-department/meetings','/my-department/suppliers','/my-department/self-assessment'].some(child=>under(path,child)))return false;return under(pathname,to)||under(path,to)}
 
 function NavEntry({item,t,nested:nestedEntry=false,onNavigate}){
-  // An entry with a parent («Cultures» under «Controls») sits indented under it.
-  const nested=nestedEntry||Boolean(item.parent)
+  // An entry with a parent («Cultures» under «Controls») follows it on the same line as the others (owner, 8/11/2026).
+  const nested=nestedEntry
   const Icon=item.icon
   const label=t(item.label||item.key)
   const {pathname}=useLocation()

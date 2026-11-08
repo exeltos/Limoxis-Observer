@@ -21,7 +21,8 @@ import './rosters.css'
 // and the rules are checked again.
 const DEMAND = { weekday: { M: 2, I: 0, A: 2, N: 1 }, weekend: { M: 2, I: 0, A: 2, N: 1 } }
 const SHIFTS = ['M', 'I', 'A', 'N']
-const WRITERS = new Set([ROLES.HOSPITAL_ADMIN, ROLES.HR_OFFICE, ROLES.DEPARTMENT_MANAGER, ROLES.DEMO, ROLES.PLATFORM_OWNER])
+// The department manager, the hospital administrator and the platform owner (not the HR office: owner, 8/11/2026).
+const WRITERS = new Set([ROLES.HOSPITAL_ADMIN, ROLES.DEPARTMENT_MANAGER, ROLES.DEMO, ROLES.PLATFORM_OWNER])
 const LEAVES = ['L', 'S', 'H', 'U']
 
 export function RostersPage() {

@@ -22,8 +22,10 @@ export function RequireCapability({ capability, children }) {
   return can(role, capability, membership?.capabilities ?? [], membership?.customCapabilities ?? []) ? children : denied()
 }
 
-export function RequireAnyCapability({ capabilities=[], children }) {
+// excludeRoles: roles kept out even when they hold one of the capabilities (e.g. the HR office from the shift roster).
+export function RequireAnyCapability({ capabilities=[], excludeRoles=[], children }) {
   const { role, membership, loading } = useTenant()
   if (unresolvedTenantContext({ role, membership, loading })) return <RouteLoading />
+  if (excludeRoles.includes(role)) return denied()
   return canAny(role, capabilities, membership?.capabilities ?? [], membership?.customCapabilities ?? []) ? children : denied()
 }
