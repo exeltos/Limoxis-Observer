@@ -1,5 +1,5 @@
 import { useEffect,useState } from 'react'
-import { KeyRound,Languages,Pencil,ShieldCheck,Unplug } from 'lucide-react'
+import { Eye,KeyRound,Languages,Pencil,ShieldCheck,Unplug } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { SaveButton } from '../../design-system/SaveButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
@@ -8,9 +8,15 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase,invokeAuthenticatedFunction } from '../../core/supabase/client'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
+import { CheckboxField } from '../../design-system/CheckboxField'
+
+const LIRA_LAUNCHER_EVENT='limoxis:lira-launcher'
 
 export function LiraAiSettingsPanel(){
- const {language}=useLanguage(),en=language==='en';const {tenant,isDemo}=useTenant();const {notify}=useFeedback()
+ const {language}=useLanguage(),en=language==='en';const {tenant,isDemo,reloadMemberships}=useTenant();const {notify}=useFeedback()
+ // The LIRA button on every page, for every user of the hospital (owner, 8/11/2026); saved at once, like Security.
+ const [launcherOn,setLauncherOn]=useState(()=>tenant?.lira_launcher_enabled!==false),[launcherBusy,setLauncherBusy]=useState(false)
+ async function changeLauncher(next){setLauncherBusy(true);try{if(!isDemo){const {error}=await supabase.rpc('set_organization_lira_launcher',{p_organization_id:tenant.id,p_enabled:next});if(error)throw error}setLauncherOn(next);window.dispatchEvent(new CustomEvent(LIRA_LAUNCHER_EVENT,{detail:{hidden:!next}}));if(!isDemo)await reloadMemberships?.();notify(next?(en?'The LIRA button is shown.':'Το κουμπί LIRA εμφανίζεται.'):(en?'The LIRA button is hidden.':'Το κουμπί LIRA κρύφτηκε.'),'success')}catch(e){notify(e?.message||(en?'Save failed.':'Αποτυχία αποθήκευσης.'),'error')}finally{setLauncherBusy(false)}}
  const [form,setForm]=useState({provider:'none',model:'gpt-5.6',apiKey:'',keyHint:'',allowAggregateData:true,allowPatientLevelData:false});const [loading,setLoading]=useState(true);const [tr,setTr]=useState({enabled:false,limit:200000,used:0,providerReady:false});const [busy,setBusy]=useState(false)
  // Read-only until «Edit» in the «⋯» menu; then «Cancel» and «Save» at the foot of the card bring it back (snapshot for cancel).
  const [editing,setEditing]=useState(null)
@@ -40,6 +46,8 @@ export function LiraAiSettingsPanel(){
  {permissions.map(item=><label key={item.key} className="lira-ai-check"><input type="checkbox" checked={form[item.key]} disabled={off} onChange={e=>setForm(v=>({...v,[item.key]:e.target.checked}))}/><span><strong>{item.title}</strong><small>{item.text}</small></span></label>)}</section>
  </div>
  {/* Automatic translation of the hospital's own texts (docs/TRANSLATION_DESIGN.md): off until the hospital turns it on, with a monthly limit of characters; it uses the provider connected above. */}
+ <section className="lira-ai-block lira-ai-launcher"><h3><Eye size={15} aria-hidden="true"/>{en?'LIRA button':'Κουμπί LIRA'}</h3>
+  <CheckboxField label={en?'Show the LIRA button on every page':'Εμφάνιση του κουμπιού LIRA σε όλες τις σελίδες'} hint={en?'For every user of the hospital; saved at once.':'Για όλους τους χρήστες του νοσοκομείου· αποθηκεύεται αμέσως.'} checked={launcherOn} disabled={launcherBusy} onChange={value=>void changeLauncher(value)}/></section>
  <section className="lira-ai-block lira-ai-translation"><h3><Languages size={15} aria-hidden="true"/>{en?'Automatic translation':'Αυτόματη μετάφραση'}</h3>
  <div className="lira-ai-translation-row"><label className="lira-ai-check"><input type="checkbox" checked={tr.enabled} disabled={off} onChange={e=>setTr(v=>({...v,enabled:e.target.checked}))}/><span><strong>{en?'Translate my texts into English automatically':'Αγγλική εκδοχή των κειμένων μας αυτόματα'}</strong><small>{tr.providerReady||form.keyHint?(en?'Titles and descriptions only; names and clinical notes are never sent.':'Μόνο τίτλοι και περιγραφές· ονόματα και κλινικές σημειώσεις δεν στέλνονται ποτέ.'):(en?'Connect an AI provider first; until then nothing is translated.':'Συνδέστε πρώτα πάροχο AI· μέχρι τότε δεν μεταφράζεται τίποτα.')}</small></span></label>
  <label className="field"><span>{en?'Monthly limit (characters)':'Μηνιαίο όριο (χαρακτήρες)'}</span><input inputMode="numeric" value={tr.limit} disabled={off} onChange={e=>setTr(v=>({...v,limit:e.target.value.replace(/\D/g,'')}))}/><small>{en?`Used this month: ${tr.used.toLocaleString('en-GB')}`:`Χρήση αυτόν τον μήνα: ${tr.used.toLocaleString('el-GR')}`}</small></label></div></section>
