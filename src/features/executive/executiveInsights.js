@@ -111,10 +111,11 @@ export const GRID_COLUMNS=Object.freeze([
  {key:'incidents',label:['Συμβάντα','Incidents'],better:'down'},
 ])
 // tone: against the target where there is one (good / warning / danger), else a count of 0 is good and the most is danger.
-// only: the departments to compare (the wards); none given, every department with a figure.
+// only: the departments to compare; none given, every department with a clinical figure.
 export function departmentGrid(snapshot,previousSnapshot,targets={},only=[]){
- const keep=only?.length?new Set(only):null
- const now=new Map([...departmentFigures(snapshot)].filter(([name])=>!keep||keep.has(name))),before=previousSnapshot?departmentFigures(previousSnapshot):new Map()
+ // A department with only control findings (an office, the kitchen) is not compared: the wards are (owner, 8/11/2026).
+ const keep=only?.length?new Set(only):null,clinical=figures=>Object.keys(figures).some(key=>key!=='controlFindings')
+ const now=new Map([...departmentFigures(snapshot)].filter(([name,figures])=>keep?keep.has(name):clinical(figures))),before=previousSnapshot?departmentFigures(previousSnapshot):new Map()
  const columns=GRID_COLUMNS.filter(column=>[...now.values()].some(row=>row[column.key]!=null))
  const max=Object.fromEntries(columns.map(column=>[column.key,Math.max(0,...[...now.values()].map(row=>row[column.key]??0))]))
  const tone=(column,value)=>{

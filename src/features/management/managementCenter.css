@@ -156,13 +156,11 @@
 .bed-days-line input{height:36px;text-align:right}
 .bed-days-line-total{font-weight:700}
 @media(max-width:760px){.bed-days-period-fields,.bed-days-lines{grid-template-columns:1fr}}
-/* Which departments keep patient days and which are outside the hospital total (owner, 8/11/2026). */
-.bed-days-department-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;margin:0 0 12px}
-@media(max-width:760px){.bed-days-department-choice{grid-template-columns:1fr}}
-.bed-days-separate{display:grid;gap:4px;align-content:start;min-width:0}
+/* The departments calculated apart from the hospital total (owner, 8/11/2026). */
+.bed-days-separate{display:grid;gap:4px;align-content:start;min-width:0;max-width:calc(50% - 20px);margin:14px 0 4px}
+@media(max-width:760px){.bed-days-separate{max-width:none}}
 .bed-days-separate .multi-select,.bed-days-separate .searchable-select-control,.bed-days-separate .multi-select-button{min-width:0;max-width:100%}
 .bed-days-separate>small{font-size:12px;color:var(--lo-color-muted)}
-.bed-days-separate-tag{margin-left:8px;padding:1px 7px;font-size:11px;font-weight:600;color:var(--lo-color-muted);border:1px solid var(--lo-color-border);border-radius:999px}
 /* Figures derived from a row (share of the beds, beds per IPC nurse, survey percentages). */
 .structure-derived{display:block;font-size:11.5px;color:var(--lo-color-muted)}
 .structure-derived.is-bad{color:#b42318;font-weight:650}

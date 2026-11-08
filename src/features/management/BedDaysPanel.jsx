@@ -65,13 +65,13 @@ export function BedDaysPanel(){
 
   useEffect(()=>{if(isDemo){setRows(demoPatientDayPeriods);setDepartments(demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en,tracked:true})));setLoading(false);return}if(!tenant?.id)return;let active=true;setLoading(true);Promise.all([loadPatientDayPeriods(tenant.id),loadDepartments(tenant.id)]).then(([periods,depts])=>{if(active){setRows(periods);setDepartments(depts.map(d=>({id:d.id,name:d.name,nameEn:d.name,separate:Boolean(d.patient_days_separate),tracked:Boolean(d.patient_days_tracked)})))}}).catch(error=>{if(active)notify(error?.message||t('managementPanel.loadFailed'),'error')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,tenant?.id,notify,t])
 
-  function openCreate(){const pm=previousMonth();setEditor({mode:'create',base:null,draft:{duration:'month',year:pm.year,month:pm.month,quarter:Math.ceil(pm.month/3),from:'',to:'',values:{},tracked:departments.filter(d=>d.tracked).map(d=>d.id),separate:departments.filter(d=>d.separate).map(d=>d.id)}})}
-  function openEdit(period){const p=periodKind(period.from,period.to);const values={};for(const d of period.departments)values[deptKey(d)]=String(d.value??'');if(period.hospital)values[HOSPITAL]=String(period.hospital.value??'');const today=new Date();setEditor({mode:'edit',base:period,draft:{duration:p.kind,year:p.year||today.getFullYear(),month:p.month||1,quarter:p.quarter||1,from:period.from,to:period.to,values,tracked:departments.filter(d=>d.tracked||period.departments.some(row=>deptKey(row)===d.id)).map(d=>d.id),separate:departments.filter(d=>d.separate).map(d=>d.id)}})}
+  function openCreate(){const pm=previousMonth();setEditor({mode:'create',base:null,draft:{duration:'month',year:pm.year,month:pm.month,quarter:Math.ceil(pm.month/3),from:'',to:'',values:{},separate:departments.filter(d=>d.separate).map(d=>d.id)}})}
+  function openEdit(period){const p=periodKind(period.from,period.to);const values={};for(const d of period.departments)values[deptKey(d)]=String(d.value??'');if(period.hospital)values[HOSPITAL]=String(period.hospital.value??'');const today=new Date();setEditor({mode:'edit',base:period,draft:{duration:p.kind,year:p.year||today.getFullYear(),month:p.month||1,quarter:p.quarter||1,from:period.from,to:period.to,values,separate:departments.filter(d=>d.separate).map(d=>d.id)}})}
   async function save(){
     const {draft,base}=editor;const {from,to}=periodRange(draft)
     if(!from||!to||to<from){notify(t('completeRequiredFields'),'danger');return}
     // Only the departments that keep patient days: a department taken off the list keeps no figure for the period.
-    const trackedIds=new Set(draft.tracked||[])
+    const trackedIds=new Set([...(draft.separate||[]),...departments.filter(d=>String(draft.values[d.id]??'').trim()!=='').map(d=>d.id)])
     const lines=[...departments.map(d=>({id:d.id,dept:d,off:!trackedIds.has(d.id)})),{id:HOSPITAL,dept:null}]
     if(!lines.some(l=>String(draft.values[l.id]??'')!=='')){notify(t('bedDaysPanel.noValues'),'danger');return}
     // A new period that already exists adds to it, so a period never has two rows for one department.
@@ -89,7 +89,7 @@ export function BedDaysPanel(){
       }
       // Which departments keep patient days and which of them are counted apart from the hospital's total (a setting of
       // the department, not of the period).
-      const separate=new Set((draft.separate||[]).filter(id=>trackedIds.has(id)))
+      const separate=new Set(draft.separate||[])
       const changed=departments.filter(d=>Boolean(d.tracked)!==trackedIds.has(d.id)||Boolean(d.separate)!==separate.has(d.id))
       if(!isDemo)for(const d of changed)await setDepartmentPatientDays(tenant.id,d.id,{tracked:trackedIds.has(d.id),separate:separate.has(d.id)})
       if(changed.length)setDepartments(current=>current.map(d=>({...d,tracked:trackedIds.has(d.id),separate:separate.has(d.id)})))
@@ -101,7 +101,7 @@ export function BedDaysPanel(){
   const deptSum=period=>period.departments.reduce((sum,d)=>sum+Number(d.value||0),0)
   const advancedCount=(filters.from?1:0)+(filters.to?1:0)+(filters.department!=='all'?1:0)
 
-  if(editor)return <section className="management-section management-scroll-section"><PeriodEditor t={t} language={language} departments={departments} editor={editor} setEditor={setEditor} monthName={monthName} busy={busy} onClose={()=>setEditor(null)} onSave={save}/></section>
+  if(editor)return <section className="management-section management-scroll-section"><PeriodEditor t={t} language={language} departments={departments} editor={editor} setEditor={setEditor} monthName={monthName} periodLabel={periodLabel} busy={busy} onClose={()=>setEditor(null)} onSave={save}/></section>
 
   if(selected)return <section className="management-section management-scroll-section"><EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} eyebrow={t('patientDays')} title={periodLabel(selected.from,selected.to)} subtitle={`${fmt(selected.from)} – ${fmt(selected.to)}`} onBack={()=>setSelectedKey(null)} backLabel={t('patientDays')}
     headerActions={<div className="row-actions"><Button recordMenu variant="secondary" onClick={()=>openEdit(selected)}><Pencil size={15}/>{t('bedDaysPanel.editPeriodMenu')}</Button><Button recordMenu variant="secondary" onClick={()=>removePeriod(selected)}><Trash2 size={15}/>{t('bedDaysPanel.deletePeriod')}</Button></div>}>
@@ -120,16 +120,20 @@ export function BedDaysPanel(){
 />{!loading&&filtered.length===0&&<div className="inline-empty">{t('noPatientDaysFound')}</div>}</div></section>
 }
 
-function PeriodEditor({t,language,departments,editor,setEditor,monthName,busy,onClose,onSave}){
+function PeriodEditor({t,language,departments,editor,setEditor,monthName,periodLabel,busy,onClose,onSave}){
   const {draft}=editor
   const set=(key,value)=>setEditor(c=>({...c,draft:{...c.draft,[key]:value}}))
   const setValue=(id,value)=>setEditor(c=>({...c,draft:{...c.draft,values:{...c.draft.values,[id]:value.replace(/\D/g,'')}}}))
   const thisYear=new Date().getFullYear(); const years=[]; for(let y=thisYear+1;y>=thisYear-6;y--)years.push(y)
   const separate=new Set(draft.separate||[])
   const name=d=>language==='el'?d.name:(d.nameEn||d.name)
-  const trackedSet=new Set(draft.tracked||[]),tracked=departments.filter(d=>trackedSet.has(d.id))
-  const line=(id,label,strong)=><div key={id} className={`bed-days-line${strong?' bed-days-line-total':''}`}><span>{label}{separate.has(id)&&<small className="bed-days-separate-tag">{t('bedDaysPanel.separateTag')}</small>}</span><input className="input" inputMode="numeric" aria-label={label} value={draft.values[id]??''} onChange={e=>setValue(id,e.target.value)}/></div>
-  return <EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} title={t(editor.mode==='edit'?'bedDaysPanel.editPeriod':'bedDaysPanel.newPeriod')} subtitle={t('bedDaysPanel.entryHint')} onBack={onClose} backLabel={t('patientDays')}>
+  // The departments calculated apart (owner, 8/11/2026: the hospital's total and only those), and any that already has a
+  // figure in the period.
+  // The period the form is about, in the title (owner, 8/11/2026).
+  const chosen=periodRange(draft)
+  const shown=departments.filter(d=>separate.has(d.id)||String(draft.values[d.id]??'')!=='')
+  const line=(id,label,strong)=><div key={id} className={`bed-days-line${strong?' bed-days-line-total':''}`}><span>{label}</span><input className="input" inputMode="numeric" aria-label={label} value={draft.values[id]??''} onChange={e=>setValue(id,e.target.value)}/></div>
+  return <EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} title={`${t(editor.mode==='edit'?'bedDaysPanel.editPeriod':'bedDaysPanel.newPeriod')}${chosen.from&&chosen.to?` · ${periodLabel(chosen.from,chosen.to)}`:''}`} subtitle={t('bedDaysPanel.entryHint')} onBack={onClose} backLabel={t('patientDays')}>
     <RecordTabPanel title={t('period')} footer={<div className="inline-edit-footer"><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={busy} loading={busy} onClick={onSave}>{t('save')}</SaveButton></div>}>
       <div className="bed-days-editor">
         <div className="bed-days-period-fields">
@@ -139,11 +143,9 @@ function PeriodEditor({t,language,departments,editor,setEditor,monthName,busy,on
           {draft.duration!=='custom'&&<label className="field"><span>{t('bedDaysPanel.year')}</span><select className="input" value={draft.year} onChange={e=>set('year',Number(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select></label>}
           {draft.duration==='custom'&&<><ManualDateField className="field" label={t('periodFrom')} value={draft.from} onChange={v=>set('from',v)}/><ManualDateField className="field" label={t('periodTo')} value={draft.to} onChange={v=>set('to',v)}/></>}
         </div>
-        <div className="bed-days-department-choice">
-          <div className="bed-days-separate"><MultiSelect label={t('bedDaysPanel.trackedLabel')} tags options={departments.map(d=>({value:d.id,label:name(d)}))} selected={draft.tracked||[]} onChange={value=>setEditor(c=>({...c,draft:{...c.draft,tracked:value,separate:(c.draft.separate||[]).filter(id=>value.includes(id))}}))} placeholder={t('bedDaysPanel.trackedNone')}/><small>{t('bedDaysPanel.trackedHint')}</small></div>
-          <div className="bed-days-separate"><MultiSelect label={t('bedDaysPanel.separateLabel')} tags options={tracked.map(d=>({value:d.id,label:name(d)}))} selected={(draft.separate||[]).filter(id=>trackedSet.has(id))} onChange={value=>set('separate',value)} placeholder={t('bedDaysPanel.separateNone')}/><small>{t('bedDaysPanel.separateHint')}</small></div>
-        </div>
-        {tracked.length>0&&<div className="bed-days-lines">{tracked.map(d=>line(d.id,name(d)))}</div>}<div className="bed-days-lines bed-days-lines-total">{line(HOSPITAL,t('wholeHospital'),true)}</div>
+        <div className="bed-days-lines bed-days-lines-total">{line(HOSPITAL,t('wholeHospital'),true)}</div>
+        <div className="bed-days-separate"><MultiSelect label={t('bedDaysPanel.separateLabel')} tags options={departments.map(d=>({value:d.id,label:name(d)}))} selected={draft.separate||[]} onChange={value=>set('separate',value)} placeholder={t('bedDaysPanel.separateNone')}/><small>{t('bedDaysPanel.separateHint')}</small></div>
+        {shown.length>0&&<div className="bed-days-lines">{shown.map(d=>line(d.id,name(d)))}</div>}
       </div>
     </RecordTabPanel>
   </EntityRecordShell>
