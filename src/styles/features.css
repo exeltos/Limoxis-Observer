@@ -1135,9 +1135,10 @@
 /* ===== SOURCE: management-polish.css ===== */
 /* Management Center visual refinements */
 
-/* User table actions: keep every action on the same vertical axis. */
-.management-section .data-table th:last-child,
-.management-section .data-table td:last-child{
+/* User table actions: keep every action on the same vertical axis (only tables whose last column holds text buttons;
+   a «⋯» stays at the far right). */
+.management-section .data-table:has(td:last-child>.text-button) th:last-child,
+.management-section .data-table:has(td:last-child>.text-button) td:last-child{
   width:410px;
   padding-left:46px!important;
 }

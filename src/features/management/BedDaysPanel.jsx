@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react'
+import { CalendarDays, ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -62,6 +62,10 @@ export function BedDaysPanel(){
   const periods=useMemo(()=>groupPeriods(rows),[rows])
   const filtered=useMemo(()=>periods.filter(p=>{if(filters.from&&p.to<filters.from)return false;if(filters.to&&p.from>filters.to)return false;if(filters.department!=='all'&&!p.departments.some(d=>deptKey(d)===filters.department))return false;return true}),[periods,filters])
   const selected=useMemo(()=>periods.find(p=>p.key===selectedKey)||null,[periods,selectedKey])
+  // By year (owner, 8/11/2026): this year open, the earlier ones closed, each a click away.
+  const [openYears,setOpenYears]=useState(()=>new Set([String(new Date().getFullYear())]))
+  const toggleYear=year=>setOpenYears(current=>{const next=new Set(current);if(next.has(year))next.delete(year);else next.add(year);return next})
+  const yearRows=useMemo(()=>{const years=new Map();for(const period of filtered){const year=String(period.from).slice(0,4);if(!years.has(year))years.set(year,[]);years.get(year).push(period)}return [...years].sort((a,b)=>b[0].localeCompare(a[0])).flatMap(([year,list])=>[{heading:year,count:list.length},...(openYears.has(year)?list:[])])},[filtered,openYears])
 
   useEffect(()=>{if(isDemo){setRows(demoPatientDayPeriods);setDepartments(demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en,tracked:true})));setLoading(false);return}if(!tenant?.id)return;let active=true;setLoading(true);Promise.all([loadPatientDayPeriods(tenant.id),loadDepartments(tenant.id)]).then(([periods,depts])=>{if(active){setRows(periods);setDepartments(depts.map(d=>({id:d.id,name:d.name,nameEn:d.name,separate:Boolean(d.patient_days_separate),tracked:Boolean(d.patient_days_tracked)})))}}).catch(error=>{if(active)notify(error?.message||t('managementPanel.loadFailed'),'error')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,tenant?.id,notify,t])
 
@@ -98,7 +102,6 @@ export function BedDaysPanel(){
   }
   async function removePeriod(period){const ok=await confirm({message:t('bedDaysPanel.deletePeriodConfirm'),danger:true,confirmLabel:t('delete')});if(!ok)return;const ids=[...period.departments,...(period.hospital?[period.hospital]:[])].map(r=>r.id);try{if(!isDemo)for(const id of ids)await removePatientDayPeriod(tenant.id,id);setRows(current=>current.filter(r=>!ids.includes(r.id)));setSelectedKey(null);notify(t('actionCompleted'),'success')}catch(error){notify(error?.message||t('managementPanel.saveFailed'),'error')}}
   const menu=period=>[{id:'edit',label:t('bedDaysPanel.editPeriodMenu'),icon:Pencil,onClick:()=>openEdit(period)},{id:'delete',label:t('bedDaysPanel.deletePeriod'),icon:Trash2,tone:'danger',separatorBefore:true,onClick:()=>removePeriod(period)}]
-  const deptSum=period=>period.departments.reduce((sum,d)=>sum+Number(d.value||0),0)
   const advancedCount=(filters.from?1:0)+(filters.to?1:0)+(filters.department!=='all'?1:0)
 
   if(editor)return <section className="management-section management-scroll-section"><PeriodEditor t={t} language={language} departments={departments} editor={editor} setEditor={setEditor} monthName={monthName} periodLabel={periodLabel} busy={busy} onClose={()=>setEditor(null)} onSave={save}/></section>
@@ -106,17 +109,17 @@ export function BedDaysPanel(){
   if(selected)return <section className="management-section management-scroll-section"><EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} eyebrow={t('patientDays')} title={periodLabel(selected.from,selected.to)} subtitle={`${fmt(selected.from)} – ${fmt(selected.to)}`} onBack={()=>setSelectedKey(null)} backLabel={t('patientDays')}
     headerActions={<div className="row-actions"><Button recordMenu variant="secondary" onClick={()=>openEdit(selected)}><Pencil size={15}/>{t('bedDaysPanel.editPeriodMenu')}</Button><Button recordMenu variant="secondary" onClick={()=>removePeriod(selected)}><Trash2 size={15}/>{t('bedDaysPanel.deletePeriod')}</Button></div>}>
     <RecordTabPanel title={t('bedDaysPanel.periodTitle')}><RegistryTable bare sortable={false} wrapperClassName="bed-days-table-wrap" columns={[{key:'department',label:t('department')},{key:'value',label:<span className="bed-days-num-head">{t('patientDays')}</span>,className:'bed-days-num'}]}
-      rows={[...selected.departments,...(selected.departments.length?[{id:'__sum',label:t('bedDaysPanel.sumOfDepartments'),value:deptSum(selected),kind:'bed-days-sum'}]:[]),{id:'__total',label:t('wholeHospital'),value:selected.hospital?.value,kind:'bed-days-total'}]} rowKey={row=>row.id} rowProps={row=>({className:row.kind||undefined})}
+      rows={[{id:'__total',label:t('wholeHospital'),value:selected.hospital?.value,kind:'bed-days-total'},...selected.departments]} rowKey={row=>row.id} rowProps={row=>({className:row.kind||undefined})}
       renderRow={row=><><td>{row.kind?row.label:deptName(row)}</td><td className="bed-days-num">{row.value==null?'—':num(row.value)}</td></>}/></RecordTabPanel>
   </EntityRecordShell></section>
 
-  return <section className="management-section management-scroll-section"><div className="bed-days-panel workspace-fill"><div className="section-toolbar"><div><h2>{t('patientDays')}</h2><p>{t('patientDaysManualSubtitle')}</p></div><div className="row-actions bed-days-actions"><FilterBar activeAdvancedCount={advancedCount} onClear={()=>setFilters({from:'',to:'',department:'all'})} advanced={<><FilterDate label={t('periodFrom')} value={filters.from} onChange={value=>setFilters(c=>({...c,from:value}))}/><FilterDate label={t('periodTo')} value={filters.to} onChange={value=>setFilters(c=>({...c,to:value}))}/></>}><FilterSelect label={t('department')} value={filters.department} onChange={value=>setFilters(c=>({...c,department:value}))}><option value="all">{t('allDepartments')}</option>{departments.map(d=><option key={d.id} value={d.id}>{language==='el'?d.name:(d.nameEn||d.name)}</option>)}</FilterSelect></FilterBar><Button onClick={openCreate}><Plus size={15}/>{t('bedDaysPanel.newPeriod')}</Button></div></div>{loading&&<TableSkeleton/>}<RegistryTable
-  wrapperClassName="bed-days-table-wrap"
-  columns={[{key:'period',label:t('period')},{key:'hospital',label:t('wholeHospital')},{key:'departments',label:t('bedDaysPanel.departments')},{key:'actions',label:'',ariaLabel:t('actions')}]}
-  rows={filtered}
-  rowKey={row=>row.key}
-  rowProps={row=>({className:'clickable-row',onClick:()=>setSelectedKey(row.key)})}
-  renderRow={row=><><td><strong>{periodLabel(row.from,row.to)}</strong></td><td><strong>{row.hospital?num(row.hospital.value):'—'}</strong></td><td>{row.departments.length?`${t('bedDaysPanel.departmentsCount').replace('{n}',row.departments.length)} · ${num(deptSum(row))}`:'—'}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={menu(row)}/></td></>}
+  return <section className="management-section management-scroll-section"><div className="bed-days-panel workspace-fill"><div className="section-toolbar"><div><h2>{t('patientDays')}</h2></div><div className="row-actions bed-days-actions"><FilterBar activeAdvancedCount={advancedCount} onClear={()=>setFilters({from:'',to:'',department:'all'})} advanced={<><FilterDate label={t('periodFrom')} value={filters.from} onChange={value=>setFilters(c=>({...c,from:value}))}/><FilterDate label={t('periodTo')} value={filters.to} onChange={value=>setFilters(c=>({...c,to:value}))}/></>}><FilterSelect label={t('department')} value={filters.department} onChange={value=>setFilters(c=>({...c,department:value}))}><option value="all">{t('allDepartments')}</option>{departments.map(d=><option key={d.id} value={d.id}>{language==='el'?d.name:(d.nameEn||d.name)}</option>)}</FilterSelect></FilterBar><Button onClick={openCreate}><Plus size={15}/>{t('bedDaysPanel.newPeriod')}</Button></div></div>{loading&&<TableSkeleton/>}<RegistryTable
+  wrapperClassName="bed-days-table-wrap" className="bed-days-list-table" sortable={false}
+  columns={[{key:'period',label:t('period')},{key:'hospital',label:t('wholeHospital')},{key:'departments',label:t('bedDaysPanel.separateLabel')},{key:'actions',label:'',ariaLabel:t('actions')}]}
+  rows={yearRows}
+  rowKey={row=>row.heading?`y-${row.heading}`:row.key}
+  rowProps={row=>row.heading?{className:'bed-days-year-row'}:({className:'clickable-row',onClick:()=>setSelectedKey(row.key)})}
+  renderRow={row=>row.heading?<td colSpan={4}><button type="button" className="bed-days-year-toggle" aria-expanded={openYears.has(row.heading)} onClick={()=>toggleYear(row.heading)}>{openYears.has(row.heading)?<ChevronDown size={15} aria-hidden="true"/>:<ChevronRight size={15} aria-hidden="true"/>}<strong>{row.heading}</strong><span>{t('bedDaysPanel.periodsCount').replace('{n}',row.count)}</span></button></td>:<><td><strong>{periodLabel(row.from,row.to)}</strong></td><td><strong>{row.hospital?num(row.hospital.value):'—'}</strong></td><td>{row.departments.length?row.departments.map(d=>`${deptName(d)} ${num(d.value)}`).join(' · '):'—'}</td><td onClick={e=>e.stopPropagation()}><OverflowMenu items={menu(row)}/></td></>}
 />{!loading&&filtered.length===0&&<div className="inline-empty">{t('noPatientDaysFound')}</div>}</div></section>
 }
 

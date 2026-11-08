@@ -76,20 +76,19 @@
 /* Platform update center: one row per detected source change. */
 .security-setting{display:grid;gap:6px;max-width:460px;padding:4px 0 8px}
 .security-setting small{font-size:11.5px;line-height:1.5;color:var(--lo-color-muted)}
-.identity-settings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px 24px;align-items:start;max-width:980px}
+.identity-settings{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start;max-width:640px}
 .identity-logo{display:grid;gap:8px;justify-items:start}
-.identity-logo>span,.identity-preview>span{font-size:12px;font-weight:700;color:var(--lo-color-text)}
+.identity-logo>span,.identity-preview>span{font-size:10.5px;font-weight:620;color:#536579}
 .identity-logo-box{display:grid;place-items:center;width:220px;height:96px;border:1px dashed #b9c9d6;border-radius:12px;background:#f6f9fc;color:#9db4c9}
 .identity-logo-box img{max-width:200px;max-height:80px;object-fit:contain}
 .identity-logo-actions{display:flex;gap:8px}
 .identity-logo small{font-size:11.5px;color:var(--lo-color-muted)}
-.identity-preview{grid-column:1/-1;display:grid;gap:6px}
+.identity-preview{display:grid;gap:6px}
 .identity-preview-band{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--lo-color-border);border-bottom:2px solid #cfdbe5;border-radius:10px 10px 0 0;background:#fff}
 .identity-preview-band img{max-width:120px;max-height:40px;object-fit:contain}
 .identity-preview-band div{display:grid;gap:2px}
 .identity-preview-band strong{font-size:14px;color:#173650}
 .identity-preview-band small{font-size:12px;color:#5d7891}
-@media(max-width:800px){.identity-settings{grid-template-columns:1fr}}
 /* «Ορισμοί δεικτών»: the hospital indicator list under the definitions, one tab. */
 /* The tab above already names the panel: its own title stays for screen readers only. */
 .management-shell .section-toolbar>div>h2{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
@@ -146,8 +145,7 @@
 @media(max-width:900px){.management-lira-ai .lira-ai-grid,.management-lira-ai .lira-ai-fields,.management-lira-ai .lira-ai-translation-row{grid-template-columns:1fr;gap:12px}.management-lira-ai .lira-ai-head{flex-direction:column}}
 .bed-days-record-shell .bed-days-num{text-align:right;font-variant-numeric:tabular-nums}
 .bed-days-num-head{display:block;text-align:right}
-.bed-days-record-shell .bed-days-sum td{color:var(--lo-color-muted)}
-.bed-days-record-shell .bed-days-total td{font-weight:700;border-top:2px solid var(--lo-color-border)}
+.bed-days-record-shell .bed-days-total td{font-weight:700;border-bottom:2px solid var(--lo-color-border)}
 .bed-days-editor{display:flex;flex-direction:column;gap:18px;padding:12px 14px 0}
 .bed-days-period-fields{display:grid;grid-template-columns:repeat(3,minmax(0,220px));gap:12px}
 @media(max-width:760px){.bed-days-period-fields{grid-template-columns:1fr}}
@@ -164,3 +162,14 @@
 .structure-derived.is-bad{color:#b42318;font-weight:650}
 .indicator-data-panel{display:flex;flex-direction:column;gap:6px}
 .indicator-data-tabs{margin:0 0 4px}
+.management-role-does{font-size:12.5px;color:var(--lo-color-muted)}
+/* Library entries (owner, 8/11/2026): the «⋯» at the far right, the lock beside the name, the source in normal text. */
+.library-entries-table td:last-child,.library-entries-table th:last-child{width:1%;white-space:nowrap;text-align:right}
+.library-entries-table td>strong{display:inline-flex;align-items:center;gap:6px}
+.library-entries-table td>strong .library-lock{flex:none;margin-left:0}
+.library-entries-table .library-source{font-size:12.5px;color:var(--lo-color-text)}
+/* Patient days by year (owner, 8/11/2026): a row per year that opens its periods; the «⋯» at the far right. */
+.bed-days-list-table tr:not(.bed-days-year-row)>td:last-child,.bed-days-list-table th:last-child{width:1%;white-space:nowrap;text-align:right}
+.bed-days-list-table tr.bed-days-year-row>td{padding:0;text-align:left;background:#f6f8fb}
+.bed-days-year-toggle{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;font:inherit;color:var(--lo-color-text);text-align:left;background:none;border:0;cursor:pointer}
+.bed-days-year-toggle span{font-size:12px;color:var(--lo-color-muted)}

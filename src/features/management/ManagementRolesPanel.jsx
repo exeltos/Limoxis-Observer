@@ -27,7 +27,7 @@ const actionLabel=(item,en)=>actionLabels[item?.actionType]?.[en?1:0]||(en?'Othe
 
 export function ManagementRolesPanel(){
  const {language,t}=useLanguage();const en=language==='en';const {tenant,isDemo}=useTenant();const {notify,confirm}=useFeedback()
- const [customRoles,setCustomRoles]=useState([]);const [loading,setLoading]=useState(false);const [selected,setSelected]=useState(null);const [editor,setEditor]=useState(null)
+ const [customRoles,setCustomRoles]=useState([]);const [roleQuery,setRoleQuery]=useState('');const [loading,setLoading]=useState(false);const [selected,setSelected]=useState(null);const [editor,setEditor]=useState(null)
  const customPermissions=useMemo(()=>Object.values(capabilityCatalogue).filter(item=>item.customRoleClass!=='system_only'),[])
  const systemRoles=useMemo(()=>Object.entries(managementRoleNames).filter(([key])=>key!=='demo'&&key!=='platform_owner').map(([key,labelKey])=>({id:key,name:t(labelKey),system:true,capabilities:roleCapabilities[key]||[]})),[t])
  useEffect(()=>{if(isDemo){setCustomRoles([]);return}if(!tenant?.id)return;let active=true;setLoading(true);loadCustomRoles(tenant.id).then(rows=>active&&setCustomRoles(rows)).catch(error=>active&&notify(error?.message||(en?'Failed to load roles.':'Αποτυχία φόρτωσης ρόλων.'),'error')).finally(()=>active&&setLoading(false));return()=>{active=false}},[isDemo,tenant?.id,notify,en])
@@ -46,10 +46,18 @@ export function ManagementRolesPanel(){
    <RolePermissionSummary role={selectedRole} en={en}/>
   </RecordTabPanel>
  </EntityRecordShell>
- return <section className="management-section management-scroll-section"><div className="management-roles-panel workspace-fill"><div className="section-toolbar"><div><h2>{t('rolesPermissions')}</h2><p>{en?'Select a role to inspect its exact permissions and access scope. Custom roles can be edited.':'Επιλέξτε έναν ρόλο για να δείτε αναλυτικά τα δικαιώματα και το εύρος πρόσβασής του. Οι προσαρμοσμένοι ρόλοι μπορούν να τροποποιηθούν.'}</p></div><Button onClick={openNew}><Plus size={15}/>{en?'New role':'Νέος ρόλος'}</Button></div>{loading&&<TableSkeleton/>}<div className="scroll-table management-roles-list"><RegistryTable bare sortable={false} rows={[...systemRoles.map(role=>({...role,system:true,count:role.capabilities.length})),...customRoles.map(role=>({...role,system:false,count:(role.capabilities||[]).length}))]} rowKey={role=>`${role.system?'s':'c'}-${role.id}`}
-  columns={[{key:'name',label:en?'Role':'Ρόλος'},{key:'count',label:en?'Permissions':'Δικαιώματα'},{key:'kind',label:en?'Kind':'Είδος'}]}
+ return <section className="management-section management-scroll-section"><div className="management-roles-panel workspace-fill"><FilterBar query={roleQuery} onQueryChange={setRoleQuery} placeholder={en?'Search role or area…':'Αναζήτηση ρόλου ή ενότητας…'} end={<Button onClick={openNew}><Plus size={15}/>{en?'New role':'Νέος ρόλος'}</Button>}/>{loading&&<TableSkeleton/>}<div className="scroll-table management-roles-list"><RegistryTable bare sortable={false} rows={[...systemRoles.map(role=>({...role,system:true,count:role.capabilities.length})),...customRoles.map(role=>({...role,system:false,count:(role.capabilities||[]).length}))].filter(role=>!roleQuery.trim()||`${role.name} ${roleAreas(role.capabilities,en)}`.toLocaleLowerCase('el').includes(roleQuery.trim().toLocaleLowerCase('el')))} rowKey={role=>`${role.system?'s':'c'}-${role.id}`}
+  columns={[{key:'name',label:en?'Role':'Ρόλος'},{key:'does',label:en?'What it does':'Τι κάνει'},{key:'count',label:en?'Permissions':'Δικαιώματα'},...(customRoles.length?[{key:'kind',label:en?'Kind':'Είδος'}]:[])]}
   rowProps={role=>({className:'registry-row-clickable',tabIndex:0,onClick:()=>setSelected({id:role.id,system:role.system}),onKeyDown:event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setSelected({id:role.id,system:role.system})}}})}
-  renderRow={role=><><td><strong>{role.name}</strong></td><td>{role.count}</td><td><span className={`status-badge ${role.system?'':'active'}`}>{role.system?(en?'System':'Συστήματος'):(en?'Custom':'Προσαρμοσμένος')}</span></td></>}/></div></div></section>
+  renderRow={role=><><td><strong>{role.name}</strong></td><td className="management-role-does">{roleAreas(role.capabilities,en)}</td><td>{role.count}</td>{customRoles.length>0&&<td><span className={`status-badge ${role.system?'':'active'}`}>{role.system?(en?'System':'Συστήματος'):(en?'Custom':'Προσαρμοσμένος')}</span></td>}</>}/></div></div></section>
+}
+
+// «Τι κάνει» (owner, 8/11/2026): the areas a role works in, the ones with the most permissions first, at most three.
+function roleAreas(capabilities=[],en){
+ const counts=new Map()
+ for(const id of capabilities||[]){const domain=capabilityCatalogue[id]?.domain||'general';if(domain!=='general')counts.set(domain,(counts.get(domain)||0)+1)}
+ const areas=[...counts].sort((a,b)=>b[1]-a[1]).map(([domain])=>groupLabel(domain,en))
+ return areas.length?`${areas.slice(0,3).join(' · ')}${areas.length>3?` ${en?`+${areas.length-3} more`:`+${areas.length-3} ακόμα`}`:''}`:'—'
 }
 
 const ACTION_ORDER=['view','record','create','edit','execute','approve','publish','delete','archive','manage']
