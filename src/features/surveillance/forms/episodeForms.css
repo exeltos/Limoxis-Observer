@@ -62,4 +62,4 @@
 .episode-form-section.is-flat .episode-form-row{border-top:0;margin-top:6px;padding:10px 12px;border-radius:9px;background:#f6f8fb;grid-template-columns:minmax(0,1.6fr) minmax(0,1.1fr) minmax(0,1fr) 44px}
 .episode-form-section.is-flat .episode-form-row.is-clickable{cursor:pointer}
 .episode-form-section.is-flat .episode-form-row.is-clickable:hover{background:#eef3f9}
-.episode-form-section.is-flat .episode-form-empty{padding:9px 12px;border-radius:9px;background:#f6f8fb;color:#94a3b8;font-style:italic}
+.episode-form-section.is-flat .episode-form-empty{padding:9px 12px;border-radius:9px;background:#f6f8fb;color:#56677a;font-style:italic}
