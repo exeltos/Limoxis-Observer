@@ -44,14 +44,33 @@ export async function loadRosterDepartments(organizationId) {
   return (await loadDepartments(organizationId)).filter(row => row.is_active !== false)
 }
 
-// The department's people, as roster members (name, profession, active).
+// The head of the department: their position says so (Προϊστάμενος/η, Head of Department).
+export const isDepartmentHead = position => /προϊστάμεν|head of department/i.test(String(position || ''))
+
+// The head first, always; then everyone else in the order the manager set (owner, 8/11/2026).
+export const headsFirst = members => [...members.filter(m => m.isHead), ...members.filter(m => !m.isHead)]
+
+// The department's people, as roster members (name, profession, active, head).
 export async function loadDepartmentStaff(organizationId, department) {
   const employees = await loadEmployeesAsync(organizationId)
   const demo = isDemoDataEnvironment()
-  return employees
-    .filter(e => (demo ? e.department === department.name : e.departmentId === department.id))
-    .filter(e => !e.employmentStatus || e.employmentStatus === 'active' || e.employmentStatus === 'leave')
-    .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', active: true, fixed: {}, wishes: {} }))
+  return headsFirst(
+    employees
+      .filter(e => (demo ? e.department === department.name : e.departmentId === department.id))
+      .filter(e => !e.employmentStatus || e.employmentStatus === 'active' || e.employmentStatus === 'leave')
+      .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), active: true, fixed: {}, wishes: {} })),
+  )
+}
+
+// The end of the previous roster (its last seven days per person): the new one starts from there.
+export async function loadRosterHistory(organizationId, departmentId, previousStart) {
+  const previous = await loadRoster(organizationId, departmentId, previousStart)
+  if (!previous) return { history: {}, dates: [] }
+  const dates = Object.values(previous.assignments || {}).flatMap(row => Object.keys(row || {}))
+  const last = [...new Set(dates)].sort().slice(-7)
+  const history = {}
+  for (const [id, row] of Object.entries(previous.assignments || {})) history[id] = last.map(date => row?.[date] || '')
+  return { history, dates: last }
 }
 
 const fromRow = row => ({

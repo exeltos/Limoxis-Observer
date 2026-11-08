@@ -919,7 +919,13 @@ function Details({
         <div className={`detail-item detail-field ${editing ? 'editable' : ''}`}>
           <span>{language === 'en' ? 'Status' : 'Κατάσταση'}</span>
           {editing ? (
-            <input value={t(employee.employmentStatus)} disabled readOnly />
+            <SearchableSelect
+              hideLabel
+              label={language === 'en' ? 'Status' : 'Κατάσταση'}
+              value={record.employmentStatus || 'active'}
+              onChange={next => set('employmentStatus', next || 'active')}
+              options={['active', 'leave', 'inactive'].map(value => ({ value, label: t(value) }))}
+            />
           ) : (
             <strong>{t(employee.employmentStatus)}</strong>
           )}
@@ -958,7 +964,14 @@ function Details({
           display={language === 'el' ? record.profession : record.professionEn}
           options={professionOptions}
           language={language}
-          onChange={value => set('profession', value)}
+          allowCustom
+          onChange={value =>
+            setRecord(current => ({
+              ...current,
+              profession: value,
+              professionEn: professionOptions.find(row => (row?.[0] ?? row?.name) === value)?.[1] || value,
+            }))
+          }
         />
         {(editing || record.position) && (
           <InlineSelect
@@ -968,6 +981,7 @@ function Details({
             display={(language === 'el' ? record.position : record.positionEn) || '—'}
             options={positionOptions}
             language={language}
+            allowCustom
             onChange={value =>
               setRecord(current => ({
                 ...current,
@@ -1111,7 +1125,8 @@ function InlineDetail({ editing, label, value, display, onChange, type = 'text' 
     </div>
   )
 }
-function InlineSelect({ editing, label, value, display, options = [], language, onChange }) {
+// allowCustom: a value that is not in the list (yet) is typed in, e.g. a job position the hospital's list does not have.
+function InlineSelect({ editing, label, value, display, options = [], language, onChange, allowCustom = false }) {
   const rows = Array.isArray(options) ? options : [],
     hasCurrent = rows.some(row => (row?.[0] ?? row?.name ?? '') === value)
   return (
@@ -1123,6 +1138,7 @@ function InlineSelect({ editing, label, value, display, options = [], language, 
           label={label}
           value={value || ''}
           onChange={next => onChange(next || '')}
+          allowCustom={allowCustom}
           options={[
             ...(value && !hasCurrent ? [{ value, label: (typeof display === 'string' && display) || value }] : []),
             ...rows.map(row => {

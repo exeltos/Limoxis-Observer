@@ -17,3 +17,24 @@ describe('roster period and access', () => {
     expect(sql).toContain('revoke all on public.department_rosters from anon')
   })
 })
+
+describe('roster members (owner, 8/11/2026)', () => {
+  it('knows the head of the department and always puts them first', async () => {
+    const { headsFirst, isDepartmentHead } = await import('../src/features/rosters/rosterService')
+    expect(isDepartmentHead('Προϊστάμενος/η Τμήματος')).toBe(true)
+    expect(isDepartmentHead('Head of Department (Nursing)')).toBe(true)
+    expect(isDepartmentHead('Νοσηλευτής/τρια ΜΕΘ')).toBe(false)
+    expect(headsFirst([{ name: 'a' }, { name: 'h', isHead: true }, { name: 'b' }]).map(m => m.name)).toEqual(['h', 'a', 'b'])
+  })
+})
+
+describe('employee record: status and free job position (owner, 8/11/2026)', () => {
+  it('names the «leave» status and lets status, category and position be edited', () => {
+    expect(readFileSync('src/core/i18n/stringsEl.js', 'utf8')).toContain("leave:'Σε άδεια'")
+    expect(readFileSync('src/core/i18n/stringsEn.js', 'utf8')).toContain("leave:'On leave'")
+    const page = readFileSync('src/features/employees/EmployeeRecordPage.jsx', 'utf8')
+    expect(page).toContain("options={['active', 'leave', 'inactive'].map(value => ({ value, label: t(value) }))}")
+    expect(page).not.toContain('<input value={t(employee.employmentStatus)} disabled readOnly />')
+    expect(page.match(/allowCustom\n/g)?.length).toBe(2)
+  })
+})
