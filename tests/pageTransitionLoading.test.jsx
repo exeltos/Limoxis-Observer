@@ -90,7 +90,7 @@ describe('first load and record changes', () => {
   })
 
   it('record pages never render the previous record while the next one loads', () => {
-    expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('if (loading || stale) return <RouteLoading />')
+    expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('if (stale || (loading && !(patient || record))) return <RouteLoading />')
     expect(read('src/features/quality/QualityRecordPage.jsx')).toContain('if(loading||loadedFor!==recordKey)return <RouteLoading/>')
     expect(read('src/features/employees/useEmployeeRecordData.js')).toContain('loading: loading || (!selfMode && loadedCode !== code)')
   })
