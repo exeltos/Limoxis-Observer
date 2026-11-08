@@ -36,6 +36,7 @@ import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { deleteMeeting, saveMeeting } from './meetingService'
 import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
 import '../quality.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
 
@@ -126,7 +127,7 @@ export function MeetingRecordPage() {
     if (!isNew || !meeting || meeting.staffFilled || !staff.length) return
     setMeeting(current => ({ ...current, staffFilled: true, participants: staff.map(person => ({ ...person, attended: true })) }))
   }, [isNew, meeting, staff])
-  if (list.loading || meeting === null) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (list.loading || meeting === null) return <Page fill><TableSkeleton/></Page>
   if (meeting === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting not found' : 'Η συνάντηση δεν βρέθηκε'}</strong></div></Page>
 
   const canWrite = isNew ? ownDepartments.length > 0 : list.access.canWrite(meeting)

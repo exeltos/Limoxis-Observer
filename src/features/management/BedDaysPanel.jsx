@@ -12,8 +12,10 @@ import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { demoLibrarySeed, demoPatientDayPeriods } from './managementData'
 import { ManualDateField } from '../../design-system/ManualDateField'
-import { loadDepartments } from './departmentsService'
+import { loadDepartments, setDepartmentPatientDaysSeparate } from './departmentsService'
+import { MultiSelect } from '../../design-system/MultiSelect'
 import { createPatientDayPeriod, loadPatientDayPeriods, removePatientDayPeriod, updatePatientDayPeriod } from './patientDayPeriodsCloudService'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 // Patient days: the database keeps one row per department (or the hospital total) and period; the screen shows one
 // line per period and enters all the departments of a period in one form. A period is free (from–to): a month,
@@ -61,10 +63,10 @@ export function BedDaysPanel(){
   const filtered=useMemo(()=>periods.filter(p=>{if(filters.from&&p.to<filters.from)return false;if(filters.to&&p.from>filters.to)return false;if(filters.department!=='all'&&!p.departments.some(d=>deptKey(d)===filters.department))return false;return true}),[periods,filters])
   const selected=useMemo(()=>periods.find(p=>p.key===selectedKey)||null,[periods,selectedKey])
 
-  useEffect(()=>{if(isDemo){setRows(demoPatientDayPeriods);setDepartments(demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en})));setLoading(false);return}if(!tenant?.id)return;let active=true;setLoading(true);Promise.all([loadPatientDayPeriods(tenant.id),loadDepartments(tenant.id)]).then(([periods,depts])=>{if(active){setRows(periods);setDepartments(depts.map(d=>({id:d.id,name:d.name,nameEn:d.name})))}}).catch(error=>{if(active)notify(error?.message||t('managementPanel.loadFailed'),'error')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,tenant?.id,notify,t])
+  useEffect(()=>{if(isDemo){setRows(demoPatientDayPeriods);setDepartments(demoLibrarySeed.departments.map(([el,en])=>({id:el,name:el,nameEn:en})));setLoading(false);return}if(!tenant?.id)return;let active=true;setLoading(true);Promise.all([loadPatientDayPeriods(tenant.id),loadDepartments(tenant.id)]).then(([periods,depts])=>{if(active){setRows(periods);setDepartments(depts.map(d=>({id:d.id,name:d.name,nameEn:d.name,separate:Boolean(d.patient_days_separate)})))}}).catch(error=>{if(active)notify(error?.message||t('managementPanel.loadFailed'),'error')}).finally(()=>{if(active)setLoading(false)});return()=>{active=false}},[isDemo,tenant?.id,notify,t])
 
-  function openCreate(){const pm=previousMonth();setEditor({mode:'create',base:null,draft:{duration:'month',year:pm.year,month:pm.month,quarter:Math.ceil(pm.month/3),from:'',to:'',values:{}}})}
-  function openEdit(period){const p=periodKind(period.from,period.to);const values={};for(const d of period.departments)values[deptKey(d)]=String(d.value??'');if(period.hospital)values[HOSPITAL]=String(period.hospital.value??'');const today=new Date();setEditor({mode:'edit',base:period,draft:{duration:p.kind,year:p.year||today.getFullYear(),month:p.month||1,quarter:p.quarter||1,from:period.from,to:period.to,values}})}
+  function openCreate(){const pm=previousMonth();setEditor({mode:'create',base:null,draft:{duration:'month',year:pm.year,month:pm.month,quarter:Math.ceil(pm.month/3),from:'',to:'',values:{},separate:departments.filter(d=>d.separate).map(d=>d.id)}})}
+  function openEdit(period){const p=periodKind(period.from,period.to);const values={};for(const d of period.departments)values[deptKey(d)]=String(d.value??'');if(period.hospital)values[HOSPITAL]=String(period.hospital.value??'');const today=new Date();setEditor({mode:'edit',base:period,draft:{duration:p.kind,year:p.year||today.getFullYear(),month:p.month||1,quarter:p.quarter||1,from:period.from,to:period.to,values,separate:departments.filter(d=>d.separate).map(d=>d.id)}})}
   async function save(){
     const {draft,base}=editor;const {from,to}=periodRange(draft)
     if(!from||!to||to<from){notify(t('completeRequiredFields'),'danger');return}
@@ -83,6 +85,10 @@ export function BedDaysPanel(){
         if(existing){if(existing.from===from&&existing.to===to&&String(existing.value)===raw)continue;const saved=isDemo?{...existing,...record,value:Number(raw)}:await updatePatientDayPeriod(tenant.id,existing.id,record);next=next.map(r=>r.id===existing.id?saved:r)}
         else{const saved=isDemo?{id:`pd-${Date.now()}-${line.id}`,...record,value:Number(raw)}:await createPatientDayPeriod(tenant.id,record);next=[saved,...next]}
       }
+      // The departments counted apart from the hospital's total (a setting of the department, not of the period).
+      const separate=new Set(draft.separate||[]),changed=departments.filter(d=>Boolean(d.separate)!==separate.has(d.id))
+      if(!isDemo)for(const d of changed)await setDepartmentPatientDaysSeparate(tenant.id,d.id,separate.has(d.id))
+      if(changed.length)setDepartments(current=>current.map(d=>({...d,separate:separate.has(d.id)})))
       setRows(next);setSelectedKey(`${from}|${to}`);setEditor(null);notify(t(editor.mode==='edit'?'patientDaysUpdated':'patientDaysSaved'),'success')
     }catch(error){notify(error?.message||t('managementPanel.saveFailed'),'error')}finally{setBusy(false)}
   }
@@ -100,7 +106,7 @@ export function BedDaysPanel(){
       renderRow={row=><><td>{row.kind?row.label:deptName(row)}</td><td className="bed-days-num">{row.value==null?'—':num(row.value)}</td></>}/></RecordTabPanel>
   </EntityRecordShell></section>
 
-  return <section className="management-section management-scroll-section"><div className="bed-days-panel workspace-fill"><div className="section-toolbar"><div><h2>{t('patientDays')}</h2><p>{t('patientDaysManualSubtitle')}</p></div><div className="row-actions bed-days-actions"><FilterBar activeAdvancedCount={advancedCount} onClear={()=>setFilters({from:'',to:'',department:'all'})} advanced={<><FilterDate label={t('periodFrom')} value={filters.from} onChange={value=>setFilters(c=>({...c,from:value}))}/><FilterDate label={t('periodTo')} value={filters.to} onChange={value=>setFilters(c=>({...c,to:value}))}/></>}><FilterSelect label={t('department')} value={filters.department} onChange={value=>setFilters(c=>({...c,department:value}))}><option value="all">{t('allDepartments')}</option>{departments.map(d=><option key={d.id} value={d.id}>{language==='el'?d.name:(d.nameEn||d.name)}</option>)}</FilterSelect></FilterBar><Button onClick={openCreate}><Plus size={15}/>{t('bedDaysPanel.newPeriod')}</Button></div></div>{loading&&<div className="inline-empty">{t('loading')}</div>}<RegistryTable
+  return <section className="management-section management-scroll-section"><div className="bed-days-panel workspace-fill"><div className="section-toolbar"><div><h2>{t('patientDays')}</h2><p>{t('patientDaysManualSubtitle')}</p></div><div className="row-actions bed-days-actions"><FilterBar activeAdvancedCount={advancedCount} onClear={()=>setFilters({from:'',to:'',department:'all'})} advanced={<><FilterDate label={t('periodFrom')} value={filters.from} onChange={value=>setFilters(c=>({...c,from:value}))}/><FilterDate label={t('periodTo')} value={filters.to} onChange={value=>setFilters(c=>({...c,to:value}))}/></>}><FilterSelect label={t('department')} value={filters.department} onChange={value=>setFilters(c=>({...c,department:value}))}><option value="all">{t('allDepartments')}</option>{departments.map(d=><option key={d.id} value={d.id}>{language==='el'?d.name:(d.nameEn||d.name)}</option>)}</FilterSelect></FilterBar><Button onClick={openCreate}><Plus size={15}/>{t('bedDaysPanel.newPeriod')}</Button></div></div>{loading&&<TableSkeleton/>}<RegistryTable
   wrapperClassName="bed-days-table-wrap"
   columns={[{key:'period',label:t('period')},{key:'hospital',label:t('wholeHospital')},{key:'departments',label:t('bedDaysPanel.departments')},{key:'actions',label:'',ariaLabel:t('actions')}]}
   rows={filtered}
@@ -115,7 +121,8 @@ function PeriodEditor({t,language,departments,editor,setEditor,monthName,busy,on
   const set=(key,value)=>setEditor(c=>({...c,draft:{...c.draft,[key]:value}}))
   const setValue=(id,value)=>setEditor(c=>({...c,draft:{...c.draft,values:{...c.draft.values,[id]:value.replace(/\D/g,'')}}}))
   const thisYear=new Date().getFullYear(); const years=[]; for(let y=thisYear+1;y>=thisYear-6;y--)years.push(y)
-  const line=(id,label,strong)=><div key={id} className={`bed-days-line${strong?' bed-days-line-total':''}`}><span>{label}</span><input className="input" inputMode="numeric" aria-label={label} value={draft.values[id]??''} onChange={e=>setValue(id,e.target.value)}/></div>
+  const separate=new Set(draft.separate||[])
+  const line=(id,label,strong)=><div key={id} className={`bed-days-line${strong?' bed-days-line-total':''}`}><span>{label}{separate.has(id)&&<small className="bed-days-separate-tag">{t('bedDaysPanel.separateTag')}</small>}</span><input className="input" inputMode="numeric" aria-label={label} value={draft.values[id]??''} onChange={e=>setValue(id,e.target.value)}/></div>
   return <EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} title={t(editor.mode==='edit'?'bedDaysPanel.editPeriod':'bedDaysPanel.newPeriod')} subtitle={t('bedDaysPanel.entryHint')} onBack={onClose} backLabel={t('patientDays')}>
     <RecordTabPanel title={t('period')} footer={<div className="inline-edit-footer"><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={busy} loading={busy} onClick={onSave}>{t('save')}</SaveButton></div>}>
       <div className="bed-days-editor">
@@ -126,6 +133,7 @@ function PeriodEditor({t,language,departments,editor,setEditor,monthName,busy,on
           {draft.duration!=='custom'&&<label className="field"><span>{t('bedDaysPanel.year')}</span><select className="input" value={draft.year} onChange={e=>set('year',Number(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select></label>}
           {draft.duration==='custom'&&<><ManualDateField className="field" label={t('periodFrom')} value={draft.from} onChange={v=>set('from',v)}/><ManualDateField className="field" label={t('periodTo')} value={draft.to} onChange={v=>set('to',v)}/></>}
         </div>
+        <div className="bed-days-separate"><MultiSelect label={t('bedDaysPanel.separateLabel')} tags options={departments.map(d=>({value:d.id,label:language==='el'?d.name:(d.nameEn||d.name)}))} selected={draft.separate||[]} onChange={value=>set('separate',value)} placeholder={t('bedDaysPanel.separateNone')}/><small>{t('bedDaysPanel.separateHint')}</small></div>
         <div className="bed-days-lines">{departments.map(d=>line(d.id,language==='el'?d.name:(d.nameEn||d.name)))}</div><div className="bed-days-lines bed-days-lines-total">{line(HOSPITAL,t('wholeHospital'),true)}</div>
       </div>
     </RecordTabPanel>

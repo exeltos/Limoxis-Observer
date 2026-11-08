@@ -2,6 +2,7 @@ import { useEffect,useMemo,useState } from 'react'
 import { supabase } from '../../core/supabase/client'
 import { FiguresLine } from './AnalysisPanels'
 import { BarList,ChartCard,Scoreboard } from './AnalysisCharts'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 // Analysis › Microbiology: environmental and staff-check cultures (from analysis_culture_metrics).
 // Staff are counted only; the function returns no names.
@@ -56,7 +57,7 @@ export function CulturesReport({organizationId='',range,departmentId='',onLoadin
   return()=>{live=false}
  },[organizationId,rangeFrom,rangeTo,departmentId])
  useEffect(()=>{onLoadingChange?.(loading);return()=>onLoadingChange?.(false)},[loading,onLoadingChange])
- if(loading)return <div className="analysis-chart-empty">{tx('Φόρτωση καλλιεργειών…','Loading cultures…')}</div>
+ if(loading)return <TableSkeleton rows={8}/>
  if(error||(!details.rows.length))return null
  return <section className="analysis-cultures" aria-label={tx('Καλλιέργειες','Cultures')}>
   <Section kind="environment" title={tx('Καλλιέργειες χώρων','Environmental cultures')} subtitle={tx('Θετικά δείγματα χώρων και επιφανειών.','Positive samples from spaces and surfaces.')} details={details} tx={tx} en={en}/>

@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { useLocation,useNavigate } from 'react-router-dom'
 import { Activity } from 'lucide-react'
 import { Page } from '../../design-system/Page'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
@@ -25,8 +26,8 @@ import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { TARGETS,executiveKpis,judgedByTarget,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { loadObjectives } from '../quality/review/reviewService'
-import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
-import { changeSentences,departmentGrid,departmentProfile,patientDaysIn,rateMeasures,yearAgoRange } from './executiveInsights'
+import { loadExecutiveParts,loadGovernanceStatus,loadSeparateDepartments,separateMdrPatients } from './executiveService'
+import { departmentGrid,departmentProfile,patientDaysIn,rateMeasures,separateHai,summaryHighlights,yearAgoRange } from './executiveInsights'
 import { loadPatientDayPeriods } from '../management/patientDayPeriodsCloudService'
 import { ExecutiveDepartments } from './ExecutiveDepartments'
 import { boardReportDocument,departmentReportDocument } from './executiveReports'
@@ -114,20 +115,27 @@ export function ExecutiveDashboardPage(){
  const [targets,setTargets]=useState(TARGETS)
  useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;loadObjectives(organizationId).then(rows=>{if(live)setTargets(targetsFromObjectives(rows))}).catch(()=>{});return()=>{live=false}},[isDemo,organizationId])
  // Hand hygiene, bundles and training: the value of the platform's indicators for the period (the same as in «Δείκτες & Στόχοι»).
- const [rates,setRates]=useState({now:{},before:{}})
- useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[]);const at=async(period,departmentId)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,def=>calculateCloudDefinition(def,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment])
+ const [rates,setRates]=useState({now:{},before:{},key:''})
+ const ratesKey=[organizationId,range.from,range.to,previous?.from,previous?.to,department,previousDepartment].join('|')
+ useEffect(()=>{if(!isDemo&&!organizationId)return undefined;let live=true;(async()=>{const definitions=await loadOperationalIndicatorDefinitions(organizationId).catch(()=>[]);const at=async(period,departmentId)=>{if(!period)return {};const metrics=await collectCloudIndicatorMetrics(organizationId,{from:period.from,to:period.to,departmentId:departmentId||null}).catch(()=>null);return metrics?indicatorRates(definitions,def=>calculateCloudDefinition(def,metrics).value):{}};const [now,before]=await Promise.all([at(range,department),at(previous,previousDepartment)]);if(live)setRates({now,before,key:ratesKey})})();return()=>{live=false}},[isDemo,organizationId,range,previous,department,previousDepartment,ratesKey])
  const snapshot=useMemo(()=>snapshotOf(current),[current])
  const governance=ready(current.governance)?current.governance.data:null
  const previousSnapshot=useMemo(()=>(previous&&['domains','people','qualityFood','microbiology'].every(key=>ready(before[key]))?snapshotOf(before):null),[previous,before])
  // The hospital's patient days (Δεδομένα), for the rates per 1,000 patient days.
- const [dayPeriods,setDayPeriods]=useState([])
- useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;loadPatientDayPeriods(organizationId).then(rows=>{if(live)setDayPeriods(rows)}).catch(()=>{});return()=>{live=false}},[isDemo,organizationId])
+ const [dayPeriods,setDayPeriods]=useState([]),[dayPeriodsLoaded,setDayPeriodsLoaded]=useState(false)
+ useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;loadPatientDayPeriods(organizationId).then(rows=>{if(live)setDayPeriods(rows)}).catch(()=>{}).finally(()=>{if(live)setDayPeriodsLoaded(true)});return()=>{live=false}},[isDemo,organizationId])
+ // The departments counted apart from the hospital's patient days (Παιδιατρική…): their cases are left out of the
+ // hospital's rates per 1,000 patient days (owner, 8/11/2026). A department chosen in the filters uses its own days.
+ const separateKey=[organizationId,department,range.from,range.to,previous?.from,previous?.to].join('|')
+ const [separate,setSeparate]=useState({key:'',names:[],mdrNow:0,mdrBefore:0})
+ useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;(async()=>{const list=department?[]:await loadSeparateDepartments(organizationId).catch(()=>[]);const [mdrNow,mdrBefore]=await Promise.all([separateMdrPatients(organizationId,range,list),separateMdrPatients(organizationId,previous,list)]);if(live)setSeparate({key:separateKey,names:list.map(item=>item.name),mdrNow,mdrBefore})})();return()=>{live=false}},[isDemo,organizationId,department,range,previous,separateKey])
  const kpis=useMemo(()=>{
-  const withRates=(items,period)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period)))]
-  const now=withRates(executiveKpis(snapshot,governance,targets,rates.now),range)
-  return visibleFor(withDeltas(now,previousSnapshot?withRates(executiveKpis(previousSnapshot,governance,targets,rates.before),previous):null),moduleEnabled)
- },[snapshot,governance,previousSnapshot,moduleEnabled,targets,rates,dayPeriods,range,previous])
- const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')
+  const withRates=(items,period,shot,mdr)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period,department),{hai:separateHai(shot,separate.names),mdro:mdr,names:separate.names}))]
+  const now=withRates(executiveKpis(snapshot,governance,targets,rates.now),range,snapshot,separate.mdrNow)
+  return visibleFor(withDeltas(now,previousSnapshot?withRates(executiveKpis(previousSnapshot,governance,targets,rates.before),previous,previousSnapshot,separate.mdrBefore):null),moduleEnabled)
+ },[snapshot,governance,previousSnapshot,moduleEnabled,targets,rates,dayPeriods,range,previous,department,separate])
+ // Everything shows at once after the load (owner, 8/11/2026): the parts, the indicator rates and the patient days.
+ const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')||((isDemo||Boolean(organizationId))&&rates.key!==ratesKey)||(!isDemo&&Boolean(organizationId)&&(!dayPeriodsLoaded||separate.key!==separateKey))
  const departments=useMemo(()=>(ready(current.microbiology)?current.microbiology.data?.departments||[]:[]).filter(item=>!item.organizationId||item.organizationId===organizationId),[current.microbiology,organizationId])
  const departmentName=department?(departments.find(item=>item.id===department)?.name||tx('Ένα τμήμα','One department')):tx('Όλα τα τμήματα','All departments')
  // «Αναλυτικά» opens the tab of this page that shows that Analysis section, with the same filters.
@@ -147,7 +155,7 @@ export function ExecutiveDashboardPage(){
  function printInfectionReport(pdf){const year=Number(String(range.to||range.from).slice(0,4))||new Date().getFullYear();if(!printReportLater(async()=>infectionReportDocument({...await loadInfectionReportRows(organizationId,year),year,language}),{language,pdf:pdf===true}))notifyError(new Error(en?'Allow pop-ups to print.':'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.'),'export')}
  // «Αναφορά Δ.Σ.» and «Αναφορά τμήματος» (owner, 7/11/2026): short documents of their own, not the screen.
  function printDocument(doc,pdf){if(!printReport(doc,{pdf:pdf===true}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'})}
- function boardReport(pdf){printDocument(boardReportDocument({kpis,sentences:previousSnapshot?changeSentences(kpis,snapshot,{en}):[],grid,hospital,periodLine,compareLabel:compareLabelText,language}),pdf)}
+ function boardReport(pdf){printDocument(boardReportDocument({kpis,highlights:summaryHighlights(kpis,snapshot,{en,against:againstText}),compared:Boolean(previousSnapshot),grid,hospital,periodLine,compareLabel:compareLabelText,versus:versusText,currentLabel:currentLabelText,language}),pdf)}
  function departmentReport(pdf){const name=grid.rows.some(row=>row.name===chosenDepartment)?chosenDepartment:grid.rows[0]?.name;if(!name)return;printDocument(departmentReportDocument({department:name,profile:departmentProfile(grid,name),hospital,periodLine,compareLabel:compareLabelText,language}),pdf)}
  function print(){signalDemoScenario('analysis_export');unfoldAll();if(!printElement(reportRef.current,{title:`${title} · ${hospital}`,heading:[`${title} · ${tabTitle}`,periodLine]}))notifyError(new Error('POPUP_BLOCKED'),'export',{operation:'executive_print'});setPrinting(false)}
  function exportPdf(){
@@ -158,7 +166,6 @@ export function ExecutiveDashboardPage(){
    .catch(error=>notifyError(error,'export',{operation:'executive_pdf_export'}))
    .finally(()=>{setExportingPdf(false);setPrinting(false)})
  }
- const kpiParts=item=>item.parts.map(key=>current[key])
  const kpiPeriod=periodTag(range,en,filters.period)
  const canAnalysis=userCan(CAPABILITIES.VIEW_ANALYSIS)
  // The Analysis sections this viewer may see (modules of the operating profile; the Director reads aggregates only, no reporting lists).
@@ -166,7 +173,12 @@ export function ExecutiveDashboardPage(){
  const tabVisible=([id,,,,sections])=>id==='summary'||(canAnalysis&&sections.some(sectionVisible))
  const grid=useMemo(()=>departmentGrid(snapshot,previousSnapshot,targets),[snapshot,previousSnapshot,targets])
  const [chosenDepartment,setChosenDepartment]=useState('')
- const compareLabelText=compareMode==='lastYear'?tx('Πέρσι','Last year'):compareMode==='departments'?tx('Νοσοκομείο','Hospital'):compareMode==='previous'?tx('Προηγ. περίοδος','Previous period'):tx('Σύγκριση','Comparison')
+ const previousYear=previous?String(previous.from).slice(0,4):'',sameYear=String(range.from).slice(0,4)===String(range.to).slice(0,4)
+ // «Ίδια περίοδος 2025» (owner, 8/11/2026: not «Πέρσι»); the column of the period is its year when it is one year.
+ const compareLabelText=compareMode==='lastYear'?tx(`Ίδια περίοδος ${previousYear}`,`Same period ${previousYear}`):compareMode==='departments'?tx('Νοσοκομείο','Hospital'):compareMode==='previous'?tx('Προηγ. περίοδος','Previous period'):tx('Σύγκριση','Comparison')
+ const againstText=compareMode==='lastYear'?previousYear:compareLabelText
+ const versusText=compareMode==='lastYear'?tx(`την ίδια περίοδο του ${previousYear}`,`the same period of ${previousYear}`):compareMode==='previous'?tx('την προηγούμενη περίοδο','the previous period'):tx('το νοσοκομείο','the hospital')
+ const currentLabelText=compareMode==='lastYear'&&sameYear?String(range.from).slice(0,4):tx('Περίοδος','Period')
  const shownTabs=INDICATOR_TABS.filter(tabVisible)
  const mainTabs=[shownTabs[0],...(grid.rows.length>1?[DEPARTMENTS_TAB]:[]),...shownTabs.slice(1),...(dataItems.length?[DATA_TAB]:[])],moreTabs=INDICATOR_MORE_TABS.filter(tabVisible)
  const activeTab=[...mainTabs,...moreTabs].find(([id])=>id===pageTab)||mainTabs[0]
@@ -177,7 +189,7 @@ export function ExecutiveDashboardPage(){
  const subTabs=activeSections.length>2?activeSections.map(id=>{const row=TABS.find(([key])=>key===id);return {value:id,label:row?(en?row[2]:row[1]):id,icon:row?.[3]}}):[]
  const shownSection=subTabs.some(item=>item.value===subSection)?subSection:subTabs[0]?.value||''
  const tabTitle=en?activeTab[2]:activeTab[1]
- const compareOf={lastYear:{shortLabel:tx('Πέρσι','Last year'),title:tx('Σύγκριση με πέρσι','Compared with last year'),subtitle:tx('Ίδιο εύρος, η ίδια περίοδος του προηγούμενου έτους.','Same scope, the same period a year before.'),currentLabel:periodLabel,compareLabel:previousLabel},previous:{shortLabel:tx('Προηγ. περίοδος','Previous period'),title:tx('Σύγκριση με την προηγούμενη περίοδο','Compared with the previous period'),subtitle:tx('Ίδιο εύρος, η ίσης διάρκειας περίοδος πριν.','Same scope, the period of equal length before.'),currentLabel:periodLabel,compareLabel:previousLabel},departments:{shortLabel:tx('Νοσοκομείο','Hospital'),title:tx('Τμήμα έναντι νοσοκομείου','Department against the hospital'),subtitle:tx('Ίδια περίοδος· το τμήμα και όλο το νοσοκομείο.','Same period; the department and the whole hospital.'),currentLabel:departmentName,compareLabel:tx('Όλο το νοσοκομείο','Whole hospital')}}
+ const compareOf={lastYear:{shortLabel:compareLabelText,title:tx(`Σύγκριση με την ίδια περίοδο του ${previousYear}`,`Compared with the same period of ${previousYear}`),subtitle:tx('Ίδιο εύρος, η ίδια περίοδος του προηγούμενου έτους.','Same scope, the same period a year before.'),currentLabel:periodLabel,compareLabel:previousLabel},previous:{shortLabel:tx('Προηγ. περίοδος','Previous period'),title:tx('Σύγκριση με την προηγούμενη περίοδο','Compared with the previous period'),subtitle:tx('Ίδιο εύρος, η ίσης διάρκειας περίοδος πριν.','Same scope, the period of equal length before.'),currentLabel:periodLabel,compareLabel:previousLabel},departments:{shortLabel:tx('Νοσοκομείο','Hospital'),title:tx('Τμήμα έναντι νοσοκομείου','Department against the hospital'),subtitle:tx('Ίδια περίοδος· το τμήμα και όλο το νοσοκομείο.','Same period; the department and the whole hospital.'),currentLabel:departmentName,compareLabel:tx('Όλο το νοσοκομείο','Whole hospital')}}
  const analysisCompare=previous&&compareOf[compareMode]?{range:previous,departmentId:previousDepartment,...compareOf[compareMode]}:null
  // Period, department and comparison in «Φίλτρα» next to the export; the period reads under the title.
  const filterCount=(filters.period!=='year'?1:0)+(department?1:0)+(compareMode!=='lastYear'?1:0)
@@ -194,9 +206,9 @@ export function ExecutiveDashboardPage(){
  return <Page className="exec-page" title={title} subtitle={activeTab[0]==='data'?hospital:periodLine} actions={pageActions}>
   {mainTabs.length+moreTabs.length>1&&<CanonicalTabs className="exec-view-tabs" value={activeTab[0]} onChange={setPageTab} ariaLabel={tx('Ενότητες δεικτών','Indicator sections')} items={mainTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))} moreItems={moreTabs.map(([id,elLabel,enLabel,icon])=>({value:id,label:en?enLabel:elLabel,icon}))}/>}
   {activeTab[0]==='data'?<IndicatorDataPanel initial={query.get('item')}/>:<>
-  {activeTab[0]==='departments'?<section ref={reportRef} className="exec-report"><ExecutiveDepartments grid={grid} department={chosenDepartment} onDepartment={setChosenDepartment} compareLabel={compareLabelText} language={language}/></section>:activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{subTabs.length>0&&!printing&&<CanonicalTabs className="exec-sub-tabs" value={shownSection} onChange={setSubSection} ariaLabel={tabTitle} items={subTabs}/>}{activeSections.map(id=><div key={`${id}:${compareMode}`} hidden={Boolean(shownSection)&&id!==shownSection&&!printing}><AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/></div>)}</section>:<section ref={reportRef} className="exec-report">
+  {activeTab[0]==='departments'?<section ref={reportRef} className="exec-report">{loadingAny?<TableSkeleton rows={8}/>:<ExecutiveDepartments grid={grid} department={chosenDepartment} onDepartment={setChosenDepartment} compareLabel={compareLabelText} versus={versusText} language={language}/>}</section>:activeTab[0]!=='summary'?<section ref={reportRef} className="exec-analysis-report" aria-label={tabTitle}>{subTabs.length>0&&!printing&&<CanonicalTabs className="exec-sub-tabs" value={shownSection} onChange={setSubSection} ariaLabel={tabTitle} items={subTabs}/>}{activeSections.map(id=><div key={`${id}:${compareMode}`} hidden={Boolean(shownSection)&&id!==shownSection&&!printing}><AnalysisPage embedded externalRange={range} periodLabel={kpiPeriod} initialTab={id} department={department} externalCompare={analysisCompare}/></div>)}</section>:<section ref={reportRef} className="exec-report">
    {printing&&<header className="exec-report-head"><div><strong>{reportLines[0]}</strong><span>{reportLines.slice(1).join(' · ')}</span></div>{isDemo&&<span className="status-badge temporary">{tx('ΔΕΔΟΜΕΝΑ DEMO','DEMO DATA')}</span>}</header>}
-   <ExecutiveSummary kpis={kpis} snapshot={snapshot} previousSnapshot={previousSnapshot} range={range} targets={targets} compareLabel={compareLabelText} partsOf={kpiParts} onOpen={item=>openAnalysis(item.tab)} language={language}/>
+   {loadingAny||(previous&&!previousSnapshot&&PART_KEYS.some(key=>before[key]?.status==='loading'))?<TableSkeleton rows={10}/>:<ExecutiveSummary kpis={kpis} snapshot={snapshot} previousSnapshot={previousSnapshot} range={range} compareLabel={compareLabelText} against={againstText} currentLabel={currentLabelText} onOpen={item=>openAnalysis(item.tab)} language={language}/>}
    <p className="exec-footnote"><Activity size={13} aria-hidden="true"/>{isDemo?tx('Συνθετικά δεδομένα αποκλειστικά για το Demo περιβάλλον.','Synthetic data for the Demo environment only.'):tx('Πραγματικά δεδομένα του νοσοκομείου· οι εκκρεμότητες (εκπρόθεσμα, ληγμένα, ανοιχτές αποφάσεις) αφορούν τη σημερινή κατάσταση.','Live hospital data; open items (overdue, expired, open decisions) reflect the state today.')}</p>
   </section>}
   </>}

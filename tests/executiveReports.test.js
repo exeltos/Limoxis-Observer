@@ -9,13 +9,14 @@ const kpis = [
 const snapshot = { domains: { handHygiene: { byDepartment: [['ΜΕΘ', 100, 60], ['ΤΕΠ', 100, 90]] } } }
 
 describe('the documents of the hospital overview', () => {
-  it('the report to the Board: what changed, the measures with the comparison, the departments and, last, what has no data', () => {
+  it('the report to the Board: what needs attention / improved, the measures with the comparison, the departments and, last, what is not calculated yet', () => {
     const grid = departmentGrid(snapshot, null, { handHygiene: 80 })
-    const doc = boardReportDocument({ kpis, sentences: [{ id: 'handHygiene', good: true, text: 'Υγιεινή χεριών: 79,1% από 74%' }], grid, hospital: 'Νοσοκομείο', periodLine: '2026', compareLabel: 'Πέρσι', language: 'el' })
-    expect(doc.sections.map((section) => section.title)).toEqual(['Τι άλλαξε', 'Δείκτες', 'Τμήματα με μια ματιά', 'Χωρίς δεδομένα ακόμη'])
-    expect(doc.sections[1].table.columns).toEqual(['Δείκτης', 'Τιμή', 'Πέρσι', 'Μεταβολή', 'Στόχος', 'Κατάσταση'])
+    const doc = boardReportDocument({ kpis, highlights: { attention: [], improved: [{ id: 'handHygiene', good: true, up: true, text: 'Υγιεινή χεριών: 79,1% (2025: 74%)' }] }, grid, hospital: 'Νοσοκομείο', periodLine: '2026', compareLabel: 'Ίδια περίοδος 2025', currentLabel: '2026', language: 'el' })
+    expect(doc.sections.map((section) => section.title)).toEqual(['Βελτιώθηκαν', 'Δείκτες', 'Σύγκριση τμημάτων', 'Ο υπολογισμός δεν έχει ξεκινήσει ακόμη'])
+    expect(doc.sections[1].table.columns).toEqual(['Δείκτης', '2026', 'Ίδια περίοδος 2025', 'Μεταβολή', 'Στόχος', 'Αξιολόγηση'])
     expect(doc.sections[1].table.rows[1][2].text).toBe('74%')
-    expect(doc.sections[3].text).toBe('Ολοκλήρωση εκπαίδευσης')
+    expect(doc.sections[1].table.rows[1][5].text).toBe('Κοντά στον στόχο')
+    expect(doc.sections[3].list).toEqual(['Ολοκλήρωση εκπαίδευσης: δεν υπάρχουν ακόμη καταγραφές στην περίοδο'])
   })
 
   it('the department report: the department against the departments\' average', () => {

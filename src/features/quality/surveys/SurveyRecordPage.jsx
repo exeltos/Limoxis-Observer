@@ -31,6 +31,7 @@ import { SurveyForm, missingAnswers } from './SurveyForm'
 import '../quality.css'
 import './surveys.css'
 import { LinkedActions } from '../LinkedActions'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const NO_FILTERS = { query: '', department: 'all', channel: 'all', from: '', to: '' }
 
@@ -75,7 +76,7 @@ export function SurveyRecordPage() {
   const shown = useMemo(() => filterResponses(responses, filters), [responses, filters])
   useEffect(() => setPage(1), [filters])
 
-  if (survey === null) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (survey === null) return <Page fill><TableSkeleton/></Page>
   if (survey === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Questionnaire not found' : 'Το ερωτηματολόγιο δεν βρέθηκε'}</strong></div></Page>
 
   const locked = !canManage

@@ -106,7 +106,7 @@ describe('executive dashboard measures', () => {
     expect(ids).not.toContain('bundles')
     expect(ids).not.toContain('minutesPending')
     expect(flags.findIndex(flag => flag.severity === 'warning')).toBeGreaterThan(flags.findLastIndex(flag => flag.severity === 'danger'))
-    expect(flags.find(flag => flag.id === 'handHygiene').text).toEqual(['Υγιεινή χεριών: 72%', 'Hand hygiene: 72%'])
+    expect(flags.find(flag => flag.id === 'handHygiene').text).toEqual(['Συμμόρφωση στην υγιεινή χεριών: 72%', 'Hand hygiene compliance: 72%'])
     expect(redFlags(executiveKpis(snapshot), snapshot, module => module !== 'laboratory' && module !== 'surveillance').map(flag => flag.id)).not.toContain('clusters')
   })
 })

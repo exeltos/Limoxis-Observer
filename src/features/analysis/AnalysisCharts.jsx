@@ -17,7 +17,7 @@ export function ChartCard({title,subtitle,wide=false,children}){
  return <article className={`analysis-chart-card analysis-viz-card ${wide?'analysis-wide-card':''}`}><header><div><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div></header>{children}</article>
 }
 
-function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'No data is available for the active scope.':'Δεν υπάρχουν δεδομένα για το ενεργό εύρος.'}</div>}
+function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the selected scope.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στο επιλεγμένο εύρος.'}</div>}
 
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
 // scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.
@@ -112,7 +112,7 @@ export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalL
   const [all,setAll]=useState(false)
   const rowTotals=new Map(),columnTotals=new Map(),values=new Map()
   for(const [row,column,count] of cells){const n=Number(count)||0;if(!n||row==null||column==null)continue;rowTotals.set(row,(rowTotals.get(row)||0)+n);columnTotals.set(column,(columnTotals.get(column)||0)+n);values.set(`${row}\u0000${column}`,(values.get(`${row}\u0000${column}`)||0)+n)}
-  if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
+  if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const rows=[...rowTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxRows).map(([key])=>key)
   // The first rows on screen (owner, 7/11/2026: no long half-empty tables); the rest on «+N more», and always on paper.
   const hidden=all?0:Math.max(0,rows.length-shown)
@@ -129,7 +129,7 @@ export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalL
 // of every area, so units can be compared side by side; cells are shaded
 // within their column.
 export function Scoreboard({rows=[],columns=[],rowLabel,en}){
-  if(!rows.length)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
+  if(!rows.length)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const peaks=columns.map(column=>Math.max(0,...rows.map(row=>Number(row[column.key])||0)))
   return <div className="analysis-matrix-wrap"><table className="analysis-matrix analysis-scoreboard"><thead><tr><th scope="col">{rowLabel||(en?'Department':'Τμήμα')}</th>{columns.map(column=><th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
     <tbody>{rows.map(row=><tr key={row.key||row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value):value}</td>})}</tr>)}</tbody></table></div>

@@ -40,6 +40,7 @@ import '../quality.css'
 import './resources.css'
 import { LinkedActions } from '../LinkedActions'
 import { printReport } from '../../../core/export/reportDocument'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 // The record shell keeps only the export control and the edit / delete actions of the
 // header (these go to «…»); a primary domain action marked `utility` stays visible
@@ -89,7 +90,7 @@ function SupplierRecord({ supplierId }) {
   // Each certificate with its latest renewal request (the e-mailed link to the supplier).
   const renewalRows = useMemo(() => new Map((row ? renewalQueue([{ ...row, status: 'active' }], renewals.requests, { expiring: true }) : []).map(item => [item.key, item])), [row, renewals.requests])
 
-  if (list.loading && !draft) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (list.loading && !draft) return <Page fill><TableSkeleton/></Page>
   if (!isNew && !row) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Supplier not found' : 'Ο προμηθευτής δεν βρέθηκε'}</strong></div></Page>
   if (!draft) return null
 

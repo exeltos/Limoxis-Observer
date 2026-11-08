@@ -2,7 +2,7 @@ import { supabase } from '../../core/supabase/client'
 
 export async function loadDepartments(organizationId){
   if(!organizationId || !supabase) return []
-  const {data,error}=await supabase.from('departments').select('id,name,code,is_active,department_type').eq('organization_id',organizationId).order('name')
+  const {data,error}=await supabase.from('departments').select('id,name,code,is_active,department_type,patient_days_separate').eq('organization_id',organizationId).order('name')
   if(error) throw error
   return data??[]
 }
@@ -15,4 +15,12 @@ export async function ensureDepartment(organizationId, name){
   const {data:created,error:insertError}=await supabase.from('departments').insert({organization_id:organizationId,name}).select('id').single()
   if(insertError) throw insertError
   return created.id
+}
+
+// Patient days counted apart from the hospital's total (Κλινοημέρες, owner 8/11/2026): the department's cases are left
+// out of the hospital's rates per 1,000 patient days.
+export async function setDepartmentPatientDaysSeparate(organizationId, departmentId, separate){
+  if(!organizationId || !supabase || !departmentId) return
+  const {error}=await supabase.from('departments').update({patient_days_separate:Boolean(separate)}).eq('organization_id',organizationId).eq('id',departmentId)
+  if(error) throw error
 }

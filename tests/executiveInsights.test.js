@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { changeSentences, departmentGrid, sparkPoints, yearAgoRange } from '../src/features/executive/executiveInsights'
+import { assessmentOf, changeText, departmentGrid, notStartedReason, sparkPoints, summaryHighlights, yearAgoRange } from '../src/features/executive/executiveInsights'
 
 describe('hospital overview · summary', () => {
   it('compares with the same period a year before', () => {
@@ -14,16 +14,26 @@ describe('hospital overview · summary', () => {
     expect(sparkPoints('decisions', now, before, { from: '2026-01-01', to: '2026-03-31' })).toBeNull()
   })
 
-  it('says what changed, the worse first, with the department that pulls it down', () => {
+  it('lists what needs attention and what got better, with the figure of the comparison, never «from 0»', () => {
     const kpis = [
-      { id: 'handHygiene', label: ['Υγιεινή χεριών', 'Hand hygiene'], unit: '%', value: 70, delta: { diff: -5, change: -6.7, good: false, previous: 75 }, tab: 'prevention' },
+      { id: 'handHygiene', label: ['Υγιεινή χεριών', 'Hand hygiene'], unit: '%', value: 70, target: '≥ 80%', status: 'judged', tone: 'danger', delta: { diff: -5, change: -6.7, good: false, previous: 75 }, tab: 'prevention' },
       { id: 'training', label: ['Εκπαίδευση', 'Training'], unit: '%', value: 95, delta: { diff: 3, change: 3.2, good: true, previous: 92 } },
+      { id: 'incidents', label: ['Συμβάντα', 'Incidents'], value: 7, delta: { diff: 7, change: null, good: false, previous: 0 } },
+      { id: 'bundles', label: ['Δέσμες', 'Bundles'], unit: '%', value: 60, target: '≥ 90%', status: 'judged', tone: 'danger', delta: null },
       { id: 'decisions', label: ['Αποφάσεις', 'Decisions'], value: 4, delta: null },
     ]
     const snapshot = { domains: { handHygiene: { byDepartment: [['ΜΕΘ', 40, 20], ['ΤΕΠ', 40, 36]] } } }
-    const sentences = changeSentences(kpis, snapshot)
-    expect(sentences.map((s) => s.id)).toEqual(['handHygiene', 'training'])
-    expect(sentences[0].text).toBe('Υγιεινή χεριών: 70% από 75% · κυρίως ΜΕΘ (50%)')
+    const { attention, improved } = summaryHighlights(kpis, snapshot, { against: '2025' })
+    expect(attention.map((s) => s.id)).toEqual(['handHygiene', 'bundles'])
+    expect(attention[0].text).toBe('Υγιεινή χεριών: 70% (2025: 75%) — κυρίως ΜΕΘ (50%)')
+    expect(attention[1].text).toBe('Δέσμες: 60% — εκτός στόχου (≥ 90%)')
+    expect(improved.map((s) => s.id)).toEqual(['training'])
+    expect(changeText(kpis[2]).text).toBe('—')
+    expect(changeText(kpis[0]).text).toBe('−5 μον.')
+    expect(assessmentOf(kpis[0]).text).toBe('Εκτός στόχου')
+    expect(assessmentOf(kpis[1]).text).toBe('Καλύτερα')
+    expect(assessmentOf({ value: null }).text).toBe('Δεν έχει ξεκινήσει')
+    expect(notStartedReason({ id: 'haiRate' })).toBe('λείπουν οι κλινοημέρες της περιόδου')
   })
 
   it('shows the departments at a glance, coloured against the target, the worst first', () => {
@@ -46,5 +56,17 @@ describe('rates per 1,000 patient days', () => {
     const [hai] = rateMeasures([{ id: 'hai', value: 3 }], 1000)
     expect(hai).toMatchObject({ id: 'haiRate', value: 3 })
     expect(rateMeasures([{ id: 'hai', value: 3 }], null)[0].value).toBeNull()
+  })
+  it('leaves the departments counted apart out of the hospital rate, and a department uses its own days', async () => {
+    const { patientDaysIn, rateMeasures, separateHai } = await import('../src/features/executive/executiveInsights')
+    const snapshot = { domains: { surveillance: { haiByDepartment: [['Παιδιατρική', 'BSI', 2], ['ΜΕΘ', 'BSI', 3]] } } }
+    expect(separateHai(snapshot, ['Παιδιατρική'])).toBe(2)
+    const [hai, mdro] = rateMeasures([{ id: 'hai', value: 5 }, { id: 'mdro', value: 4 }], 1000, { hai: 2, mdro: 1, names: ['Παιδιατρική'] })
+    expect(hai.value).toBe(3)
+    expect(mdro.value).toBe(3)
+    expect(hai.hint[0]).toContain('χωρίς Παιδιατρική')
+    const periods = [{ scope: 'department', departmentId: 'icu', from: '2026-01-01', to: '2026-01-31', value: 310 }]
+    expect(patientDaysIn(periods, { from: '2026-01-01', to: '2026-01-31' }, 'icu')).toBe(310)
+    expect(rateMeasures([{ id: 'hai', value: 1 }], null)[0].missing[0]).toBe('λείπουν οι κλινοημέρες της περιόδου')
   })
 })

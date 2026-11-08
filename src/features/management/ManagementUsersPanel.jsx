@@ -22,6 +22,7 @@ import { needsDepartment } from '../platform/bulkAccountsModel'
 import { useDepartments } from './useLibraries'
 import { BulkAccountsPanel } from '../platform/BulkAccountsPanel'
 import { loadEmployeeAccounts } from '../platform/bulkAccountsService'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const DEMO_USERS=[
  {id:'DEMO-MEMBER-001',userId:'DEMO-USER-001',role:ROLES.HOSPITAL_ADMIN,status:'active',username:'demo.admin',name:'Διαχειριστής Demo',nameEn:'Demo Administrator',email:'demo.admin@example.org'},
@@ -102,7 +103,7 @@ export function ManagementUsersPanel(){const tx=useTx();
   rows={rows}
   rowKey={u=>u.id}
   renderRow={u=>{const self=isSelfRow(u),previewProtected=isPreviewProtectedRow(u);return <><td><strong>{language==='en'&&u.nameEn?u.nameEn:u.name}</strong><small>{u.email||'—'}</small>{self&&<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Your account':'Ο λογαριασμός σας'}</span>}{previewProtected&&!self&&<span className="management-self-account"><ShieldCheck size={13}/>{language==='en'?'Administrator account':'Λογαριασμός Διαχειριστή'}</span>}</td><td>{u.username}</td><td><span className="role-badge">{t(managementRoleNames[u.role]??u.role)}</span>{needsDepartment(u.role)&&<small>{u.departmentName||tx('Χωρίς τμήμα','No department')}</small>}</td><td><span className={`status-badge ${u.status==='active'?'active':u.status==='disabled'?'danger':'temporary'}`}>{managementMemberStatusLabel(u.status,language)}</span></td></>}}
-/>{loading&&<div className="inline-empty">{t('loading')}</div>}</>} {invitationLink&&<InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={()=>setInvitationLink(null)}/>}{createdUser&&<CreatedUserDialog data={createdUser} onClose={()=>setCreatedUser(null)}/>}</section>
+/>{loading&&<TableSkeleton/>}</>} {invitationLink&&<InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={()=>setInvitationLink(null)}/>}{createdUser&&<CreatedUserDialog data={createdUser} onClose={()=>setCreatedUser(null)}/>}</section>
 }
 
 function CreateUserView({tenantId,t,busy,isDemo,departments=[],onClose,onCreate}){const tx=useTx();

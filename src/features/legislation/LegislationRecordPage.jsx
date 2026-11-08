@@ -25,6 +25,7 @@ import { COMPLIANCE, buildRegister, complianceLabel, complianceTone, kindLabel, 
 import { ComplianceBar } from './LegislationPage'
 import './legislation.css'
 import { LinkedActions } from '../quality/LinkedActions'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const plusYear = day => { const date = new Date(`${day}T12:00:00Z`); date.setUTCFullYear(date.getUTCFullYear() + 1); return date.toISOString().slice(0, 10) }
 
@@ -52,7 +53,7 @@ export function LegislationRecordPage() {
   useEffect(() => { if (byCode) navigate(`/legislation/${byCode}`, { replace: true }) }, [byCode, navigate])
   useEffect(() => { if (entry) setDraft(structuredClone(entry.row || { textId, applicable: true, acceptedVersion: 0, responsible: '', compliance: {}, nextReviewOn: '', notes: '' })) }, [entry, textId])
 
-  if (!data || (entry && !draft)) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!data || (entry && !draft)) return <Page fill><TableSkeleton/></Page>
   if (!entry) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Text not found' : 'Το κείμενο δεν βρέθηκε'}</strong></div></Page>
 
   const { text, history } = entry

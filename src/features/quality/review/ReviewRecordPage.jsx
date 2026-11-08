@@ -35,6 +35,7 @@ import { loadReviews, saveReview } from './reviewService'
 import { REVIEW_SECTIONS, addDays, newReviewFrom, reviewStatusLabel, sectionFacts } from './reviewTemplate'
 import { ObjectiveBars, useObjectives } from './QualityObjectives'
 import '../quality.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 // The minutes on the shared document layout (hospital band, DEMO mark in a
 // Demo, signatures): as Word, laid out like the hospital's form, or printed.
@@ -127,7 +128,7 @@ export function ReviewRecordPage() {
   }, [tenant?.id, reviewId, isNew])
 
   const previous = useMemo(() => (reviews || []).filter(row => row.id !== review?.id && row.reviewDate <= (review?.reviewDate || '9999')).sort((a, b) => b.reviewDate.localeCompare(a.reviewDate))[0] || null, [reviews, review])
-  if (!reviews) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!reviews) return <Page fill><TableSkeleton/></Page>
   if (!review) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Review not found' : 'Η ανασκόπηση δεν βρέθηκε'}</strong></div></Page>
 
   const locked = review.status === 'approved' || !canManage

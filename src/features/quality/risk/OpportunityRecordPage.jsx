@@ -10,6 +10,7 @@ import { opportunityCode } from './riskModel'
 import { OpportunityEditor } from './OpportunityEditor'
 import { DeleteConfirm,L } from './riskUi'
 import './riskAssessment.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const EDITABLE=['draft','under_review']
 
@@ -35,7 +36,7 @@ export function OpportunityRecordPage(){
  const item=isNew?{}:list[index]
  const back=()=>navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:location.state?.returnState||{riskTab:'opportunities'}})
 
- if(loading)return <Page title={L(en,'Ευκαιρία','Opportunity')}><div className="inline-empty">{L(en,'Φόρτωση…','Loading…')}</div></Page>
+ if(loading)return <Page title={L(en,'Ευκαιρία','Opportunity')}><TableSkeleton/></Page>
  if(!assessment||!item)return <Page title={L(en,'Ευκαιρία','Opportunity')}><div className="inline-empty">{L(en,'Η ευκαιρία δεν βρέθηκε.','The opportunity was not found.')}</div></Page>
  const canEdit=canManage&&EDITABLE.includes(assessment.status)
 

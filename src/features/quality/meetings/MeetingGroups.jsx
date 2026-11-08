@@ -25,6 +25,7 @@ import { deleteMeetingGroup, saveMeetingGroup } from './meetingService'
 import { MEETING_FREQUENCIES, frequencyLabel, groupStatus, meetingCapas, newMeetingGroup } from './meetingModel'
 import { loadQualityRecords } from '../qualityService'
 import '../quality.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const HeaderAction = ({ children }) => children
 const yesNo = (value, en) => (value ? (en ? 'Yes' : 'Ναι') : '—')
@@ -91,7 +92,7 @@ export function MeetingGroupPage({ groupId: ownGroupId = null, home = '/meetings
   useEffect(() => { let active = true; loadQualityRecords('capas', tenant?.id).then(rows => { if (active) setCapas((rows || []).filter(row => String(row.sourceId || '').startsWith('DM:'))) }).catch(() => { if (active) setCapas([]) }); return () => { active = false } }, [tenant?.id])
   const group = data.groups.find(item => item.id === groupId) || null
   const today = new Date().toISOString().slice(0, 10)
-  if (data.loading && !group) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (data.loading && !group) return <Page fill><TableSkeleton/></Page>
   if (!group) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting group not found' : 'Η ομάδα συναντήσεων δεν βρέθηκε'}</strong></div></Page>
   const status = groupStatus(group, data.meetings.meetings, today)
   const canWrite = data.canManage || data.meetings.access.canSee({ departmentId: group.departmentId, department: group.department })

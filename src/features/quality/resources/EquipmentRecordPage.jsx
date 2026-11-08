@@ -31,6 +31,7 @@ import { CRITICALITY, EVENT_KINDS, PROGRAMME, criticalityLabel, criticalityTone,
 import '../quality.css'
 import './resources.css'
 import { LinkedActions } from '../LinkedActions'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -57,7 +58,7 @@ export function EquipmentRecordPage() {
   useEffect(() => { if (isNew) setDraft(current => current || newEquipment()); else if (row) setDraft(current => (current?.id === row.id ? current : structuredClone(row))) }, [isNew, row])
   const events = useMemo(() => list.events.filter(item => item.equipmentId === equipmentId).sort((a, b) => String(b.happenedOn).localeCompare(String(a.happenedOn)) || String(b.recordedAt || '').localeCompare(String(a.recordedAt || ''))), [list.events, equipmentId])
 
-  if (list.loading && !draft) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (list.loading && !draft) return <Page fill><TableSkeleton/></Page>
   if (!isNew && !row) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Device not found' : 'Ο εξοπλισμός δεν βρέθηκε'}</strong></div></Page>
   if (!draft) return null
 

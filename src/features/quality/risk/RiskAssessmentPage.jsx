@@ -35,6 +35,7 @@ import { LinkIndicatorsDialog } from './RiskIndicatorsUi'
 import { loadIndicatorValues } from './riskIndicators'
 import { AssessmentStatusBadge,L,fmtDate,rememberRow,statusLabel,txt,useReturnedRow } from './riskUi'
 import './riskAssessment.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const EDITABLE=['draft','under_review']
 
@@ -109,7 +110,7 @@ export function RiskAssessmentPage(){
  const comparable=useMemo(()=>all.map(a=>a.id===assessment?.id?{...a,risks}:a),[all,assessment?.id,risks])
  const previous=useMemo(()=>{if(!assessment)return null;const others=comparable.filter(a=>a.id!==assessment.id);return others.find(a=>a.id===assessment.sourceAssessmentId)||others.filter(a=>String(a.assessedOn)<String(assessment.assessedOn)).sort((a,b)=>String(b.assessedOn).localeCompare(String(a.assessedOn)))[0]||null},[comparable,assessment])
 
- if(loading)return <Page title={L(en,'Εκτίμηση κινδύνου','Risk assessment')}><div className="inline-empty">{L(en,'Φόρτωση…','Loading…')}</div></Page>
+ if(loading)return <Page title={L(en,'Εκτίμηση κινδύνου','Risk assessment')}><TableSkeleton/></Page>
  if(!assessment)return <Page title={L(en,'Εκτίμηση κινδύνου','Risk assessment')}><div className="inline-empty">{L(en,'Η εκτίμηση δεν βρέθηκε.','The assessment was not found.')}</div></Page>
  const canEdit=canManage&&EDITABLE.includes(assessment.status)
 

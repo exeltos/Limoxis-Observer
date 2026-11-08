@@ -7,6 +7,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase,invokeAuthenticatedFunction } from '../../core/supabase/client'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 export function LiraAiSettingsPanel(){
  const {language}=useLanguage(),en=language==='en';const {tenant,isDemo}=useTenant();const {notify}=useFeedback()
@@ -18,7 +19,7 @@ export function LiraAiSettingsPanel(){
  // One save for the page: the provider (through the edge function, which keeps the key in Vault) and the translation setting.
  async function save(){setBusy(true);try{await invokeAuthenticatedFunction('lira-provider-settings',{action:'save',organizationId:tenant.id,provider:form.provider,model:form.model,apiKey:form.apiKey,allowAggregateData:form.allowAggregateData,allowPatientLevelData:form.allowPatientLevelData});setForm(v=>({...v,apiKey:'',keyHint:v.apiKey?`••••${v.apiKey.slice(-4)}`:v.keyHint}));const {error}=await supabase.rpc('set_translation_settings',{p_organization_id:tenant.id,p_enabled:tr.enabled,p_monthly_char_limit:Number(tr.limit)||0});if(error)throw error;setEditing(null);notify(en?'LIRA AI settings saved.':'Οι ρυθμίσεις LIRA AI αποθηκεύτηκαν.','success')}catch(e){notify(e.message,'error')}finally{setBusy(false)}}
  async function disconnect(){setBusy(true);try{await invokeAuthenticatedFunction('lira-provider-settings',{action:'disconnect',organizationId:tenant.id});setForm(v=>({...v,provider:'none',apiKey:'',keyHint:''}));notify(en?'AI provider disconnected.':'Ο πάροχος AI αποσυνδέθηκε.','success')}catch(e){notify(e.message,'error')}finally{setBusy(false)}}
- if(loading)return <div className="inline-empty">{en?'Loading…':'Φόρτωση…'}</div>
+ if(loading)return <TableSkeleton/>
  const permissions=[
   {key:'allowAggregateData',title:en?'Aggregate, de-identified data':'Συγκεντρωτικά, ανώνυμα δεδομένα',text:en?'Counts, rates and trends without patient identifiers.':'Αριθμοί, δείκτες και τάσεις χωρίς στοιχεία ταυτότητας ασθενών.'},
   {key:'allowPatientLevelData',title:en?'Patient-level data':'Δεδομένα επιπέδου ασθενούς',text:en?'Only with the hospital’s data-protection approval.':'Μόνο με έγκριση προστασίας δεδομένων του νοσοκομείου.'},

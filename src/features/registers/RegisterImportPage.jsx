@@ -23,6 +23,7 @@ import { keyFrom, textOf } from './registerEngine'
 import { IGNORED_COLUMN, isAmka, planImport, suggestMapping, toIsoDate, valueMappings, withTemplateHints } from './registerImport'
 import { formatDay } from '../../core/i18n/formatDay'
 import './registers.css'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const NEW = '__new__'
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
@@ -97,7 +98,7 @@ export function RegisterImportPage() {
   const keptEntries = useMemo(() => (replace ? existing.filter(entry => entry.locked) : existing), [replace, existing])
   const plan = useMemo(() => (register && step >= 3 ? planImport(register, table.headers, table.rows, mapping, { valueMap: effectiveMap, emptyIsNo, fallbackDate, existing: keptEntries, language }) : null), [register, step, table, mapping, effectiveMap, emptyIsNo, fallbackDate, keptEntries, language])
 
-  if (loading) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (loading) return <Page fill><TableSkeleton/></Page>
   if (!register) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Register not found' : 'Το μητρώο δεν βρέθηκε'}</strong></div></Page>
   const canImport = access.canRecord(register) && (register.kind === 'sheet' || access.canSeeIdentity(register))
   if (!canImport) return <Navigate to={`/registers/${registerId}`} replace />

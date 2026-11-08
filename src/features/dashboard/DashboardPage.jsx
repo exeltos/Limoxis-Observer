@@ -21,6 +21,7 @@ import { calendarKindsFor, useCalendarSources } from '../calendar/useCalendarSou
 import { buildCalendarEvents, calendarKindLabel, dayKey } from '../calendar/calendarEvents'
 import { useSamplesAwaitingReview } from '../laboratory/hooks/useSamplesAwaitingReview'
 import { canReviewSamples } from '../laboratory/sampleReviewModel'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 
 const n=v=>Number.isFinite(Number(v))?Number(v):'—'
@@ -175,7 +176,7 @@ export function DashboardPage({title,subtitle,showKpis=true,department=null}={})
         </Card>
         {calendarOn&&<Card className="dashboard-card dashboard-week">
           <CardHeader icon={CalendarDays} title={tr('Επόμενες 7 ημέρες','Next 7 days')} subtitle={tr('Συνεδριάσεις, επιθεωρήσεις και προθεσμίες.','Meetings, audits and deadlines.')} actions={<button type="button" className="text-button" onClick={()=>navigate('/calendar')}>{tr('Ημερολόγιο','Calendar')}<ArrowRight size={14}/></button>}/>
-          {week===null?<div className="inline-empty">{tr('Φόρτωση…','Loading…')}</div>:week.length?<div className="dashboard-week-list">{week.slice(0,WEEK_SHOWN).map(event=><button type="button" key={event.id} disabled={!event.path} onClick={()=>event.path&&navigate(event.path)}><span className="dashboard-week-day">{dayLabel(event.date)}</span><span className="dashboard-week-copy"><strong>{event.title}</strong><small>{calendarKindLabel(event.kind,language)}{event.department?` · ${event.department}`:''}</small></span></button>)}</div>:<div className="inline-empty">{tr('Τίποτα προγραμματισμένο για τις επόμενες 7 ημέρες.','Nothing planned for the next 7 days.')}</div>}
+          {week===null?<TableSkeleton/>:week.length?<div className="dashboard-week-list">{week.slice(0,WEEK_SHOWN).map(event=><button type="button" key={event.id} disabled={!event.path} onClick={()=>event.path&&navigate(event.path)}><span className="dashboard-week-day">{dayLabel(event.date)}</span><span className="dashboard-week-copy"><strong>{event.title}</strong><small>{calendarKindLabel(event.kind,language)}{event.department?` · ${event.department}`:''}</small></span></button>)}</div>:<div className="inline-empty">{tr('Τίποτα προγραμματισμένο για τις επόμενες 7 ημέρες.','Nothing planned for the next 7 days.')}</div>}
         </Card>}
       </div>
     </div>

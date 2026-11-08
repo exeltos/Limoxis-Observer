@@ -21,6 +21,7 @@ import { useLegislationAccess } from './legislationAccess'
 import { loadLibrary, publishText, removeText, saveText, setCandidate } from './legislationService'
 import { KINDS, TEXT_STATUSES, TOPICS, hasUnpublished, newText, requirementId, textFromCandidate, textProblems, textStatusLabel, textStatusTone, unpublishedChanges } from './legislationModel'
 import './legislation.css'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -57,7 +58,7 @@ export function LegislationEditorPage() {
   const { isPlatformOwner } = useLegislationAccess()
   const lastSnapshot = useMemo(() => library?.versions.filter(item => item.textId === textId).sort((a, b) => a.version - b.version).at(-1)?.snapshot || null, [library, textId])
   if (!isPlatformOwner) return <Navigate to={base} replace />
-  if (!library || draft === null) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!library || draft === null) return <Page fill><TableSkeleton/></Page>
   if (draft === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Text not found' : 'Το κείμενο δεν βρέθηκε'}</strong></div></Page>
 
   const set = next => setDraft(current => ({ ...current, ...next }))

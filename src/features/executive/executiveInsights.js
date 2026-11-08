@@ -45,23 +45,50 @@ export function worstDepartment(id,snapshot={}){
  return null
 }
 
-// «Τι άλλαξε»: the measures that changed the most against the comparison, the worse first, at most `limit`.
-// A rate counts in points, a count by its relative change; a measure without both values, or unchanged, says nothing.
-export function changeSentences(kpis=[],snapshot={},{limit=5,en=false}={}){
+// «Χρειάζονται προσοχή» / «Βελτιώθηκαν» (owner, 8/11/2026): the measures that got worse or better against the
+// comparison, with both values, and the measures off target. A change counts only against a real figure of the
+// comparison: a count that was 0 there says nothing («19 από 0»). A rate counts in points, a count by its relative change.
+const realChange=item=>item.value!=null&&item.delta&&item.delta.good!=null&&item.delta.previous!=null&&(item.unit==='%'||item.delta.previous!==0)
+export function summaryHighlights(kpis=[],snapshot={},{limit=5,en=false,against=''}={}){
  const tx=(el,english)=>(en?english:el)
- const changed=kpis.filter(item=>item.value!=null&&item.delta&&item.delta.good!=null&&item.delta.previous!=null)
  const weight=item=>item.unit==='%'?Math.abs(item.delta.diff):Math.min(100,Math.abs(item.delta.change??item.delta.diff*10))
- const ordered=[...changed.filter(item=>item.delta.good===false),...changed.filter(item=>item.delta.good===true)]
-  .sort((a,b)=>(a.delta.good===b.delta.good?weight(b)-weight(a):a.delta.good?1:-1))
- return ordered.slice(0,limit).map(item=>{
-  const label=tx(...item.label),up=item.delta.diff>0
-  const where=item.delta.good===false?worstDepartment(item.id,snapshot):null
-  const whereText=where?tx(` · κυρίως ${where.name} (${where.value})`,` · mostly ${where.name} (${where.value})`):''
-  return {id:item.id,good:item.delta.good,up,tab:item.tab,text:`${label}: ${fmt(item.value,item.unit,en)} ${tx('από','from')} ${fmt(item.delta.previous,item.unit,en)}${whereText}`}
- })
+ const versus=item=>` (${against?`${against}: `:''}${fmt(item.delta.previous,item.unit,en)})`
+ const line=(item,good)=>{
+  const where=good?null:worstDepartment(item.id,snapshot)
+  const whereText=where?tx(` — κυρίως ${where.name} (${where.value})`,` — mostly ${where.name} (${where.value})`):''
+  return {id:item.id,good,up:item.delta.diff>0,tab:item.tab,text:`${tx(...item.label)}: ${fmt(item.value,item.unit,en)}${versus(item)}${whereText}`}
+ }
+ const changed=kpis.filter(realChange)
+ const worse=changed.filter(item=>item.delta.good===false).sort((a,b)=>weight(b)-weight(a))
+ const offTarget=kpis.filter(item=>item.value!=null&&item.status==='judged'&&item.tone==='danger'&&!worse.includes(item))
+  .map(item=>({id:item.id,good:false,up:null,tab:item.tab,text:tx(`${item.label[0]}: ${fmt(item.value,item.unit,en)} — εκτός στόχου (${item.target})`,`${item.label[1]}: ${fmt(item.value,item.unit,en)} — off target (${item.target})`)}))
+ const better=changed.filter(item=>item.delta.good===true).sort((a,b)=>weight(b)-weight(a))
+ return {attention:[...worse.map(item=>line(item,false)),...offTarget].slice(0,limit),improved:better.map(item=>line(item,true)).slice(0,limit)}
+}
+// The assessment of a measure: against its target where it has one, else against the comparison.
+export function assessmentOf(item,en=false){
+ const tx=(el,english)=>(en?english:el)
+ if(item.value==null)return {tone:'none',text:tx('Δεν έχει ξεκινήσει','Not started')}
+ if(item.status==='judged')return item.tone==='good'?{tone:'good',text:tx('Εντός στόχου','On target')}:item.tone==='warning'?{tone:'warning',text:tx('Κοντά στον στόχο','Near target')}:{tone:'danger',text:tx('Εκτός στόχου','Off target')}
+ if(realChange(item))return item.delta.good?{tone:'good',text:tx('Καλύτερα','Better')}:{tone:'danger',text:tx('Χειρότερα','Worse')}
+ if(item.delta&&item.delta.trend==='flat')return {tone:'none',text:tx('Σταθερό','Unchanged')}
+ return {tone:'none',text:tx('Χωρίς στόχο','No target')}
+}
+// The change of a measure as text: points for a rate; nothing without a real figure of the comparison.
+export function changeText(item,en=false){
+ if(!realChange(item))return item.delta&&item.delta.trend==='flat'&&item.delta.previous!=null?{text:'0',good:null}:{text:'—',good:null}
+ const d=item.delta
+ return {text:`${d.diff>0?'+':'−'}${fmt(Math.abs(d.diff),'',en)}${item.unit==='%'?(en?' pts':' μον.'):''}`,good:d.good}
+}
+// Why a measure is not calculated yet (owner, 8/11/2026: never «no data», say that the calculation has not started).
+export function notStartedReason(item,en=false){
+ const tx=(el,english)=>(en?english:el)
+ if(item.missing)return tx(...item.missing)
+ if(item.id==='haiRate'||item.id==='mdroRate')return tx('λείπουν οι κλινοημέρες της περιόδου','the patient days of the period are missing')
+ return tx('δεν υπάρχουν ακόμη καταγραφές στην περίοδο','no records in the period yet')
 }
 
-// «Τμήματα με μια ματιά»: per department, hand hygiene and bundles (%), HAI and incidents (counts) and the controls'
+// «Σύγκριση τμημάτων»: per department, hand hygiene and bundles (%), HAI and incidents (counts) and the controls'
 // finding rate, with the value of the comparison. Only departments with at least one figure; the worst first.
 const sumCells=cells=>{const out=new Map();for(const [name,,n] of cells||[])out.set(name,(out.get(name)||0)+(Number(n)||0));return out}
 function departmentFigures(snapshot={}){
@@ -116,15 +143,15 @@ export function departmentProfile(grid,name){
  })
 }
 
-// Patient days of the period, from the hospital's periods (patient_day_periods, the hospital's own, not a department's):
+// Patient days of the period (patient_day_periods): the hospital's own rows, or with `departmentId` that department's;
 // each period counts for the share of its days that falls in the range.
 const dayNumber=value=>Math.floor(Date.UTC(Number(String(value).slice(0,4)),Number(String(value).slice(5,7))-1,Number(String(value).slice(8,10)))/86400000)
-export function patientDaysIn(periods=[],range){
+export function patientDaysIn(periods=[],range,departmentId=''){
  if(!range?.from||!range?.to)return null
  const from=dayNumber(range.from),to=dayNumber(range.to)
  let total=0,any=false
  for(const period of periods||[]){
-  if(period.scope&&period.scope!=='hospital')continue
+  if(departmentId?period.departmentId!==departmentId:(period.scope&&period.scope!=='hospital'))continue
   const start=dayNumber(period.from),end=dayNumber(period.to),value=Number(period.value)
   if(!Number.isFinite(value)||end<start)continue
   const overlap=Math.min(end,to)-Math.max(start,from)+1
@@ -133,12 +160,22 @@ export function patientDaysIn(periods=[],range){
  }
  return any?Math.round(total):null
 }
-// The rates per 1,000 patient days (owner, 7/11/2026): HAI and patients with a multidrug-resistant isolate.
-export function rateMeasures(kpis=[],patientDays){
- const per=(id)=>{const item=kpis.find(row=>row.id===id);return item?.value==null||!patientDays?null:Math.round(item.value/patientDays*1000*100)/100}
+// The HAI of the departments counted apart from the hospital's total (Παιδιατρική…), left out of the hospital's rate.
+export function separateHai(snapshot={},names=[]){
+ if(!names.length)return 0
+ const wanted=new Set(names)
+ return (snapshot?.domains?.surveillance?.haiByDepartment||[]).reduce((sum,[name,,n])=>sum+(wanted.has(name)?Number(n)||0:0),0)
+}
+// The rates per 1,000 patient days (owner, 7/11/2026): HAI and patients with a multidrug-resistant isolate. For the hospital,
+// the cases of the departments counted apart from its total are left out (`excluded`), so numerator and denominator
+// cover the same patients (owner, 8/11/2026).
+export function rateMeasures(kpis=[],patientDays,excluded={}){
+ const per=(id)=>{const item=kpis.find(row=>row.id===id);if(item?.value==null||!patientDays)return null;const cases=Math.max(0,item.value-(Number(excluded[id])||0));return Math.round(cases/patientDays*1000*100)/100}
  const days=patientDays?new Intl.NumberFormat('el-GR').format(patientDays):'—'
+ const apart=excluded.names?.length?[` · χωρίς ${excluded.names.join(', ')}`,` · without ${excluded.names.join(', ')}`]:['','']
+ const missing=patientDays?null:['λείπουν οι κλινοημέρες της περιόδου','the patient days of the period are missing']
  return [
-  {id:'haiRate',modules:['surveillance'],parts:['domains'],label:['ΛΣΦΥ ανά 1.000 ημέρες νοσηλείας','HAI per 1,000 patient days'],value:per('hai'),hint:[`${days} ημέρες νοσηλείας`,`${days} patient days`],tone:'neutral',better:'down',tab:'surveillance'},
-  {id:'mdroRate',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά ανά 1.000 ημέρες νοσηλείας','Multidrug-resistant per 1,000 patient days'],value:per('mdro'),hint:[`${days} ημέρες νοσηλείας`,`${days} patient days`],tone:'neutral',better:'down',tab:'laboratory'},
+  {id:'haiRate',modules:['surveillance'],parts:['domains'],label:['ΛΣΦΥ ανά 1.000 ημέρες νοσηλείας','HAI per 1,000 patient days'],value:per('hai'),missing,hint:[`${days} ημέρες νοσηλείας${apart[0]}`,`${days} patient days${apart[1]}`],tone:'neutral',better:'down',tab:'surveillance'},
+  {id:'mdroRate',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά ανά 1.000 ημέρες νοσηλείας','Multidrug-resistant per 1,000 patient days'],value:per('mdro'),missing,hint:[`${days} ημέρες νοσηλείας${apart[0]}`,`${days} patient days${apart[1]}`],tone:'neutral',better:'down',tab:'laboratory'},
  ]
 }

@@ -30,6 +30,7 @@ import {
   compactEpisodeCode,
 } from './employeeRecordShared'
 import './employeeRecordTabsRefinements.css'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 export {
   EmployeeHealthTab,
   EmployeeOccupationalTab,
@@ -213,7 +214,7 @@ export function EmployeeSurveillanceTab({
         />
       )}{' '}
       {loading ? (
-        <div className="inline-empty">{language === 'en' ? 'Loading…' : 'Φόρτωση…'}</div>
+        <TableSkeleton/>
       ) : registry.filtered.length ? (
         <>
           <div className="scroll-table">

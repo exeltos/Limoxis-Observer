@@ -114,7 +114,7 @@ export const valueText = (value, unit, language) => {
 const targetText = (target, direction, unit) => (target == null ? '—' : `${direction === 'lower' ? '≤' : '≥'} ${target}${unit === '%' ? '%' : ''}`)
 const judged = (value, target, direction) => (value == null || target == null || !['higher', 'lower'].includes(direction) ? null : direction === 'lower' ? value <= target : value >= target)
 const stateCell = (row, met, en) => (row.value == null
-  ? { text: row.missing ? missingText(row.missing, en) : en ? 'No data' : 'Χωρίς δεδομένα', className: 'rd-muted' }
+  ? { text: row.missing ? missingText(row.missing, en) : en ? 'Not started yet' : 'Δεν έχει ξεκινήσει ο υπολογισμός', className: 'rd-muted' }
   : met == null ? { text: en ? 'No target' : 'Χωρίς στόχο', className: '' } : { text: met ? (en ? 'On target' : 'Εντός στόχου') : (en ? 'Off target' : 'Εκτός στόχου'), className: met ? 'rd-good' : 'rd-bad' })
 
 // The table of the platform's indicators: the hospital's objective, where it has one, is the target.

@@ -6,6 +6,7 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { downloadCsv } from '../../core/export/csvExport'
 import { BarList,ChartCard,Scoreboard,TrendChart } from './AnalysisCharts'
 import { ScopeComparison } from './AnalysisPanels'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const empty={assignments:0,completed:0,overdue:0,programs:0,completedInPeriod:0,trainees:0,personHours:0,averageHoursPerTrainee:null,missingDurationCompletions:0,hoursCoverage:null,byDepartment:[],hoursByDepartment:[],byProgram:[],byEmployee:[],byProfession:[],monthlyHours:[]}
 const n=value=>Number(value)||0
@@ -68,7 +69,7 @@ export function TrainingAnalyticsReport({organizationId='',range,departmentId=''
  function exportPrograms(){downloadCsv(en?'training_programmes.csv':'εκπαίδευση_ανά_πρόγραμμα.csv',[tx('Κωδικός','Code'),tx('Εκπαίδευση','Training'),tx('Διάρκεια (ώρες)','Duration (hours)'),tx('Αναθέσεις','Assignments'),tx('Ολοκληρώθηκαν από τις αναθέσεις','Completed from assignments'),tx('Ολοκληρώσεις στην περίοδο','Completions in period'),tx('Εκπαιδευόμενοι','Trainees'),tx('Ανθρωποώρες','Person-hours'),tx('Εκπρόθεσμες','Overdue')],programRows.map(row=>row))}
  function exportEmployees(){downloadCsv(en?'training_by_employee.csv':'εκπαίδευση_ανά_εργαζόμενο.csv',[tx('Εργαζόμενος','Employee'),tx('Τμήμα','Department'),tx('Επαγγελματική κατηγορία','Professional category'),tx('Αναθέσεις','Assignments'),tx('Ολοκληρωμένες αναθέσεις','Completed assignments'),tx('Ολοκληρώσεις στην περίοδο','Completions in period'),tx('Ώρες','Hours'),tx('Εκπρόθεσμες','Overdue')],filteredEmployees.map(([,name,department,profession,assigned,completed,completedPeriod,hours,overdue])=>[name,department,profession,assigned,completed,completedPeriod,hours,overdue]))}
 
- if(loading)return <div className="analysis-chart-empty">{tx('Φόρτωση αναφοράς εκπαίδευσης…','Loading training report…')}</div>
+ if(loading)return <TableSkeleton rows={8}/>
  if(error)return <div className="analysis-signal-card"><header><div><strong>{tx('Δεν ήταν δυνατή η φόρτωση της αναφοράς εκπαίδευσης.','Training report could not be loaded.')}</strong><span>{error}</span></div></header></div>
  return <>
   <Kpis rows={rows}/>

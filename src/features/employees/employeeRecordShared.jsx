@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { FilterBar } from '../../design-system/FilterBar'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 // Building blocks shared by the employee record tabs: section titles, empty and
 // loading states, paging, the registry filter and status labels.
@@ -25,7 +26,7 @@ export function Empty({ language, title }) {
 }
 export function State({ loading, error, language, onRetry }) {
   if (loading)
-    return <div className="inline-empty">{language === 'en' ? 'Loading…' : 'Φόρτωση…'}</div>
+    return <TableSkeleton/>
   if (error)
     return (
       <div className="data-access-state error">

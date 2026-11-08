@@ -13,6 +13,7 @@ import { deletePrevalenceSurvey, loadPrevalenceSurveyHistory, savePrevalenceSurv
 import { loadDepartments } from './departmentsService'
 import { demoLibrarySeed } from './managementData'
 import { ShareOf } from './HospitalStructurePanel'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const todayIso = () => new Date().toISOString().slice(0, 10)
 const emptyDraft = { surveyDate: todayIso(), departmentId: '', departmentEl: '', patientsTotal: '', patientsWithHai: '', patientsOnAntibiotics: '', responsibleName: '', notes: '' }
@@ -97,7 +98,7 @@ export function PrevalenceSurveyPanel() {
         </div>
         <Button onClick={() => setEditor(true)}><Plus size={15} />{en ? 'New survey' : 'Νέα επισκόπηση'}</Button>
       </div>
-      {loading && <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>}
+      {loading && <TableSkeleton/>}
       {!loading && <RegistryTable
         wrapperClassName="table-wrap scroll-table"
         columns={[{ key: 'date', label: en ? 'Survey date' : 'Ημερομηνία' }, { key: 'scope', label: en ? 'Scope' : 'Εύρος' }, { key: 'patients', label: en ? 'Patients' : 'Ασθενείς' }, { key: 'hai', label: en ? 'With a hospital infection' : 'Με νοσοκομειακή λοίμωξη' }, { key: 'abx', label: en ? 'On antibiotics' : 'Υπό αντιβίωση' }, ...(showResponsible ? [{ key: 'responsible', label: en ? 'Responsible' : 'Υπεύθυνος' }] : []), ...(isPlatformOwner ? [{ key: 'actions', label: '' }] : [])]}
