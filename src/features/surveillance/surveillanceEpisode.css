@@ -1,6 +1,6 @@
 /* The surveillance sheet opens over the page without the side menu, under the app's top bar, which stays (owner,
    8/11/2026); its title with the back arrow is a white box. */
-html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:64px 0 0 0!important;z-index:150!important;display:block!important;padding:14px 24px 24px!important;background:#eef2f7!important;backdrop-filter:none!important;overflow:auto}
+html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;z-index:150!important;display:block!important;padding:78px 24px 24px!important;background:#eef2f7!important;backdrop-filter:none!important;overflow:auto}
 html body .surveillance-episode-page .episode-detail-card.new-surveillance-flow-card{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;display:block!important;overflow:visible!important}
 /* The title with its back arrow in a white box, as on every record page. */
 html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:12px 18px!important;margin:0 0 12px!important;border:1px solid #e3e9f1!important;background:#fff!important}
@@ -30,7 +30,7 @@ html body .surveillance-episode-page .detail-item strong{display:block!important
 html body .surveillance-episode-page .clinical-summary{margin:8px 0 6px!important;font-size:13.5px!important;line-height:1.55!important}
 
 @media print{
-  html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:64px 0 0 0!important;background:#eef2f7!important}
+  html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;background:#eef2f7!important}
 }
 
 /* Reassessment timeline: one readable row per entry. */
@@ -258,3 +258,5 @@ html body .surveillance-episode-page .sheet-body .sp-card.sp-review{border:0!imp
 .sheet-body [data-ui=registry-table] tbody td:last-child:is(td,#lo-sheet-view){border-radius:0 9px 9px 0}
 .sheet-body .detail-grid>.detail-item:is(div,#lo-sheet-view){display:flex;flex-direction:column;gap:0}
 .sheet-body .detail-item>strong:is(strong,#lo-sheet-view){padding:9px 12px}
+/* While the sheet is open the app's top bar spans the whole width above it (no side-menu corner at the top left). */
+body:has(.episode-overlay.surveillance-episode-page) .topbar:is(header,#lo-sheet-view){position:fixed;top:0;left:0;right:0;z-index:160}

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Stethoscope } from 'lucide-react'
+import { Plus, Stethoscope, Trash2 } from 'lucide-react'
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { CAPABILITIES } from '../../../../core/permissions/roles'
 import { PatientClinicalScalesPanel } from '../../../clinical-scales/PatientClinicalScalesPanel'
@@ -30,6 +30,7 @@ function ScalesSection({ ctx }) {
   const [data, setData] = useState({ scaleContext: [], rows: [] })
   const [request, setRequest] = useState(null)
   const [showAll, setShowAll] = useState(false)
+  const [removeRequest, setRemoveRequest] = useState(null)
   // The scales (NEWS2, Braden, Morse…) are recorded by the clinical team and the ward nurses (owner, 8/11/2026), as the
   // RLS policy patient_scale_insert allows; the other roles see them only.
   const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || ctx.has(CAPABILITIES.MANAGE_ISOLATION) || ctx.has(CAPABILITIES.REQUEST_LAB_SAMPLES)
@@ -75,6 +76,16 @@ function ScalesSection({ ctx }) {
                 date={item.latest ? ctx.fmtDateTime(item.latest.assessed_at) : ''}
                 dateLabel={item.latest ? t('episodeForms.scales.lastAssessment') : ''}
                 action={canRecord ? { label: t('episodeForms.new'), onClick: () => ask(item.id) } : null}
+                menu={[
+                  item.latest && ctx.canDelete?.(item.latest.created_by) && {
+                    id: 'delete',
+                    label: t('delete'),
+                    icon: Trash2,
+                    tone: 'danger',
+                    separatorBefore: true,
+                    onClick: () => setRemoveRequest({ nonce: Date.now(), row: item.latest }),
+                  },
+                ]}
               />
             )
           })}
@@ -103,6 +114,7 @@ function ScalesSection({ ctx }) {
         onChange={ctx.onScalesChanged}
         prefillItems={prefillItems}
         canDelete={ctx.canDelete}
+        removeRequest={removeRequest}
       />
     </FormSection>
   )
