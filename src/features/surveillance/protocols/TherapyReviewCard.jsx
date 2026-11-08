@@ -12,7 +12,7 @@ import { dayTime, fill } from './ProtocolViews'
 const DECISION_ICONS = { continue: CirclePlay, deescalate: TrendingDown, iv_to_oral: Pill, stop: CircleStop }
 const r = key => `sepsis.review.${key}`
 
-export function TherapyReviewCard({ record, therapy, window, t, actorName, canReview, onSave }) {
+export function TherapyReviewCard({ record, therapy, window, t, actorName, canReview, onSave, quiet = false }) {
   const [editing, setEditing] = useState(false)
   const [decision, setDecision] = useState('')
   const [reasons, setReasons] = useState([])
@@ -157,7 +157,7 @@ export function TherapyReviewCard({ record, therapy, window, t, actorName, canRe
           </div>
         </div>
       )}
-      {!canReview && !latest && <p className="sp-muted sp-small">{t(r('noRights'))}</p>}
+      {!canReview && !latest && !quiet && <p className="sp-muted sp-small">{t(r('noRights'))}</p>}
     </section>
   )
 }

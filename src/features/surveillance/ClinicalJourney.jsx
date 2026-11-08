@@ -32,6 +32,16 @@ import { changeRecognitionTime, createTherapyReview, finishProtocolRun, recordPr
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
+// The questions of the initial screening of the clinical assessment (the same as its form).
+const SCREENING_QUESTIONS = [
+  ['recentSurgery', 'recentSurgery'],
+  ['currentAntibiotics', 'currentOrRecentAntimicrobialTherapy'],
+  ['recentHospitalization', 'recentHospitalization'],
+  ['transferFromFacility', 'transferFromAnotherHealthcareFacility'],
+  ['knownMdro', 'knownMultidrugResistantOrganismMdroHistory'],
+  ['immunosuppression', 'immunosuppression'],
+  ['recentProcedure', 'recentInvasiveProcedure'],
+]
 export function CanonicalJourney({
   record,
   repository,
@@ -60,6 +70,11 @@ export function CanonicalJourney({
 }) {
   const { notify } = useFeedback()
   const { role } = useTenant()
+  const copyText = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+  // Read-only value of the sheet, laid out like the form's field; an empty one says so (owner, 8/11/2026).
+  const SheetDetail = ({ label, value }) => (
+    <Detail label={label} value={value || <em className="sheet-empty">{copyText('notFilled')}</em>} />
+  )
   const actor = useAuditActor()
   // N3: protocols started on the episode and the 48–72 h antimicrobial reviews.
   const protocols = useEpisodeProtocols(record, { organizationId, isDemo })
@@ -399,7 +414,7 @@ export function CanonicalJourney({
             {record.assessment ? (
               <>
                 <div className="detail-grid">
-                  <Detail label={t('assessmentDate')} value={fmtDate(record.assessment.date)} />
+                  <SheetDetail label={t('assessmentDate')} value={fmtDate(record.assessment.date)} />
                   <Detail
                     label={t('classification')}
                     value={clinicalTerm(
@@ -428,6 +443,20 @@ export function CanonicalJourney({
                   t={t}
                   language={language}
                 />
+                {/* The initial screening answers, each question with its answer (owner, 8/11/2026). */}
+                {Object.keys(record.assessment.screening || {}).length > 0 && (
+                  <>
+                    <span className="lo-field-label tag-list-label">{copyText('initialSurveillanceQuestionnaire')}</span>
+                    <div className="sheet-answers">
+                      {SCREENING_QUESTIONS.map(([id, key]) => (
+                        <div key={id} className="sheet-answer">
+                          <span>{copyText(key)}</span>
+                          <strong>{copyText(record.assessment.screening[id] || 'unknown')}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>
@@ -708,10 +737,10 @@ export function CanonicalJourney({
           >
             {record.isolation ? (
               <div className="detail-grid">
-                <Detail label={t('status')} value={t(record.isolation.status)} />
-                <Detail label={t('startDate')} value={fmtDate(record.isolation.startedAt)} />
-                <Detail label={t('reason')} value={record.isolation.reason} />
-                <Detail label={t('room')} value={record.isolation.room} />
+                <SheetDetail label={t('status')} value={t(record.isolation.status)} />
+                <SheetDetail label={t('startDate')} value={fmtDate(record.isolation.startedAt)} />
+                <SheetDetail label={t('reason')} value={record.isolation.reason} />
+                <SheetDetail label={t('room')} value={record.isolation.room} />
               </div>
             ) : (
               <div className="inline-empty">
@@ -808,6 +837,7 @@ export function CanonicalJourney({
                   t={t}
                   actorName={actor?.name}
                   canReview={editing && permissions.canTherapy}
+                  quiet
                   onSave={draft =>
                     runProtocol(
                       () => createTherapyReview(organizationId, record, therapy, draft, protocolOptions),
@@ -906,9 +936,9 @@ export function CanonicalJourney({
           >
             {record.outcome ? (
               <div className="detail-grid">
-                <Detail label={t('status')} value={t(record.outcome.status)} />
-                <Detail label={t('date')} value={fmtDate(record.outcome.date)} />
-                <Detail label={t('notes')} value={record.outcome.notes} />
+                <SheetDetail label={t('status')} value={t(record.outcome.status)} />
+                <SheetDetail label={t('date')} value={fmtDate(record.outcome.date)} />
+                <SheetDetail label={t('notes')} value={record.outcome.notes} />
               </div>
             ) : (
               <div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>
