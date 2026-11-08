@@ -15,7 +15,7 @@ describe('sidebar order per role', () => {
       'clinical:surveillance', 'clinical:laboratory', 'clinical:prevention', 'clinical:pharmacy',
       'operations:controls', 'operations:cultureProgramme', 'operations:kitchen',
       'quality:quality', 'quality:qualityMeasures', 'quality:meetings', 'quality:documents', 'quality:library',
-      'staff:employees', 'staff:training', 'staff:interviews',
+      'staff:employees', 'staff:rosters', 'staff:training', 'staff:interviews',
       'management:management',
     ])
     expect(sidebarLayout(ROLES.HOSPITAL_ADMIN, navigationFor({ role: ROLES.HOSPITAL_ADMIN })).map(block => [block.kind, block.id])).toEqual([
@@ -102,5 +102,15 @@ describe('«Βιβλιοθήκη» (Library) in the menu', () => {
       const keys = navigationFor({ role }).map(item => item.key)
       if (keys.includes('documents')) expect(keys.indexOf('library'), role).toBe(keys.indexOf('documents') + 1)
     }
+  })
+})
+
+describe('shift roster in the menu (owner, 8/11/2026)', () => {
+  it('is its own entry for the department manager, inside «Staff» for the administrator, hidden for the others', async () => {
+    const { navigationFor } = await import('../src/app/navigation')
+    const keyOf = role => navigationFor({ role }).find(item => item.key === 'rosters')
+    expect(keyOf(ROLES.DEPARTMENT_MANAGER)).toMatchObject({ group: undefined })
+    expect(keyOf(ROLES.HOSPITAL_ADMIN)).toMatchObject({ group: 'staff' })
+    for (const role of [ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE, ROLES.HR_OFFICE, ROLES.QUALITY_MANAGER]) expect(keyOf(role)).toBeUndefined()
   })
 })

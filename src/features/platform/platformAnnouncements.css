@@ -8,11 +8,7 @@
 .platform-announcement-form .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .platform-announcement-file{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:8px 12px;border-radius:9px;background:#eef4fb;color:#1d5f9c;font-weight:600;font-size:13.5px;text-decoration:none}
 .platform-announcement-upload{display:flex;align-items:center;min-height:42px}
-.platform-announcement-pick{position:relative;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px dashed #9fb2c8;border-radius:10px;background:#f8fafc;color:#1d5f9c;font-weight:600;font-size:13.5px;cursor:pointer}
-.platform-announcement-pick.is-busy{cursor:progress;opacity:.7}
-.platform-announcement-pick input{position:absolute;width:1px;height:1px;opacity:0}
-.platform-announcement-pick:focus-within{outline:2px solid #1d5f9c;outline-offset:2px}
 .platform-announcement-attached{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:8px 10px;border-radius:9px;background:#eef4fb;color:#14253d;font-size:13.5px;overflow:hidden;text-overflow:ellipsis}
 .platform-announcement-attached button{display:inline-grid;place-items:center;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:#56677a;cursor:pointer}
 .platform-announcement-attached button:hover{background:#dce7f3}
-.platform-announcement-demo{display:flex;align-items:center;gap:8px;font-size:13.5px;color:#1f3348;cursor:pointer}
+.platform-announcement-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}

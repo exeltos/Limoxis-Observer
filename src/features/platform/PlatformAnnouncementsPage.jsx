@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Eye, Pause, Paperclip, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
@@ -13,6 +13,7 @@ import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { InlineDialogContext, ObserverDialog } from '../../design-system/ObserverDialog'
 import { Field } from '../../design-system/Field'
+import { CheckboxField } from '../../design-system/CheckboxField'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { MultiSelect } from '../../design-system/MultiSelect'
@@ -48,6 +49,7 @@ export function PlatformAnnouncementsPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState(null)
+  const fileInput = useRef(null)
   const navigate = useNavigate()
   const organizations = useMemo(
     () => memberships.map(item => item.organization).filter(org => org?.id && org.mode !== 'demo'),
@@ -244,18 +246,22 @@ export function PlatformAnnouncementsPage() {
                     </button>
                   </span>
                 ) : (
-                  <label className={`platform-announcement-pick${uploading ? ' is-busy' : ''}`}>
-                    <Paperclip size={15} aria-hidden="true" />
-                    {uploading ? tx('Ανέβασμα…', 'Uploading…') : tx('Ανέβασμα εικόνας ή αρχείου', 'Upload an image or file')}
-                    <input type="file" accept={ATTACHMENT_ACCEPT} disabled={uploading} onChange={attach} />
-                  </label>
+                  <>
+                    <Button variant="secondary" className="platform-announcement-pick" disabled={uploading} onClick={() => fileInput.current?.click()}>
+                      <Paperclip size={15} aria-hidden="true" />
+                      {uploading ? tx('Ανέβασμα…', 'Uploading…') : tx('Ανέβασμα εικόνας ή αρχείου', 'Upload an image or file')}
+                    </Button>
+                    <input ref={fileInput} className="platform-announcement-file-input" type="file" accept={ATTACHMENT_ACCEPT} tabIndex={-1} aria-hidden="true" onChange={attach} />
+                  </>
                 )}
               </div>
             </Field>
-            <label className="platform-announcement-demo entry-span-2">
-              <input type="checkbox" checked={draft.showInDemo} onChange={event => set('showInDemo', event.target.checked)} />
-              {tx('Εμφάνιση και στο demo (σε όποιον μπαίνει στα demo νοσοκομεία)', 'Show in the demo too (to whoever opens the demo hospitals)')}
-            </label>
+            <CheckboxField
+              className="entry-span-2"
+              label={tx('Εμφάνιση και στο demo (σε όποιον μπαίνει στα demo νοσοκομεία)', 'Show in the demo too (to whoever opens the demo hospitals)')}
+              checked={draft.showInDemo}
+              onChange={value => set('showInDemo', value)}
+            />
           </div>
         </ObserverDialog>
         </InlineDialogContext.Provider>
