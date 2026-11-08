@@ -228,3 +228,4 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 /* The device / therapy rows: no card inside the form, a dashed line between rows. */
 .sheet-body .observer-dialog-inline .therapy-entry-card{border:0;border-radius:0;padding:0;background:none;box-shadow:none}
 .sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed #dfe7f0;padding-top:12px}
+.sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){padding-top:0!important}
