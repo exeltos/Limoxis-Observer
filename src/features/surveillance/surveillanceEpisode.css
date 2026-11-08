@@ -200,3 +200,11 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .sheet-pager-button{border:1px solid #cfd8e3;border-radius:9px;background:#fff;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;color:#1d5f9c;cursor:pointer}
 .sheet-pager-button:hover{background:#f2f7fc}
 .sheet-pager-button.is-next{margin-left:auto;background:#1d5f9c;border-color:#1d5f9c;color:#fff}
+/* A form on the sheet (InlineDialogContext): the same fields and Save as the window, laid in the page. */
+.observer-dialog-inline{padding:12px 22px 14px;border-top:1px solid #edf1f6}
+.observer-dialog-inline>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.observer-dialog-inline>header h3{margin:0;font-size:15px}
+.observer-dialog-inline>header p{margin:2px 0 0;font-size:12.5px;color:#64748b}
+.observer-dialog-inline>header .eyebrow{display:none}
+.observer-dialog-inline>footer{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px dashed #e3e9f1}
+.sheet-body>.clinical-data-grid>.sheet-anchor>.observer-dialog-inline:first-child{border-top:0}

@@ -290,8 +290,10 @@ describe('surveillance episode journey', () => {
   it('shows assessment signs, risk factors and classification through the library labels', async () => {
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Αξιολόγηση')
-    for (const label of ['Λοίμωξη', 'Πυρετός >38°C', 'Υπόταση', 'Κεντρικός φλεβικός καθετήρας']) expect(within(panel).getByText(label)).toBeInTheDocument()
+    await openStage('Αξιολόγηση')
+    // The assessment is edited in place on the sheet: its form shows the stored values by their labels.
+    const panel = document.querySelector(`[id^="sheet-${STAGE_IDS['Αξιολόγηση']}-"]`)
+    for (const label of ['Λοίμωξη', 'Πυρετός >38°C', 'Υπόταση', 'Κεντρικός φλεβικός καθετήρας']) expect(panel).toHaveTextContent(label)
   })
 
   it('derives MDR from validated microbiology instead of offering manual classification, and tells the Demo guide', async () => {

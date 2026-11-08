@@ -1,9 +1,13 @@
-import { useEffect,useRef } from 'react'
+import { createContext,useContext,useEffect,useRef } from 'react'
 import { ArrowLeft,X } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { SaveButton } from './SaveButton'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useOptionalFeedback } from '../core/feedback/FeedbackContext'
+
+// A form shown on the page instead of over it (the surveillance sheet, owner 8/11/2026): inside this provider an
+// ObserverDialog renders its title, fields and Save in place, without the backdrop or the close button.
+export const InlineDialogContext=createContext(false)
 
 // Search and filter boxes inside a dialog are not data the user would lose.
 const isSearchField=el=>el?.type==='search'||/search|αναζήτ/i.test(`${el?.className||''} ${el?.placeholder||''}`)
@@ -25,6 +29,7 @@ export function ObserverDialog({
   className='',
 }){
   const {language}=useLanguage();const en=language==='en'
+  const inline=useContext(InlineDialogContext)
   // Sizes: small / medium / large (= compact / standard / wide), or workspace.
   // A dialog is as tall as its content up to the screen; the header and the
   // footer with its buttons stay in view and only the body scrolls.
@@ -69,8 +74,13 @@ export function ObserverDialog({
   // The window takes the focus when it opens (unless a field inside already has it), so Escape works at once.
   useEffect(()=>{
     const node=sectionRef.current
-    if(node&&!node.contains(document.activeElement))node.focus({preventScroll:true})
-  },[])
+    if(!inline&&node&&!node.contains(document.activeElement))node.focus({preventScroll:true})
+  },[inline])
+  if(inline)return <section ref={sectionRef} className={`observer-dialog-inline ${className}`.trim()} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
+    <header><div>{eyebrow&&<span className="eyebrow">{eyebrow}</span>}<h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{headerActions&&<div className="observer-dialog-header-actions">{headerActions}</div>}</header>
+    <div className="observer-dialog-body">{children}</div>
+    {footer&&<footer>{footer}</footer>}
+  </section>
   return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&e.target===e.currentTarget)requestClose()}}>
     <section ref={sectionRef} className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} tabIndex={-1} onKeyDown={closeOnEscape} onChangeCapture={markDirty} onInputCapture={markDirty}>
       <header>

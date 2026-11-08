@@ -269,10 +269,14 @@ export function AssessmentDialog({ t, record, symptomRows = [], riskRows = [], o
 function LibraryMultiSelect({ label, rows = [], selected = [], onChange, language }) {
   const valueOf = row => row?.[2]?.id || row?.[2]?.code || row?.[0] || row?.[1] || ''
   const texts = listTexts(language)
+  // A stored value no longer in the list (older record, retired entry) stays visible and selected.
+  const options = rows.map(row => ({ value: valueOf(row), label: rowLabel(row, language) }))
+  for (const value of selected)
+    if (value && !options.some(option => option.value === value)) options.push({ value, label: value })
   return (
     <MultiSelect
       label={label}
-      options={rows.map(row => ({ value: valueOf(row), label: rowLabel(row, language) }))}
+      options={options}
       selected={selected}
       onChange={onChange}
       placeholder={copy(language)('selectFromList')}

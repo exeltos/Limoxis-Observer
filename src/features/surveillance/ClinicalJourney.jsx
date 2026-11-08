@@ -11,6 +11,7 @@ import { ClinicalEntryDetail, StageTable, StateBadge } from './ClinicalJourneyPa
 import { clinicalTerm, episodeTypeLabel } from './clinicalRecordLabels'
 import { AssessmentDialog, DeviceDialog, SampleRequestDialog, HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
+import { InlineDialogContext } from '../../design-system/ObserverDialog'
 import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
@@ -145,6 +146,15 @@ export function CanonicalJourney({
   const activeRun = stage.startsWith('protocol:')
     ? protocols.runs.find(run => `protocol:${run.id}` === stage) || null
     : null
+  // The sheet's fields (owner, 8/11/2026): the forms of the assessment, the isolation, the reassessment and the outcome
+  // sit on the page itself, with their own Save, instead of a window over it.
+  const sheetEdit = {
+    assessment: active && permissions.canAssess,
+    isolation: active && permissions.canIsolation && !record.isolation && record.isolationDecision?.required !== false,
+    reassessment: active && permissions.canReassess,
+    outcome: active && permissions.canOutcome && !record.outcome,
+  }
+  const sheetForm = node => <InlineDialogContext.Provider value>{node}</InlineDialogContext.Provider>
   const cueDialogs = {
     assessment: 'assessment',
     isolation: 'isolation',
@@ -313,7 +323,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-assessment-${record.id}`}>
-        {stage === 'assessment' && (
+        {stage === 'assessment' && !sheetEdit.assessment && (
           <StagePanel
             icon={ShieldCheck}
             title={t('clinicalAssessment')}
@@ -375,6 +385,16 @@ export function CanonicalJourney({
               <div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>
             )}
           </StagePanel>
+        )}
+        {stage === 'assessment' && sheetEdit.assessment && sheetForm(
+          <AssessmentDialog
+            t={t}
+            record={record}
+            symptomRows={libraries.clinicalSymptoms || []}
+            riskRows={libraries.clinicalRiskFactors || []}
+            onClose={() => {}}
+            onSave={draft => run(() => repository.saveAssessment(record, draft), t('actionCompleted'))}
+          />,
         )}
         </div>
         {activeRun && (
@@ -603,7 +623,7 @@ export function CanonicalJourney({
                         language === 'el' ? 'el' : 'en',
                       )}
                     </Button>
-                  ) : (
+                  ) : sheetEdit.isolation ? null : (
                     <Button
                       className="clinical-stage-action"
                       variant="secondary"
@@ -646,6 +666,13 @@ export function CanonicalJourney({
               </div>
             )}
           </StagePanel>
+        )}
+        {stage === 'isolation' && sheetEdit.isolation && sheetForm(
+          <IsolationDialog
+            t={t}
+            onClose={() => {}}
+            onSave={draft => run(() => repository.beginIsolation(record, draft), t('actionCompleted'))}
+          />,
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-therapy-${record.id}`}>
@@ -794,9 +821,16 @@ export function CanonicalJourney({
             )}
           </StagePanel>
         )}
+        {stage === 'reassessment' && sheetEdit.reassessment && sheetForm(
+          <ReassessmentDialog
+            t={t}
+            onClose={() => {}}
+            onSave={draft => run(() => repository.reassess(record, draft), t('actionCompleted'))}
+          />,
+        )}
         </div>
         <div className="sheet-anchor" id={`sheet-outcome-${record.id}`}>
-        {stage === 'outcome' && (
+        {stage === 'outcome' && !sheetEdit.outcome && (
           <StagePanel
             icon={Activity}
             title={t('outcome')}
@@ -831,6 +865,13 @@ export function CanonicalJourney({
               <div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>
             )}
           </StagePanel>
+        )}
+        {stage === 'outcome' && sheetEdit.outcome && sheetForm(
+          <OutcomeDialog
+            t={t}
+            onClose={() => {}}
+            onSave={draft => run(() => repository.complete(record, draft), t('clinicalRecords.outcomeSaved'))}
+          />,
         )}
         </div>
       </div>
