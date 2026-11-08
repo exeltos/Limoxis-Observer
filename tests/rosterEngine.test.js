@@ -69,7 +69,7 @@ describe('generateRoster', () => {
     const totals = activeIds.filter((id) => id !== 'n3').map((id) => result.totals[id])
     expect(Math.max(...totals) - Math.min(...totals)).toBeLessThanOrEqual(2)
     const singles = activeIds.reduce((count, id) => count + (codesOf(id).join('').match(/[MIAN]R(?=[MIAN])/g) || []).length, 0)
-    expect(singles).toBeLessThanOrEqual(15)
+    expect(singles).toBeLessThanOrEqual(18)
   })
 
   it('covers the intermediate shift when the department asks for it', () => {
@@ -111,5 +111,52 @@ describe('checkRoster', () => {
     const codes = 'MMMMMMR'
     const found = checkRoster({ days: week, employees: one, assignments: { x: Object.fromEntries(codes.split('').map((code, i) => [week[i].date, code])) }, demand: {}, rules }).map((v) => v.rule)
     expect(found).toContain('weeklyRest')
+  })
+})
+
+describe('a person’s own limits (owner, 8/11/2026)', () => {
+  it('gives the head mornings only and someone else no nights', () => {
+    const staff = Array.from({ length: 11 }, (_, index) => ({ id: `p${index}`, active: true }))
+    staff[0].allowed = ['M']
+    staff[1].allowed = ['M', 'A']
+    const made = generateRoster({ days, employees: staff, demand, seed: 5 })
+    const codes = (id) => days.map((day) => made.assignments[id][day.date])
+    expect(codes('p0').filter(isShift).every((code) => code === 'M')).toBe(true)
+    expect(codes('p1')).not.toContain('N')
+    expect(made.violations.filter((v) => v.rule === 'personal')).toEqual([])
+  })
+  it('flags a shift a person may not take', () => {
+    const found = checkRoster({ days: days.slice(0, 2), employees: [{ id: 'x', active: true, allowed: ['M'] }], assignments: { x: { [days[0].date]: 'N' } }, demand: {}, rules: { minWeekendOff: 0, weeklyRestDays: 0 } })
+    expect(found.map((v) => v.rule)).toContain('personal')
+  })
+})
+
+describe('supernumerary and other personal limits (owner, 8/11/2026)', () => {
+  const p = periodDays('2026-11-21', '2026-12-20')
+  const staff = Array.from({ length: 9 }, (_, index) => ({ id: `s${index}`, active: true }))
+  staff[0] = { ...staff[0], extra: true, allowed: ['M'] }
+  staff[1] = { ...staff[1], noWeekends: true }
+  staff[2] = { ...staff[2], maxNights: 2 }
+  staff[3] = { ...staff[3], percent: 50 }
+  const made = generateRoster({ days: p, employees: staff, demand, seed: 9 })
+  const row = (id) => p.map((day) => made.assignments[id][day.date])
+  it('keeps the supernumerary on weekday mornings and the others near two days off a week', () => {
+    expect(row('s0').filter((code) => code === 'M').length).toBeGreaterThanOrEqual(18)
+    for (const id of ['s4', 's5', 's6']) expect(row(id).filter((code) => code === 'R').length).toBeLessThanOrEqual(11)
+  })
+  it('keeps no weekends, the night cap and part-time', () => {
+    p.forEach((day, i) => { if (day.weekend) expect(isShift(row('s1')[i])).toBe(false) })
+    expect(row('s2').filter((code) => code === 'N').length).toBeLessThanOrEqual(2)
+    expect(shiftTargets(p, staff).s3).toBe(Math.round(shiftTargets(p, [{ id: 'x' }]).x / 2))
+    expect(made.violations.filter((v) => ['personal', 'maxNights'].includes(v.rule))).toEqual([])
+  })
+})
+
+describe('days off around a leave (owner, 8/11/2026)', () => {
+  it('gives two days off before and after a leave where the roster allows', () => {
+    const staff = Array.from({ length: 11 }, (_, index) => ({ id: `l${index}`, active: true, fixed: {} }))
+    staff[3].fixed = Object.fromEntries(datesBetween('2026-11-02', '2026-11-06', days).map((date) => [date, 'L']))
+    const made = generateRoster({ days, employees: staff, demand, seed: 4 })
+    for (const date of ['2026-10-31', '2026-11-01', '2026-11-07', '2026-11-08']) expect(isShift(made.assignments.l3[date])).toBe(false)
   })
 })

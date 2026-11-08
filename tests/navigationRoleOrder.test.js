@@ -111,7 +111,9 @@ describe('shift roster in the menu (owner, 8/11/2026)', () => {
     const keyOf = role => navigationFor({ role }).find(item => item.key === 'rosters')
     expect(keyOf(ROLES.DEPARTMENT_MANAGER)).toMatchObject({ group: undefined })
     expect(keyOf(ROLES.HOSPITAL_ADMIN)).toMatchObject({ group: 'staff' })
-    for (const role of [ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE, ROLES.HR_OFFICE, ROLES.QUALITY_MANAGER]) expect(keyOf(role)).toBeUndefined()
+    // The department's people see the published roster and send requests (owner, 8/11/2026).
+    for (const role of [ROLES.DEPARTMENT_USER, ROLES.LINK_NURSE]) expect(keyOf(role)).toMatchObject({ group: undefined })
+    for (const role of [ROLES.HR_OFFICE, ROLES.QUALITY_MANAGER]) expect(keyOf(role)).toBeUndefined()
   })
 })
 

@@ -579,8 +579,8 @@ export function EmployeeRecordPage({ selfMode = false }) {
             notify={notify}
             organizationId={tenant?.id}
             departmentOptions={departmentOptions}
-            professionOptions={professionalCategories}
-            positionOptions={positionOptions}
+            professionOptions={withEmployeeValues(professionalCategories, employeeRows, 'profession', 'professionEn')}
+            positionOptions={withEmployeeValues(positionOptions, employeeRows, 'position', 'positionEn')}
             reloadEmployees={reloadEmployees}
             onCodeChanged={newCode =>
               navigate(`/employees/${encodeURIComponent(newCode)}`, { replace: true })
@@ -1125,6 +1125,21 @@ function InlineDetail({ editing, label, value, display, onChange, type = 'text' 
     </div>
   )
 }
+// The hospital's list plus the values its employees already have (owner, 8/11/2026): a hospital whose list of job
+// positions is empty still offers the positions in use, and a new one can be typed.
+function withEmployeeValues(options = [], rows = [], key, keyEn) {
+  const list = Array.isArray(options) ? [...options] : []
+  const known = new Set(list.map(row => row?.[0] ?? row?.name))
+  for (const row of rows || []) {
+    const value = String(row?.[key] || '').trim()
+    if (value && !known.has(value)) {
+      known.add(value)
+      list.push([value, row?.[keyEn] || value])
+    }
+  }
+  return list.sort((a, b) => String(a[0] ?? a.name).localeCompare(String(b[0] ?? b.name), 'el'))
+}
+
 // allowCustom: a value that is not in the list (yet) is typed in, e.g. a job position the hospital's list does not have.
 function InlineSelect({ editing, label, value, display, options = [], language, onChange, allowCustom = false }) {
   const rows = Array.isArray(options) ? options : [],
@@ -1139,6 +1154,7 @@ function InlineSelect({ editing, label, value, display, options = [], language, 
           value={value || ''}
           onChange={next => onChange(next || '')}
           allowCustom={allowCustom}
+          placeholder={allowCustom ? (language === 'en' ? 'Type or choose…' : 'Γράψτε ή επιλέξτε…') : ''}
           options={[
             ...(value && !hasCurrent ? [{ value, label: (typeof display === 'string' && display) || value }] : []),
             ...rows.map(row => {

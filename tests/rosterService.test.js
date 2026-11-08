@@ -38,3 +38,27 @@ describe('employee record: status and free job position (owner, 8/11/2026)', () 
     expect(page.match(/allowCustom\n/g)?.length).toBe(2)
   })
 })
+
+describe('the head of the department (owner, 8/11/2026)', () => {
+  it('comes from the hand-set mark, then the manager role, then the position', async () => {
+    const { markHeads } = await import('../src/features/rosters/rosterService')
+    const members = [
+      { employeeId: 'a', name: 'A', userId: 'u-a' },
+      { employeeId: 'b', name: 'B', userId: 'u-b' },
+      { employeeId: 'c', name: 'C', isHead: true },
+      { employeeId: 'd', name: 'D', userId: 'u-d', headSet: false },
+    ]
+    const marked = markHeads(members, ['u-b', 'u-d'])
+    expect(marked.filter(m => m.isHead).map(m => m.employeeId)).toEqual(['b', 'c'])
+    expect(marked[0].employeeId).toBe('b')
+    expect(markHeads(members, [], 'u-a').find(m => m.employeeId === 'a').isHead).toBe(true)
+  })
+})
+
+describe('shift codes (owner, 8/11/2026)', () => {
+  it('shows the ΙΑΣΩ payroll numbers in ΙΑΣΩ and letters elsewhere, chosen per department', () => {
+    const page = readFileSync('src/features/rosters/RostersPage.jsx', 'utf8')
+    expect(page).toContain("roster?.rules?.codes || (/ΙΑΣΩ|IASO/i.test(tenant?.name || '') ? 'iaso' : 'letters')")
+    for (const code of ["'4'", "'12'", "'19'", "'20'", "'Α'", "'Γ'", "'Κ'", "'B'"]) expect(page).toContain(code)
+  })
+})

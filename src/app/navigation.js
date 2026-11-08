@@ -52,8 +52,9 @@ export const navigation=[
   {to:'/my-department/self-assessment',key:'departmentSelfAssessment',label:'sidebarNav.departmentSelfAssessment',icon:ListChecks,capability:CAPABILITIES.VIEW_MY_DEPARTMENT,roles:[ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE],unlessCapability:CAPABILITIES.VIEW_QUALITY},
   {to:'/employees',key:'employees',icon:Users,capability:CAPABILITIES.VIEW_STAFF},
   // The department's monthly shift roster (owner, 8/11/2026): the manager makes it, the department reads it.
-  // The shift roster (owner, 8/11/2026): its own entry for the department manager, inside «Staff» for the administrator.
-  {to:'/rosters',key:'rosters',label:'sidebarNav.rosters',icon:CalendarClock,anyCapabilities:[CAPABILITIES.VIEW_MY_DEPARTMENT,CAPABILITIES.VIEW_STAFF],roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.DEPARTMENT_MANAGER]},
+  // The shift roster (owner, 8/11/2026): its own entry for the department manager (who makes it) and the department's
+  // people (the published roster and their requests), inside «Staff» for the administrator.
+  {to:'/rosters',key:'rosters',label:'sidebarNav.rosters',icon:CalendarClock,anyCapabilities:[CAPABILITIES.VIEW_MY_DEPARTMENT,CAPABILITIES.VIEW_STAFF],roles:[ROLES.PLATFORM_OWNER,ROLES.HOSPITAL_ADMIN,ROLES.DEMO,ROLES.DEPARTMENT_MANAGER,ROLES.DEPARTMENT_USER,ROLES.LINK_NURSE]},
   {to:'/interviews',key:'interviews',icon:UserSearch,capability:CAPABILITIES.VIEW_INTERVIEWS,anyCapabilities:[CAPABILITIES.VIEW_INTERVIEWS,CAPABILITIES.VIEW_DIVISION_INTERVIEWS]},
   // The analysis is a set of tabs of «Δείκτες» for whoever has it; the others keep «Ανάλυση».
   {to:'/analysis',key:'platformAnalyticsNav',icon:BarChart3,capability:CAPABILITIES.VIEW_ANALYSIS,unlessCapability:CAPABILITIES.VIEW_EXECUTIVE_DASHBOARD},
@@ -138,12 +139,12 @@ const roleMenuPolicy=Object.freeze({
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.LINK_NURSE]:policy(
-    ['myDepartment','departmentCalendar','departmentMeetings','surveillance','prevention','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','rosters','surveillance','prevention','controls','calendar'],
     ['employees','indicators','training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
   [ROLES.DEPARTMENT_USER]:policy(
-    ['myDepartment','departmentCalendar','departmentMeetings','controls','calendar'],
+    ['myDepartment','departmentCalendar','departmentMeetings','rosters','controls','calendar'],
     ['training','documents','library','laboratory','quality','meetings'],
     ['management','pharmacy','occupationalHealth'],
   ),
