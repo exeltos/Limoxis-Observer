@@ -31,7 +31,9 @@ function ScalesSection({ ctx }) {
   const [data, setData] = useState({ scaleContext: [], rows: [] })
   const [request, setRequest] = useState(null)
   const [showAll, setShowAll] = useState(false)
-  const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT)
+  // The scales (NEWS2, Braden, Morse…) are recorded by the clinical team and the ward nurses (owner, 8/11/2026), as the
+  // RLS policy patient_scale_insert allows; the other roles see them only.
+  const canRecord = ctx.has(CAPABILITIES.RECORD_CLINICAL_ASSESSMENT) || ctx.has(CAPABILITIES.MANAGE_ISOLATION) || ctx.has(CAPABILITIES.REQUEST_LAB_SAMPLES)
   const onContext = useCallback(value => setData(value), [])
   const lines = useMemo(() => scaleLines({ scaleContext: data.scaleContext, ctx }), [data.scaleContext, ctx])
   const base = episodeContext(ctx)

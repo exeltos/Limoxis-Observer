@@ -90,7 +90,9 @@ describe('system-only capabilities never leak into custom roles or add-ons', () 
   })
 
   it('grants hospital_admin every non-platform, non-occupational-health capability at organization scope', () => {
-    const hospitalAdminReserved = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH]
+    // Clinical surveillance work is the Infection Control team's (owner, 8/11/2026), as in the RLS policies.
+    const hospitalAdminClinical = [CAPABILITIES.CREATE_SURVEILLANCE, CAPABILITIES.EDIT_SURVEILLANCE, CAPABILITIES.CLOSE_SURVEILLANCE, CAPABILITIES.REOPEN_SURVEILLANCE, CAPABILITIES.RECORD_CLINICAL_ASSESSMENT, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, CAPABILITIES.REASSESS_SURVEILLANCE, CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME, CAPABILITIES.REVIEW_CLINICAL]
+    const hospitalAdminReserved = [CAPABILITIES.VIEW_PLATFORM, CAPABILITIES.MANAGE_PLATFORM, CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH, ...hospitalAdminClinical]
     for (const capability of allCapabilityIds) {
       if (hospitalAdminReserved.includes(capability)) {
         expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(false)
@@ -126,7 +128,9 @@ describe('sensitive domain isolation', () => {
   it('allows hospital_admin sensitive hospital capabilities while platform_owner keeps platform scope', () => {
     // Occupational health is the one sensitive domain Hospital Admin does NOT
     // get automatically — see the dedicated test below.
-    const occupationalHealthCapabilities = new Set([CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH])
+    const occupationalHealthCapabilities = new Set([CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH, CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
+      // and the clinical surveillance work, which is the Infection Control team's (owner, 8/11/2026)
+      CAPABILITIES.CREATE_SURVEILLANCE, CAPABILITIES.EDIT_SURVEILLANCE, CAPABILITIES.CLOSE_SURVEILLANCE, CAPABILITIES.REOPEN_SURVEILLANCE, CAPABILITIES.RECORD_CLINICAL_ASSESSMENT, CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY, CAPABILITIES.REASSESS_SURVEILLANCE, CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME, CAPABILITIES.REVIEW_CLINICAL])
     for (const capability of sensitiveCapabilities) {
       if (occupationalHealthCapabilities.has(capability)) continue
       expect(can(ROLES.HOSPITAL_ADMIN, capability)).toBe(true)
