@@ -398,7 +398,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
       ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find(item => String(item.episode.id) === String(record.id)) || null
       : null
   // The record's first read: the page placeholder, not a generic «patient record» page.
-  if (loading || stale) return <RouteLoading />
+  // A reload after a save keeps the screen as it is, inside the open surveillance (owner, 8/11/2026); only the first
+  // load of a record shows the loading screen.
+  if (stale || (loading && !(patient || record))) return <RouteLoading />
   if (error)
     return (
       <Page title={t('clinicalRecords.patientRecord')}>
