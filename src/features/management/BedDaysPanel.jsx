@@ -132,20 +132,23 @@ function PeriodEditor({t,language,departments,editor,setEditor,monthName,periodL
   // The period the form is about, in the title (owner, 8/11/2026).
   const chosen=periodRange(draft)
   const shown=departments.filter(d=>separate.has(d.id)||String(draft.values[d.id]??'')!=='')
-  const line=(id,label,strong)=><div key={id} className={`bed-days-line${strong?' bed-days-line-total':''}`}><span>{label}</span><input className="input" inputMode="numeric" aria-label={label} value={draft.values[id]??''} onChange={e=>setValue(id,e.target.value)}/></div>
+  // Every figure is a field like the period's, on the same columns (owner, 8/11/2026): the hospital's total right under
+  // the year, the departments calculated apart under it.
+  const field=(id,label,strong,extra='')=><label key={id} className={`field bed-days-field${strong?' bed-days-field-total':''}${extra}`}><span>{label}</span><input className="input" inputMode="numeric" value={draft.values[id]??''} onChange={e=>setValue(id,e.target.value)}/></label>
+  const yearColumn=draft.duration==='year'?2:3
   return <EntityRecordShell className="bed-days-record-shell workspace-fill" avatar={<CalendarDays size={19}/>} title={`${t(editor.mode==='edit'?'bedDaysPanel.editPeriod':'bedDaysPanel.newPeriod')}${chosen.from&&chosen.to?` · ${periodLabel(chosen.from,chosen.to)}`:''}`} subtitle={t('bedDaysPanel.entryHint')} onBack={onClose} backLabel={t('patientDays')}>
     <RecordTabPanel title={t('period')} footer={<div className="inline-edit-footer"><Button variant="secondary" onClick={onClose}>{t('cancel')}</Button><SaveButton disabled={busy} loading={busy} onClick={onSave}>{t('save')}</SaveButton></div>}>
       <div className="bed-days-editor">
-        <div className="bed-days-period-fields">
+        <div className="bed-days-period-fields bed-days-grid">
           <label className="field"><span>{t('bedDaysPanel.duration')}</span><select className="input" value={draft.duration} onChange={e=>set('duration',e.target.value)}><option value="month">{t('bedDaysPanel.month')}</option><option value="quarter">{t('bedDaysPanel.quarter')}</option><option value="year">{t('bedDaysPanel.year')}</option><option value="custom">{t('bedDaysPanel.custom')}</option></select></label>
           {draft.duration==='month'&&<label className="field"><span>{t('bedDaysPanel.month')}</span><select className="input" value={draft.month} onChange={e=>set('month',Number(e.target.value))}>{Array.from({length:12},(_,i)=><option key={i+1} value={i+1}>{monthName(i+1)}</option>)}</select></label>}
           {draft.duration==='quarter'&&<label className="field"><span>{t('bedDaysPanel.quarter')}</span><select className="input" value={draft.quarter} onChange={e=>set('quarter',Number(e.target.value))}>{[1,2,3,4].map(q=><option key={q} value={q}>{t(`bedDaysPanel.q${q}`)}</option>)}</select></label>}
           {draft.duration!=='custom'&&<label className="field"><span>{t('bedDaysPanel.year')}</span><select className="input" value={draft.year} onChange={e=>set('year',Number(e.target.value))}>{years.map(y=><option key={y} value={y}>{y}</option>)}</select></label>}
           {draft.duration==='custom'&&<><ManualDateField className="field" label={t('periodFrom')} value={draft.from} onChange={v=>set('from',v)}/><ManualDateField className="field" label={t('periodTo')} value={draft.to} onChange={v=>set('to',v)}/></>}
+          {field(HOSPITAL,t('wholeHospital'),true,` bed-days-under-col-${yearColumn}`)}
+          <div className="bed-days-separate"><MultiSelect label={t('bedDaysPanel.separateLabel')} tags options={departments.map(d=>({value:d.id,label:name(d)}))} selected={draft.separate||[]} onChange={value=>set('separate',value)} placeholder={t('bedDaysPanel.separateNone')}/><small>{t('bedDaysPanel.separateHint')}</small></div>
+          {shown.map(d=>field(d.id,name(d)))}
         </div>
-        <div className="bed-days-lines bed-days-lines-total">{line(HOSPITAL,t('wholeHospital'),true)}</div>
-        <div className="bed-days-separate"><MultiSelect label={t('bedDaysPanel.separateLabel')} tags options={departments.map(d=>({value:d.id,label:name(d)}))} selected={draft.separate||[]} onChange={value=>set('separate',value)} placeholder={t('bedDaysPanel.separateNone')}/><small>{t('bedDaysPanel.separateHint')}</small></div>
-        {shown.length>0&&<div className="bed-days-lines">{shown.map(d=>line(d.id,name(d)))}</div>}
       </div>
     </RecordTabPanel>
   </EntityRecordShell>

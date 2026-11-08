@@ -150,15 +150,13 @@
 .bed-days-record-shell .bed-days-total td{font-weight:700;border-top:2px solid var(--lo-color-border)}
 .bed-days-editor{display:flex;flex-direction:column;gap:18px;padding:12px 14px 0}
 .bed-days-period-fields{display:grid;grid-template-columns:repeat(3,minmax(0,220px));gap:12px}
-.bed-days-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;border-top:1px solid var(--lo-color-border)}
-.bed-days-lines-total{grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:0;margin-top:-18px}
-.bed-days-line{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--lo-color-border);font-size:13.5px}
-.bed-days-line input{height:36px;text-align:right}
-.bed-days-line-total{font-weight:700}
-@media(max-width:760px){.bed-days-period-fields,.bed-days-lines{grid-template-columns:1fr}}
+@media(max-width:760px){.bed-days-period-fields{grid-template-columns:1fr}}
 /* The departments calculated apart from the hospital total (owner, 8/11/2026). */
-.bed-days-separate{display:grid;gap:4px;align-content:start;min-width:0;max-width:calc(50% - 20px);margin:14px 0 4px}
-@media(max-width:760px){.bed-days-separate{max-width:none}}
+.bed-days-separate{grid-column:1/-1;display:grid;gap:4px;align-content:start;min-width:0;margin-top:4px}
+/* The figures: fields on the period's columns, the number on the right; the hospital's total in bold. */
+.bed-days-field input{text-align:right;font-variant-numeric:tabular-nums}
+.bed-days-field-total>span,.bed-days-field-total input{font-weight:700}
+@media(min-width:761px){.bed-days-under-col-2{grid-column:2}.bed-days-under-col-3{grid-column:3}}
 .bed-days-separate .multi-select,.bed-days-separate .searchable-select-control,.bed-days-separate .multi-select-button{min-width:0;max-width:100%}
 .bed-days-separate>small{font-size:12px;color:var(--lo-color-muted)}
 /* Figures derived from a row (share of the beds, beds per IPC nurse, survey percentages). */
