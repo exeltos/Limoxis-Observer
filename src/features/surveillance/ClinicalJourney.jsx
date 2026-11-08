@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, ClipboardList, HeartPulse, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, ClipboardList, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
 import { translate } from '../../core/i18n/LanguageContext'
@@ -12,6 +12,7 @@ import { clinicalTerm, episodeTypeLabel } from './clinicalRecordLabels'
 import { AssessmentDialog, DeviceDialog, SampleRequestDialog, HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { InlineDialogContext } from '../../design-system/ObserverDialog'
+import { EpisodeBundleCheck } from './forms/EpisodeBundleCheck'
 import { SheetEditingContext, StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
@@ -100,6 +101,8 @@ export function CanonicalJourney({
   useEffect(() => {
     if (stage === 'hai' || stage === 'reassessment') signalDemoStep('clabsi_classification', stage)
   }, [stage])
+  const [bundleDevice, setBundleDevice] = useState(null),
+    [formNonce, setFormNonce] = useState(0)
   const [dialog, setDialog] = useState(null),
     [reason, setReason] = useState(''),
     [entryDetail, setEntryDetail] = useState(null)
@@ -169,7 +172,23 @@ export function CanonicalJourney({
   // itself here (InlineDialogContext), and moving to another step saves it first.
   const pendingForm = useRef(null)
   const inlineForms = { register: entry => (pendingForm.current = entry), unregister: entry => pendingForm.current === entry && (pendingForm.current = null) }
-  const sheetForm = node => <InlineDialogContext.Provider value={inlineForms}>{node}</InlineDialogContext.Provider>
+  const sheetForm = node => <InlineDialogContext.Provider key={formNonce} value={inlineForms}>{node}</InlineDialogContext.Provider>
+  // In «Edit sheet» every step opens with its form, no button to press first (owner, 8/11/2026): a new sample, HAI
+  // assessment, device or therapy; the full questionnaire; the end of an active isolation.
+  const stageForms =
+    editing && active
+      ? {
+          samples: permissions.canLab ? 'sample' : null,
+          questionnaire: canWriteEpi(role) ? 'epi' : null,
+          hai: permissions.canAssess ? 'hai' : null,
+          devices: permissions.canAssess ? 'device' : null,
+          therapy: permissions.canTherapy ? 'therapy' : null,
+          isolation: permissions.canIsolation && record.isolation?.status === 'active' ? 'endIsolation' : null,
+        }
+      : {}
+  const shownDialog = dialog || stageForms[stage] || null
+  // The step's own form has nothing to close to; a form opened on purpose closes back to it.
+  const closeDialog = dialog && dialog !== stageForms[stage] ? () => setDialog(null) : null
   function goToStage(id) {
     const form = pendingForm.current
     if (id !== stage && form?.dirty() && !form.save()) return
@@ -187,13 +206,15 @@ export function CanonicalJourney({
     reassessment: 'reassessment',
   }
   function openCue(id) {
-    setStage(id === 'therapyReview' ? 'therapy' : id)
-    if (cueDialogs[id]) setDialog(cueDialogs[id])
+    goToStage(id === 'therapyReview' ? 'therapy' : id)
+    if (cueDialogs[id] && !editing) setDialog(cueDialogs[id])
   }
   async function run(work, message) {
     try {
       await work()
       setDialog(null)
+      setBundleDevice(null)
+      setFormNonce(value => value + 1)
       setReason('')
       await onReload()
       notify(message || t('actionCompleted'), 'success')
@@ -263,7 +284,7 @@ export function CanonicalJourney({
             icon={Microscope}
             title={t('samples')}
             action={
-              permissions.canLab ? (
+              permissions.canLab && !stageForms.samples ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -316,14 +337,16 @@ export function CanonicalJourney({
             icon={ClipboardList}
             title={t('epiQuestionnaire.sectionTitle')}
             action={
-              <Button className="clinical-stage-action" variant={epiDone ? 'secondary' : 'primary'} onClick={() => setDialog('epi')}>
-                {epiDone ? t('episodeForms.open') : t('epiQuestionnaire.fillIn')}
-              </Button>
+              stageForms.questionnaire ? null : (
+                <Button className="clinical-stage-action" variant={epiDone ? 'secondary' : 'primary'} onClick={() => setDialog('epi')}>
+                  {epiDone ? t('episodeForms.open') : t('epiQuestionnaire.fillIn')}
+                </Button>
+              )
             }
           >
             {/* The three core questions are answered right on the sheet, one click each (owner, 8/11/2026); the full
                 questionnaire stays one click away. */}
-            <div className="sheet-questions">
+            {shownDialog !== 'epi' && <div className="sheet-questions">
               {EPI_QUESTIONS.filter(question => question.core).map(question => (
                 <div key={question.key} className="sheet-question">
                   <span>{epiText(question.label, language)}</span>
@@ -343,7 +366,7 @@ export function CanonicalJourney({
                   />
                 </div>
               ))}
-            </div>
+            </div>}
           </StagePanel>
         )}
         </div>
@@ -479,7 +502,7 @@ export function CanonicalJourney({
               language === 'el' ? 'el' : 'en',
             )}
             action={
-              permissions.canAssess ? (
+              permissions.canAssess && !stageForms.hai ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -538,7 +561,7 @@ export function CanonicalJourney({
               language === 'el' ? 'el' : 'en',
             )}
             action={
-              permissions.canAssess ? (
+              permissions.canAssess && !stageForms.devices ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -602,7 +625,14 @@ export function CanonicalJourney({
                     {deviceBundles && (
                       <td className="open-record-cell">
                         {editing && hasBundle && deviceBundles.canCheck && (
-                          <Button variant={bundle.status === 'overdue' ? 'primary' : 'secondary'} onClick={() => deviceBundles.check(x, record)}>
+                          <Button
+                            variant={bundle.status === 'overdue' ? 'primary' : 'secondary'}
+                            onClick={() => {
+                              // Opens under the device, on the sheet (owner, 8/11/2026).
+                              setBundleDevice(x)
+                              setDialog('bundle')
+                            }}
+                          >
                             {t('episodeForms.bundles.check')}
                           </Button>
                         )}
@@ -637,7 +667,7 @@ export function CanonicalJourney({
             action={
               permissions.canIsolation ? (
                 <div className="row-actions">
-                  {record.isolation?.status === 'active' ? (
+                  {record.isolation?.status === 'active' ? (stageForms.isolation ? null :
                     <Button
                       className="clinical-stage-action"
                       variant="secondary"
@@ -706,7 +736,7 @@ export function CanonicalJourney({
             icon={Pill}
             title={t('therapy')}
             action={
-              permissions.canTherapy ? (
+              permissions.canTherapy && !stageForms.therapy ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -720,13 +750,7 @@ export function CanonicalJourney({
               ) : null
             }
           >
-            {/* The protocols (sepsis Hour-1 bundle …) start from the measures, not from the sheet's header (owner, 8/11/2026). */}
-            {editing && permissions.canProtocol && (
-              <Button className="clinical-stage-action sheet-protocol-action" variant="secondary" onClick={() => setDialog('protocolPicker')}>
-                <HeartPulse size={14} />
-                {t('sepsis.startProtocol')}
-              </Button>
-            )}
+            {/* The protocols (sepsis Hour-1 bundle …) start from the sheet's «⋯», with every other action (owner, 8/11/2026). */}
             {record.therapy?.length ? (
               <StageTable
                 columns={[
@@ -901,17 +925,33 @@ export function CanonicalJourney({
         </div>
       {/* The windows of the sheet open in it, under their step, not over the page (owner, 8/11/2026). */}
       <InlineDialogContext.Provider value={inlineForms}>
-      <div className="sheet-inline-forms">
-      {dialog === 'epi' && (
+      <div className="sheet-inline-forms" key={formNonce}>
+      {dialog === 'bundle' && bundleDevice && deviceBundles && (
+        <EpisodeBundleCheck
+          deviceBundles={deviceBundles}
+          device={bundleDevice}
+          episode={record}
+          onClose={() => {
+            setDialog(null)
+            setBundleDevice(null)
+          }}
+          onSaved={() => {
+            setDialog(null)
+            setBundleDevice(null)
+          }}
+        />
+      )}
+      {shownDialog === 'epi' && (
         <EpiQuestionnaireDialog
           ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map(sample => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
           episode={record}
           row={epi.row}
           settings={epi.settings}
           canEdit={canWriteEpi(role)}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSaved={() => {
             setDialog(null)
+            setFormNonce(value => value + 1)
             setEpi(current => ({ ...current, nonce: current.nonce + 1 }))
           }}
         />
@@ -921,7 +961,7 @@ export function CanonicalJourney({
           t={t}
           runs={protocols.runs}
           preset={protocolPreset}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onStart={async draft => {
             const run = await runProtocol(() =>
               startProtocolRun(organizationId, record, draft, protocolOptions),
@@ -937,22 +977,22 @@ export function CanonicalJourney({
           record={record}
           symptomRows={libraries.clinicalSymptoms || []}
           riskRows={libraries.clinicalRiskFactors || []}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.saveAssessment(record, draft), t('actionCompleted'))
           }
         />
       )}{' '}
-      {dialog === 'device' && (
+      {shownDialog === 'device' && (
         <DeviceDialog
           t={t}
           items={libraries.deviceTypes || []}
           onAddLibraryItem={item => onLibraryAdded?.('deviceTypes', item)}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.addDevice(record, draft), t('actionCompleted'))}
         />
       )}{' '}
-      {dialog === 'sample' && (
+      {shownDialog === 'sample' && (
         <SampleRequestDialog
           t={t}
           context={{
@@ -961,11 +1001,11 @@ export function CanonicalJourney({
             department: language === 'el' ? record.department : record.departmentEn || record.department,
           }}
           epi={{ episode: record, admission: null, samples: record.samples || [] }}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.requestSample(record, draft), t('actionCompleted'))}
         />
       )}{' '}
-      {dialog === 'hai' && (
+      {shownDialog === 'hai' && (
         <HaiDialog
           t={t}
           items={libraries.surveillanceDefinitions || []}
@@ -973,33 +1013,33 @@ export function CanonicalJourney({
           organizationId={organizationId}
           isDemo={isDemo}
           onAddLibraryItem={item => onLibraryAdded?.('surveillanceDefinitions', item)}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.saveHai(record, draft), t('actionCompleted'))}
         />
       )}{' '}
-      {dialog === 'therapy' && (
+      {shownDialog === 'therapy' && (
         <TherapyDialog
           t={t}
           antibiotics={libraries.antibiotics || []}
           advancedAntibiotics={libraries.advancedAntibiotics || []}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.addTherapy(record, draft), t('actionCompleted'))}
         />
       )}{' '}
       {dialog === 'isolation' && (
         <IsolationDialog
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.beginIsolation(record, draft), t('actionCompleted'))
           }
         />
       )}{' '}
-      {dialog === 'endIsolation' && (
+      {shownDialog === 'endIsolation' && (
         <EndDialog
           title={t('isolation')}
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.finishIsolation(record, draft), t('actionCompleted'))
           }
@@ -1008,14 +1048,14 @@ export function CanonicalJourney({
       {dialog === 'reassessment' && (
         <ReassessmentDialog
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.reassess(record, draft), t('actionCompleted'))}
         />
       )}{' '}
       {dialog === 'outcome' && (
         <OutcomeDialog
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.complete(record, draft), t('clinicalRecords.outcomeSaved'))
           }

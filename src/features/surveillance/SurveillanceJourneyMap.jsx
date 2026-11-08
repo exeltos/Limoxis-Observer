@@ -1,4 +1,4 @@
-import { CheckCircle2 } from 'lucide-react'
+import { Check, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 
@@ -102,7 +102,7 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire
 }
 
 // The surveillance sheet (owner, 8/11/2026, design 2): every section on one page, one under the other, and on the
-// left a small index of the steps (a coloured dot each, the progress under them); a click on a step scrolls to it.
+// left a small index of the steps (numbered, ✓ when done, the progress under them); a click on a step scrolls to it.
 // extraStages: the protocols started on the episode (N3), right after the clinical assessment.
 export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [], questionnaire = null, children = null }) {
   const { language } = useLanguage()
@@ -118,7 +118,7 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
   return (
     <div className="sheet-layout">
       <nav className="sheet-index" aria-label={language === 'el' ? 'Βήματα επιτήρησης' : 'Surveillance steps'}>
-        {stages.map(stage => <EpisodeStep key={stage.id} stage={stage} active={activeStage === stage.id} onSelect={go} />)}
+        {stages.map((stage, index) => <EpisodeStep key={stage.id} number={index + 1} stage={stage} active={activeStage === stage.id} onSelect={go} />)}
         <div className="sheet-progress">
           <span>{language === 'el' ? `${done} από ${baseStages.length} συμπληρωμένα` : `${done} of ${baseStages.length} completed`}</span>
           <i><b style={{ width: `${Math.round((done / Math.max(1, baseStages.length)) * 100)}%` }} /></i>
@@ -191,7 +191,7 @@ export function SurveillanceJourneyGuidance({
 
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
-function EpisodeStep({ stage, active, onSelect }) {
+function EpisodeStep({ number, stage, active, onSelect }) {
   const tone = stage.status === 'complete' ? 'done' : stage.status === 'due' || stage.status === 'waiting' ? 'due' : 'pending'
   return (
     <button
@@ -205,7 +205,8 @@ function EpisodeStep({ stage, active, onSelect }) {
       }
       onClick={() => onSelect?.(stage.id)}
     >
-      <i className="episode-step-dot" aria-hidden="true" />
+      {/* Numbered steps, ✓ once the step holds data (owner's choice «Α», 8/11/2026). */}
+      <i className="episode-step-number" aria-hidden="true">{tone === 'done' && !active ? <Check size={13} strokeWidth={3} /> : number}</i>
       <span>{stage.label}</span>
     </button>
   )

@@ -158,12 +158,13 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 .sheet-index{position:sticky;top:8px;display:flex;flex-direction:column;gap:2px;padding:10px;border:1px solid #e3e9f1;border-radius:12px;background:#fff}
 .sheet-index-step{display:flex;align-items:center;gap:9px;padding:6px 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;color:#1b2b40;text-align:left;cursor:pointer}
 .sheet-index-step:hover:not(:disabled){background:#f2f6fa}
-.sheet-index-step.is-active{background:#e8f1fa;color:#1d5f9c;font-weight:600}
+.sheet-index-step.is-active{background:#1d5f9c;color:#fff;font-weight:600}
 .sheet-index-step.is-protocol span{color:var(--lo-status-danger-fg)}
 .sheet-index-step:disabled{opacity:.5;cursor:not-allowed}
-.episode-step-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#cbd5e1}
-.tone-done .episode-step-dot{background:#2f9e66}
-.tone-due .episode-step-dot{background:#e0a100}
+.episode-step-number{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid #cbd5e1;font-style:normal;font-size:11.5px;font-weight:700;color:#64748b;background:#fff}
+.tone-done .episode-step-number{background:#2f9e66;border-color:#2f9e66;color:#fff}
+.tone-due .episode-step-number{border-color:#e0a100;color:#a06d00}
+.sheet-index-step.is-active .episode-step-number{background:#fff;border-color:#fff;color:#1d5f9c}
 .sheet-progress{margin-top:8px;padding:8px 8px 2px;border-top:1px solid #edf1f6;font-size:11.5px;color:#64748b}
 .sheet-progress i{display:block;height:6px;margin-top:5px;border-radius:6px;background:#e7ecf3;overflow:hidden}
 .sheet-progress b{display:block;height:100%;background:linear-gradient(90deg,#2f9e66,#5cbf8a)}
@@ -195,7 +196,6 @@ html body .surveillance-episode-page .sheet-body :is(.table-wrap,.registry-table
 html body .surveillance-episode-page .sheet-body .evidence-box{border:0!important;border-left:3px solid #c9dcef!important;border-radius:0!important;background:transparent!important;padding:2px 12px!important;margin:4px 0!important}
 html body .surveillance-episode-page .sheet-body .clinical-panel .inline-empty{min-height:0!important;padding:4px 0!important;margin:0!important;background:transparent!important;border:0!important;text-align:left!important;font-size:12.5px!important;color:#64748b!important}
 html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22px!important;min-height:0!important}
-.sheet-protocol-action{margin:0 0 8px}
 .sheet-pager{display:flex;justify-content:space-between;gap:12px;padding:10px 22px 14px;border-top:1px solid #edf1f6}
 .sheet-pager-button{border:1px solid #cfd8e3;border-radius:9px;background:#fff;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;color:#1d5f9c;cursor:pointer}
 .sheet-pager-button:hover{background:#f2f7fc}
@@ -214,3 +214,4 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 /* The windows of the sheet (sample, device, HAI, therapy, protocol, a row's details) open under the step, in the page. */
 .sheet-inline-forms:empty{display:none}
 .sheet-inline-forms>.observer-dialog-inline{margin-top:12px;background:#fff;border:1px solid #dfe7f0;border-radius:12px}
+.sheet-index-step.is-active:hover:not(:disabled){background:#174f83}

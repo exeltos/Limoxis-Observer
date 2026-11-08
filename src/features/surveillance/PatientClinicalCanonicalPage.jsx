@@ -393,7 +393,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     },
   }
   const forms = useEpisodeFormsData(formsCtx)
-  const deviceBundles = makeDeviceBundles(formsCtx, forms.data.bundles?.value)
+  const deviceBundles = makeDeviceBundles(formsCtx, forms.data.bundles?.value, forms.reload)
   // The epidemiological questionnaire of the selected episode: the header line and the safety signal.
   const epiEntry =
     record && forms.data.epiQuestionnaire?.value
