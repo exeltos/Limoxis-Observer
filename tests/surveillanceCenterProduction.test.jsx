@@ -32,7 +32,7 @@ const { LanguageProvider } = await import('../src/core/i18n/LanguageContext')
 const { SurveillanceCanonicalPage } = await import('../src/features/surveillance/SurveillanceCanonicalPage')
 const { invalidateLibraries } = await import('../src/features/management/useLibraries')
 
-const episode = (id, patient, status, over = {}) => ({ id, patient, patientEn: patient, patientId: `PT-${id}`, patientRecordId: `rec-${patient}`, department: 'ΜΕΘ', departmentEn: 'ICU', status, startedAt: '2026-10-01', reviewDue: '2026-12-01', samples: [], ...over })
+const episode = (id, patient, status, over = {}) => ({ id, patient, patientEn: patient, patientId: `PT-${id}`, patientRecordId: `rec-${patient}`, department: 'ΜΕΘ', departmentEn: 'ICU', status, startedAt: '2026-10-01', reviewDue: '2026-12-01', samples: [], caseSampleCount: 1, ...over }) // every listed surveillance has a sample (owner, 8/11/2026)
 
 function setTenant(role, { sensitive = false, custom = [] } = {}) {
   tenantState = { tenant: { id: 'org-1', name: 'Νοσοκομείο' }, isDemo: false, role, actualRole: role, membership: { capabilities: [], customCapabilities: custom }, memberships: [], canAccessRecord: () => true, canSeeSensitiveEmployeeHealth: sensitive }

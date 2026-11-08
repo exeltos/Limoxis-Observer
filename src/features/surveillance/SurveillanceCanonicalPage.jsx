@@ -181,7 +181,9 @@ export function SurveillanceCanonicalPage() {
         setEnvironmentRows(laboratoryRegistry.rows.filter(isEnvironmental))
       } else if (tenant?.id) {
         const results = await rest
-        setCases(results[0].status === 'fulfilled' ? results[0].value : [])
+        // A surveillance without a sample is not listed (owner, 8/11/2026): every surveillance starts from a sample.
+        const withSample = row => (row.caseSampleCount ?? (row.samples || []).length) > 0
+        setCases(results[0].status === 'fulfilled' ? results[0].value.filter(withSample) : [])
         setEmployeeRows(results[1].status === 'fulfilled' ? results[1].value : [])
         setEnvironmentRows(
           results[2].status === 'fulfilled' ? results[2].value.filter(isEnvironmental) : [],
