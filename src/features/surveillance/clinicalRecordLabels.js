@@ -117,6 +117,14 @@ export function episodeTypeLabel(ep, t) {
   }
   return ep?.reason || '—'
 }
+const CLASSIFICATION_LABELS = {
+  infection: ['Λοίμωξη', 'Infection'],
+  colonization: ['Αποικισμός', 'Colonization'],
+  no_infection: ['Δεν τεκμηριώνεται λοίμωξη', 'No evidence of infection'],
+  under_investigation: ['Υπό διερεύνηση', 'Under investigation'],
+  probable_infection: ['Πιθανή λοίμωξη', 'Probable infection'],
+  confirmed_infection: ['Επιβεβαιωμένη λοίμωξη', 'Confirmed infection'],
+}
 export function clinicalTerm(value, language = 'el', t = null) {
   if (value == null || value === '') return '—'
   const key = String(value).trim().toUpperCase()
@@ -168,6 +176,9 @@ export function clinicalTerm(value, language = 'el', t = null) {
   }
   const known = (language === 'el' ? el : en)[key]
   if (known) return known
+  // The clinical classifications (confirmed_infection, probable_infection, …) have their names in clinicalValueLabel.
+  const classified = CLASSIFICATION_LABELS[String(value).trim().toLowerCase()]
+  if (classified) return classified[language === 'el' ? 0 : 1]
   const translated = typeof t === 'function' ? t(String(value).trim()) : null
   if (typeof translated === 'string' && translated !== String(value).trim()) return translated
   return String(value)
@@ -203,12 +214,7 @@ export function clinicalValueLabel(value, language, t) {
     no: ['Όχι', 'No'],
     yes: ['Ναι', 'Yes'],
     pending: ['Εκκρεμεί', 'Pending'],
-    infection: ['Λοίμωξη', 'Infection'],
-    colonization: ['Αποικισμός', 'Colonization'],
-    no_infection: ['Δεν τεκμηριώνεται λοίμωξη', 'No evidence of infection'],
-    under_investigation: ['Υπό διερεύνηση', 'Under investigation'],
-    probable_infection: ['Πιθανή λοίμωξη', 'Probable infection'],
-    confirmed_infection: ['Επιβεβαιωμένη λοίμωξη', 'Confirmed infection'],
+    ...CLASSIFICATION_LABELS,
   }
   const mapped = labels[String(value)]
   if (mapped) return mapped[language === 'el' ? 0 : 1]
