@@ -3828,8 +3828,8 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 .patient-entry-grid>h3.patient-form-group{grid-column:1/-1;margin:6px 0 0;padding:0 0 4px;border-bottom:1px solid var(--lo-color-border,#e2e8ee);font-size:12px;font-weight:750;letter-spacing:.02em;color:var(--lo-color-muted,#5f6f7c)}
 .patient-entry-grid>h3.patient-form-group:first-child{margin-top:0}
 .patient-entry-grid .patient-notes-field:is(.patient-notes-field,.limoxis-expandable-textarea){min-height:0!important;height:58px}
-.filter-active-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.filter-active-chip{display:inline-flex;align-items:center;gap:4px;min-height:26px;padding:2px 8px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font:inherit;font-size:11.5px;cursor:pointer}
+.filter-active-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.filter-active-chip{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;min-height:26px;padding:2px 8px;border:1px solid var(--lo-color-border,#d6e0e8);border-radius:999px;background:var(--lo-color-primary-soft,#e6f1f7);color:var(--lo-color-primary,#1f6f9b);font:inherit;font-size:11.5px;cursor:pointer}
 
 /* Sidebar: the entries inside an opened group wrap onto a second line instead of ending in «…». */
 .sidebar .sidebar-nav-children .nav-item>span{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:1.25}
@@ -3850,3 +3850,5 @@ html body button.clinical-risk-flag.risk-tone-danger{border-color:#f3c1bd!import
 
 /* Staff-check samples: the employee name is blurred for roles that may not see it (the employee code stays clear). */
 .lab-staff-masked{filter:blur(5px);user-select:none;pointer-events:none}
+/* A hand-hygiene observation: its figures as one line of totals (owner, 8/11/2026). */
+.who-record-totals .registry-totals{justify-content:flex-start}

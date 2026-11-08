@@ -59,6 +59,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { formatDay } from '../../core/i18n/formatDay'
 import { CAPABILITIES, ROLES, can } from '../../core/permissions/roles'
 import { normalizeWhoMoments, sessionHandHygieneStats } from './whoHandHygieneStats'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 
 const icons = {
   handHygiene: ShieldCheck,
@@ -694,37 +695,15 @@ function HandHygieneDetails({ record, language }) {
           ]}
         />
       </section>
-      <RecordMetricStrip
-        items={[
-          {
-            id: 'compliance',
-            primary: true,
-            label: en ? 'WHO compliance' : 'Συμμόρφωση WHO',
-            value: `${stats.compliance}%`,
-            // Coloured against the target, as in the list.
-            tone: stats.opportunities ? (Number(stats.compliance) >= HAND_HYGIENE_TARGET ? 'success' : 'danger') : undefined,
-            note: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'} · ${en ? 'target' : 'στόχος'} ≥ ${HAND_HYGIENE_TARGET}%`,
-          },
-          {
-            id: 'opportunities',
-            label: en ? 'Opportunities' : 'Ευκαιρίες',
-            value: stats.opportunities,
-          },
-          {
-            id: 'professionals',
-            label: en ? 'Professionals' : 'Επαγγελματίες',
-            value: stats.professionals,
-          },
-          { id: 'hr', label: en ? 'Hand rub' : 'Αντισηπτικό', value: stats.handRub || 0 },
-          { id: 'hw', label: en ? 'Hand wash' : 'Πλύσιμο', value: stats.handWash || 0 },
-          {
-            id: 'missed',
-            tone: stats.missed ? 'danger' : undefined,
-            label: en ? 'Not performed' : 'Μη συμμορφούμενες',
-            value: stats.missed || 0,
-          },
-        ]}
-      />
+      {/* The figures of the observation in one line (owner, 8/11/2026: not six boxes). */}
+      <div className="who-record-totals"><RegistryTotals label={en ? 'Observation figures' : 'Αριθμοί παρατήρησης'} items={[
+        { key: 'compliance', always: true, value: 0, display: `${stats.compliance}%`, label: en ? 'WHO compliance' : 'συμμόρφωση WHO', tone: stats.opportunities ? (Number(stats.compliance) >= HAND_HYGIENE_TARGET ? 'good' : 'danger') : null, title: `${stats.compliant || 0} / ${stats.opportunities || 0} ${en ? 'compliant opportunities' : 'συμμορφούμενες ευκαιρίες'} · ${en ? 'target' : 'στόχος'} ≥ ${HAND_HYGIENE_TARGET}%` },
+        { key: 'opportunities', always: true, value: stats.opportunities || 0, label: en ? 'opportunities' : 'ευκαιρίες' },
+        { key: 'professionals', always: true, value: stats.professionals || 0, label: en ? 'professionals' : 'επαγγελματίες' },
+        { key: 'hw', always: true, value: stats.handWash || 0, label: en ? 'hand wash' : 'πλύσιμο' },
+        { key: 'hr', always: true, value: stats.handRub || 0, label: en ? 'hand rub' : 'αντισηπτικό' },
+        { key: 'missed', always: true, value: stats.missed || 0, label: en ? 'not performed' : 'μη συμμορφούμενες', tone: stats.missed ? 'danger' : null },
+      ]} /></div>
       <section>
         <SectionHeader
           title={en ? 'Recorded opportunities' : 'Καταγεγραμμένες ευκαιρίες'}

@@ -161,7 +161,7 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 .record-summary-attention ul,.record-summary-events ul{margin:0;padding:0;list-style:none}
 .record-summary-link{padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:650;color:#1d4f7a;white-space:nowrap;cursor:pointer}
 .record-summary-link:hover{color:#123a5b;text-decoration:underline}
-.record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start}
+.record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:stretch}
 .record-summary-grid>.record-summary-card{margin:0;height:100%}
 .patient-record-shell .record-summary-card>.record-section-header{min-height:41px;align-items:center}
 .record-summary-events{margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border,#e3e8ee)}

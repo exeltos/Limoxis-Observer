@@ -22,7 +22,6 @@
 .laboratory-registry .lab-table td:nth-child(n){min-width:0}
 }
 
-.lab-critical-badge{margin-left:6px}
 
 /* Plates tab: the plate's positions side by side */
 .lab-plates-table td small { display: block; margin-top: 2px; color: #5f6f7c; font-size: 12px; }
@@ -44,3 +43,7 @@
 .lab-create-shell .lab-create-flow{max-width:1180px;width:100%;margin:0 auto;padding:4px 0 24px}
 
 .lab-recent-note{margin:8px 0 0;font-size:12.5px;color:var(--lo-color-muted)}
+/* The list (owner, 8/11/2026): a critical finding is a red mark beside the result, the status is plain text. */
+.lab-critical-mark{display:inline-flex;align-items:center;margin-left:6px;color:#b42318;vertical-align:-2px}
+.lab-status-text{font-size:12.5px;color:var(--lo-color-text)}
+.lab-status-text.is-pending{color:#8a5a00}

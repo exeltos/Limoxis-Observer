@@ -33,8 +33,7 @@ import { createPatient, findPatientMatches, loadPatients } from '../patients/pat
 import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
 import { useEmployeesData } from '../employees/useEmployeesData'
 import { libraryOptions, useLibraries } from '../management/useLibraries'
-import { StatusBadge } from '../../design-system/StatusBadge'
-import { StatusCards } from '../../design-system/StatusCards'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { SubjectChoiceStep } from '../../design-system/SubjectChoiceStep'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
@@ -63,7 +62,6 @@ export function LaboratoryWorkspace() {
   const { rows: registryRows, loading: samplesLoading, error: samplesError, repository: labRepository, reload: reloadSamples, createSample: createRepositorySample, recentOnly, showOlder } = useLaboratoryRegistry({ recent: !isDemo })
   // Staff-check samples show the employee's name only to the administrator and the head of infection control.
   const repositoryRows = useMemo(() => maskStaffSamples(registryRows, role || actualRole), [registryRows, role, actualRole])
-  const kpisLoading = samplesLoading && !repositoryRows.length
   const { data: employees = [] } = useEmployeesData()
   const navigate = useNavigate()
   const registry = useRegistryMemory('laboratory')
@@ -205,11 +203,11 @@ export function LaboratoryWorkspace() {
   }
   const tabExportMenu = <ExportMenu onPrint={tabExportRun('onPrint')} onPdf={tabExportRun('onPdf')} onExcel={tabExportRun('onExcel')} />
   const tabs = <CanonicalTabs items={[{ value: 'samples', label: t('labNotifiable.samplesTab'), icon: FlaskConical }, { value: 'plates', label: t('labPlates.tab'), icon: PackageCheck }, ...(showNotifiable ? [{ value: 'notifiable', label: t('labNotifiable.tab'), icon: Megaphone }] : [])]} value={tab} onChange={setTab} ariaLabel={t('labNotifiable.tabsLabel')} />
-  if (tab === 'plates') return <Page fill title={t('laboratory')} subtitle={t('labPlates.subtitle')} actions={tabExportMenu}>
+  if (tab === 'plates') return <Page fill title={t('laboratory')} actions={tabExportMenu}>
     {tabs}
     <PlatesPanel exportRef={tabExport} samples={repositoryRows.filter(sample => canAccessRecord(sample))} loading={samplesLoading} canManage={canCreate} repository={labRepository} reload={reloadSamples} />
   </Page>
-  if (tab === 'notifiable') return <Page fill title={t('laboratory')} subtitle={t('labNotifiable.subtitle')} actions={<>{tabExportMenu}<Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button><OverflowMenu label={language === 'en' ? 'More actions' : 'Περισσότερες ενέργειες'} items={[{ label: language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων', onClick: () => setReportingPart('quality') }, { label: language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net', onClick: () => setReportingPart('ears') }]} /></>}>
+  if (tab === 'notifiable') return <Page fill title={t('laboratory')} actions={<>{tabExportMenu}<Button onClick={() => setNotifiableNew(true)}><Plus size={14} aria-hidden="true" />{t('episodeForms.notifiable.new')}</Button><OverflowMenu label={language === 'en' ? 'More actions' : 'Περισσότερες ενέργειες'} items={[{ label: language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων', onClick: () => setReportingPart('quality') }, { label: language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net', onClick: () => setReportingPart('ears') }]} /></>}>
     {tabs}
     {reportingPart && <ObserverDialog width="wide" title={reportingPart === 'quality' ? (language === 'en' ? 'Data quality checks' : 'Έλεγχος ποιότητας δεδομένων') : (language === 'en' ? 'Export for EARS-Net' : 'Εξαγωγή για το EARS-Net')} onClose={() => setReportingPart('')}>
       <ReportingPanel tenant={tenant} isDemo={isDemo} year={new Date().getFullYear()} tx={(el, enText) => (language === 'en' ? enText : el)} en={language === 'en'} parts={[reportingPart]} />
@@ -239,16 +237,19 @@ export function LaboratoryWorkspace() {
     ]),
   })
   const exportActions = <ExportMenu {...registryMenu(exportSamples, { language, kind: language === 'el' ? 'Εργαστήριο' : 'Laboratory', title: language === 'el' ? 'Δείγματα εργαστηρίου' : 'Laboratory samples', onBlocked: () => notify(language === 'el' ? 'Επιτρέψτε τα αναδυόμενα παράθυρα για την εκτύπωση.' : 'Allow pop-ups to print.', 'error') })} disabled={!sortedRows.length} />
-  return <Page fill title={t('laboratory')} subtitle={t('laboratoryRecords.labSubtitle')} actions={<>{exportActions}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: canRequestOnly ? CAPABILITIES.REQUEST_LAB_SAMPLES : CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} /></>}>
-    {tabs}
-    <StatusCards label={t('laboratory')} loading={kpisLoading} items={[
+  // The totals beside the search (owner, 8/11/2026: no cards): each one filters the list, a second click clears it;
+  // short words in the line, the full name in the tooltip.
+  const LAB_SHORT = { today: ['σήμερα', 'today'], pending: ['εκκρεμή', 'pending'], positive: ['θετικά 30 ημ.', 'positive 30 d'], critical: ['κρίσιμα', 'critical'] }
+  const labTotals = <RegistryTotals label={t('laboratory')} items={[
       { key: 'today', icon: FlaskConical, label: t('laboratoryRecords.samplesToday'), value: k.today, active: quick === 'today', onToggle: () => setQuick(quick === 'today' ? 'all' : 'today') },
       { key: 'pending', icon: Clock3, label: t('laboratoryRecords.pendingResults'), value: k.pending, active: quick === 'pending', onToggle: () => setQuick(quick === 'pending' ? 'all' : 'pending') },
       { key: 'positive', icon: Microscope, label: t('laboratoryRecords.positiveResults30'), value: k.positive30, active: result === 'positive' && period === '30', onToggle: () => { const on = !(result === 'positive' && period === '30'); setResult(on ? 'positive' : 'all'); setPeriod(on ? '30' : 'all') } },
       { key: 'critical', icon: AlertTriangle, label: t('laboratoryRecords.uncommunicatedCritical'), value: k.critical, tone: k.critical > 0 ? 'danger' : '', active: result === 'critical', onToggle: () => setResult(result === 'critical' ? 'all' : 'critical') },
-    ]} />
+    ].map(item => ({ key: item.key, value: item.value, label: LAB_SHORT[item.key]?.[language === 'en' ? 1 : 0] || item.label, title: item.label, active: item.active, onClick: item.onToggle }))} />
+  return <Page fill title={t('laboratory')} actions={<>{exportActions}<RecordActions actions={[UI_ACTIONS.CREATE]} actionCapabilities={{ [UI_ACTIONS.CREATE]: canRequestOnly ? CAPABILITIES.REQUEST_LAB_SAMPLES : CAPABILITIES.MANAGE_LAB_SAMPLES }} actionLabels={{ [UI_ACTIONS.CREATE]: registerLabel }} onAction={action => action === UI_ACTIONS.CREATE && setNewOpen(true)} /></>}>
+    {tabs}
     <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0) + (scope !== LAB_RESULT_SCOPES.ALL ? 1 : 0)} activeFilters={[scope !== LAB_RESULT_SCOPES.ALL && { key: 'scope', label: language === 'en' ? 'Positive only' : 'Μόνο θετικά', onRemove: () => setScope(LAB_RESULT_SCOPES.ALL) }, department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') }, status !== 'all' && { key: 'status', label: `${t('status')}: ${labStatusLabel(status, language)}`, onRemove: () => setStatus('all') }, result !== 'all' && { key: 'result', label: `${t('result')}: ${result === 'critical' ? t('criticalResult') : t(result)}`, onRemove: () => setResult('all') }, period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') }].filter(Boolean)} onClear={clearFilters} advanced={<>
+      <FilterBar query={query} onQueryChange={setQuery} placeholder={t('laboratoryRecords.searchLab')} activeAdvancedCount={(status !== 'all' ? 1 : 0) + (department !== 'all' ? 1 : 0) + (result !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0) + (scope !== LAB_RESULT_SCOPES.ALL ? 1 : 0)} end={labTotals} activeFilters={[scope !== LAB_RESULT_SCOPES.ALL && { key: 'scope', label: language === 'en' ? 'Positive only' : 'Μόνο θετικά', onRemove: () => setScope(LAB_RESULT_SCOPES.ALL) }, department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') }, status !== 'all' && { key: 'status', label: `${t('status')}: ${labStatusLabel(status, language)}`, onRemove: () => setStatus('all') }, result !== 'all' && { key: 'result', label: `${t('result')}: ${result === 'critical' ? t('criticalResult') : t(result)}`, onRemove: () => setResult('all') }, period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') }].filter(Boolean)} onClear={clearFilters} advanced={<>
         <FilterSelect label={language === 'en' ? 'Show' : 'Εμφάνιση'} value={scope} onChange={setScope}><option value={LAB_RESULT_SCOPES.ALL}>{language === 'en' ? 'All' : 'Όλα'}</option><option value={LAB_RESULT_SCOPES.POSITIVE}>{language === 'en' ? 'Positive only' : 'Μόνο θετικά'}</option></FilterSelect>
         <FilterSelect label={t('department')} value={department} onChange={setDepartment}><option value="all">{t('allDepartments')}</option>{departments.map(item => <option key={item}>{item}</option>)}</FilterSelect>
         <FilterSelect label={t('status')} value={status} onChange={setStatus}><option value="all">{t('all')}</option>{LAB_STATUS_ORDER.map(item => <option key={item} value={item}>{labStatusLabel(item, language)}</option>)}</FilterSelect>
@@ -263,8 +264,8 @@ export function LaboratoryWorkspace() {
         <td><strong className={sample.staffMasked ? 'lab-staff-masked' : undefined}>{language === 'el' ? sample.patient : sample.patientEn}</strong><small>{sample.patientId} · {language === 'el' ? sample.department : sample.departmentEn}</small></td>
         <td>{sampleTypeLabel(sample,t,language)}{surveillanceLabel(sample) !== '—' && <small>{surveillanceLabel(sample)}</small>}{environmentalPlateText(sample, t) && <small>{environmentalPlateText(sample, t)}</small>}<small className="lab-inline-secondary">{[sourceLabel(sample) !== '—' && sourceLabel(sample), sample.anatomicalSite].filter(Boolean).join(' · ')}</small></td>
         <td className="lab-col-secondary">{sourceLabel(sample)}{sample.anatomicalSite && <small>{sample.anatomicalSite}</small>}</td>
-        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={labResultLabel(sample, t, language) === 'Εντός αποδεκτών ορίων' || labResultLabel(sample, t, language) === 'Within acceptable limits' ? 'negative' : sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !['rejected', 'cancelled'].includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <StatusBadge tone="danger" className="lab-critical-badge" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}>{language === 'el' ? 'Κρίσιμο' : 'Critical'}</StatusBadge>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
-        <td><LaboratoryStatus {...labSampleStatus(sample, language)}/></td>
+        <td>{labResultLabel(sample, t, language) ? <LaboratoryStatus text={labResultLabel(sample, t, language)} kind={labResultLabel(sample, t, language) === 'Εντός αποδεκτών ορίων' || labResultLabel(sample, t, language) === 'Within acceptable limits' ? 'negative' : sample.result}/> : <span>—</span>}{!OUTCOME_RESULTS.includes(sample.result) && !['rejected', 'cancelled'].includes(sample.status) && waitingHours(sample) != null && <small>{formatTurnaround(waitingHours(sample), language)}</small>}{sample.critical && <span className="lab-critical-mark" role="img" title={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'} aria-label={language === 'el' ? 'Κρίσιμο εύρημα' : 'Critical finding'}><AlertTriangle size={14} aria-hidden="true"/></span>}{reviewTag(sample, language) && <small className="lab-review-tag"><SampleReviewTag label={reviewTag(sample, language)}/></small>}</td>
+        <td>{(status => <span className={`lab-status-text${status.tone === 'warning' ? ' is-pending' : ''}`}>{status.text}</span>)(labSampleStatus(sample, language))}</td>
       </>}/>
       </div>
       {rows.length > 0 && <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={rows.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size => { setPageSize(size); setPage(1) }}/>}

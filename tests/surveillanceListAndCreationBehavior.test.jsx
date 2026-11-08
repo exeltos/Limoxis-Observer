@@ -78,7 +78,7 @@ const openTab = async name => {
 }
 const rowOf = text => screen.getByText(text).closest('tr')
 const statusCell = row => row.querySelector('td:last-child')
-const metric = label => screen.getByText(label).closest('.metric-card')
+const metric = label => screen.getByText(label).closest('.registry-total')
 // The create button creates what the open tab lists.
 const openCreation = async subject => {
   const employee = String(subject).includes('Εργαζόμενος')

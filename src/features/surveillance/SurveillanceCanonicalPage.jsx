@@ -4,22 +4,19 @@ import { DueDate } from '../../design-system/DueDate'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
-  AlertTriangle,
-  ClipboardCheck,
-  Clock3,
   Microscope,
   Plus,
   Users,
 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
-import { MetricCard } from '../../design-system/MetricCard'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { useSectionTabs } from '../../design-system/SectionTabs'
 import { Button } from '../../design-system/Button'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { registryMenu, surveillanceListExport } from '../../core/export/registryExports'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
@@ -427,8 +424,30 @@ export function SurveillanceCanonicalPage() {
     return createLaboratorySample(tenant?.id, patientRecordId, draft)
   }
 
+  // The totals beside the search (owner, 8/11/2026: no cards): each one filters the list, a second click clears it.
+  // Short words in the line, the full name in the tooltip, so the totals stay on the search's line.
+  const SHORT = { review: language === 'en' ? 'to review' : 'προς έλεγχο', active: language === 'en' ? 'active' : 'ενεργές', due: language === 'en' ? 'reassessment' : 'επανεκτίμηση', isolation: language === 'en' ? 'isolation' : 'απομονώσεις', resistant: 'MDR / XDR' }
+  const total = (key, label, value, show = true) => (show ? { key, value, label: mode === 'patients' || !mode ? SHORT[key] || label : label, title: label, active: quick === key, onClick: () => setQuick(quick === key ? null : key) } : null)
+  const totals = <RegistryTotals label={t('svTotals')} items={(mode === 'employees' ? [
+    total('active', t('clinicalRecords.activeEmployeeScreenings'), employeeKpis.active),
+    total('positive', t('clinicalRecords.positiveEmployeeScreenings'), employeeKpis.positive),
+    total('intervention', t('clinicalRecords.needsIntervention'), employeeKpis.needsIntervention),
+    total('recheck', t('clinicalRecords.needsRecheck'), employeeKpis.needsRecheck),
+  ] : mode === 'environmental' ? [
+    total('active', t('clinicalRecords.activeEnvironmentalSampling'), environmentKpis.active),
+    total('pending', t('clinicalRecords.pendingEnvironmentalLab'), environmentKpis.pendingLab),
+    total('outside', t('clinicalRecords.outsideLimitsPoints'), environmentKpis.outside),
+    total('critical', t('clinicalRecords.criticalEnvironmentalFindings'), environmentKpis.critical),
+  ] : [
+    total('review', worklistTexts(language).title, awaitingReview.rows.filter(canAccessRecord).length, canReview),
+    total('active', t('activeSurveillance'), active),
+    total('due', t('clinicalRecords.needsReview'), due),
+    total('isolation', t('clinicalRecords.activeIsolation'), isolation),
+    total('resistant', t('clinicalRecords.mdrXdr'), resistant),
+  ]).filter(Boolean)} />
+
   if (platformOwnerNoTenant)
-    return (
+  return (
       <Page
         fill
         title={t('clinicalRecords.surveillanceCenter')}
@@ -498,7 +517,6 @@ export function SurveillanceCanonicalPage() {
     <Page
       fill
       title={t('clinicalRecords.surveillanceCenter')}
-      subtitle={t({ employees: 'svSubtitleEmployees', environmental: 'svSubtitleEnvironmental' }[mode] || 'surveillanceSubtitleV051')}
       actions={
         <div className="record-actions">
             <ExportMenu {...registryMenu(() => surveillanceListExport(mode, filtered, { language, t, fmt, organism: x => (x.episodes || [x]).map(latestOrganism).find(Boolean) || '', resistance: x => (x.episodes || [x]).map(latestResistance).find(Boolean) || '', screening: id => employeeScreeningLabel(id, language) }), { language, kind: t('sidebarNav.surveillanceSection'), onBlocked: () => notify(t('indicatorsRecords.allowPopups'), 'error') })} disabled={!filtered.length} />
@@ -514,41 +532,13 @@ export function SurveillanceCanonicalPage() {
       {!section && (
         <CanonicalTabs items={tabItems} value={mode} onChange={setMode} ariaLabel={t('surveillanceCategoriesAria')} />
       )}
-      <div className="workspace-summary surveillance-summary">
-        <div className="module-summary-strip">
-          {mode === 'employees' ? (
-            <>
-              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEmployeeScreenings')} value={employeeKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.positiveEmployeeScreenings')} value={employeeKpis.positive} quickKey="positive" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.needsIntervention')} value={employeeKpis.needsIntervention} quickKey="intervention" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsRecheck')} value={employeeKpis.needsRecheck} quickKey="recheck" quick={quick} onQuick={setQuick} />
-            </>
-          ) : mode === 'environmental' ? (
-            <>
-              <SummaryMetric loading={loading} icon={Activity} label={t('clinicalRecords.activeEnvironmentalSampling')} value={environmentKpis.active} quickKey="active" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.pendingEnvironmentalLab')} value={environmentKpis.pendingLab} quickKey="pending" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.outsideLimitsPoints')} value={environmentKpis.outside} quickKey="outside" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.criticalEnvironmentalFindings')} value={environmentKpis.critical} quickKey="critical" quick={quick} onQuick={setQuick} />
-            </>
-          ) : (
-            <>
-              {canReview && (
-                <SummaryMetric loading={awaitingReview.loading} icon={ClipboardCheck} label={worklistTexts(language).title} value={awaitingReview.rows.filter(canAccessRecord).length} quickKey="review" quick={quick} onQuick={setQuick} />
-              )}
-              <SummaryMetric loading={loading} icon={Activity} label={t('activeSurveillance')} value={active} quickKey="active" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Clock3} label={t('clinicalRecords.needsReview')} value={due} quickKey="due" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={AlertTriangle} label={t('clinicalRecords.activeIsolation')} value={isolation} quickKey="isolation" quick={quick} onQuick={setQuick} />
-              <SummaryMetric loading={loading} icon={Microscope} label={t('clinicalRecords.mdrXdr')} value={resistant} quickKey="resistant" quick={quick} onQuick={setQuick} />
-            </>
-          )}
-        </div>
-      </div>
       <div className="surface registry-workspace workspace-fill">
         <FilterBar
           query={query}
           onQueryChange={setQuery}
           placeholder={t('search')}
           activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)}
+          end={totals}
           onClear={() => {
             setQuery('')
             setDepartment('all')
@@ -829,19 +819,6 @@ function EmployeeStatusBadge({ row, t }) {
   return <StatusBadge tone={statusTone(state)}>{state === 'needsFollowup' ? t('surveillanceList.needsFollowup') : t(state)}</StatusBadge>
 }
 // One count of the row of cards above the list; with a quick key it filters the list, pressing it again shows everything.
-function SummaryMetric({ icon, label, value, quickKey, quick, onQuick, loading = false }) {
-  return (
-    <MetricCard
-      className="summary-metric"
-      loading={loading}
-      icon={icon}
-      label={label}
-      value={value}
-      onClick={quickKey && onQuick ? () => onQuick(quick === quickKey ? null : quickKey) : undefined}
-      active={Boolean(quickKey) && quick === quickKey}
-    />
-  )
-}
 const SAMPLE_PENDING_STATUSES = ['requested', 'collected', 'received', 'processing']
 function matchesEmployeeQuick(row, quick) {
   const today = new Date().toISOString().slice(0, 10)

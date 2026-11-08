@@ -1,7 +1,8 @@
 // The totals of a registry list, beside its search and filters (FilterBar `end`): a few counts of what the list
 // shows, each one a shortcut to the matching filter. Takes no height of its own.
 export function RegistryTotals({ items = [], label }) {
-  // item.display (optional) replaces the formatted number, e.g. «9%».
+  // item.display (optional) replaces the formatted number, e.g. «9%»; item.tone ('good' | 'warning' | 'danger') colours
+  // the number; item.title is the tooltip (the period, the target).
   const shown = items.filter(item => item && (item.always || Number(item.value) > 0))
   if (!shown.length) return null
   return (
@@ -9,8 +10,8 @@ export function RegistryTotals({ items = [], label }) {
       {shown.map(item => {
         const content = <><strong>{item.display ?? Number(item.value || 0).toLocaleString('el-GR')}</strong><span>{item.label}</span></>
         return item.onClick
-          ? <button key={item.key} type="button" className={`registry-total${item.active ? ' is-active' : ''}`} aria-pressed={Boolean(item.active)} onClick={item.onClick}>{content}</button>
-          : <span key={item.key} className="registry-total">{content}</span>
+          ? <button key={item.key} type="button" title={item.title} className={`registry-total${item.active ? ' is-active' : ''}${item.tone ? ` is-${item.tone}` : ''}`} aria-pressed={Boolean(item.active)} onClick={item.onClick}>{content}</button>
+          : <span key={item.key} title={item.title} className={`registry-total${item.tone ? ` is-${item.tone}` : ''}`}>{content}</span>
       })}
     </div>
   )

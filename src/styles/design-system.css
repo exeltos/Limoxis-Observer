@@ -1239,3 +1239,7 @@ button.registry-total.is-active{border-color:var(--accent);background:var(--lo-c
 @media (max-width:560px){.excel-fields{grid-template-columns:1fr}}
 /* Choices of a printout (PrintOptionsDialog). */
 .print-options{display:grid;gap:12px}
+/* A total judged against its target (owner, 8/11/2026). */
+.registry-total.is-good strong{color:#1f7a45}
+.registry-total.is-warning strong{color:#8a5a00}
+.registry-total.is-danger strong{color:#a32121}
