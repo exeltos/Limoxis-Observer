@@ -694,9 +694,9 @@ function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
     const k = wasteKpis(waste.rows)
     const period = k.month ? fmtMonth(k.month) : ''
     return strip(tr('waste'), [
-      item('total', tr('wasteMonth'), fmt(k.current?.total), { unit: ' kg', title: period }),
-      item('perThousand', tr('perThousand'), fmt(k.current?.perThousand), { unit: ' kg', title: period }),
-      item('departments', tr('departmentsRecorded'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: period }),
+      item('total', tr('shortMonth'), fmt(k.current?.total), { unit: ' kg', title: `${tr('wasteMonth')} · ${period}` }),
+      item('perThousand', tr('shortPerThousand'), fmt(k.current?.perThousand), { unit: ' kg', title: `${tr('perThousand')} · ${period}` }),
+      item('departments', tr('shortDepartments'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: `${tr('departmentsRecorded')} · ${period}` }),
     ])
   }
   if (tab === 'antiseptics') {
@@ -704,9 +704,9 @@ function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
     const period = k.month ? fmtMonth(k.month) : ''
     const value = k.current?.perThousand
     return strip(tr('antiseptics'), [
-      item('abhr', tr('abhr'), fmt(value), { unit: ` ${tr('abhrUnit')}`, tone: value == null ? null : value >= ABHR_TARGET ? 'good' : 'danger', title: `${period} · ${tr('abhrTarget', { value: ABHR_TARGET })}` }),
-      item('use', tr('useMonth'), fmt(k.current?.total), { unit: ' L', title: period }),
-      item('departments', tr('departmentsRecorded'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: period }),
+      item('abhr', tr('shortAbhr'), fmt(value), { unit: ` ${tr('abhrUnit')}`, tone: value == null ? null : value >= ABHR_TARGET ? 'good' : 'danger', title: `${tr('abhr')} · ${period} · ${tr('abhrTarget', { value: ABHR_TARGET })}` }),
+      item('use', tr('shortMonth'), fmt(k.current?.total), { unit: ' L', title: `${tr('useMonth')} · ${period}` }),
+      item('departments', tr('shortDepartments'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: `${tr('departmentsRecorded')} · ${period}` }),
     ])
   }
   if (tab === 'bundles') {
@@ -924,7 +924,6 @@ function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
                 ? x.templateTitle || x.templateName || x.bundle
                 : x.templateName || x.bundle}
             </strong>
-            <small className="table-cell-unit">v{x.templateVersion || '1.0'}</small>
           </td>
           <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
           <td>
@@ -934,9 +933,9 @@ function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
             <strong>{x.score == null ? '—' : `${x.score}%`}</strong>
           </td>
           <td>
-            <StatusBadge tone={x.allOrNone ? 'success' : 'danger'}>
+            <span className={`bundle-answer ${x.allOrNone ? 'is-yes' : 'is-no'}`}>
               {x.allOrNone ? t('yes') : t('no')}
-            </StatusBadge>
+            </span>
           </td>
           <td>
             {(x.failedCount ?? x.findings?.length ?? 0) > 0 ? (

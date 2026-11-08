@@ -18,7 +18,7 @@ const fmtDay = value => { const [y, m, d] = String(value || '').slice(0, 10).spl
 
 // «Εγκρίσεις αντιβιοτικών»: the restricted antimicrobial therapies waiting for (or given) stewardship approval,
 // the same approvals the surveillance record decides. Approve / reject only with the therapy capability.
-export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord, onCounts, status = 'pending', onStatusChange }) {
+export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord, onCounts, status = 'pending', onStatusChange, totals = null }) {
   const navigate = useNavigate()
   const actor = useAuditActor()
   const { notify, notifyError } = useFeedback()
@@ -67,7 +67,7 @@ export function PharmacyApprovals({ organizationId, en, canDecide, canOpenRecord
   const clear = () => { setQuery(''); setStatus('pending') }
 
   return <>
-    <FilterBar query={query} onQueryChange={setQuery} placeholder={en ? 'Antibiotic, patient, department…' : 'Αντιβιοτικό, ασθενής, τμήμα…'} activeAdvancedCount={status !== 'pending' ? 1 : 0} onClear={clear}>
+    <FilterBar end={totals} query={query} onQueryChange={setQuery} placeholder={en ? 'Antibiotic, patient, department…' : 'Αντιβιοτικό, ασθενής, τμήμα…'} activeAdvancedCount={status !== 'pending' ? 1 : 0} onClear={clear}>
       <FilterSelect label={en ? 'Status' : 'Κατάσταση'} value={status} onChange={setStatus}>
         <option value="pending">{en ? 'Pending' : 'Σε αναμονή'} ({counts.pending || 0})</option>
         <option value="approved">{en ? 'Approved' : 'Εγκρίθηκαν'} ({counts.approved || 0})</option>

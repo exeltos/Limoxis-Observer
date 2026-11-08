@@ -1,8 +1,7 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react'
-import {Activity,BrainCircuit,CheckCircle2,ClipboardList,History,ListChecks,Plus,Radar,Sparkles,Users} from 'lucide-react'
+import {BrainCircuit,ClipboardList,History,ListChecks,Plus,Radar,Sparkles,Users} from 'lucide-react'
 import {useSearchParams} from 'react-router-dom'
 import {Button} from '../../design-system/Button'
-import {StatusCards} from '../../design-system/StatusCards'
 import {TableSkeleton} from '../../design-system/LoadingSkeleton'
 import {Page} from '../../design-system/Page'
 import {EntityRecordShell} from '../../design-system/EntityRecordShell'
@@ -34,6 +33,7 @@ import {buildInvestigationCopilot} from '../lira/liraInvestigationCopilot'
 import {buildOutbreakLineList,buildOutbreakTimeline,evaluateOutbreakCaseDefinition} from '../lira/liraOutbreakInvestigation'
 import {listOutbreakInvestigations,createOutbreakInvestigation,updateOutbreakInvestigation,appendOutbreakInvestigationEvent,loadOutbreakInvestigationEvents,loadOutbreakCaseReviews,createOutbreakCaseReview,loadOutbreakActions,createOutbreakAction,updateOutbreakActionStatus} from '../lira/liraOutbreakWorkspace'
 import './outbreakInvestigations.css'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 const statusLabel=(s,en)=>({draft:en?'Draft':'Πρόχειρη',active:en?'Active':'Ενεργή',closed:en?'Closed':'Κλειστή'}[s]||s)
 const caseDefinitionLabel=en=>en?'Case definition':'Ορισμός περιστατικού'
 const actionStatusLabel=(s,en)=>({open:en?'Open':'Ανοικτή',in_progress:en?'In progress':'Σε εξέλιξη',verification:en?'Verification':'Σε επαλήθευση',closed:en?'Closed':'Κλειστή'}[s]||s)
@@ -110,18 +110,20 @@ export function LiraOutbreakInvestigationsPanel({shell=null}={}){
   const hasRows=rows.length>0,hasClusters=visibleClusters.length>0
   const loading=!rowsLoaded||!clustersLoaded
   const openCount=rows.filter(x=>x.status!=='closed').length,closedCount=rows.length-openCount
-  const summary=shell?<StatusCards label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} loading={loading} items={[
-   {key:'clusters',icon:Radar,label:en?'Need review':'Χρειάζονται έλεγχο',value:visibleClusters.length},
-   {key:'open',icon:Activity,label:en?'Under investigation':'Σε διερεύνηση',value:openCount},
-   {key:'closed',icon:CheckCircle2,label:en?'Completed':'Ολοκληρωμένες',value:closedCount},
-  ]}/>:null
+  // The counts beside the search (owner, 8/11/2026: no cards); without investigations the clusters say it themselves.
+  const summary=null
+  const outbreakTotals=<RegistryTotals label={en?'Outbreak investigations':'Διερευνήσεις εξάρσεων'} items={[
+   {key:'clusters',value:visibleClusters.length,label:en?'to review':'χρειάζονται έλεγχο'},
+   {key:'open',value:openCount,label:en?'under investigation':'σε διερεύνηση'},
+   {key:'closed',value:closedCount,label:en?'completed':'ολοκληρωμένες'},
+  ]}/>
   const toolbarButton=shell?null:newButton
   const body=<section className="outbreak-investigations">
    {loading
     ?<TableSkeleton rows={5}/>
     :(hasRows||hasClusters)
     ?<>
-   {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={toolbarButton}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
+   {hasRows?<FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search investigations…':'Αναζήτηση διερευνήσεων…'} onClear={()=>setQuery('')} end={<>{outbreakTotals}{toolbarButton}</>}/>:toolbarButton&&<div className="outbreak-toolbar">{toolbarButton}</div>}
    {hasClusters&&<section className="outbreak-clusters" aria-label={en?'Possible clusters':'Πιθανές συρροές'}>
     <h3>{en?'Possible clusters':'Πιθανές συρροές'}</h3>
     <p className="outbreak-cluster-note">{en?'We flag 3 or more positive results of the same organism in the same department within 14 days. Start an investigation for the ones that worry you.':'Εντοπίζουμε 3 ή περισσότερα θετικά αποτελέσματα του ίδιου μικροοργανισμού στο ίδιο τμήμα μέσα σε 14 ημέρες. Ξεκινάς διερεύνηση για όσα σε προβληματίζουν.'}</p>

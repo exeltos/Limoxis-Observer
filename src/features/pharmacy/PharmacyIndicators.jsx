@@ -18,7 +18,7 @@ const STATUS = { onTarget: ['Εντός στόχου', 'On target', 'success'], 
 
 // «Δείκτες»: the pharmacy indicators of the Indicators module (DDD per 100 patient-days, WHO AWaRe Access share…),
 // calculated by the same engine for the chosen period, with their approved results over time.
-export function PharmacyIndicators({ organizationId, en, onRows }) {
+export function PharmacyIndicators({ organizationId, en, onRows, totals = null }) {
   const navigate = useNavigate()
   const { notifyError } = useFeedback()
   const [from, setFrom] = useState(yearStart)
@@ -50,7 +50,7 @@ export function PharmacyIndicators({ organizationId, en, onRows }) {
   const title = row => (en ? row.titleEn || row.titleEl : row.titleEl)
   const titleOf = key => { const row = state.rows.find(item => item.id === key); return row ? title(row) : key }
   return <>
-    <FilterBar onClear={() => { setFrom(yearStart()); setTo(today()) }} activeAdvancedCount={(from !== yearStart() ? 1 : 0) + (to !== today() ? 1 : 0)}>
+    <FilterBar end={totals} onClear={() => { setFrom(yearStart()); setTo(today()) }} activeAdvancedCount={(from !== yearStart() ? 1 : 0) + (to !== today() ? 1 : 0)}>
       <FilterDate label={en ? 'From' : 'Από'} value={from} onChange={setFrom} />
       <FilterDate label={en ? 'To' : 'Έως'} value={to} onChange={setTo} />
     </FilterBar>

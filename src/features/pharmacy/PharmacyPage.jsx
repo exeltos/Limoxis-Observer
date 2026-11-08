@@ -129,25 +129,19 @@ export function PharmacyPage() {
     <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'}
       actions={canRecord && consumption && <Button onClick={() => navigate('/pharmacy/dispensing/new')}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
       {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
-      {canIndicators && tab === 'indicators' && indicatorFigures.rows.length > 0 && (
-        <div className="pharmacy-totals"><RegistryTotals label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'} items={indicatorFigures.rows.slice(0, 3).map(row => {
+      <section className={`surface registry-workspace workspace-column workspace-fill pharmacy-workspace pharmacy-tab-${tab}`}>
+        {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} status={approvalStatus} onStatusChange={setApprovalStatus} totals={<RegistryTotals label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'} items={[
+          { key: 'pending', icon: Clock3, label: en ? 'Pending' : 'Σε αναμονή', value: approvalCounts.pending, tone: approvalCounts.pending > 0 ? 'warning' : '', active: approvalStatus === 'pending', onToggle: () => setApprovalStatus(approvalStatus === 'pending' ? 'all' : 'pending') },
+          { key: 'approved', icon: CheckCircle2, label: en ? 'Approved' : 'Εγκρίθηκαν', value: approvalCounts.approved, active: approvalStatus === 'approved', onToggle: () => setApprovalStatus(approvalStatus === 'approved' ? 'all' : 'approved') },
+          { key: 'rejected', icon: XCircle, label: en ? 'Rejected' : 'Απορρίφθηκαν', value: approvalCounts.rejected, active: approvalStatus === 'rejected', onToggle: () => setApprovalStatus(approvalStatus === 'rejected' ? 'all' : 'rejected') },
+        ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone || null, active: item.active, onClick: item.onToggle }))} />} />}
+        {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} onRows={setIndicatorFigures} totals={indicatorFigures.rows.length > 0 ? <RegistryTotals label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'} items={indicatorFigures.rows.slice(0, 3).map(row => {
           const key = String(row.id || '')
           const short = key.includes('aware-access') ? (en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης') : key.includes('ddd-per-100') ? (en ? 'DDD / 100 patient-days' : 'DDD / 100 ασθενοημέρες') : (en ? row.titleEn || row.titleEl : row.titleEl)
           const target = row.target == null ? null : `${en ? 'target' : 'στόχος'} ${row.direction === 'lower' ? '≤' : row.direction === 'higher' ? '≥' : ''} ${number(row.target)}`
           const unit = (en ? row.unitEn : row.unit) === 'DDD/100 ασθενοημέρες' ? '' : (en ? row.unitEn : row.unit) || ''
           return row.value == null ? null : { key, always: true, value: 0, display: `${number(row.value)}${unit === '%' ? '%' : ''}`, label: short, tone: row.status === 'onTarget' ? 'good' : row.status === 'attention' ? 'danger' : null, title: [short, en ? 'year to date' : 'από αρχή έτους', target].filter(Boolean).join(' · ') }
-        }).filter(Boolean)} /></div>
-      )}
-      {canApprovals && tab === 'approvals' && (
-        <div className="pharmacy-totals"><RegistryTotals label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'} items={[
-          { key: 'pending', icon: Clock3, label: en ? 'Pending' : 'Σε αναμονή', value: approvalCounts.pending, tone: approvalCounts.pending > 0 ? 'warning' : '', active: approvalStatus === 'pending', onToggle: () => setApprovalStatus(approvalStatus === 'pending' ? 'all' : 'pending') },
-          { key: 'approved', icon: CheckCircle2, label: en ? 'Approved' : 'Εγκρίθηκαν', value: approvalCounts.approved, active: approvalStatus === 'approved', onToggle: () => setApprovalStatus(approvalStatus === 'approved' ? 'all' : 'approved') },
-          { key: 'rejected', icon: XCircle, label: en ? 'Rejected' : 'Απορρίφθηκαν', value: approvalCounts.rejected, active: approvalStatus === 'rejected', onToggle: () => setApprovalStatus(approvalStatus === 'rejected' ? 'all' : 'rejected') },
-        ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone || null, active: item.active, onClick: item.onToggle }))} /></div>
-      )}
-      <section className={`surface registry-workspace workspace-column workspace-fill pharmacy-workspace pharmacy-tab-${tab}`}>
-        {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} status={approvalStatus} onStatusChange={setApprovalStatus} />}
-        {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} onRows={setIndicatorFigures} />}
+        }).filter(Boolean)} /> : null} />}
         {consumption && !canRecord && <div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div>}
         {consumption && canRecord && <>
           <FilterBar end={<>{consumptionTotals}<IconButton label={en ? 'About this indicator' : 'Σχετικά με τον δείκτη'} onClick={() => setShowNote(value => !value)}><Info size={16} /></IconButton></>} query={filters.query} onQueryChange={setFilter('query')} placeholder={en ? 'Antibiotic, responsible, reference…' : 'Αντιβιοτικό, υπεύθυνος, αριθμός αναφοράς…'} activeAdvancedCount={activeFilters} onClear={clearFilters}>
