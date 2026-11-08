@@ -426,7 +426,7 @@ export function SurveillanceCanonicalPage() {
 
   // The totals beside the search (owner, 8/11/2026: no cards): each one filters the list, a second click clears it.
   // Short words in the line, the full name in the tooltip, so the totals stay on the search's line.
-  const SHORT = { review: language === 'en' ? 'to review' : 'προς έλεγχο', active: language === 'en' ? 'active' : 'ενεργές', due: language === 'en' ? 'reassessment' : 'επανεκτίμηση', isolation: language === 'en' ? 'isolation' : 'απομονώσεις', resistant: 'MDR / XDR' }
+  const SHORT = { review: t('svShortReview'), active: t('svShortActive'), due: t('svShortDue'), isolation: t('svShortIsolation'), resistant: 'MDR / XDR' }
   const total = (key, label, value, show = true) => (show ? { key, value, label: mode === 'patients' || !mode ? SHORT[key] || label : label, title: label, active: quick === key, onClick: () => setQuick(quick === key ? null : key) } : null)
   const totals = <RegistryTotals label={t('svTotals')} items={(mode === 'employees' ? [
     total('active', t('clinicalRecords.activeEmployeeScreenings'), employeeKpis.active),
