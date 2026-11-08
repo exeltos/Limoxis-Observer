@@ -57,7 +57,8 @@ export function useFormValidation(rules = []) {
   return {
     valid: missing.length === 0,
     missing,
-    missingLabels: missing.map(rule => rule.label),
+    // A question label ending in «?» is listed without it: no «?,» in «Fill in:» (owner, 8/11/2026).
+    missingLabels: missing.map(rule => String(rule.label ?? '').replace(/\s*[?;\u037e]\s*$/, '')),
     attempted,
     errorFor,
     field,

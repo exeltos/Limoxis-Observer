@@ -12,7 +12,7 @@ import { clinicalTerm, episodeTypeLabel } from './clinicalRecordLabels'
 import { AssessmentDialog, DeviceDialog, SampleRequestDialog, HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { InlineDialogContext } from '../../design-system/ObserverDialog'
-import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
+import { SheetEditingContext, StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -53,6 +53,9 @@ export function CanonicalJourney({
   admission = null,
   askSample = false,
   onSampleAsked,
+  editing = false,
+  actionRequest = null,
+  onActionHandled,
 }) {
   const { notify } = useFeedback()
   const { role } = useTenant()
@@ -64,6 +67,13 @@ export function CanonicalJourney({
   useEffect(() => {
     if (initialStage) setStage(initialStage)
   }, [initialStage])
+  // An action of the sheet's «⋯» (new sample, device, …): its step and its window.
+  useEffect(() => {
+    if (!actionRequest?.nonce) return
+    setStage(actionRequest.stage)
+    setDialog(actionRequest.dialog)
+    onActionHandled?.()
+  }, [actionRequest, onActionHandled])
   useEffect(() => {
     if (!askSample) return
     setStage('samples')
@@ -148,11 +158,12 @@ export function CanonicalJourney({
     : null
   // The sheet's fields (owner, 8/11/2026): the forms of the assessment, the isolation, the reassessment and the outcome
   // sit on the page itself, with their own Save, instead of a window over it.
+  // Only in «Edit sheet», one step at a time (owner, 8/11/2026).
   const sheetEdit = {
-    assessment: active && permissions.canAssess,
-    isolation: active && permissions.canIsolation && !record.isolation && record.isolationDecision?.required !== false,
-    reassessment: active && permissions.canReassess,
-    outcome: active && permissions.canOutcome && !record.outcome,
+    assessment: editing && active && permissions.canAssess,
+    isolation: editing && active && permissions.canIsolation && !record.isolation && record.isolationDecision?.required !== false,
+    reassessment: editing && active && permissions.canReassess,
+    outcome: editing && active && permissions.canOutcome && !record.outcome,
   }
   const sheetForm = node => <InlineDialogContext.Provider value>{node}</InlineDialogContext.Provider>
   const cueDialogs = {
@@ -210,7 +221,8 @@ export function CanonicalJourney({
       </div>
     )
   return (
-    <div className="clinical-data-hub">
+    <SheetEditingContext.Provider value={editing}>
+    <div className={`clinical-data-hub${editing ? ' sheet-editing' : ''}`}>
       <SurveillanceJourneyGuidance
         record={record}
         t={t}
@@ -304,7 +316,7 @@ export function CanonicalJourney({
                   <span>{epiText(question.label, language)}</span>
                   <ModeSwitch
                     ariaLabel={epiText(question.label, language)}
-                    disabled={!canWriteEpi(role)}
+                    disabled={!editing || !canWriteEpi(role)}
                     value={answerOf(epi.row?.answers, question.key) || ''}
                     options={EPI_ANSWERS.map(answer => ({ value: answer, label: t(`epiQuestionnaire.${answer}`) }))}
                     onChange={async answer => {
@@ -576,7 +588,7 @@ export function CanonicalJourney({
                     )}
                     {deviceBundles && (
                       <td className="open-record-cell">
-                        {hasBundle && deviceBundles.canCheck && (
+                        {editing && hasBundle && deviceBundles.canCheck && (
                           <Button variant={bundle.status === 'overdue' ? 'primary' : 'secondary'} onClick={() => deviceBundles.check(x, record)}>
                             {t('episodeForms.bundles.check')}
                           </Button>
@@ -585,7 +597,7 @@ export function CanonicalJourney({
                     )}
                     {deleteItem && (
                       <td className="open-record-cell">
-                        {entryDelete('device', x, x.name || x.type) && <OverflowMenu label={t('episodeForms.rowActions')} items={[entryDelete('device', x, x.name || x.type)]} />}
+                        {editing && entryDelete('device', x, x.name || x.type) && <OverflowMenu label={t('episodeForms.rowActions')} items={[entryDelete('device', x, x.name || x.type)]} />}
                       </td>
                     )}
                   </>
@@ -696,7 +708,7 @@ export function CanonicalJourney({
             }
           >
             {/* The protocols (sepsis Hour-1 bundle …) start from the measures, not from the sheet's header (owner, 8/11/2026). */}
-            {permissions.canProtocol && (
+            {editing && permissions.canProtocol && (
               <Button className="clinical-stage-action sheet-protocol-action" variant="secondary" onClick={() => setDialog('protocolPicker')}>
                 <HeartPulse size={14} />
                 {t('sepsis.startProtocol')}
@@ -758,7 +770,7 @@ export function CanonicalJourney({
                   window={window}
                   t={t}
                   actorName={actor?.name}
-                  canReview={permissions.canTherapy}
+                  canReview={editing && permissions.canTherapy}
                   onSave={draft =>
                     runProtocol(
                       () => createTherapyReview(organizationId, record, therapy, draft, protocolOptions),
@@ -1071,5 +1083,6 @@ export function CanonicalJourney({
         />
       )}
     </div>
+    </SheetEditingContext.Provider>
   )
 }

@@ -62,6 +62,11 @@ const openEpisode = async (title = 'Λοίμωξη αιματικής ροής')
   fireEvent.click((await screen.findAllByText(title))[0])
   await screen.findByRole('button', { name: /Ενέργειες επιτήρησης/ })
 }
+// The sheet reads until «Επεξεργασία φύλλου» of its «⋯»; every action of it is in that menu (owner, 8/11/2026).
+const sheetMenu = async item => {
+  fireEvent.click(screen.getByRole('button', { name: /Ενέργειες επιτήρησης/ }))
+  fireEvent.click(await screen.findByRole('menuitem', { name: item }))
+}
 const STAGE_IDS = { 'Δείγματα': 'samples', 'Αξιολόγηση': 'assessment', 'ΛΣΦΥ / Αντοχή': 'hai', 'Αγωγή': 'therapy', 'Συσκευές': 'devices', 'Απομόνωση': 'isolation', 'Επανεκτίμηση': 'reassessment', 'Έκβαση': 'outcome' }
 // The surveillance sheet shows every section on one page (owner, 8/11/2026); the index step scrolls to it.
 const openStage = async name => {
@@ -277,9 +282,8 @@ describe('surveillance tree and samples', () => {
   it('requests a sample from the episode: the laboratory records the collection and the result', async () => {
     await openSurveillance()
     await openEpisode()
-    const panel = await openStage('Δείγματα')
-    fireEvent.click(within(panel).getByRole('button', { name: /Αίτημα δείγματος/ }))
-    const dialog = screen.getByRole('dialog', { name: 'Αίτημα δείγματος' })
+    await sheetMenu(/Νέο δείγμα/)
+    const dialog = await screen.findByRole('dialog', { name: 'Αίτημα δείγματος' })
     expect(within(dialog).queryByPlaceholderText('ηη/μμ/εεεε')).toBeNull()
     expect(within(dialog).queryByText('Ώρα λήψης')).toBeNull()
     expect(within(dialog).getByText('Προτεραιότητα')).toBeInTheDocument()
@@ -287,6 +291,17 @@ describe('surveillance tree and samples', () => {
 })
 
 describe('surveillance episode journey', () => {
+  it('reads without buttons until «Επεξεργασία φύλλου», which opens the step\'s form', async () => {
+    await openSurveillance()
+    await openEpisode()
+    let panel = await openStage('ΛΣΦΥ / Αντοχή')
+    expect(within(panel).queryAllByRole('button')).toHaveLength(0)
+    await sheetMenu(/Επεξεργασία φύλλου/)
+    panel = await openStage('ΛΣΦΥ / Αντοχή')
+    expect(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Τέλος επεξεργασίας/ }))
+    expect(within(await openStage('ΛΣΦΥ / Αντοχή')).queryAllByRole('button')).toHaveLength(0)
+  })
   it('shows assessment signs, risk factors and classification through the library labels', async () => {
     await openSurveillance()
     await openEpisode()
@@ -302,6 +317,7 @@ describe('surveillance episode journey', () => {
     window.addEventListener(DEMO_STEP_EVENT, listener)
     await openSurveillance()
     await openEpisode()
+    await sheetMenu(/Επεξεργασία φύλλου/)
     const panel = await openStage('ΛΣΦΥ / Αντοχή')
     window.removeEventListener(DEMO_STEP_EVENT, listener)
     expect(steps).toContain('clabsi_classification/hai')
@@ -314,6 +330,7 @@ describe('surveillance episode journey', () => {
     criteriaSets = { custom_bsi: { labelEl: 'Τοπικός ορισμός BSI', labelEn: 'Local BSI definition', source: 'Local' } }
     await openSurveillance()
     await openEpisode()
+    await sheetMenu(/Επεξεργασία φύλλου/)
     const panel = await openStage('ΛΣΦΥ / Αντοχή')
     fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ }))
     await waitFor(() => expect(loadHaiCriteriaSets).toHaveBeenCalledWith('demo-hospital'))
@@ -326,6 +343,7 @@ describe('surveillance episode journey', () => {
     await openTab('Επιτήρηση & Δείγματα')
     fireEvent.click(document.querySelector('.sv-episode-head'))
     await screen.findByRole('button', { name: /Ενέργειες επιτήρησης/ })
+    await sheetMenu(/Επεξεργασία φύλλου/)
     const panel = await openStage('ΛΣΦΥ / Αντοχή')
     fireEvent.click(within(panel).getByRole('button', { name: /Νέα αξιολόγηση ΛΣΦΥ/ }))
     const definitions = await waitFor(() => {

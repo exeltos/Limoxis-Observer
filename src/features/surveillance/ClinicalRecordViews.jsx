@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react'
 import { HistoryTimeline } from '../../design-system/HistoryTimeline'
 import { RegistryTable } from '../../design-system/RegistryTable'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -29,8 +30,14 @@ import {
 // A sample's result as a status-badge tone (sampleTone: positive / negative / pending).
 export const SAMPLE_TONES = { positive: 'danger', negative: 'success', pending: 'warning' }
 
-export function StagePanel({ icon: Icon, title, action, menu = [], children }) {
+// The sheet of a surveillance is read-only until «Edit sheet»: the panels' buttons and «⋯» show only then
+// (owner, 8/11/2026). Outside the sheet a panel keeps its buttons.
+export const SheetEditingContext = createContext(true)
+export function StagePanel({ icon: Icon, title, action: shownAction, menu: shownMenu = [], children }) {
   const { t } = useLanguage()
+  const editing = useContext(SheetEditingContext)
+  const action = editing ? shownAction : null
+  const menu = editing ? shownMenu : []
   return (
     <section className="clinical-panel full-panel">
       <div className="record-section-header">

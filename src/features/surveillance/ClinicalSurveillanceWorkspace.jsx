@@ -1,7 +1,7 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
-import { Activity, CalendarClock, ChevronRight, Microscope, Pencil, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
+import { Activity, CalendarClock, Check, ChevronRight, HeartPulse, Microscope, Pencil, PlayCircle, RefreshCcw, Stethoscope, Trash2 } from 'lucide-react'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -98,6 +98,17 @@ export function SurveillanceWorkspace({
       }),
     ].filter(Boolean)
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
+  // The sheet reads until «Edit sheet»; every action of it is in the «⋯» (owner, 8/11/2026).
+  const [sheetEditing, setSheetEditing] = useState(false),
+    [sheetAction, setSheetAction] = useState(null)
+  useEffect(() => setSheetEditing(false), [detailId])
+  const sheetActive = detailRecord?.status === 'active'
+  const canEditSheet = sheetActive && ['canAssess', 'canLab', 'canIsolation', 'canTherapy', 'canReassess', 'canOutcome'].some(key => permissions?.[key])
+  const askSheet = (stage, dialog) => {
+    setSheetEditing(true)
+    setSheetAction({ stage, dialog, nonce: Date.now() })
+  }
+  const copyText = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
   // A surveillance started with «new sample request» opens with its sample dialog (owner, 8/11/2026).
   useEffect(() => {
     if (askSampleFor && episodes.some(ep => String(ep.id) === String(askSampleFor))) setDetailId(askSampleFor)
@@ -248,15 +259,34 @@ export function SurveillanceWorkspace({
             </div>
             <div className="episode-detail-actions">
               <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
+              {sheetEditing && (
+                <Button className="sheet-done" variant="primary" onClick={() => setSheetEditing(false)}>
+                  <Check size={15} />
+                  {copyText('finishSheetEditing')}
+                </Button>
+              )}
               <OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',
                   language === 'el' ? 'el' : 'en',
                 )}
                 items={[
+                  canEditSheet && !sheetEditing
+                    ? { id: 'editSheet', label: copyText('editSheet'), icon: Pencil, onClick: () => setSheetEditing(true) }
+                    : null,
+                  sheetActive && permissions.canLab
+                    ? { id: 'newSample', label: copyText('newSample'), icon: Microscope, separatorBefore: true, onClick: () => askSheet('samples', 'sample') }
+                    : null,
+                  sheetActive && permissions.canAssess
+                    ? { id: 'device', label: copyText('recordDevice'), icon: Stethoscope, onClick: () => askSheet('devices', 'device') }
+                    : null,
+                  sheetActive && permissions.canProtocol
+                    ? { id: 'protocol', label: t('sepsis.startProtocol'), icon: HeartPulse, onClick: () => askSheet('therapy', 'protocolPicker') }
+                    : null,
                   permissions.canEdit
                     ? {
                         id: 'edit',
+                        separatorBefore: true,
                         label: translate(
                           'copy.clinicalRecordCopy.editSurveillance',
                           language === 'el' ? 'el' : 'en',
@@ -298,6 +328,9 @@ export function SurveillanceWorkspace({
                   : null
               }
               onProtocolRequestHandled={() => setStartRequest(null)}
+              editing={sheetEditing}
+              actionRequest={sheetAction}
+              onActionHandled={() => setSheetAction(null)}
               record={detailRecord}
               repository={repository}
               libraries={libraries}

@@ -208,3 +208,6 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22
 .observer-dialog-inline>header .eyebrow{display:none}
 .observer-dialog-inline>footer{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px dashed #e3e9f1}
 .sheet-body>.clinical-data-grid>.sheet-anchor>.observer-dialog-inline:first-child{border-top:0}
+/* «Τέλος επεξεργασίας» beside the sheet's «⋯» (the header's other buttons are square icons). */
+.episode-detail-actions>button.sheet-done{width:auto;height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:var(--brand-700,#1d5f9c);border-color:transparent;color:#fff;font-weight:600;white-space:nowrap}
+.episode-detail-actions>button.sheet-done:hover{background:#174f83;color:#fff}
