@@ -1,7 +1,10 @@
-/* The surveillance sheet opens over the whole screen, without the side menu (owner, 8/11/2026); its breadcrumb goes back. */
-html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;z-index:150!important;display:block!important;padding:14px 24px 24px!important;background:#eef2f7!important;backdrop-filter:none!important;overflow:auto}
+/* The surveillance sheet opens over the page without the side menu, under the app's top bar, which stays (owner,
+   8/11/2026); its title with the back arrow is a white box. */
+html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:64px 0 0 0!important;z-index:150!important;display:block!important;padding:14px 24px 24px!important;background:#eef2f7!important;backdrop-filter:none!important;overflow:auto}
 html body .surveillance-episode-page .episode-detail-card.new-surveillance-flow-card{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;display:block!important;overflow:visible!important}
-html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important;margin:0!important;border-bottom:1px solid #dfeaf4!important;background:transparent!important}
+/* The title with its back arrow in a white box, as on every record page. */
+html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:12px 18px!important;margin:0 0 12px!important;border:1px solid #e3e9f1!important;background:#fff!important}
+.surveillance-episode-page .episode-detail-header:is(header,#lo-sheet-view){border-radius:14px}
 .surveillance-episode-page .episode-detail-title{display:flex;align-items:center;gap:12px;min-width:0}
 html body .surveillance-episode-page .episode-detail-header h2{display:block!important;margin:2px 0 2px!important;font-size:18px!important;line-height:1.3!important;color:#173a57!important}
 html body .surveillance-episode-page .episode-detail-header p{font-size:12.5px!important}
@@ -27,7 +30,7 @@ html body .surveillance-episode-page .detail-item strong{display:block!important
 html body .surveillance-episode-page .clinical-summary{margin:8px 0 6px!important;font-size:13.5px!important;line-height:1.55!important}
 
 @media print{
-  html body .episode-overlay.surveillance-episode-page{position:absolute!important;inset:0!important;background:#fff!important}
+  html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:64px 0 0 0!important;background:#eef2f7!important}
 }
 
 /* Reassessment timeline: one readable row per entry. */
