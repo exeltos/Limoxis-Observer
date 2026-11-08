@@ -2,6 +2,7 @@ import { createContext,useContext,useEffect,useRef } from 'react'
 import { ArrowLeft,X } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { SaveButton } from './SaveButton'
+import { Button } from './Button'
 import { useLanguage } from '../core/i18n/LanguageContext'
 import { useOptionalFeedback } from '../core/feedback/FeedbackContext'
 
@@ -54,6 +55,28 @@ export function ObserverDialog({
   const confirm=useOptionalFeedback()?.confirm
   const dirty=useRef(false)
   const markDirty=event=>{if(!isSearchField(event.target))dirty.current=true}
+  // A pick in a list, a Yes/No switch or a chip changes the form without an input event.
+  const markPicked=event=>{if(event.target?.closest?.('[role="option"],[role="radio"],[role="checkbox"],[aria-pressed]'))dirty.current=true}
+  // On the page (inline) the form registers with its holder, which saves it when the user moves on.
+  const footerRef=useRef(null)
+  useEffect(()=>{
+    if(!inline||typeof inline!=='object')return undefined
+    const entry={
+      dirty:()=>dirty.current,
+      // False when a required field is missing: Save then shows what is missing and the user stays.
+      save:()=>{
+        const footerNode=footerRef.current
+        const button=footerNode?.querySelector('button.button-primary,button.button-danger')||[...(footerNode?.querySelectorAll('button')||[])].pop()
+        const blocked=Boolean(footerNode?.querySelector('.form-missing-summary'))||Boolean(button?.disabled)
+        button?.click()
+        if(blocked)return false
+        dirty.current=false
+        return true
+      },
+    }
+    inline.register?.(entry)
+    return()=>inline.unregister?.(entry)
+  },[inline])
   useEffect(()=>{
     const warn=event=>{if(dirty.current){event.preventDefault();event.returnValue=''}}
     window.addEventListener('beforeunload',warn)
@@ -76,10 +99,13 @@ export function ObserverDialog({
     const node=sectionRef.current
     if(!inline&&node&&!node.contains(document.activeElement))node.focus({preventScroll:true})
   },[inline])
-  if(inline)return <section ref={sectionRef} className={`observer-dialog-inline ${className}`.trim()} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty}>
+  if(inline)return <section ref={sectionRef} role="region" className={`observer-dialog-inline ${className}`.trim()} aria-label={title} onChangeCapture={markDirty} onInputCapture={markDirty} onClickCapture={markPicked}>
     <header><div>{eyebrow&&<span className="eyebrow">{eyebrow}</span>}<h3>{title}</h3>{subtitle&&<p>{subtitle}</p>}</div>{headerActions&&<div className="observer-dialog-header-actions">{headerActions}</div>}</header>
     <div className="observer-dialog-body">{children}</div>
-    {footer&&<footer>{footer}</footer>}
+    {(footer||onClose)&&<footer ref={footerRef} onClickCapture={event=>{if(event.target?.closest?.('button')&&!event.target.closest('.observer-dialog-inline-cancel')&&!footerRef.current?.querySelector('.form-missing-summary'))dirty.current=false}}>
+      {onClose&&<Button variant="secondary" className="observer-dialog-inline-cancel" onClick={requestClose}>{en?'Close':'Κλείσιμο'}</Button>}
+      {footer}
+    </footer>}
   </section>
   return <div className={`modal-backdrop observer-dialog-backdrop observer-dialog-backdrop-${dialogPresentation}`} role="presentation" onMouseDown={e=>{if(!workspace&&e.target===e.currentTarget)requestClose()}}>
     <section ref={sectionRef} className={`entry-card observer-dialog observer-dialog-${dialogWidth} observer-dialog-presentation-${dialogPresentation} ${fixedHeight?'observer-dialog-fixed-height':''} ${className}`.trim()} role="dialog" aria-modal={!workspace} aria-label={title} tabIndex={-1} onKeyDown={closeOnEscape} onChangeCapture={markDirty} onInputCapture={markDirty}>

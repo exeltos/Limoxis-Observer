@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Activity, AlertTriangle, BedDouble, ClipboardList, HeartPulse, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
@@ -165,7 +165,20 @@ export function CanonicalJourney({
     reassessment: editing && active && permissions.canReassess,
     outcome: editing && active && permissions.canOutcome && !record.outcome,
   }
-  const sheetForm = node => <InlineDialogContext.Provider value>{node}</InlineDialogContext.Provider>
+  // «Next» saves the form of the step when it was changed (owner, 8/11/2026): the inline form on show registers
+  // itself here (InlineDialogContext), and moving to another step saves it first.
+  const pendingForm = useRef(null)
+  const inlineForms = { register: entry => (pendingForm.current = entry), unregister: entry => pendingForm.current === entry && (pendingForm.current = null) }
+  const sheetForm = node => <InlineDialogContext.Provider value={inlineForms}>{node}</InlineDialogContext.Provider>
+  function goToStage(id) {
+    const form = pendingForm.current
+    if (id !== stage && form?.dirty() && !form.save()) return
+    if (id !== stage) {
+      setDialog(null)
+      setEntryDetail(null)
+    }
+    setStage(id)
+  }
   const cueDialogs = {
     assessment: 'assessment',
     isolation: 'isolation',
@@ -239,7 +252,7 @@ export function CanonicalJourney({
         t={t}
         fmtDate={fmtDate}
         activeStage={stage}
-        onSelect={setStage}
+        onSelect={goToStage}
         extraStages={extraStages}
         questionnaire={epi.ready ? { done: epiDone } : null}
       >
@@ -404,7 +417,7 @@ export function CanonicalJourney({
             record={record}
             symptomRows={libraries.clinicalSymptoms || []}
             riskRows={libraries.clinicalRiskFactors || []}
-            onClose={() => {}}
+            onClose={null}
             onSave={draft => run(() => repository.saveAssessment(record, draft), t('actionCompleted'))}
           />,
         )}
@@ -682,7 +695,7 @@ export function CanonicalJourney({
         {stage === 'isolation' && sheetEdit.isolation && sheetForm(
           <IsolationDialog
             t={t}
-            onClose={() => {}}
+            onClose={null}
             onSave={draft => run(() => repository.beginIsolation(record, draft), t('actionCompleted'))}
           />,
         )}
@@ -836,7 +849,7 @@ export function CanonicalJourney({
         {stage === 'reassessment' && sheetEdit.reassessment && sheetForm(
           <ReassessmentDialog
             t={t}
-            onClose={() => {}}
+            onClose={null}
             onSave={draft => run(() => repository.reassess(record, draft), t('actionCompleted'))}
           />,
         )}
@@ -881,13 +894,14 @@ export function CanonicalJourney({
         {stage === 'outcome' && sheetEdit.outcome && sheetForm(
           <OutcomeDialog
             t={t}
-            onClose={() => {}}
+            onClose={null}
             onSave={draft => run(() => repository.complete(record, draft), t('clinicalRecords.outcomeSaved'))}
           />,
         )}
         </div>
-      </div>
-      </SurveillanceJourneyMap>
+      {/* The windows of the sheet open in it, under their step, not over the page (owner, 8/11/2026). */}
+      <InlineDialogContext.Provider value={inlineForms}>
+      <div className="sheet-inline-forms">
       {dialog === 'epi' && (
         <EpiQuestionnaireDialog
           ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map(sample => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
@@ -1082,6 +1096,10 @@ export function CanonicalJourney({
           }
         />
       )}
+      </div>
+      </InlineDialogContext.Provider>
+      </div>
+      </SurveillanceJourneyMap>
     </div>
     </SheetEditingContext.Provider>
   )
