@@ -62,11 +62,12 @@ const openEpisode = async (title = 'Λοίμωξη αιματικής ροής')
   fireEvent.click((await screen.findAllByText(title))[0])
   await screen.findByRole('button', { name: /Ενέργειες επιτήρησης/ })
 }
+const STAGE_IDS = { 'Δείγματα': 'samples', 'Αξιολόγηση': 'assessment', 'ΛΣΦΥ / Αντοχή': 'hai', 'Αγωγή': 'therapy', 'Συσκευές': 'devices', 'Απομόνωση': 'isolation', 'Επανεκτίμηση': 'reassessment', 'Έκβαση': 'outcome' }
+// The surveillance sheet shows every section on one page (owner, 8/11/2026); the index step scrolls to it.
 const openStage = async name => {
-  // The episode's steps open under their row; «Δείγματα» is open from the start (a click would close it).
   const step = screen.getAllByRole('button').find(button => button.textContent.startsWith(name))
-  if (step.getAttribute('aria-expanded') !== 'true') fireEvent.click(step)
-  return document.querySelector('.clinical-panel.full-panel')
+  fireEvent.click(step)
+  return document.querySelector(`[id^="sheet-${STAGE_IDS[name]}-"] .clinical-panel.full-panel`)
 }
 // Lists are SearchableSelect comboboxes: the options live in the listbox the
 // combobox controls (hidden until it opens), each with its label first.

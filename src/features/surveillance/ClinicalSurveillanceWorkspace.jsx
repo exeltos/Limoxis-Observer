@@ -231,12 +231,12 @@ export function SurveillanceWorkspace({
                     )}
                 </h2>
                 <p>
+                  {/* Over the whole screen the patient's header is hidden: the sheet names the patient itself. */}
                   {[
+                    language === 'el' ? detailRecord.patient : detailRecord.patientEn || detailRecord.patient,
+                    detailRecord.patientId,
                     detailRecord.department,
-                    translate(
-                      'copy.clinicalRecordCopy.clinicalFollowUp',
-                      language === 'el' ? 'el' : 'en',
-                    ),
+                    detailRecord.startedAt && `${translate('copy.clinicalRecordCopy.started', language === 'el' ? 'el' : 'en')} ${fmtDate(detailRecord.startedAt)}`,
                   ]
                     .filter(Boolean)
                     .join(' · ')}

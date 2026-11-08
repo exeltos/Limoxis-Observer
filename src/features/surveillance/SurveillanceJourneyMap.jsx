@@ -1,5 +1,4 @@
-import { CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react'
-import { AttentionList } from '../../design-system/AttentionList'
+import { CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
 
@@ -102,25 +101,29 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire
     .map(stage => ({ ...stage, locked: !unlocked[stage.id] && stage.id !== 'questionnaire' }))
 }
 
-// The episode as one list of steps (owner, 8/11/2026): a coloured dot, the step, a short line on where it stands; a
-// click opens the step right under its row (children) and a second click closes it. extraStages: the protocols
-// started on the episode (N3), right after the clinical assessment.
+// The surveillance sheet (owner, 8/11/2026, design 2): every section on one page, one under the other, and on the
+// left a small index of the steps (a coloured dot each, the progress under them); a click on a step scrolls to it.
+// extraStages: the protocols started on the episode (N3), right after the clinical assessment.
 export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [], questionnaire = null, children = null }) {
   const { language } = useLanguage()
   const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire)
   const at = baseStages.findIndex(stage => stage.id === 'assessment') + 1
   const stages = extraStages.length ? [...baseStages.slice(0, at), ...extraStages, ...baseStages.slice(at)] : baseStages
+  const done = baseStages.filter(stage => stage.status === 'complete').length
+  const go = id => {
+    onSelect?.(id)
+    document.getElementById(`sheet-${id}-${record.id}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
   return (
-    <div className="episode-steps" aria-label={language === 'el' ? 'Βήματα επιτήρησης' : 'Surveillance steps'}>
-      {stages.map(stage => {
-        const open = activeStage === stage.id
-        return (
-          <div key={stage.id} className={`episode-step${open ? ' is-open' : ''}`}>
-            <EpisodeStep stage={stage} active={open} onSelect={id => onSelect?.(open ? '' : id)} />
-            {open && <div className="episode-step-body">{children}</div>}
-          </div>
-        )
-      })}
+    <div className="sheet-layout">
+      <nav className="sheet-index" aria-label={language === 'el' ? 'Βήματα επιτήρησης' : 'Surveillance steps'}>
+        {stages.map(stage => <EpisodeStep key={stage.id} stage={stage} active={activeStage === stage.id} onSelect={go} />)}
+        <div className="sheet-progress">
+          <span>{language === 'el' ? `${done} από ${baseStages.length} συμπληρωμένα` : `${done} of ${baseStages.length} completed`}</span>
+          <i><b style={{ width: `${Math.round((done / Math.max(1, baseStages.length)) * 100)}%` }} /></i>
+        </div>
+      </nav>
+      <div className="sheet-body">{children}</div>
     </div>
   )
 }
@@ -165,36 +168,37 @@ export function SurveillanceJourneyGuidance({
         <span>{t('clinicalRecords.noImmediateIntervention')}</span>
       </div>
     )
+  // One line on top of the sheet (owner, 8/11/2026): what needs attention, each item a link to its section.
   return (
-    <AttentionList
-      className="journey-attention"
-      title={t('clinicalRecords.attentionNeeded')}
-      limit={3}
-      moreLabel={count => String(t('clinicalRecords.attentionMore')).replace('{count}', String(count))}
-      items={cues.map(cue => ({ id: cue.id, text: cue.title, tone: cue.tone === 'danger' ? 'danger' : cue.tone === 'warning' || cue.tone === 'due' ? 'warning' : 'info', onClick: onSelect ? () => onSelect(cue.id) : null }))}
-    />
+    <div className="sheet-attention" role="note">
+      <strong>{t('clinicalRecords.attentionNeeded')}:</strong>
+      {cues.map((cue, index) => (
+        <button key={`${cue.id}-${index}`} type="button" className={`sheet-attention-item tone-${cue.tone === 'danger' ? 'danger' : cue.tone === 'warning' || cue.tone === 'due' ? 'warning' : 'info'}`} onClick={onSelect ? () => onSelect(cue.id) : undefined}>
+          {cue.title}
+        </button>
+      ))}
+    </div>
   )
 }
 
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
 function EpisodeStep({ stage, active, onSelect }) {
-  const Chevron = active ? ChevronDown : ChevronRight
   const tone = stage.status === 'complete' ? 'done' : stage.status === 'due' || stage.status === 'waiting' ? 'due' : 'pending'
   return (
     <button
       type="button"
-      className={`episode-step-row tone-${tone}${stage.protocol ? ' is-protocol' : ''}`}
+      className={`sheet-index-step tone-${tone}${active ? ' is-active' : ''}${stage.protocol ? ' is-protocol' : ''}`}
       disabled={stage.locked}
-      aria-expanded={active}
+      aria-current={active ? 'step' : undefined}
+      title={[stage.label, stage.meta].filter(Boolean).join(' · ')}
       data-demo-step={
         DEMO_STEP_STAGES.has(stage.id) ? `clabsi_classification:${stage.id}` : undefined
       }
       onClick={() => onSelect?.(stage.id)}
     >
       <i className="episode-step-dot" aria-hidden="true" />
-      <strong><Chevron size={14} aria-hidden="true" />{stage.label}</strong>
-      <span className="episode-step-meta">{stage.meta}</span>
+      <span>{stage.label}</span>
     </button>
   )
 }
