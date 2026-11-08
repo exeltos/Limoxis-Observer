@@ -97,6 +97,7 @@ function departmentFigures(snapshot={}){
  for(const [name,total,part] of d.handHygiene?.byDepartment||[])if(num(total))put(name,'handHygiene',round1(pct(part,total)))
  for(const [name,count,score] of d.bundles?.byDepartment||[])if(num(count))put(name,'bundles',num(score))
  for(const [name,n] of sumCells(d.surveillance?.haiByDepartment))put(name,'hai',n)
+ for(const [name,n] of d.surveillance?.byDepartment||[])if(num(n)!=null)put(name,'surveillance',num(n))
  for(const [name,n] of sumCells(d.quality?.severityByDepartment))put(name,'incidents',n)
  for(const [name,executions,withFinding] of d.controls?.byDepartment||[])if(typeof name==='string'&&!/^[0-9a-f-]{36}$/i.test(name)&&num(executions))put(name,'controlFindings',round1(pct(withFinding,executions)))
  return out
@@ -105,12 +106,15 @@ export const GRID_COLUMNS=Object.freeze([
  {key:'handHygiene',label:['Υγιεινή χεριών','Hand hygiene'],unit:'%',better:'up',target:'handHygiene'},
  {key:'bundles',label:['Δέσμες μέτρων','Bundles'],unit:'%',better:'up',target:'bundles'},
  {key:'hai',label:['ΛΣΦΥ','HAI'],better:'down'},
+ {key:'surveillance',label:['Περιστατικά επιτήρησης','Surveillance cases'],better:'down'},
  {key:'controlFindings',label:['Έλεγχοι με εύρημα','Controls with a finding'],unit:'%',better:'down'},
  {key:'incidents',label:['Συμβάντα','Incidents'],better:'down'},
 ])
 // tone: against the target where there is one (good / warning / danger), else a count of 0 is good and the most is danger.
-export function departmentGrid(snapshot,previousSnapshot,targets={}){
- const now=departmentFigures(snapshot),before=previousSnapshot?departmentFigures(previousSnapshot):new Map()
+// only: the departments to compare (the wards); none given, every department with a figure.
+export function departmentGrid(snapshot,previousSnapshot,targets={},only=[]){
+ const keep=only?.length?new Set(only):null
+ const now=new Map([...departmentFigures(snapshot)].filter(([name])=>!keep||keep.has(name))),before=previousSnapshot?departmentFigures(previousSnapshot):new Map()
  const columns=GRID_COLUMNS.filter(column=>[...now.values()].some(row=>row[column.key]!=null))
  const max=Object.fromEntries(columns.map(column=>[column.key,Math.max(0,...[...now.values()].map(row=>row[column.key]??0))]))
  const tone=(column,value)=>{

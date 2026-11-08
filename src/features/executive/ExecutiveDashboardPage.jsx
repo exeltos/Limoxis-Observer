@@ -26,7 +26,7 @@ import { signalDemoScenario } from '../demo/demoScenarioSignals'
 import { TARGETS,executiveKpis,judgedByTarget,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { loadObjectives } from '../quality/review/reviewService'
-import { loadExecutiveParts,loadGovernanceStatus,loadSeparateDepartments,separateMdrPatients } from './executiveService'
+import { loadExecutiveParts,loadGovernanceStatus,loadPatientDayDepartments,separateMdrPatients } from './executiveService'
 import { departmentGrid,departmentProfile,patientDaysIn,rateMeasures,separateHai,summaryHighlights,yearAgoRange } from './executiveInsights'
 import { loadPatientDayPeriods } from '../management/patientDayPeriodsCloudService'
 import { ExecutiveDepartments } from './ExecutiveDepartments'
@@ -127,8 +127,8 @@ export function ExecutiveDashboardPage(){
  // The departments counted apart from the hospital's patient days (Παιδιατρική…): their cases are left out of the
  // hospital's rates per 1,000 patient days (owner, 8/11/2026). A department chosen in the filters uses its own days.
  const separateKey=[organizationId,department,range.from,range.to,previous?.from,previous?.to].join('|')
- const [separate,setSeparate]=useState({key:'',names:[],mdrNow:0,mdrBefore:0})
- useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;(async()=>{const list=department?[]:await loadSeparateDepartments(organizationId).catch(()=>[]);const [mdrNow,mdrBefore]=await Promise.all([separateMdrPatients(organizationId,range,list),separateMdrPatients(organizationId,previous,list)]);if(live)setSeparate({key:separateKey,names:list.map(item=>item.name),mdrNow,mdrBefore})})();return()=>{live=false}},[isDemo,organizationId,department,range,previous,separateKey])
+ const [separate,setSeparate]=useState({key:'',names:[],wards:[],mdrNow:0,mdrBefore:0})
+ useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;(async()=>{const all=await loadPatientDayDepartments(organizationId).catch(()=>[]),list=department?[]:all.filter(item=>item.separate);const [mdrNow,mdrBefore]=await Promise.all([separateMdrPatients(organizationId,range,list),separateMdrPatients(organizationId,previous,list)]);if(live)setSeparate({key:separateKey,names:list.map(item=>item.name),wards:all.filter(item=>item.tracked).map(item=>item.name),mdrNow,mdrBefore})})();return()=>{live=false}},[isDemo,organizationId,department,range,previous,separateKey])
  const kpis=useMemo(()=>{
   const withRates=(items,period,shot,mdr)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period,department),{hai:separateHai(shot,separate.names),mdro:mdr,names:separate.names}))]
   const now=withRates(executiveKpis(snapshot,governance,targets,rates.now),range,snapshot,separate.mdrNow)
@@ -171,7 +171,8 @@ export function ExecutiveDashboardPage(){
  // The Analysis sections this viewer may see (modules of the operating profile; the Director reads aggregates only, no reporting lists).
  const sectionVisible=id=>(!TAB_MODULES[id]||TAB_MODULES[id].some(module=>moduleEnabled(module)))&&!(id==='reporting'&&role===ROLES.HOSPITAL_DIRECTOR)
  const tabVisible=([id,,,,sections])=>id==='summary'||(canAnalysis&&sections.some(sectionVisible))
- const grid=useMemo(()=>departmentGrid(snapshot,previousSnapshot,targets),[snapshot,previousSnapshot,targets])
+ // The comparison of departments: the wards (the departments that keep patient days), not offices (owner, 8/11/2026).
+ const grid=useMemo(()=>departmentGrid(snapshot,previousSnapshot,targets,separate.wards),[snapshot,previousSnapshot,targets,separate.wards])
  const [chosenDepartment,setChosenDepartment]=useState('')
  const previousYear=previous?String(previous.from).slice(0,4):'',sameYear=String(range.from).slice(0,4)===String(range.to).slice(0,4)
  // «Ίδια περίοδος 2025» (owner, 8/11/2026: not «Πέρσι»); the column of the period is its year when it is one year.

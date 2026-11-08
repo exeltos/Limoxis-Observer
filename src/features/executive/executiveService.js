@@ -39,11 +39,12 @@ export function clearExecutiveCache(){cache.clear()}
 
 // The departments counted apart from the hospital's total of patient days (Παιδιατρική…) and the patients with a
 // multidrug-resistant isolate in them for a period: left out of the hospital's rates per 1,000 patient days.
-export function loadSeparateDepartments(organizationId,{now=Date.now()}={}){
- return remembered(`separate|${organizationId}`,async()=>{
-  const {data,error}=await supabase.from('departments').select('id,name').eq('organization_id',organizationId).eq('patient_days_separate',true)
+// The departments that keep patient days (the wards, compared in the overview) and which of them are counted apart.
+export function loadPatientDayDepartments(organizationId,{now=Date.now()}={}){
+ return remembered(`wards|${organizationId}`,async()=>{
+  const {data,error}=await supabase.from('departments').select('id,name,patient_days_separate,patient_days_tracked').eq('organization_id',organizationId).or('patient_days_tracked.eq.true,patient_days_separate.eq.true')
   if(error)throw error
-  return data||[]
+  return (data||[]).map(row=>({id:row.id,name:row.name,separate:Boolean(row.patient_days_separate),tracked:Boolean(row.patient_days_tracked)}))
  },now)
 }
 export async function separateMdrPatients(organizationId,period,departments){

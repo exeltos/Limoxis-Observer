@@ -122,3 +122,9 @@
 /* «Τμήματα»: «Σύγκριση τμημάτων» (a click on a department chooses it) and its measures against the departments' average. */
 .exec-dept-grid tr.is-chosen th{color:var(--lo-color-primary)}
 .exec-departments{display:grid;gap:12px}
+/* A department's details open right under its row (owner, 8/11/2026). */
+.exec-dept-toggle{display:inline-flex;align-items:center;gap:4px;font-weight:700}
+.exec-dept-grid tr.exec-dept-detail>td{padding:6px 10px 12px 26px;text-align:left;background:#f6f8fb}
+.exec-dept-detail-table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-radius:8px}
+.exec-dept-detail td{white-space:normal}
+.exec-dept-detail small{display:block;margin-top:6px;font-size:11.5px;color:var(--lo-color-muted)}

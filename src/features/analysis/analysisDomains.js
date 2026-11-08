@@ -14,6 +14,8 @@ import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 import { buildLiraMetrics, buildPpsMetrics } from './analysisAddonMetrics'
 import { liraDemoInvestigations } from '../lira/liraDemoInvestigations'
 import { buildQualityFoodMetrics, qualityFoodSection } from './analysisQualityFood'
+import { odipyGroupOf } from '../quality/odipyCategories'
+import { categoryKind, incidentCategoryLabel } from '../quality/qualityVocabulary'
 import { loadKitchenLocal } from '../kitchen/kitchenService'
 import { withStatuses } from '../kitchen/kitchenModel'
 import { loadResourcesLocal } from '../quality/resources/resourceService'
@@ -122,6 +124,8 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status) && row.dueDate && row.dueDate < today).length,
       monthly: tally(incidents, row => month(row.date)).sort((a, b) => a[0].localeCompare(b[0])),
       severityByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.severity || '—', 1]),
+      byCategory: tally(incidents, row => row.category || '—'),
+      categoryByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.category || '—', 1]),
     },
     workforce: (() => {
       const active = employeeRows.filter(row => (row.employmentStatus || 'active') === 'active')
@@ -371,6 +375,9 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
+        // The categories of the incidents (owner, 8/11/2026): which, and where by group of the ΟΔΙΠΥ form.
+        { type: 'bars', title: tx('Κατηγορίες συμβάντων', 'Incident categories'), subtitle: tx('Τι είδους συμβάντα αναφέρθηκαν.', 'What kind of incidents were reported.'), rows: incidentCategoryRows(q.byCategory, en) },
+        { type: 'matrix', wide: true, title: tx('Κατηγορίες ανά τμήμα', 'Categories by department'), subtitle: tx('Ομάδες κατηγοριών του εντύπου ΟΔΙΠΥ σε κάθε τμήμα.', 'Groups of the ΟΔΙΠΥ form in each department.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.categoryByDepartment?.map(([row, column, n]) => [row, incidentGroupLabel(column, en), n]) },
         { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), columnOrder: ['low', 'medium', 'high', 'critical'].map(label), cells: q.severityByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         // No severity donut: it repeated the «Total» row of the table above.
         { type: 'bars', title: tx('Κατάσταση συμβάντων', 'Incident status'), subtitle: tx('Πού βρίσκεται η διερεύνηση.', 'Where investigation stands.'), rows: named(q.byStatus) },
@@ -450,4 +457,21 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'qualityfood': return qualityFoodSection(d.qualityFood || {}, tx)
     default: return null
   }
+}
+
+// Incident categories (the record's key) named, and grouped by the group of the ΟΔΙΠΥ form; a category of the hospital's
+// own list is a complaint or «Άλλες».
+export function incidentGroupLabel(key, en = false) {
+  if (!key || key === '—') return en ? 'No category' : 'Χωρίς κατηγορία'
+  const group = odipyGroupOf(key)
+  if (group) return en ? group.en : group.el
+  return categoryKind(key) === 'complaint' ? (en ? 'Complaints' : 'Παράπονα') : (en ? 'Other' : 'Άλλες')
+}
+export function incidentCategoryRows(rows = [], en = false) {
+  const out = new Map()
+  for (const [key, n] of rows || []) {
+    const name = !key || key === '—' ? (en ? 'No category' : 'Χωρίς κατηγορία') : incidentCategoryLabel(key, [], en ? 'en' : 'el').replace(/^[^·]*·\s*/, '') || key
+    out.set(name, (out.get(name) || 0) + (Number(n) || 0))
+  }
+  return [...out].sort((a, b) => b[1] - a[1])
 }
