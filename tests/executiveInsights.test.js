@@ -36,3 +36,15 @@ describe('hospital overview · summary', () => {
     expect(grid.rows[1].cells[0].tone).toBe('good')
   })
 })
+
+describe('rates per 1,000 patient days', () => {
+  it('takes the share of each hospital period that falls in the range, never a department\'s', async () => {
+    const { patientDaysIn, rateMeasures } = await import('../src/features/executive/executiveInsights')
+    const periods = [{ scope: 'hospital', from: '2026-01-01', to: '2026-12-31', value: 36500 }, { scope: 'department', from: '2026-01-01', to: '2026-12-31', value: 999 }]
+    expect(patientDaysIn(periods, { from: '2026-01-01', to: '2026-01-10' })).toBe(1000)
+    expect(patientDaysIn([], { from: '2026-01-01', to: '2026-01-10' })).toBeNull()
+    const [hai] = rateMeasures([{ id: 'hai', value: 3 }], 1000)
+    expect(hai).toMatchObject({ id: 'haiRate', value: 3 })
+    expect(rateMeasures([{ id: 'hai', value: 3 }], null)[0].value).toBeNull()
+  })
+})

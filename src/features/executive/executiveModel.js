@@ -101,7 +101,7 @@ export function targetsFromObjectives(objectives,year=new Date().getFullYear()){
 // The value of each of the three from the platform's indicators (null where the hospital has no such indicator).
 // The overview's table: the measures by area, in this order.
 export const EXEC_AREAS=Object.freeze([
- ['infections',['Λοιμώξεις & μικροβιολογία','Infections & microbiology'],['hai','mdro']],
+ ['infections',['Λοιμώξεις & μικροβιολογία','Infections & microbiology'],['hai','haiRate','mdro','mdroRate']],
  ['prevention',['Πρόληψη & έλεγχοι','Prevention & controls'],['handHygiene','bundles','overdueControls']],
  ['quality',['Ποιότητα','Quality'],['incidents','capaOverdue']],
  ['people',['Προσωπικό & εκπαίδευση','Workforce & training'],['training']],

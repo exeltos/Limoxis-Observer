@@ -115,3 +115,30 @@ export function departmentProfile(grid,name){
   return {key:column.key,label:column.label,unit:column.unit||'',value:cell.value,average,previous:cell.previous,tone:cell.tone,trend:cell.trend,good:cell.good,versus}
  })
 }
+
+// Patient days of the period, from the hospital's periods (patient_day_periods, the hospital's own, not a department's):
+// each period counts for the share of its days that falls in the range.
+const dayNumber=value=>Math.floor(Date.UTC(Number(String(value).slice(0,4)),Number(String(value).slice(5,7))-1,Number(String(value).slice(8,10)))/86400000)
+export function patientDaysIn(periods=[],range){
+ if(!range?.from||!range?.to)return null
+ const from=dayNumber(range.from),to=dayNumber(range.to)
+ let total=0,any=false
+ for(const period of periods||[]){
+  if(period.scope&&period.scope!=='hospital')continue
+  const start=dayNumber(period.from),end=dayNumber(period.to),value=Number(period.value)
+  if(!Number.isFinite(value)||end<start)continue
+  const overlap=Math.min(end,to)-Math.max(start,from)+1
+  if(overlap<=0)continue
+  total+=value*overlap/(end-start+1);any=true
+ }
+ return any?Math.round(total):null
+}
+// The rates per 1,000 patient days (owner, 7/11/2026): HAI and patients with a multidrug-resistant isolate.
+export function rateMeasures(kpis=[],patientDays){
+ const per=(id)=>{const item=kpis.find(row=>row.id===id);return item?.value==null||!patientDays?null:Math.round(item.value/patientDays*1000*100)/100}
+ const days=patientDays?new Intl.NumberFormat('el-GR').format(patientDays):'—'
+ return [
+  {id:'haiRate',modules:['surveillance'],parts:['domains'],label:['ΛΣΦΥ ανά 1.000 ημέρες νοσηλείας','HAI per 1,000 patient days'],value:per('hai'),hint:[`${days} ημέρες νοσηλείας`,`${days} patient days`],tone:'neutral',better:'down',tab:'surveillance'},
+  {id:'mdroRate',modules:['laboratory'],parts:['microbiology'],label:['Πολυανθεκτικά ανά 1.000 ημέρες νοσηλείας','Multidrug-resistant per 1,000 patient days'],value:per('mdro'),hint:[`${days} ημέρες νοσηλείας`,`${days} patient days`],tone:'neutral',better:'down',tab:'laboratory'},
+ ]
+}

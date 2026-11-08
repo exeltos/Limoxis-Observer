@@ -22,11 +22,12 @@ import { printReportLater } from '../../core/export/reportDocument'
 import { periodTag,readSharedPeriod,writeSharedPeriod } from '../analysis/sharedPeriod'
 import { loadCommittees } from '../committees/committeeData'
 import { signalDemoScenario } from '../demo/demoScenarioSignals'
-import { TARGETS,executiveKpis,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
+import { TARGETS,executiveKpis,judgedByTarget,filtersToQuery,parseFilters,periodRange,previousRange,indicatorRates,targetsFromObjectives,visibleFor,withDeltas } from './executiveModel'
 import { calculateCloudDefinition,collectCloudIndicatorMetrics,loadOperationalIndicatorDefinitions } from '../indicators/indicatorCloudService'
 import { loadObjectives } from '../quality/review/reviewService'
 import { loadExecutiveParts,loadGovernanceStatus } from './executiveService'
-import { changeSentences,departmentGrid,departmentProfile,yearAgoRange } from './executiveInsights'
+import { changeSentences,departmentGrid,departmentProfile,patientDaysIn,rateMeasures,yearAgoRange } from './executiveInsights'
+import { loadPatientDayPeriods } from '../management/patientDayPeriodsCloudService'
 import { ExecutiveDepartments } from './ExecutiveDepartments'
 import { boardReportDocument,departmentReportDocument } from './executiveReports'
 import { printReport } from '../../core/export/reportDocument'
@@ -118,10 +119,14 @@ export function ExecutiveDashboardPage(){
  const snapshot=useMemo(()=>snapshotOf(current),[current])
  const governance=ready(current.governance)?current.governance.data:null
  const previousSnapshot=useMemo(()=>(previous&&['domains','people','qualityFood','microbiology'].every(key=>ready(before[key]))?snapshotOf(before):null),[previous,before])
+ // The hospital's patient days (Δεδομένα), for the rates per 1,000 patient days.
+ const [dayPeriods,setDayPeriods]=useState([])
+ useEffect(()=>{if(isDemo||!organizationId)return undefined;let live=true;loadPatientDayPeriods(organizationId).then(rows=>{if(live)setDayPeriods(rows)}).catch(()=>{});return()=>{live=false}},[isDemo,organizationId])
  const kpis=useMemo(()=>{
-  const now=executiveKpis(snapshot,governance,targets,rates.now)
-  return visibleFor(withDeltas(now,previousSnapshot?executiveKpis(previousSnapshot,governance,targets,rates.before):null),moduleEnabled)
- },[snapshot,governance,previousSnapshot,moduleEnabled,targets,rates])
+  const withRates=(items,period)=>[...items,...judgedByTarget(rateMeasures(items,patientDaysIn(dayPeriods,period)))]
+  const now=withRates(executiveKpis(snapshot,governance,targets,rates.now),range)
+  return visibleFor(withDeltas(now,previousSnapshot?withRates(executiveKpis(previousSnapshot,governance,targets,rates.before),previous):null),moduleEnabled)
+ },[snapshot,governance,previousSnapshot,moduleEnabled,targets,rates,dayPeriods,range,previous])
  const loadingAny=PART_KEYS.some(key=>current[key]?.status==='loading')
  const departments=useMemo(()=>(ready(current.microbiology)?current.microbiology.data?.departments||[]:[]).filter(item=>!item.organizationId||item.organizationId===organizationId),[current.microbiology,organizationId])
  const departmentName=department?(departments.find(item=>item.id===department)?.name||tx('Ένα τμήμα','One department')):tx('Όλα τα τμήματα','All departments')
