@@ -3,6 +3,7 @@ import { OverflowMenu } from '../../../design-system/OverflowMenu'
 import { StatusBadge } from '../../../design-system/StatusBadge'
 import { useLanguage } from '../../../core/i18n/LanguageContext'
 import { FORM_STATUS } from './formStatus'
+import { useFormsTab } from './FormSection'
 
 // The one row of every form connected to an episode (bundles, scales, notifiable report,
 // incidents, questionnaires …): title with a detail line, the status in plain words, the
@@ -16,8 +17,25 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
   const { t } = useLanguage()
   const word = statusLabel || (status ? t(`episodeForms.status.${status}`) : '')
   const danger = signal === 'danger' || status === FORM_STATUS.OVERDUE
+  // In the forms tab the row's action is in its «⋯» and a click on the row does it (owner, 8/11/2026).
+  const { flat } = useFormsTab()
+  const items = flat && action ? [{ id: 'action', label: action.label, onClick: action.onClick, disabled: action.disabled }, ...menu] : menu
+  const rowProps =
+    flat && action && !action.disabled
+      ? {
+          className: `episode-form-row is-clickable${danger ? ' is-signal' : ''}`,
+          tabIndex: 0,
+          onClick: event => !event.target.closest?.('button,a,[role="menu"]') && action.onClick(),
+          onKeyDown: event => {
+            if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault()
+              action.onClick()
+            }
+          },
+        }
+      : { className: `episode-form-row${danger ? ' is-signal' : ''}` }
   return (
-    <li className={`episode-form-row${danger ? ' is-signal' : ''}`}>
+    <li {...rowProps}>
       <div className="episode-form-main">
         <strong>
           {title}
@@ -35,12 +53,12 @@ export function FormRow({ title, detail, status, statusLabel, statusDetail, sign
         {dateLabel && <small>{dateLabel}</small>}
       </div>
       <div className="episode-form-action">
-        {action && (
+        {action && !flat && (
           <Button variant={action.primary ? 'primary' : 'secondary'} onClick={action.onClick} disabled={action.disabled}>
             {action.label}
           </Button>
         )}
-        {menu.filter(Boolean).length > 0 && <OverflowMenu label={t('episodeForms.rowActions')} items={menu} />}
+        {items.filter(Boolean).length > 0 && <OverflowMenu label={t('episodeForms.rowActions')} items={items.filter(Boolean)} />}
       </div>
     </li>
   )

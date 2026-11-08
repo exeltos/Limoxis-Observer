@@ -50,3 +50,16 @@
 .notifiable-new{grid-template-columns:minmax(0,1fr)}
 .notifiable-new-patient{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .notifiable-new-mode{display:grid;gap:6px}
+
+/* The tab (owner, 8/11/2026): every section open, its title like a step of the surveillance sheet, actions in a «⋯»,
+   one soft row per form and no line between them. */
+.episode-form-section.is-flat{border-bottom:0;padding:4px 0 14px}
+.episode-form-section.is-flat .episode-form-section-head{min-height:40px}
+.episode-form-section-title{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px}
+.episode-form-section-title>svg{box-sizing:content-box;padding:6px;border-radius:8px;background:#eef4fb;color:#1d5f9c}
+.episode-form-section-title h3{margin:0;font-size:15px;font-weight:650;color:#14253d}
+.episode-form-section.is-flat .episode-form-section-body{padding:2px 0 0}
+.episode-form-section.is-flat .episode-form-row{border-top:0;margin-top:6px;padding:10px 12px;border-radius:9px;background:#f6f8fb;grid-template-columns:minmax(0,1.6fr) minmax(0,1.1fr) minmax(0,1fr) 44px}
+.episode-form-section.is-flat .episode-form-row.is-clickable{cursor:pointer}
+.episode-form-section.is-flat .episode-form-row.is-clickable:hover{background:#eef3f9}
+.episode-form-section.is-flat .episode-form-empty{padding:9px 12px;border-radius:9px;background:#f6f8fb;color:#94a3b8;font-style:italic}

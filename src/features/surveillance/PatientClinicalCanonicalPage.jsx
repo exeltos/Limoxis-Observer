@@ -599,11 +599,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           samples={patientMode ? admissionSamples : recordSamples}
           scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
           onOpenStage={stage => {
-            if (stage === 'questionnaire') {
-              setTab('episodeForms')
-              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
-              return
-            }
             setJourneyStage(stage)
             setTab('surveillanceJourney')
           }}
@@ -624,8 +619,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                             type="button"
                             className="record-summary-link"
                             onClick={() => {
-                              setTab('episodeForms')
-                              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+                              // The questionnaire is a step of the surveillance sheet (owner, 8/11/2026).
+                              setJourneyStage('questionnaire')
+                              setTab('surveillanceJourney')
                             }}
                           >
                             {epiEntry.summary.status === 'done' ? t('epiQuestionnaire.link') : t('episodeForms.status.pending')}

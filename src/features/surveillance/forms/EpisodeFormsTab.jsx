@@ -11,13 +11,22 @@ import './episodeForms.css'
 // chip of the record header opens «Κλίμακες».
 // `withoutAdmission` renders only the sections that make sense for a patient with no admission,
 // as plain sections of the page (no panel title of their own).
+const SHEET_SECTIONS = new Set(['bundles', 'epiQuestionnaire'])
+
 export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmission = false }) {
   const { t } = useLanguage()
   const sections = useMemo(
-    () => visibleEpisodeFormSections(ctx).filter(section => !withoutAdmission || section.withoutAdmission),
+    () =>
+      visibleEpisodeFormSections(ctx)
+        .filter(section => !withoutAdmission || section.withoutAdmission)
+        // The device bundles and the epidemiological history are steps of the surveillance sheet; the tab does not
+        // repeat them (owner, 8/11/2026). The printed record still lists them.
+        .filter(section => !SHEET_SECTIONS.has(section.id)),
     [ctx, withoutAdmission],
   )
   const { value, openSection } = useFormsTabState()
+  // The tab shows every section open, its actions in a «⋯» (owner, 8/11/2026).
+  const flatValue = useMemo(() => ({ ...value, flat: true }), [value])
   const handled = useRef(null)
   useEffect(() => {
     if (!openRequest?.id || handled.current === openRequest.nonce) return
@@ -30,7 +39,7 @@ export function EpisodeFormsTab({ ctx, forms, openRequest = null, withoutAdmissi
   }, [openRequest, openSection])
   const content =
     sections.length === 0 ? null : (
-      <FormsTabContext.Provider value={value}>
+      <FormsTabContext.Provider value={flatValue}>
         <div className="episode-forms">
           {sections.map(section => (
             <section.Component

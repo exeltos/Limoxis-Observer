@@ -61,7 +61,9 @@ describe('incident report from an episode', () => {
     expect(within(list).getByText('Εκκρεμεί')).toBeInTheDocument()
     fireEvent.click(within(list).getByRole('button', { name: 'Άνοιγμα' }))
     expect(goTo).toHaveBeenCalledWith('/quality/incidents/INC-1', { returnTab: 'episodeForms' })
-    fireEvent.click(screen.getByRole('button', { name: /Αναφορά συμβάντος/ }))
+    // The section's action is in its «⋯» (owner, 8/11/2026).
+    fireEvent.click(document.querySelector('[data-section="incidents"] .episode-form-section-actions button'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Αναφορά συμβάντος/ }))
     expect(goTo).toHaveBeenLastCalledWith('/quality/report', expect.objectContaining({ returnTab: 'episodeForms', state: { episodeSource: expect.objectContaining({ linkedSurveillance: 'case-uuid' }) } }))
   })
 

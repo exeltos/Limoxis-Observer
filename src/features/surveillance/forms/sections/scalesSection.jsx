@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Plus, Stethoscope } from 'lucide-react'
-import { Button } from '../../../../design-system/Button'
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { CAPABILITIES } from '../../../../core/permissions/roles'
 import { PatientClinicalScalesPanel } from '../../../clinical-scales/PatientClinicalScalesPanel'
@@ -54,14 +53,7 @@ function ScalesSection({ ctx }) {
       defaultOpen
       summary={summary}
       needsAttention={overdue}
-      actions={
-        canRecord && (
-          <Button variant="secondary" onClick={() => ask(null)}>
-            <Plus size={14} aria-hidden="true" />
-            {t('episodeForms.scales.new')}
-          </Button>
-        )
-      }
+      actions={[canRecord && { id: 'new', label: t('episodeForms.scales.new'), icon: Plus, onClick: () => ask(null) }]}
     >
       {lines.length === 0 ? (
         <FormEmpty>{canRecord ? t('episodeForms.scales.empty') : t('episodeForms.scales.emptyReadOnly')}</FormEmpty>
