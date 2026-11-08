@@ -110,9 +110,10 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
   const at = baseStages.findIndex(stage => stage.id === 'assessment') + 1
   const stages = extraStages.length ? [...baseStages.slice(0, at), ...extraStages, ...baseStages.slice(at)] : baseStages
   const done = baseStages.filter(stage => stage.status === 'complete').length
+  const atIndex = stages.findIndex(stage => stage.id === activeStage)
   const go = id => {
     onSelect?.(id)
-    document.getElementById(`sheet-${id}-${record.id}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    document.getElementById(`sheet-${id}-${record.id}`)?.scrollIntoView?.({ block: 'nearest' })
   }
   return (
     <div className="sheet-layout">
@@ -123,7 +124,14 @@ export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSele
           <i><b style={{ width: `${Math.round((done / Math.max(1, baseStages.length)) * 100)}%` }} /></i>
         </div>
       </nav>
-      <div className="sheet-body">{children}</div>
+      <div className="sheet-body">
+        {children}
+        {/* One section at a time, no long scroll (owner, 8/11/2026): «Previous» / «Next» under it, or the index. */}
+        <div className="sheet-pager">
+          {atIndex > 0 && <button type="button" className="sheet-pager-button" onClick={() => go(stages[atIndex - 1].id)}>← {stages[atIndex - 1].label}</button>}
+          {atIndex >= 0 && atIndex < stages.length - 1 && <button type="button" className="sheet-pager-button is-next" onClick={() => go(stages[atIndex + 1].id)}>{stages[atIndex + 1].label} →</button>}
+        </div>
+      </div>
     </div>
   )
 }

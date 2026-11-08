@@ -148,7 +148,8 @@ describe('wiring', () => {
     expect(journey).toContain('<TherapyReviewCard')
     expect(journey).toContain('extraStages={extraStages}')
     const workspace = read('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
-    expect(workspace).toContain("t('sepsis.startProtocol')")
+    // «Start protocol» sits with the measures (the therapy section of the sheet), not in the sheet's header (owner, 8/11/2026).
+    expect(journey).toContain("t('sepsis.startProtocol')")
     expect(workspace).toContain('<ProtocolBadge entry={openRunFor(ep)}')
     expect(read('src/features/surveillance/SurveillanceCanonicalPage.jsx')).toContain('<ProtocolBadge entry={openRunOf(x)}')
     expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('canProtocol:')

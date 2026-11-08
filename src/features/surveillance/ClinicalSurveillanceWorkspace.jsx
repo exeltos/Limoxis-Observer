@@ -1,7 +1,7 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
-import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, Pencil, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
+import { Activity, CalendarClock, ChevronRight, Microscope, Pencil, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -13,6 +13,7 @@ import { epiSummary } from './epiQuestionnaire/epiQuestionnaireModel'
 import { Button } from '../../design-system/Button'
 import { DueDate } from '../../design-system/DueDate'
 import { Breadcrumbs } from '../../design-system/Breadcrumbs'
+import { BackButton } from '../../design-system/BackButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -206,6 +207,8 @@ export function SurveillanceWorkspace({
         <section className="episode-detail-card new-surveillance-flow-card">
           <header className="episode-detail-header">
             <div className="episode-detail-title">
+              {/* Back, as on every record page (owner, 8/11/2026). */}
+              <BackButton label={translate('copy.clinicalRecordCopy.surveillanceSamples', language === 'el' ? 'el' : 'en')} onClick={() => setDetailId('')} />
               <div>
                 <Breadcrumbs
                   ariaLabel={translate(
@@ -245,19 +248,6 @@ export function SurveillanceWorkspace({
             </div>
             <div className="episode-detail-actions">
               <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
-              {permissions.canProtocol && detailRecord.status === 'active' && (
-                <span className="episode-protocol-action">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setStartRequest({ nonce: Date.now(), episodeId: detailRecord.id, source: 'clinical' })
-                    }
-                  >
-                    <HeartPulse size={15} />
-                    {t('sepsis.startProtocol')}
-                  </Button>
-                </span>
-              )}
               <OverflowMenu
                 label={translate(
                   'copy.clinicalRecordCopy.surveillanceActions',

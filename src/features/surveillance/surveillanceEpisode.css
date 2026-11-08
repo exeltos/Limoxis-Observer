@@ -184,3 +184,19 @@ html body .surveillance-episode-page .sheet-body .clinical-panel{border:0!import
 .sheet-questions{display:flex;flex-direction:column}
 .sheet-question{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px dashed #e7ecf3}
 .sheet-question:last-child{border-bottom:0}
+/* The sheet reads as one form, not a pile of boxes (owner, 8/11/2026): the values are plain «label / value» lines,
+   the tables lose their frame, the notes are small grey text and the section header has no rule under it.
+   !important only where older episode rules set these with it. */
+html body .surveillance-episode-page .sheet-body .record-section-header{border-bottom:0!important;padding-bottom:4px!important;margin-bottom:6px!important}
+html body .surveillance-episode-page .sheet-body .detail-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))!important;gap:6px 24px!important;margin:0 0 6px!important}
+html body .surveillance-episode-page .sheet-body .detail-item{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;min-height:0!important}
+html body .surveillance-episode-page .sheet-body .detail-item strong{font-size:13.5px!important;font-weight:600!important}
+html body .surveillance-episode-page .sheet-body :is(.table-wrap,.registry-table-wrap,.scroll-table){border:0!important;box-shadow:none!important;border-radius:0!important;background:transparent!important}
+html body .surveillance-episode-page .sheet-body .evidence-box{border:0!important;border-left:3px solid #c9dcef!important;border-radius:0!important;background:transparent!important;padding:2px 12px!important;margin:4px 0!important}
+html body .surveillance-episode-page .sheet-body .clinical-panel .inline-empty{min-height:0!important;padding:4px 0!important;margin:0!important;background:transparent!important;border:0!important;text-align:left!important;font-size:12.5px!important;color:#64748b!important}
+html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22px!important;min-height:0!important}
+.sheet-protocol-action{margin:0 0 8px}
+.sheet-pager{display:flex;justify-content:space-between;gap:12px;padding:10px 22px 14px;border-top:1px solid #edf1f6}
+.sheet-pager-button{border:1px solid #cfd8e3;border-radius:9px;background:#fff;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;color:#1d5f9c;cursor:pointer}
+.sheet-pager-button:hover{background:#f2f7fc}
+.sheet-pager-button.is-next{margin-left:auto;background:#1d5f9c;border-color:#1d5f9c;color:#fff}

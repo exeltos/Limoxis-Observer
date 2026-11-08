@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, ClipboardList, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
+import { Activity, AlertTriangle, BedDouble, ClipboardList, HeartPulse, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
 import { translate } from '../../core/i18n/LanguageContext'
@@ -223,7 +223,7 @@ export function CanonicalJourney({
       >
       <div className="clinical-data-grid">
         <div className="sheet-anchor" id={`sheet-samples-${record.id}`}>
-        {(
+        {stage === 'samples' && (
           <StagePanel
             icon={Microscope}
             title={t('samples')}
@@ -276,7 +276,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-questionnaire-${record.id}`}>
-        {(
+        {stage === 'questionnaire' && (
           <StagePanel
             icon={ClipboardList}
             title={t('epiQuestionnaire.sectionTitle')}
@@ -313,7 +313,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-assessment-${record.id}`}>
-        {(
+        {stage === 'assessment' && (
           <StagePanel
             icon={ShieldCheck}
             title={t('clinicalAssessment')}
@@ -425,7 +425,7 @@ export function CanonicalJourney({
           />
         )}
         <div className="sheet-anchor" id={`sheet-hai-${record.id}`}>
-        {(
+        {stage === 'hai' && (
           <StagePanel
             icon={AlertTriangle}
             menu={[entryDelete('hai', record.haiClassification, t('haiClassification'))]}
@@ -485,7 +485,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-devices-${record.id}`}>
-        {(
+        {stage === 'devices' && (
           <StagePanel
             icon={Stethoscope}
             title={translate(
@@ -584,7 +584,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-isolation-${record.id}`}>
-        {(
+        {stage === 'isolation' && (
           <StagePanel
             icon={BedDouble}
             title={t('isolation')}
@@ -649,7 +649,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-therapy-${record.id}`}>
-        {(
+        {stage === 'therapy' && (
           <StagePanel
             icon={Pill}
             title={t('therapy')}
@@ -668,6 +668,13 @@ export function CanonicalJourney({
               ) : null
             }
           >
+            {/* The protocols (sepsis Hour-1 bundle …) start from the measures, not from the sheet's header (owner, 8/11/2026). */}
+            {permissions.canProtocol && (
+              <Button className="clinical-stage-action sheet-protocol-action" variant="secondary" onClick={() => setDialog('protocolPicker')}>
+                <HeartPulse size={14} />
+                {t('sepsis.startProtocol')}
+              </Button>
+            )}
             {record.therapy?.length ? (
               <StageTable
                 columns={[
@@ -738,7 +745,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-reassessment-${record.id}`}>
-        {(
+        {stage === 'reassessment' && (
           <StagePanel
             icon={RefreshCcw}
             title={t('reassessment')}
@@ -789,7 +796,7 @@ export function CanonicalJourney({
         )}
         </div>
         <div className="sheet-anchor" id={`sheet-outcome-${record.id}`}>
-        {(
+        {stage === 'outcome' && (
           <StagePanel
             icon={Activity}
             title={t('outcome')}
