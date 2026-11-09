@@ -57,8 +57,8 @@ export async function loadDepartmentStaff(organizationId, department) {
   return headsFirst(
     employees
       .filter(e => (demo ? e.department === department.name : e.departmentId === department.id))
-      .filter(e => !e.employmentStatus || e.employmentStatus === 'active' || e.employmentStatus === 'leave')
-      .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), userId: e.userId || null, active: true, fixed: {}, wishes: {} })),
+      // Inactive employees of the register come in out of the roster, below (owner, 9/11/2026).
+      .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), userId: e.userId || null, inactiveInRegister: e.employmentStatus === 'inactive', active: e.employmentStatus !== 'inactive', fixed: {}, wishes: {} })),
   )
 }
 

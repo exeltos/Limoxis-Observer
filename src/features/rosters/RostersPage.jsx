@@ -13,6 +13,7 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { Field } from '../../design-system/Field'
+import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { TimeField } from '../../design-system/TimeField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { downloadXlsx } from '../../core/export/xlsxExport'
@@ -176,7 +177,13 @@ export function RostersPage() {
       // The head: set by hand on the roster, else the department manager role (permissions), else the job position.
       let members = markHeads(
         saved
-          ? [...saved.members, ...staff.filter(s => !saved.members.some(m => m.employeeId === s.employeeId))].map(m => ({ ...m, isHead: Boolean(byId.get(m.employeeId)?.isHead), userId: byId.get(m.employeeId)?.userId || m.userId || null }))
+          ? [...saved.members, ...staff.filter(s => !saved.members.some(m => m.employeeId === s.employeeId))].map(m => ({
+              ...m,
+              isHead: Boolean(byId.get(m.employeeId)?.isHead),
+              userId: byId.get(m.employeeId)?.userId || m.userId || null,
+              // Made inactive in the register since: out of the roster, below.
+              ...(byId.get(m.employeeId)?.inactiveInRegister ? { active: false } : {}),
+            }))
           : staff,
         headUserIds,
         role === ROLES.DEPARTMENT_MANAGER ? user?.id : null,
@@ -614,7 +621,10 @@ export function RostersPage() {
       )}
 
       {roster && canEdit && panel === 'rules' && (
+        <ObserverDialog title={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')} width="wide" className="roster-rules-dialog" onClose={() => setPanel('')}>
         <section className="roster-panel roster-panel-rules" aria-label={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')}>
+          <div className="roster-col">
+          <b className="roster-col-title">{tx('Άτομα ανά βάρδια', 'People per shift')}</b>
           <div className="roster-demand">
             <span />
             <b>{tx('Καθημ.', 'Weekday')}</b>
@@ -627,6 +637,7 @@ export function RostersPage() {
                 ))}
               </div>
             ))}
+          </div>
           </div>
           <div className="roster-others">
             <b>{tx('Άλλες βάρδιες του τμήματος', 'Other shifts of the department')}</b>
@@ -664,22 +675,24 @@ export function RostersPage() {
             <p className="roster-muted">{tx('Μετράει στην κατηγορία της (από την ώρα έναρξης)· με αριθμό ατόμων τη βάζει και η αυτόματη δημιουργία, με 0 μόνο με το χέρι.', 'Counts in its kind (by its start); with a number of people the automatic roster places it too, with 0 only by hand.')}</p>
           </div>
           <div className="roster-rule-list">
-            <label className="roster-rule">
+            <b className="roster-col-title">{tx('Κανόνες', 'Rules')}</b>
+            <div className="roster-rule">
               <span>{tx('Κωδικοί βαρδιών', 'Shift codes')}</span>
-              <select value={codeStyle} onChange={event => update({ ...roster, rules: { ...roster.rules, codes: event.target.value } })}>
+              <select aria-label={tx('Κωδικοί βαρδιών', 'Shift codes')} value={codeStyle} onChange={event => update({ ...roster, rules: { ...roster.rules, codes: event.target.value } })}>
                 <option value="letters">{tx('Γράμματα (Π, Α, Ν, Ρ)', 'Letters (M, A, N, R)')}</option>
                 <option value="iaso">{tx('Αριθμοί μισθοδοσίας (4, 19, 20, R)', 'Payroll numbers (4, 19, 20, R)')}</option>
               </select>
-            </label>
+            </div>
             {RULE_FIELDS.map(key => (
-              <label key={key} className="roster-rule">
+              <div key={key} className="roster-rule">
                 <span>{RULE_LABELS[key]}</span>
-                <input type="number" min="0" max="14" value={rules[key]} onChange={event => setRule(key, event.target.value)} />
-              </label>
+                <input type="number" min="0" max="14" aria-label={RULE_LABELS[key]} value={rules[key]} onChange={event => setRule(key, event.target.value)} />
+              </div>
             ))}
             <p className="roster-muted">{tx('Πάντα: όχι απόγευμα → πρωί (11 ώρες ανάπαυση), όχι πρωί/ενδιάμεση → νύχτα· ίσες βάρδιες, νύχτες και Σ/Κ· ρεπό κατά προτίμηση ανά δύο. Με κλικ σε όνομα: ποιες βάρδιες κάνει το άτομο.', 'Always: no afternoon → morning (11 hours of rest), no morning/intermediate → night; even shifts, nights and weekends; days off preferably in pairs. Click a name: the shifts that person works.')}</p>
           </div>
         </section>
+        </ObserverDialog>
       )}
 
       {roster && canEdit && panel === 'log' && (

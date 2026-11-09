@@ -13,14 +13,17 @@
 .roster-panel{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:12px 14px;border:1px solid #e3e9f1;border-radius:14px;background:#fff}
 .roster-panel>.field{min-width:200px}
 .roster-panel select{height:40px}
-.roster-panel-rules{align-items:flex-start;gap:28px}
+.roster-panel-rules{display:grid;grid-template-columns:auto minmax(300px,1fr) minmax(340px,400px);align-items:start;gap:28px}
+.roster-col{display:grid;gap:8px;align-content:start}
+.roster-col-title{font-size:11.5px;color:#56677a}
 .roster-demand{display:grid;grid-template-columns:150px 56px 56px;gap:6px;align-items:center;font-size:12.5px}
 .roster-demand>b{font-size:11.5px;color:#56677a;text-align:center}
 .roster-demand-row{display:contents}
 .roster-demand input,.roster-rule input{width:56px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
-.roster-rule-list{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:6px 24px;flex:1 1 460px}
-.roster-rule{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:#1f3348}
-.roster-rule-list .roster-muted{grid-column:1/-1;margin:4px 0 0}
+.roster-rule-list{display:grid;grid-template-columns:1fr;gap:6px;align-content:start}
+.roster-rule{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:34px;font-size:12.5px;color:#1f3348}
+.roster-rule>span{white-space:nowrap}
+.roster-rule-list .roster-muted{margin:4px 0 0;font-size:12px;line-height:1.45}
 .roster-muted{margin:0;color:#56677a;font-size:12.5px}
 .roster-sheet{padding:12px 14px;border:1px solid #e3e9f1;border-radius:14px;background:#fff;min-width:0}
 .roster-grid-wrap{overflow-x:auto}
@@ -93,7 +96,8 @@
 .roster-need-actions button{justify-content:center;border:1px solid #d6dee8;font-size:12.5px}
 .roster-need-actions button.is-primary{border-color:#1d5f9c;background:#1d5f9c;color:#fff}
 .roster-need-actions button.is-primary:hover{background:#174f83}
-@media (max-width:900px){.roster-tools{margin-left:0}.roster-rule-list{grid-template-columns:1fr}}
+@media (max-width:1180px){.roster-panel-rules{grid-template-columns:1fr}}
+@media (max-width:900px){.roster-tools{margin-left:0}}
 @media print{.roster-toolbar,.roster-panel,.roster-legend,.roster-violations,.roster-ok,.roster-inactive,.roster-grip,.roster-name input{display:none}.roster-sheet{border:0;padding:0}}
 .roster-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#c24150;color:#fff;font-size:11px;font-weight:700}
 .roster-count.is-quiet{background:#e3e9f1;color:#1f3348}
@@ -124,7 +128,7 @@ button.roster-name-text:hover{text-decoration:underline}
 .roster-limit-number input{width:64px;height:30px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
 /* Where a dragged name will go: a blue line above the row. */
 .roster-grid tr.is-drop-target td{box-shadow:inset 0 3px 0 #1d5f9c}
-.roster-rule select{height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;font-size:12.5px}
+.roster-rule select{width:220px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;font-size:12.5px}
 .roster-others{display:grid;gap:6px;min-width:300px;font-size:12.5px;color:#1f3348}
 .roster-others>b{font-size:11.5px;color:#56677a}
 .roster-other{display:grid;grid-template-columns:32px 1fr 56px 56px 26px;gap:6px;align-items:center}
@@ -134,3 +138,10 @@ button.roster-name-text:hover{text-decoration:underline}
 .roster-other-remove:hover{background:#fde8ea;color:#a8323d}
 .roster-other-new{display:grid;grid-template-columns:90px 1fr 1fr auto;gap:8px;align-items:end}
 .roster-others .searchable-select-control>input{height:36px;padding-left:10px}
+/* Inside the card: no second frame. */
+.roster-rules-dialog .roster-panel{margin:0;padding:0;border:0}
+.roster-rules-dialog .roster-panel-rules{grid-template-columns:auto minmax(280px,1fr) minmax(320px,380px)}
+.roster-rules-dialog .roster-rule{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;text-align:left}
+.roster-rules-dialog .roster-rule>span{font-weight:400;color:#1f3348;font-size:12.5px}
+.roster-rules-dialog .roster-other-new{grid-template-columns:repeat(2,minmax(0,1fr))}
+.roster-rules-dialog .roster-other-new>.button{grid-column:1/-1}
