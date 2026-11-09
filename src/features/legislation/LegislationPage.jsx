@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BookMarked, ExternalLink, FilePlus2, Inbox, Link2, Pencil, Plus, Radar, RefreshCw, Scale, Trash2, XCircle } from 'lucide-react'
 import { Page } from '../../design-system/Page'
-import { PlatformLibrariesTabs } from '../platform/PlatformLibrariesTabs'
+import { PlatformLegalTabs } from '../platform/PlatformLegalTabs'
 import { ActionButton } from '../../design-system/ActionButton'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
@@ -46,6 +46,9 @@ export function LegislationPage() {
   // Inside «Έγγραφα & Κανονισμοί» ?tab= picks the section's tab; this page's own tab travels as ?view=.
   const requested = requestedParams.get('view') || requestedParams.get('tab')
   const [tab, setTab] = useState(() => (tabs.some(item => item.value === requested) ? requested : tabs[0]?.value || 'register'))
+  // The owner's «Νομοθεσία & πηγές»: the choice travels in the address (?view=), so the menu and old links open it.
+  const ownerView = ownerRoute && requested !== 'register' ? (['review', 'sources'].includes(requested) ? requested : 'library') : null
+  useEffect(() => { if (ownerView) setTab(ownerView) }, [ownerView])
   const [register, setRegister] = useState({ loading: true, versions: [], rows: [] })
   const [library, setLibrary] = useState({ loading: true, texts: [], versions: [] })
   const [candidates, setCandidates] = useState({ loading: true, items: [] })
@@ -74,7 +77,7 @@ export function LegislationPage() {
     {tab === 'library' && <ActionButton tone="primary" label={en ? 'New text' : 'Νέο κείμενο'} onClick={() => navigate(`${base}/library/new`)}><Plus size={18} /><span>{en ? 'New text' : 'Νέο κείμενο'}</span></ActionButton>}
   </div>
 
-  return <Page fill className="registry-fill-page" title={ownerRoute ? (en ? 'Settings' : 'Ρυθμίσεις') : en ? 'Legislation' : 'Νομοθεσία'} subtitle={!tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{ownerRoute && <PlatformLibrariesTabs extra={tabs.length > 1 ? <div className="platform-settings-switch" role="group" aria-label={en ? 'Legislation' : 'Νομοθεσία'}>{tabs.map(item => { const count = item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0; return <button key={item.value} type="button" className={tab === item.value ? 'is-active' : ''} aria-pressed={tab === item.value} onClick={() => setTab(item.value)}>{item.label}{count > 0 ? ` ${count}` : ''}</button> })}</div> : null} />}
+  return <Page fill className="registry-fill-page" title={ownerRoute ? (en ? 'Legislation & sources' : 'Νομοθεσία & πηγές') : en ? 'Legislation' : 'Νομοθεσία'} subtitle={ownerRoute ? undefined : !tabs.some(item => item.value === 'register') ? (en ? 'The library every hospital reads, what the automatic check of the sources found, and the sources.' : 'Η βιβλιοθήκη που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος των πηγών, και οι πηγές.') : (en ? 'The laws, decisions and standards that apply to the hospital, and how it complies with each requirement.' : 'Οι νόμοι, οι αποφάσεις και τα πρότυπα που αφορούν το νοσοκομείο, και πώς συμμορφώνεται σε κάθε απαίτηση.')} actions={actions}>{ownerRoute && <PlatformLegalTabs active={tab === 'review' ? 'review' : tab === 'sources' ? 'checks' : 'legislation'} counts={{ review: pending.length, checks: failing.length }} />}
     {tabs.length > 1 && !ownerRoute && <CanonicalTabs items={tabs.map(item => ({ ...item, count: item.value === 'review' ? pending.length : item.value === 'sources' ? failing.length : item.value === 'register' ? counts.updates + counts.newTexts : 0 }))} value={tab} onChange={setTab} ariaLabel={en ? 'Legislation' : 'Νομοθεσία'} />}
     <section className="surface registry-workspace workspace-column workspace-fill">
       {tab === 'register' && <RegisterList entries={visible} counts={counts} loading={register.loading} filters={filters} setFilters={setFilters} language={language} onOpen={entry => navigate(`/legislation/${entry.text.id}`)} />}

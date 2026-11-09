@@ -46,9 +46,10 @@ describe('Management Center review', () => {
     expect(read('src/features/management/ClinicalScalesPanel.jsx')).toContain('setRows(demoClinicalScaleDefinitions.map')
   })
 
-  it('the platform update buttons (check and update, history, pending reviews) sit in the page header', () => {
+  it('the platform update buttons (check and update, pending reviews; history in the «⋯») sit in the header of the Lists', () => {
     const page = read('src/features/management/ManagementPage.jsx')
-    expect(page).toContain('const updateActions=isPlatformOwner?')
+    expect(page).toContain("const updateActions=isPlatformOwner&&activeGroup==='libraries'?")
+    expect(page).toContain("<OverflowMenu items={[{id:'history',label:t('managementPanel.updateHistory')")
     expect(page).toContain("t('managementPanel.platformUpdateAction')")
     expect(page).toContain("t('managementPanel.updateHistory')")
     expect(page).toContain('<Page fill actions={updateActions}')

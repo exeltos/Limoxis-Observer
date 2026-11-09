@@ -7,7 +7,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LoaderCircle, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Settings, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, Settings, ShieldCheck, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -75,7 +75,8 @@ export function AppShell(){
   useEffect(()=>{if(!navOpen)return;const onKey=event=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
   // The Platform Owner's menu (owner, 9/11/2026): the work areas, then «Monitoring» (reports, history & health)
-  // and «Settings» (announcements, lists & legislation, the platform's settings), each under its heading.
+  // and «Settings» (announcements, lists, legislation & sources, LIRA & AI, the platform's settings), each under its
+  // heading; every settings screen opens in this same shell, with the menu.
   const platformNavigation=[
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
@@ -84,17 +85,21 @@ export function AppShell(){
     {key:'platformNav.analysis',label:'platformNav.menuReports',path:'/platform',hash:'reports',icon:BarChart3,group:'monitoring'},
     {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,group:'monitoring'},
     {key:'platformNav.announcements',label:'platformNav.menuAnnouncements',path:'/platform/announcements',hash:'',icon:Megaphone,group:'settings'},
-    {key:'platformNav.libraries',label:'platformNav.menuListsLegislation',path:'/platform',hash:'management?group=libraries',icon:BookOpen,group:'settings'},
-    {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,group:'settings'},
+    {key:'platformNav.libraries',label:'platformNav.menuLists',path:'/platform',hash:'management?group=libraries',icon:Database,group:'settings'},
+    {key:'platformNav.legislation',label:'platformNav.menuLegislationSources',path:'/platform/legislation',hash:'',icon:Scale,group:'settings'},
+    {key:'platformNav.lira',label:'platformNav.menuLira',path:'/platform',hash:'management?group=lira',icon:Bot,group:'settings'},
+    {key:'platformNav.settings',label:'platformNav.menuPlatformSettings',path:'/platform/settings',hash:'',icon:Settings,group:'settings'},
   ]
   const platformNavGroups=[['',null],['monitoring','platformNav.groupMonitoring'],['settings','platformNav.groupSettings']]
-  // Settings, announcements, the libraries (lists, indicator data, LIRA & AI), Legislation and the Library's guides
-  // and sources are one screen of tabs, shown without the application menu.
-  const platformSettingsScreen=location.pathname.startsWith('/platform/legislation')||location.pathname.startsWith('/platform/library')||location.pathname.startsWith('/platform/settings')||location.pathname.startsWith('/platform/announcements')||(location.pathname==='/platform'&&platformHashKey==='management')
+  // #management?group=… : the Lists, LIRA & AI, or the external sources of «Legislation & sources».
+  const platformManagementGroup=platformHashKey==='management'?new URLSearchParams(location.hash.split('?')[1]||'').get('group'):null
   // Exactly one entry is marked: a record (an organization, a Demo) belongs to its registry's entry.
   const platformActive=item=>{
     const under=prefix=>location.pathname===prefix||location.pathname.startsWith(`${prefix}/`)
-    if(item.key==='platformNav.libraries')return under('/platform/legislation')||under('/platform/library')||(location.pathname==='/platform'&&platformHashKey==='management')
+    const management=location.pathname==='/platform'&&platformHashKey==='management'
+    if(item.key==='platformNav.legislation')return under('/platform/legislation')||under('/platform/library')||(management&&platformManagementGroup==='sources')
+    if(item.key==='platformNav.lira')return management&&platformManagementGroup==='lira'
+    if(item.key==='platformNav.libraries')return management&&!['sources','lira'].includes(platformManagementGroup)
     if(item.key==='platformNav.audit')return under('/platform/audit')||under('/platform/health')
     if(item.path!=='/platform')return under(item.path)
     return location.pathname==='/platform'&&platformHashKey===item.hash
@@ -154,7 +159,7 @@ navigate('/');await reloadMemberships()}catch(error){notifyError(error,'save',{o
   const rolePreviewPopover=<div className="role-preview-popover"><strong>{t(demoEvaluator?'demoRoleTitle':'previewAsRole')}</strong><small>{t(demoEvaluator?'demoRoleHint':realDemoTenant?'previewDemoHint':'previewSafeHint')}</small><label><span>{t('roleLabel')}</span><select disabled={roleSwitching} value={demoEvaluator?(actualRole||''):(rolePreview?.role||'')} onChange={e=>handlePreviewRoleChange(e.target.value)}><option value="">{t('selectRole')}</option>{previewRoles.map(([value,key])=><option key={value} value={value}>{t(key)}</option>)}</select></label>{pickerNeedsDepartment&&<label><span>{t('departmentScope')}</span><select disabled={roleSwitching} value={demoEvaluator?(membership?.departmentIds?.[0]||''):(rolePreview?.department||'')} onChange={e=>handlePreviewDepartmentChange(e.target.value)}>{realTenant?realDepartments.map(item=><option key={item.id} value={item.id}>{item.name}</option>):previewDepartments.map(([value,key])=><option key={key} value={value}>{t(key)}</option>)}</select></label>}<div className="preview-popover-actions">{demoEvaluator&&actualRole!==ROLES.HOSPITAL_ADMIN&&<button disabled={roleSwitching} onClick={()=>void switchEvaluatorRole(ROLES.HOSPITAL_ADMIN)}>{t('demoRoleBackToAdmin')}</button>}{isRolePreview&&<button onClick={()=>{stopRolePreview();setPreviewOpen(false)}}>{t('exitPreview')}</button>}<button onClick={()=>setPreviewOpen(false)}>{t('close')}</button></div></div>
   if(closedDemoAccess)return <Suspense fallback={null}><DemoClosedScreen access={closedDemoAccess} language={language} onLogout={()=>{clearIdleLock();void logout().then(()=>navigate('/login',{replace:true}))}}/></Suspense>
   const PlatformNavEntry=({item,nested=false})=>{const Icon=item.icon;const active=platformActive(item);const go=target=>navigate({pathname:target.path,search:'',hash:target.hash?`#${target.hash}`:''});const button=<button type="button" title={t(item.key)} aria-current={active&&!item.children?'page':undefined} className={`nav-item ${nested?'nested':''} ${active&&!item.children?'active':''} ${active&&item.children?'active-group':''}`} onClick={()=>go(item.children?item.children[0]:item)}>{Icon&&<Icon size={nested?16:18}/>}<span>{t(item.label)}</span>{item.children&&<ChevronDown className="nav-group-chevron" size={14}/>}</button>;if(!item.children)return button;return <div className={`sidebar-nav-group ${active?'open':''}`}>{button}{active&&<div className="sidebar-nav-children">{item.children.map(child=><PlatformNavEntry key={child.hash} item={child} nested/>)}</div>}</div>}
-  return <div className={`app-shell ${platformMode?'platform-mode':''}${platformMode&&platformSettingsScreen?' platform-focus':''} ${helpPreviewMode?'help-preview-mode':''}${sidebarRail.rail&&(!platformMode||!sidebarRail.wide)?' sidebar-rail':''}`}>
+  return <div className={`app-shell ${platformMode?'platform-mode':''} ${helpPreviewMode?'help-preview-mode':''}${sidebarRail.rail&&(!platformMode||!sidebarRail.wide)?' sidebar-rail':''}`}>
     <aside id="app-sidebar" className={`sidebar${navOpen?' sidebar-open':''}`} {...(platformMode?{}:sidebarRail.handlers)}>{!platformMode&&sidebarRail.wide&&<button type="button" className="sidebar-pin" aria-pressed={sidebarRail.pinned} aria-label={sidebarRail.pinned?t('unpinMenu'):t('pinMenu')} title={sidebarRail.pinned?t('unpinMenu'):t('pinMenu')} onClick={sidebarRail.togglePin}>{sidebarRail.pinned?<PinOff size={15}/>:<Pin size={15}/>}</button>}<button type="button" className="sidebar-toggle" aria-expanded={navOpen} aria-controls="app-sidebar" aria-label={navOpen?t('closeMenu'):t('openMenu')} title={navOpen?t('closeMenu'):t('openMenu')} onClick={()=>setNavOpen(v=>!v)}>{navOpen?<X size={20}/>:<Menu size={20}/>}</button><div className="brand"><BrandMark size={30} tone="light" className="brand-mark-logo"/><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
       {platformMode&&platformNavGroups.map(([group,heading])=>{const items=platformNavigation.filter(item=>(item.group||'')===group).map(item=><PlatformNavEntry key={item.key} item={item}/>);return group?<div key={group} className="platform-nav-group" role="group" aria-labelledby={`platform-nav-${group}`}><div id={`platform-nav-${group}`} className="platform-nav-heading">{t(heading)}</div>{items}</div>:items})}
       {!platformMode&&<SidebarNavigation role={role} items={visibleNavigation} t={t} userKey={profile?.id||user?.id}/>}

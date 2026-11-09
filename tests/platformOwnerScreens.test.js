@@ -47,6 +47,16 @@ describe('platform owner screens', () => {
     expect(shell).not.toContain("['organizations','demo','users'].includes(platformHashKey)")
   })
 
+  it('the settings screens open in the same shell, one menu entry each, with no tab row duplicating the menu', () => {
+    const shell = read('src/app/AppShell.jsx')
+    expect(shell).not.toContain('platform-focus')
+    expect(shell).toContain("path:'/platform/legislation',hash:'',icon:Scale,group:'settings'")
+    expect(shell).toContain("hash:'management?group=lira',icon:Bot,group:'settings'")
+    expect(fs.existsSync('src/features/platform/PlatformLibrariesTabs.jsx')).toBe(false)
+    expect(read('src/features/platform/PlatformGlobalManagement.jsx')).toContain("hash:`management?group=${GROUP_OF_TAB[")
+    expect(read('src/features/platform/platformAnnouncementsService.js')).toContain('if (isOwnerPreview()) return previewPlatformAnnouncements()')
+  })
+
   it('organization type is translated in the registry', () => {
     expect(read('src/features/platform/PlatformOrganizationsRegistry.jsx')).not.toContain("{org.type || 'hospital'}")
   })

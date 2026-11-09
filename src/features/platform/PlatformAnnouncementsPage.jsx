@@ -17,7 +17,6 @@ import { CheckboxField } from '../../design-system/CheckboxField'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { MultiSelect } from '../../design-system/MultiSelect'
-import { PlatformLibrariesTabs } from './PlatformLibrariesTabs'
 import { PlatformAnnouncementDialog } from './PlatformAnnouncementGate'
 import {
   ATTACHMENT_ACCEPT,
@@ -138,8 +137,7 @@ export function PlatformAnnouncementsPage() {
   ]
   return (
     <Page
-      title={tx('Ρυθμίσεις', 'Settings')}
-      subtitle={tx('Ανακοινώσεις και προωθήσεις προς τους διαχειριστές των νοσοκομείων.', 'Announcements and promotions to the hospital administrators.')}
+      title={tx('Ανακοινώσεις', 'Announcements')}
       actions={
         !draft && (
           <Button onClick={() => setDraft({ ...EMPTY })}>
@@ -149,7 +147,6 @@ export function PlatformAnnouncementsPage() {
         )
       }
     >
-      <PlatformLibrariesTabs />
       {!draft && <div className="platform-registry-shell platform-announcements-page">
         <RegistryTable
           columns={columns}

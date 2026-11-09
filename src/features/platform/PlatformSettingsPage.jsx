@@ -1,4 +1,3 @@
-import { PlatformLibrariesTabs } from './PlatformLibrariesTabs'
 import { useEffect,useMemo,useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Card } from '../../design-system/Card'
@@ -71,11 +70,9 @@ export function PlatformSettingsPage(){
   }
 
   return <Page
-    title={tx('Ρυθμίσεις','Settings')}
-    subtitle={tx('Ισχύει για όλα τα νοσοκομεία · κάθε αλλαγή καταγράφεται στο Ιστορικό & Υγεία.','Applies to every hospital · every change is recorded in History & Health.')}
+    title={tx('Ρυθμίσεις πλατφόρμας','Platform settings')}
     actions={dirty||saving?<SaveButton onClick={save} loading={saving} disabled={!canSave}>{tx('Αποθήκευση αλλαγών','Save changes')}</SaveButton>:<span className="platform-settings-saved" role="status">{tx('Δεν υπάρχουν αλλαγές','No changes')}</span>}
   >
-    <PlatformLibrariesTabs />
     <div className="platform-registry-shell platform-settings-page">
       {loading?<div className="inline-empty">{tx('Φόρτωση ρυθμίσεων…','Loading settings…')}</div>:error?<div className="data-access-state warning"><AlertTriangle size={16}/><span>{tx('Δεν ήταν δυνατή η φόρτωση των ρυθμίσεων πλατφόρμας.','Platform settings could not be loaded.')}</span></div>:<div className="platform-settings-layout">
         <div className="platform-settings-main">

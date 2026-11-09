@@ -88,6 +88,12 @@ export const previewHospitalHealth=(now=Date.now())=>Object.fromEntries(Object.e
 
 export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maxDemoUsers:5,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',updatedAt:at(-15)})
 
+// The owner's announcements to the hospital administrators, as loadPlatformAnnouncements returns them.
+export const previewPlatformAnnouncements=()=>[
+ {id:'ann-1',kind:'announcement',titleEl:'Προγραμματισμένη συντήρηση το Σάββατο',titleEn:'Scheduled maintenance on Saturday',bodyEl:'Το Σάββατο 06:00–08:00 η εφαρμογή θα είναι διαθέσιμη μόνο για ανάγνωση.',bodyEn:'On Saturday 06:00–08:00 the application will be read-only.',ctaLabelEl:'',ctaLabelEn:'',ctaUrl:'',imageUrl:'',attachmentPath:'',attachmentName:'',attachmentType:'',showInDemo:false,startsAt:at(-2),endsAt:at(5),audience:[],frequency:'once',status:'active',createdAt:at(-2),seenCount:7},
+ {id:'ann-2',kind:'promotion',titleEl:'Νέα ενότητα: Κουζίνα & HACCP',titleEn:'New module: Kitchen & HACCP',bodyEl:'Η ενότητα Κουζίνα & HACCP είναι διαθέσιμη. Ζητήστε ενεργοποίηση από την υποστήριξη.',bodyEn:'The Kitchen & HACCP module is available. Ask support to enable it.',ctaLabelEl:'Μάθετε περισσότερα',ctaLabelEn:'Learn more',ctaUrl:'https://limoxis.example/kitchen',imageUrl:'',attachmentPath:'',attachmentName:'',attachmentType:'',showInDemo:true,startsAt:at(-20),endsAt:at(-1),audience:[ORGANIZATIONS[0].id,ORGANIZATIONS[1].id],frequency:'every_visit',status:'stopped',createdAt:at(-20),seenCount:3},
+]
+
 // What resetting a Demo returns, for the preview's "Reset data" action.
 export const previewDemoSeedResult=()=>({ok:true,departments:8,patients:48,surveillanceCases:14,laboratorySamples:43,microbiologyResults:38,handHygieneSessions:36,employees:24,incidents:10,capa:6,documents:8,committees:2,controls:6,controlExecutions:350,trainingPrograms:5,trainingAssignments:72,antibioticDispensing:360,vaccinations:76,occupationalVisits:29,exposures:4})
 
