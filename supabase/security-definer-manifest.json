@@ -604,6 +604,26 @@
       "category": "rpc",
       "authenticated": true,
       "reason": "Sets the area and type of employment of a not yet used tablet application link; checks manage_interviews of the link's organisation itself."
+    },
+    "touch_login_session": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Heartbeat of the open app: marks the caller's own current session (auth.uid() + JWT session_id) as alive and returns false when the session was ended (by the Platform Owner or expiry), so the app signs out."
+    },
+    "platform_login_sessions_list": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Platform Owner only (current_user_is_platform_owner()): login history — user, IP, device, start, last activity, end — joined with profiles and organization names."
+    },
+    "platform_end_login_sessions": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Platform Owner only (current_user_is_platform_owner()): ends one session or all sessions of a user (deletes the auth.sessions rows, revoking refresh tokens) and writes system_audit_log."
+    },
+    "platform_release_login_lock": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Platform Owner only (current_user_is_platform_owner()): releases a login lock (account or IP) before it expires and writes system_audit_log."
     }
   }
 }
