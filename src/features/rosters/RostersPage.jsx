@@ -41,7 +41,8 @@ import './rosters.css'
 // on a name sets the shifts that person may take. The new roster starts from the end of the previous one.
 // The department's people send requests (leave, a day off, a day they cannot work, a swap) and see the roster once it
 // is published; every change after publishing is logged.
-const DEMAND = { weekday: { M: 2, I: 0, A: 2, N: 1 }, weekend: { M: 2, I: 0, A: 2, N: 1 }, overrides: {} }
+// At least two people on every shift by default (owner, 8/11/2026); more on a shift is fine.
+const DEMAND = { weekday: { M: 2, I: 0, A: 2, N: 2 }, weekend: { M: 2, I: 0, A: 2, N: 2 }, overrides: {} }
 const SHIFTS = ['M', 'I', 'A', 'N']
 const LEAVES = ['L', 'S', 'H', 'U']
 const HOURS = 8
