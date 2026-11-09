@@ -1,8 +1,12 @@
 /* The platform owner's announcement to hospital administrators, and its list in Settings › Announcements. */
 .platform-announcement-band{display:grid;place-items:center;height:84px;margin:0 0 14px;border-radius:12px;background:linear-gradient(135deg,#1d5f9c,#4f93cf);color:#fff}
 .platform-announcement-dialog.is-promotion .platform-announcement-band{background:linear-gradient(135deg,#1f7a6a,#3fa98f)}
-.platform-announcement-image{display:block;width:100%;max-height:180px;object-fit:cover;margin:0 0 14px;border-radius:12px}
-.platform-announcement-body{margin:0;font-size:14px;line-height:1.55;color:#1f3348;white-space:pre-line}
+.platform-announcement-image{display:block;width:100%;max-height:180px;object-fit:contain;margin:0 0 14px;border-radius:12px;background:#f2f6fa}
+.platform-announcement-body{margin:0;font-size:14px;line-height:1.55;color:#1f3348;white-space:pre-line;overflow-wrap:anywhere}
+/* In the hospital (owner, 9/11/2026): a larger card, the image whole and the text easy to read. */
+.platform-announcement-dialog.is-large .platform-announcement-image{max-height:min(46vh,420px)}
+.platform-announcement-dialog.is-large .platform-announcement-band{height:120px}
+.platform-announcement-dialog.is-large .platform-announcement-body{font-size:16px;line-height:1.6}
 .platform-announcements-page .platform-announcement-period{white-space:nowrap}
 .platform-announcements-page .platform-announcement-audience{color:#56677a}
 .platform-announcement-form .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}

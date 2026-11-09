@@ -7,7 +7,8 @@ import { generateRoster, periodDays } from './rosterEngine'
 
 // The department's monthly shift roster (owner, 8/11/2026). Production: public.department_rosters with RLS
 // (supabase/migrations/20261231260100_department_rosters.sql). Demo: this browser only.
-const DEMO_KEY = 'lo-demo-rosters'
+// The version changes when the Demo's own rosters change, so a browser that kept older ones gets the new ones.
+const DEMO_KEY = 'lo-demo-rosters.v2'
 const demoRead = () => {
   try {
     return JSON.parse(localStorage.getItem(DEMO_KEY) || '{}')
@@ -199,7 +200,7 @@ export function rosterChanges(before = {}, after = {}, userName = '', at = new D
 
 // Requests of the department's people (leave, a day off, a day they cannot work, a swap); the manager decides.
 // Production: public.roster_requests (supabase/migrations/20261231260300_roster_requests.sql). Demo: this browser.
-const REQUESTS_KEY = 'lo-demo-roster-requests'
+const REQUESTS_KEY = 'lo-demo-roster-requests.v2'
 // null until this browser saves a request: the Demo's own requests stand until then.
 const storedDemoRequests = () => {
   try {
@@ -290,7 +291,8 @@ const seedOf = text => 1 + Math.floor(seededRandom(text)() * 99999)
 const demoRosterCache = new Map()
 
 async function demoSeedRoster(organizationId, departmentId, periodStart) {
-  const current = rosterPeriod(new Date()), previous = rosterPeriod(new Date(), -1)
+  // The screen opens on the next period (the one being prepared): its draft, and the running period published.
+  const current = rosterPeriod(new Date(), 1), previous = rosterPeriod(new Date())
   if (periodStart !== current.start && periodStart !== previous.start) return null
   const key = `${organizationId}|${departmentId}|${current.start}`
   if (!demoRosterCache.has(key)) demoRosterCache.set(key, buildDemoRosters(organizationId, departmentId, previous, current).catch(() => null))
@@ -343,7 +345,7 @@ async function buildDemoRosters(organizationId, departmentId, previous, current)
 // A few requests in the three largest departments: leave approved, a wish and a swap waiting, one refused.
 let demoRequestSeed = null
 async function demoSeedRequests(organizationId) {
-  const current = rosterPeriod(new Date())
+  const current = rosterPeriod(new Date(), 1)
   if (demoRequestSeed?.start === current.start) return structuredClone(await demoRequestSeed.rows)
   const build = async () => {
     const rows = []

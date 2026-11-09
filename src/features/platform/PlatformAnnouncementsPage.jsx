@@ -266,7 +266,7 @@ export function PlatformAnnouncementsPage() {
         </ObserverDialog>
         </InlineDialogContext.Provider>
       )}
-      {preview && <PlatformAnnouncementDialog announcement={preview} onClose={() => setPreview(null)} language={language} navigate={navigate} />}
+      {preview && <PlatformAnnouncementDialog announcement={preview} onClose={() => setPreview(null)} language={language} navigate={navigate} large />}
     </Page>
   )
 }

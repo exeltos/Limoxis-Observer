@@ -150,6 +150,15 @@ const STAFF=[
  ['Ιωάννα','Ioanna','Σπυροπούλου','Spyropoulou','Ορθοπαιδική','head','2008-04-07'],
  ['Νικόλαος','Nikolaos','Αργυρίου','Argyriou','Ορθοπαιδική','resident','2026-08-17'],
  ['Μαρίνα','Marina','Κουτσού','Koutsou','Εργαστήριο','lab','2012-10-01'],
+ // The ICU's nursing team on the ward rota (owner, 9/11/2026: the Demo's ICU roster keeps every rule; two people on
+ // every shift need about ten nurses besides the head).
+ ['Σοφία','Sofia','Αλεξίου','Alexiou','ΜΕΘ','icuNurse','2017-02-13'],
+ ['Ιωάννης','Ioannis','Κυριακίδης','Kyriakidis','ΜΕΘ','icuNurse','2019-09-02'],
+ ['Θεοδώρα','Theodora','Μαργαρίτη','Margariti','ΜΕΘ','icuNurse','2021-05-17'],
+ ['Νικόλαος','Nikolaos','Πετρόπουλος','Petropoulos','ΜΕΘ','icuNurse','2016-11-07'],
+ ['Ειρήνη','Eirini','Γεωργίου','Georgiou','ΜΕΘ','icuNurse','2022-03-28'],
+ ['Αντώνης','Antonis','Δημητρίου','Dimitriou','ΜΕΘ','icuNurse','2015-06-22'],
+ ['Δέσποινα','Despoina','Ξανθοπούλου','Xanthopoulou','ΜΕΘ','icuNurse','2023-10-09'],
 ]
 const EXPOSURES=[
  ['needlestick','Βελόνα ενδοφλέβιου καθετήρα','Δεξιός δείκτης','negative'],
@@ -182,7 +191,6 @@ STAFF.forEach(([firstName,firstNameEn,lastName,lastNameEn,department,role,hireDa
  // The mid-year review of 2026 for every third person (submitted or still a draft).
  if(!recentHire&&index%3===0)employeeEvaluations.push(evaluation(`EV-26-${String(n).padStart(2,'0')}`,id,'2026 · Α΄ εξάμηνο',dayInMonth(DEMO_HISTORY_MONTHS[DEMO_HISTORY_MONTHS.length-3+index%2],3+index%9),'Γραφείο Νοσηλευτικής / Ιατρικής Υπηρεσίας',scores.map((s,i)=>Math.min(5,s+((n+i)%4===0?1:0))),index%2?'draft':'submitted','Ενδιάμεση αξιολόγηση εξαμήνου.'))
 })
-
 // The whole of 2025 and 2026 (owner, 9/11/2026): the first eight people also have the
 // annual evaluation of 2024 (early 2025) and the mid-year review of 2025.
 const FIRST_EVALUATORS={'EMP-001':'Αικατερίνη Λάμπρου','EMP-002':'Δρ. Παναγιώτης Ρήγας','EMP-003':'Ιωάννα Σπυροπούλου','EMP-004':'Δρ. Μαρίνα Κουτσού','EMP-005':'Δρ. Στέφανος Καλλέργης','EMP-006':'Γεωργία Φωτίου','EMP-007':'Θεόδωρος Αλεξίου','EMP-008':'Διονύσης Μαυρίδης'}
