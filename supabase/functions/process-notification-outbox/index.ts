@@ -4,7 +4,7 @@ import { committeeMinutesApprovalEmail,committeeMinutesExternalApprovalEmail } f
 import { trainingInvitationEmail } from '../_shared/trainingInvitationEmail.ts'
 import { demoApplicationRequestEmail } from '../_shared/demoApplicationRequestEmail.ts'
 import { supplierCertificateRenewalEmail } from '../_shared/supplierCertificateEmail.ts'
-import { accountAccessAddedEmail,accountBatchSummaryEmail,accountCreatedEmail } from '../_shared/accountCreatedEmail.ts'
+import { accountAccessAddedEmail,accountBatchSummaryEmail,accountCreatedEmail,accountReadyEmail } from '../_shared/accountCreatedEmail.ts'
 import { serveWithCors } from '../_shared/cors.ts'
 
 const cors={'Content-Type':'application/json','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type'}
@@ -42,7 +42,7 @@ serveWithCors(async(req)=>{
   ])
   if(!profile?.is_platform_owner&&!membership?.id)return reply({ok:false,code:'EMAIL_NOT_AUTHORIZED',error:'Not authorized'},403)
 
-  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','committee_minutes_external_approval','training_invitation','demo_application_request','supplier_certificate_renewal','account_created','account_access_added','account_batch_summary']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
+  const {data:rows,error:listError}=await admin.from('notification_outbox').select('id,recipient_email,subject,payload,attempts,notification_type').eq('organization_id',organizationId).in('notification_type',['committee_minutes_approval_requested','committee_minutes_external_approval','training_invitation','demo_application_request','supplier_certificate_renewal','account_created','account_access_added','account_batch_summary','account_ready']).in('status',['pending','failed']).lte('available_at',new Date().toISOString()).order('created_at',{ascending:true}).limit(20)
   if(listError)return reply({ok:false,code:'EMAIL_OUTBOX_LOAD_FAILED',error:'Could not load notifications'},500)
   if(!rows?.length)return reply({ok:true,sent:0,failed:0,pending:0})
 
@@ -73,6 +73,8 @@ serveWithCors(async(req)=>{
         ?accountCreatedEmail({organizationName:payload.organizationName||'',organizationEmail:payload.organizationEmail||'',organizationPhone:payload.organizationPhone||'',recipientName:payload.recipientName||'',username:payload.username||'',roleLabel:payload.roleLabel||'',departmentName:payload.departmentName||'',expiresAt:payload.expiresAt||null,kind:payload.kind==='resend'?'resend':'send',actionUrl})
         :row.notification_type==='account_access_added'
         ?accountAccessAddedEmail({organizationName:payload.organizationName||'',organizationEmail:payload.organizationEmail||'',organizationPhone:payload.organizationPhone||'',recipientName:payload.recipientName||'',username:payload.username||'',roleLabel:payload.roleLabel||'',departmentName:payload.departmentName||'',actionUrl})
+        :row.notification_type==='account_ready'
+        ?accountReadyEmail({organizationName:payload.organizationName||'',organizationEmail:payload.organizationEmail||'',organizationPhone:payload.organizationPhone||'',recipientName:payload.recipientName||'',username:payload.username||'',roleLabel:payload.roleLabel||'',departmentName:payload.departmentName||'',actionUrl})
         :row.notification_type==='account_batch_summary'
         ?accountBatchSummaryEmail({organizationName:payload.organizationName||'',recipientName:payload.recipientName||'',createdAt:payload.createdAt||null,people:Array.isArray(payload.people)?payload.people:[],actionUrl})
         :row.notification_type==='committee_minutes_external_approval'

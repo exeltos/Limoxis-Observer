@@ -41,6 +41,10 @@ verify_jwt = false
 [functions.platform-bulk-create-accounts]
 verify_jwt = true
 
+# Platform Owner only (checked inside too): accounts created active with a temporary password.
+[functions.platform-create-active-users]
+verify_jwt = true
+
 # Public: the e-mailed «Ορισμός κωδικού» link (single-use token checked inside the function).
 [functions.redeem-access-token]
 verify_jwt = false

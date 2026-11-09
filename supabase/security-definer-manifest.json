@@ -1,6 +1,11 @@
 {
   "$comment": "SECURITY DEFINER functions in public that anon or authenticated may execute. Checked by tools/check-security-definer.mjs (npm run audit:security-definer). rls-helper: returns only what the caller may do; rpc: must check the caller itself; public-token: callable before sign-in, guarded by a random access token or exposing no organisation data.",
   "functions": {
+    "complete_password_change": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "First sign-in with a temporary password (accounts created active by the Platform Owner): after supabase.auth.updateUser the signed-in user clears profiles.must_change_password for their own row only (auth.uid()); nothing else is changed or returned."
+    },
     "analysis_crosstab_metrics": {
       "category": "rpc",
       "authenticated": true,

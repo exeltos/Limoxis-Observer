@@ -1,4 +1,5 @@
-import { ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { useState } from 'react'
+import { FileUp, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -7,11 +8,15 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { SubTabs } from '../../design-system/SubTabs'
 import { BulkAccountsPanel } from './BulkAccountsPanel'
+import { ActiveUsersDialog } from './ActiveUsersDialog'
 
 // «Users & Roles» of an organization record: the accounts, or the employee roster with who has no
 // account yet. The state and the actions stay in PlatformOrganizationRecord (ctx).
 export function PlatformOrganizationUsersTab({ ctx }) {
   const { filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
+  // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο»: accounts active at once,
+  // with a temporary password the owner hands over (ActiveUsersDialog).
+  const [activeUsersMode, setActiveUsersMode] = useState('')
   return (
           <div className="workspace-column workspace-fill">
             <div className="section-toolbar platform-users-toolbar">
@@ -69,6 +74,14 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                     },
                   ]}
                 />
+                <Button variant="secondary" onClick={() => setActiveUsersMode('file')}>
+                  <FileUp size={15} />
+                  {tx('Εισαγωγή χρηστών από αρχείο', 'Import users from a file')}
+                </Button>
+                <Button variant="secondary" onClick={() => setActiveUsersMode('single')}>
+                  <UserCheck size={15} />
+                  {tx('Νέος ενεργός χρήστης', 'New active user')}
+                </Button>
                 <Button
                   onClick={() => {
                     setCreateUserDraft({ fullName: '', email: '', role: 'department_user' })
@@ -192,6 +205,19 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                 </div>
               )}
             </section>
+            )}
+            {activeUsersMode && (
+              <ActiveUsersDialog
+                mode={activeUsersMode}
+                organization={record}
+                departments={roster.departments || []}
+                language={language}
+                onClose={() => setActiveUsersMode('')}
+                onCreated={() => {
+                  loadUsers()
+                  loadRoster()
+                }}
+              />
             )}
           </div>
   )

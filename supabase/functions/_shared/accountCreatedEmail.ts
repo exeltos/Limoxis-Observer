@@ -96,6 +96,36 @@ export function accountAccessAddedEmail({organizationName='',organizationEmail='
   return {subject,html,text,replyTo:String(organizationEmail||'').trim()||undefined}
 }
 
+// «Ενεργοί χρήστες» (Platform Owner): the account is already active with a temporary
+// password that the hospital's administrator hands over in person; the e-mail never
+// carries it. At the first sign-in the user sets their own password.
+export function accountReadyEmail({organizationName='',organizationEmail='',organizationPhone='',recipientName='',username='',roleLabel='',departmentName='',actionUrl}:AccountEmail){
+  const hospital=organizationName||'Limoxis Observer'
+  const subject=`${hospital} · Ο λογαριασμός σας στο Limoxis Observer είναι έτοιμος`
+  const preheader=`Όνομα χρήστη ${username}. Τον προσωρινό κωδικό θα σας τον δώσει ο διαχειριστής σας.`
+  const title='Ο λογαριασμός σας είναι έτοιμος'
+  const greeting=recipientName?`Καλώς ήρθατε, ${recipientName}.`:'Καλώς ήρθατε.'
+  const intro=`Δημιουργήθηκε για εσάς λογαριασμός στο Limoxis Observer στο ${hospital}. Είναι η πλατφόρμα που χρησιμοποιεί το νοσοκομείο για την πρόληψη και την επιτήρηση των λοιμώξεων και για την ποιότητα.`
+  const role=[roleLabel,departmentName].filter(Boolean).join(' · ')
+  const steps=[
+    'Ο διαχειριστής σας θα σας δώσει τον προσωρινό κωδικό. Δεν στέλνεται με email.',
+    'Συνδεθείτε από το www.limoxis.com με το όνομα χρήστη σας και τον προσωρινό κωδικό.',
+    'Στην πρώτη σύνδεση ορίζετε δικό σας κωδικό (τουλάχιστον 12 χαρακτήρες, κεφαλαίο, πεζό, αριθμό και σύμβολο).',
+  ]
+  const help=contact({hospital,email:String(organizationEmail||'').trim(),phone:String(organizationPhone||'').trim()})
+  const security='Κανείς από το νοσοκομείο ή το Limoxis δεν θα σας ζητήσει ποτέ τον κωδικό σας με email ή τηλέφωνο. Αν δεν περιμένατε αυτό το email, ενημερώστε το νοσοκομείο.'
+  const english=[`An account has been created for you in Limoxis Observer at ${hospital}. Your username is ${username}. Your administrator will give you your temporary password (it is never sent by e-mail); at your first sign-in you choose your own password.`]
+  const body=[
+    p(`<strong>${esc(greeting)}</strong>`),p(esc(intro)),
+    detailsTable([['Όνομα χρήστη',`<strong style="font-family:Consolas,Menlo,monospace;font-size:15px">${esc(username)}</strong>`],...(role?[['Ρόλος',esc(role)] as [string,string]]:[]),['Νοσοκομείο',esc(hospital)]]),
+    h2('Πώς θα μπείτε'),stepsTable(steps),button('Σύνδεση',actionUrl),
+    h2('Χρειάζεστε βοήθεια;'),p(help.html),note(security),
+  ].join('')
+  const html=layout({subject,preheader,hospital,title,body,english,footerUrl:actionUrl})
+  const text=plain([hospital,'μέσω Limoxis Observer','',title,'',greeting,intro,'',`Όνομα χρήστη: ${username}`,role?`Ρόλος: ${role}`:'',`Νοσοκομείο: ${hospital}`,'','Πώς θα μπείτε:',...steps.map((step,index)=>`${index+1}. ${step}`),'',`Σύνδεση: ${actionUrl}`,'',`Βοήθεια: ${help.text}`,security,'','Με εκτίμηση,',hospital,'','English',...english])
+  return {subject,html,text,replyTo:String(organizationEmail||'').trim()||undefined}
+}
+
 type SummaryPerson={name?:string,roleLabel?:string,departmentName?:string,username?:string,outcome?:string}
 const OUTCOME:Record<string,string>={created:'Δημιουργήθηκε · στάλθηκε',linked_existing:'Συνδέθηκε υπάρχων λογαριασμός',failed:'Απέτυχε'}
 

@@ -35,6 +35,10 @@ export function AuthProvider({ children }) {
     // current_demo_access, for the Demo bar and the "Demo ended" screen. It is
     // read alongside the profile, not after it (sign-in waits on both).
     const demoAccessRead=Promise.resolve().then(loadCurrentDemoAccess).catch(()=>[])
+    // An account created active with a temporary password (platform-create-active-users)
+    // must set its own password first. Read on its own so that a database without the
+    // column (migration not yet applied) still signs everyone in.
+    const mustChangeRead=Promise.resolve().then(()=>supabase.from('profiles').select('must_change_password').eq('id',user.id).maybeSingle()).then(result=>Boolean(result?.data?.must_change_password),()=>false)
     const { data, error } = await supabase
       .from('profiles')
       .select('id, full_name, username, contact_email, phone, job_title, is_platform_owner, is_demo, demo_entitlement_id')
@@ -45,8 +49,9 @@ export function AuthProvider({ children }) {
     if(data&&!data.is_platform_owner){
       demoAccess=await demoAccessRead
     }
+    const mustChangePassword=await mustChangeRead
     return data
-      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: false, demoEntitlementId:data.demo_entitlement_id||null, demoAccess }
+      ? { id: data.id, email: user.email, fullName: data.full_name, username: data.username, contactEmail: data.contact_email, phone: data.phone, jobTitle: data.job_title, isPlatformOwner: data.is_platform_owner, isDemo: false, demoEntitlementId:data.demo_entitlement_id||null, demoAccess, mustChangePassword }
       : { id: user.id, email: user.email, fullName: user.email, isPlatformOwner: false, isDemo:false }
   }, [])
 
@@ -127,6 +132,11 @@ export function AuthProvider({ children }) {
     await hydrateSession(null)
   }, [authState.profile?.isDemo,hydrateSession])
 
+  // The temporary password was replaced (ForcePasswordChangePage): the app opens.
+  const markPasswordChanged = useCallback(() => {
+    setAuthState(current=>current.profile?{...current,profile:{...current.profile,mustChangePassword:false}}:current)
+  }, [])
+
   const value = useMemo(() => ({
     session:authState.session,
     user: authState.session?.user ?? null,
@@ -139,7 +149,8 @@ export function AuthProvider({ children }) {
     login,
     loginDemo,
     logout,
-  }), [authState, login, loginDemo, logout])
+    markPasswordChanged,
+  }), [authState, login, loginDemo, logout, markPasswordChanged])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

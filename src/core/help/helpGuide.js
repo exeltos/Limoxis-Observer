@@ -420,6 +420,13 @@ export const guideContent = {
       ],
     },
     {
+      q: l('Μου δόθηκε προσωρινός κωδικός.', 'I was given a temporary password.'),
+      a: [
+        l('Ο Ιδιοκτήτης πλατφόρμας μπορεί να δημιουργήσει ενεργούς λογαριασμούς («Νέος ενεργός χρήστης» ή «Εισαγωγή χρηστών από αρχείο») με προσωρινό κωδικό, που σας δίνεται προσωπικά και ποτέ με email.', 'The Platform Owner can create active accounts (“New active user” or “Import users from a file”) with a temporary password, handed to you in person and never by e-mail.'),
+        l('Συνδεθείτε με το όνομα χρήστη και τον προσωρινό κωδικό: πριν ανοίξει οτιδήποτε, ορίζετε δικό σας κωδικό (τουλάχιστον 12 χαρακτήρες, κεφαλαίο, πεζό, αριθμό και σύμβολο).', 'Sign in with your username and the temporary password: before anything opens, you set your own password (at least 12 characters, uppercase, lowercase, a number and a symbol).'),
+      ],
+    },
+    {
       q: l('Ξέχασα τον κωδικό μου.', 'I forgot my password.'),
       a: [
         l('Από τη σελίδα σύνδεσης χρησιμοποιήστε τον σύνδεσμο ανάκτησης πρόσβασης: οι οδηγίες στέλνονται μόνο στο email που είναι δηλωμένο στον λογαριασμό σας.', 'On the sign-in page use the account recovery link: instructions are sent only to the email registered to your account.'),
