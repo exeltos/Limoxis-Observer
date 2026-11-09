@@ -364,7 +364,8 @@ export async function saveReceipt(organizationId, receipt) {
     const items = (receipt.items || []).map(item => ({ ...item, id: item.id || localId('kri') }))
     const { status } = receiptStatus(limits, receipt, items)
     if (status === 'out' && needsCorrectiveAction(status, receipt.correctiveAction) && needsCorrectiveAction(status, receipt.qualityNotes)) throw new KitchenRuleError('KITCHEN_CORRECTIVE_ACTION_REQUIRED')
-    const code = receipt.code || `PAR-${String(Math.max(0, ...state.receipts.map(item => Number(String(item.code).replace(/\D/g, '')) || 0)) + 1).padStart(4, '0')}`
+    // As the database numbers them: only the PAR-0001 codes count (the history's PAR-2025-001 do not).
+    const code = receipt.code || `PAR-${String(Math.max(0, ...state.receipts.map(item => Number(String(item.code).match(/^PAR-(\d+)$/)?.[1]) || 0)) + 1).padStart(4, '0')}`
     const next = { ...receipt, id: receipt.id || localId('kr'), code, items, source: receipt.source || 'app' }
     state.receipts = upsertIn(state.receipts, next)
     saveLocal(state)

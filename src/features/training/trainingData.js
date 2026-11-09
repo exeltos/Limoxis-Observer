@@ -1,6 +1,6 @@
 import { loadSnapshot, saveSnapshot } from '../../core/data/repository'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
-import { addDays, seededRandom } from '../../core/data/demoSeed'
+import { DEMO_HISTORY_MONTHS, addDays, dayInMonth, seededRandom } from '../../core/data/demoSeed'
 import { employeeRows } from '../employees/employeeDemoData'
 export const trainerFeedbackTemplate=[
  {id:'clarity',label:'Σαφήνεια παρουσίασης'},
@@ -125,10 +125,63 @@ const PAST_PLAN=[
  ['TRN-006',['ΜΕΘ','Παθολογική','ΤΕΠ','Καρδιολογική'],null,'2025-11-10','2025-12-15','2025-11-17',30],
  ['TRN-007',['ΜΕΘ','Παθολογική','Χειρουργική','Ορθοπαιδική'],'Νοσηλευτικό προσωπικό','2026-01-12','2026-02-20','2026-01-19',35],
 ]
+// The whole of 2025 and 2026 (owner, 9/11/2026): earlier programmes from January 2025 on,
+// placed by the authored history months so that they keep their month as the Demo moves on.
+DEMO_QUESTIONS['TRN-008']=DEMO_QUESTIONS['TRN-004']
+DEMO_QUESTIONS['TRN-010']=DEMO_QUESTIONS['TRN-003']
+DEMO_QUESTIONS['TRN-014']=DEMO_QUESTIONS['TRN-002']
+DEMO_QUESTIONS['TRN-009']=[
+ sc('Q-501','Πότε επανεκτιμάται η εμπειρική αντιμικροβιακή αγωγή;',['Στο τέλος της θεραπείας','Στις 48–72 ώρες, με τα αποτελέσματα των καλλιεργειών','Μόνο αν ο ασθενής χειροτερεύσει','Κάθε 7 ημέρες'],1,3),
+ tf('Q-502','Η περιοχική χειρουργική προφύλαξη συνεχίζεται συνήθως πέραν των 24 ωρών.',false,2),
+ mc('Q-503','Ποια μέτρα ανήκουν στο πρόγραμμα ορθολογικής χρήσης αντιμικροβιακών;',['Αποκλιμάκωση με βάση το αντιβιόγραμμα','Καθορισμένη διάρκεια αγωγής','Ευρύ φάσμα σε κάθε πυρετό','Μετάβαση από ενδοφλέβια σε από του στόματος χορήγηση'],[0,1,3],3),
+ tf('Q-504','Οι καλλιέργειες λαμβάνονται, όπου είναι δυνατό, πριν από την πρώτη δόση αντιβιοτικού.',true,2),
+ sc('Q-505','Ποιος δείκτης μετρά την κατανάλωση αντιβιοτικών;',['Συνταγές ανά μήνα','DDD ανά 100 ημέρες νοσηλείας','Κουτιά ανά κλινική','Κόστος ανά κλίνη'],1,2),
+ ft('Q-506','Τι κάνετε όταν το αντιβιόγραμμα δείχνει ευαισθησία σε στενότερου φάσματος αντιβιοτικό;','Αποκλιμακώνω στο στενότερου φάσματος σκεύασμα και καταγράφω την αιτιολόγηση.'),
+]
+DEMO_QUESTIONS['TRN-011']=[
+ sc('Q-601','Πότε χορηγείται η χειρουργική προφύλαξη;',['Την προηγούμενη ημέρα','Εντός 60 λεπτών πριν από την τομή','Μετά τη συρραφή','Μόνο αν υπάρξει πυρετός'],1,3),
+ tf('Q-602','Η αφαίρεση τριχών γίνεται με ξυράφι το πρωί της επέμβασης.',false,2),
+ mc('Q-603','Ποια μέτρα μειώνουν τον κίνδυνο λοίμωξης χειρουργικού πεδίου;',['Αντισηψία δέρματος με αλκοολούχο χλωρεξιδίνη','Διατήρηση νορμοθερμίας','Συχνό άνοιγμα των θυρών της αίθουσας','Γλυκαιμικός έλεγχος'],[0,1,3],3),
+ tf('Q-604','Το τραύμα καλύπτεται με αποστειρωμένο επίθεμα για 24–48 ώρες μετά την επέμβαση.',true,2),
+ sc('Q-605','Πόσο διάστημα παρακολουθείται μια επέμβαση με εμφύτευμα για λοίμωξη;',['7 ημέρες','30 ημέρες','90 ημέρες','Όσο νοσηλεύεται ο ασθενής'],2,2),
+ ft('Q-606','Τι καταγράφετε όταν ένα τραύμα έχει πυώδες έκκριμα;','Λαμβάνω καλλιέργεια, ενημερώνω τον θεράποντα και την Ομάδα Πρόληψης Λοιμώξεων και καταγράφω το εύρημα.'),
+]
+DEMO_QUESTIONS['TRN-012']=[
+ sc('Q-701','Με ποια σειρά καθαρίζεται ο θάλαμος;',['Από τα πιο βρόμικα προς τα πιο καθαρά','Από τα πιο καθαρά προς τα πιο βρόμικα, από πάνω προς τα κάτω','Με τυχαία σειρά','Πρώτα το δάπεδο'],1,3),
+ tf('Q-702','Ο ίδιος σφουγγαρόπανος μπορεί να χρησιμοποιηθεί σε περισσότερους θαλάμους την ίδια βάρδια.',false,2),
+ mc('Q-703','Ποιες επιφάνειες θεωρούνται επιφάνειες συχνής επαφής;',['Κάγκελα κρεβατιού','Κουδούνι κλήσης','Οροφή διαδρόμου','Πόμολα θυρών'],[0,1,3],3),
+ tf('Q-704','Για τον C. difficile χρησιμοποιείται σποροκτόνο απολυμαντικό.',true,2),
+ sc('Q-705','Τι γίνεται κατά τον τελικό καθαρισμό μετά την έξοδο ασθενούς με πολυανθεκτικό;',['Απλό σφουγγάρισμα','Πλήρης καθαρισμός και απολύμανση όλων των επιφανειών και αλλαγή κουρτινών','Μόνο αερισμός','Καθαρισμός μόνο του κρεβατιού'],1,2),
+ ft('Q-706','Πώς ελέγχεται η ποιότητα του καθαρισμού;','Με λίστα ελέγχου, οπτικό έλεγχο και μέτρηση ATP ή φθορίζοντες δείκτες.'),
+]
+DEMO_QUESTIONS['TRN-013']=[
+ sc('Q-801','Με πόσα στοιχεία ταυτοποιείται ο ασθενής πριν από κάθε πράξη;',['Ένα (αριθμός θαλάμου)','Τουλάχιστον δύο (ονοματεπώνυμο και ημερομηνία γέννησης)','Μόνο με το βραχιόλι χωρίς ερώτηση','Δεν χρειάζεται για γνωστούς ασθενείς'],1,3),
+ tf('Q-802','Ο αριθμός κρεβατιού είναι αποδεκτό στοιχείο ταυτοποίησης.',false,2),
+ mc('Q-803','Ποια μέτρα προλαμβάνουν τις πτώσεις;',['Εκτίμηση κινδύνου πτώσης κατά την εισαγωγή','Κουδούνι κλήσης σε απόσταση χεριού','Χαμηλό κρεβάτι με φρένα','Περιορισμός υγρών τη νύχτα'],[0,1,2],3),
+ tf('Q-804','Κάθε πτώση ασθενούς δηλώνεται ως ανεπιθύμητο συμβάν, ακόμη και χωρίς βλάβη.',true,2),
+ sc('Q-805','Πότε επανεκτιμάται ο κίνδυνος πτώσης;',['Μόνο στην εισαγωγή','Σε κάθε αλλαγή της κατάστασης ή της αγωγής και μετά από πτώση','Μία φορά τον μήνα','Στο εξιτήριο'],1,2),
+ ft('Q-806','Τι κάνετε αμέσως μετά από πτώση ασθενούς;','Εκτιμώ τον ασθενή, ενημερώνω τον ιατρό, καταγράφω και δηλώνω το συμβάν.'),
+]
+const HISTORY_WARDS=['ΜΕΘ','Παθολογική','Χειρουργική','ΤΕΠ','Καρδιολογική','Νεογνολογική / ΜΕΝΝ','Ορθοπαιδική']
+const historyStart=monthIndex=>dayInMonth(DEMO_HISTORY_MONTHS[monthIndex],3)
+const HISTORY_PROGRAMS=[
+ ['TRN-008','Πρόληψη CLABSI – κύκλος 2025','ipc','Νοσηλευτικό προσωπικό ΜΕΘ · Χειρουργικής',0,'in_person','Ομάδα IPC','Δέσμη πρόληψης CLABSI και φροντίδα κεντρικών γραμμών, ετήσια επανάληψη.',['ΜΕΘ','Χειρουργική'],'Νοσηλευτικό προσωπικό',{}],
+ ['TRN-009','Ορθολογική χρήση αντιμικροβιακών','clinical','Ιατρικό προσωπικό',2,'online','Δρ. Παναγιώτης Ρήγας','Εμπειρική αγωγή, επανεκτίμηση στις 48–72 ώρες, αποκλιμάκωση και διάρκεια θεραπείας.',HISTORY_WARDS,'Ιατρικό προσωπικό',{}],
+ ['TRN-010','Ασφαλής διαχείριση αιχμηρών – κύκλος 2025','occupational_health','Όλο το προσωπικό',3,'online','Τμήμα Ποιότητας','Πρόληψη τραυματισμών και σωστή αναφορά έκθεσης.',null,'all',{validMonths:24,passScore:75}],
+ ['TRN-011','Πρόληψη λοιμώξεων χειρουργικού πεδίου','ipc','Χειρουργική · Ορθοπαιδική',5,'in_person','Δρ. Στέφανος Καλλέργης','Προεγχειρητική προετοιμασία, χειρουργική προφύλαξη και φροντίδα του τραύματος.',['Χειρουργική','Ορθοπαιδική'],null,{}],
+ ['TRN-012','Καθαρισμός και απολύμανση περιβάλλοντος ασθενούς','ipc','Νοσηλευτικό προσωπικό όλων των κλινικών',7,'hybrid','Ν. Παπαδόπουλος','Σειρά καθαρισμού, επιφάνειες συχνής επαφής, τελικός καθαρισμός και έλεγχος ποιότητας.',HISTORY_WARDS,'Νοσηλευτικό προσωπικό',{}],
+ ['TRN-014','Ορθή χρήση ΜΑΠ & απομόνωση – κύκλος 2025','ipc','ΜΕΘ · Παθολογική · ΤΕΠ',9,'in_person','Ν. Παπαδόπουλος','Επιλογή, εφαρμογή και αφαίρεση ΜΑΠ και μέτρα απομόνωσης.',['ΜΕΘ','Παθολογική','ΤΕΠ'],null,{}],
+ ['TRN-013','Ασφάλεια ασθενών: ταυτοποίηση και πρόληψη πτώσεων','quality','Νοσηλευτικό προσωπικό όλων των κλινικών',DEMO_HISTORY_MONTHS.length-5,'hybrid','Τμήμα Ποιότητας','Ταυτοποίηση με δύο στοιχεία, εκτίμηση κινδύνου πτώσης και δήλωση συμβάντων.',HISTORY_WARDS,'Νοσηλευτικό προσωπικό',{}],
+]
+for(const [id,title,category,audience,monthIndex,method,trainer,description,departments,profession,{validMonths=12,passScore=80}] of HISTORY_PROGRAMS){
+ const startDate=historyStart(monthIndex),dueDate=addDays(startDate,40)
+ trainingDemoState.programs.push({...pastProgram(id,title,audience,startDate,dueDate,method,trainer,description),category,owner:category==='ipc'?'Ομάδα Πρόληψης Λοιμώξεων':'Ποιότητα & Ασφάλεια',validMonths,passScore})
+ PAST_PLAN.push([id,departments,profession,startDate,dueDate,addDays(startDate,5),30])
+}
 let pastIndex=0
 for(const [programId,departments,profession,assignedDate,dueDate,firstDay,spreadDays] of PAST_PLAN){
  const program=trainingDemoState.programs.find(p=>p.id===programId)
- const staff=employeeRows.filter(e=>e.employmentStatus==='active'&&departments.includes(e.department)&&(profession?e.profession===profession:['Νοσηλευτικό προσωπικό','Ιατρικό προσωπικό'].includes(e.profession))&&e.hireDate<=assignedDate)
+ const staff=employeeRows.filter(e=>e.employmentStatus==='active'&&(!departments||departments.includes(e.department))&&(profession==='all'||(profession?e.profession===profession:['Νοσηλευτικό προσωπικό','Ιατρικό προσωπικό'].includes(e.profession)))&&e.hireDate<=assignedDate)
  staff.forEach((e,i)=>{
   pastIndex+=1
   const id=`TRA-${String(100+pastIndex)}`,rand=seededRandom(`training|${id}`),name=`${e.firstName} ${e.lastName}`
@@ -137,7 +190,7 @@ for(const [programId,departments,profession,assignedDate,dueDate,firstDay,spread
   const wrongIds=program.assessmentQuestions.filter(q=>q.type!=='free_text'&&rand()<(i%9===4?0.45:0.12)).map(q=>q.id)
   const day=addDays(firstDay,Math.floor(rand()*spreadDays)),row=done(id,programId,e.id,name,e.department,e.email,day,wrongIds,program.passScore,{clarity:4+(i%2),knowledge:5,usefulness:4+((i+1)%2),organization:4,materials:4},'',`CERT-${id}`)
   trainingDemoState.assignments.push({...row,assignedDate,dueDate,invitationSentAt:`${assignedDate}T08:00:00Z`,assessmentReviewedAt:`${day}T14:00:00Z`,assessmentReviewedBy:'Ελένη Κωνσταντίνου',assessmentReviewAcknowledged:true})
-  if(row.certificateId)trainingDemoState.certificates.push({id:row.certificateId,assignmentId:id,employeeId:e.id,title:program.title,issuedDate:day,validUntil:addDays(day,365),issuer:'Limoxis Observer · Demo Hospital'})
+  if(row.certificateId)trainingDemoState.certificates.push({id:row.certificateId,assignmentId:id,employeeId:e.id,title:program.title,issuedDate:day,validUntil:addDays(day,Math.round(program.validMonths*30.4375)),issuer:'Limoxis Observer · Demo Hospital'})
  })
 }
 
