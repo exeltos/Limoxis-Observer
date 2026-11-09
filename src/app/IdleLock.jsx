@@ -13,6 +13,10 @@ const ACTIVITY_EVENTS=['pointerdown','pointermove','keydown','wheel','touchstart
 const CHECK_MS=15000
 export const DEFAULT_IDLE_LOCK_MINUTES=15
 export const IDLE_LOCK_OPTIONS=[0,5,10,15,30,60]
+// The Platform Owner's account reaches every hospital: its screen always locks, after 10 minutes at most
+// (also inside a hospital whose own setting is longer or off).
+export const OWNER_IDLE_LOCK_MINUTES=10
+export const ownerIdleLockMinutes=minutes=>{const value=Number(minutes);return value>0?Math.min(value,OWNER_IDLE_LOCK_MINUTES):OWNER_IDLE_LOCK_MINUTES}
 
 const readLocked=()=>readSessionValue(LOCK_KEY)==='1'
 const writeLocked=value=>{if(value)writeSessionValue(LOCK_KEY,'1');else removeSessionValue(LOCK_KEY)}

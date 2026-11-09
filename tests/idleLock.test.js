@@ -11,3 +11,10 @@ describe('idle lock minutes',()=>{
   expect(idleLockMinutesFor(null,false)).toBe(DEFAULT_IDLE_LOCK_MINUTES)
  })
 })
+
+describe('idle lock · Platform Owner', () => {
+  it('always locks the owner, after 10 minutes at most', async () => {
+    const { ownerIdleLockMinutes } = await import('../src/app/IdleLock.jsx')
+    expect([0, null, 5, 10, 15, 60].map(ownerIdleLockMinutes)).toEqual([10, 10, 5, 10, 10, 10])
+  })
+})
