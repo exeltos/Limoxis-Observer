@@ -24,7 +24,23 @@ export const DEFAULT_RULES = {
   balanceTolerance: 2
 }
 
-export const isShift = (code) => code === 'M' || code === 'I' || code === 'A' || code === 'N'
+// The department's other shifts (owner, 9/11/2026) are stored with their kind: «M:1» is the hospital's shift 1
+// (08:00-16:00) counted as a morning. The rules read the kind.
+export const kindOf = (code) => (typeof code === 'string' && code.length > 2 && code[1] === ':' ? code[0] : code)
+// The kind of a shift by its start: before 10:00 a morning, before 13:00 an intermediate, before 20:00 an afternoon,
+// else a night.
+export function kindFromStart(from) {
+  const hour = Number(String(from || '').split(':')[0])
+  if (!Number.isFinite(hour)) return 'M'
+  if (hour >= 20 || hour < 4) return 'N'
+  if (hour < 10) return 'M'
+  if (hour < 13) return 'I'
+  return 'A'
+}
+export const isShift = (code) => {
+  const kind = kindOf(code)
+  return kind === 'M' || kind === 'I' || kind === 'A' || kind === 'N'
+}
 const isDay = (code) => code === 'M' || code === 'I'
 export const isLeave = (code) => Boolean(code) && !isShift(code) && code !== 'R'
 
@@ -65,8 +81,16 @@ function mulberry32(seed) {
 // The people each shift needs on a day: the day's own numbers when set, else the weekday / weekend defaults.
 export function demandFor(demand, day) {
   const row = { ...((day.weekend ? demand?.weekend : demand?.weekday) || {}), ...(demand?.overrides?.[day.date] || {}) }
-  return { M: Number(row.M) || 0, I: Number(row.I) || 0, A: Number(row.A) || 0, N: Number(row.N) || 0 }
+  const need = { M: Number(row.M) || 0, I: Number(row.I) || 0, A: Number(row.A) || 0, N: Number(row.N) || 0 }
+  // The department's other shifts add their people to their kind.
+  for (const shift of customShifts(demand)) need[kindOf(shift.code)] += customNeed(shift, day)
+  return need
 }
+// The department's other shifts: [{ code: 'M:1', label, weekday, weekend }].
+export const customShifts = (demand) => (Array.isArray(demand?.custom) ? demand.custom.filter((shift) => isShift(shift?.code) && String(shift.code).includes(':')) : [])
+export const customNeed = (shift, day) => Math.max(0, Number(day.weekend ? shift.weekend : shift.weekday) || 0)
+// The same roster in kinds only (what the rules read).
+const asKinds = (assignments) => Object.fromEntries(Object.entries(assignments || {}).map(([id, row]) => [id, Object.fromEntries(Object.entries(row || {}).map(([date, code]) => [date, kindOf(code)]))]))
 
 function weekendPairs(days) {
   const pairs = []
@@ -159,9 +183,19 @@ export const defaultExtraCode = (employee, day) => {
 
 const historyOf = (history, id) => (Array.isArray(history?.[id]) ? history[id].slice(-7) : [])
 
-export function checkRoster({ days, employees, assignments, demand, rules, history = {} }) {
+export function checkRoster({ days, employees, assignments: given, demand, rules, history = {} }) {
   const r = { ...DEFAULT_RULES, ...rules }
   const violations = []
+  // Each of the department's other shifts has its own people too.
+  const active0 = (employees || []).filter((employee) => employee.active !== false)
+  for (const shift of customShifts(demand)) {
+    days.forEach((day) => {
+      const need = customNeed(shift, day)
+      const have = active0.filter((employee) => given?.[employee.id]?.[day.date] === shift.code).length
+      if (have < need && active0.some((employee) => isShift(given?.[employee.id]?.[day.date]))) violations.push({ rule: 'coverage', date: day.date, detail: `${shift.code} ${have}/${need}` })
+    })
+  }
+  const assignments = asKinds(given)
   const active = (employees || []).filter((employee) => employee.active !== false)
   const rows = active.map((employee) => ({ employee, codes: days.map((day) => assignments?.[employee.id]?.[day.date] || '') }))
   // An empty roster (only leave and wishes entered) has nothing to check yet.
@@ -288,13 +322,40 @@ function allowedBackward(s, i, code, r, days) {
 export function generateRoster({ days, employees, demand, rules, history = {}, seed = 1, attempts = 3, iterations = 15000 }) {
   const r = { ...DEFAULT_RULES, ...rules }
   const seeds = mulberry32(seed)
+  // The rules work on kinds; the department's other shifts set by hand come back afterwards.
+  const byKind = (employees || []).map((employee) => ({ ...employee, fixed: Object.fromEntries(Object.entries(employee.fixed || {}).map(([date, code]) => [date, kindOf(code)])) }))
+  const kindHistory = Object.fromEntries(Object.entries(history || {}).map(([id, row]) => [id, (row || []).map(kindOf)]))
   let best = null
   for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
-    const result = buildRoster({ days, employees, demand, r, history, random: mulberry32(Math.floor(seeds() * 4294967296)), iterations })
+    const result = buildRoster({ days, employees: byKind, demand, r, history: kindHistory, random: mulberry32(Math.floor(seeds() * 4294967296)), iterations })
     if (!best || result.score < best.score) best = result
     if (result.violations.length === 0) break
   }
-  return best
+  const custom = customShifts(demand)
+  const hasCustomFixed = (employees || []).some((employee) => Object.values(employee.fixed || {}).some((code) => String(code).includes(':')))
+  if (!custom.length && !hasCustomFixed) return best
+  const random = mulberry32(seed + 17)
+  const assignments = Object.fromEntries(Object.entries(best.assignments).map(([id, row]) => [id, { ...row }]))
+  for (const employee of employees || []) {
+    for (const [date, code] of Object.entries(employee.fixed || {})) if (assignments[employee.id]) assignments[employee.id][date] = code
+  }
+  // Each of the department's other shifts takes its people from its kind on the day, sharing it out.
+  const given = {}
+  for (const shift of custom) {
+    for (const day of days) {
+      let need = customNeed(shift, day) - (employees || []).filter((employee) => assignments[employee.id]?.[day.date] === shift.code).length
+      const options = (employees || [])
+        .filter((employee) => employee.active !== false && !employee.extra && !employee.fixed?.[day.date] && assignments[employee.id]?.[day.date] === kindOf(shift.code))
+        .sort((a, b) => (given[a.id] || 0) - (given[b.id] || 0) || random() - 0.5)
+      for (const employee of options) {
+        if (need <= 0) break
+        assignments[employee.id][day.date] = shift.code
+        given[employee.id] = (given[employee.id] || 0) + 1
+        need -= 1
+      }
+    }
+  }
+  return { ...best, assignments, violations: checkRoster({ days, employees, assignments, demand, rules: r, history }) }
 }
 
 function buildRoster({ days, employees, demand, r, history, random, iterations }) {

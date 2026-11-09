@@ -177,3 +177,29 @@ describe('exactly two days off in every Monday-Sunday week (owner, 9/11/2026)', 
     expect(made.violations.filter((v) => !['weekendOff', 'coverage'].includes(v.rule))).toEqual([])
   })
 })
+
+describe('the department’s other shifts (owner, 9/11/2026)', () => {
+  it('reads the kind of a shift from its start', async () => {
+    const { kindFromStart, kindOf } = await import('../src/features/rosters/rosterEngine')
+    expect(['08:00', '10:00', '12:00', '15:00', '23:00', '05:00'].map(kindFromStart)).toEqual(['M', 'I', 'I', 'A', 'N', 'M'])
+    expect(kindOf('M:1')).toBe('M')
+    expect(isShift('I:11')).toBe(true)
+  })
+  it('gives each other shift its own people out of its kind, and counts it in that kind', () => {
+    const p = periodDays('2026-11-23', '2026-12-06')
+    const custom = { weekday: { M: 2, A: 2, N: 1 }, weekend: { M: 2, A: 2, N: 1 }, custom: [{ code: 'M:1', label: '08:00–16:00', weekday: 1, weekend: 0 }] }
+    expect(demandFor(custom, p[0]).M).toBe(3)
+    expect(demandFor(custom, p[5]).M).toBe(2)
+    const staff = Array.from({ length: 11 }, (_, index) => ({ id: `c${index}`, active: true }))
+    const made = generateRoster({ days: p, employees: staff, demand: custom, seed: 2 })
+    for (const day of p) {
+      const ones = staff.filter(({ id }) => made.assignments[id][day.date] === 'M:1').length
+      expect(ones).toBe(day.weekend ? 0 : 1)
+    }
+  })
+  it('keeps a hand-set other shift and checks the rules by its kind', () => {
+    const one = [{ id: 'x', active: true }]
+    const found = checkRoster({ days: days.slice(0, 2), employees: one, assignments: { x: { [days[0].date]: 'N:26', [days[1].date]: 'M:1' } }, demand: {}, rules: { minWeekendOff: 0, weeklyRestDays: 0 } }).map((v) => v.rule)
+    expect(found).toContain('restAfterNight')
+  })
+})

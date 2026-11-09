@@ -13,9 +13,11 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { Field } from '../../design-system/Field'
+import { TimeField } from '../../design-system/TimeField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { downloadXlsx } from '../../core/export/xlsxExport'
-import { DEFAULT_RULES, checkRoster, datesBetween, demandFor, generateRoster, isLeave, isShift, periodDays, shiftTargets } from './rosterEngine'
+import { DEFAULT_RULES, checkRoster, customShifts, datesBetween, demandFor, generateRoster, isLeave, isShift, kindFromStart, kindOf, periodDays, shiftTargets } from './rosterEngine'
+import { IASO_SHIFT_CODES } from './iasoShiftCodes'
 import {
   createRosterRequest,
   deleteRoster,
@@ -137,6 +139,7 @@ export function RostersPage() {
   const [leave, setLeave] = useState({ employeeId: '', code: 'L', from: '', to: '' })
   const [ask, setAsk] = useState({ kind: 'leave', from: '', to: '', swapEmployeeId: '', swapDate: '', note: '' })
   const [dragId, setDragId] = useState(null)
+  const [newShift, setNewShift] = useState({ code: '', from: '', to: '' })
   const [dropId, setDropId] = useState(null)
   const department = departments.find(d => d.id === departmentId) || null
 
@@ -239,6 +242,19 @@ export function RostersPage() {
   const setMember = (employeeId, patch) => update({ ...roster, members: roster.members.map(m => (m.employeeId === employeeId ? { ...m, ...patch } : m)) })
   const setDemand = (kind, shift, value) => update({ ...roster, demand: { ...roster.demand, [kind]: { ...roster.demand[kind], [shift]: Math.max(0, Math.min(20, Number(value) || 0)) } } })
   const setRule = (key, value) => update({ ...roster, rules: { ...roster.rules, [key]: Math.max(0, Math.min(14, Number(value) || 0)) } })
+  // The department's other shifts (owner, 9/11/2026): added from the hospital's codes or typed in, with their own
+  // people per weekday and weekend day (0 = only by hand).
+  function addOther(code, from, to) {
+    const clean = String(code || '').trim()
+    if (!clean || !from || !to) return
+    const key = `${kindFromStart(from)}:${clean}`
+    const custom = Array.isArray(roster.demand.custom) ? roster.demand.custom : []
+    if (custom.some(o => o.code === key) || ['M', 'I', 'A', 'N'].includes(clean)) return
+    update({ ...roster, demand: { ...roster.demand, custom: [...custom, { code: key, label: `${from}–${to}`, weekday: 0, weekend: 0 }] } })
+    setNewShift({ code: '', from: '', to: '' })
+  }
+  const setOther = (code, patch) => update({ ...roster, demand: { ...roster.demand, custom: (roster.demand.custom || []).map(o => (o.code === code ? { ...o, ...patch } : o)) } })
+  const removeOther = code => update({ ...roster, demand: { ...roster.demand, custom: (roster.demand.custom || []).filter(o => o.code !== code) } })
   function setDayNeed(date, shift, value) {
     const overrides = { ...(roster.demand.overrides || {}) }
     const own = { ...(overrides[date] || {}) }
@@ -398,6 +414,11 @@ export function RostersPage() {
   const countOf = (id, test) => days.filter(d => test(codeAt(id, d.date))).length
   const usesI = Boolean(roster && (Number(roster.demand?.weekday?.I) || Number(roster.demand?.weekend?.I) || Object.values(roster.demand?.overrides || {}).some(o => Number(o.I)) || Object.values(roster.assignments || {}).some(row => Object.values(row || {}).includes('I'))))
   const shown = usesI ? SHIFTS : ['M', 'A', 'N']
+  // The department's other shifts (owner, 9/11/2026): stored as kind:code («M:1»), shown by their own code.
+  const others = customShifts(roster?.demand)
+  const shortOf = code => (!code ? '' : String(code).includes(':') ? String(code).split(':')[1] : CODES[code]?.short || code)
+  const labelOf = code => (String(code || '').includes(':') ? `${shortOf(code)} · ${others.find(o => o.code === code)?.label || ''} (${CODES[kindOf(code)]?.name || ''})` : CODES[code]?.label || '')
+  const cellClass = code => (isLeave(code) ? 'leave' : kindOf(code) || 'none')
   const fmtDay = iso => (iso ? iso.slice(0, 10).split('-').reverse().slice(0, 2).join('/') : '')
   const weekdays = en ? ['S', 'M', 'T', 'W', 'T', 'F', 'S'] : ['Κ', 'Δ', 'Τ', 'Τ', 'Π', 'Π', 'Σ']
   const hasShifts = Boolean(roster && Object.values(roster.assignments || {}).some(row => Object.values(row || {}).some(isShift)))
@@ -421,9 +442,9 @@ export function RostersPage() {
     const rows = active.map(m => {
       const codes = days.map(d => codeAt(m.employeeId, d.date))
       const shifts = codes.filter(isShift).length
-      return [m.name, ...codes.map(c => (c ? CODES[c]?.short || c : '')), ...shown.map(s => codes.filter(c => c === s).length), codes.filter(c => c === 'R').length, shifts, targets[m.employeeId] ?? '', shifts * HOURS]
+      return [m.name, ...codes.map(c => shortOf(c)), ...shown.map(s => codes.filter(c => kindOf(c) === s).length), codes.filter(c => c === 'R').length, shifts, targets[m.employeeId] ?? '', shifts * HOURS]
     })
-    for (const s of shown) rows.push([CODES[s].name, ...days.map(d => `${active.filter(m => codeAt(m.employeeId, d.date) === s).length}/${demandFor(roster.demand, d)[s]}`)])
+    for (const s of shown) rows.push([CODES[s].name, ...days.map(d => `${active.filter(m => kindOf(codeAt(m.employeeId, d.date)) === s).length}/${demandFor(roster.demand, d)[s]}`)])
     downloadXlsx(`Programma_${(department?.name || '').replace(/\s+/g, '_')}_${period.start}.xlsx`, [{ name: department?.name || 'Roster', headers, rows }])
   }
 
@@ -607,6 +628,41 @@ export function RostersPage() {
               </div>
             ))}
           </div>
+          <div className="roster-others">
+            <b>{tx('Άλλες βάρδιες του τμήματος', 'Other shifts of the department')}</b>
+            {customShifts(roster.demand).map(o => (
+              <div key={o.code} className="roster-other">
+                <i className={`code-${kindOf(o.code)}`}>{o.code.split(':')[1]}</i>
+                <span>{o.label} · {CODES[kindOf(o.code)]?.name}</span>
+                {['weekday', 'weekend'].map(kind => (
+                  <input key={kind} type="number" min="0" max="20" aria-label={`${o.code.split(':')[1]} ${kind === 'weekday' ? tx('καθημερινή', 'weekday') : tx('Σαββατοκύριακο', 'weekend')}`} value={o[kind] ?? 0} onChange={event => setOther(o.code, { [kind]: Math.max(0, Math.min(20, Number(event.target.value) || 0)) })} />
+                ))}
+                <button type="button" className="roster-other-remove" aria-label={tx(`Αφαίρεση βάρδιας ${o.code.split(':')[1]}`, `Remove shift ${o.code.split(':')[1]}`)} onClick={() => removeOther(o.code)}>×</button>
+              </div>
+            ))}
+            {codeStyle === 'iaso' ? (
+              <SearchableSelect
+                label={tx('Προσθήκη από τους κωδικούς του νοσοκομείου', 'Add from the hospital’s codes')}
+                placeholder={tx('Επιλέξτε κωδικό…', 'Choose a code…')}
+                value=""
+                onChange={value => {
+                  const row = IASO_SHIFT_CODES.find(([code]) => code === value)
+                  if (row) addOther(row[0], row[1], row[2])
+                }}
+                options={IASO_SHIFT_CODES.filter(([code]) => !['4', '12', '19', '20'].includes(code)).map(([code, from, to]) => ({ value: code, label: `${code} · ${from}–${to}` }))}
+              />
+            ) : (
+              <div className="roster-other-new">
+                <Field label={tx('Κωδικός', 'Code')}>
+                  <input value={newShift.code} maxLength={6} onChange={event => setNewShift(current => ({ ...current, code: event.target.value }))} />
+                </Field>
+                <TimeField label={tx('Από', 'From')} value={newShift.from} onChange={value => setNewShift(current => ({ ...current, from: value }))} />
+                <TimeField label={tx('Έως', 'Until')} value={newShift.to} onChange={value => setNewShift(current => ({ ...current, to: value }))} />
+                <Button variant="secondary" onClick={() => addOther(newShift.code, newShift.from, newShift.to)} disabled={!newShift.code || !newShift.from || !newShift.to}>{tx('Προσθήκη', 'Add')}</Button>
+              </div>
+            )}
+            <p className="roster-muted">{tx('Μετράει στην κατηγορία της (από την ώρα έναρξης)· με αριθμό ατόμων τη βάζει και η αυτόματη δημιουργία, με 0 μόνο με το χέρι.', 'Counts in its kind (by its start); with a number of people the automatic roster places it too, with 0 only by hand.')}</p>
+          </div>
           <div className="roster-rule-list">
             <label className="roster-rule">
               <span>{tx('Κωδικοί βαρδιών', 'Shift codes')}</span>
@@ -728,7 +784,7 @@ export function RostersPage() {
                       </td>
                       {historyDays.map(d => {
                         const code = history.history[m.employeeId]?.[history.dates.indexOf(d.date)] || ''
-                        return <td key={d.date} className="roster-history"><span className={`roster-cell is-past code-${isLeave(code) ? 'leave' : code || 'none'}`}>{code ? CODES[code]?.short || code : ''}</span></td>
+                        return <td key={d.date} className="roster-history"><span className={`roster-cell is-past code-${cellClass(code)}`}>{shortOf(code)}</span></td>
                       })}
                       {days.map(d => {
                         const code = codeAt(m.employeeId, d.date)
@@ -739,10 +795,10 @@ export function RostersPage() {
                           <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
                             <button
                               type="button"
-                              className={`roster-cell code-${isLeave(code) ? 'leave' : code || 'none'}${wish ? ' has-wish' : ''}${bad ? ' is-bad' : ''}${manual && canEdit ? ' is-manual' : ''}`}
+                              className={`roster-cell code-${cellClass(code)}${wish ? ' has-wish' : ''}${bad ? ' is-bad' : ''}${manual && canEdit ? ' is-manual' : ''}`}
                               disabled={!canEdit}
-                              aria-label={`${m.name} ${fmtDay(d.date)}: ${[CODES[code]?.label || tx('κενό', 'empty'), wish && tx('επιθυμία ρεπό', 'wishes a day off')].filter(Boolean).join(' · ')}`}
-                              title={[CODES[code]?.label, wish && tx('επιθυμία ρεπό', 'wishes a day off'), manual && tx('ορίστηκε με το χέρι', 'set by hand')].filter(Boolean).join(' · ')}
+                              aria-label={`${m.name} ${fmtDay(d.date)}: ${[labelOf(code) || tx('κενό', 'empty'), wish && tx('επιθυμία ρεπό', 'wishes a day off')].filter(Boolean).join(' · ')}`}
+                              title={[labelOf(code), wish && tx('επιθυμία ρεπό', 'wishes a day off'), manual && tx('ορίστηκε με το χέρι', 'set by hand')].filter(Boolean).join(' · ')}
                               onClick={event => {
                                 const rect = event.currentTarget.getBoundingClientRect()
                                 setNeed(null)
@@ -750,12 +806,12 @@ export function RostersPage() {
                                 setCell({ employeeId: m.employeeId, date: d.date, top: Math.min(rect.bottom + 4, window.innerHeight - 380), left: Math.min(rect.left, window.innerWidth - 230) })
                               }}
                             >
-                              {code ? CODES[code]?.short || code : wish ? '★' : ''}
+                              {code ? shortOf(code) : wish ? '★' : ''}
                             </button>
                           </td>
                         )
                       })}
-                      {shown.map(s => <td key={s} className="roster-sum">{countOf(m.employeeId, c => c === s)}</td>)}
+                      {shown.map(s => <td key={s} className="roster-sum">{countOf(m.employeeId, c => kindOf(c) === s)}</td>)}
                       <td className="roster-sum">{countOf(m.employeeId, c => c === 'R')}</td>
                       <td className={`roster-sum roster-total-col${hasShifts && Math.abs(shifts - target) > rules.balanceTolerance ? ' is-off-target' : ''}`}>
                         {shifts} / {target}
@@ -771,8 +827,8 @@ export function RostersPage() {
                     <th className="roster-name-col" scope="row">{CODES[s].name}</th>
                     {historyDays.map(d => <td key={d.date} className="roster-history" />)}
                     {days.map(d => {
-                      const have = active.filter(m => !isExtra(m) && codeAt(m.employeeId, d.date) === s).length
-                      const extra = active.filter(m => isExtra(m) && codeAt(m.employeeId, d.date) === s).length
+                      const have = active.filter(m => !isExtra(m) && kindOf(codeAt(m.employeeId, d.date)) === s).length
+                      const extra = active.filter(m => isExtra(m) && kindOf(codeAt(m.employeeId, d.date)) === s).length
                       const needed = demandFor(roster.demand, d)[s]
                       const own = roster.demand.overrides?.[d.date]?.[s] !== undefined
                       return (
@@ -814,6 +870,7 @@ export function RostersPage() {
           )}
           <div className="roster-legend">
             {shown.map(c => <span key={c}><i className={`code-${c}`}>{CODES[c].short}</i>{CODES[c].label}</span>)}
+            {others.map(o => <span key={o.code}><i className={`code-${kindOf(o.code)}`}>{shortOf(o.code)}</i>{o.label}</span>)}
             <span><i className="code-R">{CODES.R.short}</i>{CODES.R.label}</span>
             <span><i className="code-leave">{CODES.L.short}</i>{tx('Άδεια / αργία', 'Leave / holiday')}</span>
             <span><i className="code-wish">★</i>{tx('Επιθυμία ρεπό', 'Wishes a day off')}</span>
@@ -850,6 +907,12 @@ export function RostersPage() {
               <button key={code} type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, code)}>
                 <i className={`code-${LEAVES.includes(code) ? 'leave' : code}`}>{CODES[code].short}</i>
                 {CODES[code].label}
+              </button>
+            ))}
+            {others.map(o => (
+              <button key={o.code} type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, o.code)}>
+                <i className={`code-${kindOf(o.code)}`}>{shortOf(o.code)}</i>
+                {o.label} · {CODES[kindOf(o.code)]?.name}
               </button>
             ))}
             <button type="button" role="menuitem" onClick={() => setCode(cell.employeeId, cell.date, 'wish')}>
