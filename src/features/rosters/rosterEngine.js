@@ -666,6 +666,56 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
   staff.forEach((s, k) => { s.codes = best.codes[k] })
   score = best.score
 
+  // 4. Whoever still has no whole weekend off gets one (owner, 9/11/2026): their two days off of a week move to its
+  //    Saturday and Sunday, and a colleague off that weekend works it and takes their days off instead — both
+  //    keep two days off in the week. The change that improves the roster most is kept.
+  const fullWeekOf = new Map(segments.map(([from, to]) => [from, to - from === 7]))
+  const segmentStart = (i) => segments[segmentOf[i]][0]
+  const weekendFree = (x) => pairs.some(([sat, sun]) => !isShift(x.codes[sat]) && !isShift(x.codes[sun]))
+  for (let round = 0; round < 3; round += 1) {
+    let changed = false
+    for (const s of regular.filter((x) => r.minWeekendOff > 0 && !weekendFree(x))) {
+      let bestMove = null
+      for (const [sat, sun] of pairs) {
+        const from = segmentStart(sat)
+        if (!fullWeekOf.get(from) || s.locked[sat] || s.locked[sun] || !isShift(s.codes[sat]) || !isShift(s.codes[sun])) continue
+        const week = Array.from({ length: 7 }, (_, x) => from + x)
+        const rests = week.filter((d) => s.codes[d] === 'R' && !s.locked[d])
+        if (rests.length < 2) continue
+        const [x, y] = rests
+        for (const q of [null, ...regular.filter((o) => o !== s && o.codes[sat] === 'R' && o.codes[sun] === 'R' && !o.locked[sat] && !o.locked[sun] && !o.locked[x] && !o.locked[y] && isShift(o.codes[x]) && isShift(o.codes[y]))]) {
+          const before = staff.map((o) => o.codes.slice())
+          const shiftSat = s.codes[sat]
+          const shiftSun = s.codes[sun]
+          s.codes[sat] = 'R'
+          s.codes[sun] = 'R'
+          if (q) {
+            s.codes[x] = q.codes[x]
+            s.codes[y] = q.codes[y]
+            q.codes[x] = 'R'
+            q.codes[y] = 'R'
+            q.codes[sat] = shiftSat
+            q.codes[sun] = shiftSun
+          } else {
+            s.codes[x] = shiftSat
+            s.codes[y] = shiftSun
+          }
+          const next = scoreOf(state)
+          // Only a real gain: the weekend comes without a new broken rule or a short shift (each of those weighs
+          // 300-1000, so anything less than 900 better trades one problem for another).
+          if (next <= score - 900 && (!bestMove || next < bestMove.score)) bestMove = { score: next, codes: staff.map((o) => o.codes.slice()) }
+          staff.forEach((o, k) => { o.codes = before[k] })
+        }
+      }
+      if (bestMove) {
+        staff.forEach((o, k) => { o.codes = bestMove.codes[k] })
+        score = bestMove.score
+        changed = true
+      }
+    }
+    if (!changed) break
+  }
+
   const assignments = {}
   const totals = {}
   for (const employee of employees || []) {
