@@ -17,6 +17,7 @@ const interview = (id, fields) => ({ id, scheduledAt: '', location: 'Γραφε�
 
 export function interviewsDemoState() {
   const state = demoCandidatesAndDivisions()
+  state.candidates.push(...historyCandidates())
   const category = text => (/Νοσηλ|Μαία/.test(text) ? 'nursing' : /Μάγειρ|Κουζίν|Τραυματιοφ/.test(text) ? 'support' : '')
   return { ...state, candidates: state.candidates.map(item => ({ ...item, professionalCategory: item.professionalCategory || category(item.requestedPosition || '') })) }
 }
@@ -52,4 +53,45 @@ function demoCandidatesAndDivisions() {
       candidate('demo-cand-7', 'ΥΠ-0007', -25, { fullName: 'Δημητρίου Σοφία', gender: 'female', area: 'Βόλος', phoneMobile: '6900000107', requestedPosition: 'Μαία', status: 'withdrawn', decisionNotes: 'Αποδέχθηκε θέση σε άλλο νοσοκομείο.' }),
     ],
   }
+}
+
+// The applications of 2025 and 2026 before the current ones (owner, 9/11/2026: the Demo shows
+// the whole of 2025): spread evenly from January 2025 to six weeks ago, each with its
+// interview, evaluation and decision. The same every time; only their dates follow today.
+const HISTORY = [
+  ['Ρήγα Αικατερίνη', 'female', 'ΤΕ Νοσηλευτική', 'hired', [5, 4, 4, 5, 5, 4], 'Ανέλαβε στη ΜΕΘ.'],
+  ['Καλογεράκης Μανώλης', 'male', 'Τραυματιοφορέας', 'hired', [4, 3, 4, 4, 4, 5], 'Ανέλαβε στο ΤΕΠ.'],
+  ['Ζαφειρίου Ναταλία', 'female', 'Διοικητική υπάλληλος', 'rejected', [3, 3, 2, 3, 3, 3], 'Δεν διαθέτει εμπειρία σε μισθοδοσία.'],
+  ['Μπούρας Αλέξανδρος', 'male', 'Μάγειρας', 'hired', [4, 4, 5, 4, 4, 4], 'Ανέλαβε στην κουζίνα.'],
+  ['Σταυροπούλου Ευγενία', 'female', 'ΔΕ Βοηθός Νοσηλευτή', 'hired', [4, 4, 3, 5, 4, 4], 'Ανέλαβε στην Παθολογική.'],
+  ['Χριστοδούλου Θανάσης', 'male', 'Τεχνολόγος Εργαστηρίων', 'withdrawn', [4, 5, 4, 3, 4, 2], 'Αποδέχθηκε θέση σε ιδιωτικό εργαστήριο.'],
+  ['Λαμπροπούλου Βασιλεία', 'female', 'Μαία', 'hired', [5, 5, 4, 5, 4, 4], 'Ανέλαβε στη Νεογνολογική.'],
+  ['Αντωνίου Στέλιος', 'male', 'ΤΕ Νοσηλευτική', 'rejected', [2, 3, 2, 3, 3, 3], 'Δεν έχει ακόμη άδεια άσκησης επαγγέλματος.'],
+  ['Παπαδάκη Ελισάβετ', 'female', 'ΤΕ Νοσηλευτική', 'hired', [4, 5, 4, 4, 5, 4], 'Ανέλαβε στη Χειρουργική.'],
+  ['Γεωργαντάς Φώτης', 'male', 'Τραυματιοφορέας', 'interviewed', [4, 3, 3, 4, 4, 4], 'Σε λίστα αναμονής για την επόμενη θέση.'],
+  ['Νικολοπούλου Ιφιγένεια', 'female', 'Διοικητική υπάλληλος', 'hired', [5, 4, 4, 4, 5, 5], 'Ανέλαβε στο Γραφείο Προσωπικού.'],
+  ['Κυριακίδης Παύλος', 'male', 'Μάγειρας', 'rejected', [3, 2, 3, 2, 3, 4], 'Δεν διαθέτει πιστοποίηση HACCP.'],
+  ['Ξενοφώντος Μυρτώ', 'female', 'ΔΕ Βοηθός Νοσηλευτή', 'withdrawn', [4, 4, 3, 4, 4, 3], 'Μετακόμισε σε άλλη πόλη.'],
+  ['Θεοχάρης Ορέστης', 'male', 'Τεχνολόγος Εργαστηρίων', 'hired', [4, 5, 5, 4, 4, 4], 'Ανέλαβε στο Μικροβιολογικό.'],
+  ['Βλάχου Κατερίνα', 'female', 'ΤΕ Νοσηλευτική', 'interviewed', [4, 4, 3, 4, 4, 4], 'Σε λίστα αναμονής για την Καρδιολογική.'],
+  ['Μελετίου Σπύρος', 'male', 'Διοικητική υπάλληλος', 'rejected', [3, 3, 3, 2, 3, 3], 'Επιλέχθηκε υποψήφιος με εμπειρία σε προμήθειες.'],
+]
+const CRITERIA_KEYS = ['presentation', 'knowledge', 'experience', 'motivation', 'teamwork', 'availability']
+function historyCandidates() {
+  const start = -Math.round((new Date(`${day(0)}T12:00:00`) - new Date('2025-01-10T12:00:00')) / 86400000)
+  const end = -45
+  return HISTORY.map(([fullName, gender, requestedPosition, status, marks, outcomeText], index) => {
+    const applied = Math.round(start + ((end - start) * index) / (HISTORY.length - 1))
+    const n = index + 8, rating = Math.round((marks.reduce((sum, mark) => sum + mark, 0) / marks.length) * 10) / 10
+    const outcome = status === 'hired' ? 'recommend' : status === 'interviewed' ? 'reserve' : status === 'rejected' ? 'not_recommend' : 'recommend'
+    const decided = status === 'hired' || status === 'rejected'
+    const nursing = /Νοσηλ|Μαία/.test(requestedPosition)
+    return candidate(`demo-cand-${n}`, `ΥΠ-${String(n).padStart(4, '0')}`, applied, {
+      fullName, gender, birthDate: `${1984 + (index % 13)}-${String(1 + (index * 5) % 12).padStart(2, '0')}-${String(3 + (index * 7) % 25).padStart(2, '0')}`, area: ['Λάρισα', 'Τρίκαλα', 'Καρδίτσα', 'Βόλος'][index % 4], phoneMobile: `69000002${String(n).padStart(2, '0')}`,
+      email: `candidate${n}@example.org`, requestedPosition, status, educationLevel: nursing ? 'ΑΕΙ' : 'Λύκειο', practiceLicence: nursing ? status !== 'rejected' || index % 2 === 0 : null,
+      decision: decided ? (status === 'hired' ? 'hire' : 'reject') : '', decisionOn: decided ? day(applied + 14) : '', decisionByName: decided ? DIRECTOR : '', decisionNotes: outcomeText,
+      interviews: [interview(`demo-int-h${n}`, { scheduledAt: at(applied + 8, `${10 + (index % 4)}:00`), status: 'completed', interviewers: panel(nursing ? [HEAD_NURSE] : ['Γιώργος Νικολάου'], [HR, 'hr']), scores: Object.fromEntries(CRITERIA_KEYS.map((key, i) => [key, marks[i]])), overallRating: rating, outcome, recommendation: outcomeText, salaryExpectation: 950 + (index % 5) * 75, evaluatedAt: at(applied + 8, '13:00'), evaluatedByName: HR })],
+      createdAt: at(applied, '10:00'), updatedAt: at(decided ? applied + 14 : applied + 8, '12:00'),
+    })
+  })
 }

@@ -4,6 +4,7 @@
 // The same picture is seeded in the Demo organizations of the database
 // (20261123110200_kitchen_demo.sql). Names are made up.
 import { demoResources } from '../quality/resources/resourceDemoData'
+import { seededRandom } from '../../core/data/demoSeed'
 import { DEFAULT_LIMITS } from './kitchenLimits'
 import { drillFindings, recallTrace } from './kitchenRecallModel'
 
@@ -130,6 +131,7 @@ export function kitchenDemoState() {
     { id: 'kf-5', productId: 'kp-2', productName: product('kp-2').name, receiptItemId: 'kri-5', quantity: '8', unit: 'kg', method: 'refrigerator', startedAt: at(0, '20:00'), startTemp: '-18', endedAt: '', endTemp: '', verifiedAt: null, verifiedByName: null },
   ].map(row => ({ correctiveAction: '', notes: '', productionId: '', recordedByName: COOK, source: 'demo', ...row }))
   const writeoffs = [{ id: 'kw-1', receiptItemId: 'kri-2', writtenOffOn: day(-2), quantity: '1', reason: 'expired', notes: 'Το υπόλοιπο έληξε· απορρίφθηκε.', recordedByName: CHEF }]
+  addKitchenHistory({ receipts, productions, usage, thermal, pureeing, defrosting, menus, suppliers, weekday })
   const state = {
     settings: { expiryWarningDays: 2, haccpReviewMonths: 12, haccpLastReviewOn: day(-340), haccpDocumentId: '', haccpTeam: `${MANAGER} (υπεύθυνη κουζίνας), Υπεύθυνος Ποιότητας, Νοσηλευτής/τρια Επιτήρησης Λοιμώξεων`, recallDrillMonths: 12, notes: '' },
     limits: DEFAULT_LIMITS.map(item => ({ limitKey: item.limitKey, minValue: item.minValue, maxValue: item.maxValue, withinMinutes: item.withinMinutes, active: true })),
@@ -137,6 +139,63 @@ export function kitchenDemoState() {
     products, menus, receipts, writeoffs, productions, usage, thermal, pureeing, defrosting, suppliers,
   }
   return { ...state, recallDrills: recallDemoDrills(state) }
+}
+
+// The kitchen's history from January 2025 to last week (owner, 9/11/2026: the Demo shows the
+// whole of 2025): every week a delivery (a frozen one too every fourth week), two signed-off
+// production days that use the delivered batches up, their heat parameters and pureeing, and
+// now and then an entry out of limits with its corrective action. The same every time (seeded).
+const HISTORY_START = '2025-01-06' // the first Monday of 2025
+const HISTORY_RECEIPTS = [
+  ['sup-demo-9', 'chilled', [['kp-1', 18, 6, 3], ['kp-3', 6, 4, 2.5]]],
+  ['sup-demo-7', 'chilled', [['kp-6', 30, 6, 4], ['kp-7', 50, 18, 4]]],
+  ['sup-demo-8', 'ambient', [['kp-10', 35, null, ''], ['kp-8', 12, null, '']]],
+]
+function addKitchenHistory({ receipts, productions, usage, thermal, pureeing, defrosting, menus, suppliers, weekday }) {
+  const rand = seededRandom('kitchen-history')
+  const first = -Math.round((new Date(`${day(0)}T12:00:00`) - new Date(`${HISTORY_START}T12:00:00`)) / 86400000)
+  const supplierName = id => suppliers.find(row => row.id === id)?.name || ''
+  const perYear = {}
+  const code = offset => { const year = day(offset).slice(0, 4); perYear[year] = (perYear[year] || 0) + 1; return `PAR-${year}-${String(perYear[year]).padStart(3, '0')}` }
+  let out = 0
+  for (let monday = first, week = 1; monday <= -10; monday += 7, week += 1) {
+    const [supplierId, temperatureClass, lines] = HISTORY_RECEIPTS[week % HISTORY_RECEIPTS.length]
+    const vehicleIssue = week % 9 === 4 && temperatureClass === 'chilled'
+    const items = lines.map(([productId, quantity, expiry, temperature], index) => item(`kri-h${week}-${index + 1}`, productId, quantity, { batch: expiry == null ? '' : `${productId.toUpperCase().replace('KP-', 'B')}-${String(week).padStart(3, '0')}`, expiry, temperature, base: monday }))
+    receipts.push({ id: `kr-h${week}`, code: code(monday), supplierId, supplierName: supplierName(supplierId), receivedOn: day(monday), receivedTime: `0${6 + (week % 3)}:${['10', '35', '50'][week % 3]}`, orderReference: String(900 + week), receiverName: week % 2 ? CHEF : COOK, ...ok, ...(vehicleIssue ? { vehicleCheck: 'noncompliant' } : {}), temperatureClass, measuredTemperature: temperatureClass === 'chilled' ? (vehicleIssue ? '5' : String(lines[0][3])) : '', accepted: true, status: 'completed',
+      qualityNotes: vehicleIssue ? 'Το ψυγείο του οχήματος έδειχνε 8 °C· τα προϊόντα μετρήθηκαν εντός ορίων.' : '', correctiveAction: vehicleIssue ? 'Ενημερώθηκε ο προμηθευτής και ζητήθηκε έλεγχος του οχήματος.' : '', items, source: 'demo' })
+    const frozen = week % 4 === 1 ? item(`kri-h${week}-f`, 'kp-5', 10, { batch: `FS-${String(week).padStart(3, '0')}`, expiry: 180, temperature: -19, base: monday + 1 }) : null
+    if (frozen) receipts.push({ id: `kr-h${week}-f`, code: code(monday + 1), supplierId: 'sup-demo-9', supplierName: supplierName('sup-demo-9'), receivedOn: day(monday + 1), receivedTime: '08:15', orderReference: String(1900 + week), receiverName: CHEF, ...ok, temperatureClass: 'frozen', measuredTemperature: '-19', accepted: true, status: 'completed', qualityNotes: '', correctiveAction: '', items: [frozen], source: 'demo' })
+    // Two production days, Monday and Thursday: each uses half of every delivered batch.
+    for (const [part, offset] of [[1, monday], [2, monday + 3]]) {
+      const menu = menus[weekday(offset) - 1]
+      const lunch = menu.menuText.split('\n')[1], dinner = menu.menuText.split('\n')[5] || ''
+      const id = `kd-h${week}-${part}`
+      productions.push({
+        id, productionDate: day(offset), menuId: menu.id, menuText: menu.menuText, notes: '',
+        disinfectionVegetables: true, disinfectionFruit: true, disinfectionAgent: 'Διάλυμα χλωρίου', disinfectionConcentrationPpm: '100', disinfectionMinutes: '5', disinfectionNotes: '',
+        recordedByName: CHEF, source: 'demo', verifiedAt: at(offset, '15:30'), verifiedByName: MANAGER, verificationNotes: 'Όλες οι καταγραφές πλήρεις.',
+        meals: [
+          { id: `kme-h${week}-${part}-1`, meal: 'lunch', diet: 'normal', dish: lunch, portions: String(110 + Math.floor(rand() * 20)), notes: '' },
+          { id: `kme-h${week}-${part}-2`, meal: 'lunch', diet: 'diabetic', dish: `${lunch} (χωρίς σάλτσα)`, portions: String(14 + Math.floor(rand() * 8)), notes: '' },
+          { id: `kme-h${week}-${part}-3`, meal: 'lunch', diet: 'puree', dish: `${lunch} (πολτός)`, portions: String(6 + Math.floor(rand() * 5)), notes: '' },
+          { id: `kme-h${week}-${part}-4`, meal: 'dinner', diet: 'normal', dish: dinner, portions: String(100 + Math.floor(rand() * 20)), notes: '' },
+        ].filter(meal => meal.dish),
+      })
+      for (const row of [...items, ...(frozen && part === 2 ? [frozen] : [])]) {
+        const quantity = row === frozen ? Number(row.quantity) : part === 1 ? Math.ceil(Number(row.quantity) / 2) : Number(row.quantity) - Math.ceil(Number(row.quantity) / 2)
+        usage.push({ id: `ku-h${week}-${part}-${row.id.split('-').pop()}`, productionId: id, receiptItemId: row.id, productId: row.productId, productName: row.productName, lotLabel: row.batchCode, dishName: lunch, usedOn: day(offset), quantity: String(quantity), unit: row.unit, notes: '', recordedByName: COOK, source: 'demo' })
+      }
+      // About one heat measurement in twelve falls short and is cooked on to the limit.
+      out += 1
+      const short = out % 12 === 7
+      const cookingTemp = short ? 71 : 78 + Math.floor(rand() * 14)
+      thermal.push({ id: `kt-h${week}-${part}`, productionId: id, processDate: day(offset), processTime: '12:05', dishName: lunch, productId: '', cookingTemp: String(cookingTemp), chillTemp: '', chillMinutes: '', reheatTemp: '', fryingTemp: '', correctiveAction: short ? 'Το μαγείρεμα συνεχίστηκε ως τους 82 °C και ξαναμετρήθηκε πριν τη διανομή.' : '', notes: '', recordedByName: COOK, source: 'demo' })
+      if (part === 2) thermal.push({ id: `kt-h${week}-c`, productionId: id, processDate: day(offset), processTime: '13:40', dishName: `${lunch} (για την επόμενη ημέρα)`, productId: '', cookingTemp: String(80 + Math.floor(rand() * 10)), chillTemp: String(4 + Math.floor(rand() * 5)), chillMinutes: String(70 + Math.floor(rand() * 40)), reheatTemp: '', fryingTemp: '', correctiveAction: '', notes: '', recordedByName: COOK, source: 'demo' })
+      pureeing.push({ id: `kpu-h${week}-${part}`, productionId: id, pureedOn: day(offset), method: (week + part) % 3 === 0 ? 'sieving' : 'pureeing', productName: lunch, visualCheck: true, bladeCheck: true, correctiveAction: '', notes: '', recordedByName: COOK, source: 'demo' })
+    }
+    if (frozen) defrosting.push({ id: `kf-h${week}`, productId: 'kp-5', productName: frozen.productName, receiptItemId: frozen.id, quantity: frozen.quantity, unit: 'kg', method: 'refrigerator', startedAt: at(monday + 2, '20:00'), startTemp: '-18', endedAt: at(monday + 3, '08:00'), endTemp: '-1', verifiedAt: at(monday + 3, '09:00'), verifiedByName: MANAGER, correctiveAction: '', notes: '', productionId: '', recordedByName: COOK, source: 'demo' })
+  }
 }
 
 // Two recall drills: a passed one this week (a supplier's chicken lot, traced in 95′) and
