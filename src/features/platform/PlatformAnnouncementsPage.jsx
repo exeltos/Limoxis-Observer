@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Eye, Pause, Paperclip, Pencil, Play, Plus, Trash2, X } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../core/auth/AuthContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useLanguage } from '../../core/i18n/LanguageContext'
@@ -45,7 +45,9 @@ export function PlatformAnnouncementsPage() {
   const tx = (elText, enText) => (en ? enText : elText)
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
-  const [draft, setDraft] = useState(null)
+  const location = useLocation()
+  // «Νέα ανακοίνωση» of the Overview's quick actions opens the form at once.
+  const [draft, setDraft] = useState(() => (location.state?.newAnnouncement ? { ...EMPTY } : null))
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -66,6 +68,10 @@ export function PlatformAnnouncementsPage() {
   useEffect(() => {
     void reload()
   }, [reload])
+  // The request is used once: a reload or a step back does not open the form again.
+  useEffect(() => {
+    if (location.state?.newAnnouncement) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
   const set = (key, value) => setDraft(current => ({ ...current, [key]: value }))
   const valid = draft && draft.titleEl.trim() && draft.bodyEl.trim() && (!draft.endsAt || !draft.startsAt || draft.endsAt >= draft.startsAt)
   async function save() {

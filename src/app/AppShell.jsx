@@ -7,7 +7,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LoaderCircle, BarChart3, Bell, Building2, ChevronDown, Eye, FlaskConical, LayoutDashboard, Layers3, Menu, Pin, PinOff, Settings, ShieldCheck, X } from 'lucide-react'
+import { ArrowLeft, LoaderCircle, BarChart3, Bell, BookOpen, Building2, ChevronDown, Eye, FlaskConical, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Settings, ShieldCheck, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -74,21 +74,30 @@ export function AppShell(){
   useEffect(()=>{setNavOpen(false)},[location.pathname,location.hash])
   useEffect(()=>{if(!navOpen)return;const onKey=event=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
-  // The Platform Owner's menu: the work areas, then governance (health, audit, settings).
+  // The Platform Owner's menu (owner, 9/11/2026): the work areas, then «Monitoring» (reports, history & health)
+  // and «Settings» (announcements, lists & legislation, the platform's settings), each under its heading.
   const platformNavigation=[
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
-    {key:'platformNav.analysis',label:'platformNav.menuAnalysis',path:'/platform',hash:'reports',icon:BarChart3},
-    {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,governance:true},
-    {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform',hash:'management?group=libraries',icon:Settings,governance:true},
+    {key:'platformNav.demos',label:'platformNav.menuDemos',path:'/platform',hash:'demo',icon:FlaskConical},
+    {key:'platformNav.users',label:'platformNav.menuPlatformUsers',path:'/platform',hash:'users',icon:Users},
+    {key:'platformNav.analysis',label:'platformNav.menuReports',path:'/platform',hash:'reports',icon:BarChart3,group:'monitoring'},
+    {key:'platformNav.audit',label:'platformNav.menuAudit',path:'/platform/audit',hash:'',icon:ShieldCheck,group:'monitoring'},
+    {key:'platformNav.announcements',label:'platformNav.menuAnnouncements',path:'/platform/announcements',hash:'',icon:Megaphone,group:'settings'},
+    {key:'platformNav.libraries',label:'platformNav.menuListsLegislation',path:'/platform',hash:'management?group=libraries',icon:BookOpen,group:'settings'},
+    {key:'platformNav.settings',label:'platformNav.menuSettings',path:'/platform/settings',hash:'',icon:Settings,group:'settings'},
   ]
-  // Organizations also covers Demo and Users (tabs of one screen). Settings covers the libraries (lists, indicator data, LIRA & AI),
-  // Legislation, the Library's guides and sources, and the platform settings: one screen of tabs.
+  const platformNavGroups=[['',null],['monitoring','platformNav.groupMonitoring'],['settings','platformNav.groupSettings']]
+  // Settings, announcements, the libraries (lists, indicator data, LIRA & AI), Legislation and the Library's guides
+  // and sources are one screen of tabs, shown without the application menu.
   const platformSettingsScreen=location.pathname.startsWith('/platform/legislation')||location.pathname.startsWith('/platform/library')||location.pathname.startsWith('/platform/settings')||location.pathname.startsWith('/platform/announcements')||(location.pathname==='/platform'&&platformHashKey==='management')
+  // Exactly one entry is marked: a record (an organization, a Demo) belongs to its registry's entry.
   const platformActive=item=>{
-    if(item.key==='platformNav.settings')return platformSettingsScreen
-    if(item.key==='platformNav.organizations')return location.pathname==='/platform'&&['organizations','demo','users'].includes(platformHashKey)
-    return location.pathname===item.path&&(item.path!=='/platform'||platformHashKey===item.hash)
+    const under=prefix=>location.pathname===prefix||location.pathname.startsWith(`${prefix}/`)
+    if(item.key==='platformNav.libraries')return under('/platform/legislation')||under('/platform/library')||(location.pathname==='/platform'&&platformHashKey==='management')
+    if(item.key==='platformNav.audit')return under('/platform/audit')||under('/platform/health')
+    if(item.path!=='/platform')return under(item.path)
+    return location.pathname==='/platform'&&platformHashKey===item.hash
   }
   const selectedMembership=membership||memberships.find(item=>item?.organization?.id===tenant?.id)||null
   const currentOrganization=selectedMembership?.organization||tenant||null
@@ -147,7 +156,7 @@ navigate('/');await reloadMemberships()}catch(error){notifyError(error,'save',{o
   const PlatformNavEntry=({item,nested=false})=>{const Icon=item.icon;const active=platformActive(item);const go=target=>navigate({pathname:target.path,search:'',hash:target.hash?`#${target.hash}`:''});const button=<button type="button" title={t(item.key)} aria-current={active&&!item.children?'page':undefined} className={`nav-item ${nested?'nested':''} ${active&&!item.children?'active':''} ${active&&item.children?'active-group':''}`} onClick={()=>go(item.children?item.children[0]:item)}>{Icon&&<Icon size={nested?16:18}/>}<span>{t(item.label)}</span>{item.children&&<ChevronDown className="nav-group-chevron" size={14}/>}</button>;if(!item.children)return button;return <div className={`sidebar-nav-group ${active?'open':''}`}>{button}{active&&<div className="sidebar-nav-children">{item.children.map(child=><PlatformNavEntry key={child.hash} item={child} nested/>)}</div>}</div>}
   return <div className={`app-shell ${platformMode?'platform-mode':''}${platformMode&&platformSettingsScreen?' platform-focus':''} ${helpPreviewMode?'help-preview-mode':''}${sidebarRail.rail&&(!platformMode||!sidebarRail.wide)?' sidebar-rail':''}`}>
     <aside id="app-sidebar" className={`sidebar${navOpen?' sidebar-open':''}`} {...(platformMode?{}:sidebarRail.handlers)}>{!platformMode&&sidebarRail.wide&&<button type="button" className="sidebar-pin" aria-pressed={sidebarRail.pinned} aria-label={sidebarRail.pinned?t('unpinMenu'):t('pinMenu')} title={sidebarRail.pinned?t('unpinMenu'):t('pinMenu')} onClick={sidebarRail.togglePin}>{sidebarRail.pinned?<PinOff size={15}/>:<Pin size={15}/>}</button>}<button type="button" className="sidebar-toggle" aria-expanded={navOpen} aria-controls="app-sidebar" aria-label={navOpen?t('closeMenu'):t('openMenu')} title={navOpen?t('closeMenu'):t('openMenu')} onClick={()=>setNavOpen(v=>!v)}>{navOpen?<X size={20}/>:<Menu size={20}/>}</button><div className="brand"><BrandMark size={30} tone="light" className="brand-mark-logo"/><div><strong>Limoxis Observer</strong><span>{t('brandSubtitle')}</span></div></div><nav>
-      {platformMode&&<>{platformNavigation.filter(item=>!item.governance).map(item=><PlatformNavEntry key={item.key} item={item}/>)}<div className="sidebar-nav-management">{platformNavigation.filter(item=>item.governance).map(item=><PlatformNavEntry key={item.key} item={item}/>)}</div></>}
+      {platformMode&&platformNavGroups.map(([group,heading])=>{const items=platformNavigation.filter(item=>(item.group||'')===group).map(item=><PlatformNavEntry key={item.key} item={item}/>);return group?<div key={group} className="platform-nav-group" role="group" aria-labelledby={`platform-nav-${group}`}><div id={`platform-nav-${group}`} className="platform-nav-heading">{t(heading)}</div>{items}</div>:items})}
       {!platformMode&&<SidebarNavigation role={role} items={visibleNavigation} t={t} userKey={profile?.id||user?.id}/>}
     </nav>{!platformMode&&<SidebarRecycleBin organizationId={tenant?.id||null} role={role} actorName={profile?.fullName||profile?.email||null} label={t('recycleBin')} onOpen={()=>setNavOpen(false)}/>}<div className="sidebar-footer"><div className="sidebar-meta">{roleLabel(role,language)}</div><div className="app-version-stamp">v{APP_VERSION}</div></div></aside>{navOpen&&<div className="sidebar-backdrop" aria-hidden="true" onClick={()=>setNavOpen(false)}/>}
     <main className="main-column"><header className={`topbar${isPlatformOwner&&tenant&&!platformMode?' topbar-owner-in-hospital':''}`}><div className="topbar-spacer topbar-whereami">{platformMode&&isPlatformOwner&&<div className="topbar-organization-context topbar-level-platform" title={t('topbarLevelPlatformHint')}><Layers3 size={17}/><div className="topbar-organization-copy"><strong>{t('topbarLevelPlatform')}</strong><span>{t('topbarLevelPlatformHint')}</span></div></div>}{platformMode&&<button type="button" className="topbar-demo-badge" onClick={()=>void openOwnDemo()} title={t('enterDemo')}><FlaskConical size={14}/><span>{t('enterDemo')}</span></button>}{!platformMode&&currentOrganization&&<div className={`topbar-organization-context${isPlatformOwner?' topbar-level-hospital':''}`}>{branding.logo?<img className="topbar-organization-logo" src={branding.logo} alt=""/>:<Building2 size={17}/>}<div className="topbar-organization-copy"><strong>{isPlatformOwner?`${t('topbarLevelHospital')}: ${currentOrganization.name}`:currentOrganization.name}</strong><span>{[currentOrganization.code,currentOrganization.city].filter(Boolean).join(' · ')||roleLabel(role,language)}</span></div>{showOrganizationSwitch&&<label className="topbar-organization-switch" title={t('changeOrganizationTitle')}><select value={selectedMembership?.id||''} onChange={e=>e.target.value&&setTenantByMembership(e.target.value)} aria-label={t('organization')}>{productionMemberships.map(item=><option key={item.id} value={item.id}>{item.organization.name}</option>)}</select><ChevronDown size={13}/></label>}</div>}{isDemo&&<button type="button" className="topbar-demo-badge" onClick={handleExitDemo} title={t('exitDemo')}><FlaskConical size={13}/><span>{t('demo')}</span><X size={12}/></button>}

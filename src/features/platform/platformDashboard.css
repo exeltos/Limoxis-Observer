@@ -1,36 +1,75 @@
-/* Platform Center: 2x2 management links and a charts row. */
-.platform-dashboard-charts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin:14px 0}
-.platform-dashboard-charts .platform-dashboard-chart-body{padding:14px 16px}
-@media(max-width:1100px){.platform-dashboard-charts{grid-template-columns:1fr}}
+/* Platform Overview (owner, 9/11/2026): one strip of totals, the hospitals with their activity,
+   and on the right what needs action and the quick actions. Colours from the design tokens only. */
+.platform-overview{gap:16px}
+.platform-overview-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.platform-overview-actions .button{height:var(--lo-control-height)}
+
+/* Totals: one card split into cells, each opening its registry */
+.platform-overview-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:1px;flex:0 0 auto;overflow:hidden;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-border);box-shadow:var(--lo-shadow-soft)}
+@media(max-width:900px){.platform-overview-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.platform-overview-total{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;margin:0;padding:15px 20px;border:0;border-radius:0;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.platform-overview-total:hover{background:var(--lo-color-surface-muted)}
+.platform-overview-total:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:-2px}
+.platform-overview-total>span{font-size:12.5px;font-weight:650;color:var(--lo-color-muted)}
+.platform-overview-total>strong{font-size:26px;line-height:1.2;font-weight:750;font-variant-numeric:tabular-nums}
+.platform-overview-total>small{font-size:12px;color:var(--lo-color-muted)}
+.platform-overview-total>small.tone-success{color:var(--lo-status-success-fg)}
+.platform-overview-total>small.tone-warning{color:var(--lo-status-warning-fg)}
+.platform-overview-total>small.tone-danger{color:var(--lo-status-danger-fg)}
+
+/* Two columns: the hospitals (wider) and the side column; one column under 1100px */
+.platform-overview-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);gap:16px;align-items:start}
+.platform-overview-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media(max-width:1100px){.platform-overview-grid{grid-template-columns:minmax(0,1fr)}}
+.platform-overview .platform-dashboard-panel{border-radius:12px;box-shadow:var(--lo-shadow-soft)}
+.platform-overview .platform-dashboard-panel>header{min-height:52px;padding:12px 20px}
+.platform-overview .platform-dashboard-panel h3{font-size:14.5px;font-weight:750;color:var(--lo-color-text)}
+.platform-overview-link{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:var(--lo-color-primary);cursor:pointer}
+.platform-overview-link:hover{text-decoration:underline}
+.platform-overview-count{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 7px;border-radius:999px;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg);font-size:12px;font-weight:750}
+.platform-overview-empty{margin:0;padding:18px 20px;color:var(--lo-color-muted);font-size:13px}
+.platform-overview-muted{color:var(--lo-color-muted)}
+
+/* Hospitals */
+.platform-overview-table-wrap{overflow-x:auto}
+.platform-overview .platform-overview-table th{padding:9px 16px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--lo-color-muted);background:var(--lo-color-surface-muted);white-space:nowrap}
+.platform-overview .platform-overview-table td{padding:11px 16px;font-size:13px;color:var(--lo-color-text);vertical-align:middle}
+.platform-overview .platform-overview-table th:first-child,.platform-overview .platform-overview-table td:first-child{padding-left:20px}
+.platform-overview-table tbody tr:hover{background:var(--lo-color-surface-muted)}
+.platform-overview-table tbody tr:focus-visible{outline:2px solid var(--lo-color-primary);outline-offset:-2px}
+.platform-overview-org{display:flex;align-items:center;gap:10px;min-width:0}
+.platform-overview-org>span:last-child{min-width:0}
+.platform-overview-org strong{display:block;font-size:13px;font-weight:650;line-height:1.3}
+.platform-overview-org small{display:block;margin-top:2px;font-size:11.5px;color:var(--lo-color-muted)}
+.platform-overview-avatar{display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:8px;background:var(--lo-color-primary-soft);color:var(--lo-color-primary);font-size:11.5px;font-weight:800}
+.platform-overview-since{white-space:nowrap}
+.platform-overview-num{white-space:nowrap;font-variant-numeric:tabular-nums}
+.platform-overview-spark{display:block;overflow:visible}
+.platform-overview-spark rect{fill:var(--lo-color-primary);opacity:.55}
+.platform-overview-spark rect.is-empty{fill:var(--lo-color-border-strong);opacity:1}
+.platform-overview-empty-hospitals{display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 20px;text-align:center}
+.platform-overview-empty-hospitals p{margin:0}
 
 /* Needs action: Demo endings and organization deletions of the next 7 days */
-.platform-dashboard-actions{margin-bottom:16px}
-.platform-action-list{display:flex;flex-direction:column;gap:8px}
-.platform-action-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-left:4px solid #d97706;border-radius:10px;padding:11px 14px;cursor:pointer;color:inherit;font:inherit}
-.platform-action-item.tone-danger{border-left-color:#d92d20}
-.platform-action-item:hover{background:#f7f9fb}
-.platform-action-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:#fff7ed;color:#b45309;flex:0 0 auto}
-.platform-action-item.tone-danger .platform-action-icon{background:#fef3f2;color:#b42318}
+.platform-action-list{display:flex;flex-direction:column}
+.platform-action-item{display:flex;align-items:center;gap:12px;width:100%;margin:0;padding:13px 20px;border:0;border-top:1px solid var(--lo-color-border);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.platform-action-item:first-child{border-top:0}
+.platform-action-item:hover{background:var(--lo-color-surface-muted)}
+.platform-action-icon{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.platform-action-item.tone-danger .platform-action-icon{background:var(--lo-status-danger-bg);color:var(--lo-status-danger-fg)}
 .platform-action-copy{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
-.platform-action-copy strong{font-size:13.5px;color:#16273a}
-.platform-action-copy small{font-size:12px;color:var(--muted)}
-/* Hospital health: last recorded activity and errors of the last 24 hours */
-.platform-hospital-health{margin-bottom:16px}
-.platform-health-list{display:flex;flex-direction:column;gap:6px}
-.platform-health-row{display:grid;grid-template-columns:10px minmax(0,1.2fr) minmax(0,1fr) auto 16px;align-items:center;gap:10px;width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.platform-health-row:hover{background:#f7f9fb}
-.platform-health-row strong{font-size:13px;color:#16273a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.platform-health-row small{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
-.platform-health-row em{font-style:normal;font-size:11.5px;font-weight:700;color:#1d6b3a}
-.platform-health-dot{width:10px;height:10px;border-radius:50%;background:#aeb8c3}
-.platform-health-row.tone-good .platform-health-dot{background:#1baf7a}
-.platform-health-row.tone-danger .platform-health-dot{background:#d92d20}
-.platform-health-row.tone-danger em{color:#b42318}
-.platform-health-row.tone-neutral em{color:var(--muted)}
+.platform-action-copy strong{font-size:13.5px;color:var(--lo-color-text)}
+.platform-action-copy small{font-size:12px;color:var(--lo-color-muted)}
+.platform-action-go{display:inline-flex;align-items:center;gap:4px;flex:0 0 auto;font-size:12.5px;font-weight:700;color:var(--lo-color-primary)}
+
+/* Quick actions */
+.platform-overview-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:16px 20px}
+.platform-overview-tile{display:flex;align-items:center;gap:10px;min-height:52px;margin:0;padding:10px 12px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;font-size:13px;font-weight:650;text-align:left;cursor:pointer}
+.platform-overview-tile:last-child:nth-child(odd){grid-column:1/-1}
+.platform-overview-tile:hover{border-color:var(--lo-color-border-strong);background:var(--lo-color-surface-muted)}
+.platform-overview-tile-icon{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:7px;background:var(--lo-color-primary-soft);color:var(--lo-color-primary)}
+
 /* Record actions: labelled buttons, then the "More" menu. */
 .platform-record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .platform-record-actions .button{display:inline-flex;align-items:center;gap:6px}
-.platform-dashboard-summary{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 14px;color:var(--lo-color-muted);font-size:14px}
-.platform-dashboard-summary>button{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--lo-color-text);cursor:pointer}
-.platform-dashboard-summary>button:hover{text-decoration:underline}
 .platform-history-summary{margin:0 0 12px;color:var(--lo-color-muted);font-size:14px;font-weight:600}

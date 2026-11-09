@@ -15,7 +15,7 @@ export function isOwnerPreview(){
  return ownerPreview
 }
 
-export const OWNER_PREVIEW_USER=Object.freeze({id:'owner-preview',email:'owner@limoxis-observer.local',fullName:'Platform Owner',isPlatformOwner:true,isDemo:false})
+export const OWNER_PREVIEW_USER=Object.freeze({id:'owner-preview',email:'owner@limoxis-observer.local',fullName:'Άρης Ιωάννου',isPlatformOwner:true,isDemo:false})
 
 const day=offset=>{const d=new Date();d.setDate(d.getDate()+offset);return d.toISOString().slice(0,10)}
 const at=(offsetDays,hour=10)=>{const d=new Date();d.setDate(d.getDate()+offsetDays);d.setHours(hour,12,0,0);return d.toISOString()}
@@ -77,6 +77,14 @@ export const previewRuntimeEvents=organizationId=>[
  ['warning','controls','/controls','Ο έλεγχος δεν φόρτωσε τα συνημμένα.','STORAGE-403',-1],
  ['info','training','/training','Αποστολή προσκλήσεων εκπαίδευσης (12).','',-2],
 ].map(([severity,module,route,userMessage,diagnosticCode,offset],index)=>({id:`ev-${organizationId?.slice(-1)||'x'}-${index}`,organizationId,actorId:'',actorName:'Ελένη Παπά',actorJobTitle:'Υπεύθυνη Ποιότητας',role:'quality_manager',severity,eventType:'ui_feedback',module,route,operation:'',userMessage,message:userMessage,diagnosticCode,appVersion:'0.47.6',occurredAt:at(offset)}))
+
+// The Overview's hospital activity: last recorded activity, errors of the last 24 hours and one count per day of the last 14.
+const PREVIEW_ACTIVITY={
+ '11111111-0000-4000-8000-000000000001':[-2/24,0,[4,6,3,8,5,9,7,2,3,10,8,6,11,9]],
+ '11111111-0000-4000-8000-000000000002':[-1,0,[1,0,2,0,1,3,0,1,0,2,1,0,1,2]],
+ '11111111-0000-4000-8000-000000000003':[-12,0,[0,0,0,0,0,0,0,0,0,0,0,0,0,0]],
+}
+export const previewHospitalHealth=(now=Date.now())=>Object.fromEntries(Object.entries(PREVIEW_ACTIVITY).map(([id,[offset,errors24h,activity]])=>[id,{lastActivityAt:new Date(now+offset*86400000).toISOString(),errors24h,activity}]))
 
 export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@limoxis.example',defaultDemoDurationDays:30,demoAutoPurgeAfterDays:14,organizationDeletionGraceDays:30,maxDemoUsers:5,maintenanceNoticeEnabled:false,maintenanceNoticeEl:'',maintenanceNoticeEn:'',updatedAt:at(-15)})
 

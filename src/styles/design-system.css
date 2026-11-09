@@ -447,7 +447,6 @@
 /* 2026-09 Platform Owner screen redesign */
 .page:has(.platform-dashboard){background:var(--lo-color-bg)}
 .platform-dashboard{display:flex;flex:1 1 auto;min-height:0;flex-direction:column;gap:12px;overflow:auto;padding-bottom:4px}
-.platform-live-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--lo-color-border);border-radius:999px;font-size:9px;font-weight:700}.platform-live-pill i{width:6px;height:6px;border-radius:50%;background:var(--lo-status-success-fg)}
 .platform-dashboard-panel,.platform-dashboard-organizations{overflow:hidden;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);box-shadow:0 1px 2px rgba(15,23,42,.025)}
 .platform-dashboard-panel>header,.platform-dashboard-organizations>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--lo-color-border)}
 .platform-dashboard-panel h3,.platform-dashboard-organizations h3{margin:0;font-size:11.5px}.platform-dashboard-panel header p,.platform-dashboard-organizations header p{margin:2px 0 0;color:var(--lo-color-muted);font-size:9.25px}
@@ -458,11 +457,9 @@
 .platform-registry-shell>.diagnostics-table-wrap{overflow:auto}
 .platform-settings-page{height:auto;overflow:auto;align-self:flex-start;width:100%}
 .platform-settings-page .platform-form-section{padding:14px 16px}.platform-settings-page .platform-governance{margin-top:2px}
-@media(max-width:700px){.platform-live-pill{justify-self:start}}
 
 
 /* Platform Owner — restrained clinical color accents */
-.platform-live-pill{border-color:color-mix(in srgb,#16a34a 22%,var(--lo-color-border));background:color-mix(in srgb,#16a34a 5%,var(--lo-color-surface));color:#16723a}
 .platform-dashboard-panel,.platform-dashboard-organizations{border-color:color-mix(in srgb,var(--lo-color-primary) 8%,var(--lo-color-border))}
 
 /* Carry the same accent language into Platform registries and records. */
