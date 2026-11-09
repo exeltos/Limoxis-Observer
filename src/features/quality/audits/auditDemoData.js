@@ -46,6 +46,16 @@ function audit(code, { key, department = '', title, titleEn, type = 'internal', 
 const nc = (answer, findingClass, note, evidence, findingId) => ({ answer, findingClass, note, evidence, ...(findingId ? { findingId } : {}) })
 
 export const programmeAudits = [
+  // The programme of 2025 (owner, 9/11/2026: the Demo shows the whole of 2025).
+  audit('AUD-2502-111', { key: 'iso9001', department: 'Χειρουργική', title: 'Εσωτερική επιθεώρηση ISO 9001 — Χειρουργική', titleEn: 'ISO 9001 internal audit — Surgery', planned: '2025-02-19', completed: '2025-02-19', status: 'completed', team: [lead, member('tm-11', 'EMP-002', 'Δημητρίου Νικόλαος', 'Παθολογική')], risk: 'medium', representative: 'Κωνσταντίνου Ελένη',
+    opening: { date: '2025-02-19', attendees: 'Κωνσταντίνου Ελένη, Διευθυντής Χειρουργικής, Σταθάτου Δήμητρα, Δημητρίου Νικόλαος' }, closing: { date: '2025-02-19', attendees: 'Κωνσταντίνου Ελένη, Διευθυντής Χειρουργικής' },
+    overrides: { '7.5.3': nc('no', 'minor', 'Παλαιά έκδοση του πρωτοκόλλου προεγχειρητικής προετοιμασίας στον σταθμό', 'Φάκελος πρωτοκόλλων σταθμού', 'FND-2502-111') }, conclusion: 'Το σύστημα εφαρμόζεται· μία έλασσον μη συμμόρφωση στον έλεγχο εγγράφων.' }),
+  audit('AUD-2505-112', { key: 'iso15224', department: 'ΜΕΘ', title: 'Επιθεώρηση ISO 15224 — ΜΕΘ', titleEn: 'ISO 15224 audit — ICU', planned: '2025-05-14', completed: '2025-05-14', status: 'completed', team: [lead, external('tm-12', 'Λαμπρόπουλος Παύλος', 'Σύμβουλος ποιότητας')], risk: 'high', representative: 'Παπαδοπούλου Μαρία',
+    opening: { date: '2025-05-14', attendees: 'Διευθυντής ΜΕΘ, Παπαδοπούλου Μαρία, Σταθάτου Δήμητρα, Λαμπρόπουλος Παύλος' }, closing: { date: '2025-05-14', attendees: 'Διευθυντής ΜΕΘ, Παπαδοπούλου Μαρία' },
+    overrides: { '8.5.1#2': nc('partial', 'observation', 'Η παράδοση ασθενών από τη ΜΕΘ στις κλινικές δεν ακολουθεί ενιαίο έντυπο', 'Παρατήρηση τριών μεταφορών', 'FND-2505-112') }, conclusion: 'Καλή κλινική διακυβέρνηση· μία παρατήρηση στη συνέχεια της φροντίδας.' }),
+  audit('AUD-2509-113', { key: 'iso9001', department: 'Καρδιολογική', title: 'Εσωτερική επιθεώρηση ISO 9001 — Καρδιολογική', titleEn: 'ISO 9001 internal audit — Cardiology', planned: '2025-09-17', completed: '2025-09-17', status: 'completed', team: [lead, member('tm-13', 'EMP-006', 'Οικονόμου Σοφία', 'Καρδιολογική')], risk: 'medium',
+    opening: { date: '2025-09-17', attendees: 'Διευθυντής Καρδιολογικής, Προϊσταμένη Καρδιολογικής, Σταθάτου Δήμητρα' }, closing: { date: '2025-09-17', attendees: 'Διευθυντής Καρδιολογικής, Προϊσταμένη Καρδιολογικής' },
+    overrides: { '7.1.5': nc('partial', 'observation', 'Ένα πιεσόμετρο χωρίς ετικέτα διακρίβωσης', 'Θάλαμος 4') }, conclusion: 'Το σύστημα εφαρμόζεται αποτελεσματικά· μία παρατήρηση χωρίς εύρημα.' }),
   audit('AUD-2511-100', { key: 'iso9001', department: 'ΜΕΘ', title: 'Εσωτερική επιθεώρηση ISO 9001 — ΜΕΘ', titleEn: 'ISO 9001 internal audit — ICU', planned: '2025-11-12', completed: '2025-11-12', status: 'completed', team: [lead], risk: 'high',
     opening: { date: '2025-11-12', attendees: 'Διευθυντής ΜΕΘ, Προϊσταμένη ΜΕΘ, Σταθάτου Δήμητρα' }, closing: { date: '2025-11-12', attendees: 'Διευθυντής ΜΕΘ, Προϊσταμένη ΜΕΘ' },
     overrides: { '7.1.5': nc('partial', 'observation', 'Δύο θερμόμετρα ψυγείων χωρίς ετικέτα διακρίβωσης', 'Ψυγεία φαρμάκων 1 και 3') }, conclusion: 'Το σύστημα εφαρμόζεται αποτελεσματικά· μία παρατήρηση.' }),
@@ -89,6 +99,8 @@ export const programmeAudits = [
 
 // The English title and description of each audit finding.
 const FINDING_EN = {
+  'FND-2502-111': ['ISO 9001 7.5.3 · Old protocol version at the station', 'Audit AUD-2502-111, ISO 9001 7.5.3: an old version of the preoperative preparation protocol was found at the station.'],
+  'FND-2505-112': ['ISO 15224 8.5.1 · ICU transfer handover form', 'The handover of patients from the ICU to the wards does not follow a single form.'],
   'FND-2603-101': ['ISO 9001 7.5.3 · Two versions of a form at the station', 'Audit AUD-2603-101, ISO 9001 7.5.3: two versions of the nursing accountability form were found at the station.'],
   'FND-2603-102': ['ISO 9001 9.1.2 · Satisfaction surveys are not discussed', 'Satisfaction surveys are collected but not discussed in the department meetings.'],
   'FND-2605-103': ['ISO 15224 CP-3 · Medication reconciliation at discharge', 'Medication reconciliation was not done in 3 of 10 discharges.'],
@@ -108,6 +120,8 @@ const finding = (id, auditId, itemRef, findingClass, severity, status, title, de
 }
 
 export const programmeFindings = [
+  finding('FND-2502-111', 'AUD-2502-111', '7.5.3', 'minor', 'medium', 'closed', 'ISO 9001 7.5.3 · Παλαιά έκδοση πρωτοκόλλου στον σταθμό', 'Επιθεώρηση AUD-2502-111, ISO 9001 7.5.3: στον σταθμό βρέθηκε παλαιά έκδοση του πρωτοκόλλου προεγχειρητικής προετοιμασίας.', 'Κωνσταντίνου Ελένη', '2025-04-20', { verificationStatus: 'effective', verifiedOn: '2025-05-12', verifiedBy: 'Σταθάτου Δήμητρα', verificationNote: 'Ο φάκελος του σταθμού έχει μόνο τις ισχύουσες εκδόσεις.' }),
+  finding('FND-2505-112', 'AUD-2505-112', '8.5.1#2', 'observation', 'low', 'closed', 'ISO 15224 8.5.1 · Έντυπο παράδοσης μεταφοράς από ΜΕΘ', 'Η παράδοση ασθενών από τη ΜΕΘ στις κλινικές δεν ακολουθεί ενιαίο έντυπο.', 'Παπαδοπούλου Μαρία', '2025-07-14', { verificationStatus: 'effective', verifiedOn: '2025-08-04', verifiedBy: 'Σταθάτου Δήμητρα', verificationNote: 'Ενιαίο έντυπο SBAR σε όλες τις μεταφορές του Ιουλίου.' }),
   finding('FND-2603-101', 'AUD-2603-101', '7.5.3', 'minor', 'medium', 'closed', 'ISO 9001 7.5.3 · Δύο εκδόσεις εντύπου στον σταθμό', 'Επιθεώρηση AUD-2603-101, ISO 9001 7.5.3: στον σταθμό βρέθηκαν δύο εκδόσεις του εντύπου νοσηλευτικής λογοδοσίας.', 'Προϊσταμένη Παθολογικής', '2026-05-17', { verificationStatus: 'effective', verifiedOn: '2026-06-10', verifiedBy: 'Σταθάτου Δήμητρα', verificationNote: 'Σε δειγματοληψία 10 εντύπων όλα στην τρέχουσα έκδοση.' }),
   finding('FND-2603-102', 'AUD-2603-101', '9.1.2', 'observation', 'low', 'open', 'ISO 9001 9.1.2 · Οι έρευνες ικανοποίησης δεν συζητούνται', 'Οι έρευνες ικανοποίησης συλλέγονται αλλά δεν συζητούνται στις συναντήσεις του τμήματος.', 'Δημητρίου Νικόλαος', '2026-06-16'),
   finding('FND-2605-103', 'AUD-2605-102', 'ΧΠ-3#2', 'minor', 'medium', 'inProgress', 'ISO 15224 ΧΠ-3 · Συμφιλίωση φαρμάκων κατά την έξοδο', 'Σε 3 από 10 εξόδους δεν έγινε συμφιλίωση φαρμάκων.', 'Κωνσταντίνου Ελένη', '2026-07-20'),
