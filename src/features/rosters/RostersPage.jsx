@@ -237,7 +237,7 @@ export function RostersPage() {
     () => (roster ? checkRoster({ days, employees: engineEmployees, assignments: roster.assignments, demand: roster.demand, rules, history: history.history }) : []),
     [roster, days, engineEmployees, rules, history],
   )
-  const targets = useMemo(() => shiftTargets(days, engineEmployees), [days, engineEmployees])
+  const targets = useMemo(() => shiftTargets(days, engineEmployees, rules.weeklyRestDays), [days, engineEmployees, rules.weeklyRestDays])
   // Who «I» am, for a member of the department's staff: their own employee row (in the Demo, the first colleague).
   const me = useMemo(() => {
     if (!staffMode || !roster) return null

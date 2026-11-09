@@ -30,10 +30,13 @@ describe('periodDays and leave ranges', () => {
   it('takes the day’s own numbers over the defaults', () => {
     expect(demandFor({ ...demand, overrides: { '2026-10-21': { M: 4 } } }, days[0])).toEqual({ M: 4, I: 0, A: 2, N: 1 })
   })
-  it('sets each target to the weekdays minus the leave', () => {
+  it('sets each target to the days less two days off a week and the leave (owner, 9/11/2026)', () => {
     const targets = shiftTargets(days, employees)
     expect(targets.n1).toBe(23)
-    expect(targets.n3).toBe(18)
+    // A week with five days of leave keeps its two days off: no work left in it.
+    expect(targets.n3).toBe(16)
+    // 21/11–20/12: four full weeks (5 each) and a two-day part week (no whole day off): 22.
+    expect(shiftTargets(periodDays('2026-11-21', '2026-12-20'), [{ id: 'x' }]).x).toBe(22)
   })
 })
 

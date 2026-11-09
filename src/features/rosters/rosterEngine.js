@@ -105,14 +105,29 @@ function fullWeeks(days) {
 }
 
 // Each person's target: the weekdays of the period minus their leave on weekdays (five days a week).
-export function shiftTargets(days, employees) {
+export function shiftTargets(days, employees, weeklyRestDays = DEFAULT_RULES.weeklyRestDays) {
+  // Each person's target follows the days off the roster keeps (owner, 9/11/2026): every Monday-Sunday week
+  // `weeklyRestDays` days off (a part week its whole share), the rest work, less leave.
+  const segments = []
+  for (let i = 0, from = 0; i <= days.length; i += 1) {
+    if (i === days.length || (i > from && days[i].weekday === 1)) {
+      segments.push([from, i])
+      from = i
+    }
+  }
   const targets = {}
   for (const employee of employees || []) {
     const fixed = employee.fixed || {}
-    const weekdays = days.filter((day) => !day.weekend && !isLeave(fixed[day.date])).length
+    let work = 0
+    for (const [from, to] of segments) {
+      const length = to - from
+      const quota = length === 7 ? weeklyRestDays : Math.floor((length * weeklyRestDays) / 7)
+      const leave = days.slice(from, to).filter((day) => isLeave(fixed[day.date])).length
+      work += Math.max(0, length - quota - leave)
+    }
     // Part-time: a share of the full target.
     const percent = Number(employee.percent) > 0 && Number(employee.percent) < 100 ? Number(employee.percent) : 100
-    targets[employee.id] = Math.round((weekdays * percent) / 100)
+    targets[employee.id] = Math.round((work * percent) / 100)
   }
   return targets
 }
@@ -219,7 +234,7 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   }
   // Fair share: each person's distance from their target, compared with the group's (a department with more people
   // than shifts leaves everyone a little under target, evenly).
-  const targets = shiftTargets(days, active)
+  const targets = shiftTargets(days, active, r.weeklyRestDays)
   const gaps = rows.filter(({ employee }) => !employee.extra).map(({ employee, codes }) => ({ employee, gap: codes.filter(isShift).length - targets[employee.id] }))
   const meanGap = gaps.reduce((sum, row) => sum + row.gap, 0) / (gaps.length || 1)
   for (const { employee, gap } of gaps) {
@@ -378,7 +393,7 @@ export function generateRoster({ days, employees, demand, rules, history = {}, s
 function buildRoster({ days, employees, demand, r, history, random, iterations }) {
   const n = days.length
   const active = (employees || []).filter((employee) => employee.active !== false)
-  const targets = shiftTargets(days, active)
+  const targets = shiftTargets(days, active, r.weeklyRestDays)
   const pairs = weekendPairs(days)
   const weekendIdx = new Set(pairs.flat())
   const staff = active.map((employee, order) => {
