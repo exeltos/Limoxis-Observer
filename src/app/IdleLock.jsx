@@ -2,6 +2,7 @@ import { useEffect,useRef,useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Eye,EyeOff,Lock,LogIn } from 'lucide-react'
 import { supabase } from '../core/supabase/client'
+import { signInWithPassword } from '../core/auth/authService'
 import { readLocalValue,readSessionValue,removeSessionValue,writeLocalValue,writeSessionValue } from '../core/storage/browserStorage'
 import './idleLock.css'
 
@@ -96,8 +97,10 @@ function LockScreen({en,userName,organizationName,email,onUnlock,onSwitchUser}){
   if(!password)return
   setBusy(true);setError('')
   // The email is the signed-in account's own, so only that account's password unlocks.
-  const {data,error:signInError}=await supabase.auth.signInWithPassword({email,password})
+  let data=null,signInError=null
+  try{data=await signInWithPassword(email,password)}catch(caught){signInError=caught}
   setBusy(false)
+  if(String(signInError?.message||'')==='LOGIN_LOCKED'){setError(en?'Too many failed attempts. Sign-in is locked for 15 minutes.':'Πολλές αποτυχημένες προσπάθειες. Η σύνδεση κλειδώθηκε για 15 λεπτά.');setPassword('');setShowPassword(false);return}
   if(signInError||!data?.user){setError(en?'Wrong password.':'Λάθος κωδικός.');setPassword('');setShowPassword(false);return}
   setPassword('')
   onUnlock()

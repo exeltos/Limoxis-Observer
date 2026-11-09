@@ -90,3 +90,28 @@ export const previewPlatformSettings=()=>({id:'global',supportEmail:'support@lim
 
 // What resetting a Demo returns, for the preview's "Reset data" action.
 export const previewDemoSeedResult=()=>({ok:true,departments:8,patients:48,surveillanceCases:14,laboratorySamples:43,microbiologyResults:38,handHygieneSessions:36,employees:24,incidents:10,capa:6,documents:8,committees:2,controls:6,controlExecutions:350,trainingPrograms:5,trainingAssignments:72,antibioticDispensing:360,vaccinations:76,occupationalVisits:29,exposures:4})
+
+// Sign-ins (Ιστορικό & Υγεία › Συνδέσεις): sessions with IP/device, failed attempts and one lock.
+const minutesAgo=minutes=>new Date(Date.now()-minutes*60000).toISOString()
+const DEVICE={win:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36',mac:'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',iphone:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1'}
+export const previewLoginSessions=()=>[
+ ['Άρης Ιωάννου','owner','',true,'94.64.59.134','mac',95,1,null,null],
+ ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',140,3,null,null],
+ ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'109.242.185.33','iphone',38,6,null,null],
+ ['Δρ. Σοφία Ιωάννου','s.ioannou',ORGANIZATIONS[1].name,false,'85.74.12.201','win',260,70,null,null],
+ ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',1500,1310,1310,'signed_out'],
+ ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'185.220.101.4','win',2900,2880,2880,'ended_by_owner'],
+].map(([fullName,username,organizations,owner,ip,device,started,seen,ended,reason],index)=>({sessionId:`s-${index}`,userId:`u-${username}`,fullName,username,email:`${username}@example.org`,isPlatformOwner:owner,organizations,ip,lastIp:ip,userAgent:DEVICE[device],startedAt:minutesAgo(started),lastSeenAt:minutesAgo(seen),endedAt:ended==null?null:minutesAgo(ended),endedReason:reason,active:ended==null&&seen<720,online:ended==null&&seen<10}))
+export const previewLoginAttempts=()=>[
+ ['m.georgiou','109.242.139.64',true,'ok',140],
+ ['n.alexiou','109.242.185.33',true,'ok',38],
+ ['admin','185.220.101.4',false,'unknown_user',22],
+ ['admin','185.220.101.4',false,'unknown_user',21],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',20],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',19],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',18],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',17],
+ ['m.georgiou','185.220.101.4',false,'wrong_password',16],
+ ['m.georgiou','185.220.101.4',false,'locked',12],
+].map(([identifier,ip,success,reason,ago],index)=>({id:index+1,identifier,ip,userAgent:DEVICE.win,success,reason,createdAt:minutesAgo(ago)})).sort((a,b)=>b.createdAt.localeCompare(a.createdAt))
+export const previewLoginLocks=()=>[{id:1,kind:'account',subject:'m.georgiou',failures:5,lockedUntil:minutesAgo(1),createdAt:minutesAgo(16),releasedAt:null},{id:2,kind:'ip',subject:'185.220.101.4',failures:20,lockedUntil:new Date(Date.now()+9*60000).toISOString(),createdAt:minutesAgo(6),releasedAt:null}]

@@ -43,7 +43,8 @@ export const platformHelp={
   ],steps:['Επιλέξτε καρτέλα (π.χ. Λίστες & ρυθμίσεις).','Κάντε την αλλαγή.','Ελέγξτε τις εκκρεμείς ενημερώσεις πηγών.']},
   '/platform/audit':{title:'Ιστορικό & Ασφάλεια',summary:'Ιχνηλασιμότητα ενεργειών, αλλαγών πρόσβασης και λειτουργικών συμβάντων.',audience:audienceEl,chapters:[
    ['Ενέργειες & πρόσβαση','Κάθε σημαντική διοικητική ενέργεια καταγράφεται με χρήστη, χρόνο και οργανισμό. Το ιστορικό είναι μόνο για ανάγνωση· τα φίλτρα δείχνουν αλλαγές ρόλων, προσκλήσεις και διαγραφές.'],
-   ['Συμβάντα & σφάλματα','Η δεύτερη καρτέλα δείχνει αποτυχίες, αποκλεισμούς και προειδοποιήσεις όλων των πραγματικών οργανισμών, χωρίς κλινικό περιεχόμενο.']
+   ['Συμβάντα & σφάλματα','Η δεύτερη καρτέλα δείχνει αποτυχίες, αποκλεισμούς και προειδοποιήσεις όλων των πραγματικών οργανισμών, χωρίς κλινικό περιεχόμενο.'],
+   ['Συνδέσεις','Ποιος συνδέθηκε, από ποια IP και συσκευή, πότε και για πόση ώρα· ποιοι είναι συνδεδεμένοι τώρα. Οι αποτυχημένες προσπάθειες καταγράφονται· 5 λάθη σε 15 λεπτά κλειδώνουν τον λογαριασμό για 15 λεπτά και 20 λάθη την IP. Από το «⋯» μιας σύνδεσης την τερματίζετε ή αποσυνδέετε τον χρήστη από όλες τις συσκευές.']
   ],steps:['Διαλέξτε καρτέλα.','Φιλτράρετε ανά οργανισμό, ενέργεια ή σοβαρότητα.','Ανανεώστε μετά από διόρθωση.']},
   '/platform/settings':{title:'Ρυθμίσεις Πλατφόρμας',summary:'Καθολικές ρυθμίσεις για όλη την εγκατάσταση.',audience:audienceEl,chapters:[
    ['Λειτουργικές προεπιλογές','Email υποστήριξης και προεπιλεγμένη διάρκεια νέων Demo.'],
@@ -77,7 +78,8 @@ export const platformHelp={
   ],steps:['Choose a tab (e.g. Lists & settings).','Make the change.','Review pending source updates.']},
   '/platform/audit':{title:'Audit & Security',summary:'Traceability of actions, access changes and operational events.',audience:audienceEn,chapters:[
    ['Actions & access','Every significant administrative action is recorded with user, time and organization. The history is read-only; the filters show role changes, invitations and deletions.'],
-   ['Events & errors','The second tab shows failures, blocks and warnings across production organizations, without clinical content.']
+   ['Events & errors','The second tab shows failures, blocks and warnings across production organizations, without clinical content.'],
+   ['Sign-ins','Who signed in, from which IP and device, when and for how long; who is online now. Failed attempts are recorded; 5 failures in 15 minutes lock the account for 15 minutes and 20 lock the IP. From a session’s «⋯» you end it or sign the user out of every device.']
   ],steps:['Pick a tab.','Filter by organization, action or severity.','Refresh after a fix.']},
   '/platform/settings':{title:'Platform Settings',summary:'Global settings for the whole installation.',audience:audienceEn,chapters:[
    ['Operational defaults','Support email and default duration of new demos.'],

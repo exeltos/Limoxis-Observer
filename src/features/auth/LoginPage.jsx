@@ -10,6 +10,9 @@ import { BrandMark } from '../../design-system/BrandMark'
 import { loadLoginNotice } from './loginNoticeService'
 
 // Decorative product preview for the brand panel (pure CSS/SVG, hidden from assistive technology).
+// Set by AuthContext when the Platform Owner ended the session; cleared on the next sign-in.
+const readSessionEnded=()=>{try{return window.sessionStorage.getItem('limoxis.sessionEnded')==='1'}catch{return false}}
+
 function LoginPreview({ greek }) {
   return (
     <div className="login-preview" aria-hidden="true">
@@ -53,6 +56,7 @@ export function LoginPage() {
   if (isAuthenticated) return <Navigate to={returnTo} replace />
 
   const greek=language==='el'
+  const sessionEnded=readSessionEnded()
   const maintenance=notice?(greek?(notice.noticeEl||notice.noticeEn):(notice.noticeEn||notice.noticeEl)):null
   const passwordDescribedBy=[capsLock&&'login-caps-lock',error&&'login-error'].filter(Boolean).join(' ')||undefined
   async function handleSubmit(event){
@@ -61,6 +65,7 @@ export function LoginPage() {
     setSubmitting(true)
     try{
       await login(identifier.trim(),password)
+      try{window.sessionStorage.removeItem('limoxis.sessionEnded')}catch{/* storage unavailable */}
     }catch(nextError){
       setError(userFacingError(nextError,{language,context:'login'}))
     }finally{
@@ -99,6 +104,7 @@ export function LoginPage() {
 
         <div className="auth-form-column">
         <div className="auth-mobile-brand"><BrandMark size={34}/><strong>Limoxis Observer</strong></div>
+        {sessionEnded&&<div className="login-notice" role="status"><Info size={16}/><div><strong>{greek?'Η σύνδεσή σας τερματίστηκε':'Your session was ended'}</strong><p>{greek?'Για λόγους ασφαλείας η σύνδεση τερματίστηκε από τον Ιδιοκτήτη Πλατφόρμας ή έληξε. Συνδεθείτε ξανά.':'For security reasons the session was ended by the Platform Owner or expired. Please sign in again.'}</p></div></div>}
         {maintenance&&<div className="login-notice" role="status"><Info size={16}/><div><strong>{greek?'Ανακοίνωση':'Notice'}</strong><p>{maintenance}</p></div></div>}
         <form className="login-card" onSubmit={handleSubmit} aria-labelledby="login-title">
           <div className="login-heading">

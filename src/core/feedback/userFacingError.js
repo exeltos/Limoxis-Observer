@@ -158,6 +158,9 @@ export function userFacingError(error,{language='el',context='generic'}={}){
   if(lower.includes('production_')||lower.includes('not configured')||lower.includes('configuration')){
     return en?'The application is not ready to complete this action. Please contact the administrator.':'Η εφαρμογή δεν είναι έτοιμη να ολοκληρώσει αυτή την ενέργεια. Επικοινωνήστε με τον διαχειριστή.'
   }
+  if(lower.includes('login_locked')){
+    return en?'Too many failed attempts. Sign-in is locked for 15 minutes; try again later or contact the Platform Owner.':'Πολλές αποτυχημένες προσπάθειες. Η σύνδεση κλειδώθηκε για 15 λεπτά· δοκιμάστε αργότερα ή επικοινωνήστε με τον Ιδιοκτήτη Πλατφόρμας.'
+  }
   if(lower.includes('invalid login')||lower.includes('invalid credentials')||lower.includes('email not confirmed')){
     return en?'Sign in failed. Check your username and password.':'Η σύνδεση απέτυχε. Ελέγξτε το όνομα χρήστη και τον κωδικό πρόσβασης.'
   }

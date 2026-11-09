@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { appConfig, hasSupabaseConfig } from '../config/env'
 import { supabase } from '../supabase/client'
-import { signInWithPassword, signOut as remoteSignOut } from './authService'
+import { signInWithPassword, signOut as remoteSignOut, touchLoginSession } from './authService'
 import { invalidateEmployeesCache } from '../../features/employees/employeesCache'
 import { loadCurrentDemoAccess } from '../tenant/tenantService'
 import { ROLES } from '../permissions/roles'
@@ -131,6 +131,28 @@ export function AuthProvider({ children }) {
     await remoteSignOut()
     await hydrateSession(null)
   }, [authState.profile?.isDemo,hydrateSession])
+
+  // While the app is open, every 2 minutes (and when the tab comes back): "this session is alive". When the
+  // Platform Owner ended the session (Ιστορικό & Υγεία › Συνδέσεις) the answer is false and the app signs out.
+  const signedInUserId=authState.session?.user?.id&&!authState.profile?.isDemo&&!helpPreviewMode?authState.session.user.id:null
+  useEffect(()=>{
+    if(!signedInUserId||!hasSupabaseConfig)return undefined
+    let stopped=false
+    const check=async()=>{
+      if(stopped||document.visibilityState==='hidden')return
+      const alive=await touchLoginSession().catch(()=>true)
+      if(alive||stopped)return
+      stopped=true
+      try{window.sessionStorage.setItem('limoxis.sessionEnded','1')}catch{/* storage unavailable */}
+      try{await remoteSignOut()}catch{/* the session is already gone */}
+      await hydrateSession(null)
+    }
+    void check()
+    const timer=window.setInterval(()=>void check(),120000)
+    const onVisible=()=>{if(document.visibilityState==='visible')void check()}
+    document.addEventListener('visibilitychange',onVisible)
+    return()=>{stopped=true;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisible)}
+  },[signedInUserId,helpPreviewMode,hydrateSession])
 
   // The temporary password was replaced (ForcePasswordChangePage): the app opens.
   const markPasswordChanged = useCallback(() => {
