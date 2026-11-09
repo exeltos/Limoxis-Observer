@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { FileUp, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
-import { Button } from '../../design-system/Button'
+import { FileUp, Mail, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
+import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { roleLabel } from '../../core/permissions/roleLabels'
@@ -74,23 +74,26 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                     },
                   ]}
                 />
-                <Button variant="secondary" onClick={() => setActiveUsersMode('file')}>
-                  <FileUp size={15} />
-                  {tx('Εισαγωγή χρηστών από αρχείο', 'Import users from a file')}
-                </Button>
-                <Button variant="secondary" onClick={() => setActiveUsersMode('single')}>
-                  <UserCheck size={15} />
-                  {tx('Νέος ενεργός χρήστης', 'New active user')}
-                </Button>
-                <Button
-                  onClick={() => {
-                    setCreateUserDraft({ fullName: '', email: '', role: 'department_user' })
-                    setCreateUserOpen(true)
-                  }}
-                >
-                  <UserPlus size={15} />
-                  {tx('Νέος χρήστης', 'New user')}
-                </Button>
+                {/* One «Νέος χρήστης ▾» (owner, 9/11/2026): active with a temporary password, an e-mail invitation, or a file. */}
+                <OverflowMenu
+                  label={tx('Νέος χρήστης', 'New user')}
+                  triggerTone="primary"
+                  width={280}
+                  trigger={<><UserPlus size={15} aria-hidden="true" />{tx('Νέος χρήστης', 'New user')}</>}
+                  items={[
+                    { id: 'active', label: tx('Ενεργός με προσωρινό κωδικό', 'Active, with a temporary password'), icon: UserCheck, onClick: () => setActiveUsersMode('single') },
+                    {
+                      id: 'invite',
+                      label: tx('Πρόσκληση με email', 'Invitation by e-mail'),
+                      icon: Mail,
+                      onClick: () => {
+                        setCreateUserDraft({ fullName: '', email: '', role: 'department_user' })
+                        setCreateUserOpen(true)
+                      },
+                    },
+                    { id: 'file', label: tx('Εισαγωγή από αρχείο (Excel/CSV)', 'Import from a file (Excel/CSV)'), icon: FileUp, separatorBefore: true, onClick: () => setActiveUsersMode('file') },
+                  ]}
+                />
               </div>
               )}
             </div>
