@@ -350,7 +350,7 @@ function scoreOf(state) {
   const meanWeekendNights = nightStaff.reduce((sum, s) => sum + s.weekendNights, 0) / (nightStaff.length || 1)
   for (const s of nightStaff) score += Math.abs(s.weekendNights - meanWeekendNights) * 8
   for (const s of regular) score += Math.abs(s.gap - meanGap) * 30 + (s.allowed.includes('N') ? Math.abs(s.nights - meanNights) * 4 : 0) + Math.abs(s.weekendWork - meanWeekend) * 3
-  const spreadWeight = 10
+  const spreadWeight = 6
   for (let i = 0; i < days.length; i += 1) {
     for (const shift of SHIFT_CODES) {
       let have = 0
@@ -363,9 +363,12 @@ function scoreOf(state) {
       // removes them (owner, 9/11/2026: fewer intermediates, given only to people left over).
       if (shift === 'I' && need > 0) score += Math.min(have + extra, need) * 40 + Math.max(0, have + extra - need) * 1000
       else score += have + extra < need ? (need - have - extra) * 300 : need === 0 ? (have + extra) * 1000 : Math.max(0, have - need)
-      // People beyond the need are spread over morning, afternoon and night (owner, 9/11/2026: 4/3/3 rather than
-      // 4/4/2): each further extra person on the same shift costs more.
-      if (shift !== 'I' && need > 0 && have + extra > need) score += (have + extra - need) ** 2 * spreadWeight
+      // People beyond the need are spread over the morning and the afternoon (owner, 9/11/2026: 3/3 rather than
+      // 4/2): each further extra person on the same shift costs more. Nights stay in pairs before two days off.
+      if ((shift === 'M' || shift === 'A') && need > 0 && have + extra > need) score += (have + extra - need) ** 2 * spreadWeight
+      // Lighter weekends (owner, 9/11/2026): the people left over work the weekdays.
+      if (weekendIdx.has(i) && need > 0 && have + extra > need) score += (have + extra - need) * 25
+      if (shift === 'N' && need > 0 && have + extra > need + 1) score += (have + extra - need - 1) * 60
     }
   }
   return score
@@ -523,7 +526,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
       const free = (i) => i >= from && i < to && !s.locked[i] && !s.codes[i]
       // A day off that leaves fewer people at work than the day's shifts need costs most.
       const totalNeed = (i) => dailyNeed[i].M + dailyNeed[i].A + dailyNeed[i].N
-      const cost = (i) => (regular.length - resting[i] - 1 < totalNeed(i) ? 80 : 0) + resting[i] * 2 - (wantedWeekend.has(i) ? 40 : 0) - ((days[i].weekday === 6 && wantedWeekend.has(i + 7)) || (days[i].weekday === 0 && wantedWeekend.has(i + 6)) ? 18 : 0) - (s.wish[i] ? 100 : 0) - (aroundLeave(s, i) ? 25 : 0) - (s.codes[i - 1] === 'R' || s.codes[i + 1] === 'R' ? 1.5 : 0) + random()
+      const cost = (i) => (regular.length - resting[i] - 1 < totalNeed(i) ? 80 : 0) + resting[i] * 2 - (wantedWeekend.has(i) ? 40 : 0) - ((days[i].weekday === 6 && wantedWeekend.has(i + 7)) || (days[i].weekday === 0 && wantedWeekend.has(i + 6)) ? 18 : 0) - (s.wish[i] ? 100 : 0) - (aroundLeave(s, i) ? 40 : 0) - (s.codes[i - 1] === 'R' || s.codes[i + 1] === 'R' ? 1.5 : 0) + random()
       // (A whole weekend off leaves Monday to Friday at work: with the days before it, the one allowed six in a row.)
       // Every way to place the week's days off (one or two days); kept only if no stretch of work from the last day
       // off before this week to the end of it is longer than `maxConsecutive`.
@@ -603,10 +606,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
   for (let i = 0; i < n; i += 1) {
     const open = () => regular.filter((s) => !s.codes[i])
     const fits = (s, code) => allowedBackward(s, i, code, { ...r, weeklyRestDays: 0 }, days)
-    // With three or more people beyond the day's need, one of them works the night too (owner, 9/11/2026: 4/3/3).
-    const spare = open().length + staff.filter((s) => s.extra && isShift(s.codes[i])).length - dailyNeed[i].M - dailyNeed[i].A - dailyNeed[i].N
-    const extraNight = dailyNeed[i].N > 0 && spare >= 3 ? 1 : 0
-    let missing = dailyNeed[i].N + extraNight - staff.filter((s) => s.codes[i] === 'N').length
+    let missing = dailyNeed[i].N - staff.filter((s) => s.codes[i] === 'N').length
     const nightOptions = open()
       .filter((s) => {
         if (!fits(s, 'N') || nightsDone.get(s) >= s.nightsCap) return false
@@ -631,7 +631,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
     }
     // Still short of nights: someone working that day takes the night and rests the next day; a later day off of
     // the same week becomes a working day, so the week keeps its days off.
-    if (missing - extraNight > 0 && i + 1 < n) {
+    if (missing > 0 && i + 1 < n) {
       const movers = open()
         .filter((s) => fits(s, 'N') && nightsDone.get(s) < s.nightsCap && !s.codes[i + 1] && !s.locked[i + 1])
         .sort((a, b) => nightsDone.get(a) - nightsDone.get(b) || random() - 0.5)
@@ -686,16 +686,6 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
       intermediates -= 1
     }
     for (const s of open()) {
-      // Whoever is left and has days off right after works the night when the night has no more people than the
-      // morning and the afternoon (owner, 9/11/2026: 4/3/3 rather than 4/4/2).
-      const count = (code) => staff.filter((x) => x.codes[i] === code).length
-      const restNext = i + 1 >= n || restLike(s.codes[i + 1])
-      const restAfter = restNext && (i + 2 >= n || restLike(s.codes[i + 2]) || r.restAfterNight < 2)
-      if (restAfter && s.codes[i - 1] !== 'N' && dailyNeed[i].N > 0 && nightsDone.get(s) < s.nightsCap && fits(s, 'N') && count('N') < Math.min(count('M'), count('A'))) {
-        s.codes[i] = 'N'
-        nightsDone.set(s, nightsDone.get(s) + 1)
-        continue
-      }
       // Whoever is left works a morning or an afternoon.
       const order = ['M', 'A'].filter((code) => dailyNeed[i][code] > 0).sort(() => random() - 0.5)
       if (i + 1 < n && !s.codes[i + 1] && (i + 2 >= n || restLike(s.codes[i + 2]))) order.sort((x, y) => (x === 'M') - (y === 'M'))
@@ -720,15 +710,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
     const sa = staff[Math.floor(random() * staff.length)]
     if (sa.locked[i] || guard(sa, i)) continue
     const roll = random()
-    if (roll < 0.1 && i + 1 < n && sa.allowed.includes('N') && !sa.locked[i + 1] && [sa.codes[i], sa.codes[i + 1]].every((code) => isShift(code) && code !== 'N') && sa.codes[i + 2] === 'R' && (i + 3 >= n || sa.codes[i + 3] === 'R')) {
-      // Two more nights before two days off (owner, 9/11/2026: 4/3/3 rather than 4/4/2).
-      const before = [sa.codes[i], sa.codes[i + 1]]
-      sa.codes[i] = 'N'
-      sa.codes[i + 1] = 'N'
-      const next = scoreOf(state)
-      if (accept(next, step)) score = next
-      else [sa.codes[i], sa.codes[i + 1]] = before
-    } else if (roll < 0.35 && isShift(sa.codes[i])) {
+    if (roll < 0.35 && isShift(sa.codes[i])) {
       const before = sa.codes[i]
       const options = SHIFT_CODES.filter((code) => code !== before && dailyNeed[i][code] > 0 && sa.allowed.includes(code))
       if (!options.length) continue
@@ -855,6 +837,8 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
         for (const s of regular) {
           if (s.locked[i] || !s.allowed.includes(kind)) continue
           if (isShift(s.codes[i])) tryMove(() => { s.codes[i] = kind })
+          // A night at the start, in the part of a week begun in the previous roster: the day after it becomes a day off.
+          if (kind === 'N' && isShift(s.codes[i]) && i + 1 < n && isShift(s.codes[i + 1]) && !s.locked[i + 1] && segments[segmentOf[i + 1]][1] - segments[segmentOf[i + 1]][0] < 7) tryMove(() => { s.codes[i] = 'N'; s.codes[i + 1] = 'R' })
           for (const j of near) {
             if (j === i || s.locked[j]) continue
             if (s.codes[i] === 'R' && isShift(s.codes[j])) tryMove(() => { s.codes[i] = kind; s.codes[j] = 'R' })
