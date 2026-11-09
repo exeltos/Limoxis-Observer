@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, Archive, Building2, KeyRound, LogIn, PauseCircle, PlayCircle, Trash2, Users } from 'lucide-react'
+import { Activity, Archive, Boxes, Building2, KeyRound, LogIn, PauseCircle, PlayCircle, Trash2, Users } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
+import { StatusBadge } from '../../design-system/StatusBadge'
 
 import { PlatformRecordActions } from './PlatformRecordActions'
 
@@ -11,6 +12,10 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { createOrganizationUser, listOrganizationMembersDetailed, manageOrganizationUser, setPlatformOrganizationStatus, updatePlatformOrganization } from '../../core/tenant/tenantService'
 import { HospitalDiagnosticsPanel } from './HospitalDiagnosticsPanel'
 import { OrganizationOffboardingPanel } from './OrganizationOffboardingPanel'
+import { OperatingProfileSection } from './OperatingProfileSection'
+import { listLoginSessions } from './platformAuditService'
+import { initialsOf, statusOf } from './platformOverviewShared'
+import './platformDashboard.css'
 
 import { PlatformOrganizationDetailsTab } from './PlatformOrganizationDetailsTab'
 import { PlatformOrganizationUsersTab } from './PlatformOrganizationUsersTab'
@@ -101,6 +106,26 @@ export function PlatformOrganizationRecord({
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+  // The sign-ins of the last 90 days (Χρήστες › Τελευταία σύνδεση, Δραστηριότητα › Συνδέσεις); kept to this organization's users below.
+  const [allSessions, setAllSessions] = useState([])
+  const [loadingSessions, setLoadingSessions] = useState(true)
+  const loadSessions = useCallback(async () => {
+    setLoadingSessions(true)
+    try {
+      setAllSessions(await listLoginSessions({ days: 90 }))
+    } catch {
+      setAllSessions([])
+    } finally {
+      setLoadingSessions(false)
+    }
+  }, [])
+  useEffect(() => {
+    loadSessions()
+  }, [loadSessions])
+  const sessions = useMemo(() => {
+    const ids = new Set(users.map(user => user.userId))
+    return allSessions.filter(row => ids.has(row.userId))
+  }, [allSessions, users])
   // «Χρήστες & Ρόλοι» › «Εργαζόμενοι χωρίς λογαριασμό» (N1, Platform Owner only).
   const [usersView, setUsersView] = useState('accounts')
   const [roster, setRoster] = useState({ employees: [], departments: [] })
@@ -561,21 +586,22 @@ export function PlatformOrganizationRecord({
     }
   }
 
+  // The tab ids stay those of older links (details, users, diagnostics, offboarding); «modules» is the package.
   const tabs = [
-    { id: 'details', label: tx('Στοιχεία & Ρυθμίσεις', 'Details & Settings'), icon: Building2 },
+    { id: 'details', label: tx('Στοιχεία', 'Details'), icon: Building2 },
+    { id: 'modules', label: tx('Πακέτο & ενότητες', 'Package & modules'), icon: Boxes },
     {
       id: 'users',
-      label: `${tx('Χρήστες & Ρόλοι', 'Users & Roles')} (${users.length})`,
+      label: `${tx('Χρήστες', 'Users')} (${users.length})`,
       icon: Users,
     },
-    { id: 'diagnostics', label: tx('Λειτουργία & Συμβάντα', 'Activity & Events'), icon: Activity },
+    { id: 'diagnostics', label: tx('Δραστηριότητα', 'Activity'), icon: Activity },
     { id: 'offboarding', label: tx('Αντίγραφο & διαγραφή', 'Export & deletion'), icon: Archive },
   ]
   const actions = (
     <PlatformRecordActions
       label={tx('Ενέργειες οργανισμού', 'Organization actions')}
       moreLabel={tx('Περισσότερες ενέργειες', 'More actions')}
-      moreText={tx('Περισσότερα', 'More')}
       actions={[
         {
           id: 'enter',
@@ -587,7 +613,7 @@ export function PlatformOrganizationRecord({
         },
         {
           id: 'pause',
-          placement: 'secondary',
+          placement: 'menu',
           icon:
             record.status === 'suspended' ? <PlayCircle size={16} /> : <PauseCircle size={16} />,
           label:
@@ -596,7 +622,7 @@ export function PlatformOrganizationRecord({
               : tx('Παύση', 'Suspend'),
           title:
             record.status === 'suspended'
-              ? tx('Ενεργοποίηση οργανισμού', 'Reactivate organization')
+              ? tx('Επανενεργοποίηση οργανισμού', 'Reactivate organization')
               : tx('Παύση οργανισμού', 'Suspend organization'),
           disabled: working,
           onClick: togglePause,
@@ -625,6 +651,8 @@ export function PlatformOrganizationRecord({
     />
   )
 
+  const recordStatus = statusOf(tx, record, admins[0]?.status)
+
   if (initialTab === 'users' && selectedUser) {
     return <PlatformOrganizationUserRecord ctx={{ deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
   }
@@ -633,16 +661,12 @@ export function PlatformOrganizationRecord({
     <>
       <EntityRecordShell
         className="platform-owner-record-shell platform-organization-record-workspace"
-        avatar={<Building2 size={20} />}
+        avatar={<span aria-hidden="true">{initialsOf(draft.name || record.name)}</span>}
         eyebrow={tx('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ', 'ORGANIZATION RECORD')}
         title={draft.name || record.name}
         subtitle={`${record.code || '—'} · ${draft.city || '—'} · ${draft.region || '—'}`}
-        status={
-          <span className={`status-badge ${record.status === 'active' ? 'active' : 'danger'}`}>
-            {record.status === 'active' ? tx('Ενεργός', 'Active') : tx('Σε παύση', 'Suspended')}
-          </span>
-        }
-        headerActions={initialTab === 'details' ? actions : null}
+        status={<StatusBadge tone={recordStatus[0]}>{recordStatus[1]}</StatusBadge>}
+        headerActions={actions}
         tabs={tabs}
         activeTab={initialTab}
         onTabChange={onTabChange}
@@ -650,10 +674,22 @@ export function PlatformOrganizationRecord({
         backLabel={tx('Πίσω', 'Back')}
       >
         {initialTab === 'details' && <PlatformOrganizationDetailsTab ctx={{ admins, canSave, draft, editing, inviteAdmin, language, loadingUsers, newAdmin, onChanged, record, saveOrganization, saving, setDraft, setEditing, setNewAdmin, setRecord, tx, users, working }} />}
+        {initialTab === 'modules' && (
+          <div className="platform-owner-details">
+            <OperatingProfileSection
+              organization={record}
+              language={language}
+              onSaved={saved => {
+                setRecord(r => ({ ...r, ...saved }))
+                onChanged?.({ ...record, ...saved })
+              }}
+            />
+          </div>
+        )}
 
-        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
+        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
         {initialTab === 'diagnostics' && (
-          <HospitalDiagnosticsPanel organization={record} language={language} />
+          <HospitalDiagnosticsPanel organization={record} language={language} sessions={sessions} loadingSessions={loadingSessions || loadingUsers} onReloadSessions={loadSessions} />
         )}
         {initialTab === 'offboarding' && (
           <div className="platform-owner-details">
@@ -669,7 +705,7 @@ export function PlatformOrganizationRecord({
 
       {createUserOpen && (
         <ObserverDialog
-          eyebrow={tx('ΧΡΗΣΤΕΣ & ΡΟΛΟΙ', 'USERS & ROLES')}
+          eyebrow={tx('ΧΡΗΣΤΕΣ', 'USERS')}
           title={tx('Νέος χρήστης', 'New user')}
           subtitle={tx(
             `Πρόσθεσε χρήστη στον οργανισμό ${record.name}. Θα σταλεί πρόσκληση στο email του.`,

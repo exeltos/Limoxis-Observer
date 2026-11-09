@@ -48,7 +48,7 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
       rows: visible.map(user => [user.name, user.email, user.username, roleText(user), user.organization?.name || '', kindLabel(user.kind), stateLabel(platformUserState(user)), fmtDay(user.createdAt, language)]) })
   }
   const canOpen = user => Boolean(user.organization?.id)
-  return <Page title={tx('Οργανισμοί', 'Organizations')} subtitle={tx('Όλοι οι χρήστες της πλατφόρμας: τι ρόλο έχουν, σε ποιον οργανισμό ή Demo ανήκουν και αν έχουν ενεργοποιήσει τον λογαριασμό τους.', 'Everyone on the platform: their role, the organization or Demo they belong to, and whether they have activated their account.')}
+  return <Page title={tx('Χρήστες πλατφόρμας', 'Platform users')}
     actions={<ExportMenu items={[{ id: 'users', label: tx('Excel: χρήστες', 'Excel: users'), disabled: !visible.length, onClick: exportUsers }]}/>}>
     {tabs}
     <div className="platform-registry-shell workspace-column">

@@ -4,26 +4,14 @@ import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { ACTIVITY_DAYS, loadHospitalHealth } from './platformHealthService'
+import { initialsOf, sinceText, statusOf } from './platformOverviewShared'
+import { greetingOf } from '../../core/i18n/greeting'
 import './platformDashboard.css'
 
 const DAY=86400000
 const daysUntil=value=>Math.ceil((new Date(`${String(value).slice(0,10)}T00:00:00`).getTime()-new Date(new Date().toDateString()).getTime())/DAY)
 const shortDate=value=>new Intl.DateTimeFormat('el-GR').format(new Date(value))
 const HOSPITAL_ROWS=8
-
-// The greeting of the Overview: by the time of day, with the owner's first name (the Greek vocative of the
-// common endings: Άρης → Άρη, Νίκος → Νίκο, Κώστας → Κώστα).
-function greetingOf(tx,fullName,now=new Date()){
-  const hour=now.getHours()
-  const hello=hour>=5&&hour<12?tx('Καλημέρα','Good morning'):hour>=12&&hour<18?tx('Καλησπέρα','Good afternoon'):tx('Καλησπέρα','Good evening')
-  const first=String(fullName||'').trim().split(/\s+/)[0]||''
-  if(!first||first.includes('@'))return hello
-  const greek=/[Ͱ-Ͽἀ-῿]/.test(first)
-  const name=!greek||tx('el','en')==='en'?first:first.replace(/ος$/,'ο').replace(/ός$/,'ό').replace(/(η|ή|α|ά|ου)ς$/,'$1')
-  return `${hello}, ${name}`
-}
-// Two letters per organization: an abbreviation (Γ.Ν.) counts as one word, so «Γ.Ν. Κομοτηνής» is ΓΚ.
-const initialsOf=name=>String(name||'').split(/\s+/).map(word=>word.replace(/[^\p{L}]/gu,'')).filter(Boolean).slice(0,2).map(word=>word[0]).join('').toLocaleUpperCase('el-GR')||'—'
 
 // What the Owner must act on this week: Demos that end and hospitals whose
 // deletion date is near or has passed (the same events the reminder e-mails cover).
@@ -42,22 +30,12 @@ function ActionList({tx,demos,organizations,demoProgress,onOpenDemo,onNavigate})
   </section>
 }
 
-const sinceText=(value,tx)=>{if(!value)return tx('Καμία καταγραφή','No activity recorded');const minutes=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/60000));if(minutes<60)return tx(`πριν από ${minutes} λεπτά`,`${minutes} min ago`);const hours=Math.round(minutes/60);if(hours<24)return tx(`πριν από ${hours} ώρες`,`${hours} h ago`);const days=Math.round(hours/24);if(days===1)return tx('χθες','yesterday');return tx(`πριν από ${days} ημέρες`,`${days} days ago`)}
-
 // One bar per day of the last 14 (Athens), scaled to the busiest day; a day without activity is a short dash.
 function Sparkline({tx,values}){
   if(!values)return <span className="platform-overview-muted">—</span>
   const max=Math.max(...values),total=values.reduce((sum,value)=>sum+value,0)
   const label=tx(`${total} καταγραφές τις τελευταίες ${ACTIVITY_DAYS} ημέρες`,`${total} recorded changes in the last ${ACTIVITY_DAYS} days`)
   return <svg className="platform-overview-spark" viewBox={`0 0 ${values.length*6} 20`} width={values.length*6} height="20" role="img" aria-label={label}><title>{label}</title>{values.map((value,index)=>{const h=value&&max?Math.max(3,Math.round(value/max*18)):2;return <rect key={index} className={value?'':'is-empty'} x={index*6} y={20-h} width="4" height={h} rx="1"/>})}</svg>
-}
-
-function statusOf(tx,organization,adminStatus){
-  if(organization.deletion_scheduled_at)return ['danger',tx('Προς διαγραφή','Deletion scheduled')]
-  if(organization.status==='suspended'||organization.paused_at)return ['danger',tx('Σε παύση','Paused')]
-  if(organization.status!=='active')return ['neutral',tx('Ανενεργός','Inactive')]
-  if(adminStatus==='invited')return ['warning',tx('Εκκρεμεί διαχειριστής','Admin pending')]
-  return ['success',tx('Ενεργός','Active')]
 }
 
 // The hospitals of the platform: users, the activity of the last 14 days, last use and status; a row opens the organization.

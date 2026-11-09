@@ -1,6 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { AlertTriangle,LockKeyhole,LogOut,RefreshCw,ShieldAlert } from 'lucide-react'
+import { AlertTriangle,LockKeyhole,RefreshCw,ShieldAlert } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { IconButton } from '../../design-system/IconButton'
 import { Button } from '../../design-system/Button'
@@ -12,8 +12,8 @@ import { ModeSwitch } from '../../design-system/ModeSwitch'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
-import { useAuth } from '../../core/auth/AuthContext'
-import { endLoginSessions,listLoginAttempts,listLoginSessions,releaseLoginLock } from './platformAuditService'
+import { listLoginAttempts,listLoginSessions,releaseLoginLock } from './platformAuditService'
+import { useEndLoginSessions } from './useEndLoginSessions'
 import { deviceLabel,durationText,sessionStatus } from './loginSessionsModel'
 import './loginSessions.css'
 
@@ -29,7 +29,6 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
   const en=language==='en'
   const tx=(elText,enText)=>en?enText:elText
   const {confirm,notify,notifyError}=useFeedback()
-  const {session}=useAuth()
   const [params]=useSearchParams()
   const [mode,setMode]=useState(()=>params.get('mode')==='attempts'?'attempts':'sessions')
   const [sessions,setSessions]=useState([])
@@ -56,7 +55,6 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
   useEffect(()=>{const id=window.setInterval(()=>void load(),60000);return()=>window.clearInterval(id)},[load])
   useEffect(()=>setPage(1),[mode,query,status,result,pageSize])
 
-  const ownSessionId=useMemo(()=>{try{const part=String(session?.access_token||'').split('.')[1];return part?JSON.parse(atob(part.replace(/-/g,'+').replace(/_/g,'/')))?.session_id||'':''}catch{return ''}},[session?.access_token])
   const activeLocks=locks.filter(lock=>!lock.releasedAt&&new Date(lock.lockedUntil).getTime()>now)
   const online=sessions.filter(row=>row.online).length
   const active=sessions.filter(row=>row.active).length
@@ -78,23 +76,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
   const list=mode==='sessions'?filteredSessions:filteredAttempts
   const totalPages=Math.max(1,Math.ceil(list.length/pageSize)),safePage=Math.min(page,totalPages),paged=list.slice((safePage-1)*pageSize,safePage*pageSize)
 
-  async function endSessions(row,all){
-    const own=all?row.userId===session?.user?.id:row.sessionId===ownSessionId
-    const ok=await confirm({
-      title:all?tx('Αποσύνδεση από όλες τις συσκευές','Sign out of every device'):tx('Τερματισμός σύνδεσης','End this session'),
-      message:all
-        ?tx(`Ο/Η ${row.fullName||row.username} αποσυνδέεται από κάθε συσκευή μέσα σε 1–2 λεπτά και πρέπει να συνδεθεί ξανά με τον κωδικό του/της.`,`${row.fullName||row.username} is signed out of every device within 1–2 minutes and must sign in again with their password.`)
-        :tx(`Η σύνδεση από ${row.lastIp||row.ip||'—'} (${deviceLabel(row.userAgent,en)}) τερματίζεται μέσα σε 1–2 λεπτά.`,`The session from ${row.lastIp||row.ip||'—'} (${deviceLabel(row.userAgent,en)}) ends within 1–2 minutes.`)+(own?tx(' Είναι η δική σας τρέχουσα σύνδεση.',' This is your own current session.'):''),
-      confirmLabel:all?tx('Αποσύνδεση παντού','Sign out everywhere'):tx('Τερματισμός','End session'),
-      danger:true,
-    })
-    if(!ok)return
-    try{
-      const count=await endLoginSessions(all?{userId:row.userId}:{sessionId:row.sessionId})
-      notify(tx(`Τερματίστηκαν ${count} συνδέσεις.`,`${count} session(s) ended.`))
-      await load()
-    }catch(err){notifyError(err,'save',{operation:'platform_end_login_sessions'})}
-  }
+  const {menuItems:sessionMenuItems}=useEndLoginSessions({tx,en,onDone:load})
   async function unlock(lock){
     const ok=await confirm({title:tx('Ξεκλείδωμα','Unlock'),message:lock.kind==='ip'?tx(`Η IP ${lock.subject} μπορεί να δοκιμάσει ξανά σύνδεση αμέσως.`,`IP ${lock.subject} may try to sign in again right away.`):tx(`Ο λογαριασμός «${lock.subject}» μπορεί να συνδεθεί ξανά αμέσως.`,`The account “${lock.subject}” may sign in again right away.`),confirmLabel:tx('Ξεκλείδωμα','Unlock')})
     if(!ok)return
@@ -146,7 +128,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
               <td className="login-when">{short(row.endedAt||row.lastSeenAt)}</td>
               <td className="login-when">{durationText(row,now,en)}</td>
               <td><span className={`login-status is-${state.tone}`}>{state.label}</span></td>
-              <td className="login-actions">{row.active&&<OverflowMenu label={tx('Ενέργειες σύνδεσης','Session actions')} items={[{id:'end',label:tx('Τερματισμός σύνδεσης','End this session'),icon:LogOut,onClick:()=>void endSessions(row,false)},{id:'all',label:tx('Αποσύνδεση από όλες τις συσκευές','Sign out of every device'),icon:LogOut,tone:'danger',onClick:()=>void endSessions(row,true)}]}/>}</td>
+              <td className="login-actions">{row.active&&<OverflowMenu label={tx('Ενέργειες σύνδεσης','Session actions')} items={sessionMenuItems(row)}/>}</td>
             </tr>})}</tbody></table>
           :<table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Όνομα χρήστη / email','Username / e-mail')}</th><th>IP</th><th>{tx('Συσκευή','Device')}</th><th>{tx('Αποτέλεσμα','Result')}</th></tr></thead>
             <tbody>{paged.map(row=><tr key={row.id}><td className="login-when"><strong>{short(row.createdAt)}</strong></td><td>{row.identifier}</td><td><span className="login-ip">{row.ip||'—'}</span></td><td>{deviceLabel(row.userAgent,en)}</td><td><span className={`login-status is-${row.success?'good':row.reason==='locked'?'danger':'warning'}`}>{resultLabel(row)}</span></td></tr>)}</tbody></table>}

@@ -30,3 +30,7 @@
 .platform-live-time{display:flex;flex-direction:column;align-items:flex-end;font-size:12.5px;white-space:nowrap}
 .platform-live-time small{color:var(--lo-color-muted);font-size:11.5px}
 .platform-live-more{display:inline-flex;align-items:center;gap:4px;margin:2px 18px 14px}
+.login-sessions-table td:first-child strong,.login-sessions-table td:nth-child(3){white-space:nowrap}
+.login-sessions-table .lo-visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* Οργανισμός › Δραστηριότητα: the search gives way so the view switch and the totals stay on one line. */
+.platform-diagnostics-view .platform-diagnostics-registry .filter-search{flex:1 1 200px;min-width:180px}

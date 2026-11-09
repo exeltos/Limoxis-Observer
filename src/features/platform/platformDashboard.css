@@ -73,3 +73,23 @@
 .platform-record-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .platform-record-actions .button{display:inline-flex;align-items:center;gap:6px}
 .platform-history-summary{margin:0 0 12px;color:var(--lo-color-muted);font-size:14px;font-weight:600}
+
+/* Οργανισμοί (list) and the organization record: the same look as the Overview's hospitals. */
+.platform-organizations-last{font-size:12.5px;color:var(--lo-color-text)}
+.platform-org-totals{display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;margin:0 0 12px;font-size:13px;color:var(--lo-color-muted)}
+.platform-org-totals>span{white-space:nowrap}
+.platform-org-totals>span+span::before{content:'·';margin:0 9px;color:var(--lo-color-border-strong,#b8c6d3)}
+.platform-org-totals>span:first-child{font-weight:650;color:var(--lo-color-text)}
+.platform-org-details .lo-detail-list{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:28px}
+.platform-org-details .lo-detail-item{grid-template-columns:minmax(0,1fr);row-gap:2px}
+.platform-org-admin{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.platform-org-admin .status-badge{margin-left:0}
+.platform-org-admin small{flex-basis:100%;margin-top:0}
+.platform-org-admin+.platform-org-admin{margin-top:6px}
+.platform-users-tabs{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--lo-color-border,#e3eaf0)}
+.platform-users-tabs .lo-subtabs{flex:1;min-width:0;border-bottom:0}
+.platform-users-tabs .bulk-accounts-owner-only{margin:0 14px 6px 0}
+.platform-users-last{white-space:nowrap;font-size:12.5px}
+.platform-users-last small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:12px}
+@media(max-width:1100px){.platform-org-details .lo-detail-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.platform-org-details .lo-detail-list{grid-template-columns:1fr}.platform-users-tabs{flex-wrap:wrap}}

@@ -1,49 +1,65 @@
-import { BedDouble, Building2, KeyRound, Pencil, Save, Send, Users, X } from 'lucide-react'
+import { Pencil, Save, Send, X } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { LocationAutocompleteField } from '../../design-system/LocationAutocompleteField'
 import { CITY_OPTIONS, COUNTRY_OPTIONS } from '../../core/reference/locationOptions'
-import { OperatingProfileSection } from './OperatingProfileSection'
 import { OrganizationIdentitySection } from './OrganizationIdentitySection'
-import { MetricCard } from '../../design-system/MetricCard'
+import { DetailList } from '../../design-system/DetailList'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { FormSection, GREEK_REGIONS, HEALTH_REGIONS, organizationTypeLabel, toDraft } from './platformOrganizationShared'
-import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
-// «Details & Settings» of an organization record: identity, location, contact, the Hospital Admin
-// and the supplier e-mail sender. The state and the actions stay in PlatformOrganizationRecord (ctx).
+// «Στοιχεία» of an organization record (owner, 9/11/2026): one totals line, then identity, location and contact
+// in one read-only card (Επεξεργασία opens the form), the screen lock and identity, and the Hospital Admin
+// invitation when there is none. The package lives in its own tab. The state and the actions stay in
+// PlatformOrganizationRecord (ctx).
 export function PlatformOrganizationDetailsTab({ ctx }) {
   const { admins, canSave, draft, editing, inviteAdmin, language, loadingUsers, newAdmin, onChanged, record, saveOrganization, saving, setDraft, setEditing, setNewAdmin, setRecord, tx, users, working } = ctx
+  const activeUsers = users.filter(user => user.status === 'active').length
+  const adminStatus = admin => admin.status === 'active' ? ['success', tx('Ενεργός', 'Active')] : admin.status === 'disabled' ? ['danger', tx('Σε παύση', 'Suspended')] : ['warning', tx('Εκκρεμής', 'Pending')]
+  const country = record.country === 'GR' ? tx('Ελλάδα', 'Greece') : record.country
+  const totals = [
+    organizationTypeLabel(record.type, language),
+    loadingUsers ? '…' : tx(`${activeUsers} / ${users.length} ενεργοί χρήστες`, `${activeUsers} / ${users.length} active users`),
+    loadingUsers ? null : admins.length === 1 ? tx('1 Διαχειριστής Νοσοκομείου', '1 Hospital Admin') : tx(`${admins.length} Διαχειριστές Νοσοκομείου`, `${admins.length} Hospital Admins`),
+    record.bed_capacity != null && record.bed_capacity !== '' ? tx(`${record.bed_capacity} κλίνες`, `${record.bed_capacity} beds`) : null,
+  ].filter(Boolean)
+  const adminValue = loadingUsers ? '…' : admins.length ? admins.map(admin => { const [tone, label] = adminStatus(admin); return <span key={admin.userId} className="platform-org-admin">{admin.name}<StatusBadge tone={tone}>{label}</StatusBadge><small>{admin.email || admin.username || '—'}</small></span> }) : null
   return (
           <div className="platform-owner-details platform-organization-record-form">
-            <div className="module-summary-strip">
-              <MetricCard
-                icon={Building2}
-                value={organizationTypeLabel(record.type, language)}
-                label={tx('Τύπος', 'Type')}
-              />
-              <MetricCard
-                icon={Users}
-                value={loadingUsers ? '…' : users.length}
-                label={tx('Χρήστες', 'Users')}
-              />
-              <MetricCard
-                icon={KeyRound}
-                value={loadingUsers ? '…' : admins.length}
-                label={tx('Διαχειριστές Νοσοκομείου', 'Hospital admins')}
-              />
-              <MetricCard
-                icon={BedDouble}
-                value={record.bed_capacity ?? '—'}
-                label={tx('Κλίνες', 'Beds')}
-              />
-            </div>
+            <p className="platform-org-totals">{totals.map((item, index) => <span key={index}>{item}</span>)}</p>
             <div
               className={`platform-record-edit-fieldset ${editing ? 'is-editing' : 'is-locked'}`}
             >
               <div className="platform-form-shell">
+                {!editing && (
+                  <section className="platform-form-section platform-org-details-card">
+                    <header>
+                      <div><strong>{tx('Στοιχεία οργανισμού', 'Organization details')}</strong></div>
+                      <div className="platform-form-section-actions">
+                        <Button variant="secondary" onClick={() => setEditing(true)}>
+                          <Pencil size={15} />
+                          {tx('Επεξεργασία', 'Edit')}
+                        </Button>
+                      </div>
+                    </header>
+                    <DetailList className="platform-org-details" sections={[{ key: 'details', items: [
+                      { key: 'name', label: tx('Επωνυμία', 'Name'), value: record.name },
+                      { key: 'code', label: tx('Κωδικός / πρόθεμα', 'Code / Hospital Prefix'), value: record.code },
+                      { key: 'type', label: tx('Τύπος', 'Type'), value: organizationTypeLabel(record.type, language) },
+                      { key: 'region', label: tx('Περιφέρεια', 'Region'), value: record.region },
+                      { key: 'health', label: tx('Υγειονομική Περιφέρεια (ΥΠΕ)', 'Health Region'), value: record.health_region },
+                      { key: 'city', label: tx('Πόλη / χώρα', 'City / country'), value: [record.city, country].filter(Boolean).join(', ') },
+                      { key: 'email', label: 'Email', value: record.contact_email },
+                      { key: 'phone', label: tx('Τηλέφωνο', 'Phone'), value: record.contact_phone },
+                      { key: 'beds', label: tx('Δυναμικότητα κλινών', 'Bed capacity'), value: record.bed_capacity ?? '' },
+                      { key: 'admin', label: tx('Διαχειριστής Νοσοκομείου', 'Hospital Admin'), value: adminValue, wide: true },
+                    ] }]} />
+                  </section>
+                )}
+                {editing && <>
                 <FormSection
                   title={tx('Ταυτότητα οργανισμού', 'Organization identity')}
                   actions={
-                    editing ? (
+                    (
                       <>
                         <Button
                           variant="secondary"
@@ -61,11 +77,6 @@ export function PlatformOrganizationDetailsTab({ ctx }) {
                           {saving ? tx('Αποθήκευση…', 'Saving…') : tx('Αποθήκευση', 'Save')}
                         </Button>
                       </>
-                    ) : (
-                      <Button variant="secondary" onClick={() => setEditing(true)}>
-                        <Pencil size={15} />
-                        {tx('Επεξεργασία', 'Edit')}
-                      </Button>
                     )
                   }
                 >
@@ -172,14 +183,7 @@ export function PlatformOrganizationDetailsTab({ ctx }) {
                     </label>
                   </div>
                 </FormSection>
-                <OperatingProfileSection
-                  organization={record}
-                  language={language}
-                  onSaved={saved => {
-                    setRecord(r => ({ ...r, ...saved }))
-                    onChanged?.({ ...record, ...saved })
-                  }}
-                />
+                </>}
                 <OrganizationIdentitySection
                   organization={record}
                   language={language}
@@ -188,38 +192,8 @@ export function PlatformOrganizationDetailsTab({ ctx }) {
                     onChanged?.({ ...record, ...saved })
                   }}
                 />
-                <FormSection
-                  title="Hospital Admin"
-                  subtitle={tx(
-                    'Ο Διαχειριστής Νοσοκομείου μπορεί να οριστεί ή να αλλάξει και από την καρτέλα Χρήστες & Ρόλοι.',
-                    'The Hospital Admin can also be assigned or changed from Users & Roles.',
-                  )}
-                >
-                  {loadingUsers ? (
-                    <TableSkeleton/>
-                  ) : admins.length ? (
-                    <div className="platform-admin-summary">
-                      {admins.map(admin => (
-                        <div key={admin.userId} className="platform-admin-summary-row">
-                          <div>
-                            <strong>{admin.name}</strong>
-                            <span>
-                              {admin.email || '—'} · {admin.username}
-                            </span>
-                          </div>
-                          <span
-                            className={`status-badge ${admin.status === 'active' ? 'active' : admin.status === 'disabled' ? 'danger' : 'temporary'}`}
-                          >
-                            {admin.status === 'active'
-                              ? tx('Ενεργός', 'Active')
-                              : admin.status === 'disabled'
-                                ? tx('Σε παύση', 'Suspended')
-                                : tx('Εκκρεμής', 'Pending')}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
+                {!loadingUsers && !admins.length && (
+                <FormSection title={tx('Διαχειριστής Νοσοκομείου', 'Hospital Admin')}>
                     <div className="platform-admin-create">
                       <div className="platform-form-grid">
                         <label className="field">
@@ -259,8 +233,8 @@ export function PlatformOrganizationDetailsTab({ ctx }) {
                         )}
                       </Button>
                     </div>
-                  )}
                 </FormSection>
+                )}
               </div>
             </div>
           </div>

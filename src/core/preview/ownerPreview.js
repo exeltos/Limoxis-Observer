@@ -21,9 +21,9 @@ const day=offset=>{const d=new Date();d.setDate(d.getDate()+offset);return d.toI
 const at=(offsetDays,hour=10)=>{const d=new Date();d.setDate(d.getDate()+offsetDays);d.setHours(hour,12,0,0);return d.toISOString()}
 
 const ORGANIZATIONS=[
- {id:'11111111-0000-4000-8000-000000000001',name:'Γ.Ν. Θεσσαλονίκης «Παπανικολάου»',code:'GNT-PAP',type:'hospital',status:'active',region:'Κεντρική Μακεδονία',health_region:'3η ΥΠΕ Μακεδονίας',city:'Θεσσαλονίκη',country:'GR',contact_email:'ipc@papanikolaou.example',contact_phone:'2313 307000',bed_capacity:780,is_demo:false,operating_profile:'full',enabled_addons:['occupational_health','pharmacy','lira'],enabled_modules:null,idle_lock_minutes:15,branding:{},paused_at:null},
- {id:'11111111-0000-4000-8000-000000000002',name:'Γ.Ν. Κομοτηνής «Σισμανόγλειο»',code:'GNK-SIS',type:'hospital',status:'active',region:'Ανατολική Μακεδονία και Θράκη',health_region:'4η ΥΠΕ Μακεδονίας και Θράκης',city:'Κομοτηνή',country:'GR',contact_email:'quality@sismanoglio.example',contact_phone:'25310 22222',bed_capacity:260,is_demo:false,operating_profile:'surveillance',enabled_addons:[],enabled_modules:null,idle_lock_minutes:10,branding:{},paused_at:null},
- {id:'11111111-0000-4000-8000-000000000003',name:'Κλινική Αγία Ειρήνη',code:'KL-AGEIR',type:'clinic',status:'suspended',region:'Αττική',health_region:'1η ΥΠΕ Αττικής',city:'Αθήνα',country:'GR',contact_email:'admin@agiairini.example',contact_phone:'210 0000000',bed_capacity:90,is_demo:false,operating_profile:'basic',enabled_addons:[],enabled_modules:null,idle_lock_minutes:0,branding:{},paused_at:at(-12)},
+ {id:'11111111-0000-4000-8000-000000000001',name:'Γ.Ν. Θεσσαλονίκης «Παπανικολάου»',code:'GNT-PAP',type:'hospital',status:'active',region:'Κεντρική Μακεδονία',health_region:'3η ΥΠΕ Μακεδονίας',city:'Θεσσαλονίκη',country:'Ελλάδα',contact_email:'ipc@papanikolaou.example',contact_phone:'2313 307000',bed_capacity:780,is_demo:false,operating_profile:'full',enabled_addons:['occupational_health','pharmacy','lira'],enabled_modules:null,idle_lock_minutes:15,branding:{},paused_at:null},
+ {id:'11111111-0000-4000-8000-000000000002',name:'Γ.Ν. Κομοτηνής «Σισμανόγλειο»',code:'GNK-SIS',type:'hospital',status:'active',region:'Ανατολική Μακεδονία και Θράκη',health_region:'4η ΥΠΕ Μακεδονίας και Θράκης',city:'Κομοτηνή',country:'Ελλάδα',contact_email:'quality@sismanoglio.example',contact_phone:'25310 22222',bed_capacity:260,is_demo:false,operating_profile:'surveillance',enabled_addons:[],enabled_modules:null,idle_lock_minutes:10,branding:{},paused_at:null},
+ {id:'11111111-0000-4000-8000-000000000003',name:'Κλινική Αγία Ειρήνη',code:'KL-AGEIR',type:'clinic',status:'suspended',region:'Αττική',health_region:'1η ΥΠΕ Αττικής',city:'Αθήνα',country:'Ελλάδα',contact_email:'admin@agiairini.example',contact_phone:'210 0000000',bed_capacity:90,is_demo:false,operating_profile:'basic',enabled_addons:[],enabled_modules:null,idle_lock_minutes:0,branding:{},paused_at:at(-12)},
 ]
 
 const PEOPLE={
@@ -94,14 +94,19 @@ export const previewDemoSeedResult=()=>({ok:true,departments:8,patients:48,surve
 // Sign-ins (Ιστορικό & Υγεία › Συνδέσεις): sessions with IP/device, failed attempts and one lock.
 const minutesAgo=minutes=>new Date(Date.now()-minutes*60000).toISOString()
 const DEVICE={win:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36',mac:'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',iphone:'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1'}
+// The same user ids as previewOrganizationMembers (u-<organization>-<index>), so the sessions match the members.
+const memberOf=username=>{for(const [orgId,list] of Object.entries(PEOPLE)){const index=list.findIndex(person=>person[3]===username);if(index>=0)return {orgId,index}}return null}
+const memberUserId=username=>{const found=memberOf(username);return found?`u-${found.orgId.slice(-1)}-${found.index}`:`u-${username}`}
+const memberOrganizationId=username=>memberOf(username)?.orgId||''
 export const previewLoginSessions=()=>[
  ['Άρης Ιωάννου','owner','',true,'94.64.59.134','mac',95,1,null,null],
  ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',140,3,null,null],
  ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'109.242.185.33','iphone',38,6,null,null],
  ['Δρ. Σοφία Ιωάννου','s.ioannou',ORGANIZATIONS[1].name,false,'85.74.12.201','win',260,70,null,null],
+ ['Ελένη Παπά','e.papa',ORGANIZATIONS[0].name,false,'109.242.140.12','mac',600,420,420,'signed_out'],
  ['Μαρία Γεωργίου','m.georgiou',ORGANIZATIONS[0].name,false,'109.242.139.64','win',1500,1310,1310,'signed_out'],
  ['Δρ. Νίκος Αλεξίου','n.alexiou',ORGANIZATIONS[0].name,false,'185.220.101.4','win',2900,2880,2880,'ended_by_owner'],
-].map(([fullName,username,organizations,owner,ip,device,started,seen,ended,reason],index)=>({sessionId:`s-${index}`,userId:`u-${username}`,fullName,username,email:`${username}@example.org`,isPlatformOwner:owner,organizations,ip,lastIp:ip,userAgent:DEVICE[device],startedAt:minutesAgo(started),lastSeenAt:minutesAgo(seen),endedAt:ended==null?null:minutesAgo(ended),endedReason:reason,active:ended==null&&seen<720,online:ended==null&&seen<10}))
+].map(([fullName,username,organizations,owner,ip,device,started,seen,ended,reason],index)=>({sessionId:`s-${index}`,userId:owner?'owner':memberUserId(username),organizationId:owner?'':memberOrganizationId(username),fullName,username,email:`${username}@example.org`,isPlatformOwner:owner,organizations,ip,lastIp:ip,userAgent:DEVICE[device],startedAt:minutesAgo(started),lastSeenAt:minutesAgo(seen),endedAt:ended==null?null:minutesAgo(ended),endedReason:reason,active:ended==null&&seen<720,online:ended==null&&seen<10}))
 export const previewLoginAttempts=()=>[
  ['m.georgiou','109.242.139.64',true,'ok',140],
  ['n.alexiou','109.242.185.33',true,'ok',38],

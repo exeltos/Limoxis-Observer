@@ -9,37 +9,20 @@ import { exportRegistry } from '../../core/export/registryExports'
 import { SubTabs } from '../../design-system/SubTabs'
 import { BulkAccountsPanel } from './BulkAccountsPanel'
 import { ActiveUsersDialog } from './ActiveUsersDialog'
+import { latestSessionByUser, sinceText } from './platformOverviewShared'
 
-// «Users & Roles» of an organization record: the accounts, or the employee roster with who has no
+// «Χρήστες» of an organization record: the accounts, or the employee roster with who has no
 // account yet. The state and the actions stay in PlatformOrganizationRecord (ctx).
 export function PlatformOrganizationUsersTab({ ctx }) {
-  const { filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
+  const { filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions = [], setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
   // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο»: accounts active at once,
   // with a temporary password the owner hands over (ActiveUsersDialog).
   const [activeUsersMode, setActiveUsersMode] = useState('')
-  return (
-          <div className="workspace-column workspace-fill">
-            <div className="section-toolbar platform-users-toolbar">
-              <div>
-                <strong>{tx('Χρήστες & Ρόλοι', 'Users & Roles')}</strong>
-                <span>
-                  {usersView === 'roster'
-                    ? tx(
-                        'Λογαριασμοί του νοσοκομείου και εργαζόμενοι του μητρώου που δεν έχουν ακόμη λογαριασμό. Η μαζική δημιουργία γίνεται μόνο από τον Ιδιοκτήτη Πλατφόρμας.',
-                        'The hospital accounts and the roster employees who have no account yet. Bulk creation is done only by the Platform Owner.',
-                      )
-                    : tx(
-                        'Επίλεξε έναν χρήστη για πλήρη διαχείριση λογαριασμού, ρόλου και σύνδεσης με εργαζόμενο.',
-                        'Select a user to manage the account, role and employee link.',
-                      )}
-                </span>
-              </div>
-              {usersView === 'roster' ? (
-                <span className="bulk-accounts-owner-only">
-                  <ShieldCheck size={13} aria-hidden="true" />
-                  {tx('Μόνο Ιδιοκτήτης Πλατφόρμας', 'Platform Owner only')}
-                </span>
-              ) : (
+  // The latest sign-in of each user (last 90 days): when and from which IP.
+  const latest = latestSessionByUser(sessions)
+  const lastSignIn = user => latest.get(user.userId)
+  // The tab carries its name: no inner heading; «Εξαγωγή» and «Νέος χρήστης» sit beside the search.
+  const accountActions = (
               <div className="row-actions">
                 <ExportMenu
                   items={[
@@ -95,10 +78,12 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                   ]}
                 />
               </div>
-              )}
-            </div>
+  )
+  return (
+          <div className="workspace-column workspace-fill">
+            <div className="platform-users-tabs">
             <SubTabs
-              ariaLabel={tx('Χρήστες & Ρόλοι', 'Users & Roles')}
+              ariaLabel={tx('Χρήστες', 'Users')}
               activeId={usersView}
               onChange={setUsersView}
               tabs={[
@@ -106,6 +91,13 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                 { id: 'roster', label: tx('Εργαζόμενοι χωρίς λογαριασμό', 'Employees without account'), icon: UserPlus, count: rosterWithoutAccount },
               ]}
             />
+              {usersView === 'roster' && (
+                <span className="bulk-accounts-owner-only">
+                  <ShieldCheck size={13} aria-hidden="true" />
+                  {tx('Μόνο Ιδιοκτήτης Πλατφόρμας', 'Platform Owner only')}
+                </span>
+              )}
+            </div>
             {usersView === 'roster' ? (
               <BulkAccountsPanel
                 organization={record}
@@ -122,6 +114,7 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                 query={userQuery}
                 onQueryChange={setUserQuery}
                 placeholder={tx('Αναζήτηση χρήστη, email ή ρόλου…', 'Search user, email or role…')}
+                end={accountActions}
               />
               {loadingUsers ? (
                 <div className="inline-empty">{tx('Φόρτωση χρηστών…', 'Loading users…')}</div>
@@ -132,8 +125,9 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                       <thead>
                         <tr>
                           <th>{tx('Χρήστης', 'User')}</th>
-                          <th>Username</th>
+                          <th>{tx('Όνομα χρήστη', 'Username')}</th>
                           <th>{tx('Ρόλος', 'Role')}</th>
+                          <th>{tx('Τελευταία σύνδεση', 'Last sign-in')}</th>
                           <th>{tx('Κατάσταση', 'Status')}</th>
                         </tr>
                       </thead>
@@ -157,6 +151,14 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                             </td>
                             <td>{user.username}</td>
                             <td>{roleLabel(user.role, language)}</td>
+                            <td className="platform-users-last">
+                              {lastSignIn(user) ? (
+                                <>
+                                  {lastSignIn(user).online ? tx('Συνδεδεμένος τώρα', 'Online now') : sinceText(lastSignIn(user).startedAt, tx)}
+                                  <small className="login-ip">{lastSignIn(user).lastIp || lastSignIn(user).ip || '—'}</small>
+                                </>
+                              ) : '—'}
+                            </td>
                             <td>
                               <span
                                 className={

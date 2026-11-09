@@ -5,73 +5,91 @@ import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
+import { StatusBadge } from '../../design-system/StatusBadge'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
+import { listLoginSessions } from './platformAuditService'
+import { initialsOf, latestSessionByUser, sinceText, statusOf } from './platformOverviewShared'
 import './platformLifecycle.css'
+import './platformDashboard.css'
 
+// Οργανισμοί (owner, 9/11/2026): as the Overview's hospitals — initials, users active / all, the latest
+// sign-in of any of its users and one status; the totals beside the search filter by status.
 export function PlatformOrganizationsRegistry({
-  tabs = null,
   tx,
   query,
   onQueryChange,
   organizations,
-  memberCountByOrg,
-  hospitalAdminStatusByOrg,
+  members = [],
   onCreate,
   onOpenOrganization,
 }) {
   const language=tx('el','en')
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
-  const totalPages=Math.max(1,Math.ceil(organizations.length/pageSize))
+  const [statusFilter,setStatusFilter]=useState('')
+  const [sessions,setSessions]=useState([])
+  useEffect(()=>{let active=true;listLoginSessions({days:90}).then(rows=>{if(active)setSessions(rows||[])}).catch(()=>{if(active)setSessions([])});return()=>{active=false}},[])
+  // Per organization: its members, the Hospital Admin's status and the latest sign-in of any member.
+  const facts=useMemo(()=>{const latest=latestSessionByUser(sessions),byOrg={};for(const m of members){const item=byOrg[m.organization_id]||(byOrg[m.organization_id]={total:0,active:0,adminStatus:'',lastSession:null});item.total+=1;if(m.status==='active')item.active+=1;if(m.role==='hospital_admin'&&!item.adminStatus)item.adminStatus=m.status;const session=latest.get(m.user_id);if(session&&(!item.lastSession||String(session.startedAt)>String(item.lastSession.startedAt)))item.lastSession=session}return byOrg},[members,sessions])
+  const factsOf=org=>facts[org.id]||{total:0,active:0,adminStatus:'',lastSession:null}
+  const statusFor=org=>statusOf(tx,org,factsOf(org).adminStatus)
+  const countBy=key=>organizations.filter(org=>statusFor(org)[2]===key).length
+  const shownOrganizations=statusFilter?organizations.filter(org=>statusFor(org)[2]===statusFilter):organizations
+  const totalPages=Math.max(1,Math.ceil(shownOrganizations.length/pageSize))
   const safePage=Math.min(page,totalPages)
-  const pagedOrganizations=useMemo(()=>organizations.slice((safePage-1)*pageSize,safePage*pageSize),[organizations,safePage,pageSize])
-  useEffect(()=>setPage(1),[query,pageSize])
+  const pagedOrganizations=shownOrganizations.slice((safePage-1)*pageSize,safePage*pageSize)
+  useEffect(()=>setPage(1),[query,pageSize,statusFilter])
   useEffect(()=>{if(page>totalPages)setPage(totalPages)},[page,totalPages])
   // Coming back from an organization record, its row stays highlighted.
   const [lastOpenedId,setLastOpenedId]=useState(()=>readSessionValue('limoxis.registry.platform-organizations.selected','')||'')
   const openOrganization=org=>{const id=String(org.id);writeSessionValue('limoxis.registry.platform-organizations.selected',id);setLastOpenedId(id);onOpenOrganization(org)}
 
-  const adminStatus=id=>({active:tx('Ενεργός','Active'),disabled:tx('Σε παύση','Suspended'),invited:tx('Εκκρεμής','Pending')})[hospitalAdminStatusByOrg[id]]||''
+  const lastSignIn=session=>session?`${sinceText(session.startedAt,tx)} · ${session.fullName||session.username||'—'}`:'—'
+  const toggleStatus=key=>setStatusFilter(current=>current===key?'':key)
+  const totals=[
+    {key:'active',value:countBy('active'),always:true,label:tx('ενεργοί','active'),active:statusFilter==='active',onClick:()=>toggleStatus('active')},
+    {key:'pending',value:countBy('pending'),always:true,label:tx('εκκρεμεί διαχειριστής','admin pending'),tone:countBy('pending')?'warning':undefined,active:statusFilter==='pending',onClick:()=>toggleStatus('pending')},
+    {key:'paused',value:countBy('paused'),always:true,label:tx('σε παύση','paused'),tone:countBy('paused')?'danger':undefined,active:statusFilter==='paused',onClick:()=>toggleStatus('paused')},
+    {key:'deletion',value:countBy('deletion'),label:tx('προς διαγραφή','deletion scheduled'),tone:'danger',active:statusFilter==='deletion',onClick:()=>toggleStatus('deletion')},
+  ]
+  const fmt=value=>value?new Intl.DateTimeFormat(tx('el-GR','en-GB'),{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value)):''
   function exportOrganizations(){
     exportRegistry({name:tx('organismoi','organizations'),
-      headers:[tx('Οργανισμός','Organization'),tx('Κωδικός','Code'),tx('Πόλη','City'),tx('Περιφέρεια','Region'),tx('Χρήστες','Users'),tx('Διαχειριστής','Hospital admin'),tx('Κατάσταση','Status'),tx('Προφίλ λειτουργίας','Operating profile'),tx('Κλείδωμα οθόνης (λεπτά)','Screen lock (minutes)')],
-      rows:organizations.map(org=>[org.name,org.code,org.city||'',org.region||'',memberCountByOrg[org.id]||0,adminStatus(org.id),org.status==='active'?tx('Ενεργός','Active'):tx('Σε παύση','Suspended'),org.operating_profile||'',org.idle_lock_minutes??''])})
+      headers:[tx('Οργανισμός','Organization'),tx('Κωδικός','Code'),tx('Πόλη','City'),tx('Περιφέρεια','Region'),tx('Ενεργοί χρήστες','Active users'),tx('Σύνολο χρηστών','All users'),tx('Τελευταία σύνδεση','Last sign-in'),tx('Χρήστης τελευταίας σύνδεσης','Last signed-in user'),tx('Κατάσταση','Status'),tx('Προφίλ λειτουργίας','Operating profile'),tx('Κλείδωμα οθόνης (λεπτά)','Screen lock (minutes)')],
+      rows:shownOrganizations.map(org=>{const item=factsOf(org);return [org.name,org.code,org.city||'',org.region||'',item.active,item.total,fmt(item.lastSession?.startedAt),item.lastSession?.fullName||item.lastSession?.username||'',statusFor(org)[1],org.operating_profile||'',org.idle_lock_minutes??'']})})
   }
 
   return (
     <Page
       title={tx('Οργανισμοί', 'Organizations')}
-      subtitle={tx(
-        'Μητρώο οργανισμών, χρηστών, πρόσβασης και λειτουργικής διαχείρισης.',
-        'One registry for organizations, users, access and operational management.'
-      )}
-      actions={<div className="row-actions"><ExportMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!organizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
+      actions={<div className="row-actions"><ExportMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!shownOrganizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
     >
-      {tabs}
       <div className="platform-registry-shell">
         <FilterBar
           query={query}
           onQueryChange={onQueryChange}
           placeholder={tx('Αναζήτηση οργανισμού…', 'Search organization…')}
+          end={organizations.length ? <RegistryTotals label={tx('Σύνολα οργανισμών', 'Organization totals')} items={totals}/> : null}
         />
         <div className="platform-center-section platform-registry-card workspace-column">
-          {organizations.length ? (
+          {shownOrganizations.length ? (
             <>
               <div className="scroll-table">
                 <table className="data-table sticky-table">
                   <thead>
                     <tr>
                       <th>{tx('Οργανισμός', 'Organization')}</th>
-                      <th>{tx('Κωδικός', 'Code')}</th>
-                      <th>{tx('Πόλη / Περιφέρεια', 'City / Region')}</th>
                       <th>{tx('Χρήστες', 'Users')}</th>
-                      <th>{tx('Διαχειριστής', 'Hospital admin')}</th>
+                      <th>{tx('Τελευταία σύνδεση', 'Last sign-in')}</th>
                       <th>{tx('Κατάσταση', 'Status')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pagedOrganizations.map(org => (
+                    {pagedOrganizations.map(org => {
+                      const item = factsOf(org), [tone, label] = statusFor(org)
+                      return (
                       <tr
                         key={org.id}
                         tabIndex={0}
@@ -86,39 +104,22 @@ export function PlatformOrganizationsRegistry({
                         }}
                       >
                         <td>
-                          <strong>{org.name}{org.deletion_scheduled_at&&<span className={`organization-deletion-badge${new Date(org.deletion_scheduled_at).getTime()<=Date.now()?' due':''}`}>{new Date(org.deletion_scheduled_at).getTime()<=Date.now()?tx('Έτοιμο για οριστική διαγραφή','Ready for permanent deletion'):tx(`Προς διαγραφή ${new Intl.DateTimeFormat('el-GR').format(new Date(org.deletion_scheduled_at))}`,`To be deleted ${new Intl.DateTimeFormat('en-GB').format(new Date(org.deletion_scheduled_at))}`)}</span>}</strong>
-                          <small>{({hospital:tx('Νοσοκομείο','Hospital'),clinic:tx('Κλινική','Clinic'),rehab:tx('Κέντρο αποκατάστασης','Rehabilitation center')})[org.type||'hospital']||org.type}</small>
+                          <div className="platform-overview-org"><span className="platform-overview-avatar" aria-hidden="true">{initialsOf(org.name)}</span><span><strong>{org.name}</strong><small>{[org.code, org.city].filter(Boolean).join(' · ') || '—'}</small></span></div>
                         </td>
-                        <td>{org.code}</td>
-                        <td>{org.city || '—'} · {org.region || '—'}</td>
-                        <td>{memberCountByOrg[org.id] || 0}</td>
-                        <td>
-                          {hospitalAdminStatusByOrg[org.id] === 'active' ? (
-                            <span className="status-badge active">{tx('Ενεργός', 'Active')}</span>
-                          ) : hospitalAdminStatusByOrg[org.id] === 'disabled' ? (
-                            <span className="status-badge danger">{tx('Σε παύση', 'Suspended')}</span>
-                          ) : hospitalAdminStatusByOrg[org.id] === 'invited' ? (
-                            <span className="status-badge temporary">{tx('Εκκρεμής', 'Pending')}</span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                        <td>
-                          <span className={`status-badge ${org.status === 'active' ? 'active' : 'danger'}`}>
-                            {org.status === 'active' ? tx('Ενεργός', 'Active') : tx('Σε παύση', 'Suspended')}
-                          </span>
-                        </td>
+                        <td className="platform-overview-num">{item.active} / {item.total}</td>
+                        <td className="platform-organizations-last">{lastSignIn(item.lastSession)}</td>
+                        <td><StatusBadge tone={tone}>{label}</StatusBadge></td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
-              <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={organizations.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
+              <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={shownOrganizations.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
             </>
           ) : (
             <div className="registry-empty-state">
               <strong>{tx('Δεν υπάρχουν οργανισμοί', 'No organizations')}</strong>
-              <span>{tx('Δεν βρέθηκαν οργανισμοί για τα επιλεγμένα φίλτρα.', 'No organizations match the selected filters.')}</span>
+              <span>{organizations.length || query ? tx('Δεν βρέθηκαν οργανισμοί για τα επιλεγμένα φίλτρα.', 'No organizations match the selected filters.') : tx('Δημιουργήστε τον πρώτο με «Νέος οργανισμός».', 'Create the first one with “New organization”.')}</span>
             </div>
           )}
         </div>

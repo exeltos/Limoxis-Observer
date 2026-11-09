@@ -38,5 +38,4 @@
 .operating-profile .operating-profile-summary .operating-profile-change.on{color:#1d6b3a}
 .operating-profile .operating-profile-summary .operating-profile-change.off{color:#9a4a00}
 .operating-profile .operating-profile-summary .operating-profile-change.warn{display:flex;align-items:center;gap:5px;color:#9a4a00;font-weight:700}
-.platform-admin-summary-row>div>span{display:block}
 @media (max-width:1100px){.operating-profile-options{grid-template-columns:1fr;row-gap:12px}.operating-profile-option{grid-row:auto;grid-template-rows:none}}

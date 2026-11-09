@@ -49,22 +49,20 @@ describe('organization record shell', () => {
     expect(shell()).toHaveClass('platform-owner-record-shell', 'platform-organization-record-workspace')
     expect(within(shell().querySelector('header')).getByText('ΚΑΡΤΕΛΑ ΟΡΓΑΝΙΣΜΟΥ')).toBeInTheDocument()
     expect(within(shell().querySelector('header')).getByRole('heading', { name: organization.name })).toBeInTheDocument()
-    await waitFor(() => expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Στοιχεία & Ρυθμίσεις', 'Χρήστες & Ρόλοι (2)', 'Λειτουργία & Συμβάντα', 'Αντίγραφο & διαγραφή']))
+    await waitFor(() => expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Στοιχεία', 'Πακέτο & ενότητες', 'Χρήστες (2)', 'Δραστηριότητα', 'Αντίγραφο & διαγραφή']))
   })
 
   it('groups the organization actions and edits or deletes through the shared action buttons', async () => {
     openRecord()
     const actions = screen.getByLabelText('Ενέργειες οργανισμού')
-    expect(within(actions).getByRole('button', { name: 'Είσοδος στον οργανισμό' })).toBeInTheDocument()
-    expect(within(actions).getByRole('button', { name: 'Παύση οργανισμού' })).toBeInTheDocument()
-    // Labelled buttons: the main action is primary, the everyday one secondary.
+    // «Είσοδος» is the one labelled (primary) button; pause, resets and deletion live in one «⋯».
     expect(within(actions).getByRole('button', { name: 'Είσοδος στον οργανισμό' })).toHaveClass('button-primary')
-    expect(within(actions).getByRole('button', { name: 'Παύση οργανισμού' })).toHaveClass('button-secondary')
+    expect(within(actions).queryByRole('button', { name: 'Παύση οργανισμού' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Επεξεργασία' })).toHaveTextContent('Επεξεργασία')
-    // Resets and deletion live in the "More" menu, deletion last and marked destructive.
     expect(within(actions).queryByRole('button', { name: 'Οριστική διαγραφή οργανισμού' })).toBeNull()
     fireEvent.click(within(actions).getByRole('button', { name: 'Περισσότερες ενέργειες' }))
     const items = screen.getAllByRole('menuitem')
+    expect(items[0]).toHaveTextContent('Παύση οργανισμού')
     const remove = items.at(-1)
     expect(remove).toHaveTextContent('Οριστική διαγραφή οργανισμού')
     expect(remove).toHaveClass('lo-overflow-item-danger')
@@ -73,12 +71,19 @@ describe('organization record shell', () => {
     await waitFor(() => expect(handlers.onDelete).toHaveBeenCalled())
   })
 
-  it('opens the details with the shared KPI cards and the sectioned form', async () => {
+  it('opens the details with one totals line and a read-only card; Επεξεργασία opens the form', async () => {
     openRecord()
-    const strip = document.querySelector('.platform-owner-details > .module-summary-strip')
-    expect(strip).not.toBeNull()
-    expect(strip.firstElementChild).toHaveClass('metric-card')
-    expect(document.querySelector('.platform-form-shell .platform-form-section')).not.toBeNull()
+    expect(document.querySelector('.platform-owner-details > .platform-org-totals')).not.toBeNull()
+    expect(document.querySelector('.metric-card')).toBeNull()
+    expect(document.querySelector('.platform-org-details-card .lo-detail-list')).not.toBeNull()
+    expect(screen.queryByDisplayValue(organization.name)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Επεξεργασία' }))
+    expect(screen.getByDisplayValue(organization.name)).toBeInTheDocument()
+  })
+
+  it('shows the same header actions on every tab', async () => {
+    openRecord('users')
+    expect(within(screen.getByLabelText('Ενέργειες οργανισμού')).getByRole('button', { name: 'Είσοδος στον οργανισμό' })).toBeInTheDocument()
   })
 })
 
