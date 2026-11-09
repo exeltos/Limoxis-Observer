@@ -1,8 +1,8 @@
-// A year of the Demo hospital's infections (authored 2025-09 … 2026-08), shared by
+// The Demo hospital's infections (authored from the first history month to 2026-08), shared by
 // Surveillance (episodes), Laboratory (the cultures behind them) and Patients, so
 // every screen tells the same story. Each module builds its own records from these
 // definitions and moves their dates forward itself (src/core/data/demoClock.js).
-import { addDays } from '../../core/data/demoSeed'
+import { DEMO_HISTORY_MONTHS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
 
 export const WARD_EN = {
   ΜΕΘ: 'ICU',
@@ -227,6 +227,63 @@ const FEMALE = new Set([
   'PT-252019',
   'PT-252021',
 ])
+
+// The months before 2025-09 (back to the first history month, so the Demo shows the whole
+// of 2025): two or three episodes a month, generated from the same kinds of cases as above.
+// Seeded by month, so a month always has the same episodes; the 3-digit end of each id is
+// unique (the clinical record numbers its therapy, device and isolation by it).
+// prettier-ignore
+const EARLIER_KINDS = [
+  ['ΜΕΘ', 'Klebsiella pneumoniae', 'MDR', 'centralLine', ['confirmed', 'bloodstreamInfection'], 'cvc', ['Ceftazidime/avibactam', '2.5 g', 'IV', 10, 'approved'], true],
+  ['ΜΕΘ', 'Acinetobacter baumannii', 'XDR', 'trachealAspirate', ['confirmed', 'ventilatorAssociatedPneumonia'], 'ett', ['Colistin', '9 MU', 'IV', 9, 'approved'], false],
+  ['ΜΕΘ', 'Pseudomonas aeruginosa', 'MDR', 'bal', ['confirmed', 'ventilatorAssociatedPneumonia'], 'ett', ['Ceftolozane/tazobactam', '3 g', 'IV', 8, 'approved'], false],
+  ['ΜΕΘ', 'Enterococcus faecium', 'VRE', 'centralLine', ['confirmed', 'bloodstreamInfection'], 'cvc', ['Linezolid', '600 mg', 'IV', 10, 'approved'], false],
+  ['Παθολογική', 'Escherichia coli', 'ESBL', 'urinaryCatheter', ['confirmed', 'urinaryTractInfection'], 'foley', ['Ertapenem', '1 g', 'IV', 7, 'not_required'], false],
+  ['Παθολογική', 'Clostridioides difficile', null, 'stool', null, null, ['Vancomycin', '125 mg', 'PO', 10, 'not_required'], false],
+  ['Παθολογική', 'Escherichia coli', null, 'midstream', ['probable', 'urinaryTractInfection'], null, ['Ceftriaxone', '2 g', 'IV', 5, 'not_required'], false],
+  ['Παθολογική', 'Klebsiella pneumoniae', 'ESBL', 'midstream', ['notHai', 'urinaryTractInfection'], null, ['Meropenem', '1 g', 'IV', 7, 'approved'], false],
+  ['Χειρουργική', 'Staphylococcus aureus', null, 'woundSwab', ['confirmed', 'surgicalSiteInfection'], null, ['Cefazolin', '2 g', 'IV', 10, 'not_required'], false],
+  ['Χειρουργική', 'Escherichia coli', 'ESBL', 'drainage', ['probable', 'surgicalSiteInfection'], null, ['Ertapenem', '1 g', 'IV', 7, 'not_required'], false],
+  ['Καρδιολογική', 'Staphylococcus aureus', 'MRSA', 'peripheral', ['confirmed', 'bloodstreamInfection'], 'pvc', ['Vancomycin', '1 g', 'IV', 14, 'approved'], false],
+  ['Ορθοπαιδική', 'Staphylococcus aureus', 'MRSA', 'deepTissue', ['confirmed', 'surgicalSiteInfection'], null, ['Vancomycin', '1 g', 'IV', 14, 'approved'], false],
+  ['ΤΕΠ', 'Klebsiella pneumoniae', 'MDR', 'peripheral', ['notHai', 'bloodstreamInfection'], null, ['Ceftazidime/avibactam', '2.5 g', 'IV', 10, 'approved'], true],
+  ['Ορθοπαιδική', 'Proteus mirabilis', null, 'woundSwab', ['probable', 'surgicalSiteInfection'], null, ['Ceftriaxone', '2 g', 'IV', 7, 'not_required'], false],
+]
+const EARLIER_NAMES = {
+  male: [['Αριστείδης', 'Aristeidis'], ['Θεόδωρος', 'Theodoros'], ['Ευστάθιος', 'Efstathios'], ['Μιχαήλ', 'Michail'], ['Σπυρίδων', 'Spyridon'], ['Ηλίας', 'Ilias'], ['Κωνσταντίνος', 'Konstantinos'], ['Απόστολος', 'Apostolos'], ['Πέτρος', 'Petros'], ['Λάμπρος', 'Lampros']],
+  female: [['Αικατερίνη', 'Aikaterini'], ['Σταματία', 'Stamatia'], ['Ευδοκία', 'Evdokia'], ['Γεωργία', 'Georgia'], ['Παναγιώτα', 'Panagiota'], ['Βαρβάρα', 'Varvara'], ['Ζωή', 'Zoi'], ['Χαρίκλεια', 'Charikleia'], ['Ειρήνη', 'Eirini'], ['Δήμητρα', 'Dimitra']],
+}
+// Surnames as [male, female, male (Latin), female (Latin)].
+const EARLIER_SURNAMES = [
+  ['Καραγιάννης', 'Καραγιάννη', 'Karagiannis', 'Karagianni'], ['Μουρατίδης', 'Μουρατίδου', 'Mouratidis', 'Mouratidou'], ['Τζαννής', 'Τζαννή', 'Tzannis', 'Tzanni'],
+  ['Παπαθανασίου', 'Παπαθανασίου', 'Papathanasiou', 'Papathanasiou'], ['Ξενάκης', 'Ξενάκη', 'Xenakis', 'Xenaki'], ['Γαλανόπουλος', 'Γαλανοπούλου', 'Galanopoulos', 'Galanopoulou'],
+  ['Σαρρής', 'Σαρρή', 'Sarris', 'Sarri'], ['Κοντογιάννης', 'Κοντογιάννη', 'Kontogiannis', 'Kontogianni'], ['Ραπτόπουλος', 'Ραπτοπούλου', 'Raptopoulos', 'Raptopoulou'],
+  ['Βλαχάκης', 'Βλαχάκη', 'Vlachakis', 'Vlachaki'], ['Μαργαρίτης', 'Μαργαρίτη', 'Margaritis', 'Margariti'], ['Δούκας', 'Δούκα', 'Doukas', 'Douka'],
+  ['Χατζηδάκης', 'Χατζηδάκη', 'Chatzidakis', 'Chatzidaki'], ['Φιλιππίδης', 'Φιλιππίδου', 'Filippidis', 'Filippidou'], ['Κουτσογιάννης', 'Κουτσογιάννη', 'Koutsogiannis', 'Koutsogianni'],
+]
+const EARLIER_OUTCOMES = ['resolved', 'resolved', 'resolved', 'resolved', 'discharged', 'discharged', 'transferred', 'deceased']
+for (const month of DEMO_HISTORY_MONTHS.filter(value => value < '2025-09').reverse()) {
+  const rand = seededRandom(`infection-history|${month}`)
+  const [year, value] = month.split('-').map(Number)
+  const count = between(rand, 2, 3)
+  for (let index = count - 1; index >= 0; index--) {
+    const seq = 400 + ((year - 2024) * 12 + value) * 4 + index
+    const [ward, organism, resistance, site, hai, device, therapy, critical] = pick(rand, EARLIER_KINDS)
+    const sex = rand() < 0.45 ? 'female' : 'male'
+    const [first, firstEn] = pick(rand, EARLIER_NAMES[sex])
+    const surname = pick(rand, EARLIER_SURNAMES)
+    const started = dayInMonth(month, 2 + index * 8 + between(rand, 0, 5))
+    const birth = `${between(rand, 1936, 1972)}-${String(between(rand, 1, 12)).padStart(2, '0')}-${String(between(rand, 1, 28)).padStart(2, '0')}`
+    const patientId = `PT-254${seq}`
+    if (sex === 'female') FEMALE.add(patientId)
+    CASES.unshift([
+      `SUR-${month.slice(2).replace('-', '')}${seq}`, `LAB-${started.replace(/-/g, '').slice(2)}-3${String(index).padStart(2, '0')}`, patientId,
+      `${first} ${surname[sex === 'female' ? 1 : 0]}`, `${firstEn} ${surname[sex === 'female' ? 3 : 2]}`, birth,
+      ward, between(rand, 1, ward === 'ΜΕΘ' ? 8 : 16), between(rand, 3, 14), started, organism, resistance, site, hai, device,
+      therapy, pick(rand, EARLIER_OUTCOMES), critical,
+    ])
+  }
+}
 
 export const historyCases = CASES.map(
   ([
