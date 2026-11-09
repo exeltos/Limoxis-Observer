@@ -865,7 +865,7 @@ export function RostersPage() {
                         <td key={d.date} className={d.weekend ? 'is-weekend' : ''}>
                           <button
                             type="button"
-                            className={`roster-need${hasShifts && have + extra < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
+                            className={`roster-need${hasShifts && s !== 'I' && have + extra < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
                             title={extra ? tx('Μαζί με τον προϊστάμενο', 'Head of the department included') : undefined}
                             disabled={!canEdit}
                             aria-label={`${CODES[s].name} ${fmtDay(d.date)}: ${have} ${tx('από', 'of')} ${needed}`}

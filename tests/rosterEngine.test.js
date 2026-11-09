@@ -81,15 +81,17 @@ describe('generateRoster', () => {
     expect(singles).toBeLessThanOrEqual(30)
   })
 
-  it('covers the intermediate shift when the department asks for it', () => {
+  it('gives intermediates only to people left over, never on a day without one (owner, 9/11/2026)', () => {
     const withI = { weekday: { M: 2, I: 1, A: 2, N: 1 }, weekend: { M: 2, A: 2, N: 1 } }
     const staff = Array.from({ length: 11 }, (_, index) => ({ id: `i${index}`, active: true }))
     const made = generateRoster({ days, employees: staff, demand: withI, seed: 3 })
     expect(made.violations.filter((v) => v.rule !== 'weekendOff')).toEqual([])
     for (const day of days) {
       if (day.weekend) expect(made.coverage[day.date].I).toBe(0)
-      else expect(made.coverage[day.date].I).toBeGreaterThanOrEqual(1)
+      else expect(made.coverage[day.date].I).toBeLessThanOrEqual(1)
     }
+    const weekdays = days.filter((day) => !day.weekend)
+    expect(weekdays.filter((day) => made.coverage[day.date].I === 1).length).toBeLessThan(weekdays.length)
   })
 })
 

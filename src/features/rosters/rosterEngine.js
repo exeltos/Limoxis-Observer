@@ -221,7 +221,9 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   const violations = []
   // Each of the department's other shifts has its own people too.
   const active0 = (employees || []).filter((employee) => employee.active !== false)
-  for (const shift of customShifts(demand)) {
+  // Intermediates are given only from the people left over after mornings, afternoons and nights (owner,
+  // 9/11/2026): one missing is no problem.
+  for (const shift of customShifts(demand).filter((shift) => kindOf(shift.code) !== 'I')) {
     days.forEach((day) => {
       const need = customNeed(shift, day)
       const have = active0.filter((employee) => given?.[employee.id]?.[day.date] === shift.code).length
@@ -235,7 +237,7 @@ export function checkRoster({ days, employees, assignments: given, demand, rules
   if (!rows.some((row) => row.codes.some(isShift))) return violations
   days.forEach((day, i) => {
     const need = demandFor(demand, day)
-    for (const shift of SHIFT_CODES) {
+    for (const shift of SHIFT_CODES.filter((code) => code !== 'I')) {
       const have = rows.filter((row) => row.codes[i] === shift).length
       if (have < need[shift]) violations.push({ rule: 'coverage', date: day.date, detail: `${shift} ${have}/${need[shift]}` })
     }
@@ -356,7 +358,10 @@ function scoreOf(state) {
       const need = dailyNeed[i][shift]
       // A shift the day does not ask for at all (an intermediate on a Sunday) is never given; the supernumerary only
       // counts where the others are short.
-      score += have + extra < need ? (need - have - extra) * 300 : need === 0 ? (have + extra) * 1000 : Math.max(0, have - need) * (shift === 'I' ? 25 : 1)
+      // An intermediate costs as much as one more person on a morning or afternoon, so the search neither adds nor
+      // removes them (owner, 9/11/2026: fewer intermediates, given only to people left over).
+      if (shift === 'I' && need > 0) score += Math.min(have + extra, need) + Math.max(0, have + extra - need) * 1000
+      else score += have + extra < need ? (need - have - extra) * 300 : need === 0 ? (have + extra) * 1000 : Math.max(0, have - need)
     }
   }
   return score
@@ -513,7 +518,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
       let need = quota - s.codes.slice(from, to).filter((code) => code === 'R').length
       const free = (i) => i >= from && i < to && !s.locked[i] && !s.codes[i]
       // A day off that leaves fewer people at work than the day's shifts need costs most.
-      const totalNeed = (i) => dailyNeed[i].M + dailyNeed[i].I + dailyNeed[i].A + dailyNeed[i].N
+      const totalNeed = (i) => dailyNeed[i].M + dailyNeed[i].A + dailyNeed[i].N
       const cost = (i) => (regular.length - resting[i] - 1 < totalNeed(i) ? 80 : 0) + resting[i] * 2 - (wantedWeekend.has(i) ? 40 : 0) - ((days[i].weekday === 6 && wantedWeekend.has(i + 7)) || (days[i].weekday === 0 && wantedWeekend.has(i + 6)) ? 18 : 0) - (s.wish[i] ? 100 : 0) - (aroundLeave(s, i) ? 25 : 0) - (s.codes[i - 1] === 'R' || s.codes[i + 1] === 'R' ? 1.5 : 0) + random()
       // (A whole weekend off leaves Monday to Friday at work: with the days before it, the one allowed six in a row.)
       // Every way to place the week's days off (one or two days); kept only if no stretch of work from the last day
@@ -651,7 +656,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
         missing -= 1
       }
     }
-    for (const shift of ['M', 'I', 'A']) {
+    for (const shift of ['M', 'A']) {
       let short = dailyNeed[i][shift] - staff.filter((s) => s.codes[i] === shift).length
       // The hospital's rotation (4 → 19 → 20 → R): whoever could work tomorrow's night (days off after it) takes
       // an afternoon today rather than a morning, which would forbid the night.
@@ -664,11 +669,20 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
         short -= 1
       }
     }
+    // Intermediates only from whoever is left over (owner, 9/11/2026): the first spare people strengthen the
+    // morning and the afternoon, a third spare person works the intermediate.
+    let intermediates = Math.min(dailyNeed[i].I - staff.filter((s) => s.codes[i] === 'I').length, open().length - 2)
+    for (const s of open().sort(() => random() - 0.5)) {
+      if (intermediates <= 0) break
+      if (!fits(s, 'I')) continue
+      s.codes[i] = 'I'
+      intermediates -= 1
+    }
     for (const s of open()) {
-      // Whoever is left works a morning or an afternoon; an intermediate only as many as asked (owner, 9/11/2026).
+      // Whoever is left works a morning or an afternoon.
       const order = ['M', 'A'].filter((code) => dailyNeed[i][code] > 0).sort(() => random() - 0.5)
       if (i + 1 < n && !s.codes[i + 1] && (i + 2 >= n || restLike(s.codes[i + 2]))) order.sort((x, y) => (x === 'M') - (y === 'M'))
-      s.codes[i] = order.find((code) => fits(s, code)) || ['M', 'A', 'I', 'N'].find((code) => dailyNeed[i][code] > 0 && fits(s, code)) || 'R'
+      s.codes[i] = order.find((code) => fits(s, code)) || ['M', 'A', 'I', 'N'].find((code) => dailyNeed[i][code] > (code === 'I' ? staff.filter((x) => x.codes[i] === 'I').length : 0) && fits(s, code)) || 'R'
     }
   }
   for (const s of staff) for (let i = 0; i < n; i += 1) if (!s.codes[i]) s.codes[i] = 'R'
@@ -800,7 +814,7 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
   for (let round = 0; round < 3; round += 1) {
     let changed = false
     for (let i = 0; i < n; i += 1) {
-      for (const kind of ['N', 'M', 'A', 'I']) {
+      for (const kind of ['N', 'M', 'A']) {
         if (staff.filter((x) => x.codes[i] === kind).length >= dailyNeed[i][kind]) continue
         let bestMove = null
         const tryMove = (apply) => {
