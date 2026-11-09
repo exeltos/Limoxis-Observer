@@ -203,8 +203,10 @@ controlExecutionRows.push(
  ...historyRun(assignment3,definition2,'Χειρουργική','Νίκος Δημητρίου',[10]),
 )
 
-// A year of the weekly disinfection and monthly expiry programmes in six wards,
-// with the occasional finding, so the Controls and Analysis screens show trends.
+// The weekly disinfection and monthly expiry programmes in six wards since 1 January 2025
+// (the Demo shows the whole of 2025), with the occasional finding, so the Controls and
+// Analysis screens show trends.
+const HISTORY_DAYS=Math.ceil((Date.now()-Date.UTC(2025,0,1))/86_400_000)
 const newAssignment=(id,definition,department,lastDays,intervalDays)=>({id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,department:departmentRow(department),status:'scheduled',last_completed_at:iso(-24*lastDays-3),next_due_at:iso(24*(intervalDays-lastDays)+6)})
 const programmeAssignments=[
  [newAssignment('ctrl-asg-disinfect-icu',definition2,'ΜΕΘ',2,7),definition2,'ΜΕΘ','Ελένη Παπαδοπούλου',7],
@@ -238,17 +240,17 @@ const expiryRows=seed=>{
 for(const [assignment,definition,department,actorName,interval,firstDay] of programmeAssignments){
  const rand=seededRandom(`controls|${assignment.id}`)
  const lastDay=Math.round((Date.now()-new Date(assignment.last_completed_at).getTime())/86_400_000)
- for(let day=firstDay??lastDay;day<=364;day+=interval){
+ for(let day=firstDay??lastDay;day<=HISTORY_DAYS;day+=interval){
   const finding=rand()<(definition.id===definition3.id?0.16:0.09)
   const stock=definition.id===definition3.id&&day===(firstDay??lastDay)?{rows:expiryRows(assignment.id)}:null
   controlExecutionRows.push({id:`ctrl-exec-${assignment.id}-y${day}`,assignment_id:assignment.id,control_id:definition.id,organization_id:'demo-hospital',department_id:department,status:'completed',value_text:finding?FINDING_VALUE[definition.id][0]:OK_VALUE[definition.id],response_data:{structuredData:stock,actorName,actorEmail:'',previousLastCompletedAt:iso(-24*(day+interval)-3),previousNextDueAt:iso(-24*day-3)},notes:finding?FINDING_VALUE[definition.id][1]:'',has_finding:finding,performed_at:iso(-24*day-3),performed_by:'',edited_at:null,edited_by:null,cancelled_at:null,cancelled_by:null,cancellation_reason:''})
  }
 }
 
-// Eight weeks of ward audits: most items pass, now and then one does not.
+// The weekly ward audits since 1 January 2025: most items pass, now and then one does not.
 for(const [assignment,department,actorName,lastDay] of [[assignment6,'ΜΕΘ','Ελένη Παπαδοπούλου',6],[assignment7,'Παθολογική','Νίκος Δημητρίου',3]]){
  const rand=seededRandom(`audit|${assignment.id}`)
- for(let week=0;week<8;week++){
+ for(let week=0;lastDay+week*7<=HISTORY_DAYS;week++){
   const day=lastDay+week*7
   const rows=AUDIT_ITEMS.map(([item,itemEn],index)=>{const no=rand()<0.1;return {id:`audit-${index+1}`,item,itemEn,required:true,answer:index===4&&rand()<0.5?'na':no?'no':'yes',note:no?'Διορθώθηκε επί τόπου.':''}})
   const answered=rows.filter(r=>r.answer!=='na'),yes=answered.filter(r=>r.answer==='yes').length

@@ -108,6 +108,16 @@ laboratorySamples.push(
  historySample({id:'LAB-260828-202',...nextPatient(),department:'Χειρουργική',site:'woundSwab',date:'2026-08-28',hour:10,status:'received'}),
  historySample({id:'LAB-260828-203',...nextPatient(),department:'ΤΕΠ',site:'midstream',date:'2026-08-28',hour:12,status:'collected'}),
 )
+// Community-onset and colonisation isolates of the months before 2025-09 (the whole of 2025 in the Demo), already
+// reviewed by infection control. Seeded by month, so a month always shows the same isolates.
+const EARLIER_POSITIVES=[['ΤΕΠ','midstream','Escherichia coli',null],['ΜΕΘ','trachealAspirate','Staphylococcus aureus','MRSA'],['Παθολογική','midstream','Klebsiella pneumoniae','ESBL'],['ΜΕΘ','urinaryCatheter','Enterococcus faecium','VRE'],['Καρδιολογική','sputum','Pseudomonas aeruginosa',null],['ΤΕΠ','midstream','Proteus mirabilis',null],['Χειρουργική','drainage','Enterococcus faecalis',null],['Παθολογική','peripheral','Escherichia coli','ESBL']]
+DEMO_HISTORY_MONTHS.filter(month=>month<'2025-09').forEach(month=>{
+ const rand=seededRandom(`lab-earlier-positives|${month}`),count=between(rand,1,2)
+ for(let index=0;index<count;index++){
+  const [department,site,organism,resistance]=pick(rand,EARLIER_POSITIVES),date=dayInMonth(month,6+index*12+between(rand,0,6))
+  laboratorySamples.push(Object.assign(historySample({id:`LAB-${date.replace(/-/g,'').slice(2)}-4${pad2(index)}`,...nextPatient(),department,site,date,hour:8+index*3,organism,resistance}),{surveillanceReviewStatus:'no_surveillance_needed',surveillanceReviewReason:resistance?'colonization':'contamination',surveillanceReviewNote:'',surveillanceReviewedBy:'Ομάδα ελέγχου λοιμώξεων'}))
+ }
+})
 
 export const getLabSample=(id)=>laboratorySamples.find(x=>x.id===id)??null
 export const createDemoLabSample=(record)=>{laboratorySamples.unshift(record);return record}

@@ -53,6 +53,12 @@ function demoSeed() {
   }
 }
 const demoRows = new Map(Object.entries(demoSeed()))
+// The questionnaires of the year's other Demo episodes (epiQuestionnaireDemoHistory.js), added once on the first
+// demo read; loaded on demand so production never loads the Demo data.
+let demoHistorySeeded = null
+const seedDemoHistory = () => (demoHistorySeeded ||= import('./epiQuestionnaireDemoHistory')
+  .then(({ demoHistoryQuestionnaires }) => { for (const row of demoHistoryQuestionnaires()) if (!demoRows.has(row.caseId)) demoRows.set(row.caseId, row) })
+  .catch(() => {}))
 const demoSettings = new Map()
 // Demo: the bin takes a questionnaire out of the session list and puts it back on restore.
 export function removeDemoEpiQuestionnaire(caseId) {
@@ -69,6 +75,7 @@ const needsCloud = organizationId => Boolean(supabase && organizationId)
 // { [caseKey]: row } for the given episodes (their ids as the page uses them: the demo code, the record id in production).
 export async function loadEpiQuestionnaires(organizationId, caseIds = [], { isDemo = false } = {}) {
   const ids = [...new Set((caseIds || []).filter(Boolean).map(String))]
+  if (isDemo) await seedDemoHistory()
   if (isDemo) return Object.fromEntries(ids.filter(id => demoRows.has(id)).map(id => [id, demoRows.get(id)]))
   if (!needsCloud(organizationId) || !ids.length) return {}
   const out = {}
@@ -82,7 +89,7 @@ export async function loadEpiQuestionnaires(organizationId, caseIds = [], { isDe
 
 // Every questionnaire of the hospital: the episode lists show «Ερωτηματολόγιο: εκκρεμεί» from it.
 export async function loadAllEpiQuestionnaires(organizationId, { isDemo = false } = {}) {
-  if (isDemo) return Object.fromEntries(demoRows)
+  if (isDemo) { await seedDemoHistory(); return Object.fromEntries(demoRows) }
   if (!needsCloud(organizationId)) return {}
   const out = {}
   for (let from = 0; ; from += 1000) {
