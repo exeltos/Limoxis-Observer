@@ -17,6 +17,8 @@ import { ObserverDialog } from '../../design-system/ObserverDialog'
 import { TimeField } from '../../design-system/TimeField'
 import { StatusBadge } from '../../design-system/StatusBadge'
 import { downloadXlsx } from '../../core/export/xlsxExport'
+import { printReport } from '../../core/export/reportDocument'
+import { rosterDocument, rosterSheet } from './rosterExport'
 import { DEFAULT_RULES, checkRoster, customShifts, datesBetween, demandFor, generateRoster, isLeave, isShift, kindFromStart, kindOf, periodDays, shiftTargets } from './rosterEngine'
 import { IASO_SHIFT_CODES } from './iasoShiftCodes'
 import {
@@ -446,15 +448,33 @@ export function RostersPage() {
     ].filter(Boolean).join(' · ')
   const toggle = name => setPanel(p => (p === name ? '' : name))
 
+  // The roster as the hospital prints it (owner, 9/11/2026): one A4 landscape sheet, and the same as Excel.
+  const exportInput = () => ({
+    en,
+    department,
+    period,
+    status: roster?.status,
+    days,
+    members: active.map(m => ({ employeeId: m.employeeId, name: m.name, head: Boolean(m.isHead) })),
+    codeAt,
+    shortOf,
+    kinds: shown,
+    kindLabel: kind => CODES[kind].name,
+    need: (day, kind) => demandFor(roster.demand, day)[kind] || 0,
+    targets,
+    hours: HOURS,
+    legend: [
+      ...shown.map(c => [CODES[c].short, CODES[c].label, { A: 'a', N: 'n', I: 'i' }[c] || '']),
+      ...others.map(o => [shortOf(o.code), o.label, { A: 'a', N: 'n', I: 'i' }[kindOf(o.code)] || '']),
+      [CODES.R.short, CODES.R.label, 'r'],
+      [CODES.L.short, tx('Άδεια / αργία', 'Leave / holiday'), 'lv'],
+    ],
+  })
+  const printRoster = pdf => {
+    if (!printReport(rosterDocument(exportInput()), { pdf })) notify(tx('Ο φυλλομετρητής μπλόκαρε το νέο παράθυρο.', 'The browser blocked the new window.'), 'warning')
+  }
   function exportExcel() {
-    const headers = [tx('Ονοματεπώνυμο', 'Name'), ...days.map(d => d.date.slice(8, 10)), ...shown.map(s => CODES[s].short), CODES.R.short, tx('Βάρδιες', 'Shifts'), tx('Στόχος', 'Target'), tx('Ώρες', 'Hours')]
-    const rows = active.map(m => {
-      const codes = days.map(d => codeAt(m.employeeId, d.date))
-      const shifts = codes.filter(isShift).length
-      return [m.name, ...codes.map(c => shortOf(c)), ...shown.map(s => codes.filter(c => kindOf(c) === s).length), codes.filter(c => c === 'R').length, shifts, targets[m.employeeId] ?? '', shifts * HOURS]
-    })
-    for (const s of shown) rows.push([CODES[s].name, ...days.map(d => `${active.filter(m => kindOf(codeAt(m.employeeId, d.date)) === s).length}/${demandFor(roster.demand, d)[s]}`)])
-    downloadXlsx(`Programma_${(department?.name || '').replace(/\s+/g, '_')}_${period.start}.xlsx`, [{ name: department?.name || 'Roster', headers, rows }])
+    downloadXlsx(`Programma_${(department?.name || '').replace(/\s+/g, '_')}_${period.start}.xlsx`, [rosterSheet(exportInput())])
   }
 
   return (
@@ -478,7 +498,7 @@ export function RostersPage() {
               {tx('Δημοσίευση', 'Publish')}
             </Button>
           )}
-          {hasShifts && visible && <ExportMenu onPrint={() => window.print()} onExcel={exportExcel} />}
+          {hasShifts && visible && <ExportMenu onPrint={() => printRoster(false)} onPdf={() => printRoster(true)} onExcel={exportExcel} />}
           {canEdit && roster && (hasShifts || roster.id) && (
             <OverflowMenu
               label={tx('Ενέργειες', 'Actions')}
