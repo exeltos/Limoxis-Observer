@@ -57,6 +57,6 @@ export function candidatesExport(rows, language = 'el') {
   return ({
     name: en ? 'candidates' : 'ypopsifioi',
     headers: [L('Κωδικός', 'Code'), L('Ονοματεπώνυμο', 'Full name'), L('Θέση', 'Position'), L('Απασχόληση', 'Employment'), L('Αίτηση', 'Applied'), L('Τηλέφωνο', 'Phone'), 'Email', L('Επόμενη συνέντευξη', 'Next interview'), L('Βαθμολογία', 'Rating'), L('Κατάσταση', 'Status'), L('Απόφαση', 'Decision'), L('Συναίνεση', 'Consent'), L('Πηγή', 'Source')],
-    rows: rows.map(item => [item.code, item.fullName, item.requestedPosition, employmentLabel(item.employmentType, language), item.appliedOn, item.phoneMobile || item.phoneLandline, item.email, nextInterview(item)?.scheduledAt ? fmtStamp(nextInterview(item).scheduledAt, language) : '', latestEvaluation(item)?.overallRating ?? '', statusLabel(item.status, language), decisionLabel(item.decision, language), yesNo(item.consentGiven, language), item.source === 'filemaker' ? 'FileMaker' : '']),
+    rows: rows.map(item => [item.code, item.fullName, item.requestedPosition, employmentLabel(item.employmentType, language), item.appliedOn, item.phoneMobile || item.phoneLandline, item.email, nextInterview(item)?.scheduledAt ? fmtStamp(nextInterview(item).scheduledAt, language) : '', latestEvaluation(item)?.overallRating ?? '', statusLabel(item.status, language), decisionLabel(item.decision, language), yesNo(item.consentGiven, language)]),
   })
 }

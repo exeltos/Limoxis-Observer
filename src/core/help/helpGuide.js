@@ -306,7 +306,7 @@ export const guideContent = {
       users: l('Γραφείο Προσωπικού (HR), Διαχειριστής Νοσοκομείου.', 'HR office, Hospital Admin.'),
       needs: null,
       analysis: l('Δεν έχει καρτέλα Ανάλυσης· ο κατάλογος δείχνει υποψηφίους ανά θέση και απόφαση.', 'No Analysis tab; the list shows candidates by position and decision.'),
-      start: l('Καταχωρήστε τον πρώτο υποψήφιο ή μεταφέρετε τις αιτήσεις από το FileMaker.', 'Enter the first candidate or bring the applications over from FileMaker.'),
+      start: l('Καταχωρήστε τον πρώτο υποψήφιο.', 'Enter the first candidate.'),
     },
     analysis: {
       what: l('Αναλύσεις ανά περίοδο και τμήμα για κάθε ενότητα, με σύγκριση ετών και εκτύπωση.', 'Analyses by period and department for every module, with year comparison and printing.'),
@@ -358,7 +358,7 @@ export const guideContent = {
     ['hospital_admin', l('Στήνει το νοσοκομείο: τμήματα, χρήστες και ρόλοι, βιβλιοθήκες, κλινοημέρες, δείκτες και ρυθμίσεις του Κέντρου Διαχείρισης.', 'Sets up the hospital: departments, users and roles, libraries, patient-days, indicators and Management Center settings.')],
     ['infection_control_lead', l('Ηγείται του προγράμματος ελέγχου λοιμώξεων: επιτήρηση, πρόληψη, έλεγχοι, αναλύσεις.', 'Leads the infection control programme: surveillance, prevention, controls, analysis.')],
     ['infection_control_member', l('Εκτελεί την καθημερινή επιτήρηση και πρόληψη υπό τον Υπεύθυνο.', 'Performs daily surveillance and prevention under the Lead.')],
-    ['department_manager', l('Βλέπει την εικόνα του τμήματός του και τις εκκρεμότητές του και ολοκληρώνει ό,τι του ανατίθεται.', 'Sees their department’s picture and pending items and completes what is assigned.')],
+    ['department_manager', l('Βλέπει την εικόνα του τμήματός του και τις εκκρεμότητές του, ολοκληρώνει ό,τι του ανατίθεται και φτιάχνει το μηνιαίο πρόγραμμα βαρδιών (Πρόγραμμα βαρδιών › Αυτόματη δημιουργία).', 'Sees their department’s picture and pending items and completes what is assigned, and makes the monthly shift roster (Shift roster › Make automatically).')],
     ['department_user', l('Εκτελεί τις εργασίες που ανατίθενται στο τμήμα του, με τις ελάχιστες απαραίτητες πληροφορίες.', 'Performs the tasks assigned to their department, with the minimum necessary information.')],
     ['link_nurse', l('Συνδετικός κρίκος του τμήματος με την ομάδα ελέγχου λοιμώξεων.', 'The department’s link to the infection control team.')],
     ['laboratory', l('Καταχωρεί δείγματα, αποτελέσματα και AST και επικοινωνεί τα κρίσιμα αποτελέσματα.', 'Enters samples, results and AST and communicates critical results.')],

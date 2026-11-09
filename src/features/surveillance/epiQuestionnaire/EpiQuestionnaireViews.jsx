@@ -80,7 +80,7 @@ const stepOf = (question, step) => question.step === step.id
 const useEffectiveQuestions = settings => useMemo(() => applyEpiSettings(settings || []), [settings])
 
 // The full questionnaire of an episode: one dialog to fill in and to correct later.
-export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, onClose, onSaved }) {
+export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, inSheet = false, onClose, onSaved }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const questions = useEffectiveQuestions(settings)
@@ -119,7 +119,8 @@ export function EpiQuestionnaireDialog({ ctx, episode, row, settings, canEdit, o
       setBusy(false)
     }
   }
-  const subtitle = [ctx.patient?.id || episode.patientId, language === 'en' ? ctx.patient?.nameEn || episode.patientEn || episode.patient : ctx.patient?.name || episode.patient, t('epiQuestionnaire.dialogIntro')].filter(Boolean).join(' · ')
+  // On the surveillance sheet the patient is its header: only the answering note remains.
+  const subtitle = inSheet ? t('epiQuestionnaire.dialogIntro') : [ctx.patient?.id || episode.patientId, language === 'en' ? ctx.patient?.nameEn || episode.patientEn || episode.patient : ctx.patient?.name || episode.patient, t('epiQuestionnaire.dialogIntro')].filter(Boolean).join(' · ')
   return (
     <ObserverDialog
       width="wide"

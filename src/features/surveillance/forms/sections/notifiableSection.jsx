@@ -185,12 +185,7 @@ function NotifiableSection({ ctx, section, reload }) {
   const summary = rows.length ? (pending ? `${pending} ${t('episodeForms.status.pending').toLowerCase()}` : t('episodeForms.status.done').toLowerCase()) : t('episodeForms.notifiable.none')
   return (
     <FormSection id="notifiable" title={t('episodeForms.notifiable.title')} icon={Megaphone} defaultOpen={rows.length > 0} summary={summary} needsAttention={pending > 0}
-      actions={
-        <Button variant="secondary" onClick={() => setPicking(true)}>
-          <Plus size={14} aria-hidden="true" />
-          {t('episodeForms.notifiable.new')}
-        </Button>
-      }
+      actions={[{ id: 'new', label: t('episodeForms.notifiable.new'), icon: Plus, onClick: () => setPicking(true) }]}
     >
       {rows.length === 0 ? (
         <FormEmpty>{t('episodeForms.notifiable.empty')}</FormEmpty>

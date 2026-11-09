@@ -18,6 +18,7 @@ import { useContextualNavigation } from '../../core/navigation/useContextualNavi
 import { CandidateStatusBadge } from './InterviewsShared'
 import { PROFESSIONAL_CATEGORIES, categoryLabel, employmentLabel, fmtDay, languageLabel, levelLabel } from './interviewsModel'
 import { interviewsErrorMessage, loadDivisionCandidates, loadDivisionDirectors, loadDivisions, removeDivision, saveDivision } from './interviewsService'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 // --- For the HR Office / Hospital Admin: which professional category belongs to which division, and who directs it ---
 
@@ -105,7 +106,7 @@ export function DivisionCandidatePage() {
   const { tenant } = useTenant()
   const [rows, setRows] = useState(null)
   useEffect(() => { loadDivisionCandidates(tenant?.id).then(setRows).catch(error => { console.error(error); setRows([]) }) }, [tenant?.id])
-  if (!rows) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!rows) return <Page fill><TableSkeleton/></Page>
   const candidate = rows.find(item => item.id === candidateId)
   if (!candidate) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Application not found' : 'Η αίτηση δεν βρέθηκε'}</strong></div></Page>
   return <Page fill><EntityRecordShell className="interviews-record-shell workspace-fill" avatar={<UserSearch size={19} />} eyebrow={candidate.code} title={candidate.fullName}

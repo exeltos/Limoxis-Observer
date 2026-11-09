@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, AlertTriangle, Building2, ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
+import { ClipboardCheck, Droplets, Plus, Recycle, ShieldCheck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { RecordActions } from '../../design-system/RecordActions'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
-import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
-import { kpiDelta } from '../../design-system/kpiDelta'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { ABHR_TARGET, HAND_HYGIENE_TARGET, antisepticKpis, bundleKpis, handHygieneKpis, wasteKpis } from './preventionKpis'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { RegistryEmptyState } from '../../design-system/RegistryEmptyState'
@@ -494,7 +493,6 @@ export function PreventionPage() {
       fill
       className="prevention-registry-page"
       title={t('preventionCenter')}
-      subtitle={t('preventionSubtitle')}
       actions={
         pageActions.length ? (
           <RecordActions
@@ -512,19 +510,19 @@ export function PreventionPage() {
         onChange={changeTab}
         ariaLabel={t('preventionCenter')}
       />
-      <PreventionKpis
-        tab={tab}
-        language={language}
-        hand={{ rows: handRows, loading: handLoading && !handRows.length }}
-        waste={{ rows: wasteRows, loading: wasteLoading && !wasteRows.length }}
-        antiseptic={{ rows: antisepticRows, loading: antisepticLoading && !antisepticRows.length }}
-        bundle={{ rows: bundleRows, loading: bundleLoading && !bundleRows.length }}
-      />
       <div className="surface registry-workspace prevention-workspace workspace-fill">
         <FilterBar
           query={query}
           onQueryChange={setQuery}
           placeholder={tab === 'vaccinations' ? t('searchEmployees') : t('searchPrevention')}
+          end={<PreventionKpis
+            tab={tab}
+            language={language}
+            hand={{ rows: handRows, loading: handLoading && !handRows.length }}
+            waste={{ rows: wasteRows, loading: wasteLoading && !wasteRows.length }}
+            antiseptic={{ rows: antisepticRows, loading: antisepticLoading && !antisepticRows.length }}
+            bundle={{ rows: bundleRows, loading: bundleLoading && !bundleRows.length }}
+          />}
           onClear={clearFilters}
           advanced={
             tab === 'antiseptics' ? (
@@ -675,46 +673,49 @@ export function PreventionPage() {
     </Page>
   )
 }
-// The key figures of the open tab, with their period and target (preventionKpis.js).
+// The key figures of the open tab, with their period and target (preventionKpis.js): one line of totals beside the
+// search (owner, 8/11/2026: no cards); the period and the target are in the tooltip.
 function PreventionKpis({ tab, language, hand, waste, antiseptic, bundle }) {
   const en = language === 'en'
   const tr = (key, values = {}) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value), translate(`preventionKpis.${key}`, language))
   const fmt = value => (value == null ? null : new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value))
   const days30 = tr('days30')
+  const item = (key, label, value, { unit = '', tone, title } = {}) => (value == null || value === '' ? null : { key, always: true, value: 0, display: `${value}${unit}`, label, tone, title: [label, title].filter(Boolean).join(' · ') })
+  const strip = (label, items) => <RegistryTotals label={label} items={items.filter(Boolean)} />
   if (tab === 'handHygiene') {
     const k = handHygieneKpis(hand.rows)
-    return <KpiStrip label={tr('handHygiene')} columns={3}>
-      <KpiCard loading={hand.loading} icon={ShieldCheck} label={tr('whoCompliance')} period={days30} value={fmt(k.rate)} unit="%" status={k.rate == null ? null : k.rate >= HAND_HYGIENE_TARGET ? 'good' : 'danger'} target={tr('handTarget', { value: HAND_HYGIENE_TARGET })} meter={k.rate} meterTarget={HAND_HYGIENE_TARGET} />
-      <KpiCard loading={hand.loading} icon={ClipboardCheck} label={tr('opportunities')} period={days30} value={k.opportunities} hint={k.sessions ? tr('handHint', { sessions: k.sessions }) : k.latest ? tr('handNone', { date: dayLabel(k.latest, language) }) : undefined} />
-      <KpiCard loading={hand.loading} icon={AlertTriangle} label={tr('belowTarget')} period={days30} value={k.below} status={k.departments ? (k.below ? 'warning' : 'good') : null} target={tr('ofObserved', { departments: k.departments })} />
-    </KpiStrip>
+    return strip(tr('handHygiene'), [
+      item('rate', tr('whoCompliance'), fmt(k.rate), { unit: '%', tone: k.rate == null ? null : k.rate >= HAND_HYGIENE_TARGET ? 'good' : 'danger', title: `${days30} · ${tr('handTarget', { value: HAND_HYGIENE_TARGET })}` }),
+      item('opportunities', tr('opportunities'), k.opportunities, { title: days30 }),
+      item('below', tr('belowTarget'), k.departments ? `${k.below}/${k.departments}` : null, { tone: k.departments ? (k.below ? 'warning' : 'good') : null, title: days30 }),
+    ])
   }
   if (tab === 'waste') {
     const k = wasteKpis(waste.rows)
-    const period = k.month ? fmtMonth(k.month) : null
-    return <KpiStrip label={tr('waste')} columns={3}>
-      <KpiCard loading={waste.loading} icon={Recycle} label={tr('wasteMonth')} period={period} value={fmt(k.current?.total)} unit="kg" delta={kpiDelta(k.current?.total, k.before?.total, { lowerIsBetter: true, percent: true, language })} />
-      <KpiCard loading={waste.loading} icon={Activity} label={tr('perThousand')} period={period} value={fmt(k.current?.perThousand)} unit="kg" delta={kpiDelta(k.current?.perThousand, k.before?.perThousand, { lowerIsBetter: true, percent: true, language })} />
-      <KpiCard loading={waste.loading} icon={Building2} label={tr('departmentsRecorded')} period={period} value={k.current ? `${k.current.departments}/${k.allDepartments}` : null} status={k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null} target={tr('everyDepartment')} />
-    </KpiStrip>
+    const period = k.month ? fmtMonth(k.month) : ''
+    return strip(tr('waste'), [
+      item('total', tr('shortMonth'), fmt(k.current?.total), { unit: ' kg', title: `${tr('wasteMonth')} · ${period}` }),
+      item('perThousand', tr('shortPerThousand'), fmt(k.current?.perThousand), { unit: ' kg', title: `${tr('perThousand')} · ${period}` }),
+      item('departments', tr('shortDepartments'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: `${tr('departmentsRecorded')} · ${period}` }),
+    ])
   }
   if (tab === 'antiseptics') {
     const k = antisepticKpis(antiseptic.rows)
-    const period = k.month ? fmtMonth(k.month) : null
+    const period = k.month ? fmtMonth(k.month) : ''
     const value = k.current?.perThousand
-    return <KpiStrip label={tr('antiseptics')} columns={3}>
-      <KpiCard loading={antiseptic.loading} icon={Droplets} label={tr('abhr')} period={period} value={fmt(value)} unit={tr('abhrUnit')} status={value == null ? null : value >= ABHR_TARGET ? 'good' : 'danger'} target={tr('abhrTarget', { value: ABHR_TARGET })} delta={kpiDelta(value, k.before?.perThousand, { percent: true, language })} />
-      <KpiCard loading={antiseptic.loading} icon={Droplets} label={tr('useMonth')} period={period} value={fmt(k.current?.total)} unit="L" delta={kpiDelta(k.current?.total, k.before?.total, { percent: true, language })} />
-      <KpiCard loading={antiseptic.loading} icon={Building2} label={tr('departmentsRecorded')} period={period} value={k.current ? `${k.current.departments}/${k.allDepartments}` : null} status={k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null} target={tr('everyDepartment')} />
-    </KpiStrip>
+    return strip(tr('antiseptics'), [
+      item('abhr', tr('shortAbhr'), fmt(value), { unit: ` ${tr('abhrUnit')}`, tone: value == null ? null : value >= ABHR_TARGET ? 'good' : 'danger', title: `${tr('abhr')} · ${period} · ${tr('abhrTarget', { value: ABHR_TARGET })}` }),
+      item('use', tr('shortMonth'), fmt(k.current?.total), { unit: ' L', title: `${tr('useMonth')} · ${period}` }),
+      item('departments', tr('shortDepartments'), k.current ? `${k.current.departments}/${k.allDepartments}` : null, { tone: k.current ? (k.current.departments >= k.allDepartments ? 'good' : 'warning') : null, title: `${tr('departmentsRecorded')} · ${period}` }),
+    ])
   }
   if (tab === 'bundles') {
     const k = bundleKpis(bundle.rows)
-    return <KpiStrip label={tr('bundles')} columns={3}>
-      <KpiCard loading={bundle.loading} icon={ClipboardCheck} label={tr('fullCompliance')} period={days30} value={fmt(k.rate)} unit="%" status={k.rate == null ? null : k.rate >= 95 ? 'good' : k.rate >= 80 ? 'warning' : 'danger'} target={tr('allOrNone')} meter={k.rate} />
-      <KpiCard loading={bundle.loading} icon={ShieldCheck} label={tr('assessments')} period={days30} value={k.assessments} />
-      <KpiCard loading={bundle.loading} icon={AlertTriangle} label={tr('deviations')} period={days30} value={k.deviations} status={k.assessments ? (k.deviations ? 'danger' : 'good') : null} target={tr('zeroTarget')} />
-    </KpiStrip>
+    return strip(tr('bundles'), [
+      item('rate', tr('fullCompliance'), fmt(k.rate), { unit: '%', tone: k.rate == null ? null : k.rate >= 95 ? 'good' : k.rate >= 80 ? 'warning' : 'danger', title: `${days30} · ${tr('allOrNone')}` }),
+      item('assessments', tr('assessments'), k.assessments, { title: days30 }),
+      item('deviations', tr('deviations'), k.deviations, { tone: k.assessments ? (k.deviations ? 'danger' : 'good') : null, title: days30 }),
+    ])
   }
   return null
 }
@@ -923,7 +924,6 @@ function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
                 ? x.templateTitle || x.templateName || x.bundle
                 : x.templateName || x.bundle}
             </strong>
-            <small className="table-cell-unit">v{x.templateVersion || '1.0'}</small>
           </td>
           <td>{language === 'el' ? x.departmentEl : x.departmentEn}</td>
           <td>
@@ -933,9 +933,9 @@ function BundleTable({ sort, onSort, rows, t, language, onOpen, registry }) {
             <strong>{x.score == null ? '—' : `${x.score}%`}</strong>
           </td>
           <td>
-            <StatusBadge tone={x.allOrNone ? 'success' : 'danger'}>
+            <span className={`bundle-answer ${x.allOrNone ? 'is-yes' : 'is-no'}`}>
               {x.allOrNone ? t('yes') : t('no')}
-            </StatusBadge>
+            </span>
           </td>
           <td>
             {(x.failedCount ?? x.findings?.length ?? 0) > 0 ? (

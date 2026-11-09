@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { AlertTriangle, Plus } from 'lucide-react'
-import { Button } from '../../../../design-system/Button'
 import { useLanguage } from '../../../../core/i18n/LanguageContext'
 import { CAPABILITIES } from '../../../../core/permissions/roles'
 import { loadLinkedIncidents } from '../../../quality/qualityService'
@@ -38,12 +37,7 @@ function IncidentsSection({ ctx, section }) {
       title={t('episodeForms.incidents.title')}
       icon={AlertTriangle}
       summary={summary}
-      actions={
-        <Button variant="secondary" onClick={report}>
-          <Plus size={14} aria-hidden="true" />
-          {t('episodeForms.incidents.report')}
-        </Button>
-      }
+      actions={[{ id: 'report', label: t('episodeForms.incidents.report'), icon: Plus, onClick: report }]}
     >
       {rows.length === 0 ? (
         <FormEmpty>{t('episodeForms.incidents.empty')}</FormEmpty>

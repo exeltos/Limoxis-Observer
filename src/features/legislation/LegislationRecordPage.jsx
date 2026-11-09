@@ -24,6 +24,8 @@ import { loadRegister, saveRegisterRow } from './legislationService'
 import { COMPLIANCE, buildRegister, complianceLabel, complianceTone, kindLabel, legislationCapaSource, registerStateLabel, registerStateTone, textStatusLabel, textStatusTone, todayIso, topicLabel } from './legislationModel'
 import { ComplianceBar } from './LegislationPage'
 import './legislation.css'
+import { LinkedActions } from '../quality/LinkedActions'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const plusYear = day => { const date = new Date(`${day}T12:00:00Z`); date.setUTCFullYear(date.getUTCFullYear() + 1); return date.toISOString().slice(0, 10) }
 
@@ -46,9 +48,12 @@ export function LegislationRecordPage() {
   }, [tenant?.id])
   useEffect(() => { void reload() }, [reload])
   const entry = useMemo(() => (data ? buildRegister(data.versions.filter(item => item.textId === textId), data.rows.filter(item => item.textId === textId))[0] || null : null), [data, textId])
+  // Opened by its code (from a corrective action): continue at the text's own address.
+  const byCode = useMemo(() => (data && !entry ? data.versions.find(item => item.snapshot?.code === textId)?.textId || null : null), [data, entry, textId])
+  useEffect(() => { if (byCode) navigate(`/legislation/${byCode}`, { replace: true }) }, [byCode, navigate])
   useEffect(() => { if (entry) setDraft(structuredClone(entry.row || { textId, applicable: true, acceptedVersion: 0, responsible: '', compliance: {}, nextReviewOn: '', notes: '' })) }, [entry, textId])
 
-  if (!data || (entry && !draft)) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!data || (entry && !draft)) return <Page fill><TableSkeleton/></Page>
   if (!entry) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Text not found' : 'Το κείμενο δεν βρέθηκε'}</strong></div></Page>
 
   const { text, history } = entry
@@ -112,6 +117,7 @@ export function LegislationRecordPage() {
           </li> })}
         </ol>
       </div>
+      {text.code && <LinkedActions sourceId={`LEG:${text.code}`} organizationId={tenant?.id} returnTab="requirements" />}
     </RecordTabPanel>}
     {tab === 'text' && <RecordTabPanel title={en ? 'The text' : 'Το κείμενο'} subtitle={en ? 'As published by the platform.' : 'Όπως το δημοσίευσε η πλατφόρμα.'}>
       <div className="leg-pad">

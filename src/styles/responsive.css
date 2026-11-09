@@ -352,15 +352,24 @@ html:not(#lo-unified-tabs) body nav.canonical-tabs>button.canonical-tab>b.canoni
   html:not(#lo-phone) body :is(.module-summary-metric,.employee-kpi,.lab-kpi,.patient-summary-metric){height:auto!important;min-height:0!important;padding:12px!important}
 }
 
-/* Sidebar groups on the icon rail and the phone menu: no headings, every entry shown. */
-.sidebar-rail .sidebar:not(.sidebar-open) .nav-section-heading{display:none}
-.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section.collapsed .sidebar-nav-section-items{display:flex}
+/* Sidebar groups on the icon rail (owner, 8/11/2026): no headings; one icon per group and only the open group's
+   entries, so the rail fits a 13" laptop without scrolling. A group of one entry shows that entry. */
+.nav-section-icon{display:none}
+.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section-single .nav-section-heading{display:none}
+.sidebar-rail .sidebar:not(.sidebar-open) .nav-section-heading{justify-content:center;padding:9px 0}
+.sidebar-rail .sidebar:not(.sidebar-open) .nav-section-heading>:is(span,.nav-group-chevron){display:none}
+.sidebar-rail .sidebar:not(.sidebar-open) .nav-section-icon{display:block}
+.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section-single .sidebar-nav-section-items{display:flex}
+.sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section.open .sidebar-nav-section-items{padding-left:0;background:rgba(255,255,255,.05);border-radius:8px}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-nav-section+.sidebar-nav-section{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.1)}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-bin{align-self:center;margin:4px auto 2px;padding:2px}
 .sidebar-rail .sidebar:not(.sidebar-open) .sidebar-bin-label{display:none}
 @media (max-width:1100px){
-  .sidebar:not(.sidebar-open) .nav-section-heading{display:none}
-  .sidebar:not(.sidebar-open) .sidebar-nav-section.collapsed .sidebar-nav-section-items{display:flex}
+  .sidebar:not(.sidebar-open) .sidebar-nav-section-single .nav-section-heading{display:none}
+  .sidebar:not(.sidebar-open) .nav-section-heading{justify-content:center;padding:9px 0}
+  .sidebar:not(.sidebar-open) .nav-section-heading>:is(span,.nav-group-chevron){display:none}
+  .sidebar:not(.sidebar-open) .nav-section-icon{display:block}
+  .sidebar:not(.sidebar-open) .sidebar-nav-section-single .sidebar-nav-section-items{display:flex}
 }
 @media (max-width:780px){.sidebar nav .nav-item>span{white-space:nowrap}}
 @media (max-width:640px){

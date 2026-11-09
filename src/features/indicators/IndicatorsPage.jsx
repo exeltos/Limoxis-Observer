@@ -9,6 +9,8 @@ import { IconButton } from '../../design-system/IconButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 import { ExportMenu } from '../../design-system/ExportMenu'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
+import { exportRegistry } from '../../core/export/registryExports'
 import { FilterBar,FilterDate,FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTable } from '../../design-system/RegistryTable'
@@ -22,7 +24,7 @@ import { CAPABILITIES,can,scopeFor } from '../../core/permissions/roles'
 import { DATA_SCOPES } from '../../core/permissions/scopeTypes'
 import { loadDepartments } from '../management/departmentsService'
 import { demoLibrarySeed } from '../management/managementData'
-import { printReport } from '../../core/export/reportDocument'
+import { escapeHtml,printReport } from '../../core/export/reportDocument'
 import { loadRiskAssessments } from '../quality/risk/riskService'
 import { loadObjectives } from '../quality/review/reviewService'
 import { rememberQualitySection } from '../quality/qualityReturnSection'
@@ -83,7 +85,9 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   return ()=>{live=false}
  },[withRegisters,tenant?.id,from,to,el])
  const listRows=useMemo(()=>(withRegisters?[...rows,...registerRows]:rows),[withRegisters,rows,registerRows])
- const [targetFilter,setTargetFilter]=useState('all')
+ // «Indicators & objectives» opens on the indicators with a target; «All» shows the informative ones too.
+ const defaultTargetFilter=withRegisters?'with':'all'
+ const [targetFilter,setTargetFilter]=useState(defaultTargetFilter)
  const hasTarget=r=>r.target!=null&&r.target!==''
  // The year's objective of each indicator (Indicators & objectives): its target and code are shown in the list, and a missing one is set from the row.
  const [objectives,setObjectives]=useState([])
@@ -116,9 +120,11 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   approval:r=>approvalRank[snapshotFor(r)?.status]??0,
  })
  useEffect(()=>setPage(1),[query,category,kpi,targetFilter,effectiveDepartment,from,to,pageSize,sort])
+ // The totals beside the search count what the other filters leave; each one narrows the list to its rows.
+ const base=listRows.filter(r=>(category==='all'||r.category===category)&&(targetFilter==='all'||(targetFilter==='with')===hasTarget(r))&&`${r.titleEl} ${r.titleEn} ${r.source}`.toLowerCase().includes(query.toLowerCase()))
  const totalPages=Math.max(1,Math.ceil(filtered.length/pageSize)),safePage=Math.min(page,totalPages),pagedRows=sortedRows.slice((safePage-1)*pageSize,safePage*pageSize);const sequenceIds=sortedRows.map(r=>r.definitionId).filter(Boolean)
- const activeFilterCount=(category!=='all'?1:0)+(targetFilter!=='all'?1:0)+(kpi!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
- function clearFilters(){setQuery('');setCategory('all');setTargetFilter('all');setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
+ const activeFilterCount=(category!=='all'?1:0)+(targetFilter!==defaultTargetFilter?1:0)+(kpi!=='all'?1:0)+(!departmentScoped&&department?1:0)+(from!==defaultFrom?1:0)+(to!==defaultTo?1:0)
+ function clearFilters(){setQuery('');setCategory('all');setTargetFilter(defaultTargetFilter);setKpi('all');if(!departmentScoped)setDepartment('');setFrom(defaultFrom);setTo(defaultTo);setPage(1)}
  // A card narrows the list to its rows (like Employees and Controls); clicking it again shows them all.
  function toggleKpi(next){setKpi(current=>current===next?'all':next)}
  // Opened from the Quality Center, the back arrow returns to its Indicators view.
@@ -131,18 +137,37 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   const resultText=r=>r.value==null&&r.calculation!=='manual'?t('noData'):`${fmtIndicatorValue(r.value,el)}${r.calculation!=='manual'&&r.unit?` ${el?r.unit:(r.unitEn||r.unit)}`:''}`
   const target=r=>r.target==null?'—':`${r.direction==='higher'?'≥ ':r.direction==='lower'?'≤ ':''}${fmtIndicatorValue(Number(r.target),el)}`
   const status=r=>({text:statusText(r.status,t),className:r.status==='attention'?'rd-bad':r.status==='onTarget'?'rd-good':''})
-  const ok=printReport({language,orientation:'landscape',kind:t('indicators'),code:`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`,title:t('indicatorsRecords.reportTitle'),
-   meta:[[t('indicatorsRecords.reportPeriodLabel'),`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`],[t('indicatorsRecords.reportDepartmentLabel'),departmentLabel],[t('indicatorsRecords.reportCategoryLabel'),category!=='all'?categoryLabel(category,t):(t('indicatorsRecords.allFeminine'))],[t('indicatorsRecords.reportSearchLabel'),query.trim()||'—'],
-    [t('indicatorsRecords.onTargetStatus'),String(onTarget)],[t('indicatorsRecords.needAttentionLabel'),String(attention)]],
-   sections:[{title:`${t('indicators')} (${filtered.length})`,table:{columns:[t('indicatorsRecords.tableIndicator'),t('category'),{text:t('indicatorsRecords.tableResult'),align:'right'},t('indicatorsRecords.numeratorDenominatorLabel'),t('indicatorsRecords.targetLabel'),t('indicatorsRecords.sourceVersionLabel'),t('status'),t('indicatorsRecords.approvalLabel')],
-    rows:filtered.map(r=>[el?r.titleEl:(r.titleEn||r.titleEl),categoryLabel(r.category,t),{text:resultText(r),className:'rd-num'},r.calculation==='manual'?translate('copy.indicatorsCopy.manualEntry',language):(r.evidence||'—'),target(r),[r.source,r.version].filter(Boolean).join(' · '),status(r),approvalText(r)])}}],
+  // For an audit (owner, 6/11/2026): four columns, grouped by source, one summary line; the full detail stays in Excel.
+  const sourceOf=r=>r.category==='register'?r.source:categoryLabel(r.category,t)
+  const groups=[...new Set(sortedRows.map(sourceOf))]
+  const withApproval=sortedRows.some(r=>snapshotFor(r)?.status==='approved')
+  const resultCell=r=>({align:'right',className:r.status==='attention'?'rd-bad':r.status==='onTarget'?'rd-good':'',html:`${escapeHtml(resultText(r))}${r.calculation==='manual'?`<small>${escapeHtml(translate('copy.indicatorsCopy.manualEntry',language))}</small>`:r.evidence?`<small>${escapeHtml(r.evidence)}</small>`:''}`})
+  // Fixed widths, so the tables of the groups line up under each other.
+  const columns=[{text:t('indicatorsRecords.tableIndicator'),width:withApproval?'42%':'52%'},{text:t('indicatorsRecords.tableResult'),align:'right',width:'18%'},{text:t('indicatorsRecords.targetLabel'),width:'9%'},{text:t('status'),width:'21%'},...(withApproval?[{text:t('indicatorsRecords.approvalLabel'),width:'10%'}]:[])]
+  const filters=[category!=='all'&&[t('indicatorsRecords.reportCategoryLabel'),categoryLabel(category,t)],query.trim()&&[t('indicatorsRecords.reportSearchLabel'),query.trim()]].filter(Boolean)
+  const summary=`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)} · ${departmentLabel} · ${sortedRows.length} ${t('indicatorsRecords.totalIndicators')} · ${sortedRows.filter(r=>r.status==='onTarget').length} ${t('indicatorsRecords.totalOnTarget')} · ${sortedRows.filter(r=>r.status==='attention').length} ${t('indicatorsRecords.totalAttention')}`
+  const ok=printReport({language,kind:t('indicators'),code:`${fmtIndicatorDay(from)} – ${fmtIndicatorDay(to)}`,title:t('indicatorsRecords.reportTitle'),subtitle:summary,metaColumns:2,meta:filters,
+   sections:groups.map(group=>({title:`${group} (${sortedRows.filter(r=>sourceOf(r)===group).length})`,table:{columns,
+    rows:sortedRows.filter(r=>sourceOf(r)===group).map(r=>[el?r.titleEl:(r.titleEn||r.titleEl),resultCell(r),target(r),hasTarget(r)?status(r):'—',...(withApproval?[approvalText(r)]:[])])}})),
    filename:`${tenant?.name||'Indicators'}_${from}_${to}${effectiveDepartment?`_${departmentLabel}`:''}`}, { pdf: pdf === true })
   if(!ok)notify(t('indicatorsRecords.allowPopups'),'error')
  }
- const exportMenu=<ExportMenu disabled={loading||to<from||!filtered.length} onPrint={()=>exportPdf(false)} onPdf={()=>exportPdf(true)}/>
+ function exportExcel(){
+  const target=r=>r.target==null?'':`${r.direction==='higher'?'≥ ':r.direction==='lower'?'≤ ':''}${fmtIndicatorValue(Number(r.target),el)}`
+  exportRegistry({name:`${t('indicatorsRecords.excelFileName')}_${from}_${to}`,
+   headers:[t('indicatorsRecords.tableIndicator'),t('indicatorsRecords.sourceColumn'),t('indicatorsRecords.tableResult'),t('indicatorsRecords.unitLabel'),t('indicatorsRecords.numeratorDenominatorLabel'),t('indicatorsRecords.targetLabel'),t('indicatorsRecords.objectiveCodeLabel'),t('indicatorsRecords.statusFieldLabel')],
+   rows:sortedRows.map(r=>{const objective=objectiveFor(r);return [el?r.titleEl:(r.titleEn||r.titleEl),r.category==='register'?r.source:categoryLabel(r.category,t),r.value==null?'':Number(r.value),el?r.unit:(r.unitEn||r.unit),r.evidence||'',target(r),objective?.code||'',hasTarget(r)?statusText(r.status,t):'']})})
+ }
+ const exportMenu=<ExportMenu disabled={loading||to<from||!filtered.length} onExcel={exportExcel} onPrint={()=>exportPdf(false)} onPdf={()=>exportPdf(true)}/>
  const newButton=canManage?<Button onClick={()=>navigate('/indicators/new')}><Plus size={16}/>{t('indicatorsRecords.newIndicatorTitle')}</Button>:null
  const moreMenu=<OverflowMenu label={t('indicatorsRecords.moreActions')} items={[{id:'recalculate',label:t('recalculate'),icon:RefreshCcw,disabled:loading,onClick:calculate}]}/>
  const toggle=key=>()=>key==='all'?setKpi('all'):toggleKpi(key)
+ const totals=<RegistryTotals label={t('indicatorsRecords.totalsLabel')} items={[
+  {key:'all',always:true,value:base.length,label:t('indicatorsRecords.totalIndicators'),active:kpi==='all',onClick:toggle('all')},
+  {key:'attention',value:base.filter(r=>r.status==='attention').length,label:t('indicatorsRecords.totalAttention'),active:kpi==='attention',onClick:toggle('attention')},
+  {key:'onTarget',value:base.filter(r=>r.status==='onTarget').length,label:t('indicatorsRecords.totalOnTarget'),active:kpi==='onTarget',onClick:toggle('onTarget')},
+  {key:'approved',value:base.filter(r=>snapshotFor(r)?.status==='approved').length,label:t('indicatorsRecords.totalApproved'),active:kpi==='approved',onClick:toggle('approved')},
+ ]}/>
  const summary=<KpiFigures label={t('indicators')} loading={firstLoad} figures={[
   {key:'all',icon:Activity,value:definitions.length+(withRegisters?registerRows.length:0),label:t('indicatorsRecords.activeDefinitions'),active:kpi==='all'&&category==='all'&&!query,go:toggle('all')},
   {key:'onTarget',icon:CheckCircle2,value:onTarget,label:t('indicatorsRecords.onTargetStatus'),active:kpi==='onTarget',go:toggle('onTarget')},
@@ -155,10 +180,10 @@ export function IndicatorsPage({defaultPeriod='month',registryKey='indicators',a
   {!embedded&&summary}
   {departmentScoped&&<div className="governance-banner"><Database size={16}/><span>{t('indicatorsRecords.departmentScopedBanner')}</span></div>}
   <section className="surface registry-workspace workspace-column workspace-fill indicator-registry">
-   <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={activeFilterCount} onClear={clearFilters} end={actionsSlot?<IconButton label={t('recalculate')} disabled={loading} onClick={calculate}><RefreshCcw size={16}/></IconButton>:null} advanced={<><FilterDate label={t('indicatorsRecords.fromDate')} value={from} onChange={setFrom}/><FilterDate label={t('indicatorsRecords.toDate')} value={to} onChange={setTo}/></>}>{withRegisters&&<FilterSelect label={t('indicatorsRecords.targetLabel')} value={targetFilter} onChange={setTargetFilter}><option value="all">{t('indicatorsRecords.allFeminine')}</option><option value="with">{t('indicatorsRecords.withTarget')}</option><option value="without">{t('indicatorsRecords.withoutTarget')}</option></FilterSelect>}<FilterSelect label={t('category')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{[...new Set(listRows.map(r=>r.category))].map(x=><option key={x} value={x}>{categoryLabel(x,t)}</option>)}</FilterSelect><FilterSelect label={t('department')} value={effectiveDepartment} onChange={setDepartment}>{!departmentScoped&&<option value="">{t('indicatorsRecords.wholeHospital')}</option>}{allowedDepartments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</FilterSelect></FilterBar>
+   <FilterBar query={query} onQueryChange={setQuery} placeholder={t('indicatorsRecords.searchPlaceholder')} activeAdvancedCount={activeFilterCount} onClear={clearFilters} end={actionsSlot?<>{totals}<IconButton label={t('recalculate')} disabled={loading} onClick={calculate}><RefreshCcw size={16}/></IconButton></>:null} advanced={<><FilterDate label={t('indicatorsRecords.fromDate')} value={from} onChange={setFrom}/><FilterDate label={t('indicatorsRecords.toDate')} value={to} onChange={setTo}/></>}>{withRegisters&&<FilterSelect label={t('indicatorsRecords.targetLabel')} value={targetFilter} onChange={setTargetFilter}><option value="all">{t('indicatorsRecords.allFeminine')}</option><option value="with">{t('indicatorsRecords.withTarget')}</option><option value="without">{t('indicatorsRecords.withoutTarget')}</option></FilterSelect>}<FilterSelect label={t('category')} value={category} onChange={setCategory}><option value="all">{t('indicatorsRecords.allFeminine')}</option>{[...new Set(listRows.map(r=>r.category))].map(x=><option key={x} value={x}>{categoryLabel(x,t)}</option>)}</FilterSelect><FilterSelect label={t('department')} value={effectiveDepartment} onChange={setDepartment}>{!departmentScoped&&<option value="">{t('indicatorsRecords.wholeHospital')}</option>}{allowedDepartments.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</FilterSelect></FilterBar>
    {to<from&&<div className="inline-empty">{t('indicatorsRecords.endDateAfterStart')}</div>}
    {firstLoad?<TableSkeleton/>:loading&&<div className="inline-empty">{t('indicatorsRecords.calculatingEllipsis')}</div>}
-   <div className="scroll-table" ref={registry.scrollRef} style={firstLoad?{display:'none'}:undefined}><RegistryTable bare className="indicator-click-table" sort={sort} onSort={onSort} rows={pagedRows} rowKey={r=>r.definitionId||r.id} columns={[{key:'indicator',label:t('indicatorsRecords.tableIndicator'),sortable:true},...(withRegisters?[{key:'source',label:t('indicatorsRecords.sourceColumn'),sortable:true}]:[]),{key:'result',label:t('indicatorsRecords.tableResult'),sortable:true},...(withRegisters?[{key:'target',label:t('indicatorsRecords.targetLabel'),sortable:true}]:[]),{key:'status',label:t('status'),sortable:true},...(showApproval?[{key:'approval',label:t('indicatorsRecords.approvalLabel'),sortable:true}]:[])]} renderRow={r=>{const snapshot=snapshotFor(r);return <tr {...registry.rowProps(r.definitionId||r.id,()=>openIndicator(r))}><td><strong>{el?r.titleEl:r.titleEn}</strong><small>{categoryLabel(r.category,t)} · {fmtIndicatorDay(from)} – {fmtIndicatorDay(to)}{r.calculation==='manual'?(translate('copy.indicatorsCopy.manual',el?'el':'en')):''}{riskCounts.get(r.id)?` · ${t('indicatorsRecords.risksLabel')}: ${riskCounts.get(r.id)}`:''}</small></td>{withRegisters&&<td>{r.category==='register'?r.source:categoryLabel(r.category,t)}</td>}<td className={`indicator-result-cell ${r.status}`}>{r.value==null&&r.calculation!=='manual'?<strong className="indicator-no-data">{t('noData')}</strong>:<><strong>{fmtIndicatorValue(r.value,el)}</strong><small>{r.calculation==='manual'?(translate('copy.indicatorsCopy.enterInsideIndicator',el?'el':'en')):[el?r.unit:(r.unitEn||r.unit),r.evidence].filter(Boolean).join(' · ')}</small></>}{r.target!=null&&<small className="indicator-target">{t('indicatorsRecords.targetLabel')} {r.direction==='higher'?'≥':r.direction==='lower'?'≤':''} {fmtIndicatorValue(Number(r.target),el)}</small>}</td>{withRegisters&&<td onClick={event=>{if(event.target.closest('button'))event.stopPropagation()}}>{(()=>{const objective=objectiveFor(r);const own=objective&&objective.target!==''&&objective.target!=null
+   <div className="scroll-table" ref={registry.scrollRef} style={firstLoad?{display:'none'}:undefined}><RegistryTable bare className="indicator-click-table" sort={sort} onSort={onSort} rows={pagedRows} rowKey={r=>r.definitionId||r.id} columns={[{key:'indicator',label:t('indicatorsRecords.tableIndicator'),sortable:true},...(withRegisters?[{key:'source',label:t('indicatorsRecords.sourceColumn'),sortable:true}]:[]),{key:'result',label:t('indicatorsRecords.tableResult'),sortable:true},...(withRegisters?[{key:'target',label:t('indicatorsRecords.targetLabel'),sortable:true}]:[]),{key:'status',label:t('status'),sortable:true},...(showApproval?[{key:'approval',label:t('indicatorsRecords.approvalLabel'),sortable:true}]:[])]} renderRow={r=>{const snapshot=snapshotFor(r);return <tr {...registry.rowProps(r.definitionId||r.id,()=>openIndicator(r))}><td><strong>{el?r.titleEl:r.titleEn}</strong><small>{categoryLabel(r.category,t)} · {fmtIndicatorDay(from)} – {fmtIndicatorDay(to)}{r.calculation==='manual'?(translate('copy.indicatorsCopy.manual',el?'el':'en')):''}{riskCounts.get(r.id)?` · ${t('indicatorsRecords.risksLabel')}: ${riskCounts.get(r.id)}`:''}</small></td>{withRegisters&&<td>{r.category==='register'?r.source:categoryLabel(r.category,t)}</td>}<td className={`indicator-result-cell ${r.status}`}>{r.value==null&&r.calculation!=='manual'?<strong className="indicator-no-data">{t('noData')}</strong>:<><strong>{fmtIndicatorValue(r.value,el)}</strong><small>{r.calculation==='manual'?(translate('copy.indicatorsCopy.enterInsideIndicator',el?'el':'en')):[el?r.unit:(r.unitEn||r.unit),r.evidence].filter(Boolean).join(' · ')}</small></>}{r.target!=null&&!withRegisters&&<small className="indicator-target">{t('indicatorsRecords.targetLabel')} {r.direction==='higher'?'≥':r.direction==='lower'?'≤':''} {fmtIndicatorValue(Number(r.target),el)}</small>}</td>{withRegisters&&<td onClick={event=>{if(event.target.closest('button'))event.stopPropagation()}}>{(()=>{const objective=objectiveFor(r);const own=objective&&objective.target!==''&&objective.target!=null
     if(own||objective)return <><strong>{fmtTarget(own?objective.direction:r.direction,own?objective.target:r.target)}</strong><small>{objective.code}</small></>
     if(hasTarget(r))return <><span className="indicator-target-default" title={t('indicatorsRecords.defaultTargetHint')}>{fmtTarget(r.direction,r.target)}</span>{canSetObjective&&<button type="button" className="indicator-set-target" onClick={()=>setObjective(r)}>{t('indicatorsRecords.setYearObjective')}</button>}</>
     return <><span className="indicator-target-default">{t('indicatorsRecords.noTargetYet')}</span>{canSetObjective&&<button type="button" className="indicator-set-target" onClick={()=>setObjective(r)}>{t('indicatorsRecords.setYearObjective')}</button>}</>})()}</td>}<td>{hasTarget(r)?<span className={`indicator-status ${r.status}`}>{statusText(r.status,t)}</span>:<span className="indicator-approval-none">—</span>}</td>{showApproval&&<td onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}>{(()=>{

@@ -67,7 +67,7 @@ export function IndicatorResultPanel({organizationId,record,period,language}){
     :!result?<div className="inline-empty">{el?'Ο δείκτης δεν είναι ενεργός για αυτή την περίοδο.':'The indicator is not active for this period.'}</div>
     :<>
      <div className="indicator-result-hero">
-      <div className="indicator-result-value"><strong>{result.value==null?(el?'Χωρίς δεδομένα':'No data'):fmtNumber(result.value,el)}</strong>{result.value!=null&&unit&&<span>{unit}</span>}</div>
+      <div className="indicator-result-value"><strong>{result.value==null?(el?'Δεν έχει ξεκινήσει ο υπολογισμός':'Not calculated yet'):fmtNumber(result.value,el)}</strong>{result.value!=null&&unit&&<span>{unit}</span>}</div>
       <div className="indicator-result-facts">
        <span><small>{el?'Στόχος':'Target'}</small><b>{target}</b></span>
        <span><small>{el?'Κατάσταση':'Status'}</small><b className={result.status==='attention'?'is-late':result.status==='onTarget'?'is-good':undefined}>{result.target==null?(el?'Χωρίς στόχο':'No target'):status[el?0:1]}</b></span>

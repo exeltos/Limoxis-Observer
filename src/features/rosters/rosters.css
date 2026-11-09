@@ -1,0 +1,150 @@
+/* The department's shift roster: the whole month on the page; weekends, days off and leave stand out, shifts stay quiet. */
+.roster-toolbar{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:0 0 12px}
+.roster-department{min-width:260px}
+.roster-department .searchable-select-control>input{height:40px;padding-left:12px}
+.roster-period{display:flex;align-items:center;gap:8px;height:40px}
+.roster-period strong{min-width:116px;text-align:center;font-size:13.5px;color:#14253d}
+.roster-nav{display:inline-grid;place-items:center;width:40px;height:40px;border:1px solid #d6dee8;border-radius:10px;background:#fff;color:#14253d;cursor:pointer}
+.roster-nav:hover{background:#f2f6fa}
+.roster-tools{display:flex;gap:8px;margin-left:auto}
+.roster-tool{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border:1px solid #d6dee8;border-radius:10px;background:#fff;color:#1f3348;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.roster-tool:hover{background:#f2f6fa}
+.roster-tool.is-on{border-color:#1d5f9c;background:#eaf2fb;color:#1d5f9c}
+.roster-panel{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:12px 14px;border:1px solid #e3e9f1;border-radius:14px;background:#fff}
+.roster-panel>.field{min-width:200px}
+.roster-panel select{height:40px}
+.roster-panel-rules{display:grid;grid-template-columns:auto minmax(300px,1fr) minmax(340px,400px);align-items:start;gap:28px}
+.roster-col{display:grid;gap:8px;align-content:start}
+.roster-col-title{font-size:11.5px;color:#56677a}
+.roster-demand{display:grid;grid-template-columns:150px 56px 56px;gap:6px;align-items:center;font-size:12.5px}
+.roster-demand>b{font-size:11.5px;color:#56677a;text-align:center}
+.roster-demand-row{display:contents}
+.roster-demand input,.roster-rule input{width:56px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
+.roster-rule-list{display:grid;grid-template-columns:1fr;gap:6px;align-content:start}
+.roster-rule{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:34px;font-size:12.5px;color:#1f3348}
+.roster-rule>span{white-space:nowrap}
+.roster-rule-list .roster-muted{margin:4px 0 0;font-size:12px;line-height:1.45}
+.roster-muted{margin:0;color:#56677a;font-size:12.5px}
+.roster-sheet{padding:12px 14px;border:1px solid #e3e9f1;border-radius:14px;background:#fff;min-width:0}
+.roster-grid-wrap{overflow-x:auto}
+.roster-grid{border-collapse:separate;border-spacing:0;font-size:11.5px;width:100%}
+.roster-grid th,.roster-grid td{padding:1px;text-align:center}
+.roster-grid thead th{padding:3px 1px;color:#56677a;font-weight:600;line-height:1.25;border-bottom:1px solid #e3e9f1}
+.roster-grid .is-weekend{background:#fff3e0}
+.roster-grid thead th.is-weekend{color:#a14a00}
+.roster-grid tbody tr:hover td{background-color:#f7fafd}
+.roster-grid tbody tr:hover td.is-weekend{background:#ffeccf}
+.roster-name-col{position:sticky;left:0;z-index:1;background:#fff;text-align:left;padding:0 10px 0 2px;font-weight:600;white-space:nowrap;font-size:12.5px;color:#14253d}
+.roster-grid .roster-name-col{text-align:left}
+.roster-name{display:flex;align-items:center;gap:6px}
+.roster-name input{margin:0}
+.roster-name-text{max-width:210px;overflow:hidden;text-overflow:ellipsis}
+.roster-grip{display:inline-grid;place-items:center;width:16px;color:#8696a8;cursor:grab}
+.roster-grip.is-fixed{cursor:default}
+.roster-head-tag{padding:1px 6px;border-radius:999px;background:#eaf2fb;color:#1d5f9c;font-size:10.5px;font-weight:700}
+.roster-grid tr.is-head .roster-name-col{color:#0f3d66}
+.roster-grid tr.is-dragging{opacity:.45}
+.roster-history{background:#f3f5f8;color:#8696a8}
+.roster-grid thead th.roster-history{color:#8696a8;font-weight:500}
+.roster-cell{display:inline-grid;place-items:center;width:26px;height:24px;padding:0;border:0;border-radius:6px;font:inherit;font-weight:700;font-size:11px;cursor:pointer;background:transparent;color:#3c4c62}
+.roster-cell:disabled{cursor:default}
+.roster-cell.is-past{opacity:.55;cursor:default}
+.roster-cell:hover:not(:disabled){box-shadow:inset 0 0 0 1px #9fb2c8}
+.code-M{color:#1d5f9c}
+.code-I{color:#1f7a6a}
+.code-A{color:#8a5a00}
+.code-N{color:#5b3fb0}
+.code-R{background:#d7f0e1;color:#1f6b45}
+.code-leave{background:#f8d5da;color:#8f2c38}
+.code-wish{color:#b7791f}
+.code-none{color:#8696a8}
+.roster-cell.code-N{background:#f1edfb}
+.roster-cell.has-wish{box-shadow:inset 0 0 0 2px #e0a100}
+.roster-cell.is-bad{box-shadow:inset 0 0 0 2px #c24150}
+.roster-cell.is-manual{position:relative}
+.roster-cell.is-manual::after{content:'';position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#1d5f9c}
+.roster-sum{min-width:24px;padding:0 4px;color:#3c4c62;font-weight:600;font-size:11.5px;border-left:1px solid #eef2f7}
+.roster-grid thead th.roster-sum{color:#14253d}
+.roster-total-col{min-width:74px;white-space:nowrap}
+.roster-total-col.is-off-target{color:#a8323d}
+.roster-grid tfoot th,.roster-grid tfoot td{border-top:1px solid #eef2f7}
+.roster-grid tfoot tr:first-child th,.roster-grid tfoot tr:first-child td{border-top:2px solid #d6dee8}
+.roster-coverage .roster-name-col{font-weight:600;color:#56677a;font-size:12px}
+.roster-need{width:100%;min-width:26px;height:22px;padding:0;border:0;border-radius:5px;background:transparent;color:#56677a;font:inherit;font-size:10.5px;white-space:nowrap;cursor:pointer}
+.roster-need:hover:not(:disabled){background:#eef3f9}
+.roster-need:disabled{cursor:default}
+.roster-need.is-short{background:#fde8ea;color:#a8323d;font-weight:700}
+.roster-need.is-own{text-decoration:underline dotted;text-underline-offset:2px;color:#1d5f9c}
+.roster-empty{padding:12px;color:#56677a;text-align:left}
+.roster-inactive{display:flex;flex-wrap:wrap;gap:12px;margin:10px 0 0;color:#56677a;font-size:12.5px}
+.roster-inactive label{display:inline-flex;align-items:center;gap:5px;text-decoration:line-through}
+.roster-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:#3c4c62}
+.roster-legend span{display:inline-flex;align-items:center;gap:6px}
+.roster-legend i{display:inline-grid;place-items:center;min-width:22px;height:18px;padding:0 3px;border:1px solid #e3e9f1;border-radius:4px;font-style:normal;font-weight:700;font-size:10.5px}
+.roster-legend i.is-manual-key{position:relative}
+.roster-legend i.is-manual-key::after{content:'';position:absolute;top:2px;right:2px;width:5px;height:5px;border-radius:50%;background:#1d5f9c}
+.roster-ok{margin:10px 0 0;padding:8px 12px;border-radius:9px;background:#e3f4ea;color:#1f6b45;font-weight:600;font-size:13px}
+.roster-violations{margin:10px 0 0;padding:8px 12px 8px 28px;border-radius:9px;background:#fdf1f2;color:#8f2c38;font-size:12.5px}
+.roster-cell-backdrop{position:fixed;inset:0;z-index:1100}
+.roster-cell-menu{position:fixed;z-index:1101;width:220px;padding:6px;background:#fff;border:1px solid #d6dee8;border-radius:10px;box-shadow:0 10px 28px rgba(15,35,52,.18)}
+.roster-cell-menu button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:7px;background:transparent;font:inherit;font-size:13px;text-align:left;cursor:pointer;color:#14253d}
+.roster-cell-menu button:hover{background:#f2f6fa}
+.roster-cell-menu i{display:inline-grid;place-items:center;width:26px;height:20px;border:1px solid #e3e9f1;border-radius:5px;font-style:normal;font-weight:700;font-size:11px}
+.roster-need-menu label{display:grid;gap:6px;padding:4px 4px 8px;font-size:12.5px;color:#1f3348}
+.roster-need-menu input{height:34px;padding:0 8px;border:1px solid #d6dee8;border-radius:7px;font:inherit}
+.roster-need-actions{display:flex;gap:6px}
+.roster-need-actions button{justify-content:center;border:1px solid #d6dee8;font-size:12.5px}
+.roster-need-actions button.is-primary{border-color:#1d5f9c;background:#1d5f9c;color:#fff}
+.roster-need-actions button.is-primary:hover{background:#174f83}
+@media (max-width:1180px){.roster-panel-rules{grid-template-columns:1fr}}
+@media (max-width:900px){.roster-tools{margin-left:0}}
+@media print{.roster-toolbar,.roster-panel,.roster-legend,.roster-violations,.roster-ok,.roster-inactive,.roster-grip,.roster-name input{display:none}.roster-sheet{border:0;padding:0}}
+.roster-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#c24150;color:#fff;font-size:11px;font-weight:700}
+.roster-count.is-quiet{background:#e3e9f1;color:#1f3348}
+.roster-requests{flex-direction:column;align-items:stretch;gap:8px}
+.roster-request{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 10px;border-radius:10px;background:#f6f8fb;font-size:13px;color:#1f3348}
+.roster-request small{color:#56677a}
+.roster-request-actions{display:flex;gap:8px;margin-left:auto}
+.roster-request>.status-badge{margin-left:auto}
+.roster-ask{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.roster-ask>.field{min-width:190px}
+.roster-ask select,.roster-ask input{height:40px}
+.roster-log ul{display:grid;gap:4px;width:100%;max-height:240px;margin:0;padding:0;overflow:auto;list-style:none;font-size:12.5px;color:#1f3348}
+.roster-log li{display:flex;gap:12px;padding:4px 8px;border-radius:7px;background:#f6f8fb}
+.roster-log small{margin-left:auto;color:#56677a}
+.roster-grid tr.is-me td{background:#eef5fd}
+.roster-grid tr.is-me .roster-name-col{color:#0f3d66}
+button.roster-name-text{padding:0;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+button.roster-name-text:hover{text-decoration:underline}
+.roster-limit-tag{padding:1px 6px;border-radius:999px;background:#fff3d6;color:#7a5200;font-size:10.5px;font-weight:700}
+.roster-limits-menu p{margin:2px 4px 6px;font-size:12.5px;font-weight:600;color:#14253d}
+.roster-limit{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:7px;font-size:13px;color:#14253d;cursor:pointer}
+.roster-limit:hover{background:#f2f6fa}
+.roster-head-choice{margin:0 0 4px;padding-bottom:8px;border-bottom:1px solid #eef2f7;border-radius:0}
+.roster-limits-menu p.roster-limits-title{margin-top:4px;color:#56677a;font-weight:600;font-size:11.5px}
+.roster-limits-menu{width:300px}
+.roster-limit-number{justify-content:space-between}
+.roster-limit-number input{width:64px;height:30px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;text-align:center;font:inherit}
+/* Where a dragged name will go: a blue line above the row. */
+.roster-grid tr.is-drop-target td{box-shadow:inset 0 3px 0 #1d5f9c}
+.roster-rule select{width:220px;height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;font-size:12.5px}
+.roster-others{display:grid;gap:6px;min-width:300px;font-size:12.5px;color:#1f3348}
+.roster-others>b{font-size:11.5px;color:#56677a}
+.roster-other{display:grid;grid-template-columns:32px 1fr 56px 56px 26px;gap:6px;align-items:center}
+.roster-other i{display:inline-grid;place-items:center;height:22px;border:1px solid #e3e9f1;border-radius:5px;font-style:normal;font-weight:700;font-size:11px}
+.roster-other input,.roster-other-new input{height:32px;padding:0 6px;border:1px solid #d6dee8;border-radius:7px;font:inherit;text-align:center}
+.roster-other-remove{width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:#56677a;font-size:16px;cursor:pointer}
+.roster-other-remove:hover{background:#fde8ea;color:#a8323d}
+.roster-other-new{display:grid;grid-template-columns:90px 1fr 1fr auto;gap:8px;align-items:end}
+.roster-others .searchable-select-control>input{height:36px;padding-left:10px}
+/* Inside the card: no second frame. */
+.roster-rules-dialog .roster-panel{margin:0;padding:0;border:0}
+.roster-rules-dialog .roster-panel-rules{grid-template-columns:auto minmax(280px,1fr) minmax(320px,380px)}
+.roster-rules-dialog .roster-rule{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;text-align:left}
+.roster-rules-dialog .roster-rule>span{font-weight:400;color:#1f3348;font-size:12.5px}
+.roster-rules-dialog .roster-other-new{grid-template-columns:repeat(2,minmax(0,1fr))}
+.roster-rules-dialog .roster-other-new>.button{grid-column:1/-1}
+.roster-other-head b{font-size:11.5px;color:#56677a;text-align:center}
+.roster-other>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.roster-rules-dialog .roster-rule select{width:auto;max-width:220px;min-width:0}
+.roster-rules-dialog .roster-panel-rules{grid-template-columns:auto minmax(320px,1fr) minmax(330px,370px)}

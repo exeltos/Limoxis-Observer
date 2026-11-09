@@ -1,5 +1,6 @@
 import { findLibraryItem, libraryLabel } from '../management/useLibraries'
 import { demoLibrarySeed } from '../management/managementData'
+import { isOdipyCategory, odipyGroupOf, odipyLabel } from './odipyCategories'
 
 // The closed vocabularies of the Quality Center, written once: the create
 // form, the report form, the record sheet, the registry and the exports read
@@ -56,6 +57,38 @@ export const FINDING_SOURCES = [
   { value: 'control', label: ['Έλεγχος', 'Control'] },
 ]
 
+// What a deviation was (the hospital's own list, kept from its earlier register).
+export const DEVIATION_KINDS = [
+  { value: 'breakdown', label: ['Βλάβη', 'Breakdown'] },
+  { value: 'procedure', label: ['Μη τήρηση διαδικασίας', 'Procedure not followed'] },
+  { value: 'material', label: ['Ακατάλληλο υλικό', 'Unsuitable material'] },
+  { value: 'staff_behaviour', label: ['Συμπεριφορά προσωπικού', 'Staff behaviour'] },
+  { value: 'dispute', label: ['Διαπληκτισμός', 'Altercation'] },
+  { value: 'loss', label: ['Απώλεια αντικειμένων', 'Lost items'] },
+  { value: 'external_audit', label: ['Εξωτερική επιθεώρηση', 'External audit'] },
+  { value: 'risk_assessment', label: ['Αξιολόγηση κινδύνων', 'Risk assessment'] },
+  { value: 'satisfaction', label: ['Μέτρηση ικανοποίησης', 'Satisfaction survey'] },
+  { value: 'inspection', label: ['Επιθεώρηση / έλεγχος', 'Inspection / check'] },
+  { value: 'hotel_equipment', label: ['Ξενοδοχειακός εξοπλισμός', 'Hotel equipment'] },
+  { value: 'quality_control', label: ['Ποιοτικός έλεγχος', 'Quality control'] },
+  { value: 'training_evaluation', label: ['Αξιολόγηση εκπαίδευσης', 'Training evaluation'] },
+  { value: 'other', label: ['Άλλο', 'Other'] },
+]
+
+// The categories of a deviation's causes (one or more).
+export const CAUSE_CATEGORIES = [
+  { value: 'human_error', label: ['Ανθρώπινο λάθος', 'Human error'] },
+  { value: 'procedure', label: ['Μη τήρηση διαδικασίας', 'Procedure not followed'] },
+  { value: 'material', label: ['Αστοχία υλικού', 'Material failure'] },
+  { value: 'equipment', label: ['Αστοχία εξοπλισμού', 'Equipment failure'] },
+  { value: 'method', label: ['Λάθος μέθοδος', 'Wrong method'] },
+  { value: 'measurement', label: ['Λάθος μέτρηση', 'Wrong measurement'] },
+  { value: 'environment', label: ['Περιβαλλοντικές συνθήκες', 'Environmental conditions'] },
+  { value: 'supplier', label: ['Αστοχία προμηθευτή', 'Supplier failure'] },
+  { value: 'other', label: ['Άλλο', 'Other'] },
+]
+export const causeCategoriesText = (values = [], language = 'el') => values.map(value => vocabularyLabel(CAUSE_CATEGORIES, value, language)).join(', ')
+
 export const CAPA_TYPES = [
   { value: 'corrective', label: ['Διορθωτική', 'Corrective'] },
   { value: 'preventive', label: ['Προληπτική', 'Preventive'] },
@@ -86,7 +119,9 @@ const CATEGORY_KIND = {
   equipment: 'nonClinical', process: 'nonClinical', staff: 'nonClinical', facility: 'nonClinical', security: 'nonClinical', supplier: 'nonClinical', it: 'nonClinical', other: 'nonClinical',
   complaint: 'complaint', complaintcare: 'complaint', complaintcommunication: 'complaint', complaintwaiting: 'complaint', complainthygiene: 'complaint',
 }
-export const categoryKind = key => CATEGORY_KIND[String(key || '').toLowerCase()] || null
+// A category of the ΟΔΙΠΥ form: patient care, patient safety and clinical outcomes are clinical, the rest are not.
+const odipyKind = key => { const group = odipyGroupOf(key); return !group || !isOdipyCategory(key) ? null : ['care', 'safety', 'outcome'].includes(group.key) ? 'clinical' : 'nonClinical' }
+export const categoryKind = key => odipyKind(key) || CATEGORY_KIND[String(key || '').toLowerCase()] || null
 // The kind an older record has, from its category (records before kinds existed).
 export const reportKindOf = record => record?.reportKind || categoryKind(record?.category) || 'clinical'
 
@@ -110,6 +145,7 @@ export function incidentCategoryOptions(items = [], language = 'el', kind = null
 
 export function incidentCategoryLabel(value, items = [], language = 'el') {
   if (!value) return ''
+  if (isOdipyCategory(value)) return odipyLabel(value, language)
   const item = findLibraryItem(items, incidentCategoryCode(value)) || findLibraryItem(items, value)
   if (item) return libraryLabel(item, language)
   const builtIn = DEFAULT_INCIDENT_CATEGORIES.find(([key]) => key === value)

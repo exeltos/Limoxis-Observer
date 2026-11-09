@@ -22,7 +22,7 @@ function normalizeDomainItem(item) {
 }
 
 // Cross-tabulation cells ([row, column, count]): kept side by side, the matrix adds them up.
-const CELL_KEYS = new Set(['haiByDepartment', 'organismByHaiType', 'deviceAssociated', 'byAgentDepartment', 'byAgentOrganism', 'findingsByControl', 'severityByDepartment'])
+const CELL_KEYS = new Set(['haiByDepartment', 'organismByHaiType', 'deviceAssociated', 'byAgentDepartment', 'byAgentOrganism', 'findingsByControl', 'severityByDepartment', 'categoryByDepartment'])
 export function mergeDomainMetrics(list = []) {
   const items = list.filter(Boolean).map(normalizeDomainItem)
   if (!items.length) return null

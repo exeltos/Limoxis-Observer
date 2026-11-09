@@ -178,14 +178,18 @@ export function LaboratorySampleRecordFunctionalView() {
       notify(err?.message || t('actionFailed'), 'error')
     }
   }
-  const startProcessing = () =>
-    run(
+  // A requested sample has no collection time yet; the laboratory receives it, so it was collected by then (8/11/2026).
+  const startProcessing = () => {
+    const receivedAt = sample.receivedAt || new Date()
+    return run(
       () =>
         repository.updateStatus(sample.id, 'processing', {
-          receivedAt: sample.receivedAt || new Date(),
+          receivedAt,
+          collectedAt: sample.collectedAt || receivedAt,
         }),
       tx('processing'),
     )
+  }
   const openResult = () => {
     setTab('result')
     setDialog('result')

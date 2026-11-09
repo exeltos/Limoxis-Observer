@@ -5,15 +5,15 @@ const panel = readFileSync('src/features/controls/ControlExpiryPanel.jsx', 'utf8
 const form = readFileSync('src/features/controls/ControlExecutionForm.jsx', 'utf8')
 
 describe('expiry: groups and «All in order»', () => {
-  it('shows the list of items straight away, grouped, with the department in each line and printable', () => {
-    expect(panel).toContain('<ExpiryGroupList items={searched} showDepartment={several}')
+  it('shows the list of items straight away, as a table with one line per item and lot, and printable', () => {
+    expect(panel).toContain('<ExpiryTable items={searched}')
     expect(panel).not.toContain('control-expiry-departments')
     expect(panel).not.toContain('ObserverDialog')
-    expect(panel).not.toContain('RegistryPagination')
   })
-  it('groups expired, expiring soon, findings check by check, and keeps in-date items closed', () => {
+  it('keeps the groups for the print, and one line per lot on screen that opens to its departments', () => {
     expect(panel).toContain("else if(item.state==='expired')put('expired',{kind:'expired'},item)")
-    expect(panel).toContain("const closed=group.head.kind==='ok'")
+    expect(panel).toContain("const STATE_ORDER={expired:0,expiring:1,finding:2,ok:3}")
+    expect(panel).toContain('const searched=stateFilter?matched.filter(item=>item.state===stateFilter):matched')
     expect(panel).toContain('className="control-expiry-remove"')
     expect(panel).not.toContain('OverflowMenu')
   })
@@ -38,5 +38,16 @@ describe('the page of a control: rates, missed executions and the time of each e
     expect(record).toContain("label={en?'Executions':'Εκτελέσεις'}")
     expect(record).toContain("sort={{key:'at',dir:historyOrder}}")
     expect(record).not.toContain("<small>{h.email||''}</small>")
+  })
+})
+
+describe('expiry: one line per item and lot', () => {
+  it('joins the same item, lot and date of one control across departments', async () => {
+    const { expiryEntries } = await import('../src/features/controls/ControlExpiryPanel.jsx')
+    const record = { id: 'c1' }
+    const item = (department, lot) => ({ key: `${department}|${lot}`, department, state: 'expired', record, row: { item: 'Adrenaline 1mg/ml', lot, expiry: '2026-10-26' } })
+    const entries = expiryEntries([item('ΤΕΠ', 'AD2291'), item('ΜΕΘ', 'AD2291'), item('ΜΕΘ', 'AD9999')])
+    expect(entries).toHaveLength(2)
+    expect(entries[0].departments).toEqual(['ΤΕΠ', 'ΜΕΘ'])
   })
 })

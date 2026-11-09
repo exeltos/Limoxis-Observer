@@ -8,7 +8,8 @@ import { supabase } from '../../core/supabase/client'
 import { announceBranding,readLogoFile,useOrganizationBranding } from '../../core/organization/branding'
 
 // Hospital identity: the logo and report header line printed at the top of
-// every PDF and on training certificates, and the logo in the top bar.
+// every PDF and on training certificates, and the logo in the top bar. One column (owner, 8/11/2026): the header line,
+// the logo, the preview of the PDF header, then Save.
 export function IdentityPanel({tenant,isDemo=false}){
  const {language}=useLanguage()
  const el=language!=='en'
@@ -42,6 +43,7 @@ export function IdentityPanel({tenant,isDemo=false}){
  return <section className="management-section">
   <div className="section-toolbar"><div><h2>{el?'Ταυτότητα':'Identity'}</h2><p>{el?'Λογότυπο και γραμμή κεφαλίδας που τυπώνονται στην κορυφή κάθε PDF και στα πιστοποιητικά εκπαίδευσης.':'Logo and header line printed at the top of every PDF and on training certificates.'}</p></div></div>
   <div className="identity-settings">
+   <label className="field identity-header"><span>{el?'Γραμμή κεφαλίδας αναφορών':'Report header line'}</span><input value={draft.reportHeader} maxLength={200} onChange={event=>setDraft(current=>({...current,reportHeader:event.target.value}))} placeholder={el?'π.χ. Επιτροπή Νοσοκομειακών Λοιμώξεων · 2ª ΥΠΕ Πειραιώς & Αιγαίου':'e.g. Infection Control Committee · 2nd Health Region'}/></label>
    <div className="identity-logo">
     <span>{el?'Λογότυπο':'Logo'}</span>
     <div className="identity-logo-box">{draft.logo?<img src={draft.logo} alt=""/>:<Building2 size={28}/>}</div>
@@ -52,7 +54,6 @@ export function IdentityPanel({tenant,isDemo=false}){
     </div>
     <small>{el?'PNG, JPG, WebP ή SVG. Μεγάλες εικόνες μικραίνουν αυτόματα.':'PNG, JPG, WebP or SVG. Large images are scaled down.'}</small>
    </div>
-   <label className="field identity-header"><span>{el?'Γραμμή κεφαλίδας αναφορών':'Report header line'}</span><input value={draft.reportHeader} maxLength={200} onChange={event=>setDraft(current=>({...current,reportHeader:event.target.value}))} placeholder={el?'π.χ. Επιτροπή Νοσοκομειακών Λοιμώξεων · 2ª ΥΠΕ Πειραιώς & Αιγαίου':'e.g. Infection Control Committee · 2nd Health Region'}/></label>
    <div className="identity-preview">
     <span>{el?'Προεπισκόπηση κεφαλίδας PDF':'PDF header preview'}</span>
     <div className="identity-preview-band">{draft.logo&&<img src={draft.logo} alt=""/>}<div><strong>{tenant?.name||''}</strong>{draft.reportHeader&&<small>{draft.reportHeader}</small>}</div></div>

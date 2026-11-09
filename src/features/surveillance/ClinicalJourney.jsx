@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Activity, AlertTriangle, BedDouble, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Activity, AlertTriangle, BedDouble, ClipboardList, Microscope, Pill, RefreshCcw, ShieldCheck, Stethoscope } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 
 import { translate } from '../../core/i18n/LanguageContext'
@@ -11,9 +11,17 @@ import { ClinicalEntryDetail, StageTable, StateBadge } from './ClinicalJourneyPa
 import { clinicalTerm, episodeTypeLabel } from './clinicalRecordLabels'
 import { AssessmentDialog, DeviceDialog, SampleRequestDialog, HaiDialog, TherapyDialog, IsolationDialog, EndDialog, ReassessmentDialog, OutcomeDialog, ReasonDialog } from './ClinicalRecordDialogs'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
-import { StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
+import { InlineDialogContext } from '../../design-system/ObserverDialog'
+import { EpisodeBundleCheck } from './forms/EpisodeBundleCheck'
+import { SheetEditingContext, StagePanel, TagList, CompletedReport } from './ClinicalRecordViews'
 import { binMemoryRow } from '../../core/recycleBin/recycleBinService'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
+import { useTenant } from '../../core/tenant/TenantContext'
+import { EpiQuestionnaireDialog } from './epiQuestionnaire/EpiQuestionnaireViews'
+import { EPI_ANSWERS, EPI_QUESTIONS, EPI_SOURCE, answerOf, epiText, isCoreComplete } from './epiQuestionnaire/epiQuestionnaireModel'
+import { canWriteEpi } from './epiQuestionnaire/epiQuestionnaireText'
+import { loadEpiQuestionnaires, loadEpiSettings, saveEpiCoreAnswers } from './epiQuestionnaire/epiQuestionnaireService'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
 
 import { useAuditActor } from '../../core/audit/useAuditActor'
 import { ProtocolPanel, ProtocolPickerDialog } from './protocols/ProtocolViews'
@@ -24,6 +32,16 @@ import { changeRecognitionTime, createTherapyReview, finishProtocolRun, recordPr
 
 // Surveillance episode journey: stages, clinical entries and their detail view.
 
+// The questions of the initial screening of the clinical assessment (the same as its form).
+const SCREENING_QUESTIONS = [
+  ['recentSurgery', 'recentSurgery'],
+  ['currentAntibiotics', 'currentOrRecentAntimicrobialTherapy'],
+  ['recentHospitalization', 'recentHospitalization'],
+  ['transferFromFacility', 'transferFromAnotherHealthcareFacility'],
+  ['knownMdro', 'knownMultidrugResistantOrganismMdroHistory'],
+  ['immunosuppression', 'immunosuppression'],
+  ['recentProcedure', 'recentInvasiveProcedure'],
+]
 export function CanonicalJourney({
   record,
   repository,
@@ -42,20 +60,64 @@ export function CanonicalJourney({
   startProtocolRequest = null,
   onProtocolRequestHandled,
   deleteItem = null,
+  patient = null,
+  admission = null,
+  askSample = false,
+  onSampleAsked,
+  editing = false,
+  actionRequest = null,
+  onActionHandled,
 }) {
   const { notify } = useFeedback()
+  const { role } = useTenant()
+  const copyText = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+  // Read-only value of the sheet, laid out like the form's field; an empty one says so (owner, 8/11/2026).
+  const SheetDetail = ({ label, value }) => (
+    <Detail label={label} value={value || <em className="sheet-empty">{copyText('notFilled')}</em>} />
+  )
   const actor = useAuditActor()
   // N3: protocols started on the episode and the 48–72 h antimicrobial reviews.
   const protocols = useEpisodeProtocols(record, { organizationId, isDemo })
   const [protocolPreset, setProtocolPreset] = useState(null)
-  const [stage, setStage] = useState(initialStage || 'assessment')
+  const [stage, setStage] = useState(initialStage || 'samples')
   useEffect(() => {
     if (initialStage) setStage(initialStage)
   }, [initialStage])
+  // An action of the sheet's «⋯» (new sample, device, …): its step and its window.
+  useEffect(() => {
+    if (!actionRequest?.nonce) return
+    setStage(actionRequest.stage)
+    setDialog(actionRequest.dialog)
+    onActionHandled?.()
+  }, [actionRequest, onActionHandled])
+  useEffect(() => {
+    if (!askSample) return
+    setStage('samples')
+    setDialog('sample')
+    onSampleAsked?.()
+  }, [askSample, onSampleAsked])
+  // The epidemiological questionnaire of the episode, a step of its own (owner, 8/11/2026).
+  const epiKey = isDemo ? record.id : record.recordId || record.id
+  const [epi, setEpi] = useState({ row: null, settings: [], ready: false, nonce: 0 })
+  useEffect(() => {
+    let alive = true
+    Promise.all([
+      loadEpiQuestionnaires(organizationId, [epiKey], { isDemo }),
+      loadEpiSettings(organizationId, { isDemo }).catch(() => []),
+    ])
+      .then(([rows, settings]) => alive && setEpi(current => ({ ...current, row: rows?.[String(epiKey)] || null, settings, ready: true })))
+      .catch(() => alive && setEpi(current => ({ ...current, ready: false })))
+    return () => {
+      alive = false
+    }
+  }, [organizationId, isDemo, epiKey, epi.nonce])
+  const epiDone = Boolean(epi.row && isCoreComplete(epi.row.answers))
   // Demo evaluation guide: reviewing these stages are steps of the CLABSI scenario.
   useEffect(() => {
     if (stage === 'hai' || stage === 'reassessment') signalDemoStep('clabsi_classification', stage)
   }, [stage])
+  const [bundleDevice, setBundleDevice] = useState(null),
+    [formNonce, setFormNonce] = useState(0)
   const [dialog, setDialog] = useState(null),
     [reason, setReason] = useState(''),
     [entryDetail, setEntryDetail] = useState(null)
@@ -112,6 +174,45 @@ export function CanonicalJourney({
   const activeRun = stage.startsWith('protocol:')
     ? protocols.runs.find(run => `protocol:${run.id}` === stage) || null
     : null
+  // The sheet's fields (owner, 8/11/2026): the forms of the assessment, the isolation, the reassessment and the outcome
+  // sit on the page itself, with their own Save, instead of a window over it.
+  // Only in «Edit sheet», one step at a time (owner, 8/11/2026).
+  const sheetEdit = {
+    assessment: editing && active && permissions.canAssess,
+    isolation: editing && active && permissions.canIsolation && !record.isolation && record.isolationDecision?.required !== false,
+    reassessment: editing && active && permissions.canReassess,
+    outcome: editing && active && permissions.canOutcome && !record.outcome,
+  }
+  // «Next» saves the form of the step when it was changed (owner, 8/11/2026): the inline form on show registers
+  // itself here (InlineDialogContext), and moving to another step saves it first.
+  const pendingForm = useRef(null)
+  const inlineForms = { register: entry => (pendingForm.current = entry), unregister: entry => pendingForm.current === entry && (pendingForm.current = null) }
+  const sheetForm = node => <InlineDialogContext.Provider key={formNonce} value={inlineForms}>{node}</InlineDialogContext.Provider>
+  // In «Edit sheet» every step opens with its form, no button to press first (owner, 8/11/2026): a new sample, HAI
+  // assessment, device or therapy; the full questionnaire; the end of an active isolation.
+  const stageForms =
+    editing && active
+      ? {
+          samples: permissions.canLab ? 'sample' : null,
+          questionnaire: canWriteEpi(role) ? 'epi' : null,
+          hai: permissions.canAssess ? 'hai' : null,
+          devices: permissions.canAssess ? 'device' : null,
+          therapy: permissions.canTherapy ? 'therapy' : null,
+          isolation: permissions.canIsolation && record.isolation?.status === 'active' ? 'endIsolation' : null,
+        }
+      : {}
+  const shownDialog = dialog || stageForms[stage] || null
+  // The step's own form has nothing to close to; a form opened on purpose closes back to it.
+  const closeDialog = dialog && dialog !== stageForms[stage] ? () => setDialog(null) : null
+  function goToStage(id) {
+    const form = pendingForm.current
+    if (id !== stage && form?.dirty() && !form.save()) return
+    if (id !== stage) {
+      setDialog(null)
+      setEntryDetail(null)
+    }
+    setStage(id)
+  }
   const cueDialogs = {
     assessment: 'assessment',
     isolation: 'isolation',
@@ -120,13 +221,15 @@ export function CanonicalJourney({
     reassessment: 'reassessment',
   }
   function openCue(id) {
-    setStage(id === 'therapyReview' ? 'therapy' : id)
-    if (cueDialogs[id]) setDialog(cueDialogs[id])
+    goToStage(id === 'therapyReview' ? 'therapy' : id)
+    if (cueDialogs[id] && !editing) setDialog(cueDialogs[id])
   }
   async function run(work, message) {
     try {
       await work()
       setDialog(null)
+      setBundleDevice(null)
+      setFormNonce(value => value + 1)
       setReason('')
       await onReload()
       notify(message || t('actionCompleted'), 'success')
@@ -167,7 +270,8 @@ export function CanonicalJourney({
       </div>
     )
   return (
-    <div className="clinical-data-hub">
+    <SheetEditingContext.Provider value={editing}>
+    <div className={`clinical-data-hub${editing ? ' sheet-editing' : ''}`}>
       <SurveillanceJourneyGuidance
         record={record}
         t={t}
@@ -184,10 +288,192 @@ export function CanonicalJourney({
         t={t}
         fmtDate={fmtDate}
         activeStage={stage}
-        onSelect={setStage}
+        onSelect={goToStage}
         extraStages={extraStages}
-      />
+        questionnaire={epi.ready ? { done: epiDone } : null}
+      >
       <div className="clinical-data-grid">
+        <div className="sheet-anchor" id={`sheet-samples-${record.id}`}>
+        {stage === 'samples' && (
+          <StagePanel
+            icon={Microscope}
+            title={t('samples')}
+            action={
+              permissions.canLab && !stageForms.samples ? (
+                <Button
+                  className="clinical-stage-action"
+                  variant="secondary"
+                  onClick={() => setDialog('sample')}
+                >
+                  {translate('copy.clinicalRecordCopy.sampleRequest', language === 'el' ? 'el' : 'en')}
+                </Button>
+              ) : null
+            }
+          >
+            {record.samples?.length ? (
+              <StageTable
+                columns={[
+                  { key: 'type', label: t('sampleType') },
+                  { key: 'status', label: t('status') },
+                  { key: 'organism', label: t('organism') },
+                  {
+                    key: 'amr',
+                    label: translate(
+                      'copy.clinicalRecordCopy.amrResistance',
+                      language === 'el' ? 'el' : 'en',
+                    ),
+                  },
+                ]}
+                rows={record.samples}
+                onOpen={x => setEntryDetail({ kind: 'sample', row: x })}
+                renderRow={x => (
+                  <>
+                    <td>{t(x.type) || x.type}</td>
+                    <td>
+                      <StateBadge
+                        status={x.result || x.status || 'pending'}
+                        label={t(x.result || x.status || 'pending')}
+                      />
+                    </td>
+                    <td>{x.organism || '—'}</td>
+                    <td>{x.resistance || '—'}</td>
+                  </>
+                )}
+              />
+            ) : (
+              <div className="inline-empty">{t('clinicalRecords.noSamplesRecorded')}</div>
+            )}
+          </StagePanel>
+        )}
+        </div>
+        <div className="sheet-anchor" id={`sheet-questionnaire-${record.id}`}>
+        {stage === 'questionnaire' && shownDialog !== 'epi' && (
+          <StagePanel
+            icon={ClipboardList}
+            title={t('epiQuestionnaire.sectionTitle')}
+            action={
+              stageForms.questionnaire ? null : (
+                <Button className="clinical-stage-action" variant={epiDone ? 'secondary' : 'primary'} onClick={() => setDialog('epi')}>
+                  {epiDone ? t('episodeForms.open') : t('epiQuestionnaire.fillIn')}
+                </Button>
+              )
+            }
+          >
+            {/* The three core questions are answered right on the sheet, one click each (owner, 8/11/2026); the full
+                questionnaire stays one click away. */}
+            {shownDialog !== 'epi' && <div className="sheet-questions">
+              {EPI_QUESTIONS.filter(question => question.core).map(question => (
+                <div key={question.key} className="sheet-question">
+                  <span>{epiText(question.label, language)}</span>
+                  <ModeSwitch
+                    ariaLabel={epiText(question.label, language)}
+                    disabled={!editing || !canWriteEpi(role)}
+                    value={answerOf(epi.row?.answers, question.key) || ''}
+                    options={EPI_ANSWERS.map(answer => ({ value: answer, label: t(`epiQuestionnaire.${answer}`) }))}
+                    onChange={async answer => {
+                      try {
+                        await saveEpiCoreAnswers(organizationId, epiKey, { [question.key]: { a: answer, src: EPI_SOURCE.MANUAL } }, { isDemo })
+                        setEpi(current => ({ ...current, nonce: current.nonce + 1 }))
+                      } catch (error) {
+                        notify(error?.message || t('epiQuestionnaire.saveFailed'), 'danger')
+                      }
+                    }}
+                  />
+                </div>
+              ))}
+            </div>}
+          </StagePanel>
+        )}
+        </div>
+        <div className="sheet-anchor" id={`sheet-assessment-${record.id}`}>
+        {stage === 'assessment' && !sheetEdit.assessment && (
+          <StagePanel
+            icon={ShieldCheck}
+            title={t('clinicalAssessment')}
+            menu={[entryDelete('assessment', record.assessment, t('clinicalAssessment'))]}
+            action={
+              permissions.canAssess ? (
+                <Button
+                  className="clinical-stage-action"
+                  variant="secondary"
+                  onClick={() => setDialog('assessment')}
+                >
+                  {record.assessment
+                    ? translate(
+                        'copy.clinicalRecordCopy.editAssessment',
+                        language === 'el' ? 'el' : 'en',
+                      )
+                    : translate(
+                        'copy.clinicalRecordCopy.newClinicalAssessment',
+                        language === 'el' ? 'el' : 'en',
+                      )}
+                </Button>
+              ) : null
+            }
+          >
+            {record.assessment ? (
+              <>
+                <div className="detail-grid">
+                  <SheetDetail label={t('assessmentDate')} value={fmtDate(record.assessment.date)} />
+                  <Detail
+                    label={t('classification')}
+                    value={clinicalTerm(
+                      record.assessment.classification || 'undetermined',
+                      language,
+                      t,
+                    )}
+                  />
+                </div>
+                {(record.assessment.summary || record.assessment.notes) && (
+                  <p className="clinical-summary">
+                    {record.assessment.summary || record.assessment.notes}
+                  </p>
+                )}
+                <TagList
+                  title={t('signsSymptoms')}
+                  items={record.assessment.signsSymptoms || record.assessment.symptoms}
+                  rows={libraries.clinicalSymptoms || []}
+                  t={t}
+                  language={language}
+                />
+                <TagList
+                  title={t('riskFactors')}
+                  items={record.assessment.riskFactors}
+                  rows={libraries.clinicalRiskFactors || []}
+                  t={t}
+                  language={language}
+                />
+                {/* The initial screening answers, each question with its answer (owner, 8/11/2026). */}
+                {Object.keys(record.assessment.screening || {}).length > 0 && (
+                  <>
+                    <span className="lo-field-label tag-list-label">{copyText('initialSurveillanceQuestionnaire')}</span>
+                    <div className="sheet-answers">
+                      {SCREENING_QUESTIONS.map(([id, key]) => (
+                        <div key={id} className="sheet-answer">
+                          <span>{copyText(key)}</span>
+                          <strong>{copyText(record.assessment.screening[id] || 'unknown')}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>
+            )}
+          </StagePanel>
+        )}
+        {stage === 'assessment' && sheetEdit.assessment && sheetForm(
+          <AssessmentDialog
+            t={t}
+            record={record}
+            symptomRows={libraries.clinicalSymptoms || []}
+            riskRows={libraries.clinicalRiskFactors || []}
+            onClose={null}
+            onSave={draft => run(() => repository.saveAssessment(record, draft), t('actionCompleted'))}
+          />,
+        )}
+        </div>
         {activeRun && (
           <ProtocolPanel
             run={activeRun}
@@ -235,69 +521,67 @@ export function CanonicalJourney({
             }
           />
         )}
-        {stage === 'assessment' && (
+        <div className="sheet-anchor" id={`sheet-hai-${record.id}`}>
+        {stage === 'hai' && (
           <StagePanel
-            icon={ShieldCheck}
-            title={t('clinicalAssessment')}
-            menu={[entryDelete('assessment', record.assessment, t('clinicalAssessment'))]}
+            icon={AlertTriangle}
+            menu={[entryDelete('hai', record.haiClassification, t('haiClassification'))]}
+            title={translate(
+              'copy.clinicalRecordCopy.haiHealthcareAssociatedInfectionsAmrAntimicrobial',
+              language === 'el' ? 'el' : 'en',
+            )}
             action={
-              permissions.canAssess ? (
+              permissions.canAssess && !stageForms.hai ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
-                  onClick={() => setDialog('assessment')}
+                  onClick={() => setDialog('hai')}
                 >
-                  {record.assessment
-                    ? translate(
-                        'copy.clinicalRecordCopy.editAssessment',
-                        language === 'el' ? 'el' : 'en',
-                      )
-                    : translate(
-                        'copy.clinicalRecordCopy.newClinicalAssessment',
-                        language === 'el' ? 'el' : 'en',
-                      )}
+                  {translate(
+                    'copy.clinicalRecordCopy.newHaiAssessment',
+                    language === 'el' ? 'el' : 'en',
+                  )}
                 </Button>
               ) : null
             }
           >
-            {record.assessment ? (
-              <>
-                <div className="detail-grid">
-                  <Detail label={t('assessmentDate')} value={fmtDate(record.assessment.date)} />
-                  <Detail
-                    label={t('classification')}
-                    value={clinicalTerm(
-                      record.assessment.classification || 'undetermined',
-                      language,
-                      t,
-                    )}
-                  />
-                </div>
-                {(record.assessment.summary || record.assessment.notes) && (
-                  <p className="clinical-summary">
-                    {record.assessment.summary || record.assessment.notes}
-                  </p>
-                )}
-                <TagList
-                  title={t('signsSymptoms')}
-                  items={record.assessment.signsSymptoms || record.assessment.symptoms}
-                  rows={libraries.clinicalSymptoms || []}
-                  t={t}
-                  language={language}
-                />
-                <TagList
-                  title={t('riskFactors')}
-                  items={record.assessment.riskFactors}
-                  rows={libraries.clinicalRiskFactors || []}
-                  t={t}
-                  language={language}
-                />
-              </>
+            {record.haiClassification ? (
+              <div className="evidence-box">
+                <strong>
+                  {record.haiClassification.type ? t(record.haiClassification.type) : '—'} ·{' '}
+                  {t(record.haiClassification.status)}
+                </strong>
+                <span>
+                  {record.haiClassification.rationale ||
+                    record.haiClassification.definitionSet ||
+                    '—'}
+                </span>
+              </div>
             ) : (
-              <div className="inline-empty">{t('clinicalRecords.assessmentPending')}</div>
+              <div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>
+            )}
+            {record.resistance ? (
+              <div className="evidence-box">
+                <strong>{record.resistance}</strong>
+                <span>
+                  {translate(
+                    'copy.clinicalRecordCopy.derivedFromValidatedMicrobiologyAstEvidence',
+                    language === 'el' ? 'el' : 'en',
+                  )}
+                </span>
+              </div>
+            ) : (
+              <div className="inline-empty">
+                {translate(
+                  'copy.clinicalRecordCopy.noMdrXdrPdrClassificationIs',
+                  language === 'el' ? 'el' : 'en',
+                )}
+              </div>
             )}
           </StagePanel>
         )}
+        </div>
+        <div className="sheet-anchor" id={`sheet-devices-${record.id}`}>
         {stage === 'devices' && (
           <StagePanel
             icon={Stethoscope}
@@ -306,7 +590,7 @@ export function CanonicalJourney({
               language === 'el' ? 'el' : 'en',
             )}
             action={
-              permissions.canAssess ? (
+              permissions.canAssess && !stageForms.devices ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -369,8 +653,15 @@ export function CanonicalJourney({
                     )}
                     {deviceBundles && (
                       <td className="open-record-cell">
-                        {hasBundle && deviceBundles.canCheck && (
-                          <Button variant={bundle.status === 'overdue' ? 'primary' : 'secondary'} onClick={() => deviceBundles.check(x, record)}>
+                        {editing && hasBundle && deviceBundles.canCheck && (
+                          <Button
+                            variant={bundle.status === 'overdue' ? 'primary' : 'secondary'}
+                            onClick={() => {
+                              // Opens under the device, on the sheet (owner, 8/11/2026).
+                              setBundleDevice(x)
+                              setDialog('bundle')
+                            }}
+                          >
                             {t('episodeForms.bundles.check')}
                           </Button>
                         )}
@@ -378,7 +669,7 @@ export function CanonicalJourney({
                     )}
                     {deleteItem && (
                       <td className="open-record-cell">
-                        {entryDelete('device', x, x.name || x.type) && <OverflowMenu label={t('episodeForms.rowActions')} items={[entryDelete('device', x, x.name || x.type)]} />}
+                        {editing && entryDelete('device', x, x.name || x.type) && <OverflowMenu label={t('episodeForms.rowActions')} items={[entryDelete('device', x, x.name || x.type)]} />}
                       </td>
                     )}
                   </>
@@ -395,121 +686,86 @@ export function CanonicalJourney({
             )}
           </StagePanel>
         )}
-        {stage === 'samples' && (
+        </div>
+        <div className="sheet-anchor" id={`sheet-isolation-${record.id}`}>
+        {stage === 'isolation' && (
           <StagePanel
-            icon={Microscope}
-            title={t('samples')}
+            icon={BedDouble}
+            title={t('isolation')}
+            menu={[entryDelete('isolation', record.isolation, t('isolation'))]}
             action={
-              permissions.canLab ? (
-                <Button
-                  className="clinical-stage-action"
-                  variant="secondary"
-                  onClick={() => setDialog('sample')}
-                >
-                  {translate('copy.clinicalRecordCopy.sampleRequest', language === 'el' ? 'el' : 'en')}
-                </Button>
+              permissions.canIsolation ? (
+                <div className="row-actions">
+                  {record.isolation?.status === 'active' ? (stageForms.isolation ? null :
+                    <Button
+                      className="clinical-stage-action"
+                      variant="secondary"
+                      onClick={() => setDialog('endIsolation')}
+                    >
+                      {translate(
+                        'copy.clinicalRecordCopy.endIsolation',
+                        language === 'el' ? 'el' : 'en',
+                      )}
+                    </Button>
+                  ) : sheetEdit.isolation ? null : (
+                    <Button
+                      className="clinical-stage-action"
+                      variant="secondary"
+                      onClick={() => setDialog('isolation')}
+                    >
+                      {translate(
+                        'copy.clinicalRecordCopy.startIsolation',
+                        language === 'el' ? 'el' : 'en',
+                      )}
+                    </Button>
+                  )}
+                  {/* «Not required» is the infection-control decision on the case
+                      (surveillance_cases + its event); the departments only start and end isolation. */}
+                  {!record.isolation && permissions.canReassess && (
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        run(() => repository.setIsolationNotRequired(record), t('actionCompleted'))
+                      }
+                    >
+                      {t('notRequired')}
+                    </Button>
+                  )}
+                </div>
               ) : null
             }
           >
-            {record.samples?.length ? (
-              <StageTable
-                columns={[
-                  { key: 'type', label: t('sampleType') },
-                  { key: 'status', label: t('status') },
-                  { key: 'organism', label: t('organism') },
-                  {
-                    key: 'amr',
-                    label: translate(
-                      'copy.clinicalRecordCopy.amrResistance',
-                      language === 'el' ? 'el' : 'en',
-                    ),
-                  },
-                ]}
-                rows={record.samples}
-                onOpen={x => setEntryDetail({ kind: 'sample', row: x })}
-                renderRow={x => (
-                  <>
-                    <td>{t(x.type) || x.type}</td>
-                    <td>
-                      <StateBadge
-                        status={x.result || x.status || 'pending'}
-                        label={t(x.result || x.status || 'pending')}
-                      />
-                    </td>
-                    <td>{x.organism || '—'}</td>
-                    <td>{x.resistance || '—'}</td>
-                  </>
-                )}
-              />
-            ) : (
-              <div className="inline-empty">{t('clinicalRecords.noSamplesRecorded')}</div>
-            )}
-          </StagePanel>
-        )}
-        {stage === 'hai' && (
-          <StagePanel
-            icon={AlertTriangle}
-            menu={[entryDelete('hai', record.haiClassification, t('haiClassification'))]}
-            title={translate(
-              'copy.clinicalRecordCopy.haiHealthcareAssociatedInfectionsAmrAntimicrobial',
-              language === 'el' ? 'el' : 'en',
-            )}
-            action={
-              permissions.canAssess ? (
-                <Button
-                  className="clinical-stage-action"
-                  variant="secondary"
-                  onClick={() => setDialog('hai')}
-                >
-                  {translate(
-                    'copy.clinicalRecordCopy.newHaiAssessment',
-                    language === 'el' ? 'el' : 'en',
-                  )}
-                </Button>
-              ) : null
-            }
-          >
-            {record.haiClassification ? (
-              <div className="evidence-box">
-                <strong>
-                  {record.haiClassification.type ? t(record.haiClassification.type) : '—'} ·{' '}
-                  {t(record.haiClassification.status)}
-                </strong>
-                <span>
-                  {record.haiClassification.rationale ||
-                    record.haiClassification.definitionSet ||
-                    '—'}
-                </span>
-              </div>
-            ) : (
-              <div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>
-            )}
-            {record.resistance ? (
-              <div className="evidence-box">
-                <strong>{record.resistance}</strong>
-                <span>
-                  {translate(
-                    'copy.clinicalRecordCopy.derivedFromValidatedMicrobiologyAstEvidence',
-                    language === 'el' ? 'el' : 'en',
-                  )}
-                </span>
+            {record.isolation ? (
+              <div className="detail-grid">
+                <SheetDetail label={t('status')} value={t(record.isolation.status)} />
+                <SheetDetail label={t('startDate')} value={fmtDate(record.isolation.startedAt)} />
+                <SheetDetail label={t('reason')} value={record.isolation.reason} />
+                <SheetDetail label={t('room')} value={record.isolation.room} />
               </div>
             ) : (
               <div className="inline-empty">
-                {translate(
-                  'copy.clinicalRecordCopy.noMdrXdrPdrClassificationIs',
-                  language === 'el' ? 'el' : 'en',
-                )}
+                {record.isolationDecision?.required === false
+                  ? t('notRequired')
+                  : t('clinicalRecords.noIsolationRecorded')}
               </div>
             )}
           </StagePanel>
         )}
+        {stage === 'isolation' && sheetEdit.isolation && sheetForm(
+          <IsolationDialog
+            t={t}
+            onClose={null}
+            onSave={draft => run(() => repository.beginIsolation(record, draft), t('actionCompleted'))}
+          />,
+        )}
+        </div>
+        <div className="sheet-anchor" id={`sheet-therapy-${record.id}`}>
         {stage === 'therapy' && (
           <StagePanel
             icon={Pill}
             title={t('therapy')}
             action={
-              permissions.canTherapy ? (
+              permissions.canTherapy && !stageForms.therapy ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -523,6 +779,7 @@ export function CanonicalJourney({
               ) : null
             }
           >
+            {/* The protocols (sepsis Hour-1 bundle …) start from the sheet's «⋯», with every other action (owner, 8/11/2026). */}
             {record.therapy?.length ? (
               <StageTable
                 columns={[
@@ -579,7 +836,8 @@ export function CanonicalJourney({
                   window={window}
                   t={t}
                   actorName={actor?.name}
-                  canReview={permissions.canTherapy}
+                  canReview={editing && permissions.canTherapy}
+                  quiet
                   onSave={draft =>
                     runProtocol(
                       () => createTherapyReview(organizationId, record, therapy, draft, protocolOptions),
@@ -591,75 +849,14 @@ export function CanonicalJourney({
             })}
           </StagePanel>
         )}
-        {stage === 'isolation' && (
-          <StagePanel
-            icon={BedDouble}
-            title={t('isolation')}
-            menu={[entryDelete('isolation', record.isolation, t('isolation'))]}
-            action={
-              permissions.canIsolation ? (
-                <div className="row-actions">
-                  {record.isolation?.status === 'active' ? (
-                    <Button
-                      className="clinical-stage-action"
-                      variant="secondary"
-                      onClick={() => setDialog('endIsolation')}
-                    >
-                      {translate(
-                        'copy.clinicalRecordCopy.endIsolation',
-                        language === 'el' ? 'el' : 'en',
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      className="clinical-stage-action"
-                      variant="secondary"
-                      onClick={() => setDialog('isolation')}
-                    >
-                      {translate(
-                        'copy.clinicalRecordCopy.startIsolation',
-                        language === 'el' ? 'el' : 'en',
-                      )}
-                    </Button>
-                  )}
-                  {/* «Not required» is the infection-control decision on the case
-                      (surveillance_cases + its event); the departments only start and end isolation. */}
-                  {!record.isolation && permissions.canReassess && (
-                    <Button
-                      variant="ghost"
-                      onClick={() =>
-                        run(() => repository.setIsolationNotRequired(record), t('actionCompleted'))
-                      }
-                    >
-                      {t('notRequired')}
-                    </Button>
-                  )}
-                </div>
-              ) : null
-            }
-          >
-            {record.isolation ? (
-              <div className="detail-grid">
-                <Detail label={t('status')} value={t(record.isolation.status)} />
-                <Detail label={t('startDate')} value={fmtDate(record.isolation.startedAt)} />
-                <Detail label={t('reason')} value={record.isolation.reason} />
-                <Detail label={t('room')} value={record.isolation.room} />
-              </div>
-            ) : (
-              <div className="inline-empty">
-                {record.isolationDecision?.required === false
-                  ? t('notRequired')
-                  : t('clinicalRecords.noIsolationRecorded')}
-              </div>
-            )}
-          </StagePanel>
-        )}
+        </div>
+        <div className="sheet-anchor" id={`sheet-reassessment-${record.id}`}>
         {stage === 'reassessment' && (
           <StagePanel
             icon={RefreshCcw}
             title={t('reassessment')}
             action={
-              permissions.canReassess ? (
+              permissions.canReassess && !sheetEdit.reassessment ? (
                 <Button
                   className="clinical-stage-action"
                   variant="secondary"
@@ -703,7 +900,16 @@ export function CanonicalJourney({
             )}
           </StagePanel>
         )}
-        {stage === 'outcome' && (
+        {stage === 'reassessment' && sheetEdit.reassessment && sheetForm(
+          <ReassessmentDialog
+            t={t}
+            onClose={null}
+            onSave={draft => run(() => repository.reassess(record, draft), t('actionCompleted'))}
+          />,
+        )}
+        </div>
+        <div className="sheet-anchor" id={`sheet-outcome-${record.id}`}>
+        {stage === 'outcome' && !sheetEdit.outcome && (
           <StagePanel
             icon={Activity}
             title={t('outcome')}
@@ -730,22 +936,63 @@ export function CanonicalJourney({
           >
             {record.outcome ? (
               <div className="detail-grid">
-                <Detail label={t('status')} value={t(record.outcome.status)} />
-                <Detail label={t('date')} value={fmtDate(record.outcome.date)} />
-                <Detail label={t('notes')} value={record.outcome.notes} />
+                <SheetDetail label={t('status')} value={t(record.outcome.status)} />
+                <SheetDetail label={t('date')} value={fmtDate(record.outcome.date)} />
+                <SheetDetail label={t('notes')} value={record.outcome.notes} />
               </div>
             ) : (
               <div className="inline-empty">{t('clinicalRecords.notDocumented')}</div>
             )}
           </StagePanel>
         )}
-      </div>
+        {stage === 'outcome' && sheetEdit.outcome && sheetForm(
+          <OutcomeDialog
+            t={t}
+            onClose={null}
+            onSave={draft => run(() => repository.complete(record, draft), t('clinicalRecords.outcomeSaved'))}
+          />,
+        )}
+        </div>
+      {/* The windows of the sheet open in it, under their step, not over the page (owner, 8/11/2026). */}
+      <InlineDialogContext.Provider value={inlineForms}>
+      <div className="sheet-inline-forms" key={formNonce}>
+      {dialog === 'bundle' && bundleDevice && deviceBundles && (
+        <EpisodeBundleCheck
+          deviceBundles={deviceBundles}
+          device={bundleDevice}
+          episode={record}
+          onClose={() => {
+            setDialog(null)
+            setBundleDevice(null)
+          }}
+          onSaved={() => {
+            setDialog(null)
+            setBundleDevice(null)
+          }}
+        />
+      )}
+      {shownDialog === 'epi' && (
+        <EpiQuestionnaireDialog
+          inSheet
+          ctx={{ organizationId, isDemo, fmtDate, patient, admission, samples: (record.samples || []).map(sample => ({ ...sample, surveillanceCase: sample.surveillanceCase || record.id })) }}
+          episode={record}
+          row={epi.row}
+          settings={epi.settings}
+          canEdit={canWriteEpi(role)}
+          onClose={closeDialog}
+          onSaved={() => {
+            setDialog(null)
+            setFormNonce(value => value + 1)
+            setEpi(current => ({ ...current, nonce: current.nonce + 1 }))
+          }}
+        />
+      )}
       {dialog === 'protocolPicker' && (
         <ProtocolPickerDialog
           t={t}
           runs={protocols.runs}
           preset={protocolPreset}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onStart={async draft => {
             const run = await runProtocol(() =>
               startProtocolRun(organizationId, record, draft, protocolOptions),
@@ -761,22 +1008,22 @@ export function CanonicalJourney({
           record={record}
           symptomRows={libraries.clinicalSymptoms || []}
           riskRows={libraries.clinicalRiskFactors || []}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.saveAssessment(record, draft), t('actionCompleted'))
           }
         />
       )}{' '}
-      {dialog === 'device' && (
+      {shownDialog === 'device' && (
         <DeviceDialog
           t={t}
           items={libraries.deviceTypes || []}
           onAddLibraryItem={item => onLibraryAdded?.('deviceTypes', item)}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.addDevice(record, draft), t('actionCompleted'))}
         />
       )}{' '}
-      {dialog === 'sample' && (
+      {shownDialog === 'sample' && (
         <SampleRequestDialog
           t={t}
           context={{
@@ -785,11 +1032,12 @@ export function CanonicalJourney({
             department: language === 'el' ? record.department : record.departmentEn || record.department,
           }}
           epi={{ episode: record, admission: null, samples: record.samples || [] }}
-          onClose={() => setDialog(null)}
+          inSheet
+          onClose={closeDialog}
           onSave={draft => run(() => repository.requestSample(record, draft), t('actionCompleted'))}
         />
       )}{' '}
-      {dialog === 'hai' && (
+      {shownDialog === 'hai' && (
         <HaiDialog
           t={t}
           items={libraries.surveillanceDefinitions || []}
@@ -797,33 +1045,33 @@ export function CanonicalJourney({
           organizationId={organizationId}
           isDemo={isDemo}
           onAddLibraryItem={item => onLibraryAdded?.('surveillanceDefinitions', item)}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.saveHai(record, draft), t('actionCompleted'))}
         />
       )}{' '}
-      {dialog === 'therapy' && (
+      {shownDialog === 'therapy' && (
         <TherapyDialog
           t={t}
           antibiotics={libraries.antibiotics || []}
           advancedAntibiotics={libraries.advancedAntibiotics || []}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.addTherapy(record, draft), t('actionCompleted'))}
         />
       )}{' '}
       {dialog === 'isolation' && (
         <IsolationDialog
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.beginIsolation(record, draft), t('actionCompleted'))
           }
         />
       )}{' '}
-      {dialog === 'endIsolation' && (
+      {shownDialog === 'endIsolation' && (
         <EndDialog
-          title={t('isolation')}
+          title={translate('copy.clinicalRecordCopy.endIsolation', language === 'el' ? 'el' : 'en')}
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.finishIsolation(record, draft), t('actionCompleted'))
           }
@@ -832,14 +1080,14 @@ export function CanonicalJourney({
       {dialog === 'reassessment' && (
         <ReassessmentDialog
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft => run(() => repository.reassess(record, draft), t('actionCompleted'))}
         />
       )}{' '}
       {dialog === 'outcome' && (
         <OutcomeDialog
           t={t}
-          onClose={() => setDialog(null)}
+          onClose={closeDialog}
           onSave={draft =>
             run(() => repository.complete(record, draft), t('clinicalRecords.outcomeSaved'))
           }
@@ -920,6 +1168,11 @@ export function CanonicalJourney({
           }
         />
       )}
+      </div>
+      </InlineDialogContext.Provider>
+      </div>
+      </SurveillanceJourneyMap>
     </div>
+    </SheetEditingContext.Provider>
   )
 }

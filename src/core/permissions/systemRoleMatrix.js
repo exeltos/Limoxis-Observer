@@ -60,6 +60,18 @@ const hospitalAdminExcluded=new Set([
   CAPABILITIES.MANAGE_PLATFORM,
   CAPABILITIES.VIEW_OCCUPATIONAL_HEALTH,
   CAPABILITIES.MANAGE_OCCUPATIONAL_HEALTH,
+  // The clinical work of a surveillance (starting it, the assessment, the therapy, the reassessment, the outcome) is the
+  // Infection Control team's and the reviewing doctor's, as in the RLS policies of surveillance_cases, clinical_assessments,
+  // antimicrobial_therapies, surveillance_reassessments and surveillance_outcomes (owner, 8/11/2026).
+  CAPABILITIES.CREATE_SURVEILLANCE,
+  CAPABILITIES.EDIT_SURVEILLANCE,
+  CAPABILITIES.CLOSE_SURVEILLANCE,
+  CAPABILITIES.REOPEN_SURVEILLANCE,
+  CAPABILITIES.RECORD_CLINICAL_ASSESSMENT,
+  CAPABILITIES.MANAGE_ANTIMICROBIAL_THERAPY,
+  CAPABILITIES.REASSESS_SURVEILLANCE,
+  CAPABILITIES.RECORD_SURVEILLANCE_OUTCOME,
+  CAPABILITIES.REVIEW_CLINICAL,
 ])
 const hospitalAdminCapabilities=allCapabilities.filter(cap=>!/** @type {Set<string>} */(hospitalAdminExcluded).has(cap))
 const demoCapabilities=allCapabilities.filter(cap=>!/** @type {string[]} */([CAPABILITIES.VIEW_PLATFORM,CAPABILITIES.MANAGE_PLATFORM]).includes(cap))

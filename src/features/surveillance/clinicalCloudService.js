@@ -606,6 +606,8 @@ function mapCaseSummary(row) {
   return {
     ...mapClinicalCase({ caseRow: row, patient: row.patient, department: row.department, isolations }),
     sampleCount: Number(row.patient_sample_count ?? 0),
+    // How many samples the surveillance itself holds (a surveillance without any is not listed, owner 8/11/2026).
+    caseSampleCount: row.case_sample_count == null ? null : Number(row.case_sample_count),
     samples: (row.samples || []).map(sample => ({
       id: sample.sample_code,
       recordId: sample.id,

@@ -1,16 +1,18 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Database, KeyRound, Scale, Settings } from 'lucide-react'
+import { ArrowLeft, Database, KeyRound, Megaphone, Scale, Settings } from 'lucide-react'
 import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { Button } from '../../design-system/Button'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
-// The platform's Settings: four tabs of one screen (lists, legislation & sources, LIRA & AI, the platform itself). The application
+// The platform's Settings: five tabs of one screen (lists, legislation & sources, LIRA & AI, the platform itself, the
+// announcements to the hospital administrators). The application
 // menu is hidden there: «Exit» goes back. Legislation & sources has three small switches (legislation, guides, external sources).
 const TARGETS = {
   lists: '/platform#management?group=libraries',
   legal: '/platform/legislation',
   lira: '/platform#management?group=lira',
   platform: '/platform/settings',
+  announcements: '/platform/announcements',
 }
 const LEGAL_TARGETS = {
   legislation: '/platform/legislation',
@@ -31,7 +33,7 @@ export function PlatformLibrariesTabs({ extra = null }) {
       : group === 'sources'
         ? 'sources'
         : null
-  const active = location.pathname.startsWith('/platform/settings') ? 'platform' : legal ? 'legal' : group === 'lira' ? 'lira' : 'lists'
+  const active = location.pathname.startsWith('/platform/announcements') ? 'announcements' : location.pathname.startsWith('/platform/settings') ? 'platform' : legal ? 'legal' : group === 'lira' ? 'lira' : 'lists'
   return (
     <>
       <div className="platform-settings-tabs-row">
@@ -49,6 +51,7 @@ export function PlatformLibrariesTabs({ extra = null }) {
             { id: 'legal', label: en ? 'Legislation & sources' : 'Νομοθεσία & πηγές', icon: Scale },
             { id: 'lira', label: 'LIRA & AI', icon: KeyRound },
             { id: 'platform', label: en ? 'Platform' : 'Πλατφόρμα', icon: Settings },
+            { id: 'announcements', label: en ? 'Announcements' : 'Ανακοινώσεις', icon: Megaphone },
           ]}
         />
       </div>

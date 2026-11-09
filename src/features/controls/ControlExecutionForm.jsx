@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react'
+import { useEffect,useMemo,useRef,useState } from 'react'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { CheckCircle2, FileWarning, History, ListChecks, Plus, Save, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -169,7 +169,7 @@ function ExecutionFields({state,record,department}){
    {/* A medicines/supplies check records each item in its table: no result or points boxes. */}
    {!expiryControl&&<Field label={en?'Result details':'Αναλυτικό αποτέλεσμα'}><textarea value={resultText} onChange={e=>setResultText(e.target.value)} rows="2" placeholder={en?'Optional, the result in words…':'Προαιρετικό, το αποτέλεσμα αναλυτικά…'}/></Field>}
    {!expiryControl&&<Field label={en?'Points checked':'Σημεία ελέγχου'}><textarea value={checkedPoints} onChange={e=>setCheckedPoints(e.target.value)} rows="2" placeholder={en?'Optional, which points were checked…':'Προαιρετικό, ποια σημεία ελέγχθηκαν…'}/></Field>}
-   <Field label={en?'Notes':'Σημειώσεις'}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="2" placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
+   <Field label={expiryControl?(en?'Notes on the check':'Σημειώσεις ελέγχου'):(en?'Notes':'Σημειώσεις')}><textarea value={notes} onChange={e=>setNotes(e.target.value)} rows="2" placeholder={en?'Optional notes…':'Προαιρετικές παρατηρήσεις…'}/></Field>
    {!isEditing&&<ControlEvidencePicker files={evidence} onChange={setEvidence} required={evidenceRequired} language={language}/>}
   </div>
   {hasFinding&&<ControlDeviationActions text={deviationActions(record,department)} language={language}/>}
@@ -187,7 +187,7 @@ export function ControlExtraEntryDialog({language,progress,onClose,onConfirm}){
  </ObserverDialog>
 }
 
-export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved}){
+export function ControlExecutionEditor({organizationId,record,department,onSave,onDraftSaved,onExportChange}){
  const state=useControlExecution({organizationId,record,department,onDraftSaved})
  const {en,language,actor,assignment,structured,expiryControl,hasFinding,valid,draftSaved,draftSaving,persistDraft,payload,printDraft,value,notes,rows}=state
  const navigate=useNavigate()
@@ -204,6 +204,14 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
   navigate('/quality/report',{state:{controlSource:{controlId:record.id,controlTitle:record.title,department,scheduledAt:assignment?.nextDueAt,value,notes,hasFinding,rows},limoxisFrom:{path:`/controls/${record.id}?department=${encodeURIComponent(department)}&execute=1`,label:record.title}}})
  }
  const responsible=personLabel(record.assignees?.[department],language)||ownerText(record,language)
+ // The entry form's print goes to the page header when the page takes it (owner, 7/11/2026).
+ const printRef=useRef(printDraft);printRef.current=printDraft
+ const exportLabel=expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης')
+ useEffect(()=>{
+  if(!onExportChange)return undefined
+  onExportChange(structured?[{id:'form',kind:'print',label:exportLabel,onClick:()=>printRef.current()}]:null)
+  return()=>onExportChange(null)
+ },[onExportChange,structured,exportLabel])
  return <div className="control-execution-page-editor">
   {/* One line: the department and the frequency are already under the title. */}
   <p className="control-exec-meta-line">{[[en?'Deadline':'Προθεσμία',deadlineText(assignment?.nextDueAt,language)],progress&&[en?'Done':'Πρόοδος',progressText(progress,language)],responsible&&[en?'Responsible':'Υπεύθυνος',responsible],[en?'Recorded by':'Καταχώρηση από',actor.name]].filter(Boolean).map(([label,value])=><span key={label}>{label}: <strong>{value||'—'}</strong></span>)}</p>
@@ -215,7 +223,7 @@ export function ControlExecutionEditor({organizationId,record,department,onSave,
   <div className="control-execution-page-tools">
    <div className="control-execution-page-secondary-actions">
     <Button variant="quiet" disabled={draftSaving} onClick={persistDraft}><Save size={15}/>{draftSaving?(en?' Saving…':' Αποθήκευση…'):(en?' Save draft':' Αποθήκευση προσωρινά')}</Button>
-    {structured&&<ExportMenu items={[{id:'form',kind:'print',label:expiryControl?(en?'Change form':'Έντυπο αλλαγών'):(en?'Entry form':'Έντυπο καταχώρησης'),onClick:printDraft}]}/>}
+    {structured&&!onExportChange&&<ExportMenu items={[{id:'form',kind:'print',label:exportLabel,onClick:printDraft}]}/>}
     {hasFinding&&<Button variant="quiet" onClick={report}><FileWarning size={15}/>{en?' Create incident report':' Δημιουργία αναφοράς'}</Button>}
     {draftSaved&&<SignalBadge tone="info">{en?'Draft saved':'Αποθηκευμένο προσωρινά'}</SignalBadge>}
    </div>
@@ -229,8 +237,7 @@ export function ControlExecutionModal({organizationId,record,department,onClose,
  const state=useControlExecution({organizationId,record,department,initialExecution})
  const {en,language,actor,structured,valid,payload,printDraft}=state
  const [confirmed,setConfirmed]=useState(false)
- return <ObserverDialog width={structured?'workspace':'wide'} className="control-execution-card" eyebrow={en?'Edit entry':'Επεξεργασία καταχώρησης'} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)} · ${en?'original entry':'αρχική καταχώρηση'} ${formatDateTime(initialExecution?.at,language)}`} onClose={onClose} footer={<>
-  {structured&&<ExportMenu compact items={[{id:'form',kind:'print',label:en?'Entry form':'Έντυπο καταχώρησης',onClick:printDraft}]}/>}
+ return <ObserverDialog width={structured?'workspace':'wide'} className="control-execution-card" eyebrow={en?'Edit entry':'Επεξεργασία καταχώρησης'} title={en?(record.titleEn||record.title):record.title} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)} · ${en?'original entry':'αρχική καταχώρηση'} ${formatDateTime(initialExecution?.at,language)}`} onClose={onClose} headerActions={structured?<ExportMenu items={[{id:'form',kind:'print',label:en?'Entry form':'Έντυπο καταχώρησης',onClick:printDraft}]}/>:null} footer={<>
   <ChoiceChips className="control-exec-confirm" options={[{value:'confirmed',label:en?'I confirm the corrections are accurate':'Επιβεβαιώνω ότι οι διορθώσεις είναι σωστές'}]} selected={confirmed?['confirmed']:[]} onToggle={()=>setConfirmed(x=>!x)}/>
   <DialogActions onCancel={onClose} onSave={()=>{if(valid&&confirmed)onSave(payload())}} disabled={!confirmed||!valid} saveLabel={en?'Save changes':'Αποθήκευση αλλαγών'}/>
  </>}>

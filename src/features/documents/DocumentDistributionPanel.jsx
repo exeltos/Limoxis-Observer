@@ -16,6 +16,7 @@ import {
   loadAcknowledgementMembers, loadAcknowledgements, memberDepartment, memberPosition, professionsOf, usersWithProfessions,
 } from './acknowledgementLog'
 import './documentAcknowledgements.css'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const fmtDateTime = (value, en) => {
   if (!value) return '—'
@@ -176,7 +177,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
     </div>{distribution && canSend && summary && <div className="record-actions"><ExportMenu onPrint={() => exportPdf(false)} onPdf={() => exportPdf(true)} onExcel={exportCsv} /></div>}</div>
     {record.status !== 'published' && <div className="inline-empty">{en ? 'Distribution is available once the document is published.' : 'Η κοινοποίηση είναι διαθέσιμη μόλις δημοσιευτεί το έγγραφο.'}</div>}
     {record.status === 'published' && (loadingDistribution
-      ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>
+      ? <TableSkeleton/>
       : distribution
         ? <div className="document-ack-log">
             <div className="document-ack-meta">
@@ -184,7 +185,7 @@ export function DocumentDistributionPanel({ record, organizationId, isDemo, depa
               <span><strong>{en ? 'Audience' : 'Κοινό'}</strong>{audienceLabel(distribution)}</span>
             </div>
             {!canSend && <div className="document-ack-meta"><span><strong>{en ? 'Your acknowledgement' : 'Η δική σας επιβεβαίωση'}</strong>{n.visibleAnnouncements.find((a) => a.id === distribution.id)?.acknowledged ? (en ? 'Confirmed' : 'Επιβεβαιώθηκε') : (en ? 'Pending' : 'Εκκρεμεί')}</span></div>}
-            {canSend && (loadingLog ? <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div> : <>
+            {canSend && (loadingLog ? <TableSkeleton/> : <>
               <div className="document-ack-progress" aria-label={en ? 'Read acknowledgement progress' : 'Πρόοδος επιβεβαιώσεων'}>
                 <div className="document-ack-progress-figures">
                   <strong>{summary.acknowledged.length}<small> / {membersComplete ? summary.total : '—'}</small></strong>

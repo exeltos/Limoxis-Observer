@@ -10,7 +10,7 @@ import {
   samplesOutsideAdmissions,
 } from './patientRecordScope'
 import { ClipboardList, FileClock, FolderOpen, ListTree, UserRound } from 'lucide-react'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { RouteLoading } from '../../design-system/RouteLoading'
 import { Page } from '../../design-system/Page'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
@@ -86,6 +86,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
   const actor = useAuditActor()
   const { caseId, patientId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
   const { tenant, isDemo, role, actualRole, membership, canAccessRecord } = useTenant()
@@ -113,6 +114,8 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     [error, setError] = useState(''),
     [createOpen, setCreateOpen] = useState(false)
   const [sampleToLink, setSampleToLink] = useState(null)
+  // A surveillance started with «new sample request»: its sample dialog opens as soon as it is created.
+  const [askSampleFor, setAskSampleFor] = useState(() => location.state?.askSampleFor || null)
   // "Open episode" from the worklist or the sample record: this page opens the
   // new-episode flow once, with the patient and the sample already chosen.
   const fromSample = location.state?.createFromSample || null
@@ -390,14 +393,16 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
     },
   }
   const forms = useEpisodeFormsData(formsCtx)
-  const deviceBundles = makeDeviceBundles(formsCtx, forms.data.bundles?.value)
+  const deviceBundles = makeDeviceBundles(formsCtx, forms.data.bundles?.value, forms.reload)
   // The epidemiological questionnaire of the selected episode: the header line and the safety signal.
   const epiEntry =
     record && forms.data.epiQuestionnaire?.value
       ? epiRows(formsCtx, forms.data.epiQuestionnaire.value).find(item => String(item.episode.id) === String(record.id)) || null
       : null
   // The record's first read: the page placeholder, not a generic «patient record» page.
-  if (loading || stale) return <RouteLoading />
+  // A reload after a save keeps the screen as it is, inside the open surveillance (owner, 8/11/2026); only the first
+  // load of a record shows the loading screen.
+  if (stale || (loading && !(patient || record))) return <RouteLoading />
   if (error)
     return (
       <Page title={t('clinicalRecords.patientRecord')}>
@@ -484,13 +489,18 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           departmentEn: selectedAdmission.department || draft.departmentEn,
         }
       : draft
-    const created = await repository.createCase(targetPatient || patient, scopedDraft)
-    if (sampleToLink) {
+    // The sample the surveillance starts from (owner, 8/11/2026): one of the patient's samples, or a new request
+    // asked right after the start.
+    const { sampleChoice = null, ...caseDraft } = scopedDraft
+    const created = await repository.createCase(targetPatient || patient, caseDraft)
+    const linkTo = sampleToLink || (sampleChoice && sampleChoice !== 'new' ? sampleChoice : null)
+    if (sampleChoice === 'new') setAskSampleFor(created.id)
+    if (linkTo) {
       try {
         // The infection-control roles cannot update a sample: the review function links it.
         if (isDemo || canReviewSamples(role))
-          await laboratory.repository.review(sampleToLink, { status: 'episode_opened', caseId: created.id })
-        else await linkLaboratorySampleToSurveillance(tenant?.id, sampleToLink.recordId, created.id)
+          await laboratory.repository.review(linkTo, { status: 'episode_opened', caseId: created.id })
+        else await linkLaboratorySampleToSurveillance(tenant?.id, linkTo.recordId, created.id)
         await laboratory.reload()
       } catch (linkError) {
         notify(
@@ -589,11 +599,6 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           samples={patientMode ? admissionSamples : recordSamples}
           scaleRows={patient ? riskFlagRows[patient.recordId] || riskFlagRows[patient.id] || [] : []}
           onOpenStage={stage => {
-            if (stage === 'questionnaire') {
-              setTab('episodeForms')
-              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
-              return
-            }
             setJourneyStage(stage)
             setTab('surveillanceJourney')
           }}
@@ -614,8 +619,9 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
                             type="button"
                             className="record-summary-link"
                             onClick={() => {
-                              setTab('episodeForms')
-                              setFormsOpenRequest({ id: 'epiQuestionnaire', nonce: Date.now() })
+                              // The questionnaire is a step of the surveillance sheet (owner, 8/11/2026).
+                              setJourneyStage('questionnaire')
+                              setTab('surveillanceJourney')
                             }}
                           >
                             {epiEntry.summary.status === 'done' ? t('epiQuestionnaire.link') : t('episodeForms.status.pending')}
@@ -671,6 +677,10 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
           onCreateSample={patient ? createAdmissionSample : null}
           canCreate={has(CAPABILITIES.CREATE_SURVEILLANCE)}
           canCreateSample={canCreateLabSample || canReviewSamples(role)}
+          onOpenSample={has(CAPABILITIES.VIEW_LAB) ? sample => navigate(`/laboratory/${encodeURIComponent(sample.id)}`) : null}
+          onRemoveSample={sample => laboratory.repository.remove(sample.id)}
+          askSampleFor={askSampleFor}
+          onSampleAsked={() => setAskSampleFor(null)}
           repository={repository}
           onReload={preferred => load(preferred || record?.id)}
           onEpisodeDeleted={deleted => {
@@ -942,6 +952,7 @@ export function PatientClinicalCanonicalPage({ patientMode = false }) {
             patients={patients}
             onPatientsChange={setPatients}
             sample={sampleToLink}
+            sampleOptions={(patientMode ? admissionSamples : recordSamples).filter(item => !(item.surveillanceCase || item.surveillanceCaseId))}
             onClose={() => {
               setCreateOpen(false)
               setSampleToLink(null)

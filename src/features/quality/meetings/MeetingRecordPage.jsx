@@ -1,6 +1,8 @@
 import { InactiveEmployeeBadge } from '../../../design-system/InactiveEmployeeBadge'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { StatusBadge } from '../../../design-system/StatusBadge'
+import { qualityStatusTone } from '../qualityVocabulary'
 import { CheckSquare2, ClipboardList, GraduationCap, MessagesSquare, Paperclip, Plus, Trash2, Users } from 'lucide-react'
 import { Page } from '../../../design-system/Page'
 import { EntityRecordShell } from '../../../design-system/EntityRecordShell'
@@ -34,6 +36,7 @@ import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { deleteMeeting, saveMeeting } from './meetingService'
 import { MEETING_KINDS, addDays, decisionStatusLabel, newMeetingFor, previousMonth } from './meetingModel'
 import '../quality.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const escapeHtml = text => String(text ?? '').replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[char])
 
@@ -76,7 +79,7 @@ export function MeetingRecordPage() {
   const isNew = meetingId === 'new'
   const location = useLocation()
   const navigate = useNavigate()
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const en = language === 'en'
   const { notify, confirm } = useFeedback()
   const { tenant, role, membership } = useTenant()
@@ -124,7 +127,7 @@ export function MeetingRecordPage() {
     if (!isNew || !meeting || meeting.staffFilled || !staff.length) return
     setMeeting(current => ({ ...current, staffFilled: true, participants: staff.map(person => ({ ...person, attended: true })) }))
   }, [isNew, meeting, staff])
-  if (list.loading || meeting === null) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (list.loading || meeting === null) return <Page fill><TableSkeleton/></Page>
   if (meeting === false) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Meeting not found' : 'Η συνάντηση δεν βρέθηκε'}</strong></div></Page>
 
   const canWrite = isNew ? ownDepartments.length > 0 : list.access.canWrite(meeting)
@@ -189,7 +192,7 @@ export function MeetingRecordPage() {
   const decisionRow = (item, index) => {
     const capa = capaOf(item)
     const capaButton = capa
-      ? <Button variant="secondary" onClick={() => goTo(`/quality/capas/${capa.id}`, { tab })}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'} {capa.code || ''}</Button>
+      ? <Button variant="secondary" onClick={() => goTo(`/quality/capas/${capa.id}`, { tab })}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'} {capa.code || ''}<StatusBadge tone={qualityStatusTone(capa.status)}>{t(capa.status)}</StatusBadge></Button>
       : !isNew && item.title && list.access.canCreateCapa() && <Button variant="secondary" onClick={() => openCapa(item)}><CheckSquare2 size={15} />{en ? 'Corrective action' : 'Διορθωτική ενέργεια'}</Button>
     return <div key={item.id || index} className="meeting-decision">
       <label className="field"><span className="field-label lo-field-label">{en ? 'Decision' : 'Απόφαση'}</span><input value={item.title} disabled={locked} onChange={event => setDecision(index, { title: event.target.value })} /></label>

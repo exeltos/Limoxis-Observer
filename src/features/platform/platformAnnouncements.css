@@ -1,0 +1,14 @@
+/* The platform owner's announcement to hospital administrators, and its list in Settings › Announcements. */
+.platform-announcement-band{display:grid;place-items:center;height:84px;margin:0 0 14px;border-radius:12px;background:linear-gradient(135deg,#1d5f9c,#4f93cf);color:#fff}
+.platform-announcement-dialog.is-promotion .platform-announcement-band{background:linear-gradient(135deg,#1f7a6a,#3fa98f)}
+.platform-announcement-image{display:block;width:100%;max-height:180px;object-fit:cover;margin:0 0 14px;border-radius:12px}
+.platform-announcement-body{margin:0;font-size:14px;line-height:1.55;color:#1f3348;white-space:pre-line}
+.platform-announcements-page .platform-announcement-period{white-space:nowrap}
+.platform-announcements-page .platform-announcement-audience{color:#56677a}
+.platform-announcement-form .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.platform-announcement-file{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:8px 12px;border-radius:9px;background:#eef4fb;color:#1d5f9c;font-weight:600;font-size:13.5px;text-decoration:none}
+.platform-announcement-upload{display:flex;align-items:center;min-height:42px}
+.platform-announcement-attached{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:8px 10px;border-radius:9px;background:#eef4fb;color:#14253d;font-size:13.5px;overflow:hidden;text-overflow:ellipsis}
+.platform-announcement-attached button{display:inline-grid;place-items:center;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:#56677a;cursor:pointer}
+.platform-announcement-attached button:hover{background:#dce7f3}
+.platform-announcement-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}

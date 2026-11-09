@@ -34,7 +34,7 @@ import { controlActorFromAuth } from './controlActor'
 import { printControlForm,structuredSummary } from './controlStructured'
 import { assignmentFrequency,assignmentProgress,assignmentStatus,controlFrequencyLabel,frequencyLabel,canRecordAnytime,getAssignment,recordWindow,scheduleVariants,timesWithWindows } from './controlScheduling'
 import { slotStarts,slotWindowMinutes,zonedInstant,zonedParts } from './controlDueRules'
-import { RateMeter,useAdherenceLines } from './ControlAdherencePanel'
+import { RateMeter,doneOf,useAdherenceLines } from './ControlAdherencePanel'
 import { ControlMissedDialog,missedText } from './ControlMissedDialog'
 import { DEFAULT_PERIOD,periodRange,periodShort } from './controlAdherence'
 import { ControlPeriodPicker } from './ControlPeriodPicker'
@@ -42,6 +42,7 @@ import { progressCompleteMessage,progressText } from './controlProgress'
 import { controlOverallStatus,controlRecordPermissions,pickControlDepartment } from './controlRecordAccess'
 import { completeControlExecution,deleteControlDefinition,loadControlByCode,loadControlHistoryPage,loadControlsOnTimeFrom,saveControlDefinition,updateControlExecution,voidControlExecution } from './controlCloudService'
 import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequenceNavigation'
+import { LinkedActions } from '../quality/LinkedActions'
 import './controlRecord.css'
 
 export function ControlRecordPage(){
@@ -60,6 +61,7 @@ export function ControlRecordPage(){
  const [tabFor,setTabFor]=useState(controlId)
 
  const [expiryExport,setExpiryExport]=useState(null)
+ const [entryExport,setEntryExport]=useState(null)
  const [listDepartment,setListDepartment]=useState(null)
  const [cancelExecution,setCancelExecution]=useState(null)
  const [deleteExecution,setDeleteExecution]=useState(null)
@@ -269,17 +271,19 @@ export function ControlRecordPage(){
  if(executing){
   if(canExecute&&heldBack(department))return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty"><strong>{heldText(department)}</strong><span>{heldHint(department)}</span></div></Page>
   if(!canExecute)return <Page title={en?'Controls':'Έλεγχοι'}><div className="inline-empty">{en?'This control is not available for execution right now.':'Ο έλεγχος δεν είναι διαθέσιμος για καταχώρηση αυτή τη στιγμή.'}</div></Page>
-  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} onBack={()=>navigate(returnTo||recordUrl,{replace:true})}>
-   <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
+  return <Page fill><EntityRecordShell className="control-record-shell control-execution-record-shell workspace-fill" avatar={<ClipboardCheck size={19}/>} eyebrow={en?'Control':'Έλεγχος'} recordId={record.id} title={`${en?'Record control':'Καταχώρηση ελέγχου'} · ${language==='el'?record.title:record.titleEn}`} subtitle={`${department} · ${frequencyLabel(assignmentFrequency(record,department),language)}`} tabs={[]} headerActions={entryExport?<ExportMenu items={entryExport}/>:null} onBack={()=>navigate(returnTo||recordUrl,{replace:true})}>
+   <div className="record-section control-execution-page-card"><ControlExecutionEditor organizationId={tenant.id} record={record} department={department} onExportChange={setEntryExport} onDraftSaved={async()=>{await reload()}} onSave={saveExecution}/></div>
   </EntityRecordShell></Page>
  }
 
+ // «Record» on the control's details and its executions only, not on every tab (owner, 7/11/2026).
+ const recordTab=currentTab==='details'||currentTab==='history'
  const headerActions=<>
-  {canExecute&&visibleDepartments.length===1&&heldBack(department)&&<ActionButton label={heldHint(department)} title={heldHint(department)} tone="primary" disabled onClick={()=>{}}><PlayCircle size={15}/><span>{heldText(department)}</span></ActionButton>}
-  {canExecute&&visibleDepartments.length===1&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
+  {canExecute&&visibleDepartments.length===1&&recordTab&&heldBack(department)&&<ActionButton label={heldHint(department)} title={heldHint(department)} tone="primary" disabled onClick={()=>{}}><PlayCircle size={15}/><span>{heldText(department)}</span></ActionButton>}
+  {canExecute&&visibleDepartments.length===1&&recordTab&&!heldBack(department)&&<ActionButton label={en?'Record control':'Καταχώρηση ελέγχου'} tone="primary" onClick={()=>navigate(`/controls/${controlId}?department=${encodeURIComponent(department)}&execute=1`)}><PlayCircle size={15}/><span>{en?'Record':'Καταχώρηση'}</span></ActionButton>}
   {canModifyDefinition&&<ActionButton label={en?'Edit control':'Επεξεργασία ελέγχου'} tone="edit" onClick={()=>navigate(`${recordUrl}?edit=1`)}><Pencil size={15}/><span>{en?'Edit':'Επεξεργασία'}</span></ActionButton>}
   {canRemoveDefinition&&<ActionButton label={canDeleteDraft?(en?'Delete control':'Διαγραφή ελέγχου'):(en?'Archive control':'Αρχειοθέτηση ελέγχου')} tone="danger" onClick={removeDefinition}><Trash2 size={15}/><span>{canDeleteDraft?(en?'Delete':'Διαγραφή'):(en?'Archive':'Αρχειοθέτηση')}</span></ActionButton>}
-  <ExportMenu ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
+  <ExportMenu menuWidth={expiryExport?440:220} ownPrint onPrint={()=>printControl(false)} onPdf={()=>printControl(true)} items={[{id:'json',kind:'data',label:en?'Data file (JSON)':'Αρχείο δεδομένων',onClick:()=>downloadRecordJson(record,{filename:record?.id})},...(currentTab==='expiry'&&expiryExport?expiryExport:[])]} />
  </>
  const subtitle=visibleDepartments.length===1?visibleDepartments[0]:`${visibleDepartments.length} ${en?'departments':'τμήματα'}`
 
@@ -318,6 +322,7 @@ export function ControlRecordPage(){
      deviationActions(record,visibleDepartments[0])&&{label:en?'Actions on deviation':'Ενέργειες σε απόκλιση',value:deviationActions(record,visibleDepartments[0]),wide:true},
     ].filter(Boolean)}]}/>
    </section>
+   {record.id&&<LinkedActions sourceId={`${record.id}#`} prefix organizationId={tenant?.id} returnTab="details"/>}
   </div>}
   {currentTab==='departments'&&<div className="record-view-stack control-record-view workspace-fill">
    <section className="control-record-departments">
@@ -345,7 +350,7 @@ export function ControlRecordPage(){
    {listDepartment&&<ControlDepartmentListDialog record={record} department={listDepartment} language={language} onClose={()=>setListDepartment(null)}/>}
   </div>}
   {currentTab==='expiry'&&expiryControl&&<ControlExpiryPanel actorName={actor.name} onExportChange={setExpiryExport} sources={[{record,departments:visibleDepartments}]} canRemove={(_,dep)=>canExecuteDepartment(dep)} onRemove={item=>removeExpiryItem({item,organizationId:tenant.id,actor,language,confirm,notify,notifyError,reload})} language={language} locale={locale}/>}
-  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar"><FilterBar end={periodSelect} activeAdvancedCount={(historyDepartment!=='all'?1:0)+(withMissed?1:0)} onClear={()=>{setHistoryDepartment('all');setHistoryPage(1);setWithMissed(false)}}>{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<FilterSelect label={en?'Executions':'Εκτελέσεις'} value={withMissed?'missed':'done'} onChange={value=>setWithMissed(value==='missed')}><option value="done">{en?'Recorded only':'Μόνο καταχωρημένες'}</option><option value="missed">{en?'With the missed':'Με τα χαμένα'}</option></FilterSelect></FilterBar></div><div className="record-tab-panel-body"><RegistryTable sort={{key:'at',dir:historyOrder}} onSort={()=>{setHistoryOrder(order=>order==='desc'?'asc':'desc');setHistoryPage(1)}}
+  {currentTab==='history'&&<section className="record-tab-panel control-history-panel workspace-fill"><div className="control-history-toolbar"><FilterBar end={periodSelect} activeAdvancedCount={(historyDepartment!=='all'?1:0)+(withMissed?1:0)} onClear={()=>{setHistoryDepartment('all');setHistoryPage(1);setWithMissed(false)}}>{assignments.length>1&&<FilterSelect label={en?'Department':'Τμήμα'} value={historyDepartment} onChange={value=>{setHistoryDepartment(value);setHistoryPage(1)}}><option value="all">{en?'All departments':'Όλα τα τμήματα'}</option>{assignments.map(({department:dep})=><option key={dep} value={dep}>{dep}</option>)}</FilterSelect>}<FilterSelect label={en?'Executions':'Εκτελέσεις'} value={withMissed?'missed':'done'} onChange={value=>setWithMissed(value==='missed')}><option value="done">{en?'Recorded only':'Μόνο καταχωρημένες'}</option><option value="missed">{en?'With the missed':'Με τα χαμένα'}</option></FilterSelect></FilterBar></div>{adherence.lines.length>0&&<div className="control-history-adherence" aria-label={en?'Adherence per department':'Τήρηση ανά τμήμα'}>{adherence.lines.map(line=><button type="button" key={line.department} className={`control-history-adherence-item${historyDepartment===line.department?' is-active':''}`} aria-pressed={historyDepartment===line.department} onClick={()=>{setHistoryDepartment(historyDepartment===line.department?'all':line.department);setHistoryPage(1)}}><span>{line.department}</span><RateMeter rate={line.rate}/><small>{doneOf(line)} {en?'of':'από'} {line.expected}</small></button>)}</div>}<div className="record-tab-panel-body"><RegistryTable sort={{key:'at',dir:historyOrder}} onSort={()=>{setHistoryOrder(order=>order==='desc'?'asc':'desc');setHistoryPage(1)}}
     wrapperClassName="scroll-table"
     className="control-history-table"
     columns={[{key:'at',label:en?'Date / time':'Ημερομηνία / ώρα',sortable:true},{key:'department',label:en?'Department':'Τμήμα'},{key:'slot',label:en?'Control time':'Ώρα ελέγχου'},{key:'result',label:en?'Result':'Αποτέλεσμα'},{key:'by',label:en?'Recorded by':'Καταχώρησε'},{key:'notes',label:en?'Notes':'Σημειώσεις'},{key:'actions',label:'',className:'control-history-menu-col'}]}

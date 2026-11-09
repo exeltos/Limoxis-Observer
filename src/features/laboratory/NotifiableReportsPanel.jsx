@@ -6,7 +6,6 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { StatusCards } from '../../design-system/StatusCards'
 import { formatDay } from '../../core/i18n/formatDay'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
@@ -17,6 +16,7 @@ import { NewNotificationDialog } from '../surveillance/forms/sections/notifiable
 import { createPatient, findPatientMatches, loadPatients } from '../patients/patientsService'
 import { useRecordDelete } from '../recycle-bin/useRecordDelete'
 import { DuplicatePatientDialog } from '../patients/DuplicatePatientDialog'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 
 // A patient's name; one just registered here may carry only its last and first name.
 const nameOf = (patient, language) => (language === 'en' ? patient?.nameEn : '') || patient?.name || [patient?.lastName, patient?.firstName].filter(Boolean).join(' ')
@@ -148,13 +148,12 @@ export function NotifiableReportsPanel({ organizationId, isDemo, samples = [], c
 
   return (
     <>
-      <StatusCards label={t('labNotifiable.tab')} loading={!loaded} items={[
+      <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
+        <FilterBar end={<RegistryTotals label={t('labNotifiable.tab')} items={[
         { key: 'pending', icon: Clock3, label: t('labNotifiable.pending'), value: counts.pending, active: quick === 'pending', onToggle: () => toggle('pending') },
         { key: 'overdue', icon: AlertTriangle, label: t('labNotifiable.overdue'), value: counts.overdue, tone: counts.overdue > 0 ? 'danger' : '', active: quick === 'overdue', onToggle: () => toggle('overdue') },
         { key: 'notified', icon: Megaphone, label: t('labNotifiable.notified'), value: counts.notified, active: quick === 'notified', onToggle: () => toggle('notified') },
-      ]} />
-      <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={clearAll} activeAdvancedCount={(disease !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+      ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : null, active: item.active, onClick: item.onToggle }))} />} query={query} onQueryChange={setQuery} placeholder={t('labNotifiable.search')} onClear={clearAll} activeAdvancedCount={(disease !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
           disease !== 'all' && { key: 'disease', label: `${t('labNotifiable.colDisease')}: ${disease}`, onRemove: () => setDisease('all') },
           status !== 'all' && { key: 'status', label: `${t('status')}: ${statusOptions.find(([value]) => value === status)?.[1] || status}`, onRemove: () => setStatus('all') },
           period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },

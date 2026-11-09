@@ -17,6 +17,7 @@ import { RiskEditor } from './RiskEditor'
 import { RiskRecordView } from './RiskRecordView'
 import { DeleteConfirm,L,txt } from './riskUi'
 import './riskAssessment.css'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const EDITABLE=['draft','under_review']
 
@@ -55,7 +56,7 @@ export function RiskRecordPage(){
   else navigate(`/quality/risks/${assessmentCode}`,{replace:true,state:location.state?.returnState||{riskTab:location.state?.riskTab||'register'}})
  }
 
- if(loading)return <Page title={L(en,'Κίνδυνος','Risk')}><div className="inline-empty">{L(en,'Φόρτωση…','Loading…')}</div></Page>
+ if(loading)return <Page title={L(en,'Κίνδυνος','Risk')}><TableSkeleton/></Page>
  if(!assessment||!risk)return <Page title={L(en,'Κίνδυνος','Risk')}><div className="inline-empty">{L(en,'Ο κίνδυνος δεν βρέθηκε.','The risk was not found.')}</div></Page>
  const canEdit=canManage&&EDITABLE.includes(assessment.status)
 

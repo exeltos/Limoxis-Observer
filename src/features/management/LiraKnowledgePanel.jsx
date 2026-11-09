@@ -11,6 +11,7 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { supabase } from '../../core/supabase/client'
 import { isOwnerPreview } from '../../core/preview/ownerPreview'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const statusLabel=(value,en)=>({review:en?'In review':'Προς έλεγχο',approved:en?'Approved':'Εγκεκριμένη',retired:en?'Retired':'Αποσυρμένη'}[value]||value)
 const ingestionLabel=(value,en)=>({ingested:en?'Ready':'Έτοιμη',pending:en?'Pending':'Εκκρεμεί',failed:en?'Failed':'Αποτυχία'}[value]||value)
@@ -32,7 +33,7 @@ export function LiraKnowledgePanel(){
  return <section className="management-section management-scroll-section">
   <div className="section-toolbar"><div><h2>{en?'LIRA Knowledge':'Γνώση LIRA'}</h2><p>{en?'Governed clinical knowledge used by LIRA. Open a source to review its evidence and lifecycle.':'Ελεγχόμενη κλινική γνώση που χρησιμοποιεί η LIRA. Ανοίξτε μια πηγή για έλεγχο τεκμηρίωσης και διαχείριση έκδοσης.'}</p></div></div>
   <FilterBar compact query={query} onQueryChange={setQuery} placeholder={en?'Search sources…':'Αναζήτηση πηγών…'} onClear={()=>{setQuery('');setAuthority('all');setStatus('all')}} activeAdvancedCount={(authority==='all'?0:1)+(status==='all'?0:1)} advanced={<><label className="filter-select"><span>{en?'Authority':'Φορέας'}</span><select value={authority} onChange={e=>setAuthority(e.target.value)}><option value="all">{en?'All authorities':'Όλοι οι φορείς'}</option>{authorities.map(x=><option key={x} value={x}>{x}</option>)}</select></label><label className="filter-select"><span>{en?'Status':'Κατάσταση'}</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="all">{en?'All statuses':'Όλες οι καταστάσεις'}</option><option value="review">{en?'In review':'Προς έλεγχο'}</option><option value="approved">{en?'Approved':'Εγκεκριμένες'}</option><option value="retired">{en?'Retired':'Αποσυρμένες'}</option></select></label></>}/>
-  {loading?<div className="inline-empty">{en?'Loading…':'Φόρτωση…'}</div>:<RegistryTable
+  {loading?<TableSkeleton/>:<RegistryTable
    wrapperClassName="table-wrap scroll-table"
    columns={[{key:'authority',label:en?'Authority':'Φορέας'},{key:'source',label:en?'Source':'Πηγή'},{key:'version',label:en?'Version':'Έκδοση'},{key:'status',label:en?'Approval':'Έγκριση'},{key:'knowledge',label:en?'Knowledge':'Γνώση'}]}
    rows={filtered}

@@ -1,30 +1,8 @@
-import {
-  Activity,
-  AlertTriangle,
-  BedDouble,
-  CheckCircle2,
-  HeartPulse,
-  Microscope,
-  RefreshCcw,
-  ShieldCheck,
-  Syringe,
-  Stethoscope,
-} from 'lucide-react'
-import { AttentionList } from '../../design-system/AttentionList'
+import { Check, CheckCircle2 } from 'lucide-react'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 
-const icons = {
-  assessment: ShieldCheck,
-  devices: Stethoscope,
-  samples: Microscope,
-  isolation: BedDouble,
-  therapy: Syringe,
-  hai: AlertTriangle,
-  reassessment: RefreshCcw,
-  outcome: Activity,
-}
 
-export function buildSurveillanceJourneyStages(record, t, fmtDate) {
+export function buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire = null) {
   const samples = record?.samples || [],
     validatedSamples = samples.filter(sample => Boolean(sample.organism))
   const reassessments = record?.reassessments || [],
@@ -43,7 +21,7 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
     reassessment: true,
     outcome: true,
   }
-  return [
+  const built = [
     {
       id: 'assessment',
       label: t('clinicalRecords.stageAssessment'),
@@ -104,33 +82,56 @@ export function buildSurveillanceJourneyStages(record, t, fmtDate) {
       status: record?.outcome ? 'complete' : 'pending',
       meta: record?.outcome ? t(record.outcome.status) : t('pending'),
     },
-  ].map(stage => ({ ...stage, locked: !unlocked[stage.id] }))
+    // The epidemiological questionnaire of the episode, a step of its own right after the samples (owner, 8/11/2026).
+    ...(questionnaire
+      ? [{
+          id: 'questionnaire',
+          label: t('epiQuestionnaire.sectionTitle'),
+          status: questionnaire.done ? 'complete' : 'pending',
+          meta: questionnaire.done ? t('episodeForms.status.done') : t('epiQuestionnaire.notStarted'),
+        }]
+      : []),
+  ]
+  // The order of the work (owner, 8/11/2026): samples, questionnaire, assessment, HAI, devices, isolation, therapy,
+  // reassessment, outcome.
+  const order = ['samples', 'questionnaire', 'assessment', 'hai', 'devices', 'isolation', 'therapy', 'reassessment', 'outcome']
+  return order
+    .map(id => built.find(stage => stage.id === id))
+    .filter(Boolean)
+    .map(stage => ({ ...stage, locked: !unlocked[stage.id] && stage.id !== 'questionnaire' }))
 }
 
-// extraStages: the sections of the protocols started on the episode (N3), shown
-// after the clinical assessment only once a protocol exists.
-export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [] }) {
+// The surveillance sheet (owner, 8/11/2026, design 2): every section on one page, one under the other, and on the
+// left a small index of the steps (numbered, ✓ when done, the progress under them); a click on a step scrolls to it.
+// extraStages: the protocols started on the episode (N3), right after the clinical assessment.
+export function SurveillanceJourneyMap({ record, t, fmtDate, activeStage, onSelect, extraStages = [], questionnaire = null, children = null }) {
   const { language } = useLanguage()
-  const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate)
-  const stages = extraStages.length ? [baseStages[0], ...extraStages, ...baseStages.slice(1)] : baseStages
+  const baseStages = buildSurveillanceJourneyStages(record, t, fmtDate, questionnaire)
+  const at = baseStages.findIndex(stage => stage.id === 'assessment') + 1
+  const stages = extraStages.length ? [...baseStages.slice(0, at), ...extraStages, ...baseStages.slice(at)] : baseStages
+  const done = baseStages.filter(stage => stage.status === 'complete').length
+  const atIndex = stages.findIndex(stage => stage.id === activeStage)
+  const go = id => {
+    onSelect?.(id)
+    document.getElementById(`sheet-${id}-${record.id}`)?.scrollIntoView?.({ block: 'nearest' })
+  }
   return (
-    <div
-      className="journey-map strict-journey-map episode-workspace-map"
-      aria-label={t('surveillanceJourney')}
-    >
-      <nav
-        className={`episode-section-tabs${extraStages.length ? ' has-protocol-tabs' : ''}`}
-        aria-label={language === 'el' ? 'Ενότητες επεισοδίου' : 'Episode sections'}
-      >
-        {stages.map(stage => (
-          <EpisodeTab
-            key={stage.id}
-            stage={stage}
-            active={activeStage === stage.id}
-            onSelect={onSelect}
-          />
-        ))}
+    <div className="sheet-layout">
+      <nav className="sheet-index" aria-label={language === 'el' ? 'Βήματα επιτήρησης' : 'Surveillance steps'}>
+        {stages.map((stage, index) => <EpisodeStep key={stage.id} number={index + 1} stage={stage} active={activeStage === stage.id} onSelect={go} />)}
+        <div className="sheet-progress">
+          <span>{language === 'el' ? `${done} από ${baseStages.length} συμπληρωμένα` : `${done} of ${baseStages.length} completed`}</span>
+          <i><b style={{ width: `${Math.round((done / Math.max(1, baseStages.length)) * 100)}%` }} /></i>
+        </div>
       </nav>
+      <div className="sheet-body">
+        {children}
+        {/* One section at a time, no long scroll (owner, 8/11/2026): «Previous» / «Next» under it, or the index. */}
+        <div className="sheet-pager">
+          {atIndex > 0 && <button type="button" className="sheet-pager-button" onClick={() => go(stages[atIndex - 1].id)}>← {stages[atIndex - 1].label}</button>}
+          {atIndex >= 0 && atIndex < stages.length - 1 && <button type="button" className="sheet-pager-button is-next" onClick={() => go(stages[atIndex + 1].id)}>{stages[atIndex + 1].label} →</button>}
+        </div>
+      </div>
     </div>
   )
 }
@@ -175,39 +176,38 @@ export function SurveillanceJourneyGuidance({
         <span>{t('clinicalRecords.noImmediateIntervention')}</span>
       </div>
     )
+  // One line on top of the sheet (owner, 8/11/2026): what needs attention, each item a link to its section.
   return (
-    <AttentionList
-      className="journey-attention"
-      title={t('clinicalRecords.attentionNeeded')}
-      limit={3}
-      moreLabel={count => String(t('clinicalRecords.attentionMore')).replace('{count}', String(count))}
-      items={cues.map(cue => ({ id: cue.id, text: cue.title, tone: cue.tone === 'danger' ? 'danger' : cue.tone === 'warning' || cue.tone === 'due' ? 'warning' : 'info', onClick: onSelect ? () => onSelect(cue.id) : null }))}
-    />
+    <div className="sheet-attention" role="note">
+      <strong>{t('clinicalRecords.attentionNeeded')}:</strong>
+      {cues.map((cue, index) => (
+        <button key={`${cue.id}-${index}`} type="button" className={`sheet-attention-item tone-${cue.tone === 'danger' ? 'danger' : cue.tone === 'warning' || cue.tone === 'due' ? 'warning' : 'info'}`} onClick={onSelect ? () => onSelect(cue.id) : undefined}>
+          {cue.title}
+        </button>
+      ))}
+    </div>
   )
 }
 
 // Stages that are steps of the Demo guide's CLABSI scenario (outlined while it runs).
 const DEMO_STEP_STAGES = new Set(['hai', 'reassessment'])
-function EpisodeTab({ stage, active, onSelect }) {
-  const Icon = stage.protocol ? HeartPulse : icons[stage.id] || Activity
+function EpisodeStep({ number, stage, active, onSelect }) {
+  const tone = stage.status === 'complete' ? 'done' : stage.status === 'due' || stage.status === 'waiting' ? 'due' : 'pending'
   return (
     <button
       type="button"
-      className={`episode-section-tab ${active ? 'active' : ''} ${stage.status === 'complete' ? 'complete' : ''} ${stage.locked ? 'locked' : ''} ${stage.protocol ? 'protocol-tab' : ''}`.trim()}
+      className={`sheet-index-step tone-${tone}${active ? ' is-active' : ''}${stage.protocol ? ' is-protocol' : ''}`}
       disabled={stage.locked}
+      aria-current={active ? 'step' : undefined}
       title={[stage.label, stage.meta].filter(Boolean).join(' · ')}
-      aria-current={active ? 'page' : undefined}
       data-demo-step={
         DEMO_STEP_STAGES.has(stage.id) ? `clabsi_classification:${stage.id}` : undefined
       }
       onClick={() => onSelect?.(stage.id)}
     >
-      <Icon size={16} />
-      <span>
-        <strong>{stage.label}</strong>
-        <small>{stage.meta}</small>
-      </span>
-      {stage.status === 'complete' && <CheckCircle2 className="episode-tab-check" size={14} />}
+      {/* Numbered steps, ✓ once the step holds data (owner's choice «Α», 8/11/2026). */}
+      <i className="episode-step-number" aria-hidden="true">{tone === 'done' && !active ? <Check size={13} strokeWidth={3} /> : number}</i>
+      <span>{stage.label}</span>
     </button>
   )
 }

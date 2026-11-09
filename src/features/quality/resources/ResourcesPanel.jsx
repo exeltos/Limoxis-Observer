@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { FileClock } from 'lucide-react'
-import { Button } from '../../../design-system/Button'
 import { FilterBar, FilterSelect } from '../../../design-system/FilterBar'
 import { RegistryPagination } from '../../../design-system/RegistryPagination'
 import { useSortedPaging, withSort } from '../useSortedPaging'
@@ -13,7 +10,6 @@ import { formatDay } from '../../../core/i18n/formatDay'
 import { can, CAPABILITIES, ROLES } from '../../../core/permissions/roles'
 import { isDemoDataEnvironment } from '../../../core/data/dataEnvironment'
 import { useDepartments } from '../../management/useLibraries'
-import { rememberQualitySection } from '../qualityReturnSection'
 import { loadResources } from './resourceService'
 import { formatPercent } from './supplierTemplates'
 import { APPROVALS, CRITICALITY, DUE_STATES, EQUIPMENT_STATES, SUPPLIER_CATEGORIES, approvalLabel, approvalTone, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentStateLabel, equipmentStateTone, eventKindLabel, filterEquipment, filterSuppliers, supplierCategoryLabel, withEquipmentStatus, withSupplierStatus } from './resourceModel'
@@ -103,12 +99,8 @@ export function EquipmentList({ list, registry = null, filters, setFilters, onOp
 export function SuppliersList({ list, registry = null, filters, setFilters, onOpen, filterEnd = null }) {
   const { t, language } = useLanguage()
   const en = language === 'en'
-  const navigate = useNavigate()
-  const access = useResourceAccess()
-  // The evaluation templates by supplier category and the expired certificates to
-  // renew by e-mail: Quality manages them.
-  const expired = list.suppliers.filter(item => item.status !== 'inactive' && item.expiredCertificates > 0).length
-  const end = <>{access.canViewAll && <Button variant="secondary" onClick={() => { rememberQualitySection('resources:suppliers'); navigate('/quality/suppliers/renewals') }}><FileClock size={15} />{en ? 'Certificates to renew' : 'Πιστοποιητικά προς ανανέωση'}{expired > 0 && <StatusBadge tone="danger">{expired}</StatusBadge>}</Button>}{filterEnd}</>
+  // The certificates to renew by e-mail open from «Δημιουργία» of the Quality Center (with the evaluation templates).
+  const end = filterEnd
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const rows = useMemo(() => filterSuppliers(list.suppliers, filters), [list.suppliers, filters])
   const sortBy = { code: row => row.code, criticality: row => ({ high: 3, medium: 2, low: 1 })[row.criticality] || 0, supplier: row => row.name, evaluation: row => row.latestEvaluation?.evaluatedOn || null, attention: row => supplierNotes(row, language).length, approval: row => row.approval }

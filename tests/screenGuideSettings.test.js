@@ -46,7 +46,7 @@ describe('screen guides are wired end to end', () => {
 
   it('the settings are read with the membership and its organization', () => {
     expect(tenantService).toContain('id, role, status, custom_role_id, screen_guides,')
-    expect(tenantService).toContain('idle_lock_minutes, branding, screen_guides_enabled)')
+    expect(tenantService).toContain('idle_lock_minutes, branding, screen_guides_enabled, lira_launcher_enabled)')
   })
 
   it('both settings change only through admin-checked, audited RPCs', () => {

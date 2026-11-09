@@ -33,7 +33,9 @@ describe('the quality objectives file for the auditor', () => {
     const doc = objectivesDossier({ objectives: [hospital, department], committeeTargets: [plan], histories: new Map(), reviews: [], extras, year: 2026, language: 'el' })
     const titles = doc.sections.map(section => section.title)
     expect(titles).toContain('Στόχοι τμημάτων')
-    expect(titles).toContain('Τα ετήσια σχέδια των επιτροπών')
+    // The committees' annual plans are grouped under their committee (one table per place, no months).
+    expect(titles).toContain('Στόχοι επιτροπών')
+    expect(titles).toContain('Επιτροπή Λοιμώξεων (1)')
     expect(titles).not.toContain('Οι δείκτες του 2026')
     expect(titles).toContain('Ερωτηματολόγια ικανοποίησης')
     // The platform's indicators have their own reports: the file holds the objectives, the registers and the surveys.

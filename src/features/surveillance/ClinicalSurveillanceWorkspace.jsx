@@ -1,7 +1,7 @@
 import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useEffect, useState } from 'react'
 import { sampleParentCode, sampleTone } from './patientRecordScope'
-import { Activity, CalendarClock, ChevronRight, HeartPulse, Microscope, PlayCircle, RefreshCcw, Trash2 } from 'lucide-react'
+import { Activity, CalendarClock, Check, ChevronRight, HeartPulse, Microscope, Pencil, PlayCircle, RefreshCcw, Stethoscope, Trash2 } from 'lucide-react'
 import { ProtocolBadge } from './protocols/ProtocolViews'
 import { loadOpenProtocolRuns } from './protocols/protocolService'
 import { useTenant } from '../../core/tenant/TenantContext'
@@ -13,6 +13,7 @@ import { epiSummary } from './epiQuestionnaire/epiQuestionnaireModel'
 import { Button } from '../../design-system/Button'
 import { DueDate } from '../../design-system/DueDate'
 import { Breadcrumbs } from '../../design-system/Breadcrumbs'
+import { BackButton } from '../../design-system/BackButton'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { ManualDateField } from '../../design-system/ManualDateField'
 import { ObserverDialog } from '../../design-system/ObserverDialog'
@@ -39,6 +40,10 @@ export function SurveillanceWorkspace({
   onCreateSample,
   canCreate,
   canCreateSample,
+  onOpenSample,
+  onRemoveSample,
+  askSampleFor = null,
+  onSampleAsked,
   repository,
   onReload,
   // The episode went to the recycle bin (the page may leave it, e.g. when it was opened from the list).
@@ -75,7 +80,39 @@ export function SurveillanceWorkspace({
       suspectedSource: '',
     })
   const deleteItem = useRecordDelete()
+  const sampleMenu = sample =>
+    [
+      onOpenSample && {
+        id: 'edit',
+        label: translate('copy.clinicalRecordCopy.editSample', language === 'el' ? 'el' : 'en'),
+        icon: Pencil,
+        onClick: () => onOpenSample(sample),
+      },
+      deleteItem({
+        createdBy: sample.createdBy,
+        table: 'laboratory_samples',
+        id: sample.recordId,
+        label: sample.id,
+        demo: () => onRemoveSample?.(sample),
+        onDone: () => onReload?.(),
+      }),
+    ].filter(Boolean)
   const detailRecord = episodes.find(ep => String(ep.id) === String(detailId)) || null
+  // The sheet reads until «Edit sheet»; every action of it is in the «⋯» (owner, 8/11/2026).
+  const [sheetEditing, setSheetEditing] = useState(false),
+    [sheetAction, setSheetAction] = useState(null)
+  useEffect(() => setSheetEditing(false), [detailId])
+  const sheetActive = detailRecord?.status === 'active'
+  const canEditSheet = sheetActive && ['canAssess', 'canLab', 'canIsolation', 'canTherapy', 'canReassess', 'canOutcome'].some(key => permissions?.[key])
+  const askSheet = (stage, dialog) => {
+    setSheetEditing(true)
+    setSheetAction({ stage, dialog, nonce: Date.now() })
+  }
+  const copyText = key => translate(`copy.clinicalRecordCopy.${key}`, language === 'el' ? 'el' : 'en')
+  // A surveillance started with «new sample request» opens with its sample dialog (owner, 8/11/2026).
+  useEffect(() => {
+    if (askSampleFor && episodes.some(ep => String(ep.id) === String(askSampleFor))) setDetailId(askSampleFor)
+  }, [askSampleFor, episodes])
   const episodeKey = episodes.map(ep => ep.id).join(',')
   // The epidemiological questionnaire: a grey reminder, or the origin and risk factors in words, on each episode row.
   const epiIndex = useEpiIndex({ organizationId, isDemo, enabled: canWriteEpi(useTenant().role), refreshKey: episodeKey })
@@ -181,6 +218,8 @@ export function SurveillanceWorkspace({
         <section className="episode-detail-card new-surveillance-flow-card">
           <header className="episode-detail-header">
             <div className="episode-detail-title">
+              {/* Back, as on every record page (owner, 8/11/2026). */}
+              <BackButton label={translate('copy.clinicalRecordCopy.surveillanceSamples', language === 'el' ? 'el' : 'en')} onClick={() => setDetailId('')} />
               <div>
                 <Breadcrumbs
                   ariaLabel={translate(
@@ -206,12 +245,12 @@ export function SurveillanceWorkspace({
                     )}
                 </h2>
                 <p>
+                  {/* Over the whole screen the patient's header is hidden: the sheet names the patient itself. */}
                   {[
+                    language === 'el' ? detailRecord.patient : detailRecord.patientEn || detailRecord.patient,
+                    detailRecord.patientId,
                     detailRecord.department,
-                    translate(
-                      'copy.clinicalRecordCopy.clinicalFollowUp',
-                      language === 'el' ? 'el' : 'en',
-                    ),
+                    detailRecord.startedAt && `${translate('copy.clinicalRecordCopy.started', language === 'el' ? 'el' : 'en')} ${fmtDate(detailRecord.startedAt)}`,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -220,18 +259,11 @@ export function SurveillanceWorkspace({
             </div>
             <div className="episode-detail-actions">
               <StatusBadge tone={statusTone(detailRecord.status)}>{t(detailRecord.status)}</StatusBadge>
-              {permissions.canProtocol && detailRecord.status === 'active' && (
-                <span className="episode-protocol-action">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setStartRequest({ nonce: Date.now(), episodeId: detailRecord.id, source: 'clinical' })
-                    }
-                  >
-                    <HeartPulse size={15} />
-                    {t('sepsis.startProtocol')}
-                  </Button>
-                </span>
+              {sheetEditing && (
+                <Button className="sheet-done" variant="primary" onClick={() => setSheetEditing(false)}>
+                  <Check size={15} />
+                  {copyText('finishSheetEditing')}
+                </Button>
               )}
               <OverflowMenu
                 label={translate(
@@ -239,9 +271,22 @@ export function SurveillanceWorkspace({
                   language === 'el' ? 'el' : 'en',
                 )}
                 items={[
+                  canEditSheet && !sheetEditing
+                    ? { id: 'editSheet', label: copyText('editSheet'), icon: Pencil, onClick: () => setSheetEditing(true) }
+                    : null,
+                  sheetActive && permissions.canLab
+                    ? { id: 'newSample', label: copyText('newSample'), icon: Microscope, separatorBefore: true, onClick: () => askSheet('samples', 'sample') }
+                    : null,
+                  sheetActive && permissions.canAssess
+                    ? { id: 'device', label: copyText('recordDevice'), icon: Stethoscope, onClick: () => askSheet('devices', 'device') }
+                    : null,
+                  sheetActive && permissions.canProtocol
+                    ? { id: 'protocol', label: t('sepsis.startProtocol'), icon: HeartPulse, onClick: () => askSheet('therapy', 'protocolPicker') }
+                    : null,
                   permissions.canEdit
                     ? {
                         id: 'edit',
+                        separatorBefore: true,
                         label: translate(
                           'copy.clinicalRecordCopy.editSurveillance',
                           language === 'el' ? 'el' : 'en',
@@ -275,12 +320,17 @@ export function SurveillanceWorkspace({
           <div className="episode-detail-scroll progressive-surveillance-scroll">
             <CanonicalJourney
               initialStage={initialStage}
+              askSample={Boolean(askSampleFor) && String(askSampleFor) === String(detailRecord.id)}
+              onSampleAsked={onSampleAsked}
               startProtocolRequest={
                 startRequest && String(startRequest.episodeId) === String(detailRecord.id)
                   ? startRequest
                   : null
               }
               onProtocolRequestHandled={() => setStartRequest(null)}
+              editing={sheetEditing}
+              actionRequest={sheetAction}
+              onActionHandled={() => setSheetAction(null)}
               record={detailRecord}
               repository={repository}
               libraries={libraries}
@@ -374,6 +424,13 @@ export function SurveillanceWorkspace({
       className="patient-surveillance-clean unified-surveillance-workspace surveillance-tree-section"
       actions={
         <>
+          {/* A sample of the patient on its own, without a surveillance (owner, 8/11/2026). */}
+          {canCreateSample && onCreateSample && (
+            <Button variant="secondary" onClick={() => { setFollowUpParent(null); setSampleOpen(true) }}>
+              <Microscope size={15} />{' '}
+              {translate('copy.clinicalRecordCopy.newSample', language === 'el' ? 'el' : 'en')}
+            </Button>
+          )}
           {canCreate && (
             <Button className="clinical-primary-action" onClick={onCreate}>
               <PlayCircle size={15} />{' '}
@@ -504,6 +561,7 @@ export function SurveillanceWorkspace({
                     onCreateFromSample={onCreateFromSample}
                     canCreate={canCreate}
                     canCreateSample={canCreateSample}
+                    sampleMenu={sampleMenu}
                     t={t}
                     language={language}
                     fmtDate={fmtDate}
@@ -552,6 +610,7 @@ export function SurveillanceWorkspace({
                   onCreateFromSample={onCreateFromSample}
                   canCreate={canCreate}
                   canCreateSample={canCreateSample}
+                  sampleMenu={sampleMenu}
                   t={t}
                   language={language}
                   fmtDate={fmtDate}
@@ -637,6 +696,7 @@ function SampleTree({
   onCreateFromSample,
   canCreate,
   canCreateSample,
+  sampleMenu,
   t,
   language,
   fmtDate,
@@ -667,6 +727,7 @@ function SampleTree({
           onCreateFromSample={onCreateFromSample}
           canCreate={canCreate}
           canCreateSample={canCreateSample}
+          sampleMenu={sampleMenu}
           t={t}
           language={language}
           fmtDate={fmtDate}
@@ -689,6 +750,7 @@ function SampleTreeRow({
   onCreateFromSample,
   canCreate,
   canCreateSample,
+  sampleMenu,
   t,
   language,
   fmtDate,
@@ -751,7 +813,7 @@ function SampleTreeRow({
               language === 'el' ? 'el' : 'en',
             )}
           </em>
-        ) : canCreate ? (
+        ) : canCreate && tone !== 'pending' ? (
           <Button
             className="sample-start-action"
             variant="secondary"
@@ -775,6 +837,8 @@ function SampleTreeRow({
             {translate('copy.clinicalRecordCopy.followUp', language === 'el' ? 'el' : 'en')}
           </Button>
         )}
+        {/* A sample the laboratory has not closed yet (no result): «⋯» with Edit (on its laboratory record) and Delete (owner, 8/11/2026). */}
+        {tone === 'pending' && sampleMenu?.(sample).length > 0 && <OverflowMenu items={sampleMenu(sample)} />}
       </span>
     </div>
   )

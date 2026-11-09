@@ -74,7 +74,7 @@ export async function receivePlate(repository, plate, now = new Date()) {
   let received = 0
   try {
     for (const sample of plate.awaiting) {
-      await repository.updateStatus(sample.id, 'processing', { receivedAt: now })
+      await repository.updateStatus(sample.id, 'processing', { receivedAt: now, ...(sample.collectedAt ? {} : { collectedAt: now }) })
       received += 1
     }
   } catch (error) {

@@ -30,6 +30,8 @@ import { addEvent, removeEquipment, removeEvent, saveEquipment } from './resourc
 import { CRITICALITY, EVENT_KINDS, PROGRAMME, criticalityLabel, criticalityTone, dueStateLabel, dueStateTone, equipmentCapaSource, equipmentProblems, equipmentStateLabel, equipmentStateTone, eventKindLabel, eventProblems, eventResultLabel, eventResultTone, newEquipment, newEvent, resultsFor } from './resourceModel'
 import '../quality.css'
 import './resources.css'
+import { LinkedActions } from '../LinkedActions'
+import { TableSkeleton } from '../../../design-system/LoadingSkeleton'
 
 const selectText = en => ({ emptyLabel: en ? 'No match' : 'Δεν βρέθηκε', clearLabel: en ? 'Clear' : 'Καθαρισμός' })
 
@@ -50,11 +52,13 @@ export function EquipmentRecordPage() {
   const [saving, setSaving] = useState(false)
   const [event, setEvent] = useState(null)
 
-  const row = useMemo(() => (isNew ? null : list.equipment.find(item => item.id === equipmentId) || null), [isNew, list.equipment, equipmentId])
+  const row = useMemo(() => (isNew ? null : list.equipment.find(item => item.id === equipmentId || item.code === equipmentId) || null), [isNew, list.equipment, equipmentId])
+  // Opened by its code (from a corrective action): continue at its own address.
+  useEffect(() => { if (row && row.id !== equipmentId) navigate(`/quality/equipment/${row.id}`, { replace: true }) }, [row, equipmentId, navigate])
   useEffect(() => { if (isNew) setDraft(current => current || newEquipment()); else if (row) setDraft(current => (current?.id === row.id ? current : structuredClone(row))) }, [isNew, row])
   const events = useMemo(() => list.events.filter(item => item.equipmentId === equipmentId).sort((a, b) => String(b.happenedOn).localeCompare(String(a.happenedOn)) || String(b.recordedAt || '').localeCompare(String(a.recordedAt || ''))), [list.events, equipmentId])
 
-  if (list.loading && !draft) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (list.loading && !draft) return <Page fill><TableSkeleton/></Page>
   if (!isNew && !row) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Device not found' : 'Ο εξοπλισμός δεν βρέθηκε'}</strong></div></Page>
   if (!draft) return null
 
@@ -142,6 +146,7 @@ export function EquipmentRecordPage() {
           <td className="resource-description-cell">{item.description || '—'}</td>
           <td><div className="row-actions">{access.canManage && item.kind === 'failure' && <IconButton size="sm" label={en ? 'Corrective action' : 'Διορθωτική ενέργεια'} onClick={() => openCapa(item)}><CheckSquare2 size={14} /></IconButton>}{access.canManage && <IconButton size="sm" tone="danger" label={en ? 'Delete event' : 'Διαγραφή συμβάντος'} onClick={() => dropEvent(item)}><Trash2 size={14} /></IconButton>}</div></td>
         </>} />
+      <LinkedActions sourceId={`EQ:${row.code}`} organizationId={tenant?.id} returnTab="history" />
     </RecordTabPanel>}
     {tab === 'details' && <RecordTabPanel title={en ? 'Details' : 'Στοιχεία'} subtitle={locked ? (en ? 'Kept by Quality.' : 'Τα τηρεί η Ποιότητα.') : ''} footer={footer}>
       <div className="lo-form-cards">

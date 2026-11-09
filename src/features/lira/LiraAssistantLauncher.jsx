@@ -46,11 +46,18 @@ export function evidenceSummary(provenance,en){
  return [...counts].map(([label,ids])=>ids.size?`${label} (${ids.size})`:label).join(' · ')
 }
 
+export const LIRA_LAUNCHER_EVENT='limoxis:lira-launcher'
+
 export function LiraAssistantLauncher(){
  const {language}=useLanguage();const en=language==='en';const {tenant,isDemo,role,membership}=useTenant();const [open,setOpen]=useState(false);const [expanded,setExpanded]=useState(false);const [question,setQuestion]=useState('');const [messages,setMessages]=useState([]);const [data,setData]=useState(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [conversationContext,setConversationContext]=useState({plan:null,timeWindow:null})
  // Never on the candidate's tablet form (/apply), even when HR opened it signed in.
  const publicPage=typeof window!=='undefined'&&/^\/apply(\/|$)/.test(window.location.pathname)
- const allowed=useMemo(()=>!publicPage&&Boolean(tenant?.id)&&can(role,CAPABILITIES.VIEW_LIRA,membership?.capabilities??[],membership?.customCapabilities??[]),[publicPage,tenant?.id,role,membership?.capabilities,membership?.customCapabilities])
+ // The hospital can hide the LIRA button on every page (Κέντρο Διαχείρισης › LIRA & AI, owner 8/11/2026); the setting
+ // applies at once in the open app (event) and from the organization row after a reload.
+ const [hiddenNow,setHiddenNow]=useState(null)
+ useEffect(()=>{const on=event=>setHiddenNow(event.detail?.hidden??null);window.addEventListener(LIRA_LAUNCHER_EVENT,on);return()=>window.removeEventListener(LIRA_LAUNCHER_EVENT,on)},[])
+ const hidden=hiddenNow??tenant?.lira_launcher_enabled===false
+ const allowed=useMemo(()=>!publicPage&&!hidden&&Boolean(tenant?.id)&&can(role,CAPABILITIES.VIEW_LIRA,membership?.capabilities??[],membership?.customCapabilities??[]),[publicPage,hidden,tenant?.id,role,membership?.capabilities,membership?.customCapabilities])
  useEffect(()=>{if(!open||data||!allowed)return;let cancelled=false;setLoading(true);setError('');// Clear the loading flag in the same update as the data: setData re-runs
  // this effect, whose cleanup would otherwise cancel a later finally() and
  // leave the panel stuck on "Preparing LIRA…".

@@ -6,6 +6,7 @@ import { OperatingProfileSection } from './OperatingProfileSection'
 import { OrganizationIdentitySection } from './OrganizationIdentitySection'
 import { MetricCard } from '../../design-system/MetricCard'
 import { FormSection, GREEK_REGIONS, HEALTH_REGIONS, organizationTypeLabel, toDraft } from './platformOrganizationShared'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 // «Details & Settings» of an organization record: identity, location, contact, the Hospital Admin
 // and the supplier e-mail sender. The state and the actions stay in PlatformOrganizationRecord (ctx).
@@ -195,7 +196,7 @@ export function PlatformOrganizationDetailsTab({ ctx }) {
                   )}
                 >
                   {loadingUsers ? (
-                    <div className="inline-empty">{tx('Φόρτωση…', 'Loading…')}</div>
+                    <TableSkeleton/>
                   ) : admins.length ? (
                     <div className="platform-admin-summary">
                       {admins.map(admin => (

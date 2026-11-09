@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildRegister, changedSince, complianceSummary, filterRegister, hasUnpublished, legislationCapaSource, nextLegislationCode, registerCounts, registerExport, sourceHealth, textFromCandidate, textProblems, unpublishedChanges, NO_FILTERS } from '../src/features/legislation/legislationModel'
 import { demoLegislation } from '../src/features/legislation/legislationDemoData'
+import { capaSourceInfo } from '../src/features/quality/capaSources'
 import { matchedKeywords, newCandidates, normalize, parseFeed, parsePage } from '../supabase/functions/_shared/legislationWatch.ts'
 import { legislationDigestEmail, legislationUpdateEmail } from '../supabase/functions/_shared/legislationEmail.ts'
 
@@ -47,7 +48,7 @@ describe('Legislation: the hospital register', () => {
     const source = legislationCapaSource({ code: 'LEG-004', title: 'ISO 9001', reference: 'ΕΛΟΤ EN ISO 9001:2015' }, requirement('q4', 'Αξιολόγηση εξωτερικών παρόχων'), { note: 'Δεν έγινε' })
     expect(source).toMatchObject({ sourceId: 'LEG:LEG-004' })
     expect(source.description).toContain('Δεν έγινε')
-    expect(fs.readFileSync('src/features/quality/QualityLists.jsx', 'utf8')).toContain("if(id.startsWith('LEG:'))return 'legislation'")
+    expect(capaSourceInfo('LEG:LEG-001')).toMatchObject({ kind: 'legislation', path: '/legislation/LEG-001' })
   })
 })
 

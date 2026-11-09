@@ -17,7 +17,7 @@ export function ChartCard({title,subtitle,wide=false,children}){
  return <article className={`analysis-chart-card analysis-viz-card ${wide?'analysis-wide-card':''}`}><header><div><strong>{title}</strong>{subtitle&&<span>{subtitle}</span>}</div></header>{children}</article>
 }
 
-function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'No data is available for the active scope.':'Δεν υπάρχουν δεδομένα για το ενεργό εύρος.'}</div>}
+function EmptyChart({en}){return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the selected scope.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στο επιλεγμένο εύρος.'}</div>}
 
 // Horizontal magnitude bars: one hue, value right-aligned, hover names the mark.
 // scale fixes the axis (e.g. 100 for percentages); suffix is appended to values.
@@ -63,7 +63,7 @@ export function DonutChart({rows,en,centerLabel,max:limit=6}){
 // crosshair + tooltip on hover (the whole column is the hit target).
 // few: the months (keys) whose value rests on too few observations — a grey point and «λίγες παρατηρήσεις» on hover.
 // percent: a share of 100, so the axis runs 0–100 in even steps (not 0, 23, 46, 69, 92).
-export function TrendChart({points,en,label,few=null,percent=false}){
+export function TrendChart({points,en,label,few=null,percent=false,compare=null,compareLabel=''}){
  const fewKeys=new Set(few||[])
  const [hover,setHover]=useState(null)
  const wrapRef=useRef(null),[width,setWidth]=useState(640)
@@ -71,7 +71,9 @@ export function TrendChart({points,en,label,few=null,percent=false}){
  const data=(points||[]).map(([key,value])=>[key,toNumber(value)])
  if(data.length<2)return <EmptyChart en={en}/>
  const w=Math.max(320,width),h=220,pl=34,pr=26,pt=14,pb=28
- const max=Math.max(1,...data.map(([,v])=>v)),niceMax=percent?Math.max(100,Math.ceil(max/25)*25):Math.ceil(max/4)*4||4
+ // compare: the other period's months, in order, beside these (owner, 7/11/2026: «φέτος / πέρσι» on one chart).
+ const other=(compare||[]).map(([key,value])=>[key,toNumber(value)]).slice(-data.length)
+ const max=Math.max(1,...data.map(([,v])=>v),...other.map(([,v])=>v)),niceMax=percent?Math.max(100,Math.ceil(max/25)*25):Math.ceil(max/4)*4||4
  const x=i=>pl+i*(w-pl-pr)/(data.length-1),y=v=>pt+(1-v/niceMax)*(h-pt-pb)
  const line=data.map(([,v],i)=>`${i?'L':'M'}${x(i)},${y(v)}`).join(' ')
  // The month still running (the last point is this month): its segment dashed and «έως 2/11», so a few days do not read as a drop.
@@ -89,6 +91,7 @@ export function TrendChart({points,en,label,few=null,percent=false}){
    {ticks.map(t=><g key={t}><line x1={pl} x2={w-pr} y1={y(t)} y2={y(t)} className="viz-grid"/><text x={pl-8} y={y(t)+4} textAnchor="end" className="viz-axis">{fmt(t,en)}</text></g>)}
    {data.map(([key],i)=>i%labelEvery===0&&<text key={key} x={x(i)} y={h-8} textAnchor={i===data.length-1?'end':i===0?'start':'middle'} className="viz-axis">{monthLabel(key,en)}</text>)}
    <path d={area} fill="url(#vizTrendFill)"/>
+   {other.length>1&&<path className="viz-compare-line" d={other.map(([,v],i)=>`${i?'L':'M'}${x(i+data.length-other.length)},${y(v)}`).join(' ')} fill="none"/>}
    <path d={partial?solid:line} fill="none" stroke={MAGNITUDE} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
    {partial&&<path d={`M${x(data.length-2)},${y(data[data.length-2][1])} L${x(data.length-1)},${y(data[data.length-1][1])}`} fill="none" stroke={MAGNITUDE} strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round"/>}
    {partial&&<text x={x(data.length-1)} y={Math.max(pt+10,y(data[data.length-1][1])-10)} textAnchor="end" className="viz-axis">{partialLabel}</text>}
@@ -96,7 +99,8 @@ export function TrendChart({points,en,label,few=null,percent=false}){
    {data.map(([key,v],i)=><circle key={i} cx={x(i)} cy={y(v)} r={hover===i?6:4} fill="#fff" stroke={fewKeys.has(key)?'#9aa8b5':MAGNITUDE} strokeWidth="2" strokeDasharray={fewKeys.has(key)?'2 2':undefined}/>)}
    {data.map(([key],i)=><rect key={`hit-${key}`} x={x(i)-step/2} y={pt} width={step} height={h-pt-pb} fill="transparent" onMouseEnter={()=>setHover(i)}/>)}
   </svg>
-  {hover!=null&&<div className="viz-tooltip" style={{left:`${x(hover)/w*100}%`}}><span>{monthLabel(data[hover][0],en)}</span><strong>{fmt(data[hover][1],en)}</strong>{fewKeys.has(data[hover][0])&&<small>{en?'few observations':'λίγες παρατηρήσεις'}</small>}</div>}
+  {other.length>1&&<p className="viz-compare-legend"><span className="is-now">{en?'This period':'Φέτος'}</span><span className="is-other">{compareLabel||(en?'Comparison':'Σύγκριση')}</span></p>}
+  {hover!=null&&<div className="viz-tooltip" style={{left:`${x(hover)/w*100}%`}}><span>{monthLabel(data[hover][0],en)}</span><strong>{fmt(data[hover][1],en)}</strong>{other.length>1&&other[hover-(data.length-other.length)]&&<small>{compareLabel||(en?'Comparison':'Σύγκριση')}: {fmt(other[hover-(data.length-other.length)][1],en)}</small>}{fewKeys.has(data[hover][0])&&<small>{en?'few observations':'λίγες παρατηρήσεις'}</small>}</div>}
  </div>
 }
 
@@ -104,25 +108,28 @@ export function TrendChart({points,en,label,few=null,percent=false}){
 // most frequent rows and columns first, each cell shaded by its share of the
 // largest one, with totals. `percent` shows each row's cells as % of its total.
 // columnOrder: columns in a fixed order (severity low → critical) instead of by their totals.
-export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel,columnOrder=null}){
+export function MatrixTable({cells=[],rowLabel,en,maxRows=12,maxColumns=8,totalLabel,columnOrder=null,shown=6}){
+  const [all,setAll]=useState(false)
   const rowTotals=new Map(),columnTotals=new Map(),values=new Map()
   for(const [row,column,count] of cells){const n=Number(count)||0;if(!n||row==null||column==null)continue;rowTotals.set(row,(rowTotals.get(row)||0)+n);columnTotals.set(column,(columnTotals.get(column)||0)+n);values.set(`${row}\u0000${column}`,(values.get(`${row}\u0000${column}`)||0)+n)}
-  if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
+  if(!rowTotals.size)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const rows=[...rowTotals].sort((a,b)=>b[1]-a[1]).slice(0,maxRows).map(([key])=>key)
+  // The first rows on screen (owner, 7/11/2026: no long half-empty tables); the rest on «+N more», and always on paper.
+  const hidden=all?0:Math.max(0,rows.length-shown)
   const rank=key=>{const at=columnOrder?columnOrder.indexOf(key):-1;return at<0?Infinity:at}
   const columns=[...columnTotals].sort((a,b)=>(rank(a[0])-rank(b[0]))||(b[1]-a[1])).slice(0,maxColumns).map(([key])=>key)
   const peak=Math.max(...[...values.values()])
   const total=en?'Total':'Σύνολο'
   return <div className="analysis-matrix-wrap"><table className="analysis-matrix"><thead><tr><th scope="col">{rowLabel}</th>{columns.map(column=><th key={column} scope="col">{column}</th>)}<th scope="col">{totalLabel||total}</th></tr></thead>
-    <tbody>{rows.map(row=><tr key={row}><th scope="row">{row}</th>{columns.map(column=>{const n=values.get(`${row}\u0000${column}`)||0;return <td key={column} className={n?'':'is-zero'} style={n?{'--cell-heat':(0.08+0.34*n/peak).toFixed(2)}:undefined}>{n||'·'}</td>})}<td className="analysis-matrix-total">{rowTotals.get(row)}</td></tr>)}</tbody>
-    <tfoot><tr><th scope="row">{total}</th>{columns.map(column=><td key={column}>{columnTotals.get(column)}</td>)}<td className="analysis-matrix-total">{[...rowTotals.values()].reduce((sum,n)=>sum+n,0)}</td></tr></tfoot></table></div>
+    <tbody>{rows.map((row,index)=><tr key={row} className={hidden&&index>=shown?'analysis-matrix-extra':undefined}><th scope="row">{row}</th>{columns.map(column=>{const n=values.get(`${row}\u0000${column}`)||0;return <td key={column} className={n?'':'is-zero'} style={n?{'--cell-heat':(0.08+0.34*n/peak).toFixed(2)}:undefined}>{n||'·'}</td>})}<td className="analysis-matrix-total">{rowTotals.get(row)}</td></tr>)}</tbody>
+    <tfoot><tr><th scope="row">{total}</th>{columns.map(column=><td key={column}>{columnTotals.get(column)}</td>)}<td className="analysis-matrix-total">{[...rowTotals.values()].reduce((sum,n)=>sum+n,0)}</td></tr></tfoot></table>{hidden>0&&<button type="button" className="analysis-matrix-more" data-pdf-ignore="" onClick={()=>setAll(true)}>{en?`+${hidden} more`:`+${hidden} ακόμα`}</button>}</div>
 }
 
 // One row per department (or hospital, `rowLabel`) with the headline figures
 // of every area, so units can be compared side by side; cells are shaded
 // within their column.
 export function Scoreboard({rows=[],columns=[],rowLabel,en}){
-  if(!rows.length)return <div className="analysis-chart-empty">{en?'No data for the selected period.':'Δεν υπάρχουν δεδομένα για την περίοδο.'}</div>
+  if(!rows.length)return <div className="analysis-chart-empty">{en?'Not calculated yet: no records in the period.':'Ο υπολογισμός δεν έχει ξεκινήσει: δεν υπάρχουν ακόμη καταγραφές στην περίοδο.'}</div>
   const peaks=columns.map(column=>Math.max(0,...rows.map(row=>Number(row[column.key])||0)))
   return <div className="analysis-matrix-wrap"><table className="analysis-matrix analysis-scoreboard"><thead><tr><th scope="col">{rowLabel||(en?'Department':'Τμήμα')}</th>{columns.map(column=><th key={column.key} scope="col">{column.label}</th>)}</tr></thead>
     <tbody>{rows.map(row=><tr key={row.key||row.name}><th scope="row">{row.name}</th>{columns.map((column,index)=>{const value=row[column.key];const n=Number(value);const shade=column.shade!==false&&Number.isFinite(n)&&peaks[index]>0&&n>0;return <td key={column.key} className={`${column.tone?`tone-${column.tone}`:''}${value==null?' is-zero':''}`} style={shade?{'--cell-heat':(0.06+0.3*n/peaks[index]).toFixed(2)}:undefined}>{value==null?'—':column.format?column.format(value):value}</td>})}</tr>)}</tbody></table></div>

@@ -1,5 +1,5 @@
 import { inactiveEmployeeCodes } from '../../design-system/InactiveEmployeeBadge'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { attendanceFor, finalizationBlocker, meetingQuorum } from './committeeMeetingRules'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
@@ -28,7 +28,10 @@ import { useRecordSequenceNavigation } from '../../core/navigation/useRecordSequ
 import { useTenant } from '../../core/tenant/TenantContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useAuditActor } from '../../core/audit/useAuditActor'
-import { canForRecord, CAPABILITIES } from '../../core/permissions/roles'
+import { can, canForRecord, CAPABILITIES } from '../../core/permissions/roles'
+import { useContextualNavigation } from '../../core/navigation/useContextualNavigation'
+import { loadQualityRecords } from '../quality/qualityService'
+import { committeeDecisionSourceId } from '../quality/capaSources'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useNotifications } from '../../core/notifications/NotificationContext'
 import { createAnnouncement } from '../management/announcementCloudService'
@@ -79,7 +82,7 @@ export function CommitteeRecordPage() {
   const navigate = useNavigate()
   const actor = useAuditActor()
   const { role, membership, tenant, isDemo } = useTenant()
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const en = language === 'en'
   const { notify, notifyError, confirm } = useFeedback()
   const n = useNotifications()
@@ -101,6 +104,16 @@ export function CommitteeRecordPage() {
   })
   const record = useMemo(() => rows.find(x => x.id === committeeId) || null, [rows, committeeId])
   const organizationId = tenant?.id || null
+  const { goTo, restored } = useContextualNavigation('/meetings')
+  // The corrective actions of the open minutes' decisions (read only while minutes are open).
+  const canCreateCapa = can(role, CAPABILITIES.MANAGE_QUALITY, membership?.capabilities ?? [], membership?.customCapabilities ?? [])
+  const [capas, setCapas] = useState([])
+  useEffect(() => {
+    if (!minutesId) return undefined
+    let active = true
+    loadQualityRecords('capas', organizationId).then(list => { if (active) setCapas(list || []) }).catch(() => { if (active) setCapas([]) })
+    return () => { active = false }
+  }, [minutesId, organizationId])
   const staff = useMemo(
     () =>
       employeeRows
@@ -659,6 +672,17 @@ export function CommitteeRecordPage() {
   )
 
   const openedMeeting = minutesId ? (record.meetings || []).find(x => x.id === minutesId) : null
+  // A decision of the minutes opens a corrective action of the Quality Center; it keeps the decision as its source.
+  const openDecisionCapa = topic => {
+    const decision = String(topic.decision || '').trim()
+    const when = [fmtDate(openedMeeting.date), openedMeeting.minutesNo && `${en ? 'minutes' : 'πρακτικό'} ${openedMeeting.minutesNo}`].filter(Boolean).join(', ')
+    goTo('/quality/capas/new', { tab: 'topics', state: { qualitySource: {
+      source: 'other', sourceId: committeeDecisionSourceId(record.id, openedMeeting.id, topic.id),
+      title: (decision.split('\n')[0] || topic.subject || '').slice(0, 120),
+      description: [`${en ? 'Decision of' : 'Απόφαση'} ${record.name}${when ? ` (${when})` : ''}.`, topic.subject && `${en ? 'Topic' : 'Θέμα'}: ${topic.subject}`, decision].filter(Boolean).join('\n'),
+      dueDate: topic.dueDate || '',
+    } } })
+  }
   if (openedMeeting)
     return (
       <Page fill>
@@ -667,6 +691,13 @@ export function CommitteeRecordPage() {
           key={openedMeeting.id}
           meeting={openedMeeting}
           committeeName={record.name}
+          committeeCode={record.id}
+          initialTab={restored?.tab || null}
+          capas={capas}
+          canCreateCapa={canCreateCapa}
+          onCreateCapa={openDecisionCapa}
+          onOpenCapa={capa => goTo(`/quality/capas/${capa.id}`, { tab: 'topics' })}
+          actionStatus={t}
           members={activeMembers}
           actorId={actor.id}
           canSave={canMinutes && !busy}

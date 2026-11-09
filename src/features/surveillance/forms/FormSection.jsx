@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { OverflowMenu } from '../../../design-system/OverflowMenu'
+import { useLanguage } from '../../../core/i18n/LanguageContext'
 
 // Open / closed state of the sections lives in the tab, so a deep link or a header chip can
 // open one (e.g. the NEWS2 chip opens «Κλίμακες»). A section is a heading line, a one-line
@@ -56,13 +58,31 @@ export function FormLine({ id, title, icon: Icon, summary, action }) {
 }
 
 export function FormSection({ id, title, icon: Icon, summary, defaultOpen = false, needsAttention = false, actions, children }) {
-  const { isOpen, toggle, offer } = useFormsTab()
+  const { isOpen, toggle, offer, flat } = useFormsTab()
+  const { t } = useLanguage()
   // The tab learns how each section would like to be; one that needs action opens itself
   // (unless the user already chose).
   useEffect(() => {
     offer(id, defaultOpen || needsAttention)
   }, [id, defaultOpen, needsAttention, offer])
-  const open = isOpen(id)
+  const open = flat || isOpen(id)
+  // Actions as menu items ([{ id, label, icon, onClick }]) sit in a «⋯»; a node is shown as it is.
+  const actionNode = Array.isArray(actions) ? (actions.filter(Boolean).length ? <OverflowMenu label={t('episodeForms.rowActions')} items={actions.filter(Boolean)} /> : null) : actions
+  if (flat)
+    return (
+      <section className="episode-form-section is-open is-flat" data-section={id}>
+        <div className="episode-form-section-head">
+          <div className="episode-form-section-title">
+            {Icon && <Icon size={15} aria-hidden="true" />}
+            <h3>{title}</h3>
+          </div>
+          {actionNode && <div className="episode-form-section-actions">{actionNode}</div>}
+        </div>
+        <div className="episode-form-section-body" id={`episode-form-body-${id}`}>
+          {children}
+        </div>
+      </section>
+    )
   return (
     <section className={`episode-form-section${open ? ' is-open' : ''}`} data-section={id}>
       <div className="episode-form-section-head">
@@ -72,7 +92,7 @@ export function FormSection({ id, title, icon: Icon, summary, defaultOpen = fals
           <h3>{title}</h3>
           {!open && summary && <span className="episode-form-summary">{summary}</span>}
         </button>
-        {actions && <div className="episode-form-section-actions">{actions}</div>}
+        {actionNode && <div className="episode-form-section-actions">{actionNode}</div>}
       </div>
       {/* Always mounted (hidden while closed): the data and dialogs of a section stay alive. */}
       <div className="episode-form-section-body" id={`episode-form-body-${id}`} hidden={!open}>

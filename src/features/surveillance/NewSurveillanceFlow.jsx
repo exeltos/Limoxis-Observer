@@ -8,6 +8,8 @@ import { useTenant } from '../../core/tenant/TenantContext'
 import { useDepartments } from '../management/useLibraries'
 import { createPatient } from '../patients/patientsService'
 import { PatientSelector, StartStep } from './NewSurveillanceSteps'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
+import { listTexts } from './surveillanceOptions'
 import './surveillanceEntryCard.css'
 
 export function NewSurveillanceFlow({
@@ -17,6 +19,9 @@ export function NewSurveillanceFlow({
   onCreate,
   onPatientsChange,
   sample = null,
+  // The patient's samples that no surveillance holds yet: a surveillance starts from one of them or from a new
+  // request (owner, 8/11/2026). Without the list (the surveillance list page) only a new request is offered.
+  sampleOptions = [],
 }) {
   const { t, language } = useLanguage()
   const { notify } = useFeedback()
@@ -46,6 +51,7 @@ export function NewSurveillanceFlow({
     dateOfBirth: '',
   })
   const [busy, setBusy] = useState(false)
+  const [sampleChoice, setSampleChoice] = useState('')
   // Opened from a positive sample («Προς έλεγχο»): the start date and the reason come from it.
   const sampleFinding = sample
     ? [t(sample.type || 'other'), sample.organism, sample.resistance].filter(Boolean).join(' · ')
@@ -148,10 +154,12 @@ export function NewSurveillanceFlow({
         )
         return
       }
+      const chosenSample = sampleChoice === 'new' ? 'new' : sampleOptions.find(item => String(item.recordId || item.id) === sampleChoice) || null
       const created = await onCreate(
         {
           ...startDraft,
           departmentId: startDraft.departmentId || targetPatient.departmentId || null,
+          ...(sample ? {} : { sampleChoice: chosenSample }),
         },
         targetPatient,
       )
@@ -210,7 +218,9 @@ export function NewSurveillanceFlow({
       label: t('surveillanceReason'),
       valid: Boolean((startDraft.reason || startDraft.reasonEn).trim()),
     },
+    !sample && { key: 'sample', label: t('svSampleField'), valid: Boolean(sampleChoice) },
   ])
+  const sampleLabel = item => [t(item.type || item.sampleType || 'other'), String(item.collectedAt || item.requestedAt || '').slice(0, 10).split('-').reverse().join('/'), item.id, item.organism || (item.result ? t(item.result) : t('pending'))].filter(Boolean).join(' · ')
   return (
     <ObserverDialog
       width="standard"
@@ -265,17 +275,22 @@ export function NewSurveillanceFlow({
           </div>
         </div>
       )}
-      <div className="progressive-guidance">
-        <AlertTriangle size={16} />
-        <div>
-          <strong>{language === 'el' ? 'Κλινική αρχή' : 'Clinical principle'}</strong>
-          <span>
-            {language === 'el'
-              ? 'Η δημιουργία επιτήρησης δεν απαιτεί νέο δείγμα ούτε απόφαση απομόνωσης. Αυτά μπορούν να καταγραφούν οποτεδήποτε χρειαστεί.'
-              : 'Starting surveillance does not require a new sample or an isolation decision. These can be recorded whenever clinically needed.'}
-          </span>
-        </div>
-      </div>
+      {!sample && (
+        <SearchableSelect
+          label={t('svSampleField')}
+          required
+          hint={t('svSampleHint')}
+          value={sampleChoice}
+          options={[
+            ...sampleOptions.map(item => ({ value: String(item.recordId || item.id), label: sampleLabel(item) })),
+            { value: 'new', label: t('svSampleNew') },
+          ]}
+          emptyLabel={listTexts(language).emptyLabel}
+          clearLabel={listTexts(language).clearLabel}
+          onChange={value => setSampleChoice(value || '')}
+          {...form.field('sample')}
+        />
+      )}
       <StartStep
         contextDepartment={contextDepartment}
         language={language}

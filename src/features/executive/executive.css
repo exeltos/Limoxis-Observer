@@ -62,25 +62,6 @@
 /* The overview: one table of every measure, by area; the filters in «Φίλτρα» next to the export. */
 .exec-actions{flex-wrap:nowrap}
 .exec-actions .filter-system{margin:0;padding:0;border:0;background:transparent}
-.exec-measures-card{padding:0;overflow:hidden}
-.exec-measures{width:100%;border-collapse:collapse;font-size:13px}
-.exec-measures thead th{position:sticky;top:0;z-index:1;padding:10px 14px;background:var(--lo-color-surface-muted,#f6f8fa);border-bottom:1px solid var(--lo-color-border);color:var(--lo-color-muted);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left}
-.exec-measures .exec-area th{padding:12px 14px 5px;background:var(--lo-color-surface);color:#1d3a52;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--lo-color-border)}
-.exec-measures td{padding:8px 14px;border-bottom:1px solid var(--lo-color-border);vertical-align:middle}
-.exec-measures td strong{display:block;color:var(--lo-color-text);font-size:13.5px}
-.exec-measures td small{display:block;margin-top:2px;color:var(--lo-color-muted);font-size:11.5px}
-.exec-measures .exec-num{text-align:right;white-space:nowrap}
-.exec-measures td.exec-num b{font-size:16px;font-variant-numeric:tabular-nums;color:#1d3a52}
-.exec-loadbar{position:relative;display:inline-block;width:56px;height:5px;border-radius:999px;background:var(--lo-color-border);overflow:hidden;vertical-align:middle}
-.exec-loadbar::before,.exec-loadbar>span{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:var(--lo-color-primary)}
-.exec-loadbar::before{content:"";width:0;opacity:.45;animation:exec-loadbar-creep 6s cubic-bezier(.1,.6,.3,1) forwards}
-.exec-loadbar>span{transition:width .3s ease}
-@keyframes exec-loadbar-creep{to{width:85%}}
-@media (prefers-reduced-motion:reduce){.exec-loadbar::before{animation:none;width:40%}}
-.exec-measures .exec-row-link{cursor:pointer}
-.exec-measures .exec-row-link:hover td{background:var(--lo-shell-control-hover)}
-.exec-measures .exec-better{color:#1f7a45}
-.exec-measures .exec-worse{color:#a32121}
 .exec-dot{display:inline-block;width:9px;height:9px;margin-right:8px;border-radius:50%;background:#b8c4cf;vertical-align:middle}
 .exec-dot-danger{background:#c43c3c}
 .exec-dot-warning{background:#d89a1c}
@@ -92,5 +73,58 @@
 .analysis-figures .analysis-figure-good b{color:#1f7a45}
 .analysis-figure-versus{color:var(--lo-color-muted);font-size:12px}
 .analysis-comparison-card{margin:0 0 14px}
-@media(max-width:760px){.exec-measures td:nth-child(4),.exec-measures th:nth-child(4){display:none}}
-.exec-measures td.exec-num .exec-missing{font-size:12px;color:var(--lo-color-muted);white-space:normal}
+
+/* «Σύνοψη» (owner, 8/11/2026): «Χρειάζονται προσοχή» / «Βελτιώθηκαν», one table of every measure by area and, at the
+   end, the measures whose calculation has not started yet. */
+.exec-summary{display:grid;gap:12px}
+.exec-highlights-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+.exec-highlights{padding:12px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.exec-highlights h3,.exec-dept-grid h3{margin:0 0 6px;font-size:14px;color:var(--lo-color-text)}
+.exec-highlights h3 small,.exec-dept-grid h3 small{margin-left:6px;font-size:12px;font-weight:500;color:var(--lo-color-muted)}
+.exec-highlights ul{display:grid;gap:5px;margin:0;padding:0;list-style:none}
+.exec-highlights li{display:flex;align-items:flex-start;gap:6px;font-size:13px}
+.exec-highlights li svg{flex:none;margin-top:2px}
+.exec-highlights li .exec-dot{flex:none;width:8px;height:8px;margin:6px 3px 0 3px}
+.exec-highlights-worse li{color:#a32121}
+.exec-highlights-better li{color:#1f7a45}
+.exec-scorecard,.exec-dept-grid .exec-scorecard{padding:4px 8px 6px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.exec-scorecard table{width:100%;border-collapse:collapse;font-size:13px}
+.exec-scorecard thead th{padding:8px 10px;font-size:10.5px;font-weight:750;letter-spacing:.03em;text-transform:uppercase;color:var(--lo-color-muted);text-align:right;white-space:nowrap;border-bottom:1px solid var(--lo-color-border)}
+.exec-scorecard thead th:first-child{text-align:left}
+.exec-scorecard tbody th,.exec-scorecard td{padding:7px 10px;border-bottom:1px solid #eef1f5;text-align:right;font-weight:400}
+.exec-scorecard tbody th{text-align:left;color:var(--lo-color-text)}
+.exec-scorecard .exec-num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.exec-scorecard .exec-value{font-weight:700;color:#1d3a52}
+.exec-scorecard .exec-area-row th{padding:6px 10px;font-size:11px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--lo-color-muted);background:#f6f8fb}
+.exec-scorecard .exec-col-spark{width:112px;text-align:center}
+.exec-scorecard thead .exec-col-status,.exec-scorecard td.exec-col-status{width:160px;text-align:left;white-space:nowrap}
+.exec-scorecard td.exec-col-status .exec-dot{width:8px;height:8px;margin-right:6px}
+.exec-scorecard .is-better,.exec-dept-grid .is-better{color:#1f7a45}
+.exec-scorecard .is-worse,.exec-dept-grid .is-worse{color:#a32121}
+.exec-measure-link{padding:0;font:inherit;color:inherit;text-align:left;background:none;border:0;cursor:pointer}
+.exec-measure-link:hover,.exec-measure-link:focus-visible{color:var(--lo-color-primary);text-decoration:underline}
+.exec-spark polyline{fill:none;stroke-linejoin:round;stroke-linecap:round}
+.exec-spark-now{stroke:var(--lo-color-primary);stroke-width:1.8}
+.exec-spark-before{stroke:#9aa8b6;stroke-width:1.3;stroke-dasharray:3 3}
+.exec-dept-grid{padding:12px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface)}
+.exec-dept-grid table{width:100%;border-collapse:collapse;font-size:12.5px}
+.exec-dept-grid th{padding:6px 8px;font-size:10.5px;font-weight:750;text-transform:uppercase;color:var(--lo-color-muted);text-align:center}
+.exec-dept-grid th:first-child,.exec-dept-grid tbody th{text-align:left}
+.exec-dept-grid tbody th{font-size:12.5px;font-weight:700;text-transform:none;color:var(--lo-color-text)}
+.exec-dept-grid td{padding:7px 8px;text-align:center;border-top:1px solid var(--lo-color-border);font-variant-numeric:tabular-nums}
+.exec-dept-grid tbody th{border-top:1px solid var(--lo-color-border)}
+.exec-dept-grid td.exec-cell-good{background:#e3f3e9;color:#1e6b3f}
+.exec-dept-grid td.exec-cell-warning{background:#fff3dc;color:#7a5200}
+.exec-dept-grid td.exec-cell-danger{background:#fde7e5;color:#a32121}
+.exec-empty-measures{padding:10px 14px;border:1px dashed var(--lo-color-border);border-radius:12px}
+.exec-empty-measures h4{margin:0 0 4px;font-size:12px;color:var(--lo-color-muted)}
+.exec-empty-measures p{margin:0;font-size:12.5px;color:var(--lo-color-muted)}
+/* «Τμήματα»: «Σύγκριση τμημάτων» (a click on a department chooses it) and its measures against the departments' average. */
+.exec-dept-grid tr.is-chosen th{color:var(--lo-color-primary)}
+.exec-departments{display:grid;gap:12px}
+/* A department's details open right under its row (owner, 8/11/2026). */
+.exec-dept-toggle{display:inline-flex;align-items:center;gap:4px;font-weight:700}
+.exec-dept-grid tr.exec-dept-detail>td{padding:6px 10px 12px 26px;text-align:left;background:#f6f8fb}
+.exec-dept-detail-table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--lo-color-surface);border:1px solid var(--lo-color-border);border-radius:8px}
+.exec-dept-detail td{white-space:normal}
+.exec-dept-detail small{display:block;margin-top:6px;font-size:11.5px;color:var(--lo-color-muted)}

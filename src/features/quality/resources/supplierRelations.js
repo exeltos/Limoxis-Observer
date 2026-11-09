@@ -14,7 +14,7 @@ export const EVALUATION_FIELDS = ['evaluated_on', 'evaluator', 'notes', 'templat
 export const SCORE_FIELDS = ['criterion', 'criterion_id', 'criterion_label', 'position', 'weight', 'score_scale', 'score']
 export const NONCONFORMITY_FIELDS = ['occurred_on', 'description', 'severity', 'status', 'capa_code', 'closed_on']
 export const CONTACT_FIELDS = ['position', 'full_name', 'job_title', 'phone', 'email', 'notes']
-export const CRITERION_FIELDS = ['position', 'label', 'description', 'weight']
+export const CRITERION_FIELDS = ['position', 'label', 'description', 'weight', 'optional']
 
 const text = value => { const kept = String(value ?? '').trim(); return kept || null }
 const byText = field => (a, b) => String(a[field] || '').localeCompare(String(b[field] || ''))
@@ -112,18 +112,18 @@ export const templateFromRow = row => ({
   id: row.id, name: row.name || '', description: row.description || '', categories: row.categories || [],
   passThreshold: Number(row.pass_threshold ?? 80), conditionalThreshold: Number(row.conditional_threshold ?? 60), frequencyMonths: Number(row.frequency_months) || 12, scoreScale: Number(row.score_scale) || 5,
   active: row.active !== false, version: Number(row.version) || 1, source: row.source || 'app', updatedAt: row.updated_at || '',
-  criteria: [...(row.criteria || [])].sort(byPosition).map(item => ({ id: item.id, label: item.label || '', description: item.description || '', weight: Number(item.weight) || 1 })),
+  criteria: [...(row.criteria || [])].sort(byPosition).map(item => ({ id: item.id, label: item.label || '', description: item.description || '', weight: Number(item.weight) || 1, optional: item.optional === true })),
 })
 export const templateRow = (organizationId, template) => ({
   organization_id: organizationId, name: String(template.name || '').trim(), description: text(template.description), categories: [...new Set(template.categories || [])],
   pass_threshold: Number(template.passThreshold), conditional_threshold: Number(template.conditionalThreshold), frequency_months: Math.round(Number(template.frequencyMonths)), score_scale: Number(template.scoreScale) === 10 ? 10 : 5,
   active: template.active !== false,
 })
-export const criterionRows = (criteria = []) => criteria.filter(item => String(item?.label || '').trim()).map((item, index) => ({ id: rowId(item.id), position: index, label: String(item.label).trim(), description: text(item.description), weight: Number(item.weight) > 0 ? Number(item.weight) : 1 }))
+export const criterionRows = (criteria = []) => criteria.filter(item => String(item?.label || '').trim()).map((item, index) => ({ id: rowId(item.id), position: index, label: String(item.label).trim(), description: text(item.description), weight: Number(item.weight) > 0 ? Number(item.weight) : 1, optional: Boolean(item.optional) }))
 
 // Whether saving the template changes what an evaluation would snapshot (its version goes up).
 export function templateChanged(before, after) {
   if (!before) return false
-  const shape = template => JSON.stringify([template.name, template.passThreshold, template.conditionalThreshold, template.scoreScale, (template.criteria || []).map(item => [String(item.label).trim(), Number(item.weight)])])
+  const shape = template => JSON.stringify([template.name, template.passThreshold, template.conditionalThreshold, template.scoreScale, (template.criteria || []).map(item => [String(item.label).trim(), Number(item.weight), Boolean(item.optional)])])
   return shape(before) !== shape(after)
 }

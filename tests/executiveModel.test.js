@@ -73,7 +73,7 @@ describe('executive dashboard measures', () => {
     expect(byId(executiveKpis({ domains: { surveillance: { total: 10, haiConfirmed: 0, byCaseStatus: [['ruled_out', 3]] } } })).hai.value).toBe(0)
   })
   it('computes the change against the previous period, never for the counts of today', () => {
-    expect(delta(72, 80, 'up')).toEqual({ diff: -8, change: -10, trend: 'down', good: false })
+    expect(delta(72, 80, 'up')).toEqual({ diff: -8, change: -10, trend: 'down', good: false, previous: 80 })
     expect(delta(2, 4, 'down')).toMatchObject({ trend: 'down', good: true, change: -50 })
     expect(delta(3, 0, 'down')).toMatchObject({ diff: 3, change: null, good: false })
     expect(delta(5, 5)).toMatchObject({ trend: 'flat', good: null })
@@ -106,7 +106,7 @@ describe('executive dashboard measures', () => {
     expect(ids).not.toContain('bundles')
     expect(ids).not.toContain('minutesPending')
     expect(flags.findIndex(flag => flag.severity === 'warning')).toBeGreaterThan(flags.findLastIndex(flag => flag.severity === 'danger'))
-    expect(flags.find(flag => flag.id === 'handHygiene').text).toEqual(['Υγιεινή χεριών: 72%', 'Hand hygiene: 72%'])
+    expect(flags.find(flag => flag.id === 'handHygiene').text).toEqual(['Συμμόρφωση στην υγιεινή χεριών: 72%', 'Hand hygiene compliance: 72%'])
     expect(redFlags(executiveKpis(snapshot), snapshot, module => module !== 'laboratory' && module !== 'surveillance').map(flag => flag.id)).not.toContain('clusters')
   })
 })

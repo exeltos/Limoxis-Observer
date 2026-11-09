@@ -1,16 +1,17 @@
 import { formatDay } from '../../../core/i18n/formatDay'
+import { escapeHtml } from '../../../core/export/reportDocument'
 import { roleTitleText } from '../../../core/i18n/roleTitles'
 import { loadEntries } from '../../registers/registerService'
 import { monthlySeries } from '../../registers/registerEngine'
 import { formatObjectiveValue, objectiveState, objectiveValueText } from './reviewTemplate'
 import { objectiveLevelText, objectiveMeasureSource, objectiveMeasureText, objectiveStateLabel, objectiveTitle } from './QualityObjectives'
 import { monthsSoFar, objectiveLevel, planStatusLabel, platformMonthlyValues } from './objectiveSources'
-import { loadRegisterIndicators, missingDataTable, registerIndicatorsTable } from './dossierIndicators'
+import { loadRegisterIndicators, missingDataTable, registerIndicatorSections } from './dossierIndicators'
 import { loadResponses, loadSurveys } from '../surveys/surveyService'
 import { surveySummary } from '../surveys/surveyModel'
 
 // The year's objectives as a file for the auditor (ISO 9001 §6.2 and §9.3): each objective with its owner and date, how it is measured,
-// its value month by month with a chart and its status, then what the last management review decided.
+// its value and status (no months: a summary), then what the last management review decided.
 const monthName = (year, month, en) => new Intl.DateTimeFormat(en ? 'en-GB' : 'el-GR', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
 const sign = objective => (objective.direction === 'lower' ? '≤' : '≥')
 
@@ -86,32 +87,69 @@ export async function loadDossierExtras(organizationId, year) {
 }
 
 const LEVEL_ORDER = ['hospital', 'department', 'committee']
+
+// The objectives grouped like the indicators' print (owner, 6/11/2026): one table per place (the hospital, each department, each
+// committee), the same columns and widths in every table, no months.
+const STATE_CLASS = { missed: 'rd-bad', met: 'rd-good' }
+export function objectivesPlaceTable(list, language) {
+  const en = language === 'en'
+  return {
+    columns: [{ text: en ? 'Objective' : 'Στόχος', width: '42%' }, { text: en ? 'Value' : 'Τιμή', align: 'right', width: '12%' }, { text: en ? 'Target' : 'Όριο', width: '11%' }, { text: en ? 'Owner' : 'Υπεύθυνος', width: '19%' }, { text: en ? 'Status' : 'Κατάσταση', width: '16%' }],
+    rows: list.map(objective => objective.kind === 'plan'
+      ? [{ html: `${escapeHtml(objective.title || '—')}${objective.indicator ? `<small>${escapeHtml(objective.indicator)}</small>` : ''}` }, { text: objective.baseline ? `${en ? 'from' : 'από'} ${objective.baseline}` : '—', align: 'right' }, objective.target || '—', roleTitleText(objective.ownerLabel, language) || '—', planStatusLabel(objective.status, en)]
+      : [{ html: `${escapeHtml(objectiveTitle(objective, language))}<small>${escapeHtml(objective.code || '')}</small>` }, { text: objectiveValueText(objective.current.value, objective.unit, language), align: 'right' }, `${sign(objective)} ${formatObjectiveValue(objective.target, objective.unit, language)}`, roleTitleText(objective.ownerLabel, language) || '—', { text: objectiveStateLabel(objective.current.status, en), className: STATE_CLASS[objective.current.status] || '' }]),
+  }
+}
+const placeOf = (objective, language) => (objective.kind === 'plan' ? objective.committeeName : objectiveLevelText(objective, language)) || '—'
+export function objectivesByPlace(list, language) {
+  const places = []
+  for (const objective of list) { const place = placeOf(objective, language); const group = places.find(item => item.place === place); if (group) group.list.push(objective); else places.push({ place, list: [objective] }) }
+  return places.map(({ place, list: items }) => ({ title: `${place} (${items.length})`, table: objectivesPlaceTable(items, language) }))
+}
+
+// The objectives list as printed from Indicators & objectives › Objectives: what the list shows, grouped by place.
+export function objectivesListDoc({ rows, year, language }) {
+  const en = language === 'en'
+  const own = rows.filter(objective => objective.kind !== 'plan')
+  const count = status => own.filter(objective => objective.current?.status === status).length
+  const ordered = LEVEL_ORDER.flatMap(level => rows.filter(objective => (objective.kind === 'plan' ? 'committee' : objectiveLevel(objective)) === level))
+  return {
+    language,
+    kind: en ? 'Quality objectives' : 'Στόχοι ποιότητας',
+    code: year ? String(year) : '',
+    title: en ? 'Quality objectives' : 'Στόχοι ποιότητας',
+    subtitle: [year ? String(year) : null, `${rows.length} ${en ? 'objectives' : 'στόχοι'}`, `${count('met')} ${en ? 'met' : 'επιτυγχάνονται'}`, `${count('missed')} ${en ? 'not met' : 'δεν επιτυγχάνονται'}`].filter(Boolean).join(' · '),
+    sections: objectivesByPlace(ordered, language),
+    filename: `${en ? 'quality-objectives' : 'stoxoi-poiotitas'}${year ? `-${year}` : ''}`,
+  }
+}
 const levelHeading = (level, en) => (en ? { hospital: 'Hospital objectives', department: 'Department objectives', committee: 'Committee objectives' } : { hospital: 'Στόχοι νοσοκομείου', department: 'Στόχοι τμημάτων', committee: 'Στόχοι επιτροπών' })[level]
 const percent = value => (value == null ? '—' : `${Math.round(value)}%`)
 
 // The whole file of one year, everything in it: the summary by level, the objectives of the hospital, the departments and
 // the committees (with the committees' annual plans), each objective with its months, the department registers' indicators for the year,
 // the satisfaction surveys and what the last management review decided.
-export function objectivesDossier({ objectives, committeeTargets = [], histories, reviews, extras = null, year, language }) {
+export function objectivesDossier({ objectives, committeeTargets = [], reviews, extras = null, year, language }) {
   const en = language === 'en'
   const rows = (objectives || []).filter(objective => Number(objective.year) === Number(year))
   const plans = (committeeTargets || []).filter(item => Number(item.year) === Number(year))
   const count = (list, status) => list.filter(objective => objective.current.status === status).length
   const review = [...(reviews || [])].filter(item => item.status !== 'draft').sort((a, b) => String(b.reviewDate).localeCompare(String(a.reviewDate)))[0] || null
-  const objectiveTable = list => ({ columns: [en ? 'Objective' : 'Στόχος', en ? 'Where' : 'Πού', en ? 'Target' : 'Στόχος (τιμή)', en ? 'Value' : 'Τιμή', en ? 'Owner' : 'Υπεύθυνος', en ? 'Status' : 'Κατάσταση'], rows: list.map(objective => [`${objective.code} · ${objectiveTitle(objective, language)}`, objectiveLevelText(objective, language), `${sign(objective)} ${formatObjectiveValue(objective.target, objective.unit, language)}`, objectiveValueText(objective.current.value, objective.unit, language), roleTitleText(objective.ownerLabel, language) || '—', { text: objectiveStateLabel(objective.current.status, en), className: objective.current.status === 'missed' ? 'rd-bad' : objective.current.status === 'met' ? 'rd-good' : '' }]) })
   const byLevel = LEVEL_ORDER.map(level => ({ level, list: rows.filter(objective => objectiveLevel(objective) === level) }))
   const summary = { title: en ? 'Summary' : 'Σύνοψη', table: { columns: [en ? 'Level' : 'Επίπεδο', en ? 'Objectives' : 'Στόχοι', en ? 'Met' : 'Επιτυγχάνονται', en ? 'Not met' : 'Δεν επιτυγχάνονται', en ? 'Not measured yet' : 'Δεν μετριέται ακόμα'], rows: [...byLevel.map(({ level, list }) => [levelHeading(level, en), String(list.length + (level === 'committee' ? plans.length : 0)), String(count(list, 'met') + (level === 'committee' ? plans.filter(item => item.status === 'completed').length : 0)), String(count(list, 'missed')), String(count(list, 'pending') + (level === 'committee' ? plans.filter(item => item.status !== 'completed').length : 0))])] } }
+  // One table per place (the hospital, each department, each committee with its annual plan), without the months
+  // (owner, 6/11/2026: the file is a summary for the auditor).
   const levelSections = byLevel.flatMap(({ level, list }) => {
-    const planTable = level === 'committee' && plans.length ? { title: en ? 'The committees’ annual plans' : 'Τα ετήσια σχέδια των επιτροπών', table: { columns: [en ? 'Committee' : 'Επιτροπή', en ? 'Objective' : 'Στόχος', en ? 'Indicator' : 'Δείκτης', en ? 'Baseline' : 'Αφετηρία', en ? 'Target' : 'Στόχος (τιμή)', en ? 'Owner' : 'Υπεύθυνος', en ? 'Due' : 'Προθεσμία', en ? 'Status' : 'Κατάσταση'], rows: plans.map(item => [item.committeeName, item.title, item.indicator || '—', item.baseline || '—', item.target || '—', item.ownerLabel || '—', item.dueDate ? formatDay(item.dueDate, language) : '—', planStatusLabel(item.status, en)]) } } : null
-    if (!list.length && !planTable) return []
-    return [
-      ...(list.length ? [{ title: levelHeading(level, en), table: objectiveTable(list) }, ...list.map(objective => objectiveSection(objective, histories?.get(objective.id), language))] : [{ title: levelHeading(level, en), text: en ? 'Their targets are those of the committees’ annual plans below.' : 'Οι στόχοι τους είναι αυτοί των ετήσιων σχεδίων των επιτροπών παρακάτω.' }]),
-      ...(planTable ? [planTable] : []),
-    ]
+    const all = level === 'committee' ? [...list, ...plans.map(item => ({ ...item, kind: 'plan' }))] : list
+    if (!all.length) return []
+    const places = objectivesByPlace(all, language)
+    return level === 'hospital' ? [{ title: levelHeading(level, en), table: places[0].table }, ...places.slice(1)] : [{ title: levelHeading(level, en), text: places.map(item => item.title).join(' · ') }, ...places]
   })
   const indicatorRows = []
   const registerRows = (extras?.year === year ? extras.registerRows : []) || []
-  const registerIndicators = registerRows.length ? { title: en ? 'Department register indicators' : 'Δείκτες μητρώων τμημάτων', text: en ? 'The indicators of every active register for the year so far, computed from its entries.' : 'Οι δείκτες κάθε ενεργού μητρώου για το έτος έως σήμερα, από τις καταχωρίσεις του.', table: registerIndicatorsTable(registerRows, language) } : null
+  // The registers' indicators like the indicators' print: those with a target, one table per register.
+  const registerSections = registerIndicatorSections(registerRows, language)
+  const registerIndicators = registerSections.length ? [{ title: en ? 'Department register indicators' : 'Δείκτες μητρώων τμημάτων', text: en ? `The indicators with a target of every active register for the year so far: ${registerSections.map(item => item.title).join(' · ')}.` : `Οι δείκτες με στόχο κάθε ενεργού μητρώου για το έτος έως σήμερα: ${registerSections.map(item => item.title).join(' · ')}.` }, ...registerSections] : null
   const missingTable = missingDataTable({ indicatorRows, registerRows, objectives: rows }, language)
   const missing = { title: en ? 'Missing data' : 'Δεδομένα που λείπουν', pageBreak: true, text: missingTable ? (en ? 'What the platform does not record, and the indicators and objectives it leaves without a value: what to start recording.' : 'Τι δεν καταγράφεται στην πλατφόρμα και ποιους δείκτες και στόχους αφήνει χωρίς τιμή: τι πρέπει να αρχίσει να καταγράφεται.') : (en ? 'Every indicator and objective of the year has a value.' : 'Όλοι οι δείκτες και οι στόχοι του έτους έχουν τιμή.'), ...(missingTable ? { table: missingTable } : {}) }
   const surveyRows = (extras?.year === year ? extras.surveyRows : []) || []
@@ -121,12 +159,12 @@ export function objectivesDossier({ objectives, committeeTargets = [], histories
     kind: en ? 'Annual objectives file' : 'Ετήσιος φάκελος στοχοθεσίας',
     code: String(year),
     title: en ? `Objectives and indicators ${year}` : `Στόχοι και δείκτες ${year}`,
-    subtitle: en ? 'For the auditor: every objective of the hospital, the departments and the committees, how each is measured, who owns it and its value over time; the department registers’ indicators, the satisfaction surveys and the management review.' : 'Για τον επιθεωρητή: όλοι οι στόχοι του νοσοκομείου, των τμημάτων και των επιτροπών, πώς μετριέται ο καθένας, ποιος τον υπηρετεί και η τιμή του στον χρόνο· οι δείκτες των μητρώων των τμημάτων, τα ερωτηματολόγια ικανοποίησης και η ανασκόπηση της διοίκησης.',
+    subtitle: en ? 'For the auditor: every objective of the hospital, the departments and the committees, who owns it, its value and its status; the department registers’ indicators, the satisfaction surveys and the management review.' : 'Για τον επιθεωρητή: όλοι οι στόχοι του νοσοκομείου, των τμημάτων και των επιτροπών, ποιος τον υπηρετεί, η τιμή και η κατάστασή του· οι δείκτες των μητρώων των τμημάτων, τα ερωτηματολόγια ικανοποίησης και η ανασκόπηση της διοίκησης.',
     meta: [[en ? 'Objectives' : 'Στόχοι', String(rows.length + plans.length)], [en ? 'Met' : 'Επιτυγχάνονται', String(count(rows, 'met'))], [en ? 'Not met' : 'Δεν επιτυγχάνονται', String(count(rows, 'missed'))], [en ? 'Register indicators' : 'Δείκτες μητρώων', String(registerRows.length)]],
     sections: [
       summary,
       ...levelSections,
-      ...(registerIndicators ? [registerIndicators] : []),
+      ...(registerIndicators || []),
       ...(surveys ? [surveys] : []),
       review ? { title: en ? `Management review ${review.code}` : `Ανασκόπηση διοίκησης ${review.code}`, text: `${formatDay(review.reviewDate, language)}${review.summary ? `\n\n${review.summary}` : ''}`, table: review.actions?.length ? { columns: [en ? 'Decision' : 'Απόφαση', en ? 'Owner' : 'Υπεύθυνος', en ? 'Due' : 'Προθεσμία', en ? 'Status' : 'Κατάσταση'], rows: review.actions.map(action => [action.title, roleTitleText(action.ownerLabel, language) || '—', action.dueDate ? formatDay(action.dueDate, language) : '—', action.status === 'done' ? (en ? 'Done' : 'Ολοκληρώθηκε') : (en ? 'Open' : 'Ανοιχτή')]) } : null } : { title: en ? 'Management review' : 'Ανασκόπηση διοίκησης', text: en ? 'No management review has been recorded yet.' : 'Δεν έχει καταγραφεί ακόμη ανασκόπηση διοίκησης.' },
       missing,

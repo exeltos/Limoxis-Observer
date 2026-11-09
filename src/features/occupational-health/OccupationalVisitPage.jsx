@@ -23,6 +23,7 @@ import { createOccupationalVisitAsync, deleteOccupationalVisitAsync, loadAllOccu
 import { EMPTY_OCCUPATIONAL_VISIT, FITNESS, VISIT_STATUSES, VISIT_TYPES, fitnessLabel, visitProblems, visitSavedMessage, visitStatusLabel, visitTypeLabel } from './occupationalVisitModel'
 import { signalDemoStep } from '../demo/demoScenarioSignals'
 import './OccupationalHealthPage.css'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const fmtDay = (value, locale) => (value ? new Intl.DateTimeFormat(locale).format(new Date(`${String(value).slice(0, 10)}T12:00:00`)) : '—')
 
@@ -53,7 +54,7 @@ export function OccupationalVisitPage() {
   const employee = visit ? employeeMap[visit.employeeId] : null
   const nameOf = item => (!item ? '—' : en ? `${item.firstNameEn || item.firstName} ${item.lastNameEn || item.lastName}` : `${item.lastName} ${item.firstName}`)
 
-  if (!isNew && visits === null) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (!isNew && visits === null) return <Page fill><TableSkeleton/></Page>
   if (!isNew && (!visit || (employee && !canAccessRecord(employee)))) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Visit not found' : 'Η επίσκεψη δεν βρέθηκε'}</strong></div></Page>
 
   const patch = next => setDraft(current => ({ ...current, ...next }))

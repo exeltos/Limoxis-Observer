@@ -14,6 +14,8 @@ import { loadPrevalenceSurveyLocal } from '../management/prevalenceSurveyStore'
 import { buildLiraMetrics, buildPpsMetrics } from './analysisAddonMetrics'
 import { liraDemoInvestigations } from '../lira/liraDemoInvestigations'
 import { buildQualityFoodMetrics, qualityFoodSection } from './analysisQualityFood'
+import { odipyGroupOf } from '../quality/odipyCategories'
+import { categoryKind, incidentCategoryLabel } from '../quality/qualityVocabulary'
 import { loadKitchenLocal } from '../kitchen/kitchenService'
 import { withStatuses } from '../kitchen/kitchenModel'
 import { loadResourcesLocal } from '../quality/resources/resourceService'
@@ -122,6 +124,8 @@ export function collectDemoDomainMetrics(range = {}, en = false, clusters = 0) {
       capaOverdue: capas.filter(row => !CLOSED_QUALITY.has(row.status) && row.dueDate && row.dueDate < today).length,
       monthly: tally(incidents, row => month(row.date)).sort((a, b) => a[0].localeCompare(b[0])),
       severityByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.severity || '—', 1]),
+      byCategory: tally(incidents, row => row.category || '—'),
+      categoryByDepartment: incidents.map(row => [(en ? row.departmentEn : row.department) || row.department || (en ? 'No department' : 'Χωρίς τμήμα'), row.category || '—', 1]),
     },
     workforce: (() => {
       const active = employeeRows.filter(row => (row.employmentStatus || 'active') === 'active')
@@ -282,7 +286,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'surveillance': {
       // No HAI classified (or no device recorded) in the period: one line instead of empty charts.
       const classified = (s.byCaseStatus || []).reduce((sum, [, n]) => sum + (Number(n) || 0), 0)
-      const hasDevices = (s.byDevice || []).length > 0 || (s.deviceAssociated || []).length > 0
       return {
       kpis: [
         [tx('Επεισόδια περιόδου', 'Episodes in period'), s.total ?? 0, tx(`${s.active ?? 0} ενεργά · ${s.closed ?? 0} ολοκληρωμένα`, `${s.active ?? 0} active · ${s.closed ?? 0} completed`)],
@@ -293,11 +296,9 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       charts: [
         { type: 'trend', wide: true, title: tx('Νέα επεισόδια ανά μήνα', 'New episodes by month'), subtitle: tx('Έναρξη επιτήρησης ανά μήνα.', 'Surveillance starts per month.'), points: s.monthly || [] },
         ...(classified ? [] : [{ type: 'note', text: tx('Δεν γίνεται ταξινόμηση ΛΣΦΥ: τα γραφήματα των λοιμώξεων εμφανίζονται όταν ταξινομηθούν επεισόδια.', 'No HAI is classified: the infection charts appear once episodes are classified.') }]),
-        ...(classified && !hasDevices ? [{ type: 'note', text: tx('Δεν καταγράφονται επεμβατικές συσκευές: οι λοιμώξεις από συσκευές εμφανίζονται όταν καταγραφούν.', 'No invasive devices are recorded: device-associated infections appear once they are.') }] : []),
         classified && { type: 'matrix', wide: true, title: tx('ΛΣΦΥ ανά τμήμα και τύπο λοίμωξης', 'HAI by department and infection type'), subtitle: tx('Πού εμφανίζεται κάθε τύπος λοίμωξης.', 'Where each infection type occurs.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.haiByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         { type: 'donut', title: tx('Έκβαση', 'Outcome'), subtitle: tx('Επεισόδια με καταγεγραμμένη έκβαση.', 'Episodes with a recorded outcome.'), rows: named(s.outcomes), center: tx('εκβάσεις', 'outcomes') },
-        classified && hasDevices && { type: 'matrix', title: tx('Λοιμώξεις από συσκευές', 'Device-associated infections'), subtitle: tx('CLABSI, CAUTI και VAP ανά τμήμα.', 'CLABSI, CAUTI and VAP by department.'), rowLabel: tx('Τμήμα', 'Department'), cells: s.deviceAssociated },
-        classified && { type: 'matrix', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
+        classified && { type: 'matrix', wide: true, organisms: 'rows', title: tx('Μικροοργανισμοί ανά τύπο ΛΣΦΥ', 'Organisms by HAI type'), subtitle: tx('Ο υπεύθυνος μικροοργανισμός κάθε λοίμωξης.', 'The causative organism of each infection.'), rowLabel: tx('Μικροοργανισμός', 'Organism'), cells: s.organismByHaiType?.map(([row, column, n]) => [row, label(column), n]) },
       ].filter(Boolean),
     } }
     case 'laboratory': return {
@@ -330,7 +331,7 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         ...(recorded ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αντιμικροβιακές αγωγές ούτε διάθεση φαρμακείου: η καρτέλα γεμίζει όταν καταχωριστούν.', 'No antimicrobial therapies or pharmacy dispensing are recorded: the tab fills once they are.') }]),
         { type: 'donut', title: tx('Κατάσταση έγκρισης', 'Approval status'), subtitle: tx('Έγκριση ανά αγωγή.', 'Approval per therapy.'), rows: named(a.byApproval), center: tx('αγωγές', 'therapies') },
         { type: 'matrix', wide: true, title: tx('Ουσίες ανά τμήμα', 'Agents by department'), subtitle: tx('Πού χορηγείται κάθε αντιμικροβιακό.', 'Where each antimicrobial is given.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentDepartment },
-        { type: 'matrix', wide: true, title: tx('Ουσίες ανά μικροοργανισμό', 'Agents by organism'), subtitle: tx('Ποια αγωγή δόθηκε για κάθε μικροοργανισμό του επεισοδίου.', 'Which therapy was given for each episode\'s organism.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentOrganism },
+        { type: 'matrix', wide: true, organisms: 'columns', title: tx('Ουσίες ανά μικροοργανισμό', 'Agents by organism'), subtitle: tx('Ποια αγωγή δόθηκε για κάθε μικροοργανισμό του επεισοδίου.', 'Which therapy was given for each episode\'s organism.'), rowLabel: tx('Ουσία', 'Agent'), cells: a.byAgentOrganism },
       ].filter(chart => recorded || chart.type === 'note'),
     } }
     case 'prevention': {
@@ -349,7 +350,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'rate', title: tx('Υγιεινή χεριών ανά επαγγελματική κατηγορία', 'Hand hygiene by professional category'), subtitle: tx('Ποσοστό συμμόρφωσης · δίπλα οι ευκαιρίες.', 'Compliance rate · beside it the opportunities.'), rows: rateRowsWithTotal(hh.byCategory) },
         hasBundles && { type: 'rate', title: tx('Συμμόρφωση ανά δέσμη', 'Compliance by bundle'), subtitle: tx('Μέσο ποσοστό κριτηρίων που τηρήθηκαν.', 'Average share of criteria met.'), rows: (b.byBundle || []).filter(([, , score]) => score != null).map(([key, , score]) => [BUNDLE_LABELS[key] ? BUNDLE_LABELS[key][en ? 1 : 0] : label(key), score]) },
         hasBundles && { type: 'rate', title: tx('Συμμόρφωση δεσμών ανά τμήμα', 'Bundle compliance by department'), subtitle: tx('Μέσο ποσοστό ανά τμήμα.', 'Average per department.'), rows: (b.byDepartment || []).filter(([, , score]) => score != null).map(([key, , score]) => [key, score]) },
-        hasWaste && { type: 'bars', title: tx('Απόβλητα ανά τμήμα (kg)', 'Waste by department (kg)'), subtitle: tx('Βάρος στην περίοδο.', 'Weight in the period.'), rows: w.byDepartment },
         ...(hasBundles ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται αξιολογήσεις δεσμών μέτρων στην περίοδο.', 'No care-bundle assessments are recorded in the period.') }]),
         ...(hasWaste ? [] : [{ type: 'note', text: tx('Δεν καταγράφονται μετρήσεις ιατρικών αποβλήτων στην περίοδο.', 'No healthcare-waste measurements are recorded in the period.') }]),
       ].filter(Boolean),
@@ -361,7 +361,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         [tx('Εκπρόθεσμοι έλεγχοι', 'Overdue controls'), c.overdueAssignments ?? 0, tx('αναθέσεις με παρελθούσα προθεσμία', 'assignments past due'), c.overdueAssignments ? 'danger' : ''],
       ],
       charts: [
-        { type: 'trend', wide: true, title: tx('Εκτελέσεις ανά μήνα', 'Executions by month'), subtitle: tx('Έλεγχοι που πραγματοποιήθηκαν κάθε μήνα.', 'Controls performed each month.'), points: c.monthly },
         { type: 'matrix', wide: true, title: tx('Ευρήματα ανά έλεγχο και τμήμα', 'Findings by control and department'), subtitle: tx('Σε ποιον έλεγχο και ποιο τμήμα εντοπίζονται ευρήματα.', 'Which control and which department the findings come from.'), rowLabel: tx('Έλεγχος', 'Control'), cells: c.findingsByControl },
         { type: 'bars', title: tx('Εκτελέσεις ανά τμήμα', 'Executions by department'), subtitle: tx('Ολοκληρωμένοι έλεγχοι στην περίοδο.', 'Controls performed in the period.'), rows: (c.byDepartment || []).map(([key, n]) => [key, n]) },
         { type: 'rate', relative: true, title: tx('Ποσοστό ευρημάτων ανά τμήμα', 'Finding rate by department'), subtitle: tx('Εκτελέσεις με εύρημα προς το σύνολο των εκτελέσεων.', 'Executions with a finding over all executions.'), rows: (c.byDepartment || []).map(([key, total, findings]) => [key, pct(findings, total) ?? 0, `${findings ?? 0}/${total ?? 0}`]) },
@@ -376,6 +375,9 @@ export function buildSectionModel(tab, snapshot, tx, t) {
       ],
       charts: [
         { type: 'trend', wide: true, title: tx('Συμβάντα ανά μήνα', 'Incidents by month'), subtitle: tx('Αναφορές συμβάντων ανά μήνα.', 'Incident reports per month.'), points: q.monthly },
+        // The categories of the incidents (owner, 8/11/2026): which, and where by group of the ΟΔΙΠΥ form.
+        { type: 'bars', title: tx('Κατηγορίες συμβάντων', 'Incident categories'), subtitle: tx('Τι είδους συμβάντα αναφέρθηκαν.', 'What kind of incidents were reported.'), rows: incidentCategoryRows(q.byCategory, en) },
+        { type: 'matrix', wide: true, title: tx('Κατηγορίες ανά τμήμα', 'Categories by department'), subtitle: tx('Ομάδες κατηγοριών του εντύπου ΟΔΙΠΥ σε κάθε τμήμα.', 'Groups of the ΟΔΙΠΥ form in each department.'), rowLabel: tx('Τμήμα', 'Department'), cells: q.categoryByDepartment?.map(([row, column, n]) => [row, incidentGroupLabel(column, en), n]) },
         { type: 'matrix', wide: true, title: tx('Σοβαρότητα ανά τμήμα', 'Severity by department'), subtitle: tx('Πού συμβαίνουν τα σοβαρότερα συμβάντα.', 'Where the most severe incidents happen.'), rowLabel: tx('Τμήμα', 'Department'), columnOrder: ['low', 'medium', 'high', 'critical'].map(label), cells: q.severityByDepartment?.map(([row, column, n]) => [row, label(column), n]) },
         // No severity donut: it repeated the «Total» row of the table above.
         { type: 'bars', title: tx('Κατάσταση συμβάντων', 'Incident status'), subtitle: tx('Πού βρίσκεται η διερεύνηση.', 'Where investigation stands.'), rows: named(q.byStatus) },
@@ -393,7 +395,6 @@ export function buildSectionModel(tab, snapshot, tx, t) {
         { type: 'bars', title: tx('Κάλυψη ανά εμβόλιο', 'Coverage by vaccine'), subtitle: tx('Εργαζόμενοι με ισχύον εμβόλιο.', 'Employees with a valid vaccine.'), rows: wf.byVaccine || [] },
         // One visit type only says what the visit count says already: no chart.
         ...((wf.byVisitType || []).length > 1 ? [{ type: 'donut', title: tx('Τύπος επίσκεψης', 'Visit type'), subtitle: tx('Επισκέψεις της περιόδου.', 'Visits in the period.'), rows: named(wf.byVisitType || []), center: tx('επισκέψεις', 'visits') }] : []),
-        { type: 'bars', title: tx('Εργαζόμενοι ανά τμήμα', 'Employees by department'), subtitle: tx('Ενεργό προσωπικό.', 'Active staff.'), rows: wf.byDepartment || [] },
         { type: 'bars', title: tx('Εκθέσεις εργαζομένων ανά τύπο', 'Staff exposures by type'), subtitle: tx('Τρυπήματα, βλεννογόνοι και άλλες εκθέσεις της περιόδου.', 'Needlesticks, mucosal and other exposures in the period.'), rows: named(wf.exposuresByType) },
       ],
     } }
@@ -456,4 +457,21 @@ export function buildSectionModel(tab, snapshot, tx, t) {
     case 'qualityfood': return qualityFoodSection(d.qualityFood || {}, tx)
     default: return null
   }
+}
+
+// Incident categories (the record's key) named, and grouped by the group of the ΟΔΙΠΥ form; a category of the hospital's
+// own list is a complaint or «Άλλες».
+export function incidentGroupLabel(key, en = false) {
+  if (!key || key === '—') return en ? 'No category' : 'Χωρίς κατηγορία'
+  const group = odipyGroupOf(key)
+  if (group) return en ? group.en : group.el
+  return categoryKind(key) === 'complaint' ? (en ? 'Complaints' : 'Παράπονα') : (en ? 'Other' : 'Άλλες')
+}
+export function incidentCategoryRows(rows = [], en = false) {
+  const out = new Map()
+  for (const [key, n] of rows || []) {
+    const name = !key || key === '—' ? (en ? 'No category' : 'Χωρίς κατηγορία') : incidentCategoryLabel(key, [], en ? 'en' : 'el').replace(/^[^·]*·\s*/, '') || key
+    out.set(name, (out.get(name) || 0) + (Number(n) || 0))
+  }
+  return [...out].sort((a, b) => b[1] - a[1])
 }

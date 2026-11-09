@@ -56,11 +56,12 @@ describe('scales section', () => {
       </MemoryRouter>,
     )
     expect(screen.getByRole('heading', { name: 'Κλίμακες' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Νέα αξιολόγηση/ })).toBeInTheDocument()
     const list = await screen.findByRole('list', { name: 'Κλίμακες' })
     expect(within(list).getAllByRole('button', { name: 'Νέα βαθμολόγηση' }).length).toBeGreaterThan(0)
     // «Νέα αξιολόγηση» opens the panel's own picker, prefilled flow and sepsis prompt included.
-    fireEvent.click(screen.getByRole('button', { name: /Νέα αξιολόγηση/ }))
+    // The section's action is in its «⋯» (owner, 8/11/2026).
+    fireEvent.click(document.querySelector('[data-section="scales"] .episode-form-section-actions button'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Νέα αξιολόγηση/ }))
     expect(await screen.findByRole('dialog', { name: 'Επιλογή αξιολόγησης' })).toBeInTheDocument()
   })
   it('prints the latest score of every scale', () => {

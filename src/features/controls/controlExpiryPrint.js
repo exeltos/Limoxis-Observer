@@ -60,7 +60,7 @@ ${unchanged.length?`<h2>Ελέγχθηκαν χωρίς αλλαγή (${unchange
 // return and to replace are left to fill in by hand, with signature boxes.
 export function expiryReturnFormHtml({title,items,actorName,now=new Date()}){
  const departments=[...new Set(items.map(item=>item.department))]
- const status=item=>item.state==='expired'?`Ληγμένο (${-item.days} ημ.)`:`Λήγει σε ${item.days} ημ.`
+ const status=item=>item.state==='finding'?(rowFindingText(item.row)||'Εύρημα'):item.state==='expired'?`Ληγμένο (${-item.days} ημ.)`:`Λήγει σε ${item.days} ημ.`
  const rows=items.map((item,index)=>`<tr class="${item.state}"><td>${index+1}</td><td><strong>${esc(item.row.item)}</strong>${item.row.form?`<small>${esc(formLabel(item.row.form))}</small>`:''}</td>${departments.length>1?`<td>${esc(item.department)}</td>`:''}<td>${esc(item.row.lot||'—')}</td><td>${esc(day(item.row.expiry))}</td><td>${esc(status(item))}</td><td>${esc(item.row.quantity||'')}</td><td class="fill"></td><td class="fill"></td><td>${esc(item.row.note||'')}</td></tr>`).join('')
  const sign=label=>`<div class="sign"><span>${label}</span><div class="line"></div><small>Ονοματεπώνυμο / Υπογραφή / Ημερομηνία</small></div>`
  return `<!doctype html><html lang="el"><head><meta charset="utf-8"><title>Επιστροφή και αντικατάσταση · ${esc(title)}</title><style>
@@ -79,8 +79,11 @@ ${items.length?`<table><thead><tr><th>#</th><th>Υλικό / Φάρμακο</th>
 </body></html>`
 }
 
-export function printHtml(html){
+// pdf: a line above the page says to choose «Save as PDF» (hidden on paper).
+export function printHtml(html,{pdf=false}={}){
  const w=window.open('','_blank','width=980,height=760')
  if(!w)return false
- w.document.open();w.document.write(html);w.document.close();w.focus();setTimeout(()=>w.print(),150);return true
+ const hint='<p class="rd-pdf-hint" style="margin:0 0 12px;padding:8px 14px;background:#17324a;color:#fff;font-size:12px;text-align:center">Για αρχείο PDF, επιλέξτε «Αποθήκευση ως PDF» στον εκτυπωτή.</p><style>@media print{.rd-pdf-hint{display:none}}</style>'
+ const page=pdf?html.replace('<body>',`<body>${hint}`):html
+ w.document.open();w.document.write(page);w.document.close();w.focus();setTimeout(()=>w.print(),150);return true
 }

@@ -52,8 +52,8 @@ export function glanceItems(recordType,record,{language,t,linked=[]}){
     const harmful=record.incidentClass==='harmful'
     const harm=harmLevel(record.impact)
     return [
-      reaches?{id:'harm',label:en?'Outcome for the patient':'Έκβαση για τον ασθενή',value:harmful?vocabularyLabel(IMPACTS,harm,language):vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?(['severe','death'].includes(harm)?'danger':'warning'):undefined,note:harmful?(en?'Harm (WHO)':'Βλάβη (WHO)'):undefined}
-       :{id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone},
+      reaches&&record.incidentClass?{id:'harm',label:en?'Outcome for the patient':'Έκβαση για τον ασθενή',value:harmful?vocabularyLabel(IMPACTS,harm,language):vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?(['severe','death'].includes(harm)?'danger':'warning'):undefined,note:harmful?(en?'Harm (WHO)':'Βλάβη (WHO)'):undefined}
+       :record.severity?{id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone}:null,
       age(en?'Since the event':'Από το συμβάν',record.date,{en,language,open}),
       followUps(en?'Corrective actions':'Διορθωτικές ενέργειες',linked,{en,open:open&&kind!=='suggestion',noneText:en?'None yet':'Καμία ακόμη'}),
       record.sentinel?deadline(en?'Root cause analysis':'Ανάλυση ριζικής αιτίας',record.rcaDueDate,{en,language,done:!open,doneText:en?'Closed':'Έκλεισε'}):{id:'severity',label:t('severity'),value:t(record.severity),tone:severityTone},
@@ -96,7 +96,7 @@ export function incidentSummary(record,{language,t}){
   const kind=reportKindOf(record)
   const open=!isClosed(record)
   const items=[]
-  if(['clinical','nonClinical'].includes(kind)){
+  if(['clinical','nonClinical'].includes(kind)&&record.incidentClass){
     const harmful=record.incidentClass==='harmful'
     items.push({text:harmful?`${vocabularyLabel(IMPACTS,harmLevel(record.impact),language)} (WHO)`:vocabularyLabel(INCIDENT_CLASSES,record.incidentClass||'nearMiss',language),tone:harmful?'danger':undefined})
   }

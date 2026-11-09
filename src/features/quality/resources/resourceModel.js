@@ -214,11 +214,12 @@ export const CRITERIA = [
   { key: 'price', label: ['Τιμή και όροι', 'Price and terms'] },
 ]
 export const SCORE_STEPS = [
-  { value: 1, label: ['Πολύ κακή', 'Very poor'] },
-  { value: 2, label: ['Κακή', 'Poor'] },
-  { value: 3, label: ['Μέτρια', 'Fair'] },
-  { value: 4, label: ['Καλή', 'Good'] },
-  { value: 5, label: ['Άριστη', 'Excellent'] },
+  // As the hospital's form «Αξιολόγηση εξωτερικών παρόχων» names the points.
+  { value: 1, label: ['Καθόλου ικανοποιητικό', 'Not satisfactory'] },
+  { value: 2, label: ['Μετρίως ικανοποιητικό', 'Partly satisfactory'] },
+  { value: 3, label: ['Ικανοποιητικό', 'Satisfactory'] },
+  { value: 4, label: ['Αρκετά ικανοποιητικό', 'Quite satisfactory'] },
+  { value: 5, label: ['Εξαίρετο', 'Excellent'] },
 ]
 export const APPROVED_AT = 80
 export const CONDITIONAL_AT = 60

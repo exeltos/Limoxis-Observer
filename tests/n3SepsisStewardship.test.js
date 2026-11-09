@@ -148,7 +148,9 @@ describe('wiring', () => {
     expect(journey).toContain('<TherapyReviewCard')
     expect(journey).toContain('extraStages={extraStages}')
     const workspace = read('src/features/surveillance/ClinicalSurveillanceWorkspace.jsx')
+    // «Start protocol» is in the sheet's «⋯», with every other action of the sheet (owner, 8/11/2026).
     expect(workspace).toContain("t('sepsis.startProtocol')")
+    expect(workspace).toContain("askSheet('therapy', 'protocolPicker')")
     expect(workspace).toContain('<ProtocolBadge entry={openRunFor(ep)}')
     expect(read('src/features/surveillance/SurveillanceCanonicalPage.jsx')).toContain('<ProtocolBadge entry={openRunOf(x)}')
     expect(read('src/features/surveillance/PatientClinicalCanonicalPage.jsx')).toContain('canProtocol:')

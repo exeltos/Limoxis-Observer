@@ -36,3 +36,19 @@ export function loadGovernanceStatus(organizationId,{now=Date.now()}={}){
 }
 
 export function clearExecutiveCache(){cache.clear()}
+
+// The departments counted apart from the hospital's total of patient days (Παιδιατρική…) and the patients with a
+// multidrug-resistant isolate in them for a period: left out of the hospital's rates per 1,000 patient days.
+// The departments that keep patient days (the wards, compared in the overview) and which of them are counted apart.
+export function loadPatientDayDepartments(organizationId,{now=Date.now()}={}){
+ return remembered(`wards|${organizationId}`,async()=>{
+  const {data,error}=await supabase.from('departments').select('id,name,patient_days_separate,patient_days_tracked').eq('organization_id',organizationId).or('patient_days_tracked.eq.true,patient_days_separate.eq.true')
+  if(error)throw error
+  return (data||[]).map(row=>({id:row.id,name:row.name,separate:Boolean(row.patient_days_separate),tracked:Boolean(row.patient_days_tracked)}))
+ },now)
+}
+export async function separateMdrPatients(organizationId,period,departments){
+ if(!period||!departments?.length)return 0
+ const counts=await Promise.all(departments.map(item=>supabase.rpc('analysis_mdr_patients',{p_organization_id:organizationId,p_from:period.from,p_to:period.to,p_department_id:item.id}).then(({data,error})=>(error?0:Number(data)||0))))
+ return counts.reduce((sum,n)=>sum+n,0)
+}

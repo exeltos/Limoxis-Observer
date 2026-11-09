@@ -10,6 +10,7 @@ import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { useTenant } from '../../core/tenant/TenantContext'
 import { ROLES } from '../../core/permissions/roles'
 import { deleteHospitalStructureSnapshot, loadHospitalStructureHistory, saveHospitalStructureSnapshot } from './hospitalStructureCloudService'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 const todayIso = () => new Date().toISOString().slice(0, 10)
 const emptyDraft = { effectiveDate: todayIso(), totalBeds: '', icuBeds: '', singleRooms: '', infectionControlNurses: '', infectiousDiseasePhysicians: '', microbiologists: '', notes: '' }
@@ -68,7 +69,7 @@ export function HospitalStructurePanel() {
         </div>
         <Button onClick={() => setEditor(true)}><Plus size={15} />{en ? 'New entry' : 'Νέα καταχώρηση'}</Button>
       </div>
-      {loading && <div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div>}
+      {loading && <TableSkeleton/>}
       {!loading && <RegistryTable
         wrapperClassName="table-wrap scroll-table"
         columns={[{ key: 'date', label: en ? 'Effective date' : 'Ημερομηνία ισχύος' }, { key: 'beds', label: en ? 'Total beds' : 'Σύνολο κλινών' }, { key: 'icu', label: en ? 'ICU beds' : 'Κλίνες ΜΕΘ' }, { key: 'single', label: en ? 'Single rooms' : 'Μονόκλινα' }, { key: 'nurses', label: en ? 'IC nurses' : 'ΝΕΛ' }, { key: 'id', label: en ? 'ID physicians' : 'Λοιμωξιολόγοι' }, { key: 'micro', label: en ? 'Microbiologists' : 'Μικροβιολόγοι' }, ...(isPlatformOwner ? [{ key: 'actions', label: '' }] : [])]}

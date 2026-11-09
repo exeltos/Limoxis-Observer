@@ -463,6 +463,11 @@
       "authenticated": true,
       "reason": "Sets the organisation's screen lock after inactivity; Platform Owner or organisation admin."
     },
+    "set_organization_lira_launcher": {
+      "category": "rpc",
+      "authenticated": true,
+      "reason": "Shows or hides the LIRA button for every user of one organization; checks that the caller is the platform owner or that organization's admin and writes the audit log."
+    },
     "set_organization_screen_guides": {
       "category": "rpc",
       "authenticated": true,

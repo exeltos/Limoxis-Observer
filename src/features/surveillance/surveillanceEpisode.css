@@ -1,7 +1,10 @@
-/* Surveillance episode opens as a full page inside the patient record (not a card floating over it). */
-html body .episode-overlay.surveillance-episode-page{position:static!important;inset:auto!important;z-index:auto!important;display:block!important;padding:0!important;background:transparent!important;backdrop-filter:none!important}
+/* The surveillance sheet opens over the page without the side menu, under the app's top bar, which stays (owner,
+   8/11/2026); its title with the back arrow is a white box. */
+html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;z-index:150!important;display:block!important;padding:78px 24px 24px!important;background:#eef2f7!important;backdrop-filter:none!important;overflow:auto}
 html body .surveillance-episode-page .episode-detail-card.new-surveillance-flow-card{width:100%!important;max-width:none!important;height:auto!important;max-height:none!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;display:block!important;overflow:visible!important}
-html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:14px 16px!important;margin:0!important;border-bottom:1px solid #dfeaf4!important;background:transparent!important}
+/* The title with its back arrow in a white box, as on every record page. */
+html body .surveillance-episode-page .episode-detail-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding:12px 18px!important;margin:0 0 12px!important;border:1px solid #e3e9f1!important;background:#fff!important}
+.surveillance-episode-page .episode-detail-header:is(header,#lo-sheet-view){border-radius:14px}
 .surveillance-episode-page .episode-detail-title{display:flex;align-items:center;gap:12px;min-width:0}
 html body .surveillance-episode-page .episode-detail-header h2{display:block!important;margin:2px 0 2px!important;font-size:18px!important;line-height:1.3!important;color:#173a57!important}
 html body .surveillance-episode-page .episode-detail-header p{font-size:12.5px!important}
@@ -10,22 +13,7 @@ html body .surveillance-episode-page .clinical-data-hub{display:flex;flex-direct
 
 /* Attention: a short list, one row per item, each opening the relevant step. */
 
-/* ECDC review uses the full width; stage navigation wraps into two rows so labels are never cut. */
-html body .surveillance-episode-page .episode-workspace-map{margin:0!important}
-/* Compact head: the ECDC assessment is one line and the eight sections one row,
-   so the selected section's content shows without scrolling. */
-html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important;overflow:visible!important;padding:4px!important}
-html body .surveillance-episode-page .episode-section-tab{min-width:0!important;min-height:46px!important;padding:7px 9px!important;gap:7px!important}
-html body .surveillance-episode-page .episode-section-tab>svg{flex:none!important}
-/* In one row there is no room for a separate tick: a completed section shows
-   its own icon in green instead. */
-html body .surveillance-episode-page .episode-section-tab .episode-tab-check{display:none!important}
-html body .surveillance-episode-page .episode-section-tab.complete>svg{color:#368d61!important}
-html body .surveillance-episode-page .episode-workspace-map{gap:8px!important;padding:8px!important}
 html body .surveillance-episode-page .tag-row{margin-bottom:8px!important}
-@media(max-width:1279px){html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
-html body .surveillance-episode-page .episode-section-tab strong{font-size:12px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:break-word!important;line-height:1.3!important}
-html body .surveillance-episode-page .episode-section-tab small{font-size:11px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:break-word!important;line-height:1.3!important}
 
 /* Stage panel: header spacing and readable detail tiles. */
 html body .surveillance-episode-page .clinical-panel{padding:16px 18px!important}
@@ -41,11 +29,8 @@ html body .surveillance-episode-page .detail-item span{display:block!important;m
 html body .surveillance-episode-page .detail-item strong{display:block!important;font-size:13.5px!important;overflow-wrap:anywhere!important}
 html body .surveillance-episode-page .clinical-summary{margin:8px 0 6px!important;font-size:13.5px!important;line-height:1.55!important}
 
-@media (max-width:860px){
-  html body .surveillance-episode-page .episode-section-tabs{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
 @media print{
-  html body .episode-overlay.surveillance-episode-page{position:absolute!important;inset:0!important;background:#fff!important}
+  html body .episode-overlay.surveillance-episode-page{position:fixed!important;inset:0!important;background:#eef2f7!important}
 }
 
 /* Reassessment timeline: one readable row per entry. */
@@ -161,7 +146,7 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 .record-summary-attention ul,.record-summary-events ul{margin:0;padding:0;list-style:none}
 .record-summary-link{padding:0;border:0;background:none;font:inherit;font-size:12px;font-weight:650;color:#1d4f7a;white-space:nowrap;cursor:pointer}
 .record-summary-link:hover{color:#123a5b;text-decoration:underline}
-.record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start}
+.record-summary-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:stretch}
 .record-summary-grid>.record-summary-card{margin:0;height:100%}
 .patient-record-shell .record-summary-card>.record-section-header{min-height:41px;align-items:center}
 .record-summary-events{margin-top:10px;padding-top:8px;border-top:1px solid var(--lo-color-border,#e3e8ee)}
@@ -169,24 +154,109 @@ html body .patient-record-shell .entity-record-body>.record-section:not(.documen
 .record-summary-events li{display:flex;gap:8px;padding:3px 0;font-size:12px;color:#172033}
 .record-summary-events li b{flex:none;font-weight:650}
 @media (max-width:1000px){.record-summary-grid{grid-template-columns:1fr}}
-/* The episode's sections on a desktop: one row in one frame (owner, 28/10: tabs and cards never break into a
-   second row; no box in a box). A long label ends in «…», its full text is the button's title.
-   !important only because the older episode-map rules above and in features.css set these with it. */
-@media (min-width:1101px){
-  html body .journey-map.episode-workspace-map{border:0!important;padding:0!important;background:transparent!important;box-shadow:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs{display:grid!important;grid-auto-flow:column!important;grid-template-columns:none!important;grid-auto-columns:minmax(0,1fr)!important;gap:4px!important;overflow:visible!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab{min-width:0!important;min-height:52px!important;padding:6px 8px!important;gap:6px!important;border-color:transparent!important;background:transparent!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.active{border-color:var(--lo-color-primary)!important;background:color-mix(in srgb,var(--lo-color-primary) 7%,#fff)!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>span{min-width:0!important;overflow:hidden!important}
-  /* A running protocol (sepsis) keeps its alert in the colour of its name, not in a frame of its own. */
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab:not(.active){border-color:transparent!important;background:transparent!important;outline:0!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab.protocol-tab strong{color:var(--lo-status-danger-fg)!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab>svg:first-child{display:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:1;white-space:normal!important;overflow:hidden!important;line-height:1.2!important;overflow-wrap:anywhere!important;word-break:normal!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:block!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-}
-/* A small laptop: the name of each section only (the second line hides), so it fits. */
-@media (min-width:1101px) and (max-width:1320px){
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab small{display:none!important}
-  html body .journey-map.episode-workspace-map>nav.episode-section-tabs>.episode-section-tab strong{font-size:11px!important}
-}
+
+/* The surveillance sheet (owner, 8/11/2026, design 2): a small index of the steps on the left, every section on one
+   page on the right, one under the other, without cards. */
+.sheet-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:16px;align-items:start}
+.sheet-index{position:sticky;top:8px;display:flex;flex-direction:column;gap:2px;padding:10px;border:1px solid #e3e9f1;border-radius:12px;background:#fff}
+.sheet-index-step{display:flex;align-items:center;gap:9px;padding:6px 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:13px;color:#1b2b40;text-align:left;cursor:pointer}
+.sheet-index-step:hover:not(:disabled){background:#f2f6fa}
+.sheet-index-step.is-active{background:#1d5f9c;color:#fff;font-weight:600}
+.sheet-index-step.is-protocol span{color:var(--lo-status-danger-fg)}
+.sheet-index-step:disabled{opacity:.5;cursor:not-allowed}
+.episode-step-number{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid #cbd5e1;font-style:normal;font-size:11.5px;font-weight:700;color:#64748b;background:#fff}
+.tone-done .episode-step-number{background:#2f9e66;border-color:#2f9e66;color:#fff}
+.tone-due .episode-step-number{border-color:#e0a100;color:#a06d00}
+.sheet-index-step.is-active .episode-step-number{background:#fff;border-color:#fff;color:#1d5f9c}
+.sheet-progress{margin-top:8px;padding:8px 8px 2px;border-top:1px solid #edf1f6;font-size:11.5px;color:#64748b}
+.sheet-progress i{display:block;height:6px;margin-top:5px;border-radius:6px;background:#e7ecf3;overflow:hidden}
+.sheet-progress b{display:block;height:100%;background:linear-gradient(90deg,#2f9e66,#5cbf8a)}
+.sheet-body{min-width:0;border:1px solid #e3e9f1;border-radius:14px;background:#fff;overflow:hidden}
+.sheet-body .clinical-data-grid{display:block}
+.sheet-anchor{scroll-margin-top:12px}
+.sheet-anchor+.sheet-anchor,.sheet-body .protocol-panel{border-top:1px solid #edf1f6}
+html body .surveillance-episode-page .sheet-body .clinical-panel{border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;margin:0!important;padding:14px 22px!important}
+.sheet-body .clinical-panel>.record-section-header{border:0;padding:0 0 8px;margin:0}
+.sheet-body .clinical-panel>.record-section-header>div:first-child{display:flex;align-items:center;gap:10px}
+.sheet-body .clinical-panel>.record-section-header>div:first-child>svg{box-sizing:content-box;padding:6px;border-radius:8px;background:#eef4fb;color:#1d5f9c}
+.sheet-body .clinical-panel>.record-section-header strong{font-size:15px}
+@media (max-width:900px){.sheet-layout{grid-template-columns:1fr}.sheet-index{position:static;flex-direction:row;flex-wrap:wrap}.sheet-progress{display:none}}
+.sheet-attention{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px;border:1px solid #f1e3bd;border-radius:10px;background:#fff8e6;font-size:13px;color:#7a5200}
+.sheet-attention-item{border:0;border-radius:999px;padding:2px 10px;background:#fff;font:inherit;font-size:12.5px;color:#7a5200;cursor:pointer}
+.sheet-attention-item.tone-danger{color:#a8323d}
+.sheet-attention-item:hover{text-decoration:underline}
+.sheet-questions{display:flex;flex-direction:column}
+.sheet-question{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px dashed #e7ecf3}
+.sheet-question:last-child{border-bottom:0}
+/* The sheet reads as one form, not a pile of boxes (owner, 8/11/2026): the values are plain «label / value» lines,
+   the tables lose their frame, the notes are small grey text and the section header has no rule under it.
+   !important only where older episode rules set these with it. */
+html body .surveillance-episode-page .sheet-body .record-section-header{border-bottom:0!important;padding-bottom:4px!important;margin-bottom:6px!important}
+html body .surveillance-episode-page .sheet-body .detail-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px 18px!important;margin:0 0 12px!important}
+html body .surveillance-episode-page .sheet-body .detail-item{border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important;min-height:0!important}
+html body .surveillance-episode-page .sheet-body .detail-item strong{display:block;min-height:20px;border-radius:9px;background:#f6f8fb;font-size:13.5px!important;font-weight:500!important;color:#14253d}
+html body .surveillance-episode-page .sheet-body :is(.table-wrap,.registry-table-wrap,.scroll-table){border:0!important;box-shadow:none!important;border-radius:0!important;background:transparent!important}
+html body .surveillance-episode-page .sheet-body .evidence-box{border:0!important;border-left:3px solid #c9dcef!important;border-radius:0!important;background:transparent!important;padding:2px 12px!important;margin:4px 0!important}
+html body .surveillance-episode-page .sheet-body .clinical-panel .inline-empty{min-height:0!important;padding:9px 12px!important;margin:0!important;background:#f6f8fb!important;border:0!important;text-align:left!important;font-size:13px!important;color:#56677a!important}
+.sheet-body .clinical-panel .inline-empty:is(div,#lo-sheet-view){display:block;border-radius:9px;font-style:italic}
+html body .surveillance-episode-page .sheet-body .clinical-panel{padding:12px 22px!important;min-height:0!important}
+.sheet-pager{display:flex;justify-content:space-between;gap:12px;padding:10px 22px 14px;border-top:1px solid #edf1f6}
+.sheet-pager-button{border:1px solid #cfd8e3;border-radius:9px;background:#fff;padding:7px 14px;font:inherit;font-size:13px;font-weight:600;color:#1d5f9c;cursor:pointer}
+.sheet-pager-button:hover{background:#f2f7fc}
+.sheet-pager-button.is-next{margin-left:auto;background:#1d5f9c;border-color:#1d5f9c;color:#fff}
+/* A form on the sheet (InlineDialogContext): the same fields and Save as the window, laid in the page. */
+.observer-dialog-inline{padding:12px 22px 14px;border-top:1px solid #edf1f6}
+.observer-dialog-inline>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.observer-dialog-inline>header h3{margin:0;font-size:15px}
+.observer-dialog-inline>header p{margin:2px 0 0;font-size:12.5px;color:#64748b}
+.observer-dialog-inline>header .eyebrow{display:none}
+.observer-dialog-inline>footer{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:12px;padding-top:10px;border-top:1px dashed #e3e9f1}
+.sheet-body>.clinical-data-grid>.sheet-anchor>.observer-dialog-inline:first-child{border-top:0}
+/* «Τέλος επεξεργασίας» beside the sheet's «⋯» (the header's other buttons are square icons). */
+.episode-detail-actions>button.sheet-done{width:auto;height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;background:var(--brand-700,#1d5f9c);border-color:transparent;color:#fff;font-weight:600;white-space:nowrap}
+.episode-detail-actions>button.sheet-done:hover{background:#174f83;color:#fff}
+/* The windows of the sheet (sample, device, HAI, therapy, protocol, a row's details) open under the step, in the page. */
+.sheet-inline-forms:empty{display:none}
+.sheet-inline-forms>.observer-dialog-inline{margin:0;background:transparent;border:0;border-top:1px solid #edf1f6;border-radius:0}
+.sheet-index-step.is-active:hover:not(:disabled){background:#174f83}
+/* One frame only (owner, 8/11/2026): on the sheet the form's body has no grey box of its own. */
+.sheet-body .observer-dialog-inline>.observer-dialog-body{padding:0!important;background:transparent!important}
+/* Aligned fields (owner, 8/11/2026): every label on the same line, the same gap to its control. The shared form-row
+   rules carry an id in :is() for weight; these do the same to apply on the sheet. */
+.sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){align-items:start}
+.sheet-body .observer-dialog-inline .entry-grid>:is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){display:flex;flex-direction:column;justify-content:flex-start;gap:0;margin:0;padding:0;align-self:start}
+.sheet-body .observer-dialog-inline .entry-grid :is(.field,.searchable-select,.manual-date-field,.multi-select,label):is(div,label,#lo-sheet-form){gap:0!important}
+.sheet-body .observer-dialog-inline .entry-grid .lo-field-label:is(span,label,#lo-sheet-form){display:block;height:16px;min-height:16px;line-height:16px;margin:0 0 6px;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* HAI: the definition is long, the status short (owner, 8/11/2026). */
+.sheet-body .observer-dialog-inline.hai-dialog>.observer-dialog-body>.entry-grid{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.2fr)!important}
+/* The device / therapy rows: no card inside the form, a dashed line between rows. */
+.sheet-body .observer-dialog-inline .therapy-entry-card{border:0;border-radius:0;padding:0;background:none;box-shadow:none}
+.sheet-body .observer-dialog-inline .therapy-entry-card+.therapy-entry-card{border-top:1px dashed #dfe7f0;padding-top:12px}
+.sheet-body .observer-dialog-inline .entry-grid:is(div,#lo-sheet-form){padding-top:0!important}
+/* No frame inside the sheet's one card (owner, 8/11/2026): a form on the sheet is flat, whatever window class it carries. */
+html body .surveillance-episode-page .sheet-body .observer-dialog-inline{box-shadow:none!important;border-radius:0!important;background:transparent!important;border:0!important;border-top:1px solid #edf1f6!important;max-width:none!important;width:auto!important;margin:0!important}
+.sheet-body .observer-dialog-inline>header h3{font-size:14px;color:#1d5f9c}
+.sheet-anchor:empty{display:none}
+/* The 48–72 h review in the therapy step: a part of the step, not a card in the card (owner, 8/11/2026). */
+html body .surveillance-episode-page .sheet-body .sp-card.sp-review{border:0!important;border-top:1px solid #edf1f6!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;margin:10px 0 0!important;padding:12px 0 0!important}
+/* The sheet read-only (owner, 8/11/2026): the same layout as its form, each value in a soft box instead of a field.
+   The id in :is() gives these the weight of the page rules they refine, without !important. */
+.sheet-body .detail-item>.lo-field-label:is(span,#lo-sheet-view){display:block;height:16px;line-height:16px;margin:0 0 6px;font-size:11.5px;font-weight:600;color:#64748b}
+.sheet-body .sheet-empty{font-style:italic;color:#56677a;font-weight:400}
+.sheet-body .clinical-panel .clinical-summary:is(p,#lo-sheet-view){padding:9px 12px;border-radius:9px;background:#f6f8fb;margin:0 0 12px}
+.sheet-body .clinical-panel .tag-list-label:is(span,#lo-sheet-view){display:block;height:16px;line-height:16px;margin:0 0 6px;font-size:11.5px;font-weight:600;color:#64748b}
+.sheet-body .clinical-panel .tag-row:is(div,#lo-sheet-view){display:flex;flex-wrap:wrap;gap:6px;padding:7px 10px;border-radius:9px;background:#f6f8fb;margin:0 0 12px}
+.sheet-body .clinical-panel .clinical-tag:is(span,#lo-sheet-view){background:#e6f0fa;color:#1d5f9c;font-weight:600;font-size:12.5px;padding:3px 10px;border-radius:999px;border:0}
+.sheet-body .sheet-answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 18px;margin:0 0 12px}
+.sheet-body .sheet-answer{display:flex;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:9px;background:#f6f8fb}
+.sheet-body .sheet-answer strong{font-weight:600}
+/* Lists (samples, devices, therapy): one soft row per entry, no grid lines. */
+.sheet-body [data-ui=registry-table] table:is(table,#lo-sheet-view){border-collapse:separate;border-spacing:0 6px}
+.sheet-body [data-ui=registry-table] thead th:is(th,#lo-sheet-view){background:transparent!important;border-bottom:0!important;padding:0 12px;height:auto}
+.sheet-body [data-ui=registry-table] tbody td:is(td,#lo-sheet-view){background:#f6f8fb;border:0;padding:10px 12px}
+.sheet-body [data-ui=registry-table] tbody td:first-child:is(td,#lo-sheet-view){border-radius:9px 0 0 9px;font-weight:600}
+.sheet-body [data-ui=registry-table] tbody td:last-child:is(td,#lo-sheet-view){border-radius:0 9px 9px 0}
+.sheet-body .detail-grid>.detail-item:is(div,#lo-sheet-view){display:flex;flex-direction:column;gap:0}
+.sheet-body .detail-item>strong:is(strong,#lo-sheet-view){padding:9px 12px}
+/* While the sheet is open the app's top bar spans the whole width above it (no side-menu corner at the top left). */
+body:has(.episode-overlay.surveillance-episode-page) .topbar:is(header,#lo-sheet-view){position:fixed;top:0;left:0;right:0;z-index:160}

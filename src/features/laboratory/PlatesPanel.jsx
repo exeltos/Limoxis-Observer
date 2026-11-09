@@ -12,7 +12,6 @@ import { RegistryTable } from '../../design-system/RegistryTable'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { useTableSort } from '../../design-system/useTableSort'
 import { StatusBadge } from '../../design-system/StatusBadge'
-import { StatusCards } from '../../design-system/StatusCards'
 import { formatDay, formatDateTime } from '../../core/i18n/formatDay'
 import { printReport } from '../../core/export/reportDocument'
 import { buildPlateReport } from './plateReport'
@@ -20,6 +19,7 @@ import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { LaboratoryStatus, labSampleStatus } from './LaboratoryStatus'
 import { groupPlates, isStaffSample, platePointLabel, platePointText, receivePlate } from './laboratoryPlates'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 
 // «Τρυβλία» of the laboratory: the environmental samples grouped by culture plate. A plate is read
 // and received as one thing (every position at once), while each position keeps its own sample,
@@ -126,13 +126,12 @@ export function PlatesPanel({ samples = [], loading = false, canManage = false, 
 
   return (
     <>
-      <StatusCards label={t('labPlates.tab')} loading={loading} items={[
+      <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
+        <FilterBar end={<RegistryTotals label={t('labPlates.tab')} items={[
         { key: 'awaiting', icon: Clock3, label: t('labPlates.awaiting'), value: counts.awaiting, active: quick === 'awaiting', onToggle: () => toggle('awaiting') },
         { key: 'processing', icon: FlaskConical, label: t('labPlates.processing'), value: counts.processing, active: quick === 'processing', onToggle: () => toggle('processing') },
         { key: 'outside', icon: AlertTriangle, label: t('labPlatesExtra.outside30'), value: counts.outside, tone: counts.outside > 0 ? 'danger' : '', active: quick === 'outside' && period === '30', onToggle: toggleOutside },
-      ]} />
-      <section className="surface workspace-fill registry-workspace workspace-column canonical-paginated-registry laboratory-registry">
-        <FilterBar query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
+      ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone === 'danger' || item.tone === 'warning' ? item.tone : null, active: item.active, onClick: item.onToggle }))} />} query={query} onQueryChange={setQuery} placeholder={t('labPlates.search')} onClear={clear} activeAdvancedCount={(department !== 'all' ? 1 : 0) + (status !== 'all' ? 1 : 0) + (period !== 'all' ? 1 : 0)} activeFilters={[
           department !== 'all' && { key: 'department', label: `${t('department')}: ${department}`, onRemove: () => setDepartment('all') },
           status !== 'all' && { key: 'status', label: `${t('status')}: ${statusName(status)}`, onRemove: () => setStatus('all') },
           period !== 'all' && { key: 'period', label: `${t('svPeriod')}: ${t(`svPeriod${period}`)}`, onRemove: () => setPeriod('all') },

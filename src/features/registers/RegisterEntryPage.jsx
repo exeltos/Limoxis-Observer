@@ -24,6 +24,7 @@ import { useRegisterAccess } from './registerAccess'
 import { caseMarker, registerThemeKey, themeIcon } from './registerThemes'
 import { computeValues, fieldVisible, formatValue, gestationText, isRequired, parseGestation, textOf, validateEntry } from './registerEngine'
 import './registers.css'
+import { TableSkeleton } from '../../design-system/LoadingSkeleton'
 
 // One case of a register (a neonate in the NICU): the identity the department
 // keeps, then the register's fields section by section. Computed fields
@@ -89,7 +90,7 @@ export function RegisterEntryPage() {
     box.addEventListener('scroll', onScroll, { passive: true })
     return () => box.removeEventListener('scroll', onScroll)
   }, [loading, register?.id, entry?.id, editing])
-  if (loading) return <Page fill><div className="inline-empty">{en ? 'Loading…' : 'Φόρτωση…'}</div></Page>
+  if (loading) return <Page fill><TableSkeleton/></Page>
   if (!register || (!isNew && !entry) || !access.canSee(register)) return <Page fill><div className="registry-empty-state"><strong>{en ? 'Case not found' : 'Το περιστατικό δεν βρέθηκε'}</strong></div></Page>
 
   const canEdit = access.canRecord(register) && !entry?.locked

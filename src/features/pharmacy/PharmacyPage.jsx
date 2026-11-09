@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Page } from '../../design-system/Page'
-import { Activity, AlertTriangle, CheckCircle2, Clock3, Building2, Info, Pill, Plus, ShieldCheck, XCircle } from 'lucide-react'
+import { Activity, CheckCircle2, Clock3, Info, Pill, Plus, ShieldCheck, XCircle } from 'lucide-react'
 import { Button } from '../../design-system/Button'
 import { IconButton } from '../../design-system/IconButton'
-import { StatusCards } from '../../design-system/StatusCards'
-import { KpiCard, KpiStrip } from '../../design-system/KpiCard'
-import { kpiDelta } from '../../design-system/kpiDelta'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { FilterBar, FilterSelect } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
@@ -114,48 +112,39 @@ export function PharmacyPage() {
   // The key figures follow the filters: the latest month of the filtered rows against the month before.
   const kpis = useMemo(() => pharmacyConsumptionKpis(filtered, { ddd }), [filtered, ddd])
   const byDdd = kpis.current?.basis === 'ddd'
-  const sameBasis = kpis.before?.basis === kpis.current?.basis
   const kpiPeriod = kpis.month ? formatPeriod(kpis.month, en, 'short') : null
   const number = value => new Intl.NumberFormat(en ? 'en-GB' : 'el-GR', { maximumFractionDigits: 1 }).format(value)
   const grams = value => number(value >= 1000 ? value / 1000 : value)
   const gramUnit = value => (value >= 1000 ? 'kg' : 'g')
-  const change = (now, before, options = {}) => kpiDelta(now, before, { ...options, language })
 
+  // The consumption figures as one line beside the search (owner, 8/11/2026: no cards); period and target in the tooltip.
+  const accessTone = kpis.current?.access == null || !byDdd ? null : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'
+  const consumptionTotals = <RegistryTotals label={en ? 'Consumption figures' : 'Δείκτες κατανάλωσης'} items={[
+    kpis.current && { key: 'grams', always: true, value: 0, display: `${grams(kpis.current.grams)} ${gramUnit(kpis.current.grams)}`, label: en ? 'consumption' : 'κατανάλωση', title: kpiPeriod },
+    kpis.current?.access != null && { key: 'access', always: true, value: 0, display: `${number(kpis.current.access)}%`, label: en ? 'Access' : 'Πρόσβασης', tone: accessTone, title: [kpiPeriod, en ? `WHO target ≥ ${ACCESS_TARGET}%` : `στόχος ΠΟΥ ≥ ${ACCESS_TARGET}%`, !byDdd && (en ? 'of grams (no DDD)' : 'επί g (χωρίς DDD)')].filter(Boolean).join(' · ') },
+    kpis.current?.reserve != null && { key: 'reserve', always: true, value: 0, display: `${number(kpis.current.reserve)}%`, label: en ? 'Reserve' : 'Εφεδρικά', title: [kpiPeriod, byDdd ? (en ? 'share (DDD)' : 'μερίδιο (DDD)') : (en ? 'share (g)' : 'μερίδιο (g)')].join(' · ') },
+    kpis.current && { key: 'departments', always: true, value: 0, display: `${kpis.current.departments}/${kpis.allDepartments}`, label: en ? 'departments' : 'τμήματα', tone: kpis.current.departments >= kpis.allDepartments ? 'good' : 'warning', title: [kpiPeriod, en ? 'every department, every month' : 'όλα τα τμήματα, κάθε μήνα'].join(' · ') },
+  ].filter(Boolean)} />
   return (
-    <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'} subtitle={en ? 'Antimicrobial stewardship, advanced antibiotics, approvals and consumption / DDD.' : 'Αντιμικροβιακή επιτήρηση, προωθημένα αντιβιοτικά, εγκρίσεις και κατανάλωση / DDD.'}
+    <Page fill title={en ? 'Pharmacy' : 'Φαρμακείο'}
       actions={canRecord && consumption && <Button onClick={() => navigate('/pharmacy/dispensing/new')}><Plus size={16} />{en ? 'Dispensing period' : 'Περίοδος χορήγησης'}</Button>}>
       {tabs.length > 1 && <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Pharmacy' : 'Φαρμακείο'} />}
-      {canRecord && consumption && (
-        <KpiStrip label={en ? 'Consumption figures' : 'Δείκτες κατανάλωσης'}>
-          <KpiCard loading={firstLoad} icon={Pill} label={en ? 'Consumption' : 'Κατανάλωση'} period={kpiPeriod} value={kpis.current ? grams(kpis.current.grams) : null} unit={kpis.current ? gramUnit(kpis.current.grams) : ''} delta={change(kpis.current?.grams, kpis.before?.grams, { lowerIsBetter: true, percent: true })} />
-          <KpiCard loading={firstLoad} icon={ShieldCheck} label={en ? 'Access' : 'Πρόσβασης'} period={kpiPeriod} value={kpis.current?.access == null ? null : number(kpis.current.access)} unit="%" status={kpis.current?.access == null || !byDdd ? null : kpis.current.access >= ACCESS_TARGET ? 'good' : kpis.current.access >= ACCESS_TARGET - 10 ? 'warning' : 'danger'} target={en ? `WHO target ≥ ${ACCESS_TARGET}%` : `στόχος ΠΟΥ ≥ ${ACCESS_TARGET}%`} hint={kpis.current && !byDdd ? (en ? 'of grams (no DDD)' : 'επί g (χωρίς DDD)') : null} meter={kpis.current?.access} meterTarget={ACCESS_TARGET} delta={sameBasis ? change(kpis.current?.access, kpis.before?.access, { points: true }) : null} />
-          <KpiCard loading={firstLoad} icon={AlertTriangle} label={en ? 'Reserve' : 'Εφεδρικά'} period={kpiPeriod} value={kpis.current?.reserve == null ? null : number(kpis.current.reserve)} unit="%" hint={byDdd ? (en ? 'share (DDD)' : 'μερίδιο (DDD)') : (en ? 'share (g)' : 'μερίδιο (g)')} delta={sameBasis ? change(kpis.current?.reserve, kpis.before?.reserve, { lowerIsBetter: true, points: true }) : null} />
-          <KpiCard loading={firstLoad} icon={Building2} label={en ? 'Departments' : 'Τμήματα'} hint={en ? 'with a record' : 'με καταγραφή'} period={kpiPeriod} value={kpis.current ? `${kpis.current.departments}/${kpis.allDepartments}` : null} status={kpis.current ? (kpis.current.departments >= kpis.allDepartments ? 'good' : 'warning') : null} target={en ? 'every department, every month' : 'όλα τα τμήματα, κάθε μήνα'} />
-        </KpiStrip>
-      )}
-      {canIndicators && tab === 'indicators' && indicatorFigures.rows.length > 0 && (
-        <KpiStrip label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'} columns={Math.min(indicatorFigures.rows.length, 3)}>
-          {indicatorFigures.rows.slice(0, 3).map(row => {
-            const key = String(row.id || '')
-            const short = key.includes('aware-access') ? (en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης') : key.includes('ddd-per-100') ? (en ? 'DDD / 100 patient-days' : 'DDD / 100 ασθενοημέρες') : (en ? row.titleEn || row.titleEl : row.titleEl)
-            const target = row.target == null ? null : `${en ? 'target' : 'στόχος'} ${row.direction === 'lower' ? '≤' : row.direction === 'higher' ? '≥' : ''} ${number(row.target)}`
-            return <KpiCard key={key} loading={indicatorFigures.loading} icon={Activity} label={short} period={en ? 'year to date' : 'από αρχή έτους'} value={row.value == null ? null : number(row.value)} unit={(en ? row.unitEn : row.unit) === 'DDD/100 ασθενοημέρες' ? '' : (en ? row.unitEn : row.unit)} status={row.status === 'onTarget' ? 'good' : row.status === 'attention' ? 'danger' : null} target={target} />
-          })}
-        </KpiStrip>
-      )}
-      {canApprovals && tab === 'approvals' && (
-        <StatusCards label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'} loading={approvalCounts.loading} items={[
+      <section className={`surface registry-workspace workspace-column workspace-fill pharmacy-workspace pharmacy-tab-${tab}`}>
+        {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} status={approvalStatus} onStatusChange={setApprovalStatus} totals={<RegistryTotals label={en ? 'Antibiotic approvals' : 'Εγκρίσεις αντιβιοτικών'} items={[
           { key: 'pending', icon: Clock3, label: en ? 'Pending' : 'Σε αναμονή', value: approvalCounts.pending, tone: approvalCounts.pending > 0 ? 'warning' : '', active: approvalStatus === 'pending', onToggle: () => setApprovalStatus(approvalStatus === 'pending' ? 'all' : 'pending') },
           { key: 'approved', icon: CheckCircle2, label: en ? 'Approved' : 'Εγκρίθηκαν', value: approvalCounts.approved, active: approvalStatus === 'approved', onToggle: () => setApprovalStatus(approvalStatus === 'approved' ? 'all' : 'approved') },
           { key: 'rejected', icon: XCircle, label: en ? 'Rejected' : 'Απορρίφθηκαν', value: approvalCounts.rejected, active: approvalStatus === 'rejected', onToggle: () => setApprovalStatus(approvalStatus === 'rejected' ? 'all' : 'rejected') },
-        ]} />
-      )}
-      <section className={`surface registry-workspace workspace-column workspace-fill pharmacy-workspace pharmacy-tab-${tab}`}>
-        {tab === 'approvals' && <PharmacyApprovals organizationId={tenant?.id} en={en} canDecide={canDecide} canOpenRecord={canOpenCase} onCounts={setApprovalCounts} status={approvalStatus} onStatusChange={setApprovalStatus} />}
-        {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} onRows={setIndicatorFigures} />}
+        ].map(item => ({ key: item.key, value: item.value, label: item.label, tone: item.tone || null, active: item.active, onClick: item.onToggle }))} />} />}
+        {tab === 'indicators' && <PharmacyIndicators organizationId={tenant?.id} en={en} onRows={setIndicatorFigures} totals={indicatorFigures.rows.length > 0 ? <RegistryTotals label={en ? 'Pharmacy indicators' : 'Δείκτες φαρμακείου'} items={indicatorFigures.rows.slice(0, 3).map(row => {
+          const key = String(row.id || '')
+          const short = key.includes('aware-access') ? (en ? 'Access antibiotics' : 'Αντιβιοτικά Πρόσβασης') : key.includes('ddd-per-100') ? (en ? 'DDD / 100 patient-days' : 'DDD / 100 ασθενοημέρες') : (en ? row.titleEn || row.titleEl : row.titleEl)
+          const target = row.target == null ? null : `${en ? 'target' : 'στόχος'} ${row.direction === 'lower' ? '≤' : row.direction === 'higher' ? '≥' : ''} ${number(row.target)}`
+          const unit = (en ? row.unitEn : row.unit) === 'DDD/100 ασθενοημέρες' ? '' : (en ? row.unitEn : row.unit) || ''
+          return row.value == null ? null : { key, always: true, value: 0, display: `${number(row.value)}${unit === '%' ? '%' : ''}`, label: short, tone: row.status === 'onTarget' ? 'good' : row.status === 'attention' ? 'danger' : null, title: [short, en ? 'year to date' : 'από αρχή έτους', target].filter(Boolean).join(' · ') }
+        }).filter(Boolean)} /> : null} />}
         {consumption && !canRecord && <div className="inline-empty">{en ? 'You do not have access to record antibiotic consumption.' : 'Δεν έχετε πρόσβαση καταχώρισης κατανάλωσης αντιβιοτικών.'}</div>}
         {consumption && canRecord && <>
-          <FilterBar end={<IconButton label={en ? 'About this indicator' : 'Σχετικά με τον δείκτη'} onClick={() => setShowNote(value => !value)}><Info size={16} /></IconButton>} query={filters.query} onQueryChange={setFilter('query')} placeholder={en ? 'Antibiotic, responsible, reference…' : 'Αντιβιοτικό, υπεύθυνος, αριθμός αναφοράς…'} activeAdvancedCount={activeFilters} onClear={clearFilters}>
+          <FilterBar end={<>{consumptionTotals}<IconButton label={en ? 'About this indicator' : 'Σχετικά με τον δείκτη'} onClick={() => setShowNote(value => !value)}><Info size={16} /></IconButton></>} query={filters.query} onQueryChange={setFilter('query')} placeholder={en ? 'Antibiotic, responsible, reference…' : 'Αντιβιοτικό, υπεύθυνος, αριθμός αναφοράς…'} activeAdvancedCount={activeFilters} onClear={clearFilters}>
             <FilterSelect label={en ? 'From' : 'Από'} value={filters.from} onChange={setFilter('from')}><option value="">{en ? 'Any period' : 'Οποιαδήποτε περίοδος'}</option>{periods.map(item => <option key={item} value={item}>{formatPeriod(item, en)}</option>)}</FilterSelect>
             <FilterSelect label={en ? 'To' : 'Έως'} value={filters.to} onChange={setFilter('to')}><option value="">{en ? 'Any period' : 'Οποιαδήποτε περίοδος'}</option>{periods.map(item => <option key={item} value={item}>{formatPeriod(item, en)}</option>)}</FilterSelect>
             <FilterSelect label={en ? 'Department' : 'Τμήμα'} value={filters.department} onChange={setFilter('department')}><option value="">{en ? 'All' : 'Όλα'}</option>{departments.map(row => <option key={row.departmentEl} value={row.departmentEl}>{en ? row.departmentEn : row.departmentEl}</option>)}</FilterSelect>

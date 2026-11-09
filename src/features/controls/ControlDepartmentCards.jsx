@@ -1,4 +1,4 @@
-import { ChevronRight, ListChecks } from 'lucide-react'
+import { CheckSquare, ChevronRight, ListChecks, Square } from 'lucide-react'
 import { formatDay } from '../../core/i18n/formatDay'
 import { RateMeter } from './ControlAdherencePanel'
 import { DEFAULT_PERIOD, isToday, periodShort } from './controlAdherence'
@@ -18,7 +18,7 @@ const todayText = (done, required) => (required ? `${done}/${required}` : '—')
 // rows of cards). The first card opens the whole list; any other opens the
 // list of that department's controls. `single`: the one card of a department
 // above its own list (a department manager), wide and not a link.
-export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = DEFAULT_PERIOD, loading = false, language = 'el', onOpen, single = false }) {
+export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, totals = null, period = DEFAULT_PERIOD, loading = false, language = 'el', onOpen, single = false, picking = false, hidden = null, onToggle, hiddenCount = 0, onShowAll, closedCount = 0 }) {
   const en = language === 'en'
   const numbers = (card) => <span className="control-department-card-numbers">
     <span><b>{card.controls}</b>{en ? 'controls' : 'έλεγχοι'}</span>
@@ -38,6 +38,16 @@ export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, tot
   }
   if (loading) return <div className="control-department-cards" aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="control-department-card is-loading" />)}</div>
   const todayDone = cards.reduce((sum, card) => sum + card.todayDone, 0), todayRequired = cards.reduce((sum, card) => sum + card.todayRequired, 0)
+  // «Departments I see»: while choosing, every department's card carries a tick; a card without one is hidden.
+  if (picking) return <div className="control-department-cards is-picking">
+    {cards.map((card) => { const shown = !hidden?.has(card.department); return <button key={card.department} type="button" aria-pressed={shown} className={`control-department-card${shown ? '' : ' is-hidden'}`} onClick={() => onToggle?.(card.department)}>
+      <span className="control-department-card-head">{shown ? <CheckSquare size={18} aria-hidden="true" className="control-department-pick" /> : <Square size={18} aria-hidden="true" className="control-department-pick" />}<strong>{card.department}</strong></span>
+      {numbers(card)}
+      <CardFigures figures={card} period={period} language={language} />
+      {foot(card)}
+    </button> })}
+  </div>
+  const hiddenLine = hiddenCount > 0 && <p className="control-department-hidden-line">{en ? `${hiddenCount} hidden ${hiddenCount === 1 ? 'department' : 'departments'}` : `${hiddenCount} ${hiddenCount === 1 ? 'κρυμμένο τμήμα' : 'κρυμμένα τμήματα'}`} · <button type="button" onClick={onShowAll}>{en ? 'Show' : 'Εμφάνιση'}</button></p>
   return <div className="control-department-cards">
     <button type="button" className="control-department-card is-all" onClick={() => onOpen?.('all')}>
       <span className="control-department-card-head"><ListChecks size={18} aria-hidden="true" /><strong>{en ? 'All controls' : 'Όλοι οι έλεγχοι'}</strong><ChevronRight size={18} aria-hidden="true" /></span>
@@ -56,5 +66,7 @@ export function ControlDepartmentCards({ cards = [], total = 0, overdue = 0, tot
       {foot(card)}
     </button>)}
     {!cards.length && <div className="inline-empty">{en ? 'No departments with controls.' : 'Δεν υπάρχουν τμήματα με ελέγχους.'}</div>}
+    {hiddenLine}
+    {closedCount > 0 && <p className="control-department-hidden-line">{en ? `${closedCount} ${closedCount === 1 ? 'department works' : 'departments work'} Monday–Friday: not shown today` : `${closedCount} ${closedCount === 1 ? 'τμήμα λειτουργεί' : 'τμήματα λειτουργούν'} Δευτέρα–Παρασκευή: δεν εμφανίζονται σήμερα`}</p>}
   </div>
 }

@@ -15,13 +15,16 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
   const popoverRef=useRef(null)
   const visibleItems=items.filter(item=>item&&item.hidden!==true)
   const visibleCount=visibleItems.length
+  // Wide enough for the longest item, so no label is cut short with «…» (at most 440px, never past the screen).
+  const longestLabel=visibleItems.reduce((max,item)=>Math.max(max,String(item.label??'').length),0)
+  const fitWidth=Math.min(440,Math.max(width,Math.round(longestLabel*7.4+72)))
 
   const updatePosition=useCallback(()=>{
     const trigger=triggerRef.current
     if(!trigger)return
     const rect=trigger.getBoundingClientRect()
     const viewportWidth=window.innerWidth||document.documentElement.clientWidth
-    const menuWidth=Math.min(width,Math.max(0,viewportWidth-16))
+    const menuWidth=Math.min(fitWidth,Math.max(0,viewportWidth-16))
     const preferredLeft=align==='start'?rect.left:rect.right-menuWidth
     const left=Math.max(8,Math.min(preferredLeft,viewportWidth-menuWidth-8))
     // Opens upwards when it would run past the bottom of the screen (a trigger in a dialog's footer).
@@ -30,7 +33,7 @@ export function OverflowMenu({items=[],label,className='',align='end',size='sm',
     const below=rect.bottom+6
     const top=below+height>viewportHeight-8&&rect.top-6-height>=8?rect.top-6-height:below
     setPosition(current=>current&&current.top===top&&current.left===left&&current.width===menuWidth?current:{top,left,width:menuWidth})
-  },[align,width,visibleCount])
+  },[align,fitWidth,visibleCount])
 
   useLayoutEffect(()=>{if(open)updatePosition()},[open,updatePosition])
   // Once drawn, its real height decides above or below.
