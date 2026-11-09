@@ -62,3 +62,15 @@ describe('shift codes (owner, 8/11/2026)', () => {
     for (const code of ["'4'", "'12'", "'19'", "'20'", "'Α'", "'Γ'", "'Κ'", "'B'"]) expect(page).toContain(code)
   })
 })
+
+describe('who is on the department’s roster (owner, 9/11/2026)', () => {
+  it('leaves physicians out and puts people inactive or on leave in the register below', async () => {
+    const { isPhysician, notAtWork } = await import('../src/features/rosters/rosterService')
+    expect(isPhysician({ profession: 'Ιατρός' })).toBe(true)
+    expect(isPhysician({ staffCategory: 'physician' })).toBe(true)
+    expect(isPhysician({ profession: '260 ΝΟΣΗΛΕΥΤΗΣ/ΡΙΑ ΑΕΙ' })).toBe(false)
+    expect(notAtWork({ employmentStatus: 'leave' })).toBe(true)
+    expect(notAtWork({ employmentStatus: 'inactive' })).toBe(true)
+    expect(notAtWork({ employmentStatus: 'active' })).toBe(false)
+  })
+})

@@ -455,7 +455,13 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
     }
     for (const [from, to] of segments) {
       const length = to - from
-      const quota = length === 7 ? r.weeklyRestDays : Math.round((length * r.weeklyRestDays) / 7)
+      // A part week at the start belongs to a week begun in the previous roster: its days off count there first
+      // (owner, 9/11/2026); without one, only whole shares of days off (none in a two-day weekend).
+      let quota = length === 7 ? r.weeklyRestDays : Math.floor((length * r.weeklyRestDays) / 7)
+      if (length < 7 && from === 0 && s.prefix.length >= 7 - length) {
+        const before = s.prefix.slice(-(7 - length)).filter((code) => !isShift(code)).length
+        quota = Math.max(0, r.weeklyRestDays - before)
+      }
       let need = quota - s.codes.slice(from, to).filter((code) => code === 'R').length
       const free = (i) => i >= from && i < to && !s.locked[i] && !s.codes[i]
       // A day off that leaves fewer people at work than the day's shifts need costs most.
@@ -469,8 +475,8 @@ function buildRoster({ days, employees, demand, r, history, random, iterations }
       const lastRest = (() => {
         for (let k = from - 1; k >= 0; k -= 1) if (restLike(s.codes[k])) return k
         for (let k = s.prefix.length - 1; k >= 0; k -= 1) if (!isShift(s.prefix[k])) return k - s.prefix.length
-        // No day off known before (no previous roster): the period starts fresh.
-        return s.prefix.length ? -1 - s.prefix.length : from - 1
+        // No day off known before: the stretch runs from the start of the period (or of the known previous days).
+        return -1 - s.prefix.length
       })()
       const stretchOk = (chosen) => {
         let run = from - lastRest - 1

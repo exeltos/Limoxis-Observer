@@ -174,10 +174,12 @@ export function RostersPage() {
       ])
       // New people of the department join a saved roster; the head's mark and the account follow the register.
       const byId = new Map(staff.map(s => [s.employeeId, s]))
+      // A saved roster keeps only the department's current staff (a physician or someone who moved away drops out).
+      const staffIds = new Set(byId.keys())
       // The head: set by hand on the roster, else the department manager role (permissions), else the job position.
       let members = markHeads(
         saved
-          ? [...saved.members, ...staff.filter(s => !saved.members.some(m => m.employeeId === s.employeeId))].map(m => ({
+          ? [...saved.members.filter(m => byId.has(m.employeeId) || !staffIds.size), ...staff.filter(s => !saved.members.some(m => m.employeeId === s.employeeId))].map(m => ({
               ...m,
               isHead: Boolean(byId.get(m.employeeId)?.isHead),
               userId: byId.get(m.employeeId)?.userId || m.userId || null,
@@ -621,7 +623,13 @@ export function RostersPage() {
       )}
 
       {roster && canEdit && panel === 'rules' && (
-        <ObserverDialog title={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')} width="wide" className="roster-rules-dialog" onClose={() => setPanel('')}>
+        <ObserverDialog
+          title={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')}
+          width="wide"
+          className="roster-rules-dialog"
+          onClose={() => setPanel('')}
+          footer={<SaveButton onClick={async () => { if (await save()) setPanel('') }} loading={saving} disabled={!dirty}>{tx('Αποθήκευση', 'Save')}</SaveButton>}
+        >
         <section className="roster-panel roster-panel-rules" aria-label={tx('Άτομα ανά βάρδια & κανόνες', 'People per shift & rules')}>
           <div className="roster-col">
           <b className="roster-col-title">{tx('Άτομα ανά βάρδια', 'People per shift')}</b>
@@ -641,6 +649,15 @@ export function RostersPage() {
           </div>
           <div className="roster-others">
             <b>{tx('Άλλες βάρδιες του τμήματος', 'Other shifts of the department')}</b>
+            {customShifts(roster.demand).length > 0 && (
+              <div className="roster-other roster-other-head" aria-hidden="true">
+                <span />
+                <span />
+                <b>{tx('Καθημ.', 'Weekday')}</b>
+                <b>{tx('Σ/Κ', 'Weekend')}</b>
+                <span />
+              </div>
+            )}
             {customShifts(roster.demand).map(o => (
               <div key={o.code} className="roster-other">
                 <i className={`code-${kindOf(o.code)}`}>{o.code.split(':')[1]}</i>
@@ -849,6 +866,7 @@ export function RostersPage() {
                           <button
                             type="button"
                             className={`roster-need${hasShifts && have + extra < needed ? ' is-short' : ''}${own ? ' is-own' : ''}`}
+                            title={extra ? tx('Μαζί με τον προϊστάμενο', 'Head of the department included') : undefined}
                             disabled={!canEdit}
                             aria-label={`${CODES[s].name} ${fmtDay(d.date)}: ${have} ${tx('από', 'of')} ${needed}`}
                             onClick={event => {
@@ -858,8 +876,8 @@ export function RostersPage() {
                               setNeed({ date: d.date, shift: s, value: String(needed), top: Math.max(8, rect.top - 124), left: Math.min(rect.left, window.innerWidth - 230) })
                             }}
                           >
-                            {have}
-                            {extra > 0 && <span className="roster-need-extra">+{extra}</span>}/{needed}
+                            {/* The head counts on the shift like everyone else (owner, 9/11/2026). */}
+                            {have + extra}/{needed}
                           </button>
                         </td>
                       )

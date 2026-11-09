@@ -47,6 +47,11 @@ export async function loadRosterDepartments(organizationId) {
 // The head of the department: their position says so (Προϊστάμενος/η, Head of Department).
 export const isDepartmentHead = position => /προϊστάμεν|head of department/i.test(String(position || ''))
 
+// A physician (staff category, or a professional category that says so): the medical service, not the ward rota.
+export const isPhysician = e => e?.staffCategory === 'physician' || /ιατρ|physician|doctor/i.test(String(e?.profession || ''))
+// Inactive or on leave in the register.
+export const notAtWork = e => e?.employmentStatus === 'inactive' || e?.employmentStatus === 'leave'
+
 // The head first, always; then everyone else in the order the manager set (owner, 8/11/2026).
 export const headsFirst = members => [...members.filter(m => m.isHead), ...members.filter(m => !m.isHead)]
 
@@ -57,8 +62,10 @@ export async function loadDepartmentStaff(organizationId, department) {
   return headsFirst(
     employees
       .filter(e => (demo ? e.department === department.name : e.departmentId === department.id))
-      // Inactive employees of the register come in out of the roster, below (owner, 9/11/2026).
-      .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), userId: e.userId || null, inactiveInRegister: e.employmentStatus === 'inactive', active: e.employmentStatus !== 'inactive', fixed: {}, wishes: {} })),
+      // The medical service has its own rota: physicians are not in the department's shift roster (owner, 9/11/2026).
+      .filter(e => !isPhysician(e))
+      // Employees not at work in the register (inactive, on leave) come in out of the roster, below.
+      .map(e => ({ employeeId: e.dbId || e.id, name: `${e.lastName} ${e.firstName}`.trim(), profession: e.profession || '', isHead: isDepartmentHead(e.position), userId: e.userId || null, inactiveInRegister: notAtWork(e), active: !notAtWork(e), fixed: {}, wishes: {} })),
   )
 }
 
