@@ -26,9 +26,10 @@ import { ExcelFieldsDialog } from '../../design-system/ExcelFieldsDialog'
 import { EmployeeAvatar, useEmployeePhotoUrls } from './EmployeePhoto'
 import { STAFF_CATEGORIES, isStaffEmployee, staffCategoryLabel, staffCategoryOf } from './staffCategory'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
+import { loadDepartments } from '../management/departmentsService'
 
 export function EmployeesPage(){
-  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership,tenant}=useTenant()
+  const {t,language}=useLanguage(); const navigate=useNavigate(); const {canAccessRecord,role,membership,tenant,isDemo}=useTenant()
   const {data:employeeRows,loading,error,reload}=useEmployeesData()
   const registry=useRegistryMemory('employees')
   const {notify}=useFeedback()
@@ -43,8 +44,11 @@ export function EmployeesPage(){
   const lastVisitOf=useMemo(()=>{const latest=new Map();for(const v of visits){if(v.status!=='completed')continue;const prev=latest.get(v.employeeId);if(!prev||String(v.date)>String(prev.date))latest.set(v.employeeId,v)}return x=>latest.get(x.dbId)||latest.get(x.id)||null},[visits])
   const canImport=can(role,CAPABILITIES.MANAGE_STAFF_ADMIN,membership?.capabilities??[],membership?.customCapabilities??[])
   const [page,setPage]=useState(1); const [pageSize,setPageSize]=useState(15)
-  const departments=useMemo(()=>[...new Set(employeeRows.map(x=>language==='el'?x.department:x.departmentEn).filter(Boolean))],[employeeRows,language])
-  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||(language==='el'?x.department:x.departmentEn)===department).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)).filter(x=>category==='all'||staffCategoryOf(x)===category),[employeeRows,query,department,status,category,language,canAccessRecord])
+  // Every department of the hospital, also those without employees yet, and in alphabetical order (owner, 9/11/2026).
+  const [hospitalDepartments,setHospitalDepartments]=useState([])
+  useEffect(()=>{setHospitalDepartments([]);if(isDemo||!tenant?.id)return;let live=true;loadDepartments(tenant.id).then(rows=>{if(live)setHospitalDepartments((rows||[]).filter(row=>row.is_active!==false).map(row=>row.name))}).catch(()=>{if(live)setHospitalDepartments([])});return()=>{live=false}},[isDemo,tenant?.id])
+  const departments=useMemo(()=>{const names=new Map();for(const name of [...employeeRows.map(x=>language==='el'?x.department:x.departmentEn),...hospitalDepartments].filter(Boolean)){const key=String(name).trim().toLocaleLowerCase('el');if(!names.has(key))names.set(key,String(name).trim())}return [...names.values()].sort((a,b)=>a.localeCompare(b,language==='el'?'el':'en',{sensitivity:'base'}))},[employeeRows,language,hospitalDepartments])
+  const rows=useMemo(()=>employeeRows.filter(x=>canAccessRecord(x)).filter(x=>`${x.id} ${x.firstName} ${x.firstNameEn} ${x.lastName} ${x.lastNameEn} ${x.email}`.toLowerCase().includes(query.toLowerCase())).filter(x=>department==='all'||String((language==='el'?x.department:x.departmentEn)||'').trim().toLocaleLowerCase('el')===department.toLocaleLowerCase('el')).filter(x=>status==='all'||(status==='new'?isNewHire(x):x.employmentStatus===status)).filter(x=>category==='all'||staffCategoryOf(x)===category),[employeeRows,query,department,status,category,language,canAccessRecord])
   useEffect(()=>setPage(1),[query,department,status,category,pageSize])
   const photoUrls=useEmployeePhotoUrls(useMemo(()=>rows.slice((page-1)*pageSize,page*pageSize),[rows,page,pageSize]))
   if(loading)return <RouteLoading/>
