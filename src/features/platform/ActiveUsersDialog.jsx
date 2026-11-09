@@ -134,7 +134,7 @@ export function ActiveUsersDialog({ mode = 'single', organization, departments =
     <DialogActions
       onSave={() => void run(ready)}
       disabled={busy || !ready.length}
-      saveLabel={progress ? tx(`Δημιουργία ${progress.done}/${progress.total}…`, `Creating ${progress.done}/${progress.total}…`) : tx(`Δημιουργία ${ready.length} χρηστών`, `Create ${ready.length} users`)}
+      saveLabel={progress ? tx(`Δημιουργία ${progress.done}/${progress.total}…`, `Creating ${progress.done}/${progress.total}…`) : (ready.length === 1 ? tx('Δημιουργία 1 χρήστη', 'Create 1 user') : tx(`Δημιουργία ${ready.length} χρηστών`, `Create ${ready.length} users`))}
     />
   )
 
