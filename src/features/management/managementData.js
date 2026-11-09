@@ -301,7 +301,9 @@ const WARD_EN={ΜΕΘ:'ICU',Παθολογική:'Internal Medicine',Χειρο�
 export const demoPatientDayPeriods = (() => {
   const shift = Math.round(demoOffsetDays() / 30.4375)
   const today = new Date(), rows = []
-  for (let back = 12; back >= 0; back--) {
+  // From January 2025 on (owner, 9/11/2026), at least thirteen months.
+  const since2025 = Math.max(12, (today.getFullYear() - 2025) * 12 + today.getMonth())
+  for (let back = since2025; back >= 0; back--) {
     const first = new Date(Date.UTC(today.getFullYear(), today.getMonth() - back, 1))
     const month = first.toISOString().slice(0, 7), authored = shiftDemoMonth(month, -shift)
     const last = lastDayOfMonth(month), current = back === 0

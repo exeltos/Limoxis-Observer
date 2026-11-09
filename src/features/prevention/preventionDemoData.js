@@ -2,6 +2,7 @@ import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import {
   DEMO_HISTORY_MONTHS,
+  DEMO_HISTORY_LEAD,
   between,
   dayInMonth,
   demoMonthlyPatientDays,
@@ -771,7 +772,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
       0.93,
       Math.max(
         0.66,
-        0.71 + monthIndex * 0.014 + WARD_COMPLIANCE[wardIndex] + (rand() - 0.5) * 0.06,
+        0.71 + (monthIndex - DEMO_HISTORY_LEAD) * 0.014 + WARD_COMPLIANCE[wardIndex] + (rand() - 0.5) * 0.06,
       ),
     )
     const compliantCount = Math.round(count * rate)
@@ -857,7 +858,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
       if (hasMonthlyRow(antisepticRows, department, 'antisepticItemId', product.id, month)) continue
       const rand = seededRandom(`antiseptic|${month}|${department.id}|${product.id}`)
       const perThousand = product.metadata?.is_abhr
-        ? (department.id === 'dep-icu' ? 58 : 26) + monthIndex * 0.9 + rand() * 6
+        ? (department.id === 'dep-icu' ? 58 : 26) + (monthIndex - DEMO_HISTORY_LEAD) * 0.9 + rand() * 6
         : 12 + rand() * 6
       antisepticReference += 1
       antisepticRows.push(
@@ -897,7 +898,7 @@ DEMO_HISTORY_MONTHS.forEach((month, monthIndex) => {
   plan.forEach(([template, departmentId, context, day], index) => {
     if (month === '2026-08' && day > 20) return
     const rand = seededRandom(`bundle|${month}|${index}`)
-    const reliability = 0.84 + monthIndex * 0.009
+    const reliability = 0.84 + (monthIndex - DEMO_HISTORY_LEAD) * 0.009
     const answers = Object.fromEntries(
       template.rawElements.map(item => [
         item.id,
