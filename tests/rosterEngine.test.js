@@ -64,7 +64,9 @@ describe('generateRoster', () => {
       expect(codes).not.toMatch(/NNR[MIAN]/)
       expect(codes).not.toMatch(/AM/)
       expect(codes).not.toMatch(/[MI]N/)
-      expect(codes).not.toMatch(/[MIAN]{6}/)
+      // One stretch of six is allowed once in a roster (owner, 9/11/2026), never seven.
+      expect(codes).not.toMatch(/[MIAN]{7}/)
+      expect((codes.match(/[MIAN]{6}/g) || []).length).toBeLessThanOrEqual(1)
     }
   })
 
@@ -109,7 +111,11 @@ describe('checkRoster', () => {
   it('reads the end of the previous roster', () => {
     expect(check('MRR', ['N', 'N'])).toContain('restAfterNight')
     expect(check('MRR', ['N', 'N', 'R', 'R'])).toEqual([])
-    expect(check('MMMR', ['M', 'M', 'M'])).toContain('maxConsecutive')
+    expect(check('MMMMR', ['M', 'M', 'M'])).toContain('maxConsecutive')
+  })
+  it('allows one stretch of six in a roster, not two (owner, 9/11/2026)', () => {
+    expect(check('MMMR', ['M', 'M', 'M'])).not.toContain('maxConsecutive')
+    expect(check('MMMRMMMMMMR', ['M', 'M', 'M'])).toContain('maxConsecutive')
   })
   it('flags a week with fewer than two days off', () => {
     const rules = { minWeekendOff: 0 }
@@ -169,16 +175,19 @@ describe('days off around a leave (owner, 8/11/2026)', () => {
 })
 
 describe('exactly two days off in every Monday-Sunday week (owner, 9/11/2026)', () => {
-  it('gives every person two days off in every full week', () => {
+  it('gives every person two days off a week, a week of three and one at most once', () => {
     const p = periodDays('2026-11-21', '2026-12-20')
     const staff = Array.from({ length: 12 }, (_, index) => ({ id: `w${index}`, active: true }))
     staff[0] = { ...staff[0], extra: true, allowed: ['M'], noWeekends: true }
     const made = generateRoster({ days: p, employees: staff, demand: { weekday: { M: 2, A: 2, N: 2 }, weekend: { M: 2, A: 2, N: 2 } }, seed: 3 })
     const mondays = p.map((day, i) => (day.weekday === 1 && i + 6 < p.length ? i : -1)).filter((i) => i >= 0)
     for (const { id } of staff.slice(1)) {
-      for (const monday of mondays) expect(p.slice(monday, monday + 7).filter((day) => made.assignments[id][day.date] === 'R').length).toBe(2)
+      const weeks = mondays.map((monday) => p.slice(monday, monday + 7).filter((day) => made.assignments[id][day.date] === 'R').length)
+      expect(weeks.reduce((sum, count) => sum + count, 0)).toBe(2 * mondays.length)
+      expect(weeks.filter((count) => count !== 2).length).toBeLessThanOrEqual(2)
+      expect(Math.min(...weeks)).toBeGreaterThanOrEqual(1)
     }
-    expect(made.violations.filter((v) => !['weekendOff', 'coverage'].includes(v.rule))).toEqual([])
+    expect(made.violations.filter((v) => v.rule !== 'coverage')).toEqual([])
   })
 })
 

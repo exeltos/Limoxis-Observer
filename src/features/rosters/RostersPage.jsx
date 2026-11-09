@@ -113,11 +113,11 @@ export function RostersPage() {
     maxNights: tx('Πάνω από τις νύχτες που ορίστηκαν για το άτομο', 'More nights than set for the person'),
   }
   const RULE_LABELS = {
-    maxConsecutive: tx('Συνεχόμενες βάρδιες, έως', 'Shifts in a row, at most'),
+    maxConsecutive: tx('Συνεχόμενες βάρδιες, έως (μία φορά +1)', 'Shifts in a row, at most (once +1)'),
     maxConsecutiveNights: tx('Συνεχόμενες νύχτες, έως', 'Nights in a row, at most'),
     restAfterNight: tx('Ρεπό μετά από μία νύχτα', 'Days off after one night'),
     restAfterTwoNights: tx('Ρεπό μετά από δύο νύχτες', 'Days off after two nights'),
-    weeklyRestDays: tx('Ρεπό ανά εβδομάδα, τουλάχιστον', 'Days off a week, at least'),
+    weeklyRestDays: tx('Ρεπό ανά εβδομάδα (μία φορά 3 και 1)', 'Days off a week (once 3 and 1)'),
     minWeekendOff: tx('Ολόκληρα Σ/Κ ρεπό, τουλάχιστον', 'Whole weekends off, at least'),
   }
   const [departments, setDepartments] = useState([])
