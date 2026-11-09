@@ -34,10 +34,19 @@ function demoState() {
   const regulation = { id: 'reg-demo-infection', code: 'REG-01', title: template.title, category: template.category, description: '', templateKey: template.key, templateVersion: template.version, edition: 2, issuedOn: issued, approvedAt: `${issued}T10:00:00Z`, approvedByName: 'Διοίκηση Demo Hospital', content: approved, archived: false, updatedAt: `${issued}T10:00:00Z`, signatures }
   const waste = REGULATION_TEMPLATES[1]
   const wasteRegulation = { id: 'reg-demo-waste', code: 'REG-02', title: waste.title, category: waste.category, description: '', templateKey: waste.key, templateVersion: waste.version, edition: 0, issuedOn: '', approvedAt: '', approvedByName: '', content: { chapters: [] }, archived: false, updatedAt: new Date().toISOString() }
+  // Three more approved regulations, issued in 2025 and this year (owner, 9/11/2026: the Demo shows the whole of 2025).
+  const more = [['food_safety', 'reg-demo-food', 'REG-03', '2025-04-14', 'Η Διοίκηση ενέκρινε τον κανονισμό μετά από εισήγηση του Υπευθύνου Διατροφής.'], ['patient_safety', 'reg-demo-patient-safety', 'REG-04', '2025-09-22', 'Η Διοίκηση ενέκρινε τον κανονισμό μετά από εισήγηση της Επιτροπής Ποιότητας και Ασφάλειας Ασθενών.'], ['water_safety', 'reg-demo-water', 'REG-05', `${new Date().getFullYear()}-03-16`, 'Η Διοίκηση ενέκρινε το σχέδιο μετά από εισήγηση της Επιτροπής Νοσοκομειακών Λοιμώξεων και της Τεχνικής Υπηρεσίας.']].map(([key, id, code, issuedOn, note]) => {
+    const source = REGULATION_TEMPLATES.find(item => item.key === key)
+    const content = contentFromTemplate(source, { hospital: 'Demo Hospital' })
+    if (content.chapters[0]?.sections[0]) content.chapters[0].sections[0].html += `<p>${note}</p>`
+    for (const chapter of content.chapters) for (const section of chapter.sections) section.html = section.html.replace(/<p class="reg-fill">[^<]*<\/p>/g, '')
+    const signed = [{ role: 'administrator', name: 'Μ. Παπαδοπούλου', title: 'Διοικήτρια', image: '', signedAt: `${issuedOn}T09:00:00Z` }]
+    return { id, code, title: source.title, category: source.category, description: '', templateKey: source.key, templateVersion: source.version, edition: 1, issuedOn, approvedAt: `${issuedOn}T10:00:00Z`, approvedByName: 'Διοίκηση Demo Hospital', content, archived: false, updatedAt: `${issuedOn}T10:00:00Z`, signatures: signed }
+  })
   return {
     templates: structuredClone(REGULATION_TEMPLATES),
     templateVersions: REGULATION_TEMPLATES.map(item => ({ key: item.key, version: item.version, content: structuredClone(item.content), changeNote: item.changeNote })),
-    regulations: [regulation, wasteRegulation],
+    regulations: [regulation, wasteRegulation, ...more],
     drafts: { [wasteRegulation.id]: { content: contentFromTemplate(waste, { hospital: 'Demo Hospital' }), changeNote: '', revision: 1, updatedAt: new Date().toISOString() } },
     signatures: {},
     editions: {
@@ -45,6 +54,7 @@ function demoState() {
         { id: 'ed-demo-2', edition: 2, changeNote: 'Ενσωμάτωση του Προγράμματος «Προκρούστης» και νέοι στόχοι υγιεινής χεριών.', issuedOn: issued, approvedAt: `${issued}T10:00:00Z`, approvedByName: 'Διοίκηση Demo Hospital', templateVersion: 1, content: approved, signatures },
         { id: 'ed-demo-1', edition: 1, changeNote: 'Πρώτη έκδοση.', issuedOn: `${new Date().getFullYear() - 2}-03-01`, approvedAt: `${new Date().getFullYear() - 2}-03-01T10:00:00Z`, approvedByName: 'Διοίκηση Demo Hospital', templateVersion: 1, content: approved, signatures },
       ],
+      ...Object.fromEntries(more.map(item => [item.id, [{ id: `ed-${item.id.slice(4)}-1`, edition: 1, changeNote: 'Πρώτη έκδοση.', issuedOn: item.issuedOn, approvedAt: item.approvedAt, approvedByName: item.approvedByName, templateVersion: item.templateVersion, content: item.content, signatures: item.signatures }]])),
     },
   }
 }

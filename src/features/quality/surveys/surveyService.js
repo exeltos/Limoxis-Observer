@@ -56,20 +56,49 @@ function demoAnswers(questions, random, mood) {
 function demoState() {
   const today = new Date().toISOString().slice(0, 10)
   const year = today.slice(0, 4)
-  const inpatient = { ...surveyFromTemplate('wards', { hospital: 'Demo Hospital' }), id: 'srv-demo-inpatient', code: `SRV-${year}-01`, status: 'open', opensOn: addDays(today, -180), closesOn: addDays(today, 30), targetResponses: 300, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-inpatient-survey' }
+  // Open since the start of the year (owner, 9/11/2026: the Demo shows the whole of 2025 and this year).
+  const opensOn = `${year}-01-08`, openDays = Math.max(30, Math.round((Date.parse(today) - Date.parse(opensOn)) / 86400000))
+  const inpatient = { ...surveyFromTemplate('wards', { hospital: 'Demo Hospital' }), id: 'srv-demo-inpatient', code: `SRV-${year}-01`, status: 'open', opensOn, closesOn: addDays(today, 30), targetResponses: 300, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-inpatient-survey' }
   const staff = { ...surveyFromTemplate('staff'), id: 'srv-demo-staff', code: `SRV-${year}-02`, status: 'closed', opensOn: addDays(today, -120), closesOn: addDays(today, -90), targetResponses: 80, departmentIds: DEMO_DEPARTMENTS.map(item => item.id), publicToken: 'demo-staff-survey' }
   const random = seeded(20261108)
   const responses = []
   for (let index = 0; index < 214; index += 1) {
     const department = DEMO_DEPARTMENTS[Math.floor(random() * DEMO_DEPARTMENTS.length)]
     const mood = department.id === 'Χειρουργική' ? -0.35 : department.id === 'Μαιευτική' ? 0.3 : 0
-    responses.push({ id: `srvr-demo-${index}`, surveyId: inpatient.id, departmentId: department.id, channel: random() < 0.6 ? 'link' : random() < 0.5 ? 'tablet' : 'paper', submittedAt: `${addDays(today, -Math.floor(random() * 175))}T10:00:00Z`, answers: demoAnswers(inpatient.questions, random, mood) })
+    responses.push({ id: `srvr-demo-${index}`, surveyId: inpatient.id, departmentId: department.id, channel: random() < 0.6 ? 'link' : random() < 0.5 ? 'tablet' : 'paper', submittedAt: `${addDays(today, -Math.floor(random() * (openDays - 5)))}T10:00:00Z`, answers: demoAnswers(inpatient.questions, random, mood) })
   }
   for (let index = 0; index < 63; index += 1) {
     const department = DEMO_DEPARTMENTS[Math.floor(random() * DEMO_DEPARTMENTS.length)]
     responses.push({ id: `srvr-demo-staff-${index}`, surveyId: staff.id, departmentId: department.id, channel: 'link', submittedAt: `${addDays(staff.opensOn, Math.floor(random() * 30))}T09:00:00Z`, answers: demoAnswers(staff.questions, random, -0.2) })
   }
-  return { surveys: [inpatient, staff], responses }
+  const history = demoHistory(Number(year), today, random)
+  return { surveys: [inpatient, staff, ...history.surveys], responses: [...responses, ...history.responses] }
+}
+
+// The surveys of the earlier years since 2025 (the ward survey of the whole year, the yearly staff survey, the
+// kitchen and maternity surveys) and this year's kitchen and outpatient surveys, still open.
+function demoHistory(year, today, random) {
+  const surveys = [], responses = []
+  const all = DEMO_DEPARTMENTS.map(item => item.id)
+  const add = (template, id, code, status, opensOn, closesOn, count, departmentIds, mood = 0, target = count) => {
+    const survey = { ...surveyFromTemplate(template, { hospital: 'Demo Hospital' }), id, code, status, opensOn, closesOn, targetResponses: target, departmentIds, publicToken: `demo-${id.slice(9)}` }
+    const last = closesOn < today ? closesOn : today
+    const span = Math.max(1, Math.round((Date.parse(last) - Date.parse(opensOn)) / 86400000))
+    surveys.push(survey)
+    for (let index = 0; index < count; index += 1) {
+      const departmentId = departmentIds[Math.floor(random() * departmentIds.length)]
+      responses.push({ id: `srvr-${id.slice(4)}-${index}`, surveyId: id, departmentId, channel: template === 'staff' ? 'link' : random() < 0.6 ? 'link' : random() < 0.5 ? 'tablet' : 'paper', submittedAt: `${addDays(opensOn, Math.floor(random() * span))}T10:00:00Z`, answers: demoAnswers(survey.questions, random, mood + (departmentId === 'Χειρουργική' ? -0.3 : 0)) })
+    }
+  }
+  for (let past = 2025; past < year; past += 1) {
+    add('wards', `srv-demo-wards-${past}`, `SRV-${past}-01`, 'closed', `${past}-01-08`, `${past}-12-31`, 260, all, -0.1, 300)
+    add('maternity', `srv-demo-maternity-${past}`, `SRV-${past}-02`, 'closed', `${past}-03-01`, `${past}-12-31`, 96, ['Μαιευτική'], 0.25, 100)
+    add('kitchen', `srv-demo-kitchen-${past}`, `SRV-${past}-03`, 'closed', `${past}-05-05`, `${past}-06-30`, 72, all, -0.3, 80)
+    add('staff', `srv-demo-staff-${past}`, `SRV-${past}-04`, 'closed', `${past}-10-01`, `${past}-10-31`, 58, all, -0.3, 80)
+  }
+  if (`${year}-02-02` < today) add('kitchen', `srv-demo-kitchen-${year}`, `SRV-${year}-03`, 'open', `${year}-02-02`, `${year}-12-31`, 88, all, -0.2, 120)
+  if (`${year}-03-02` < today) add('outpatient', `srv-demo-outpatient-${year}`, `SRV-${year}-04`, 'open', `${year}-03-02`, `${year}-12-31`, 124, ['Παθολογική', 'Χειρουργική', 'Παιδιατρική'], 0, 200)
+  return { surveys, responses }
 }
 
 function local() {

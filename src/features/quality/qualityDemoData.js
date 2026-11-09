@@ -1,6 +1,7 @@
 import { emptyInPreview } from '../../core/preview/emptyPreview'
 import { shiftDemoDatesInPlace } from '../../core/data/demoClock'
 import { programmeAudits, programmeCapas, programmeFindings } from './audits/auditDemoData'
+import { DEMO_HISTORY_MONTHS, DEMO_WARDS, addDays, between, dayInMonth, pick, seededRandom } from '../../core/data/demoSeed'
 export const qualityIncidents=[
   {id:'INC-260827-004',title:'Καθυστέρηση εφαρμογής μέτρων απομόνωσης',titleEn:'Delay in applying isolation precautions',department:'ΜΕΘ',departmentEn:'ICU',date:'2026-08-27',severity:'high',status:'underReview',reportedBy:'Ν. Παπαδόπουλος',owner:'Υπεύθυνος Ποιότητας',description:'Καταγράφηκε καθυστέρηση στην εφαρμογή των απαιτούμενων μέτρων μετά από κρίσιμο εργαστηριακό αποτέλεσμα.',descriptionEn:'A delay was recorded in applying required precautions after a critical laboratory result.',linkedPatient:'PT-260184',linkedSurveillance:'SUR-260041',attachments:[],history:[{at:'2026-08-27T06:20:00+03:00',action:'incidentReported',actor:'Ν. Παπαδόπουλος'}]},
   {id:'INC-260826-009',title:'Αστοχία σήμανσης περιέκτη αποβλήτων',titleEn:'Waste container labelling failure',department:'Χειρουργική',departmentEn:'Surgery',date:'2026-08-26',severity:'medium',status:'closed',reportedBy:'Μ. Ιωάννου',owner:'Υπεύθυνος Ποιότητας',description:'Εντοπίστηκε λανθασμένη σήμανση σε περιέκτη αποβλήτων.',descriptionEn:'Incorrect labelling was identified on a waste container.',attachments:[],history:[{at:'2026-08-26T15:40:00+03:00',action:'incidentClosed',actor:'Υπεύθυνος Ποιότητας'}]},
@@ -95,6 +96,90 @@ qualityAudits.push(
  audit('AUD-2607-001','2026-07-09','ΤΕΠ','completed','Επιθεώρηση διαχείρισης αιχμηρών','Sharps management audit','Περιέκτες, συσκευές ασφαλείας και αναφορά εκθέσεων.','Containers, safety devices and exposure reporting.',['FND-2607-011']),
  audit('AUD-2609-002','2026-09-12','Καρδιολογική','planned','Επιθεώρηση περιφερικών φλεβικών καθετήρων','Peripheral venous catheter audit','Ημερομηνία τοποθέτησης, VIP score και ένδειξη.','Insertion date, VIP score and indication.',[]),
 )
+
+// The whole history month by month (owner, 9/11/2026: the Demo shows the whole
+// of 2025): three reports, an internal audit, its finding and the corrective
+// actions of every authored month (DEMO_HISTORY_MONTHS, from January 2025 as
+// shown). Seeded, so the same rows every time; codes numbered from 101.
+const INCIDENT_KINDS=[
+ ['ΜΕΘ','medium','noHarm','none','equipment','Συναγερμός monitor χωρίς ήχο','Monitor alarm without sound','Ο συναγερμός κορεσμού δεν ακουγόταν στον σταθμό· αλλαγή ρυθμίσεων έντασης.','The saturation alarm could not be heard at the station; volume settings changed.'],
+ ['Παθολογική','high','harmful','minor','clinical','Πτώση ασθενούς χωρίς σοβαρή κάκωση','Patient fall without serious injury','Ηλικιωμένος ασθενής έπεσε κατά τη μετακίνηση στο μπάνιο· εκδορά αγκώνα μετά από ιατρική εκτίμηση.','An elderly patient fell walking to the bathroom; an elbow graze after medical review.'],
+ ['Χειρουργική','low','nearMiss','none','identification','Ελλιπές βραχιόλι ταυτοποίησης','Incomplete identification band','Ασθενής μεταφέρθηκε στο χειρουργείο με βραχιόλι χωρίς ημερομηνία γέννησης· εντοπίστηκε στον έλεγχο.','A patient reached theatre with a band missing the date of birth; caught at the check.'],
+ ['ΤΕΠ','medium','noHarm','none','process','Καθυστέρηση διαλογής σε ώρα αιχμής','Triage delay at peak hours','Αναμονή 50 λεπτών για διαλογή λόγω ταυτόχρονων αφίξεων ασθενοφόρων.','A 50-minute wait for triage with several ambulances arriving at once.'],
+ ['Καρδιολογική','medium','nearMiss','none','medication','Παρ’ ολίγον διπλή δόση αντιπηκτικού','Near-miss double anticoagulant dose','Η δόση είχε ήδη χορηγηθεί στην προηγούμενη βάρδια· εντοπίστηκε στον διπλό έλεγχο.','The dose had already been given on the previous shift; caught at the double check.'],
+ ['Ορθοπαιδική','medium','harmful','minor','pressureinjury','Έλκος πίεσης 2ου σταδίου στη φτέρνα','Stage 2 heel pressure ulcer','Έλκος σε ασθενή με κάταγμα ισχίου· εφαρμόστηκε ειδικό στρώμα και πρόγραμμα αλλαγής θέσης.','An ulcer in a hip-fracture patient; pressure mattress and a turning schedule started.'],
+ ['Νεογνολογική / ΜΕΝΝ','high','noHarm','none','equipment','Βλάβη θερμοκοιτίδας','Incubator failure','Η θερμοκρασία της θερμοκοιτίδας έπεσε στους 34°C· το νεογνό μεταφέρθηκε άμεσα.','The incubator dropped to 34°C; the neonate was moved at once.'],
+ ['ΜΕΘ','high','harmful','moderate','infection','Πνευμονία σχετιζόμενη με αναπνευστήρα','Ventilator-associated pneumonia','VAP την 6η ημέρα μηχανικού αερισμού· ανασκόπηση της δέσμης VAP.','VAP on day 6 of ventilation; VAP bundle reviewed.'],
+ ['Παθολογική','low','noHarm','none','complaint','Παράπονο για θόρυβο τη νύχτα','Complaint about night-time noise','Ασθενής ανέφερε θόρυβο από τον διάδρομο μετά τις 23:00.','A patient reported corridor noise after 11 pm.'],
+ ['Χειρουργική','medium','noHarm','none','process','Αναβολή επέμβασης λόγω ελλιπούς νηστείας','Operation postponed for incomplete fasting','Ο ασθενής δεν είχε ενημερωθεί για τη νηστεία· η επέμβαση μετατέθηκε.','The patient had not been told to fast; the operation was moved.'],
+ ['ΤΕΠ','medium','noHarm','none','staff','Έκθεση προσωπικού σε βιολογικό υγρό','Staff exposure to body fluid','Πιτσίλισμα στο πρόσωπο νοσηλεύτριας χωρίς προστατευτικά γυαλιά.','A splash to a nurse’s face without eye protection.'],
+ ['Καρδιολογική','low','nearMiss','none','medication','Λάθος ετικέτα σε σύριγγα αμιωδαρόνης','Wrong label on an amiodarone syringe','Η σύριγγα είχε ετικέτα άλλου φαρμάκου· εντοπίστηκε πριν τη χορήγηση.','The syringe carried another drug’s label; caught before administration.'],
+ ['Ορθοπαιδική','low','noHarm','none','facility','Βλάβη ηλεκτρικής κλίνης','Electric bed failure','Η κλίνη δεν κατέβαινε· ο ασθενής μεταφέρθηκε σε άλλη κλίνη.','The bed would not lower; the patient was moved to another bed.'],
+ ['ΜΕΘ','medium','nearMiss','none','medication','Σύγχυση συγκεντρώσεων νοραδρεναλίνης','Noradrenaline concentration mix-up','Δύο διαφορετικές αραιώσεις στον ίδιο θάλαμο· εντοπίστηκε από τη νοσηλεύτρια.','Two dilutions in the same room; caught by the nurse.'],
+ ['Νεογνολογική / ΜΕΝΝ','medium','nearMiss','none','identification','Μπέρδεμα ετικέτας μητρικού γάλακτος','Breast milk label mix-up','Φιάλη γάλακτος με όνομα άλλου νεογνού· εντοπίστηκε στον έλεγχο πριν τη σίτιση.','A milk bottle labelled for another baby; caught before feeding.'],
+ ['Παθολογική','high','harmful','moderate','infection','Διάρροια από C. difficile','C. difficile diarrhoea','Νοσοκομειακή λοίμωξη C. difficile· απομόνωση επαφής και ανασκόπηση αντιβιοτικών.','Hospital-onset C. difficile; contact isolation and antibiotic review.'],
+ ['Χειρουργική','critical','harmful','major','clinical','Ξένο σώμα μετά από επέμβαση','Retained item after surgery','Γάζα εντοπίστηκε σε ακτινογραφία μετά τη σύγκλειση· επανεπέμβαση.','A swab was seen on X-ray after closure; reoperation.'],
+ ['ΤΕΠ','low','noHarm','none','security','Απώλεια προσωπικών αντικειμένων ασθενούς','Patient belongings lost','Τα προσωπικά αντικείμενα δεν καταγράφηκαν κατά την εισαγωγή.','The belongings were not listed on admission.'],
+ ['Καρδιολογική','medium','harmful','minor','clinical','Αιμάτωμα στο σημείο παρακέντησης','Haematoma at the puncture site','Αιμάτωμα μετά από στεφανιογραφία· συμπίεση και παρακολούθηση.','A haematoma after coronary angiography; compression and monitoring.'],
+ ['Ορθοπαιδική','medium','noHarm','none','equipment','Ελλιπές σετ εργαλείων στο χειρουργείο','Incomplete instrument set in theatre','Έλειπε εργαλείο από το σετ· καθυστέρηση 20 λεπτών.','An instrument was missing from the set; a 20-minute delay.'],
+]
+const AUDIT_KINDS=[
+ ['Επιθεώρηση υγιεινής χεριών','Hand hygiene audit','Παρατήρηση των 5 Στιγμών του ΠΟΥ σε όλες τις βάρδιες.','Observation of the WHO 5 Moments on every shift.','Παράλειψη υγιεινής χεριών μετά την επαφή με το περιβάλλον','Hand hygiene missed after touching the surroundings','Συμμόρφωση 71% στη Στιγμή 5 (στόχος ≥ 80%).','71% compliance with Moment 5 (target ≥ 80%).','procedure',['human_error','method']],
+ ['Επιθεώρηση δέσμης κεντρικών γραμμών','Central line bundle audit','Ένδειξη, επίθεμα και τεκμηρίωση κεντρικών γραμμών.','Indication, dressing and documentation of central lines.','Επίθεμα κεντρικής γραμμής χωρίς ημερομηνία','Central line dressing without a date','Σε 3 από 12 γραμμές το επίθεμα δεν είχε ημερομηνία αλλαγής.','In 3 of 12 lines the dressing had no change date.','procedure',['procedure','human_error']],
+ ['Επιθεώρηση δέσμης ουροκαθετήρων','Urinary catheter bundle audit','Ένδειξη, κλειστό σύστημα και θέση ουροσυλλέκτη.','Indication, closed system and bag position.','Ουροσυλλέκτης στο δάπεδο','Urine bag on the floor','Δύο ουροσυλλέκτες ακουμπούσαν στο δάπεδο.','Two urine bags were resting on the floor.','procedure',['equipment','human_error']],
+ ['Επιθεώρηση καθαριότητας θαλάμων','Room cleaning audit','Έλεγχος επιφανειών υψηλής επαφής με φθορίζουσα σήμανση.','Fluorescent marker check of high-touch surfaces.','Ελλιπής καθαρισμός επιφανειών υψηλής επαφής','Incomplete cleaning of high-touch surfaces','Η σήμανση παρέμεινε σε 4 από 20 επιφάνειες.','The marker remained on 4 of 20 surfaces.','procedure',['method','supplier']],
+ ['Επιθεώρηση διαχείρισης αιχμηρών','Sharps management audit','Περιέκτες, συσκευές ασφαλείας και αναφορά εκθέσεων.','Containers, safety devices and exposure reporting.','Περιέκτης αιχμηρών χωρίς ημερομηνία ενεργοποίησης','Sharps container without an activation date','Τρεις περιέκτες χωρίς ημερομηνία και τμήμα.','Three containers without a date and ward.','material',['material']],
+ ['Επιθεώρηση ψυκτικής αλυσίδας φαρμάκων','Medication cold-chain audit','Ψυγεία φαρμάκων, καταγραφές θερμοκρασίας και συναγερμοί.','Medication fridges, temperature logs and alarms.','Κενά στην καταγραφή θερμοκρασίας ψυγείου','Gaps in the fridge temperature log','Λείπουν καταγραφές 4 ημερών του μήνα.','Four days of the month are missing from the log.','procedure',['human_error']],
+ ['Επιθεώρηση ταυτοποίησης ασθενών','Patient identification audit','Βραχιόλια ταυτοποίησης και διπλή επιβεβαίωση πριν από πράξεις.','Identification bands and two identifiers before procedures.','Ασθενείς χωρίς βραχιόλι ταυτοποίησης','Patients without an identification band','2 από 25 ασθενείς χωρίς βραχιόλι.','2 of 25 patients without a band.','procedure',['procedure']],
+ ['Επιθεώρηση τροχήλατου ανάνηψης','Resuscitation trolley audit','Πληρότητα, λήξεις και καθημερινός έλεγχος απινιδωτή.','Contents, expiry dates and the daily defibrillator check.','Ληγμένα υλικά στο τροχήλατο ανάνηψης','Expired items on the resuscitation trolley','Δύο αμπούλες αδρεναλίνης είχαν λήξει.','Two adrenaline ampoules had expired.','material',['material','procedure']],
+ ['Επιθεώρηση νοσηλευτικού φακέλου','Nursing record audit','Πληρότητα αξιολογήσεων κινδύνου κατά την εισαγωγή.','Completeness of risk assessments on admission.','Ελλιπής αξιολόγηση κινδύνου πτώσης','Fall risk assessment missing','Σε 5 από 20 φακέλους λείπει η κλίμακα Morse.','The Morse scale is missing in 5 of 20 records.','procedure',['procedure','method']],
+ ['Επιθεώρηση διαχείρισης αποβλήτων','Healthcare waste audit','Διαχωρισμός, σήμανση και προσωρινή αποθήκευση αποβλήτων.','Segregation, labelling and temporary storage of waste.','Λανθασμένος διαχωρισμός αποβλήτων','Wrong waste segregation','Αστικά απόβλητα σε περιέκτη ΕΑΑΜ.','General waste in an infectious-waste container.','procedure',['method']],
+ ['Επιθεώρηση χρήσης ΜΑΠ','PPE use audit','Επιλογή, ένδυση και αφαίρεση ΜΑΠ σε θαλάμους απομόνωσης.','Choice, donning and doffing of PPE in isolation rooms.','Λάθος σειρά αφαίρεσης ΜΑΠ','Wrong PPE doffing order','Σε 3 από 10 παρατηρήσεις τα γάντια αφαιρέθηκαν μετά την ποδιά.','In 3 of 10 observations gloves came off after the gown.','procedure',['human_error','method']],
+ ['Επιθεώρηση δέσμης SSI','SSI bundle audit','Προεγχειρητική προετοιμασία και αντιμικροβιακή προφύλαξη.','Preoperative preparation and antimicrobial prophylaxis.','Προφύλαξη εκτός χρονικού παραθύρου','Prophylaxis outside the time window','Σε 2 από 15 επεμβάσεις η κεφαζολίνη δόθηκε πάνω από 60 λεπτά πριν την τομή.','In 2 of 15 operations cefazolin was given over 60 minutes before incision.','procedure',['procedure','method']],
+]
+const CAPA_TEXT=[['Επανεκπαίδευση του προσωπικού του τμήματος','Refresher training for the ward staff','Σύντομη εκπαίδευση στη βάρδια και επαναληπτικός έλεγχος σε 4 εβδομάδες.','Short on-shift training and a recheck after 4 weeks.'],['Αναθεώρηση της οδηγίας εργασίας','Work instruction revised','Νέα έκδοση της οδηγίας και ενημέρωση όλων των βαρδιών.','A new version of the instruction, briefed to every shift.'],['Λίστα ελέγχου βάρδιας','Shift checklist','Καθημερινή λίστα ελέγχου με υπογραφή του υπευθύνου βάρδιας.','A daily checklist signed by the shift lead.'],['Αντικατάσταση και συντήρηση εξοπλισμού','Equipment replaced and serviced','Αντικατάσταση του εξοπλισμού και πρόγραμμα προληπτικής συντήρησης.','Equipment replaced and a preventive maintenance schedule set.']]
+const DEPT_LEAD={ΜΕΘ:'Προϊστάμενος ΜΕΘ',Παθολογική:'Προϊστάμενος Παθολογικής',Χειρουργική:'Προϊστάμενος Χειρουργικής',ΤΕΠ:'Διευθυντής ΤΕΠ',Καρδιολογική:'Προϊστάμενος Καρδιολογικής','Νεογνολογική / ΜΕΝΝ':'Υπεύθυνος ΜΕΝΝ',Ορθοπαιδική:'Διευθυντής Ορθοπαιδικής'}
+const HISTORY_REPORTERS=['Νοσηλευτής/τρια βάρδιας','Link Nurse τμήματος','Εφημερεύων ιατρός','Προϊστάμενος βάρδιας','Νοσηλευτής/τρια Λοιμώξεων']
+const AUTHORED_TODAY='2026-08-29'
+const yymm=month=>month.slice(2,4)+month.slice(5,7)
+let historySeq=100
+DEMO_HISTORY_MONTHS.forEach((month,monthIndex)=>{
+ const rand=seededRandom(`quality-history|${month}`)
+ const age=DEMO_HISTORY_MONTHS.length-1-monthIndex // 0 = the authored current month
+ const capaFor=(sourceType,sourceId,department,date,severity,text)=>{
+  historySeq+=1
+  const due=addDays(date,between(rand,28,45)),done=due<addDays(AUTHORED_TODAY,-20)
+  const status=done?'closed':due<AUTHORED_TODAY?pick(rand,['inProgress','verification']):pick(rand,['open','inProgress'])
+  const [title,titleEn,description,descriptionEn]=text
+  return capa(`CAPA-${yymm(month)}-${historySeq}`,sourceType,sourceId,department,DEPT_LEAD[department],due,status,severity==='low'?'low':severity==='medium'?'medium':'high',pick(rand,['corrective','corrective','preventive']),title,titleEn,description,descriptionEn,addDays(due,60),done?pick(rand,['effective','effective','notEffective']):'pending',addDays(date,1))
+ }
+ // Three reports a month across the wards.
+ for(let n=0;n<3;n++){
+  const [department,severity,incidentClass,impact,category,title,titleEn,description,descriptionEn]=pick(rand,INCIDENT_KINDS)
+  const date=dayInMonth(month,between(rand,2+n*9,9+n*9))
+  const status=age>=3?'closed':age===2?pick(rand,['closed','closed','underReview']):pick(rand,['reported','underReview','closed'])
+  historySeq+=1
+  const id=`INC-${date.slice(2,4)}${date.slice(5,7)}${date.slice(8,10)}-${historySeq}`
+  qualityIncidents.push(incident(id,date,department,severity,status,incidentClass,impact,category,title,titleEn,description,descriptionEn,pick(rand,HISTORY_REPORTERS),'Υπεύθυνος Ποιότητας'))
+  if(['high','critical'].includes(severity))qualityCapas.push(capaFor('incident',id,department,date,severity,pick(rand,CAPA_TEXT)))
+ }
+ // One internal audit a month; it finds one deviation, which gets its corrective action unless minor.
+ const [title,titleEn,scope,scopeEn,findingTitle,findingTitleEn,findingText,findingTextEn,deviationKind,causeCategories]=AUDIT_KINDS[(monthIndex*5)%AUDIT_KINDS.length]
+ const department=DEMO_WARDS[(monthIndex*3)%DEMO_WARDS.length]
+ const auditDate=dayInMonth(month,between(rand,6,24))
+ historySeq+=1
+ const auditId=`AUD-${yymm(month)}-${historySeq}`
+ const findingIds=[]
+ {
+  historySeq+=1
+  const findingId=`FND-${yymm(month)}-${historySeq}`,severity=pick(rand,['low','medium','medium','high'])
+  const status=age>=4?'closed':age>=2?pick(rand,['closed','inProgress']):pick(rand,['open','inProgress'])
+  qualityFindings.push({...finding(findingId,auditDate,department,'audit',auditId,severity,status,DEPT_LEAD[department],findingTitle,findingTitleEn,findingText,findingTextEn),deviationKind,causeCategories,recurring:rand()<0.2,reportedBy:'Ομάδα επιθεώρησης',rootCause:''})
+  findingIds.push(findingId)
+  if(severity!=='low')qualityCapas.push(capaFor('finding',findingId,department,auditDate,severity,pick(rand,CAPA_TEXT)))
+ }
+ qualityAudits.push(audit(auditId,auditDate,department,'completed',`${title} — ${department}`,`${titleEn} — ${DEPT_EN[department]}`,scope,scopeEn,findingIds))
+})
 
 // Dates follow today (src/core/data/demoClock.js).
 // Phase 2 of the Quality Center: an improvement idea next to the incidents,

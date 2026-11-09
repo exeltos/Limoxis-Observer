@@ -22,14 +22,39 @@ function demoReviews() {
     objectives: 'Παρουσιάστηκαν οι στόχοι του έτους και τα αποτελέσματα των δεικτών.',
     conclusions: 'Το Σύστημα Διαχείρισης Ποιότητας παραμένει κατάλληλο, επαρκές και αποτελεσματικό.',
   }
-  return [{
+  const latest = {
     id: 'mr-demo-1', code: `MR-${reviewDate.slice(0, 4)}-01`, title: 'Ανασκόπηση Διοίκησης', reviewDate, periodFrom: addDays(reviewDate, -90), periodTo: reviewDate, frequencyDays: 90, nextReviewDate: addDays(reviewDate, 90), status: 'approved', summary: 'Το σύστημα λειτουργεί αποτελεσματικά· προτεραιότητα η εκπαίδευση του προσωπικού.', approvedAt: `${reviewDate}T12:00:00Z`, approvedByLabel: 'Διευθυντής Κλινικής',
     sections: REVIEW_SECTIONS.map((section, position) => ({ key: section.key, position, title: section.title, body: text[section.key] || '' })),
     actions: [{ id: 'mra-1', position: 0, sectionKey: 'resources', title: 'Πρόγραμμα εκπαίδευσης νέου νοσηλευτικού προσωπικού', ownerLabel: 'Διεύθυνση Νοσηλευτικής', dueDate: addDays(reviewDate, 60), status: 'open' }, { id: 'mra-2', position: 1, sectionKey: 'improvements', title: 'Μετάβαση των μητρώων τμημάτων στην πλατφόρμα', ownerLabel: 'Ομάδα Ποιότητας', dueDate: addDays(reviewDate, 30), status: 'done' }],
     participants: ['Διευθυντής Κλινικής', 'Υπεύθυνος Ποιότητας', 'Διευθύντρια Νοσηλευτικής', 'Ιατρός Λοιμώξεων'].map((role, position) => ({ id: `mrp-${position}`, position, name: role, role, attended: true, signedAt: `${reviewDate}T12:00:00Z` })),
-  }]
+  }
+  // The reviews before it, every three months since March 2025 (owner, 9/11/2026: the Demo shows the whole of 2025),
+  // each approved with its decisions; codes numbered within the year, oldest first.
+  const earlier = []
+  for (let index = 0; ; index += 1) {
+    const date = new Date(Date.UTC(2025, 2 + index * 3, 20)).toISOString().slice(0, 10)
+    if (date > addDays(reviewDate, -45)) break
+    const [focus, action, owner] = EARLIER_REVIEW_FOCUS[index % EARLIER_REVIEW_FOCUS.length]
+    const body = { ...text, objectives: date.slice(5, 7) === '12' ? `Απολογισμός των στόχων ${date.slice(0, 4)}: οι περισσότεροι επιτεύχθηκαν· η ικανοποίηση ασθενών κοντά στον στόχο.` : text.objectives, improvements: focus }
+    earlier.push({
+      id: `mr-demo-${date.slice(0, 7)}`, code: '', title: 'Ανασκόπηση Διοίκησης', reviewDate: date, periodFrom: addDays(date, -90), periodTo: date, frequencyDays: 90, nextReviewDate: addDays(date, 90), status: 'approved', summary: `Το σύστημα λειτουργεί αποτελεσματικά· προτεραιότητα: ${focus.charAt(0).toLowerCase()}${focus.slice(1)}`, approvedAt: `${date}T12:00:00Z`, approvedByLabel: 'Διευθυντής Κλινικής',
+      sections: REVIEW_SECTIONS.map((section, position) => ({ key: section.key, position, title: section.title, body: body[section.key] || '' })),
+      actions: [{ id: `mra-${date.slice(0, 7)}-1`, position: 0, sectionKey: 'improvements', title: action, ownerLabel: owner, dueDate: addDays(date, 60), status: 'done' }, { id: `mra-${date.slice(0, 7)}-2`, position: 1, sectionKey: 'resources', title: 'Ενημέρωση του προγράμματος εκπαίδευσης', ownerLabel: 'Υπεύθυνος Εκπαίδευσης', dueDate: addDays(date, 45), status: 'done' }],
+      participants: ['Διευθυντής Κλινικής', 'Υπεύθυνος Ποιότητας', 'Διευθύντρια Νοσηλευτικής', 'Ιατρός Λοιμώξεων'].map((role, position) => ({ id: `mrp-${date.slice(0, 7)}-${position}`, position, name: role, role, attended: position !== 3 || index % 2 === 0, signedAt: `${date}T12:00:00Z` })),
+    })
+  }
+  const codes = []
+  for (const review of [...earlier, latest]) { review.code = nextCode('MR', codes, Number(review.reviewDate.slice(0, 4))); codes.push(review.code) }
+  return [latest, ...earlier.reverse()]
 }
-const demoObjectives = () => [
+const EARLIER_REVIEW_FOCUS = [
+  ['Η εκπαίδευση του νέου προσωπικού στην υγιεινή χεριών.', 'Εισαγωγική εκπαίδευση υγιεινής χεριών για κάθε νέο συνάδελφο', 'Νοσηλευτική Διεύθυνση'],
+  ['Η μείωση των πτώσεων ασθενών στην Παθολογική.', 'Αξιολόγηση κινδύνου πτώσης σε κάθε εισαγωγή', 'Προϊστάμενος Παθολογικής'],
+  ['Η ψηφιακή καταγραφή των ελέγχων των τμημάτων.', 'Μετάβαση των ελέγχων των τμημάτων στην πλατφόρμα', 'Ομάδα Ποιότητας'],
+  ['Η προετοιμασία της επιθεώρησης πιστοποίησης.', 'Πρόγραμμα εσωτερικών επιθεωρήσεων του έτους', 'Υπεύθυνος Ποιότητας'],
+]
+const demoObjectives = () => [...currentObjectives(), ...pastObjectives()]
+const currentObjectives = () => [
   { id: 'qo-demo-1', code: `QO-${new Date().getFullYear()}-01`, year: new Date().getFullYear(), title: 'Μέση διάρκεια νοσηλείας ΜΕΝΝ έως 12 ημέρες', titleEn: 'Mean NICU length of stay up to 12 days', registerId: 'reg-demo-nicu', indicatorKey: 'mean_los', target: 12, direction: 'lower', unit: 'ημέρες', ownerLabel: 'Διευθυντής ΜΕΝΝ', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
   { id: 'qo-demo-2', code: `QO-${new Date().getFullYear()}-02`, year: new Date().getFullYear(), title: 'Αποκλειστικός μητρικός θηλασμός ≥ 50%', titleEn: 'Exclusive breastfeeding ≥ 50%', registerId: 'reg-demo-nicu', indicatorKey: 'breast_milk', target: 50, direction: 'higher', unit: '%', ownerLabel: 'Προϊσταμένη ΜΕΝΝ', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
   { id: 'qo-demo-3', code: `QO-${new Date().getFullYear()}-03`, year: new Date().getFullYear(), level: 'hospital', title: 'Ικανοποίηση ασθενών ≥ 90%', titleEn: 'Patient satisfaction ≥ 90%', target: 90, direction: 'higher', unit: '%', ownerLabel: 'Υπεύθυνος Ποιότητας', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
@@ -38,10 +63,29 @@ const demoObjectives = () => [
   { id: 'qo-demo-5', code: `QO-${new Date().getFullYear()}-05`, year: new Date().getFullYear(), level: 'hospital', title: 'Πλήρης συμμόρφωση σε δέσμες μέτρων ≥ 90%', titleEn: 'Full bundle compliance ≥ 90%', platformIndicatorKey: 'bundle-all-or-none', target: 90, direction: 'higher', unit: '%', ownerLabel: 'Επιτροπή Λοιμώξεων', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
   { id: 'qo-demo-6', code: `QO-${new Date().getFullYear()}-06`, year: new Date().getFullYear(), level: 'hospital', title: 'Ολοκλήρωση εκπαίδευσης ≥ 90%', titleEn: 'Training completion ≥ 90%', platformIndicatorKey: 'training', target: 90, direction: 'higher', unit: '%', ownerLabel: 'Υπεύθυνος Εκπαίδευσης', dueDate: `${new Date().getFullYear()}-12-31`, status: 'active' },
 ]
-// A few months of the patient satisfaction objective, entered by its owner.
+// The same objectives in every earlier year since 2025 (owner, 9/11/2026: the Demo shows the whole of 2025), so
+// the year's file for the auditor has its objectives and their months.
+const PAST_TARGETS = { 'qo-demo-1': 13, 'qo-demo-2': 45, 'qo-demo-4': 75, 'qo-demo-5': 85, 'qo-demo-6': 85 }
+const pastObjectives = () => {
+  const rows = []
+  for (let year = 2025; year < new Date().getFullYear(); year += 1) {
+    for (const objective of currentObjectives()) {
+      const target = PAST_TARGETS[objective.id] ?? objective.target
+      const n = objective.code.slice(-2)
+      const title = objective.title.replace(String(objective.target), String(target)), titleEn = objective.titleEn.replace(String(objective.target), String(target))
+      rows.push({ ...objective, id: `${objective.id}-${year}`, code: `QO-${year}-${n}`, year, title, titleEn, target, dueDate: `${year}-12-31` })
+    }
+  }
+  return rows
+}
+// A few months of the patient satisfaction objective, entered by its owner (every month of the earlier years).
 const demoObjectiveValues = () => {
   const year = new Date().getFullYear(), last = new Date().getMonth()
-  return [91, 93, 90, 88, 92, 94, 91, 89, 93, 92, 90, 91].slice(0, Math.max(1, last)).map((value, index) => ({ id: `qov-demo-${index + 1}`, objectiveId: 'qo-demo-3', month: `${year}-${String(index + 1).padStart(2, '0')}-01`, value }))
+  const rows = [91, 93, 90, 88, 92, 94, 91, 89, 93, 92, 90, 91].slice(0, Math.max(1, last)).map((value, index) => ({ id: `qov-demo-${index + 1}`, objectiveId: 'qo-demo-3', month: `${year}-${String(index + 1).padStart(2, '0')}-01`, value }))
+  for (let past = 2025; past < year; past += 1) {
+    rows.push(...[87, 89, 86, 88, 90, 91, 88, 85, 89, 90, 92, 91].map((value, index) => ({ id: `qov-demo-${past}-${index + 1}`, objectiveId: `qo-demo-3-${past}`, month: `${past}-${String(index + 1).padStart(2, '0')}-01`, value })))
+  }
+  return rows
 }
 function local(key, seed) {
   const rows = loadSnapshot(key, null)
