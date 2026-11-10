@@ -1026,10 +1026,10 @@
 /* Canonical category tabs: one platform pattern.
    This is the single source of truth for .canonical-module-tabs geometry —
    do not add another versioned override block; edit this one in place. */
+.canonical-module-tabs.tabs:not(:where(:has(+:is(.platform-registry-shell,.registry-workspace,.management-shell)))){margin:0!important}
 .canonical-module-tabs.tabs{
  width:100%!important;
  max-width:none!important;
- margin:0!important;
  padding:10px 12px!important;
  display:flex!important;
  align-items:center!important;
@@ -3556,7 +3556,7 @@ button:disabled,
 }
 
 /* One shared white frame for every tabbed registry (Prevention, Surveillance and future modules). */
-.registry-workspace.surface{
+.registry-workspace.surface:not(:where(.canonical-module-tabs+.registry-workspace,.entity-record-body>.workspace-column.workspace-fill>.registry-workspace,.platform-owner-record-shell .registry-workspace)){
   border:1px solid var(--line)!important;
   border-radius:11px!important;
   background:#fff!important;

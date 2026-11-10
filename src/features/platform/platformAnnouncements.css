@@ -30,6 +30,7 @@
 @media(max-width:760px){.platform-announcement-editor{grid-template-columns:minmax(0,1fr)}}
 /* The maintenance message: a separate, pinned item above the announcements. */
 .platform-maintenance-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;width:100%;margin:0 0 12px;padding:12px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.platform-registry-shell>.platform-maintenance-item{margin:0;border:0;border-bottom:1px solid var(--lo-color-border);border-radius:0}
 .platform-maintenance-item:hover{border-color:color-mix(in srgb,var(--lo-color-primary) 35%,var(--lo-color-border))}
 .platform-maintenance-item:disabled{cursor:default;opacity:.7}
 .platform-maintenance-item-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}

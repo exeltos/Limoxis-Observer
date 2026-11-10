@@ -343,7 +343,7 @@
   min-height:0;
   flex:1 1 auto;
   flex-direction:column;
-  gap:10px;
+  gap:0;
 }
 .platform-registry-card{
   flex:1 1 auto;min-height:0;overflow:hidden;padding:0;
@@ -389,7 +389,14 @@
 
 /* Records */
 .platform-owner-record-shell{min-height:0;height:100%}
-.platform-owner-record-shell>.entity-record-body{padding:0;background:transparent}
+.platform-owner-record-shell>.entity-record-body{padding:0}
+/* A list embedded in a record tab is not a second card: the record panel is the frame, the toolbar and table sit inside it. */
+:is(.entity-record-body>.workspace-column.workspace-fill>.registry-workspace,.platform-owner-record-shell .registry-workspace){border:0;border-radius:0;background:transparent;box-shadow:none}
+/* One frame per record: the tab strip and the panel below are a single card, one hairline between them. */
+.platform-owner-record-shell>.entity-record-header{margin-bottom:8px}
+.platform-owner-record-shell>.entity-record-tabs{border:1px solid var(--lo-color-border);border-radius:10px 10px 0 0;background:var(--lo-color-surface)}
+.platform-owner-record-shell>.entity-record-body{border:1px solid var(--lo-color-border);border-top:0;border-radius:0 0 10px 10px;background:var(--lo-color-surface)}
+.platform-owner-record-shell>.entity-record-header+.entity-record-body{border-top:1px solid var(--lo-color-border);border-radius:10px}
 .platform-owner-details,.platform-owner-users{min-height:0;overflow:auto;padding:11px 13px 13px}
 /* Owner records use the shared summary cards; keep room before the form below. */
 .platform-owner-details>.module-summary-strip{margin:0 0 12px}
@@ -397,6 +404,12 @@
 .platform-demo-record-status{display:flex;align-items:center;gap:9px;margin-bottom:9px;padding:8px 10px;border:1px solid var(--lo-color-border);border-radius:9px;background:color-mix(in srgb,var(--lo-color-surface) 97%,var(--lo-shell-control-hover))}
 .platform-demo-record-status>div{display:grid;gap:2px}.platform-demo-record-status strong{font-size:11px}.platform-demo-record-status span{font-size:9.75px;color:var(--lo-color-muted)}
 .diagnostics-table-wrap{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+/* On the owner list screens the shell is the frame: the table block inside it has no border or radius of its own. */
+.management-shell :is(.scroll-table,.table-wrap){border:0;border-radius:0}
+/* Under a tab row the tab underline is the one line: the list frame continues from it without a second top border or gap. */
+.canonical-module-tabs:has(+:is(.platform-registry-shell,.registry-workspace,.management-shell)){margin-bottom:-12px}
+:is(.page,.page-fill)>.canonical-module-tabs+:is(.platform-registry-shell,.registry-workspace,.management-shell){border:1px solid var(--lo-color-border);border-top:0;border-radius:0 0 14px 14px;background:var(--lo-color-surface);overflow:hidden}
+.platform-registry-shell>:is(.platform-registry-card,.diagnostics-table-wrap){margin:0;border:0;border-radius:0;box-shadow:none}
 
 /* User registry inside organization */
 
@@ -683,9 +696,9 @@
    This file is intentionally loaded last so feature-specific CSS cannot fragment
    the primary registry appearance again. */
 
-.page-fill>.registry-workspace,
+.page-fill>.registry-workspace:not(:where(.canonical-module-tabs+.registry-workspace)),
 .page-fill>.patient-registry-shell,
-.page>.platform-registry-shell,
+.page>.platform-registry-shell:not(:where(.canonical-module-tabs+.platform-registry-shell)),
 .laboratory-registry-page>.lab-registry-shell,
 .controls-page>.controls-surface{
   border:1px solid var(--lo-color-border)!important;
@@ -711,6 +724,8 @@
 }
 
 .indicators-page>.registry-workspace>.scroll-table,
+.entity-record-body>.workspace-column.workspace-fill>.registry-workspace>.scroll-table,
+.platform-owner-record-shell .registry-workspace .scroll-table,
 .page-fill>.registry-workspace>.scroll-table,
 .page-fill>.patient-registry-shell>.scroll-table,
 .page>.platform-registry-shell .scroll-table,
