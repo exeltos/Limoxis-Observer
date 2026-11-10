@@ -1,29 +1,11 @@
-/* Platform Settings: two-column workspace (forms + scope aside), full page width. */
-html body .platform-settings-page{max-width:none;width:100%;height:auto;overflow:visible}
-.platform-settings-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
-.platform-settings-main{display:grid;gap:16px;min-width:0}
-.platform-settings-card{padding:18px 20px;min-width:0}
-.platform-settings-card .lo-card-header{margin-bottom:16px}
-.platform-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
-.platform-settings-page .platform-settings-message-field{grid-column:1/-1}
-.platform-settings-page .platform-settings-grid .field>span{font-size:12px;font-weight:650;color:#3b4a5a}
-.platform-settings-page .platform-settings-grid .field-hint{font-size:11.5px}
-.platform-settings-page .platform-settings-duration-control{max-width:none!important}
-.platform-settings-preview{margin-top:16px;padding-top:14px;border-top:1px solid var(--lo-color-border);display:grid;gap:8px}
-.platform-settings-preview-label{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--lo-color-muted)}
+/* The platform settings where they are used: the Demo / Organizations settings dialogs and the maintenance message
+   editor of Announcements (owner, 10/11/2026). */
+.platform-settings-dialog{display:grid;gap:16px}
+.platform-settings-dialog .field input{height:40px}
+.platform-settings-dialog .field-hint,.platform-settings-dialog .field-error{font-size:11.5px;line-height:1.45}
+.platform-settings-dialog .platform-settings-duration-control>span{font-size:12px}
 .platform-maintenance-banner.platform-settings-preview-banner{position:static;transform:none;width:100%;box-shadow:none;grid-template-columns:auto minmax(0,1fr);white-space:pre-wrap}
 .platform-settings-preview-empty{padding:12px 14px;border:1px dashed var(--lo-color-border);border-radius:var(--lo-radius-control);color:var(--lo-color-muted);font-size:12.5px}
-.platform-settings-aside{position:sticky;top:12px}
-.platform-settings-facts{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.platform-settings-facts li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;font-size:12.5px;line-height:1.5;color:#44576b}
-.platform-settings-facts svg{margin-top:2px;color:var(--lo-color-primary)}
-@media(max-width:1100px){.platform-settings-layout{grid-template-columns:minmax(0,1fr)}.platform-settings-aside{position:static}}
-@media(max-width:720px){.platform-settings-grid{grid-template-columns:minmax(0,1fr)}}
-html body .platform-registry-shell.platform-settings-page{border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;border-radius:0!important;overflow:visible!important}
-html body .platform-settings-card{margin:0}
-html body .platform-settings-page .platform-settings-grid .field-hint{font-size:11.5px;line-height:1.45}
-/* Until something changes, the header says so instead of showing a disabled Save. */
-.platform-settings-saved{display:inline-flex;align-items:center;height:34px;padding:0 12px;border:1px solid var(--lo-color-border);border-radius:7px;color:#526a7c;font-size:13px;font-weight:600;background:#fff}
-
-.platform-settings-section-title{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:15px;font-weight:700;color:var(--lo-color-text)}
-.platform-settings-section-divider{height:1px;margin:22px 0 18px;background:var(--lo-color-border)}
+/* The announcement and maintenance editors and the settings dialogs: one readable label size for every field (the shared 10px label is too
+   small on a full-width form), the controls one height. */
+:is(.platform-announcement-editor,.platform-settings-dialog) :is(.lo-field-label,#lo-field-label-scope){font-size:12px!important;font-weight:650!important;color:#3b4a5a!important}

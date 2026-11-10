@@ -7,7 +7,7 @@ import { UnsavedChangesGuard } from './UnsavedChangesGuard'
 import { watchTableCells } from './phoneTableCards'
 import { watchWheelChaining } from './wheelChaining'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, Settings, ShieldCheck, Users, X } from 'lucide-react'
+import { ArrowLeft, LoaderCircle, BarChart3, Bell, Bot, Building2, ChevronDown, Database, Eye, FlaskConical, LayoutDashboard, Layers3, Megaphone, Menu, Pin, PinOff, Scale, ShieldCheck, Users, X } from 'lucide-react'
 import { SidebarRecycleBin } from '../features/recycle-bin/SidebarRecycleBin'
 import { navigationFor } from './navigation'
 import { useSidebarRail } from './useSidebarRail'
@@ -75,8 +75,8 @@ export function AppShell(){
   useEffect(()=>{if(!navOpen)return;const onKey=event=>{if(event.key==='Escape')setNavOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[navOpen])
   const platformHashKey=location.hash.replace(/^#/,'').split('?')[0]
   // The Platform Owner's menu (owner, 9/11/2026): the work areas, then «Monitoring» (reports, history & health)
-  // and «Settings» (announcements, lists, legislation & sources, LIRA & AI, the platform's settings), each under its
-  // heading; every settings screen opens in this same shell, with the menu.
+  // and «Settings» (announcements, lists, legislation & sources, LIRA & AI), each under its heading; every settings
+  // screen opens in this same shell, with the menu. The platform's own settings sit where each is used (10/11/2026).
   const platformNavigation=[
     {key:'platformNav.overview',label:'platformNav.menuOverview',path:'/platform',hash:'',icon:LayoutDashboard},
     {key:'platformNav.organizations',label:'platformNav.menuOrganizations',path:'/platform',hash:'organizations',icon:Building2},
@@ -88,7 +88,6 @@ export function AppShell(){
     {key:'platformNav.libraries',label:'platformNav.menuLists',path:'/platform',hash:'management?group=libraries',icon:Database,group:'settings'},
     {key:'platformNav.legislation',label:'platformNav.menuLegislationSources',path:'/platform/legislation',hash:'',icon:Scale,group:'settings'},
     {key:'platformNav.lira',label:'platformNav.menuLira',path:'/platform',hash:'management?group=lira',icon:Bot,group:'settings'},
-    {key:'platformNav.settings',label:'platformNav.menuPlatformSettings',path:'/platform/settings',hash:'',icon:Settings,group:'settings'},
   ]
   const platformNavGroups=[['',null],['monitoring','platformNav.groupMonitoring'],['settings','platformNav.groupSettings']]
   // #management?group=… : the Lists, LIRA & AI, or the external sources of «Legislation & sources».

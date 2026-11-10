@@ -9,10 +9,31 @@
 .platform-announcement-dialog.is-large .platform-announcement-body{font-size:16px;line-height:1.6}
 .platform-announcements-page .platform-announcement-period{white-space:nowrap}
 .platform-announcements-page .platform-announcement-audience{color:#56677a}
-.platform-announcement-form .entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .platform-announcement-file{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:8px 12px;border-radius:9px;background:#eef4fb;color:#1d5f9c;font-weight:600;font-size:13.5px;text-decoration:none}
-.platform-announcement-upload{display:flex;align-items:center;min-height:42px}
+.platform-announcement-upload{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-height:40px}
+.platform-announcement-upload>small{flex-basis:100%;color:var(--lo-color-muted);font-size:11.5px}
 .platform-announcement-attached{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:8px 10px;border-radius:9px;background:#eef4fb;color:#14253d;font-size:13.5px;overflow:hidden;text-overflow:ellipsis}
 .platform-announcement-attached button{display:inline-grid;place-items:center;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:#56677a;cursor:pointer}
 .platform-announcement-attached button:hover{background:#dce7f3}
 .platform-announcement-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+/* The editor (owner, 10/11/2026): two even columns, every label the same size and every control 40px high. */
+.platform-announcement-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;align-items:start;padding:18px 20px;border:1px solid var(--lo-color-border);border-radius:10px;background:var(--lo-color-surface)}
+.platform-announcement-editor>.platform-announcement-wide{grid-column:1/-1}
+.platform-announcement-editor .field{display:flex;flex-direction:column;min-width:0;margin:0}
+.platform-announcement-editor .field input,.platform-announcement-editor .manual-date-control{height:40px;min-height:40px;box-sizing:border-box}
+.platform-announcement-editor .field textarea{min-height:84px;resize:vertical}
+.platform-announcement-editor .lo-mode-switch{margin:0;flex-wrap:nowrap}
+.platform-announcement-editor .lo-mode-switch>button{height:40px}
+.platform-announcement-editor .field-hint,.platform-announcement-editor .field-error{margin-top:5px;font-size:11.5px}
+.platform-announcement-editor .lo-field-label small{font-size:inherit;font-weight:500;color:var(--lo-color-muted)}
+.platform-announcement-editor .lo-checkbox-field{margin:0}
+@media(max-width:760px){.platform-announcement-editor{grid-template-columns:minmax(0,1fr)}}
+/* The maintenance message: a separate, pinned item above the announcements. */
+.platform-maintenance-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:12px;width:100%;margin:0 0 12px;padding:12px 16px;border:1px solid var(--lo-color-border);border-radius:12px;background:var(--lo-color-surface);color:var(--lo-color-text);font:inherit;text-align:left;cursor:pointer}
+.platform-maintenance-item:hover{border-color:color-mix(in srgb,var(--lo-color-primary) 35%,var(--lo-color-border))}
+.platform-maintenance-item:disabled{cursor:default;opacity:.7}
+.platform-maintenance-item-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--lo-status-warning-bg);color:var(--lo-status-warning-fg)}
+.platform-maintenance-item-copy{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.platform-maintenance-item-copy strong{font-size:14px}
+.platform-maintenance-item-copy small{font-size:12.5px;color:var(--lo-color-muted)}
+.platform-maintenance-item>svg{color:var(--lo-color-muted)}

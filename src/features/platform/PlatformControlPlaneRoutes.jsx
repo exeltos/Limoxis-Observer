@@ -6,7 +6,6 @@ import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { PlatformHealthView } from './PlatformHealthView'
 import { PlatformAuditSecurityView } from './PlatformAuditSecurityView'
 import { PlatformLoginSessionsView } from './PlatformLoginSessionsView'
-import { PlatformSettingsPage as PlatformSettingsWorkspace } from './PlatformSettingsPage'
 
 function usePlatformOrganizations(){
   const {memberships}=useTenant()
@@ -44,6 +43,9 @@ export function PlatformAuditSecurityPage(){
     :<PlatformAuditSecurityView organizations={organizations} language={language} tabs={tabs}/>
 }
 
+// The platform settings now sit where each is used (owner, 10/11/2026): the Demo defaults on the Demo screen, the
+// deletion grace period and the support email on Organizations, the maintenance message among the Announcements.
+// An old link to /platform/settings opens Organizations.
 export function PlatformSettingsPage(){
-  return <PlatformSettingsWorkspace />
+  return <Navigate to="/platform#organizations" replace/>
 }

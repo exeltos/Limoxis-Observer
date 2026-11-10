@@ -1,4 +1,4 @@
-import { BarChart3, Bot, Building2, Database, FlaskConical, LayoutDashboard, Megaphone, Scale, Settings, ShieldCheck } from 'lucide-react'
+import { BarChart3, Bot, Building2, Database, FlaskConical, LayoutDashboard, Megaphone, Scale, ShieldCheck } from 'lucide-react'
 
 // User guide for the Platform Owner screens (outside any hospital). Keys match
 // the platform routes: path, or path#hash for the Platform Center sections.
@@ -12,7 +12,6 @@ export const platformHelpNavigation=[
  {to:'/platform#management',icon:Database},
  {to:'/platform/legislation',icon:Scale},
  {to:'/platform#management?group=lira',icon:Bot},
- {to:'/platform/settings',icon:Settings},
 ]
 
 const audienceEl='Ιδιοκτήτης Πλατφόρμας'
@@ -29,11 +28,12 @@ export const platformHelp={
    ['Μητρώο','Κάθε γραμμή δείχνει τον οργανισμό με κωδικό και πόλη, τους ενεργούς προς το σύνολο των χρηστών, την τελευταία σύνδεση κάποιου χρήστη του (πότε και ποιος) και μία κατάσταση: Ενεργός, Εκκρεμεί διαχειριστής, Σε παύση ή Προς διαγραφή. Τα σύνολα δίπλα στην αναζήτηση φιλτράρουν τη λίστα με ένα κλικ.'],
    ['Νέος οργανισμός','Με «Νέος οργανισμός» καταχωρίζετε ταυτότητα, τοποθεσία και τον αρχικό Διαχειριστή Νοσοκομείου, στον οποίο αποστέλλεται πρόσκληση.'],
    ['Καρτέλα οργανισμού','Η καρτέλα έχει Στοιχεία, Πακέτο & ενότητες, Χρήστες (με την τελευταία σύνδεση και την IP), Δραστηριότητα (Συμβάντα ή Συνδέσεις, όπου τερματίζετε μια σύνδεση) και Αντίγραφο & διαγραφή. Σε κάθε καρτέλα, «Είσοδος» σας βάζει στον οργανισμό για υποστήριξη και το «⋯» έχει παύση ή επανενεργοποίηση, επαναφορά κωδικού του Διαχειριστή Νοσοκομείου και οριστική διαγραφή.'],
-   ['Προφίλ λειτουργίας','Στην καρτέλα «Πακέτο & ενότητες» του οργανισμού επιλέγετε πακέτο (Βασική καταγραφή, Εργαστήριο & Επιτήρηση, Πλήρες πρόγραμμα) και μετά πατάτε το κλειδί μιας ενότητας για να την ξεκλειδώσετε ή να την κλειδώσετε. Ό,τι κλειδώνεται κρύβεται από όλους τους χρήστες του νοσοκομείου, χωρίς να διαγράφονται δεδομένα. Η πορτοκαλί προειδοποίηση «Χρειάζεται και…» δείχνει ότι λείπει προαπαιτούμενη ενότητα. Δεν μπλοκάρει την αποθήκευση.']
+   ['Προφίλ λειτουργίας','Στην καρτέλα «Πακέτο & ενότητες» του οργανισμού επιλέγετε πακέτο (Βασική καταγραφή, Εργαστήριο & Επιτήρηση, Πλήρες πρόγραμμα) και μετά πατάτε το κλειδί μιας ενότητας για να την ξεκλειδώσετε ή να την κλειδώσετε. Ό,τι κλειδώνεται κρύβεται από όλους τους χρήστες του νοσοκομείου, χωρίς να διαγράφονται δεδομένα. Η πορτοκαλί προειδοποίηση «Χρειάζεται και…» δείχνει ότι λείπει προαπαιτούμενη ενότητα. Δεν μπλοκάρει την αποθήκευση.'],
+   ['Ρυθμίσεις','Το γρανάζι δίπλα στην «Εξαγωγή» ανοίγει τις ρυθμίσεις που αφορούν όλους τους οργανισμούς: την περίοδο χάριτος (ημέρες από τον προγραμματισμό έως την οριστική διαγραφή ενός οργανισμού) και το email υποστήριξης που βλέπουν τα νοσοκομεία. Κάθε αλλαγή καταγράφεται στο Ιστορικό & Υγεία.']
   ],steps:['Αναζητήστε τον οργανισμό.','Ανοίξτε την καρτέλα του.','Κάντε την αλλαγή ή την είσοδο που χρειάζεται.']},
   '/platform#demo':{title:'Demo',summary:'Χρονικά περιορισμένες προσβάσεις με αποκλειστικά συνθετικά δεδομένα.',audience:audienceEl,chapters:[
    ['Απομόνωση','Τα Demo είναι πλήρως απομονωμένα από τα πραγματικά δεδομένα. Κανένα στοιχείο ασθενούς ή εργαζομένου δεν εμφανίζεται σε αυτά.'],
-   ['Νέο Demo','Ορίζετε υποψήφιο οργανισμό, υπεύθυνο επικοινωνίας, email πρόσκλησης και διάρκεια. Η προεπιλεγμένη διάρκεια ορίζεται στις Ρυθμίσεις Πλατφόρμας.'],
+   ['Νέο Demo','Ορίζετε υποψήφιο οργανισμό, υπεύθυνο επικοινωνίας, email πρόσκλησης και διάρκεια. Η προτεινόμενη διάρκεια και οι χρήστες ανά Demo ορίζονται από το γρανάζι «Ρυθμίσεις Demo» δίπλα στην «Εξαγωγή».'],
    ['Μετατροπή','Όταν ο υποψήφιος γίνει πελάτης, το Demo μετατρέπεται σε πραγματικό οργανισμό από την καρτέλα του.']
   ],steps:['Δημιουργήστε το Demo.','Παρακολουθήστε τη λήξη του.','Μετατρέψτε ή διαγράψτε το όταν ολοκληρωθεί.']},
   '/platform#reports':{title:'Αναφορές πλατφόρμας',summary:'Συγκεντρωτικοί δείκτες σε επίπεδο πλατφόρμας.',audience:audienceEl,chapters:[
@@ -41,12 +41,13 @@ export const platformHelp={
    ['Φίλτρα','Επιλέξτε οργανισμό, περίοδο και ενότητα για να συγκρίνετε δραστηριότητα και τάσεις.']
   ],steps:['Επιλέξτε περίοδο και οργανισμούς.','Ελέγξτε τα γραφήματα.','Εκτυπώστε ή εξαγάγετε την αναφορά.']},
   '/platform/announcements':{title:'Ανακοινώσεις',summary:'Ανακοινώσεις και προωθήσεις προς τους διαχειριστές των νοσοκομείων.',audience:audienceEl,chapters:[
-   ['Λίστα','Κάθε γραμμή δείχνει τίτλο, είδος, περίοδο, σε ποια νοσοκομεία απευθύνεται, πόσοι την είδαν και αν είναι ενεργή. Με κλικ ανοίγει για επεξεργασία· από το «⋯» τη σταματάτε, την ξαναξεκινάτε ή τη διαγράφετε.'],
+   ['Λίστα','Κάθε γραμμή δείχνει τίτλο, είδος, περίοδο, σε ποια νοσοκομεία απευθύνεται, πόσοι την είδαν και αν είναι ενεργή. Με κλικ ανοίγει η καρτέλα της: «Προεπισκόπηση» και «Δημοσίευση» στην κορυφή, και στο «⋯» η διακοπή, η επανενεργοποίηση και η διαγραφή. «Πίσω» επιστρέφει στη λίστα.'],
+   ['Μήνυμα συντήρησης','Το πρώτο, καρφιτσωμένο στοιχείο της λίστας είναι η λωρίδα που εμφανίζεται πάνω σε όλες τις οθόνες όλων των χρηστών (π.χ. για προγραμματισμένη συντήρηση). Με κλικ το ενεργοποιείτε ή το σβήνετε και γράφετε το κείμενο, σε μία ή δύο γλώσσες, με προεπισκόπηση.'],
    ['Νέα ανακοίνωση','Γράφετε τίτλο και κείμενο, διαλέγετε νοσοκομεία (ή όλα), περίοδο και αν εμφανίζεται μία φορά ή σε κάθε είσοδο. Προαιρετικά επισυνάπτετε εικόνα ή αρχείο και τη δείχνετε και στα Demo.']
   ],steps:['Πατήστε «Νέα ανακοίνωση».','Συμπληρώστε κείμενο, νοσοκομεία και περίοδο.','Αποθηκεύστε· εμφανίζεται στους διαχειριστές μόλις ανοίξουν την εφαρμογή.']},
   '/platform#management':{title:'Λίστες',summary:'Οι κοινές λίστες, οι δέσμες μέτρων, τα κριτήρια λοιμώξεων και οι ορισμοί δεικτών για όλα τα νοσοκομεία.',audience:audienceEl,chapters:[
    ['Κοινό περιεχόμενο','Αριστερά διαλέγετε λίστα ανά ομάδα (Κλινικά, Εργαστήριο, Πρόληψη…)· δεξιά βλέπετε και αλλάζετε τις εγγραφές της. Οι αλλαγές εφαρμόζονται σε όλα τα νοσοκομεία που χρησιμοποιούν το αντίστοιχο κεντρικό στοιχείο.'],
-   ['Ενημερώσεις πηγών','Με «Έλεγχος & ενημέρωση πλατφόρμας» ελέγχονται οι κλινικές πηγές. Κάθε αλλαγή εμφανίζεται για έλεγχο: «Ελέγχθηκε» την κλείνει, «Αναβολή» την επαναφέρει σε 7 ημέρες. Το ιστορικό ενημερώσεων είναι στο «⋯».']
+   ['Ενημερώσεις πηγών','Με «Έλεγχος τώρα» ελέγχονται οι κλινικές πηγές. Το «Ενημερώσεις» ανοίγει όσες περιμένουν έλεγχο (ο αριθμός τους φαίνεται στο κουμπί) μαζί με το ιστορικό: «Ελέγχθηκε» κλείνει μια αλλαγή, «Αναβολή» την επαναφέρει σε 7 ημέρες.']
   ],steps:['Διαλέξτε λίστα αριστερά.','Κάντε την αλλαγή.','Ελέγξτε τις εκκρεμείς ενημερώσεις πηγών.']},
   '/platform/legislation':{title:'Νομοθεσία & πηγές',summary:'Η βιβλιοθήκη νομοθεσίας που διαβάζουν όλα τα νοσοκομεία, ό,τι βρήκε ο αυτόματος έλεγχος, οι πηγές του, οι οδηγίες & σύνδεσμοι της Βιβλιοθήκης και οι εξωτερικές πηγές.',audience:audienceEl,chapters:[
    ['Νομοθεσία','Τα κείμενα της πλατφόρμας με τις απαιτήσεις τους. Με «Νέο κείμενο» προσθέτετε ένα· τίποτα δεν φτάνει στα νοσοκομεία πριν το δημοσιεύσετε.'],
@@ -61,10 +62,6 @@ export const platformHelp={
    ['Συμβάντα & σφάλματα','Η δεύτερη καρτέλα δείχνει αποτυχίες, αποκλεισμούς και προειδοποιήσεις όλων των πραγματικών οργανισμών, χωρίς κλινικό περιεχόμενο.'],
    ['Συνδέσεις','Ποιος συνδέθηκε, από ποια IP και συσκευή, πότε και για πόση ώρα· ποιοι είναι συνδεδεμένοι τώρα. Οι αποτυχημένες προσπάθειες καταγράφονται· 5 λάθη σε 15 λεπτά κλειδώνουν τον λογαριασμό για 15 λεπτά και 20 λάθη την IP. Από το «⋯» μιας σύνδεσης την τερματίζετε ή αποσυνδέετε τον χρήστη από όλες τις συσκευές.']
   ],steps:['Διαλέξτε καρτέλα.','Φιλτράρετε ανά οργανισμό, ενέργεια ή σοβαρότητα.','Ανανεώστε μετά από διόρθωση.']},
-  '/platform/settings':{title:'Ρυθμίσεις πλατφόρμας',summary:'Καθολικές ρυθμίσεις για όλη την εγκατάσταση· κάθε αλλαγή καταγράφεται στο Ιστορικό & Υγεία.',audience:audienceEl,chapters:[
-   ['Λειτουργικές προεπιλογές','Email υποστήριξης, προεπιλεγμένη διάρκεια και χρήστες νέων Demo, περίοδος χάριτος διαγραφής οργανισμού.'],
-   ['Ανακοίνωση συντήρησης','Ενεργοποιήστε ένα μήνυμα προς όλους τους χρήστες. Η προεπισκόπηση δείχνει πώς θα εμφανιστεί.']
-  ],steps:['Αλλάξτε την τιμή.','Ελέγξτε την προεπισκόπηση.','Πατήστε «Αποθήκευση».']},
  },
  en:{
   '/platform':{title:'Platform Center',summary:'The overall picture of the installation without entering an organization.',audience:audienceEn,chapters:[
@@ -76,11 +73,12 @@ export const platformHelp={
    ['Registry','Each row shows the organization with its code and city, active against all users, the latest sign-in of any of its users (when and who) and one status: Active, Admin pending, Paused or Deletion scheduled. The totals beside the search filter the list with one click.'],
    ['New organization','"New organization" records identity, location and the initial Hospital Admin, who receives an invitation.'],
    ['Organization record','The record has Details, Package & modules, Users (with the last sign-in and IP), Activity (Events or Sign-ins, where you can end a session) and Export & deletion. On every tab, “Enter” takes you into the organization for support and “⋯” holds pause or reactivation, the Hospital Admin password reset and permanent deletion.'],
-   ['Operating profile','In the organization’s “Package & modules” tab choose a package (Basic records, Laboratory & surveillance, Full programme), then click a module’s lock to unlock or lock it. Whatever is locked is hidden from every user of the hospital, and no data is deleted. The orange “Also needs…” warning shows that a prerequisite module is missing; it does not block saving.']
+   ['Operating profile','In the organization’s “Package & modules” tab choose a package (Basic records, Laboratory & surveillance, Full programme), then click a module’s lock to unlock or lock it. Whatever is locked is hidden from every user of the hospital, and no data is deleted. The orange “Also needs…” warning shows that a prerequisite module is missing; it does not block saving.'],
+   ['Settings','The gear beside “Export” opens the settings that apply to every organization: the grace period (days from scheduling until an organization is deleted for good) and the support email the hospitals see. Every change is recorded in History & Health.']
   ],steps:['Search for the organization.','Open its record.','Make the change or enter as needed.']},
   '/platform#demo':{title:'Demo',summary:'Time-limited access with synthetic data only.',audience:audienceEn,chapters:[
    ['Isolation','Demos are fully isolated from production data. No patient or employee record is ever shown in them.'],
-   ['New demo','Set the prospect, contact person, invitation email and duration. The default duration is set in Platform Settings.'],
+   ['New demo','Set the prospect, contact person, invitation email and duration. The suggested duration and the users per Demo are set from the “Demo settings” gear beside “Export”.'],
    ['Conversion','When the prospect becomes a customer, convert the demo into a real organization from its record.']
   ],steps:['Create the demo.','Track its expiry.','Convert or delete it when done.']},
   '/platform#reports':{title:'Platform reports',summary:'Aggregated indicators at platform level.',audience:audienceEn,chapters:[
@@ -88,12 +86,13 @@ export const platformHelp={
    ['Filters','Choose organization, period and module to compare activity and trends.']
   ],steps:['Choose period and organizations.','Review the charts.','Print or export the report.']},
   '/platform/announcements':{title:'Announcements',summary:'Announcements and promotions to the hospital administrators.',audience:audienceEn,chapters:[
-   ['List','Each row shows the title, type, period, which hospitals it is for, how many saw it and whether it is active. Click to edit; from the «⋯» you stop it, restart it or delete it.'],
+   ['List','Each row shows the title, type, period, which hospitals it is for, how many saw it and whether it is active. A click opens its record: “Preview” and “Publish” at the top, and in the «⋯» stop, resume and delete. “Back” returns to the list.'],
+   ['Maintenance message','The first, pinned item of the list is the band shown over every screen for every user (e.g. for planned maintenance). Click it to turn it on or off and write the text, in one or two languages, with a preview.'],
    ['New announcement','Write a title and text, choose the hospitals (or all), the period and whether it shows once or at every visit. Optionally attach an image or a file and show it in the Demos too.']
   ],steps:['Select "New announcement".','Fill in the text, hospitals and period.','Save; the administrators see it when they open the application.']},
   '/platform#management':{title:'Lists',summary:'The shared lists, prevention bundles, infection criteria and indicator definitions for every hospital.',audience:audienceEn,chapters:[
    ['Shared content','On the left pick a list by group (Clinical, Laboratory, Prevention…); on the right view and change its entries. Changes apply to every hospital using the corresponding central item.'],
-   ['Source updates','"Check & update platform" checks the clinical sources. Each change is listed for review: "Reviewed" closes it, "Postpone" brings it back in 7 days. The update history is in the «⋯».']
+   ['Source updates','"Check now" checks the clinical sources. "Updates" opens those waiting for review (their number shows on the button) together with the history: "Reviewed" closes a change, "Postpone" brings it back in 7 days.']
   ],steps:['Pick a list on the left.','Make the change.','Review pending source updates.']},
   '/platform/legislation':{title:'Legislation & sources',summary:'The legislation library every hospital reads, what the automatic check found, its sources, the Library’s guides & links and the external sources.',audience:audienceEn,chapters:[
    ['Legislation','The platform’s texts with their requirements. "New text" adds one; nothing reaches the hospitals before you publish it.'],
@@ -108,9 +107,5 @@ export const platformHelp={
    ['Events & errors','The second tab shows failures, blocks and warnings across production organizations, without clinical content.'],
    ['Sign-ins','Who signed in, from which IP and device, when and for how long; who is online now. Failed attempts are recorded; 5 failures in 15 minutes lock the account for 15 minutes and 20 lock the IP. From a session’s «⋯» you end it or sign the user out of every device.']
   ],steps:['Pick a tab.','Filter by organization, action or severity.','Refresh after a fix.']},
-  '/platform/settings':{title:'Platform settings',summary:'Global settings for the whole installation; every change is recorded in History & Health.',audience:audienceEn,chapters:[
-   ['Operational defaults','Support email, default duration and users of new demos, organization deletion grace period.'],
-   ['Maintenance notice','Enable a message to all users. The preview shows how it will appear.']
-  ],steps:['Change the value.','Check the preview.','Select "Save".']},
  },
 }

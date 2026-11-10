@@ -13,12 +13,6 @@
 .organization-delete-confirm .field input{min-width:0;width:100%}
 @media(max-width:720px){.organization-delete-confirm{grid-template-columns:minmax(0,1fr)!important}}
 
-.platform-demo-status-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px}
-.platform-demo-status-chip{border:1px solid var(--lo-shell-control-border,#dfe5ec);border-radius:999px;padding:5px 11px;background:#fff;color:var(--lo-shell-control-fg,#40566d);font-weight:600;font-size:12px;cursor:pointer;display:inline-flex;gap:5px;align-items:center}
-.platform-demo-status-chip b{font-weight:700;color:var(--lo-text-secondary,#5f6f7c)}
-.platform-demo-status-chip:hover{background:var(--lo-shell-control-hover,#f5f8fb)}
-.platform-demo-status-chip.is-active{background:var(--lo-color-primary-soft,#edf5fa);border-color:#b9d4e5;color:var(--lo-color-primary,#256b9b)}
-.platform-demo-status-chip.is-active b{color:var(--lo-color-primary,#256b9b)}
 /* The frame reserves the same scrollbar gutter as the registry table below,
    so the bar ends where the table ends; the padding lines its text up with the
    checkbox column and its last button with the last column's content. */
@@ -33,6 +27,3 @@
 .platform-demo-select-cell input{width:16px;height:16px;cursor:pointer;accent-color:var(--lo-color-primary,#256b9b)}
 .data-table tr.is-selected td{background:#f3f8fc}
 /* Search and status filters share one row above the Demo list. */
-.platform-demo-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px 10px}
-.platform-registry-shell .platform-demo-toolbar>.filter-system{flex:1 1 280px;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
-.platform-demo-toolbar .platform-demo-status-chips{padding:0;flex:0 1 auto}

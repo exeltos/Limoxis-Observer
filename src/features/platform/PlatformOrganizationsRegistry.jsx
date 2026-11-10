@@ -1,9 +1,10 @@
 import { readSessionValue, writeSessionValue } from '../../core/storage/browserStorage'
-import { Plus } from 'lucide-react'
+import { Plus, Settings } from 'lucide-react'
 import { useEffect,useMemo,useState } from 'react'
 import { Page } from '../../design-system/Page'
 import { FilterBar } from '../../design-system/FilterBar'
 import { Button } from '../../design-system/Button'
+import { IconButton } from '../../design-system/IconButton'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { StatusBadge } from '../../design-system/StatusBadge'
@@ -24,6 +25,7 @@ export function PlatformOrganizationsRegistry({
   members = [],
   onCreate,
   onOpenOrganization,
+  onSettings,
 }) {
   const language=tx('el','en')
   const [page,setPage]=useState(1)
@@ -64,7 +66,7 @@ export function PlatformOrganizationsRegistry({
   return (
     <Page
       title={tx('Οργανισμοί', 'Organizations')}
-      actions={<div className="row-actions"><ExportMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!shownOrganizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
+      actions={<div className="row-actions">{onSettings&&<IconButton label={tx('Ρυθμίσεις οργανισμών','Organization settings')} onClick={onSettings}><Settings size={16}/></IconButton>}<ExportMenu items={[{id:'organizations',label:tx('Excel: οργανισμοί','Excel: organizations'),disabled:!shownOrganizations.length,onClick:exportOrganizations}]}/><Button onClick={onCreate}><Plus size={15} />{tx('Νέος οργανισμός', 'New organization')}</Button></div>}
     >
       <div className="platform-registry-shell">
         <FilterBar
