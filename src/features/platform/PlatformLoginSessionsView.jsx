@@ -13,14 +13,17 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { listLoginAttempts,listLoginSessions,releaseLoginLock } from './platformAuditService'
+import { athensDateTime,athensTime } from './platformOverviewShared'
+import { RecordLink } from './RecordLink'
+import { useRecordLinks,usePlatformUsers } from './useRecordLinks'
 import { useEndLoginSessions } from './useEndLoginSessions'
 import { deviceLabel,durationText,sessionStatus } from './loginSessionsModel'
 import './loginSessions.css'
 
-const fmt=value=>{if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return '—';return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
-// In the table: day/month and time (the list covers the last 30 days).
-const short=value=>{if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return '—';return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
-const hhmm=value=>{const d=new Date(value);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+// One date format everywhere: dd/mm/yyyy, hh:mm in Athens time.
+const fmt=athensDateTime
+const short=athensDateTime
+const hhmm=value=>athensTime(value)
 
 // Ιστορικό & Υγεία › Συνδέσεις (Ιδιοκτήτης Πλατφόρμας, 9/11/2026): ποιος συνδέθηκε, από ποια IP και συσκευή,
 // πότε και για πόση ώρα· οι αποτυχημένες προσπάθειες και τα κλειδώματα. Ο Ιδιοκτήτης τερματίζει μια σύνδεση
@@ -42,12 +45,16 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
   const [page,setPage]=useState(1)
   const [pageSize,setPageSize]=useState(15)
   const [now,setNow]=useState(()=>Date.now())
+  // A name opens that user's record (not the Platform Owner, who has none); Back returns here, in the same view.
+  const users=usePlatformUsers()
+  const {userOf,openUser}=useRecordLinks({users,returnTo:`/platform/audit?view=sessions${mode==='attempts'?'&mode=attempts':''}`})
+  const userLink=(ref,label)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
 
   const load=useCallback(async()=>{
     setLoading(true);setError(null)
     try{
       const [nextSessions,nextAttempts]=await Promise.all([listLoginSessions({days:30}),listLoginAttempts({days:30})])
-      setSessions(nextSessions);setAttempts(nextAttempts.attempts);setLocks(nextAttempts.locks);setNow(Date.now())
+      setSessions([...nextSessions].sort((a,b)=>String(b.startedAt||'').localeCompare(String(a.startedAt||''))));setAttempts([...nextAttempts.attempts].sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))));setLocks(nextAttempts.locks);setNow(Date.now())
     }catch(err){setSessions([]);setAttempts([]);setLocks([]);setError(err)}
     finally{setLoading(false)}
   },[])
@@ -97,7 +104,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
       <div className="login-locks-list">
         <strong>{tx('Κλειδωμένες συνδέσεις λόγω αποτυχημένων προσπαθειών','Sign-ins locked after failed attempts')}</strong>
         {activeLocks.map(lock=><div key={lock.id} className="login-lock-row">
-          <span><LockKeyhole size={14} aria-hidden="true"/>{lock.kind==='ip'?tx(`IP ${lock.subject}`,`IP ${lock.subject}`):tx(`Λογαριασμός «${lock.subject}»`,`Account “${lock.subject}”`)} · {lock.failures} {tx('λάθη','failures')} · {tx('έως','until')} {hhmm(lock.lockedUntil)}</span>
+          <span><LockKeyhole size={14} aria-hidden="true"/>{lock.kind==='ip'?tx(`IP ${lock.subject}`,`IP ${lock.subject}`):<span>{tx('Λογαριασμός «','Account “')}{userLink({identifier:lock.subject},lock.subject)}{tx('»','”')}</span>} · {lock.failures} {tx('λάθη','failures')} · {tx('έως','until')} {hhmm(lock.lockedUntil)}</span>
           <Button variant="secondary" onClick={()=>void unlock(lock)}>{tx('Ξεκλείδωμα','Unlock')}</Button>
         </div>)}
       </div>
@@ -121,7 +128,7 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
         <div className="table-wrap scroll-table diagnostics-table-wrap">{mode==='sessions'
           ?<table className="data-table sticky-table diagnostics-table login-sessions-table"><thead><tr><th>{tx('Χρήστης','User')}</th><th>IP</th><th>{tx('Συσκευή','Device')}</th><th>{tx('Έναρξη','Start')}</th><th>{tx('Τελευταία δραστηριότητα','Last activity')}</th><th>{tx('Διάρκεια','Duration')}</th><th>{tx('Κατάσταση','Status')}</th><th><span className="lo-visually-hidden">{tx('Ενέργειες','Actions')}</span></th></tr></thead>
             <tbody>{paged.map(row=>{const state=sessionStatus(row,en);return <tr key={row.sessionId}>
-              <td><strong>{row.fullName||row.username||'—'}</strong><small>{row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):(row.organizations||row.username||'—')}</small></td>
+              <td><strong>{row.isPlatformOwner?(row.fullName||row.username||'—'):userLink({userId:row.userId},row.fullName||row.username||'—')}</strong><small>{row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):(row.organizations||row.username||'—')}</small></td>
               <td><span className="login-ip">{row.ip||'—'}</span>{row.lastIp&&row.lastIp!==row.ip&&<small>{tx('τώρα','now')} {row.lastIp}</small>}</td>
               <td>{deviceLabel(row.userAgent,en)}</td>
               <td className="login-when">{short(row.startedAt)}</td>
@@ -131,10 +138,10 @@ export function PlatformLoginSessionsView({language='el',tabs=null}){
               <td className="login-actions">{row.active&&<OverflowMenu label={tx('Ενέργειες σύνδεσης','Session actions')} items={sessionMenuItems(row)}/>}</td>
             </tr>})}</tbody></table>
           :<table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Όνομα χρήστη / email','Username / e-mail')}</th><th>IP</th><th>{tx('Συσκευή','Device')}</th><th>{tx('Αποτέλεσμα','Result')}</th></tr></thead>
-            <tbody>{paged.map(row=><tr key={row.id}><td className="login-when"><strong>{short(row.createdAt)}</strong></td><td>{row.identifier}</td><td><span className="login-ip">{row.ip||'—'}</span></td><td>{deviceLabel(row.userAgent,en)}</td><td><span className={`login-status is-${row.success?'good':row.reason==='locked'?'danger':'warning'}`}>{resultLabel(row)}</span></td></tr>)}</tbody></table>}
+            <tbody>{paged.map(row=><tr key={row.id}><td className="login-when"><strong>{short(row.createdAt)}</strong></td><td>{userLink({identifier:row.identifier},row.identifier)}</td><td><span className="login-ip">{row.ip||'—'}</span></td><td>{deviceLabel(row.userAgent,en)}</td><td><span className={`login-status is-${row.success?'good':row.reason==='locked'?'danger':'warning'}`}>{resultLabel(row)}</span></td></tr>)}</tbody></table>}
         </div>
         <RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={list.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/>
-      </>:<div className="registry-empty-state"><strong>{mode==='sessions'?tx('Δεν υπάρχουν συνδέσεις για τα επιλεγμένα φίλτρα.','No sessions match the selected filters.'):tx('Δεν υπάρχουν προσπάθειες σύνδεσης για τα επιλεγμένα φίλτρα.','No sign-in attempts match the selected filters.')}</strong></div>}
+      </>:error?null:<div className="registry-empty-state"><strong>{mode==='sessions'?tx('Δεν υπάρχουν συνδέσεις για τα επιλεγμένα φίλτρα.','No sessions match the selected filters.'):tx('Δεν υπάρχουν προσπάθειες σύνδεσης για τα επιλεγμένα φίλτρα.','No sign-in attempts match the selected filters.')}</strong></div>}
       {error&&!loading&&<div className="data-access-state warning" role="status"><AlertTriangle size={16}/><span>{tx('Δεν ήταν δυνατή η φόρτωση των συνδέσεων.','Sign-ins could not be loaded.')}</span></div>}
       <p className="login-sessions-note">{tx('Μετά από 5 λάθος κωδικούς σε 15 λεπτά ο λογαριασμός κλειδώνει για 15 λεπτά· μετά από 20 λάθη από την ίδια IP κλειδώνει η IP. Ο τερματισμός μιας σύνδεσης ισχύει μέσα σε 1–2 λεπτά.','After 5 wrong passwords in 15 minutes the account is locked for 15 minutes; after 20 from one IP, the IP is locked. Ending a session takes effect within 1–2 minutes.')}</p>
     </div>

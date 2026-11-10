@@ -11,7 +11,7 @@ import { FileUp, Mail, UserCheck, UserPlus } from 'lucide-react'
 import { exportRegistry } from '../../core/export/registryExports'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { listLoginSessions } from './platformAuditService'
-import { latestSessionByUser } from './platformOverviewShared'
+import { latestSessionByUser, userRecordTarget } from './platformOverviewShared'
 import { USER_STATE_BADGE, UserNameCell, lastSignInContent, userStateLabel } from './PlatformUserCells'
 import './platformDeletion.css'
 import './platformDashboard.css'
@@ -67,7 +67,9 @@ export function PlatformUsersRegistry({ tabs = null, language = 'el', users = []
       headers: [tx('Ονοματεπώνυμο', 'Name'), 'Email', tx('Όνομα χρήστη', 'Username'), tx('Ρόλος', 'Role'), tx('Οργανισμός', 'Organization'), tx('Τύπος', 'Type'), tx('Κατάσταση', 'Status'), tx('Τελευταία σύνδεση', 'Last sign-in')],
       rows: visible.map(user => [user.name, user.email, user.username, roleText(user), user.organization?.name || '', kindLabel(user.kind), stateLabel(platformUserState(user)), onlineIds.has(user.userId) ? tx('Συνδεδεμένος τώρα', 'Online now') : fmtDay(latest.get(user.userId)?.startedAt, language)]) })
   }
-  const canOpen = user => Boolean(user.organization?.id)
+  // A row is clickable only where a record exists: not the Platform Owner, nor an account without an organization.
+  const knownOrganizationIds = useMemo(() => new Set(organizations.map(org => org.id)), [organizations])
+  const canOpen = user => Boolean(userRecordTarget(user, { organizationIds: knownOrganizationIds }))
   const productionOrganizations = useMemo(() => organizations.filter(org => !org.is_demo).sort((a, b) => String(a.name).localeCompare(String(b.name), 'el')), [organizations])
   const organizationOptions = useMemo(() => productionOrganizations.map(org => ({ value: org.id, label: org.name, description: org.code })), [productionOrganizations])
   const closeNew = () => { setNewMode(''); setNewOrganizationId('') }

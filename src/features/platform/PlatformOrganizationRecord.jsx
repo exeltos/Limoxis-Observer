@@ -57,9 +57,9 @@ export function PlatformOrganizationRecord({
   const [employeeLinkDrafts, setEmployeeLinkDrafts] = useState({})
   const [newAdmin, setNewAdmin] = useState({ name: '', email: '' })
   const [selectedUserId, setSelectedUserIdState] = useState(initialUserId)
-  const setSelectedUserId = id => {
+  const setSelectedUserId = (id, backTab) => {
     setSelectedUserIdState(id)
-    onUserChange?.(id)
+    onUserChange?.(id, backTab)
   }
   useEffect(() => setSelectedUserIdState(initialUserId), [initialUserId])
   const [startMode] = useState(initialTab === 'users' && (initialNew === 'single' || initialNew === 'file') ? initialNew : '')
@@ -157,9 +157,10 @@ export function PlatformOrganizationRecord({
       setRosterLoading(false)
     }
   }, [organization.id, notifyError])
+  // The roster of employees without an account is the list's; an open user record does not need it.
   useEffect(() => {
-    if (initialTab === 'users') loadRoster()
-  }, [initialTab, loadRoster])
+    if (initialTab === 'users' && !selectedUserId) loadRoster()
+  }, [initialTab, loadRoster, selectedUserId])
   const rosterWithoutAccount = roster.employees.filter(row => row.accountState === 'none').length
   const admins = useMemo(() => users.filter(user => user.role === 'hospital_admin'), [users])
   const selectedUser = useMemo(
@@ -681,7 +682,7 @@ export function PlatformOrganizationRecord({
   const recordStatus = statusOf(tx, record, admins[0]?.status)
 
   if (initialTab === 'users' && selectedUser) {
-    return <PlatformOrganizationUserRecord key={selectedUser.userId} ctx={{ loadSessions, sessions, deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
+    return <PlatformOrganizationUserRecord key={selectedUser.userId} ctx={{ employees, loadSessions, sessions, deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
   }
 
   return (
@@ -716,7 +717,7 @@ export function PlatformOrganizationRecord({
 
         {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ startMode, filteredUsers, onlineUserIds, orgUserState, setUserFilter, userFilter, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
         {initialTab === 'diagnostics' && (
-          <HospitalDiagnosticsPanel organization={record} language={language} sessions={sessions} loadingSessions={loadingSessions || loadingUsers} onReloadSessions={loadSessions} />
+          <HospitalDiagnosticsPanel organization={record} language={language} sessions={sessions} loadingSessions={loadingSessions || loadingUsers} onReloadSessions={loadSessions} knownUserIds={new Set(users.map(user => user.userId))} onOpenUser={userId => setSelectedUserId(userId, 'diagnostics')} />
         )}
         {initialTab === 'offboarding' && (
           <div className="platform-owner-details">

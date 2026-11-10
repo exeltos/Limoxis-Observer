@@ -10,6 +10,9 @@ import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
 import { listRuntimeEvents } from '../../core/diagnostics/runtimeDiagnosticsService'
 import { localModule, localRoute } from './HospitalDiagnosticsPanel'
+import { athensDateTime } from './platformOverviewShared'
+import { RecordLink } from './RecordLink'
+import { useRecordLinks, usePlatformUsers } from './useRecordLinks'
 
 const severityMeta={
   error:{el:'Αποτυχία',en:'Error',icon:XCircle},
@@ -19,17 +22,7 @@ const severityMeta={
   info:{el:'Πληροφορία',en:'Information',icon:Activity},
 }
 
-function fmtDate(value){
-  if(!value)return '—'
-  const date=new Date(value)
-  if(Number.isNaN(date.getTime()))return value
-  const dd=String(date.getDate()).padStart(2,'0')
-  const mm=String(date.getMonth()+1).padStart(2,'0')
-  const yyyy=date.getFullYear()
-  const hh=String(date.getHours()).padStart(2,'0')
-  const min=String(date.getMinutes()).padStart(2,'0')
-  return `${dd}/${mm}/${yyyy}, ${hh}:${min}`
-}
+const fmtDate=athensDateTime
 
 export function PlatformHealthView({organizations=[],language='el',tabs=null}){
   const en=language==='en'
@@ -44,6 +37,11 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}){
   const [pageSize,setPageSize]=useState(15)
 
   const organizationMap=useMemo(()=>new Map(organizations.map(org=>[org.id,org])),[organizations])
+  // The organization and the user of an event open their records; Back returns to these events.
+  const users=usePlatformUsers()
+  const {userOf,openUser,canOpenOrganization,openOrganization}=useRecordLinks({users,returnTo:'/platform/audit?view=events'})
+  const userLink=(ref,label)=>{const person=userOf(ref);return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{label}</RecordLink>:label}
+  const organizationLink=(id,label)=>canOpenOrganization(id)?<RecordLink title={tx('Άνοιγμα καρτέλας οργανισμού','Open organization record')} onClick={()=>openOrganization(id)}>{label}</RecordLink>:label
 
   const load=useCallback(async()=>{
     setLoading(true)
@@ -101,7 +99,7 @@ export function PlatformHealthView({organizations=[],language='el',tabs=null}){
           {Object.entries(severityMeta).map(([value,meta])=><option key={value} value={value}>{meta[en?'en':'el']}</option>)}
         </FilterSelect>
       </FilterBar>
-      {loading?<div className="inline-empty">{tx('Φόρτωση λειτουργικής εικόνας…','Loading platform health…')}</div>:filtered.length?<><div className="table-wrap scroll-table diagnostics-table-wrap"><table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Οργανισμός','Organization')}</th><th>{tx('Κατάσταση','Status')}</th><th>{tx('Ενότητα','Area')}</th><th>{tx('Περιγραφή','Description')}</th><th>{tx('Χρήστης','User')}</th><th>{tx('Έκδοση','Version')}</th></tr></thead><tbody>{pagedRows.map(row=>{const meta=severityMeta[row.severity]||severityMeta.info;const Icon=meta.icon;return <tr key={`${row.organizationId}-${row.id}`}><td><strong>{fmtDate(row.occurredAt)}</strong></td><td><strong>{organizationMap.get(row.organizationId)?.name||row.organizationName||'—'}</strong><small>{organizationMap.get(row.organizationId)?.code||'—'}</small></td><td><span className={`status-badge diagnostics-${row.severity}`}><Icon size={13}/>{meta[en?'en':'el']}</span></td><td><strong>{localModule(row.module,language)}</strong>{localRoute(row.route,language)!==localModule(row.module,language)&&<small title={row.route||undefined}>{localRoute(row.route,language)}</small>}</td><td><strong>{row.message||'—'}</strong>{row.diagnosticCode&&<small>{tx('Αναφορά','Reference')}: {row.diagnosticCode}</small>}</td><td>{row.actorName||'—'}</td><td>{row.appVersion||'—'}</td></tr>})}</tbody></table></div><RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/></>:<div className="inline-empty">{tx('Δεν υπάρχουν συμβάντα που να αντιστοιχούν στα φίλτρα.','No events match the selected filters.')}</div>}
+      {loading?<div className="inline-empty">{tx('Φόρτωση λειτουργικής εικόνας…','Loading platform health…')}</div>:filtered.length?<><div className="table-wrap scroll-table diagnostics-table-wrap"><table className="data-table sticky-table diagnostics-table"><thead><tr><th>{tx('Ημερομηνία / ώρα','Date / time')}</th><th>{tx('Οργανισμός','Organization')}</th><th>{tx('Κατάσταση','Status')}</th><th>{tx('Ενότητα','Area')}</th><th>{tx('Περιγραφή','Description')}</th><th>{tx('Χρήστης','User')}</th><th>{tx('Έκδοση','Version')}</th></tr></thead><tbody>{pagedRows.map(row=>{const meta=severityMeta[row.severity]||severityMeta.info;const Icon=meta.icon;return <tr key={`${row.organizationId}-${row.id}`}><td><strong>{fmtDate(row.occurredAt)}</strong></td><td><strong>{organizationLink(row.organizationId,organizationMap.get(row.organizationId)?.name||row.organizationName||'—')}</strong><small>{organizationMap.get(row.organizationId)?.code||'—'}</small></td><td><span className={`status-badge diagnostics-${row.severity}`}><Icon size={13}/>{meta[en?'en':'el']}</span></td><td><strong>{localModule(row.module,language)}</strong>{localRoute(row.route,language)!==localModule(row.module,language)&&<small title={row.route||undefined}>{localRoute(row.route,language)}</small>}</td><td><strong>{row.message||'—'}</strong>{row.diagnosticCode&&<small>{tx('Αναφορά','Reference')}: {row.diagnosticCode}</small>}</td><td>{userLink({userId:row.actorId},row.actorName||'—')}</td><td>{row.appVersion||'—'}</td></tr>})}</tbody></table></div><RegistryPagination language={language} page={safePage} totalPages={totalPages} totalItems={filtered.length} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize}/></>:<div className="inline-empty">{tx('Δεν υπάρχουν συμβάντα που να αντιστοιχούν στα φίλτρα.','No events match the selected filters.')}</div>}
       {error&&!loading&&<div className="data-access-state warning" role="status"><span>{tx('Ορισμένοι οργανισμοί δεν επέστρεψαν λειτουργικά συμβάντα. Τα διαθέσιμα δεδομένα εμφανίζονται κανονικά.','Some organizations did not return operational events. Available data is still shown.')}</span></div>}
     </div>
   </Page>

@@ -99,11 +99,12 @@ export function AppShell(){
     if(item.key==='platformNav.legislation')return under('/platform/legislation')||under('/platform/library')||(management&&platformManagementGroup==='sources')
     if(item.key==='platformNav.lira')return management&&platformManagementGroup==='lira'
     if(item.key==='platformNav.libraries')return management&&!['sources','lira'].includes(platformManagementGroup)
-    if(item.key==='platformNav.audit')return under('/platform/audit')||under('/platform/health')
+    // A user record opened from another screen (the users list, the sign-ins, the Overview, an organization tab) keeps that screen's entry highlighted.
+    const userBack=platformHashKey==='organizations'&&new URLSearchParams(location.hash.split('?')[1]||'').get('user')?(location.state?.userReturnTo||(location.state?.fromUsers?'/platform#users':'')):''
+    if(item.key==='platformNav.audit')return under('/platform/audit')||under('/platform/health')||userBack.startsWith('/platform/audit')
     if(item.path!=='/platform')return under(item.path)
-    // A user record opened from the platform users list (it lives under #organizations) keeps the users menu entry highlighted.
-    const fromUsers=platformHashKey==='organizations'&&location.state?.fromUsers&&new URLSearchParams(location.hash.split('?')[1]||'').get('user')
-    return location.pathname==='/platform'&&(fromUsers?'users':platformHashKey)===item.hash
+    if(userBack)return userBack.split('#')[0]==='/platform'&&(userBack.split('#')[1]||'').split('?')[0]===item.hash
+    return location.pathname==='/platform'&&platformHashKey===item.hash
   }
   const selectedMembership=membership||memberships.find(item=>item?.organization?.id===tenant?.id)||null
   const currentOrganization=selectedMembership?.organization||tenant||null

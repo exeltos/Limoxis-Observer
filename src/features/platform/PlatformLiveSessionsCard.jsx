@@ -2,15 +2,21 @@ import { useEffect,useState } from 'react'
 import { ArrowRight,ShieldAlert } from 'lucide-react'
 import { listLoginAttempts,listLoginSessions } from './platformAuditService'
 import { deviceLabel,durationText } from './loginSessionsModel'
+import { athensTime } from './platformOverviewShared'
+import { RecordLink } from './RecordLink'
+import { useRecordLinks } from './useRecordLinks'
 import './loginSessions.css'
 
 const LIVE_ROWS=5
 const initialsOf=name=>String(name||'?').replace(/^Δρ\.\s*/,'').split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toLocaleUpperCase('el-GR')||'?'
-const hhmm=value=>{const d=new Date(value);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+const hhmm=athensTime
 
 // Επισκόπηση › «Συνδεδεμένοι τώρα»: who is signed in right now, from which IP and device and since when,
 // plus the failed sign-ins of the last 24 hours and the active locks (Ιστορικό & Υγεία › Συνδέσεις has the full list).
-export function PlatformLiveSessionsCard({tx,en=false,onNavigate}){
+export function PlatformLiveSessionsCard({tx,en=false,onNavigate,users=[]}){
+  // Each person opens their record (not the Platform Owner, who has none); Back returns to the Overview.
+  const {userOf,openUser}=useRecordLinks({users,returnTo:'/platform'})
+  const nameOf=row=>{const name=row.fullName||row.username||'—',person=row.isPlatformOwner?null:userOf({userId:row.userId});return person?<RecordLink title={tx('Άνοιγμα καρτέλας χρήστη','Open user record')} onClick={()=>openUser(person)}>{name}</RecordLink>:name}
   const [state,setState]=useState(null)
   useEffect(()=>{
     let active=true
@@ -31,7 +37,7 @@ export function PlatformLiveSessionsCard({tx,en=false,onNavigate}){
     {state==null?<p className="platform-overview-empty">{tx('Φόρτωση…','Loading…')}</p>
       :online.length?<ul className="platform-live-list">{online.slice(0,LIVE_ROWS).map(row=><li key={row.sessionId}>
         <span className="platform-overview-avatar" aria-hidden="true">{initialsOf(row.fullName||row.username)}</span>
-        <span className="platform-live-copy"><strong>{row.fullName||row.username||'—'}</strong><small>{[row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):row.organizations,row.lastIp||row.ip,deviceLabel(row.userAgent,en)].filter(Boolean).join(' · ')}</small></span>
+        <span className="platform-live-copy"><strong>{nameOf(row)}</strong><small>{[row.isPlatformOwner?tx('Ιδιοκτήτης Πλατφόρμας','Platform Owner'):row.organizations,row.lastIp||row.ip,deviceLabel(row.userAgent,en)].filter(Boolean).join(' · ')}</small></span>
         <span className="platform-live-time">{tx('από','since')} {hhmm(row.startedAt)}<small>{durationText(row,state.now,en)}</small></span>
       </li>)}</ul>
       :<p className="platform-overview-empty">{state.failed?tx('Δεν ήταν δυνατή η φόρτωση των συνδέσεων.','Sign-ins could not be loaded.'):tx('Κανείς δεν είναι συνδεδεμένος αυτή τη στιγμή.','Nobody is signed in right now.')}</p>}
