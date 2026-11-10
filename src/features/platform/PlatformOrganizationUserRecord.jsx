@@ -6,6 +6,7 @@ import { StatusBadge } from '../../design-system/StatusBadge'
 import { DetailList } from '../../design-system/DetailList'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
+import { RecordTabPanel } from '../../design-system/RecordTabPanel'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { SupplierRenewalSenderField } from '../quality/resources/SupplierRenewalSenderField'
@@ -317,10 +318,9 @@ export function PlatformOrganizationUserRecord({ ctx }) {
           </div>
         )}
         {tab === 'sessions' && (
-          <div className="platform-user-record-tab">
+          <RecordTabPanel footer={userSessions.length ? <RegistryPagination language={language} page={safeSessionPage} totalPages={sessionPages} totalItems={userSessions.length} pageSize={sessionPageSize} onPageChange={setSessionPage} onPageSizeChange={size => { setSessionPageSize(size); setSessionPage(1) }} /> : null}>
             {userSessions.length ? (
-              <>
-              <div className="table-wrap scroll-table diagnostics-table-wrap">
+              <div className="scroll-table">
                 <table className="data-table sticky-table diagnostics-table login-sessions-table">
                   <thead>
                     <tr>
@@ -351,22 +351,20 @@ export function PlatformOrganizationUserRecord({ ctx }) {
                   </tbody>
                 </table>
               </div>
-              <RegistryPagination language={language} page={safeSessionPage} totalPages={sessionPages} totalItems={userSessions.length} pageSize={sessionPageSize} onPageChange={setSessionPage} onPageSizeChange={size => { setSessionPageSize(size); setSessionPage(1) }} />
-              </>
             ) : (
               <div className="registry-empty-state">
                 <strong>{tx('Καμία σύνδεση τις τελευταίες 90 ημέρες.', 'No sign-ins in the last 90 days.')}</strong>
               </div>
             )}
-          </div>
+          </RecordTabPanel>
         )}
         {tab === 'activity' && (
-          <div className="platform-user-record-tab">
+          <RecordTabPanel footer={userEvents.length ? <RegistryPagination language={language} page={safeEventPage} totalPages={eventPages} totalItems={userEvents.length} pageSize={eventPageSize} onPageChange={setEventPage} onPageSizeChange={setEventPageSize} /> : null}>
             {events === null ? (
               <div className="inline-empty">{tx('Φόρτωση ενεργειών…', 'Loading actions…')}</div>
             ) : userEvents.length ? (
               <>
-                <div className="table-wrap scroll-table diagnostics-table-wrap">
+                <div className="scroll-table">
                   <table className="data-table sticky-table diagnostics-table">
                     <thead>
                       <tr>
@@ -391,14 +389,13 @@ export function PlatformOrganizationUserRecord({ ctx }) {
                     </tbody>
                   </table>
                 </div>
-                <RegistryPagination language={language} page={safeEventPage} totalPages={eventPages} totalItems={userEvents.length} pageSize={eventPageSize} onPageChange={setEventPage} onPageSizeChange={setEventPageSize} />
               </>
             ) : (
               <div className="registry-empty-state">
                 <strong>{tx('Δεν υπάρχουν καταγεγραμμένες ενέργειες αυτού του χρήστη.', 'No recorded actions by this user.')}</strong>
               </div>
             )}
-          </div>
+          </RecordTabPanel>
         )}
       </EntityRecordShell>
       {invitationLink && <InvitationLinkDialog link={invitationLink.link} name={invitationLink.name} onClose={() => setInvitationLink(null)} />}
