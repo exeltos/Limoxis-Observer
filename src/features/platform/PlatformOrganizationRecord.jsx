@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Archive, Boxes, Building2, KeyRound, LogIn, PauseCircle, PlayCircle, Trash2, Users } from 'lucide-react'
 import { EntityRecordShell } from '../../design-system/EntityRecordShell'
 import { StatusBadge } from '../../design-system/StatusBadge'
+import { PageSkeleton } from '../../design-system/LoadingSkeleton'
 
 import { PlatformRecordActions } from './PlatformRecordActions'
 
@@ -680,6 +681,9 @@ export function PlatformOrganizationRecord({
   )
 
   const recordStatus = statusOf(tx, record, admins[0]?.status)
+
+  // The address names a user whose list is still loading: the loading screen, not the organization for an instant.
+  if (initialTab === 'users' && selectedUserId && !selectedUser && loadingUsers) return <PageSkeleton metrics={0} rows={6} />
 
   if (initialTab === 'users' && selectedUser) {
     return <PlatformOrganizationUserRecord key={selectedUser.userId} ctx={{ employees, loadSessions, sessions, deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working }} />
