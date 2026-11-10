@@ -33,6 +33,7 @@ export function SearchableSelect({
   error = '',
   hint = '',
   fieldKey,
+  limit = 0,
 }) {
   const baseId = useId().replace(/:/g, '')
   const inputId = `${baseId}-input`,
@@ -48,7 +49,11 @@ export function SearchableSelect({
     openOnPress = useRef(false)
   const [place, setPlace] = useState(null)
   const text = query ?? selected?.label ?? ''
+  // limit: a long list (hundreds of employees) shows the first matches only; typing narrows it.
   const matches = useMemo(() => {
+    const all = findMatches()
+    return limit > 0 && all.length > limit ? all.slice(0, limit) : all
+    function findMatches() {
     const needle = normalize(query)
     if (!needle) {
       const recent = recentValues
@@ -74,7 +79,8 @@ export function SearchableSelect({
       // Enter keeps the first library match; the typed text comes last.
       return [...found, { value: typed, label: customLabel(typed), custom: true, divider: found.length > 0 }]
     return found
-  }, [options, query, recentValues, recentLabel, allowCustom, customLabel])
+    }
+  }, [options, query, recentValues, recentLabel, allowCustom, customLabel, limit])
   const optionId = index => `${baseId}-option-${index}`
 
   // The list floats over the page (fixed) like MultiSelect's, so a scrolling

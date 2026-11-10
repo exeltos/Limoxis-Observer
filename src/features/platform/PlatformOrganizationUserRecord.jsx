@@ -11,26 +11,21 @@ import { roleLabel } from '../../core/permissions/roleLabels'
 import { SupplierRenewalSenderField } from '../quality/resources/SupplierRenewalSenderField'
 import { InvitationLinkDialog } from './InvitationLinkDialog'
 import { PlatformRecordActions } from './PlatformRecordActions'
-import { entityLabel, eventLabel, fmtDate } from './PlatformAuditSecurityView'
+import { fmtDate } from './PlatformAuditSecurityView'
+import { describeAuditGroup, groupAuditEvents } from './auditTrailModel'
 import { listLoginAttempts, listPlatformAuditEvents, releaseLoginLock } from './platformAuditService'
-import { initialsOf } from './platformOverviewShared'
+import { athensDateTime, athensTime, initialsOf } from './platformOverviewShared'
 import { activeAccountLock, failedAttempts24h } from './platformUserModel'
 import { deviceLabel, durationText, sessionStatus } from './loginSessionsModel'
 import { useEndLoginSessions } from './useEndLoginSessions'
+import { SearchableSelect } from '../../design-system/SearchableSelect'
 import { ROLES } from './platformOrganizationShared'
 import './platformDashboard.css'
 import './loginSessions.css'
 
-const short = value => {
-  if (!value) return '—'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return '—'
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-const hhmm = value => {
-  const d = new Date(value)
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
+// dd/mm/yyyy, hh:mm in Athens time, as on every owner list.
+const short = athensDateTime
+const hhmm = athensTime
 
 // The record of one user of the organization (opened from «Χρήστες πλατφόρμας» or from the organization's
 // «Χρήστες»): Στοιχεία (with the account's security), Συνδέσεις and Δραστηριότητα. The state and the
@@ -39,6 +34,8 @@ export function PlatformOrganizationUserRecord({ ctx }) {
   const { deleteSelectedUser, employeeLinkDrafts, employeeOptions, invitationLink, language, linkUserEmployee, loadSessions, organization, resetUserAccess, saveSelectedUser, selectedEmployee, selectedUser, sessions = [], setEmployeeLinkDrafts, setInvitationLink, setSelectedUserId, setUserDraft, setUserEditing, showInvitationLink, toggleSelectedUserStatus, tx, userDraft, userEditing, working } = ctx
   const en = language === 'en'
   const { confirm, notify, notifyError } = useFeedback()
+  // The employee picker is a searchable list (a hospital has hundreds of employees); built once, not on every render.
+  const employeePickerOptions = useMemo(() => employeeOptions.map(employee => ({ value: employee.dbId, label: `${employee.lastName} ${employee.firstName}`, description: [employee.id, employee.department].filter(Boolean).join(' · ') })), [employeeOptions])
   const [tab, setTab] = useState('details')
   const [signIns, setSignIns] = useState({ attempts: [], locks: [] })
   const [now, setNow] = useState(() => Date.now())
@@ -89,7 +86,9 @@ export function PlatformOrganizationUserRecord({ ctx }) {
       .catch(() => { if (active) setEvents([]) })
     return () => { active = false }
   }, [tab, events])
-  const userEvents = useMemo(() => (events || []).filter(row => row.actorId === selectedUser.userId), [events, selectedUser.userId])
+  // Identical consecutive actions within 15 minutes are one row with a count; newest first.
+  const userEvents = useMemo(() => groupAuditEvents((events || []).filter(row => row.actorId === selectedUser.userId).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))), [events, selectedUser.userId])
+  const eventNames = { organization: id => (id === organization.id ? organization.name : ''), user: ref => (ref.userId === selectedUser.userId || ref.memberId === selectedUser.id ? selectedUser.name : ''), employee: id => { const found = (ctx.employees || []).find(employee => employee.dbId === id); return found ? `${found.lastName} ${found.firstName}` : '' } }
   const eventPages = Math.max(1, Math.ceil(userEvents.length / eventPageSize)), safeEventPage = Math.min(eventPage, eventPages)
   const pagedEvents = userEvents.slice((safeEventPage - 1) * eventPageSize, safeEventPage * eventPageSize)
   const statusTone = selectedUser.status === 'active' ? 'success' : selectedUser.status === 'disabled' ? 'danger' : 'warning'
@@ -260,19 +259,18 @@ export function PlatformOrganizationUserRecord({ ctx }) {
                   </label>
                 </div>
                 <div className="platform-user-record-link-row">
-                  <select
+                  <SearchableSelect
                     className="platform-role-select"
-                    aria-label={tx('Καρτέλα εργαζομένου', 'Employee record')}
+                    label={tx('Καρτέλα εργαζομένου', 'Employee record')}
+                    hideLabel
                     value={employeeLinkDrafts[selectedUser.userId] || ''}
-                    onChange={e => setEmployeeLinkDrafts(x => ({ ...x, [selectedUser.userId]: e.target.value }))}
-                  >
-                    <option value="">{tx('Επιλογή εργαζομένου…', 'Select employee…')}</option>
-                    {employeeOptions.map(employee => (
-                      <option key={employee.dbId} value={employee.dbId}>
-                        {employee.lastName + ' ' + employee.firstName + ' · ' + employee.id + (employee.department ? ' · ' + employee.department : '')}
-                      </option>
-                    ))}
-                  </select>
+                    options={employeePickerOptions}
+                    limit={50}
+                    onChange={value => setEmployeeLinkDrafts(x => ({ ...x, [selectedUser.userId]: value }))}
+                    placeholder={tx('Αναζήτηση εργαζομένου…', 'Search employee…')}
+                    emptyLabel={tx('Δεν βρέθηκε εργαζόμενος', 'No employee found')}
+                    clearLabel={tx('Καθαρισμός', 'Clear')}
+                  />
                   <Button
                     variant="secondary"
                     disabled={working || !employeeLinkDrafts[selectedUser.userId] || selectedEmployee?.dbId === employeeLinkDrafts[selectedUser.userId]}
@@ -369,19 +367,20 @@ export function PlatformOrganizationUserRecord({ ctx }) {
                         <th>{tx('Οργανισμός', 'Organization')}</th>
                         <th>{tx('Ενέργεια', 'Action')}</th>
                         <th>{tx('Αντικείμενο', 'Entity')}</th>
-                        <th>{tx('Αναγνωριστικό', 'Identifier')}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {pagedEvents.map(row => (
-                        <tr key={row.id}>
-                          <td><strong>{fmtDate(row.createdAt)}</strong></td>
-                          <td>{row.organizationId === organization.id ? organization.name : row.metadata?.organization_name || tx('Επίπεδο πλατφόρμας', 'Platform level')}</td>
-                          <td><strong>{eventLabel(row.eventType, en)}</strong></td>
-                          <td>{entityLabel(row.entityType, en)}</td>
-                          <td><small>{row.entityId || '—'}</small></td>
-                        </tr>
-                      ))}
+                      {pagedEvents.map(group => {
+                        const text = describeAuditGroup(group, { en, names: eventNames })
+                        return (
+                          <tr key={group.id}>
+                            <td><strong>{fmtDate(group.to)}</strong>{text.when && <small>{text.when}</small>}</td>
+                            <td>{group.organizationId === organization.id ? organization.name : group.metadata?.organization_name || tx('Επίπεδο πλατφόρμας', 'Platform level')}</td>
+                            <td><strong>{text.action}</strong></td>
+                            <td title={text.technical || undefined}>{text.entity}{text.name && <small>{text.name}</small>}</td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
