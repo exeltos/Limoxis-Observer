@@ -52,7 +52,16 @@ describe('Management Center review', () => {
     expect(page).toContain("t('managementPanel.checkNow')")
     expect(page).toContain("{t('managementPanel.updatesButton')}{pendingUpdates.length>0?` (${pendingUpdates.length})`:''}")
     expect(page).not.toContain("<OverflowMenu items={[{id:'history'")
-    expect(page).toContain('<Page fill actions={updateActions||sourcesActions}')
+    expect(page).toContain('<Page fill actions={updateCenterOpen?null:(updateActions||sourcesActions)}')
+  })
+
+  it('the update center is a screen of the Lists (with Back), not a dialog', () => {
+    const page = read('src/features/management/ManagementPage.jsx')
+    const center = read('src/features/management/PlatformUpdateCenter.jsx')
+    expect(page).toContain('{updateCenterOpen?<PlatformUpdateCenter ')
+    expect(center).not.toContain('ObserverDialog')
+    expect(center).toContain('puc-page')
+    expect(center).toContain('<BackButton onClick={onClose}')
   })
 
   it('management tabs use the record-tab underline style', () => {
