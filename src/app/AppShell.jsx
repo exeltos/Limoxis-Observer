@@ -101,7 +101,7 @@ export function AppShell(){
     if(item.key==='platformNav.libraries')return management&&!['sources','lira'].includes(platformManagementGroup)
     if(item.key==='platformNav.audit')return under('/platform/audit')||under('/platform/health')
     if(item.path!=='/platform')return under(item.path)
-    // A user's record opened from «Χρήστες πλατφόρμας» (it lives under #organizations) keeps that menu entry highlighted.
+    // A user record opened from the platform users list (it lives under #organizations) keeps the users menu entry highlighted.
     const fromUsers=platformHashKey==='organizations'&&location.state?.fromUsers&&new URLSearchParams(location.hash.split('?')[1]||'').get('user')
     return location.pathname==='/platform'&&(fromUsers?'users':platformHashKey)===item.hash
   }
