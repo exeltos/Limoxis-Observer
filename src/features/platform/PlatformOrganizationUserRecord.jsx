@@ -78,6 +78,8 @@ export function PlatformOrganizationUserRecord({ ctx }) {
   const [events, setEvents] = useState(null)
   const [eventPage, setEventPage] = useState(1)
   const [eventPageSize, setEventPageSize] = useState(15)
+  const [sessionPage, setSessionPage] = useState(1)
+  const [sessionPageSize, setSessionPageSize] = useState(15)
   useEffect(() => {
     if (tab !== 'activity' || events) return
     let active = true
@@ -91,6 +93,8 @@ export function PlatformOrganizationUserRecord({ ctx }) {
   const eventNames = { organization: id => (id === organization.id ? organization.name : ''), user: ref => (ref.userId === selectedUser.userId || ref.memberId === selectedUser.id ? selectedUser.name : ''), employee: id => { const found = (ctx.employees || []).find(employee => employee.dbId === id); return found ? `${found.lastName} ${found.firstName}` : '' } }
   const eventPages = Math.max(1, Math.ceil(userEvents.length / eventPageSize)), safeEventPage = Math.min(eventPage, eventPages)
   const pagedEvents = userEvents.slice((safeEventPage - 1) * eventPageSize, safeEventPage * eventPageSize)
+  const sessionPages = Math.max(1, Math.ceil(userSessions.length / sessionPageSize)), safeSessionPage = Math.min(sessionPage, sessionPages)
+  const pagedSessions = userSessions.slice((safeSessionPage - 1) * sessionPageSize, safeSessionPage * sessionPageSize)
   const statusTone = selectedUser.status === 'active' ? 'success' : selectedUser.status === 'disabled' ? 'danger' : 'warning'
   const statusText = selectedUser.status === 'active' ? tx('Ενεργός', 'Active') : selectedUser.status === 'disabled' ? tx('Σε παύση', 'Suspended') : tx('Εκκρεμής', 'Pending')
   const tabs = [
@@ -315,6 +319,7 @@ export function PlatformOrganizationUserRecord({ ctx }) {
         {tab === 'sessions' && (
           <div className="platform-user-record-tab">
             {userSessions.length ? (
+              <>
               <div className="table-wrap scroll-table diagnostics-table-wrap">
                 <table className="data-table sticky-table diagnostics-table login-sessions-table">
                   <thead>
@@ -329,7 +334,7 @@ export function PlatformOrganizationUserRecord({ ctx }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {userSessions.map(row => {
+                    {pagedSessions.map(row => {
                       const state = sessionStatus(row, en)
                       return (
                         <tr key={row.sessionId}>
@@ -346,6 +351,8 @@ export function PlatformOrganizationUserRecord({ ctx }) {
                   </tbody>
                 </table>
               </div>
+              <RegistryPagination language={language} page={safeSessionPage} totalPages={sessionPages} totalItems={userSessions.length} pageSize={sessionPageSize} onPageChange={setSessionPage} onPageSizeChange={size => { setSessionPageSize(size); setSessionPage(1) }} />
+              </>
             ) : (
               <div className="registry-empty-state">
                 <strong>{tx('Καμία σύνδεση τις τελευταίες 90 ημέρες.', 'No sign-ins in the last 90 days.')}</strong>
