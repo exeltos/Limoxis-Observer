@@ -96,6 +96,16 @@ describe('organization users', () => {
     expect(within((await screen.findByText(admin.name)).closest('tr')).getByText('Διαχειριστής Νοσοκομείου')).toBeInTheDocument()
   })
 
+  it('looks like the platform users list: totals as filters, a view switch and the initials avatar', async () => {
+    openRecord('users')
+    const row = (await screen.findByText(user.name)).closest('tr')
+    expect(row.querySelector('.platform-overview-avatar')).not.toBeNull()
+    expect(screen.getByRole('group', { name: 'Σύνολα χρηστών' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /^Λογαριασμοί \(\d+\)$/ })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /^Εργαζόμενοι χωρίς λογαριασμό \(\d+\)$/ })).not.toBeChecked()
+    expect(screen.queryByRole('tablist', { name: 'Χρήστες' })).toBeNull()
+  })
+
   it('invites a Hospital Admin when the organization has none', async () => {
     members = [user]
     openRecord()

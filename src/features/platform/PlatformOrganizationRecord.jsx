@@ -19,6 +19,7 @@ import './platformDashboard.css'
 
 import { PlatformOrganizationDetailsTab } from './PlatformOrganizationDetailsTab'
 import { PlatformOrganizationUsersTab } from './PlatformOrganizationUsersTab'
+import { platformUserState } from './PlatformUsersRegistry'
 import { PlatformOrganizationUserRecord } from './PlatformOrganizationUserRecord'
 import { ROLES, toDraft } from './platformOrganizationShared'
 import { loadEmployeesAsync } from '../employees/employeeService'
@@ -73,6 +74,7 @@ export function PlatformOrganizationRecord({
   })
   const [userQuery, setUserQuery] = useState('')
   const [userPage, setUserPage] = useState(1)
+  const [userFilter, setUserFilter] = useState('all')
   const [userPageSize, setUserPageSize] = useState(15)
   const [createUserOpen, setCreateUserOpen] = useState(initialTab === 'users' && initialNew === 'invite')
   useEffect(() => {
@@ -178,18 +180,28 @@ export function PlatformOrganizationRecord({
         : [],
     [employees, selectedUser],
   )
+  const onlineUserIds = useMemo(() => new Set(sessions.filter(row => row.online).map(row => row.userId)), [sessions])
+  const orgUserState = user => platformUserState({ status: user.status, invitation: user.invitationStatus })
   const filteredUsers = useMemo(() => {
     const locale = language === 'el' ? 'el-GR' : 'en-US',
       query = userQuery.trim().toLocaleLowerCase(locale)
-    if (!query) return users
-    return users.filter(user =>
+    const byFilter = users.filter(user => {
+      const state = platformUserState({ status: user.status, invitation: user.invitationStatus })
+      if (userFilter === 'active') return state === 'active'
+      if (userFilter === 'invited') return state === 'pending' || state === 'expired'
+      if (userFilter === 'inactive') return state === 'inactive'
+      if (userFilter === 'online') return onlineUserIds.has(user.userId)
+      return true
+    })
+    if (!query) return byFilter
+    return byFilter.filter(user =>
       [user.name, user.email, user.username, roleLabel(user.role, language)].some(value =>
         String(value || '')
           .toLocaleLowerCase(locale)
           .includes(query),
       ),
     )
-  }, [users, userQuery, language])
+  }, [users, userQuery, userFilter, onlineUserIds, language])
   const userTotalPages = Math.max(1, Math.ceil(filteredUsers.length / userPageSize)),
     safeUserPage = Math.min(userPage, userTotalPages),
     pagedUsers = filteredUsers.slice((safeUserPage - 1) * userPageSize, safeUserPage * userPageSize)
@@ -200,7 +212,7 @@ export function PlatformOrganizationRecord({
     createUserDraft.role,
   )
 
-  useEffect(() => setUserPage(1), [userQuery, userPageSize])
+  useEffect(() => setUserPage(1), [userQuery, userFilter, userPageSize])
   useEffect(() => {
     if (userPage > userTotalPages) setUserPage(userTotalPages)
   }, [userPage, userTotalPages])
@@ -702,7 +714,7 @@ export function PlatformOrganizationRecord({
           </div>
         )}
 
-        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ startMode, filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
+        {initialTab === 'users' && <PlatformOrganizationUsersTab ctx={{ startMode, filteredUsers, onlineUserIds, orgUserState, setUserFilter, userFilter, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions, setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView }} />}
         {initialTab === 'diagnostics' && (
           <HospitalDiagnosticsPanel organization={record} language={language} sessions={sessions} loadingSessions={loadingSessions || loadingUsers} onReloadSessions={loadSessions} />
         )}

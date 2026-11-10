@@ -1,27 +1,44 @@
 import { useState } from 'react'
-import { FileUp, Mail, ShieldCheck, UserCheck, UserPlus, Users } from 'lucide-react'
+import { FileUp, Mail, ShieldCheck, UserCheck, UserPlus } from 'lucide-react'
 import { OverflowMenu } from '../../design-system/OverflowMenu'
 import { FilterBar } from '../../design-system/FilterBar'
 import { RegistryPagination } from '../../design-system/RegistryPagination'
 import { roleLabel } from '../../core/permissions/roleLabels'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { exportRegistry } from '../../core/export/registryExports'
-import { SubTabs } from '../../design-system/SubTabs'
+import { ModeSwitch } from '../../design-system/ModeSwitch'
+import { RegistryTotals } from '../../design-system/RegistryTotals'
 import { BulkAccountsPanel } from './BulkAccountsPanel'
 import { ActiveUsersDialog } from './ActiveUsersDialog'
-import { latestSessionByUser, sinceText } from './platformOverviewShared'
+import { latestSessionByUser } from './platformOverviewShared'
+import { USER_STATE_BADGE, UserNameCell, lastSignInContent, userStateLabel } from './PlatformUserCells'
 
 // «Χρήστες» of an organization record: the accounts, or the employee roster with who has no
 // account yet. The state and the actions stay in PlatformOrganizationRecord (ctx).
 export function PlatformOrganizationUsersTab({ ctx }) {
-  const { startMode = '', filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions = [], setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserPageSize, setUserQuery, setUsersView, tx, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
+  const { startMode = '', filteredUsers, language, loadRoster, loadUsers, loadingUsers, onOpenEmployee, onlineUserIds, orgUserState, pagedUsers, record, roster, rosterLoading, rosterWithoutAccount, safeUserPage, sessions = [], setCreateUserDraft, setCreateUserOpen, setSelectedUserId, setUserPage, setUserFilter, setUserPageSize, setUserQuery, setUsersView, tx, userFilter, userPageSize, userQuery, userTotalPages, users, usersView } = ctx
   // «Νέος ενεργός χρήστης» / «Εισαγωγή χρηστών από αρχείο»: accounts active at once,
   // with a temporary password the owner hands over (ActiveUsersDialog).
   const [activeUsersMode, setActiveUsersMode] = useState(startMode)
   // The latest sign-in of each user (last 90 days): when and from which IP.
   const latest = latestSessionByUser(sessions)
-  const lastSignIn = user => latest.get(user.userId)
-  // The tab carries its name: no inner heading; «Εξαγωγή» and «Νέος χρήστης» sit beside the search.
+  // The totals beside the search, as on «Χρήστες πλατφόρμας»: each one filters the list; a second click clears it.
+  const counts = users.reduce((acc, user) => { const state = orgUserState(user); if (state === 'active') acc.active += 1; if (state === 'pending' || state === 'expired') acc.invited += 1; if (state === 'inactive') acc.inactive += 1; if (onlineUserIds.has(user.userId)) acc.online += 1; return acc }, { active: 0, invited: 0, inactive: 0, online: 0 })
+  const toggleFilter = key => setUserFilter(current => (current === key ? 'all' : key))
+  const totals = [['active', tx('ενεργοί', 'active'), counts.active, undefined, true], ['online', tx('συνδεδεμένοι τώρα', 'online now'), counts.online, 'good'], ['invited', tx('εκκρεμείς προσκλήσεις', 'pending invitations'), counts.invited, 'warning'], ['inactive', tx('ανενεργοί', 'inactive'), counts.inactive, 'danger']].map(([key, label, value, tone, always]) => ({ key, label, value, always, tone: value ? tone : undefined, active: userFilter === key, onClick: () => toggleFilter(key) }))
+  // Short labels with the count as a small number; the full text stays as the name and tooltip.
+  const viewSwitch = (
+    <ModeSwitch
+      ariaLabel={tx('Χρήστες', 'Users')}
+      value={usersView}
+      onChange={setUsersView}
+      options={[
+        { value: 'accounts', label: <>{tx('Λογαριασμοί', 'Accounts')} <small className="platform-org-users-count">{users.length}</small></>, ariaLabel: tx(`Λογαριασμοί (${users.length})`, `Accounts (${users.length})`), title: tx('Λογαριασμοί', 'Accounts') },
+        { value: 'roster', label: <>{tx('Χωρίς λογαριασμό', 'No account')} <small className="platform-org-users-count">{rosterWithoutAccount}</small></>, ariaLabel: tx(`Εργαζόμενοι χωρίς λογαριασμό (${rosterWithoutAccount})`, `Employees without an account (${rosterWithoutAccount})`), title: tx('Εργαζόμενοι χωρίς λογαριασμό', 'Employees without an account') },
+      ]}
+    />
+  )
+  // The tab carries its name: no inner heading; «Εξαγωγή» and «Νέος χρήστης» sit beside the search, after the totals and the view switch.
   const accountActions = (
               <div className="row-actions">
                 <ExportMenu
@@ -81,22 +98,15 @@ export function PlatformOrganizationUsersTab({ ctx }) {
   )
   return (
           <div className="workspace-column workspace-fill">
-            <div className="platform-users-tabs">
-            <SubTabs
-              ariaLabel={tx('Χρήστες', 'Users')}
-              activeId={usersView}
-              onChange={setUsersView}
-              tabs={[
-                { id: 'accounts', label: tx('Λογαριασμοί', 'Accounts'), icon: Users, count: users.length },
-                { id: 'roster', label: tx('Εργαζόμενοι χωρίς λογαριασμό', 'Employees without account'), icon: UserPlus, count: rosterWithoutAccount },
-              ]}
-            />
-              {usersView === 'roster' && (
+            {/* One row above the frame: the view switch at the left, the actions at the right (Εξαγωγή, then the primary «Νέος χρήστης»). */}
+            <div className="platform-org-users-actions">
+              {viewSwitch}
+              {usersView === 'roster' ? (
                 <span className="bulk-accounts-owner-only">
                   <ShieldCheck size={13} aria-hidden="true" />
                   {tx('Μόνο Ιδιοκτήτης Πλατφόρμας', 'Platform Owner only')}
                 </span>
-              )}
+              ) : accountActions}
             </div>
             {usersView === 'roster' ? (
               <BulkAccountsPanel
@@ -114,7 +124,7 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                 query={userQuery}
                 onQueryChange={setUserQuery}
                 placeholder={tx('Αναζήτηση χρήστη, email ή ρόλου…', 'Search user, email or role…')}
-                end={accountActions}
+                end={<>{users.length ? <RegistryTotals label={tx('Σύνολα χρηστών', 'User totals')} items={totals} /> : null}</>}
               />
               {loadingUsers ? (
                 <div className="inline-empty">{tx('Φόρτωση χρηστών…', 'Loading users…')}</div>
@@ -145,38 +155,11 @@ export function PlatformOrganizationUsersTab({ ctx }) {
                               }
                             }}
                           >
-                            <td>
-                              <strong>{user.name}</strong>
-                              <small>{user.email || '—'}</small>
-                            </td>
-                            <td>{user.username}</td>
+                            <td><UserNameCell name={user.name} email={user.email} online={onlineUserIds.has(user.userId)} tx={tx} /></td>
+                            <td>{user.username && user.username !== '—' ? <code>{user.username}</code> : '—'}</td>
                             <td>{roleLabel(user.role, language)}</td>
-                            <td className="platform-users-last">
-                              {lastSignIn(user) ? (
-                                <>
-                                  {lastSignIn(user).online ? tx('Συνδεδεμένος τώρα', 'Online now') : sinceText(lastSignIn(user).startedAt, tx)}
-                                  <small className="login-ip">{lastSignIn(user).lastIp || lastSignIn(user).ip || '—'}</small>
-                                </>
-                              ) : '—'}
-                            </td>
-                            <td>
-                              <span
-                                className={
-                                  'status-badge ' +
-                                  (user.status === 'active'
-                                    ? 'active'
-                                    : user.status === 'disabled'
-                                      ? 'danger'
-                                      : 'temporary')
-                                }
-                              >
-                                {user.status === 'active'
-                                  ? tx('Ενεργός', 'Active')
-                                  : user.status === 'disabled'
-                                    ? tx('Σε παύση', 'Suspended')
-                                    : tx('Εκκρεμής', 'Pending')}
-                              </span>
-                            </td>
+                            <td className="platform-users-last">{lastSignInContent(latest.get(user.userId), onlineUserIds.has(user.userId), tx)}</td>
+                            <td><span className={`status-badge ${USER_STATE_BADGE[orgUserState(user)]}`}>{userStateLabel(tx, orgUserState(user))}</span></td>
                           </tr>
                         ))}
                       </tbody>
