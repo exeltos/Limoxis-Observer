@@ -90,12 +90,20 @@
 .platform-user-online{display:inline-block;width:8px;height:8px;margin-left:7px;border-radius:50%;background:var(--lo-color-success,#1f7a4d);vertical-align:middle}
 .platform-user-inline{padding:12px 0;border-top:1px solid var(--lo-color-border)}
 .platform-user-inline>div:first-child p{margin:2px 0 8px;color:var(--lo-color-muted);font-size:12.5px}
-.platform-user-security{padding-top:12px;border-top:1px solid var(--lo-color-border)}
+.platform-user-security{padding-top:12px}
 .platform-user-security-list{display:grid;gap:8px;margin:8px 0 0}
 .platform-user-security-list>div{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:34px}
 .platform-user-security-list dt{min-width:340px;color:var(--lo-color-muted);font-size:13px}
 .platform-user-security-list dd{display:flex;align-items:center;gap:10px;margin:0;font-size:13.5px;font-weight:600}
 .platform-user-record-tab{display:flex;flex-direction:column;gap:10px;min-height:0}
+/* A record tab is one frame: its sections are separated by a single line, never boxed again inside it. */
+.platform-owner-details .platform-form-shell{gap:14px}
+.platform-owner-details .platform-form-section,.platform-owner-details .operating-profile .operating-profile-block{padding:0 0 14px;border:0;border-bottom:1px solid var(--lo-color-border);border-radius:0;background:transparent}
+.platform-owner-details .platform-form-section:last-child,.platform-owner-details .operating-profile .operating-profile-block:last-child{padding-bottom:0;border-bottom:0}
+.platform-owner-details .platform-form-section>header{padding-left:0;box-shadow:none}
+.platform-owner-details .platform-form-section:has(+.platform-user-inline){padding-bottom:0;border-bottom:0}
+.platform-owner-details .operating-profile .operating-profile-summary.changed{padding:10px 12px;border:1px solid #f0d9b5;border-radius:9px;background:#fffaf2}
+.platform-owner-details .platform-org-totals{margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid var(--lo-color-border)}
 @media(max-width:1100px){.platform-org-details .lo-detail-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.platform-org-details .lo-detail-list{grid-template-columns:1fr}}
 .platform-org-users-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:36px}

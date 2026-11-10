@@ -5,6 +5,7 @@ import { ModuleTabs } from '../../design-system/ModuleTabs'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { loadCandidates, loadSources } from '../legislation/legislationService'
 import { sourceHealth } from '../legislation/legislationModel'
+import './platformLegalTabs.css'
 
 // «Νομοθεσία & πηγές» of the owner's menu (owner, 9/11/2026): one row of choices in the normal shell — the platform's
 // legislation library, what the automatic check found, the sources it checks, the Library's guides & links and the
