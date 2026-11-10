@@ -30,7 +30,7 @@ const qty = (value, unit, language) => `${fmtQty(value, language)}${unit && unit
 
 // --- The list (Ανάκληση tab) ------------------------------------------------------------------
 
-export function RecallPanel({ state, filters, setFilters, onRecall }) {
+export function RecallPanel({ state, filters, setFilters, onRecall, switcher = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
@@ -41,7 +41,7 @@ export function RecallPanel({ state, filters, setFilters, onRecall }) {
   const active = (filters.result !== 'all' ? 1 : 0) + (filters.scenario !== 'all' ? 1 : 0)
   return <>
     {summary.overdue && <div className="kitchen-recall-warning" role="status"><AlertTriangle size={15} />{summary.last ? (en ? `No recall drill since ${fmtDay(summary.last.drillDate)}: one is due every ${summary.months} months.` : `Καμία άσκηση ανάκλησης από ${fmtDay(summary.last.drillDate)}: προβλέπεται κάθε ${summary.months} μήνες.`) : (en ? 'No recall drill recorded: HACCP asks that the recall procedure is tested.' : 'Δεν έχει γίνει άσκηση ανάκλησης: το HACCP ζητά η διαδικασία ανάκλησης να δοκιμάζεται.')}</div>}
-    <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search code, product, dish, trigger…' : 'Αναζήτηση κωδικού, προϊόντος, πιάτου, αφορμής…'} activeFilters={active}
+    <KitchenList end={switcher} rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search code, product, dish, trigger…' : 'Αναζήτηση κωδικού, προϊόντος, πιάτου, αφορμής…'} activeFilters={active}
       onClear={() => setFilters(current => ({ ...current, query: '', result: 'all', scenario: 'all' }))}
       filters={<>
         <FilterSelect label={en ? 'Result' : 'Αποτέλεσμα'} value={filters.result} onChange={value => set('result', value)}><option value="all">{en ? 'All' : 'Όλα'}</option>{RECALL_RESULTS.map(item => <option key={item.value} value={item.value}>{item.label[en ? 1 : 0]}</option>)}<option value="draft">{en ? 'In progress' : 'Σε εξέλιξη'}</option></FilterSelect>

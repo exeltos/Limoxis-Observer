@@ -252,14 +252,14 @@ export function PlanPanel({ state, access, filters, setFilters, onDialog, onOpen
 
 // --- Verification queue -----------------------------------------------------------------------
 
-export function VerificationPanel({ state, filters, setFilters, onOpenDay }) {
+export function VerificationPanel({ state, filters, setFilters, onOpenDay, switcher = null }) {
   const { language } = useLanguage()
   const en = language === 'en'
   const set = (key, value) => setFilters(current => ({ ...current, [key]: value }))
   const today = todayKey()
   const rows = verificationQueue(state, { today, since: filters.range === 'all' ? '' : addDays(today, -Number(filters.range || 30)) }).map(row => ({ ...row, id: row.production.id }))
     .filter(row => matches(filters.query, row.production.menuText, fmtDay(row.production.productionDate)))
-  return <KitchenList rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search date or menu…' : 'Αναζήτηση ημερομηνίας ή μενού…'} activeFilters={filters.range !== '30' ? 1 : 0} onClear={() => setFilters(current => ({ ...current, query: '', range: '30' }))}
+  return <KitchenList end={switcher} rows={rows} query={filters.query} onQueryChange={value => set('query', value)} placeholder={en ? 'Search date or menu…' : 'Αναζήτηση ημερομηνίας ή μενού…'} activeFilters={filters.range !== '30' ? 1 : 0} onClear={() => setFilters(current => ({ ...current, query: '', range: '30' }))}
     filters={<FilterSelect label={en ? 'Period' : 'Περίοδος'} value={filters.range} onChange={value => set('range', value)}><option value="7">{en ? 'Last 7 days' : 'Τελευταίες 7 ημέρες'}</option><option value="30">{en ? 'Last 30 days' : 'Τελευταίες 30 ημέρες'}</option><option value="all">{en ? 'Every unverified day' : 'Όλες οι ανεπαλήθευτες ημέρες'}</option></FilterSelect>}
     columns={[{ key: 'day', label: en ? 'Day' : 'Ημέρα' }, { key: 'records', label: en ? 'Records' : 'Καταγραφές' }, { key: 'out', label: en ? 'Out of limits' : 'Εκτός ορίων' }, { key: 'defrost', label: en ? 'Defrosts to sign' : 'Αποψύξεις προς επαλήθευση' }]}
     empty={!rows.length} emptyTitle={en ? 'Nothing to verify' : 'Τίποτα προς επαλήθευση'} emptyText={en ? 'Every production day of the period is signed off.' : 'Όλες οι ημέρες παραγωγής της περιόδου έχουν επαληθευτεί.'}

@@ -1,17 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { CalendarClock, ChefHat, ClipboardList, LayoutDashboard, Package, ShieldCheck, Siren, Truck } from 'lucide-react'
 import { Page } from '../../design-system/Page'
 import { Button } from '../../design-system/Button'
 import { ModeSwitch } from '../../design-system/ModeSwitch'
-import { SectionHeader } from '../../design-system/SectionHeader'
 import { CanonicalTabs } from '../../design-system/CanonicalTabs'
 import { ExportMenu } from '../../design-system/ExportMenu'
 import { useLanguage } from '../../core/i18n/LanguageContext'
 import { useFeedback } from '../../core/feedback/FeedbackContext'
 import { reportExports } from '../../core/export/reportDocument'
 import { useKitchen, useKitchenAccess } from './KitchenShared'
-import { HaccpPanel, OverviewPanel, PlanPanel, ReceiptsPanel, SettingsDialog, StockPanel, TraceDialog, VerificationPanel, fmtDay } from './KitchenPanels'
+import { HaccpPanel, OverviewPanel, PlanPanel, ReceiptsPanel, SettingsDialog, StockPanel, TraceDialog, VerificationPanel } from './KitchenPanels'
 import { DefrostDialog, LimitsDialog, MenuDialog, ProductDialog, ProductionDialog, PureeingDialog, ReceiptDialog, StepDialog, ThermalDialog, UsageDialog, WriteoffDialog } from './KitchenDialogs'
 import { KITCHEN_PRIMARY_ACTION, addDays, categoryLabel, newProduction, newReceipt, overview, productionForDay, resolveKitchenLocation, stockRows, todayKey } from './kitchenModel'
 import { dailyHaccpDocument, exportKitchenList, kitchenListExport, receiptsLogDocument } from './kitchenReports'
@@ -52,8 +51,6 @@ export function KitchenPage() {
   const [trace, setTrace] = useState(null)
   const [recallDraft, setRecall] = useState(null)
   // An address of the old Recall / Verification tabs scrolls to its section of the shared tab.
-  const focusRef = useRef(null)
-  useEffect(() => { if (tab === 'safety' && params.get('view') && focusRef.current?.scrollIntoView) focusRef.current.scrollIntoView({ block: 'start' }) }, [tab, view, state]) // eslint-disable-line react-hooks/exhaustive-deps
     const stock = useMemo(() => (state ? stockRows(state, today) : []), [state, today])
   const summary = useMemo(() => (state ? overview(state, today) : null), [state, today])
   const dishes = useMemo(() => (state ? [...new Set([...state.thermal.map(row => row.dishName), ...state.productions.flatMap(row => (row.meals || []).map(meal => meal.dish))].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el')).slice(0, 400) : []), [state])
@@ -113,8 +110,8 @@ export function KitchenPage() {
     { value: 'haccp', label: en ? 'HACCP plan' : 'Σχέδιο HACCP', icon: ClipboardList },
   ]
   const storageSwitch = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view === 'receipts' ? 'receipts' : 'stock'} onChange={value => setLocation('storage', value)} options={[{ value: 'receipts', label: en ? 'Receipts' : 'Παραλαβές', icon: Truck }, { value: 'stock', label: en ? 'Stock' : 'Απόθεμα', icon: Package }]} />
+  const safetySwitch = <ModeSwitch ariaLabel={en ? 'View' : 'Προβολή'} value={view === 'recall' ? 'recall' : 'verification'} onChange={value => setLocation('safety', value)} options={[{ value: 'verification', label: en ? 'Days to verify' : 'Προς επαλήθευση', icon: ShieldCheck }, { value: 'recall', label: en ? 'Recall drills' : 'Ασκήσεις ανάκλησης', icon: Siren }]} />
   const props = { state, access, reload, organizationId, onDialog: setDialog, onOpenDay: openDay, onTrace: setTrace, onRecall: setRecall, stock }
-  const lastDrill = recall.last
   return <Page fill className="registry-fill-page kitchen-page" title={en ? 'Kitchen' : 'Κουζίνα'} subtitle={en ? 'HACCP food safety: receipts and stock, the production day, critical limits, verification and traceability.' : 'Ασφάλεια τροφίμων HACCP: παραλαβές και απόθεμα, ημέρα παραγωγής, κρίσιμα όρια, επαλήθευση και ιχνηλασιμότητα.'} actions={actions}>
     <CanonicalTabs items={tabs} value={tab} onChange={setTab} ariaLabel={en ? 'Kitchen' : 'Κουζίνα'} />
     <section className={`surface registry-workspace workspace-column workspace-fill kitchen-workspace kitchen-tab-${tab}`}>
@@ -122,16 +119,9 @@ export function KitchenPage() {
       {tab === 'days' && <PlanPanel {...props} {...pair(filtersFor('plan'))} />}
       {tab === 'storage' && view === 'receipts' && <ReceiptsPanel {...props} {...pair(filtersFor('receipts'))} switcher={storageSwitch} />}
       {tab === 'storage' && view !== 'receipts' && <StockPanel {...props} {...pair(filtersFor('stock'))} view={view} switcher={storageSwitch} onView={value => setLocation('storage', value)} />}
-      {tab === 'safety' && <div className="kitchen-safety">
-        <section className="kitchen-card kitchen-safety-section" ref={view === 'verification' ? focusRef : null}>
-          <SectionHeader title={en ? 'Days to verify' : 'Ημέρες προς επαλήθευση'} subtitle={en ? 'Open a day to review its records and sign it off.' : 'Ανοίξτε την ημέρα για να ελέγξετε τις καταγραφές και να την επαληθεύσετε.'} />
-          <VerificationPanel {...props} {...pair(filtersFor('verification'))} />
-        </section>
-        <section className="kitchen-card kitchen-safety-section" ref={view === 'recall' ? focusRef : null}>
-          <SectionHeader title={en ? 'Recall drills' : 'Ασκήσεις ανάκλησης'} subtitle={lastDrill ? (en ? `Last drill ${fmtDay(lastDrill.drillDate)} · next due ${recall.due ? fmtDay(recall.due) : 'now'}` : `Τελευταία άσκηση ${fmtDay(lastDrill.drillDate)} · επόμενη ${recall.due ? fmtDay(recall.due) : 'άμεσα'}`) : (en ? `The recall procedure is tested at least every ${recall.months} months.` : `Η διαδικασία ανάκλησης δοκιμάζεται τουλάχιστον κάθε ${recall.months} μήνες.`)} />
-          <RecallPanel {...props} {...pair(filtersFor('recall'))} />
-        </section>
-      </div>}
+      {tab === 'safety' && (view === 'recall'
+        ? <RecallPanel {...props} {...pair(filtersFor('recall'))} switcher={safetySwitch} />
+        : <VerificationPanel {...props} {...pair(filtersFor('verification'))} switcher={safetySwitch} />)}
       {tab === 'haccp' && <HaccpPanel {...props} />}
     </section>
     <KitchenDialogHost dialog={dialog} setDialog={setDialog} state={state} stock={stock} dishes={dishes} organizationId={organizationId} reload={reload} onOpenDay={openDay} />

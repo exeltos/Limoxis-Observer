@@ -2,7 +2,7 @@
    sit on it without a second frame (as in Prevention, Controls and Employees).
    !important only to undo the framed .record-section / .scroll-table of foundation.css. */
 .training-record-shell .training-program-overview:is(section,#lo-training-record){border:0!important;border-radius:0!important;padding:0!important;background:transparent!important}
-.training-record-shell .training-participants-registry:is(section,#lo-training-record){border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+.training-record-shell .training-participants-registry:is(section,div,#lo-training-record){border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
 .training-record-shell .entity-record-body .scroll-table:is(div,#lo-training-record){border:0!important;border-radius:0!important}
 /* «More details» of the new-programme form: a quiet text button under the essentials. */
 .entry-grid .training-form-more{display:inline-flex;align-items:center;gap:6px;justify-self:start;padding:4px 2px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--lo-color-primary);cursor:pointer}

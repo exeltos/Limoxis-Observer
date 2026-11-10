@@ -173,3 +173,6 @@
 .bed-days-list-table tr.bed-days-year-row>td{padding:0;text-align:left;background:#f6f8fb}
 .bed-days-year-toggle{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;font:inherit;color:var(--lo-color-text);text-align:left;background:none;border:0;cursor:pointer}
 .bed-days-year-toggle span{font-size:12px;color:var(--lo-color-muted)}
+/* The lists tab and the page reach the bottom edge like every other list (no padding under the pager). */
+.page-fill:has(>.management-shell){padding-bottom:0}
+.management-scroll-section:has(>.library-layout){padding-bottom:0}

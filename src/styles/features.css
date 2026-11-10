@@ -3100,9 +3100,9 @@ button{letter-spacing:0}
 .page-record-header{align-self:stretch;flex:0 0 auto;width:auto;max-width:none}
 .page-record-header .entity-record-identity h1{margin:1px 0 2px;font-size:17px;font-weight:660;letter-spacing:-.015em;line-height:1.25;color:#172b42}
 .page-record-header .entity-record-identity p{white-space:normal}
-.entity-record-body{padding:13px!important;box-shadow:none!important}
+.entity-record-body:where(:not(:has(>.record-secondary-registry .registry-pagination))){padding:13px!important;box-shadow:none!important}
 .entity-record-body:not(:where(.platform-owner-record-shell>.entity-record-body)){border-radius:10px!important}
-.record-section,.clinical-panel,.full-panel,.record-subcard{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;padding:12px!important}
+.record-section:where(:not(.record-secondary-registry:has(.registry-pagination))),.clinical-panel,.full-panel,.record-subcard{border:1px solid var(--lo-color-border)!important;border-radius:9px!important;background:#fff!important;box-shadow:none!important;padding:12px!important}
 .record-section-header{margin-bottom:8px!important;padding-bottom:7px!important;border-bottom:1px solid #eef1f4!important}
 .record-section-header h3,.clinical-panel h3{font-size:13px!important;font-weight:650!important}
 .detail-grid{gap:8px 14px!important}
