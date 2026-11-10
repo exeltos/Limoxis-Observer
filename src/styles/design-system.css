@@ -30,7 +30,7 @@
 }
 .filter-search{flex:1 1 320px;max-width:520px}
 /* A view switch at the right end of the filter row (FilterBar end). */
-.filter-end{display:flex;align-items:center;gap:8px;margin-left:auto}
+.filter-end{display:flex;align-items:center;gap:8px;margin-left:auto;flex:0 1 auto;min-width:0}
 /* Search, «Filters» and the view switch share one height (36px). */
 .filter-primary-row>.filter-search,.filter-primary-row>.filter-trigger{box-sizing:border-box;height:36px!important;min-height:36px!important}
 .filter-end .lo-mode-switch{margin:0}
@@ -543,6 +543,8 @@
 .platform-diagnostics-registry .filter-trigger.active{border-color:color-mix(in srgb,var(--lo-color-primary) 30%,var(--lo-color-border));color:var(--lo-color-primary);background:color-mix(in srgb,var(--lo-color-primary) 5%,var(--lo-color-surface))}
 .platform-diagnostics-registry{overflow:hidden}
 .platform-diagnostics-registry>.filter-system{flex:0 0 auto}
+.platform-diagnostics-registry .filter-primary-row{flex-wrap:nowrap}
+.platform-diagnostics-registry .filter-search{min-width:120px}
 
 @media(max-width:760px){
   .platform-owner-record-shell .filter-primary-row,.platform-diagnostics-registry .filter-primary-row{flex-wrap:wrap}
@@ -1098,6 +1100,7 @@
 :is(.register-indicator-actions,.register-sheet-actions,.filter-end) .lo-mode-switch>button{justify-content:center;box-sizing:border-box;height:36px;min-height:36px!important;padding-top:0!important;padding-bottom:0!important}
 :is(.register-indicator-actions,.register-sheet-actions,.filter-end) :is(.lo-overflow-text-trigger,.button,.lo-icon-button){box-sizing:border-box;height:36px!important;min-height:36px!important}
 :is(.register-indicator-actions,.register-sheet-actions,.filter-end) .lo-icon-button{width:36px!important;min-width:36px!important}
+.filter-end{flex-wrap:nowrap}
 /* Mini charts (MiniCharts.jsx): a meter and a sparkline that sit inside cells and cards. */
 .lo-meter{display:block;width:100%;max-width:180px;height:6px;border-radius:999px;background:#e8eef3;overflow:hidden}
 .lo-meter>i{display:block;height:100%;border-radius:999px;background:#2a78d6}
@@ -1225,7 +1228,9 @@ td>.lo-meter{margin-top:5px}
 
 .observer-dialog-header-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 /* Registry totals beside the search and filters (RegistryTotals). */
-.registry-totals{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
+.registry-totals{display:flex;flex-wrap:nowrap;min-width:0;align-items:center;justify-content:flex-end;gap:6px}
+.registry-totals>.registry-total{flex:0 1 auto;min-width:0;overflow:hidden}
+.registry-total>strong{flex:none}.registry-total>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .registry-total{display:inline-flex;align-items:baseline;gap:5px;height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--muted);font:inherit;font-size:12px;line-height:28px;white-space:nowrap}
 .registry-total strong{color:var(--lo-color-text);font-size:13px;font-weight:700}
 button.registry-total{cursor:pointer}

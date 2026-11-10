@@ -35,6 +35,9 @@ imported by their components and load with them.
   name. `node tools/check-dead-selectors.mjs --write` removes such rules.
 - Do not add `!important` to win against another rule; raise specificity or
   put the rule in the right section instead.
+- Ομάδες pills/chips/tabs: ποτέ δεύτερη σειρά. `flex-wrap:nowrap`, τα στοιχεία
+  συρρικνώνονται (`min-width:0`, αποκοπή με «…»)· οι καρτέλες κυλούν οριζόντια.
+  Τα `.registry-totals` και `.analysis-figures` το ελέγχει `tests/pillRowsNoWrap.test.js`.
 
 ## Visual regression check
 
